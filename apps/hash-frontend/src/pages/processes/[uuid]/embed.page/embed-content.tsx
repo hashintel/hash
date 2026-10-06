@@ -10,9 +10,8 @@
  */
 import "@hashintel/petrinaut/dist/main.css";
 import { Box } from "@mui/material";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
 import {
   canonicalizePetrinautIds,
   createJsonDocHandle,
@@ -23,7 +22,6 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut";
 
-import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
 import { setIframeErrorReporterMode } from "../../shared/iframe-error-reporter";
 import {
   type HostNetMode,
@@ -33,18 +31,22 @@ import {
   type SavedSnapshot,
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
+import {
+  EmbedActions,
+  EmbedBreadcrumbs,
+  type EmbedChrome,
+  EmbedChromeContext,
+} from "./embed-chrome";
 import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
-import { VersionPicker } from "./version-picker";
 
 /**
- * The grays HASH's breadcrumbs use elsewhere in the app: crumb text (and
- * the crumb's icon / the process title) in the darker grey-blue, the
- * chevron separators lighter. Neither the MUI theme (closest:
- * `palette.gray[70]` #64778C / `palette.gray[50]` #91A5BA) nor the
- * ds-components palette has exact tokens for these, so they're pinned here.
+ * The embed's top-bar chrome. The items read the page's state from
+ * `EmbedChromeContext`, so this object stays a stable module constant.
  */
-const BREADCRUMB_TEXT_COLOR = "#677789";
-const BREADCRUMB_CHEVRON_COLOR = "#95a5b8";
+const embedSlots: PetrinautSlots = {
+  topBarStart: <EmbedBreadcrumbs />,
+  topBarEnd: <EmbedActions />,
+};
 
 const noNetSwitchingError = () => {
   throw new Error(
@@ -308,90 +310,20 @@ export const EmbedContent = () => {
 
   const persistPending = pendingSaveRequestId !== null;
 
-  const slots = useMemo<PetrinautSlots>(() => {
-    /**
-     * HASH-style breadcrumbs, integrated into Petrinaut's top bar via the
-     * `topBarStart` slot so the embed shows a single bar. The editor's own
-     * editable title renders directly after this slot and acts as the final
-     * crumb, keeping rename-in-place — `titleStyle` tints it to match.
-     */
-    const breadcrumbs = (
-      <Box
-        sx={{
-          alignItems: "center",
-          /** Inherited by the chevron separator's `currentColor` fill. */
-          color: BREADCRUMB_CHEVRON_COLOR,
-          display: "flex",
-          gap: 0.5,
-        }}
-      >
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleNavigateBack}
-          prefix={
-            <ChartNetworkRegularIcon
-              style={{ color: BREADCRUMB_TEXT_COLOR, fontSize: 14 }}
-            />
-          }
-        >
-          {/*
-           * The ds Button recipe sets its own text color, and the editor's
-           * layer-polyfilled Panda bundle compiles that rule to a
-           * specificity that beats host emotion classes (FE-1228) — inline
-           * styles are the only reliable channel, hence the styled span
-           * and the inline-styled icon above.
-           */}
-          <span style={{ color: BREADCRUMB_TEXT_COLOR }}>Processes</span>
-        </Button>
-        <Icon name="chevronRight" size="xs" />
-      </Box>
-    );
-
-    const titleStyle = { color: BREADCRUMB_TEXT_COLOR };
-
-    if (!state || state.readonly) {
-      return { topBarStart: breadcrumbs, titleStyle };
-    }
-
-    const isSaved = state.mode.kind === "saved";
-    const saveLabel = isSaved ? (isDirty ? "Save" : "Saved") : "Create";
-
-    return {
-      topBarStart: breadcrumbs,
-      titleStyle,
-      topBarEnd: (
-        <>
-          <VersionPicker
-            revisions={revisions}
-            loadedRevisionTime={state.savedSnapshot?.decisionTime ?? null}
-            isDirty={isDirty && !persistPending}
-            onLoadRevision={handleLoadRevision}
-          />
-          <Button
-            size="sm"
-            onClick={handleSaveClick}
-            disabled={!isDirty || persistPending}
-            loading={persistPending}
-            tooltip={
-              !isDirty && !persistPending ? "No changes to save" : undefined
-            }
-          >
-            {saveLabel}
-          </Button>
-        </>
-      ),
-    };
-  }, [
-    handleLoadRevision,
-    handleNavigateBack,
-    handleSaveClick,
+  const isSaved = state?.mode.kind === "saved";
+  const chrome: EmbedChrome = {
+    title: state?.title ?? "",
+    onTitleChange: handleSetTitle,
+    readonly: state?.readonly ?? true,
     isDirty,
     persistPending,
+    saveLabel: isSaved ? (isDirty ? "Save" : "Saved") : "Create",
     revisions,
-    state,
-  ]);
-
+    loadedRevisionTime: state?.savedSnapshot?.decisionTime ?? null,
+    onNavigateBack: handleNavigateBack,
+    onSave: handleSaveClick,
+    onLoadRevision: handleLoadRevision,
+  };
   if (!state) {
     /**
      * Host is expected to send `init` immediately after the iframe's
@@ -406,17 +338,21 @@ export const EmbedContent = () => {
       <HASHPetrinautOptimizationProvider
         enabled={hostCapabilities?.optimization === true}
       >
-        <Petrinaut
-          handle={state.handle}
-          createNewNet={noNetSwitchingError}
-          existingNets={[]}
-          hideNetManagementControls="except-title"
-          loadPetriNet={noNetSwitchingError}
-          readonly={state.readonly}
-          setTitle={handleSetTitle}
-          slots={slots}
-          title={state.title}
-        />
+        <EmbedChromeContext value={chrome}>
+          {/* The title is the breadcrumbs' final crumb, so the editor's
+              own title field stays hidden. */}
+          <Petrinaut
+            handle={state.handle}
+            createNewNet={noNetSwitchingError}
+            existingNets={[]}
+            hideNetManagementControls="all"
+            loadPetriNet={noNetSwitchingError}
+            readonly={state.readonly}
+            setTitle={handleSetTitle}
+            slots={embedSlots}
+            title={state.title}
+          />
+        </EmbedChromeContext>
       </HASHPetrinautOptimizationProvider>
     </Box>
   );
