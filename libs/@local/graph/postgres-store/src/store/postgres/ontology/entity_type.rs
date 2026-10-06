@@ -69,7 +69,7 @@ use type_system::{
 };
 
 use crate::store::{
-    error::DeletionError,
+    error::{DeletionError, OntologyVersionDoesNotExist},
     postgres::{
         AsClient, GenericClientIter as _, PostgresStore, ResponseCountMap, TransactionState,
         TraversalContext,
@@ -1646,8 +1646,9 @@ where
                         .id
                         .version
                         .major
-                        .checked_sub(1)
-                        .ok_or(UpdateError)
+                        .previous()
+                        .change_context(OntologyVersionDoesNotExist)
+                        .change_context(UpdateError)
                         .attach(
                             "The version of the entity type is already at the lowest possible \
                              value",

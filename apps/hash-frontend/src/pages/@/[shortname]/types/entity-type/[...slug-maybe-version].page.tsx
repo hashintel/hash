@@ -7,10 +7,12 @@ import {
   componentsFromVersionedUrl,
   currentTimestamp,
   parseOntologyTypeVersion,
+  validateVersionedUrl,
 } from "@blockprotocol/type-system";
 
 import { getLayoutWithSidebar } from "../../../../../shared/layout";
 import { EntityType } from "../../../../shared/entity-type";
+import { NotFound } from "../../../../shared/not-found";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getTypeBaseUrl } from "../shared/get-type-base-url";
 
@@ -44,7 +46,7 @@ const Page: NextPageWithLayout = () => {
     slug,
     _v,
     requestedVersionString,
-  ] = router.asPath.split("/") as [
+  ] = router.asPath.replace(/[?#].*$/, "").split("/") as [
     "",
     `@${string}`,
     "types",
@@ -106,6 +108,14 @@ const Page: NextPageWithLayout = () => {
       return null;
     }
   }, [router.query.draft]);
+
+  if (
+    requestedVersionString &&
+    validateVersionedUrl(`${entityTypeBaseUrl}v/${requestedVersionString}`)
+      .type === "Err"
+  ) {
+    return <NotFound resourceLabel={{ label: "entity type" }} />;
+  }
 
   const requestedVersion = requestedVersionString
     ? parseOntologyTypeVersion(requestedVersionString)

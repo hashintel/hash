@@ -13,7 +13,7 @@ use type_system::ontology::{
             InverseEntityTypeMetadata,
         },
     },
-    id::{OntologyTypeVersion, ParseBaseUrlError},
+    id::{OntologyTypeMajorVersion, OntologyTypeVersion, ParseBaseUrlError},
     json_schema::ObjectTypeTag,
     provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
@@ -290,7 +290,7 @@ impl<
                     slug_from_title(&title)
                 ))?,
                 version: OntologyTypeVersion {
-                    major: 1,
+                    major: OntologyTypeMajorVersion::MIN,
                     pre_release: None,
                 },
             },

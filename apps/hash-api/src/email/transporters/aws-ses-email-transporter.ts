@@ -9,7 +9,7 @@ import type {
   EmailTransporter,
   EmailTransporterSendMailOptions,
 } from "./types";
-import type SESTransport from "nodemailer/lib/ses-transport";
+import type { SESSentMessageInfo, Transporter } from "nodemailer";
 
 export interface AwsSesEmailTransporterConfig {
   from: string;
@@ -18,7 +18,7 @@ export interface AwsSesEmailTransporterConfig {
 }
 
 export class AwsSesEmailTransporter implements EmailTransporter {
-  private nodemailerTransporter: nodemailer.Transporter<SESTransport.SentMessageInfo>;
+  private nodemailerTransporter: Transporter<SESSentMessageInfo>;
   private ses: SESv2Client;
 
   constructor(private config: AwsSesEmailTransporterConfig) {
@@ -29,7 +29,6 @@ export class AwsSesEmailTransporter implements EmailTransporter {
     });
     this.nodemailerTransporter = nodemailer.createTransport({
       SES: { sesClient: this.ses, SendEmailCommand },
-      sendingRate: 10,
     });
   }
 

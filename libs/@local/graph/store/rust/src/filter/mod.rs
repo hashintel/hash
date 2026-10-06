@@ -1527,7 +1527,10 @@ mod tests {
     use serde_json::json;
     use type_system::{
         knowledge::entity::id::{DraftId, EntityUuid},
-        ontology::data_type::{ClosedDataType, ConversionExpression},
+        ontology::{
+            data_type::{ClosedDataType, ConversionExpression},
+            id::OntologyTypeMajorVersion,
+        },
         principal::actor_group::WebId,
     };
     use uuid::Uuid;
@@ -1596,7 +1599,7 @@ mod tests {
             )
             .expect("invalid base url"),
             version: OntologyTypeVersion {
-                major: 1,
+                major: OntologyTypeMajorVersion::MIN,
                 pre_release: None,
             },
         };

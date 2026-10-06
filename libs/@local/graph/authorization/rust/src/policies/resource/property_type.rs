@@ -89,8 +89,8 @@ impl PropertyTypeResource<'_> {
                 (
                     SmolStr::new_static("version"),
                     ast::PartialValue::Value(ast::Value::new(
-                        ast::ValueKind::Lit(ast::Literal::Long(ast::Integer::from(
-                            self.id.as_url().version.major,
+                        ast::ValueKind::Lit(ast::Literal::Long(i64::from(
+                            self.id.as_url().version.major.get(),
                         ))),
                         None,
                     )),

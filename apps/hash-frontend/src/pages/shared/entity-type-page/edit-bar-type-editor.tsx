@@ -3,7 +3,6 @@ import { useState } from "react";
 
 import {
   incrementOntologyTypeVersion,
-  makeOntologyTypeVersion,
   type OntologyTypeVersion,
 } from "@blockprotocol/type-system";
 import { FontAwesomeIcon } from "@hashintel/design-system";
@@ -20,7 +19,9 @@ import {
 import type { ButtonProps } from "../../../shared/ui/button";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 
-const useFrozenValue = <T extends number | boolean | object>(value: T): T => {
+const useFrozenValue = <T extends string | number | boolean | object>(
+  value: T,
+): T => {
   const { dirtyFields } = useEntityTypeFormState<EntityTypeEditorFormData>();
 
   const [frozen, setFrozen] = useState(value);
@@ -35,32 +36,38 @@ const useFrozenValue = <T extends number | boolean | object>(value: T): T => {
 export const EditBarTypeEditor = ({
   gentleErrorStyling,
   currentVersion,
+  isDraft,
   discardButtonProps,
   errorMessage,
 }: {
   gentleErrorStyling: boolean;
   currentVersion: OntologyTypeVersion;
+  isDraft: boolean;
   discardButtonProps: Partial<ButtonProps>;
   errorMessage?: string;
 }) => {
   const { dirtyFields, isSubmitting } =
     useEntityTypeFormState<EntityTypeEditorFormData>();
   const frozenVersion = useFrozenValue(currentVersion);
+  const frozenIsDraft = useFrozenValue(isDraft);
   const ref = useFreezeScrollWhileTransitioning();
-  const zeroVersion = makeOntologyTypeVersion({ major: 0 });
 
-  const collapseIn =
-    currentVersion === zeroVersion || Object.keys(dirtyFields).length > 0;
+  const collapseIn = isDraft || Object.keys(dirtyFields).length > 0;
 
   const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
 
   const frozenSubmitting = useFrozenValue(isSubmitting);
+  const isVersionExhausted =
+    !frozenIsDraft &&
+    Number.parseInt(frozenVersion.toString(), 10) === 4_294_967_295;
 
   let label;
   if (errorMessage) {
     label = `before saving${errorMessage ? `: ${errorMessage}` : ""}`;
-  } else if (frozenVersion === zeroVersion) {
+  } else if (frozenIsDraft) {
     label = "– this type has not yet been created";
+  } else if (isVersionExhausted) {
+    label = "– this type has reached the maximum version and cannot be updated";
   } else {
     label = `Version ${frozenVersion.toString()} -> ${incrementOntologyTypeVersion(frozenVersion).toString()}`;
   }
@@ -74,7 +81,7 @@ export const EditBarTypeEditor = ({
         <EditBarContents
           hideConfirm={!!errorMessage}
           icon={
-            frozenVersion === zeroVersion ? (
+            frozenIsDraft ? (
               <FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />
             ) : (
               <PencilSimpleLine />
@@ -83,10 +90,7 @@ export const EditBarTypeEditor = ({
           title={errorMessage ? "Changes required" : "Currently editing"}
           label={label}
           discardButtonProps={{
-            children:
-              frozenVersion === zeroVersion
-                ? "Discard this type"
-                : "Discard changes",
+            children: frozenIsDraft ? "Discard this type" : "Discard changes",
             disabled: frozenSubmitting,
             sx: errorMessage
               ? ({ palette }) => ({
@@ -104,10 +108,9 @@ export const EditBarTypeEditor = ({
             ...frozenDiscardButtonProps,
           }}
           confirmButtonProps={{
-            children:
-              frozenVersion === zeroVersion ? "Create" : "Publish update",
+            children: frozenIsDraft ? "Create" : "Publish update",
             loading: frozenSubmitting,
-            disabled: frozenSubmitting,
+            disabled: frozenSubmitting || isVersionExhausted,
           }}
         />
       </EditBarContainer>
