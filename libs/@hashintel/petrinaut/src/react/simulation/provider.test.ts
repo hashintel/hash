@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
 
+import { toPetrinautId, type Scenario } from "@hashintel/petrinaut-core";
+
 import {
   getEffectiveSelectedScenarioId,
   shouldNormalizeScenarioSelection,
 } from "./provider";
-
-import type { Scenario } from "@hashintel/petrinaut-core";
 
 const scenarios = [{ id: "first" }, { id: "second" }] as Scenario[];
 
@@ -21,6 +21,23 @@ describe("effective simulation scenario", () => {
 
   test("defaults an explicit no-scenario selection when one is required", () => {
     expect(getEffectiveSelectedScenarioId(scenarios, null, true)).toBe("first");
+  });
+
+  test("resolves a scenario named by its id before conversion", () => {
+    const converted = [
+      { id: toPetrinautId("first") },
+      { id: toPetrinautId("second") },
+    ] as Scenario[];
+
+    expect(getEffectiveSelectedScenarioId(converted, "second")).toBe(
+      toPetrinautId("second"),
+    );
+    expect(
+      shouldNormalizeScenarioSelection({
+        effectiveSelectedScenarioId: toPetrinautId("second"),
+        requestedScenarioId: "second",
+      }),
+    ).toBe(true);
   });
 });
 

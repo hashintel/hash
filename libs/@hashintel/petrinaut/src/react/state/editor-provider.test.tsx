@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  generateArcId,
+  toPetrinautId,
   type SDCPN,
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
@@ -38,12 +40,13 @@ const emptySdcpn: SDCPN = {
 
 const makeSdcpnContextValue = (
   getItemType: SDCPNContextValue["getItemType"],
+  petriNetDefinition: SDCPN = emptySdcpn,
 ): SDCPNContextValue => ({
   createNewNet: () => {},
   existingNets: [],
   loadPetriNet: () => {},
   petriNetId: "test-net",
-  petriNetDefinition: emptySdcpn,
+  petriNetDefinition,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   setTitle: () => {},
@@ -355,6 +358,77 @@ describe("EditorProvider deep-link normalization", () => {
     expect(
       recorded.filter((entry) => entry.intent.cause === "normalization"),
     ).toHaveLength(1);
+  });
+
+  it("reopens an older link's scenario, place and arc by their converted ids", async () => {
+    const recorded: RecordedNavigation[] = [];
+    let editor: EditorContextValue;
+    const placeId = toPetrinautId("place__queue");
+    const arcId = generateArcId({
+      inputId: placeId,
+      outputId: toPetrinautId("transition__serve"),
+    });
+    const getItemType: SDCPNContextValue["getItemType"] = (id) =>
+      id === placeId ? "place" : id === arcId ? "arc" : null;
+    const definition: SDCPN = {
+      ...emptySdcpn,
+      scenarios: [
+        {
+          id: toPetrinautId("baseline"),
+          name: "Baseline",
+          scenarioParameters: [],
+          parameterOverrides: {},
+          initialState: { type: "per_place", content: {} },
+        },
+      ],
+    };
+
+    render(
+      <SDCPNContext.Provider
+        value={makeSdcpnContextValue(getItemType, definition)}
+      >
+        <TestHost
+          recorded={recorded}
+          initialState={{
+            mode: "simulate",
+            simulateView: "scenarios",
+            simulateResource: { type: "scenario", id: "baseline" },
+            selection: [
+              { type: "place", id: "place__queue" },
+              {
+                type: "arc",
+                id: generateArcId({
+                  inputId: "place__queue",
+                  outputId: "transition__serve",
+                }),
+              },
+            ],
+          }}
+        >
+          <EditorProvider>
+            <EditorContextGrabber
+              onContextValue={(value) => {
+                editor = value;
+              }}
+            />
+          </EditorProvider>
+        </TestHost>
+      </SDCPNContext.Provider>,
+    );
+    await act(async () => {});
+
+    const normalizations = recorded.filter(
+      (entry) => entry.intent.cause === "normalization",
+    );
+    expect(normalizations).toHaveLength(1);
+    expect(normalizations[0]?.history).toBe("replace");
+    expect(editor!.simulateDrawer).toEqual({
+      type: "view-scenario",
+      scenarioId: toPetrinautId("baseline"),
+    });
+    expect(new Set(editor!.selection.keys())).toEqual(
+      new Set([placeId, arcId]),
+    );
   });
 });
 

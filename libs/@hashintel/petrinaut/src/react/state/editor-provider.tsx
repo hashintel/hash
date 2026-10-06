@@ -7,6 +7,7 @@ import {
   simulateDrawerToNavigationResource,
   usePetrinautNavigation,
 } from "../navigation";
+import { resolveNavigatedItems } from "../navigation/resolve-navigated-ids";
 import {
   type DraggingStateByNodeId,
   type EditorActions,
@@ -61,52 +62,49 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   const navigatedResource = navigation.state.simulateResource;
   const navigatedSelection = navigation.state.selection;
+  const { scenarios, metrics } = petriNetDefinition;
   useEffect(() => {
-    const invalidResource =
-      (navigatedResource?.type === "scenario" &&
-        !petriNetDefinition.scenarios?.some(
-          ({ id }) => id === navigatedResource.id,
-        )) ||
-      (navigatedResource?.type === "metric" &&
-        !petriNetDefinition.metrics?.some(
-          ({ id }) => id === navigatedResource.id,
-        ));
-    const validSelection = navigatedSelection.filter(
-      (item) => getItemType(item.id) === item.type,
+    // A link made before ids were converted names items by their old ids:
+    // those resolve to the converted id, and items the net lacks are dropped.
+    const resolved = resolveNavigatedItems(
+      { simulateResource: navigatedResource, selection: navigatedSelection },
+      { scenarios, metrics },
+      getItemType,
     );
-    const hasInvalidSelection =
-      validSelection.length !== navigatedSelection.length;
+    const resourceChanged = resolved.simulateResource !== navigatedResource;
+    const selectionChanged =
+      resolved.selection.length !== navigatedSelection.length ||
+      resolved.selection.some(
+        (item, index) => item !== navigatedSelection[index],
+      );
 
-    if (invalidResource || hasInvalidSelection) {
+    if (resourceChanged || selectionChanged) {
       // The checks above read the committed state, but the update is applied
       // to the host's freshest state, which an asynchronous host may already
-      // have moved on from. Re-filter inside the updater so normalization
+      // have moved on from. Resolve again inside the updater so normalization
       // never writes back a selection the user has since replaced.
       navigation.navigate(
         (current) => ({
           ...current,
-          ...(invalidResource ? { simulateResource: null } : {}),
-          ...(hasInvalidSelection
-            ? {
-                selection: current.selection.filter(
-                  (item) => getItemType(item.id) === item.type,
-                ),
-              }
-            : {}),
+          ...resolveNavigatedItems(
+            current,
+            { scenarios, metrics },
+            getItemType,
+          ),
         }),
         {
           cause: "normalization",
-          action: invalidResource ? "simulation-resource" : "selection",
+          action: resourceChanged ? "simulation-resource" : "selection",
         },
       );
     }
   }, [
     getItemType,
+    metrics,
     navigatedResource,
     navigatedSelection,
     navigation,
-    petriNetDefinition.metrics,
-    petriNetDefinition.scenarios,
+    scenarios,
   ]);
 
   const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
