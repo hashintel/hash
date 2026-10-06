@@ -1,9 +1,13 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": [
+    "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+    "@tsconfig/bases/node22"
+  ],
   "compilerOptions": {
-    "module": "NodeNext",
+    "lib": ["ES2024"],
     "moduleResolution": "NodeNext",
-    "types": ["vitest/importMeta"]
+    "target": "ES2024",
+    "types": ["node", "vitest/importMeta"]
   },
   "include": ["src", "tests", "vitest.config.ts"]
 }

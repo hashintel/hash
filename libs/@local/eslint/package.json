@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/babel__core": "^7.20.5",
     "@types/node": "22.18.13",
     "rimraf": "6.1.3",
