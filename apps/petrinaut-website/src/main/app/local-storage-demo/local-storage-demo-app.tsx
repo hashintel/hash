@@ -36,7 +36,6 @@ import {
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
-import { CommandPalette } from "../command-palette";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -79,6 +78,7 @@ import {
 } from "../plugins/brunch/tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "../plugins/brunch/tools/in-band-browser-call";
+import { CommandPalette } from "../plugins/command-palette/plugin/command-palette";
 import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
 import { getBrunchVoiceMode } from "../plugins/voice/brunch-voice-mode";
 import { useVoiceMediationHistory } from "../plugins/voice/history/use-voice-mediation-history";
@@ -86,6 +86,7 @@ import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
 } from "../plugins/voice/session/voice-interview-control";
+import { walkthroughSteps } from "../plugins/walkthrough/walkthrough-steps";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
@@ -98,7 +99,6 @@ import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
 import { UnsavedChangeNotice } from "./unsaved-change-notice";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
-import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
