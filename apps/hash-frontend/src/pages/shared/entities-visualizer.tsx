@@ -915,8 +915,8 @@ export const EntitiesVisualizer: FunctionComponent<{
               setValue={setView}
               options={(
                 [
-                  "Table",
                   ...(supportGridView ? (["Grid"] as const) : []),
+                  "Table",
                   "NetworkGraph",
                 ] as const satisfies VisualizerView[]
               ).map((optionValue) => ({
