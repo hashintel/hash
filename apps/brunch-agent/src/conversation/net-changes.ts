@@ -5,9 +5,11 @@ import {
   type NetElementKind,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
+  canonicalizeArcId,
   generateArcId,
   getArcEndpointKey,
   placeArcEndpoint,
+  toPetrinautId,
 } from "@hashintel/petrinaut-core";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -87,8 +89,19 @@ export const isAppliedChange = (call: NetCall): boolean =>
     call.output.applied === false
   );
 
+/**
+ * Whether `written` names `id`: as written, or as the converted id the
+ * document stores for an id the model invented. Flue keeps the model's raw
+ * arguments, while ids read from the document are converted.
+ */
+const namesId = (written: unknown, id: string): boolean =>
+  typeof written === "string" &&
+  (written === id ||
+    toPetrinautId(written) === id ||
+    canonicalizeArcId(written) === id);
+
 const hasId = (value: unknown, id: string): boolean => {
-  if (value === id) return true;
+  if (namesId(value, id)) return true;
   if (Array.isArray(value)) return value.some((item) => hasId(item, id));
   return (
     typeof value === "object" &&
@@ -112,17 +125,20 @@ const matchesArc = (call: NetCall, arc: ArcElement): boolean => {
   if (!petrinautToolTargets(call.toolName).includes("arc")) return false;
   const input = call.input;
   if (typeof input !== "object" || input === null) return false;
-  if (!("transitionId" in input) || input.transitionId !== arc.transitionId)
+  if (
+    !("transitionId" in input) ||
+    !namesId(input.transitionId, arc.transitionId)
+  )
     return false;
   const direction = "arcDirection" in input ? input.arcDirection : "input";
   if (direction !== arc.arcDirection) return false;
   if (call.toolName === "updateArcPlace")
     return (
-      ("newPlaceId" in input && input.newPlaceId === arc.placeId) ||
+      ("newPlaceId" in input && namesId(input.newPlaceId, arc.placeId)) ||
       ("newEndpoint" in input && hasId(input.newEndpoint, arc.placeId))
     );
   return (
-    ("placeId" in input && input.placeId === arc.placeId) ||
+    ("placeId" in input && namesId(input.placeId, arc.placeId)) ||
     ("endpoint" in input && hasId(input.endpoint, arc.placeId))
   );
 };

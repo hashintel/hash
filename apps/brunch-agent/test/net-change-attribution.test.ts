@@ -1,5 +1,7 @@
 import { expect, test } from "vitest";
 
+import { toPetrinautId } from "@hashintel/petrinaut-core";
+
 import { callsForElement } from "../src/conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
@@ -57,4 +59,19 @@ test("a change is attributed by the element kinds its canonical tool targets, no
   expect(attributed("type", "inhibitor")).toEqual([]);
   // A type element belongs to its type.
   expect(attributed("type", "customer")).toEqual(["element"]);
+});
+
+test("a change written with the model's own ids is attributed to the converted element the document holds", () => {
+  expect(attributed("type", toPetrinautId("customer"))).toEqual(["element"]);
+  expect(
+    callsForElement(snapshot, {
+      kind: "arc",
+      id: "arc",
+      arc: {
+        transitionId: toPetrinautId("serve"),
+        arcDirection: "input",
+        placeId: toPetrinautId("queue"),
+      },
+    }).map(({ toolCallId }) => toolCallId),
+  ).toEqual(["arc-kind"]);
 });
