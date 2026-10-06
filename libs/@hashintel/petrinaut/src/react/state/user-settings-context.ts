@@ -69,12 +69,6 @@ export type UserSettings = {
    * only useful when you are debugging why something did not compile.
    */
   showCompilationOutput: boolean;
-  /**
-   * Shows a host's Brunch demo affordances, such as the demo site's
-   * prepared-fixture selector. Toggled from a palette command the host
-   * registers; the settings dialog has no control for it.
-   */
-  brunchDemoMode: boolean;
   subViewPanels: SubViewPanelsSettings;
   /** Where each document's canvas was last left, keyed by document id. */
   canvasViewports: Record<string, SavedCanvasViewport>;
@@ -102,7 +96,6 @@ export type UserSettingsActions = {
   setEnableNetComponents: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
-  setBrunchDemoMode: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -135,7 +128,6 @@ export const defaultUserSettings: UserSettings = {
   enableNetComponents: false,
   showWalkthroughOnInit: true,
   showCompilationOutput: false,
-  brunchDemoMode: false,
   subViewPanels: {},
   canvasViewports: {},
 };
@@ -167,7 +159,6 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setEnableNetComponents: () => {},
   setShowWalkthroughOnInit: () => {},
   setShowCompilationOutput: () => {},
-  setBrunchDemoMode: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},
 };

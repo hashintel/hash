@@ -23,21 +23,35 @@ beforeEach(() => {
   }
 });
 
-const DemoModeProbe = ({ name }: { name: string }) => {
-  const { brunchDemoMode, setBrunchDemoMode } = use(UserSettingsContext);
+const NamedArcsProbe = ({ name }: { name: string }) => {
+  const { enableAutomaticArcConnections, setEnableAutomaticArcConnections } =
+    use(UserSettingsContext);
   return (
-    <button type="button" onClick={() => setBrunchDemoMode(!brunchDemoMode)}>
-      {name}: {brunchDemoMode ? "on" : "off"}
+    <button
+      type="button"
+      onClick={() =>
+        setEnableAutomaticArcConnections(!enableAutomaticArcConnections)
+      }
+    >
+      {name}: {enableAutomaticArcConnections ? "on" : "off"}
     </button>
   );
 };
 
 /** Reads a persisted setting and writes another, so a write happens on demand. */
 const WalkthroughProbe = () => {
-  const { showWalkthroughOnInit, brunchDemoMode, setBrunchDemoMode } =
-    use(UserSettingsContext);
+  const {
+    showWalkthroughOnInit,
+    enableAutomaticArcConnections,
+    setEnableAutomaticArcConnections,
+  } = use(UserSettingsContext);
   return (
-    <button type="button" onClick={() => setBrunchDemoMode(!brunchDemoMode)}>
+    <button
+      type="button"
+      onClick={() =>
+        setEnableAutomaticArcConnections(!enableAutomaticArcConnections)
+      }
+    >
       walkthrough: {showWalkthroughOnInit ? "on" : "off"}
     </button>
   );
@@ -102,18 +116,6 @@ describe("UserSettingsProvider", () => {
     });
   });
 
-  it("starts with Brunch demo mode off and toggles it", () => {
-    render(
-      <UserSettingsProvider>
-        <DemoModeProbe name="probe" />
-      </UserSettingsProvider>,
-    );
-
-    const probe = screen.getByRole("button", { name: "probe: off" });
-    fireEvent.click(probe);
-    expect(screen.getByRole("button", { name: "probe: on" })).toBe(probe);
-  });
-
   it.each([false, true])(
     "drops retired simulation flags from saved settings (legacy value=%s)",
     (enabled) => {
@@ -125,6 +127,7 @@ describe("UserSettingsProvider", () => {
           JSON.stringify({
             enableAdHocScenarios: true,
             enableNotebookView: enabled,
+            brunchDemoMode: enabled,
             webGpuEnabled: enabled,
             enableParameterSweeps: enabled,
             enableInBrowserOptimization: enabled,
@@ -157,6 +160,7 @@ describe("UserSettingsProvider", () => {
         for (const key of [
           "enableAdHocScenarios",
           "enableNotebookView",
+          "brunchDemoMode",
           "webGpuEnabled",
           "enableParameterSweeps",
           "enableInBrowserOptimization",
@@ -165,7 +169,6 @@ describe("UserSettingsProvider", () => {
           expect(key in persisted).toBe(false);
         }
         expect(persisted.showWalkthroughOnInit).toBe(false);
-        expect(persisted.brunchDemoMode).toBe(true);
       } finally {
         vi.unstubAllGlobals();
       }
@@ -177,9 +180,9 @@ describe("UserSettingsProvider", () => {
     // in its own components; the editor's own provider must not fork them.
     render(
       <UserSettingsProvider>
-        <DemoModeProbe name="host" />
+        <NamedArcsProbe name="host" />
         <UserSettingsProvider>
-          <DemoModeProbe name="editor" />
+          <NamedArcsProbe name="editor" />
         </UserSettingsProvider>
       </UserSettingsProvider>,
     );
