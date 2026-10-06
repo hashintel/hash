@@ -609,6 +609,7 @@ __metadata:
     "@sentry/node": "npm:10.64.0"
     "@temporalio/client": "npm:1.20.2"
     "@temporalio/proto": "npm:1.20.2"
+    "@tsconfig/bases": "catalog:"
     "@types/app-root-path": "npm:3.1.0"
     "@types/cors": "npm:2.8.19"
     "@types/dedent": "npm:0.7.2"
@@ -985,6 +986,7 @@ __metadata:
     "@pmmmwh/react-refresh-webpack-plugin": "npm:0.6.1"
     "@sentry/browser": "npm:10.64.0"
     "@sentry/webpack-plugin": "npm:5.3.0"
+    "@tsconfig/bases": "catalog:"
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
@@ -7587,6 +7589,7 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
+    "@tsconfig/bases": "catalog:"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
     "@types/react-syntax-highlighter": "npm:15.5.13"
@@ -7893,6 +7896,7 @@ __metadata:
     "@local/eslint": "workspace:*"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
+    "@tsconfig/bases": "catalog:"
     clsx: "npm:2.1.1"
     eslint: "npm:9.39.4"
     eslint-plugin-storybook: "npm:10.3.1"
@@ -7949,8 +7953,10 @@ __metadata:
     "@local/hash-isomorphic-utils": "workspace:*"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
+    "@tsconfig/bases": "catalog:"
     "@types/lodash.memoize": "npm:4.1.9"
     "@types/lodash.uniqueid": "npm:4.0.9"
+    "@types/setimmediate": "npm:1.0.4"
     clsx: "npm:2.1.1"
     eslint: "npm:9.39.4"
     eslint-plugin-storybook: "npm:10.3.1"
@@ -9611,6 +9617,7 @@ __metadata:
   dependencies:
     "@local/eslint": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    "@types/node": "npm:22.18.13"
     eslint: "npm:9.39.4"
     react: "npm:19.2.6"
     rimraf: "npm:6.1.3"
@@ -9654,6 +9661,7 @@ __metadata:
   dependencies:
     "@local/eslint": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    "@types/node": "npm:22.18.13"
     eslint: "npm:9.39.4"
     rimraf: "npm:6.1.3"
     typescript: "catalog:"
@@ -9814,6 +9822,7 @@ __metadata:
   dependencies:
     "@blockprotocol/type-system": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    "@types/node": "npm:22.18.13"
     rimraf: "npm:6.1.3"
     typescript: "catalog:"
   languageName: unknown
@@ -9864,6 +9873,7 @@ __metadata:
     "@blockprotocol/type-system": "workspace:*"
     "@local/hash-graph-authorization": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    "@types/node": "npm:22.18.13"
     rimraf: "npm:6.1.3"
     typescript: "catalog:"
   languageName: unknown
@@ -10012,6 +10022,7 @@ __metadata:
     "@local/hash-isomorphic-utils": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@optique/core": "npm:0.8.1"
+    "@tsconfig/bases": "catalog:"
     "@types/fs-extra": "npm:11.0.4"
     "@types/js-yaml": "npm:^4"
     chalk: "npm:5.6.2"
@@ -17490,6 +17501,7 @@ __metadata:
     "@local/hash-isomorphic-utils": "workspace:*"
     "@local/status": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    "@tsconfig/bases": "catalog:"
     "@types/node-fetch": "npm:2.6.13"
     "@vitest/coverage-istanbul": "npm:4.1.10"
     eslint: "npm:9.39.4"
@@ -17527,6 +17539,7 @@ __metadata:
     "@local/hash-isomorphic-utils": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@playwright/test": "npm:1.58.2"
+    "@tsconfig/bases": "catalog:"
     "@types/chrome": "npm:0.1.40"
     "@types/js-yaml": "npm:^4"
     eslint: "npm:9.39.4"
@@ -19052,6 +19065,13 @@ __metadata:
     "@types/node": "npm:*"
     "@types/send": "npm:<1"
   checksum: 10c0/842fca14c9e80468f89b6cea361773f2dcd685d4616a9f59013b55e1e83f536e4c93d6d8e3ba5072d40c4e7e64085210edd6646b15d538ded94512940a23021f
+  languageName: node
+  linkType: hard
+
+"@types/setimmediate@npm:1.0.4":
+  version: 1.0.4
+  resolution: "@types/setimmediate@npm:1.0.4"
+  checksum: 10c0/7eb791c92a261cbcdc529eb399b0536b7439d69703f39f5e3dc610f67050495a953dc02a70b5f73efc9423c4267ea4a9a806fec11edb99d37ca72fcd516e7296
   languageName: node
   linkType: hard
 

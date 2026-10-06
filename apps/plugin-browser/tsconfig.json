@@ -1,6 +1,12 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": [
+    "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+    "@tsconfig/bases/recommended"
+  ],
   "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": "../..",
     "allowJs": false,
     "checkJs": false,
     "allowSyntheticDefaultImports": true,
@@ -11,6 +17,7 @@
   },
   "include": [
     "src",
+    "assets.d.ts",
     "theme-override.d.ts",
     "webpack-injected-env.d.ts",
     "codegen.config.ts",
