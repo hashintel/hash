@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import debounce from "lodash/debounce";
+import { useCallback, useEffect, useMemo } from "react";
 
 import { Filter } from "@hashintel/ds-components";
 
@@ -18,6 +19,15 @@ export type SwitchablePropertyOption = Pick<
   FilterableProperty,
   "baseUrl" | "title" | "kind" | "enumOptions"
 >;
+
+/**
+ * How long after the last edit a complete draft is applied without an explicit
+ * commit. Tuned against the entities-table endpoint: a filtered page with its
+ * count takes 200–600ms on larger webs, and the half-typed values are the most
+ * expensive to answer — 400ms coalesces fluent typing into one request while
+ * the result still lands within ~1s of the last keystroke.
+ */
+const liveFilterDebounceMs = 400;
 
 /**
  * Operator keys map to `unknown` rather than per-operator value types: which
@@ -79,6 +89,10 @@ const chipValue = (
  * keeps the filter with no value (inert — it contributes no query clause),
  * mirroring how value-less operators are active from the moment they are
  * selected.
+ *
+ * A complete draft also applies live while the user edits (debounced — see
+ * {@link liveFilterDebounceMs}); an incomplete draft never un-applies a
+ * filter, so clearing stays an explicit Enter/blur commit.
  */
 export const PropertyFilterChip: FunctionComponent<{
   filter: PropertyFilter;
@@ -153,6 +167,64 @@ export const PropertyFilterChip: FunctionComponent<{
     [filter],
   );
 
+  const commitChange = useCallback(
+    (operator: PropertyFilterOperator, committed: unknown) => {
+      // The chip's inputs produce strings, numbers, a pair of numbers
+      // (`between`), or a list of strings (multi-select); a cleared commit
+      // (null) stores no value, leaving the filter inert. Every per-shape
+      // field is reset on each commit so switching operators sheds stale
+      // bounds and selections.
+      const asRawString = (raw: unknown): string | undefined =>
+        typeof raw === "string"
+          ? raw
+          : typeof raw === "number"
+            ? String(raw)
+            : undefined;
+      const base = {
+        ...filter,
+        operator,
+        value: undefined,
+        secondValue: undefined,
+        values: undefined,
+      };
+      if (operator === "between" && Array.isArray(committed)) {
+        onCommit({
+          ...base,
+          value: asRawString(committed[0]),
+          secondValue: asRawString(committed[1]),
+        });
+      } else if (operator === "isNoneOf") {
+        const selected = Array.isArray(committed)
+          ? committed.filter(
+              (candidate): candidate is string => typeof candidate === "string",
+            )
+          : [];
+        onCommit({
+          ...base,
+          values: selected.length > 0 ? selected : undefined,
+        });
+      } else {
+        onCommit({ ...base, value: asRawString(committed) });
+      }
+    },
+    [filter, onCommit],
+  );
+
+  // The live path: a complete draft applies while the user edits. Recreating
+  // the debounce when `filter` changes (the effect cleanup cancels the old
+  // instance) drops any pending live commit a property switch or external
+  // commit has outdated.
+  const debouncedCommitChange = useMemo(
+    () => debounce(commitChange, liveFilterDebounceMs),
+    [commitChange],
+  );
+  useEffect(
+    () => () => {
+      debouncedCommitChange.cancel();
+    },
+    [debouncedCommitChange],
+  );
+
   const propertyMenu = useMemo<MenuItem[] | undefined>(() => {
     if (!propertyOptions?.length || !onSwitchProperty) {
       return undefined;
@@ -179,44 +251,19 @@ export const PropertyFilterChip: FunctionComponent<{
       operators={operators}
       value={value}
       onChange={(operator, committed) => {
-        // The chip's inputs produce strings, numbers, a pair of numbers
-        // (`between`), or a list of strings (multi-select); a cleared commit
-        // (null) stores no value, leaving the filter inert. Every per-shape
-        // field is reset on each commit so switching operators sheds stale
-        // bounds and selections.
-        const asRawString = (raw: unknown): string | undefined =>
-          typeof raw === "string"
-            ? raw
-            : typeof raw === "number"
-              ? String(raw)
-              : undefined;
-        const base = {
-          ...filter,
-          operator,
-          value: undefined,
-          secondValue: undefined,
-          values: undefined,
-        };
-        if (operator === "between" && Array.isArray(committed)) {
-          onCommit({
-            ...base,
-            value: asRawString(committed[0]),
-            secondValue: asRawString(committed[1]),
-          });
-        } else if (operator === "isNoneOf") {
-          const selected = Array.isArray(committed)
-            ? committed.filter(
-                (candidate): candidate is string =>
-                  typeof candidate === "string",
-              )
-            : [];
-          onCommit({
-            ...base,
-            values: selected.length > 0 ? selected : undefined,
-          });
-        } else {
-          onCommit({ ...base, value: asRawString(committed) });
+        // An explicit commit (Enter, blur, dropdown close) supersedes any
+        // pending live application.
+        debouncedCommitChange.cancel();
+        commitChange(operator, committed);
+      }}
+      onInput={(operator, committed) => {
+        if (committed === null) {
+          // An incomplete draft never un-applies a filter, and a pending
+          // live commit no longer reflects the input.
+          debouncedCommitChange.cancel();
+          return;
         }
+        debouncedCommitChange(operator, committed);
       }}
       removeable={{ onRemove }}
     />

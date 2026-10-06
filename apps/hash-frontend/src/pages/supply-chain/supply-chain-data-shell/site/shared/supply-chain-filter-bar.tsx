@@ -184,6 +184,15 @@ export const SupplyChainFilterBar = ({
         onChange={(operatorKey, committed) =>
           setFilterValue(filter.filterKey, operatorKey, committed)
         }
+        onInput={(operatorKey, committed) => {
+          // Filtering is in-memory, so a complete draft applies on every
+          // edit, undebounced. Null drafts apply nothing: an incomplete
+          // draft never un-applies a filter (clearing stays an Enter/blur
+          // commit), and an input-less operator commits through onChange.
+          if (committed !== null) {
+            setFilterValue(filter.filterKey, operatorKey, committed);
+          }
+        }}
         removeable={{
           onRemove: () =>
             onFiltersChange(
