@@ -39,11 +39,15 @@ const emptyBarAlign = css({
   justifyContent: "flex-end",
 });
 
-// One flex item holding the last chip and the trailing add/clear buttons, so
-// a wrap never strands the buttons on a line of their own — at least one chip
-// accompanies them. The gap matches the group's; the recipe's action-button
-// tightening still reaches inside (it matches descendants).
-const trailingControls = css({
+// Every chip renders inside an identical keyed wrapper so its position in
+// the element tree is stable as filters come and go — rendering the last
+// chip in a different parent from the rest remounted it whenever the last
+// chip changed, discarding its uncommitted draft. The last wrapper also
+// holds the trailing add/clear buttons, so a wrap never strands them on a
+// line of their own — at least one chip accompanies them. The gap matches
+// the group's; the recipe's action-button tightening still reaches inside
+// (it matches descendants).
+const chipWrapper = css({
   display: "inline-flex",
   alignItems: "center",
   flexWrap: "wrap",
@@ -216,24 +220,39 @@ export const SupplyChainFilterBar = ({
     );
   };
 
-  const lastFilter = filters.at(-1);
+  const trailingControls = (
+    <>
+      {addMenuItems.length > 0 && (
+        <Menu
+          trigger={<FilterGroup.AddFilter renderAs="plus" />}
+          items={addMenuItems}
+        />
+      )}
+      {/* A lone chip's own remove button already covers clearing. */}
+      {filters.length > 1 && (
+        <FilterGroup.ClearFilters onClick={() => onFiltersChange([])} />
+      )}
+    </>
+  );
 
   return (
     <FilterGroup dismissAbandoned>
-      {filters.slice(0, -1).map(renderFilterChip)}
-      <div className={trailingControls}>
-        {lastFilter ? renderFilterChip(lastFilter) : null}
-        {addMenuItems.length > 0 && (
-          <Menu
-            trigger={<FilterGroup.AddFilter renderAs="plus" />}
-            items={addMenuItems}
-          />
-        )}
-        {/* A lone chip's own remove button already covers clearing. */}
-        {filters.length > 1 && (
-          <FilterGroup.ClearFilters onClick={() => onFiltersChange([])} />
-        )}
-      </div>
+      {filters.map((filter, index) => {
+        const chip = renderFilterChip(filter);
+        const isLast = index === filters.length - 1;
+        // No wrapper for an unrenderable filter (unknown definition) — an
+        // empty flex item would add stray gap spacing — unless it is the
+        // last one, whose wrapper carries the controls.
+        if (!chip && !isLast) {
+          return null;
+        }
+        return (
+          <div key={filter.filterKey} className={chipWrapper}>
+            {chip}
+            {isLast && trailingControls}
+          </div>
+        );
+      })}
     </FilterGroup>
   );
 };

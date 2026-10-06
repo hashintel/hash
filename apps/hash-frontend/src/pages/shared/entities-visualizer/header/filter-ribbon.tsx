@@ -30,6 +30,7 @@ import type { TypeColorOverrides } from "../shared/type-colors";
 import type { AvailableType } from "../shared/use-available-types";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type { ItemOrGroup, MenuItem } from "@hashintel/ds-components";
+import type { SxProps, Theme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 
 type FilterRibbonProps = {
@@ -73,6 +74,23 @@ const disabledReasonText: Record<PropertyFilterDisabledReason, string> = {
 
 const archivedPropertyBaseUrl =
   systemPropertyTypes.archived.propertyTypeBaseUrl;
+
+/**
+ * Every chip renders inside an identical keyed wrapper so its position in the
+ * element tree is stable as filters come and go — rendering the last chip in
+ * a different parent from the rest remounted it whenever the last chip
+ * changed, discarding its uncommitted draft. The trailing add/clear controls
+ * live inside the last wrapper, making it an atomic inline box: a wrap
+ * carries the controls to the next line with at least one filter for company.
+ * Inside a wrapper, `gap` takes over from the per-item margins the ribbon
+ * gives the group's direct children.
+ */
+const chipWrapperSx: SxProps<Theme> = {
+  display: "inline-flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 1,
+};
 
 export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   availableEntityTypes,
@@ -357,7 +375,39 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       />
     );
 
-  const lastPropertyFilter = visiblePropertyFilters.at(-1);
+  const trailingControls = (
+    <>
+      <Menu
+        trigger={
+          <FilterGroup.AddFilter
+            renderAs={visiblePropertyFilters.length > 0 ? "plus" : "plusLabel"}
+          />
+        }
+        items={addFilterMenuItems}
+        header={
+          <SelectableListSearch
+            value={propertySearch}
+            onChange={setPropertySearch}
+            placeholder="Search properties"
+            aria-label="Search properties"
+          />
+        }
+        swapHeaderFooterOnFlip
+        onOpen={(open) => {
+          if (!open) {
+            setPropertySearch("");
+          }
+        }}
+      />
+      {/* A lone chip's own remove button already covers clearing. */}
+      {visiblePropertyFilters.length > 1 && (
+        <FilterGroup.ClearFilters
+          aria-label="Clear filters"
+          onClick={handleClearPropertyFilters}
+        />
+      )}
+    </>
+  );
 
   return (
     /*
@@ -416,57 +466,15 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       )}
       <DsComponentsScope sx={{ display: "contents" }}>
         <FilterGroup dismissAbandoned>
-          {visiblePropertyFilters.slice(0, -1).map(renderPropertyFilterChip)}
-          {/*
-           * The trailing add/clear controls never wrap on their own: the last
-           * chip shares this atomic inline box with them, so a wrap carries
-           * the controls to the next line with at least one filter for
-           * company. Inside it, `gap` takes over from the per-item margins
-           * the ribbon gives the group's direct children.
-           */}
-          <Box
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 1,
-            }}
-          >
-            {lastPropertyFilter
-              ? renderPropertyFilterChip(lastPropertyFilter)
-              : null}
-            <Menu
-              trigger={
-                <FilterGroup.AddFilter
-                  renderAs={
-                    visiblePropertyFilters.length > 0 ? "plus" : "plusLabel"
-                  }
-                />
-              }
-              items={addFilterMenuItems}
-              header={
-                <SelectableListSearch
-                  value={propertySearch}
-                  onChange={setPropertySearch}
-                  placeholder="Search properties"
-                  aria-label="Search properties"
-                />
-              }
-              swapHeaderFooterOnFlip
-              onOpen={(open) => {
-                if (!open) {
-                  setPropertySearch("");
-                }
-              }}
-            />
-            {/* A lone chip's own remove button already covers clearing. */}
-            {visiblePropertyFilters.length > 1 && (
-              <FilterGroup.ClearFilters
-                aria-label="Clear filters"
-                onClick={handleClearPropertyFilters}
-              />
-            )}
-          </Box>
+          {visiblePropertyFilters.map((propertyFilter, index) => (
+            <Box key={propertyFilter.id} sx={chipWrapperSx}>
+              {renderPropertyFilterChip(propertyFilter)}
+              {index === visiblePropertyFilters.length - 1 && trailingControls}
+            </Box>
+          ))}
+          {visiblePropertyFilters.length === 0 && (
+            <Box sx={chipWrapperSx}>{trailingControls}</Box>
+          )}
         </FilterGroup>
       </DsComponentsScope>
     </Box>
