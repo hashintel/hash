@@ -139,7 +139,9 @@ export const GridViewSearch: FunctionComponent<{
 
   const selectPrevious = useCallback(() => {
     if (resultCount > 0) {
-      onSelectedIndexChange((selectedIndex - 1 + resultCount) % resultCount);
+      onSelectedIndexChange(
+        selectedIndex <= 0 ? resultCount - 1 : selectedIndex - 1,
+      );
     }
   }, [onSelectedIndexChange, resultCount, selectedIndex]);
 
