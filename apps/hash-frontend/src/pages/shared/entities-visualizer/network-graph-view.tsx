@@ -1623,8 +1623,8 @@ export const NetworkGraphView = ({
     ],
   );
 
-  // "Go to entity" opens the drawer for the selected node's entity (or the edge's
-  // link entity), via the consumer-supplied `onOpenEntity`.
+  // "Go to entity" / "Go to link" opens the drawer for the selected node's
+  // entity (or the edge's link entity), via the consumer-supplied `onOpenEntity`.
   const handleGoTo = useCallback(() => {
     if (selection) {
       onOpenEntity?.(selection.entityId);

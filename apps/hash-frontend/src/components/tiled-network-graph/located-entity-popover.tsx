@@ -1,7 +1,8 @@
 /**
  * The selection popover for the Atlas network graph: a compact white entity card
  * anchored to the selected node/edge, showing the located item's title, its
- * type chip, its simple-value properties (nodes), and a "Go to entity" action.
+ * type chip, its simple-value properties (nodes), and a "Go to entity" action
+ * ("Go to link" for edges).
  * When the located detail is truncated (its type or property set capped) the
  * card flags the missing parts with a "+ more" cue. Used by the
  * entities-visualizer network graph view.
@@ -167,7 +168,7 @@ export interface LocatedEntityPopoverProps {
   readonly detail: LocatedEntityDetail;
   /** Dismiss (Escape or a click outside). */
   readonly onClose: () => void;
-  /** "Go to entity" handler; the button is omitted when absent. */
+  /** "Go to entity" / "Go to link" handler; the button is omitted when absent. */
   readonly onGoTo?: () => void;
   /**
    * Called when the card is focused or clicked, so a consumer can bring it to
@@ -721,7 +722,7 @@ export const LocatedEntityPopover = ({
             className={goToButtonStyles}
             onClick={onGoTo}
           >
-            Go to entity
+            {detail.kind === "edge" ? "Go to link" : "Go to entity"}
           </Button>
         ) : null}
       </div>
