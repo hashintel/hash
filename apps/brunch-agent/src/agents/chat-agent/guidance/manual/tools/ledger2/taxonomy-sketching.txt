@@ -6,8 +6,17 @@ entity_kind
 	actor
 	policy|rule
 	event
-	quantity
 	spine|flow
+	purpose|goal
+	maximum|minimum
+	target|optimum
+	metric
+	lever
+	limit
+	threshold
+	horizon
+		[how much simulated time the model runs over]
+	boundary|externality
 
 origin: where the content came from.
 	assumed: the agent supplied a stand-in that nothing said supports.
@@ -19,12 +28,16 @@ status: whether the person has agreed to it.
 	open: it matters and nobody knows yet.
 	tentative: the person hedged, or the agent proposed it and the person hasn't agreed yet.
 	confirmed: the person said it without hedging, or agreed when asked.
-	conflicted: the person said it without hedging, or agreed when asked.
+	conflicted: two claims disagree and the person hasn't said which holds
 	out-of-scope: the person agreed it stays outside the model.
 
 ===
 
 ELICITATION
+	framing
+		purpose
+		horizon
+		boundary
 	claim
 		id:
 		turn:
@@ -61,7 +74,5 @@ CONSTRUCTION
 		status
 		entities
 		claims
-		maps
-			claims: id[]
-		gaps
-			claims: id[]
+		maps: claim[]
+		gaps: claim[]
