@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
   petrinautExperimentRequestSchema,
+  toPetrinautId,
   type PetrinautExperimentResult,
 } from "@hashintel/petrinaut-core";
 
@@ -78,7 +79,7 @@ const completedMessage = (
         metrics: [
           { id: "metric__unrelated", label: "Other", value: 0.99 },
           {
-            id: "metric__infected_fraction",
+            id: toPetrinautId("metric__infected_fraction"),
             label: "Infected Fraction",
             value: 0.123456,
           },
@@ -211,7 +212,7 @@ describe("experiment integration demo", () => {
     {
       metrics: [
         {
-          id: "metric__infected_fraction",
+          id: toPetrinautId("metric__infected_fraction"),
           label: "Infected Fraction",
           value: null,
         },
@@ -237,7 +238,7 @@ describe("experiment integration demo", () => {
       completedMessage({
         metrics: [
           {
-            id: "metric__infected_fraction",
+            id: toPetrinautId("metric__infected_fraction"),
             label: "Infected Fraction",
             value: 0,
           },

@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import {
   createBrunchMutationAdmission,
@@ -74,9 +75,13 @@ describe("Brunch destructive edit approval", () => {
       />,
     );
 
-    expect(screen.getByText(/Remove place.*queue/u)).not.toBeNull();
     expect(
-      screen.getByText(/Remove differential equation.*decay/u),
+      screen.getByText(`Remove place — ${toPetrinautId("queue")}`),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(
+        `Remove differential equation — ${toPetrinautId("decay")}`,
+      ),
     ).not.toBeNull();
     expect(
       screen.getByText(/associated arcs or references may also be removed/iu),
@@ -276,7 +281,8 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   };
 
   test("a denied removal settles as not applied without running", async () => {
-    const input = { placeId: "queue" };
+    // Brunch issues the schema-parsed input, with ids converted.
+    const input = { placeId: toPetrinautId("queue") };
     const { calls, coordinator, posted } = issuedCalls("removePlace", input);
     const execute = vi.fn(async () => ({ applied: true }));
     const run = calls.run(
@@ -306,7 +312,8 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   });
 
   test("an allowed removal runs once and reports its own result", async () => {
-    const input = { placeId: "queue" };
+    // Brunch issues the schema-parsed input, with ids converted.
+    const input = { placeId: toPetrinautId("queue") };
     const { calls, coordinator, posted } = issuedCalls("removePlace", input);
     const execute = vi.fn(async () => ({
       applied: true,
@@ -336,7 +343,8 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   });
 
   test("the host records a removal's starting revision only once it is allowed", async () => {
-    const input = { placeId: "queue" };
+    // Brunch issues the schema-parsed input, with ids converted.
+    const input = { placeId: toPetrinautId("queue") };
     const denied = issuedCalls("removePlace", input);
     const deniedRun = denied.calls.run(
       {
@@ -376,7 +384,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
 
   test("a constructive call runs without asking", async () => {
     const input = {
-      id: "place",
+      id: toPetrinautId("place"),
       name: "Place",
       colorId: null,
       dynamicsEnabled: false,
@@ -402,7 +410,8 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   });
 
   test("Stop before approval reports nothing and never runs", async () => {
-    const input = { placeId: "queue" };
+    // Brunch issues the schema-parsed input, with ids converted.
+    const input = { placeId: toPetrinautId("queue") };
     const { calls, coordinator, posted } = issuedCalls("removePlace", input);
     const controller = new AbortController();
     const execute = vi.fn(async () => ({ applied: true }));

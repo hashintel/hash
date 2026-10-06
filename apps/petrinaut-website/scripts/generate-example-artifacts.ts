@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  canonicalizePetrinautIds,
   compileScenario,
   parseSDCPNFile,
   type SDCPN,
@@ -42,7 +43,9 @@ const loadDefinition = (entry: ExampleCatalogEntry): Promise<SDCPN> => {
       return readModelFile(entry.slug);
     case "core-example":
       return Promise.resolve(
-        coreExamples[entry.source.exportName].petriNetDefinition,
+        canonicalizePetrinautIds(
+          coreExamples[entry.source.exportName].petriNetDefinition,
+        ),
       );
   }
 };

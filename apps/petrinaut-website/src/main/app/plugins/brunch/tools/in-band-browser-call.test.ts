@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 
@@ -10,8 +11,9 @@ const binding = {
   conversationId: "conversation",
   documentId: "document",
 };
+/** As Brunch issues it: schema-parsed, with ids converted. */
 const input = {
-  id: "place",
+  id: toPetrinautId("place"),
   name: "Place",
   colorId: null,
   dynamicsEnabled: false,
