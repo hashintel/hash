@@ -7,7 +7,6 @@
     "vitest.config.ts"
   ],
   "compilerOptions": {
-    "rootDir": "../../..",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     /**

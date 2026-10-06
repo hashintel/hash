@@ -6,7 +6,6 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "rootDir": "../..",
     "allowJs": false,
     "checkJs": false,
     "allowSyntheticDefaultImports": true,

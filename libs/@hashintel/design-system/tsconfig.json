@@ -9,7 +9,6 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "noEmit": true,
-    "rootDir": "../../..",
     "target": "ES2024"
   },
   "include": ["assets.d.ts", "theme-override.d.ts", "./src/"]

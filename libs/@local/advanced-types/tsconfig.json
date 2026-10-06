@@ -2,7 +2,6 @@
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "include": ["./src/", "codegen.config.ts", "eslint.config.js"],
   "compilerOptions": {
-    "rootDir": "../../..",
     "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
