@@ -88,7 +88,10 @@ const computeIsDirty = (
   }
   return (
     title !== savedSnapshot.title ||
-    !isSDCPNEqual(definition, canonicalizeNetIds(savedSnapshot.definition))
+    !isSDCPNEqual(
+      canonicalizeNetIds(definition),
+      canonicalizeNetIds(savedSnapshot.definition),
+    )
   );
 };
 
