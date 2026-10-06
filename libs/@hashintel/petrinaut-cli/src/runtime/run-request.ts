@@ -1,4 +1,4 @@
-import { compileScenario } from "@hashintel/petrinaut-core";
+import { compileScenario, toPetrinautId } from "@hashintel/petrinaut-core";
 import { lowerScenarioToHir } from "@hashintel/petrinaut-core/hir";
 
 import type {
@@ -102,6 +102,14 @@ function normalizeParameterValue(
   return normalized;
 }
 
+/**
+ * Whether a request selector names the element with `id`: the id itself, or
+ * a legacy id that converts to it, so requests written against a model's
+ * original ids keep working.
+ */
+const selectsId = (id: string, selector: string): boolean =>
+  id === selector || id === toPetrinautId(selector);
+
 function normalizeParameterValues(
   metadata: PetrinautCompiledModelMetadata,
   request: ServerRunRequest,
@@ -111,7 +119,7 @@ function normalizeParameterValues(
     asRecord(request.parameters, "parameters"),
   )) {
     const parameter =
-      metadata.parameters.find((candidate) => candidate.id === key) ??
+      metadata.parameters.find((candidate) => selectsId(candidate.id, key)) ??
       metadata.parameters.findLast(
         (candidate) => candidate.variableName === key,
       ) ??
@@ -134,7 +142,7 @@ function resolvePlaceId(
   key: string,
 ): string {
   const place =
-    metadata.places.find((candidate) => candidate.id === key) ??
+    metadata.places.find((candidate) => selectsId(candidate.id, key)) ??
     metadata.places.findLast((candidate) => candidate.name === key);
   if (!place) {
     throw new Error(`Place "${key}" does not exist`);
@@ -200,7 +208,7 @@ function resolveMetric(
   selector: string,
 ): PetrinautCompiledModelMetadata["metrics"][number] {
   const metric =
-    metadata.metrics.find((candidate) => candidate.id === selector) ??
+    metadata.metrics.find((candidate) => selectsId(candidate.id, selector)) ??
     metadata.metrics.find((candidate) => candidate.name === selector);
   if (!metric) {
     throw new Error(`Metric "${selector}" does not exist in the model`);
@@ -343,8 +351,8 @@ function compileRunScenario(
   sdcpn: SDCPN,
   request: NonNullable<ServerRunRequest["scenario"]>,
 ): { initialMarking: InitialMarking; parameterValues: Record<string, string> } {
-  const scenario = (sdcpn.scenarios ?? []).find(
-    (candidate) => candidate.id === request.id,
+  const scenario = (sdcpn.scenarios ?? []).find((candidate) =>
+    selectsId(candidate.id, request.id),
   );
   if (!scenario) {
     throw new Error(`Scenario "${request.id}" does not exist in the model`);
