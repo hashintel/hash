@@ -85,8 +85,7 @@ const isNamedCatalogRange = (range) => /^catalog:./.test(range);
 const shouldIgnoreDependencyForConsistency = (dependency) =>
   ignoredDependencies.includes(dependency.ident) ||
   ignoredWorkspaces.includes(dependency.workspace.ident) ||
-  (dependency.ident in catalog && !dependency.range.startsWith("catalog:")) ||
-  isNamedCatalogRange(dependency.range) ||
+  (dependency.ident in catalog && dependency.range !== "catalog:") ||
   dependency.type === "peerDependencies";
 
 /**
@@ -292,7 +291,10 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
       for (const [key, { commands }] of Object.entries(
         enforcedDevDependencies,
       )) {
-        if (workspace.ident === "@local/eslint" && key === "eslint") {
+        if (
+          workspace.ident === "@local/eslint" &&
+          (key === "eslint" || key === "typescript")
+        ) {
           continue;
         }
 
