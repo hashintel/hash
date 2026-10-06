@@ -14,7 +14,10 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
-import { createExperimentToolName, toNetId } from "@hashintel/petrinaut-core";
+import {
+  createExperimentToolName,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
 import { BrunchPanelConversationTracker } from "../plugins/brunch/brunch-panel-transport";
@@ -55,10 +58,10 @@ import type {
   PetrinautAiMessage,
 } from "@hashintel/petrinaut/ui";
 
-const netOneId = toNetId("net-1");
-const netTwoId = toNetId("net-2");
-const freshNetId = toNetId("net-fresh");
-const staleNetId = toNetId("net-stale");
+const netOneId = toPetrinautId("net-1");
+const netTwoId = toPetrinautId("net-2");
+const freshNetId = toPetrinautId("net-fresh");
+const staleNetId = toPetrinautId("net-stale");
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,

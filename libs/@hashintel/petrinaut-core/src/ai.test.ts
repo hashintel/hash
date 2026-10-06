@@ -20,7 +20,7 @@ import {
 } from "./ai";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
-import { isNetId } from "./net-id";
+import { isPetrinautId } from "./petrinaut-id";
 
 const createHash = nodeCreateHash as unknown as (algorithm: "sha256") => {
   update: (value: string) => { digest: (encoding: "hex") => string };
@@ -243,7 +243,7 @@ describe("Petrinaut AI core exports", () => {
     });
 
     const [subnet] = instance.definition.get().subnets ?? [];
-    expect(isNetId(subnet?.id)).toBe(true);
+    expect(isPetrinautId(subnet?.id)).toBe(true);
     expect(subnet?.places.map(({ id }) => id)).toEqual(["place-1"]);
   });
 

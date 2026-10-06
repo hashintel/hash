@@ -15,7 +15,7 @@ import {
 } from "./extensions";
 import { calculateGraphLayout } from "./layout/calculate-graph-layout";
 import { layoutNodeDimensions } from "./layout/dimensions";
-import { toNetId } from "./net-id";
+import { toPetrinautId } from "./petrinaut-id";
 
 import type { ClipboardPayload } from "./clipboard/types";
 import type { SDCPN, Subnet } from "./types/sdcpn";
@@ -69,7 +69,7 @@ const resolveTargetNet = (
     return sdcpn;
   }
 
-  const subnetId = toNetId(targetSubnetId);
+  const subnetId = toPetrinautId(targetSubnetId);
   const subnet = sdcpn.subnets?.find(({ id }) => id === subnetId);
   if (!subnet) {
     throw new Error(`Subnet with ID \`${targetSubnetId}\` does not exist.`);

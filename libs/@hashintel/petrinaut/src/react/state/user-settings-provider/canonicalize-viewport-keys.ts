@@ -1,4 +1,4 @@
-import { toNetId } from "@hashintel/petrinaut-core";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import type { SavedCanvasViewport } from "../canvas-viewport-context";
 
@@ -12,7 +12,7 @@ export const canonicalizeViewportKeys = (
 ): Record<string, SavedCanvasViewport> => {
   const canonical = new Map<string, SavedCanvasViewport>();
   for (const [documentId, entry] of Object.entries(viewports)) {
-    const netId = toNetId(documentId);
+    const netId = toPetrinautId(documentId);
     const kept = canonical.get(netId);
     if (!kept || (entry.savedAt ?? 0) > (kept.savedAt ?? 0)) {
       canonical.set(netId, entry);

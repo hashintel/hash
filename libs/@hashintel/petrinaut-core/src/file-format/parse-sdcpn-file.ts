@@ -3,7 +3,7 @@
  * @role Reads and writes the on-disk SDCPN document format, plus export converters
  */
 
-import { canonicalizeNetIds } from "../net-id";
+import { canonicalizePetrinautIds } from "../petrinaut-id";
 import {
   describeDangerousSdcpnKeys,
   findDangerousSdcpnKeys,
@@ -143,7 +143,7 @@ const checkRecordKeys = (sdcpn: SDCPN): ImportResult | null => {
 const toImportResult = (
   sdcpnData: Parameters<typeof fillMissingVisualInfo>[0],
 ): ImportResult => {
-  const sdcpn = canonicalizeNetIds(fillMissingVisualInfo(sdcpnData));
+  const sdcpn = canonicalizePetrinautIds(fillMissingVisualInfo(sdcpnData));
   return (
     checkRecordKeys(sdcpn) ?? {
       ok: true,

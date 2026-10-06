@@ -4,7 +4,7 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 
-import { toNetId } from "@hashintel/petrinaut-core";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 
@@ -17,7 +17,7 @@ const conversation = (text: string) => [
 afterEach(() => localStorage.clear());
 
 test("keys stored conversations by net id, preferring the canonical entry", () => {
-  const netId = toNetId("net-1");
+  const netId = toPetrinautId("net-1");
   localStorage.setItem(
     storageKey,
     JSON.stringify({
@@ -31,6 +31,6 @@ test("keys stored conversations by net id, preferring the canonical entry", () =
 
   expect(result.current.aiMessagesByNetId).toStrictEqual({
     [netId]: conversation("canonical"),
-    [toNetId("net-2")]: conversation("other"),
+    [toPetrinautId("net-2")]: conversation("other"),
   });
 });

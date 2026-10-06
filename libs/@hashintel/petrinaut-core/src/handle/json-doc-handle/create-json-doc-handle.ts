@@ -11,7 +11,7 @@ import {
   stripDisabledExtensionData,
   type PetrinautHandleCapabilities,
 } from "../../extensions";
-import { generateNetId, toNetId } from "../../net-id";
+import { generatePetrinautId, toPetrinautId } from "../../petrinaut-id";
 import { createReadableStore } from "../../store";
 import { normalizeSDCPN } from "../../types/sdcpn-input";
 
@@ -47,7 +47,7 @@ const DEFAULT_HISTORY_LIMIT = 50;
 
 export type CreateJsonDocHandleOptions = {
   /**
-   * Net id. Any id that is not a UUID is converted with `toNetId`, so
+   * Net id. Any id that is not a UUID is converted with `toPetrinautId`, so
    * `handle.id` may differ from it. Defaults to a fresh random UUID.
    */
   id?: DocumentId;
@@ -82,7 +82,8 @@ export type CreateJsonDocHandleOptions = {
 export function createJsonDocHandle(
   opts: CreateJsonDocHandleOptions,
 ): PetrinautDocHandle {
-  const id = opts.id === undefined ? generateNetId() : toNetId(opts.id);
+  const id =
+    opts.id === undefined ? generatePetrinautId() : toPetrinautId(opts.id);
   const historyLimit = opts.historyLimit ?? DEFAULT_HISTORY_LIMIT;
   const capabilities = opts.capabilities;
   const resolvedCapabilities = resolvePetrinautHandleCapabilities(capabilities);

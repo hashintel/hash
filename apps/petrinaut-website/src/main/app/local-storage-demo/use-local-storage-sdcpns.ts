@@ -1,7 +1,7 @@
 import {
-  canonicalizeNetIds,
-  generateNetId,
-  toNetId,
+  canonicalizePetrinautIds,
+  generatePetrinautId,
+  toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
 import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
@@ -87,7 +87,7 @@ export const createLocalStorageNetRecord = (params: {
   const now = new Date();
 
   return {
-    id: generateNetId(),
+    id: generatePetrinautId(),
     title: params.title,
     sdcpn: params.petriNetDefinition,
     lastUpdated: now.toISOString(),
@@ -170,8 +170,8 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
     if (!isStoredDocumentIngress(value, documentId)) {
       continue;
     }
-    const id = toNetId(documentId);
-    const sdcpn = canonicalizeNetIds(value.sdcpn);
+    const id = toPetrinautId(documentId);
+    const sdcpn = canonicalizePetrinautIds(value.sdcpn);
     const incarnationId =
       typeof value.incarnationId === "string" ? value.incarnationId : undefined;
     const revisionId =

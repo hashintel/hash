@@ -14,10 +14,13 @@ Petrinaut reads and writes documents through `PetrinautDocHandle`. Use
 extension sanitization, and optional undo/redo history:
 
 ```ts
-import { createJsonDocHandle, generateNetId } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  generatePetrinautId,
+} from "@hashintel/petrinaut-core";
 
 const handle = createJsonDocHandle({
-  id: generateNetId(),
+  id: generatePetrinautId(),
   initial: {
     places: [{ id: "p1", name: "P1", x: 0, y: 0 }],
     transitions: [],

@@ -1,6 +1,6 @@
 import { use, useEffect, type ReactNode } from "react";
 
-import { toNetId } from "@hashintel/petrinaut-core";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { openPetrinautSubnet, usePetrinautNavigation } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
@@ -13,7 +13,7 @@ import { SDCPNContext } from "./sdcpn-context";
  * activeSubnetId is part of Petrinaut's app location. Changing subnets clears
  * selection in the same atomic transition. The navigation provider is keyed
  * by document, so uncontrolled locations reset when the active handle changes.
- * A requested subnet id resolves through `toNetId`, and the location is
+ * A requested subnet id resolves through `toPetrinautId`, and the location is
  * rewritten to the canonical id, or to the root net when no subnet matches.
  */
 export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
@@ -31,7 +31,7 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const canonicalSubnetId =
-    requestedSubnetId !== null ? toNetId(requestedSubnetId) : null;
+    requestedSubnetId !== null ? toPetrinautId(requestedSubnetId) : null;
   const subnet =
     canonicalSubnetId !== null
       ? petriNetDefinition.subnets?.find(({ id }) => id === canonicalSubnetId)

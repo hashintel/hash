@@ -5,8 +5,8 @@
 
 import { z } from "zod";
 
-import { toNetId } from "../net-id";
 import { getParameterValueError } from "../parameter-values";
+import { toPetrinautId } from "../petrinaut-id";
 import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
 import { displayNameSchema } from "../validation/display-name";
 import { entityNameSchema } from "../validation/entity-name";
@@ -31,7 +31,7 @@ export const idSchema = z.string().min(1).meta({
     "Stable identifier for an SDCPN entity. Use unique IDs within the net.",
 });
 
-export const subnetIdSchema = z.string().min(1).overwrite(toNetId).meta({
+export const subnetIdSchema = z.string().min(1).overwrite(toPetrinautId).meta({
   description:
     "Subnet ID, a UUID. Any other string is converted to a stable UUID, so the same string always names the same subnet.",
 });

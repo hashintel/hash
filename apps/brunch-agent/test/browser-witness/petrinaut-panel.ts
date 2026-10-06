@@ -12,7 +12,7 @@ import {
 } from "@earendil-works/pi-ai";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
-import { toNetId, type SDCPN } from "@hashintel/petrinaut-core";
+import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
 
 import {
   isAppliedChange,
@@ -50,8 +50,8 @@ const experimentNet: SDCPN = {
   ],
   metrics: [{ id: "throughput", name: "Throughput", code: "return 1;" }],
 };
-const experimentNetId = toNetId("experiment-net");
-const draftNetId = toNetId("draft-net");
+const experimentNetId = toPetrinautId("experiment-net");
+const draftNetId = toPetrinautId("draft-net");
 const savedDocument = (id: string, sdcpn: SDCPN) => ({
   [id]: {
     id,

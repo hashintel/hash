@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createPetrinaut } from "../../instance";
-import { isNetId, toNetId } from "../../net-id";
+import { isPetrinautId, toPetrinautId } from "../../petrinaut-id";
 import { createReadableStore } from "../../store";
 import { createJsonDocHandle } from "./create-json-doc-handle";
 
@@ -71,7 +71,7 @@ describe("createJsonDocHandle", () => {
 
   it("defaults to a random net id", () => {
     const handle = createJsonDocHandle({ initial: empty() });
-    expect(isNetId(handle.id)).toBe(true);
+    expect(isPetrinautId(handle.id)).toBe(true);
     expect(createJsonDocHandle({ initial: empty() }).id).not.toBe(handle.id);
   });
 
@@ -94,10 +94,10 @@ describe("createJsonDocHandle", () => {
       },
     });
 
-    expect(handle.id).toBe(toNetId("net-1"));
-    expect(handle.doc()?.subnets?.[0]?.id).toBe(toNetId("subnet-1"));
+    expect(handle.id).toBe(toPetrinautId("net-1"));
+    expect(handle.doc()?.subnets?.[0]?.id).toBe(toPetrinautId("subnet-1"));
     expect(handle.doc()?.componentInstances?.[0]?.subnetId).toBe(
-      toNetId("subnet-1"),
+      toPetrinautId("subnet-1"),
     );
     expect(handle.history?.entries.get()).toHaveLength(1);
   });

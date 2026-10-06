@@ -16,7 +16,7 @@ import {
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
-import { toNetId } from "@hashintel/petrinaut-core";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
 import { documentRevisionOf } from "../plugins/brunch/tools/shared/document-revision";
@@ -188,7 +188,7 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
   setProvider(faux.provider);
   fixture.fetch = async (input, init) =>
     server.fetch(input instanceof Request ? input : new Request(input, init));
-  const documentId = toNetId("net-1");
+  const documentId = toPetrinautId("net-1");
   const initialRevisionId = "initial-revision";
   let unmount = () => {};
   try {

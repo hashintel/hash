@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toNetId } from "../net-id";
+import { toPetrinautId } from "../petrinaut-id";
 import { parseSDCPNFile } from "./parse-sdcpn-file";
 
 const minimalPlace = {
@@ -163,9 +163,9 @@ describe("parseSDCPNFile", () => {
       if (!result.ok) return;
       expect(result.sdcpn.componentInstances?.[0]).toMatchObject({
         id: "instance-1",
-        subnetId: toNetId("subnet-1"),
+        subnetId: toPetrinautId("subnet-1"),
       });
-      expect(result.sdcpn.subnets?.[0]?.id).toBe(toNetId("subnet-1"));
+      expect(result.sdcpn.subnets?.[0]?.id).toBe(toPetrinautId("subnet-1"));
       expect(result.sdcpn.subnets?.[0]?.places[0]?.isPort).toBe(true);
     });
 
@@ -532,9 +532,9 @@ describe("parseSDCPNFile", () => {
 
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      expect(result.sdcpn.subnets?.[0]?.id).toBe(toNetId("subnet__a"));
+      expect(result.sdcpn.subnets?.[0]?.id).toBe(toPetrinautId("subnet__a"));
       expect(result.sdcpn.componentInstances?.[0]?.subnetId).toBe(
-        toNetId("subnet__a"),
+        toPetrinautId("subnet__a"),
       );
     });
   });

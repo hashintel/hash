@@ -4,7 +4,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 
-import { isNetId, toNetId, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  isPetrinautId,
+  toPetrinautId,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
 import {
   createLocalStorageNetRecord,
@@ -60,7 +64,7 @@ const storedNet = (
   lastUpdated = new Date(0).toISOString(),
 ): [string, SDCPNInLocalStorage] => [id, { id, title: id, sdcpn, lastUpdated }];
 
-const drawnNetId = toNetId("net-drawn");
+const drawnNetId = toPetrinautId("net-drawn");
 
 /** An entry whose `sdcpn` this version of the editor cannot read as a net. */
 const foreignEntry = {
@@ -81,7 +85,7 @@ describe("createLocalStorageNetRecord", () => {
       title: "New Process",
     });
 
-    expect(isNetId(first.id)).toBe(true);
+    expect(isPetrinautId(first.id)).toBe(true);
     expect(second.id).not.toBe(first.id);
   });
 
@@ -108,7 +112,7 @@ describe("startEmptyNetInStorage", () => {
 
     expect(readNets(storage)).toStrictEqual({ [net.id]: net });
     expect(net.sdcpn).toStrictEqual(emptySDCPN);
-    expect(isNetId(net.id)).toBe(true);
+    expect(isPetrinautId(net.id)).toBe(true);
   });
 
   test("keeps the nets the visitor has drawn", () => {
@@ -277,19 +281,21 @@ describe("legacy net ids", () => {
 
     const { result } = renderHook(() => useLocalStorageSDCPNs());
 
-    const netId = toNetId("net-1");
+    const netId = toPetrinautId("net-1");
     const written = readNets(localStorage);
     expect(Object.keys(written)).toStrictEqual([netId]);
     expect(written[netId]?.id).toBe(netId);
-    expect(written[netId]?.sdcpn.subnets?.[0]?.id).toBe(toNetId("subnet__a"));
+    expect(written[netId]?.sdcpn.subnets?.[0]?.id).toBe(
+      toPetrinautId("subnet__a"),
+    );
     expect(written[netId]?.sdcpn.componentInstances?.[0]?.subnetId).toBe(
-      toNetId("subnet__a"),
+      toPetrinautId("subnet__a"),
     );
     expect(result.current.storedSDCPNs).toStrictEqual(written);
   });
 
   test("keeps the later record when a legacy and a canonical id name one net", () => {
-    const netId = toNetId("net-1");
+    const netId = toPetrinautId("net-1");
     localStorage.setItem(
       rootLocalStorageKey,
       JSON.stringify(
@@ -309,7 +315,7 @@ describe("legacy net ids", () => {
   });
 
   test("keeps the canonical record when both were written at once", () => {
-    const netId = toNetId("net-1");
+    const netId = toPetrinautId("net-1");
     localStorage.setItem(
       rootLocalStorageKey,
       JSON.stringify(

@@ -1,8 +1,9 @@
 /**
- * Net identity helpers. A net id (a document's `PetrinautDocHandle.id`) and a
- * subnet id (`Subnet.id`, `ComponentInstance.subnetId`) is a lowercase UUID.
- * Ids in any other form are converted on load with {@link toNetId}, so the
- * same legacy id always names the same net.
+ * Petrinaut id helpers. A Petrinaut id is a lowercase UUID: a net id (a
+ * document's `PetrinautDocHandle.id`) and a subnet id (`Subnet.id`,
+ * `ComponentInstance.subnetId`) are Petrinaut ids. Ids in any other form are
+ * converted on load with {@link toPetrinautId}, so the same legacy id always
+ * names the same item.
  */
 
 import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
@@ -18,20 +19,20 @@ import type { ComponentInstance, SDCPN, Subnet } from "./types/sdcpn";
  */
 export const PETRINAUT_ID_NAMESPACE = "f346239e-b5e3-53b6-bb7e-297046d1ac64";
 
-/** Whether `value` is a net id: a UUID string in lowercase. */
-export const isNetId = (value: unknown): value is string =>
+/** Whether `value` is a Petrinaut id: a UUID string in lowercase. */
+export const isPetrinautId = (value: unknown): value is string =>
   isUuidString(value) && value === value.toLowerCase();
 
 /**
- * Converts any id to a net id: a UUID is lowercased, anything else becomes
+ * Converts any id to a Petrinaut id: a UUID is lowercased, anything else becomes
  * its UUIDv5 under {@link PETRINAUT_ID_NAMESPACE}. Deterministic and
  * idempotent.
  */
-export const toNetId = (id: string): string =>
+export const toPetrinautId = (id: string): string =>
   isUuidString(id) ? id.toLowerCase() : uuidv5(id, PETRINAUT_ID_NAMESPACE);
 
-/** A fresh random net id. */
-export const generateNetId = (): string => uuidv4();
+/** A fresh random Petrinaut id. */
+export const generatePetrinautId = (): string => uuidv4();
 
 const mapUnlessUnchanged = <Item>(
   items: Item[],
@@ -44,7 +45,7 @@ const mapUnlessUnchanged = <Item>(
 const canonicalizeInstance = (
   instance: ComponentInstance,
 ): ComponentInstance => {
-  const subnetId = toNetId(instance.subnetId);
+  const subnetId = toPetrinautId(instance.subnetId);
   return subnetId === instance.subnetId ? instance : { ...instance, subnetId };
 };
 
@@ -64,17 +65,19 @@ const canonicalizeInstances = <Net extends Pick<SDCPN, "componentInstances">>(
 };
 
 const canonicalizeSubnet = (subnet: Subnet): Subnet => {
-  const id = toNetId(subnet.id);
+  const id = toPetrinautId(subnet.id);
   const canonical = canonicalizeInstances(subnet);
   return id === subnet.id ? canonical : { ...canonical, id };
 };
 
 /**
- * Converts every subnet id in `sdcpn` to a net id: subnet definitions and the
- * component instances that reference them, at the root and inside subnets.
- * Returns `sdcpn` itself when every id is already canonical.
+ * Converts every subnet id in `sdcpn` to a Petrinaut id: subnet definitions
+ * and the component instances that reference them, at the root and inside
+ * subnets. Returns `sdcpn` itself when every id is already canonical.
  */
-export const canonicalizeNetIds = <Net extends SDCPN>(sdcpn: Net): Net => {
+export const canonicalizePetrinautIds = <Net extends SDCPN>(
+  sdcpn: Net,
+): Net => {
   const canonical = canonicalizeInstances(sdcpn);
   if (canonical.subnets === undefined) {
     return canonical;

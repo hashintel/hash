@@ -1,7 +1,7 @@
 import { castDraft, produce } from "immer";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { generateNetId } from "@hashintel/petrinaut-core";
+import { generatePetrinautId } from "@hashintel/petrinaut-core";
 
 import {
   createLocalStorageNetRecord,
@@ -45,7 +45,7 @@ const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
 };
 
 const createDefaultDocument = (): SDCPNInLocalStorage => ({
-  id: generateNetId(),
+  id: generatePetrinautId(),
   title: "New Process",
   sdcpn: emptySDCPN,
   lastUpdated: new Date(0).toISOString(),

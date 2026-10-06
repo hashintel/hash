@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
-  toNetId,
+  toPetrinautId,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -24,7 +24,7 @@ import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
 
 afterEach(cleanup);
 
-const subnetId = toNetId("subnet__legacy");
+const subnetId = toPetrinautId("subnet__legacy");
 
 const sdcpn: SDCPN = {
   places: [],
@@ -49,7 +49,7 @@ const sdcpnContextValue: SDCPNContextValue = {
   createNewNet: () => {},
   existingNets: [],
   loadPetriNet: () => {},
-  petriNetId: toNetId("test-net"),
+  petriNetId: toPetrinautId("test-net"),
   petriNetDefinition: sdcpn,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,

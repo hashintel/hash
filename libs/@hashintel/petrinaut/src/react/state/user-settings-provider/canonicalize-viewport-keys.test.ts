@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toNetId } from "@hashintel/petrinaut-core";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { canonicalizeViewportKeys } from "./canonicalize-viewport-keys";
 
@@ -13,14 +13,14 @@ const saved = (zoom: number, savedAt?: number) => ({
 
 describe("canonicalizeViewportKeys", () => {
   it("keys every viewport by its net id", () => {
-    const netId = toNetId("net-1");
+    const netId = toPetrinautId("net-1");
     expect(
       canonicalizeViewportKeys({ "net-1": saved(1, 10), [netId]: saved(2) }),
     ).toEqual({ [netId]: saved(1, 10) });
   });
 
   it("keeps the later save when two keys name the same net", () => {
-    const netId = toNetId("net-1");
+    const netId = toPetrinautId("net-1");
     expect(
       canonicalizeViewportKeys({
         "net-1": saved(1, 10),
@@ -31,8 +31,8 @@ describe("canonicalizeViewportKeys", () => {
 
   it("keeps canonical keys as they are", () => {
     const viewports = {
-      [toNetId("a")]: saved(1, 10),
-      [toNetId("b")]: saved(2),
+      [toPetrinautId("a")]: saved(1, 10),
+      [toPetrinautId("b")]: saved(2),
     };
     expect(canonicalizeViewportKeys(viewports)).toEqual(viewports);
   });

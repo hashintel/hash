@@ -146,7 +146,7 @@ export type PetrinautPreviewProps = {
   definition: SDCPN;
   /**
    * Stable identity for the in-memory document created by Preview. Any id
-   * that is not a UUID is converted to one with `toNetId`.
+   * that is not a UUID is converted to one with `toPetrinautId`.
    */
   documentId?: string;
   title?: string;

@@ -359,7 +359,7 @@ export type ComponentInstance = {
 };
 
 export type Subnet = {
-  /** Subnet id, a lowercase UUID (see `isNetId`). */
+  /** Subnet id, a lowercase UUID (see `isPetrinautId`). */
   id: ID;
   name: string;
   description?: string;
@@ -389,7 +389,7 @@ export type SDCPN = {
 };
 
 export type MinimalNetMetadata = {
-  /** Net id, a lowercase UUID (see `isNetId`). */
+  /** Net id, a lowercase UUID (see `isPetrinautId`). */
   netId: string;
   title: string;
   lastUpdated: string;

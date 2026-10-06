@@ -106,12 +106,12 @@ proper.
 - **`id` is unique per document and immutable for the handle's lifetime.**
   Reusing one id across documents leaks simulation and language-server state
   between them; deriving it from mutable state resets that state mid-session.
-- **`id` is a lowercase UUID.** Derive one from a legacy key with `toNetId`,
-  which maps the same key to the same UUID every time, or mint one with
-  `generateNetId`. `createJsonDocHandle` converts any other id it is given, so
-  its `handle.id` may differ from `opts.id`; Petrinaut reads every handle's id
-  through `toNetId` as well. Subnet ids follow the same rule and are converted
-  when a document loads.
+- **`id` is a lowercase UUID.** Derive one from a legacy key with
+  `toPetrinautId`, which maps the same key to the same UUID every time, or
+  mint one with `generatePetrinautId`. `createJsonDocHandle` converts any other
+  id it is given, so its `handle.id` may differ from `opts.id`; Petrinaut reads
+  every handle's id through `toPetrinautId` as well. Subnet ids follow the same
+  rule and are converted when a document loads.
 - **`subscribe` returns an unsubscribe function** and tolerates it being
   called after disposal.
 
@@ -214,10 +214,10 @@ Use it when Petrinaut can own the working copy and the host only seeds it and
 saves snapshots.
 
 ```ts
-import { createJsonDocHandle, toNetId } from "@hashintel/petrinaut-core";
+import { createJsonDocHandle, toPetrinautId } from "@hashintel/petrinaut-core";
 
 const handle = createJsonDocHandle({
-  id: toNetId(graph.id), // a lowercase UUID; other ids are converted anyway
+  id: toPetrinautId(graph.id), // a lowercase UUID; other ids are converted anyway
   initial: toSDCPN(graph), // SDCPNInput; normalized internally
   capabilities: { disabledExtensions: ["colors", "stochasticity"] },
   historyLimit: 50, // default 50; 0 disables history entirely

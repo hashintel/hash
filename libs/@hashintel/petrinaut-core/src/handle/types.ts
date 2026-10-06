@@ -3,8 +3,8 @@ import type { ReadableStore } from "../store";
 import type { SDCPN } from "../types/sdcpn";
 
 /**
- * A net id: a lowercase UUID (see `isNetId`). Derive one from a legacy key
- * with `toNetId`.
+ * A net id: a lowercase UUID (see `isPetrinautId`). Derive one from a legacy key
+ * with `toPetrinautId`.
  */
 export type DocumentId = string;
 

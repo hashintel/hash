@@ -1,4 +1,4 @@
-import { toNetId } from "@hashintel/petrinaut-core";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import {
   readBrowserStorage,
@@ -22,7 +22,7 @@ const keyedByNetId = (
 ): AiMessagesByNetId => {
   const canonical = new Map<string, PetrinautAiMessage[]>();
   for (const [key, messages] of entries) {
-    const netId = toNetId(key);
+    const netId = toPetrinautId(key);
     if (key === netId || !canonical.has(netId)) {
       canonical.set(netId, messages);
     }

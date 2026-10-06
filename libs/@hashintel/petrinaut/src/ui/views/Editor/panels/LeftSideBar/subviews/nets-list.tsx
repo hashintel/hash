@@ -2,7 +2,7 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { generateNetId } from "@hashintel/petrinaut-core";
+import { generatePetrinautId } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
@@ -120,7 +120,7 @@ const NetsHeaderAction: React.FC = () => {
       onClick={() => {
         const count = (subnets ?? []).length;
         addSubnet({
-          id: generateNetId(),
+          id: generatePetrinautId(),
           name: `Subnet ${count + 1}`,
           places: [],
           transitions: [],

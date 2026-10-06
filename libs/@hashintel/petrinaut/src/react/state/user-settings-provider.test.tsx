@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { toNetId } from "@hashintel/petrinaut-core";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { UserSettingsContext } from "./user-settings-context";
 import { UserSettingsProvider } from "./user-settings-provider";
@@ -62,7 +62,7 @@ const ArcConnectionsProbe = () => {
 
 describe("UserSettingsProvider", () => {
   it("keys saved canvas viewports by net id", () => {
-    const netId = toNetId("net-1");
+    const netId = toPetrinautId("net-1");
     localStorage.setItem(
       storageKey,
       JSON.stringify({

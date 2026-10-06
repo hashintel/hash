@@ -4,17 +4,17 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { isNetId, toNetId } from "@hashintel/petrinaut-core";
+import { isPetrinautId, toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { startEmptyNetInStorage } from "../../use-local-storage-sdcpns";
 import { useLocalDocumentRepository } from "./use-local-document-repository";
 
-const documentId = toNetId("document-1");
-const olderId = toNetId("older");
-const newerId = toNetId("newer");
-const otherTabId = toNetId("otherTab");
-const emptyId = toNetId("empty");
-const retainedId = toNetId("retained");
+const documentId = toPetrinautId("document-1");
+const olderId = toPetrinautId("older");
+const newerId = toPetrinautId("newer");
+const otherTabId = toPetrinautId("otherTab");
+const emptyId = toPetrinautId("empty");
+const retainedId = toPetrinautId("retained");
 
 const emptyDefinition = {
   places: [],
@@ -328,7 +328,9 @@ test("opens a default document under a fresh net id when nothing is stored", () 
   const { result } = renderHook(() =>
     useLocalDocumentRepository({ onOpen: vi.fn() }),
   );
-  expect(isNetId(result.current.repository.current?.documentId)).toBe(true);
+  expect(isPetrinautId(result.current.repository.current?.documentId)).toBe(
+    true,
+  );
 });
 
 test("opens the empty document created by the new route", () => {

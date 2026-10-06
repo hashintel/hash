@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import {
   createJsonDocHandle,
-  generateNetId,
+  generatePetrinautId,
   type PetrinautDocHandle,
   type MinimalNetMetadata,
   type SDCPN,
@@ -49,7 +49,7 @@ export const PetrinautStoryProvider = ({
   readonly?: boolean;
   children?: ReactNode;
 }) => {
-  const [initialNetId] = useState(generateNetId);
+  const [initialNetId] = useState(generatePetrinautId);
   const [nets, setNets] = useState<Record<string, StoredNet>>(() => ({
     [initialNetId]: {
       id: initialNetId,
@@ -107,7 +107,7 @@ export const PetrinautStoryProvider = ({
     petriNetDefinition: SDCPN;
     title: string;
   }) => {
-    const id = generateNetId();
+    const id = generatePetrinautId();
     const handle = createJsonDocHandle({
       id,
       initial: params.petriNetDefinition,

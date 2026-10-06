@@ -1,4 +1,4 @@
-import { canonicalizeNetIds } from "../net-id";
+import { canonicalizePetrinautIds } from "../petrinaut-id";
 
 import type {
   ArcEndpoint,
@@ -134,7 +134,7 @@ function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
  * `componentInstances`) are only set when present on the input, so the result
  * matches the shape the editor itself produces (relevant for structural
  * dirty-tracking via `isSDCPNEqual`). Subnet ids are converted to net ids
- * with {@link canonicalizeNetIds}.
+ * with {@link canonicalizePetrinautIds}.
  */
 export function normalizeSDCPN(input: SDCPNInput): SDCPN {
   const result: SDCPN = {
@@ -220,5 +220,5 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
     result.componentInstances = input.componentInstances;
   }
 
-  return canonicalizeNetIds(result);
+  return canonicalizePetrinautIds(result);
 }

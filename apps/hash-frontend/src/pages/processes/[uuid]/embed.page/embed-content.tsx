@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import {
-  canonicalizeNetIds,
+  canonicalizePetrinautIds,
   createJsonDocHandle,
   isSDCPNEqual,
   Petrinaut,
@@ -89,8 +89,8 @@ const computeIsDirty = (
   return (
     title !== savedSnapshot.title ||
     !isSDCPNEqual(
-      canonicalizeNetIds(definition),
-      canonicalizeNetIds(savedSnapshot.definition),
+      canonicalizePetrinautIds(definition),
+      canonicalizePetrinautIds(savedSnapshot.definition),
     )
   );
 };
