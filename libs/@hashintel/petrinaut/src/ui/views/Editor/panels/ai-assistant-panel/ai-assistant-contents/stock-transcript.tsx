@@ -134,6 +134,9 @@ const StockMessage = memo(
                   part={item.part}
                   state={experimentStates?.[item.part.toolCallId]}
                   onCancel={onCancelExperiment}
+                  onReveal={(target) =>
+                    handlersRef.current.onSelectToolTarget?.(target)
+                  }
                 />
               );
             case "tools":

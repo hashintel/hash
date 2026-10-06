@@ -44,7 +44,11 @@ export type AiToolOutput =
 
 export type AiToolTarget =
   | { kind: "selection"; item: SelectionItem }
-  | { kind: "simulateView"; mode: "scenarios" | "metrics"; itemId?: string };
+  | {
+      kind: "simulateView";
+      mode: "scenarios" | "metrics" | "experiments";
+      itemId?: string;
+    };
 
 export type AiToolSummaryContext = {
   definition?: SDCPN;

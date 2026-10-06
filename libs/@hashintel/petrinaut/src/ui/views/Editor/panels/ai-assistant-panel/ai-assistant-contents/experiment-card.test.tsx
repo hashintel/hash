@@ -7,7 +7,6 @@ import {
   ExperimentsContext,
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
 import { ExperimentCard } from "./experiment-card";
 
 import type { ExperimentToolPart } from "./experiment-card";
@@ -158,7 +157,7 @@ it("only offers cancellation while this panel owns a running request", () => {
 });
 
 it("opens only the matching record on explicit request, preferring the tool result to stale progress", () => {
-  const navigateTo = vi.fn();
+  const reveal = vi.fn();
   const record: ExperimentRecord = {
     id: "experiment",
     name: "Population",
@@ -195,14 +194,11 @@ it("opens only the matching record on explicit request, preferring the tool resu
     available: boolean;
   }) => {
     const experiments = use(ExperimentsContext);
-    const editor = use(EditorContext);
     return (
       <ExperimentsContext
         value={{ ...experiments, experiments: available ? [record] : [] }}
       >
-        <EditorContext value={{ ...editor, navigateTo }}>
-          {children}
-        </EditorContext>
+        {children}
       </ExperimentsContext>
     );
   };
@@ -213,16 +209,17 @@ it("opens only the matching record on explicit request, preferring the tool resu
         active: true,
         result: { ...result, experimentId: "stale", status: "error" },
       }}
+      onReveal={reveal}
     />
   );
   const view = render(<Providers available>{card}</Providers>);
   expect(screen.getByRole("status").textContent).toBe("Finished");
-  expect(navigateTo).not.toHaveBeenCalled();
+  expect(reveal).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: /View experiment/u }));
-  expect(navigateTo).toHaveBeenCalledExactlyOnceWith({
-    globalMode: "simulate",
-    simulateViewMode: "experiments",
-    simulateDrawer: { type: "view-experiment", experimentId: "experiment" },
+  expect(reveal).toHaveBeenCalledExactlyOnceWith({
+    kind: "simulateView",
+    mode: "experiments",
+    itemId: "experiment",
   });
   view.rerender(<Providers available={false}>{card}</Providers>);
   expect(screen.queryByRole("button", { name: /View experiment/u })).toBeNull();
