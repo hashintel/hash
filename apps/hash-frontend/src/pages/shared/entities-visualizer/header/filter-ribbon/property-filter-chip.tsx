@@ -5,7 +5,6 @@ import { Filter } from "@hashintel/ds-components";
 import { getOperatorsForKind } from "../../shared/property-filters/get-operators-for-kind";
 import { operatorDescriptionClass } from "./filter-chip-pill-chrome";
 
-import type { OperatorDescriptor } from "../../shared/property-filters/get-operators-for-kind";
 import type {
   FilterableProperty,
   PropertyFilter,
@@ -83,8 +82,6 @@ const chipValue = (
  */
 export const PropertyFilterChip: FunctionComponent<{
   filter: PropertyFilter;
-  /** Overrides the kind-derived operator catalog (the archived filter's). */
-  operatorDescriptors?: OperatorDescriptor[];
   className?: string;
   /**
    * The properties the chip's property segment offers switching to (it
@@ -97,7 +94,6 @@ export const PropertyFilterChip: FunctionComponent<{
   onRemove: () => void;
 }> = ({
   filter,
-  operatorDescriptors,
   className,
   propertyOptions,
   onSwitchProperty,
@@ -113,46 +109,44 @@ export const PropertyFilterChip: FunctionComponent<{
       value: option,
       text: option,
     }));
-    return (operatorDescriptors ?? getOperatorsForKind(filter.kind)).map(
-      (descriptor) => {
-        const valueInput =
-          filter.kind === "number"
-            ? { type: "number" as const }
-            : filter.kind === "enum"
-              ? { type: "select" as const, items: selectItems }
-              : { type: "string" as const };
-        return {
-          key: descriptor.operator,
-          label: descriptor.label,
-          // A symbolic operator's dropdown row carries its English reading
-          // as subtle text; `renderSelectedItem` keeps the chip's operator
-          // segment to the bare symbol.
-          renderItem: descriptor.description ? (
-            <span>
-              {descriptor.label}
-              <span className={operatorDescriptionClass}>
-                {descriptor.description}
-              </span>
+    return getOperatorsForKind(filter.kind).map((descriptor) => {
+      const valueInput =
+        filter.kind === "number"
+          ? { type: "number" as const }
+          : filter.kind === "enum"
+            ? { type: "select" as const, items: selectItems }
+            : { type: "string" as const };
+      return {
+        key: descriptor.operator,
+        label: descriptor.label,
+        // A symbolic operator's dropdown row carries its English reading
+        // as subtle text; `renderSelectedItem` keeps the chip's operator
+        // segment to the bare symbol.
+        renderItem: descriptor.description ? (
+          <span>
+            {descriptor.label}
+            <span className={operatorDescriptionClass}>
+              {descriptor.description}
             </span>
-          ) : undefined,
-          renderSelectedItem: descriptor.description
-            ? descriptor.label
-            : undefined,
-          input: !descriptor.requiresValue
-            ? null
-            : descriptor.multi
-              ? {
-                  type: "select" as const,
-                  multiple: true as const,
-                  items: selectItems,
-                }
-              : descriptor.range
-                ? [valueInput, "and", valueInput]
-                : valueInput,
-        };
-      },
-    );
-  }, [filter.kind, filter.enumOptions, operatorDescriptors]);
+          </span>
+        ) : undefined,
+        renderSelectedItem: descriptor.description
+          ? descriptor.label
+          : undefined,
+        input: !descriptor.requiresValue
+          ? null
+          : descriptor.multi
+            ? {
+                type: "select" as const,
+                multiple: true as const,
+                items: selectItems,
+              }
+            : descriptor.range
+              ? [valueInput, "and", valueInput]
+              : valueInput,
+      };
+    });
+  }, [filter.kind, filter.enumOptions]);
 
   const value = useMemo(
     () => ({ key: filter.operator, value: chipValue(filter) }),

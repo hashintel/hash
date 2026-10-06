@@ -37,8 +37,7 @@ const hasNoValueOperator: OperatorDescriptor = {
 /**
  * Existence operators are available for every kind, and always come last.
  * "has any value / has no value" rather than "is empty / is not empty": the
- * clauses are existence checks on the property (absent vs present at all),
- * and the phrasing matches the archived filter's lone operator.
+ * clauses are existence checks on the property (absent vs present at all).
  */
 const existenceOperators: OperatorDescriptor[] = [
   hasAnyValueOperator,
@@ -183,22 +182,6 @@ const textListOperators: OperatorDescriptor[] = [
  * search on objects also matches JSON keys.
  */
 const opaqueOperators: OperatorDescriptor[] = [...existenceOperators];
-
-/**
- * The archived filter's catalog: a single value-less "has any value" — no
- * clause of its own, the filter's presence just widens the query scope to
- * archived entities, so everything matches. Narrowing operators ("is true" =
- * only archived) await first-class archived filtering on the entities-table
- * endpoint: its property filters hit the page-style archived *property*,
- * which entities archived via the metadata flag don't carry.
- */
-export const archivedFilterOperators: OperatorDescriptor[] = [
-  {
-    operator: "included",
-    label: "has any value",
-    requiresValue: false,
-  },
-];
 
 const operatorsByKind: Record<FilterValueKind, OperatorDescriptor[]> = {
   number: numberOperators,

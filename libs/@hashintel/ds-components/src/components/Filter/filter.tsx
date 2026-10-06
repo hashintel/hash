@@ -746,10 +746,13 @@ export const Filter = <
   const invalid = !!errors && errors.length > 0;
   // Complete = an operator is selected and every input slot holds a value
   // (number slots one that parses); the recipe merges the segments into one
-  // unit at rest by hiding the internal dividers.
+  // unit at rest by hiding the internal dividers. A chip with no operators
+  // (a label-only chip) has nothing to fill in, so it is complete as it
+  // stands — in particular it is never dismissed as abandoned.
   const complete =
-    selectedOperator !== undefined &&
-    isDraftComplete(normalizeSlots(selectedOperator, slots));
+    flatOperators.length === 0 ||
+    (selectedOperator !== undefined &&
+      isDraftComplete(normalizeSlots(selectedOperator, slots)));
 
   const onRemove = removeable ? removeable.onRemove : null;
   const abandonable = isAbandonable({

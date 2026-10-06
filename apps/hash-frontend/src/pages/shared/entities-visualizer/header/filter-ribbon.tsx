@@ -2,6 +2,7 @@ import { Box } from "@mui/material";
 import { useState } from "react";
 
 import {
+  Filter,
   FilterGroup,
   Menu,
   SelectableListSearch,
@@ -9,10 +10,7 @@ import {
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { DsComponentsScope } from "../shared/ds-components-scope";
-import {
-  archivedFilterOperators,
-  getDefaultOperatorForKind,
-} from "../shared/property-filters/get-operators-for-kind";
+import { getDefaultOperatorForKind } from "../shared/property-filters/get-operators-for-kind";
 import { filterChipPillChrome } from "./filter-ribbon/filter-chip-pill-chrome";
 import {
   PropertyFilterChip,
@@ -136,10 +134,13 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   };
 
   /**
-   * Adds the archived filter with its default "Included" operator, and widens
-   * the query scope to archived entities in the same update — the filter's
-   * presence is what carries the inclusion (its "Included" operator builds no
-   * clause); its other operators then narrow within that widened scope.
+   * Adds the archived filter and widens the query scope to archived entities
+   * in the same update — the filter's presence is what carries the inclusion:
+   * its "included" operator builds no clause, and its chip is a label-only
+   * toggle. Narrowing operators ("is true" = only archived) await first-class
+   * archived filtering on the entities-table endpoint: its property filters
+   * hit the page-style archived *property*, which entities archived via the
+   * metadata flag don't carry.
    */
   const handleAddArchivedFilter = () =>
     setFilterState((prev) => ({
@@ -150,9 +151,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
         {
           id: generatePropertyFilterId(),
           baseUrl: archivedPropertyBaseUrl,
-          // The chip reads "Archived"; only the add-menu entry says "Include
-          // archived".
-          title: "Archived",
+          title: "Include archived",
           kind: "boolean",
           operator: "included",
         },
@@ -252,7 +251,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
 
   // What a chip's property segment offers switching to: every filterable
   // property on display (the archived pseudo-property stays out — its chip
-  // carries scope side-effects and a bespoke operator catalog).
+  // carries scope side-effects and renders as a label-only toggle).
   const switchablePropertyOptions: SwitchablePropertyOption[] =
     visiblePropertyFilterMetadata
       .filter((property) => property.baseUrl !== archivedPropertyBaseUrl)
@@ -326,30 +325,37 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
     { id: "properties", label: "Properties", items: propertyItems },
   ];
 
-  const renderPropertyFilterChip = (propertyFilter: PropertyFilter) => (
-    <PropertyFilterChip
-      key={propertyFilter.id}
-      className={filterChipPillChrome}
-      filter={propertyFilter}
-      operatorDescriptors={
-        propertyFilter.baseUrl === archivedPropertyBaseUrl
-          ? archivedFilterOperators
-          : undefined
-      }
-      propertyOptions={
-        propertyFilter.baseUrl === archivedPropertyBaseUrl
-          ? undefined
-          : switchablePropertyOptions
-      }
-      onSwitchProperty={(property) =>
-        handleSwitchPropertyFilter(propertyFilter.id, property)
-      }
-      onCommit={(committed) =>
-        handleCommitPropertyFilter(propertyFilter.id, committed)
-      }
-      onRemove={() => handleRemovePropertyFilter(propertyFilter.id)}
-    />
-  );
+  const renderPropertyFilterChip = (propertyFilter: PropertyFilter) =>
+    propertyFilter.baseUrl === archivedPropertyBaseUrl ? (
+      // A label-only chip: the filter's presence is the whole constraint
+      // (the scope widening), so there is no operator segment and nothing
+      // to commit.
+      <Filter
+        key={propertyFilter.id}
+        className={filterChipPillChrome}
+        property={propertyFilter.id}
+        propertyLabel="Include archived"
+        operators={[]}
+        onChange={() => {}}
+        removeable={{
+          onRemove: () => handleRemovePropertyFilter(propertyFilter.id),
+        }}
+      />
+    ) : (
+      <PropertyFilterChip
+        key={propertyFilter.id}
+        className={filterChipPillChrome}
+        filter={propertyFilter}
+        propertyOptions={switchablePropertyOptions}
+        onSwitchProperty={(property) =>
+          handleSwitchPropertyFilter(propertyFilter.id, property)
+        }
+        onCommit={(committed) =>
+          handleCommitPropertyFilter(propertyFilter.id, committed)
+        }
+        onRemove={() => handleRemovePropertyFilter(propertyFilter.id)}
+      />
+    );
 
   const lastPropertyFilter = visiblePropertyFilters.at(-1);
 
