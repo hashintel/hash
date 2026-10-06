@@ -562,7 +562,11 @@ where
         conversions,
     }) = body;
 
-    type_to_update.version.major += 1;
+    type_to_update.version.major = type_to_update
+        .version
+        .major
+        .next()
+        .map_err(report_to_response)?;
 
     let data_type = patch_id_and_parse(&type_to_update, schema).map_err(report_to_response)?;
 
@@ -625,7 +629,11 @@ where
                  provenance,
                  conversions,
              }| {
-                type_to_update.version.major += 1;
+                type_to_update.version.major = type_to_update
+                    .version
+                    .major
+                    .next()
+                    .map_err(report_to_response)?;
 
                 Ok(UpdateDataTypesParams {
                     schema: patch_id_and_parse(&type_to_update, schema)

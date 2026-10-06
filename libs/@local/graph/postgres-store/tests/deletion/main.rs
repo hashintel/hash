@@ -44,7 +44,7 @@ use type_system::{
     ontology::{
         data_type::DataType,
         entity_type::EntityType,
-        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+        id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
@@ -262,7 +262,7 @@ pub(crate) fn person_type_id() -> VersionedUrl {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     }
@@ -275,7 +275,7 @@ pub(crate) fn friend_of_type_id() -> VersionedUrl {
         )
         .expect("couldn't construct Base URL"),
         version: OntologyTypeVersion {
-            major: 1,
+            major: OntologyTypeMajorVersion::MIN,
             pre_release: None,
         },
     }

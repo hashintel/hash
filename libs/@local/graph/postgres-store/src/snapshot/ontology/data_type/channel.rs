@@ -12,12 +12,9 @@ use futures::{
 };
 use type_system::{
     Valid, Validator as _,
-    ontology::{
-        data_type::{
-            ClosedDataType, DataTypeUuid,
-            schema::{DataTypeValidator, ValueLabel},
-        },
-        id::{OntologyTypeVersion, VersionedUrl},
+    ontology::data_type::{
+        ClosedDataType, DataTypeUuid,
+        schema::{DataTypeValidator, ValueLabel},
     },
 };
 
@@ -85,13 +82,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                 // An empty schema is inserted initially. This will be replaced later by the closed
                 // schema.
                 closed_schema: Valid::new_unchecked(ClosedDataType {
-                    id: VersionedUrl {
-                        base_url: schema.id.base_url.clone(),
-                        version: OntologyTypeVersion {
-                            major: 0,
-                            pre_release: None,
-                        },
-                    },
+                    id: schema.id.clone(),
                     title: String::new(),
                     title_plural: None,
                     icon: None,
