@@ -102,7 +102,7 @@ export const splitEntityId = (
   return [webId as WebId, entityUuid as EntityUuid, draftId as DraftId];
 };
 
-export const stripDraftIdFromEntityId = (entityId: EntityId) => {
+export const stripDraftIdFromEntityId = (entityId: EntityId): EntityId => {
   const [webId, entityUuid] = splitEntityId(entityId);
   return entityIdFromComponents(webId, entityUuid);
 };
