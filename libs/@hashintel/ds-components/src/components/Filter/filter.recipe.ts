@@ -58,28 +58,29 @@ export const filterRecipe = sva({
       width: "[fit-content]",
       maxWidth: "[100%]",
       whiteSpace: "nowrap",
-      background: "white",
+      // 80% static white: frosts the surface beneath in both modes
+      background: "white.a100",
       fontWeight: "medium",
       borderRadius: "[var(--filter-radius)]",
       overflow: "clip",
       isolation: "isolate",
-      "--filter-outer-border": "var(--colors-neutral-s50)",
-      "--filter-divider": "var(--colors-neutral-s40)",
-      "--filter-remove-divider": "var(--colors-neutral-s40)",
-      "--filter-hover-border": "var(--colors-neutral-s80)",
-      "--filter-pressed-border": "var(--colors-neutral-s70)",
+      "--filter-outer-border": "var(--colors-neutral-a50)",
+      "--filter-divider": "var(--colors-neutral-a40)",
+      "--filter-remove-divider": "var(--colors-neutral-a40)",
+      "--filter-hover-border": "var(--colors-neutral-a80)",
+      "--filter-pressed-border": "var(--colors-neutral-a70)",
       "--filter-pressed-shadow": "inset 0 1px 2px rgba(0,0,0,0.03)",
-      "--filter-input-hover-bg": "var(--colors-neutral-s10)",
+      "--filter-input-hover-bg": "var(--colors-neutral-a10)",
       "--filter-ring": "var(--colors-neutral-a80)",
       "--filter-property-padding-x": "var(--filter-padding-x)",
       "--filter-input-padding-x": "var(--filter-padding-x)",
       _hover: {
-        "--filter-outer-border": "var(--colors-neutral-s60)",
-        "--filter-divider": "var(--colors-neutral-s50)",
-        "--filter-remove-divider": "var(--colors-neutral-s50)",
+        "--filter-outer-border": "var(--colors-neutral-a60)",
+        "--filter-divider": "var(--colors-neutral-a50)",
+        "--filter-remove-divider": "var(--colors-neutral-a50)",
       },
       "&:focus-within": {
-        "--filter-outer-border": "var(--colors-neutral-s60)",
+        "--filter-outer-border": "var(--colors-neutral-a60)",
       },
       "&:has([data-part=remove]:hover:not(:disabled))": {
         "--filter-outer-border": "var(--filter-hover-border)",
@@ -133,7 +134,7 @@ export const filterRecipe = sva({
         outline: "none",
         transition: "[background 0.15s ease, border-color 0.15s ease]",
         "&:hover:not(:disabled)": {
-          background: "neutral.s25",
+          background: "neutral.a25",
           "--filter-outer-border": "var(--filter-hover-border)",
         },
         "&:hover:not(:disabled) + *": {
@@ -144,10 +145,10 @@ export const filterRecipe = sva({
           boxShadow: "[var(--filter-pressed-shadow)]",
         },
         "&[data-state=open]": {
-          background: "neutral.s20",
+          background: "neutral.a20",
         },
         "&[data-state=open]:hover": {
-          background: "neutral.s25",
+          background: "neutral.a25",
         },
         "&[data-state=open]:not(:hover)": {
           "--filter-outer-border": "var(--filter-pressed-border)",
@@ -208,16 +209,16 @@ export const filterRecipe = sva({
         cursor: "auto",
       },
       "&:hover:not([data-static])": {
-        background: "neutral.s25",
+        background: "neutral.a25",
       },
       "&[data-state=open], &[data-state=open]:hover": {
         boxShadow: "[var(--filter-pressed-shadow)]",
       },
       "&[data-state=open]": {
-        background: "neutral.s20",
+        background: "neutral.a20",
       },
       "&[data-state=open]:hover": {
-        background: "neutral.s25",
+        background: "neutral.a25",
       },
       "&[data-state=open]:not(:hover)": {
         "--filter-divider": "var(--filter-pressed-border)",
@@ -287,7 +288,7 @@ export const filterRecipe = sva({
       },
       "&:focus-within": {
         flexShrink: "0.01",
-        background: "white",
+        background: "neutral.a00",
       },
     },
     input: {
@@ -333,11 +334,11 @@ export const filterRecipe = sva({
         pointerEvents: "none",
       },
       "&:has([data-part=trigger][data-state=open])": {
-        background: "neutral.s20",
+        background: "neutral.a20",
         boxShadow: "[var(--filter-pressed-shadow)]",
       },
       "&:has([data-part=trigger][data-state=open]):hover": {
-        background: "neutral.s25",
+        background: "neutral.a25",
       },
       "&:has([data-part=trigger][data-state=open]):not(:hover)": {
         "--filter-divider": "var(--filter-pressed-border)",
@@ -390,7 +391,7 @@ export const filterRecipe = sva({
         "var(--form-border-width) solid var(--filter-remove-divider)",
       transition: "[background 0.15s ease, border-color 0.15s ease]",
       _hover: {
-        background: "neutral.s25",
+        background: "neutral.a25",
       },
       "&:hover:not(:disabled)": {
         "--filter-remove-divider": "var(--filter-hover-border)",
@@ -429,7 +430,7 @@ export const filterRecipe = sva({
       paddingInline: "2",
       paddingBlock: "1",
       borderRadius: "md",
-      border: "1px solid var(--colors-red-s50)",
+      border: "1px solid var(--colors-red-a50)",
       boxShadow: "[0 2px 6px rgba(0, 0, 0, 0.08)]",
       wordWrap: "break-word",
     },
@@ -462,7 +463,7 @@ export const filterRecipe = sva({
       paddingInline: "2",
       paddingBlock: "1",
       borderRadius: "md",
-      border: "1px solid var(--colors-neutral-s50)",
+      border: "1px solid var(--colors-neutral-a50)",
       boxShadow: "[0 2px 6px rgba(0, 0, 0, 0.08)]",
       pointerEvents: "none",
     },
@@ -525,19 +526,19 @@ export const filterRecipe = sva({
     invalid: {
       true: {
         root: {
-          "--filter-outer-border": "var(--colors-red-s60)",
-          "--filter-divider": "var(--colors-red-s40)",
-          "--filter-remove-divider": "var(--colors-red-s40)",
-          "--filter-hover-border": "var(--colors-red-s80)",
-          "--filter-pressed-border": "var(--colors-red-s70)",
+          "--filter-outer-border": "var(--colors-red-a60)",
+          "--filter-divider": "var(--colors-red-a40)",
+          "--filter-remove-divider": "var(--colors-red-a40)",
+          "--filter-hover-border": "var(--colors-red-a80)",
+          "--filter-pressed-border": "var(--colors-red-a70)",
           "--filter-ring": "var(--colors-red-a80)",
           _hover: {
-            "--filter-outer-border": "var(--colors-red-s60)",
-            "--filter-divider": "var(--colors-red-s40)",
-            "--filter-remove-divider": "var(--colors-red-s40)",
+            "--filter-outer-border": "var(--colors-red-a60)",
+            "--filter-divider": "var(--colors-red-a40)",
+            "--filter-remove-divider": "var(--colors-red-a40)",
           },
           "&:focus-within": {
-            "--filter-outer-border": "var(--colors-red-s60)",
+            "--filter-outer-border": "var(--colors-red-a60)",
           },
         },
         property: { color: "red.s115" },
@@ -554,7 +555,7 @@ export const filterRecipe = sva({
       true: {
         root: {
           "&:not(:hover):not(:focus-within)": {
-            "--filter-divider": "var(--colors-neutral-s30)",
+            "--filter-divider": "var(--colors-neutral-a30)",
           },
         },
       },
@@ -562,24 +563,37 @@ export const filterRecipe = sva({
     disabled: {
       true: {
         root: {
-          background: "neutral.s20",
           _hover: {
-            "--filter-outer-border": "var(--colors-neutral-s50)",
-            "--filter-divider": "var(--colors-neutral-s40)",
-            "--filter-remove-divider": "var(--colors-neutral-s40)",
+            "--filter-outer-border": "var(--colors-neutral-a50)",
+            "--filter-divider": "var(--colors-neutral-a40)",
+            "--filter-remove-divider": "var(--colors-neutral-a40)",
           },
         },
-        property: { color: "neutral.s90" },
+        // The wash is painted per segment rather than on the root: the
+        // remove button stays interactive while the rest is disabled, and
+        // with alpha fills there is no opaque paint to lift it back out of
+        // a root-level wash.
+        property: {
+          color: "neutral.s90",
+          background: "neutral.a20",
+          // Out-specifies the button form's base transparent background
+          "&:disabled": { background: "neutral.a20" },
+        },
         trigger: {
           cursor: "auto",
           color: "neutral.s90",
-          _hover: { background: "[transparent]" },
+          // Covers the Ark trigger (disabled/data-disabled) and the
+          // lone-operator static span; out-specifies the base transparent
+          "&:is(:disabled, [data-disabled], [data-static])": {
+            background: "neutral.a20",
+          },
+          _hover: { background: "neutral.a20" },
           "&[data-placeholder]": { color: "neutral.s80" },
         },
         input: { color: "neutral.s90" },
+        inputSlot: { background: "neutral.a20" },
         selectSlot: { color: "neutral.s90" },
-        separator: { color: "neutral.s80" },
-        remove: { background: "white" },
+        separator: { color: "neutral.s80", background: "neutral.a20" },
       },
     },
   },
@@ -590,7 +604,7 @@ export const filterRecipe = sva({
       css: {
         root: {
           "&:not(:hover):not(:focus-within)": {
-            "--filter-divider": "var(--colors-red-s30)",
+            "--filter-divider": "var(--colors-red-a30)",
           },
         },
       },
