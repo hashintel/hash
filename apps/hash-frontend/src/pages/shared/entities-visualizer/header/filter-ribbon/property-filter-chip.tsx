@@ -1,5 +1,5 @@
 import debounce from "lodash/debounce";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { Filter } from "@hashintel/ds-components";
 
@@ -210,19 +210,32 @@ export const PropertyFilterChip: FunctionComponent<{
     [filter, onCommit],
   );
 
-  // The live path: a complete draft applies while the user edits. Recreating
-  // the debounce when `filter` changes (the effect cleanup cancels the old
-  // instance) drops any pending live commit a property switch or external
-  // commit has outdated.
+  const commitChangeRef = useRef(commitChange);
+  useEffect(() => {
+    commitChangeRef.current = commitChange;
+  });
+
+  // The live path: a complete draft applies while the user edits. The
+  // debounce is created once and commits through the ref, so parent renders
+  // (each passing a new inline `onCommit`) leave a pending live apply
+  // ticking — recreating the debounce per `commitChange` identity wiped it
+  // on every parent update, including those the previous live commit itself
+  // caused, leaving typed values unapplied until Enter or blur.
   const debouncedCommitChange = useMemo(
-    () => debounce(commitChange, liveFilterDebounceMs),
-    [commitChange],
+    () =>
+      debounce((operator: PropertyFilterOperator, committed: unknown) => {
+        commitChangeRef.current(operator, committed);
+      }, liveFilterDebounceMs),
+    [],
   );
+
+  // A `filter` change still drops any pending live commit it has outdated
+  // (a property switch, or an external commit); so does unmounting.
   useEffect(
     () => () => {
       debouncedCommitChange.cancel();
     },
-    [debouncedCommitChange],
+    [filter, debouncedCommitChange],
   );
 
   const propertyMenu = useMemo<MenuItem[] | undefined>(() => {
