@@ -3,7 +3,9 @@
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "ES2024"],
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "rootDir": "../../..",
+    "types": ["node"]
   },
   "include": ["src", "eslint.config.js"]
 }
