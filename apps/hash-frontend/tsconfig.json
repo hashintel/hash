@@ -5,15 +5,16 @@
   ],
   "compilerOptions": {
     "rootDir": "../..",
-    "target": "ES2021"
+    "target": "ES2021",
+    "types": ["gapi", "google.accounts", "google.picker"]
   },
   "include": [
+    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     "assets.d.ts",
     "codegen.config.ts",
     "instrumentation-client.ts",
-    "next-env.d.ts",
     "next.config.js",
     "theme-override.d.ts",
     ".next/types/**/*.ts"
