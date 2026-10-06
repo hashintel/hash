@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { synthesizeAdHocOptimization } from "@hashintel/petrinaut-core";
+import {
+  canonicalizePetrinautIds,
+  synthesizeAdHocOptimization,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import { buildAdHocSweepAxes } from "../../../../../../react/experiments/parameter-grid";
@@ -31,11 +35,12 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 
-const definition = sirModel.petriNetDefinition;
+/** The SIR example as a document holds it, with its ids converted. */
+const definition = canonicalizePetrinautIds(sirModel.petriNetDefinition);
 
 /** A scenario with one parameter of each binding branch. */
 const scenario: Scenario = {
-  id: "scenario__mixed",
+  id: toPetrinautId("scenario__mixed"),
   name: "Mixed",
   scenarioParameters: [
     { type: "boolean", identifier: "enabled", default: 1 },
@@ -62,7 +67,7 @@ const experiment = makeExperiment(1, {
 });
 
 const metric: Metric = {
-  id: "infected",
+  id: toPetrinautId("infected"),
   name: "Infected",
   code: "return state.places.Infected.count;",
 };
@@ -235,7 +240,7 @@ describe("buildSweepOptimizationInput", () => {
     });
     expect(input.study).toEqual({ trials: 12, sampler: "tpe" });
     expect(input.objective).toEqual({
-      metricId: "infected",
+      metricId: toPetrinautId("infected"),
       direction: "maximize",
     });
     expect(input.name).toBe("Mixed sweep");
@@ -303,8 +308,10 @@ describe("buildSweepOptimizationInput", () => {
     });
 
     expect(record.scenario.id).toBe("adhoc-scenario");
-    expect(manifest.model.definition.scenarios).toEqual([record.scenario]);
-    expect(manifest.scenario.id).toBe("adhoc-scenario");
+    expect(manifest.model.definition.scenarios).toEqual([
+      { ...record.scenario, id: toPetrinautId("adhoc-scenario") },
+    ]);
+    expect(manifest.scenario.id).toBe(toPetrinautId("adhoc-scenario"));
     expect(Object.keys(manifest.scenario.parameterBindings)).toEqual([
       "adhoc_count_Queue",
     ]);
@@ -428,7 +435,7 @@ describe("sweepOptimizationMetric", () => {
     const spec: ExperimentMetricSpecInput = {
       ...base,
       kind: "placeTokenCountMean",
-      placeId: "place__infected",
+      placeId: toPetrinautId("place__infected"),
     };
 
     expect(sweepOptimizationMetric(spec, definition).code).toBe(
