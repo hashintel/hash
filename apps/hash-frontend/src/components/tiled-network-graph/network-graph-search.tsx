@@ -187,15 +187,25 @@ export const NetworkGraphSearch = ({
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Focus the input once the panel has finished sliding in — focusing earlier
-  // mis-positions the dropdown mid-transition.
+  // mis-positions the dropdown mid-transition. A panel mounted with the search
+  // already open (the graph view remounts while the open state is preserved)
+  // renders in place with no transition — and so no transitionend — so focus
+  // immediately instead.
+  const mountedOpenRef = useRef(open);
   useEffect(() => {
     const panel = panelRef.current;
+    const mountedOpen = mountedOpenRef.current;
+    mountedOpenRef.current = false;
     if (open && panel) {
-      panel.ontransitionend = (event) => {
-        if (event.target === panel && event.propertyName === "transform") {
-          inputRef.current?.focus();
-        }
-      };
+      if (mountedOpen) {
+        inputRef.current?.focus();
+      } else {
+        panel.ontransitionend = (event) => {
+          if (event.target === panel && event.propertyName === "transform") {
+            inputRef.current?.focus();
+          }
+        };
+      }
     }
     return () => {
       if (panel) {
