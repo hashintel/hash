@@ -6,7 +6,7 @@ use axum::{Extension, Router};
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::PostgresStorePool;
-use hash_graph_store::pool::StorePool;
+use hash_graph_store::{api_token::ApiTokenStore, pool::StorePool};
 use hash_middleware::{authentication::AuthenticationMetrics, rate_limit::RateLimiters};
 use hash_temporal_client::TemporalClient;
 use opentelemetry::metrics::Meter;
@@ -49,7 +49,7 @@ pub struct Dependencies<S> {
 pub fn router<S>(dependencies: Dependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
 {
     let environment = Arc::new(
         dependencies

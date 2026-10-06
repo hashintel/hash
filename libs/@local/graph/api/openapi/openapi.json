@@ -782,6 +782,148 @@
         }
       }
     },
+    "/api-tokens": {
+      "get": {
+        "tags": [
+          "Graph",
+          "ApiToken"
+        ],
+        "operationId": "list_api_tokens",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The API tokens of the authenticated user, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiTokenResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor is not a user"
+          },
+          "500": {
+            "description": "Store error occurred"
+          },
+          "503": {
+            "description": "API tokens are not configured"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Graph",
+          "ApiToken"
+        ],
+        "operationId": "create_api_token",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The API token was created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateApiTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The name or the lifetime is invalid"
+          },
+          "403": {
+            "description": "The actor is not a user"
+          },
+          "500": {
+            "description": "Store error occurred"
+          },
+          "503": {
+            "description": "API tokens are not configured"
+          }
+        }
+      }
+    },
+    "/api-tokens/{token_id}": {
+      "delete": {
+        "tags": [
+          "Graph",
+          "ApiToken"
+        ],
+        "operationId": "revoke_api_token",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "token_id",
+            "in": "path",
+            "description": "The ID of the API token to revoke",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The API token is revoked"
+          },
+          "403": {
+            "description": "The actor is not a user"
+          },
+          "404": {
+            "description": "The authenticated user has no API token with this ID"
+          },
+          "500": {
+            "description": "Store error occurred"
+          },
+          "503": {
+            "description": "API tokens are not configured"
+          }
+        }
+      }
+    },
     "/data-types": {
       "post": {
         "tags": [
@@ -3617,6 +3759,61 @@
       "AiId": {
         "$ref": "#/components/schemas/ActorEntityUuid"
       },
+      "ApiTokenResponse": {
+        "type": "object",
+        "description": "An API token of the authenticated user, without its secret.",
+        "required": [
+          "tokenId",
+          "hint",
+          "name",
+          "status",
+          "createdAt"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "hint": {
+            "type": "string",
+            "description": "The start of the token, such as `hsh_pat_pd_0296…`."
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "revokedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiTokenStatus"
+          },
+          "tokenId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ApiTokenStatus": {
+        "type": "string",
+        "description": "Whether an API token can still be used.",
+        "enum": [
+          "active",
+          "expired",
+          "revoked"
+        ]
+      },
       "ArchiveDataTypeParams": {
         "type": "object",
         "required": [
@@ -4033,6 +4230,46 @@
           }
         },
         "additionalProperties": false
+      },
+      "CreateApiTokenRequest": {
+        "type": "object",
+        "description": "The API token to create for the authenticated user.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "lifetimeDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many days the token stays valid. Without it, the token does not expire.",
+            "nullable": true,
+            "maximum": 366,
+            "minimum": 1
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateApiTokenResponse": {
+        "type": "object",
+        "description": "A newly created API token.",
+        "required": [
+          "token",
+          "apiToken"
+        ],
+        "properties": {
+          "apiToken": {
+            "$ref": "#/components/schemas/ApiTokenResponse"
+          },
+          "token": {
+            "type": "string",
+            "description": "The complete token. No other response contains it."
+          }
+        }
       },
       "CreateDataTypeRequest": {
         "type": "object",
@@ -10593,6 +10830,10 @@
     {
       "name": "Principal",
       "description": "Principal management API"
+    },
+    {
+      "name": "ApiToken",
+      "description": "API token management API"
     },
     {
       "name": "HashQL",

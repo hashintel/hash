@@ -36,7 +36,8 @@ use hash_graph_postgres_store::store::{
     SemanticSearchSettings,
 };
 use hash_graph_store::{
-    api_token::ApiTokenEncryptionKeyId, filter::protection::PropertyProtectionFilterConfig,
+    api_token::{ApiTokenEncryptionKeyId, ApiTokenStore},
+    filter::protection::PropertyProtectionFilterConfig,
     pool::StorePool,
 };
 use hash_graph_type_fetcher::FetchingPool;
@@ -686,7 +687,7 @@ async fn start_server<S>(
 ) -> Result<(), Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
 {
     let store = Arc::new(pool);
     let temporal_client = create_temporal_client(&config.temporal)
