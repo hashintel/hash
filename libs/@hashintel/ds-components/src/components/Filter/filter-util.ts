@@ -225,8 +225,64 @@ export const slotsForValue = (
   );
 };
 
-const isEmptySlot = (slot: SlotValue) =>
+export const isEmptySlot = (slot: SlotValue) =>
   Array.isArray(slot) ? slot.length === 0 : slot === null || slot === "";
+
+/**
+ * Two selects offer the same options only when their flattened item values
+ * match exactly — same values, same order (group structure, labels, icons and
+ * disabled flags are ignored). Lazily loaded items compare by loader
+ * identity: the resolved options are unknowable at switch time.
+ */
+const selectItemsEqual = (
+  a: LooseSelectConfig["items"],
+  b: LooseSelectConfig["items"],
+): boolean => {
+  if (typeof a === "function" || typeof b === "function") {
+    return a === b;
+  }
+  const valuesOf = (items: typeof a): string[] =>
+    items.flatMap((entry) =>
+      "items" in entry ? entry.items.map((item) => item.value) : [entry.value],
+    );
+  const aValues = valuesOf(a);
+  const bValues = valuesOf(b);
+  return (
+    aValues.length === bValues.length &&
+    aValues.every((entry, index) => entry === bValues[index])
+  );
+};
+
+/**
+ * Whether two operators take interchangeable input: the same number of
+ * inputs, pairwise-equal in value type — for selects the multiplicity (a
+ * multi select's slot is an array) and the option values must match too.
+ * Labels, placeholders, icons and separators are ignored, so a draft can
+ * carry across an operator switch.
+ */
+export const inputShapesEqual = (
+  a: LooseOperator,
+  b: LooseOperator,
+): boolean => {
+  const aConfigs = inputConfigsOf(a);
+  const bConfigs = inputConfigsOf(b);
+  return (
+    aConfigs.length === bConfigs.length &&
+    aConfigs.every((config, index) => {
+      const other = bConfigs[index];
+      if (other === undefined || config.type !== other.type) {
+        return false;
+      }
+      if (config.type === "select" && other.type === "select") {
+        return (
+          (config.multiple ?? false) === (other.multiple ?? false) &&
+          selectItemsEqual(config.items, other.items)
+        );
+      }
+      return true;
+    })
+  );
+};
 
 export const isDraftComplete = (slots: SlotValue[]) =>
   slots.every((slot) => !isEmptySlot(slot));

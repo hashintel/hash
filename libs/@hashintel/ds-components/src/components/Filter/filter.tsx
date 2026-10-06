@@ -40,7 +40,9 @@ import {
   focusInitialSegment,
   shouldAnimateChipRemoval,
   startChipCollapse,
+  inputShapesEqual,
   isAbandonable,
+  isEmptySlot,
   isIntegerConfig,
   isSelectDropdownOpen,
   committedEqual,
@@ -138,7 +140,7 @@ const FilterSelectInput = ({
   size: FormInputSize;
   disabled?: boolean;
   invalid?: boolean;
-  /** Mount with the dropdown already open (a fresh operator's first input) */
+  /** Mount with the dropdown already open (a fresh operator's still-empty first input) */
   defaultOpen?: boolean;
   ariaLabel: string;
   assignRef: (element: HTMLElement | null) => void;
@@ -509,10 +511,16 @@ export const Filter = <
       return;
     }
     const configs = inputConfigsOf(operator);
+    // Matching input shapes (same count, pairwise-equal types) carry the
+    // draft across the switch; otherwise restore the committed value when
+    // returning to its operator, or reset.
+    const previousOperator = operatorByKey(draftKey);
     const nextSlots =
-      value && value.key === nextKey
-        ? slotsForValue(operator, value.value)
-        : slotsForValue(operator, null);
+      previousOperator && inputShapesEqual(previousOperator, operator)
+        ? [...slotsRef.current]
+        : value && value.key === nextKey
+          ? slotsForValue(operator, value.value)
+          : slotsForValue(operator, null);
     setDraftKey(nextKey);
     applySlots(nextSlots);
     emitInput(nextKey, nextSlots);
@@ -522,11 +530,16 @@ export const Filter = <
       setAutoOpenKey(null);
       return;
     }
-    // A leading select input mounts with its dropdown already open (in the
-    // same commit — opening after the fact would paint a closed frame
-    // first). No open-state bookkeeping is needed: openness is derived from
-    // the DOM via isSelectDropdownOpen.
-    setAutoOpenKey(configs[0]?.type === "select" ? nextKey : null);
+    // A leading select input that is still empty mounts with its dropdown
+    // already open (in the same commit — opening after the fact would paint
+    // a closed frame first); a carried or restored value needs no picking.
+    // No open-state bookkeeping is needed: openness is derived from the DOM
+    // via isSelectDropdownOpen.
+    setAutoOpenKey(
+      configs[0]?.type === "select" && isEmptySlot(nextSlots[0] ?? null)
+        ? nextKey
+        : null,
+    );
     focusFirstInput();
   };
 
