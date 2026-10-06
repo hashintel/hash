@@ -34,6 +34,7 @@ import type {
   GridColumn as LibraryGridColumn,
   GridSelection,
   HeaderClickedEventArgs,
+  Highlight,
   Item,
   SizedGridColumn,
   TextCell,
@@ -132,6 +133,9 @@ const emptyRect: ReturnType<VirtualElement["getBoundingClientRect"]> = {
   toJSON: () => "",
 };
 
+/** Glide's default `bgSearchResult` theme color. */
+const searchResultHighlightColor = "#fff9e3";
+
 /** Mirrors the cell text glide's built-in search tests, per cell kind. */
 const getCellSearchableText = (cell: GridCell): string | undefined => {
   switch (cell.kind) {
@@ -178,6 +182,7 @@ export const Grid = <
   externallyManagedFiltering,
   firstColumnLeftPadding,
   gridRef,
+  highlightRegions,
   initialSort,
   onConversionTargetSelected,
   onSearchClose,
@@ -366,15 +371,21 @@ export const Grid = <
   const [searchValue, setSearchValue] = useState("");
 
   /**
-   * Search results supplied to glide in place of its built-in cell-by-cell
-   * search: one result per matching row (its first matching cell), so the
-   * overlay's count and prev/next arrows work in rows rather than
-   * occurrences. Items are in glide's internal coordinate space, where the
-   * checkbox row-marker column shifts data columns right by one.
+   * Search supplied to glide in place of its built-in cell-by-cell search.
+   * `searchResults` holds one result per matching row (its first matching
+   * cell), so the overlay's count and prev/next arrows work in rows rather
+   * than occurrences — its items are in glide's internal coordinate space,
+   * where the checkbox row-marker column shifts data columns right by one.
+   * A row's remaining matching cells go into `searchHighlightRegions`
+   * (user coordinates), fill-only regions in the same color glide gives
+   * search results, so every occurrence still shows as highlighted.
    */
-  const searchResults = useMemo<Item[]>(() => {
+  const { searchResults, searchHighlightRegions } = useMemo<{
+    searchResults: Item[];
+    searchHighlightRegions: Highlight[];
+  }>(() => {
     if (!showSearch || !searchValue || !sortedAndFilteredRows?.length) {
-      return [];
+      return { searchResults: [], searchHighlightRegions: [] };
     }
 
     const getCellContent = createGetCellContent(sortedAndFilteredRows);
@@ -382,24 +393,38 @@ export const Grid = <
     const columnOffset = enableCheckboxSelection ? 1 : 0;
 
     const matchingRows: Item[] = [];
+    const furtherMatchingCells: Highlight[] = [];
     for (
       let rowIndex = 0;
       rowIndex < sortedAndFilteredRows.length;
       rowIndex++
     ) {
+      let rowAlreadyMatched = false;
+
       for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
         const searchableText = getCellSearchableText(
           getCellContent([columnIndex, rowIndex]),
         );
 
         if (searchableText?.toLowerCase().includes(lowercaseSearchValue)) {
-          matchingRows.push([columnIndex + columnOffset, rowIndex]);
-          break;
+          if (rowAlreadyMatched) {
+            furtherMatchingCells.push({
+              color: searchResultHighlightColor,
+              range: { x: columnIndex, y: rowIndex, width: 1, height: 1 },
+              style: "no-outline",
+            });
+          } else {
+            matchingRows.push([columnIndex + columnOffset, rowIndex]);
+            rowAlreadyMatched = true;
+          }
         }
       }
     }
 
-    return matchingRows;
+    return {
+      searchResults: matchingRows,
+      searchHighlightRegions: furtherMatchingCells,
+    };
   }, [
     columns.length,
     createGetCellContent,
@@ -408,6 +433,11 @@ export const Grid = <
     showSearch,
     sortedAndFilteredRows,
   ]);
+
+  const combinedHighlightRegions = useMemo<Highlight[] | undefined>(() => {
+    const combined = [...(highlightRegions ?? []), ...searchHighlightRegions];
+    return combined.length > 0 ? combined : undefined;
+  }, [highlightRegions, searchHighlightRegions]);
 
   const handleSearchClose = useCallback(() => {
     setSearchValue("");
@@ -451,6 +481,7 @@ export const Grid = <
       textBubble: palette.gray[70],
       bgBubble: palette.gray[20],
       accentLight: "transparent", // cell highlight color
+      bgSearchResult: searchResultHighlightColor,
       bgHeaderHovered: palette.white,
       cellHorizontalPadding: getCellHorizontalPadding(),
       baseFontStyle: "500 14px Inter",
@@ -747,6 +778,7 @@ export const Grid = <
         gridSelection={gridSelection}
         headerHeight={gridHeaderHeight}
         headerIcons={customGridIcons}
+        highlightRegions={combinedHighlightRegions}
         maxColumnWidth={1000}
         onCellEdited={
           sortedAndFilteredRows
