@@ -19,7 +19,7 @@ type VisualizerHeaderProps = {
    * background (export, view toggle).
    */
   topRight: ReactNode;
-  /** Left-aligned controls in the grey bar (search, filters / bulk actions). */
+  /** Left-aligned controls in the grey bar (bulk actions, search, filters). */
   bottomLeft: ReactNode;
   /** Right-aligned controls in the grey bar (sort). */
   bottomRight?: ReactNode;

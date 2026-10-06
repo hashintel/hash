@@ -25,6 +25,7 @@ import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/grid-view";
 import {
+  defaultPillSx,
   FilterRibbon,
   QueryCount,
   SearchPill,
@@ -795,6 +796,28 @@ export const EntitiesVisualizer: FunctionComponent<{
     EntitiesTableRow[]
   >([]);
 
+  const tableRows = tableQuery.tableData?.rows;
+
+  /**
+   * A query change that drops rows from the table drops them from the
+   * selection with it: bulk actions act on what the table shows, and the grid
+   * resolves selected rows to row indexes, so a selected row the table no
+   * longer holds would misreport the selection. Rows held on screen through a
+   * refetch still count as shown — the selection narrows only when the rows
+   * actually go.
+   */
+  useEffect(() => {
+    if (!tableRows) {
+      return;
+    }
+    const visibleRowIds = new Set(tableRows.map((row) => row.rowId));
+    setSelectedTableRows((prev) =>
+      prev.some((row) => !visibleRowIds.has(row.rowId))
+        ? prev.filter((row) => visibleRowIds.has(row.rowId))
+        : prev,
+    );
+  }, [tableRows]);
+
   const nextPage = useCallback(() => {
     if (usesTableEndpoint) {
       tableQuery.loadMore();
@@ -905,12 +928,29 @@ export const EntitiesVisualizer: FunctionComponent<{
           </>
         }
         bottomLeft={
-          selectedEntities.length > 0 ? (
-            <BulkActionsDropdown
-              selectedItems={selectedEntities}
-              onBulkActionCompleted={handleBulkActionCompleted}
-            />
-          ) : (
+          <>
+            {selectedEntities.length > 0 && (
+              /*
+               * Inline-block so the dropdown joins the ribbon's wrapping line
+               * flow, with the margins/alignment the ribbon gives its own
+               * controls. The pill chrome levels the chip with the pills
+               * beside it.
+               */
+              <Box
+                sx={{
+                  display: "inline-block",
+                  verticalAlign: "middle",
+                  mr: 1,
+                  my: 0.5,
+                }}
+              >
+                <BulkActionsDropdown
+                  selectedItems={selectedEntities}
+                  onBulkActionCompleted={handleBulkActionCompleted}
+                  sx={defaultPillSx}
+                />
+              </Box>
+            )}
             <FilterRibbon
               availableEntityTypes={availableEntityTypes}
               availableTypesLoading={availableTypesLoading}
@@ -943,7 +983,7 @@ export const EntitiesVisualizer: FunctionComponent<{
               hiddenTypeIds={hiddenTypeIds}
               hiddenPropertyBaseUrls={hiddenPropertyBaseUrls}
             />
-          )
+          </>
         }
         bottomRight={
           view === "Table" ? (

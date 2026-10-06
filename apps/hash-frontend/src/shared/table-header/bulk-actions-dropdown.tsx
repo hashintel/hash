@@ -60,6 +60,7 @@ import type {
   UnarchivePropertyTypeMutationVariables,
 } from "../../graphql/api-types.gen";
 import type { ArchivableEntity } from "../is-archived";
+import type { SxProps, Theme } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 export const BulkActionsDropdown: FunctionComponent<{
@@ -70,7 +71,9 @@ export const BulkActionsDropdown: FunctionComponent<{
     | DataTypeWithMetadata
   )[];
   onBulkActionCompleted?: () => void;
-}> = ({ selectedItems, onBulkActionCompleted }) => {
+  /** Overrides for the trigger chip's styling. */
+  sx?: SxProps<Theme>;
+}> = ({ selectedItems, onBulkActionCompleted, sx }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { archivePage, unarchivePage } = useArchivePage();
@@ -279,13 +282,16 @@ export const BulkActionsDropdown: FunctionComponent<{
             />
           </>
         }
-        sx={{
-          [`.${chipClasses.label}`]: {
-            fontSize: 13,
+        sx={[
+          {
+            [`.${chipClasses.label}`]: {
+              fontSize: 13,
+            },
+            border: ({ palette }) => palette.common.white,
+            background: ({ palette }) => palette.gray[5],
           },
-          border: ({ palette }) => palette.common.white,
-          background: ({ palette }) => palette.gray[5],
-        }}
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
         {...bindTrigger(popupState)}
       />
 

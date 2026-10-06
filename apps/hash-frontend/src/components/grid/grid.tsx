@@ -349,7 +349,10 @@ export const Grid = <
           (row) => row.rowId === selectedRow.rowId,
         );
 
-        mergedRowSelection = mergedRowSelection.add(selectedRowIndex);
+        // A selected row no longer in the grid has no index to mark.
+        if (selectedRowIndex !== -1) {
+          mergedRowSelection = mergedRowSelection.add(selectedRowIndex);
+        }
       }
 
       return {
