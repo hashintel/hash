@@ -22,10 +22,10 @@ export interface Utterance {
 }
 
 export interface UtteranceStage {
-  readonly name: string;
+  readonly reason: SkipReason;
   /** A shadow stage traces what it would skip and never decides. */
   readonly mode: "on" | "shadow" | "off";
-  readonly skip: (utterance: Utterance) => SkipReason | null;
+  readonly skips: (utterance: Utterance) => boolean;
 }
 
 export const doubtfulBelowLogprob = -1.9;
@@ -40,35 +40,32 @@ const isShortDuringOutput = ({ startedDuringOutput, words }: Utterance) =>
 export const liveUtteranceStages: readonly UtteranceStage[] = [
   // Leaked Live audio can finalize as a longer repeat of Live's own words.
   {
-    name: "echo",
+    reason: "echo",
     mode: "shadow",
-    skip: (utterance) => (repeatsOverlappingOutput(utterance) ? "echo" : null),
+    skips: repeatsOverlappingOutput,
   },
   // Only short speech during output that also looks invented or repeats Live;
   // a shadow stage must run before the on stage that skips the same input.
   {
-    name: "doubtful-short-during-output",
+    reason: "doubtful-short-during-output",
     mode: "shadow",
-    skip: (utterance) =>
+    skips: (utterance) =>
       isShortDuringOutput(utterance) &&
       ((utterance.minLogprob !== undefined &&
         utterance.minLogprob < doubtfulBelowLogprob) ||
-        repeatsOverlappingOutput(utterance))
-        ? "doubtful-short-during-output"
-        : null,
+        repeatsOverlappingOutput(utterance)),
   },
   // Leaked Live audio finalizes as phantoms of a few words.
   {
-    name: "short-during-output",
+    reason: "short-during-output",
     mode: "on",
-    skip: (utterance) =>
-      isShortDuringOutput(utterance) ? "short-during-output" : null,
+    skips: isShortDuringOutput,
   },
   // Transcription can finalize noise as punctuation alone, such as ".".
   {
-    name: "empty",
+    reason: "empty",
     mode: "on",
-    skip: ({ words }) => (words === 0 ? "empty" : null),
+    skips: ({ words }) => words === 0,
   },
 ];
 
@@ -91,14 +88,11 @@ export const routeUtterance = (
     minLogprob: input.minLogprob,
   };
   for (const stage of stages) {
-    if (stage.mode === "off") continue;
-    const reason = stage.skip(utterance);
-    if (reason === null) continue;
-    if (stage.mode === "on") return reason;
+    if (stage.mode === "off" || !stage.skips(utterance)) continue;
+    if (stage.mode === "on") return stage.reason;
     logLiveDiagnostic("filter.shadow", {
       inputId: utterance.inputId,
-      stage: stage.name,
-      reason,
+      reason: stage.reason,
     });
   }
   return null;
