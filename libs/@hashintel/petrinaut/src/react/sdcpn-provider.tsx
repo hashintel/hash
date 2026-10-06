@@ -3,6 +3,7 @@ import { use, type ReactNode } from "react";
 import {
   ARC_ID_PREFIX,
   isSelectionTypeAvailableForExtensions,
+  toNetId,
 } from "@hashintel/petrinaut-core";
 
 import { NetManagementContext } from "./net-management-context";
@@ -25,7 +26,7 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
   const allNets = [petriNetDefinition, ...(petriNetDefinition.subnets ?? [])];
 
   const value: SDCPNContextValue = {
-    petriNetId: instance.handle.id,
+    petriNetId: toNetId(instance.handle.id),
     petriNetDefinition,
     readonly: instance.readonly,
     extensions: instance.extensions,

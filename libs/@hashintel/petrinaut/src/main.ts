@@ -54,6 +54,7 @@ export type {
 } from "./ui/types/ai-interactive-tool";
 
 export {
+  canonicalizeNetIds,
   combineCommandRegistries,
   createCommandRegistry,
   createJsonDocHandle,
@@ -61,7 +62,10 @@ export {
   createPetrinautActions,
   createSimulation,
   createWorkerTransport,
+  generateNetId,
+  isNetId,
   isSDCPNEqual,
+  toNetId,
   type BackpressureConfig,
   type Color,
   type Command,

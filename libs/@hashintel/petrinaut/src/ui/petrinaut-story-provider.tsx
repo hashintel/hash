@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import {
   createJsonDocHandle,
+  generateNetId,
   type PetrinautDocHandle,
   type MinimalNetMetadata,
   type SDCPN,
@@ -48,15 +49,20 @@ export const PetrinautStoryProvider = ({
   readonly?: boolean;
   children?: ReactNode;
 }) => {
-  const [nets, setNets] = useState<Record<string, StoredNet>>(() => {
-    const id = "net-1";
-    return {
-      [id]: { id, title: initialTitle, sdcpn: initialDefinition },
-    };
-  });
-  const [currentNetId, setCurrentNetId] = useState<string>("net-1");
+  const [initialNetId] = useState(generateNetId);
+  const [nets, setNets] = useState<Record<string, StoredNet>>(() => ({
+    [initialNetId]: {
+      id: initialNetId,
+      title: initialTitle,
+      sdcpn: initialDefinition,
+    },
+  }));
+  const [currentNetId, setCurrentNetId] = useState<string>(initialNetId);
   const [handlesByNetId, setHandlesByNetId] = useState<HandlesByNetId>(() => ({
-    "net-1": createJsonDocHandle({ id: "net-1", initial: initialDefinition }),
+    [initialNetId]: createJsonDocHandle({
+      id: initialNetId,
+      initial: initialDefinition,
+    }),
   }));
 
   // Track which handles have an active subscription so adding a new net only
@@ -101,7 +107,7 @@ export const PetrinautStoryProvider = ({
     petriNetDefinition: SDCPN;
     title: string;
   }) => {
-    const id = `net-${Date.now()}`;
+    const id = generateNetId();
     const handle = createJsonDocHandle({
       id,
       initial: params.petriNetDefinition,
