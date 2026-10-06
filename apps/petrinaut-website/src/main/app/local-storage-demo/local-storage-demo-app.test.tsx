@@ -14,7 +14,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
-import { createExperimentToolName } from "@hashintel/petrinaut-core";
+import { createExperimentToolName, toNetId } from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
 import { BrunchPanelConversationTracker } from "../plugins/brunch/brunch-panel-transport";
@@ -54,6 +54,11 @@ import type {
   PetrinautAiAssistant,
   PetrinautAiMessage,
 } from "@hashintel/petrinaut/ui";
+
+const netOneId = toNetId("net-1");
+const netTwoId = toNetId("net-2");
+const freshNetId = toNetId("net-fresh");
+const staleNetId = toNetId("net-stale");
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
@@ -230,8 +235,8 @@ const seedStoredNet = (incarnationId?: string, revisionId?: string) => {
   localStorage.setItem(
     "petrinaut-sdcpn",
     JSON.stringify({
-      "net-1": storedNet({
-        id: "net-1",
+      [netOneId]: storedNet({
+        id: netOneId,
         incarnationId,
         lastUpdated: "2020-01-01T00:00:00.000Z",
         revisionId,
@@ -825,9 +830,9 @@ describe("local document revision persistence", () => {
         string,
         { revisionId?: string; sdcpn: { places: { id: string }[] } }
       >;
-      expect(stored["net-1"]?.revisionId).toBeTypeOf("string");
-      expect(stored["net-1"]?.revisionId).not.toBe("local-revision-1");
-      expect(stored["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual([
+      expect(stored[netOneId]?.revisionId).toBeTypeOf("string");
+      expect(stored[netOneId]?.revisionId).not.toBe("local-revision-1");
+      expect(stored[netOneId]?.sdcpn.places.map((place) => place.id)).toEqual([
         "direct-place",
       ]);
     });
@@ -858,7 +863,7 @@ describe("local document revision persistence", () => {
       const stored = JSON.parse(
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
       ) as Record<string, { sdcpn: { places: { id: string }[] } }>;
-      expect(stored["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual([
+      expect(stored[netOneId]?.sdcpn.places.map((place) => place.id)).toEqual([
         "direct-place",
         "reopened-place",
       ]);
@@ -872,7 +877,7 @@ describe("local document revision persistence", () => {
 
     expect(editorProps.current?.existingNets).toEqual([
       {
-        netId: "net-1",
+        netId: netOneId,
         title: "Seeded net",
         lastUpdated: "2020-01-01T00:00:00.000Z",
       },
@@ -906,15 +911,15 @@ describe("local document revision persistence", () => {
     localStorage.setItem(
       "petrinaut-sdcpn",
       JSON.stringify({
-        "net-stale": storedNet({
-          id: "net-stale",
+        [staleNetId]: storedNet({
+          id: staleNetId,
           incarnationId: "stale-incarnation",
           lastUpdated: "2020-01-01T00:00:00.000Z",
           revisionId: "stale-revision",
           title: "Stale net",
         }),
-        "net-fresh": storedNet({
-          id: "net-fresh",
+        [freshNetId]: storedNet({
+          id: freshNetId,
           incarnationId: "fresh-incarnation",
           lastUpdated: "2024-06-01T00:00:00.000Z",
           revisionId: "fresh-revision",
@@ -925,7 +930,7 @@ describe("local document revision persistence", () => {
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
 
     const nets = editorProps.current?.existingNets as MinimalNetMetadata[];
-    expect(nets.map(({ netId }) => netId)).toEqual(["net-fresh", "net-stale"]);
+    expect(nets.map(({ netId }) => netId)).toEqual([freshNetId, staleNetId]);
   });
 
   test("adopts another tab's revision of the open document and chains later changes from it", async () => {
@@ -949,11 +954,11 @@ describe("local document revision persistence", () => {
       "petrinaut-sdcpn",
       JSON.stringify({
         ...stored,
-        "net-1": {
-          ...stored["net-1"],
+        [netOneId]: {
+          ...stored[netOneId],
           revisionId: "other-tab-revision",
           lastUpdated: "2026-01-01T00:00:00.000Z",
-          sdcpn: { ...stored["net-1"]?.sdcpn, places: [otherTabPlace] },
+          sdcpn: { ...stored[netOneId]?.sdcpn, places: [otherTabPlace] },
         },
       }),
     );
@@ -981,11 +986,11 @@ describe("local document revision persistence", () => {
         string,
         { revisionId?: string; sdcpn: { places: { id: string }[] } }
       >;
-      expect(persisted["net-1"]?.revisionId).toBeTypeOf("string");
-      expect(persisted["net-1"]?.revisionId).not.toBe("other-tab-revision");
-      expect(persisted["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual(
-        ["other-tab-place", "this-tab-place"],
-      );
+      expect(persisted[netOneId]?.revisionId).toBeTypeOf("string");
+      expect(persisted[netOneId]?.revisionId).not.toBe("other-tab-revision");
+      expect(
+        persisted[netOneId]?.sdcpn.places.map((place) => place.id),
+      ).toEqual(["other-tab-place", "this-tab-place"]);
     });
     expect(editorProps.current?.handle).toBe(adoptedHandle);
     expect(screen.queryByRole("alert")).toBeNull();
@@ -1021,7 +1026,7 @@ describe("local document revision persistence", () => {
       "petrinaut-sdcpn",
       JSON.stringify({
         ...stored,
-        "net-1": { ...stored["net-1"], revisionId: "other-tab-revision" },
+        [netOneId]: { ...stored[netOneId], revisionId: "other-tab-revision" },
       }),
     );
 
@@ -1051,9 +1056,9 @@ describe("local document revision persistence", () => {
       string,
       { revisionId?: string; sdcpn: { places: { id: string }[] } }
     >;
-    expect(persisted["net-1"]?.revisionId).toBeTypeOf("string");
-    expect(persisted["net-1"]?.revisionId).not.toBe("other-tab-revision");
-    expect(persisted["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual([
+    expect(persisted[netOneId]?.revisionId).toBeTypeOf("string");
+    expect(persisted[netOneId]?.revisionId).not.toBe("other-tab-revision");
+    expect(persisted[netOneId]?.sdcpn.places.map((place) => place.id)).toEqual([
       "accepted-place",
     ]);
   });
@@ -1067,9 +1072,9 @@ describe("local document revision persistence", () => {
       "petrinaut-sdcpn",
       JSON.stringify({
         ...stored,
-        "net-2": {
-          ...stored["net-1"],
-          id: "net-2",
+        [netTwoId]: {
+          ...stored[netOneId],
+          id: netTwoId,
           title: "Second net",
           incarnationId: "second-incarnation",
           revisionId: "second-revision",
@@ -1098,10 +1103,10 @@ describe("local document revision persistence", () => {
       "petrinaut-sdcpn",
       JSON.stringify({
         ...current,
-        "net-1": {
-          ...current["net-1"],
+        [netOneId]: {
+          ...current[netOneId],
           revisionId: "other-tab-revision",
-          sdcpn: { ...current["net-1"]?.sdcpn, places: [otherTabPlace] },
+          sdcpn: { ...current[netOneId]?.sdcpn, places: [otherTabPlace] },
         },
       }),
     );
@@ -1123,11 +1128,11 @@ describe("local document revision persistence", () => {
     const loadPetriNet = editorProps.current?.loadPetriNet as (
       petriNetId: string,
     ) => void;
-    act(() => loadPetriNet("net-2"));
+    act(() => loadPetriNet(netTwoId));
     await waitFor(() => expect(editorProps.current?.title).toBe("Second net"));
     expect(screen.queryByRole("alert")).toBeNull();
 
-    act(() => loadPetriNet("net-1"));
+    act(() => loadPetriNet(netOneId));
     await waitFor(() => expect(editorProps.current?.title).toBe("Seeded net"));
     expect(screen.queryByRole("alert")).toBeNull();
   });
@@ -1137,8 +1142,8 @@ describe("local document revision persistence", () => {
     const stored = JSON.parse(
       localStorage.getItem("petrinaut-sdcpn") ?? "{}",
     ) as Record<string, unknown>;
-    stored["net-2"] = storedNet({
-      id: "net-2",
+    stored[netTwoId] = storedNet({
+      id: netTwoId,
       incarnationId: "second-incarnation",
       lastUpdated: "2019-01-01T00:00:00.000Z",
       title: "Second net",
@@ -1190,17 +1195,17 @@ describe("local document revision persistence", () => {
         string,
         { revisionId?: string; sdcpn: { places: { id: string }[] } }
       >;
-      expect(persisted["net-1"]?.revisionId).not.toBe("first-revision");
-      expect(persisted["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual(
-        ["first-place"],
-      );
+      expect(persisted[netOneId]?.revisionId).not.toBe("first-revision");
+      expect(
+        persisted[netOneId]?.sdcpn.places.map((place) => place.id),
+      ).toEqual(["first-place"]);
     });
     expect(uniqueSessions()).toEqual([firstSession]);
 
     const loadPetriNet = editorProps.current?.loadPetriNet as (
       petriNetId: string,
     ) => void;
-    act(() => loadPetriNet("net-2"));
+    act(() => loadPetriNet(netTwoId));
 
     await waitFor(() => {
       expect(uniqueSessions()).toHaveLength(2);
@@ -1423,7 +1428,7 @@ describe("local storage demo Brunch controls", () => {
     ).toBeUndefined();
     expect(transportOptions.initialData?.binding).toEqual({
       conversationId,
-      documentId: "net-1",
+      documentId: netOneId,
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual(
@@ -1877,7 +1882,7 @@ describe("assistant selection", () => {
     expect(
       JSON.parse(localStorage.getItem("petrinaut-ai-messages") ?? "{}"),
     ).toEqual({
-      "net-1": [stockMessage],
+      [netOneId]: [stockMessage],
     });
 
     switchAssistant(/Use Brunch/);
@@ -1893,7 +1898,7 @@ describe("assistant selection", () => {
     expect(
       JSON.parse(localStorage.getItem("petrinaut-ai-messages") ?? "{}"),
     ).toEqual({
-      "net-1": [stockMessage],
+      [netOneId]: [stockMessage],
     });
 
     switchAssistant(/Use the stock Petrinaut assistant/);
@@ -1960,7 +1965,7 @@ describe("assistant selection", () => {
                 output: {
                   binding: {
                     conversationId,
-                    documentId: "net-1",
+                    documentId: netOneId,
                     incarnationId,
                   },
                   currentWorkpiece: {
@@ -2051,8 +2056,8 @@ describe("assistant selection", () => {
     const stored = JSON.parse(
       localStorage.getItem("petrinaut-sdcpn") ?? "{}",
     ) as Record<string, unknown>;
-    stored["net-2"] = storedNet({
-      id: "net-2",
+    stored[netTwoId] = storedNet({
+      id: netTwoId,
       incarnationId: "second-incarnation",
       lastUpdated: "2019-01-01T00:00:00.000Z",
       title: "Second net",
@@ -2083,7 +2088,7 @@ describe("assistant selection", () => {
       | ((id: string) => void)
       | undefined;
     expect(loadPetriNet).toBeDefined();
-    act(() => loadPetriNet?.("net-2"));
+    act(() => loadPetriNet?.(netTwoId));
     await waitFor(() => expect(editorProps.current?.title).toBe("Second net"));
     await waitFor(() => {
       expect(

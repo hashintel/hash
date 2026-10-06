@@ -1,3 +1,9 @@
+import {
+  canonicalizeNetIds,
+  generateNetId,
+  toNetId,
+} from "@hashintel/petrinaut-core";
+
 import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
 import { usePersistedState } from "./use-persisted-state";
 
@@ -81,7 +87,7 @@ export const createLocalStorageNetRecord = (params: {
   const now = new Date();
 
   return {
-    id: `net-${now.getTime()}`,
+    id: generateNetId(),
     title: params.title,
     sdcpn: params.petriNetDefinition,
     lastUpdated: now.toISOString(),
@@ -137,52 +143,62 @@ const writeStore = (
     JSON.stringify({ ...unrecognizedEntries(raw), ...documents }),
   );
 
+/**
+ * Whether a stored entry replaces the one already read under the same net id.
+ * Two entries share a net id when one was written under a legacy id; the
+ * later write wins, and on a tie the entry already keyed by its net id.
+ */
+const supersedes = (
+  candidate: { readonly documentId: string; readonly lastUpdated: string },
+  kept: SDCPNInLocalStorage | undefined,
+): boolean =>
+  kept === undefined ||
+  candidate.lastUpdated > kept.lastUpdated ||
+  (candidate.lastUpdated === kept.lastUpdated &&
+    candidate.documentId === kept.id);
+
+/**
+ * Reads every recognized document, keyed by its net id. An entry stored under
+ * a legacy id, with legacy subnet ids, or without its identity fields is
+ * rewritten once, so the key, the record id and the subnet ids move together.
+ */
 const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
   const raw = readRawStore(storage);
   const documents: LocalStorageSDCPNsStore = {};
+  let needsNormalization = false;
   for (const [documentId, value] of Object.entries(raw)) {
     if (!isStoredDocumentIngress(value, documentId)) {
       continue;
     }
+    const id = toNetId(documentId);
+    const sdcpn = canonicalizeNetIds(value.sdcpn);
     const incarnationId =
       typeof value.incarnationId === "string" ? value.incarnationId : undefined;
     const revisionId =
       typeof value.revisionId === "string" ? value.revisionId : undefined;
-    documents[documentId] = {
-      id: value.id,
+    needsNormalization ||=
+      id !== documentId ||
+      sdcpn !== value.sdcpn ||
+      incarnationId === undefined ||
+      revisionId === undefined;
+    if (
+      !supersedes({ documentId, lastUpdated: value.lastUpdated }, documents[id])
+    ) {
+      continue;
+    }
+    documents[id] = {
+      id,
       title: value.title,
       lastUpdated: value.lastUpdated,
-      sdcpn: value.sdcpn,
-      ...(incarnationId === undefined ? {} : { incarnationId }),
-      ...(revisionId === undefined ? {} : { revisionId }),
+      sdcpn,
+      incarnationId: incarnationId ?? crypto.randomUUID(),
+      revisionId: revisionId ?? crypto.randomUUID(),
     };
   }
-  const needsNormalization = Object.values(documents).some(
-    (document) =>
-      document.incarnationId === undefined || document.revisionId === undefined,
-  );
-  const withIdentities = Object.fromEntries(
-    Object.entries(documents).map(([documentId, document]) => {
-      if (
-        document.incarnationId !== undefined &&
-        document.revisionId !== undefined
-      ) {
-        return [documentId, document];
-      }
-      return [
-        documentId,
-        {
-          ...document,
-          incarnationId: document.incarnationId ?? crypto.randomUUID(),
-          revisionId: document.revisionId ?? crypto.randomUUID(),
-        },
-      ];
-    }),
-  );
   if (needsNormalization) {
-    writeStore(storage, withIdentities, raw);
+    writeStore(storage, documents, raw);
   }
-  return withIdentities;
+  return documents;
 };
 
 const readStoredSDCPNs = (): LocalStorageSDCPNsStore => readStore(localStorage);

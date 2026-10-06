@@ -4,8 +4,17 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { isNetId, toNetId } from "@hashintel/petrinaut-core";
+
 import { startEmptyNetInStorage } from "../../use-local-storage-sdcpns";
 import { useLocalDocumentRepository } from "./use-local-document-repository";
+
+const documentId = toNetId("document-1");
+const olderId = toNetId("older");
+const newerId = toNetId("newer");
+const otherTabId = toNetId("otherTab");
+const emptyId = toNetId("empty");
+const retainedId = toNetId("retained");
 
 const emptyDefinition = {
   places: [],
@@ -41,8 +50,8 @@ afterEach(() => {
 describe("useLocalDocumentRepository", () => {
   test("persists an identity-explicit revision and rename", async () => {
     stubStorage({
-      "document-1": {
-        id: "document-1",
+      [documentId]: {
+        id: documentId,
         incarnationId: "incarnation-1",
         revisionId: "revision-1",
         title: "Before",
@@ -56,7 +65,7 @@ describe("useLocalDocumentRepository", () => {
 
     await act(async () => {
       await result.current.repository.persistRevision({
-        documentId: "document-1",
+        documentId: documentId,
         incarnationId: "incarnation-1",
         definition: emptyDefinition,
         previousRevisionId: "revision-1",
@@ -65,14 +74,14 @@ describe("useLocalDocumentRepository", () => {
     });
     act(() => {
       result.current.repository.actions.rename({
-        documentId: "document-1",
+        documentId: documentId,
         title: "After",
       });
     });
 
     await waitFor(() => {
       expect(result.current.repository.current).toMatchObject({
-        documentId: "document-1",
+        documentId: documentId,
         revisionId: "revision-2",
         title: "After",
       });
@@ -81,8 +90,8 @@ describe("useLocalDocumentRepository", () => {
 
   test("rejects a revision from another incarnation", async () => {
     stubStorage({
-      "document-1": {
-        id: "document-1",
+      [documentId]: {
+        id: documentId,
         incarnationId: "incarnation-1",
         revisionId: "revision-1",
         title: "Before",
@@ -96,7 +105,7 @@ describe("useLocalDocumentRepository", () => {
 
     await expect(
       result.current.repository.persistRevision({
-        documentId: "document-1",
+        documentId: documentId,
         incarnationId: "stale-incarnation",
         definition: emptyDefinition,
         previousRevisionId: "revision-1",
@@ -107,8 +116,8 @@ describe("useLocalDocumentRepository", () => {
 
   test("creates and opens local documents through the repository", () => {
     stubStorage({
-      "document-1": {
-        id: "document-1",
+      [documentId]: {
+        id: documentId,
         incarnationId: "incarnation-1",
         revisionId: "revision-1",
         title: "Existing",
@@ -135,16 +144,16 @@ describe("useLocalDocumentRepository", () => {
 
   test("removes an empty current document when another document opens", () => {
     const storage = stubStorage({
-      empty: {
-        id: "empty",
+      [emptyId]: {
+        id: emptyId,
         incarnationId: "empty-incarnation",
         revisionId: "empty-revision",
         title: "Empty",
         sdcpn: emptyDefinition,
         lastUpdated: "2026-01-02T00:00:00.000Z",
       },
-      retained: {
-        id: "retained",
+      [retainedId]: {
+        id: retainedId,
         incarnationId: "retained-incarnation",
         revisionId: "retained-revision",
         title: "Retained",
@@ -169,20 +178,20 @@ describe("useLocalDocumentRepository", () => {
       useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
 
-    act(() => result.current.repository.open("retained"));
+    act(() => result.current.repository.open(retainedId));
 
     const stored = JSON.parse(
       storage.getItem("petrinaut-sdcpn") ?? "{}",
     ) as Record<string, unknown>;
-    expect(stored.empty).toBeUndefined();
-    expect(stored.retained).toBeDefined();
-    expect(result.current.repository.current?.documentId).toBe("retained");
+    expect(stored[emptyId]).toBeUndefined();
+    expect(stored[retainedId]).toBeDefined();
+    expect(result.current.repository.current?.documentId).toBe(retainedId);
   });
 
   test("rejects a revision that does not follow its predecessor", async () => {
     stubStorage({
-      "document-1": {
-        id: "document-1",
+      [documentId]: {
+        id: documentId,
         incarnationId: "incarnation-1",
         revisionId: "revision-1",
         title: "Before",
@@ -196,7 +205,7 @@ describe("useLocalDocumentRepository", () => {
 
     await expect(
       result.current.repository.persistRevision({
-        documentId: "document-1",
+        documentId: documentId,
         incarnationId: "incarnation-1",
         definition: emptyDefinition,
         previousRevisionId: "stale-revision",
@@ -207,8 +216,8 @@ describe("useLocalDocumentRepository", () => {
 
   test("refuses to overwrite a revision another tab stored before its storage event arrives", async () => {
     const stored = (revisionId: string, title: string) => ({
-      "document-1": {
-        id: "document-1",
+      [documentId]: {
+        id: documentId,
         incarnationId: "incarnation-1",
         revisionId,
         title,
@@ -231,7 +240,7 @@ describe("useLocalDocumentRepository", () => {
 
     await expect(
       result.current.repository.persistRevision({
-        documentId: "document-1",
+        documentId: documentId,
         incarnationId: "incarnation-1",
         definition: emptyDefinition,
         previousRevisionId: "revision-1",
@@ -242,14 +251,14 @@ describe("useLocalDocumentRepository", () => {
       storage.getItem("petrinaut-sdcpn") ?? "{}",
     );
     expect(saved).toMatchObject({
-      "document-1": { revisionId: "revision-2", title: "Other tab" },
+      [documentId]: { revisionId: "revision-2", title: "Other tab" },
     });
   });
 
   test("writes an accepted revision to storage before persistRevision resolves", () => {
     const storage = stubStorage({
-      "document-1": {
-        id: "document-1",
+      [documentId]: {
+        id: documentId,
         incarnationId: "incarnation-1",
         revisionId: "revision-1",
         title: "Before",
@@ -265,7 +274,7 @@ describe("useLocalDocumentRepository", () => {
     // so the write lands synchronously inside the change.
     act(() => {
       void result.current.repository.persistRevision({
-        documentId: "document-1",
+        documentId,
         incarnationId: "incarnation-1",
         definition: emptyDefinition,
         previousRevisionId: "revision-1",
@@ -273,7 +282,7 @@ describe("useLocalDocumentRepository", () => {
       });
       expect(
         JSON.parse(storage.getItem("petrinaut-sdcpn") ?? "{}"),
-      ).toMatchObject({ "document-1": { revisionId: "revision-2" } });
+      ).toMatchObject({ [documentId]: { revisionId: "revision-2" } });
     });
   });
 });
@@ -302,21 +311,29 @@ const savedDocument = (id: string, lastUpdated: string) => ({
 
 test("selects the newest stored document and retains an explicit selection", () => {
   stubStorage({
-    older: savedDocument("older", "2026-01-01T00:00:00.000Z"),
-    newer: savedDocument("newer", "2026-01-02T00:00:00.000Z"),
+    [olderId]: savedDocument(olderId, "2026-01-01T00:00:00.000Z"),
+    [newerId]: savedDocument(newerId, "2026-01-02T00:00:00.000Z"),
   });
   const { result, rerender } = renderHook(() =>
     useLocalDocumentRepository({ onOpen: vi.fn() }),
   );
-  expect(result.current.repository.current?.documentId).toBe("newer");
-  act(() => result.current.repository.open("older"));
+  expect(result.current.repository.current?.documentId).toBe(newerId);
+  act(() => result.current.repository.open(olderId));
   rerender();
-  expect(result.current.repository.current?.documentId).toBe("older");
+  expect(result.current.repository.current?.documentId).toBe(olderId);
+});
+
+test("opens a default document under a fresh net id when nothing is stored", () => {
+  stubStorage();
+  const { result } = renderHook(() =>
+    useLocalDocumentRepository({ onOpen: vi.fn() }),
+  );
+  expect(isNetId(result.current.repository.current?.documentId)).toBe(true);
 });
 
 test("opens the empty document created by the new route", () => {
   const storage = stubStorage({
-    older: savedDocument("older", "2026-01-01T00:00:00.000Z"),
+    [olderId]: savedDocument(olderId, "2026-01-01T00:00:00.000Z"),
   });
   const created = startEmptyNetInStorage(storage);
   const { result } = renderHook(() =>
@@ -327,7 +344,7 @@ test("opens the empty document created by the new route", () => {
 
 test("preserves another tab's document when renaming before its storage event arrives", () => {
   const storage = stubStorage({
-    older: savedDocument("older", "2026-01-01T00:00:00.000Z"),
+    [olderId]: savedDocument(olderId, "2026-01-01T00:00:00.000Z"),
   });
   const { result } = renderHook(() =>
     useLocalDocumentRepository({ onOpen: vi.fn() }),
@@ -335,19 +352,19 @@ test("preserves another tab's document when renaming before its storage event ar
   storage.setItem(
     "petrinaut-sdcpn",
     JSON.stringify({
-      older: savedDocument("older", "2026-01-01T00:00:00.000Z"),
-      otherTab: savedDocument("otherTab", "2026-01-02T00:00:00.000Z"),
+      [olderId]: savedDocument(olderId, "2026-01-01T00:00:00.000Z"),
+      [otherTabId]: savedDocument(otherTabId, "2026-01-02T00:00:00.000Z"),
     }),
   );
   act(() =>
     result.current.repository.actions.rename({
-      documentId: "older",
+      documentId: olderId,
       title: "Renamed",
     }),
   );
   const saved: unknown = JSON.parse(storage.getItem("petrinaut-sdcpn") ?? "{}");
   expect(saved).toMatchObject({
-    older: { title: "Renamed" },
-    otherTab: { id: "otherTab" },
+    [olderId]: { title: "Renamed" },
+    [otherTabId]: { id: otherTabId },
   });
 });

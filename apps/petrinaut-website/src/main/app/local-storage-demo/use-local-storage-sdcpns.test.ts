@@ -4,6 +4,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 
+import { isNetId, toNetId, type SDCPN } from "@hashintel/petrinaut-core";
+
 import {
   createLocalStorageNetRecord,
   emptySDCPN,
@@ -11,8 +13,6 @@ import {
   startEmptyNetInStorage,
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
-
-import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
@@ -54,10 +54,13 @@ const drawnNet: SDCPN = {
   ],
 };
 
-const storedNet = (id: string, sdcpn: SDCPN): [string, SDCPNInLocalStorage] => [
-  id,
-  { id, title: id, sdcpn, lastUpdated: new Date(0).toISOString() },
-];
+const storedNet = (
+  id: string,
+  sdcpn: SDCPN,
+  lastUpdated = new Date(0).toISOString(),
+): [string, SDCPNInLocalStorage] => [id, { id, title: id, sdcpn, lastUpdated }];
+
+const drawnNetId = toNetId("net-drawn");
 
 /** An entry whose `sdcpn` this version of the editor cannot read as a net. */
 const foreignEntry = {
@@ -68,6 +71,20 @@ const foreignEntry = {
 };
 
 describe("createLocalStorageNetRecord", () => {
+  test("mints a fresh net id", () => {
+    const first = createLocalStorageNetRecord({
+      petriNetDefinition: emptySDCPN,
+      title: "New Process",
+    });
+    const second = createLocalStorageNetRecord({
+      petriNetDefinition: emptySDCPN,
+      title: "New Process",
+    });
+
+    expect(isNetId(first.id)).toBe(true);
+    expect(second.id).not.toBe(first.id);
+  });
+
   test("assigns incarnation and document revision identities at creation", () => {
     const net = createLocalStorageNetRecord({
       petriNetDefinition: emptySDCPN,
@@ -91,6 +108,7 @@ describe("startEmptyNetInStorage", () => {
 
     expect(readNets(storage)).toStrictEqual({ [net.id]: net });
     expect(net.sdcpn).toStrictEqual(emptySDCPN);
+    expect(isNetId(net.id)).toBe(true);
   });
 
   test("keeps the nets the visitor has drawn", () => {
@@ -101,7 +119,7 @@ describe("startEmptyNetInStorage", () => {
     const net = startEmptyNetInStorage(storage);
 
     expect(Object.keys(readNets(storage)).sort()).toStrictEqual(
-      ["net-drawn", net.id].sort(),
+      [drawnNetId, net.id].sort(),
     );
   });
 
@@ -118,7 +136,7 @@ describe("startEmptyNetInStorage", () => {
     const net = startEmptyNetInStorage(storage);
 
     expect(Object.keys(readNets(storage)).sort()).toStrictEqual(
-      ["net-drawn", net.id].sort(),
+      [drawnNetId, net.id].sort(),
     );
   });
 
@@ -161,7 +179,7 @@ describe("startEmptyNetInStorage", () => {
 
     const nets = readNets(storage);
     expect(Object.keys(nets).sort()).toStrictEqual(
-      ["net-drawn", "net-foreign", net.id].sort(),
+      [drawnNetId, "net-foreign", net.id].sort(),
     );
     expect(nets["net-foreign"]).toStrictEqual(foreignEntry);
   });
@@ -199,11 +217,11 @@ describe("useLocalStorageSDCPNs", () => {
 
     expect(result.current.ready).toBe(true);
     expect(Object.keys(result.current.storedSDCPNs)).toStrictEqual([
-      "net-drawn",
+      drawnNetId,
     ]);
     const written = readNets(localStorage);
-    expect(written["net-drawn"]?.incarnationId).toBeTypeOf("string");
-    expect(written["net-drawn"]?.revisionId).toBeTypeOf("string");
+    expect(written[drawnNetId]?.incarnationId).toBeTypeOf("string");
+    expect(written[drawnNetId]?.revisionId).toBeTypeOf("string");
     expect(written["net-foreign"]).toStrictEqual(foreignEntry);
   });
 
@@ -230,5 +248,80 @@ describe("useLocalStorageSDCPNs", () => {
       "net-foreign": foreignEntry,
       [net.id]: net,
     });
+  });
+});
+
+describe("legacy net ids", () => {
+  afterEach(() => localStorage.clear());
+
+  const subnetNet: SDCPN = {
+    ...emptySDCPN,
+    subnets: [{ ...emptySDCPN, id: "subnet__a", name: "Subnet" }],
+    componentInstances: [
+      {
+        id: "instance-1",
+        name: "Instance",
+        subnetId: "subnet__a",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      },
+    ],
+  };
+
+  test("moves a legacy record to its net id together with its subnet ids", () => {
+    localStorage.setItem(
+      rootLocalStorageKey,
+      JSON.stringify(Object.fromEntries([storedNet("net-1", subnetNet)])),
+    );
+
+    const { result } = renderHook(() => useLocalStorageSDCPNs());
+
+    const netId = toNetId("net-1");
+    const written = readNets(localStorage);
+    expect(Object.keys(written)).toStrictEqual([netId]);
+    expect(written[netId]?.id).toBe(netId);
+    expect(written[netId]?.sdcpn.subnets?.[0]?.id).toBe(toNetId("subnet__a"));
+    expect(written[netId]?.sdcpn.componentInstances?.[0]?.subnetId).toBe(
+      toNetId("subnet__a"),
+    );
+    expect(result.current.storedSDCPNs).toStrictEqual(written);
+  });
+
+  test("keeps the later record when a legacy and a canonical id name one net", () => {
+    const netId = toNetId("net-1");
+    localStorage.setItem(
+      rootLocalStorageKey,
+      JSON.stringify(
+        Object.fromEntries([
+          storedNet(netId, drawnNet, new Date(1_000).toISOString()),
+          storedNet("net-1", emptySDCPN, new Date(2_000).toISOString()),
+        ]),
+      ),
+    );
+
+    renderHook(() => useLocalStorageSDCPNs());
+
+    const written = readNets(localStorage);
+    expect(Object.keys(written)).toStrictEqual([netId]);
+    expect(written[netId]?.title).toBe("net-1");
+    expect(written[netId]?.sdcpn).toStrictEqual(emptySDCPN);
+  });
+
+  test("keeps the canonical record when both were written at once", () => {
+    const netId = toNetId("net-1");
+    localStorage.setItem(
+      rootLocalStorageKey,
+      JSON.stringify(
+        Object.fromEntries([
+          storedNet("net-1", emptySDCPN),
+          storedNet(netId, drawnNet),
+        ]),
+      ),
+    );
+
+    renderHook(() => useLocalStorageSDCPNs());
+
+    expect(readNets(localStorage)[netId]?.sdcpn).toStrictEqual(drawnNet);
   });
 });

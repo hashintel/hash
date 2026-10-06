@@ -1,3 +1,5 @@
+import { toNetId } from "@hashintel/petrinaut-core";
+
 import {
   readBrowserStorage,
   writeBrowserStorage,
@@ -10,6 +12,23 @@ const rootLocalStorageKey = "petrinaut-ai-messages";
 
 type AiMessagesByNetId = Record<string, PetrinautAiMessage[]>;
 const noAiMessages: AiMessagesByNetId = {};
+
+/**
+ * Keys every conversation by net id, so history saved under a legacy id
+ * follows the converted net. An entry already keyed by its net id wins.
+ */
+const keyedByNetId = (
+  entries: [string, PetrinautAiMessage[]][],
+): AiMessagesByNetId => {
+  const canonical = new Map<string, PetrinautAiMessage[]>();
+  for (const [key, messages] of entries) {
+    const netId = toNetId(key);
+    if (key === netId || !canonical.has(netId)) {
+      canonical.set(netId, messages);
+    }
+  }
+  return Object.fromEntries(canonical);
+};
 
 const readMessages = (): AiMessagesByNetId => {
   const stored = readBrowserStorage(localStorage, rootLocalStorageKey);
@@ -53,7 +72,7 @@ const readMessages = (): AiMessagesByNetId => {
     ) {
       return {};
     }
-    return Object.fromEntries(entries) as AiMessagesByNetId;
+    return keyedByNetId(entries as [string, PetrinautAiMessage[]][]);
   } catch {
     return {};
   }
