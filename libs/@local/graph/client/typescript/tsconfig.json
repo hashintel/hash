@@ -4,6 +4,7 @@
   "exclude": ["./dist"],
   "compilerOptions": {
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "types": ["node"]
   }
 }
