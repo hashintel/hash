@@ -12,6 +12,7 @@ import {
 } from "@earendil-works/pi-ai";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { toNetId, type SDCPN } from "@hashintel/petrinaut-core";
 
 import {
   isAppliedChange,
@@ -25,8 +26,6 @@ import {
   prepareWitnessProcess,
   toolCall,
 } from "./browser-fixture.ts";
-
-import type { SDCPN } from "@hashintel/petrinaut-core";
 
 prepareWitnessProcess("browser-witness");
 const faux = installFauxOpenai();
@@ -51,6 +50,8 @@ const experimentNet: SDCPN = {
   ],
   metrics: [{ id: "throughput", name: "Throughput", code: "return 1;" }],
 };
+const experimentNetId = toNetId("experiment-net");
+const draftNetId = toNetId("draft-net");
 const savedDocument = (id: string, sdcpn: SDCPN) => ({
   [id]: {
     id,
@@ -211,7 +212,7 @@ const directExperiment = async () => {
   };
   const page = await fixture.openAssistant(
     "/",
-    savedDocument("experiment-net", experimentNet),
+    savedDocument(experimentNetId, experimentNet),
   );
   faux.setResponses([
     toolCall("getLatestNetDefinition", {}, "read-1"),
@@ -242,7 +243,7 @@ const directExperiment = async () => {
     revisionId: string;
     sdcpn: SDCPN;
   }>(page, binding.documentId);
-  assert.equal(stored?.revisionId, "experiment-net-revision");
+  assert.equal(stored?.revisionId, `${experimentNetId}-revision`);
   assert.deepEqual(stored.sdcpn, experimentNet);
 };
 
@@ -250,7 +251,7 @@ const directExperiment = async () => {
 const draftedExperiment = async () => {
   const page = await fixture.openAssistant(
     "/",
-    savedDocument("draft-net", experimentNet),
+    savedDocument(draftNetId, experimentNet),
   );
   faux.setResponses([
     toolCall("getLatestNetDefinition", {}, "read-1"),
@@ -298,8 +299,8 @@ const draftedExperiment = async () => {
     .waitFor({ timeout: 30_000 });
   assert.equal(delivery.kind, "user");
   const { binding, client } = await fixture.conversationOf(page, delivery);
-  assert.equal(binding.documentId, "draft-net");
-  assert.equal(binding.incarnationId, "draft-net-incarnation");
+  assert.equal(binding.documentId, draftNetId);
+  assert.equal(binding.incarnationId, `${draftNetId}-incarnation`);
   const history = await client.history();
   const results = clientToolHistoryFrom(history.messages).results;
   assert.deepEqual(
