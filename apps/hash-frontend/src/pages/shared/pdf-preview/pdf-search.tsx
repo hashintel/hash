@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
-import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types";
+import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types.js";
 
 type PositionInPage = {
   rowIndex: number;
