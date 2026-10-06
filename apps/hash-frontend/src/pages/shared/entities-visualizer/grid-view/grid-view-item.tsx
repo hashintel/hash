@@ -5,6 +5,7 @@ import { extractBaseUrl } from "@blockprotocol/type-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
+import { searchResultHighlightColor } from "../../../../components/grid/grid";
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FileAudioLightIcon } from "../../../../shared/icons/file-audio-light-icon";
 import { FileExcelLightIcon } from "../../../../shared/icons/file-excel-light-icon";
@@ -20,7 +21,7 @@ import { GridViewItemWrapper } from "./grid-view-item-wrapper";
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent, ReactNode, Ref } from "react";
 
 /**
  * @todo: gradually we will want to rely more on entity types to determine the icon
@@ -59,10 +60,26 @@ const defaultFileIcon = <FileLightIcon />;
 
 export const GridViewItem: FunctionComponent<{
   entity: HashEntity;
+  /**
+   * The entity's file name, derived by the grid view so the text each card
+   * displays and the text its search matches against are the same by
+   * construction.
+   */
+  fileName?: string;
   numberOfItems: number;
   index: number;
   onEntityClick: (entityId: EntityId) => void;
-}> = ({ entity, numberOfItems, index, onEntityClick }) => {
+  rootRef?: Ref<HTMLDivElement>;
+  searchHighlight?: "match" | "current";
+}> = ({
+  entity,
+  fileName,
+  numberOfItems,
+  index,
+  onEntityClick,
+  rootRef,
+  searchHighlight,
+}) => {
   const { includesSpecialEntityTypes } = useEntityTypesContextRequired();
 
   const fileEntity = useMemo(() => {
@@ -75,27 +92,18 @@ export const GridViewItem: FunctionComponent<{
     }
   }, [includesSpecialEntityTypes, entity]);
 
-  const { fileName, fileNameWithoutExtension, fileExtension } = useMemo(() => {
-    if (fileEntity) {
-      const { fileName: fullFileName } = simplifyProperties(
-        fileEntity.properties,
-      );
+  const { fileNameWithoutExtension, fileExtension } = useMemo(() => {
+    const parsedFileExtension = fileName
+      ? fileName.split(".").pop()
+      : undefined;
 
-      const parsedFileExtension = fullFileName
-        ? fullFileName.split(".").pop()
-        : undefined;
-
-      return {
-        fileName: fullFileName,
-        fileNameWithoutExtension: parsedFileExtension
-          ? (fullFileName?.split(".").slice(0, -1).join(".") ?? fullFileName)
-          : fullFileName,
-        fileExtension: parsedFileExtension,
-      };
-    }
-
-    return {};
-  }, [fileEntity]);
+    return {
+      fileNameWithoutExtension: parsedFileExtension
+        ? (fileName?.split(".").slice(0, -1).join(".") ?? fileName)
+        : fileName,
+      fileExtension: parsedFileExtension,
+    };
+  }, [fileName]);
 
   const icon = useMemo(() => {
     if (fileEntity) {
@@ -128,24 +136,39 @@ export const GridViewItem: FunctionComponent<{
   }, [entity]);
 
   return (
-    <GridViewItemWrapper numberOfItems={numberOfItems} index={index}>
+    <GridViewItemWrapper
+      numberOfItems={numberOfItems}
+      index={index}
+      rootRef={rootRef}
+    >
       <Box
         role="button"
         title={fileName}
         onClick={() => onEntityClick(entity.metadata.recordId.entityId)}
-        sx={{
-          cursor: "pointer",
-          padding: 3,
-          width: "100%",
-          height: "100%",
-          background: "transparent",
-          transition: ({ transitions }) => transitions.create("background"),
-          "&:hover": {
-            background: ({ palette }) => palette.gray[15],
+        sx={[
+          {
+            cursor: "pointer",
+            padding: 3,
+            width: "100%",
+            height: "100%",
+            background: "transparent",
+            transition: ({ transitions }) => transitions.create("background"),
+            "&:hover": {
+              background: ({ palette }) => palette.gray[15],
+            },
+            display: "flex",
+            flexDirection: "column",
           },
-          display: "flex",
-          flexDirection: "column",
-        }}
+          // The highlight treatment the table's search gives matches: its
+          // background on every match, an accent ring on the current one.
+          searchHighlight !== undefined && {
+            background: searchResultHighlightColor,
+          },
+          searchHighlight === "current" &&
+            (({ palette }) => ({
+              boxShadow: `inset 0 0 0 2px ${palette.blue[70]}`,
+            })),
+        ]}
       >
         <Box
           sx={{

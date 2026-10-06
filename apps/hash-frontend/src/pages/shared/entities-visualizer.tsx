@@ -255,6 +255,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   const [view, _setView] = useState<VisualizerView>("Table");
 
   const [showTableSearch, setShowTableSearch] = useState(false);
+  const [showGridSearch, setShowGridSearch] = useState(false);
   const [showGraphSearch, setShowGraphSearch] = useState(false);
 
   // The search popups are per-view, so leaving a view closes them.
@@ -263,6 +264,7 @@ export const EntitiesVisualizer: FunctionComponent<{
       _setView(newView);
       resetCursors();
       setShowTableSearch(false);
+      setShowGridSearch(false);
       setShowGraphSearch(false);
     },
     [resetCursors],
@@ -962,22 +964,24 @@ export const EntitiesVisualizer: FunctionComponent<{
               internalWebs={internalWebs}
               isTypePinned={isTypePinned}
               searchControl={
-                view !== "Grid" ? (
-                  <SearchPill
-                    title={
-                      view === "Table"
-                        ? "Search for text in visible rows"
+                <SearchPill
+                  title={
+                    view === "Table"
+                      ? "Search for text in visible rows"
+                      : view === "Grid"
+                        ? "Search for text in visible files"
                         : "Search for an entity in the graph"
+                  }
+                  onClick={() => {
+                    if (view === "Table") {
+                      setShowTableSearch(!showTableSearch);
+                    } else if (view === "Grid") {
+                      setShowGridSearch(!showGridSearch);
+                    } else {
+                      setShowGraphSearch(!showGraphSearch);
                     }
-                    onClick={() => {
-                      if (view === "Table") {
-                        setShowTableSearch(!showTableSearch);
-                      } else {
-                        setShowGraphSearch(!showGraphSearch);
-                      }
-                    }}
-                  />
-                ) : undefined
+                  }}
+                />
               }
               setFilterState={(updater) => setFilterState(updater)}
               showTypeColors={view === "NetworkGraph"}
@@ -1082,7 +1086,12 @@ export const EntitiesVisualizer: FunctionComponent<{
           </Box>
         </Stack>
       ) : view === "Grid" ? (
-        <GridView entities={entities} onEntityClick={handleEntityClick} />
+        <GridView
+          entities={entities}
+          onEntityClick={handleEntityClick}
+          showSearch={showGridSearch}
+          onSearchClose={() => setShowGridSearch(false)}
+        />
       ) : (
         <>
           {activeError ? (

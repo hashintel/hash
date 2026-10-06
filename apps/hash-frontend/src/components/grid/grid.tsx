@@ -134,7 +134,7 @@ const emptyRect: ReturnType<VirtualElement["getBoundingClientRect"]> = {
 };
 
 /** Glide's default `bgSearchResult` theme color. */
-const searchResultHighlightColor = "#fff9e3";
+export const searchResultHighlightColor = "#fff9e3";
 
 /** Mirrors the cell text glide's built-in search tests, per cell kind. */
 const getCellSearchableText = (cell: GridCell): string | undefined => {
