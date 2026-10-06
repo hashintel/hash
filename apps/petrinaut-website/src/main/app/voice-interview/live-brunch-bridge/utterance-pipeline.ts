@@ -42,14 +42,12 @@ const isShortDuringOutput = ({ startedDuringOutput, words }: Utterance) =>
 /** Shadow stages come before active ones: a stage after a skip never runs. */
 export const liveUtteranceStages: readonly UtteranceStage[] = [
   {
-    name: "prompt-regurgitation",
+    reason: "prompt-regurgitation",
     mode: "shadow",
-    skip: ({ text, transcriptionPrompt }) =>
+    skips: ({ text, transcriptionPrompt }) =>
       transcriptionPrompt !== undefined &&
       classifyInterruption(text, [], transcriptionPrompt) ===
-        "prompt-regurgitation"
-        ? "prompt-regurgitation"
-        : null,
+        "prompt-regurgitation",
   },
   // Leaked Live audio can finalize as a longer repeat of Live's own words.
   {
