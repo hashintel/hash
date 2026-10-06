@@ -254,10 +254,16 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [view, _setView] = useState<VisualizerView>("Table");
 
+  const [showTableSearch, setShowTableSearch] = useState(false);
+  const [showGraphSearch, setShowGraphSearch] = useState(false);
+
+  // The search popups are per-view, so leaving a view closes them.
   const setView = useCallback(
     (newView: VisualizerView) => {
       _setView(newView);
       resetCursors();
+      setShowTableSearch(false);
+      setShowGraphSearch(false);
     },
     [resetCursors],
   );
@@ -788,9 +794,6 @@ export const EntitiesVisualizer: FunctionComponent<{
   })`;
 
   const tableHeight = `min(${availableHeight}, 1000px)`;
-
-  const [showTableSearch, setShowTableSearch] = useState(false);
-  const [showGraphSearch, setShowGraphSearch] = useState(false);
 
   const [selectedTableRows, setSelectedTableRows] = useState<
     EntitiesTableRow[]
