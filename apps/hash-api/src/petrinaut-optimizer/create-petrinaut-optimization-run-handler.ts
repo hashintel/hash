@@ -72,32 +72,29 @@ export const createPetrinautOptimizationRunHandler = ({
     }, RESPONSE_START_TIMEOUT_MS);
 
     try {
-      const created = await client.POST("/optimize/runs", {
-        body: input,
+      const created = await client.postOptimizeRuns(input, {
         headers: {
           "x-hash-account-id": userId,
           ...(requestId ? { "x-hash-request-id": requestId } : {}),
         },
         signal: abortController.signal,
       });
-      const runId = created.data?.run_id;
-      if (!created.response.ok || !runId) {
+      const runId = created.status === 201 ? created.data.run_id : undefined;
+      if (!runId) {
         const durationMs = Date.now() - startedAt;
-        const upstreamRunId = created.response.headers.get(
-          "x-optimization-run-id",
-        );
+        const upstreamRunId = created.headers.get("x-optimization-run-id");
         requestLogger.warn("Petrinaut optimization run creation failed", {
           durationMs,
           optimizationRunId: upstreamRunId,
           outcome: "upstream-error",
-          upstreamStatus: created.response.status,
+          upstreamStatus: created.status,
           userId,
         });
         if (upstreamRunId !== null) {
           response.set({ "X-Optimization-Run-ID": upstreamRunId });
         }
-        if (created.response.status === 429) {
-          const retryAfter = created.response.headers.get("retry-after");
+        if (created.status === 429) {
+          const retryAfter = created.headers.get("retry-after");
           if (retryAfter) {
             response.set({ "Retry-After": retryAfter });
           }
@@ -105,10 +102,7 @@ export const createPetrinautOptimizationRunHandler = ({
           // "your account already runs one" from "the service is at
           // capacity", so it is forwarded rather than flattened.
           response.status(429).json({
-            error:
-              typeof created.error?.detail === "string"
-                ? created.error.detail
-                : "Petrinaut optimizer is busy",
+            error: created.data.detail || "Petrinaut optimizer is busy",
           });
         } else {
           respondUpstreamFailure(response, false);
@@ -121,8 +115,7 @@ export const createPetrinautOptimizationRunHandler = ({
         // Cancel it best-effort so the account is not blocked for the rest
         // of the orphan grace period; the optimizer's reaper is the backstop.
         const cancelled = await client
-          .DELETE("/optimize/runs/{run_id}", {
-            params: { path: { run_id: runId } },
+          .deleteOptimizeRun(runId, {
             headers: {
               "x-hash-account-id": userId,
               ...(requestId ? { "x-hash-request-id": requestId } : {}),
@@ -136,12 +129,12 @@ export const createPetrinautOptimizationRunHandler = ({
             );
             return null;
           });
-        if (cancelled && !cancelled.response.ok) {
+        if (cancelled && cancelled.status !== 204) {
           requestLogger.warn(
             "Could not cancel abandoned Petrinaut optimization run",
             {
               optimizationRunId: runId,
-              upstreamStatus: cancelled.response.status,
+              upstreamStatus: cancelled.status,
               userId,
             },
           );

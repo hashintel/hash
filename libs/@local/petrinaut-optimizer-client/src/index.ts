@@ -12,7 +12,11 @@ export type { DecodePetrinautOptimizerStreamOptions } from "./decode-optimizatio
 export {
   PetrinautOptimizerHttpError,
   petrinautOptimizerHttpErrorFromResponse,
+  petrinautOptimizerHttpErrorFromResult,
 } from "./optimizer-http.js";
 export { createServicePetrinautOptimization } from "./service-optimization.js";
-export type { PetrinautOptimizerFetch } from "./optimizer-http.js";
-export type { components, operations, paths, webhooks } from "./openapi.gen.js";
+export type {
+  PetrinautOptimizerFetch,
+  PetrinautOptimizerResult,
+} from "./optimizer-http.js";
+export type * from "./openapi.gen.js";
