@@ -23,13 +23,6 @@ import {
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import {
-  createJsonDocHandle,
-  type MinimalNetMetadata,
-  type PetrinautDocHandle,
-  type PetrinautHandleCapabilities,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
-import {
   CommandRegistryProvider,
   ErrorTrackerContext,
   useCommand,
@@ -107,21 +100,16 @@ import {
   type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
+import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
+import { UnsavedChangeNotice } from "./unsaved-change-notice";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { VoiceMediationHistory } from "../plugins/voice/history/voice-mediation-history";
 import type { ToolApprovalState } from "../plugins/voice/live/live-brunch-bridge";
-import type {
-  DocumentRecord,
-  RecordRevisionId,
-} from "./documents/document-repository";
-
-const DEMO_CAPABILITIES = {
-  disabledExtensions: [],
-} satisfies PetrinautHandleCapabilities;
+import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
 
 type ReplayReadiness<Replay> =
   | { readonly status: "pending" }
@@ -265,13 +253,6 @@ export const getBrunchVoiceMode = (
   );
 };
 
-const createHandle = (document: DocumentRecord): PetrinautDocHandle =>
-  createJsonDocHandle({
-    id: document.documentId,
-    initial: document.definition,
-    capabilities: DEMO_CAPABILITIES,
-  });
-
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 
 const subscribeToNothing = () => () => {};
@@ -321,28 +302,6 @@ const createConversationTrackerFor = (
   _conversationId: string | null,
 ): BrunchPanelConversationTracker => new BrunchPanelConversationTracker();
 
-type ActiveHandle = {
-  handle: PetrinautDocHandle;
-  document: DocumentRecord;
-  /**
-   * Every record revision minted for this handle's changes (plus the one it
-   * opened at). A repository revision outside this set was written by someone
-   * else — another tab, typically — and the handle must be recreated from it
-   * rather than keep chaining edits from a predecessor the repository no
-   * longer holds.
-   */
-  emittedRevisionIds: Set<RecordRevisionId>;
-  /** Predecessor named by this handle's next write; kept on the handle because the persistence effect re-subscribes. */
-  latestRevisionId: { current: RecordRevisionId };
-};
-
-type PersistFailure = {
-  /** The handle whose change was refused; it is replaced, not kept. */
-  handle: PetrinautDocHandle;
-  documentId: DocumentRecord["documentId"];
-  error: Error;
-};
-
 const useProcessAgentSession = (input: {
   readonly binding: ProcessAgentBinding | null;
   readonly brunchSelected: boolean;
@@ -357,16 +316,6 @@ const useProcessAgentSession = (input: {
         : null;
     return { conversationTracker, flueClientPromise };
   }, [input.binding, input.brunchSelected]);
-};
-
-const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
-  const handle = createHandle(document);
-  return {
-    handle,
-    document,
-    emittedRevisionIds: new Set([document.revisionId]),
-    latestRevisionId: { current: document.revisionId },
-  };
 };
 
 /**
@@ -499,79 +448,7 @@ export const LocalStorageDemoApp = ({
   }, [brunchSelected]);
 
   // Live editable document handle for the selected net only.
-  const [storedHandle, setStoredHandle] = useState<ActiveHandle | null>(null);
-  // The most recent change the repository refused to persist, if any. It is
-  // about the open document: cleared once a later change to that document
-  // lands, or when another document is opened in its place.
-  const [persistFailure, setPersistFailure] = useState<PersistFailure | null>(
-    null,
-  );
-
-  // The handle follows the repository: it is recreated from the repository's
-  // record whenever the two diverge — another document is open, the record
-  // shows a revision not minted for this handle's changes (another tab wrote
-  // it), or the repository refused one of this handle's changes, after which
-  // every further change from it would be refused too, because each names the
-  // rejected revision as predecessor. It is decided during render, not in an
-  // effect, so no render pairs the open document with another document's
-  // handle.
-  const activeHandle =
-    currentDocument === null
-      ? null
-      : storedHandle?.document.documentId === currentDocument.documentId &&
-          storedHandle.emittedRevisionIds.has(currentDocument.revisionId) &&
-          persistFailure?.handle !== storedHandle.handle
-        ? storedHandle
-        : createActiveHandle(currentDocument);
-  if (activeHandle !== storedHandle) setStoredHandle(activeHandle);
-  if (
-    persistFailure !== null &&
-    currentDocument !== null &&
-    persistFailure.documentId !== currentDocument.documentId
-  )
-    setPersistFailure(null);
-
-  // Saving the handle's changes subscribes to it, so it stays an effect: the
-  // subscription must end with its handle, and render may create handles that
-  // React discards.
-  useEffect(() => {
-    if (!activeHandle) {
-      return;
-    }
-
-    const { document, emittedRevisionIds, handle, latestRevisionId } =
-      activeHandle;
-    return handle.subscribe((event) => {
-      const previousRevisionId = latestRevisionId.current;
-      const revisionId = crypto.randomUUID();
-      latestRevisionId.current = revisionId;
-      emittedRevisionIds.add(revisionId);
-      repository
-        .persistRevision({
-          documentId: document.documentId,
-          definition: event.next,
-          previousRevisionId,
-          revisionId,
-        })
-        .then(
-          () =>
-            setPersistFailure((failure) =>
-              failure?.documentId === document.documentId ? null : failure,
-            ),
-          (error: unknown) =>
-            setPersistFailure({
-              handle,
-              documentId: document.documentId,
-              error: error instanceof Error ? error : new Error(String(error)),
-            }),
-        );
-    });
-  }, [activeHandle, repository]);
-  const unsavedChangeMessage =
-    persistFailure !== null &&
-    persistFailure.documentId === currentDocument?.documentId
-      ? persistFailure.error.message
-      : null;
+  const { activeHandle, unsavedChangeMessage } = useActiveHandle(repository);
 
   const existingNets: MinimalNetMetadata[] = repository.records
     .map((document) => ({
@@ -1047,42 +924,7 @@ export const LocalStorageDemoApp = ({
       }}
     >
       {unsavedChangeMessage !== null ? (
-        // Host notices are centred below Petrinaut's 64px top bar and stacked
-        // above its side panels (z-index 1097) and bar (1100), so neither can
-        // hide them.
-        <div
-          style={{
-            alignItems: "center",
-            display: "flex",
-            flexDirection: "column",
-            fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
-            fontSize: 14,
-            gap: 8,
-            left: "50%",
-            maxWidth: "calc(100vw - 32px)",
-            pointerEvents: "none",
-            position: "fixed",
-            top: 80,
-            transform: "translateX(-50%)",
-            zIndex: 1200,
-          }}
-        >
-          <p
-            role="alert"
-            style={{
-              background: "#fff1f0",
-              border: "1px solid #ffa39e",
-              borderRadius: 8,
-              boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
-              color: "#a8071a",
-              margin: 0,
-              padding: "10px 12px",
-            }}
-          >
-            Changes not saved: {unsavedChangeMessage} The editor shows the last
-            saved version.
-          </p>
-        </div>
+        <UnsavedChangeNotice message={unsavedChangeMessage} />
       ) : null}
       <CommandRegistryProvider>
         <WalkthroughProvider steps={walkthroughSteps}>
