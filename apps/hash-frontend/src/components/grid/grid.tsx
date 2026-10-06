@@ -132,6 +132,27 @@ const emptyRect: ReturnType<VirtualElement["getBoundingClientRect"]> = {
   toJSON: () => "",
 };
 
+/** Mirrors the cell text glide's built-in search tests, per cell kind. */
+const getCellSearchableText = (cell: GridCell): string | undefined => {
+  switch (cell.kind) {
+    case GridCellKind.Text:
+    case GridCellKind.Number:
+      return cell.displayData;
+    case GridCellKind.Uri:
+    case GridCellKind.Markdown:
+      return cell.data;
+    case GridCellKind.Boolean:
+      return typeof cell.data === "boolean" ? cell.data.toString() : undefined;
+    case GridCellKind.Image:
+    case GridCellKind.Bubble:
+      return cell.data.join("\n");
+    case GridCellKind.Custom:
+      return cell.copyData;
+    default:
+      return undefined;
+  }
+};
+
 const gridHeaderHeight = 42;
 
 export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
@@ -159,11 +180,13 @@ export const Grid = <
   gridRef,
   initialSort,
   onConversionTargetSelected,
+  onSearchClose,
   onSelectedRowsChange,
   onVisibleRegionChanged,
   resizable = true,
   rows,
   selectedRows,
+  showSearch,
   sortableColumns,
   sort: externalSort,
   setSort: externalSetSort,
@@ -339,6 +362,57 @@ export const Grid = <
       return sortRowFn(filteredRows, localSort);
     }
   }, [externalSort, filteredRows, localSort, sortRows]);
+
+  const [searchValue, setSearchValue] = useState("");
+
+  /**
+   * Search results supplied to glide in place of its built-in cell-by-cell
+   * search: one result per matching row (its first matching cell), so the
+   * overlay's count and prev/next arrows work in rows rather than
+   * occurrences. Items are in glide's internal coordinate space, where the
+   * checkbox row-marker column shifts data columns right by one.
+   */
+  const searchResults = useMemo<Item[]>(() => {
+    if (!showSearch || !searchValue || !sortedAndFilteredRows?.length) {
+      return [];
+    }
+
+    const getCellContent = createGetCellContent(sortedAndFilteredRows);
+    const lowercaseSearchValue = searchValue.toLowerCase();
+    const columnOffset = enableCheckboxSelection ? 1 : 0;
+
+    const matchingRows: Item[] = [];
+    for (
+      let rowIndex = 0;
+      rowIndex < sortedAndFilteredRows.length;
+      rowIndex++
+    ) {
+      for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+        const searchableText = getCellSearchableText(
+          getCellContent([columnIndex, rowIndex]),
+        );
+
+        if (searchableText?.toLowerCase().includes(lowercaseSearchValue)) {
+          matchingRows.push([columnIndex + columnOffset, rowIndex]);
+          break;
+        }
+      }
+    }
+
+    return matchingRows;
+  }, [
+    columns.length,
+    createGetCellContent,
+    enableCheckboxSelection,
+    searchValue,
+    showSearch,
+    sortedAndFilteredRows,
+  ]);
+
+  const handleSearchClose = useCallback(() => {
+    setSearchValue("");
+    onSearchClose?.();
+  }, [onSearchClose]);
 
   const gridSelection = useMemo(() => {
     if (sortedAndFilteredRows && selectedRows) {
@@ -696,6 +770,8 @@ export const Grid = <
         onItemHovered={({ location: [_colIndex, rowIndex], kind }) => {
           setHoveredRow(kind === "cell" ? rowIndex : undefined);
         }}
+        onSearchClose={handleSearchClose}
+        onSearchValueChange={setSearchValue}
         onVisibleRegionChanged={handleVisibleRegionChanged}
         rangeSelect="cell"
         ref={gridRef}
@@ -706,6 +782,9 @@ export const Grid = <
             ? sortedAndFilteredRows.length
             : 1
         }
+        searchResults={searchResults}
+        searchValue={searchValue}
+        showSearch={showSearch}
         smoothScrollX
         smoothScrollY
         theme={gridTheme}
