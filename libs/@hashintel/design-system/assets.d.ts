@@ -4,4 +4,5 @@ declare module "*.svg" {
   export default ReactComponent;
 }
 
+// The package ships no CSS types. Naming this file avoids accepting arbitrary CSS imports.
 declare module "react-loading-skeleton/dist/skeleton.css" {}

@@ -2,6 +2,8 @@
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "include": ["./src/", "./type-defs", "eslint.config.js"],
   "compilerOptions": {
+    "rootDir": "../../../..",
+    "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   }

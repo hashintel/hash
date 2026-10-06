@@ -5,6 +5,7 @@
   ],
   "include": ["src", "scripts", "eslint.config.js", "vitest.config.ts"],
   "compilerOptions": {
+    "rootDir": "../..",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2024", "ESNext.Collection"],
