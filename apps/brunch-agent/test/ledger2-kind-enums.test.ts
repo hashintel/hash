@@ -8,6 +8,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
 
+import { vReflection } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/construction/reflections.ts";
 import {
   appendToolDescription,
   appendToolName,
@@ -43,49 +44,51 @@ const runDemo = async (data: LedgerAppend) => {
   return v.parse(demoAppendTool.output, result.output);
 };
 
-test("one mixed append batch carries all four record types", async () => {
+test("one mixed append batch carries all three record types", async () => {
   const batch = {
-    elicitation: {
-      entities: [
+    entries: [
+      [
+        "elicitation.entity",
         {
-          id: "dryer",
           name: "Dryer",
           kind: "resource",
           origin: "stated",
           status: "confirmed",
         },
       ],
-      claims: [
+      [
+        "elicitation.claim",
         {
-          id: "c1",
-          turn: 1,
           text: "There is one dryer, held by each batch while drying.",
-          entities: ["dryer"],
+          entities: ["$0"],
           origin: "stated",
           status: "confirmed",
         },
       ],
-    },
-    construction: {
-      mutations: [{ revision: "revision-2", turn: 1, claims: ["c1"] }],
-      elements: [
+      [
+        "construction.reflection",
         {
-          address: { kind: "place", id: "p-dryer" },
-          text: "The place represents available dryer capacity.",
-          status: "tentative",
-          entities: ["dryer"],
-          claims: ["c1"],
+          text: "Represented dryer capacity as one available token; batches do not yet hold or release it.",
+          claims: ["$1"],
         },
       ],
-    },
+      [
+        "construction.reflection",
+        {
+          text: "The place represents available dryer capacity.",
+          netElements: [{ kind: "place", id: "p-dryer" }],
+          entities: ["$0"],
+          claims: ["$1"],
+        },
+      ],
+    ],
   };
   const parsed = v.parse(demoAppendTool.input, batch);
   expect(parsed).toEqual(batch);
   expect(await runDemo(parsed)).toEqual({
     claims: 1,
     entities: 1,
-    mutations: 1,
-    elements: 1,
+    reflections: 2,
   });
 });
 
@@ -113,73 +116,152 @@ test("entities can be pencilled in and updated in full under the same ID", async
       status: "confirmed",
     },
   ];
-  const parsed = v.parse(demoAppendTool.input, { elicitation: { entities } });
-  expect(parsed).toEqual({ elicitation: { entities } });
+  const batch = {
+    entries: entities.map((entity) => ["elicitation.entity", entity]),
+  };
+  const parsed = v.parse(demoAppendTool.input, batch);
+  expect(parsed).toEqual(batch);
   expect(await runDemo(parsed)).toEqual({
     claims: 0,
     entities: 3,
-    mutations: 0,
-    elements: 0,
+    reflections: 0,
   });
   expect(v.safeParse(vEntity, { id: "e1", status: "confirmed" }).success).toBe(
     false,
   );
 });
 
-test("construction-only batches may reference earlier claims and omit elicitation", async () => {
+test("construction-only queues may reference existing claims", async () => {
   const batch = {
-    construction: {
-      mutations: [
-        { revision: "revision-3", turn: 2, claims: ["earlier-claim"] },
+    entries: [
+      [
+        "construction.reflection",
+        {
+          text: "Used a 20-minute mean drying time for the stated drying duration; the stated fixed duration becomes a distribution.",
+          claims: ["c99"],
+        },
       ],
-      elements: [],
-    },
+    ],
   };
   const parsed = v.parse(demoAppendTool.input, batch);
   expect(parsed).toEqual(batch);
   expect(await runDemo(parsed)).toEqual({
     claims: 0,
     entities: 0,
-    mutations: 1,
-    elements: 0,
+    reflections: 1,
   });
+  expect(await runDemo(v.parse(demoAppendTool.input, { entries: [] }))).toEqual(
+    {
+      claims: 0,
+      entities: 0,
+      reflections: 0,
+    },
+  );
 });
 
 test("claims retain prior assertions when a later claim supersedes them", () => {
   const claims = [
     {
-      id: "c1",
-      turn: 1,
       text: "The staffing horizon is 13 weeks.",
       entities: ["e1"],
       origin: "stated",
       status: "confirmed",
     },
     {
-      id: "c2",
-      turn: 2,
       text: "Use 26 weeks for the staffing horizon instead.",
       entities: ["e1"],
       origin: "stated",
       status: "confirmed",
-      supersedes: ["c1"],
+      supersedes: ["$0"],
     },
   ];
-  expect(v.parse(demoAppendTool.input, { elicitation: { claims } })).toEqual({
-    elicitation: { claims },
-  });
+  const batch = {
+    entries: claims.map((claim) => ["elicitation.claim", claim]),
+  };
+  expect(v.parse(demoAppendTool.input, batch)).toEqual(batch);
 });
 
 test("a claim's source does not imply the person's agreement", () => {
   const claim = {
-    id: "c3",
-    turn: 3,
     text: "The shared rota lists six nurses per shift.",
     entities: ["e2"],
     origin: "evidenced",
     status: "tentative",
   };
   expect(v.parse(vClaim, claim)).toEqual(claim);
+});
+
+test("claim and reflection requests exclude system-owned metadata", () => {
+  const claim = {
+    text: "Drying always takes 20 minutes.",
+    entities: ["e23"],
+    origin: "stated",
+    status: "confirmed",
+  };
+  const reflection = {
+    text: "Approximated the fixed drying duration with a 20-minute mean; variability absent from the account is introduced.",
+    claims: ["c45"],
+  };
+  expect(v.parse(vClaim, claim)).toEqual(claim);
+  expect(v.parse(vReflection, reflection)).toEqual(reflection);
+  expect(v.safeParse(vClaim, { ...claim, id: "c46", turn: 2 }).success).toBe(
+    false,
+  );
+  expect(
+    v.safeParse(vReflection, { ...reflection, revision: "revision-2", turn: 2 })
+      .success,
+  ).toBe(false);
+  expect(v.safeParse(vReflection, { text: reflection.text }).success).toBe(
+    false,
+  );
+  expect(v.safeParse(vClaim, { ...claim, entities: ["c45"] }).success).toBe(
+    false,
+  );
+});
+
+test("local references check target kind, bounds and supersession order", () => {
+  const entity = {
+    name: "Dryer",
+    kind: "resource",
+    origin: "stated",
+    status: "confirmed",
+  };
+  const claim = {
+    text: "One dryer is available.",
+    entities: ["$0"],
+    origin: "stated",
+    status: "confirmed",
+  };
+  expect(
+    v.safeParse(demoAppendTool.input, {
+      entries: [
+        ["elicitation.entity", entity],
+        ["elicitation.claim", { ...claim, entities: ["$1"] }],
+      ],
+    }).success,
+  ).toBe(false);
+  expect(
+    v.safeParse(demoAppendTool.input, {
+      entries: [["elicitation.claim", { ...claim, entities: ["$9"] }]],
+    }).success,
+  ).toBe(false);
+  expect(
+    v.safeParse(demoAppendTool.input, {
+      entries: [
+        ["elicitation.entity", entity],
+        ["elicitation.claim", { ...claim, supersedes: ["$1"] }],
+      ],
+    }).success,
+  ).toBe(false);
+  const forwardReference = {
+    entries: [
+      ["elicitation.claim", { ...claim, entities: ["$1"] }],
+      ["elicitation.entity", entity],
+    ],
+  };
+  expect(v.parse(demoAppendTool.input, forwardReference)).toEqual(
+    forwardReference,
+  );
 });
 
 /** What Flue sends as a tool's parameters (`toolInputToJsonSchema`). */
@@ -209,43 +291,64 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
   });
   expect(parameters).toMatchObject({
     properties: {
-      elicitation: {
-        properties: {
-          entities: {
-            items: {
-              properties: {
-                kind: anyOf(vEntityKind),
-                origin: anyOf(vOrigin),
-                status: anyOf(vStatus),
-              },
-            },
-          },
-          claims: {
-            items: {
-              properties: {
-                entities: { type: "array", items: { type: "string" } },
-                origin: anyOf(vOrigin),
-                status: anyOf(vStatus),
-              },
-            },
-          },
-        },
-      },
-      construction: {
-        properties: {
-          mutations: {
-            items: { properties: { revision: { type: "string" } } },
-          },
-          elements: {
-            items: {
-              properties: {
-                status: anyOf(vStatus),
-                address: {
-                  properties: { kind: { enum: netElementKinds } },
+      entries: {
+        type: "array",
+        items: {
+          anyOf: [
+            {
+              items: [
+                { const: "elicitation.entity" },
+                {
+                  properties: {
+                    kind: anyOf(vEntityKind),
+                    origin: anyOf(vOrigin),
+                    status: anyOf(vStatus),
+                  },
+                  required: ["name", "kind", "origin", "status"],
                 },
-              },
+              ],
             },
-          },
+            {
+              items: [
+                { const: "elicitation.claim" },
+                {
+                  properties: {
+                    entities: {
+                      type: "array",
+                      items: {
+                        anyOf: [
+                          { pattern: "^e(?:0|[1-9]\\d*)$" },
+                          { pattern: "^\\$(?:0|[1-9]\\d*)$" },
+                        ],
+                      },
+                    },
+                    origin: anyOf(vOrigin),
+                    status: anyOf(vStatus),
+                  },
+                  required: ["text", "entities", "origin", "status"],
+                },
+              ],
+            },
+            {
+              items: [
+                { const: "construction.reflection" },
+                {
+                  properties: {
+                    text: { type: "string" },
+                    netElements: {
+                      type: "array",
+                      items: {
+                        properties: { kind: { enum: netElementKinds } },
+                      },
+                    },
+                    claims: { type: "array" },
+                    entities: { type: "array" },
+                  },
+                  required: ["text"],
+                },
+              ],
+            },
+          ],
         },
       },
     },
@@ -269,7 +372,7 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     if (!model) throw new Error(`Unknown model ${specifier}`);
     const thinking = selectChatThinking();
     const context: Context = {
-      systemPrompt: `You keep the record of a modelling conversation. USER means the interviewee whose account is being elicited. The current turn is 1, and no entities or claims have been recorded yet. Record the USER's latest message by calling ${appendToolName} exactly once. Do not reply in text. ${constructionObservation}`,
+      systemPrompt: `You keep the record of a modelling conversation. USER means the interviewee whose account is being elicited. There are no existing entities or claims. Record the USER's latest message by calling ${appendToolName} exactly once. Each entry is exactly [tag, payload]. Do not assign IDs or submit turns; relationships use $index references to positions in this call's entire entries queue. Do not reply in text. ${constructionObservation}`,
       messages: [{ role: "user", content: message, timestamp: Date.now() }],
       tools: [
         {
@@ -291,41 +394,51 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
       throw new Error(`No ${appendToolName} call: ${response.stopReason}`);
     expect(call.name).toBe(appendToolName);
     const recorded = v.parse(demoAppendTool.input, call.arguments);
-    const entities = recorded.elicitation?.entities ?? [];
-    const claims = recorded.elicitation?.claims ?? [];
-    const entityIds = entities.map(({ id }) => id);
-    const claimIds = claims.map(({ id }) => id);
+    const entities = recorded.entries.flatMap(([kind, payload]) =>
+      kind === "elicitation.entity" ? [payload] : [],
+    );
+    const claims = recorded.entries.flatMap(([kind, payload]) =>
+      kind === "elicitation.claim" ? [payload] : [],
+    );
+    const reflections = recorded.entries.flatMap(([kind, payload]) =>
+      kind === "construction.reflection" ? [payload] : [],
+    );
     expect(entities.length).toBeGreaterThan(0);
     expect(claims.length).toBeGreaterThan(0);
+    for (const entity of entities) {
+      expect(entity).not.toHaveProperty("id");
+    }
     for (const claim of claims) {
-      expect(claim.turn).toBe(1);
-      expect(entityIds).toEqual(expect.arrayContaining(claim.entities));
+      expect(claim).not.toHaveProperty("id");
+      expect(claim).not.toHaveProperty("turn");
+      for (const reference of claim.entities)
+        expect(reference).toMatch(/^\$\d+$/);
     }
-    for (const mutation of recorded.construction?.mutations ?? []) {
-      expect(mutation.turn).toBe(1);
-      expect(claimIds).toEqual(expect.arrayContaining(mutation.claims));
-    }
-    for (const element of recorded.construction?.elements ?? []) {
-      expect(entityIds).toEqual(expect.arrayContaining(element.entities));
-      expect(claimIds).toEqual(expect.arrayContaining(element.claims));
+    for (const reflection of reflections) {
+      expect(reflection).not.toHaveProperty("revision");
+      expect(reflection).not.toHaveProperty("turn");
+      for (const reference of [
+        ...(reflection.claims ?? []),
+        ...(reflection.entities ?? []),
+      ])
+        expect(reference).toMatch(/^\$\d+$/);
     }
     expect(await runDemo(recorded)).toEqual({
       claims: claims.length,
       entities: entities.length,
-      mutations: recorded.construction?.mutations?.length ?? 0,
-      elements: recorded.construction?.elements?.length ?? 0,
+      reflections: reflections.length,
     });
-    return recorded;
+    return { entries: recorded.entries, entities, claims, reflections };
   };
 
   test("names objectives and constraints as entities from their descriptions", async () => {
     const recorded = await append(
       "What I care about is how long patients wait in A&E. We need to bring that down: an average under 4 hours would count as a success, and no patient should ever wait more than 12 hours.",
     );
-    expect(recorded.elicitation?.entities?.map(({ kind }) => kind)).toEqual(
+    expect(recorded.entities.map(({ kind }) => kind)).toEqual(
       expect.arrayContaining(["metric", "direction", "target", "threshold"]),
     );
-    for (const claim of recorded.elicitation?.claims ?? []) {
+    for (const claim of recorded.claims) {
       expect(claim.origin).toBe("stated");
       expect(claim.status).toBe("confirmed");
     }
@@ -335,14 +448,10 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     const recorded = await append(
       "We might use agency nurses, but I haven't decided yet. If we do, only how many are free matters, not who they are.",
     );
-    const nurses =
-      recorded.elicitation?.entities?.filter(({ name }) =>
-        /nurs/i.test(name),
-      ) ?? [];
-    expect(nurses).not.toHaveLength(0);
-    expect(nurses.map(({ kind }) => kind)).toEqual(
-      nurses.map(() => "resource"),
+    const nurses = recorded.entities.filter(
+      ({ kind, name }) => kind === "resource" && /nurs/i.test(name),
     );
+    expect(nurses).not.toHaveLength(0);
     for (const nurse of nurses) {
       expect(nurse.origin).toBe("stated");
       expect(nurse.status).toBe("tentative");
@@ -353,48 +462,59 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     const recorded = await append(
       "We need two horizons: 13 weeks for staffing decisions and 104 weeks for investment decisions.",
     );
-    const horizons =
-      recorded.elicitation?.entities?.filter(
-        ({ kind }) => kind === "horizon",
-      ) ?? [];
+    const horizons = recorded.entities.filter(({ kind }) => kind === "horizon");
     expect(horizons).toHaveLength(2);
-    expect(new Set(horizons.map(({ id }) => id)).size).toBe(2);
-    expect(
-      recorded.elicitation?.claims?.flatMap(({ entities }) => entities),
-    ).toEqual(expect.arrayContaining(horizons.map(({ id }) => id)));
+    const horizonReferences = recorded.entries.flatMap(
+      ([kind, payload], index) =>
+        kind === "elicitation.entity" && payload.kind === "horizon"
+          ? [`$${index}`]
+          : [],
+    );
+    expect(recorded.claims.flatMap((claim) => claim.entities)).toEqual(
+      expect.arrayContaining(horizonReferences),
+    );
   }, 120_000);
 
-  test("one append call connects elicitation to observed construction", async () => {
-    const revision = "8abbe990-0c5b-4f41-8c0c-9481a8f15a8b";
+  test("one tuple queue connects elicitation to an explained construction choice", async () => {
     const placeId = "73bb8e88-a8d7-4a81-99e1-8398b928d6d3";
     const recorded = await append(
       "We have one dryer. Each batch holds it for the whole drying operation.",
       `For this isolated demo, the construction observation is a fixture: ` +
         `a net tool successfully created a place with ID ${placeId}, ` +
-        `name Available dryer, and one capacity token, at net revision ${revision}. ` +
+        `name Available dryer, and one capacity token. ` +
         `This change addresses the USER's dryer-capacity assertion. ` +
-        `In the same ledger_append call, include a mutation recording that revision and its addressed claim IDs, ` +
-        `and an element interpreting that place with nonempty entity and claim references. ` +
-        `The USER has not agreed to the place interpretation; mark it tentative.`,
+        `In the same ledger_commit call, record at least one reflection that ` +
+        `references the created place in netElements by kind and ID, ` +
+        `links the addressed claims and the dryer entity with $index references, ` +
+        `and explains the representation. ` +
+        `Batch hold/release wiring has not been added; note that consequential omission in reflection text.`,
     );
 
-    const dryer = recorded.elicitation?.entities?.find(
+    const dryerReference = recorded.entries.findIndex(
+      ([kind, payload]) =>
+        kind === "elicitation.entity" &&
+        payload.kind === "resource" &&
+        /dryer/i.test(payload.name),
+    );
+    expect(dryerReference).toBeGreaterThanOrEqual(0);
+    const dryer = recorded.entities.find(
       ({ kind, name }) => kind === "resource" && /dryer/i.test(name),
     );
     expect(dryer).toBeDefined();
-    const mutations = recorded.construction?.mutations ?? [];
-    expect(mutations).toHaveLength(1);
-    expect(mutations[0]?.revision).toBe(revision);
-
-    const elements = recorded.construction?.elements ?? [];
-    expect(elements).toHaveLength(1);
-    const element = elements[0];
-    expect(element?.address).toEqual({ kind: "place", id: placeId });
-    expect(element?.status).toBe("tentative");
-    expect(element?.entities).toContain(dryer?.id);
-    expect(element?.claims.length).toBeGreaterThan(0);
-    for (const claimId of element?.claims ?? []) {
-      expect(mutations[0]?.claims).toContain(claimId);
-    }
+    const placeReflections = recorded.reflections.filter((reflection) =>
+      (reflection.netElements ?? []).some(
+        ({ kind, id }) => kind === "place" && id === placeId,
+      ),
+    );
+    expect(placeReflections).not.toHaveLength(0);
+    expect(
+      placeReflections.flatMap((reflection) => reflection.entities ?? []),
+    ).toContain(`$${dryerReference}`);
+    expect(
+      placeReflections.flatMap((reflection) => reflection.claims ?? []),
+    ).not.toHaveLength(0);
+    expect(
+      recorded.reflections.some(({ text }) => /hold|release/i.test(text)),
+    ).toBe(true);
   }, 120_000);
 });

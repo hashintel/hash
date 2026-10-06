@@ -2,19 +2,10 @@ import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 import { vOrigin, vStatus } from "../shared/epistemics.ts";
-import { vTurn } from "../shared/turn.ts";
-import { vEntityId } from "./entities.ts";
-
-export const vClaimId = v.pipe(
-  v.string(),
-  v.minLength(1),
-  v.description("The unique ID of a claim, used to refer to or supersede it."),
-);
+import { vClaimReference, vEntityReference } from "../shared/references.ts";
 
 export const vClaim = v.pipe(
   v.strictObject({
-    id: vClaimId,
-    turn: vTurn,
     text: v.pipe(
       v.string(),
       v.minLength(1),
@@ -23,27 +14,27 @@ export const vClaim = v.pipe(
       ),
     ),
     entities: v.pipe(
-      v.array(vEntityId),
+      v.array(vEntityReference),
       v.description(
-        "IDs of the entities this claim is about, not their names.",
+        "References to the entities this claim is about: existing entity IDs or $index references to entity entries in this call.",
       ),
     ),
     origin: vOrigin,
     status: vStatus,
     supersedes: v.optional(
       v.pipe(
-        v.array(vClaimId),
+        v.array(vClaimReference),
         v.description(
-          "IDs of earlier claims this entry replaces. Omit for an additional claim; earlier entries remain in the ledger.",
+          "References to earlier claims this entry replaces: existing claim IDs or $index references to earlier claim entries in this queue. Omit for an additional claim; earlier records remain in the Ledger.",
         ),
       ),
     ),
   }),
   v.description(
-    "A statement about named entities, with its source and agreement status. Revisions are new claims that explicitly supersede earlier ones.",
+    "A statement about named entities, with its source and agreement status. The system supplies its new claim ID and conversation turn; do not submit them. Revisions are new claims that explicitly supersede earlier ones.",
   ),
 );
 
 export type Claim = v.InferOutput<typeof vClaim>;
 
-export const ClaimSchema = toJsonSchema(vClaim);
+export const ClaimSchema = toJsonSchema(vClaim, { errorMode: "ignore" });
