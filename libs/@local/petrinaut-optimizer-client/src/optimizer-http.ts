@@ -40,31 +40,53 @@ export const petrinautOptimizerUrl = (
 const isJsonRecord = (value: unknown): value is JsonRecord =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** Read the most useful safe message from a failed optimizer response. */
-const responseErrorMessage = async (response: Response): Promise<string> => {
-  try {
-    const payload: unknown = await response.json();
-    if (isJsonRecord(payload)) {
-      if (typeof payload.detail === "string") {
-        return payload.detail;
-      }
-      if (typeof payload.message === "string") {
-        return payload.message;
-      }
-    }
-  } catch {
-    // Fall back to the status when the service did not return JSON.
-  }
-  return `Petrinaut optimizer returned status ${response.status}`;
+/** A settled optimizer call, as resolved by the generated client. */
+export type PetrinautOptimizerResult = {
+  data: unknown;
+  status: number;
+  headers: Headers;
 };
+
+/** Read the most useful safe message from a failed optimizer response body. */
+const resultErrorMessage = ({ data, status }: PetrinautOptimizerResult) => {
+  if (isJsonRecord(data)) {
+    if (typeof data.detail === "string") {
+      return data.detail;
+    }
+
+    if (typeof data.message === "string") {
+      return data.message;
+    }
+  }
+
+  return `Petrinaut optimizer returned status ${status}`;
+};
+
+/** Build the canonical error for a non-ok result of the generated client. */
+export const petrinautOptimizerHttpErrorFromResult = (
+  result: PetrinautOptimizerResult,
+): PetrinautOptimizerHttpError =>
+  new PetrinautOptimizerHttpError(
+    resultErrorMessage(result),
+    result.status,
+    result.headers.get("retry-after"),
+    result.headers.get("x-optimization-run-id"),
+  );
 
 /** Build the canonical error for a non-ok optimizer response. */
 export const petrinautOptimizerHttpErrorFromResponse = async (
   response: Response,
-): Promise<PetrinautOptimizerHttpError> =>
-  new PetrinautOptimizerHttpError(
-    await responseErrorMessage(response),
-    response.status,
-    response.headers.get("retry-after"),
-    response.headers.get("x-optimization-run-id"),
-  );
+): Promise<PetrinautOptimizerHttpError> => {
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch {
+    // Fall back to the status when the service did not return JSON.
+  }
+
+  return petrinautOptimizerHttpErrorFromResult({
+    data,
+    status: response.status,
+    headers: response.headers,
+  });
+};

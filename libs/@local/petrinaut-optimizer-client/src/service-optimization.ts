@@ -9,7 +9,7 @@ import { attachPetrinautOptimizationRunStream } from "./attach-optimization-run.
 import { createPetrinautOptimizerClient } from "./client.js";
 import {
   PetrinautOptimizerHttpError,
-  petrinautOptimizerHttpErrorFromResponse,
+  petrinautOptimizerHttpErrorFromResult,
 } from "./optimizer-http.js";
 
 import type { PetrinautOptimizerFetch } from "./optimizer-http.js";
@@ -78,23 +78,22 @@ export const createServicePetrinautOptimization = ({
   fetchImpl?: PetrinautOptimizerFetch;
 }): PetrinautOptimization => {
   const client = createPetrinautOptimizerClient(endpoint(), fetchImpl);
-  // openapi-fetch names its verb methods in caps; alias them so call sites
-  // don't read as constructor calls (oxlint's new-cap).
-  const { DELETE: deleteRun, POST: postRun } = client;
 
   return {
     async createOptimizationRun(input, options) {
-      const created = await postRun("/optimize/runs", {
-        body: input,
-        ...(options?.signal ? { signal: options.signal as AbortSignal } : {}),
-      }).catch((error: unknown) => {
-        throw classifyRequestError(error);
-      });
-      if (!created.response.ok || !created.data?.run_id) {
-        throw classifyHttpError(
-          await petrinautOptimizerHttpErrorFromResponse(created.response),
-        );
+      const created = await client
+        .postOptimizeRuns(
+          input,
+          options?.signal ? { signal: options.signal as AbortSignal } : {},
+        )
+        .catch((error: unknown) => {
+          throw classifyRequestError(error);
+        });
+
+      if (created.status !== 201 || !created.data.run_id) {
+        throw classifyHttpError(petrinautOptimizerHttpErrorFromResult(created));
       }
+
       return { runId: created.data.run_id };
     },
     async *attachOptimizationRun(runId, options) {
@@ -110,7 +109,9 @@ export const createServicePetrinautOptimization = ({
       } catch (error) {
         throw classifyRequestError(error);
       }
+
       options?.onAttached?.();
+
       try {
         yield* events;
       } catch (error) {
@@ -118,9 +119,7 @@ export const createServicePetrinautOptimization = ({
       }
     },
     async cancelOptimizationRun(runId) {
-      await deleteRun("/optimize/runs/{run_id}", {
-        params: { path: { run_id: runId } },
-      });
+      await client.deleteOptimizeRun(runId);
     },
   };
 };
