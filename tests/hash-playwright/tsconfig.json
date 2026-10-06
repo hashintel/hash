@@ -12,7 +12,6 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "rootDir": "../..",
     "target": "ES2024",
     "types": ["node", "chrome"],
     "lib": ["dom", "dom.iterable", "ESNext"]

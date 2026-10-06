@@ -8,7 +8,7 @@
   "scripts": {
     "build": "next build",
     "build:docker": "docker buildx build --tag hash-frontend --file docker/Dockerfile ../../ --load --build-arg FRONTEND_URL=\"$FRONTEND_URL\" --build-arg API_ORIGIN=\"$API_ORIGIN\"",
-    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts && panda cssgen --outfile ./src/pages/ds-components-styles.gen.css",
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts && panda cssgen --outfile ./src/pages/ds-components-styles.gen.css && next typegen",
     "dev": "next dev",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
