@@ -33,7 +33,6 @@ import {
   CommandRegistryProvider,
   ErrorTrackerContext,
   useCommand,
-  UserSettingsProvider,
 } from "@hashintel/petrinaut/react";
 import {
   DefaultChatTransport,
@@ -109,7 +108,6 @@ import {
   useAssistantSelection,
 } from "./assistant-selection";
 import { useDocumentController } from "./documents/use-document-controller";
-import { emptySDCPN } from "./use-local-storage-sdcpns";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
@@ -376,22 +374,12 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
  * Brunch and Stock are selected through the product UI.
  */
 const DemoCommands = ({
-  createNewNet,
   brunchSelected,
   selectAssistant,
 }: {
-  createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   brunchSelected: boolean;
   selectAssistant: (selection: "brunch" | "stock") => void;
 }) => {
-  useCommand({
-    id: "demo.net.new",
-    label: "Create a new empty net",
-    category: "Demo",
-    keywords: ["file"],
-    run: () =>
-      createNewNet({ petriNetDefinition: emptySDCPN, title: "New Process" }),
-  });
   useCommand(
     {
       id: "demo.assistant.switch",
@@ -1096,49 +1084,44 @@ export const LocalStorageDemoApp = ({
           </p>
         </div>
       ) : null}
-      {/* The settings are mounted here, above the editor, so the demo's own
-          command and selector read the same persisted state the editor does. */}
-      <UserSettingsProvider>
-        <CommandRegistryProvider>
-          <WalkthroughProvider steps={walkthroughSteps}>
-            <Petrinaut
-              aiAssistant={aiAssistant}
-              handle={activeHandle.handle}
-              existingNets={existingNets}
-              createNewNet={createNewNet}
-              loadPetriNet={loadPetriNet}
-              navigation={navigation}
-              readonly={false}
-              setTitle={setTitle}
-              slots={{
-                settingsLabs: (
-                  <AssistantLabsSettings
-                    assistantReady={assistantSelectionReady}
-                    brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
-                    brunchSelected={brunchSelected}
-                    openAIVoiceConfig={openAIVoiceConfig}
-                    realtimeEnabled={realtimeEnabled}
-                    realtimePreferenceReady={realtimePreferenceReady}
-                    selectAssistant={selectAssistant}
-                    setRealtimeEnabled={setRealtimeEnabled}
-                    setVoiceEnabled={setVoiceEnabled}
-                    voiceEnabled={brunchSelected && voiceEnabled}
-                    voicePreferenceReady={voicePreferenceReady}
-                  />
-                ),
-              }}
-              title={currentDocument.title}
-              viewportActions={[sentryFeedbackAction]}
-            />
-          </WalkthroughProvider>
-          <DemoCommands
+      <CommandRegistryProvider>
+        <WalkthroughProvider steps={walkthroughSteps}>
+          <Petrinaut
+            aiAssistant={aiAssistant}
+            handle={activeHandle.handle}
+            existingNets={existingNets}
             createNewNet={createNewNet}
-            brunchSelected={brunchSelected}
-            selectAssistant={selectAssistant}
+            loadPetriNet={loadPetriNet}
+            navigation={navigation}
+            readonly={false}
+            setTitle={setTitle}
+            slots={{
+              settingsLabs: (
+                <AssistantLabsSettings
+                  assistantReady={assistantSelectionReady}
+                  brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
+                  brunchSelected={brunchSelected}
+                  openAIVoiceConfig={openAIVoiceConfig}
+                  realtimeEnabled={realtimeEnabled}
+                  realtimePreferenceReady={realtimePreferenceReady}
+                  selectAssistant={selectAssistant}
+                  setRealtimeEnabled={setRealtimeEnabled}
+                  setVoiceEnabled={setVoiceEnabled}
+                  voiceEnabled={brunchSelected && voiceEnabled}
+                  voicePreferenceReady={voicePreferenceReady}
+                />
+              ),
+            }}
+            title={currentDocument.title}
+            viewportActions={[sentryFeedbackAction]}
           />
-          <CommandPalette />
-        </CommandRegistryProvider>
-      </UserSettingsProvider>
+        </WalkthroughProvider>
+        <DemoCommands
+          brunchSelected={brunchSelected}
+          selectAssistant={selectAssistant}
+        />
+        <CommandPalette />
+      </CommandRegistryProvider>
     </div>
   );
 };
