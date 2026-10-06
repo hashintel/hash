@@ -5,10 +5,7 @@ import { cleanup, render, renderHook, waitFor } from "@testing-library/react";
 import { createElement, StrictMode, Suspense } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import {
-  resolveProcessAgentBinding,
-  useProcessAgentBinding,
-} from "./use-process-agent-binding";
+import { useProcessAgentBinding } from "./use-process-agent-binding";
 
 import type { DocumentRecord } from "../../../local-storage-demo/documents/document-repository";
 
@@ -22,7 +19,6 @@ const document = (
   revisionId = `${documentId}-revision`,
 ): DocumentRecord => ({
   documentId,
-  incarnationId: `${documentId}-incarnation`,
   revisionId,
   title: documentId,
   definition: {
@@ -34,19 +30,7 @@ const document = (
   },
 });
 
-describe("resolveProcessAgentBinding", () => {
-  test("uses fixture configuration without adding it to the document", () => {
-    expect(
-      resolveProcessAgentBinding({
-        document: document("fixture-document"),
-        fixture: { conversationId: "fixture-conversation" },
-      }),
-    ).toMatchObject({
-      conversationId: "fixture-conversation",
-      documentId: "fixture-document",
-    });
-  });
-
+describe("useProcessAgentBinding", () => {
   test("preserves binding identity across revision and container changes", () => {
     const initialDocument = document("stable-document", "first-revision");
     const { rerender, result } = renderHook(

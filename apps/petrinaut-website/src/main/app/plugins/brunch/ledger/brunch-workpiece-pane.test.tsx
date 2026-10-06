@@ -7,7 +7,6 @@ import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 const binding = {
   conversationId: "conversation",
   documentId: "document",
-  incarnationId: "incarnation",
 };
 const output = {
   binding,

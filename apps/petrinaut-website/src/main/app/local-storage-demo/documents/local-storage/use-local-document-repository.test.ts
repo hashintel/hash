@@ -52,7 +52,6 @@ describe("useLocalDocumentRepository", () => {
     stubStorage({
       [documentId]: {
         id: documentId,
-        incarnationId: "incarnation-1",
         revisionId: "revision-1",
         title: "Before",
         sdcpn: emptyDefinition,
@@ -66,7 +65,6 @@ describe("useLocalDocumentRepository", () => {
     await act(async () => {
       await result.current.repository.persistRevision({
         documentId: documentId,
-        incarnationId: "incarnation-1",
         definition: emptyDefinition,
         previousRevisionId: "revision-1",
         revisionId: "revision-2",
@@ -88,37 +86,10 @@ describe("useLocalDocumentRepository", () => {
     });
   });
 
-  test("rejects a revision from another incarnation", async () => {
-    stubStorage({
-      [documentId]: {
-        id: documentId,
-        incarnationId: "incarnation-1",
-        revisionId: "revision-1",
-        title: "Before",
-        sdcpn: emptyDefinition,
-        lastUpdated: new Date(0).toISOString(),
-      },
-    });
-    const { result } = renderHook(() =>
-      useLocalDocumentRepository({ onOpen: vi.fn() }),
-    );
-
-    await expect(
-      result.current.repository.persistRevision({
-        documentId: documentId,
-        incarnationId: "stale-incarnation",
-        definition: emptyDefinition,
-        previousRevisionId: "revision-1",
-        revisionId: "revision-2",
-      }),
-    ).rejects.toThrow("has a different incarnation");
-  });
-
   test("creates and opens local documents through the repository", () => {
     stubStorage({
       [documentId]: {
         id: documentId,
-        incarnationId: "incarnation-1",
         revisionId: "revision-1",
         title: "Existing",
         sdcpn: emptyDefinition,
@@ -146,7 +117,6 @@ describe("useLocalDocumentRepository", () => {
     const storage = stubStorage({
       [emptyId]: {
         id: emptyId,
-        incarnationId: "empty-incarnation",
         revisionId: "empty-revision",
         title: "Empty",
         sdcpn: emptyDefinition,
@@ -154,7 +124,6 @@ describe("useLocalDocumentRepository", () => {
       },
       [retainedId]: {
         id: retainedId,
-        incarnationId: "retained-incarnation",
         revisionId: "retained-revision",
         title: "Retained",
         sdcpn: {
@@ -192,7 +161,6 @@ describe("useLocalDocumentRepository", () => {
     stubStorage({
       [documentId]: {
         id: documentId,
-        incarnationId: "incarnation-1",
         revisionId: "revision-1",
         title: "Before",
         sdcpn: emptyDefinition,
@@ -206,7 +174,6 @@ describe("useLocalDocumentRepository", () => {
     await expect(
       result.current.repository.persistRevision({
         documentId: documentId,
-        incarnationId: "incarnation-1",
         definition: emptyDefinition,
         previousRevisionId: "stale-revision",
         revisionId: "revision-2",
@@ -218,7 +185,6 @@ describe("useLocalDocumentRepository", () => {
     const stored = (revisionId: string, title: string) => ({
       [documentId]: {
         id: documentId,
-        incarnationId: "incarnation-1",
         revisionId,
         title,
         sdcpn: emptyDefinition,
@@ -241,7 +207,6 @@ describe("useLocalDocumentRepository", () => {
     await expect(
       result.current.repository.persistRevision({
         documentId: documentId,
-        incarnationId: "incarnation-1",
         definition: emptyDefinition,
         previousRevisionId: "revision-1",
         revisionId: "revision-3",
@@ -259,7 +224,6 @@ describe("useLocalDocumentRepository", () => {
     const storage = stubStorage({
       [documentId]: {
         id: documentId,
-        incarnationId: "incarnation-1",
         revisionId: "revision-1",
         title: "Before",
         sdcpn: emptyDefinition,
@@ -275,7 +239,6 @@ describe("useLocalDocumentRepository", () => {
     act(() => {
       void result.current.repository.persistRevision({
         documentId,
-        incarnationId: "incarnation-1",
         definition: emptyDefinition,
         previousRevisionId: "revision-1",
         revisionId: "revision-2",
@@ -291,7 +254,6 @@ const savedDocument = (id: string, lastUpdated: string) => ({
   id,
   title: id,
   lastUpdated,
-  incarnationId: `${id}-incarnation`,
   revisionId: `${id}-revision`,
   sdcpn: {
     ...emptyDefinition,

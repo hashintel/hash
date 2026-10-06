@@ -198,7 +198,6 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       JSON.stringify({
         [documentId]: {
           id: documentId,
-          incarnationId: "incarnation",
           revisionId: initialRevisionId,
           title: "Queue",
           sdcpn: initialDefinition,

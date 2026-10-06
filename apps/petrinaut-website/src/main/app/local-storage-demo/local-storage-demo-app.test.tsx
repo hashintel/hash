@@ -212,7 +212,6 @@ const otherTabStorageEvent = (key: string): Event =>
 
 const storedNet = (params: {
   id: string;
-  incarnationId?: string;
   lastUpdated: string;
   revisionId?: string;
   title: string;
@@ -220,9 +219,6 @@ const storedNet = (params: {
   id: params.id,
   title: params.title,
   lastUpdated: params.lastUpdated,
-  ...(params.incarnationId === undefined
-    ? {}
-    : { incarnationId: params.incarnationId }),
   ...(params.revisionId === undefined ? {} : { revisionId: params.revisionId }),
   sdcpn: {
     places: [],
@@ -233,14 +229,13 @@ const storedNet = (params: {
   },
 });
 
-const seedStoredNet = (incarnationId?: string, revisionId?: string) => {
+const seedStoredNet = (revisionId?: string) => {
   stubStorage();
   localStorage.setItem(
     "petrinaut-sdcpn",
     JSON.stringify({
       [netOneId]: storedNet({
         id: netOneId,
-        incarnationId,
         lastUpdated: "2020-01-01T00:00:00.000Z",
         revisionId,
         title: "Seeded net",
@@ -806,7 +801,7 @@ describe("local document revision persistence", () => {
 
   test("retains direct document changes across handle reopen", async () => {
     flueClientOptions.current = null;
-    seedStoredNet("local-incarnation", "local-revision-1");
+    seedStoredNet("local-revision-1");
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     const firstView = render(
       <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
@@ -875,7 +870,7 @@ describe("local document revision persistence", () => {
   });
 
   test("lists each stored net with the time it was last written", async () => {
-    seedStoredNet("local-incarnation", "local-revision-1");
+    seedStoredNet("local-revision-1");
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
 
     expect(editorProps.current?.existingNets).toEqual([
@@ -916,14 +911,12 @@ describe("local document revision persistence", () => {
       JSON.stringify({
         [staleNetId]: storedNet({
           id: staleNetId,
-          incarnationId: "stale-incarnation",
           lastUpdated: "2020-01-01T00:00:00.000Z",
           revisionId: "stale-revision",
           title: "Stale net",
         }),
         [freshNetId]: storedNet({
           id: freshNetId,
-          incarnationId: "fresh-incarnation",
           lastUpdated: "2024-06-01T00:00:00.000Z",
           revisionId: "fresh-revision",
           title: "Fresh net",
@@ -937,7 +930,7 @@ describe("local document revision persistence", () => {
   });
 
   test("adopts another tab's revision of the open document and chains later changes from it", async () => {
-    seedStoredNet("local-incarnation", "local-revision-1");
+    seedStoredNet("local-revision-1");
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
 
@@ -1000,7 +993,7 @@ describe("local document revision persistence", () => {
   });
 
   test("reports a refused change and reopens the editor from the repository's record so the next change is accepted", async () => {
-    seedStoredNet("local-incarnation", "local-revision-1");
+    seedStoredNet("local-revision-1");
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     const refusedHandle = editorProps.current?.handle as PetrinautDocHandle;
     const addPlace = (handle: PetrinautDocHandle, id: string) =>
@@ -1067,7 +1060,7 @@ describe("local document revision persistence", () => {
   });
 
   test("forgets a refused change once another document is opened", async () => {
-    seedStoredNet("local-incarnation", "local-revision-1");
+    seedStoredNet("local-revision-1");
     const stored = JSON.parse(
       localStorage.getItem("petrinaut-sdcpn") ?? "{}",
     ) as Record<string, Record<string, unknown>>;
@@ -1079,7 +1072,6 @@ describe("local document revision persistence", () => {
           ...stored[netOneId],
           id: netTwoId,
           title: "Second net",
-          incarnationId: "second-incarnation",
           revisionId: "second-revision",
           lastUpdated: "2019-01-01T00:00:00.000Z",
         },
@@ -1141,13 +1133,12 @@ describe("local document revision persistence", () => {
   });
 
   test("keeps one session across revisions and replaces one client/tracker pair when document identity changes", async () => {
-    seedStoredNet("first-incarnation", "first-revision");
+    seedStoredNet("first-revision");
     const stored = JSON.parse(
       localStorage.getItem("petrinaut-sdcpn") ?? "{}",
     ) as Record<string, unknown>;
     stored[netTwoId] = storedNet({
       id: netTwoId,
-      incarnationId: "second-incarnation",
       lastUpdated: "2019-01-01T00:00:00.000Z",
       title: "Second net",
     });
@@ -1227,7 +1218,7 @@ describe("local storage demo Brunch controls", () => {
   });
 
   test("clearing ordinary Brunch starts a persisted fresh conversation without replacing the model", async () => {
-    seedStoredNet("clear-incarnation");
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = {
       history: async () => ({
@@ -1253,7 +1244,7 @@ describe("local storage demo Brunch controls", () => {
     const next = editorProps.current?.aiAssistant as PetrinautAiAssistant;
     expect(next.conversationId).not.toBe(originalId);
     expect(next.conversationId).toContain(
-      "brunch-construction-v1:clear-incarnation:",
+      `${ordinaryConstructionConversationIdFrom(netOneId)}:`,
     );
     expect(next.automaticTools).not.toBe(first.automaticTools);
     expect(editorProps.current?.handle).toBe(handle);
@@ -1269,7 +1260,7 @@ describe("local storage demo Brunch controls", () => {
   });
 
   test("a destructive edit waiting for approval settles when the conversation is replaced", async () => {
-    seedStoredNet("pending-incarnation");
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = {
       url: "http://brunch.local/agents/chat/instance",
@@ -1369,13 +1360,12 @@ describe("local storage demo Brunch controls", () => {
   );
 
   test("mounts document-bound Brunch with canonical overrides and the complete static catalogue", async () => {
-    const incarnationId = "ordinary-incarnation";
-    seedStoredNet(incarnationId);
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = {
       history: async () => ({
         conversation: {
-          conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
+          conversationId: ordinaryConstructionConversationIdFrom(netOneId),
           settlements: [],
           messages: [],
         },
@@ -1405,7 +1395,7 @@ describe("local storage demo Brunch controls", () => {
     };
 
     const conversationId = brunchEvaluationConversationIdFrom(
-      ordinaryConstructionConversationIdFrom(incarnationId),
+      ordinaryConstructionConversationIdFrom(netOneId),
     );
     expect(aiAssistant.conversationId).toBe(conversationId);
     expect(aiAssistant.executeMutation).toBeUndefined();
@@ -1432,7 +1422,6 @@ describe("local storage demo Brunch controls", () => {
     expect(transportOptions.initialData?.binding).toEqual({
       conversationId,
       documentId: netOneId,
-      incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual(
       [...brunchPetrinautClientToolNames].toSorted(),
@@ -1481,10 +1470,10 @@ describe("assistant selection", () => {
     expect(parseAssistantSelection("brunch")).toBe("brunch");
   });
 
-  const flueHistoryClient = (incarnationId: string) => ({
+  const flueHistoryClient = (netId: string) => ({
     history: async () => ({
       conversation: {
-        conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
+        conversationId: ordinaryConstructionConversationIdFrom(netId),
         settlements: [],
         messages: [],
       },
@@ -1587,7 +1576,7 @@ describe("assistant selection", () => {
   });
 
   test("ordinary Stock is the default and never mounts Flue history", () => {
-    seedStoredNet("stock-incarnation", "stock-revision");
+    seedStoredNet("stock-revision");
     const observe = vi.fn();
     const history = vi.fn();
     flueClientMock.current = { history, observe };
@@ -1618,10 +1607,9 @@ describe("assistant selection", () => {
   });
 
   test("selecting Brunch enables Voice and persists the opt-in Realtime choice", async () => {
-    const incarnationId = "labs-persistence-incarnation";
-    seedStoredNet(incarnationId);
+    seedStoredNet();
     localStorage.setItem(voicePreferenceStorageKey, "false");
-    flueClientMock.current = flueHistoryClient(incarnationId);
+    flueClientMock.current = flueHistoryClient(netOneId);
     vi.stubGlobal("PointerEvent", MouseEvent);
     vi.stubGlobal(
       "fetch",
@@ -1703,10 +1691,9 @@ describe("assistant selection", () => {
   });
 
   test("a stored Brunch choice remains selectable and switching to Stock mounts nothing of Brunch", async () => {
-    const incarnationId = "selection-incarnation";
-    seedStoredNet(incarnationId);
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = flueHistoryClient(incarnationId);
+    flueClientMock.current = flueHistoryClient(netOneId);
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
     expect(currentAssistant().executeMutation).toBeUndefined();
@@ -1737,9 +1724,9 @@ describe("assistant selection", () => {
   });
 
   test("defaults Voice on for saved Brunch, preserves an explicit opt-out, and removes it for Stock", async () => {
-    seedStoredNet("voice-gating-incarnation");
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = flueHistoryClient("voice-gating-incarnation");
+    flueClientMock.current = flueHistoryClient(netOneId);
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ available: true, connectionTimeoutMs: 10_000 }),
     );
@@ -1783,11 +1770,10 @@ describe("assistant selection", () => {
   });
 
   test("does not render Voice when the persisted preference is on but capability is unavailable", async () => {
-    const incarnationId = "unavailable-voice-incarnation";
-    seedStoredNet(incarnationId);
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     localStorage.setItem(voicePreferenceStorageKey, "true");
-    flueClientMock.current = flueHistoryClient(incarnationId);
+    flueClientMock.current = flueHistoryClient(netOneId);
     vi.stubGlobal(
       "fetch",
       vi.fn<typeof globalThis.fetch>(async () =>
@@ -1805,11 +1791,10 @@ describe("assistant selection", () => {
   });
 
   test("clears cached Voice capability during each Stock to Brunch check", async () => {
-    const incarnationId = "delayed-voice-capability-incarnation";
-    seedStoredNet(incarnationId);
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "stock");
     localStorage.setItem(voicePreferenceStorageKey, "true");
-    flueClientMock.current = flueHistoryClient(incarnationId);
+    flueClientMock.current = flueHistoryClient(netOneId);
     const firstCapability = Promise.withResolvers<Response>();
     const secondCapability = Promise.withResolvers<Response>();
     const fetch = vi
@@ -1864,10 +1849,9 @@ describe("assistant selection", () => {
   });
 
   test("each assistant keeps its own history: stock messages stay in the local store and are never handed to Brunch", async () => {
-    const incarnationId = "history-incarnation";
-    seedStoredNet(incarnationId);
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "stock");
-    flueClientMock.current = flueHistoryClient(incarnationId);
+    flueClientMock.current = flueHistoryClient(netOneId);
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant()).toBeDefined());
     const stock = currentAssistant();
@@ -1911,8 +1895,7 @@ describe("assistant selection", () => {
   });
 
   test("an absent replay baseline stays immutable when admission refresh publishes its live calls", async () => {
-    const incarnationId = "live-baseline-incarnation";
-    seedStoredNet(incarnationId);
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     let snapshot: AgentConversationObservationSnapshot = {
       conversation: undefined,
@@ -1969,7 +1952,6 @@ describe("assistant selection", () => {
                   binding: {
                     conversationId,
                     documentId: netOneId,
-                    incarnationId,
                   },
                   currentWorkpiece: {
                     revisionId: "ledger-revision",
@@ -2054,20 +2036,19 @@ describe("assistant selection", () => {
     ).toEqual(canonicalOutput);
   });
 
-  test("a document incarnation change resets the replay baseline and live-call adapter", async () => {
-    seedStoredNet("first-incarnation");
+  test("a document change resets the replay baseline and live-call adapter", async () => {
+    seedStoredNet();
     const stored = JSON.parse(
       localStorage.getItem("petrinaut-sdcpn") ?? "{}",
     ) as Record<string, unknown>;
     stored[netTwoId] = storedNet({
       id: netTwoId,
-      incarnationId: "second-incarnation",
       lastUpdated: "2019-01-01T00:00:00.000Z",
       title: "Second net",
     });
     localStorage.setItem("petrinaut-sdcpn", JSON.stringify(stored));
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = flueHistoryClient("first-incarnation");
+    flueClientMock.current = flueHistoryClient(netOneId);
 
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
@@ -2084,7 +2065,7 @@ describe("assistant selection", () => {
       executeCurrentCanonicalMutation("reused-call", "addPlace", firstInput),
     )) as { applied?: boolean } | undefined;
     // Mutations are stubbed, so Petrinaut reports its own unchanged result; the
-    // point is that each incarnation's call reaches Petrinaut rather than being refused.
+    // point is that each document's call reaches Petrinaut rather than being refused.
     expect(firstOutput).toHaveProperty("applied");
 
     const loadPetriNet = editorProps.current?.loadPetriNet as
@@ -2111,7 +2092,7 @@ describe("assistant selection", () => {
   });
 
   test("I does not execute a canonical write while history is loading", async () => {
-    seedStoredNet("loading-incarnation");
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = {
       observe: () => ({
@@ -2143,7 +2124,7 @@ describe("assistant selection", () => {
   });
 
   test("a pending bound mutation in history is not executed again after reload", async () => {
-    seedStoredNet("pending-incarnation");
+    seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     const pendingPlace = {
       id: "pending",

@@ -109,9 +109,7 @@ export const createInBandBrowserCalls = (input: {
       issued.binding !== canonicalContent(input.binding) ||
       !inputSchema
     )
-      throw new Error(
-        "Browser call was not issued for this document incarnation.",
-      );
+      throw new Error("Browser call was not issued for this document.");
     const canonicalInput = inputSchema.parse(call.input);
     if (canonicalContent(canonicalInput) !== canonicalContent(issued.input))
       throw new Error("Issued browser input does not match the admitted call.");

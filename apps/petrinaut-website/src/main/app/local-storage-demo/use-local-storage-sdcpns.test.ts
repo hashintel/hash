@@ -75,16 +75,13 @@ const foreignEntry = {
 };
 
 describe("createLocalStorageNetRecord", () => {
-  test("assigns net, incarnation and revision identities at creation", () => {
+  test("assigns net and revision identities at creation", () => {
     const net = createLocalStorageNetRecord({
       petriNetDefinition: emptySDCPN,
       title: "New Process",
     });
 
     expect(isPetrinautId(net.id)).toBe(true);
-    expect(net.incarnationId).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu,
-    );
     expect(net.revisionId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu,
     );
@@ -210,7 +207,6 @@ describe("useLocalStorageSDCPNs", () => {
       drawnNetId,
     ]);
     const written = readNets(localStorage);
-    expect(written[drawnNetId]?.incarnationId).toBeTypeOf("string");
     expect(written[drawnNetId]?.revisionId).toBeTypeOf("string");
     expect(written["net-foreign"]).toStrictEqual(foreignEntry);
   });
@@ -259,11 +255,10 @@ describe("legacy net ids", () => {
     ],
   };
 
-  test("moves a legacy record to its net id with its subnet ids and a new incarnation", () => {
-    const [, legacyRecord] = storedNet("net-1", subnetNet);
+  test("moves a legacy record to its net id together with its subnet ids", () => {
     localStorage.setItem(
       rootLocalStorageKey,
-      JSON.stringify({ "net-1": { ...legacyRecord, incarnationId: "legacy" } }),
+      JSON.stringify(Object.fromEntries([storedNet("net-1", subnetNet)])),
     );
 
     const { result } = renderHook(() => useLocalStorageSDCPNs());
@@ -275,7 +270,6 @@ describe("legacy net ids", () => {
     expect(written[netId]?.sdcpn.subnets?.[0]?.id).toBe(
       toPetrinautId("subnet__a"),
     );
-    expect(written[netId]?.incarnationId).not.toBe("legacy");
     expect(result.current.storedSDCPNs).toStrictEqual(written);
   });
 
