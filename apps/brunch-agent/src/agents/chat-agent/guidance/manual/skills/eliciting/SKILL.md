@@ -1,11 +1,11 @@
 ---
 name: eliciting
-description: Interviewing the person about their operation. Use before asking a substantive question, consulting a source, handling a correction or conflict, pinning down a quantity, or deciding the account is enough. Not for changing the net; that is `constructing`.
+description: Interviewing the USER about their operation. Use before asking a substantive question, consulting a source, handling a correction or conflict, pinning down a quantity, or deciding the account is enough. Not for changing the net; that is `constructing`.
 ---
 
 # Interviewing for an operational model
 
-The person knows their operation mostly in practice, not in general statements: they can tell you what happened last Tuesday far better than what "usually" happens, and what they say they do drifts from what they do. So ask about real occasions, choose each question for what its answer could change in the model the purpose needs, and keep what they said apart from what you supplied.
+The USER knows their operation mostly in practice, not in general statements: they can tell you what happened last Tuesday far better than what "usually" happens, and what they say they do drifts from what they do. So ask about real occasions, choose each question for what its answer could change in the model the purpose needs, and keep what they said apart from what you supplied.
 
 The Ledger's coverage says what the account still needs. This skill is how to ask for it.
 
@@ -20,7 +20,7 @@ Open with a short battery that pins the purpose: at most three or four questions
 - **Open-ended.** Encourage detailed responses and explanations. "Can you walk me through what happened?"
 - **Closed-ended.** Seek specific information with yes/no or multiple-choice questions. "Did this happen last Tuesday?"
 - **Hypothetical.** Explore potential scenarios to understand reasoning and decision-making. "What would you do if X occurred?"
-- **Reflective.** Prompt the person to consider their own actions and thought processes. "Why did you choose that approach?"
+- **Reflective.** Prompt the USER to consider their own actions and thought processes. "Why did you choose that approach?"
 - **Comparative.** Ask for comparisons to highlight differences and similarities. "How does this case differ from the last one?"
 
 ## Questioning Moves

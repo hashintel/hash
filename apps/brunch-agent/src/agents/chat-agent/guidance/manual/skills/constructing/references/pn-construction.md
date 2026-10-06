@@ -6,18 +6,18 @@ Construction translates established operational meaning into SDCPN structure. It
 
 ## Building from an incomplete account
 
-Build a fragment once the account supports an activity and something it changes; the rest of the process need not be known. Early on, sketch everything the person has described across the operation, then deepen where the purpose needs it.
+Build a fragment once the account supports an activity and something it changes; the rest of the process need not be known. Early on, sketch everything the USER has described across the operation, then deepen where the purpose needs it.
 
 Where a fact the fragment needs is missing, use a stand-in rather than waiting:
 
 - an unknown quantity, rate, duration or threshold becomes a net parameter holding a placeholder value, named so it reads as provisional;
-- an unknown trigger, arrival, decision or outcome becomes an externally supplied event or input place that a scenario or the person can drive;
+- an unknown trigger, arrival, decision or outcome becomes an externally supplied event or input place that a scenario or the USER can drive;
 - an unknown branch rule becomes distinct outcome paths gated on a named parameter or external input, never an invented probability;
 - unknown internal steps become one activity, noted as collapsed.
 
-Record each stand-in in the Ledger, ask for the missing fact when it bears on the purpose, and replace the stand-in when the person supplies it. When a missing distinction would give materially different structure, build the likelier structure, label it, and ask which holds.
+Record each stand-in in the Ledger, ask for the missing fact when it bears on the purpose, and replace the stand-in when the USER supplies it. When a missing distinction would give materially different structure, build the likelier structure, label it, and ask which holds.
 
-An explicit request to use sensible defaults, decide on the person's behalf, make up a suitable example, or equivalent authorizes concrete purpose-bounded values; they remain labelled as yours.
+An explicit request to use sensible defaults, decide on the USER's behalf, make up a suitable example, or equivalent authorizes concrete purpose-bounded values; they remain labelled as yours.
 
 When Petrinaut construction tools are mounted, their accepted schemas and the inspected resulting definition are the authority for payload fields and net state. Use the tools for every net change; do not emit free-form net JSON. When tools are absent, leave construction-ready notes and do not claim a loadable net.
 
@@ -33,10 +33,10 @@ When Petrinaut construction tools are mounted, their accepted schemas and the in
 | Resource consumption, reservation, release, and read-only use             | Consumed tokens, held and returned resource tokens, or read behavior                                                                                                                        |
 | Continuous change                                                         | Dynamics on real-valued colour elements when a rate, threshold, or objective makes it consequential                                                                                         |
 | Metrics and objectives                                                    | Saved metrics (`addMetric`) where representable; qualitative goals and unsupported weights remain in the Ledger                                                                             |
-| Named operating regimes and decisions the person may vary                 | Saved scenarios (`addScenario`) carrying a per-place initial state and typed scenario parameters; a count is an `integer` parameter, a proportion a `ratio`, a continuous quantity a `real` |
+| Named operating regimes and decisions the USER may vary                   | Saved scenarios (`addScenario`) carrying a per-place initial state and typed scenario parameters; a count is an `integer` parameter, a proportion a `ratio`, a continuous quantity a `real` |
 | Data bindings and validation criteria                                     | Ledger obligations until a separate integration represents them                                                                                                                             |
 
-A physical location becomes target structure only through its recorded operational effect; it is not automatically a Petri-net place. A simulation scenario is assembled from initial state, boundary conditions, parameters, and candidate policies rather than represented as one process node; when the person names such a regime, save it as a scenario so later runs and experiments can name it. A scenario parameter reaches the net in two ways: a `per_place` initial-state expression reads it as `scenario.<identifier>` (keys are place IDs), and `parameterOverrides` maps an existing net-level parameter ID to such an expression, so a tunable that transition code reads through `parameters.<variableName>` needs both the net parameter and the override. Metric code reads the simulated state, not scenario parameters.
+A physical location becomes target structure only through its recorded operational effect; it is not automatically a Petri-net place. A simulation scenario is assembled from initial state, boundary conditions, parameters, and candidate policies rather than represented as one process node; when the USER names such a regime, save it as a scenario so later runs and experiments can name it. A scenario parameter reaches the net in two ways: a `per_place` initial-state expression reads it as `scenario.<identifier>` (keys are place IDs), and `parameterOverrides` maps an existing net-level parameter ID to such an expression, so a tunable that transition code reads through `parameters.<variableName>` needs both the net parameter and the override. Metric code reads the simulated state, not scenario parameters.
 
 ## Petrinaut tool sequence
 
@@ -55,7 +55,7 @@ The mounted schemas, not this prose, govern exact payload fields.
 
 ## Construction patterns
 
-Patterns are candidate transformations whose premises must already be present in the person's account. They do not supply missing facts; stand-ins mark where facts are missing.
+Patterns are candidate transformations whose premises must already be present in the USER's account. They do not supply missing facts; stand-ins mark where facts are missing.
 
 ### Timed work
 
@@ -121,7 +121,7 @@ Acceptable when visible:
 
 Not acceptable:
 
-- presenting generic operations knowledge, or a stand-in, as the person's account;
+- presenting generic operations knowledge, or a stand-in, as the USER's account;
 - averaging conflicting or context-dependent values;
 - interpreting “unknown” as a conventional distribution;
 - treating a posted rule as practiced behavior;
