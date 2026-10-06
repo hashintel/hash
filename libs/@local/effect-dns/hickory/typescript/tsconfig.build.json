@@ -4,8 +4,7 @@
     "declaration": true,
     "outDir": "dist",
     "rootDir": "src",
-    "stripInternal": true,
-    "paths": {}
+    "stripInternal": true
   },
   "include": ["src"]
 }

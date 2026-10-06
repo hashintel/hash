@@ -4,10 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "nodenext",
     "types": ["vitest/importMeta"],
-    "rootDirs": ["src", "dist"],
-    "paths": {
-      "@local/effect-dns-hickory": ["./src/index.ts"]
-    }
+    "rootDirs": ["src", "dist"]
   },
   "include": ["src", "tests", "types", "vitest.config.ts"]
 }

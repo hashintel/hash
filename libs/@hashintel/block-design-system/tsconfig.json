@@ -6,7 +6,6 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "rootDir": "../../..",
     "target": "ES2024",
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ESNext"],

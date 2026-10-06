@@ -7,7 +7,6 @@
   "compilerOptions": {
     "lib": ["ES2024"],
     "moduleResolution": "NodeNext",
-    "rootDir": "../..",
     "target": "ES2024"
   }
 }

@@ -4,7 +4,6 @@
     "@tsconfig/bases/next"
   ],
   "compilerOptions": {
-    "rootDir": "../..",
     "target": "ES2021",
     "types": ["gapi", "google.accounts", "google.picker"]
   },
