@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { toPetrinautId } from "@hashintel/petrinaut-core";
+import { createJsonDocHandle, toPetrinautId } from "@hashintel/petrinaut-core";
 
 import {
   createBrunchMutationAdmission,
@@ -46,6 +46,7 @@ describe("Brunch destructive edit approval", () => {
   test("covers every destructive canonical tool and no constructive one", () => {
     const toolNames = createBrunchMutationApprovalInteractiveTools(
       createBrunchMutationApprovalCoordinator(),
+      null,
     ).map(({ toolName }) => toolName);
     expect(toolNames).toContain("deleteItemsByIds");
     expect(toolNames).toContain("removeArc");
@@ -60,9 +61,30 @@ describe("Brunch destructive edit approval", () => {
       toolName: "deleteItemsByIds",
       signal: new AbortController().signal,
     });
+    // The equation is missing from the document, so its row shows the id.
+    const document = createJsonDocHandle({
+      initial: {
+        places: [
+          {
+            id: "queue",
+            name: "Queue",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+      },
+    });
     const ApprovalWidget = createBrunchMutationApprovalWidget(
       coordinator,
       "deleteItemsByIds",
+      document,
     );
     const submit = vi.fn();
     render(
@@ -75,9 +97,7 @@ describe("Brunch destructive edit approval", () => {
       />,
     );
 
-    expect(
-      screen.getByText(`Remove place — ${toPetrinautId("queue")}`),
-    ).not.toBeNull();
+    expect(screen.getByText("Remove place — Queue")).not.toBeNull();
     expect(
       screen.getByText(
         `Remove differential equation — ${toPetrinautId("decay")}`,
@@ -224,6 +244,7 @@ describe("Brunch destructive edit approval", () => {
     const ApprovalWidget = createBrunchMutationApprovalWidget(
       coordinator,
       "deleteItemsByIds",
+      null,
     );
     render(
       <ApprovalWidget

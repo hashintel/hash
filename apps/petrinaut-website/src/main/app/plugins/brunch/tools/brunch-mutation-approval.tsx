@@ -1,8 +1,13 @@
+import { useSyncExternalStore } from "react";
+
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   mutationActionInputSchemas,
+  parseArcId,
   type PetrinautAiMutationToolName,
+  type PetrinautDocHandle,
+  type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
   definePetrinautAiInteractiveTool,
@@ -154,66 +159,130 @@ const requiresBrunchMutationApproval = (
 const spacedWords = (camelCase: string) =>
   camelCase.replace(/[A-Z]/gu, (letter) => ` ${letter.toLowerCase()}`);
 
+type NamedItem = { readonly id: string; readonly name: string };
+
+type NetItems = Pick<
+  SDCPN,
+  | "places"
+  | "transitions"
+  | "types"
+  | "differentialEquations"
+  | "parameters"
+  | "componentInstances"
+>;
+
+const namedNetItemsOf = (net: NetItems): NamedItem[] => [
+  ...net.places,
+  ...net.transitions,
+  ...net.types,
+  ...net.types.flatMap(({ elements }) =>
+    elements.map(({ elementId, name }) => ({ id: elementId, name })),
+  ),
+  ...net.differentialEquations,
+  ...net.parameters,
+  ...(net.componentInstances ?? []),
+];
+
+/** The document's named items, subnets included. Ids are UUIDs, so names describe removals. */
+const namedItemsOf = (definition: SDCPN): NamedItem[] => [
+  ...namedNetItemsOf(definition),
+  ...(definition.scenarios ?? []),
+  ...(definition.metrics ?? []),
+  ...(definition.subnets ?? []).flatMap((subnet) => [
+    subnet,
+    ...namedNetItemsOf(subnet),
+  ]),
+];
+
+/** Looks up an item's name, falling back to its id when the item is unnamed or gone. */
+const nameLookupOf = (
+  definition: SDCPN | undefined,
+): ((id: string) => string) => {
+  const namesById = new Map(
+    (definition ? namedItemsOf(definition) : []).map(({ id, name }) => [
+      id,
+      name,
+    ]),
+  );
+  return (id) => namesById.get(id) || id;
+};
+
+const describeItem = (
+  type: string,
+  id: string,
+  nameOf: (id: string) => string,
+): string => {
+  const arc = type === "arc" ? parseArcId(id) : null;
+  return arc ? `${nameOf(arc.sourceId)} → ${nameOf(arc.targetId)}` : nameOf(id);
+};
+
 const removalDescriptions = (
   toolName: DestructiveToolName,
   input: unknown,
+  nameOf: (id: string) => string,
 ): readonly string[] => {
   switch (toolName) {
     case "removePlace":
       return [
-        `Remove place — ${mutationActionInputSchemas.removePlace.parse(input).placeId}`,
+        `Remove place — ${nameOf(mutationActionInputSchemas.removePlace.parse(input).placeId)}`,
       ];
     case "removeTransition":
       return [
-        `Remove transition — ${mutationActionInputSchemas.removeTransition.parse(input).transitionId}`,
+        `Remove transition — ${nameOf(mutationActionInputSchemas.removeTransition.parse(input).transitionId)}`,
       ];
     case "removeArc": {
       const { arcDirection, endpoint, placeId, transitionId } =
         mutationActionInputSchemas.removeArc.parse(input);
       const target =
-        placeId ??
-        (endpoint?.kind === "componentPort"
-          ? `${endpoint.componentInstanceId} / ${endpoint.portPlaceId}`
-          : endpoint?.placeId);
-      return [`Remove ${arcDirection} arc — ${transitionId} ↔ ${target}`];
+        placeId !== undefined
+          ? nameOf(placeId)
+          : endpoint?.kind === "componentPort"
+            ? `${nameOf(endpoint.componentInstanceId)} / ${nameOf(endpoint.portPlaceId)}`
+            : endpoint && nameOf(endpoint.placeId);
+      return [
+        `Remove ${arcDirection} arc — ${nameOf(transitionId)} ↔ ${target}`,
+      ];
     }
     case "removeType":
       return [
-        `Remove type — ${mutationActionInputSchemas.removeType.parse(input).typeId}`,
+        `Remove type — ${nameOf(mutationActionInputSchemas.removeType.parse(input).typeId)}`,
       ];
     case "removeTypeElement": {
       const { elementId, typeId } =
         mutationActionInputSchemas.removeTypeElement.parse(input);
-      return [`Remove type element — ${typeId} / ${elementId}`];
+      return [`Remove type element — ${nameOf(typeId)} / ${nameOf(elementId)}`];
     }
     case "removeDifferentialEquation":
       return [
-        `Remove differential equation — ${mutationActionInputSchemas.removeDifferentialEquation.parse(input).equationId}`,
+        `Remove differential equation — ${nameOf(mutationActionInputSchemas.removeDifferentialEquation.parse(input).equationId)}`,
       ];
     case "removeParameter":
       return [
-        `Remove parameter — ${mutationActionInputSchemas.removeParameter.parse(input).parameterId}`,
+        `Remove parameter — ${nameOf(mutationActionInputSchemas.removeParameter.parse(input).parameterId)}`,
       ];
     case "removeScenario":
       return [
-        `Remove scenario — ${mutationActionInputSchemas.removeScenario.parse(input).scenarioId}`,
+        `Remove scenario — ${nameOf(mutationActionInputSchemas.removeScenario.parse(input).scenarioId)}`,
       ];
     case "removeMetric":
       return [
-        `Remove metric — ${mutationActionInputSchemas.removeMetric.parse(input).metricId}`,
+        `Remove metric — ${nameOf(mutationActionInputSchemas.removeMetric.parse(input).metricId)}`,
       ];
     case "removeSubnet":
       return [
-        `Remove subnet — ${mutationActionInputSchemas.removeSubnet.parse(input).subnetId}`,
+        `Remove subnet — ${nameOf(mutationActionInputSchemas.removeSubnet.parse(input).subnetId)}`,
       ];
     case "removeComponentInstance":
       return [
-        `Remove component instance — ${mutationActionInputSchemas.removeComponentInstance.parse(input).instanceId}`,
+        `Remove component instance — ${nameOf(mutationActionInputSchemas.removeComponentInstance.parse(input).instanceId)}`,
       ];
     case "deleteItemsByIds":
       return mutationActionInputSchemas.deleteItemsByIds
         .parse(input)
-        .items.map(({ id, type }) => `Remove ${spacedWords(type)} — ${id}`);
+        .items.map(
+          ({ id, type }) =>
+            `Remove ${spacedWords(type)} — ${describeItem(type, id, nameOf)}`,
+        );
   }
 };
 
@@ -248,11 +317,21 @@ const actionsStyle = css({ display: "flex", gap: "2", flexWrap: "wrap" });
 
 type WidgetProps = PetrinautAiInteractiveToolWidgetProps<unknown, unknown>;
 
+const noDocumentSubscription = () => () => {};
+
+/** `handle` is the document the calls edit; its names describe each removal. */
 export const createBrunchMutationApprovalWidget = (
   coordinator: BrunchMutationApprovalCoordinator,
   toolName: DestructiveToolName,
+  handle: PetrinautDocHandle | null,
 ) => {
+  const subscribe = handle
+    ? (listener: () => void) => handle.subscribe(listener)
+    : noDocumentSubscription;
+  const readDefinition = () => handle?.doc();
   const Widget = ({ input, toolCallId }: WidgetProps) => {
+    const definition = useSyncExternalStore(subscribe, readDefinition);
+    const nameOf = nameLookupOf(definition);
     return (
       <section
         className={containerStyle}
@@ -266,7 +345,7 @@ export const createBrunchMutationApprovalWidget = (
             fontSize: "sm",
           })}
         >
-          {removalDescriptions(toolName, input).map((description) => (
+          {removalDescriptions(toolName, input, nameOf).map((description) => (
             <li key={description}>{description}</li>
           ))}
         </ul>
@@ -312,6 +391,7 @@ const passthrough = { parse: (value: unknown) => value };
 
 export const createBrunchMutationApprovalInteractiveTools = (
   coordinator: BrunchMutationApprovalCoordinator,
+  handle: PetrinautDocHandle | null,
 ): readonly PetrinautAiInteractiveTool[] =>
   destructiveToolNames.map((toolName) =>
     definePetrinautAiInteractiveTool<unknown, unknown>({
@@ -322,6 +402,10 @@ export const createBrunchMutationApprovalInteractiveTools = (
       outputSchema: passthrough,
       // Earlier rows of the same tool keep their normal presentation.
       shouldHandle: ({ toolCallId }) => coordinator.hasPending(toolCallId),
-      component: createBrunchMutationApprovalWidget(coordinator, toolName),
+      component: createBrunchMutationApprovalWidget(
+        coordinator,
+        toolName,
+        handle,
+      ),
     }),
   );

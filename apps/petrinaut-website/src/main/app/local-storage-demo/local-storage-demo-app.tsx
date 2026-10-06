@@ -373,12 +373,14 @@ export const LocalStorageDemoApp = ({
     coordinator.open();
     return () => coordinator.close();
   }, [mutationApproval]);
+  const approvalHandle = activeHandle?.handle ?? null;
   const allMutationApprovalTools = useMemo(
     () =>
       createBrunchMutationApprovalInteractiveTools(
         mutationApproval.coordinator,
+        approvalHandle,
       ),
-    [mutationApproval],
+    [approvalHandle, mutationApproval],
   );
   // A registered widget replaces the tool's row, so only calls still waiting
   // for a decision render as approvals. Refresh the registry when call identities
