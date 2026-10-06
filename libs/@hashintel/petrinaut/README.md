@@ -10,10 +10,10 @@ The visual editor is exposed as a React component:
 
 ```tsx
 import { Petrinaut } from "@hashintel/petrinaut";
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import { createJsonDocHandle, generateNetId } from "@hashintel/petrinaut-core";
 
 const handle = createJsonDocHandle({
-  id: "my-net",
+  id: generateNetId(),
   initial: { places: [], transitions: [] },
 });
 
