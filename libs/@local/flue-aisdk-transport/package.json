@@ -36,7 +36,7 @@
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003",
     "valibot": "1.4.2",
-    "vite": "8.2.2",
-    "vitest": "4.1.11"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

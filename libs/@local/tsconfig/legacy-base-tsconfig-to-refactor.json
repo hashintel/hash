@@ -14,7 +14,6 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es2024",
-    "baseUrl": ".",
     "paths": {
       "@blockprotocol/graph": ["../../@blockprotocol/graph/src/main.ts"],
       "@blockprotocol/graph/*": ["../../@blockprotocol/graph/src/*.ts"],
