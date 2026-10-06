@@ -2,7 +2,6 @@ import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 import { vOrigin, vStatus } from "../shared/epistemics.ts";
-import { vEntityId } from "../shared/references.ts";
 
 export const vEntityName = v.pipe(
   v.string(),
@@ -134,21 +133,13 @@ export const vEntityKind = v.pipe(
 
 export const vEntity = v.pipe(
   v.strictObject({
-    id: v.optional(
-      v.pipe(
-        vEntityId,
-        v.description(
-          "The known ID of an existing entity to update. Omit for a new entity; the system assigns its ID.",
-        ),
-      ),
-    ),
     name: vEntityName,
     kind: vEntityKind,
     origin: vOrigin,
     status: vStatus,
   }),
   v.description(
-    "Name an entity or fully update an existing one. Origin and status describe its inclusion in the modelled account, independently of claims about it. New entities omit id; updates include the existing system-issued ID and all fields. Earlier records remain in the Ledger.",
+    "An entity record. Origin and status describe its inclusion in the modelled account, independently of claims about it. Under entity/create the system assigns the ID; under entity/update the route addresses the entity and this payload replaces every field. Earlier records remain in the Ledger.",
   ),
 );
 
