@@ -68,8 +68,17 @@ const catalog = JSON.parse(
 );
 
 /**
+ * Whether a range selects a named catalog, such as `catalog:beta`, which a
+ * workspace opts into for a version other than the default catalog's.
+ *
+ * @param {string} range
+ */
+const isNamedCatalogRange = (range) => /^catalog:./.test(range);
+
+/**
  * Whether to ignore a dependency for consistency checks (version alignment).
- * Skips peerDependencies entirely (they may legitimately differ).
+ * Skips peerDependencies entirely (they may legitimately differ), and
+ * dependencies on a named catalog.
  *
  * @param {Dependency} dependency
  */
@@ -77,6 +86,7 @@ const shouldIgnoreDependencyForConsistency = (dependency) =>
   ignoredDependencies.includes(dependency.ident) ||
   ignoredWorkspaces.includes(dependency.workspace.ident) ||
   (dependency.ident in catalog && !dependency.range.startsWith("catalog:")) ||
+  isNamedCatalogRange(dependency.range) ||
   dependency.type === "peerDependencies";
 
 /**
@@ -247,7 +257,8 @@ function enforceProtocols({ Yarn }) {
  * Enforces proper declaration of dev dependencies.
  *
  * This rule checks if certain tools (like ESLint) are used in any workspace
- * and ensures they're declared as dev dependencies in those workspaces.
+ * and ensures they're declared in those workspaces, as a dependency or as a
+ * dev dependency. A missing one is added as a dev dependency.
  *
  * @param {Context} context - The Yarn constraint context.
  */
@@ -255,7 +266,9 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
   const dependencies = Object.fromEntries(
     Object.entries(enforcedDevDependencies).map(([key, { ident }]) => [
       key,
-      Yarn.dependency({ ident }),
+      Yarn.dependencies({ ident }).find(
+        (dependency) => !isNamedCatalogRange(dependency.range),
+      ) ?? null,
     ]),
   );
 
@@ -316,6 +329,13 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
         workspace.error(
           `missing devDependency ${key}, unable to automatically determine the version`,
         );
+        continue;
+      }
+
+      if (
+        workspace.manifest.dependencies?.[dependency.ident] !== undefined ||
+        workspace.manifest.devDependencies?.[dependency.ident] !== undefined
+      ) {
         continue;
       }
 

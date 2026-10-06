@@ -18,7 +18,7 @@
   "scripts": {
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit"
+    "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "1.2.0"
@@ -27,8 +27,8 @@
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "@types/node": "catalog:",
-    "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.86.0",
-    "oxlint-tsgolint": "7.0.2003"
+    "oxlint-tsgolint": "7.0.2003",
+    "typescript": "catalog:"
   }
 }

@@ -96,7 +96,7 @@
     "build:pack": "node ../../../scripts/check-package-payload.mjs",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit",
+    "lint:tsc": "tsc --noEmit",
     "prepack": "turbo run build:pack",
     "test:unit": "vitest"
   },
@@ -117,7 +117,6 @@
     "@types/js-yaml": "^4",
     "@types/node": "catalog:",
     "@types/react": "19.2.14",
-    "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "@typescript/typescript6": "catalog:",
     "@webgpu/types": "0.1.71",
     "oxlint": "1.86.0",
