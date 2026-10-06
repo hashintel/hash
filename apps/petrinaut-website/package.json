@@ -40,7 +40,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@fast-check/vitest": "0.4.1",
+    "@fast-check/vitest": "catalog:",
     "@local/tsconfig": "workspace:*",
     "@tanstack/router-generator": "1.167.32",
     "@tanstack/router-plugin": "1.168.34",
