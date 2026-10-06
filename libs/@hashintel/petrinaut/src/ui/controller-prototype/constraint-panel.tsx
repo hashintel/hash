@@ -1,4 +1,4 @@
-import { createContext, use } from "react";
+import { createContext, use, useState } from "react";
 
 import {
   Button,
@@ -1327,37 +1327,76 @@ const patternHintStyle = css({
   color: "neutral.s100",
 });
 
-/** The pattern follows the rule: editing the rows re-reads which pattern fits. */
+type PatternUndo = { before: ModelConstraint; after: string };
+
+// Key order and unset fields differ once a rule is saved and read back.
+const ruleKey = (value: unknown): string =>
+  JSON.stringify(value, (_key, entry: unknown) =>
+    entry && typeof entry === "object" && !Array.isArray(entry)
+      ? Object.fromEntries(
+          Object.entries(entry)
+            .filter(([, field]) => field !== undefined)
+            .sort(([a], [b]) => a.localeCompare(b)),
+        )
+      : entry,
+  );
+
+/**
+ * The pattern follows the rule: editing the rows re-reads which pattern fits.
+ * After a switch, Undo brings the rule back until the rule is edited again.
+ */
 const PatternSelect: React.FC<{
   constraint: ModelConstraint;
   disabled: boolean;
   update: UpdateConstraint;
-}> = ({ constraint, disabled, update }) => (
-  <div className={ruleRowStyle}>
-    <Select
-      required
-      size="sm"
-      width="fitContent"
-      aria-label="Pattern"
-      disabled={disabled}
-      value={rulePatternOf(constraint)}
-      items={rulePatterns.map(({ id, label }) => ({ value: id, text: label }))}
-      renderItem={(value) => {
-        const pattern = rulePatterns.find(({ id }) => id === value);
-        return (
-          <span>
-            {pattern?.label ?? value}
-            <span className={patternHintStyle}>{pattern?.hint}</span>
-          </span>
-        );
-      }}
-      renderSelectedItem={(value) =>
-        rulePatterns.find(({ id }) => id === value)?.label ?? value
-      }
-      onChange={(id) => update((current) => applyPattern(current, id))}
-    />
-  </div>
-);
+}> = ({ constraint, disabled, update }) => {
+  const [undo, setUndo] = useState<PatternUndo | null>(null);
+  const canUndo =
+    !disabled && undo !== null && undo.after === ruleKey(constraint);
+
+  return (
+    <div className={ruleRowStyle}>
+      <Select
+        required
+        size="sm"
+        width="fitContent"
+        aria-label="Pattern"
+        disabled={disabled}
+        value={rulePatternOf(constraint)}
+        items={rulePatterns.map(({ id, label }) => ({ value: id, text: label }))}
+        renderItem={(value) => {
+          const pattern = rulePatterns.find(({ id }) => id === value);
+          return (
+            <span>
+              {pattern?.label ?? value}
+              <span className={patternHintStyle}>{pattern?.hint}</span>
+            </span>
+          );
+        }}
+        renderSelectedItem={(value) =>
+          rulePatterns.find(({ id }) => id === value)?.label ?? value
+        }
+        onChange={(id) => {
+          const next = applyPattern(constraint, id);
+          setUndo({ before: constraint, after: ruleKey(next) });
+          update(() => next);
+        }}
+      />
+      {canUndo ? (
+        <Button
+          size="xs"
+          variant="ghost"
+          onClick={() => {
+            update(() => undo.before);
+            setUndo(null);
+          }}
+        >
+          Undo
+        </Button>
+      ) : null}
+    </div>
+  );
+};
 
 const CODE_CAPTION = "MTL · Zeroth's format is not defined yet";
 
