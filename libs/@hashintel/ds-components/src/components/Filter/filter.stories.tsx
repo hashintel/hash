@@ -27,6 +27,12 @@ type KitchenSinkValues = {
   near: [number, number];
 };
 
+const operatorDescriptionStyle: React.CSSProperties = {
+  color: "#999",
+  fontSize: "0.85em",
+  marginLeft: 6,
+};
+
 const KitchenSinkOperators: Array<
   ItemOrGroup<FilterOperator<KitchenSinkValues>>
 > = [
@@ -55,9 +61,18 @@ const KitchenSinkOperators: Array<
     id: "number",
     label: "Number",
     items: [
+      // A rich dropdown row (symbol + subtle English reading) with a
+      // `renderSelectedItem` keeping the chip's operator segment to the
+      // bare symbol.
       {
         key: "equalsNum",
-        label: "equals",
+        label: "=",
+        renderItem: (
+          <span>
+            =<span style={operatorDescriptionStyle}>equal</span>
+          </span>
+        ),
+        renderSelectedItem: "=",
         input: { type: "number" },
       },
       {

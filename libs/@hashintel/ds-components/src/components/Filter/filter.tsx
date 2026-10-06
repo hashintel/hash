@@ -69,7 +69,24 @@ import type { ExclusifyUnion } from "type-fest";
 export type FilterOperator<ValueMap extends Record<string, unknown>> = {
   [Key in keyof ValueMap & string]: {
     key: Key;
+    /**
+     * Plain-text name of the operator: the default rendering everywhere,
+     * and always what dropdown typeahead matches and the value inputs'
+     * aria-labels read.
+     */
     label: string;
+    /**
+     * Custom content for the operator's dropdown row. Defaults to `label`.
+     * A single element keeps natural inline flow, so e.g. a subtle
+     * description span stays baseline-aligned with the main text.
+     */
+    renderItem?: React.ReactNode;
+    /**
+     * Custom content for the chip's operator segment once this operator is
+     * selected. Defaults to `renderItem`, or `label` if neither is
+     * provided.
+     */
+    renderSelectedItem?: React.ReactNode;
     input: InputFor<ValueMap[Key]>;
     onChange?: (value: ValueMap[Key] | null) => void;
   };
@@ -686,7 +703,7 @@ export const Filter = <
   const menuItems = useMemo<Array<ItemOrGroup<Item>>>(() => {
     const toItem = (operator: LooseOperator): Item => ({
       id: operator.key,
-      text: operator.label,
+      text: operator.renderItem ?? operator.label,
       selectedStyle: "tick",
       onClick: () => {},
     });
@@ -883,7 +900,11 @@ export const Filter = <
           onMouseEnter={syncTruncationTitle}
         >
           <span className={classes.triggerLabel} data-truncates="">
-            {selectedOperator?.label ?? "is…"}
+            {selectedOperator
+              ? (selectedOperator.renderSelectedItem ??
+                selectedOperator.renderItem ??
+                selectedOperator.label)
+              : "is…"}
           </span>
           {!selectedOperator && (
             <Icon name="chevronDown" size={caretSizeMap[size]} />
@@ -896,7 +917,9 @@ export const Filter = <
           onMouseEnter={syncTruncationTitle}
         >
           <span className={classes.triggerLabel} data-truncates="">
-            {selectedOperator.label}
+            {selectedOperator.renderSelectedItem ??
+              selectedOperator.renderItem ??
+              selectedOperator.label}
           </span>
         </span>
       ) : null}

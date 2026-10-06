@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { Filter } from "@hashintel/ds-components";
 
 import { getOperatorsForKind } from "../../shared/property-filters/get-operators-for-kind";
+import { operatorDescriptionClass } from "./filter-chip-pill-chrome";
 
 import type { OperatorDescriptor } from "../../shared/property-filters/get-operators-for-kind";
 import type {
@@ -123,6 +124,20 @@ export const PropertyFilterChip: FunctionComponent<{
         return {
           key: descriptor.operator,
           label: descriptor.label,
+          // A symbolic operator's dropdown row carries its English reading
+          // as subtle text; `renderSelectedItem` keeps the chip's operator
+          // segment to the bare symbol.
+          renderItem: descriptor.description ? (
+            <span>
+              {descriptor.label}
+              <span className={operatorDescriptionClass}>
+                {descriptor.description}
+              </span>
+            </span>
+          ) : undefined,
+          renderSelectedItem: descriptor.description
+            ? descriptor.label
+            : undefined,
           input: !descriptor.requiresValue
             ? null
             : descriptor.multi

@@ -26,3 +26,14 @@ export const filterChipPillChrome = css({
     "--filter-outer-border": "#DDE7F0",
   },
 });
+
+/**
+ * The English reading of a symbolic operator ("greater than" beside ">"),
+ * part of the operator's `renderItem` dropdown row (its `renderSelectedItem`
+ * keeps the chip to the bare symbol). Inline flow keeps it baseline-aligned.
+ */
+export const operatorDescriptionClass = css({
+  color: "fg.subtle",
+  fontSize: "[0.85em]",
+  marginLeft: "1.5",
+});

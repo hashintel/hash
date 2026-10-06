@@ -7,6 +7,13 @@ export type OperatorDescriptor = {
   operator: PropertyFilterOperator;
   /** Human-readable label shown in the operator dropdown. */
   label: string;
+  /**
+   * English reading of a symbolic label ("greater than" for ">"), shown as
+   * subtle small text beside it in the dropdown — never in the chip. Worded
+   * as the relation's predicate-adjective name (each completes "value is
+   * ___"), so "equal" / "not equal" rather than "equals" / "does not equal".
+   */
+  description?: string;
   /** Whether the operator needs a value input (false for boolean / existence). */
   requiresValue: boolean;
   /** The operator takes two value inputs (`between`'s inclusive bounds). */
@@ -47,31 +54,37 @@ const numberOperators: OperatorDescriptor[] = [
   {
     operator: "greaterThan",
     label: ">",
+    description: "greater than",
     requiresValue: true,
   },
   {
     operator: "greaterThanOrEqual",
     label: "≥",
+    description: "greater than or equal",
     requiresValue: true,
   },
   {
     operator: "lessThan",
     label: "<",
+    description: "less than",
     requiresValue: true,
   },
   {
     operator: "lessThanOrEqual",
     label: "≤",
+    description: "less than or equal",
     requiresValue: true,
   },
   {
     operator: "equals",
     label: "=",
+    description: "equal",
     requiresValue: true,
   },
   {
     operator: "notEquals",
     label: "≠",
+    description: "not equal",
     requiresValue: true,
   },
   {

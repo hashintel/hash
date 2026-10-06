@@ -151,6 +151,8 @@ type LooseInputConfig = LooseFieldConfig | LooseSelectConfig;
 export type LooseOperator = {
   key: string;
   label: string;
+  renderItem?: React.ReactNode;
+  renderSelectedItem?: React.ReactNode;
   input:
     | LooseInputConfig
     | ReadonlyArray<LooseInputConfig | InputSeparator>
