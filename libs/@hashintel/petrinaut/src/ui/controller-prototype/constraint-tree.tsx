@@ -7,10 +7,6 @@ import { useConstraints } from "../../react/controller-prototype/use-constraints
 import { EditorContext } from "../../react/state/editor-context";
 import { useIsReadOnly } from "../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../constants/ui-messages";
-import {
-  exampleResultFor,
-  exampleResultHeld,
-} from "./constraint-results-example";
 
 import type { ComponentType } from "react";
 
@@ -74,20 +70,11 @@ export const useConstraintsTreeGroup = (
     name: "Constraints",
     emptyGroupMessage: "No constraints",
     renderGroupAction: addAction(AddConstraintAction),
-    children: constraints.map((constraint) => {
-      const result = exampleResultFor(constraint.id);
-      return {
-        id: constraint.id,
-        name: constraint.name,
-        icon: ConstraintIcon,
-        selectionItem: { type: "constraint" as const, id: constraint.id },
-        resultTag: result
-          ? {
-              text: `${result.held}/${result.runs}`,
-              warn: !exampleResultHeld(result, constraint.tolerance),
-            }
-          : undefined,
-      };
-    }),
+    children: constraints.map((constraint) => ({
+      id: constraint.id,
+      name: constraint.name,
+      icon: ConstraintIcon,
+      selectionItem: { type: "constraint" as const, id: constraint.id },
+    })),
   };
 };

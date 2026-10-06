@@ -13,20 +13,73 @@ import type { JsonValue, SDCPN } from "@hashintel/petrinaut-core";
 
 export const CONSTRAINTS_METADATA_KEY = "constraintsPrototype";
 
-export type TimeWord = "always" | "eventually" | "until" | "release";
+export type TimeWord =
+  | "always"
+  | "never"
+  | "eventually"
+  | "atEnd"
+  | "until"
+  | "weakUntil"
+  | "release";
 
 export type CheckSubject = {
   /**
    * `placeTokens`: the token count of place `id`. `tokenField`: field `field`
    * of the token type of place `id`, or of type `id` under a "for every".
-   * `metric`: the model metric `id`.
+   * `metric`: the model metric `id`. `fires`: transition `id` fires.
+   * `leaves`: a token leaves place `id`. Events have no comparison.
    */
-  kind: "placeTokens" | "tokenField" | "metric";
+  kind: "placeTokens" | "tokenField" | "metric" | "fires" | "leaves";
   id: string;
   field?: string;
 };
 
-export type CheckOp = "below" | "above";
+export type CheckOp =
+  | "below"
+  | "atMost"
+  | "above"
+  | "atLeast"
+  | "equals"
+  | "not";
+
+export const checkOps: CheckOp[] = [
+  "below",
+  "atMost",
+  "above",
+  "atLeast",
+  "equals",
+  "not",
+];
+
+export const checkOpLabel: Record<CheckOp, string> = {
+  below: "is below",
+  atMost: "is at most",
+  above: "is above",
+  atLeast: "is at least",
+  equals: "equals",
+  not: "is not",
+};
+
+export const checkOpSymbol: Record<CheckOp, string> = {
+  below: "<",
+  atMost: "≤",
+  above: ">",
+  atLeast: "≥",
+  equals: "=",
+  not: "≠",
+};
+
+const negatedOp: Record<CheckOp, CheckOp> = {
+  below: "atLeast",
+  atMost: "above",
+  above: "atMost",
+  atLeast: "below",
+  equals: "not",
+  not: "equals",
+};
+
+export const isEventSubject = (subject: CheckSubject | null): boolean =>
+  subject?.kind === "fires" || subject?.kind === "leaves";
 
 export type Check = {
   subject: CheckSubject | null;
@@ -84,19 +137,29 @@ export type ModelConstraint = {
 };
 
 export const timeWordLabel: Record<TimeWord, string> = {
-  always: "Always",
-  eventually: "Eventually",
-  until: "Until",
-  release: "Release",
+  always: "always",
+  never: "never",
+  eventually: "eventually",
+  atEnd: "at the end of the run",
+  until: "until",
+  weakUntil: "until, if ever",
+  release: "release",
 };
 
 export const timeWordHint: Record<TimeWord, string> = {
-  always: "Holds at every step, until the end of the run.",
-  eventually: "Holds at least once before the end of the run.",
-  until: "Holds until another condition becomes true, which must happen.",
+  always: "Holds at every moment of the run, or of the window.",
+  never: "Never happens during the run, or the window.",
+  eventually: "Holds at least once during the run, or the window.",
+  atEnd: "Checked once, when the run ends.",
+  until: "Holds until the second condition happens, which must happen.",
+  weakUntil:
+    "Holds until the second condition happens. That may never happen.",
   release:
     "One condition holds until another releases it, or to the end of the run.",
 };
+
+/** Time words that take two operands around the word. */
+export const takesWindow = (time: TimeWord): boolean => time !== "atEnd";
 
 export const constraintModeLabel: Record<ConstraintMode, string> = {
   monitored: "Monitored",
@@ -144,7 +207,9 @@ const parseSubject = (raw: unknown): CheckSubject | null => {
     typeof raw.id !== "string" ||
     (raw.kind !== "placeTokens" &&
       raw.kind !== "tokenField" &&
-      raw.kind !== "metric")
+      raw.kind !== "metric" &&
+      raw.kind !== "fires" &&
+      raw.kind !== "leaves")
   ) {
     return null;
   }
@@ -161,7 +226,7 @@ const parseCheck = (raw: unknown): Check | null => {
   }
   return {
     subject: parseSubject(raw.subject),
-    op: raw.op === "above" ? "above" : "below",
+    op: checkOps.find((op) => op === raw.op) ?? "below",
     bound: typeof raw.bound === "number" ? raw.bound : null,
   };
 };
@@ -179,7 +244,15 @@ const parseWindow = (raw: unknown): ConstraintWindow | undefined => {
   return undefined;
 };
 
-const timeWords: TimeWord[] = ["always", "eventually", "until", "release"];
+const timeWords: TimeWord[] = [
+  "always",
+  "never",
+  "eventually",
+  "atEnd",
+  "until",
+  "weakUntil",
+  "release",
+];
 const modes: ConstraintMode[] = [
   "monitored",
   "enforcedSoft",
@@ -303,7 +376,12 @@ export const parseSubjectValue = (value: string): CheckSubject | null => {
   if (!id) {
     return null;
   }
-  if (kind === "placeTokens" || kind === "metric") {
+  if (
+    kind === "placeTokens" ||
+    kind === "metric" ||
+    kind === "fires" ||
+    kind === "leaves"
+  ) {
     return { kind, id };
   }
   if (kind === "field") {
@@ -370,6 +448,20 @@ export const subjectGroups = (
         text: metric.name,
       })),
     },
+    {
+      id: "events",
+      label: "Events",
+      items: [
+        ...net.transitions.map((transition) => ({
+          value: subjectValue({ kind: "fires", id: transition.id }),
+          text: `${transition.name} fires`,
+        })),
+        ...net.places.map((place) => ({
+          value: subjectValue({ kind: "leaves", id: place.id }),
+          text: `a token leaves ${place.name}`,
+        })),
+      ],
+    },
   ].filter((group) => group.items.length > 0);
 };
 
@@ -389,7 +481,7 @@ const forEveryVariable = (net: SDCPN, typeId: string): string => {
 
 /** Until and release read as two operands around the word. */
 export const hasSecondSlot = (time: TimeWord): boolean =>
-  time === "until" || time === "release";
+  time === "until" || time === "weakUntil" || time === "release";
 
 /** The second operand's checks; one empty check stands in for a slot not yet filled. */
 export const secondChecks = (constraint: ModelConstraint): RuleItem[] =>
@@ -465,11 +557,15 @@ export const newNestedRule = (): NestedRule => ({
   checks: [emptyCheck()],
 });
 
-export type RulePreset = { id: string; label: string; hint: string };
+export type RulePattern = {
+  id: string;
+  label: string;
+  hint: string;
+};
 
-export const rulePresets: RulePreset[] = [
-  { id: "blank", label: "Blank", hint: "build the rule yourself" },
-  { id: "always", label: "Always X", hint: "X holds at every step" },
+/** The pattern menu. Custom comes last and opens the free builder. */
+export const rulePatterns: RulePattern[] = [
+  { id: "always", label: "Always X", hint: "X holds at every moment" },
   { id: "never", label: "Never X", hint: "X never happens" },
   {
     id: "once",
@@ -481,42 +577,81 @@ export const rulePresets: RulePreset[] = [
     label: "Whenever X, then Y within T",
     hint: "machines come back within 2 days",
   },
-  { id: "precedence", label: "Y only after X", hint: "precedence" },
+  { id: "precedence", label: "Y only after X", hint: "Y waits for X" },
+  { id: "custom", label: "Custom", hint: "build the rule freely" },
 ];
 
-const presetShape = (id: string): Partial<ModelConstraint> => {
-  switch (id) {
-    case "once":
-      return { time: "eventually", checks: [emptyCheck()] };
-    case "response":
-      return {
-        time: "always",
-        trigger: { ...emptyCheck(), op: "above", bound: 0 },
-        checks: [
-          {
-            kind: "rule",
-            time: "eventually",
-            window: { kind: "within", to: 2 },
-            checks: [{ ...emptyCheck(), op: "above", bound: 0 }],
-          },
-        ],
-      };
-    case "precedence":
-      return {
-        time: "until",
-        checks: [{ ...emptyCheck(), op: "below", bound: 1 }],
-        second: [{ ...emptyCheck(), op: "above", bound: 0 }],
-      };
-    default:
-      return { time: "always", checks: [emptyCheck()] };
+const plainOnly = (items: RuleItem[] | undefined): boolean =>
+  (items ?? []).every((item) => !isNestedRule(item));
+
+/** The pattern a rule matches, read from its shape. Anything else is Custom. */
+export const rulePatternOf = (constraint: ModelConstraint): string => {
+  const { time, trigger, checks, second } = constraint;
+  if (constraint.code !== undefined) {
+    return "custom";
   }
+  if (!trigger && plainOnly(checks) && checks.length === 1) {
+    if (time === "always") {
+      return "always";
+    }
+    if (time === "never") {
+      return "never";
+    }
+    if (time === "eventually") {
+      return "once";
+    }
+  }
+  const only = checks[0];
+  if (
+    time === "always" &&
+    trigger &&
+    checks.length === 1 &&
+    only &&
+    isNestedRule(only) &&
+    only.time === "eventually" &&
+    plainOnly(only.checks) &&
+    only.checks.length === 1
+  ) {
+    return "response";
+  }
+  if (
+    time === "weakUntil" &&
+    !trigger &&
+    checks.length === 1 &&
+    (second?.length ?? 0) === 1 &&
+    plainOnly(checks) &&
+    plainOnly(second)
+  ) {
+    return "precedence";
+  }
+  return "custom";
 };
 
-/** The rule a preset starts from, with every subject empty. The name, scope, tolerance and mode stay. */
-export const applyPreset = (
+const subjectsIn = (constraint: ModelConstraint): CheckSubject[] => {
+  const found: CheckSubject[] = [];
+  mapConstraintChecks(constraint, (check) => {
+    if (check.subject) {
+      found.push(check.subject);
+    }
+    return check;
+  });
+  return found;
+};
+
+/**
+ * The rule a pattern gives. Subjects already chosen carry into the pattern's
+ * slots in order, so switching patterns keeps what maps. Custom keeps the rule.
+ */
+export const applyPattern = (
   constraint: ModelConstraint,
   id: string,
 ): ModelConstraint => {
+  if (id === "custom") {
+    return { ...constraint, preset: "custom" };
+  }
+  const subjects = subjectsIn(constraint);
+  const x = subjects[0] ?? null;
+  const y = subjects[1] ?? subjects[0] ?? null;
   const {
     window: _window,
     join: _join,
@@ -526,14 +661,63 @@ export const applyPreset = (
     code: _code,
     ...kept
   } = constraint;
-  return { ...kept, ...presetShape(id), preset: id };
+  const first = constraint.checks.find(
+    (item): item is Check => !isNestedRule(item),
+  );
+  const keepX = (fallback: Check): Check =>
+    first?.subject ? { ...first } : fallback;
+  switch (id) {
+    case "never":
+      return {
+        ...kept,
+        time: "never",
+        checks: [keepX({ subject: x, op: "above", bound: 0 })],
+        preset: id,
+      };
+    case "once":
+      return {
+        ...kept,
+        time: "eventually",
+        checks: [keepX({ subject: x, op: "above", bound: 0 })],
+        preset: id,
+      };
+    case "response":
+      return {
+        ...kept,
+        time: "always",
+        trigger: { subject: x, op: "above", bound: 0 },
+        checks: [
+          {
+            kind: "rule",
+            time: "eventually",
+            window: { kind: "within", to: 2 },
+            checks: [{ subject: y, op: "above", bound: 0 }],
+          },
+        ],
+        preset: id,
+      };
+    case "precedence":
+      return {
+        ...kept,
+        time: "weakUntil",
+        checks: [{ subject: y, op: "atMost", bound: 0 }],
+        second: [{ subject: x, op: "above", bound: 0 }],
+        preset: id,
+      };
+    default:
+      return {
+        ...kept,
+        time: "always",
+        checks: [keepX({ subject: x, op: "below", bound: null })],
+        preset: id,
+      };
+  }
 };
 
 const subjectExpression = (
   net: SDCPN,
   constraint: ModelConstraint,
   subject: CheckSubject | null,
-  bare = false,
 ): string => {
   if (!subject) {
     return "?";
@@ -541,11 +725,7 @@ const subjectExpression = (
   switch (subject.kind) {
     case "placeTokens": {
       const place = net.places.find(({ id }) => id === subject.id);
-      return place
-        ? bare
-          ? identifier(place.name)
-          : `${identifier(place.name)}.count`
-        : "?";
+      return place ? identifier(place.name) : "?";
     }
     case "tokenField": {
       if (constraint.forEvery) {
@@ -566,7 +746,15 @@ const subjectExpression = (
     }
     case "metric": {
       const metric = net.metrics?.find(({ id }) => id === subject.id);
-      return metric ? `metric("${metric.name}")` : "?";
+      return metric ? identifier(metric.name) : "?";
+    }
+    case "fires": {
+      const transition = net.transitions.find(({ id }) => id === subject.id);
+      return transition ? `fired(${identifier(transition.name)})` : "?";
+    }
+    case "leaves": {
+      const place = net.places.find(({ id }) => id === subject.id);
+      return place ? `left(${identifier(place.name)})` : "?";
     }
   }
 };
@@ -575,27 +763,26 @@ const checkExpression = (
   net: SDCPN,
   constraint: ModelConstraint,
   check: Check,
-  bare = false,
-): string =>
-  `${subjectExpression(net, constraint, check.subject, bare)} ${
-    check.op === "below" ? "<" : ">"
-  } ${check.bound ?? "?"}`;
+  negate = false,
+): string => {
+  const subject = subjectExpression(net, constraint, check.subject);
+  if (isEventSubject(check.subject)) {
+    return negate ? `¬${subject}` : subject;
+  }
+  const op = negate ? negatedOp[check.op] : check.op;
+  return `${subject} ${checkOpSymbol[op]} ${check.bound ?? "?"}`;
+};
 
 const forEveryScope = (
   net: SDCPN,
   forEvery: NonNullable<ModelConstraint["forEvery"]>,
-): string => {
-  const places = forEvery.placeIds
+): string =>
+  forEvery.placeIds
     .map((placeId) => {
       const place = net.places.find(({ id }) => id === placeId);
-      return place ? `"${place.name}"` : "?";
+      return place ? identifier(place.name) : "?";
     })
-    .join(", ");
-  return forEvery.where === "reaches" ? `reaches([${places}])` : `[${places}]`;
-};
-
-const plainChecks = (items: RuleItem[]): Check[] =>
-  items.filter((item): item is Check => !isNestedRule(item));
+    .join(" ∪ ") || "?";
 
 type RuleBody = Pick<
   ModelConstraint,
@@ -604,117 +791,147 @@ type RuleBody = Pick<
 
 const windowSuffix = (window: ConstraintWindow | undefined): string =>
   window
-    ? `_[${window.kind === "between" ? window.from : 0} days,${window.to} days]`
+    ? `[${window.kind === "between" ? window.from : 0},${window.to}]`
     : "";
 
-const joinText = (parts: string[], join: "all" | "any" | undefined): string =>
-  parts.join(join === "any" ? " || " : " && ");
-
-/** A place that must hold a token reads as its bare name; any other check as `Name < 20`. */
-const modernCheck = (
-  net: SDCPN,
-  constraint: ModelConstraint,
-  check: Check,
-): string =>
-  check.subject?.kind === "placeTokens" &&
-  check.op === "above" &&
-  check.bound === 0
-    ? subjectExpression(net, constraint, check.subject, true)
-    : checkExpression(net, constraint, check, true);
+const operatorOf: Record<TimeWord, string> = {
+  always: "G",
+  never: "G",
+  eventually: "F",
+  atEnd: "F",
+  until: "U",
+  weakUntil: "W",
+  release: "R",
+};
 
 /**
- * A rule that holds another rule reads as `always (A --> eventually_[0 days,2 days] B)`:
- * the time word with its window, then the body, with `-->` after a trigger.
+ * A rule in metric temporal logic, the notation Yannis writes rules in:
+ * `G (MachineDown > 0 → F[0,2] (MachineUp > 0))`. Never X reads as
+ * always-not-X with the comparisons flipped, so the line needs no NOT.
  */
-const modernCode = (
+const mtl = (
   net: SDCPN,
   constraint: ModelConstraint,
   rule: RuleBody,
-  top: boolean,
 ): string => {
-  const item = (entry: RuleItem, wrap: boolean): string => {
-    if (!isNestedRule(entry)) {
-      return modernCheck(net, constraint, entry);
-    }
-    const text = modernCode(net, constraint, entry, false);
-    return wrap ? `(${text})` : text;
-  };
-  const operand = (items: RuleItem[], join: "all" | "any" | undefined) => {
-    const text = joinText(
-      items.map((entry) => item(entry, items.length > 1)),
-      join,
-    );
+  const negate = rule.time === "never";
+  const item = (entry: RuleItem): string =>
+    isNestedRule(entry)
+      ? `(${mtl(net, constraint, entry)})`
+      : checkExpression(net, constraint, entry, negate);
+  const group = (items: RuleItem[], join: "all" | "any" | undefined) => {
+    // Flipping every comparison under "never" swaps and/or (De Morgan).
+    const any = negate ? join !== "any" : join === "any";
+    const text = items.map(item).join(any ? " ∨ " : " ∧ ");
     return items.length > 1 ? `(${text})` : text;
   };
-  const word = `${rule.time}${windowSuffix(rule.window)}`;
+  const window = rule.time === "atEnd" ? "[T,T]" : windowSuffix(rule.window);
+  const word = `${operatorOf[rule.time]}${window}`;
   if (hasSecondSlot(rule.time)) {
-    const second = rule.second && rule.second.length > 0 ? rule.second : [emptyCheck()];
-    return `${operand(rule.checks, rule.join)} ${word} ${operand(second, rule.secondJoin)}`;
+    const second =
+      rule.second && rule.second.length > 0 ? rule.second : [emptyCheck()];
+    return `${group(rule.checks, rule.join)} ${word} ${group(second, rule.secondJoin)}`;
   }
-  const joined = joinText(
-    rule.checks.map((entry) => item(entry, rule.checks.length > 1)),
-    rule.join,
-  );
   const body = rule.trigger
-    ? `${modernCheck(net, constraint, rule.trigger)} --> ${rule.checks.length > 1 ? `(${joined})` : joined}`
-    : joined;
-  return top || rule.trigger || rule.checks.length > 1
-    ? `${word} (${body})`
-    : `${word} ${body}`;
+    ? `${checkExpression(net, constraint, rule.trigger)} → ${group(rule.checks, rule.join)}`
+    : group(rule.checks, rule.join);
+  return body.startsWith("(") && !rule.trigger
+    ? `${word} ${body}`
+    : `${word} (${body})`;
 };
 
-/** The one line a constraint's rows read as. `?` marks a slot not yet set. */
+/** The one line a constraint's rows read as, in MTL. `?` marks a slot not yet set. */
 export const constraintCode = (
   net: SDCPN,
   constraint: ModelConstraint,
 ): string => {
-  const scope = (inner: string) =>
-    !constraint.forEvery
-      ? inner
-      : `forEvery(${forEveryScope(net, constraint.forEvery)}, (${forEveryVariable(net, constraint.forEvery.typeId)}) => ${inner})`;
-  if (hasNestedRule(constraint)) {
-    return scope(modernCode(net, constraint, constraint, true));
+  const line = mtl(net, constraint, constraint);
+  if (!constraint.forEvery) {
+    return line;
   }
-  if (hasSecondSlot(constraint.time)) {
-    const operand = (checks: Check[], join: "all" | "any" | undefined) => {
-      const text = joinText(
-        checks.map((check) => checkExpression(net, constraint, check, true)),
-        join,
-      );
-      return checks.length > 1 ? `(${text})` : text;
-    };
-    const window = windowSuffix(constraint.window);
-    return scope(
-      `${operand(plainChecks(constraint.checks), constraint.join)} ${constraint.time}${window} ${operand(plainChecks(secondChecks(constraint)), constraint.secondJoin)}`,
-    );
-  }
-  const joined = joinText(
-    plainChecks(constraint.checks).map((check) =>
-      checkExpression(net, constraint, check),
-    ),
-    constraint.join,
-  );
-  const body = constraint.trigger
-    ? `implies(${checkExpression(net, constraint, constraint.trigger)}, ${joined})`
-    : joined;
-  const window = constraint.window
-    ? constraint.window.kind === "between"
-      ? `${constraint.window.from}, ${constraint.window.to}, `
-      : `0, ${constraint.window.to}, `
-    : "";
-  return scope(`${constraint.time}(${window}${body})`);
+  const variable = forEveryVariable(net, constraint.forEvery.typeId);
+  return `∀ ${variable} ∈ ${forEveryScope(net, constraint.forEvery)}: ${line}`;
 };
 
-/**
- * The text "Edit as code" starts from. A rule with a nested rule breaks after
- * each `-->` and indents the rest, so the editor never splits the arrow.
- */
+/** The text "Edit as code" starts from. A rule with a nested rule breaks after each `→`. */
 export const constraintCodeText = (
   net: SDCPN,
   constraint: ModelConstraint,
 ): string => {
   const line = constraintCode(net, constraint);
-  return hasNestedRule(constraint) ? line.replace(/ --> /g, " -->\n  ") : line;
+  return hasNestedRule(constraint) ? line.replace(/ → /g, " →\n  ") : line;
+};
+
+type Range = {
+  low: number;
+  lowOpen: boolean;
+  high: number;
+  highOpen: boolean;
+  not: number[];
+};
+
+const narrow = (range: Range, check: Check, bound: number): Range => {
+  const raiseLow = (current: Range, value: number, open: boolean): Range =>
+    value > current.low || (value === current.low && open)
+      ? { ...current, low: value, lowOpen: open }
+      : current;
+  const dropHigh = (current: Range, value: number, open: boolean): Range =>
+    value < current.high || (value === current.high && open)
+      ? { ...current, high: value, highOpen: open }
+      : current;
+  switch (check.op) {
+    case "below":
+      return dropHigh(range, bound, true);
+    case "atMost":
+      return dropHigh(range, bound, false);
+    case "above":
+      return raiseLow(range, bound, true);
+    case "atLeast":
+      return raiseLow(range, bound, false);
+    case "equals":
+      return dropHigh(raiseLow(range, bound, false), bound, false);
+    case "not":
+      return { ...range, not: [...range.not, bound] };
+  }
+};
+
+/**
+ * True when conditions joined by "and" on one subject leave no value that
+ * meets them all, such as "is below 10 and is above 20".
+ */
+export const contradictionIn = (
+  items: RuleItem[],
+  join: "all" | "any" | undefined,
+): boolean => {
+  if (join === "any") {
+    return false;
+  }
+  const ranges = new Map<string, Range>();
+  for (const item of items) {
+    if (
+      isNestedRule(item) ||
+      !item.subject ||
+      item.bound === null ||
+      isEventSubject(item.subject)
+    ) {
+      continue;
+    }
+    const key = subjectValue(item.subject);
+    const range = ranges.get(key) ?? {
+      low: -Infinity,
+      lowOpen: true,
+      high: Infinity,
+      highOpen: true,
+      not: [],
+    };
+    ranges.set(key, narrow(range, item, item.bound));
+  }
+  return [...ranges.values()].some(
+    (range) =>
+      range.low > range.high ||
+      (range.low === range.high &&
+        (range.lowOpen || range.highOpen || range.not.includes(range.low))),
+  );
 };
 
 /** The hover text on "For every", with the token type's name in place of "order". */

@@ -54,7 +54,7 @@ export const demoControllers: Controller[] = [
   },
 ];
 
-/** Seven constraints on Supply Chain With Disruption, two of them picked by Scheduler. */
+/** Nine constraints on Supply Chain With Disruption, two of them picked by Scheduler. */
 export const demoConstraints: ModelConstraint[] = [
   {
     id: "machines_back_within_2_days",
@@ -202,6 +202,41 @@ export const demoConstraints: ModelConstraint[] = [
             ],
           },
         ],
+      },
+    ],
+    tolerance: 95,
+    mode: "monitored",
+  },
+  {
+    id: "maintenance_every_30_days",
+    name: "Maintenance at least every 30 days",
+    time: "always",
+    checks: [
+      {
+        kind: "rule",
+        time: "eventually",
+        window: { kind: "within", to: 30 },
+        checks: [
+          {
+            subject: { kind: "fires", id: "trans_preventive_maintenance" },
+            op: "above",
+            bound: null,
+          },
+        ],
+      },
+    ],
+    tolerance: 95,
+    mode: "monitored",
+  },
+  {
+    id: "service_level_at_end",
+    name: "Service level at the end of the run",
+    time: "atEnd",
+    checks: [
+      {
+        subject: { kind: "metric", id: "metric_service_level" },
+        op: "atLeast",
+        bound: 0.95,
       },
     ],
     tolerance: 95,

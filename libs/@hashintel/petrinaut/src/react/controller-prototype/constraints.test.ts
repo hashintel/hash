@@ -5,7 +5,9 @@ import { supplyChainWithDisruption } from "@hashintel/petrinaut-core/examples";
 import { demoConstraints } from "../../ui/controller-prototype/scheduler-example";
 import {
   CONSTRAINTS_METADATA_KEY,
-  applyPreset,
+  applyPattern,
+  contradictionIn,
+  rulePatternOf,
   constraintCode,
   constraintCodeText,
   firstCheck,
@@ -15,12 +17,9 @@ import {
   parseSubjectValue,
   readConstraints,
   ruleDepth,
-  rulePresets,
   subjectGroups,
   subjectRowText,
   subjectUnit,
-  constraintModeHint,
-  constraintModeNote,
   subjectValue,
   writeConstraints,
 } from "./constraints";
@@ -38,136 +37,6 @@ const codeOf = (id: string, change?: Partial<ModelConstraint>) => {
   return constraintCode(net, { ...constraint, ...change });
 };
 
-describe("constraintCode", () => {
-  it("writes the window before the condition", () => {
-    expect(codeOf("backorders_under_20")).toBe(
-      "always(30, 360, Backorders.count < 20)",
-    );
-  });
-
-  it("writes a token field as place.field", () => {
-    expect(codeOf("machine_health_above_0_2")).toBe(
-      "always(MachineUp.health > 0.2)",
-    );
-  });
-
-  it("writes a model metric by name", () => {
-    expect(codeOf("scrap_under_5")).toBe(
-      'always(metric("Scrap fraction") < 0.05)',
-    );
-  });
-
-  it("writes a for-every around the rule", () => {
-    expect(codeOf("order_wait_under_14_days")).toBe(
-      'forEvery(["OpenOrders", "Backorders"], (order) => always(order.age < 14))',
-    );
-  });
-
-  it("starts a within window at 0", () => {
-    expect(
-      codeOf("backorders_under_20", { window: { kind: "within", to: 14 } }),
-    ).toBe("always(0, 14, Backorders.count < 20)");
-  });
-
-  it("uses the chosen time word", () => {
-    expect(codeOf("machine_health_above_0_2", { time: "eventually" })).toBe(
-      "eventually(MachineUp.health > 0.2)",
-    );
-  });
-
-  it("writes until as two operands around the word", () => {
-    expect(codeOf("backorders_until_supplier_b")).toBe(
-      "Backorders < 20 until SupplierBAvailable > 0",
-    );
-    expect(
-      codeOf("backorders_until_supplier_b", { time: "release" }),
-    ).toBe("Backorders < 20 release SupplierBAvailable > 0");
-  });
-
-  it("marks an empty second slot of until with question marks", () => {
-    expect(codeOf("machine_health_above_0_2", { time: "until" })).toBe(
-      "MachineUp.health > 0.2 until ? < ?",
-    );
-  });
-
-  it("writes the window after the word and joins each operand", () => {
-    const extra = {
-      subject: { kind: "placeTokens" as const, id: "place_orders" },
-      op: "below" as const,
-      bound: 50,
-    };
-    const base = demo("backorders_until_supplier_b");
-    expect(
-      constraintCode(net, {
-        ...base,
-        window: { kind: "between", from: 30, to: 360 },
-        second: [...base.second!, extra],
-        secondJoin: "any",
-      }),
-    ).toBe(
-      "Backorders < 20 until_[30 days,360 days] (SupplierBAvailable > 0 || OpenOrders < 50)",
-    );
-    expect(
-      constraintCode(net, {
-        ...base,
-        window: { kind: "within", to: 14 },
-        checks: [...base.checks, extra],
-      }),
-    ).toBe(
-      "(Backorders < 20 && OpenOrders < 50) until_[0 days,14 days] SupplierBAvailable > 0",
-    );
-  });
-
-  it("keeps a hidden second slot out of the line under always", () => {
-    expect(
-      codeOf("backorders_until_supplier_b", { time: "always" }),
-    ).toBe("always(Backorders.count < 20)");
-  });
-
-  it("keeps the for-every around until", () => {
-    expect(
-      codeOf("order_wait_under_14_days", {
-        time: "until",
-        second: [{ subject: null, op: "above", bound: 0 }],
-      }),
-    ).toBe(
-      'forEvery(["OpenOrders", "Backorders"], (order) => order.age < 14 until ? > 0)',
-    );
-  });
-
-  it("marks an unset slot with a question mark", () => {
-    expect(constraintCode(net, newConstraint("c", "Constraint 1"))).toBe(
-      "always(? < ?)",
-    );
-  });
-
-  it("joins checks and wraps a trigger", () => {
-    const base = demo("backorders_under_20");
-    const second = {
-      subject: { kind: "placeTokens" as const, id: "place_orders" },
-      op: "below" as const,
-      bound: 50,
-    };
-    expect(
-      constraintCode(net, {
-        ...base,
-        window: undefined,
-        checks: [...base.checks, second],
-        join: "any",
-      }),
-    ).toBe("always(Backorders.count < 20 || OpenOrders.count < 50)");
-    expect(
-      constraintCode(net, {
-        ...base,
-        window: undefined,
-        checks: [...base.checks, second],
-        trigger: { subject: null, op: "above", bound: null },
-      }),
-    ).toBe(
-      "always(implies(? > ?, Backorders.count < 20 && OpenOrders.count < 50))",
-    );
-  });
-});
 
 describe("demo constraints", () => {
   it("point at ids that exist in the net", () => {
@@ -269,17 +138,6 @@ describe("for every", () => {
   });
 });
 
-describe("mode notes", () => {
-  it("says what a failing run does for monitored and stop-early", () => {
-    expect(constraintModeNote.monitored).toContain("still finishes");
-    expect(constraintModeNote.stopEarly).toContain("stops early");
-  });
-
-  it("reuses the hover text for the enforced modes", () => {
-    expect(constraintModeNote.enforcedSoft).toBe(constraintModeHint.enforcedSoft);
-    expect(constraintModeNote.enforcedHard).toBe(constraintModeHint.enforcedHard);
-  });
-});
 
 describe("subjects", () => {
   it("round-trips a subject through its select value", () => {
@@ -292,12 +150,13 @@ describe("subjects", () => {
     }
   });
 
-  it("offers place tokens, token fields and metrics", () => {
+  it("offers place tokens, token fields, metrics and events", () => {
     const groups = subjectGroups(net);
     expect(groups.map((group) => group.id)).toEqual([
       "tokens",
       "fields",
       "metrics",
+      "events",
     ]);
     expect(
       groups
@@ -328,13 +187,13 @@ describe("subjects", () => {
 describe("nested rules", () => {
   it("writes a nested rule after the trigger, as in the frame", () => {
     expect(codeOf("machines_back_within_2_days")).toBe(
-      "always (MachineDown --> eventually_[0 days,2 days] MachineUp)",
+      "G (MachineDown > 0 → (F[0,2] (MachineUp > 0)))",
     );
   });
 
   it("writes a rule two levels down inside its parent", () => {
     expect(codeOf("recovery_keeps_orders_moving")).toBe(
-      "always (MachineDown --> always (Backorders > 20 --> eventually_[0 days,5 days] OpenOrders < 10))",
+      "G (MachineDown > 0 → (G (Backorders > 20 → (F[0,5] (OpenOrders < 10)))))",
     );
   });
 
@@ -347,13 +206,13 @@ describe("nested rules", () => {
         window: { kind: "between", from: 1, to: 9 },
       }),
     ).toBe(
-      "always_[1 days,9 days] (? < ? --> eventually_[0 days,2 days] MachineUp)",
+      "G[1,9] (? < ? → (F[0,2] (MachineUp > 0)))",
     );
   });
 
   it("keeps the flat syntax for a rule with no nested rule", () => {
     expect(codeOf("backorders_under_20")).toBe(
-      "always(30, 360, Backorders.count < 20)",
+      "G[30,360] (Backorders < 20)",
     );
   });
 
@@ -369,14 +228,14 @@ describe("nested rules", () => {
         ],
         join: "any",
       }),
-    ).toBe("always (? < 3 || (eventually_[0 days,2 days] MachineUp))");
+    ).toBe("G (? < 3 ∨ (F[0,2] (MachineUp > 0)))");
   });
 
   it("breaks the editable text after each arrow, and leaves flat rules alone", () => {
     expect(
       constraintCodeText(net, demo("recovery_keeps_orders_moving")),
     ).toBe(
-      "always (MachineDown -->\n  always (Backorders > 20 -->\n  eventually_[0 days,5 days] OpenOrders < 10))",
+      "G (MachineDown > 0 →\n  (G (Backorders > 20 →\n  (F[0,5] (OpenOrders < 10)))))",
     );
     expect(constraintCodeText(net, demo("backorders_under_20"))).toBe(
       constraintCode(net, demo("backorders_under_20")),
@@ -417,7 +276,7 @@ describe("nested rules", () => {
     );
     expect(codeOf("recovery_keeps_orders_moving")).not.toContain("?");
     expect(constraintCode(net, cleared)).toBe(
-      "always (? > 0 --> always (? > 20 --> eventually_[0 days,5 days] ? < 10))",
+      "G (? > 0 → (G (? > 20 → (F[0,5] (? < 10)))))",
     );
   });
 
@@ -455,66 +314,96 @@ describe("nested rules", () => {
   });
 });
 
-describe("presets", () => {
-  const start = newConstraint("c", "Constraint 1");
-  const shape = (id: string) => applyPreset(start, id);
 
-  it("lists the six presets, Blank first", () => {
-    expect(rulePresets.map(({ id }) => id)).toEqual([
-      "blank",
-      "always",
-      "never",
-      "once",
-      "response",
-      "precedence",
-    ]);
+describe("MTL code", () => {
+  it("writes the window after the operator", () => {
+    expect(codeOf("backorders_under_20")).toBe("G[30,360] (Backorders < 20)");
   });
 
-  it("starts Blank, Always and Never as one empty check under always", () => {
-    for (const id of ["blank", "always", "never"]) {
-      expect(shape(id)).toMatchObject({
-        time: "always",
-        preset: id,
-        checks: [{ subject: null, op: "below", bound: null }],
-      });
-    }
+  it("writes a token field as place.field and a metric by name", () => {
+    expect(codeOf("machine_health_above_0_2")).toBe("G (MachineUp.health > 0.2)");
+    expect(codeOf("scrap_under_5")).toBe("G (Scrapfraction < 0.05)");
   });
 
-  it("starts 'at least once' as one empty check under eventually", () => {
-    expect(shape("once")).toMatchObject({ time: "eventually" });
-    expect(constraintCode(net, shape("once"))).toBe("eventually(? < ?)");
-  });
-
-  it("starts the response preset as a trigger with a nested rule", () => {
-    expect(ruleDepth(shape("response"))).toBe(2);
-    expect(constraintCode(net, shape("response"))).toBe(
-      "always (? > 0 --> eventually_[0 days,2 days] ? > 0)",
+  it("writes never as always with the comparison flipped, and no NOT", () => {
+    expect(codeOf("machine_health_above_0_2", { time: "never" })).toBe(
+      "G (MachineUp.health ≤ 0.2)",
     );
   });
 
-  it("starts precedence as no Y until X", () => {
-    expect(constraintCode(net, shape("precedence"))).toBe(
-      "? < 1 until ? > 0",
+  it("writes the end of the run as F[T,T]", () => {
+    expect(codeOf("scrap_under_5", { time: "atEnd" })).toBe(
+      "F[T,T] (Scrapfraction < 0.05)",
     );
   });
 
-  it("replaces the rule and keeps the name, scope, tolerance and mode", () => {
-    const filled: ModelConstraint = {
-      ...demo("order_wait_under_14_days"),
-      window: { kind: "within", to: 3 },
-      code: "custom",
-      mode: "stopEarly",
+  it("writes until, if ever, as W", () => {
+    const rule = applyPattern(newConstraint("c", "C"), "precedence");
+    expect(constraintCode(net, rule)).toBe("? ≤ 0 W ? > 0");
+  });
+
+  it("writes the response pattern with a window on the nested rule", () => {
+    const rule = applyPattern(newConstraint("c", "C"), "response");
+    expect(constraintCode(net, rule)).toBe("G (? > 0 → (F[0,2] (? > 0)))");
+  });
+
+  it("writes events as atoms with no comparison", () => {
+    const transition = net.transitions[0]!;
+    const rule: ModelConstraint = {
+      ...newConstraint("c", "C"),
+      time: "eventually",
+      checks: [{ subject: { kind: "fires", id: transition.id }, op: "below", bound: null }],
     };
-    const next = applyPreset(filled, "once");
-    expect(next).toMatchObject({
-      id: filled.id,
-      name: filled.name,
-      forEvery: filled.forEvery,
-      tolerance: filled.tolerance,
-      mode: "stopEarly",
-    });
-    expect(next.window).toBeUndefined();
-    expect(next.code).toBeUndefined();
-    expect(next.checks).toEqual([{ subject: null, op: "below", bound: null }]);
+    expect(constraintCode(net, rule)).toMatch(/^F \(fired\(\w+\)\)$/);
+  });
+});
+
+describe("patterns", () => {
+  it("reads the pattern from the rule's shape", () => {
+    const start = newConstraint("c", "C");
+    for (const id of ["always", "never", "once", "response", "precedence"]) {
+      expect(rulePatternOf(applyPattern(start, id))).toBe(id);
+    }
+    expect(rulePatternOf({ ...start, checks: [...start.checks, ...start.checks] })).toBe("custom");
+  });
+
+  it("keeps the chosen subject when switching patterns", () => {
+    const subject: CheckSubject = { kind: "placeTokens", id: net.places[0]!.id };
+    const start = { ...newConstraint("c", "C"), checks: [{ subject, op: "below" as const, bound: 20 }] };
+    expect(applyPattern(start, "response").trigger?.subject).toEqual(subject);
+    expect(applyPattern(start, "never").checks[0]).toMatchObject({ subject, bound: 20 });
+  });
+});
+
+describe("contradictions", () => {
+  const subject: CheckSubject = { kind: "placeTokens", id: "p" };
+  it("finds conditions joined by and that no value meets", () => {
+    expect(
+      contradictionIn(
+        [
+          { subject, op: "below", bound: 10 },
+          { subject, op: "above", bound: 20 },
+        ],
+        "all",
+      ),
+    ).toBe(true);
+    expect(
+      contradictionIn(
+        [
+          { subject, op: "atMost", bound: 10 },
+          { subject, op: "atLeast", bound: 10 },
+        ],
+        "all",
+      ),
+    ).toBe(false);
+    expect(
+      contradictionIn(
+        [
+          { subject, op: "below", bound: 10 },
+          { subject, op: "above", bound: 20 },
+        ],
+        "any",
+      ),
+    ).toBe(false);
   });
 });
