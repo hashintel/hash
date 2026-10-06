@@ -10,6 +10,7 @@ import { createPetrinautOptimizerClient } from "./client.js";
 import {
   PetrinautOptimizerHttpError,
   petrinautOptimizerHttpErrorFromResult,
+  petrinautOptimizerJsonBody,
 } from "./optimizer-http.js";
 
 import type { PetrinautOptimizerFetch } from "./optimizer-http.js";
@@ -90,11 +91,16 @@ export const createServicePetrinautOptimization = ({
           throw classifyRequestError(error);
         });
 
-      if (created.status !== 201 || !created.data.run_id) {
+      const body = petrinautOptimizerJsonBody(created);
+      if (
+        created.status !== 201 ||
+        typeof body?.run_id !== "string" ||
+        !body.run_id
+      ) {
         throw classifyHttpError(petrinautOptimizerHttpErrorFromResult(created));
       }
 
-      return { runId: created.data.run_id };
+      return { runId: body.run_id };
     },
     async *attachOptimizationRun(runId, options) {
       let events: AsyncIterable<PetrinautOptimizationEvent>;
