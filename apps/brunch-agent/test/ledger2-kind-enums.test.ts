@@ -48,7 +48,7 @@ test("one mixed append batch carries all three record types", async () => {
   const batch = {
     entries: [
       [
-        "elicitation.entity",
+        "entity/create",
         {
           name: "Dryer",
           kind: "resource",
@@ -57,7 +57,7 @@ test("one mixed append batch carries all three record types", async () => {
         },
       ],
       [
-        "elicitation.claim",
+        "claim/create",
         {
           text: "There is one dryer, held by each batch while drying.",
           entities: ["$0"],
@@ -66,14 +66,14 @@ test("one mixed append batch carries all three record types", async () => {
         },
       ],
       [
-        "construction.reflection",
+        "reflection/create",
         {
           text: "Represented dryer capacity as one available token; batches do not yet hold or release it.",
           claims: ["$1"],
         },
       ],
       [
-        "construction.reflection",
+        "reflection/create",
         {
           text: "The place represents available dryer capacity.",
           netElements: [{ kind: "place", id: "p-dryer" }],
@@ -92,32 +92,35 @@ test("one mixed append batch carries all three record types", async () => {
   });
 });
 
-test("entities can be pencilled in and updated in full under the same ID", async () => {
-  const entities = [
-    {
-      id: "e1",
-      name: "staffing-horizon",
-      kind: "horizon",
-      origin: "assumed",
-      status: "tentative",
-    },
-    {
-      id: "e2",
-      name: "investment-horizon",
-      kind: "horizon",
-      origin: "stated",
-      status: "confirmed",
-    },
-    {
-      id: "e1",
-      name: "Staffing horizon",
-      kind: "horizon",
-      origin: "stated",
-      status: "confirmed",
-    },
-  ];
+test("entity routes split creation from full update of an addressed entity", async () => {
+  const update = {
+    name: "Staffing horizon",
+    kind: "horizon",
+    origin: "stated",
+    status: "confirmed",
+  };
   const batch = {
-    entries: entities.map((entity) => ["elicitation.entity", entity]),
+    entries: [
+      [
+        "entity/create",
+        {
+          name: "staffing-horizon",
+          kind: "horizon",
+          origin: "assumed",
+          status: "tentative",
+        },
+      ],
+      [
+        "entity/create",
+        {
+          name: "investment-horizon",
+          kind: "horizon",
+          origin: "stated",
+          status: "confirmed",
+        },
+      ],
+      ["entity/update/e1", update],
+    ],
   };
   const parsed = v.parse(demoAppendTool.input, batch);
   expect(parsed).toEqual(batch);
@@ -126,16 +129,25 @@ test("entities can be pencilled in and updated in full under the same ID", async
     entities: 3,
     reflections: 0,
   });
-  expect(v.safeParse(vEntity, { id: "e1", status: "confirmed" }).success).toBe(
-    false,
-  );
+  expect(v.safeParse(vEntity, { ...update, id: "e1" }).success).toBe(false);
+  expect(
+    v.safeParse(demoAppendTool.input, {
+      entries: [
+        ["entity/update/e1", { name: update.name, status: update.status }],
+      ],
+    }).success,
+  ).toBe(false);
+  for (const route of ["entity/update", "entity/update/c1", "entity/update/$0"])
+    expect(
+      v.safeParse(demoAppendTool.input, { entries: [[route, update]] }).success,
+    ).toBe(false);
 });
 
 test("construction-only queues may reference existing claims", async () => {
   const batch = {
     entries: [
       [
-        "construction.reflection",
+        "reflection/create",
         {
           text: "Used a 20-minute mean drying time for the stated drying duration; the stated fixed duration becomes a distribution.",
           claims: ["c99"],
@@ -176,7 +188,7 @@ test("claims retain prior assertions when a later claim supersedes them", () => 
     },
   ];
   const batch = {
-    entries: claims.map((claim) => ["elicitation.claim", claim]),
+    entries: claims.map((claim) => ["claim/create", claim]),
   };
   expect(v.parse(demoAppendTool.input, batch)).toEqual(batch);
 });
@@ -235,33 +247,40 @@ test("local references check target kind, bounds and supersession order", () => 
   expect(
     v.safeParse(demoAppendTool.input, {
       entries: [
-        ["elicitation.entity", entity],
-        ["elicitation.claim", { ...claim, entities: ["$1"] }],
+        ["entity/create", entity],
+        ["claim/create", { ...claim, entities: ["$1"] }],
       ],
     }).success,
   ).toBe(false);
   expect(
     v.safeParse(demoAppendTool.input, {
-      entries: [["elicitation.claim", { ...claim, entities: ["$9"] }]],
+      entries: [["claim/create", { ...claim, entities: ["$9"] }]],
     }).success,
   ).toBe(false);
   expect(
     v.safeParse(demoAppendTool.input, {
       entries: [
-        ["elicitation.entity", entity],
-        ["elicitation.claim", { ...claim, supersedes: ["$1"] }],
+        ["entity/create", entity],
+        ["claim/create", { ...claim, supersedes: ["$1"] }],
       ],
     }).success,
   ).toBe(false);
   const forwardReference = {
     entries: [
-      ["elicitation.claim", { ...claim, entities: ["$1"] }],
-      ["elicitation.entity", entity],
+      ["claim/create", { ...claim, entities: ["$1"] }],
+      ["entity/create", entity],
     ],
   };
   expect(v.parse(demoAppendTool.input, forwardReference)).toEqual(
     forwardReference,
   );
+  const updateTarget = {
+    entries: [
+      ["entity/update/e45", entity],
+      ["claim/create", claim],
+    ],
+  };
+  expect(v.parse(demoAppendTool.input, updateTarget)).toEqual(updateTarget);
 });
 
 /** What Flue sends as a tool's parameters (`toolInputToJsonSchema`). */
@@ -297,7 +316,7 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
           anyOf: [
             {
               items: [
-                { const: "elicitation.entity" },
+                { const: "entity/create" },
                 {
                   properties: {
                     kind: anyOf(vEntityKind),
@@ -310,7 +329,18 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
             },
             {
               items: [
-                { const: "elicitation.claim" },
+                {
+                  type: "string",
+                  pattern: "^entity\\/update\\/e(?:0|[1-9]\\d*)$",
+                },
+                {
+                  required: ["name", "kind", "origin", "status"],
+                },
+              ],
+            },
+            {
+              items: [
+                { const: "claim/create" },
                 {
                   properties: {
                     entities: {
@@ -331,7 +361,7 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
             },
             {
               items: [
-                { const: "construction.reflection" },
+                { const: "reflection/create" },
                 {
                   properties: {
                     text: { type: "string" },
@@ -372,7 +402,7 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     if (!model) throw new Error(`Unknown model ${specifier}`);
     const thinking = selectChatThinking();
     const context: Context = {
-      systemPrompt: `You keep the record of a modelling conversation. USER means the interviewee whose account is being elicited. There are no existing entities or claims. Record the USER's latest message by calling ${appendToolName} exactly once. Each entry is exactly [tag, payload]. Do not assign IDs or submit turns; relationships use $index references to positions in this call's entire entries queue. Do not reply in text. ${constructionObservation}`,
+      systemPrompt: `You keep the record of a modelling conversation. USER means the interviewee whose account is being elicited. There are no existing entities or claims, so use only create routes. Record the USER's latest message by calling ${appendToolName} exactly once. Each entry is exactly [route, payload]. Do not assign IDs or submit turns; relationships use $index references to positions in this call's entire entries queue. Do not reply in text. ${constructionObservation}`,
       messages: [{ role: "user", content: message, timestamp: Date.now() }],
       tools: [
         {
@@ -394,14 +424,16 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
       throw new Error(`No ${appendToolName} call: ${response.stopReason}`);
     expect(call.name).toBe(appendToolName);
     const recorded = v.parse(demoAppendTool.input, call.arguments);
-    const entities = recorded.entries.flatMap(([kind, payload]) =>
-      kind === "elicitation.entity" ? [payload] : [],
+    for (const [route] of recorded.entries)
+      expect(route).not.toMatch(/\/update\//);
+    const entities = recorded.entries.flatMap(([route, payload]) =>
+      route === "entity/create" ? [payload] : [],
     );
-    const claims = recorded.entries.flatMap(([kind, payload]) =>
-      kind === "elicitation.claim" ? [payload] : [],
+    const claims = recorded.entries.flatMap(([route, payload]) =>
+      route === "claim/create" ? [payload] : [],
     );
-    const reflections = recorded.entries.flatMap(([kind, payload]) =>
-      kind === "construction.reflection" ? [payload] : [],
+    const reflections = recorded.entries.flatMap(([route, payload]) =>
+      route === "reflection/create" ? [payload] : [],
     );
     expect(entities.length).toBeGreaterThan(0);
     expect(claims.length).toBeGreaterThan(0);
@@ -465,8 +497,8 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     const horizons = recorded.entities.filter(({ kind }) => kind === "horizon");
     expect(horizons).toHaveLength(2);
     const horizonReferences = recorded.entries.flatMap(
-      ([kind, payload], index) =>
-        kind === "elicitation.entity" && payload.kind === "horizon"
+      ([route, payload], index) =>
+        route === "entity/create" && payload.kind === "horizon"
           ? [`$${index}`]
           : [],
     );
@@ -491,8 +523,8 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     );
 
     const dryerReference = recorded.entries.findIndex(
-      ([kind, payload]) =>
-        kind === "elicitation.entity" &&
+      ([route, payload]) =>
+        route === "entity/create" &&
         payload.kind === "resource" &&
         /dryer/i.test(payload.name),
     );

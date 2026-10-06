@@ -4,15 +4,27 @@ import * as v from "valibot";
 import { vReflection } from "./construction/reflections.ts";
 import { vClaim } from "./elicitation/claims.ts";
 import { vEntity } from "./elicitation/entities.ts";
+import { entityIdGrammar } from "./shared/references.ts";
+
+const vEntityUpdateRoute = v.pipe(
+  v.string(),
+  v.regex(new RegExp(`^entity/update/${entityIdGrammar}$`)),
+  // The regex guarantees the template-literal shape; the cast restores it for discrimination.
+  v.transform((route) => route as `entity/update/e${number}`),
+  v.description(
+    "entity/update/<existing entity ID>, such as entity/update/e45. The payload replaces every field of the addressed entity.",
+  ),
+);
 
 export const vLedgerEntry = v.pipe(
   v.union([
-    v.strictTuple([v.literal("elicitation.entity"), vEntity]),
-    v.strictTuple([v.literal("elicitation.claim"), vClaim]),
-    v.strictTuple([v.literal("construction.reflection"), vReflection]),
+    v.strictTuple([v.literal("entity/create"), vEntity]),
+    v.strictTuple([vEntityUpdateRoute, vEntity]),
+    v.strictTuple([v.literal("claim/create"), vClaim]),
+    v.strictTuple([v.literal("reflection/create"), vReflection]),
   ]),
   v.description(
-    "Exactly two members: [record type, payload]. Do not add an ID, index or turn member. The type selects the payload schema.",
+    "Exactly two members: [route, payload]. The route names the record type, the operation and, for updates, the target address. Do not add an ID, index or turn member.",
   ),
 );
 
@@ -21,36 +33,37 @@ export type LedgerEntry = v.InferOutput<typeof vLedgerEntry>;
 const validLocalReferences = (entries: LedgerEntry[]) => {
   const targets = (
     reference: string,
-    kind: LedgerEntry[0],
+    recordType: "entity" | "claim",
     before?: number,
   ) => {
     if (!reference.startsWith("$")) return true;
     const index = Number(reference.slice(1));
     return (
-      entries[index]?.[0] === kind && (before === undefined || index < before)
+      entries[index]?.[0].startsWith(`${recordType}/`) === true &&
+      (before === undefined || index < before)
     );
   };
 
-  return entries.every(([kind, payload], index) => {
-    if (kind === "elicitation.entity") return true;
-    if (kind === "elicitation.claim") {
+  return entries.every(([route, payload], index) => {
+    if (route === "claim/create") {
       return (
-        payload.entities.every((reference) =>
-          targets(reference, "elicitation.entity"),
-        ) &&
+        payload.entities.every((reference) => targets(reference, "entity")) &&
         (payload.supersedes ?? []).every((reference) =>
-          targets(reference, "elicitation.claim", index),
+          targets(reference, "claim", index),
         )
       );
     }
-    return (
-      (payload.claims ?? []).every((reference) =>
-        targets(reference, "elicitation.claim"),
-      ) &&
-      (payload.entities ?? []).every((reference) =>
-        targets(reference, "elicitation.entity"),
-      )
-    );
+    if (route === "reflection/create") {
+      return (
+        (payload.claims ?? []).every((reference) =>
+          targets(reference, "claim"),
+        ) &&
+        (payload.entities ?? []).every((reference) =>
+          targets(reference, "entity"),
+        )
+      );
+    }
+    return true;
   });
 };
 
@@ -63,12 +76,12 @@ export const vLedgerAppend = v.pipe(
         "Local references must target an entry of the expected kind; supersedes must target an earlier claim.",
       ),
       v.description(
-        "An ordered queue of [record type, payload] tuples. $index references the zero-based position in this entire queue, never a per-kind index. References may target any matching entry; supersedes must target an earlier claim. Empty queues are allowed.",
+        "An ordered queue of [route, payload] tuples. $index references the zero-based position in this entire queue, never a per-kind index. References may target any matching entry; supersedes must target an earlier claim. Empty queues are allowed.",
       ),
     ),
   }),
   v.description(
-    "One append-only Ledger batch. The system supplies new record IDs, turns and change provenance. Use existing system-issued IDs or $index references in relationship fields. Earlier records remain in the Ledger.",
+    "One append-only Ledger batch. The system supplies new record IDs, turns and change provenance. Address updates by their system-issued ID in the route; use existing IDs or $index references in relationship fields. Earlier records remain in the Ledger.",
   ),
 );
 

@@ -1,8 +1,10 @@
 import * as v from "valibot";
 
+export const entityIdGrammar = String.raw`e(?:0|[1-9]\d*)`;
+
 export const vEntityId = v.pipe(
   v.string(),
-  v.regex(/^e(?:0|[1-9]\d*)$/),
+  v.regex(new RegExp(`^${entityIdGrammar}$`)),
   v.brand("EntityId"),
   v.description("An existing entity ID issued by the system, such as e23."),
 );
@@ -19,20 +21,20 @@ const vLocalReference = v.pipe(
   v.regex(/^\$(?:0|[1-9]\d*)$/),
   v.brand("LocalReference"),
   v.description(
-    "A reference to the zero-based position in this call's entire entries queue, such as $0. Use only in reference fields; do not assign it as an entry's own ID.",
+    "A reference to the zero-based position in this call's entire entries queue, such as $0. Use only in reference fields, never in a route.",
   ),
 );
 
 export const vEntityReference = v.pipe(
   v.union([vEntityId, vLocalReference]),
   v.description(
-    "An existing entity ID (e23), or a same-call queue reference ($0) whose target is an elicitation.entity entry.",
+    "An existing entity ID (e23), or a same-call queue reference ($0) whose target is an entity entry.",
   ),
 );
 
 export const vClaimReference = v.pipe(
   v.union([vClaimId, vLocalReference]),
   v.description(
-    "An existing claim ID (c45), or a same-call queue reference ($1) whose target is an elicitation.claim entry.",
+    "An existing claim ID (c45), or a same-call queue reference ($1) whose target is a claim entry.",
   ),
 );
