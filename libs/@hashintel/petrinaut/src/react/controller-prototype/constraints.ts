@@ -584,10 +584,13 @@ export const rulePatterns: RulePattern[] = [
 const plainOnly = (items: RuleItem[] | undefined): boolean =>
   (items ?? []).every((item) => !isNestedRule(item));
 
-/** The pattern a rule matches, read from its shape. Anything else is Custom. */
+/**
+ * The pattern a rule matches, read from its shape. Anything else is Custom.
+ * Choosing Custom sticks until another pattern is chosen.
+ */
 export const rulePatternOf = (constraint: ModelConstraint): string => {
   const { time, trigger, checks, second } = constraint;
-  if (constraint.code !== undefined) {
+  if (constraint.code !== undefined || constraint.preset === "custom") {
     return "custom";
   }
   if (!trigger && plainOnly(checks) && checks.length === 1) {
@@ -627,20 +630,69 @@ export const rulePatternOf = (constraint: ModelConstraint): string => {
   return "custom";
 };
 
-const subjectsIn = (constraint: ModelConstraint): CheckSubject[] => {
-  const found: CheckSubject[] = [];
-  mapConstraintChecks(constraint, (check) => {
-    if (check.subject) {
-      found.push(check.subject);
-    }
-    return check;
-  });
-  return found;
+type PatternSlots = {
+  /** The pattern's X: what holds, or what triggers. */
+  x: Check | null;
+  /** The pattern's Y: what must follow, or what waits. */
+  y: Check | null;
+  /** The whole rule's window, as Always, Never and once take it. */
+  window?: ConstraintWindow;
+  /** T in "Y within T": the nested rule's window. It stays with the response. */
+  within?: ConstraintWindow;
 };
 
+const firstPlain = (items: RuleItem[] | undefined): Check | null =>
+  (items ?? []).find((item): item is Check => !isNestedRule(item)) ?? null;
+
 /**
- * The rule a pattern gives. Subjects already chosen carry into the pattern's
- * slots in order, so switching patterns keeps what maps. Custom keeps the rule.
+ * What a rule puts in each pattern slot. A response reads X from "if" and Y
+ * from the nested rule. "Y only after X" reads Y from the first slot and X
+ * from the second. Any other rule reads X from its first condition.
+ */
+const patternSlots = (constraint: ModelConstraint): PatternSlots => {
+  switch (rulePatternOf({ ...constraint, preset: undefined })) {
+    case "response": {
+      const nested = constraint.checks.find(isNestedRule);
+      return {
+        x: constraint.trigger ?? null,
+        y: firstPlain(nested?.checks),
+        within: nested?.window,
+      };
+    }
+    case "precedence":
+      return {
+        x: firstPlain(constraint.second),
+        y: firstPlain(constraint.checks),
+        window: constraint.window,
+      };
+    default: {
+      const x = constraint.trigger ?? firstCheck(constraint.checks) ?? null;
+      const all: Check[] = [];
+      mapConstraintChecks(constraint, (check) => {
+        all.push(check);
+        return check;
+      });
+      return {
+        x,
+        y: all.find((check) => check !== x && check.subject) ?? null,
+        window: constraint.window,
+      };
+    }
+  }
+};
+
+/** A slot's subject with the pattern's own comparison. */
+const asEvent = (check: Check | null, op: CheckOp, bound: number): Check => ({
+  subject: check?.subject ?? null,
+  op,
+  bound,
+});
+
+/**
+ * The rule a pattern gives. What fills X, Y and T carries into the new
+ * pattern's slots, so switching patterns keeps what maps. A full condition
+ * ("Backorders is below 20") keeps its comparison where the slot takes one.
+ * Custom keeps the rule as it is.
  */
 export const applyPattern = (
   constraint: ModelConstraint,
@@ -649,9 +701,11 @@ export const applyPattern = (
   if (id === "custom") {
     return { ...constraint, preset: "custom" };
   }
-  const subjects = subjectsIn(constraint);
-  const x = subjects[0] ?? null;
-  const y = subjects[1] ?? subjects[0] ?? null;
+  const slots = patternSlots(constraint);
+  // An empty condition fills no slot, so the pattern's own comparison shows.
+  const x = slots.x?.subject ? slots.x : null;
+  const y = slots.y?.subject ? slots.y : null;
+  const window = slots.window;
   const {
     window: _window,
     join: _join,
@@ -661,37 +715,37 @@ export const applyPattern = (
     code: _code,
     ...kept
   } = constraint;
-  const first = constraint.checks.find(
-    (item): item is Check => !isNestedRule(item),
-  );
-  const keepX = (fallback: Check): Check =>
-    first?.subject ? { ...first } : fallback;
+  const held = (fallback: CheckOp): Check =>
+    x ? { ...x } : { subject: null, op: fallback, bound: null };
+  const withWindow = window ? { window } : {};
   switch (id) {
     case "never":
       return {
         ...kept,
+        ...withWindow,
         time: "never",
-        checks: [keepX({ subject: x, op: "above", bound: 0 })],
+        checks: [held("above")],
         preset: id,
       };
     case "once":
       return {
         ...kept,
+        ...withWindow,
         time: "eventually",
-        checks: [keepX({ subject: x, op: "above", bound: 0 })],
+        checks: [held("above")],
         preset: id,
       };
     case "response":
       return {
         ...kept,
         time: "always",
-        trigger: { subject: x, op: "above", bound: 0 },
+        trigger: x ? { ...x } : asEvent(null, "above", 0),
         checks: [
           {
             kind: "rule",
             time: "eventually",
-            window: { kind: "within", to: 2 },
-            checks: [{ subject: y, op: "above", bound: 0 }],
+            window: slots.within ?? { kind: "within", to: 2 },
+            checks: [y ? { ...y } : asEvent(null, "above", 0)],
           },
         ],
         preset: id,
@@ -699,16 +753,18 @@ export const applyPattern = (
     case "precedence":
       return {
         ...kept,
+        ...withWindow,
         time: "weakUntil",
-        checks: [{ subject: y, op: "atMost", bound: 0 }],
-        second: [{ subject: x, op: "above", bound: 0 }],
+        checks: [asEvent(y, "atMost", 0)],
+        second: [asEvent(x, "above", 0)],
         preset: id,
       };
     default:
       return {
         ...kept,
+        ...withWindow,
         time: "always",
-        checks: [keepX({ subject: x, op: "below", bound: null })],
+        checks: [held("below")],
         preset: id,
       };
   }

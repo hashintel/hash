@@ -367,6 +367,12 @@ describe("patterns", () => {
     expect(rulePatternOf({ ...start, checks: [...start.checks, ...start.checks] })).toBe("custom");
   });
 
+  it("keeps Custom once chosen, until another pattern is chosen", () => {
+    const custom = applyPattern(applyPattern(newConstraint("c", "C"), "always"), "custom");
+    expect(rulePatternOf(custom)).toBe("custom");
+    expect(rulePatternOf(applyPattern(custom, "once"))).toBe("once");
+  });
+
   it("keeps the chosen subject when switching patterns", () => {
     const subject: CheckSubject = { kind: "placeTokens", id: net.places[0]!.id };
     const start = { ...newConstraint("c", "C"), checks: [{ subject, op: "below" as const, bound: 20 }] };
@@ -405,5 +411,59 @@ describe("contradictions", () => {
         "any",
       ),
     ).toBe(false);
+  });
+});
+
+describe("pattern conversions", () => {
+  const down: CheckSubject = { kind: "placeTokens", id: "place_machine_down" };
+  const up: CheckSubject = { kind: "placeTokens", id: "place_machine_up" };
+  const response = demo("machines_back_within_2_days");
+  const always = demo("backorders_under_20");
+  const ids = ["always", "never", "once", "response", "precedence"];
+
+  it("lands on the chosen pattern from every pattern", () => {
+    for (const from of ids) {
+      const start = applyPattern(response, from);
+      for (const to of ids) {
+        expect(rulePatternOf(applyPattern(start, to))).toBe(to);
+      }
+    }
+  });
+
+  it("keeps X and Y through a round trip of every pattern", () => {
+    for (const via of ["always", "never", "once", "precedence"]) {
+      const back = applyPattern(applyPattern(response, via), "response");
+      expect(back.trigger?.subject).toEqual(down);
+      if (via === "precedence") {
+        const nested = back.checks[0];
+        expect(nested && "kind" in nested ? nested.checks[0] : null).toMatchObject({ subject: up });
+      }
+    }
+  });
+
+  it("reads X from If and Y from the nested rule of a response", () => {
+    const precedence = applyPattern(response, "precedence");
+    expect(precedence.second?.[0]).toMatchObject({ subject: down, op: "above", bound: 0 });
+    expect(precedence.checks[0]).toMatchObject({ subject: up, op: "atMost", bound: 0 });
+    expect(applyPattern(response, "always").checks[0]).toMatchObject({ subject: down, op: "above", bound: 0 });
+  });
+
+  it("keeps the full condition and the window from Always", () => {
+    const never = applyPattern(always, "never");
+    expect(never.checks[0]).toEqual(always.checks[0]);
+    expect(never.window).toEqual(always.window);
+    const whenever = applyPattern(always, "response");
+    expect(whenever.trigger).toEqual(always.checks[0]);
+  });
+
+  it("keeps T with the response and the rule window with the rest", () => {
+    expect(applyPattern(response, "always").window).toBeUndefined();
+    const fromAlways = applyPattern(always, "response").checks[0];
+    expect(fromAlways && "kind" in fromAlways ? fromAlways.window : null).toEqual({ kind: "within", to: 2 });
+  });
+
+  it("keeps the response window as T", () => {
+    const nested = applyPattern(applyPattern(response, "once"), "response").checks[0];
+    expect(nested && "kind" in nested ? nested.window : null).toEqual({ kind: "within", to: 2 });
   });
 });
