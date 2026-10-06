@@ -737,6 +737,7 @@ __metadata:
     "@tldraw/primitives": "npm:2.0.0-alpha.12"
     "@tldraw/tldraw": "npm:2.0.0-alpha.12"
     "@tldraw/tlvalidate": "npm:2.0.0-alpha.12"
+    "@tsconfig/bases": "npm:1.0.28"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/gapi": "npm:0.0.47"
     "@types/google.accounts": "npm:0.0.18"
@@ -17748,6 +17749,13 @@ __metadata:
     path-browserify: "npm:^1.0.1"
     tinyglobby: "npm:^0.2.14"
   checksum: 10c0/97ab8ca66558b817e5475a8893ee1476ab760a3ac71fa9868413d95ddbaaf909eda81716e3a8d14291cbf449e624af66de81bcddd3ec2e36525728b4edf5e8ee
+  languageName: node
+  linkType: hard
+
+"@tsconfig/bases@npm:1.0.28":
+  version: 1.0.28
+  resolution: "@tsconfig/bases@npm:1.0.28"
+  checksum: 10c0/0f50b3f18dcc93f9f9e22fb39c8261ade004291a0f0ead9d2f82fae7a652a30ed678c5455213b5d91e68d9c4418e26acfdb1a56b5e7901c53f062cfb3282d830
   languageName: node
   linkType: hard
 

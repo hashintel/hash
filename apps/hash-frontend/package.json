@@ -160,6 +160,7 @@
     "@pandacss/dev": "1.11.1",
     "@testing-library/dom": "10.4.1",
     "@testing-library/react": "16.3.2",
+    "@tsconfig/bases": "catalog:",
     "@types/dotenv-flow": "3.3.3",
     "@types/gapi": "0.0.47",
     "@types/google.accounts": "0.0.18",
