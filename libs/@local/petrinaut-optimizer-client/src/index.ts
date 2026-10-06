@@ -13,6 +13,7 @@ export {
   PetrinautOptimizerHttpError,
   petrinautOptimizerHttpErrorFromResponse,
   petrinautOptimizerHttpErrorFromResult,
+  petrinautOptimizerJsonBody,
 } from "./optimizer-http.js";
 export { createServicePetrinautOptimization } from "./service-optimization.js";
 export type {

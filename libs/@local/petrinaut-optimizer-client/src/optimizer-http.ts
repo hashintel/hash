@@ -47,6 +47,12 @@ export type PetrinautOptimizerResult = {
   headers: Headers;
 };
 
+/** Read a JSON object body without assuming the response matches its schema. */
+export const petrinautOptimizerJsonBody = ({
+  data,
+}: PetrinautOptimizerResult): JsonRecord | undefined =>
+  isJsonRecord(data) ? data : undefined;
+
 /** Read the most useful safe message from a failed optimizer response body. */
 const resultErrorMessage = ({ data, status }: PetrinautOptimizerResult) => {
   if (isJsonRecord(data)) {

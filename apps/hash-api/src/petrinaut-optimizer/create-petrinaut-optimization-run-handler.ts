@@ -1,3 +1,5 @@
+import { petrinautOptimizerJsonBody } from "@local/petrinaut-optimizer-client";
+
 import { RESPONSE_START_TIMEOUT_MS } from "./shared/optimization-request-lifecycle";
 import {
   resolveOptimizationRouteContext,
@@ -79,7 +81,11 @@ export const createPetrinautOptimizationRunHandler = ({
         },
         signal: abortController.signal,
       });
-      const runId = created.status === 201 ? created.data.run_id : undefined;
+      const body = petrinautOptimizerJsonBody(created);
+      const runId =
+        created.status === 201 && typeof body?.run_id === "string"
+          ? body.run_id
+          : undefined;
       if (!runId) {
         const durationMs = Date.now() - startedAt;
         const upstreamRunId = created.headers.get("x-optimization-run-id");
@@ -102,7 +108,10 @@ export const createPetrinautOptimizationRunHandler = ({
           // "your account already runs one" from "the service is at
           // capacity", so it is forwarded rather than flattened.
           response.status(429).json({
-            error: created.data.detail || "Petrinaut optimizer is busy",
+            error:
+              typeof body?.detail === "string"
+                ? body.detail
+                : "Petrinaut optimizer is busy",
           });
         } else {
           respondUpstreamFailure(response, false);

@@ -207,6 +207,56 @@ describe("createPetrinautOptimizationRunHandler", () => {
     });
   });
 
+  it.each(["", "null", '{"detail":42}', "Too Many Requests"])(
+    "create_rate_limit_body_%j",
+    async (body) => {
+      const result = await callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler: createHandler({
+          fetchImpl: async () =>
+            new Response(body, {
+              status: 429,
+              headers: {
+                "content-type": "application/json",
+                "retry-after": "30",
+              },
+            }),
+        }),
+      });
+
+      expect(result).toMatchObject({
+        body: { error: "Petrinaut optimizer is busy" },
+        headers: { "Retry-After": "30" },
+        statusCode: 429,
+      });
+    },
+  );
+
+  it.each(["", "null", '{"run_id":42}'])(
+    "create_missing_run_body_%j",
+    async (body) => {
+      const result = await callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler: createHandler({
+          fetchImpl: async () =>
+            new Response(body, {
+              status: 201,
+              headers: {
+                "content-type": "application/json",
+                "x-optimization-run-id": "run-incomplete",
+              },
+            }),
+        }),
+      });
+
+      expect(result).toMatchObject({
+        body: { error: "Petrinaut optimization failed" },
+        headers: { "X-Optimization-Run-ID": "run-incomplete" },
+        statusCode: 502,
+      });
+    },
+  );
+
   it("correlates an upstream failure with the optimizer run id", async () => {
     const { entries, logger } = createRecordingLogger();
     const result = await callOptimizationRunHandler({
