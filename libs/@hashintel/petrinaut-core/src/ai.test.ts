@@ -20,6 +20,7 @@ import {
 } from "./ai";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
+import { isNetId } from "./net-id";
 
 const createHash = nodeCreateHash as unknown as (algorithm: "sha256") => {
   update: (value: string) => { digest: (encoding: "hex") => string };
@@ -189,6 +190,61 @@ describe("Petrinaut AI core exports", () => {
       arcDirection: { enum: ["input", "output"] },
       type: { enum: ["standard", "inhibitor", "read"] },
     });
+  });
+
+  test.each(["input", "output"] as const)(
+    "subnet id inputs export as plain string schemas in %s mode",
+    (io) => {
+      const properties = (
+        toolName: "addSubnet" | "removeSubnet" | "addPlace",
+      ): Record<string, unknown> | undefined =>
+        (
+          z.toJSONSchema(petrinautAiTools[toolName].inputSchema, { io }) as {
+            properties?: Record<string, unknown>;
+          }
+        ).properties;
+
+      expect(properties("addSubnet")?.id).toMatchObject({
+        type: "string",
+        minLength: 1,
+      });
+      expect(properties("removeSubnet")?.subnetId).toMatchObject({
+        type: "string",
+        minLength: 1,
+      });
+      expect(JSON.stringify(properties("addPlace")?.targetSubnetId)).toMatch(
+        /"type":"string"/u,
+      );
+    },
+  );
+
+  test("converts invented subnet ids so later references resolve", () => {
+    const instance = createInstance();
+    const callbacks = createPetrinautAiWritableCallbacks(instance);
+
+    callbacks.addSubnet({
+      id: "subnet-1",
+      name: "Reusable",
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    });
+    callbacks.addPlace({
+      targetSubnetId: "subnet-1",
+      id: "place-1",
+      name: "Inner",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    });
+
+    const [subnet] = instance.definition.get().subnets ?? [];
+    expect(isNetId(subnet?.id)).toBe(true);
+    expect(subnet?.places.map(({ id }) => id)).toEqual(["place-1"]);
   });
 
   test("callback map applies tool inputs to a Petrinaut instance", () => {

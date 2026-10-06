@@ -399,6 +399,13 @@ export {
   type ArcIdPrefix,
 } from "./arc-id";
 export {
+  canonicalizeNetIds,
+  generateNetId,
+  isNetId,
+  PETRINAUT_ID_NAMESPACE,
+  toNetId,
+} from "./net-id";
+export {
   arcEndpointsEqual,
   arcMatchesEndpoint,
   arcReferencesComponentInstance,

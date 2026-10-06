@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { toNetId } from "../net-id";
 import { parseSDCPNFile } from "./parse-sdcpn-file";
 
 const minimalPlace = {
@@ -162,8 +163,9 @@ describe("parseSDCPNFile", () => {
       if (!result.ok) return;
       expect(result.sdcpn.componentInstances?.[0]).toMatchObject({
         id: "instance-1",
-        subnetId: "subnet-1",
+        subnetId: toNetId("subnet-1"),
       });
+      expect(result.sdcpn.subnets?.[0]?.id).toBe(toNetId("subnet-1"));
       expect(result.sdcpn.subnets?.[0]?.places[0]?.isPort).toBe(true);
     });
 
@@ -501,6 +503,39 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.types).toEqual([]);
       expect(result.sdcpn.parameters).toEqual([]);
       expect(result.sdcpn.differentialEquations).toEqual([]);
+    });
+    it("converts subnet ids and their references to the same UUIDs", () => {
+      const result = parseSDCPNFile({
+        ...minimalSDCPN,
+        subnets: [
+          {
+            id: "subnet__a",
+            name: "Reusable",
+            places: [],
+            transitions: [],
+            types: [],
+            differentialEquations: [],
+            parameters: [],
+          },
+        ],
+        componentInstances: [
+          {
+            id: "instance-1",
+            name: "Instance",
+            subnetId: "subnet__a",
+            parameterValues: {},
+            x: 0,
+            y: 0,
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.subnets?.[0]?.id).toBe(toNetId("subnet__a"));
+      expect(result.sdcpn.componentInstances?.[0]?.subnetId).toBe(
+        toNetId("subnet__a"),
+      );
     });
   });
 

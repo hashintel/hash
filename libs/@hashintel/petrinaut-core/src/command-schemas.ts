@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { clipboardPayloadSchema } from "./clipboard/types";
+import { subnetIdSchema } from "./schemas/entity-schemas";
 
 /**
  * AI-callable commands. Keys MUST also appear in
@@ -38,7 +39,7 @@ export const commandActionInputSchemas = {
   ...aiCommandActionInputSchemas,
   applyClipboardPaste: z.strictObject({
     payload: clipboardPayloadSchema,
-    targetSubnetId: z.string().min(1).nullable().optional(),
+    targetSubnetId: subnetIdSchema.nullable().optional(),
   }),
 } as const;
 

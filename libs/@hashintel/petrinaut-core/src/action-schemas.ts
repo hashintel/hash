@@ -14,6 +14,7 @@ import {
   parameterSchema,
   placeSchema,
   positionSchema,
+  subnetIdSchema,
   subnetSchema,
   transitionSchema,
 } from "./schemas/entity-schemas";
@@ -34,6 +35,7 @@ export {
   parameterSchema,
   placeSchema,
   positionSchema,
+  subnetIdSchema,
   subnetSchema,
   transitionSchema,
 } from "./schemas/entity-schemas";
@@ -139,7 +141,7 @@ export const subnetUpdateSchema = subnetSchema
       "Fields to assign to an existing subnet. Omitted fields are left unchanged.",
   });
 
-const targetSubnetIdSchema = idSchema.nullable().optional().meta({
+const targetSubnetIdSchema = subnetIdSchema.nullable().optional().meta({
   description:
     "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
 });
@@ -486,11 +488,11 @@ export const mutationActionInputSchemas = {
   }),
   updateSubnet: z
     .strictObject({
-      subnetId: idSchema,
+      subnetId: subnetIdSchema,
       update: subnetUpdateSchema,
     })
     .meta({ description: "Update fields on an existing subnet." }),
-  removeSubnet: z.strictObject({ subnetId: idSchema }).meta({
+  removeSubnet: z.strictObject({ subnetId: subnetIdSchema }).meta({
     description:
       "Remove a subnet definition and component instances that reference it.",
   }),
