@@ -42,11 +42,19 @@ export const executePetrinautAiMutation = ({
     throw new Error(`Unsupported Petrinaut mutation: ${aiToolCall.toolName}`);
   }
 
-  const summary = summarizePetrinautAiToolCall(aiToolCall, { definition });
-  const callback = mutations[aiToolCall.toolName] as (
-    input: typeof aiToolCall.input,
+  // Parsed first, so the summary's targets carry the converted ids the
+  // mutation stores, not the ids the assistant wrote.
+  const parsedCall = {
+    ...aiToolCall,
+    input: mutationActionInputSchemas[aiToolCall.toolName].parse(
+      aiToolCall.input,
+    ),
+  } as PetrinautAiMutationCall;
+  const summary = summarizePetrinautAiToolCall(parsedCall, { definition });
+  const callback = mutations[parsedCall.toolName] as (
+    input: typeof parsedCall.input,
   ) => void;
-  callback(aiToolCall.input);
+  callback(parsedCall.input);
 
   // Only the unchanged document is observed here. The mutation may have
   // declined for a reason narrower than "already present" (an arc between the

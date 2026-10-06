@@ -69,7 +69,10 @@ describe("executePetrinautAiMutation", () => {
     ).toEqual({
       applied: true,
       title: "Added place Queue",
-      target: { kind: "selection", item: { type: "place", id: "queue" } },
+      target: {
+        kind: "selection",
+        item: { type: "place", id: toPetrinautId("queue") },
+      },
     });
     const addArcCall = {
       toolName: "addArc" as const,
