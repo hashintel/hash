@@ -3,9 +3,8 @@
  * @role Serialises a selection and pastes it back, resolving name collisions
  */
 
-import { v4 as generateUuid } from "uuid";
-
 import { getArcEndpointPlaceId } from "../arc-endpoints";
+import { generatePetrinautId } from "../petrinaut-id";
 import { deduplicateName } from "./deduplicate-name";
 
 import type { SDCPN, Subnet } from "../types/sdcpn";
@@ -48,19 +47,19 @@ export function pastePayloadIntoSDCPN(
 
   // Pre-generate all new IDs
   for (const place of data.places) {
-    idMap.set(place.id, `place__${generateUuid()}`);
+    idMap.set(place.id, generatePetrinautId());
   }
   for (const transition of data.transitions) {
-    idMap.set(transition.id, `transition__${generateUuid()}`);
+    idMap.set(transition.id, generatePetrinautId());
   }
   for (const type of data.types) {
-    idMap.set(type.id, generateUuid());
+    idMap.set(type.id, generatePetrinautId());
   }
   for (const equation of data.differentialEquations) {
-    idMap.set(equation.id, generateUuid());
+    idMap.set(equation.id, generatePetrinautId());
   }
   for (const parameter of data.parameters) {
-    idMap.set(parameter.id, generateUuid());
+    idMap.set(parameter.id, generatePetrinautId());
   }
 
   // Paste types
@@ -75,7 +74,7 @@ export function pastePayloadIntoSDCPN(
       name: newName,
       elements: type.elements.map((el) => ({
         ...el,
-        elementId: generateUuid(),
+        elementId: generatePetrinautId(),
       })),
     });
     newItemIds.push({ type: "type", id: newId });

@@ -2,7 +2,7 @@ import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
-import { metricSchema } from "@hashintel/petrinaut-core";
+import { generatePetrinautId, metricSchema } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
@@ -101,7 +101,7 @@ const CreateMetricContent = ({ onClose }: { onClose: () => void }) => {
   const form = useMetricForm(
     EMPTY_METRIC_FORM_STATE,
     (value, ctx) => {
-      const metric = buildMetricFromFormState(value, crypto.randomUUID());
+      const metric = buildMetricFromFormState(value, generatePetrinautId());
       const result = metricSchema.safeParse(metric);
       if (!result.success) {
         return;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { isPetrinautId } from "../petrinaut-id";
 import { pastePayloadIntoSDCPN } from "./paste";
 
 import type { SDCPN } from "../types/sdcpn";
@@ -63,7 +64,7 @@ describe("paste — ID generation", () => {
 
     expect(sdcpn.places).toHaveLength(1);
     expect(sdcpn.places[0]!.id).not.toBe("place__old");
-    expect(sdcpn.places[0]!.id).toMatch(/^place__/);
+    expect(isPetrinautId(sdcpn.places[0]!.id)).toBe(true);
     expect(newItemIds).toHaveLength(1);
     expect(newItemIds[0]!.type).toBe("place");
     expect(newItemIds[0]!.id).toBe(sdcpn.places[0]!.id);
@@ -90,7 +91,7 @@ describe("paste — ID generation", () => {
     pastePayloadIntoSDCPN(sdcpn, payload);
 
     expect(sdcpn.transitions[0]!.id).not.toBe("transition__old");
-    expect(sdcpn.transitions[0]!.id).toMatch(/^transition__/);
+    expect(isPetrinautId(sdcpn.transitions[0]!.id)).toBe(true);
   });
 
   it("assigns new IDs to pasted types and their elements", () => {
