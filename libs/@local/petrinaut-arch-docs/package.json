@@ -39,6 +39,7 @@
     "oxlint": "1.63.0",
     "tsx": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:"
   }
 }

@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@earendil-works/pi-ai": "0.83.0",
-    "@fast-check/vitest": "0.4.1",
+    "@fast-check/vitest": "catalog:",
     "@flue/runtime": "2.0.3",
     "@local/tsconfig": "workspace:*",
     "@tanstack/router-generator": "1.167.32",
