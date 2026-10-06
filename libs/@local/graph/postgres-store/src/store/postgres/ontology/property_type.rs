@@ -49,7 +49,7 @@ use type_system::{
 };
 
 use crate::store::{
-    error::DeletionError,
+    error::{DeletionError, OntologyVersionDoesNotExist},
     postgres::{
         AsClient, GenericClientIter as _, PostgresStore, TransactionState, TraversalContext,
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
@@ -869,8 +869,9 @@ where
                         .id
                         .version
                         .major
-                        .checked_sub(1)
-                        .ok_or(UpdateError)
+                        .previous()
+                        .change_context(OntologyVersionDoesNotExist)
+                        .change_context(UpdateError)
                         .attach(
                             "The version of the property type is already at the lowest possible \
                              value",

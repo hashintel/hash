@@ -334,7 +334,9 @@ export const createLiveConversation = (
         if (report.type === "inbound-rtp") outputLevel = report.audioLevel;
       });
     } catch {
-      // Optional telemetry must not affect the session lifetime.
+      // A failed sample reads as inaudible output. The short-during-output
+      // filter and echo checks depend on this sampling, but its failure must
+      // not end the session.
     }
     if (abort.signal.aborted) return;
     activityTimer = setTimeout(() => void sampleActivity(), 100);

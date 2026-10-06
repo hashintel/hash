@@ -21,7 +21,7 @@ use type_system::{
             PropertyPath, PropertyWithMetadata,
         },
     },
-    ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
     principal::{actor::ActorType, actor_group::WebId},
     provenance::{OriginProvenance, OriginType},
 };
@@ -72,7 +72,7 @@ async fn insert() {
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion {
-                        major: 1,
+                        major: OntologyTypeMajorVersion::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -146,7 +146,7 @@ async fn query() {
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion {
-                        major: 1,
+                        major: OntologyTypeMajorVersion::MIN,
                         pre_release: None,
                     },
                 }]),
@@ -218,7 +218,7 @@ async fn public_actor_reads_only_publicly_permitted_entities() {
             )
             .expect("couldn't construct Base URL"),
             version: OntologyTypeVersion {
-                major: 1,
+                major: OntologyTypeMajorVersion::MIN,
                 pre_release: None,
             },
         }]),
@@ -352,7 +352,7 @@ async fn update() {
                     )
                     .expect("couldn't construct Base URL"),
                     version: OntologyTypeVersion {
-                        major: 1,
+                        major: OntologyTypeMajorVersion::MIN,
                         pre_release: None,
                     },
                 }]),

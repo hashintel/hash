@@ -10,7 +10,6 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
   compareOntologyTypeVersions,
   extractVersion,
-  makeOntologyTypeVersion,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
@@ -331,9 +330,7 @@ export const DataType = ({
     throw new Error("Cannot render data type without data type");
   }
 
-  const currentVersion = draftNewDataType
-    ? makeOntologyTypeVersion({ major: 0 })
-    : extractVersion(dataType.schema.$id);
+  const currentVersion = extractVersion(dataType.schema.$id);
 
   const isLatest = !requestedVersion || requestedVersion === latestVersion;
 
@@ -374,6 +371,7 @@ export const DataType = ({
           {!isReadOnly && (
             <EditBarTypeEditor
               currentVersion={currentVersion}
+              isDraft={isDraft}
               discardButtonProps={
                 // @todo confirmation of discard when draft
                 isDraft

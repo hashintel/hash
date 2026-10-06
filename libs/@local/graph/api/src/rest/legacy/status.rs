@@ -13,6 +13,7 @@ use hash_graph_postgres_store::store::error::BaseUrlAlreadyExists;
 use hash_graph_store::entity::EntityValidationReport;
 use hash_status::{Status as HashStatus, StatusCode};
 use serde::{Deserialize, Serialize};
+use type_system::ontology::id::OntologyTypeMajorVersionError;
 
 /// Generalized information about an error, covering its cause, its origin and a collection of
 /// weakly-typed metadata.
@@ -106,6 +107,8 @@ where
         .unwrap_or_else(|| {
             if report.contains::<BaseUrlAlreadyExists>() {
                 StatusCode::AlreadyExists
+            } else if report.contains::<OntologyTypeMajorVersionError>() {
+                StatusCode::InvalidArgument
             } else {
                 StatusCode::Unknown
             }
@@ -161,5 +164,45 @@ where
             );
         }
         status_to_response(HashStatus::new(status_code, Some(message), vec![report]))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::{body::to_bytes, response::IntoResponse as _};
+    use type_system::ontology::id::OntologyTypeMajorVersion;
+
+    use super::report_to_response;
+
+    #[tokio::test]
+    async fn report_version_overflow() {
+        let report = OntologyTypeMajorVersion::MAX
+            .next()
+            .expect_err("the maximum version should have no successor");
+        let response = report_to_response(report).into_response();
+        assert_eq!(
+            response.status(),
+            axum::http::StatusCode::BAD_REQUEST,
+            "version overflow should be a client error"
+        );
+        let body = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("the error response should be readable");
+        let status: serde_json::Value =
+            serde_json::from_slice(&body).expect("the error response should contain JSON");
+        assert_eq!(
+            status["code"], "INVALID_ARGUMENT",
+            "overflow should retain its status code"
+        );
+        assert_eq!(
+            status["message"], "Type version cannot be incremented beyond 4294967295",
+            "overflow should retain its error message"
+        );
+        assert!(
+            status["contents"]
+                .as_array()
+                .is_some_and(|contents| !contents.is_empty()),
+            "the response should include the structured error report"
+        );
     }
 }

@@ -55,17 +55,19 @@ test("prompt regurgitation is shadow-only and never logs the taught vocabulary",
 
 test("sends when no stage skips", () => {
   expect(
-    routeUtterance(input, [{ name: "probe", mode: "on", skip: () => null }]),
+    routeUtterance(input, [
+      { reason: "empty", mode: "on", skips: () => false },
+    ]),
   ).toBeNull();
 });
 
 test("the first stage that is on and skips decides; later stages never run", () => {
-  const later = vi.fn(() => "empty" as const);
+  const later = vi.fn(() => true);
   expect(
     routeUtterance(input, [
-      { name: "quiet", mode: "on", skip: () => null },
-      { name: "decides", mode: "on", skip: () => "short-during-output" },
-      { name: "later", mode: "on", skip: later },
+      { reason: "echo", mode: "on", skips: () => false },
+      { reason: "short-during-output", mode: "on", skips: () => true },
+      { reason: "empty", mode: "on", skips: later },
     ]),
   ).toBe("short-during-output");
   expect(later).not.toHaveBeenCalled();
@@ -76,20 +78,19 @@ test("a shadow stage traces what it would skip without deciding", () => {
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   expect(
     routeUtterance(input, [
-      { name: "trial", mode: "shadow", skip: () => "empty" },
-      { name: "decides", mode: "on", skip: () => "short-during-output" },
+      { reason: "empty", mode: "shadow", skips: () => true },
+      { reason: "short-during-output", mode: "on", skips: () => true },
     ]),
   ).toBe("short-during-output");
   const records = traceRecords(debug.mock.calls);
   expect(records).toMatchObject([
-    { event: "filter.shadow", inputId: "one", stage: "trial", reason: "empty" },
+    { event: "filter.shadow", inputId: "one", reason: "empty" },
   ]);
   expect(Object.keys(records[0] ?? {}).sort()).toEqual([
     "at",
     "event",
     "inputId",
     "reason",
-    "stage",
   ]);
   expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
 });
@@ -99,22 +100,22 @@ test("a shadow stage that would not skip leaves no trace", () => {
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   expect(
     routeUtterance(input, [
-      { name: "trial", mode: "shadow", skip: () => null },
+      { reason: "empty", mode: "shadow", skips: () => false },
     ]),
   ).toBeNull();
   expect(debug).not.toHaveBeenCalled();
 });
 
 test("a stage that is off never runs", () => {
-  const off = vi.fn(() => "empty" as const);
+  const off = vi.fn(() => true);
   expect(
-    routeUtterance(input, [{ name: "off", mode: "off", skip: off }]),
+    routeUtterance(input, [{ reason: "empty", mode: "off", skips: off }]),
   ).toBeNull();
   expect(off).not.toHaveBeenCalled();
 });
 
 test("stages see Live's words when the speech overlapped its output", () => {
-  const skip = vi.fn(() => null);
+  const skips = vi.fn(() => false);
   routeUtterance(
     {
       id: "one",
@@ -122,9 +123,9 @@ test("stages see Live's words when the speech overlapped its output", () => {
       startedDuringOutput: true,
       liveOutputText: "Okay?",
     },
-    [{ name: "probe", mode: "on", skip }],
+    [{ reason: "empty", mode: "on", skips }],
   );
-  expect(skip).toHaveBeenCalledWith({
+  expect(skips).toHaveBeenCalledWith({
     inputId: "one",
     text: "Okay",
     words: 1,
@@ -140,11 +141,11 @@ test.each([
 ])(
   "stages see %j with its word count, counting contractions as one word",
   (text, startedDuringOutput, words) => {
-    const skip = vi.fn(() => null);
+    const skips = vi.fn(() => false);
     routeUtterance({ id: "one", text, startedDuringOutput }, [
-      { name: "probe", mode: "on", skip },
+      { reason: "empty", mode: "on", skips },
     ]);
-    expect(skip).toHaveBeenCalledWith({
+    expect(skips).toHaveBeenCalledWith({
       inputId: "one",
       text,
       words,
@@ -154,12 +155,12 @@ test.each([
 );
 
 test("stages see the transcript's lowest token log probability", () => {
-  const skip = vi.fn(() => null);
+  const skips = vi.fn(() => false);
   routeUtterance(
     { id: "one", text: "Okay", startedDuringOutput: false, minLogprob: -2.5 },
-    [{ name: "probe", mode: "on", skip }],
+    [{ reason: "empty", mode: "on", skips }],
   );
-  expect(skip).toHaveBeenCalledWith({
+  expect(skips).toHaveBeenCalledWith({
     inputId: "one",
     text: "Okay",
     words: 1,
@@ -172,7 +173,7 @@ const doubtfulShadows = (calls: readonly (readonly unknown[])[]) =>
   traceRecords(calls).filter(
     (record) =>
       record.event === "filter.shadow" &&
-      record.stage === "doubtful-short-during-output",
+      record.reason === "doubtful-short-during-output",
   );
 
 test.each([
