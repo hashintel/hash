@@ -67,6 +67,10 @@ const settledResult = (context: Context, toolName: string) => {
   );
   assert(result?.role === "toolResult" && !result.isError);
 };
+/** The browser stamps calls with a SHA-256 hash of the document's content. */
+const assertContentRevision = (revision: string | undefined) => {
+  assert.match(revision ?? "", /^[0-9a-f]{64}$/u);
+};
 
 /** Canonical construction and compiler diagnostics, settled into browser storage and Flue history. */
 const canonicalConstruction = async () => {
@@ -159,6 +163,7 @@ const canonicalConstruction = async () => {
   const before = call("read-before");
   const repair = call("equation-repair");
   const after = call("read-after");
+  assertContentRevision(before.revisionBefore);
   assert.equal(before.revisionAfter, undefined);
   assert.equal(call("type-1").revisionBefore, before.revisionBefore);
   assert.equal(isAppliedChange(call("place-1")), true);
@@ -170,7 +175,8 @@ const canonicalConstruction = async () => {
     call("diagnostics-clean").output,
     "No errors or warnings found in net function code. Scenario and metric compilation is checked when creating an experiment.",
   );
-  assert(repair.revisionAfter);
+  assertContentRevision(repair.revisionAfter);
+  assert.notEqual(repair.revisionAfter, repair.revisionBefore);
   assert.equal(after.revisionBefore, repair.revisionAfter);
   assert.equal(after.revisionAfter, undefined);
   assert.deepEqual(
@@ -180,12 +186,10 @@ const canonicalConstruction = async () => {
     ["store"],
   );
   const stored = await fixture.storedDocument<{
-    revisionId: string;
     incarnationId: string;
     sdcpn: SDCPN;
   }>(page, binding.documentId);
   assert.equal(stored?.incarnationId, binding.incarnationId);
-  assert.equal(stored.revisionId, repair.revisionAfter);
   assert.deepEqual(
     stored.sdcpn.differentialEquations.map(({ id, code }) => ({ id, code })),
     [{ id: "decay", code: repairedCode }],
@@ -229,8 +233,8 @@ const directExperiment = async () => {
     ({ toolCallId }) => toolCallId === openaiCallId("experiment-1"),
   );
   assert(read && result);
-  assert.equal(read.revisionBefore, "experiment-net-revision");
-  assert.equal(result.revisionBefore, "experiment-net-revision");
+  assertContentRevision(read.revisionBefore);
+  assert.equal(result.revisionBefore, read.revisionBefore);
   assert.equal(result.revisionAfter, undefined);
   assert.deepEqual(result.input, experiment);
   assert.equal((result.output as { status: string }).status, "complete");

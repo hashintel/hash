@@ -1,15 +1,16 @@
 import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
 import { usePersistedState } from "./use-persisted-state";
 
-import type { DocumentRevisionId, SDCPN } from "@hashintel/petrinaut-core";
+import type { RecordRevisionId } from "./documents/document-repository";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
 export type SDCPNInLocalStorage = {
   /** Assigned when a construction-bound document is created or first opened. */
   incarnationId?: string;
-  /** Petrinaut revision retained when the document handle is reopened. */
-  revisionId?: DocumentRevisionId;
+  /** The last write to this record; the next write must name it as predecessor. */
+  revisionId?: RecordRevisionId;
   id: string;
   lastUpdated: string; // ISO timestamp
   sdcpn: SDCPN;

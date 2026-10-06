@@ -250,6 +250,7 @@ export { DefaultChatTransport } from "ai";
 // SDCPN value-equality check exposed for consumers that need to detect
 // no-op changes outside the handle (e.g. memoising Storybook stories).
 export { isSDCPNEqual } from "@hashintel/petrinaut-core";
+export { hashPetrinautDocument } from "./lib/hash-petrinaut-document";
 
 // Viewport action — shape consumers use to add custom buttons to the
 // viewport-controls panel. Lives in /ui because it carries `React.ReactNode`.

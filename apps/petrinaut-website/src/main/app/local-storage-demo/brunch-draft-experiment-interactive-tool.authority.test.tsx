@@ -11,6 +11,7 @@ import {
   createCanonicalPetrinautHostTools,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
 } from "./brunch-petrinaut-tools";
+import { documentRevisionOf } from "./shared/document-revision";
 
 import type { FlueConversationState } from "@flue/sdk";
 
@@ -93,6 +94,8 @@ const history = async () => {
     signal: new AbortController().signal,
   });
   const metadata = await host.clientToolResultMetadataFor("read-1", output);
+  const definition = instance.handle.doc();
+  if (!definition) throw new Error("The test document is unavailable.");
   const readCall = {
     type: "dynamic-tool",
     toolCallId: "read-1",
@@ -107,7 +110,7 @@ const history = async () => {
   ];
   return {
     snapshot: { messages } as FlueConversationState,
-    revision: instance.handle.revisionId.get(),
+    revision: documentRevisionOf(definition),
   };
 };
 

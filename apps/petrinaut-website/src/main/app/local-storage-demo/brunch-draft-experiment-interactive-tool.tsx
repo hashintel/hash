@@ -40,6 +40,7 @@ import {
   type PreparedExperiment,
   resetEditorDrafts,
 } from "./shared/brunch-draft-experiment-drafts";
+import { documentRevisionOf } from "./shared/document-revision";
 
 import type { createInBandBrowserCalls } from "./in-band-browser-call";
 import type { FlueConversationState } from "@flue/sdk";
@@ -315,7 +316,8 @@ export const BrunchDraftExperimentWidget = ({
         const latestDefinition = instance.handle.doc();
         if (latestDefinition) definition = latestDefinition;
         outcome =
-          latestDefinition && instance.handle.revisionId.get() === readRevision
+          latestDefinition &&
+          documentRevisionOf(latestDefinition) === readRevision
             ? prepareOrExplain(input.experiment, definition, readTitle())
             : {
                 prepared: null,

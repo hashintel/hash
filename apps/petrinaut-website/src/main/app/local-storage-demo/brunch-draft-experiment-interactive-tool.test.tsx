@@ -33,6 +33,7 @@ import {
 } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
 import { editorDraftsFor } from "./shared/brunch-draft-experiment-drafts";
+import { documentRevisionOf } from "./shared/document-revision";
 
 // The `/ui` entry pulls in chart code that probes `matchMedia` at import time.
 vi.hoisted(() => {
@@ -168,6 +169,12 @@ const finishedResult: PetrinautExperimentResult = {
   metrics: [],
 };
 
+const revisionOfHandle = (instance: Petrinaut) => {
+  const definition = instance.handle.doc();
+  if (!definition) throw new Error("The test document is unavailable.");
+  return documentRevisionOf(definition);
+};
+
 const renderWidget = ({
   input,
   toolCallId,
@@ -204,10 +211,7 @@ const renderWidget = ({
     suppliedInstance ??
     ({
       definition,
-      handle: {
-        doc: () => definition.get(),
-        revisionId: { get: () => "test-revision" },
-      },
+      handle: { doc: () => definition.get() },
     } as unknown as Petrinaut);
   const host: PetrinautExperimentHost = { runExperiment };
   const optimizationActions = {
@@ -237,7 +241,7 @@ const renderWidget = ({
         input={input}
         readTitle={() => "Support desk"}
         readDraftAuthority={
-          readDraftAuthority ?? (async () => instance.handle.revisionId.get())
+          readDraftAuthority ?? (async () => revisionOfHandle(instance))
         }
         submit={() => {}}
         claimAndSubmit={claimAndSubmit}
@@ -468,7 +472,7 @@ describe("BrunchDraftExperimentWidget", () => {
     const runExperiment = vi.fn(() => Promise.resolve(finishedResult));
     const { submit } = renderWidget({
       input: makeInput(),
-      readDraftAuthority: async () => instance.handle.revisionId.get(),
+      readDraftAuthority: async () => revisionOfHandle(instance),
       toolCallId: "metric-before-scenario",
       state: awaiting,
       definition: instance.definition,
@@ -528,7 +532,7 @@ describe("BrunchDraftExperimentWidget", () => {
       state: awaiting,
       definition: createReadableStore(changed),
       runExperiment,
-      readDraftAuthority: async () => "previous-revision",
+      readDraftAuthority: async () => documentRevisionOf(makeDefinition()),
     });
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
@@ -542,7 +546,9 @@ describe("BrunchDraftExperimentWidget", () => {
 
   it("claims the issued call before it reads draft authority, so the lease covers preparation", async () => {
     const claim = Promise.withResolvers<void>();
-    const readDraftAuthority = vi.fn(async () => "test-revision");
+    const readDraftAuthority = vi.fn(async () =>
+      documentRevisionOf(makeDefinition()),
+    );
     const { submit } = renderWidget({
       input: makeInput(),
       toolCallId: "claim-before-authority",
@@ -584,14 +590,10 @@ describe("BrunchDraftExperimentWidget", () => {
   it("rechecks the live handle after the asynchronous history fetch", async () => {
     const original = makeDefinition();
     let liveDefinition = original;
-    let liveRevision = "test-revision";
     const definition = createReadableStore(original);
     const instance = {
       definition,
-      handle: {
-        doc: () => liveDefinition,
-        revisionId: { get: () => liveRevision },
-      },
+      handle: { doc: () => liveDefinition },
     } as unknown as Petrinaut;
     const { submit } = renderWidget({
       input: makeInput(),
@@ -603,8 +605,7 @@ describe("BrunchDraftExperimentWidget", () => {
       readDraftAuthority: async () => {
         liveDefinition = structuredClone(original);
         liveDefinition.metrics![0]!.code = "return 3;";
-        liveRevision = "later-revision";
-        return "test-revision";
+        return documentRevisionOf(original);
       },
     });
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
@@ -612,14 +613,49 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
   });
 
+  it("accepts a draft when the model was edited and restored to the content it read", async () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        id: "restored-model",
+        initial: makeDefinition(),
+      }),
+    });
+    const readRevision = revisionOfHandle(instance);
+    const metricId = "metric__average_waiting_time";
+    let editedRevision: string | undefined;
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "restored-during-history-fetch",
+      state: awaiting,
+      definition: instance.definition,
+      instance,
+      runExperiment: vi.fn(),
+      readDraftAuthority: async () => {
+        instance.mutations.updateMetric({
+          metricId,
+          update: { code: "return 3;" },
+        });
+        editedRevision = revisionOfHandle(instance);
+        instance.mutations.updateMetric({
+          metricId,
+          update: { code: "return 1;" },
+        });
+        return readRevision;
+      },
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(editedRevision).toBeDefined();
+    expect(editedRevision).not.toBe(readRevision);
+    expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "drafted" });
+    expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
+    instance.dispose();
+  });
+
   it("reports an unavailable browser document without claiming or submitting", async () => {
     const definition = createReadableStore(makeDefinition());
     const instance = {
       definition,
-      handle: {
-        doc: () => undefined,
-        revisionId: { get: () => "test-revision" },
-      },
+      handle: { doc: () => undefined },
     } as unknown as Petrinaut;
     const claim = vi.fn(async () => {});
     const { submit } = renderWidget({

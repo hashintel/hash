@@ -74,7 +74,6 @@ export {
   type DocChangeEvent,
   type DocHandleState,
   type DocumentId,
-  type DocumentRevisionId,
   type EventStream,
   type HistoryEntry,
   type MinimalNetMetadata,
@@ -105,6 +104,7 @@ export {
   type Transition,
   type WorkerFactory,
 } from "@hashintel/petrinaut-core";
+export { hashPetrinautDocument } from "./ui/lib/hash-petrinaut-document";
 export { Petrinaut } from "./ui/petrinaut";
 export type {
   PetrinautAiAssistant,

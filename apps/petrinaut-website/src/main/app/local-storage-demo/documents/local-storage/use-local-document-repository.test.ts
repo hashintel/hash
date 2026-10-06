@@ -4,8 +4,19 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { documentRevisionOf } from "../../shared/document-revision";
 import { startEmptyNetInStorage } from "../../use-local-storage-sdcpns";
 import { useLocalDocumentRepository } from "./use-local-document-repository";
+
+import type { SDCPN } from "@hashintel/petrinaut-core";
+
+// Content revisions are hashed by the Petrinaut UI package, whose modules read
+// browser capabilities while they load.
+await vi.hoisted(async () => {
+  const { installPetrinautDomShims } =
+    await import("../../../shared/petrinaut-jsdom");
+  installPetrinautDomShims();
+});
 
 const emptyDefinition = {
   places: [],
@@ -13,6 +24,21 @@ const emptyDefinition = {
   types: [],
   parameters: [],
   differentialEquations: [],
+};
+
+const placedDefinition: SDCPN = {
+  ...emptyDefinition,
+  places: [
+    {
+      id: "place-1",
+      name: "Place",
+      x: 0,
+      y: 0,
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+    },
+  ],
 };
 
 const stubStorage = (initial?: Record<string, unknown>) => {
@@ -246,7 +272,7 @@ describe("useLocalDocumentRepository", () => {
     });
   });
 
-  test("settles an available local revision immediately", async () => {
+  test("settles the content revision of the stored definition immediately", async () => {
     stubStorage({
       "document-1": {
         id: "document-1",
@@ -264,7 +290,7 @@ describe("useLocalDocumentRepository", () => {
     await expect(
       result.current.repository.settleRevision({
         documentId: "document-1",
-        revisionId: "revision-1",
+        revision: documentRevisionOf(emptyDefinition),
       }),
     ).resolves.toBeUndefined();
   });
@@ -287,12 +313,14 @@ describe("useLocalDocumentRepository", () => {
     await expect(
       result.current.repository.settleRevision({
         documentId: "document-1",
-        revisionId: "unpersisted-revision",
+        revision: documentRevisionOf(placedDefinition),
       }),
-    ).rejects.toThrow("has not persisted revision");
+    ).rejects.toThrow(
+      `Local document document-1 has not persisted revision ${documentRevisionOf(placedDefinition)}.`,
+    );
   });
 
-  test("settles only the revision that persistRevision just recorded", async () => {
+  test("settles the content revision of the definition persistRevision just wrote and no other", async () => {
     stubStorage({
       "document-1": {
         id: "document-1",
@@ -306,27 +334,38 @@ describe("useLocalDocumentRepository", () => {
     const { result } = renderHook(() =>
       useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
+    const { repository } = result.current;
 
+    // The repository read before the write has not re-rendered with it, so
+    // settlement must see the write the moment `persistRevision` makes it.
     await act(async () => {
-      await result.current.repository.persistRevision({
+      await repository.persistRevision({
         documentId: "document-1",
         incarnationId: "incarnation-1",
-        definition: emptyDefinition,
+        definition: placedDefinition,
         previousRevisionId: "revision-1",
         revisionId: "revision-2",
       });
+      await expect(
+        repository.settleRevision({
+          documentId: "document-1",
+          revision: documentRevisionOf(placedDefinition),
+        }),
+      ).resolves.toBeUndefined();
     });
 
     await expect(
       result.current.repository.settleRevision({
         documentId: "document-1",
-        revisionId: "revision-1",
+        revision: documentRevisionOf(emptyDefinition),
       }),
     ).rejects.toThrow("has not persisted revision");
     await expect(
       result.current.repository.settleRevision({
         documentId: "document-1",
-        revisionId: "revision-2",
+        revision: documentRevisionOf(
+          JSON.parse(JSON.stringify(placedDefinition)) as SDCPN,
+        ),
       }),
     ).resolves.toBeUndefined();
   });

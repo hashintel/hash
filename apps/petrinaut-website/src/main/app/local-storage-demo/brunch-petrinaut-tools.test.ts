@@ -12,6 +12,7 @@ import {
   issuedCanonicalCallsFromHistory,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
 } from "./brunch-petrinaut-tools";
+import { documentRevisionOf } from "./shared/document-revision";
 
 import type { PetrinautAiAutomaticToolExecuteParams } from "@hashintel/petrinaut/ui";
 
@@ -85,22 +86,27 @@ const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
     viewport: { frameSceneAfterRender: async () => "framed" },
     signal: new AbortController().signal,
   });
-  return { adapter, instance, settleRevision, tool, params };
+  const revision = () => {
+    const definition = instance.handle.doc();
+    if (!definition) throw new Error("The test document is unavailable.");
+    return documentRevisionOf(definition);
+  };
+  return { adapter, instance, settleRevision, tool, params, revision };
 };
 
 describe("canonical browser revision attribution", () => {
   test("returns the canonical read unchanged with the revision it observed", async () => {
-    const { adapter, instance, tool, params } = setup();
-    const before = instance.handle.revisionId.get();
+    const { adapter, tool, params } = setup();
     const output = tool("getLatestNetDefinition").execute(params({}, "read"));
     expect(output).toMatchObject({ title: "Untitled", definition: emptyNet });
     expect(await adapter.clientToolResultMetadataFor("read", output)).toEqual({
-      documentRevision: { before },
+      documentRevision: { before: documentRevisionOf(emptyNet) },
     });
   });
   test("settles an applied mutation once and leaves a no-op at its prior revision", async () => {
-    const { adapter, instance, settleRevision, tool, params } = setup();
-    const before = instance.handle.revisionId.get();
+    const { adapter, instance, settleRevision, tool, params, revision } =
+      setup();
+    const before = revision();
     adapter.mapClientToolInput({
       toolName: "addPlace",
       toolCallId: "create",
@@ -108,14 +114,14 @@ describe("canonical browser revision attribution", () => {
     });
     const applied = tool("addPlace").execute(params(place, "create"));
     expect(applied).not.toMatchObject({ applied: false });
-    const after = instance.handle.revisionId.get();
+    const after = revision();
     expect(after).not.toBe(before);
     expect(
       await adapter.clientToolResultMetadataFor("create", applied),
     ).toEqual({ documentRevision: { before, after } });
     expect(settleRevision).toHaveBeenCalledWith({
       documentId: "document",
-      revisionId: after,
+      revision: after,
     });
     adapter.mapClientToolInput({
       toolName: "addPlace",
