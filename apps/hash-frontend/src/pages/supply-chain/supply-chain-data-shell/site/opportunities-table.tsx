@@ -490,6 +490,7 @@ export const OpportunitiesTable = ({
                 onSort(sortFromMenu(key, direction))
               }
               align="right"
+              position="bottom-end"
               size="xs"
             />
           </div>

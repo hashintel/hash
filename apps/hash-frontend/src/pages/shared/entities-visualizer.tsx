@@ -41,6 +41,7 @@ import {
   type SummarySource,
   useAvailableTypes,
 } from "./entities-visualizer/shared/use-available-types";
+import { sortMenuTriggerChrome } from "./entities-visualizer/sort-menu-chrome";
 import { useEntitiesTableQuery } from "./entities-visualizer/use-entities-table-query";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import { useSlideStack } from "./slide-stack";
@@ -1008,6 +1009,8 @@ export const EntitiesVisualizer: FunctionComponent<{
             <DsComponentsScope>
               <SortMenu<SortableEntitiesTableColumnKey>
                 size="xs"
+                className={sortMenuTriggerChrome}
+                position="bottom-end"
                 items={entitySorters}
                 value={{
                   sortKey: sort.columnKey,

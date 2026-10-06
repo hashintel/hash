@@ -109,6 +109,7 @@ export const DwellTable = ({
                 applySort(sortFromMenu(key, direction))
               }
               align="right"
+              position="bottom-end"
               size="xs"
             />
           </div>

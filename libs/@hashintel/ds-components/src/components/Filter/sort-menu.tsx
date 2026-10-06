@@ -30,6 +30,7 @@ import {
   triggerIcon,
 } from "./sort-menu.recipe";
 
+import type { Position } from "../Tooltip/tooltip";
 import type { DistributedOmit } from "type-fest";
 
 export const SortMenu = <SortKey extends string = string>({
@@ -39,6 +40,7 @@ export const SortMenu = <SortKey extends string = string>({
   saveSortId,
   searchable = false,
   align = "left",
+  position,
   renderTrigger = "default",
   variant = "ghost",
   size = "sm",
@@ -57,6 +59,8 @@ export const SortMenu = <SortKey extends string = string>({
   searchable?: boolean;
   /** Which side of the trigger label the sort icon sits on. Defaults to left. */
   align?: "left" | "right";
+  /** Dropdown placement relative to the trigger. Defaults to bottom-start. */
+  position?: Position;
   /**
    * "default" labels the trigger with the active sorter's name; "icon"
    * collapses it to an icon-only button. A function renders a fully custom trigger
@@ -328,6 +332,7 @@ export const SortMenu = <SortKey extends string = string>({
     <Menu
       trigger={trigger}
       items={menuItems}
+      position={position}
       className={menuContent()}
       header={
         searchable ? (

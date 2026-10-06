@@ -74,6 +74,7 @@ export default defineConfig({
     "./src/pages/supply-chain/**/*.{ts,tsx}",
     "./src/components/tiled-network-graph/**/*.{ts,tsx}",
     "./src/pages/shared/entities-visualizer/header/filter-ribbon/filter-chip-pill-chrome.ts",
+    "./src/pages/shared/entities-visualizer/sort-menu-chrome.ts",
   ],
 
   exclude: [],
