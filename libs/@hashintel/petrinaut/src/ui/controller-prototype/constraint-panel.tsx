@@ -27,6 +27,7 @@ import {
   isNestedRule,
   mapConstraintChecks,
   MAX_ROW_DEPTH,
+  negateOp,
   newNestedRule,
   parseSubjectValue,
   ruleDepth,
@@ -1271,6 +1272,189 @@ const RuleRows: React.FC<{
   );
 };
 
+/**
+ * A picked pattern shows only its slots, as D20 draws it: no time-word menu,
+ * no nesting. Custom opens the full builder. Set to false to always show the
+ * full builder.
+ */
+const PATTERN_SLOTS_VIEW = true;
+
+const patternLeadWord: Record<string, string> = {
+  always: "always",
+  never: "never",
+  once: "at least once",
+};
+
+/** The fill-in sentence of a pattern. Every slot writes into the same rule data as the builder. */
+const PatternSlots: React.FC<{
+  constraint: ModelConstraint;
+  pattern: string;
+  disabled: boolean;
+  update: UpdateConstraint;
+}> = ({ constraint, pattern, disabled, update }) => {
+  const patchFirst = (items: RuleItem[], patch: Partial<Check>): RuleItem[] =>
+    items.map((item, at) =>
+      at === 0 && !isNestedRule(item) ? { ...item, ...patch } : item,
+    );
+  const forEveryRows = constraint.forEvery ? (
+    <ForEveryRows
+      forEvery={constraint.forEvery}
+      disabled={disabled}
+      update={update}
+    />
+  ) : null;
+  const windowRow = (
+    <div className={cx(ruleRowStyle, tightRowStyle)}>
+      <LeadWord word="during" disabled={disabled} />
+      <WindowFields
+        time={constraint.time}
+        window={constraint.window}
+        disabled={disabled}
+        onChange={(next) =>
+          update(({ window: _window, ...current }) =>
+            next ? { ...current, window: next } : current,
+          )
+        }
+      />
+    </div>
+  );
+
+  if (pattern === "response") {
+    const nested = constraint.checks[0];
+    const rule = nested && isNestedRule(nested) ? nested : null;
+    const then = rule?.checks[0];
+    const within = rule?.window?.to ?? null;
+    const setNested = (change: (current: NestedRule) => NestedRule) =>
+      update((current) => ({
+        ...current,
+        checks: current.checks.map((item, at) =>
+          at === 0 && isNestedRule(item) ? change(item) : item,
+        ),
+      }));
+    return (
+      <>
+        {forEveryRows}
+        {constraint.trigger ? (
+          <ConditionRow
+            constraint={constraint}
+            check={constraint.trigger}
+            disabled={disabled}
+            lead={<LeadWord word="Whenever" disabled={disabled} />}
+            onChange={(patch) =>
+              update((current) => ({
+                ...current,
+                trigger: current.trigger && { ...current.trigger, ...patch },
+              }))
+            }
+          />
+        ) : null}
+        {then && !isNestedRule(then) ? (
+          <ConditionRow
+            constraint={constraint}
+            check={then}
+            disabled={disabled}
+            lead={<LeadWord word="then" disabled={disabled} />}
+            onChange={(patch) =>
+              setNested((current) => ({
+                ...current,
+                checks: patchFirst(current.checks, patch),
+              }))
+            }
+          />
+        ) : null}
+        <div className={cx(ruleRowStyle, tightRowStyle, noWrapStyle)}>
+          <LeadWord word="within" disabled={disabled} />
+          <NumberInput
+            size="sm"
+            aria-label="Within, in days"
+            hideStepper
+            step="any"
+            className={numberStyle}
+            disabled={disabled}
+            value={within}
+            onChange={(value) => {
+              if (value !== null) {
+                setNested((current) => ({
+                  ...current,
+                  window: { kind: "within", to: value },
+                }));
+              }
+            }}
+          />
+          <span className={mutedText(disabled)}>days</span>
+        </div>
+      </>
+    );
+  }
+
+  if (pattern === "precedence") {
+    // The rule stores "not Y until, if ever, X". The slot shows Y as written.
+    const stored = constraint.checks[0];
+    const y = stored && !isNestedRule(stored) ? stored : null;
+    const x = constraint.second?.[0];
+    return (
+      <>
+        {forEveryRows}
+        {y ? (
+          <ConditionRow
+            constraint={constraint}
+            check={{ ...y, op: negateOp(y.op) }}
+            disabled={disabled}
+            lead={<LeadWord word="" disabled={disabled} />}
+            onChange={(patch) =>
+              update((current) => ({
+                ...current,
+                checks: patchFirst(current.checks, {
+                  ...patch,
+                  ...(patch.op ? { op: negateOp(patch.op) } : {}),
+                }),
+              }))
+            }
+          />
+        ) : null}
+        {x && !isNestedRule(x) ? (
+          <ConditionRow
+            constraint={constraint}
+            check={x}
+            disabled={disabled}
+            lead={<LeadWord word="only after" disabled={disabled} />}
+            onChange={(patch) =>
+              update((current) => ({
+                ...current,
+                second: patchFirst(current.second ?? [], patch),
+              }))
+            }
+          />
+        ) : null}
+      </>
+    );
+  }
+
+  const first = constraint.checks[0];
+  return (
+    <>
+      {forEveryRows}
+      {first && !isNestedRule(first) ? (
+        <ConditionRow
+          constraint={constraint}
+          check={first}
+          disabled={disabled}
+          lead={
+            <LeadWord word={patternLeadWord[pattern] ?? ""} disabled={disabled} />
+          }
+          onChange={(patch) =>
+            update((current) => ({
+              ...current,
+              checks: patchFirst(current.checks, patch),
+            }))
+          }
+        />
+      ) : null}
+      {windowRow}
+    </>
+  );
+};
+
 const lineNumbersStyle = css({
   margin: "0",
   textAlign: "right",
@@ -1492,11 +1676,20 @@ const ConstraintMainFields: React.FC<{ constraint: ModelConstraint }> = ({
           {constraint.code === undefined &&
           ruleDepth(constraint) <= MAX_ROW_DEPTH ? (
             <>
-              <RuleRows
-                constraint={constraint}
-                disabled={isReadOnly}
-                update={update}
-              />
+              {PATTERN_SLOTS_VIEW && rulePatternOf(constraint) !== "custom" ? (
+                <PatternSlots
+                  constraint={constraint}
+                  pattern={rulePatternOf(constraint)}
+                  disabled={isReadOnly}
+                  update={update}
+                />
+              ) : (
+                <RuleRows
+                  constraint={constraint}
+                  disabled={isReadOnly}
+                  update={update}
+                />
+              )}
               <div className={codeCaptionStyle}>{CODE_CAPTION}</div>
               <div className={codeLineStyle}>{breakableCode(generated)}</div>
               {isReadOnly ? null : (

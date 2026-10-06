@@ -78,6 +78,9 @@ const negatedOp: Record<CheckOp, CheckOp> = {
   not: "equals",
 };
 
+/** The comparison that holds exactly when this one does not. */
+export const negateOp = (op: CheckOp): CheckOp => negatedOp[op];
+
 export const isEventSubject = (subject: CheckSubject | null): boolean =>
   subject?.kind === "fires" || subject?.kind === "leaves";
 
