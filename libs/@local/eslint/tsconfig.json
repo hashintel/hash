@@ -1,8 +1,12 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": [
+    "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+    "@tsconfig/bases/node22"
+  ],
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "lib": ["ES2024"],
+    "moduleResolution": "NodeNext",
+    "target": "ES2024"
   },
   "include": ["src", "eslint.config.js"],
   "exclude": ["node-modules", "dist"]
