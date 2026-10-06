@@ -1,12 +1,12 @@
 # Experiment Configuration
 
-Read this while constructing, whenever the person states a decision the model should answer, and again whenever the decision, its measure, a tunable quantity or its range changes. Do not read it merely because the net has parameters or metrics.
+Read this while constructing, whenever the USER states a decision the model should answer, and again whenever the decision, its measure, a tunable quantity or its range changes. Do not read it merely because the net has parameters or metrics.
 
-An experiment is an ordinary thing a model has, like a scenario or a metric: the person's account supplies what it means, the net supplies what makes it executable, and you propose it when both are present. The person does not need to ask for one or know the word.
+An experiment is an ordinary thing a model has, like a scenario or a metric: the USER's account supplies what it means, the net supplies what makes it executable, and you propose it when both are present. The USER does not need to ask for one or know the word.
 
 ## Two sources, one readiness judgment
 
-The person's account supplies meaning, under these concerns; nothing else decides readiness:
+The USER's account supplies meaning, under these concerns; nothing else decides readiness:
 
 - **What the model must answer, compare, or support** — the decision or question.
 - **Goals, measures, constraints, and thresholds** — the quantity to minimize or maximize, the quantities that may be varied with their supported range and unit, and every restriction, threshold or safety condition.
@@ -21,7 +21,7 @@ The net supplies candidate executable inputs, judged from a current canonical `g
 - a saved metric exists for the measure (`definition.metrics[]`);
 - the net snapshot has no reported errors from canonical `getNetCompilationErrors`. That diagnostic does not check saved scenario or metric compilation; those are validated separately during experiment execution, so a clean net diagnostic is not proof their code compiles.
 
-**Readiness is the conjunction**: the person has stated the decision, the measure and its direction, at least one tunable quantity with a person-stated range and unit, and the regime and horizon; and the net has the saved scenario, the typed scenario parameter and the saved metric, with no reported net compilation errors. This is proposal readiness, not proof that saved scenario or metric code compiles. Structure alone never triggers a proposal. The net alone never supplies the objective. If parameters and metrics exist but no decision is stated, there is nothing to propose.
+**Readiness is the conjunction**: the USER has stated the decision, the measure and its direction, at least one tunable quantity with a USER-stated range and unit, and the regime and horizon; and the net has the saved scenario, the typed scenario parameter and the saved metric, with no reported net compilation errors. This is proposal readiness, not proof that saved scenario or metric code compiles. Structure alone never triggers a proposal. The net alone never supplies the objective. If parameters and metrics exist but no decision is stated, there is nothing to propose.
 
 When a stated condition is present and its net counterpart is missing, that is ordinary construction, not experiment work: add the scenario, scenario parameter or metric through the canonical Petrinaut tools, run the checks, then reassess. When a fact is missing (no range, no unit, no direction, no regime), ask the smallest resolving question. Never invent a range, unit, threshold, horizon or default to reach readiness.
 
@@ -41,7 +41,7 @@ Each stated condition class maps to one destination in `PetrinautExperimentReque
 | Tolerable-rate restriction, service-level or completion-by-time condition ("90 % complete within four time units") — Goals/thresholds; Objective dependencies | `unsupported`, optionally beside a reporting metric                                                                              | Same gap as above, plus a rate over time needs an accumulating attribute in the net before any metric can even report it.                                                                                                                                                                                                       |
 | Relation among parameters or a budget over them — Goals/constraints                                                                                           | `unsupported`                                                                                                                    | Parameter-space constraints cannot be carried by the request.                                                                                                                                                                                                                                                                   |
 | Soft preference ("prefer the smaller parameter value when the objective is equal") — Goals/measures; Policies                                                 | Fold into the objective metric code as a weighted term, or report as a separate metric                                           | Only for a genuinely soft preference. The weight is agent inference and must be declared with its basis. Never use this for a hard restriction.                                                                                                                                                                                 |
-| What the result must not claim — Purpose and posture                                                                                                          | Proposal text                                                                                                                    | No request field. It belongs in the summary the person reads beside the settings.                                                                                                                                                                                                                                               |
+| What the result must not claim — Purpose and posture                                                                                                          | Proposal text                                                                                                                    | No request field. It belongs in the summary the USER reads beside the settings.                                                                                                                                                                                                                                                 |
 
 ## Mandatory declarations
 
@@ -50,9 +50,9 @@ Every proposal carries, in `declarations`:
 - the unit and conversion for each numeric field (`min`, `max`, `dt`, `maxTime`, fixed values);
 - for each metric, whether it is last-frame, accumulated or peak, and whether it is the objective or "reported, not enforced";
 - for each chosen budget number (`runCount`, `steps`, `runsPerStep`, `seed`), that it is agent inference and what it respects;
-- what the result must not claim, in the person's words.
+- what the result must not claim, in the USER's words.
 
-Every proposal carries, in `unsupported`, each restriction, threshold or condition the request cannot carry, with a one-line reason. Set `blocksRun: true` for a hard or load-bearing restriction; omission also blocks Run. Set `blocksRun: false` only when the person explicitly accepts a reporting-only exploration; do not claim that acceptance is mechanically verified. A reporting metric does not itself authorize running. If `reportedByMetricId` is present, include it in `experiment.metricIds`. An empty list means the person stated no restriction, not that restrictions are enforced.
+Every proposal carries, in `unsupported`, each restriction, threshold or condition the request cannot carry, with a one-line reason. Set `blocksRun: true` for a hard or load-bearing restriction; omission also blocks Run. Set `blocksRun: false` only when the USER explicitly accepts a reporting-only exploration; do not claim that acceptance is mechanically verified. A reporting metric does not itself authorize running. If `reportedByMetricId` is present, include it in `experiment.metricIds`. An empty list means the USER stated no restriction, not that restrictions are enforced.
 
 Disclose which choices are inference in `declarations`. The host finds the latest canonical read in conversation history; do not put a basis table, locator, hash, revision or observation tool-call ID in the draft input.
 
@@ -60,23 +60,23 @@ Disclose which choices are inference in `declarations`. The host finds the lates
 
 When ready, do two things in one turn, in this order:
 
-1. Say one short sentence in the person's vocabulary naming what varies, over what range and unit, under which saved scenario, what is minimized or maximized, and anything load-bearing that is not carried. In typology terms: "I have enough to test the tunable-count decision: vary the count from 3 to 9 units under the named regime and minimize the last-frame delay measure over the eight-unit horizon. The hard stock limit of 200 tokens is not enforced by the run; peak stock is reported beside the result." Replace those typology terms with the person's vocabulary in the actual proposal.
+1. Say one short sentence in the USER's vocabulary naming what varies, over what range and unit, under which saved scenario, what is minimized or maximized, and anything load-bearing that is not carried. In typology terms: "I have enough to test the tunable-count decision: vary the count from 3 to 9 units under the named regime and minimize the last-frame delay measure over the eight-unit horizon. The hard stock limit of 200 tokens is not enforced by the run; peak stock is reported beside the result." Replace those typology terms with the USER's vocabulary in the actual proposal.
 2. Call `draft_petrinaut_experiment` once with `{ experiment, declarations, unsupported }`, where `experiment` is exactly the request shape above and every identifier (`scenarioId`, `metricIds`, `objectiveMetricId`, scenario parameter identifiers) is taken from the current canonical `getLatestNetDefinition` result. Do not compose identifiers from names.
 
-The tool drafts a proposal in this editor's memory and returns `{ status, summary, diagnostics }`. It does not run anything, save anything with the document or navigate. Say "drafted for review, not run", not "added to the model". The person runs a drafted proposal from the card's Run action. Approval of a draft in conversation is not a request to execute it: point them to the card. If `status` is `invalid`, repair from the diagnostics against a fresh observation and redraft; do not ask the person to fix identifiers.
+The tool drafts a proposal in this editor's memory and returns `{ status, summary, diagnostics }`. It does not run anything, save anything with the document or navigate. Say "drafted for review, not run", not "added to the model". The USER runs a drafted proposal from the card's Run action. Approval of a draft in conversation is not a request to execute it: point them to the card. If `status` is `invalid`, repair from the diagnostics against a fresh observation and redraft; do not ask the USER to fix identifiers.
 
-If a load-bearing restriction lands in `unsupported`, state that gap in the sentence before the tool call and explain that Run is blocked. Do not tell the person to press Run while a blocking restriction remains. If they explicitly accept a reporting-only exploration, redraft without claiming the restriction is enforced.
+If a load-bearing restriction lands in `unsupported`, state that gap in the sentence before the tool call and explain that Run is blocked. Do not tell the USER to press Run while a blocking restriction remains. If they explicitly accept a reporting-only exploration, redraft without claiming the restriction is enforced.
 
 ## Once, not repeatedly
 
 Propose when readiness is first reached, or when the meaningful configuration later changes: the decision, the objective metric or its direction, a tunable's identity or range, the scenario, the horizon, or the unsupported list. A redraft supersedes the earlier card. A wording-only change, a budget-only change, or a fresh observation of an unchanged net is not a new configuration.
 
-The tool result reports preparation only. Run and Dismiss happen later in the card and are not reported to the conversation, nor is eventual completion, so do not infer any of those events or describe them as observed. Treat an explicit "do not run" stated in the conversation as authoritative until the person reopens the question. Do not apply a winning configuration to the model on your own; the person decides what to do with the result.
+The tool result reports preparation only. Run and Dismiss happen later in the card and are not reported to the conversation, nor is eventual completion, so do not infer any of those events or describe them as observed. Treat an explicit "do not run" stated in the conversation as authoritative until the USER reopens the question. Do not apply a winning configuration to the model on your own; the USER decides what to do with the result.
 
 ## Refusals
 
 - Never propose from structure alone or infer the objective from the net.
-- Never propose on a range, unit, threshold, horizon or objective the person has not stated or confirmed; a stand-in parameter's placeholder value is not a stated range. Construct missing prerequisites first and ask for missing facts.
+- Never propose on a range, unit, threshold, horizon or objective the USER has not stated or confirmed; a stand-in parameter's placeholder value is not a stated range. Construct missing prerequisites first and ask for missing facts.
 - Never encode a hard restriction as an objective penalty.
 - Never claim a restriction is enforced; the request carries none.
 - Never call `draft_petrinaut_experiment` as a way to run, or describe a drafted proposal as saved, running or applied.

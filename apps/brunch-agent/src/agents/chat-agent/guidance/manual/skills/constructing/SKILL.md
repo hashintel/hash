@@ -39,11 +39,11 @@ A lower level never implies a higher one. A compilation diagnostic does not prov
 
 ## Prepare experiments
 
-When the person states a decision the model should answer, or changes its measure, direction, tunable quantity/range or regime, read `references/experiment-configuration.md`. Early purpose, levers and protected conditions are operational meaning; they are not experiment readiness.
+When the USER states a decision the model should answer, or changes its measure, direction, tunable quantity/range or regime, read `references/experiment-configuration.md`. Early purpose, levers and protected conditions are operational meaning; they are not experiment readiness.
 
 Readiness requires both the stated decision configuration and current executable counterparts described in that reference. Construct missing net prerequisites; ask only for missing source facts. Parameters and metrics alone never trigger a proposal. Hard restrictions remain distinct from soft objectives, and unsupported enforcement is disclosed rather than encoded as a penalty.
 
-Draft at most once per meaningful configuration through the mounted draft tool. A draft is for review: it is not saved with the document, run, approved, completed or applied. The person controls Run and any later use of results.
+Draft at most once per meaningful configuration through the mounted draft tool. A draft is for review: it is not saved with the document, run, approved, completed or applied. The USER controls Run and any later use of results.
 
 ## Deliver or continue
 

@@ -10,11 +10,11 @@ Report the highest level actually reached. Passing one level does not imply the 
 
 ### 1. Tool-schema acceptance
 
-The mounted construction tools accepted the submitted payloads, and the latest inspected definition contains the accepted changes. This establishes conformance to those tool input schemas and the shape returned by inspection. It does not establish correspondence with the person's account, reachability, resource conservation, exclusivity over executions, loadability in another consumer, or simulated behavior.
+The mounted construction tools accepted the submitted payloads, and the latest inspected definition contains the accepted changes. This establishes conformance to those tool input schemas and the shape returned by inspection. It does not establish correspondence with the USER's account, reachability, resource conservation, exclusivity over executions, loadability in another consumer, or simulated behavior.
 
 ### 2. Agent-reviewed structural correspondence
 
-The agent compared the inspected definition with the person's account and found visible structures corresponding to the recorded process. This can establish that named elements, connections, candidate paths, guards, resource-return structures, and parameters are present and apparently aligned. It remains a review judgment over static structure, not behavioral proof.
+The agent compared the inspected definition with the USER's account and found visible structures corresponding to the recorded process. This can establish that named elements, connections, candidate paths, guards, resource-return structures, and parameters are present and apparently aligned. It remains a review judgment over static structure, not behavioral proof.
 
 ### 3. Behavioral execution or stronger analysis
 
@@ -33,7 +33,7 @@ Apply these checks after each construction change, to the fragment added or chan
 - Practiced and prescribed rules, corrections, conflicts, and contextual variants are not silently collapsed.
 - A rule that did not fit the previous representation changed the representation, rather than being left out of the net.
 
-Where missing material admits materially different structures, the fragment carries the likelier one, labelled, and the question is asked. If the person has stopped, deliver the partial account and already-checked net instead of opening a new topic.
+Where missing material admits materially different structures, the fragment carries the likelier one, labelled, and the question is asked. If the USER has stopped, deliver the partial account and already-checked net instead of opening a new topic.
 
 ## Tool-schema acceptance checks
 
@@ -47,7 +47,7 @@ Inspect each step's `netAfterChanges`; read the net again only at the end, or wh
 
 ## Agent-reviewed structural correspondence
 
-Compare the latest inspected definition with the person's account. During incremental construction, review the represented fragment and name its open boundaries; at final delivery, review coverage against the full intended scope. A partial fragment is not an end-to-end result.
+Compare the latest inspected definition with the USER's account. During incremental construction, review the represented fragment and name its open boundaries; at final delivery, review coverage against the full intended scope. A partial fragment is not an end-to-end result.
 
 - The definition contains at least one meaningful place and transition corresponding to the process account.
 - The fragment's supported states and activities are connected as recorded. For an end-to-end result, the definition contains a candidate structural path from a represented initial or admitted condition toward an outcome. This does not establish that the path can fire.
@@ -77,7 +77,7 @@ No behavioral tool or result means no behavioral claim.
 
 ## Fidelity and uncertainty
 
-- Every load-bearing net choice rests on the person's account or a named stand-in, construction inference, approximation, or default.
+- Every load-bearing net choice rests on the USER's account or a named stand-in, construction inference, approximation, or default.
 - No hedge has been hardened solely to satisfy a schema.
 - No conflict has been averaged and no contextual value has been made universal without an accepted simplification.
 - Assumptions state why they were introduced, what they affect, and how they could be checked.
