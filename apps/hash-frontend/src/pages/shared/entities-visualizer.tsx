@@ -241,6 +241,17 @@ export const EntitiesVisualizer: FunctionComponent<{
     [resetCursors],
   );
 
+  // Whether the user has changed the view from the default filter state
+  const isFiltered = useMemo(
+    () =>
+      filterState.web.includeOtherWebs ||
+      filterState.web.selectedInternalWebIds.size !== internalWebs.length ||
+      filterState.type.selectedTypeIds !== null ||
+      filterState.includeArchived ||
+      filterState.propertyFilters.length > 0,
+    [filterState, internalWebs],
+  );
+
   const [typeColorOverrides, setTypeColorOverrides] =
     useState<TypeColorOverrides>(() => new Map());
 
@@ -1127,6 +1138,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             generateCsvFileRef={generateCsvFileRef}
             handleEntityClick={handleEntityClick}
             hasMoreRowsAvailable={tableQuery.canLoadMore}
+            isFiltered={isFiltered}
             loading={resultsLoading}
             isViewingOnlyPages={isViewingOnlyPages}
             maxHeight={tableHeight}

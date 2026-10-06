@@ -112,6 +112,11 @@ export const EntitiesTable: FunctionComponent<{
    */
   generateCsvFileRef: MutableRefObject<GenerateCsvFileFunction | null>;
   handleEntityClick: (entityId: EntityId) => void;
+  /**
+   * Whether the view has been narrowed or changed from the default filter
+   * state — selects between "no matches" and "nothing here yet" empty copy.
+   */
+  isFiltered: boolean;
   loading: boolean;
   isViewingOnlyPages: boolean;
   maxHeight: string | number;
@@ -139,6 +144,7 @@ export const EntitiesTable: FunctionComponent<{
   disableTypeClick,
   generateCsvFileRef,
   handleEntityClick,
+  isFiltered,
   loading: entityDataLoading,
   isViewingOnlyPages,
   maxHeight,
@@ -799,7 +805,7 @@ export const EntitiesTable: FunctionComponent<{
         createGetCellContent={createGetCellContent}
         currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         customRenderers={customRenderers}
-        dataLoading={false}
+        dataLoading={entityDataLoading}
         enableCheckboxSelection
         firstColumnLeftPadding={firstColumnLeftPadding}
         freezeColumns={1}
@@ -813,6 +819,17 @@ export const EntitiesTable: FunctionComponent<{
           hasMoreRowsAvailable
             ? `min(calc(${maxHeight} - ${loadMoreRowHeight}px), 600px)`
             : `min(${maxHeight}, 600px)`
+        }
+        noResultsMessage={
+          isFiltered
+            ? {
+                title: "No entities found",
+                description: "Try adjusting or clearing the filters",
+              }
+            : {
+                title: "No entities yet",
+                description: "Entities you create or sync will appear here",
+              }
         }
         onConversionTargetSelected={onConversionTargetSelected}
         onSearchClose={() => setShowSearch(false)}

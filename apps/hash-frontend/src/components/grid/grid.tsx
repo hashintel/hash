@@ -4,10 +4,11 @@ import {
   DataEditor,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { Box, useTheme } from "@mui/material";
+import { Box, Fade, Stack, Typography, useTheme } from "@mui/material";
 import { uniqueId } from "lodash";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { LoadingSpinner } from "@hashintel/design-system";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
 import { getCellHorizontalPadding, gridHeaderBaseFont } from "./utils";
@@ -93,6 +94,10 @@ export type GridProps<
    * Provide to set an initial sort if sorting state is NOT managed by the parent component.
    */
   initialSort?: GridSort<Sortable>;
+  /**
+   * Overrides the default message shown when the grid has no rows.
+   */
+  noResultsMessage?: { title: string; description?: string };
   onConversionTargetSelected?: ({
     columnKey,
     dataTypeId,
@@ -184,6 +189,7 @@ export const Grid = <
   gridRef,
   highlightRegions,
   initialSort,
+  noResultsMessage,
   onConversionTargetSelected,
   onSearchClose,
   onSelectedRowsChange,
@@ -548,22 +554,15 @@ export const Grid = <
     });
   }, [columns, columnSizes]);
 
-  const emptyStateText = dataLoading
-    ? "Loading..."
-    : "No results with the applied filters.";
-
+  // Blank cells — the empty-state message is shown in a DOM overlay instead
   const getSkeletonCellContent = useCallback(
-    ([colIndex]: Item): TextCell => ({
+    (): TextCell => ({
       kind: GridCellKind.Text,
-      displayData: colIndex === 0 ? emptyStateText : "",
-      data: colIndex === 0 ? emptyStateText : "",
+      displayData: "",
+      data: "",
       allowOverlay: false,
-      themeOverride: {
-        cellHorizontalPadding: 15,
-      },
-      style: "faded",
     }),
-    [emptyStateText],
+    [],
   );
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -849,6 +848,78 @@ export const Grid = <
          */
         width="100%"
       />
+      {(sortedAndFilteredRows?.length ?? 0) === 0 && (
+        /**
+         * Painted over the grid body so the vertical column borders and the
+         * skeleton row are hidden while the canvas-drawn header stays as-is.
+         * pointerEvents is off so the header can still be scrolled horizontally.
+         */
+        <Fade in timeout={150}>
+          <Stack
+            sx={{
+              alignItems: "center",
+              backgroundColor: palette.white,
+              bottom: 0,
+              left: 0,
+              pointerEvents: "none",
+              position: "absolute",
+              right: 0,
+              top: gridHeaderHeightWithBorder,
+              zIndex: 1,
+            }}
+          >
+            {/* 2:3 spacers center the block slightly above geometric center */}
+            <Box sx={{ flexGrow: 2 }} />
+            {dataLoading ? (
+              /* Delayed so sub-300ms fetches never flash a spinner */
+              <Fade in style={{ transitionDelay: "300ms" }} timeout={150}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: "center" }}
+                >
+                  <LoadingSpinner color={palette.gray[60]} size={16} />
+                  <Typography
+                    sx={{
+                      color: palette.gray[60],
+                      fontSize: 14,
+                      fontWeight: 500,
+                    }}
+                  >
+                    Loading...
+                  </Typography>
+                </Stack>
+              </Fade>
+            ) : (
+              <Stack sx={{ alignItems: "center" }}>
+                <Typography
+                  sx={{
+                    color: palette.gray[80],
+                    fontSize: 16,
+                    fontWeight: 600,
+                    lineHeight: "24px",
+                  }}
+                >
+                  {noResultsMessage?.title ?? "No results found"}
+                </Typography>
+                {noResultsMessage?.description && (
+                  <Typography
+                    sx={{
+                      color: palette.gray[60],
+                      fontSize: 14,
+                      fontWeight: 500,
+                      mt: 0.75,
+                    }}
+                  >
+                    {noResultsMessage.description}
+                  </Typography>
+                )}
+              </Stack>
+            )}
+            <Box sx={{ flexGrow: 3 }} />
+          </Stack>
+        </Fade>
+      )}
     </Box>
   );
 };
