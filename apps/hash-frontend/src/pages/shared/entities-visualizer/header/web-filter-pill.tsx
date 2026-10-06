@@ -47,12 +47,12 @@ const buildLabel = ({
       return "any";
     }
     if (selectedCount === 0) {
-      return "not yours";
+      return "Public only";
     }
     if (selectedWebName) {
-      return `other + ${selectedWebName}`;
+      return `Public + ${selectedWebName}`;
     }
-    return `Other webs + ${selectedCount} own`;
+    return `Public + ${selectedCount} webs`;
   }
 
   if (allSelected) {
@@ -154,7 +154,7 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
           selected={webState.includeOtherWebs}
           onClick={toggleOtherWebs}
         >
-          <ListItemText primary="Other webs" />
+          <ListItemText primary="Public in any web" />
         </MenuCheckboxItem>
       </Menu>
     </Box>
