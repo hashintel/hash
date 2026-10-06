@@ -56,7 +56,7 @@ const buildLabel = ({
   }
 
   if (allSelected) {
-    return totalCount === 1 ? (selectedWebName ?? "yours") : "one of yours";
+    return totalCount === 1 ? (selectedWebName ?? "yours") : "any of yours";
   }
 
   if (selectedCount === 0) {
@@ -65,7 +65,7 @@ const buildLabel = ({
   if (selectedWebName) {
     return selectedWebName;
   }
-  return `${selectedCount} of ${totalCount} webs`;
+  return `${selectedCount} of ${totalCount}`;
 };
 
 export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({

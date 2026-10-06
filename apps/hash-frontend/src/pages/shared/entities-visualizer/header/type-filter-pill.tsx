@@ -78,10 +78,10 @@ const buildLabel = ({
   if (selectedIds.length === 1) {
     const [only] = selectedIds;
     const match = availableTypes.find((type) => type.entityTypeId === only);
-    return match?.title ?? "1 type";
+    return match?.title ?? `1 of ${availableIds.length}`;
   }
 
-  return `one of ${selectedIds.length}`;
+  return `${selectedIds.length} of ${availableIds.length}`;
 };
 
 type TypeFilterMenuItemProps = {
