@@ -6,7 +6,7 @@
 import { z } from "zod";
 
 import { getParameterValueError } from "../parameter-values";
-import { toPetrinautId } from "../petrinaut-id";
+import { canonicalizeArcId, toPetrinautId } from "../petrinaut-id";
 import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
 import { displayNameSchema } from "../validation/display-name";
 import { entityNameSchema } from "../validation/entity-name";
@@ -26,14 +26,14 @@ import type {
   Transition,
 } from "../types/sdcpn";
 
-export const idSchema = z.string().min(1).meta({
+export const idSchema = z.string().min(1).overwrite(toPetrinautId).meta({
   description:
-    "Stable identifier for an SDCPN entity. Use unique IDs within the net.",
+    "Stable identifier for an SDCPN entity, a UUID. Use unique IDs within the net. Any other string is converted to a stable UUID, so the same string always names the same entity.",
 });
 
-export const subnetIdSchema = z.string().min(1).overwrite(toPetrinautId).meta({
+export const arcIdSchema = z.string().min(1).overwrite(canonicalizeArcId).meta({
   description:
-    "Subnet ID, a UUID. Any other string is converted to a stable UUID, so the same string always names the same subnet.",
+    "An arc ID in Petrinaut's generated arc ID format. The place and transition IDs inside it are converted like any other ID.",
 });
 
 export const descriptionSchema = z.string().optional().meta({
@@ -398,7 +398,7 @@ export const componentInstanceSchema = z
     }),
     description: descriptionSchema,
     metadata: metadataSchema,
-    subnetId: subnetIdSchema.meta({
+    subnetId: idSchema.meta({
       description:
         "ID of the subnet definition this component instantiates, a UUID. Any other string is converted to a stable UUID.",
     }),
@@ -420,7 +420,7 @@ export const componentInstanceSchema = z
 
 export const subnetSchema = z
   .strictObject({
-    id: subnetIdSchema,
+    id: idSchema,
     name: displayNameSchema.meta({
       description: "Human-readable subnet name.",
     }),

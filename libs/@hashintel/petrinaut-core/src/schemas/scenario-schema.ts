@@ -54,7 +54,7 @@ const initialStateSchema = z
         type: z.literal("per_place"),
         content: z
           .record(
-            z.string(),
+            idSchema,
             z.union([z.string(), z.array(z.array(tokenAttributeValueSchema))]),
           )
           .meta({
@@ -130,7 +130,7 @@ export const scenarioSchema = z
           "User-tunable parameters available only within this scenario. Add scenario parameters for important scenario variables so users can adjust them without editing net-level parameters or code. Reference them as scenario.identifier in parameterOverrides and initialState expressions.",
       }),
     parameterOverrides: z
-      .record(z.string(), z.string())
+      .record(idSchema, z.string())
       .default({})
       .meta({
         description: [

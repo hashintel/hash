@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { sdcpnSchema } from "../file-format/types";
+import { toPetrinautId } from "../petrinaut-id";
 import { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
 
 import type { SDCPN } from "../types/sdcpn";
@@ -27,8 +28,11 @@ const actualModeMarkingValueSchema = z.union([
  * can currently be represented by a numeric token count or by token-colour
  * arrays for future coloured-token support.
  */
+/** A place or transition id; any non-UUID is converted like a document id. */
+const entityIdSchema = z.string().overwrite(toPetrinautId);
+
 export const actualModeMarkingSchema = z.record(
-  z.string(),
+  entityIdSchema,
   actualModeMarkingValueSchema,
 ) satisfies z.ZodType<ActualModeMarking>;
 
@@ -39,13 +43,13 @@ export const actualModeMarkingSchema = z.record(
  * by a transition, and values are the token counts consumed or produced there.
  */
 export const actualModeTransitionEffectSchema = z.record(
-  z.string(),
+  entityIdSchema,
   z.number(),
 ) satisfies z.ZodType<ActualModeTransitionEffect>;
 
 const actualModeTransitionFiringEffectSchema = z
   .object({
-    transitionId: z.string(),
+    transitionId: entityIdSchema,
     input: actualModeTransitionEffectSchema,
     output: actualModeTransitionEffectSchema,
     ts: z.string(),

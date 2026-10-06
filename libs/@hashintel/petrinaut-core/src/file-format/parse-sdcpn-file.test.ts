@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { toPetrinautId } from "../petrinaut-id";
 import { parseSDCPNFile } from "./parse-sdcpn-file";
 
+const idOf = toPetrinautId;
+
 const minimalPlace = {
   id: "p1",
   name: "Place 1",
@@ -162,7 +164,7 @@ describe("parseSDCPNFile", () => {
       expect(result.ok).toBe(true);
       if (!result.ok) return;
       expect(result.sdcpn.componentInstances?.[0]).toMatchObject({
-        id: "instance-1",
+        id: idOf("instance-1"),
         subnetId: toPetrinautId("subnet-1"),
       });
       expect(result.sdcpn.subnets?.[0]?.id).toBe(toPetrinautId("subnet-1"));
@@ -228,8 +230,8 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.transitions[0]?.outputArcs[0]).toEqual({
         endpoint: {
           kind: "componentPort",
-          componentInstanceId: "instance-1",
-          portPlaceId: "subnet-place-1",
+          componentInstanceId: idOf("instance-1"),
+          portPlaceId: idOf("subnet-place-1"),
         },
         weight: 1,
       });
@@ -352,9 +354,9 @@ describe("parseSDCPNFile", () => {
       expect(result.ok).toBe(true);
       if (!result.ok) return;
       expect(result.sdcpn.places[0]).toMatchObject({
-        colorId: "c1",
+        colorId: idOf("c1"),
         dynamicsEnabled: true,
-        differentialEquationId: "de1",
+        differentialEquationId: idOf("de1"),
       });
       expect(result.sdcpn.transitions[0]?.inputArcs[0]).toMatchObject({
         weight: 3,
@@ -696,7 +698,7 @@ describe("parseSDCPNFile", () => {
   });
 
   describe("reserved property names", () => {
-    it("rejects ids colliding with Object.prototype members", () => {
+    it("converts ids colliding with Object.prototype members", () => {
       const result = parseSDCPNFile({
         version: 1,
         meta: { generator: "Petrinaut" },
@@ -705,9 +707,9 @@ describe("parseSDCPNFile", () => {
         transitions: [],
       });
 
-      expect(result.ok).toBe(false);
-      if (result.ok) return;
-      expect(result.error).toContain('place id "__proto__"');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.places[0]?.id).toBe(toPetrinautId("__proto__"));
     });
 
     it("rejects colour element names colliding with Object.prototype members", () => {
@@ -729,15 +731,17 @@ describe("parseSDCPNFile", () => {
       expect(result.error).toContain('colour element name "constructor"');
     });
 
-    it("rejects reserved names in the legacy format too", () => {
+    it("converts reserved ids in the legacy format too", () => {
       const result = parseSDCPNFile({
         ...minimalSDCPN,
         transitions: [{ ...minimalTransition, id: "constructor" }],
       });
 
-      expect(result.ok).toBe(false);
-      if (result.ok) return;
-      expect(result.error).toContain('transition id "constructor"');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.transitions[0]?.id).toBe(
+        toPetrinautId("constructor"),
+      );
     });
   });
 });
