@@ -12,7 +12,7 @@
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "generate:icons": "node scripts/generate-favicons.mjs",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit && tsgo --noEmit --project api/tsconfig.json",
+    "lint:tsc": "tsc --noEmit && tsc --noEmit --project api/tsconfig.json",
     "preview": "vite preview",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:unit": "vitest run --passWithNoTests"
@@ -52,7 +52,6 @@
     "@types/node": "catalog:",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "@typescript/typescript6": "catalog:",
     "@vitejs/plugin-react": "6.1.0",
     "@whatwg-node/server": "0.10.18",
@@ -61,6 +60,7 @@
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "sharp": "0.35.4",
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   }

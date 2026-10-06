@@ -14,7 +14,7 @@
     "codegen": "tsx scripts/generate-protocol-schemas.ts && oxfmt --write --ignore-path /dev/null schemas/optimization-protocol.schema.json",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit",
+    "lint:tsc": "tsc --noEmit",
     "serve": "node ./dist/cli.js serve",
     "test:unit": "vitest"
   },
@@ -26,11 +26,11 @@
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "@types/node": "catalog:",
-    "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxfmt": "0.50.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "tsx": "catalog:",
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   }

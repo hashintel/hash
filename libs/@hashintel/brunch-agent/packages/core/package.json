@@ -37,7 +37,7 @@
     "build": "vite build",
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit",
+    "lint:tsc": "tsc --noEmit",
     "test:unit": "vitest run"
   },
   "dependencies": {
@@ -48,9 +48,9 @@
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "@types/node": "catalog:",
-    "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   }
