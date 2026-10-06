@@ -25,18 +25,18 @@
   "dependencies": {
     "@chainsafe/libp2p-noise": "17.0.0",
     "@chainsafe/libp2p-yamux": "8.0.1",
-    "@libp2p/crypto": "5.1.12",
-    "@libp2p/identify": "4.0.5",
-    "@libp2p/interface": "3.0.2",
-    "@libp2p/ping": "3.0.5",
-    "@libp2p/tcp": "11.0.5",
+    "@libp2p/crypto": "5.1.23",
+    "@libp2p/identify": "4.1.14",
+    "@libp2p/interface": "3.3.0",
+    "@libp2p/ping": "3.1.13",
+    "@libp2p/tcp": "11.0.28",
     "@multiformats/dns": "1.0.10",
-    "@multiformats/multiaddr": "13.0.1",
+    "@multiformats/multiaddr": "13.0.3",
     "effect": "3.21.0",
     "it-stream-types": "2.0.2",
-    "libp2p": "3.0.6",
-    "multiformats": "13.4.1",
-    "uint8arraylist": "2.4.8"
+    "libp2p": "3.3.11",
+    "multiformats": "14.0.5",
+    "uint8arraylist": "3.0.2"
   },
   "devDependencies": {
     "@effect/cluster": "0.50.6",
