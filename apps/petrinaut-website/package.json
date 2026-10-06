@@ -58,7 +58,7 @@
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "sharp": "0.35.4",
-    "vite": "8.2.2",
-    "vitest": "4.1.11"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

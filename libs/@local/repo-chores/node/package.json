@@ -31,8 +31,8 @@
     "ignore": "7.0.5",
     "js-yaml": "4.3.2",
     "regex-parser": "2.3.1",
-    "tsx": "4.20.6",
-    "typescript": "5.9.3",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
     "zod": "4.4.3",
     "zod-to-json-schema": "3.24.6"
   },
@@ -42,7 +42,7 @@
     "@types/fs-extra": "11.0.4",
     "@types/js-yaml": "^4",
     "eslint": "9.39.4",
-    "typescript": "5.9.3",
-    "vitest": "4.1.11"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

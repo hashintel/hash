@@ -117,9 +117,9 @@
     "pyodide": "314.0.6",
     "rolldown": "1.2.6",
     "rolldown-plugin-dts": "0.28.3",
-    "typescript": "5.9.3",
-    "vite": "8.2.2",
-    "vitest": "4.1.11"
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "typescript": ">=5.5"

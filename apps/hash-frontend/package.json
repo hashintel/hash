@@ -182,8 +182,8 @@
     "jsdom": "24.1.3",
     "rimraf": "6.1.3",
     "sass": "1.93.2",
-    "typescript": "5.9.3",
-    "vitest": "4.1.11",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
     "wait-on": "9.0.1",
     "webpack": "5.104.1"
   }

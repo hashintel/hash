@@ -29,7 +29,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "hast-util-from-html": "2.0.3",
-    "typescript": "5.9.3",
+    "typescript": "catalog:",
     "unist-util-visit": "5.1.0"
   },
   "engines": {
