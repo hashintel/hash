@@ -39,6 +39,17 @@ const emptyBarAlign = css({
   justifyContent: "flex-end",
 });
 
+// One flex item holding the last chip and the trailing add/clear buttons, so
+// a wrap never strands the buttons on a line of their own — at least one chip
+// accompanies them. The gap matches the group's; the recipe's action-button
+// tightening still reaches inside (it matches descendants).
+const trailingControls = css({
+  display: "inline-flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: "2",
+});
+
 export const SupplyChainFilterBar = ({
   view,
   filters,
@@ -154,59 +165,66 @@ export const SupplyChainFilterBar = ({
     );
   }
 
+  const renderFilterChip = (filter: ActiveSupplyChainFilter) => {
+    const definition = supplyChainFilterDefinition(filter.filterKey);
+    if (!definition) {
+      return null;
+    }
+    const skipped = skippedKeys?.has(filter.filterKey) ?? false;
+    const label = supplyChainFilterLabel(definition, options);
+    const chip = (
+      <Filter
+        key={filter.filterKey}
+        property={filter.filterKey}
+        propertyLabel={label}
+        operators={definition.operators(options)}
+        value={filter.value}
+        disabled={skipped}
+        autoFocus={filter.filterKey === autoFocusKey}
+        onChange={(operatorKey, committed) =>
+          setFilterValue(filter.filterKey, operatorKey, committed)
+        }
+        removeable={{
+          onRemove: () =>
+            onFiltersChange(
+              filters.filter(
+                (candidate) => candidate.filterKey !== filter.filterKey,
+              ),
+            ),
+        }}
+      />
+    );
+    if (!skipped) {
+      return chip;
+    }
+    return (
+      <Tooltip
+        key={filter.filterKey}
+        content={`"${label}" is ignored as it does not apply to this table.`}
+      >
+        {chip}
+      </Tooltip>
+    );
+  };
+
+  const lastFilter = filters.at(-1);
+
   return (
     <FilterGroup dismissAbandoned>
-      {filters.map((filter) => {
-        const definition = supplyChainFilterDefinition(filter.filterKey);
-        if (!definition) {
-          return null;
-        }
-        const skipped = skippedKeys?.has(filter.filterKey) ?? false;
-        const label = supplyChainFilterLabel(definition, options);
-        const chip = (
-          <Filter
-            key={filter.filterKey}
-            property={filter.filterKey}
-            propertyLabel={label}
-            operators={definition.operators(options)}
-            value={filter.value}
-            disabled={skipped}
-            autoFocus={filter.filterKey === autoFocusKey}
-            onChange={(operatorKey, committed) =>
-              setFilterValue(filter.filterKey, operatorKey, committed)
-            }
-            removeable={{
-              onRemove: () =>
-                onFiltersChange(
-                  filters.filter(
-                    (candidate) => candidate.filterKey !== filter.filterKey,
-                  ),
-                ),
-            }}
+      {filters.slice(0, -1).map(renderFilterChip)}
+      <div className={trailingControls}>
+        {lastFilter ? renderFilterChip(lastFilter) : null}
+        {addMenuItems.length > 0 && (
+          <Menu
+            trigger={<FilterGroup.AddFilter renderAs="plus" />}
+            items={addMenuItems}
           />
-        );
-        if (!skipped) {
-          return chip;
-        }
-        return (
-          <Tooltip
-            key={filter.filterKey}
-            content={`"${label}" is ignored as it does not apply to this table.`}
-          >
-            {chip}
-          </Tooltip>
-        );
-      })}
-      {addMenuItems.length > 0 && (
-        <Menu
-          trigger={<FilterGroup.AddFilter renderAs="plus" />}
-          items={addMenuItems}
-        />
-      )}
-      {/* A lone chip's own remove button already covers clearing. */}
-      {filters.length > 1 && (
-        <FilterGroup.ClearFilters onClick={() => onFiltersChange([])} />
-      )}
+        )}
+        {/* A lone chip's own remove button already covers clearing. */}
+        {filters.length > 1 && (
+          <FilterGroup.ClearFilters onClick={() => onFiltersChange([])} />
+        )}
+      </div>
     </FilterGroup>
   );
 };

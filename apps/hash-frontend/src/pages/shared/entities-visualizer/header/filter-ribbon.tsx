@@ -326,6 +326,33 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
     { id: "properties", label: "Properties", items: propertyItems },
   ];
 
+  const renderPropertyFilterChip = (propertyFilter: PropertyFilter) => (
+    <PropertyFilterChip
+      key={propertyFilter.id}
+      className={filterChipPillChrome}
+      filter={propertyFilter}
+      operatorDescriptors={
+        propertyFilter.baseUrl === archivedPropertyBaseUrl
+          ? archivedFilterOperators
+          : undefined
+      }
+      propertyOptions={
+        propertyFilter.baseUrl === archivedPropertyBaseUrl
+          ? undefined
+          : switchablePropertyOptions
+      }
+      onSwitchProperty={(property) =>
+        handleSwitchPropertyFilter(propertyFilter.id, property)
+      }
+      onCommit={(committed) =>
+        handleCommitPropertyFilter(propertyFilter.id, committed)
+      }
+      onRemove={() => handleRemovePropertyFilter(propertyFilter.id)}
+    />
+  );
+
+  const lastPropertyFilter = visiblePropertyFilters.at(-1);
+
   return (
     /*
      * The ribbon dissolves into the header bar's block flow (`display:
@@ -383,61 +410,57 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       )}
       <DsComponentsScope sx={{ display: "contents" }}>
         <FilterGroup dismissAbandoned>
-          {visiblePropertyFilters.map((propertyFilter) => (
-            <PropertyFilterChip
-              key={propertyFilter.id}
-              className={filterChipPillChrome}
-              filter={propertyFilter}
-              operatorDescriptors={
-                propertyFilter.baseUrl === archivedPropertyBaseUrl
-                  ? archivedFilterOperators
-                  : undefined
-              }
-              propertyOptions={
-                propertyFilter.baseUrl === archivedPropertyBaseUrl
-                  ? undefined
-                  : switchablePropertyOptions
-              }
-              onSwitchProperty={(property) =>
-                handleSwitchPropertyFilter(propertyFilter.id, property)
-              }
-              onCommit={(committed) =>
-                handleCommitPropertyFilter(propertyFilter.id, committed)
-              }
-              onRemove={() => handleRemovePropertyFilter(propertyFilter.id)}
-            />
-          ))}
-          <Menu
-            trigger={
-              <FilterGroup.AddFilter
-                renderAs={
-                  visiblePropertyFilters.length > 0 ? "plus" : "plusLabel"
-                }
-              />
-            }
-            items={addFilterMenuItems}
-            header={
-              <SelectableListSearch
-                value={propertySearch}
-                onChange={setPropertySearch}
-                placeholder="Search properties"
-                aria-label="Search properties"
-              />
-            }
-            swapHeaderFooterOnFlip
-            onOpen={(open) => {
-              if (!open) {
-                setPropertySearch("");
-              }
+          {visiblePropertyFilters.slice(0, -1).map(renderPropertyFilterChip)}
+          {/*
+           * The trailing add/clear controls never wrap on their own: the last
+           * chip shares this atomic inline box with them, so a wrap carries
+           * the controls to the next line with at least one filter for
+           * company. Inside it, `gap` takes over from the per-item margins
+           * the ribbon gives the group's direct children.
+           */}
+          <Box
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 1,
             }}
-          />
-          {/* A lone chip's own remove button already covers clearing. */}
-          {visiblePropertyFilters.length > 1 && (
-            <FilterGroup.ClearFilters
-              aria-label="Clear filters"
-              onClick={handleClearPropertyFilters}
+          >
+            {lastPropertyFilter
+              ? renderPropertyFilterChip(lastPropertyFilter)
+              : null}
+            <Menu
+              trigger={
+                <FilterGroup.AddFilter
+                  renderAs={
+                    visiblePropertyFilters.length > 0 ? "plus" : "plusLabel"
+                  }
+                />
+              }
+              items={addFilterMenuItems}
+              header={
+                <SelectableListSearch
+                  value={propertySearch}
+                  onChange={setPropertySearch}
+                  placeholder="Search properties"
+                  aria-label="Search properties"
+                />
+              }
+              swapHeaderFooterOnFlip
+              onOpen={(open) => {
+                if (!open) {
+                  setPropertySearch("");
+                }
+              }}
             />
-          )}
+            {/* A lone chip's own remove button already covers clearing. */}
+            {visiblePropertyFilters.length > 1 && (
+              <FilterGroup.ClearFilters
+                aria-label="Clear filters"
+                onClick={handleClearPropertyFilters}
+              />
+            )}
+          </Box>
         </FilterGroup>
       </DsComponentsScope>
     </Box>
