@@ -5,8 +5,15 @@ import KeyvRedis from "@keyv/redis";
 import * as Sentry from "@sentry/node";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
-import { RuntimeException } from "effect/Cause";
+import {
+  Cause,
+  Effect,
+  Exit,
+  Layer,
+  Logger,
+  ManagedRuntime,
+  References,
+} from "effect";
 import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
@@ -811,7 +818,7 @@ const main = async () => {
         RequestIdProducer.layer,
         JsonDecoder.layer,
         JsonEncoder.layer,
-        Logger.pretty,
+        Logger.layer([Logger.consolePretty(), Logger.tracerLogger]),
       ),
     );
 
@@ -853,7 +860,7 @@ const main = async () => {
       const effect = Effect.gen(function* () {
         const textQueryParam = req.query.text;
         if (typeof textQueryParam !== "string") {
-          return yield* new RuntimeException(
+          return yield* new Cause.IllegalArgumentError(
             "text query parameter is required",
           );
         }
@@ -866,7 +873,7 @@ const main = async () => {
             Transport.multiaddr(`/dns/${rpcHost}/tcp/${rpcPort}`),
           ),
         ),
-        Logger.withMinimumLogLevel(LogLevel.Trace),
+        Effect.provideService(References.MinimumLogLevel, "Trace"),
       );
 
       runtime.runCallback(effect, {
