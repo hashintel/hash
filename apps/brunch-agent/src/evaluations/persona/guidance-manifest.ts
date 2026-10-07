@@ -16,11 +16,14 @@ const filesWithin = async (directory: string): Promise<string[]> => {
   const entries = await readdir(directory, { withFileTypes: true });
   return (
     await Promise.all(
-      entries.map(async (entry) =>
-        entry.isDirectory()
-          ? filesWithin(join(directory, entry.name))
-          : [join(directory, entry.name)],
-      ),
+      entries.map(async (entry) => {
+        // Local-only scratch (gitignored `**/_scratch/`) must not move the fingerprint.
+        if (entry.isDirectory())
+          return entry.name === "_scratch"
+            ? []
+            : filesWithin(join(directory, entry.name));
+        return [join(directory, entry.name)];
+      }),
     )
   ).flat();
 };
