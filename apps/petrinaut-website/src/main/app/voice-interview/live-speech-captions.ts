@@ -35,6 +35,7 @@ export class LiveSpeechCaptions {
   ) => void;
   readonly #windows: Window[] = [];
   readonly #fragments = new Map<string, LiveTranscriptFragment>();
+  readonly #progressStarts = new Set<number>();
   readonly #inputFragments = new Map<string, LiveTranscriptFragment>();
   readonly #seenInputIds = new Set<string>();
   readonly #input?: InputPreview;
@@ -136,6 +137,12 @@ export class LiveSpeechCaptions {
     window.wrapUpMs = startMs;
     this.#publish();
   }
+  /** Progress is spoken-only; the settled wrap-up reopens saved captions. */
+  public progress(startMs: number): void {
+    if (this.#closed) return;
+    this.#progressStarts.add(startMs);
+    this.#publish();
+  }
   public output(fragment: LiveTranscriptFragment): void {
     if (this.#closed || this.#fragments.has(fragment.id)) return;
     this.#fragments.set(fragment.id, fragment);
@@ -155,10 +162,21 @@ export class LiveSpeechCaptions {
     );
     for (const window of this.#windows) {
       if (!window.id) continue;
+      const progressStart = Math.min(
+        ...[...this.#progressStarts].filter(
+          (start) =>
+            start >= window.startMs &&
+            (window.endMs === undefined || start < window.endMs),
+        ),
+      );
       const matching = fragments.filter(
         (fragment) =>
           fragment.startMs >= window.startMs &&
-          (window.endMs === undefined || fragment.startMs < window.endMs),
+          (window.endMs === undefined || fragment.startMs < window.endMs) &&
+          (fragment.startMs < progressStart ||
+            (window.wrapUpMs !== undefined &&
+              (fragment.startMs >= window.wrapUpMs ||
+                fragment.endMs > window.wrapUpMs))),
       );
       const text = matching.map((fragment) => fragment.text).join("");
       let replyEnd = text.length;

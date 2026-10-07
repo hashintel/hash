@@ -84,8 +84,9 @@ test("Live mediation policy requests a brief acknowledgement and a summary, neve
   expect(body.session.instructions).toContain(
     "Do not guess what an unclear short answer refers to",
   );
+  expect(body.session.instructions).toContain("status updates of your own");
   expect(body.session.instructions).toContain(
-    "Do not fill silence with status updates",
+    "Say it once, as written, without an acknowledgement in front of it",
   );
   expect(body.session.instructions).toContain(
     "Ask a supplied clarification directly",

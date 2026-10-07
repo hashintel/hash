@@ -798,7 +798,6 @@ describe("local document revision persistence", () => {
       <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
     );
     const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
-    expect(firstHandle.revisionId.get()).toBe("local-revision-1");
 
     act(() => {
       firstHandle.change((draft) => {
@@ -813,19 +812,52 @@ describe("local document revision persistence", () => {
         });
       });
     });
-    const changedRevisionId = firstHandle.revisionId.get();
-    expect(changedRevisionId).not.toBe("local-revision-1");
     await waitFor(() => {
       const stored = JSON.parse(
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
-      ) as Record<string, { revisionId?: string }>;
-      expect(stored["net-1"]?.revisionId).toBe(changedRevisionId);
+      ) as Record<
+        string,
+        { revisionId?: string; sdcpn: { places: { id: string }[] } }
+      >;
+      expect(stored["net-1"]?.revisionId).toBeTypeOf("string");
+      expect(stored["net-1"]?.revisionId).not.toBe("local-revision-1");
+      expect(stored["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual([
+        "direct-place",
+      ]);
     });
 
     firstView.unmount();
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
-    expect(reopenedHandle.revisionId.get()).toBe(changedRevisionId);
+    expect(reopenedHandle).not.toBe(firstHandle);
+    expect(reopenedHandle.doc()?.places.map((place) => place.id)).toEqual([
+      "direct-place",
+    ]);
+
+    // The reopened handle chains from the record revision it opened at.
+    act(() => {
+      reopenedHandle.change((draft) => {
+        draft.places.push({
+          id: "reopened-place",
+          name: "Reopened place",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+      ) as Record<string, { sdcpn: { places: { id: string }[] } }>;
+      expect(stored["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual([
+        "direct-place",
+        "reopened-place",
+      ]);
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   test("lists each stored net with the time it was last written", async () => {
@@ -894,7 +926,6 @@ describe("local document revision persistence", () => {
     seedStoredNet("local-incarnation", "local-revision-1");
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
-    expect(firstHandle.revisionId.get()).toBe("local-revision-1");
 
     const otherTabPlace = {
       id: "other-tab-place",
@@ -925,14 +956,9 @@ describe("local document revision persistence", () => {
     });
 
     await waitFor(() =>
-      expect(
-        (
-          editorProps.current?.handle as PetrinautDocHandle | undefined
-        )?.revisionId.get(),
-      ).toBe("other-tab-revision"),
+      expect(editorProps.current?.handle).not.toBe(firstHandle),
     );
     const adoptedHandle = editorProps.current?.handle as PetrinautDocHandle;
-    expect(adoptedHandle).not.toBe(firstHandle);
     expect(adoptedHandle.doc()?.places.map((place) => place.id)).toEqual([
       "other-tab-place",
     ]);
@@ -942,7 +968,6 @@ describe("local document revision persistence", () => {
         draft.places.push({ ...otherTabPlace, id: "this-tab-place" });
       });
     });
-    const chainedRevisionId = adoptedHandle.revisionId.get();
     await waitFor(() => {
       const persisted = JSON.parse(
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
@@ -950,7 +975,8 @@ describe("local document revision persistence", () => {
         string,
         { revisionId?: string; sdcpn: { places: { id: string }[] } }
       >;
-      expect(persisted["net-1"]?.revisionId).toBe(chainedRevisionId);
+      expect(persisted["net-1"]?.revisionId).toBeTypeOf("string");
+      expect(persisted["net-1"]?.revisionId).not.toBe("other-tab-revision");
       expect(persisted["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual(
         ["other-tab-place", "this-tab-place"],
       );
@@ -1004,7 +1030,6 @@ describe("local document revision persistence", () => {
       expect(editorProps.current?.handle).not.toBe(refusedHandle),
     );
     const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
-    expect(reopenedHandle.revisionId.get()).toBe("other-tab-revision");
     expect(reopenedHandle.doc()?.places).toEqual([]);
     // The notice outlives the handle it was raised for.
     expect(screen.getByRole("alert").textContent).toContain(
@@ -1020,9 +1045,8 @@ describe("local document revision persistence", () => {
       string,
       { revisionId?: string; sdcpn: { places: { id: string }[] } }
     >;
-    expect(persisted["net-1"]?.revisionId).toBe(
-      reopenedHandle.revisionId.get(),
-    );
+    expect(persisted["net-1"]?.revisionId).toBeTypeOf("string");
+    expect(persisted["net-1"]?.revisionId).not.toBe("other-tab-revision");
     expect(persisted["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual([
       "accepted-place",
     ]);
@@ -1049,7 +1073,6 @@ describe("local document revision persistence", () => {
     );
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     const handle = editorProps.current?.handle as PetrinautDocHandle;
-    expect(handle.revisionId.get()).toBe("local-revision-1");
 
     // Another tab moves net-1 on; its storage event has not reached this tab.
     // (Its place also keeps net-1 from being pruned as empty when net-2 opens.)
@@ -1157,8 +1180,14 @@ describe("local document revision persistence", () => {
     await waitFor(() => {
       const persisted = JSON.parse(
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
-      ) as Record<string, { revisionId?: string }>;
-      expect(persisted["net-1"]?.revisionId).toBe(handle.revisionId.get());
+      ) as Record<
+        string,
+        { revisionId?: string; sdcpn: { places: { id: string }[] } }
+      >;
+      expect(persisted["net-1"]?.revisionId).not.toBe("first-revision");
+      expect(persisted["net-1"]?.sdcpn.places.map((place) => place.id)).toEqual(
+        ["first-place"],
+      );
     });
     expect(uniqueSessions()).toEqual([firstSession]);
 

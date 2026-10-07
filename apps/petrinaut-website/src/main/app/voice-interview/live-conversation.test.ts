@@ -1632,6 +1632,36 @@ test("coalesces changes behind an acknowledgement and keeps the latest selection
   expect(fixture.sent[0][1]).toContain("Thorough");
 });
 
+test("progress commentary has a null delegation and only the later wrap-up closes the local delegation", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  fixture.emit(0, {
+    type: "session.delegation.created",
+    delegation: { id: "opaque", target: "client" },
+  });
+  fixture.conversation.appendCommentary("Give me a moment on this one.", null);
+  const progress = fixture.onAppendResult.mock.lastCall![0];
+  expect(JSON.parse(fixture.sent[0][0]!)).toMatchObject({
+    type: "session.commentary.append",
+    delegation_id: null,
+    content: "Give me a moment on this one.",
+  });
+  fixture.emit(0, {
+    type: "session.commentary.appended",
+    client_event_id: progress.eventId,
+    start_ms: 1_000,
+  });
+  expect(fixture.conversation.openDelegations.has("opaque")).toBe(true);
+  fixture.conversation.appendCommentary("The model is ready.", "opaque");
+  const wrapUp = fixture.onAppendResult.mock.lastCall![0];
+  fixture.emit(0, {
+    type: "session.commentary.appended",
+    client_event_id: wrapUp.eventId,
+    start_ms: 2_000,
+  });
+  expect(fixture.conversation.openDelegations.has("opaque")).toBe(false);
+});
+
 test("quiet interruption context requires its own acknowledgement and leaves the delegation open", async () => {
   const fixture = setup();
   await connect(fixture);

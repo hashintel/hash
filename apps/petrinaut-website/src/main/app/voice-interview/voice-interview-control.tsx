@@ -32,6 +32,7 @@ import {
 
 import type { InterviewBudgetLevel } from "../../../shared/interview-budget";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { ToolApprovalState } from "./live-brunch-bridge";
 import type { VoiceMediationHistory } from "./voice-mediation-history";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
 import type {
@@ -638,6 +639,7 @@ const PinnedVoiceInterviewControl = ({
   interviewBudgetLevel,
   mediationHistory,
   onInputModeChange,
+  toolApprovalState,
   resolveInputSubmission,
   resolveResponseSubmission,
   settlements,
@@ -654,6 +656,7 @@ const PinnedVoiceInterviewControl = ({
   readonly mediationHistory?: VoiceMediationHistory;
   /** Mirrors the panel's input surface; reports `text` once Voice unmounts. */
   readonly onInputModeChange?: (mode: PetrinautAiInputMode) => void;
+  readonly toolApprovalState?: (toolCallId: string) => ToolApprovalState | null;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
@@ -686,6 +689,7 @@ const PinnedVoiceInterviewControl = ({
         {...context}
         interviewBudgetLevel={interviewBudgetLevel}
         mediationHistory={mediationHistory}
+        toolApprovalState={toolApprovalState}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
         isDisclosureAcknowledged={isLiveVoiceInterviewDisclosureAcknowledged}

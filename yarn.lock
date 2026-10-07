@@ -7791,6 +7791,7 @@ __metadata:
   resolution: "@hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core"
   dependencies:
     "@local/petrinaut-optimizer-core": "workspace:*"
+    "@noble/hashes": "npm:2.0.1"
     "@types/js-yaml": "npm:^4"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
