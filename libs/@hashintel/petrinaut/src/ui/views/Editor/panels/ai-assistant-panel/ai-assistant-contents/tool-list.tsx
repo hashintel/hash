@@ -115,7 +115,9 @@ const getAiToolTarget = (value: unknown): AiToolTarget | undefined => {
 
   if (
     candidate.kind === "simulateView" &&
-    (candidate.mode === "scenarios" || candidate.mode === "metrics")
+    (candidate.mode === "scenarios" ||
+      candidate.mode === "metrics" ||
+      candidate.mode === "experiments")
   ) {
     return {
       kind: "simulateView",
