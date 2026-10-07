@@ -1471,10 +1471,10 @@ describe("assistant selection", () => {
     expect(parseAssistantSelection("brunch")).toBe("brunch");
   });
 
-  const flueHistoryClient = (netId: string) => ({
+  const flueHistoryClient = () => ({
     history: async () => ({
       conversation: {
-        conversationId: ordinaryConstructionConversationIdFrom(netId),
+        conversationId: ordinaryConstructionConversationIdFrom(netOneId),
         settlements: [],
         messages: [],
       },
@@ -1610,7 +1610,7 @@ describe("assistant selection", () => {
   test("selecting Brunch enables Voice and persists the opt-in Realtime choice", async () => {
     seedStoredNet();
     localStorage.setItem(voicePreferenceStorageKey, "false");
-    flueClientMock.current = flueHistoryClient(netOneId);
+    flueClientMock.current = flueHistoryClient();
     vi.stubGlobal("PointerEvent", MouseEvent);
     vi.stubGlobal(
       "fetch",
@@ -1694,7 +1694,7 @@ describe("assistant selection", () => {
   test("a stored Brunch choice remains selectable and switching to Stock mounts nothing of Brunch", async () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = flueHistoryClient(netOneId);
+    flueClientMock.current = flueHistoryClient();
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
     expect(currentAssistant().executeMutation).toBeUndefined();
@@ -1727,7 +1727,7 @@ describe("assistant selection", () => {
   test("defaults Voice on for saved Brunch, preserves an explicit opt-out, and removes it for Stock", async () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = flueHistoryClient(netOneId);
+    flueClientMock.current = flueHistoryClient();
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ available: true, connectionTimeoutMs: 10_000 }),
     );
@@ -1774,7 +1774,7 @@ describe("assistant selection", () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     localStorage.setItem(voicePreferenceStorageKey, "true");
-    flueClientMock.current = flueHistoryClient(netOneId);
+    flueClientMock.current = flueHistoryClient();
     vi.stubGlobal(
       "fetch",
       vi.fn<typeof globalThis.fetch>(async () =>
@@ -1795,7 +1795,7 @@ describe("assistant selection", () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "stock");
     localStorage.setItem(voicePreferenceStorageKey, "true");
-    flueClientMock.current = flueHistoryClient(netOneId);
+    flueClientMock.current = flueHistoryClient();
     const firstCapability = Promise.withResolvers<Response>();
     const secondCapability = Promise.withResolvers<Response>();
     const fetch = vi
@@ -1852,7 +1852,7 @@ describe("assistant selection", () => {
   test("each assistant keeps its own history: stock messages stay in the local store and are never handed to Brunch", async () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "stock");
-    flueClientMock.current = flueHistoryClient(netOneId);
+    flueClientMock.current = flueHistoryClient();
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant()).toBeDefined());
     const stock = currentAssistant();
@@ -2050,7 +2050,7 @@ describe("assistant selection", () => {
     });
     localStorage.setItem("petrinaut-sdcpn", JSON.stringify(stored));
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = flueHistoryClient(netOneId);
+    flueClientMock.current = flueHistoryClient();
 
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
