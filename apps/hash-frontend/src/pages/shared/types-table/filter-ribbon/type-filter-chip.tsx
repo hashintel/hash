@@ -15,7 +15,7 @@ import type {
   MenuItem,
   MultiSelectItem,
 } from "@hashintel/ds-components";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 type TypeFilterValueMap = {
   within: string;
@@ -39,6 +39,8 @@ export const TypeFilterChip: FunctionComponent<{
   /** The options of the field's select inputs (multi and single alike). */
   selectItems: ReadonlyArray<ItemOrGroup<MultiSelectItem>>;
   searchable?: boolean;
+  /** Custom renderer for the select inputs' dropdown items (e.g. icon + name). */
+  renderSelectItem?: (value: string) => ReactNode;
   onCommit: (committed: TypeFilter) => void;
   onRemove: () => void;
 }> = ({
@@ -47,6 +49,7 @@ export const TypeFilterChip: FunctionComponent<{
   fieldMenu,
   selectItems,
   searchable = false,
+  renderSelectItem,
   onCommit,
   onRemove,
 }) => {
@@ -66,13 +69,18 @@ export const TypeFilterChip: FunctionComponent<{
                 multiple: true,
                 items: selectItems,
                 searchable,
+                renderItem: renderSelectItem,
               },
             };
           case "singleSelect":
             return {
               key: descriptor.operator,
               label: descriptor.label,
-              input: { type: "select", items: selectItems },
+              input: {
+                type: "select",
+                items: selectItems,
+                renderItem: renderSelectItem,
+              },
             };
           default:
             return {
@@ -83,7 +91,7 @@ export const TypeFilterChip: FunctionComponent<{
         }
       },
     );
-  }, [filter.field, selectItems, searchable]);
+  }, [filter.field, selectItems, searchable, renderSelectItem]);
 
   const value = useMemo<FilterValue<TypeFilterValueMap> | null>(() => {
     switch (filter.operator) {

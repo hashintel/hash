@@ -1,9 +1,14 @@
-import { useMemo } from "react";
+import { Box } from "@mui/material";
+import { useCallback, useMemo } from "react";
 
+import { WandMagicSparklesIcon } from "@hashintel/design-system";
 import { Filter } from "@hashintel/ds-components";
 
 import { useLatestEntityTypesOptional } from "../../../shared/entity-types-context/hooks";
+import { HashSolidIcon } from "../../../shared/icons/hash-solid-icon";
+import { UserIcon } from "../../../shared/icons/user-icon";
 import { usePropertyTypes } from "../../../shared/property-types-context";
+import { isAiMachineActor } from "../../../shared/use-actors";
 import { useDataTypesContext } from "../data-types-context";
 import { filterChipPillChrome, FilterGroupRibbon } from "../filter-bar";
 import { TypeFilterChip } from "./filter-ribbon/type-filter-chip";
@@ -94,6 +99,44 @@ export const TypesFilterRibbon: FunctionComponent<{
           text: editor.displayName ?? "Unknown",
         }))
         .sort(compareByText),
+    [editors],
+  );
+
+  /** The same icon logic as the table's "Last Edited By" pill. */
+  const renderEditorItem = useCallback(
+    (value: string): ReactNode => {
+      const editor = editors?.find(
+        (candidate) => candidate.accountId === value,
+      );
+      if (!editor) {
+        return value;
+      }
+      return (
+        <Box
+          component="span"
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 0.6,
+            "& svg": {
+              fontSize: 14,
+              color: ({ palette }) => palette.gray[60],
+            },
+          }}
+        >
+          {editor.kind === "machine" ? (
+            isAiMachineActor(editor) ? (
+              <WandMagicSparklesIcon />
+            ) : (
+              <HashSolidIcon />
+            )
+          ) : (
+            <UserIcon />
+          )}
+          {editor.displayName ?? "Unknown"}
+        </Box>
+      );
+    },
     [editors],
   );
 
@@ -202,6 +245,9 @@ export const TypesFilterRibbon: FunctionComponent<{
         fieldMenu={fieldMenuForFilter(filter)}
         selectItems={selectItemsForField(filter.field)}
         searchable={searchableFields.includes(filter.field)}
+        renderSelectItem={
+          filter.field === "lastEditedBy" ? renderEditorItem : undefined
+        }
         onCommit={(committed) => handleCommitFilter(filter.id, committed)}
         onRemove={() => handleRemoveFilter(filter.id)}
       />
