@@ -1,41 +1,29 @@
 {
   "extends": ["//"],
   "tasks": {
-    "lint:types": {
-      "command": [
-        "uv",
-        "run",
-        "--active",
-        "--frozen",
-        "--all-packages",
-        "basedpyright"
-      ],
+    "lint:tach": {
       "passThroughEnv": ["UV_CACHE_DIR"],
-      "dependsOn": ["petrinaut-python#codegen"]
-    },
-    "lint:ruff": {
       "command": [
         "uv",
         "run",
         "--active",
         "--frozen",
         "--all-packages",
-        "ruff",
-        "check",
-        "."
-      ],
-      "passThroughEnv": ["UV_CACHE_DIR"]
+        "tach",
+        "check"
+      ]
     },
-    "format:ruff": {
+    "check:ty": { "dependsOn": ["petrinaut-python#codegen"] },
+    "lint:deptry": {
       "command": [
         "uv",
         "run",
         "--active",
         "--frozen",
         "--all-packages",
-        "ruff",
-        "format",
-        "."
+        "deptry",
+        "src",
+        "scripts"
       ],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
@@ -66,7 +54,7 @@
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
     "start": {
-      "command": ["uv", "run", "uvicorn", "src.optimization_api:app"],
+      "command": ["uv", "run", "uvicorn", "petrinaut_optimization.api:app"],
       "dependsOn": ["petrinaut-python#codegen"]
     },
     "start:dev": {
@@ -74,7 +62,7 @@
         "uv",
         "run",
         "uvicorn",
-        "src.optimization_api:app",
+        "petrinaut_optimization.api:app",
         "--reload"
       ],
       "cache": false,
@@ -82,9 +70,16 @@
       "dependsOn": ["petrinaut-python#codegen"]
     },
     "check:openapi": {
-      "command": ["git", "diff", "--exit-code", "--", "openapi/openapi.json"],
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "scripts.generate_openapi",
+        "--check"
+      ],
       "cache": false,
-      "dependsOn": ["codegen"]
+      "dependsOn": ["petrinaut-python#codegen"]
     },
     "test:unit": {
       "dependsOn": ["check:openapi", "^manifest"],

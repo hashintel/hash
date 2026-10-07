@@ -5,10 +5,9 @@ both build random forests with scikit-learn, which is neither in the service
 venv nor shipped into Pyodide. PED-ANOVA needs numpy alone.
 """
 
-from __future__ import annotations
-
 import math
 import warnings
+from contextlib import suppress
 
 import optuna
 from optuna.exceptions import ExperimentalWarning
@@ -18,6 +17,8 @@ from optuna.trial import TrialState
 # Below this many completed trials the estimate is a hint at best; the host
 # fades it. The floor rises with the study so a long study earns its confidence.
 LONG_STUDY_TRIALS = 100
+MIN_IMPORTANCE_TRIALS = 2
+MIN_IMPORTANCE_PARAMETERS = 2
 
 
 def importance_cadence(requested_trials: int) -> int:
@@ -26,7 +27,7 @@ def importance_cadence(requested_trials: int) -> int:
 
 
 def importance_floor(requested_trials: int) -> int:
-    """The completed-trial count from which the estimate is worth streaming."""
+    """Return the completed-trial count from which the estimate is worth streaming."""
     return LONG_STUDY_TRIALS if requested_trials >= LONG_STUDY_TRIALS else 50
 
 
@@ -36,10 +37,10 @@ def completed_trials(study: optuna.Study) -> int:
 
 def _estimate(study: optuna.Study) -> dict[str, float] | None:
     completed = study.get_trials(deepcopy=False, states=(TrialState.COMPLETE,))
-    if len(completed) < 2:
+    if len(completed) < MIN_IMPORTANCE_TRIALS:
         return None
     parameters = {name for trial in completed for name in trial.distributions}
-    if len(parameters) < 2:
+    if len(parameters) < MIN_IMPORTANCE_PARAMETERS:
         return None
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", ExperimentalWarning)
@@ -61,7 +62,7 @@ def parameter_importances(study: optuna.Study) -> dict[str, float] | None:
     trials, on a single optimized parameter, and on any exception the
     evaluator raises, so a study never fails for its summary.
     """
-    try:
+    # Importances are optional; an evaluator failure must not fail the study.
+    with suppress(Exception):
         return _estimate(study)
-    except Exception:
-        return None
+    return None
