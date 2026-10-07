@@ -1783,7 +1783,9 @@ test("pacing failures are quiet, recover on acknowledgement and preserve other a
   act(() => call[0]({ phase: "connected", message: null }));
   expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
     expect.objectContaining({
-      warningMessage: expect.stringContaining("answer was rejected") as unknown,
+      warningMessage: expect.stringContaining(
+        "Couldn’t speak the answer.",
+      ) as unknown,
     }),
   );
 });
