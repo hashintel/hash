@@ -45,20 +45,20 @@ impl ApiTokenSecretHash {
     }
 }
 
-/// The SHA-256 hash of an API token's secret, encrypted with AES-256-SIV.
+/// The SHA-256 hash of an API token's secret, encrypted with AES-256-GCM.
 ///
-/// The first 16 bytes are the synthetic IV, the other 32 the ciphertext.
+/// The first 12 bytes are the nonce, followed by the 32 bytes of ciphertext and the 16-byte tag.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ApiTokenEncryptedSecretHash([u8; 48]);
+pub struct ApiTokenEncryptedSecretHash([u8; 60]);
 
 impl ApiTokenEncryptedSecretHash {
     #[must_use]
-    pub const fn new(encrypted_hash: [u8; 48]) -> Self {
+    pub const fn new(encrypted_hash: [u8; 60]) -> Self {
         Self(encrypted_hash)
     }
 
     #[must_use]
-    pub const fn as_bytes(&self) -> &[u8; 48] {
+    pub const fn as_bytes(&self) -> &[u8; 60] {
         &self.0
     }
 }

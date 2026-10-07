@@ -1,28 +1,41 @@
-use aes_siv::{KeyInit as _, Tag, siv::Aes256Siv};
+use aws_lc_rs::aead::{AES_256_GCM, Aad, NONCE_LEN, Nonce, RandomizedNonceKey};
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::api_token::{
     ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId, ApiTokenSecretHash,
 };
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
+use zerocopy::{FromBytes, Immutable, IntoBytes};
 
-use super::{ApiTokenType, ApiTokenVersion, Environment};
+use super::{ApiTokenType, ApiTokenVersion, ENVIRONMENT_LENGTH, Environment, TYPE_LENGTH};
 
-const SYNTHETIC_IV_LENGTH: usize = 16;
+const SECRET_HASH_LENGTH: usize = 32;
+const TAG_LENGTH: usize = 16;
 
-/// An AES-256-SIV key for the secret hashes of API tokens, and its ID.
+/// The bytes of an encrypted secret hash: the nonce, then the ciphertext followed by its tag.
+#[derive(FromBytes, IntoBytes, Immutable)]
+#[repr(C)]
+struct EncryptedSecretHashLayout {
+    nonce: [u8; NONCE_LEN],
+    sealed: [u8; SECRET_HASH_LENGTH + TAG_LENGTH],
+}
+
+/// An AES-256-GCM key for the secret hashes of API tokens, and its ID.
 #[derive(derive_more::Debug)]
 pub struct ApiTokenEncryptionKey {
     id: ApiTokenEncryptionKeyId,
-    // TODO(BE-791): zeroize the key on drop
     #[debug(skip)]
-    key: [u8; 64],
+    key: RandomizedNonceKey,
 }
 
 impl ApiTokenEncryptionKey {
     #[must_use]
-    pub const fn new(id: ApiTokenEncryptionKeyId, key: [u8; 64]) -> Self {
-        Self { id, key }
+    pub fn new(id: ApiTokenEncryptionKeyId, key: &[u8; 32]) -> Self {
+        Self {
+            id,
+            key: RandomizedNonceKey::new(&AES_256_GCM, key)
+                .unwrap_or_else(|_error| unreachable!("AES-256-GCM should accept a 32-byte key")),
+        }
     }
 
     #[must_use]
@@ -30,27 +43,28 @@ impl ApiTokenEncryptionKey {
         self.id
     }
 
-    /// Encrypts `secret_hash` bound to `associated_data`.
+    /// Encrypts `secret_hash` bound to `associated_data`, under a random nonce.
+    ///
+    /// The process aborts if the random number generator fails.
     #[must_use]
     pub fn encrypt(
         &self,
         secret_hash: ApiTokenSecretHash,
         associated_data: &AssociatedData,
     ) -> ApiTokenEncryptedSecretHash {
-        let mut ciphertext = *secret_hash.as_bytes();
-        let synthetic_iv = associated_data
-            .with_headers(|headers| {
-                self.cipher()
-                    .encrypt_inout_detached(headers, ciphertext.as_mut_slice().into())
-            })
-            .unwrap_or_else(|error| unreachable!("AES-SIV should accept six headers: {error}"));
+        let mut sealed = [0; SECRET_HASH_LENGTH + TAG_LENGTH];
+        let (ciphertext, tag_part) = sealed.split_at_mut(SECRET_HASH_LENGTH);
+        ciphertext.copy_from_slice(secret_hash.as_bytes());
+        let (nonce, tag) = self
+            .key
+            .seal_in_place_separate_tag(Aad::from(associated_data.layout().as_bytes()), ciphertext)
+            .unwrap_or_else(|_error| unreachable!("AES-256-GCM should seal a SHA-256 hash"));
+        tag_part.copy_from_slice(tag.as_ref());
 
-        let mut encrypted_secret_hash = [0; 48];
-        let (synthetic_iv_part, ciphertext_part) =
-            encrypted_secret_hash.split_at_mut(SYNTHETIC_IV_LENGTH);
-        synthetic_iv_part.copy_from_slice(&synthetic_iv);
-        ciphertext_part.copy_from_slice(&ciphertext);
-        ApiTokenEncryptedSecretHash::new(encrypted_secret_hash)
+        ApiTokenEncryptedSecretHash::new(zerocopy::transmute!(EncryptedSecretHashLayout {
+            nonce: *nonce.as_ref(),
+            sealed,
+        }))
     }
 
     /// Decrypts `encrypted_secret_hash` with the associated data it was encrypted with.
@@ -64,28 +78,21 @@ impl ApiTokenEncryptionKey {
         encrypted_secret_hash: ApiTokenEncryptedSecretHash,
         associated_data: &AssociatedData,
     ) -> Result<ApiTokenSecretHash, Report<ApiTokenDecryptionError>> {
-        let (synthetic_iv_part, ciphertext_part) = encrypted_secret_hash
-            .as_bytes()
-            .split_at(SYNTHETIC_IV_LENGTH);
-        let mut synthetic_iv = Tag::default();
-        synthetic_iv.copy_from_slice(synthetic_iv_part);
-        let mut secret_hash = [0; 32];
-        secret_hash.copy_from_slice(ciphertext_part);
-
-        associated_data
-            .with_headers(|headers| {
-                self.cipher().decrypt_inout_detached(
-                    headers,
-                    secret_hash.as_mut_slice().into(),
-                    &synthetic_iv,
-                )
-            })
+        let EncryptedSecretHashLayout { nonce, mut sealed } =
+            zerocopy::transmute!(*encrypted_secret_hash.as_bytes());
+        let secret_hash = self
+            .key
+            .open_in_place(
+                Nonce::assume_unique_for_key(nonce),
+                Aad::from(associated_data.layout().as_bytes()),
+                &mut sealed,
+            )
             .change_context(ApiTokenDecryptionError)?;
-        Ok(ApiTokenSecretHash::new(secret_hash))
-    }
 
-    fn cipher(&self) -> Aes256Siv {
-        Aes256Siv::new((&self.key).into())
+        Ok(ApiTokenSecretHash::new(
+            <[u8; SECRET_HASH_LENGTH]>::try_from(&*secret_hash)
+                .unwrap_or_else(|_error| unreachable!("the plaintext should be a SHA-256 hash")),
+        ))
     }
 }
 
@@ -102,28 +109,35 @@ pub struct AssociatedData {
     pub web_id: WebId,
 }
 
+/// The bytes of the associated data, part by part.
+///
+/// Every part has a fixed length, so the bytes identify the parts without separators.
+#[derive(IntoBytes, Immutable)]
+#[repr(C)]
+struct AssociatedDataLayout {
+    token_type: [u8; TYPE_LENGTH],
+    environment: [u8; ENVIRONMENT_LENGTH],
+    version: u8,
+    token_id: [u8; 16],
+    actor_id: [u8; 16],
+    web_id: [u8; 16],
+}
+
 impl AssociatedData {
-    /// Calls `operation` with the parts as separate AES-SIV headers, in the order of the fields.
-    ///
-    /// - The type and the environment are their codes.
-    /// - The version is its number.
-    /// - The token ID, the actor ID and the web ID are the bytes of their UUIDs.
+    /// The associated data as AES-GCM authenticates it: the type and environment codes, the
+    /// version number and the UUID bytes of the token ID, the actor ID and the web ID.
     ///
     /// Every stored secret hash depends on this encoding, so changing it makes all of them fail to
     /// decrypt.
-    fn with_headers<T>(&self, operation: impl FnOnce([&[u8]; 6]) -> T) -> T {
-        let version = [self.version.number()];
-        let token_id = Uuid::from(self.token_id).into_bytes();
-        let actor_id = Uuid::from(self.actor_id).into_bytes();
-        let web_id = Uuid::from(self.web_id).into_bytes();
-        operation([
-            self.token_type.code(),
-            self.environment.code(),
-            &version,
-            &token_id,
-            &actor_id,
-            &web_id,
-        ])
+    fn layout(&self) -> AssociatedDataLayout {
+        AssociatedDataLayout {
+            token_type: *self.token_type.code(),
+            environment: *self.environment.code(),
+            version: self.version.number(),
+            token_id: Uuid::from(self.token_id).into_bytes(),
+            actor_id: Uuid::from(self.actor_id).into_bytes(),
+            web_id: Uuid::from(self.web_id).into_bytes(),
+        }
     }
 }
 
@@ -151,21 +165,24 @@ mod tests {
         "hsh_pat_pd_0296tiiBb3U904RIpygpjj_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg39B9Yp";
 
     /// The secret hash of [`FIXED_TOKEN`] encrypted with [`fixed_key`] for
-    /// [`fixed_associated_data`], computed independently with OpenSSL's AES-256-SIV.
-    const FIXED_ENCRYPTED_SECRET_HASH: [u8; 48] = [
-        0xEF, 0x17, 0xDA, 0x58, 0x70, 0x92, 0x88, 0x76, 0xCE, 0xC0, 0x8C, 0x2B, 0x8A, 0x08, 0x0E,
-        0xB2, 0x5B, 0x11, 0xA8, 0x16, 0x56, 0x8E, 0xDF, 0xDA, 0x8C, 0x44, 0x08, 0xE5, 0xDB, 0xAB,
-        0x91, 0xA8, 0x3F, 0x3C, 0x7E, 0xA6, 0x18, 0xC0, 0x29, 0xDD, 0xF0, 0x68, 0x74, 0x36, 0x77,
-        0x84, 0x4A, 0x34,
+    /// [`fixed_associated_data`] under the nonce `0x40` to `0x4B`, computed independently with
+    /// OpenSSL's AES-256-GCM.
+    const FIXED_ENCRYPTED_SECRET_HASH: [u8; 60] = [
+        0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x93, 0x61, 0xE5,
+        0x3B, 0x7F, 0x86, 0x56, 0x19, 0x71, 0x77, 0xC8, 0xEF, 0xAE, 0x58, 0x9E, 0x43, 0x0A, 0x6C,
+        0xAF, 0xD4, 0x88, 0xCF, 0xF9, 0xD1, 0xBE, 0x98, 0x32, 0x59, 0x6B, 0x2D, 0xF5, 0x8B, 0x94,
+        0x90, 0x61, 0x35, 0x40, 0xBD, 0x63, 0x03, 0x2F, 0x5B, 0x87, 0xC2, 0x05, 0xEF, 0x3B, 0x05,
     ];
 
-    /// The key with the bytes 0 to 63.
+    /// The key with the bytes 0 to 31.
     fn fixed_key() -> ApiTokenEncryptionKey {
         ApiTokenEncryptionKey::new(
             ApiTokenEncryptionKeyId::new(Uuid::from_u128(
                 0x3333_3333_3333_3333_3333_3333_3333_3333,
             )),
-            core::array::from_fn(|index| u8::try_from(index).expect("the index should fit a byte")),
+            &core::array::from_fn(|index| {
+                u8::try_from(index).expect("the index should fit a byte")
+            }),
         )
     }
 
@@ -181,17 +198,6 @@ mod tests {
     }
 
     #[test]
-    fn encrypt_fixed_token() {
-        let token = fixed_token();
-
-        assert_eq!(
-            fixed_key().encrypt(token.secret_hash(), &fixed_associated_data(&token)),
-            ApiTokenEncryptedSecretHash::new(FIXED_ENCRYPTED_SECRET_HASH),
-            "the encrypted secret hash should match the value computed with OpenSSL"
-        );
-    }
-
-    #[test]
     fn decrypt_fixed_token() {
         let token = fixed_token();
 
@@ -204,6 +210,35 @@ mod tests {
                 .expect("the pinned value should decrypt"),
             token.secret_hash(),
             "decrypting should yield the SHA-256 of the secret"
+        );
+    }
+
+    #[test]
+    fn encrypt_round_trip() {
+        let token = fixed_token();
+        let key = fixed_key();
+
+        let encrypted = key.encrypt(token.secret_hash(), &fixed_associated_data(&token));
+
+        assert_eq!(
+            key.decrypt(encrypted, &fixed_associated_data(&token))
+                .expect("the encrypted secret hash should decrypt"),
+            token.secret_hash(),
+            "decrypting should yield the encrypted secret hash"
+        );
+    }
+
+    #[test]
+    fn encrypt_fresh_nonce() {
+        let token = fixed_token();
+        let key = fixed_key();
+
+        let first = key.encrypt(token.secret_hash(), &fixed_associated_data(&token));
+        let second = key.encrypt(token.secret_hash(), &fixed_associated_data(&token));
+
+        assert_ne!(
+            first, second,
+            "encrypting the same secret hash twice should use two nonces"
         );
     }
 
