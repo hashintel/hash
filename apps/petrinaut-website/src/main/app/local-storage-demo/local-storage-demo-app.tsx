@@ -116,6 +116,7 @@ import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
+import type { ToolApprovalState } from "../voice-interview/live-brunch-bridge";
 import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
 import type {
   DocumentRecord,
@@ -234,6 +235,7 @@ export const getBrunchVoiceMode = (
   settlements?: readonly FlueConversationSettlement[],
   snapshot?: FlueConversationState,
   mediationHistory?: VoiceMediationHistory,
+  toolApprovalState?: (toolCallId: string) => ToolApprovalState | null,
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -261,6 +263,7 @@ export const getBrunchVoiceMode = (
       {...context}
       config={config}
       mediationHistory={mediationHistory}
+      toolApprovalState={toolApprovalState}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated
       // independently by followMessages.canReplace below.
@@ -822,6 +825,7 @@ export const LocalStorageDemoApp = ({
         flueHistory.settlements,
         flueHistory.snapshot,
         mediationHistory,
+        (toolCallId) => mutationApproval.coordinator.approvalState(toolCallId),
       ),
     [
       brunchSelected,
@@ -829,6 +833,7 @@ export const LocalStorageDemoApp = ({
       flueHistory.settlements,
       flueHistory.snapshot,
       mediationHistory,
+      mutationApproval,
       openAIVoiceConfig,
       realtimeEnabled,
       realtimePreferenceReady,

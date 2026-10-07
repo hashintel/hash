@@ -2,6 +2,125 @@ import { expect, test, vi } from "vitest";
 
 import { LiveSpeechCaptions } from "./live-speech-captions";
 
+test.each(["before", "after"] as const)(
+  "progress accepted %s its transcript stays out of saved captions",
+  (timing) => {
+    const caption = vi.fn();
+    const captions = new LiveSpeechCaptions(caption);
+    captions.input({ id: "input", text: "Build it", startMs: 100, endMs: 200 });
+    captions.begin("request");
+    captions.output({
+      id: "ack",
+      text: "I'll build it.",
+      startMs: 300,
+      endMs: 600,
+    });
+    if (timing === "before") captions.progress(6_000);
+    captions.output({
+      id: "progress",
+      text: "Making those changes now.",
+      startMs: 6_100,
+      endMs: 7_000,
+    });
+    if (timing === "after") captions.progress(6_000);
+    captions.progress(26_000);
+    captions.output({
+      id: "still",
+      text: "Still working through the changes.",
+      startMs: 26_100,
+      endMs: 27_000,
+    });
+    captions.wrapUp("request", 30_000);
+    captions.output({
+      id: "result",
+      text: "The model is ready.",
+      startMs: 30_100,
+      endMs: 31_000,
+    });
+    expect(caption.mock.calls.slice(-2)).toEqual([
+      ["request", "reply", { text: "I'll build it.", state: "done" }],
+      [
+        "request",
+        "wrapUp",
+        { text: "The model is ready.", state: "streaming" },
+      ],
+    ]);
+    captions.speechStarted();
+    captions.input({
+      id: "next",
+      text: "Change it",
+      startMs: 32_000,
+      endMs: 33_000,
+    });
+    captions.begin("next-request");
+    captions.output({
+      id: "next-ack",
+      text: "I'll change it.",
+      startMs: 34_000,
+      endMs: 35_000,
+    });
+    expect(caption).toHaveBeenCalledWith("next-request", "reply", {
+      text: "I'll change it.",
+      state: "streaming",
+    });
+  },
+);
+
+test.each([
+  {
+    split: "whole sentence",
+    acknowledgement: "I'll check. ",
+    reply: "I'll check. ",
+    wrapUp: "The duration is 2.5 hours, not 25.",
+  },
+  {
+    split: "zero-offset fallback",
+    acknowledgement: "",
+    reply: "The duration is 2.",
+    wrapUp: "5 hours, not 25.",
+  },
+])(
+  "preserves wrap-up overlap after progress with the $split split",
+  ({ acknowledgement, reply, wrapUp }) => {
+    const lines = { reply: "", wrapUp: "" };
+    const captions = new LiveSpeechCaptions((_id, kind, line) => {
+      lines[kind] = line.text;
+    });
+    captions.input({ id: "input", text: "Check it", startMs: 100, endMs: 200 });
+    captions.begin("turn");
+    if (acknowledgement) {
+      captions.output({
+        id: "ack",
+        text: acknowledgement,
+        startMs: 300,
+        endMs: 600,
+      });
+    }
+    captions.progress(26_000);
+    captions.output({
+      id: "progress",
+      text: "Still thinking this through.",
+      startMs: 26_100,
+      endMs: 30_000,
+    });
+    captions.output({
+      id: "overlap",
+      text: "The duration is 2.",
+      startMs: 29_900,
+      endMs: 30_100,
+    });
+    captions.output({
+      id: "rest",
+      text: "5 hours, not 25.",
+      startMs: 30_200,
+      endMs: 31_000,
+    });
+    expect(lines).toEqual({ reply: acknowledgement, wrapUp: "" });
+    captions.wrapUp("turn", 30_000);
+    expect(lines).toEqual({ reply, wrapUp });
+  },
+);
+
 test("streams time-ordered input once per event and retires the preview on finalization", () => {
   const input = {
     update: vi.fn<(id: string, text: string) => void>(),

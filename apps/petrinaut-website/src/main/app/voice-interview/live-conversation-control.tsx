@@ -38,6 +38,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageStarted"
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
+    | "toolApprovalState"
   > & {
     readonly mediationHistory?: VoiceMediationHistory;
     readonly acknowledgeDisclosure: () => void;
@@ -107,6 +108,7 @@ export const LiveConversationControl = ({
   subscribeToResponseMessageStarted,
   subscribeToResponseMessageCompleted,
   subscribeToStopRequested,
+  toolApprovalState,
 }: LiveControlsContext) => {
   const [localHistory] = useState(() => new VoiceMediationHistory("session"));
   const history = mediationHistory ?? localHistory;
@@ -149,6 +151,7 @@ export const LiveConversationControl = ({
   const latest = useRef({
     submit,
     messages,
+    toolApprovalState,
     chat: {
       status,
       stopped,
@@ -185,6 +188,7 @@ export const LiveConversationControl = ({
     latest.current = {
       submit,
       messages,
+      toolApprovalState,
       chat: {
         status,
         stopped,
@@ -205,6 +209,7 @@ export const LiveConversationControl = ({
     resolveResponseSubmission,
     settlements,
     snapshot,
+    toolApprovalState,
   ]);
 
   useEffect(
@@ -259,9 +264,13 @@ export const LiveConversationControl = ({
     );
     let offeredInput: string | undefined;
     const appendInputs = new Map<string, string>();
+    // Appends sent before the person last started speaking belong to the
+    // interrupted turn; a late acceptance must not caption the new one.
+    const turnAppends = new Set<string>();
     const next = createLiveConversation(
       (nextState) => {
         if (session.current !== next) return;
+        bridge.current?.liveSpeaking(nextState.activity?.outputActive === true);
         if (
           nextState.phase !== "connected" ||
           nextState.activity?.outputActive
@@ -306,7 +315,15 @@ export const LiveConversationControl = ({
       },
       (result) => {
         if (session.current !== next) return;
-        if (result.kind === "commentary") {
+        if (result.status === "unknown") turnAppends.add(result.eventId);
+        // A local failure is reported synchronously, without a prior unknown.
+        const currentTurn =
+          result.status === "local-failure" || turnAppends.has(result.eventId);
+        if (result.status !== "unknown") turnAppends.delete(result.eventId);
+        if (currentTurn && result.kind === "commentary" && result.progress) {
+          if (result.status === "accepted" && result.startMs !== undefined)
+            captions.progress(result.startMs);
+        } else if (currentTurn && result.kind === "commentary") {
           if (offeredInput) {
             appendInputs.set(result.eventId, offeredInput);
             offeredInput = undefined;
@@ -324,8 +341,9 @@ export const LiveConversationControl = ({
         // for acceptance nor acceptance itself is an error or resolves a
         // failure from another append.
         if (result.status === "unknown" || result.status === "accepted") return;
-        // Quiet interruption context is best effort, not an audible answer.
-        if (result.kind === "thinking") return;
+        // Quiet interruption context and progress lines are best effort, not
+        // an audible answer.
+        if (result.kind === "thinking" || result.progress) return;
         setWarningMessage(
           result.kind === "commentary"
             ? "Couldn’t speak the answer. The written answer is in the conversation."
@@ -340,6 +358,7 @@ export const LiveConversationControl = ({
           bridge.current?.speechStarted();
           offeredInput = undefined;
           appendInputs.clear();
+          turnAppends.clear();
         },
         input: (fragment) => {
           if (session.current === next) captions.input(fragment);
@@ -362,10 +381,13 @@ export const LiveConversationControl = ({
         },
       ),
       appendCommentary: next.appendCommentary,
+      appendProgress: next.appendProgress,
       appendInstructions: next.appendInstructions,
       appendThinking: next.appendThinking,
       notice: setWarningMessage,
       speechPending: next.speechPending,
+      toolApprovalState: (toolCallId) =>
+        latest.current.toolApprovalState?.(toolCallId) ?? null,
     });
     bridge.current.update(latest.current.chat);
     session.current = next;

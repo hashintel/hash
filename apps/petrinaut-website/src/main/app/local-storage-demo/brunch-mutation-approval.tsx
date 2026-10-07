@@ -31,6 +31,11 @@ export interface BrunchMutationApprovalCoordinator {
   }): Promise<BrunchMutationApprovalDecision>;
   resolve(toolCallId: string, choice: BrunchMutationApprovalChoice): boolean;
   hasPending(toolCallId: string): boolean;
+  /**
+   * A refused call keeps its streamed input-available state until the refusal
+   * output round-trips, so its part alone cannot tell it from an executing call.
+   */
+  approvalState(toolCallId: string): "awaiting" | "refused" | null;
   /** Changes whenever a call enters or leaves the approval gate. */
   getVersion: () => number;
   subscribe: (listener: () => void) => () => void;
@@ -47,6 +52,7 @@ const deniedReason = "The user denied this destructive edit.";
 export const createBrunchMutationApprovalCoordinator =
   (): BrunchMutationApprovalCoordinator => {
     const pending = new Map<string, PendingApproval>();
+    const refused = new Set<string>();
     const listeners = new Set<() => void>();
     let alwaysAllow = false;
     let closed = false;
@@ -62,6 +68,7 @@ export const createBrunchMutationApprovalCoordinator =
       const approval = pending.get(toolCallId);
       if (!approval) return false;
       pending.delete(toolCallId);
+      if (decision.decision === "deny") refused.add(toolCallId);
       approval.removeAbortListener();
       approval.resolve(decision);
       notify();
@@ -70,8 +77,10 @@ export const createBrunchMutationApprovalCoordinator =
 
     return {
       request: ({ toolCallId, signal }) => {
-        if (closed || signal.aborted)
+        if (closed || signal.aborted) {
+          refused.add(toolCallId);
           return Promise.resolve({ decision: "deny", reason: stoppedReason });
+        }
         if (alwaysAllow) return Promise.resolve({ decision: "allow" });
         return new Promise((resolve) => {
           const onAbort = () => {
@@ -97,6 +106,12 @@ export const createBrunchMutationApprovalCoordinator =
         );
       },
       hasPending: (toolCallId) => pending.has(toolCallId),
+      approvalState: (toolCallId) =>
+        pending.has(toolCallId)
+          ? "awaiting"
+          : refused.has(toolCallId)
+            ? "refused"
+            : null,
       getVersion: () => version,
       subscribe: (listener) => {
         listeners.add(listener);

@@ -22,6 +22,7 @@ import {
 } from "./voice-interview-control";
 import { VoiceMediationHistory } from "./voice-mediation-history";
 
+import type { ToolApprovalState } from "./live-brunch-bridge";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
@@ -38,6 +39,7 @@ vi.mock("./live-conversation", () => ({
     start: vi.fn(async () => {}),
     stop: liveConversationMocks.stop,
     appendCommentary: vi.fn(() => true),
+    appendProgress: vi.fn(() => true),
     appendInstructions: vi.fn(() => true),
     appendThinking: vi.fn(() => true),
     speechPending: vi.fn(() => true),
@@ -339,6 +341,69 @@ test("captions a Live turn in the history it began in after a switch", async () 
     },
   ]);
   expect(second.project([])).toEqual([]);
+});
+
+test("progress accepted after the person speaks again does not hide the new reply", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+  const props = context();
+  const history = new VoiceMediationHistory("standalone");
+  render(
+    <VoiceInterviewControl
+      {...props}
+      mediationHistory={history}
+      config={config}
+    />,
+  );
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  const progress = {
+    eventId: "progress",
+    kind: "commentary" as const,
+    delegationId: null,
+    progress: true as const,
+  };
+  act(() => {
+    call[6]?.started();
+    call[6]?.input({
+      id: "one",
+      text: "Compare four",
+      startMs: 100,
+      endMs: 300,
+    });
+    call[2]({ id: "first", text: "Compare four", startedDuringOutput: false });
+    call[4]({ ...progress, status: "unknown" });
+    call[6]?.started();
+    call[6]?.input({
+      id: "two",
+      text: "Make it seven",
+      startMs: 1000,
+      endMs: 1200,
+    });
+    call[2]({
+      id: "second",
+      text: "Make it seven",
+      startedDuringOutput: false,
+    });
+    call[4]({ ...progress, status: "accepted", startMs: 1300 });
+    call[6]?.output({
+      id: "reply",
+      text: "Seven it is.",
+      startMs: 1400,
+      endMs: 1600,
+    });
+  });
+  expect(
+    history.project([]).find((message) => message.id === "voice-reply:second")
+      ?.parts,
+  ).toEqual([
+    {
+      type: "data-voiceAgentReply",
+      data: { text: "Seven it is.", state: "streaming" },
+    },
+  ]);
 });
 
 test("retires a Live preview from the history it began in after a switch", async () => {
@@ -1172,7 +1237,7 @@ const mockMediation = () => {
   return fetch;
 };
 
-test("the prepared brief enters the real admission helper and only its settled canonical prose is summarized for Live", async () => {
+const offerSettledWrapUp = async () => {
   const fetch = mockMediation();
   const tracker = new BrunchPanelConversationTracker();
   const history = new VoiceMediationHistory("test");
@@ -1309,6 +1374,12 @@ test("the prepared brief enters the real admission helper and only its settled c
       }),
     }),
   );
+  return { call, history, messages, props, session, tracker };
+};
+
+test("the prepared brief enters the real admission helper and only its settled canonical prose is summarized for Live", async () => {
+  const { call, history, messages, props, session, tracker } =
+    await offerSettledWrapUp();
   act(() => {
     const append = {
       eventId: "summary",
@@ -1360,6 +1431,44 @@ test("the prepared brief enters the real admission helper and only its settled c
     }),
   );
   await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledTimes(2));
+});
+
+test("a summary that could not be sent does not caption later progress as its wrap-up", async () => {
+  const { call, history, messages } = await offerSettledWrapUp();
+  const progress = {
+    eventId: "progress",
+    kind: "commentary" as const,
+    delegationId: null,
+    progress: true as const,
+  };
+  act(() => {
+    call[4]({
+      eventId: "summary",
+      kind: "commentary",
+      delegationId: "delegation-1",
+      status: "local-failure",
+    });
+    call[4]({ ...progress, status: "unknown" });
+    call[4]({ ...progress, status: "accepted", startMs: 500 });
+    call[6]?.output({
+      id: "spoken",
+      text: "Still checking the reviewers.",
+      startMs: 600,
+      endMs: 900,
+    });
+  });
+  expect(
+    history
+      .project([
+        {
+          id: "utterance-1",
+          role: "user",
+          parts: [{ type: "text", text: "Canonical brief" }],
+        },
+        ...messages,
+      ])
+      .map((entry) => entry.id),
+  ).not.toContain("voice-wrap-up:utterance-1");
 });
 
 test("Stop sends the partial answer to Live quietly and Continue admits one new turn", async () => {
@@ -1443,6 +1552,11 @@ test("Stop sends the partial answer to Live quietly and Continue admits one new 
       config={config}
     />,
   );
+  expect(session.appendThinking).toHaveBeenCalledWith(
+    expect.stringContaining('"progress"'),
+    null,
+  );
+  vi.mocked(session.appendThinking).mockClear();
   act(() => tracker.recordStopRequested());
   expect(session.appendThinking).toHaveBeenCalledExactlyOnceWith(
     expect.stringContaining(
@@ -1783,3 +1897,178 @@ test.each(["commentary", "instructions"] as const)(
     expect(props.reportVoiceSessionState).not.toHaveBeenCalled();
   },
 );
+
+test("failed progress lines do not warn that an answer failed", async () => {
+  const props = context();
+  render(<VoiceInterviewControl {...props} config={config} />);
+  await start();
+  const call = vi.mocked(createLiveConversation).mock.lastCall!;
+  act(() => call[0]({ phase: "connected", message: null }));
+  const progress = {
+    kind: "commentary" as const,
+    delegationId: null,
+    progress: true as const,
+  };
+  act(() => {
+    call[4]({ ...progress, eventId: "rejected", status: "unknown" });
+    call[4]({ ...progress, eventId: "rejected", status: "rejected" });
+    call[4]({ ...progress, eventId: "local", status: "local-failure" });
+    call[4]({ ...progress, eventId: "late", status: "unknown" });
+    call[6]?.started();
+    call[4]({ ...progress, eventId: "late", status: "rejected" });
+  });
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({ phase: "listening", warningMessage: null }),
+  );
+});
+
+test("a wrap-up without a delegation still warns when it cannot be sent", async () => {
+  const { call, props } = await offerSettledWrapUp();
+  act(() =>
+    call[4]({
+      eventId: "summary",
+      kind: "commentary",
+      delegationId: null,
+      status: "local-failure",
+    }),
+  );
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      warningMessage: expect.stringContaining(
+        "Couldn’t speak the answer.",
+      ) as unknown,
+    }),
+  );
+});
+
+test("Live progress observes the host approval gate and stays out of written voice history", async () => {
+  mockMediation();
+  const tracker = new BrunchPanelConversationTracker();
+  const history = new VoiceMediationHistory("progress-test");
+  const props = context();
+  props.submitVoiceInput = vi.fn(async () => ({
+    kind: "message" as const,
+    messageId: "voice-input",
+  }));
+  const approvalState = vi.fn((): ToolApprovalState | null => "awaiting");
+  const wiring = {
+    mediationHistory: history,
+    toolApprovalState: approvalState,
+    resolveInputSubmission: () => "root",
+    subscribeToResponseMessageStarted:
+      tracker.subscribeToResponseMessageStarted.bind(tracker),
+  };
+  const { rerender, unmount } = render(
+    <VoiceInterviewControl {...props} {...wiring} config={config} />,
+  );
+  await start();
+  vi.useFakeTimers();
+  try {
+    const call = vi.mocked(createLiveConversation).mock.lastCall!;
+    const session = vi.mocked(createLiveConversation).mock.results.at(-1)!
+      .value as ReturnType<typeof createLiveConversation>;
+    act(() => {
+      call[0]({ phase: "connected", message: null });
+      call[6]?.input({
+        id: "input",
+        text: "Remove that place",
+        startMs: 100,
+        endMs: 200,
+      });
+      call[3]("delegation");
+      call[2]({
+        id: "voice-input",
+        text: "Remove that place",
+        startedDuringOutput: false,
+      });
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    vi.mocked(session.speechPending).mockReturnValue(false);
+    act(() =>
+      tracker.recordResponse({
+        messageId: "answer",
+        submissionId: "root",
+        position: { batch: 1, index: 0 },
+      }),
+    );
+    rerender(
+      <VoiceInterviewControl
+        {...props}
+        {...wiring}
+        config={config}
+        status="streaming"
+        messages={[
+          {
+            id: "answer",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "removePlace",
+                toolCallId: "delete",
+                state: "input-available",
+                input: {},
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(approvalState).toHaveBeenCalledWith("delete");
+    expect(session.appendProgress).not.toHaveBeenCalled();
+    approvalState.mockReturnValue(null);
+    act(() =>
+      call[0]({
+        phase: "connected",
+        message: null,
+        activity: { microphoneLevel: 0, outputActive: true },
+      }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(session.appendProgress).not.toHaveBeenCalled();
+    act(() =>
+      call[0]({
+        phase: "connected",
+        message: null,
+        activity: { microphoneLevel: 0, outputActive: false },
+      }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6_000);
+    });
+    expect(session.appendProgress).toHaveBeenCalledExactlyOnceWith(
+      "Making those changes now.",
+    );
+    act(() => {
+      const progress = {
+        eventId: "progress",
+        kind: "commentary" as const,
+        delegationId: null,
+        progress: true as const,
+      };
+      call[4]({ ...progress, status: "unknown" });
+      call[4]({ ...progress, status: "accepted", startMs: 46_000 });
+      call[6]?.output({
+        id: "progress-output",
+        text: "Making those changes now.",
+        startMs: 46_100,
+        endMs: 47_000,
+      });
+    });
+    expect(JSON.stringify(history.project([]))).not.toContain(
+      "Making those changes now.",
+    );
+    expect(screen.queryByText("Making those changes now.")).toBeNull();
+    unmount();
+  } finally {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  }
+});

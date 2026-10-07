@@ -50,6 +50,8 @@ export interface LiveAppendResult {
   readonly eventId: string;
   readonly kind: "commentary" | "instructions" | "thinking";
   readonly delegationId: string | null;
+  /** A spoken-only progress line, never an answer or a wrap-up. */
+  readonly progress?: true;
   /** Unknown means sent locally, but provider acceptance is not yet confirmed. */
   readonly status: "local-failure" | "unknown" | "accepted" | "rejected";
   /** Provider context-injection time, never playback completion. */
@@ -917,12 +919,14 @@ export const createLiveConversation = (
     kind: LiveAppendResult["kind"],
     text: string,
     delegationId: string | null,
+    progress = false,
   ): boolean => {
     if (stopping) return false;
     const result: LiveAppendResult = {
       eventId: crypto.randomUUID(),
       kind,
       delegationId,
+      ...(progress ? { progress: true as const } : {}),
       status: "unknown",
     };
     const liveChannel = channels.get("live");
@@ -982,6 +986,8 @@ export const createLiveConversation = (
     speechPending: outputOverlap.pending,
     appendCommentary: (text: string, delegationId: string | null) =>
       append("commentary", text, delegationId),
+    /** Null-delegation commentary still awaits real-provider verification. */
+    appendProgress: (text: string) => append("commentary", text, null, true),
     appendInstructions: (text: string, delegationId: string | null) =>
       append("instructions", text, delegationId),
     appendThinking: (text: string, delegationId: string | null) =>
