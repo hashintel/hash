@@ -265,7 +265,9 @@ impl KratosSessionAuthConfig {
 /// The environment an API token belongs to.
 #[derive(Debug, Copy, Clone, clap::ValueEnum)]
 pub enum ApiTokenEnvironment {
+    /// The production deployment.
     Production,
+    /// The staging deployment.
     Staging,
     /// A deployment on a developer's machine or in CI.
     Local,
@@ -283,7 +285,8 @@ impl From<ApiTokenEnvironment> for api_token::Environment {
 
 /// Configuration for issuing API tokens.
 ///
-/// API tokens are unavailable unless all three options are set.
+/// API tokens are unavailable when none of the three options is set. Setting only some of them is
+/// an error.
 #[derive(derive_more::Debug, Clone, Parser)]
 #[expect(
     clippy::struct_field_names,
@@ -300,7 +303,7 @@ pub struct ApiTokenConfig {
     #[debug("***")]
     pub api_token_encryption_key: Option<String>,
 
-    /// The ID recorded with every secret hash the key encrypts.
+    /// The ID recorded with every secret hash the key encrypts. A new key needs a new ID.
     #[clap(long, env = "HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY_ID")]
     pub api_token_encryption_key_id: Option<Uuid>,
 
@@ -312,7 +315,16 @@ pub struct ApiTokenConfig {
 impl ApiTokenConfig {
     /// Converts the CLI configuration into an API token issuer, or `None` if no API token option
     /// is set.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError`] if only some API token options are set or the key is not 64
+    /// hexadecimal characters.
     pub(crate) fn into_issuer(self) -> Result<Option<ApiTokenIssuer>, Report<GraphError>> {
+        const KEY_FORMAT: &str = "--api-token-encryption-key \
+                                  (HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY) must be 64 hexadecimal \
+                                  characters";
+
         let (key, key_id, environment) = match (
             self.api_token_encryption_key,
             self.api_token_encryption_key_id,
@@ -331,17 +343,15 @@ impl ApiTokenConfig {
             }
         };
 
-        // TODO(BE-791): zeroize the raw key in `key` and `key_bytes`
+        // TODO(BE-791): zeroize the raw key in `key`, `key_bytes` and the copy left in
+        // `ServerConfig`
         let mut key_bytes = [0; 32];
-        let key_length = key_bytes.len();
-        match base16ct::mixed::decode(key.trim(), &mut key_bytes) {
-            Ok(decoded) if decoded.len() == key_length => {}
-            _ => {
-                return Err(Report::new(GraphError).attach(
-                    "--api-token-encryption-key (HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY) must be 64 \
-                     hexadecimal characters",
-                ));
-            }
+        let decoded_length = base16ct::mixed::decode(key.trim(), &mut key_bytes)
+            .map(<[u8]>::len)
+            .change_context(GraphError)
+            .attach(KEY_FORMAT)?;
+        if decoded_length != key_bytes.len() {
+            return Err(Report::new(GraphError).attach(KEY_FORMAT));
         }
 
         tracing::info!(%key_id, ?environment, "API tokens enabled");
@@ -941,11 +951,29 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
 mod tests {
     use core::num::NonZero;
 
-    use hash_graph_api::rest::authentication::api_token::Environment;
+    use hash_graph_api::rest::authentication::api_token::{
+        ApiTokenEncryptionKey, Environment, HashedApiToken, IssuedApiToken,
+    };
+    use hash_graph_store::api_token::{ApiTokenEncryptionKeyId, ApiTokenName};
     use reqwest::Url;
+    use rstest::rstest;
+    use type_system::principal::{
+        actor::{ActorEntityUuid, UserId},
+        actor_group::WebId,
+    };
     use uuid::Uuid;
 
     use super::{ApiTokenConfig, ApiTokenEnvironment, KratosSessionAuthConfig};
+
+    /// A key in mixed case, `00 11 … ff` twice.
+    const MIXED_CASE_KEY: &str = "00112233445566778899AaBbCcDdEeFf00112233445566778899aAbBcCdDeEfF";
+
+    /// The bytes [`MIXED_CASE_KEY`] encodes.
+    const MIXED_CASE_KEY_BYTES: [u8; 32] = [
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE,
+        0xFF, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD,
+        0xEE, 0xFF,
+    ];
 
     /// A key of `length` hexadecimal characters.
     fn hex_key(length: usize) -> String {
@@ -968,15 +996,22 @@ mod tests {
         );
     }
 
-    #[test]
-    fn api_tokens_partial() {
+    #[rstest]
+    #[case::key_missing(None, Some(Uuid::nil()), Some(ApiTokenEnvironment::Local))]
+    #[case::key_id_missing(Some(hex_key(64)), None, Some(ApiTokenEnvironment::Local))]
+    #[case::environment_missing(Some(hex_key(64)), Some(Uuid::nil()), None)]
+    fn api_tokens_partial(
+        #[case] api_token_encryption_key: Option<String>,
+        #[case] api_token_encryption_key_id: Option<Uuid>,
+        #[case] api_token_environment: Option<ApiTokenEnvironment>,
+    ) {
         let report = ApiTokenConfig {
-            api_token_encryption_key: Some(hex_key(64)),
-            api_token_encryption_key_id: None,
-            api_token_environment: Some(ApiTokenEnvironment::Local),
+            api_token_encryption_key,
+            api_token_encryption_key_id,
+            api_token_environment,
         }
         .into_issuer()
-        .expect_err("a key without its ID should not convert");
+        .expect_err("a partial configuration should not convert");
 
         assert!(
             format!("{report:?}").contains("must be set together"),
@@ -984,37 +1019,67 @@ mod tests {
         );
     }
 
-    #[test]
-    fn api_tokens_short_key() {
+    #[rstest]
+    #[case::short(hex_key(62))]
+    #[case::not_hexadecimal(format!("{}g", hex_key(63)))]
+    fn api_tokens_invalid_key(#[case] key: String) {
         let report = ApiTokenConfig {
-            api_token_encryption_key: Some(hex_key(62)),
+            api_token_encryption_key: Some(key),
             api_token_encryption_key_id: Some(Uuid::nil()),
             api_token_environment: Some(ApiTokenEnvironment::Local),
         }
         .into_issuer()
-        .expect_err("a key of 31 bytes should not convert");
+        .expect_err("a key that is not 32 bytes of hexadecimal should not convert");
 
         assert!(
             format!("{report:?}").contains("64 hexadecimal characters"),
-            "the error should name the key length"
+            "the error should name the expected key format"
         );
     }
 
+    /// The issuer encrypts with the configured key bytes and records the configured key ID.
     #[test]
-    fn api_tokens_complete() {
+    fn api_tokens_configured_key() {
+        let key_id = ApiTokenEncryptionKeyId::new(Uuid::from_u128(
+            0x4444_4444_4444_4444_4444_4444_4444_4444,
+        ));
         let issuer = ApiTokenConfig {
-            api_token_encryption_key: Some(hex_key(64)),
-            api_token_encryption_key_id: Some(Uuid::nil()),
+            api_token_encryption_key: Some(format!(" {MIXED_CASE_KEY}\n")),
+            api_token_encryption_key_id: Some(Uuid::from(key_id)),
             api_token_environment: Some(ApiTokenEnvironment::Staging),
         }
         .into_issuer()
         .expect("a complete configuration should convert")
         .expect("a complete configuration should make API tokens available");
+        let user_id = UserId::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
 
+        let IssuedApiToken { token, params } = issuer
+            .issue(
+                user_id,
+                ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
+                None,
+            )
+            .expect("the issuer should generate a token");
+
+        let hashed = HashedApiToken::from(&token);
         assert_eq!(
-            issuer.environment(),
+            hashed.environment(),
             Environment::Staging,
-            "the issuer should generate tokens for the configured environment"
+            "the token should belong to the configured environment"
+        );
+        assert_eq!(
+            params.encryption_key_id, key_id,
+            "the token should record the configured key ID"
+        );
+        assert_eq!(
+            ApiTokenEncryptionKey::new(key_id, &MIXED_CASE_KEY_BYTES)
+                .decrypt(
+                    params.encrypted_secret_hash,
+                    &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),
+                )
+                .expect("the configured key should decrypt the secret hash"),
+            hashed.secret_hash(),
+            "the token should be encrypted with the configured key"
         );
     }
 

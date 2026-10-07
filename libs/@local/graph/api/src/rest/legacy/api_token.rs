@@ -13,7 +13,10 @@ use hash_graph_authentication::api_token::{
     ApiTokenHint, ApiTokenIssuer, Environment, IssuedApiToken,
 };
 use hash_graph_store::{
-    api_token::{ApiTokenId, ApiTokenMetadata, ApiTokenRevocationError, ApiTokenStore},
+    api_token::{
+        ApiTokenId, ApiTokenMetadata, ApiTokenName, ApiTokenNameError, ApiTokenRevocationError,
+        ApiTokenStore,
+    },
     pool::StorePool,
 };
 use hash_status::StatusCode;
@@ -33,7 +36,6 @@ use super::{
     status::{BoxedResponse, report_to_response},
 };
 
-const MAX_NAME_LENGTH: usize = 128;
 const MAX_LIFETIME_DAYS: u16 = 366;
 
 #[derive(OpenApi)]
@@ -76,8 +78,8 @@ enum ApiTokenRequestError {
     NotAUser,
     #[display("API tokens are not configured")]
     Unavailable,
-    #[display("the name must be between 1 and {} characters long", MAX_NAME_LENGTH)]
-    Name,
+    #[display("{_0}")]
+    Name(#[error(not(source))] ApiTokenNameError),
     #[display("the lifetime must be between 1 and {} days", MAX_LIFETIME_DAYS)]
     Lifetime,
 }
@@ -87,7 +89,7 @@ impl From<ApiTokenRequestError> for BoxedResponse {
         let status_code = match error {
             ApiTokenRequestError::NotAUser => StatusCode::PermissionDenied,
             ApiTokenRequestError::Unavailable => StatusCode::Unavailable,
-            ApiTokenRequestError::Name | ApiTokenRequestError::Lifetime => {
+            ApiTokenRequestError::Name(_) | ApiTokenRequestError::Lifetime => {
                 StatusCode::InvalidArgument
             }
         };
@@ -103,24 +105,13 @@ const fn token_owner(actor_id: ActorId) -> Result<UserId, ApiTokenRequestError> 
     }
 }
 
-fn validate_name(name: &str) -> Result<(), ApiTokenRequestError> {
-    if (1..=MAX_NAME_LENGTH).contains(&name.chars().count()) {
-        Ok(())
-    } else {
-        Err(ApiTokenRequestError::Name)
-    }
-}
-
 /// The lifetime of `days` days, or `None` for a token without expiry.
 fn lifetime(days: Option<u16>) -> Result<Option<Duration>, ApiTokenRequestError> {
-    days.map(|days| {
-        if (1..=MAX_LIFETIME_DAYS).contains(&days) {
-            Ok(Duration::from_hours(u64::from(days) * 24))
-        } else {
-            Err(ApiTokenRequestError::Lifetime)
-        }
-    })
-    .transpose()
+    match days {
+        None => Ok(None),
+        Some(days @ 1..=MAX_LIFETIME_DAYS) => Ok(Some(Duration::from_hours(u64::from(days) * 24))),
+        Some(_) => Err(ApiTokenRequestError::Lifetime),
+    }
 }
 
 /// The API token to create for the authenticated user.
@@ -196,7 +187,7 @@ impl ApiTokenResponse {
             )
             .to_string(),
             status: ApiTokenStatus::of(&metadata, now),
-            name: metadata.name,
+            name: String::from(metadata.name),
             created_at: metadata.created_at,
             expires_at: metadata.expires_at,
             last_used_at: metadata.last_used_at,
@@ -206,10 +197,11 @@ impl ApiTokenResponse {
 }
 
 /// A newly created API token.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(derive_more::Debug, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CreateApiTokenResponse {
     /// The complete token. No other response contains it.
+    #[debug(skip)]
     token: String,
     api_token: ApiTokenResponse,
 }
@@ -225,7 +217,7 @@ pub(crate) struct CreateApiTokenResponse {
     responses(
         (status = 200, content_type = "application/json", description = "The API token was created", body = CreateApiTokenResponse),
 
-        (status = 400, description = "The name or the lifetime is invalid"),
+        (status = 400, description = "The request body is invalid, for example because the name or the lifetime is out of range"),
         (status = 403, description = "The actor is not a user"),
         (status = 500, description = "Store error occurred"),
         (status = 503, description = "API tokens are not configured"),
@@ -247,11 +239,11 @@ where
         .0
         .as_deref()
         .ok_or(ApiTokenRequestError::Unavailable)?;
-    validate_name(&request.name)?;
+    let name = ApiTokenName::new(request.name).map_err(ApiTokenRequestError::Name)?;
     let lifetime = lifetime(request.lifetime_days)?;
 
     let IssuedApiToken { token, params } = issuer
-        .issue(user_id, request.name, lifetime)
+        .issue(user_id, name, lifetime)
         .map_err(report_to_response)?;
     let metadata = store_pool
         .acquire(temporal_client.0)
@@ -325,11 +317,12 @@ where
     tag = "ApiToken",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("token_id" = String, Path, description = "The ID of the API token to revoke"),
+        ("token_id" = Uuid, Path, description = "The ID of the API token to revoke"),
     ),
     responses(
         (status = 204, description = "The API token is revoked"),
 
+        (status = 400, description = "The token ID is not a UUID"),
         (status = 403, description = "The actor is not a user"),
         (status = 404, description = "The authenticated user has no API token with this ID"),
         (status = 500, description = "Store error occurred"),
@@ -376,9 +369,12 @@ where
 mod tests {
     use core::time::Duration;
 
+    use axum::response::IntoResponse as _;
     use hash_graph_store::api_token::{
-        ApiTokenId, ApiTokenMetadata, ApiTokenType, ApiTokenVersion,
+        ApiTokenId, ApiTokenMetadata, ApiTokenName, ApiTokenNameError, ApiTokenType,
+        ApiTokenVersion,
     };
+    use rstest::rstest;
     use time::OffsetDateTime;
     use type_system::principal::{
         actor::{ActorId, MachineId, UserId},
@@ -386,7 +382,10 @@ mod tests {
     };
     use uuid::Uuid;
 
-    use super::{ApiTokenRequestError, ApiTokenStatus, lifetime, token_owner, validate_name};
+    use super::{
+        ApiTokenRequestError, ApiTokenResponse, ApiTokenStatus, BoxedResponse,
+        CreateApiTokenResponse, Environment, lifetime, token_owner,
+    };
 
     fn metadata(
         expires_at: Option<OffsetDateTime>,
@@ -397,7 +396,7 @@ mod tests {
             token_type: ApiTokenType::User,
             version: ApiTokenVersion::V0,
             web_id: WebId::new(Uuid::nil()),
-            name: "ci".to_owned(),
+            name: ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
             created_at: OffsetDateTime::UNIX_EPOCH,
             expires_at,
             last_used_at: None,
@@ -428,23 +427,6 @@ mod tests {
     }
 
     #[test]
-    fn name_bounds() {
-        assert!(
-            matches!(validate_name(""), Err(ApiTokenRequestError::Name)),
-            "an empty name should be refused"
-        );
-        validate_name(&"\u{e4}".repeat(128))
-            .expect("a name of 128 characters should be accepted, whatever their byte length");
-        assert!(
-            matches!(
-                validate_name(&"a".repeat(129)),
-                Err(ApiTokenRequestError::Name)
-            ),
-            "a name of 129 characters should be refused"
-        );
-    }
-
-    #[test]
     fn lifetime_bounds() {
         assert_eq!(
             lifetime(None).expect("a token without lifetime should be accepted"),
@@ -456,6 +438,11 @@ mod tests {
             "a lifetime of zero days should be refused"
         );
         assert_eq!(
+            lifetime(Some(1)).expect("a lifetime of one day should be accepted"),
+            Some(Duration::from_hours(24)),
+            "a lifetime of one day should last a day"
+        );
+        assert_eq!(
             lifetime(Some(366)).expect("a lifetime of 366 days should be accepted"),
             Some(Duration::from_hours(366 * 24)),
             "the lifetime should count whole days"
@@ -463,6 +450,44 @@ mod tests {
         assert!(
             matches!(lifetime(Some(367)), Err(ApiTokenRequestError::Lifetime)),
             "a lifetime of 367 days should be refused"
+        );
+    }
+
+    #[rstest]
+    #[case::not_a_user(ApiTokenRequestError::NotAUser, http::StatusCode::FORBIDDEN)]
+    #[case::unavailable(
+        ApiTokenRequestError::Unavailable,
+        http::StatusCode::SERVICE_UNAVAILABLE
+    )]
+    #[case::name(
+        ApiTokenRequestError::Name(ApiTokenNameError),
+        http::StatusCode::BAD_REQUEST
+    )]
+    #[case::lifetime(ApiTokenRequestError::Lifetime, http::StatusCode::BAD_REQUEST)]
+    fn request_error_status(#[case] error: ApiTokenRequestError, #[case] status: http::StatusCode) {
+        assert_eq!(
+            BoxedResponse::from(error).into_response().status(),
+            status,
+            "the refusal should answer with its status code"
+        );
+    }
+
+    #[test]
+    fn debug_redacts_token() {
+        let token =
+            "hsh_pat_pd_0296tiiBb3U904RIpygpjj_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg39B9Yp";
+        let response = CreateApiTokenResponse {
+            token: token.to_owned(),
+            api_token: ApiTokenResponse::new(
+                metadata(None, None),
+                Environment::Production,
+                OffsetDateTime::UNIX_EPOCH,
+            ),
+        };
+
+        assert!(
+            !format!("{response:?}").contains(token),
+            "the debug output should leave out the token"
         );
     }
 

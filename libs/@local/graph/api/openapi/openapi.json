@@ -864,7 +864,7 @@
             }
           },
           "400": {
-            "description": "The name or the lifetime is invalid"
+            "description": "The request body is invalid, for example because the name or the lifetime is out of range"
           },
           "403": {
             "description": "The actor is not a user"
@@ -901,13 +901,17 @@
             "description": "The ID of the API token to revoke",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
         "responses": {
           "204": {
             "description": "The API token is revoked"
+          },
+          "400": {
+            "description": "The token ID is not a UUID"
           },
           "403": {
             "description": "The actor is not a user"

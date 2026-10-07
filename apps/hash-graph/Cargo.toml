@@ -46,6 +46,9 @@ tokio-util     = { workspace = true, features = ["codec"] }
 tracing        = { workspace = true }
 uuid           = { workspace = true }
 
+[dev-dependencies]
+rstest = { workspace = true }
+
 [features]
 unsafe-dev-endpoints = ["hash-graph-api/unsafe-dev-endpoints"]
 

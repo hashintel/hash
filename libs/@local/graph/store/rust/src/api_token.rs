@@ -203,6 +203,54 @@ impl From<ApiTokenEncryptionKeyId> for Uuid {
     }
 }
 
+/// The name a user gives an API token: between 1 and [`ApiTokenName::MAX_LENGTH`] characters,
+/// without NUL characters.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "postgres",
+    derive(postgres_types::ToSql, postgres_types::FromSql),
+    postgres(transparent)
+)]
+pub struct ApiTokenName(String);
+
+impl ApiTokenName {
+    /// The maximum number of characters in a name.
+    pub const MAX_LENGTH: usize = 128;
+
+    /// The name `name`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ApiTokenNameError`] if `name` is empty, has more than [`Self::MAX_LENGTH`]
+    /// characters or contains a NUL character.
+    pub fn new(name: String) -> Result<Self, ApiTokenNameError> {
+        if (1..=Self::MAX_LENGTH).contains(&name.chars().count()) && !name.contains('\0') {
+            Ok(Self(name))
+        } else {
+            Err(ApiTokenNameError)
+        }
+    }
+
+    #[must_use]
+    pub const fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl From<ApiTokenName> for String {
+    fn from(name: ApiTokenName) -> Self {
+        name.0
+    }
+}
+
+/// Why a name is not an [`ApiTokenName`].
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display(
+    "the name must be between 1 and {} characters long and must not contain NUL characters",
+    ApiTokenName::MAX_LENGTH
+)]
+pub struct ApiTokenNameError;
+
 /// An API token to record.
 #[derive(Debug)]
 pub struct CreateApiTokenParams {
@@ -211,7 +259,7 @@ pub struct CreateApiTokenParams {
     pub version: ApiTokenVersion,
     /// The user the token acts as. The token belongs to the user's web.
     pub user_id: UserId,
-    pub name: String,
+    pub name: ApiTokenName,
     /// How long the token stays valid after its creation, or `None` for a token without expiry.
     pub lifetime: Option<Duration>,
     pub encryption_key_id: ApiTokenEncryptionKeyId,
@@ -226,7 +274,7 @@ pub struct ApiTokenMetadata {
     pub version: ApiTokenVersion,
     /// The web that owns the token.
     pub web_id: WebId,
-    pub name: String,
+    pub name: ApiTokenName,
     pub created_at: OffsetDateTime,
     pub expires_at: Option<OffsetDateTime>,
     pub last_used_at: Option<OffsetDateTime>,
@@ -289,4 +337,35 @@ pub trait ApiTokenStore {
         web_id: WebId,
         token_id: ApiTokenId,
     ) -> impl Future<Output = Result<(), Report<ApiTokenRevocationError>>> + Send;
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use super::ApiTokenName;
+
+    #[rstest]
+    #[case::one_character("a".to_owned())]
+    #[case::multibyte_maximum("\u{e4}".repeat(128))]
+    fn name_accepted(#[case] name: String) {
+        assert_eq!(
+            ApiTokenName::new(name.clone())
+                .expect("the name should be accepted")
+                .as_str(),
+            name,
+            "the name should keep its text"
+        );
+    }
+
+    #[rstest]
+    #[case::empty(String::new())]
+    #[case::too_long("a".repeat(129))]
+    #[case::nul("a\0b".to_owned())]
+    fn name_rejected(#[case] name: String) {
+        assert!(
+            ApiTokenName::new(name).is_err(),
+            "the name should be rejected"
+        );
+    }
 }

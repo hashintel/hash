@@ -1,7 +1,7 @@
 use core::time::Duration;
 
 use error_stack::Report;
-use hash_graph_store::api_token::{ApiTokenType, CreateApiTokenParams};
+use hash_graph_store::api_token::{ApiTokenName, ApiTokenType, CreateApiTokenParams};
 use type_system::principal::{
     actor::{ActorEntityUuid, UserId},
     actor_group::WebId,
@@ -40,7 +40,7 @@ impl ApiTokenIssuer {
     pub fn issue(
         &self,
         user_id: UserId,
-        name: String,
+        name: ApiTokenName,
         lifetime: Option<Duration>,
     ) -> Result<IssuedApiToken, Report<ApiTokenGenerationError>> {
         let token = ApiToken::generate(ApiTokenType::User, self.environment)?;
@@ -75,7 +75,7 @@ pub struct IssuedApiToken {
 mod tests {
     use core::time::Duration;
 
-    use hash_graph_store::api_token::ApiTokenEncryptionKeyId;
+    use hash_graph_store::api_token::{ApiTokenEncryptionKeyId, ApiTokenName};
     use type_system::principal::{
         actor::{ActorEntityUuid, UserId},
         actor_group::WebId,
@@ -101,7 +101,11 @@ mod tests {
         let lifetime = Duration::from_hours(24);
 
         let IssuedApiToken { token, params } = issuer
-            .issue(user_id, "ci".to_owned(), Some(lifetime))
+            .issue(
+                user_id,
+                ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
+                Some(lifetime),
+            )
             .expect("the issuer should generate a token");
 
         let hashed: HashedApiToken = token
