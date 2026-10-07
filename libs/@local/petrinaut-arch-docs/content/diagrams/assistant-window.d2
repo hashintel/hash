@@ -1,0 +1,33 @@
+# Hand-written; rendered by the arch-docs build. Plugin code uses the grey
+# `other` palette, Petrinaut the purple one.
+direction: right
+
+plugins: "Running plugins" {
+  style.fill: "#f2f2f2"
+  style.stroke: "#777777"
+  provider: "Assistant plugin\nassistant: { label }\nreturns view, tabs, startActions" {style.fill: "#ffffff"; style.stroke: "#777777"}
+  extension: "Extending plugin\nassistant: { extends }\nreturns tabs, startActions" {style.fill: "#ffffff"; style.stroke: "#777777"}
+}
+
+editor: "Petrinaut" {
+  style.fill: "#e8e0ff"
+  style.stroke: "#7051b5"
+  resolution: "Shown assistant\nthe user's choice while it runs,\nelse the first running assistant" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  host: "Window host\nopen, placement, width, shown tab,\nstart request, focus request" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  prompt: "Entry points\nempty-net prompt, AI button,\npalette commands" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+}
+
+view: "The assistant's view\nonce per document" {
+  style.fill: "#f2f2f2"
+  style.stroke: "#777777"
+  window: "PetrinautAssistantWindow\nframe, header, chat tab, plugin tabs" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  transcript: "Transcript and composer\nthe window's children and footer" {style.fill: "#ffffff"; style.stroke: "#777777"}
+}
+
+plugins.provider -> editor.resolution: "label"
+plugins.extension -> editor.resolution: "extends, matched by id"
+editor.resolution -> view: "renders view, behind a boundary"
+editor.resolution -> editor.host: "tabs: provider's, then extensions'"
+editor.prompt -> editor.host: "start, toggle"
+editor.host -> view.window: "read with usePetrinautAssistantWindow"
+view.window -> view.transcript: "children"

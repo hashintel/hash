@@ -1,9 +1,15 @@
 ---
 title: Experiments in AI chat
 description: Dispatch experiment tools and show live progress in the conversation.
-attachTo: ui.views.editor.ai
+attachTo: website.plugins.chat
 sidebar_order: 20
 ---
+
+The assistant chat renders AI SDK messages and dispatches client tools from
+`assistant-chat.tsx`. Document tools edit the net through the plugin `api`;
+experiment tools call the browser host and show progress until its final
+result. The assistant plugin supplies the transport and conversation
+persistence.
 
 Petrinaut AI dispatches `createExperiment` to the [browser experiment host](doc:experiments/ai-created-experiments).
 Its chat card shows live progress while the client tool waits for its final result.
