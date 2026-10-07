@@ -40,7 +40,7 @@ impl<'parts> Check<'parts> {
         let entities = entities_path();
 
         for (index, pipeline) in self.parts.entity_pipelines.iter().enumerate() {
-            let path = entities.index(index).field("source");
+            let path = entities.clone().index(index).field("source");
             if !self.parts.sources.contains_key(&pipeline.source) {
                 self.report(
                     path.clone(),
@@ -78,7 +78,7 @@ impl<'parts> Check<'parts> {
     fn step_id(&mut self, step: &'parts StepId, path: &DefinitionPath) {
         if !self.steps.insert(step) {
             self.report(
-                path.field("id"),
+                path.clone().field("id"),
                 IssueKind::DuplicateStep { step: step.clone() },
             );
         }
@@ -90,7 +90,7 @@ impl<'parts> Check<'parts> {
                 && !self.parts.unit_maps.contains_key(unit_map)
             {
                 self.report(
-                    path.key(property_type),
+                    path.clone().key(property_type),
                     IssueKind::UnknownUnitMap {
                         unit_map: unit_map.clone(),
                     },
@@ -107,13 +107,15 @@ impl<'parts> Check<'parts> {
                     entry.insert(pipeline_index);
                 }
                 Entry::Occupied(_) => self.report(
-                    path.field("checkpoint"),
+                    path.clone().field("checkpoint"),
                     IssueKind::DuplicateCheckpoint {
                         checkpoint: checkpoint.clone(),
                     },
                 ),
             },
-            Action::Sink(sink) => self.properties(&sink.properties, &path.field("properties")),
+            Action::Sink(sink) => {
+                self.properties(&sink.properties, &path.clone().field("properties"));
+            }
         }
     }
 
@@ -121,7 +123,7 @@ impl<'parts> Check<'parts> {
         let steps = entities_path().index(pipeline_index).field("steps");
 
         for (step_index, step) in pipeline.steps.iter().enumerate() {
-            let path = steps.index(step_index);
+            let path = steps.clone().index(step_index);
             self.step_id(&step.id, &path);
 
             match &step.kind {
@@ -129,9 +131,9 @@ impl<'parts> Check<'parts> {
                 StepKind::Branch(branches) => {
                     let branches_path = path.field("branches");
                     for (branch_index, branch) in branches.iter().enumerate() {
-                        let branch_path = branches_path.index(branch_index);
+                        let branch_path = branches_path.clone().index(branch_index);
                         for (inner_index, inner) in branch.iter().enumerate() {
-                            let inner_path = branch_path.index(inner_index);
+                            let inner_path = branch_path.clone().index(inner_index);
                             self.step_id(&inner.id, &inner_path);
                             self.action(pipeline_index, &inner.action, &inner_path);
                         }
@@ -146,7 +148,7 @@ impl<'parts> Check<'parts> {
             LinkInput::Checkpoint(checkpoint) => {
                 if !self.producers.contains_key(checkpoint) {
                     self.report(
-                        path.field("checkpoint"),
+                        path.clone().field("checkpoint"),
                         IssueKind::UnknownCheckpoint {
                             checkpoint: checkpoint.clone(),
                         },
@@ -154,7 +156,7 @@ impl<'parts> Check<'parts> {
                 }
             }
             LinkInput::Inputs(inputs) => {
-                let inputs_path = path.field("inputs");
+                let inputs_path = path.clone().field("inputs");
                 if inputs.iter().len() > 1 && link.steps.is_empty() {
                     self.report(inputs_path.clone(), IssueKind::UncombinedInputs);
                 }
@@ -162,7 +164,7 @@ impl<'parts> Check<'parts> {
                 for (alias, checkpoint) in inputs {
                     if !self.producers.contains_key(checkpoint) {
                         self.report(
-                            inputs_path.key(alias),
+                            inputs_path.clone().key(alias),
                             IssueKind::UnknownCheckpoint {
                                 checkpoint: checkpoint.clone(),
                             },
@@ -178,10 +180,10 @@ impl<'parts> Check<'parts> {
         let mut ids = BTreeSet::new();
 
         for (index, link) in self.parts.link_pipelines.iter().enumerate() {
-            let path = links.index(index);
+            let path = links.clone().index(index);
             if !ids.insert(&link.id) {
                 self.report(
-                    path.field("id"),
+                    path.clone().field("id"),
                     IssueKind::DuplicateLink {
                         link: link.id.clone(),
                     },
@@ -191,7 +193,7 @@ impl<'parts> Check<'parts> {
             self.link_input(link, &path);
 
             for (step_index, step) in link.steps.iter().enumerate() {
-                self.step_id(&step.id, &path.field("steps").index(step_index));
+                self.step_id(&step.id, &path.clone().field("steps").index(step_index));
             }
 
             self.properties(&link.properties, &path.field("properties"));
@@ -234,10 +236,10 @@ impl<'parts> Check<'parts> {
         let mut dependencies = Dependencies::new(self.parts.entity_pipelines.len());
 
         for (index, pipeline) in self.parts.entity_pipelines.iter().enumerate() {
-            let path = entities.index(index);
+            let path = entities.clone().index(index);
 
             for (position, source) in pipeline.depends_on.iter().enumerate() {
-                let dependency_path = path.field("dependsOn").index(position);
+                let dependency_path = path.clone().field("dependsOn").index(position);
                 if *source == pipeline.source {
                     self.report(dependency_path, IssueKind::DependsOnItself);
                 } else if let Some(&dependency) = self.pipelines.get(source) {
@@ -253,7 +255,7 @@ impl<'parts> Check<'parts> {
             }
 
             for (alias, checkpoint) in &pipeline.inputs {
-                let input_path = path.field("inputs").key(alias);
+                let input_path = path.clone().field("inputs").key(alias);
                 self.checkpoint_dependency(&mut dependencies, index, checkpoint, input_path);
             }
 

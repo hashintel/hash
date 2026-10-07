@@ -27,19 +27,19 @@ pub struct DefinitionPath(Vec<PathSegment>);
 impl DefinitionPath {
     /// Returns this path extended by the field `name`.
     #[must_use]
-    pub fn field(&self, name: &'static str) -> Self {
+    pub fn field(self, name: &'static str) -> Self {
         self.join(PathSegment::Field(name))
     }
 
     /// Returns this path extended by the map key `key`, as it prints.
     #[must_use]
-    pub fn key(&self, key: impl Display) -> Self {
+    pub fn key(self, key: impl Display) -> Self {
         self.join(PathSegment::Key(key.to_string()))
     }
 
     /// Returns this path extended by the list position `index`.
     #[must_use]
-    pub fn index(&self, index: usize) -> Self {
+    pub fn index(self, index: usize) -> Self {
         self.join(PathSegment::Index(index))
     }
 
@@ -48,10 +48,9 @@ impl DefinitionPath {
         &self.0
     }
 
-    fn join(&self, segment: PathSegment) -> Self {
-        let mut segments = self.0.clone();
-        segments.push(segment);
-        Self(segments)
+    fn join(mut self, segment: PathSegment) -> Self {
+        self.0.push(segment);
+        self
     }
 }
 
