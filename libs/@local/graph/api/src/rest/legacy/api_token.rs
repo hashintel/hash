@@ -242,9 +242,7 @@ where
     let name = ApiTokenName::new(request.name).map_err(ApiTokenRequestError::Name)?;
     let lifetime = lifetime(request.lifetime_days)?;
 
-    let IssuedApiToken { token, params } = issuer
-        .issue(user_id, name, lifetime)
-        .map_err(report_to_response)?;
+    let IssuedApiToken { token, params } = issuer.issue(user_id, name, lifetime);
     let metadata = store_pool
         .acquire(temporal_client.0)
         .await
