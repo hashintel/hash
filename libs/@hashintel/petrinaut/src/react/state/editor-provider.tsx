@@ -64,8 +64,6 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const navigatedSelection = navigation.state.selection;
   const { scenarios, metrics } = petriNetDefinition;
   useEffect(() => {
-    // A link made before ids were converted names items by their old ids:
-    // those resolve to the converted id, and items the net lacks are dropped.
     const resolved = resolveNavigatedItems(
       { simulateResource: navigatedResource, selection: navigatedSelection },
       { scenarios, metrics },

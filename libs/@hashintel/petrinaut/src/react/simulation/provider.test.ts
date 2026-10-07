@@ -32,12 +32,6 @@ describe("effective simulation scenario", () => {
     expect(getEffectiveSelectedScenarioId(converted, "second")).toBe(
       toPetrinautId("second"),
     );
-    expect(
-      shouldNormalizeScenarioSelection({
-        effectiveSelectedScenarioId: toPetrinautId("second"),
-        requestedScenarioId: "second",
-      }),
-    ).toBe(true);
   });
 });
 

@@ -7,13 +7,7 @@ import {
 
 import type { PetrinautNavigationState } from "./index";
 
-/**
- * A location can name an item by an id that predates its conversion to a
- * UUID: links, published embeds and saved assistant change targets keep the id
- * they were made with. These functions resolve such an id to the one the
- * document holds, as written or converted, so an older link opens the same
- * item.
- */
+// Ids resolve as written first: a custom handle may keep ids it never converted.
 
 /** The id in `items` that `requestedId` names, as written or converted, or `null`. */
 export const resolveNavigatedId = (
@@ -27,8 +21,7 @@ export const resolveNavigatedId = (
   return items?.some(({ id }) => id === convertedId) ? convertedId : null;
 };
 
-/** `item` with the id the document holds, or `null` when the document has no such item. */
-export const resolveNavigatedSelectionItem = (
+const resolveSelectionItem = (
   item: SelectionItem,
   getItemType: (id: string) => string | null,
 ): SelectionItem | null => {
@@ -48,9 +41,9 @@ type NavigatedItems = Pick<
 >;
 
 /**
- * Resolves the location's Simulate resource and selection against the
- * document and drops what the document lacks. Items that resolve as written
- * keep their identity, so an unchanged location compares equal item by item.
+ * The location's Simulate resource and selection with the ids the document
+ * holds, without what it lacks. Items that resolve as written keep their
+ * identity, so an unchanged location compares equal item by item.
  */
 export const resolveNavigatedItems = (
   location: NavigatedItems,
@@ -73,7 +66,7 @@ export const resolveNavigatedItems = (
           ? resource
           : { ...resource, id: resourceId },
     selection: location.selection.flatMap(
-      (item) => resolveNavigatedSelectionItem(item, getItemType) ?? [],
+      (item) => resolveSelectionItem(item, getItemType) ?? [],
     ),
   };
 };

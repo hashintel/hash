@@ -132,11 +132,7 @@ export function shouldNormalizeScenarioSelection({
   );
 }
 
-/**
- * The scenario in effect for a requested id. A request by an id from before
- * ids were converted resolves to the converted id, which the provider then
- * writes back to the location.
- */
+/** The requested scenario resolved through `toPetrinautId`, else the first scenario unless none is allowed. */
 export function getEffectiveSelectedScenarioId(
   scenarios: readonly Scenario[] | undefined,
   selectedScenarioId: string | null | undefined,

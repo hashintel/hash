@@ -5,7 +5,14 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { createJsonDocHandle, toPetrinautId } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+  generateArcId,
+  toPetrinautId,
+  type SDCPNInput,
+} from "@hashintel/petrinaut-core";
+import { PetrinautInstanceContext } from "@hashintel/petrinaut/react";
 
 import {
   createBrunchMutationAdmission,
@@ -39,14 +46,20 @@ const destructiveInput = {
   items: [
     { type: "place", id: "queue" },
     { type: "differentialEquation", id: "decay" },
+    {
+      type: "arc",
+      id: generateArcId({ inputId: "place:queue", outputId: "serve" }),
+    },
   ],
 };
+
+const editorWith = (initial: SDCPNInput) =>
+  createPetrinaut({ document: createJsonDocHandle({ initial }) });
 
 describe("Brunch destructive edit approval", () => {
   test("covers every destructive canonical tool and no constructive one", () => {
     const toolNames = createBrunchMutationApprovalInteractiveTools(
       createBrunchMutationApprovalCoordinator(),
-      null,
     ).map(({ toolName }) => toolName);
     expect(toolNames).toContain("deleteItemsByIds");
     expect(toolNames).toContain("removeArc");
@@ -62,42 +75,38 @@ describe("Brunch destructive edit approval", () => {
       signal: new AbortController().signal,
     });
     // The equation is missing from the document, so its row shows the id.
-    const document = createJsonDocHandle({
-      initial: {
-        places: [
-          {
-            id: "queue",
-            name: "Queue",
-            colorId: null,
-            dynamicsEnabled: false,
-            differentialEquationId: null,
-            x: 0,
-            y: 0,
-          },
-        ],
-        transitions: [],
-        types: [],
-        differentialEquations: [],
-        parameters: [],
-      },
+    const editor = editorWith({
+      places: [{ id: "queue", name: "Queue", x: 0, y: 0 }],
+      transitions: [
+        {
+          id: "serve",
+          name: "Serve",
+          inputArcs: [],
+          outputArcs: [],
+          x: 0,
+          y: 0,
+        },
+      ],
     });
     const ApprovalWidget = createBrunchMutationApprovalWidget(
       coordinator,
       "deleteItemsByIds",
-      document,
     );
     const submit = vi.fn();
     render(
-      <ApprovalWidget
-        input={destructiveInput}
-        state="awaiting"
-        submit={submit}
-        submitAndWait={vi.fn()}
-        toolCallId="delete-1"
-      />,
+      <PetrinautInstanceContext value={editor}>
+        <ApprovalWidget
+          input={destructiveInput}
+          state="awaiting"
+          submit={submit}
+          submitAndWait={vi.fn()}
+          toolCallId="delete-1"
+        />
+      </PetrinautInstanceContext>,
     );
 
     expect(screen.getByText("Remove place — Queue")).not.toBeNull();
+    expect(screen.getByText("Remove arc — Queue → Serve")).not.toBeNull();
     expect(
       screen.getByText(
         `Remove differential equation — ${toPetrinautId("decay")}`,
@@ -244,16 +253,19 @@ describe("Brunch destructive edit approval", () => {
     const ApprovalWidget = createBrunchMutationApprovalWidget(
       coordinator,
       "deleteItemsByIds",
-      null,
     );
     render(
-      <ApprovalWidget
-        input={destructiveInput}
-        state="awaiting"
-        submit={vi.fn()}
-        submitAndWait={vi.fn()}
-        toolCallId="historical-call"
-      />,
+      <PetrinautInstanceContext
+        value={editorWith({ places: [], transitions: [] })}
+      >
+        <ApprovalWidget
+          input={destructiveInput}
+          state="awaiting"
+          submit={vi.fn()}
+          submitAndWait={vi.fn()}
+          toolCallId="historical-call"
+        />
+      </PetrinautInstanceContext>,
     );
     fireEvent.click(screen.getByRole("button", { name: "Allow" }));
     expect(coordinator.hasPending("historical-call")).toBe(false);

@@ -1,14 +1,14 @@
-import { useSyncExternalStore } from "react";
-
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   mutationActionInputSchemas,
+  parseArcEndpointKey,
   parseArcId,
+  type ArcEndpoint,
   type PetrinautAiMutationToolName,
-  type PetrinautDocHandle,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
+import { usePetrinautInstance, useStore } from "@hashintel/petrinaut/react";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveTool,
@@ -195,16 +195,25 @@ const namedItemsOf = (definition: SDCPN): NamedItem[] => [
 ];
 
 /** Looks up an item's name, falling back to its id when the item is unnamed or gone. */
-const nameLookupOf = (
-  definition: SDCPN | undefined,
-): ((id: string) => string) => {
+const nameLookupOf = (definition: SDCPN): ((id: string) => string) => {
   const namesById = new Map(
-    (definition ? namedItemsOf(definition) : []).map(({ id, name }) => [
-      id,
-      name,
-    ]),
+    namedItemsOf(definition).map(({ id, name }) => [id, name]),
   );
   return (id) => namesById.get(id) || id;
+};
+
+const endpointName = (
+  endpoint: ArcEndpoint,
+  nameOf: (id: string) => string,
+): string =>
+  endpoint.kind === "place"
+    ? nameOf(endpoint.placeId)
+    : `${nameOf(endpoint.componentInstanceId)} / ${nameOf(endpoint.portPlaceId)}`;
+
+/** An arc id names its ends by endpoint key, a transition by its id. */
+const arcEndName = (end: string, nameOf: (id: string) => string): string => {
+  const endpoint = parseArcEndpointKey(end);
+  return endpoint ? endpointName(endpoint, nameOf) : nameOf(end);
 };
 
 const describeItem = (
@@ -213,7 +222,9 @@ const describeItem = (
   nameOf: (id: string) => string,
 ): string => {
   const arc = type === "arc" ? parseArcId(id) : null;
-  return arc ? `${nameOf(arc.sourceId)} → ${nameOf(arc.targetId)}` : nameOf(id);
+  return arc
+    ? `${arcEndName(arc.sourceId, nameOf)} → ${arcEndName(arc.targetId, nameOf)}`
+    : nameOf(id);
 };
 
 const removalDescriptions = (
@@ -236,9 +247,7 @@ const removalDescriptions = (
       const target =
         placeId !== undefined
           ? nameOf(placeId)
-          : endpoint?.kind === "componentPort"
-            ? `${nameOf(endpoint.componentInstanceId)} / ${nameOf(endpoint.portPlaceId)}`
-            : endpoint && nameOf(endpoint.placeId);
+          : endpoint && endpointName(endpoint, nameOf);
       return [
         `Remove ${arcDirection} arc — ${nameOf(transitionId)} ↔ ${target}`,
       ];
@@ -317,21 +326,12 @@ const actionsStyle = css({ display: "flex", gap: "2", flexWrap: "wrap" });
 
 type WidgetProps = PetrinautAiInteractiveToolWidgetProps<unknown, unknown>;
 
-const noDocumentSubscription = () => () => {};
-
-/** `handle` is the document the calls edit; its names describe each removal. */
 export const createBrunchMutationApprovalWidget = (
   coordinator: BrunchMutationApprovalCoordinator,
   toolName: DestructiveToolName,
-  handle: PetrinautDocHandle | null,
 ) => {
-  const subscribe = handle
-    ? (listener: () => void) => handle.subscribe(listener)
-    : noDocumentSubscription;
-  const readDefinition = () => handle?.doc();
   const Widget = ({ input, toolCallId }: WidgetProps) => {
-    const definition = useSyncExternalStore(subscribe, readDefinition);
-    const nameOf = nameLookupOf(definition);
+    const nameOf = nameLookupOf(useStore(usePetrinautInstance().definition));
     return (
       <section
         className={containerStyle}
@@ -391,7 +391,6 @@ const passthrough = { parse: (value: unknown) => value };
 
 export const createBrunchMutationApprovalInteractiveTools = (
   coordinator: BrunchMutationApprovalCoordinator,
-  handle: PetrinautDocHandle | null,
 ): readonly PetrinautAiInteractiveTool[] =>
   destructiveToolNames.map((toolName) =>
     definePetrinautAiInteractiveTool<unknown, unknown>({
@@ -402,10 +401,6 @@ export const createBrunchMutationApprovalInteractiveTools = (
       outputSchema: passthrough,
       // Earlier rows of the same tool keep their normal presentation.
       shouldHandle: ({ toolCallId }) => coordinator.hasPending(toolCallId),
-      component: createBrunchMutationApprovalWidget(
-        coordinator,
-        toolName,
-        handle,
-      ),
+      component: createBrunchMutationApprovalWidget(coordinator, toolName),
     }),
   );

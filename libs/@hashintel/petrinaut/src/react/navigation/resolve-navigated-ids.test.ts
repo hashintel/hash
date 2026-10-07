@@ -5,119 +5,92 @@ import { generateArcId, toPetrinautId } from "@hashintel/petrinaut-core";
 import {
   resolveNavigatedId,
   resolveNavigatedItems,
-  resolveNavigatedSelectionItem,
 } from "./resolve-navigated-ids";
 
 const placeId = toPetrinautId("place__queue");
-const transitionId = toPetrinautId("transition__serve");
-const arcId = generateArcId({ inputId: placeId, outputId: transitionId });
+const arcId = generateArcId({
+  inputId: `place:${placeId}`,
+  outputId: toPetrinautId("transition__serve"),
+});
 
 const getItemType = (id: string) =>
   id === placeId ? "place" : id === arcId ? "arc" : null;
 
+const definition = {
+  scenarios: [
+    {
+      id: toPetrinautId("baseline"),
+      name: "Baseline",
+      scenarioParameters: [],
+      parameterOverrides: {},
+      initialState: { type: "per_place" as const, content: {} },
+    },
+  ],
+  metrics: [],
+};
+
+const resolve = (
+  location: Partial<Parameters<typeof resolveNavigatedItems>[0]>,
+) =>
+  resolveNavigatedItems(
+    { simulateResource: null, selection: [], ...location },
+    definition,
+    getItemType,
+  );
+
 describe("resolveNavigatedId", () => {
-  const items = [{ id: toPetrinautId("baseline") }, { id: "custom" }];
-
-  it("keeps an id the items hold as written", () => {
-    expect(resolveNavigatedId(items, "custom")).toBe("custom");
-  });
-
-  it("resolves an id from before conversion to the converted id", () => {
-    expect(resolveNavigatedId(items, "baseline")).toBe(
+  it("resolves an id to the converted id the items hold", () => {
+    expect(resolveNavigatedId(definition.scenarios, "baseline")).toBe(
       toPetrinautId("baseline"),
     );
-  });
-
-  it("returns null for an id the items lack in either form", () => {
-    expect(resolveNavigatedId(items, "missing")).toBeNull();
-    expect(resolveNavigatedId(undefined, "baseline")).toBeNull();
-  });
-});
-
-describe("resolveNavigatedSelectionItem", () => {
-  it("keeps an item that resolves as written by identity", () => {
-    const item = { type: "place", id: placeId } as const;
-
-    expect(resolveNavigatedSelectionItem(item, getItemType)).toBe(item);
-  });
-
-  it("resolves place and arc ids from before conversion", () => {
-    expect(
-      resolveNavigatedSelectionItem(
-        { type: "place", id: "place__queue" },
-        getItemType,
-      ),
-    ).toEqual({ type: "place", id: placeId });
-    expect(
-      resolveNavigatedSelectionItem(
-        {
-          type: "arc",
-          id: generateArcId({
-            inputId: "place__queue",
-            outputId: "transition__serve",
-          }),
-        },
-        getItemType,
-      ),
-    ).toEqual({ type: "arc", id: arcId });
-  });
-
-  it("drops an item whose converted id names another kind of item", () => {
-    expect(
-      resolveNavigatedSelectionItem(
-        { type: "transition", id: "place__queue" },
-        getItemType,
-      ),
-    ).toBeNull();
+    expect(resolveNavigatedId(definition.scenarios, "missing")).toBeNull();
   });
 });
 
 describe("resolveNavigatedItems", () => {
-  const definition = {
-    scenarios: [
-      {
-        id: toPetrinautId("baseline"),
-        name: "Baseline",
-        scenarioParameters: [],
-        parameterOverrides: {},
-        initialState: { type: "per_place" as const, content: {} },
-      },
-    ],
-    metrics: [],
-  };
+  it("converts place and arc ids, and drops items the net lacks", () => {
+    expect(
+      resolve({
+        selection: [
+          { type: "place", id: "place__queue" },
+          {
+            type: "arc",
+            id: generateArcId({
+              inputId: "place:place__queue",
+              outputId: "transition__serve",
+            }),
+          },
+          { type: "transition", id: "place__queue" },
+        ],
+      }).selection,
+    ).toEqual([
+      { type: "place", id: placeId },
+      { type: "arc", id: arcId },
+    ]);
+  });
+
+  it("keeps an item that resolves as written by identity", () => {
+    const item = { type: "place", id: placeId } as const;
+
+    expect(resolve({ selection: [item] }).selection[0]).toBe(item);
+  });
 
   it("resolves the scenario resource and drops a missing metric", () => {
     expect(
-      resolveNavigatedItems(
-        {
-          simulateResource: { type: "scenario", id: "baseline" },
-          selection: [],
-        },
-        definition,
-        getItemType,
-      ).simulateResource,
+      resolve({ simulateResource: { type: "scenario", id: "baseline" } })
+        .simulateResource,
     ).toEqual({ type: "scenario", id: toPetrinautId("baseline") });
     expect(
-      resolveNavigatedItems(
-        {
-          simulateResource: { type: "metric", id: "throughput" },
-          selection: [],
-        },
-        definition,
-        getItemType,
-      ).simulateResource,
+      resolve({ simulateResource: { type: "metric", id: "throughput" } })
+        .simulateResource,
     ).toBeNull();
   });
 
   it("keeps an experiment resource, which is not part of the document", () => {
     const resource = { type: "experiment", id: "experiment-1" } as const;
 
-    expect(
-      resolveNavigatedItems(
-        { simulateResource: resource, selection: [] },
-        definition,
-        getItemType,
-      ).simulateResource,
-    ).toBe(resource);
+    expect(resolve({ simulateResource: resource }).simulateResource).toBe(
+      resource,
+    );
   });
 });

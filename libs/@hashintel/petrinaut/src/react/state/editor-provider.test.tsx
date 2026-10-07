@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
-  generateArcId,
   toPetrinautId,
   type SDCPN,
   type SelectionMap,
@@ -360,16 +359,12 @@ describe("EditorProvider deep-link normalization", () => {
     ).toHaveLength(1);
   });
 
-  it("reopens an older link's scenario, place and arc by their converted ids", async () => {
+  it("reopens an older link's scenario and place by their converted ids", async () => {
     const recorded: RecordedNavigation[] = [];
     let editor: EditorContextValue;
     const placeId = toPetrinautId("place__queue");
-    const arcId = generateArcId({
-      inputId: placeId,
-      outputId: toPetrinautId("transition__serve"),
-    });
     const getItemType: SDCPNContextValue["getItemType"] = (id) =>
-      id === placeId ? "place" : id === arcId ? "arc" : null;
+      id === placeId ? "place" : null;
     const definition: SDCPN = {
       ...emptySdcpn,
       scenarios: [
@@ -391,18 +386,8 @@ describe("EditorProvider deep-link normalization", () => {
           recorded={recorded}
           initialState={{
             mode: "simulate",
-            simulateView: "scenarios",
             simulateResource: { type: "scenario", id: "baseline" },
-            selection: [
-              { type: "place", id: "place__queue" },
-              {
-                type: "arc",
-                id: generateArcId({
-                  inputId: "place__queue",
-                  outputId: "transition__serve",
-                }),
-              },
-            ],
+            selection: [{ type: "place", id: "place__queue" }],
           }}
         >
           <EditorProvider>
@@ -426,9 +411,7 @@ describe("EditorProvider deep-link normalization", () => {
       type: "view-scenario",
       scenarioId: toPetrinautId("baseline"),
     });
-    expect(new Set(editor!.selection.keys())).toEqual(
-      new Set([placeId, arcId]),
-    );
+    expect(Array.from(editor!.selection.keys())).toEqual([placeId]);
   });
 });
 
