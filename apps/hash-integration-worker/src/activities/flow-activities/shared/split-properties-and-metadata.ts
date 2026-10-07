@@ -9,7 +9,6 @@ import type {
   PropertyObject,
   PropertyObjectMetadata,
   PropertyValue,
-  PropertyValueMetadata,
   PropertyWithMetadata,
 } from "@blockprotocol/type-system";
 

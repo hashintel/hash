@@ -506,7 +506,7 @@ export const DataTableSection = forwardRef<
       if (!detailRows?.rows) {
         return [];
       }
-      return detailRows.rows as Record<string, unknown>[];
+      return detailRows.rows;
     }, [detailRows]);
     const table = useReactTable({
       data,
@@ -690,6 +690,7 @@ export const DataTableSection = forwardRef<
                     {table.getHeaderGroups().map((headerGroup) => (
                       <tr key={headerGroup.id}>
                         {headerGroup.headers.map((header) => {
+                          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: ColumnMeta omits our numeric flag.
                           const meta = header.column.columnDef.meta as
                             | { numeric?: boolean }
                             | undefined;
@@ -744,6 +745,7 @@ export const DataTableSection = forwardRef<
                     {table.getRowModel().rows.map((row) => (
                       <tr key={row.id} className={rowStyles}>
                         {row.getVisibleCells().map((cell) => {
+                          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: ColumnMeta omits our numeric flag.
                           const meta = cell.column.columnDef.meta as
                             | { numeric?: boolean }
                             | undefined;

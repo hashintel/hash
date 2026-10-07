@@ -266,7 +266,7 @@ export const useDashboardItemGenerations = ({
                 "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
             },
           },
-        } as PropertyPatchOperation);
+        });
       }
       propertyPatches.push({
         op: "replace",

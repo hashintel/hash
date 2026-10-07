@@ -21,7 +21,7 @@ import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 import type { EntityTypeDefinition } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 
 const logger = new Logger({

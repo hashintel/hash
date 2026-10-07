@@ -1,11 +1,7 @@
 import { currentTimestamp } from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 
-import type {
-  ActorEntityUuid,
-  EntityId,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
@@ -30,11 +26,11 @@ export const createDraftLinkEntity = ({
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
       entityTypeIds: [linkEntityTypeId],
       provenance: {
-        createdById: "" as ActorEntityUuid,
+        createdById: "",
         createdAtTransactionTime: currentTimestamp(),
         createdAtDecisionTime: currentTimestamp(),
         edition: {
-          createdById: "" as ActorEntityUuid,
+          createdById: "",
           actorType: "user",
           origin: { type: "api" },
         },

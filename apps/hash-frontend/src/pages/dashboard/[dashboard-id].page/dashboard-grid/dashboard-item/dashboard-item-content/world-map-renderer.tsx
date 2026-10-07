@@ -389,7 +389,7 @@ export const WorldMapRenderer = ({
           zlevel: 1,
         },
       ],
-    } as ECOption;
+    };
   }, [flights, isMapReady]);
 
   if (!isMapReady) {

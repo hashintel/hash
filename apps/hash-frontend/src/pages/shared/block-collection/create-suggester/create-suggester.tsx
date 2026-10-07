@@ -332,7 +332,7 @@ export const createSuggester = (
                 tr.setMeta(suggesterPluginKey, {
                   type: "suggestedBlock",
                   payload: { position: componentPosition },
-                } as SuggesterAction);
+                });
 
                 view.dispatch(tr);
               })

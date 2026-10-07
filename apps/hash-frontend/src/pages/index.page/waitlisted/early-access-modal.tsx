@@ -181,9 +181,8 @@ export const EarlyAccessFormModal = ({
     event.preventDefault();
 
     try {
-      void new URL(
-        formState["https://hash.ai/@h/types/property-type/website-url/"],
-      );
+      // eslint-disable-next-line no-new -- URL validation throws on invalid input.
+      new URL(formState["https://hash.ai/@h/types/property-type/website-url/"]);
     } catch {
       setUrlError("Please enter a valid URL.");
       return;

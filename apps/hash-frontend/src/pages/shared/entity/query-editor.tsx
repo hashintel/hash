@@ -19,7 +19,6 @@ import { EntityHeader } from "./entity-header";
 
 import type { EntityEditorProps } from "./entity-editor";
 import type { MultiFilter } from "@blockprotocol/graph";
-import type { Entity as EntityBp } from "@blockprotocol/type-system";
 
 interface QueryEditorProps extends EntityEditorProps {
   handleSaveQuery: (value: MultiFilter) => Promise<void>;
@@ -73,7 +72,7 @@ export const QueryEditor = (props: QueryEditorProps) => {
         throw new Error(res.errors?.[0]?.message ?? "Unknown error");
       }
 
-      return getRoots(res.data.results) as EntityBp[];
+      return getRoots(res.data.results);
     },
     [queryEntities],
   );

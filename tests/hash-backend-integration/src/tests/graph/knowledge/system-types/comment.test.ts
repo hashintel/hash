@@ -26,7 +26,6 @@ import {
 import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { WebId } from "@blockprotocol/type-system";
 import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const logger = new Logger({

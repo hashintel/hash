@@ -139,26 +139,19 @@ export const Avatar = ({
   };
 
   if (asLink) {
-    return (
-      <a {...(sharedProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)}>
-        {content}
-      </a>
-    );
+    return <a {...sharedProps}>{content}</a>;
   }
 
   if (asButton) {
     return (
-      <button
-        {...(sharedProps as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-        type="button"
-      >
+      <button {...sharedProps} type="button">
         {content}
       </button>
     );
   }
 
   return (
-    <div {...(sharedProps as React.HTMLAttributes<HTMLDivElement>)} role="img">
+    <div {...sharedProps} role="img">
       {content}
     </div>
   );

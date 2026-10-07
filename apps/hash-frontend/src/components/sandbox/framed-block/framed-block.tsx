@@ -29,10 +29,7 @@ export const FramedBlock: FunctionComponent = () => {
 
   const _beforeCapture = useCallback(
     (scope: Sentry.Scope) => {
-      scope.setTag(
-        "block",
-        blockProperties?.metadata.recordId.entityId as string,
-      );
+      scope.setTag("block", blockProperties?.metadata.recordId.entityId);
     },
     [blockProperties],
   );

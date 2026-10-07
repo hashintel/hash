@@ -115,7 +115,7 @@ export type DecodedEnvelope<T extends ArrayBufferLike> = readonly [
 ];
 
 /** Reads the common framing without interpreting individual payload contents. */
-const readEnvelope = Result.fn(function* readEnvelope<
+const readEnvelope = Result.fn(function* readEnvelopeFields<
   T extends ArrayBufferLike,
 >(
   decoder: Decoder.Decoder<T>,

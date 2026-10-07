@@ -10,7 +10,6 @@ import type {
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import type { WebId } from "@blockprotocol/type-system";
 import type { ProspectiveUser } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
 
 export const submitEarlyAccessFormResolver: ResolverFn<

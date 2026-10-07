@@ -50,7 +50,6 @@ import type { EntityRootType } from "@blockprotocol/graph";
 import type {
   EntityEditionId,
   EntityId,
-  EntityMetadata,
   EntityRecordId,
 } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
@@ -101,7 +100,7 @@ const getEntityLabelFromLog = (
           entityId: proposedEntity.localEntityId,
         } satisfies EntityRecordId,
         entityTypeIds: proposedEntity.entityTypeIds,
-      } as EntityMetadata,
+      },
     },
     true,
   );
