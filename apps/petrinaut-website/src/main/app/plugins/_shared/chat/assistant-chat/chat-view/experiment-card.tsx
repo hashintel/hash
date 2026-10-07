@@ -1,10 +1,10 @@
-import { use } from "react";
+import { useStoreSelector } from "@hashintel/petrinaut/ui";
 
-import { ExperimentsContext } from "../../../../../../react/experiments/context";
-import { ExperimentExecutionCard } from "./experiment-execution-card";
+import { ExperimentExecutionCard } from "../../experiment-execution-card";
+import { useAssistantChatApi } from "../chat-api";
 
+import type { PetrinautAiMessage } from "../../ai-message";
 import type { AiToolTarget } from "../tool-summaries";
-import type { PetrinautAiMessage } from "../types";
 import type {
   PetrinautExperimentProgress,
   PetrinautExperimentResult,
@@ -32,13 +32,16 @@ export const ExperimentCard = ({
   onCancel?: (toolCallId: string) => void;
   onSelectToolTarget?: (target: AiToolTarget) => void;
 }) => {
-  const { experiments } = use(ExperimentsContext);
+  const { experiments } = useAssistantChatApi();
   const result =
     part.state === "output-available" ? part.output : state?.result;
   const experimentId = result?.experimentId ?? state?.progress?.experimentId;
-  const available =
-    experimentId &&
-    experiments.some((experiment) => experiment.id === experimentId);
+  const available = useStoreSelector(
+    experiments.records,
+    (records) =>
+      experimentId !== undefined &&
+      records.some((experiment) => experiment.id === experimentId),
+  );
 
   return (
     <ExperimentExecutionCard

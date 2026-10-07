@@ -1,7 +1,7 @@
 import { Button, Chip } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
-import type { PetrinautAiAssistantPresentation } from "../../../../../petrinaut";
+import type { PetrinautAiAssistantPresentation } from "../../petrinaut-ai-assistant";
 
 export type PromptChip = {
   id: string;

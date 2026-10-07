@@ -2,13 +2,13 @@ import { describe, expect, test } from "vitest";
 
 import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
-import { definePetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
+import { definePetrinautAiInteractiveTool } from "../../interactive-tool";
 import {
   getChronologicalRenderItems,
   getMessageRenderItems,
 } from "./get-message-render-items";
 
-import type { PetrinautAiMessage } from "../types";
+import type { PetrinautAiMessage } from "../../ai-message";
 
 describe("chronological reading", () => {
   const inspect = (toolCallId: string, toolName = "inspect") =>

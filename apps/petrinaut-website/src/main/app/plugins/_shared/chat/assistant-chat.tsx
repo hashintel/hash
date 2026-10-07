@@ -1,3 +1,12 @@
+/**
+ * Petrinaut's assistant chat: transcript, composer, Voice and the built-in AI
+ * tools, which the demo's assistant plugins render as their view. It reaches
+ * the editor only through the plugin `api` it is given.
+ *
+ * @layerRoot website.plugins.chat
+ * @role The chat kit the demo's assistant plugins render: transcript, composer, Voice and the built-in AI tools
+ */
+
 import { useChat } from "@ai-sdk/react";
 import {
   generateId,
@@ -32,44 +41,43 @@ import {
   setNetTitleToolInputSchema,
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
-
-import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
-import { ExperimentHostContext } from "../../../../react/experiment-host/context";
-import { useLatest } from "../../../../react/hooks/use-latest";
-import { useRevealInEditor } from "../../../../react/hooks/use-reveal-in-editor";
-import { PetrinautInstanceContext } from "../../../../react/instance-context";
-import { LanguageClientContext } from "../../../../react/lsp/context";
-import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import {
-  formatReadOnlyReason,
-  mutationBlockedBy,
-  useReadOnlyReason,
-} from "../../../../react/state/use-read-only-reason";
-import { VoiceSessionContext } from "../../../../react/voice-session/context";
-import { petrinautDocsContent } from "../../../petrinaut-docs-content";
-import {
+  petrinautDocsContent,
   type PetrinautAssistantStartRequest,
+  type PluginEdits,
   usePetrinautAssistantWindow,
-} from "../assistant-window";
-import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
-import { selectPromptChips } from "./ai-assistant-panel/ai-assistant-contents/select-prompt-chips";
-import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
-import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
-import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
-import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
+  useStoreSelector,
+} from "@hashintel/petrinaut/ui";
+
+import { executePetrinautAiMutation } from "./apply-petrinaut-ai-mutation";
+import {
+  type AssistantChatApi,
+  AssistantChatApiContext,
+} from "./assistant-chat/chat-api";
+import { ChatView } from "./assistant-chat/chat-view";
+import { selectPromptChips } from "./assistant-chat/chat-view/select-prompt-chips";
+import { createDiagnosticsAwareAiTransport } from "./assistant-chat/create-diagnostics-aware-ai-transport";
+import { createReasoningTimingAwareAiTransport } from "./assistant-chat/create-reasoning-timing-aware-ai-transport";
+import { finalizeStreamingMessageParts } from "./assistant-chat/finalize-streaming-message-parts";
 import {
   getInteractiveTool,
   resolveDynamicInteractiveTool,
-} from "./ai-assistant-panel/interactive-tools/registry";
-import { readCurrentDiagnostics } from "./ai-assistant-panel/read-current-diagnostics";
+} from "./assistant-chat/interactive-tools/registry";
+import { readCurrentDiagnostics } from "./assistant-chat/read-current-diagnostics";
 import {
   type AiToolOutput,
   type AiToolCall,
   summarizeApplyAutoLayout,
   toPetrinautAiToolOutput,
-} from "./ai-assistant-panel/tool-summaries";
+  toRefusalOutput,
+} from "./assistant-chat/tool-summaries";
+import { useLatest } from "./assistant-chat/use-latest";
+import {
+  VoiceSessionContext,
+  VoiceSessionProvider,
+} from "./assistant-chat/voice-session";
 
-import type { PetrinautAiAssistant } from "../../../petrinaut";
+import type { PetrinautAiMessage, PetrinautAiTransport } from "./ai-message";
 import type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerStatus,
@@ -79,18 +87,14 @@ import type {
   PetrinautAiVoiceModeControls,
   PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
-} from "../../../types/ai-assistant-composer-control";
-import type { FrameSceneResult } from "../../SDCPN/canvas-renderer";
-import type {
-  PetrinautAiMessage,
-  PetrinautAiTransport,
-} from "./ai-assistant-panel/types";
+} from "./composer-control";
+import type { PetrinautAiAssistant } from "./petrinaut-ai-assistant";
 
 export type {
   PetrinautAiMessage,
   PetrinautAiMessageMetadata,
   PetrinautAiTransport,
-} from "./ai-assistant-panel/types";
+} from "./ai-message";
 
 type PetrinautAiToolCall = Parameters<
   ChatOnToolCallCallback<PetrinautAiMessage>
@@ -443,21 +447,20 @@ export const addMappedToolOutput = async ({
 
 const applyPetrinautAiCommand = async ({
   aiToolCall,
-  applyAutoLayoutAndFrame,
+  edit,
 }: {
   aiToolCall: Extract<AiToolCall, { toolName: AiCommandActionName }>;
-  applyAutoLayoutAndFrame: () => Promise<{
-    commitCount: number;
-    frameStatus: FrameSceneResult;
-  }>;
+  edit: PluginEdits;
 }): Promise<AiToolOutput> => {
   // Exhaustive switch over AiCommandActionName — extending the AI command
   // surface will surface a TypeScript error here until the new case is added.
   switch (aiToolCall.toolName) {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     case "applyAutoLayout": {
-      const { commitCount } = await applyAutoLayoutAndFrame();
-      return toPetrinautAiToolOutput(summarizeApplyAutoLayout({ commitCount }));
+      const layout = await edit.applyAutoLayout();
+      return layout.applied
+        ? toPetrinautAiToolOutput(summarizeApplyAutoLayout(layout.value))
+        : toRefusalOutput(layout.reason);
     }
     default: {
       const unhandledToolName: never = aiToolCall.toolName;
@@ -466,36 +469,25 @@ const applyPetrinautAiCommand = async ({
   }
 };
 
-interface AiAssistantPanelProps {
-  aiAssistant: PetrinautAiAssistant;
-  applyAutoLayoutAndFrame?: () => Promise<{
-    commitCount: number;
-    frameStatus: FrameSceneResult;
-  }>;
-  frameSceneAfterRender?: () => Promise<FrameSceneResult>;
-}
+/** The chat: `api`, which reaches the editor, and the assistant's configuration. */
+export type AssistantChatProps = PetrinautAiAssistant & {
+  readonly api: AssistantChatApi;
+};
 
-const ConversationAiAssistantPanel = ({
-  aiAssistant,
-  applyAutoLayoutAndFrame,
-  frameSceneAfterRender,
-}: AiAssistantPanelProps) => {
-  // The wrapped AI transport and language client read their latest host values
-  // through refs when `sendMessages` eventually runs. React Compiler can't
-  // prove those reads happen off-render, so we opt out here.
+const ConversationAssistantChat = ({
+  api,
+  ...aiAssistant
+}: AssistantChatProps) => {
+  // The wrapped AI transport reads its latest host value through a ref when
+  // `sendMessages` eventually runs. React Compiler can't prove those reads
+  // happen off-render, so we opt out here.
   "use no memo";
 
-  const instance = use(PetrinautInstanceContext);
-
-  const readOnlyReason = useReadOnlyReason();
-  const readOnlyReasonRef = useRef(readOnlyReason);
-  useEffect(() => {
-    readOnlyReasonRef.current = readOnlyReason;
-  }, [readOnlyReason]);
-
-  const { requestDiagnostics } = use(LanguageClientContext);
-  const requestDiagnosticsRef = useLatest(requestDiagnostics);
-  const experimentHost = use(ExperimentHostContext);
+  const { document, experiments, errors } = api;
+  const isNetEmpty = useStoreSelector(
+    document.net,
+    (net) => net.places.length === 0 && net.transitions.length === 0,
+  );
   const experimentControllersRef = useRef(new Map<string, AbortController>());
   const [experimentStates, setExperimentStates] = useState<
     Record<
@@ -529,13 +521,7 @@ const ConversationAiAssistantPanel = ({
     startRequest,
     consumeStartRequest,
   } = usePetrinautAssistantWindow();
-  const revealInEditor = useRevealInEditor();
-
-  const { petriNetDefinition, setTitle, title, titleEditable } =
-    use(SDCPNContext);
   const voiceSessionStore = use(VoiceSessionContext);
-  const errorTracker = use(ErrorTrackerContext);
-  const errorTrackerRef = useLatest(errorTracker);
   // Operational failures — the stream, tool execution, continuation, Stop —
   // reach the host's tracker at their source. Expected refusals (empty text,
   // busy composer, ambiguous tool match) stay UI state only.
@@ -545,12 +531,12 @@ const ConversationAiAssistantPanel = ({
       source: string,
       tags?: Readonly<Record<string, string | number | boolean>>,
     ) => {
-      errorTrackerRef.current.captureException(error, {
+      errors.capture(error, {
         source: `ai-assistant.${source}`,
         ...(tags === undefined ? {} : { tags }),
       });
     },
-    [errorTrackerRef],
+    [errors],
   );
 
   const [input, setInput] = useState("");
@@ -602,15 +588,10 @@ const ConversationAiAssistantPanel = ({
     null,
   );
 
-  const titleRef = useRef(title);
-  useEffect(() => {
-    titleRef.current = title;
-  }, [title]);
-
-  const readDiagnosticsContext = useCallback(() => {
-    if (!instance) throw new Error("The AI assistant has no editor instance.");
-    return readCurrentDiagnostics(instance, requestDiagnosticsRef.current);
-  }, [instance, requestDiagnosticsRef]);
+  const readDiagnosticsContext = useCallback(
+    () => readCurrentDiagnostics(document),
+    [document],
+  );
 
   // AI SDK retains the transport that existed when a conversation ID first
   // mounted. Delegate through a stable identity so host mechanics that become
@@ -906,12 +887,6 @@ const ConversationAiAssistantPanel = ({
             generation,
             executionConversationId,
           );
-    if (!instance) {
-      throw new Error(
-        "The AI assistant cannot run without an editor instance.",
-      );
-    }
-
     if (toolCall.dynamic) {
       const automaticTool = aiAssistant.automaticTools?.find(
         ({ toolName }) => toolName === toolCall.toolName,
@@ -925,14 +900,8 @@ const ConversationAiAssistantPanel = ({
           output = automaticTool.outputSchema.parse(
             await automaticTool.execute({
               input: toolInput,
-              mutations: instance.mutations,
-              commands: instance.commands,
-              handle: instance.handle,
+              edit: document.edit,
               readDiagnosticsContext,
-              viewport: {
-                frameSceneAfterRender: () =>
-                  frameSceneAfterRender?.() ?? Promise.resolve("no-renderer"),
-              },
               toolCallId: toolCall.toolCallId,
               signal: abortController.signal,
             }),
@@ -980,7 +949,7 @@ const ConversationAiAssistantPanel = ({
         experimentControllersRef.current.get(toolCall.toolCallId) ===
           controller;
       try {
-        const result = await experimentHost.runExperiment(request, {
+        const result = await experiments.run(request, {
           signal: controller.signal,
           onProgress: (progress) => {
             if (!isCurrentRequest()) return;
@@ -1026,9 +995,9 @@ const ConversationAiAssistantPanel = ({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
         output: {
-          title: titleRef.current,
-          definition: instance.definition.get(),
-          extensions: instance.extensions,
+          title: document.title.get(),
+          definition: document.net.get(),
+          extensions: document.extensions,
         },
       });
       return;
@@ -1054,49 +1023,23 @@ const ConversationAiAssistantPanel = ({
     }
 
     if (toolCall.toolName === setNetTitleToolName) {
-      if (titleEditable !== true) {
-        await addAutomaticToolOutput({
-          tool: toolCall.toolName,
-          toolCallId: toolCall.toolCallId,
-          output: {
-            applied: false,
-            reason: "The host application does not provide title editing.",
-          } satisfies AiToolOutput,
-        });
-        return;
-      }
-
-      const setNetTitleReadOnlyReason = readOnlyReasonRef.current;
-      if (setNetTitleReadOnlyReason !== null) {
-        await addAutomaticToolOutput({
-          tool: toolCall.toolName,
-          toolCallId: toolCall.toolCallId,
-          output: {
-            applied: false,
-            blocked: setNetTitleReadOnlyReason.kind,
-            reason: formatReadOnlyReason(setNetTitleReadOnlyReason),
-          } satisfies AiToolOutput,
-        });
-        return;
-      }
-
-      const parsedSetNetTitleInput = setNetTitleToolInputSchema.parse(
-        toolCall.input,
-      );
-      const previousTitle = titleRef.current;
-      setTitle(parsedSetNetTitleInput.title);
+      const { title } = setNetTitleToolInputSchema.parse(toolCall.input);
+      const previousTitle = document.title.get();
+      const renamed = document.setTitle(title);
 
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
-        output: {
-          applied: true,
-          title: `Renamed net to "${parsedSetNetTitleInput.title}"`,
-          detail:
-            previousTitle && previousTitle !== parsedSetNetTitleInput.title
-              ? `Previous title: ${previousTitle}`
-              : undefined,
-        } satisfies AiToolOutput,
+        output: renamed.applied
+          ? ({
+              applied: true,
+              title: `Renamed net to "${title}"`,
+              detail:
+                previousTitle && previousTitle !== title
+                  ? `Previous title: ${previousTitle}`
+                  : undefined,
+            } satisfies AiToolOutput)
+          : toRefusalOutput(renamed.reason),
       });
       return;
     }
@@ -1107,22 +1050,6 @@ const ConversationAiAssistantPanel = ({
       !isPetrinautAiCommandToolName(toolName)
     ) {
       throw new Error(`Unknown AI tool: ${String(toolName as string)}`);
-    }
-
-    const blockedBy = isPetrinautAiMutationToolName(toolName)
-      ? mutationBlockedBy(toolName, readOnlyReasonRef.current)
-      : readOnlyReasonRef.current;
-    if (blockedBy !== null) {
-      await addAutomaticToolOutput({
-        tool: toolName,
-        toolCallId: toolCall.toolCallId,
-        output: {
-          applied: false,
-          blocked: blockedBy.kind,
-          reason: formatReadOnlyReason(blockedBy),
-        } satisfies AiToolOutput,
-      });
-      return;
     }
 
     if (isPetrinautAiCommandToolName(toolName)) {
@@ -1145,12 +1072,7 @@ const ConversationAiAssistantPanel = ({
 
       const output = await applyPetrinautAiCommand({
         aiToolCall,
-        applyAutoLayoutAndFrame:
-          applyAutoLayoutAndFrame ??
-          (async () => {
-            const { commitCount } = await instance.commands.applyAutoLayout();
-            return { commitCount, frameStatus: "no-renderer" };
-          }),
+        edit: document.edit,
       });
       await addAutomaticToolOutput({
         tool: toolName,
@@ -1169,11 +1091,10 @@ const ConversationAiAssistantPanel = ({
       input: toolInput,
     } as Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }>;
 
-    const output = applyPetrinautAiMutation({
+    const output = executePetrinautAiMutation({
       aiToolCall,
-      instance,
-      toolCallId: toolCall.toolCallId,
-      executeMutation: aiAssistant.executeMutation,
+      getDefinition: () => document.net.get(),
+      edit: document.edit,
     });
 
     await addAutomaticToolOutput({
@@ -1288,7 +1209,7 @@ const ConversationAiAssistantPanel = ({
       return false;
     },
     // Without throttling, every reasoning-delta / text-delta chunk triggers a
-    // full re-render of `AiAssistantContents`, and the SDK `structuredClone`s
+    // full re-render of `ChatView`, and the SDK `structuredClone`s
     // the active message on each one. For a long markdown reply that locks
     // the main thread. 80ms still feels live (≈12 updates/sec) but lets the
     // browser breathe between chunks.
@@ -2092,11 +2013,7 @@ const ConversationAiAssistantPanel = ({
 
       return;
     }
-    if (
-      !isAiAssistantOpen ||
-      !instance ||
-      handledStartRequestRef.current === startRequest
-    ) {
+    if (!isAiAssistantOpen || handledStartRequestRef.current === startRequest) {
       return;
     }
     handledStartRequestRef.current = startRequest;
@@ -2128,7 +2045,6 @@ const ConversationAiAssistantPanel = ({
   }, [
     aiAssistant.renderVoiceMode,
     consumeStartRequest,
-    instance,
     isAiAssistantOpen,
     selectInteractionMode,
     startRequest,
@@ -2144,17 +2060,10 @@ const ConversationAiAssistantPanel = ({
     }
   }, [aiAssistant.renderVoiceMode, interactionMode, selectInteractionMode]);
 
-  if (!instance) {
-    return null;
-  }
-
   // Chips are only meaningful before a conversation has begun — once the
   // user has typed or the AI has replied, they've signalled what they want
   // and the chips become noise.
   const hasConversation = messages.length > 0;
-  const isNetEmpty =
-    petriNetDefinition.places.length === 0 &&
-    petriNetDefinition.transitions.length === 0;
 
   const promptChips = selectPromptChips({ hasConversation, isNetEmpty });
 
@@ -2189,7 +2098,7 @@ const ConversationAiAssistantPanel = ({
   );
 
   return (
-    <AiAssistantContents
+    <ChatView
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
       }
@@ -2290,33 +2199,17 @@ const ConversationAiAssistantPanel = ({
           return;
         }
 
-        const readOnlyAtSubmit = readOnlyReasonRef.current;
-        if (readOnlyAtSubmit !== null) {
+        void document.edit.applyAutoLayout().then((layout) => {
           safelyAddToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
-            output: {
-              applied: false,
-              blocked: readOnlyAtSubmit.kind,
-              reason: formatReadOnlyReason(readOnlyAtSubmit),
-            } satisfies AiToolOutput,
-          });
-          return;
-        }
-
-        void (
-          applyAutoLayoutAndFrame?.() ?? instance.commands.applyAutoLayout()
-        ).then((result) => {
-          safelyAddToolOutput(addToolOutput, {
-            tool: toolName,
-            toolCallId,
-            output: toPetrinautAiToolOutput(
-              summarizeApplyAutoLayout({ commitCount: result.commitCount }),
-            ),
+            output: layout.applied
+              ? toPetrinautAiToolOutput(summarizeApplyAutoLayout(layout.value))
+              : toRefusalOutput(layout.reason),
           });
         });
       }}
-      onSelectToolTarget={revealInEditor}
+      onSelectToolTarget={(target) => document.reveal(target)}
       onSendPrompt={(prompt) => {
         submitUserText(prompt, "message");
       }}
@@ -2347,10 +2240,19 @@ const ConversationAiAssistantPanel = ({
   );
 };
 
-/** Replace every conversation-owned hook and callback together when identity changes. */
-export const AiAssistantPanel = (props: AiAssistantPanelProps) => (
-  <ConversationAiAssistantPanel
-    key={props.aiAssistant.conversationId ?? "generated-conversation"}
-    {...props}
-  />
+/**
+ * Petrinaut's assistant chat, drawn in the assistant window: render it as an
+ * assistant plugin's `view`. A new `conversationId` replaces every
+ * conversation-owned hook and callback together; each chat has its own Voice
+ * session.
+ */
+export const AssistantChat = (props: AssistantChatProps) => (
+  <AssistantChatApiContext value={props.api}>
+    <VoiceSessionProvider>
+      <ConversationAssistantChat
+        key={props.conversationId ?? "generated-conversation"}
+        {...props}
+      />
+    </VoiceSessionProvider>
+  </AssistantChatApiContext>
 );

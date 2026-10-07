@@ -16,24 +16,24 @@ import {
   useVoiceSessionPhase,
   useVoiceSessionSpeakerMuted,
   useVoiceSessionSpeakerVolume,
-} from "../../../../../../react/voice-session/use-voice-session";
-import {
-  LiveVoiceSessionIndicator,
-  VoiceSessionIndicator,
-} from "../../../components/voice-session-indicator";
-import {
-  voiceSessionActionLabels,
-  voiceSessionStatusLabel,
-  voiceSetupLabels,
-} from "../../../components/voice-session-labels";
+} from "../voice-session";
 import { aiFooterMinHeight } from "./footer-height";
 import { AudioPopover } from "./voice-dock/audio-popover";
 import { MicrophoneIcon } from "./voice-dock/microphone-icon";
 import { EndIcon, StopIcon } from "./voice-dock/session-action-icons";
+import {
+  LiveVoiceSessionIndicator,
+  VoiceSessionIndicator,
+} from "./voice-dock/voice-session-indicator";
+import {
+  voiceSessionActionLabels,
+  voiceSessionStatusLabel,
+  voiceSetupLabels,
+} from "./voice-dock/voice-session-labels";
 
-import type { VoiceSessionActions } from "../../../../../../react/voice-session/store";
-import type { VoiceAudioSettingsState } from "../../../../../../react/voice-session/types";
-import type { PetrinautAiVoiceSessionPhase } from "../../../../../types/ai-assistant-composer-control";
+import type { PetrinautAiVoiceSessionPhase } from "../../composer-control";
+import type { VoiceAudioSettingsState } from "../../voice-session-state";
+import type { VoiceSessionActions } from "../voice-session";
 import type { ReactNode } from "react";
 
 const dockStyle = css({

@@ -5,9 +5,9 @@ import { cva } from "@hashintel/ds-helpers/css";
 import {
   useVoiceSessionMicrophoneLevelReader,
   useVoiceSessionPhase,
-} from "../../../../react/voice-session/use-voice-session";
+} from "../../voice-session";
 
-import type { PetrinautAiVoiceSessionPhase } from "../../../types/ai-assistant-composer-control";
+import type { PetrinautAiVoiceSessionPhase } from "../../../composer-control";
 
 const ribbonWidth = 104;
 const ribbonHeight = 32;

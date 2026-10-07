@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { definePetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
+import { definePetrinautAiInteractiveTool } from "../../interactive-tool";
 import { getInteractiveTool, resolveDynamicInteractiveTool } from "./registry";
 
 const hostTool = definePetrinautAiInteractiveTool({

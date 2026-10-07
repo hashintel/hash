@@ -1,7 +1,7 @@
-import { getPetrinautAiInteractiveToolDefinition } from "../../../../../types/ai-interactive-tool";
+import { getPetrinautAiInteractiveToolDefinition } from "../../interactive-tool";
 import { applyAutoLayoutInteractiveTool } from "./apply-auto-layout-widget";
 
-import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
+import type { PetrinautAiInteractiveTool } from "../../interactive-tool";
 import type { AiToolOutput } from "../tool-summaries";
 import type { InteractiveToolCall, InteractiveToolDefinition } from "./types";
 

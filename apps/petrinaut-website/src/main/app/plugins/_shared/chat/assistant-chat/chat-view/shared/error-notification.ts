@@ -1,4 +1,4 @@
-import type { AddNotificationInput } from "../../../../../../../react/notifications/context";
+import type { AddNotificationInput } from "@hashintel/petrinaut/ui";
 
 export const errorNotification = (
   message: string,

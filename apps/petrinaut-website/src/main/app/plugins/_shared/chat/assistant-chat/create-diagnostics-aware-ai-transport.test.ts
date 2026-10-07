@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { createDiagnosticsAwareAiTransport } from "./create-diagnostics-aware-ai-transport";
 
-import type { PetrinautAiMessage, PetrinautAiTransport } from "./types";
+import type { PetrinautAiMessage, PetrinautAiTransport } from "../ai-message";
 import type { UIMessageChunk } from "ai";
 
 const emptyStream = (): ReadableStream<UIMessageChunk> =>

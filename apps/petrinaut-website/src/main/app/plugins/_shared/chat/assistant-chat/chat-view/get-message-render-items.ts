@@ -7,7 +7,7 @@ import {
 import {
   getPetrinautAiInteractiveToolDefinition,
   type PetrinautAiInteractiveTool,
-} from "../../../../../types/ai-interactive-tool";
+} from "../../interactive-tool";
 import {
   getToolName,
   isToolPart,
@@ -15,8 +15,8 @@ import {
   type ToolRenderItem,
 } from "./tool-list";
 
-import type { PetrinautAiToolPresentationResolver } from "../../../../../petrinaut";
-import type { PetrinautAiMessage } from "../types";
+import type { PetrinautAiMessage } from "../../ai-message";
+import type { PetrinautAiToolPresentationResolver } from "../../tool-presentation";
 import type { ExperimentToolPart } from "./experiment-card";
 
 export type MessagePart = PetrinautAiMessage["parts"][number];

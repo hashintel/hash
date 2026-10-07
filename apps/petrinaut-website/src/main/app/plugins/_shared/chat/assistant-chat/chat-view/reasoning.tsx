@@ -9,7 +9,7 @@ import { collapsibleContentStyle } from "./shared/collapsible-content-style";
 import { markdownStyle } from "./shared/markdown-style";
 import { StreamingEllipsis } from "./shared/streaming-ellipsis";
 
-import type { PetrinautReasoningMetadata } from "../types";
+import type { PetrinautReasoningMetadata } from "../../ai-message";
 import type { ReasoningMessagePart } from "./get-message-render-items";
 
 const reasoningGroupStyle = cva({

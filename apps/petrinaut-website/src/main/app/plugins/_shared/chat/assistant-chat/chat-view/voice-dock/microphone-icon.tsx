@@ -1,7 +1,7 @@
 import {
   MicrophoneIcon as ExperimentalMicrophoneIcon,
   useExperimentalIconPackEnabled,
-} from "../../../../../../experimental-icons";
+} from "@hashintel/petrinaut/ui";
 
 export const MicrophoneIcon = ({ muted = false }: { muted?: boolean }) => {
   const experimentalIcons = useExperimentalIconPackEnabled();

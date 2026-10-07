@@ -15,7 +15,7 @@ import { SpeakerIcon } from "../speaker-icon";
 import type {
   VoiceAudioSettingsActions,
   VoiceAudioSettingsState,
-} from "../../../../../../../../react/voice-session/types";
+} from "../../../../voice-session-state";
 
 const sectionStyle = css({
   borderTopWidth: "thin",

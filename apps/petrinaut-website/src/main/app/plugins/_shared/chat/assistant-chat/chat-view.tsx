@@ -1,6 +1,5 @@
 import {
   type ReactNode,
-  use,
   useEffect,
   useEffectEvent,
   useLayoutEffect,
@@ -10,48 +9,45 @@ import {
 
 import { Button, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
+import {
+  AiAssistantIcon,
+  ExperimentalIcon,
+  PetrinautAssistantWindow,
+  usePetrinautAssistantWindow,
+} from "@hashintel/petrinaut/ui";
 
-import { NotificationsContext } from "../../../../../react/notifications/context";
+import { AiVoiceModeIcon } from "../ai-voice-mode-icon";
+import { useAssistantChatApi } from "./chat-api";
+import { BrunchResponseStatus } from "./chat-view/brunch-response-status";
+import { BrunchTranscript } from "./chat-view/brunch-transcript";
+import { ChatTabMark } from "./chat-view/chat-tab-mark";
+import { AiAssistantComposer } from "./chat-view/composer";
+import { aiFooterMinHeight } from "./chat-view/footer-height";
+import { PromptChips, type PromptChip } from "./chat-view/prompt-chips";
+import { errorNotification } from "./chat-view/shared/error-notification";
+import { StockTranscript } from "./chat-view/stock-transcript";
+import { VoiceAlerts } from "./chat-view/voice-alerts";
+import { LiveVoiceDock, VoiceDock } from "./chat-view/voice-dock";
+import { getInteractiveTool } from "./interactive-tools/registry";
 import {
   useVoiceSessionErrorMessage,
   useVoiceSessionPhase,
   useVoiceSessionWarningMessage,
-} from "../../../../../react/voice-session/use-voice-session";
-import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
-import { ExperimentalIcon } from "../../../../experimental-icons";
-import {
-  PetrinautAssistantWindow,
-  usePetrinautAssistantWindow,
-} from "../../assistant-window";
-import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
-import { BrunchResponseStatus } from "./ai-assistant-contents/brunch-response-status";
-import { BrunchTranscript } from "./ai-assistant-contents/brunch-transcript";
-import { ChatTabMark } from "./ai-assistant-contents/chat-tab-mark";
-import { AiAssistantComposer } from "./ai-assistant-contents/composer";
-import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
-import {
-  PromptChips,
-  type PromptChip,
-} from "./ai-assistant-contents/prompt-chips";
-import { errorNotification } from "./ai-assistant-contents/shared/error-notification";
-import { StockTranscript } from "./ai-assistant-contents/stock-transcript";
-import { VoiceAlerts } from "./ai-assistant-contents/voice-alerts";
-import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
-import { getInteractiveTool } from "./interactive-tools/registry";
+} from "./voice-session";
 
-import type { PetrinautAiAssistant } from "../../../../petrinaut";
-import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
-import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
-import type { AiExperimentState } from "./ai-assistant-contents/experiment-card";
-import type { OnInteractiveToolSubmit } from "./ai-assistant-contents/tool-list";
+import type { PetrinautAiMessage } from "../ai-message";
+import type { PetrinautAiInputMode } from "../composer-control";
+import type { PetrinautAiInteractiveTool } from "../interactive-tool";
+import type { PetrinautAiAssistant } from "../petrinaut-ai-assistant";
+import type { AiExperimentState } from "./chat-view/experiment-card";
+import type { OnInteractiveToolSubmit } from "./chat-view/tool-list";
 import type { AiToolTarget } from "./tool-summaries";
-import type { PetrinautAiMessage } from "./types";
 
 type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 
 const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
 
-export type AiAssistantContentsProps = {
+export type ChatViewProps = {
   primaryLabel?: string;
   presentation?: PetrinautAiAssistant["presentation"];
   resolveToolPresentation?: PetrinautAiAssistant["resolveToolPresentation"];
@@ -232,7 +228,7 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
   return `${messages.length}:${last.id}:${last.parts.length}:${partSignature}:${dataSignature}`;
 };
 
-export const getTranscriptLabel = (
+const getTranscriptLabel = (
   primaryLabel: string | undefined,
   inputMode: PetrinautAiInputMode,
   presentation: NonNullable<PetrinautAiAssistant["presentation"]> = "stock",
@@ -241,7 +237,7 @@ export const getTranscriptLabel = (
     ? "Voice"
     : (primaryLabel ?? "AI");
 
-export const AiAssistantContents = ({
+export const ChatView = ({
   experimentStates,
   hostExperimentRunning = false,
   onCancelExperiment,
@@ -277,10 +273,10 @@ export const AiAssistantContents = ({
   voiceModeAvailable = false,
   resolveToolPresentation,
   workingLabel,
-}: AiAssistantContentsProps) => {
+}: ChatViewProps) => {
   const { isOpen, isChatTabShown } = usePetrinautAssistantWindow();
   const showingHostTab = !isChatTabShown;
-  const { addNotification } = use(NotificationsContext);
+  const { notifications } = useAssistantChatApi();
   const voiceSessionPhase = useVoiceSessionPhase();
   const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
   const voiceSessionWarningMessage = useVoiceSessionWarningMessage();
@@ -337,8 +333,8 @@ export const AiAssistantContents = ({
       return;
     }
     notifiedErrorRef.current = error;
-    addNotification(errorNotification("AI assistant error", error.message));
-  }, [addNotification, error]);
+    notifications.add(errorNotification("AI assistant error", error.message));
+  }, [notifications, error]);
 
   // Keep host-reported Voice failures and recovery notices on the session
   // controls; unrelated Petrinaut notifications are untouched.

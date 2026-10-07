@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import { AiVoiceModeIcon } from "../../../../components/ai-voice-mode-button";
+import { AiVoiceModeIcon } from "../../../ai-voice-mode-icon";
 
 export const SentUsingVoiceMark = () => (
   <span

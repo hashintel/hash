@@ -1,4 +1,4 @@
-import type { PetrinautAiInteractiveToolWidgetProps } from "../../../../../types/ai-interactive-tool";
+import type { PetrinautAiInteractiveToolWidgetProps } from "../../interactive-tool";
 import type { ComponentType } from "react";
 
 /**

@@ -1,18 +1,10 @@
 import { z } from "zod";
 
-import {
-  mutationActionInputSchemas,
-  type MutationActionName,
-} from "./action-schemas";
-import {
-  aiCommandActionInputSchemas,
-  type AiCommandActionName,
-} from "./command-schemas";
+import { mutationActionInputSchemas } from "./action-schemas";
+import { aiCommandActionInputSchemas } from "./command-schemas";
 import { probabilisticSatellitesSDCPN } from "./examples";
 import { petrinautExperimentRequestSchema } from "./experiments/host";
 import { typedKeys } from "./lib/typed-entries";
-
-import type { Petrinaut } from "./instance";
 
 export {
   petrinautExperimentRequestSchema,
@@ -252,30 +244,6 @@ export const normalizePetrinautAiToolInput = (
   }
   return normalized;
 };
-
-/**
- * Writable tool callbacks exposed to the AI: every mutation, plus the subset
- * of commands registered in {@link aiCommandActionInputSchemas}. Read-only
- * tools (e.g. `getLatestNetDefinition`) are handled by the dispatcher
- * separately and are not part of this bundle.
- */
-export type PetrinautAiWritableCallbacks = Pick<
-  Petrinaut["mutations"],
-  MutationActionName
-> &
-  Pick<Petrinaut["commands"], AiCommandActionName>;
-
-export function createPetrinautAiWritableCallbacks(
-  instance: Petrinaut,
-): PetrinautAiWritableCallbacks {
-  const writable: PetrinautAiWritableCallbacks = {
-    ...instance.mutations,
-  } as PetrinautAiWritableCallbacks;
-  for (const name of typedKeys(aiCommandActionInputSchemas)) {
-    (writable as Record<string, unknown>)[name] = instance.commands[name];
-  }
-  return writable;
-}
 
 const petrinautDocIndex = petrinautDocNames
   .map((name) => `- \`${name}\` — ${petrinautDocSummaries[name]}`)

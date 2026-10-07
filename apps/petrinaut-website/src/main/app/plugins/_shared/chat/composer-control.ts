@@ -1,9 +1,9 @@
+import type { PetrinautAiMessage } from "./ai-message";
 import type {
   PetrinautAiVoiceSessionPhase,
   PetrinautAiVoiceSessionState,
   VoiceAudioSettingsActions,
-} from "../../react/voice-session/types";
-import type { PetrinautAiMessage } from "../views/Editor/panels/ai-assistant-panel/types";
+} from "./voice-session-state";
 import type { ReactNode } from "react";
 
 export type { PetrinautAiVoiceSessionPhase, PetrinautAiVoiceSessionState };

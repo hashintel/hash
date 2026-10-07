@@ -2,7 +2,7 @@ import type {
   PetrinautAiVoiceSessionPhase,
   PetrinautAiVoiceSessionState,
   VoiceAudioSettingsActions,
-} from "./types";
+} from "../../voice-session-state";
 
 /** Lifecycle actions Petrinaut's own Voice surfaces invoke. */
 export type VoiceSessionActions = {

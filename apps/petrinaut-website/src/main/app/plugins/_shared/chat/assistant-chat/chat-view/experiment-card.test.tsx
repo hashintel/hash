@@ -1,18 +1,50 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { use, type ReactNode } from "react";
+import {
+  cleanup,
+  fireEvent,
+  render as renderElement,
+  screen,
+} from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import {
-  ExperimentsContext,
-  type ExperimentRecord,
-} from "../../../../../../react/experiments/context";
+  createJsonDocHandle,
+  createPetrinaut,
+  type PetrinautExperimentResult,
+} from "@hashintel/petrinaut-core";
+
+import { createTestPluginApi } from "../../../testing/create-test-plugin-api";
+import { AssistantChatApiContext } from "../chat-api";
 import { ExperimentCard } from "./experiment-card";
 
 import type { ExperimentToolPart } from "./experiment-card";
-import type { PetrinautExperimentResult } from "@hashintel/petrinaut-core";
+import type { ExperimentRecord } from "@hashintel/petrinaut/ui";
+import type { ReactElement, ReactNode } from "react";
 
 afterEach(cleanup);
+
+const instance = createPetrinaut({
+  document: createJsonDocHandle({
+    initial: {
+      places: [],
+      transitions: [],
+      types: [],
+      parameters: [],
+      differentialEquations: [],
+    },
+  }),
+});
+/** The chat's `api` with the document's experiment records. */
+const apiWith = (records: readonly ExperimentRecord[]) =>
+  createTestPluginApi(instance, { records });
+const noRecords = apiWith([]);
+const WithNoRecords = ({ children }: { children: ReactNode }) => (
+  <AssistantChatApiContext value={noRecords}>
+    {children}
+  </AssistantChatApiContext>
+);
+const render = (ui: ReactElement) =>
+  renderElement(ui, { wrapper: WithNoRecords });
 
 const part: ExperimentToolPart = {
   type: "tool-createExperiment",
@@ -186,22 +218,7 @@ it("opens only the matching record on explicit request, preferring the tool resu
     constraintPolicy: null,
     scenario: null,
   };
-  const Providers = ({
-    children,
-    available,
-  }: {
-    children: ReactNode;
-    available: boolean;
-  }) => {
-    const experiments = use(ExperimentsContext);
-    return (
-      <ExperimentsContext
-        value={{ ...experiments, experiments: available ? [record] : [] }}
-      >
-        {children}
-      </ExperimentsContext>
-    );
-  };
+  const withRecord = apiWith([record]);
   const card = (
     <ExperimentCard
       part={{ ...part, state: "output-available", output: result }}
@@ -212,7 +229,11 @@ it("opens only the matching record on explicit request, preferring the tool resu
       onSelectToolTarget={reveal}
     />
   );
-  const view = render(<Providers available>{card}</Providers>);
+  const view = renderElement(
+    <AssistantChatApiContext value={withRecord}>
+      {card}
+    </AssistantChatApiContext>,
+  );
   expect(screen.getByRole("status").textContent).toBe("Finished");
   expect(reveal).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: /View experiment/u }));
@@ -221,7 +242,9 @@ it("opens only the matching record on explicit request, preferring the tool resu
     mode: "experiments",
     itemId: "experiment",
   });
-  view.rerender(<Providers available={false}>{card}</Providers>);
+  view.rerender(
+    <AssistantChatApiContext value={noRecords}>{card}</AssistantChatApiContext>,
+  );
   expect(screen.queryByRole("button", { name: /View experiment/u })).toBeNull();
   expect(screen.getByText("12")).toBeTruthy();
 });

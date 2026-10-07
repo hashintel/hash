@@ -3,10 +3,10 @@ import { type ReactNode, type RefObject, useEffect } from "react";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { AiVoiceModeIcon } from "../../../components/ai-voice-mode-button";
+import { AiVoiceModeIcon } from "../../ai-voice-mode-icon";
 
-import type { PetrinautAiAssistant } from "../../../../../petrinaut";
-import type { PetrinautAiInputMode } from "../../../../../types/ai-assistant-composer-control";
+import type { PetrinautAiInputMode } from "../../composer-control";
+import type { PetrinautAiAssistant } from "../../petrinaut-ai-assistant";
 
 const composerActionGlyphStyle = css({
   display: "inline-flex",

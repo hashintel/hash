@@ -16,14 +16,17 @@ import {
 import { BrunchToolList } from "./tool-list/brunch-tool-list";
 import { StockToolList } from "./tool-list/stock-tool-list";
 
-import type { SimulateViewMode } from "../../../../../../react/state/editor-context";
-import type {
-  PetrinautAiAssistantPresentation,
-  PetrinautAiToolPresentationResolver,
-} from "../../../../../petrinaut";
-import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
+import type { PetrinautAiMessage } from "../../ai-message";
+import type { PetrinautAiInteractiveTool } from "../../interactive-tool";
+import type { PetrinautAiAssistantPresentation } from "../../petrinaut-ai-assistant";
+import type { PetrinautAiToolPresentationResolver } from "../../tool-presentation";
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
-import type { PetrinautAiMessage } from "../types";
+import type { PetrinautRevealTarget } from "@hashintel/petrinaut/ui";
+
+type SimulateViewMode = Extract<
+  PetrinautRevealTarget,
+  { kind: "simulateView" }
+>["mode"];
 
 export type ToolTone = "danger" | "info" | "neutral" | "pending" | "success";
 

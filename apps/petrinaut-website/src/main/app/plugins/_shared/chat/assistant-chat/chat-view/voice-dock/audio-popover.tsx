@@ -9,12 +9,12 @@ import {
 } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { voiceSessionActionLabels } from "../../../../components/voice-session-labels";
 import { AudioSettings } from "./audio-popover/settings";
 import { SpeakerIcon } from "./speaker-icon";
+import { voiceSessionActionLabels } from "./voice-session-labels";
 
-import type { VoiceSessionActions } from "../../../../../../../react/voice-session/store";
-import type { VoiceAudioSettingsState } from "../../../../../../../react/voice-session/types";
+import type { VoiceAudioSettingsState } from "../../../voice-session-state";
+import type { VoiceSessionActions } from "../../voice-session";
 
 const popoverStyle = css({
   width: "[236px]",
