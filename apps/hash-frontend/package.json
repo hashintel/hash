@@ -185,6 +185,6 @@
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wait-on": "9.0.1",
-    "webpack": "5.104.1"
+    "webpack": "5.107.2"
   }
 }
