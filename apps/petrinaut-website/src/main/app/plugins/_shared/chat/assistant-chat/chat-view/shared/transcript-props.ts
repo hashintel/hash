@@ -1,7 +1,7 @@
-import type { PetrinautAiToolPresentationResolver } from "../../../../../../petrinaut";
-import type { PetrinautAiInteractiveTool } from "../../../../../../types/ai-interactive-tool";
+import type { PetrinautAiMessage } from "../../../ai-message";
+import type { PetrinautAiInteractiveTool } from "../../../interactive-tool";
+import type { PetrinautAiToolPresentationResolver } from "../../../tool-presentation";
 import type { AiToolTarget } from "../../tool-summaries";
-import type { PetrinautAiMessage } from "../../types";
 import type { AiExperimentState } from "../experiment-card";
 import type { OnInteractiveToolSubmit } from "../tool-list";
 import type { RefObject } from "react";

@@ -5,31 +5,37 @@ import {
   act,
   cleanup,
   fireEvent,
-  render,
+  render as renderElement,
   screen,
   within,
   waitFor,
 } from "@testing-library/react";
-import { createElement, type ReactNode, useEffect, useState } from "react";
+import {
+  createElement,
+  type ReactElement,
+  type ReactNode,
+  useEffect,
+  useState,
+} from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
-
 import {
-  NotificationsContext,
-  type NotificationsContextValue,
-} from "../../../../../react/notifications/context";
-import { NotificationsProvider } from "../../../../../react/notifications/provider";
-import { VoiceSessionContext } from "../../../../../react/voice-session/context";
-import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
-import { definePetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
+  createJsonDocHandle,
+  createPetrinaut,
+  DEFAULT_PETRINAUT_EXTENSIONS,
+} from "@hashintel/petrinaut-core";
 import {
-  AssistantWindowContext,
-  type AssistantWindowTab,
-} from "../../assistant-window";
-import { AiAssistantContents } from "./ai-assistant-contents";
+  PetrinautAssistantWindowPreview,
+  type PluginAssistantTab,
+} from "@hashintel/petrinaut/ui";
 
-import type { PetrinautAiMessage } from "./types";
+import { createTestPluginApi } from "../../testing/create-test-plugin-api";
+import { definePetrinautAiInteractiveTool } from "../interactive-tool";
+import { AssistantChatApiContext } from "./chat-api";
+import { ChatView } from "./chat-view";
+import { createVoiceSessionStore, VoiceSessionContext } from "./voice-session";
+
+import type { PetrinautAiMessage } from "../ai-message";
 
 const renderMarkdown = vi.hoisted(() => vi.fn());
 let voiceModeMounts = 0;
@@ -48,6 +54,28 @@ vi.mock("react-markdown", async (importOriginal) => {
 });
 
 const noop = () => {};
+
+/** The toasts the chat asks for, through its `api`. */
+const notify = vi.fn((_input: unknown) => "notification-id");
+const chatApi = createTestPluginApi(
+  createPetrinaut({
+    document: createJsonDocHandle({
+      initial: {
+        places: [],
+        transitions: [],
+        types: [],
+        parameters: [],
+        differentialEquations: [],
+      },
+    }),
+  }),
+  { notify },
+);
+const WithChatApi = ({ children }: { children: ReactNode }) => (
+  <AssistantChatApiContext value={chatApi}>{children}</AssistantChatApiContext>
+);
+const render = (ui: ReactElement) =>
+  renderElement(ui, { wrapper: WithChatApi });
 const expandWork = async () => {
   for (const fold of screen.queryAllByRole("button", {
     name: /^Activity/u,
@@ -115,62 +143,40 @@ const HostControl = ({
   return <span>Host control</span>;
 };
 /**
- * Hosts the window as the editor does: open state, placement and the shown
- * tab, plus a control that reopens it. `open` overrides the open state.
+ * Hosts the chat's window as the editor does, with a control that reopens it
+ * after its Close button closed it. `open` overrides the open state.
  */
 const TestWindow = ({
-  tabs = [],
-  initialTabId = "chat",
+  tabs,
   open,
   children,
 }: {
-  tabs?: readonly AssistantWindowTab[];
-  initialTabId?: string;
+  tabs?: readonly PluginAssistantTab[];
   open?: boolean;
   children: ReactNode;
 }) => {
   const [isOpen, setOpen] = useState(true);
-  const [placement, setPlacement] = useState<"docked" | "floating">("docked");
-  const [activeTabId, setActiveTabId] = useState(initialTabId);
 
   return (
-    <AssistantWindowContext
-      value={{
-        isOpen: open ?? isOpen,
-        close: () => setOpen(false),
-        placement,
-        setPlacement,
-        width: 420,
-        setWidth: noop,
-        isAnimating: false,
-        reportDockHeight: noop,
-        compact: false,
-        setCompact: noop,
-        tabs,
-        activeTabId: tabs.some((tab) => tab.id === activeTabId)
-          ? activeTabId
-          : "chat",
-        setActiveTabId,
-        focusRequest: 0,
-        startRequest: null,
-        consumeStartRequest: noop,
-      }}
+    <PetrinautAssistantWindowPreview
+      tabs={tabs}
+      state={{ isOpen: open ?? isOpen, close: () => setOpen(false) }}
     >
       <button type="button" onClick={() => setOpen(true)}>
         Reopen assistant
       </button>
       {children}
-    </AssistantWindowContext>
+    </PetrinautAssistantWindowPreview>
   );
 };
 
-const hostTab = (label: string, content: ReactNode): AssistantWindowTab => ({
+const hostTab = (label: string, content: ReactNode): PluginAssistantTab => ({
   id: "host",
   label,
   content,
 });
 
-describe("AiAssistantContents", () => {
+describe("ChatView", () => {
   test("orders optional voice slots around work and produced cards", async () => {
     const card = definePetrinautAiInteractiveTool({
       toolName: "draft",
@@ -182,7 +188,7 @@ describe("AiAssistantContents", () => {
       ),
     });
     const { container, rerender } = render(
-      <AiAssistantContents
+      <ChatView
         input=""
         inputMode="voice"
         interactiveTools={[card]}
@@ -245,7 +251,7 @@ describe("AiAssistantContents", () => {
     fireEvent.click(screen.getByText("Request sent"));
     expect(screen.getByText("Arrival rate")).not.toBeNull();
     rerender(
-      <AiAssistantContents
+      <ChatView
         input=""
         inputMode="voice"
         onClose={noop}
@@ -271,7 +277,7 @@ describe("AiAssistantContents", () => {
 
   test("stopped work counts tools and exposes status dots, arguments and results", async () => {
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         onClose={noop}
         onInputChange={noop}
@@ -341,7 +347,7 @@ describe("AiAssistantContents", () => {
   test("shows every counted tool without scrolling inside Activity", async () => {
     const toolNames = ["one", "two", "three", "four", "five"];
     const { container } = render(
-      <AiAssistantContents
+      <ChatView
         input=""
         onClose={noop}
         onInputChange={noop}
@@ -384,7 +390,7 @@ describe("AiAssistantContents", () => {
 
   test("marks unfinished stock tools cancelled after a stop", () => {
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         onClose={noop}
         onInputChange={noop}
@@ -419,7 +425,7 @@ describe("AiAssistantContents", () => {
 
   test("keeps the stopped note out of a user turn stopped before any reply", () => {
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         onClose={noop}
         onInputChange={noop}
@@ -450,7 +456,7 @@ describe("AiAssistantContents", () => {
     "sets the compact Stop marker for the %s presentation to %s",
     (presentation, dataStop) => {
       render(
-        <AiAssistantContents
+        <ChatView
           input=""
           messages={[]}
           onClose={noop}
@@ -488,7 +494,7 @@ describe("AiAssistantContents", () => {
         parts: PetrinautAiMessage["parts"],
         status: "streaming" | "ready" = "streaming",
       ) => (
-        <AiAssistantContents
+        <ChatView
           primaryLabel="Chat"
           presentation="brunch"
           input=""
@@ -580,9 +586,7 @@ describe("AiAssistantContents", () => {
         { type: "reasoning", text: "Inspect queues.", state: "streaming" },
       ],
     };
-    const { rerender } = render(
-      <AiAssistantContents {...props} messages={[message]} />,
-    );
+    const { rerender } = render(<ChatView {...props} messages={[message]} />);
     const activity = screen.getByRole("button", { name: "Working…" });
     fireEvent.click(activity);
     await waitFor(() =>
@@ -590,7 +594,7 @@ describe("AiAssistantContents", () => {
     );
     await act(async () => {
       rerender(
-        <AiAssistantContents
+        <ChatView
           {...props}
           messages={[
             {
@@ -634,7 +638,7 @@ describe("AiAssistantContents", () => {
       input: {},
     };
     const { rerender } = render(
-      <AiAssistantContents
+      <ChatView
         {...props}
         messages={[
           {
@@ -651,7 +655,7 @@ describe("AiAssistantContents", () => {
         .getAttribute("aria-expanded"),
     ).toBe("true");
     rerender(
-      <AiAssistantContents
+      <ChatView
         {...props}
         messages={[
           {
@@ -669,7 +673,7 @@ describe("AiAssistantContents", () => {
       screen.getByText("The model has").closest("[data-work-status]"),
     ).toBeNull();
     rerender(
-      <AiAssistantContents
+      <ChatView
         {...props}
         messages={[
           {
@@ -694,7 +698,7 @@ describe("AiAssistantContents", () => {
 
   test("keeps the prepared brief below, not inside, the user bubble", () => {
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         inputMode="voice"
         presentation="brunch"
@@ -733,7 +737,7 @@ describe("AiAssistantContents", () => {
     });
     const onRetryPrompt = vi.fn();
     render(
-      <AiAssistantContents
+      <ChatView
         input="Unsent draft"
         onClose={noop}
         onInputChange={noop}
@@ -786,7 +790,7 @@ describe("AiAssistantContents", () => {
 
   test("withholds Retry while another answer is streaming", () => {
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         onClose={noop}
         onInputChange={noop}
@@ -832,7 +836,7 @@ describe("AiAssistantContents", () => {
       <TestWindow
         tabs={[hostTab("Workpiece", <HostContent onMount={contentMounted} />)]}
       >
-        <AiAssistantContents
+        <ChatView
           input="Unsent question"
           status="streaming"
           messages={[
@@ -873,7 +877,7 @@ describe("AiAssistantContents", () => {
     "preserves %s applied/error presentation",
     async (state) => {
       render(
-        <AiAssistantContents
+        <ChatView
           input=""
           status="ready"
           onClose={noop}
@@ -935,7 +939,7 @@ describe("AiAssistantContents", () => {
     const { rerender } = render(
       <>
         <input aria-label="Other input" />
-        <AiAssistantContents {...props} composerFocusRequest={0} />
+        <ChatView {...props} composerFocusRequest={0} />
       </>,
     );
     const input = screen.getByRole("textbox", { name: "Message AI assistant" });
@@ -944,7 +948,7 @@ describe("AiAssistantContents", () => {
     rerender(
       <>
         <input aria-label="Other input" />
-        <AiAssistantContents {...props} composerFocusRequest={1} />
+        <ChatView {...props} composerFocusRequest={1} />
       </>,
     );
     expect(document.activeElement).toBe(input);
@@ -952,7 +956,7 @@ describe("AiAssistantContents", () => {
     rerender(
       <>
         <input aria-label="Other input" />
-        <AiAssistantContents
+        <ChatView
           {...props}
           composerFocusRequest={2}
           inputMode="voice"
@@ -974,7 +978,7 @@ describe("AiAssistantContents", () => {
       const [input, setInput] = useState("");
 
       return (
-        <AiAssistantContents
+        <ChatView
           composerControl={<HostControl onMount={mount} onUnmount={unmount} />}
           input={input}
           messages={[
@@ -998,11 +1002,9 @@ describe("AiAssistantContents", () => {
       );
     };
     render(
-      <NotificationsProvider>
-        <TestWindow tabs={[hostTab("Workpiece", <p>Saved model account</p>)]}>
-          <Chat />
-        </TestWindow>
-      </NotificationsProvider>,
+      <TestWindow tabs={[hostTab("Workpiece", <p>Saved model account</p>)]}>
+        <Chat />
+      </TestWindow>,
     );
     const panel = screen.getByRole("complementary", { name: "AI assistant" });
     const textarea = screen.getByRole("textbox", {
@@ -1048,31 +1050,29 @@ describe("AiAssistantContents", () => {
 
   test("labels stopped history after a later completed reply without global Stop state", () => {
     render(
-      <NotificationsProvider>
-        <AiAssistantContents
-          input=""
-          status="ready"
-          stopped={false}
-          presentation="brunch"
-          onClose={noop}
-          onInputChange={noop}
-          onStop={noop}
-          onSubmit={noop}
-          messages={[
-            {
-              id: "aborted",
-              role: "assistant",
-              metadata: { stopped: true },
-              parts: [{ type: "text", text: "Partial reply" }],
-            },
-            {
-              id: "completed-later",
-              role: "assistant",
-              parts: [{ type: "text", text: "Later completed reply" }],
-            },
-          ]}
-        />
-      </NotificationsProvider>,
+      <ChatView
+        input=""
+        status="ready"
+        stopped={false}
+        presentation="brunch"
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        messages={[
+          {
+            id: "aborted",
+            role: "assistant",
+            metadata: { stopped: true },
+            parts: [{ type: "text", text: "Partial reply" }],
+          },
+          {
+            id: "completed-later",
+            role: "assistant",
+            parts: [{ type: "text", text: "Later completed reply" }],
+          },
+        ]}
+      />,
     );
     expect(screen.getByText("Partial reply")).not.toBeNull();
     expect(screen.getByText("Later completed reply")).not.toBeNull();
@@ -1082,26 +1082,21 @@ describe("AiAssistantContents", () => {
   test("keeps non-Voice assistant errors in global notifications", () => {
     const message =
       'Elicitor failed.\nCaused by: {"field":"answer","reason":"Required"}';
-    const addNotification = vi.fn(() => "notification-id");
     render(
-      <NotificationsContext
-        value={{ addNotification, dismissNotification: vi.fn() }}
-      >
-        <AiAssistantContents
-          error={new Error(message)}
-          input=""
-          messages={[]}
-          onClose={noop}
-          onInputChange={noop}
-          onStop={noop}
-          onSubmit={noop}
-          status="error"
-        />
-      </NotificationsContext>,
+      <ChatView
+        error={new Error(message)}
+        input=""
+        messages={[]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="error"
+      />,
     );
 
-    expect(addNotification).toHaveBeenCalledOnce();
-    expect(addNotification).toHaveBeenCalledWith({
+    expect(notify).toHaveBeenCalledOnce();
+    expect(notify).toHaveBeenCalledWith({
       detail: message,
       message: "AI assistant error",
       tone: "error",
@@ -1139,7 +1134,7 @@ describe("AiAssistantContents", () => {
     const tabs = [hostTab("Notes", <p>Saved notes</p>)];
     const { rerender } = render(
       <TestWindow tabs={tabs} open>
-        <AiAssistantContents {...props} />
+        <ChatView {...props} />
       </TestWindow>,
     );
 
@@ -1158,7 +1153,7 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText("Voice mode")).not.toBeNull();
     rerender(
       <TestWindow tabs={tabs} open={false}>
-        <AiAssistantContents {...props} />
+        <ChatView {...props} />
       </TestWindow>,
     );
 
@@ -1225,7 +1220,7 @@ describe("AiAssistantContents", () => {
 
       return (
         <VoiceSessionContext.Provider value={store}>
-          <AiAssistantContents
+          <ChatView
             input=""
             inputMode={inputMode}
             messages={messages}
@@ -1332,7 +1327,7 @@ describe("AiAssistantContents", () => {
   test("stacks Voice setup above its compact dock while keeping the full panel mounted", () => {
     const onVoiceDockCollapsedChange = vi.fn();
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         inputMode="voice"
         messages={[]}
@@ -1407,7 +1402,7 @@ describe("AiAssistantContents", () => {
     store.setState(state);
     render(
       <VoiceSessionContext.Provider value={store}>
-        <AiAssistantContents
+        <ChatView
           input=""
           messages={[]}
           onClose={noop}
@@ -1470,7 +1465,7 @@ describe("AiAssistantContents", () => {
     });
     render(
       <VoiceSessionContext.Provider value={store}>
-        <AiAssistantContents
+        <ChatView
           input=""
           messages={[]}
           onClose={noop}
@@ -1642,7 +1637,7 @@ describe("AiAssistantContents", () => {
     };
     const rendered = render(
       <VoiceSessionContext.Provider value={store}>
-        <AiAssistantContents {...props} status="ready" />
+        <ChatView {...props} status="ready" />
       </VoiceSessionContext.Provider>,
     );
 
@@ -1652,7 +1647,7 @@ describe("AiAssistantContents", () => {
 
     rendered.rerender(
       <VoiceSessionContext.Provider value={store}>
-        <AiAssistantContents {...props} status="submitted" />
+        <ChatView {...props} status="submitted" />
       </VoiceSessionContext.Provider>,
     );
     fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
@@ -1661,7 +1656,7 @@ describe("AiAssistantContents", () => {
 
     rendered.rerender(
       <VoiceSessionContext.Provider value={store}>
-        <AiAssistantContents {...props} status="streaming" />
+        <ChatView {...props} status="streaming" />
       </VoiceSessionContext.Provider>,
     );
     fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
@@ -1674,7 +1669,7 @@ describe("AiAssistantContents", () => {
 
     rendered.rerender(
       <VoiceSessionContext.Provider value={store}>
-        <AiAssistantContents {...props} status="error" />
+        <ChatView {...props} status="error" />
       </VoiceSessionContext.Provider>,
     );
     expect(
@@ -1701,7 +1696,7 @@ describe("AiAssistantContents", () => {
     render(
       <>
         <VoiceSessionContext.Provider value={store}>
-          <AiAssistantContents
+          <ChatView
             input=""
             messages={[]}
             onClose={noop}
@@ -1789,21 +1784,19 @@ describe("AiAssistantContents", () => {
       const end = vi.fn();
       store.setActions({ end, pause: noop, setSpeakerVolume: vi.fn() });
       render(
-        <NotificationsProvider>
-          <VoiceSessionContext.Provider value={store}>
-            <AiAssistantContents
-              input=""
-              inputMode="voice"
-              messages={[]}
-              onClose={noop}
-              onInputChange={noop}
-              onStop={noop}
-              onSubmit={noop}
-              status="ready"
-              voiceDockCollapsed
-            />
-          </VoiceSessionContext.Provider>
-        </NotificationsProvider>,
+        <VoiceSessionContext.Provider value={store}>
+          <ChatView
+            input=""
+            inputMode="voice"
+            messages={[]}
+            onClose={noop}
+            onInputChange={noop}
+            onStop={noop}
+            onSubmit={noop}
+            status="ready"
+            voiceDockCollapsed
+          />
+        </VoiceSessionContext.Provider>,
       );
       const dock = screen.getByTestId("ai-voice-dock");
       expect(
@@ -1862,20 +1855,18 @@ describe("AiAssistantContents", () => {
       phase: "error",
     });
     render(
-      <NotificationsProvider>
-        <VoiceSessionContext.Provider value={store}>
-          <AiAssistantContents
-            input=""
-            messages={[]}
-            onClose={noop}
-            onInputChange={noop}
-            onStop={noop}
-            onSubmit={noop}
-            status="ready"
-            voiceDockCollapsed
-          />
-        </VoiceSessionContext.Provider>
-      </NotificationsProvider>,
+      <VoiceSessionContext.Provider value={store}>
+        <ChatView
+          input=""
+          messages={[]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status="ready"
+          voiceDockCollapsed
+        />
+      </VoiceSessionContext.Provider>,
     );
 
     const dock = screen.getByTestId("ai-voice-dock");
@@ -1897,34 +1888,27 @@ describe("AiAssistantContents", () => {
       phase: "error" as const,
     };
     store.setState(errorState);
-    const dismissNotification = vi.fn();
-    const firstAddNotification = vi.fn(() => "first-notification");
-    const secondAddNotification = vi.fn(() => "second-notification");
-    const renderWithNotifier = (
-      addNotification: NotificationsContextValue["addNotification"],
-    ) => (
-      <NotificationsContext value={{ addNotification, dismissNotification }}>
-        <VoiceSessionContext.Provider value={store}>
-          <AiAssistantContents
-            input=""
-            messages={[]}
-            onClose={noop}
-            onInputChange={noop}
-            onStop={noop}
-            onSubmit={noop}
-            status="ready"
-          />
-        </VoiceSessionContext.Provider>
-      </NotificationsContext>
+    const voiceChat = (
+      <VoiceSessionContext.Provider value={store}>
+        <ChatView
+          input=""
+          messages={[]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status="ready"
+        />
+      </VoiceSessionContext.Provider>
     );
-    const { rerender } = render(renderWithNotifier(firstAddNotification));
+    const { rerender } = render(voiceChat);
 
-    expect(firstAddNotification).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
     expect(
       screen.getByRole("button", { name: "Show 1 Voice issue" }),
     ).toBeTruthy();
-    rerender(renderWithNotifier(secondAddNotification));
-    expect(secondAddNotification).not.toHaveBeenCalled();
+    rerender(voiceChat);
+    expect(notify).not.toHaveBeenCalled();
 
     act(() => {
       store.setState({
@@ -1937,7 +1921,7 @@ describe("AiAssistantContents", () => {
     act(() => {
       store.setState(errorState);
     });
-    expect(secondAddNotification).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
     expect(
       screen.getByRole("button", { name: "Show 1 Voice issue" }),
     ).toBeTruthy();
@@ -1954,7 +1938,7 @@ describe("AiAssistantContents", () => {
     };
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={[
           {
@@ -1984,7 +1968,7 @@ describe("AiAssistantContents", () => {
   test("hides a closed chat-only panel from the accessibility tree", () => {
     const { container } = render(
       <TestWindow open={false}>
-        <AiAssistantContents
+        <ChatView
           input=""
           messages={[]}
           onClose={noop}
@@ -2005,7 +1989,7 @@ describe("AiAssistantContents", () => {
 
   test("keeps keyboard drafting available and protects clear-chat during active Voice mode", () => {
     render(
-      <AiAssistantContents
+      <ChatView
         clearMessagesDisabled={true}
         input="Draft answer"
         inputMode="voice"
@@ -2044,7 +2028,7 @@ describe("AiAssistantContents", () => {
   test("keeps one AI header, transcript, and composer visible in Voice mode", () => {
     const onInputModeChange = vi.fn();
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         inputMode="voice"
         messages={[
@@ -2084,7 +2068,7 @@ describe("AiAssistantContents", () => {
 
   test("marks only spoken user messages when switching from Voice to Chat", () => {
     const contents = (inputMode: "voice" | "text") => (
-      <AiAssistantContents
+      <ChatView
         input=""
         inputMode={inputMode}
         presentation="brunch"
@@ -2154,12 +2138,12 @@ describe("AiAssistantContents", () => {
       },
     ];
     const view = render(
-      <AiAssistantContents {...props} messages={message("I’ll  check")} />,
+      <ChatView {...props} messages={message("I’ll  check")} />,
     );
     const first = view.container.querySelector("[data-streamed-word]");
     expect(first).not.toBeNull();
     view.rerender(
-      <AiAssistantContents
+      <ChatView
         {...props}
         messages={message("I’ll  check that.\nThen compare.")}
       />,
@@ -2221,7 +2205,7 @@ describe("AiAssistantContents", () => {
     ] as unknown as PetrinautAiMessage[];
 
     const { container } = render(
-      <AiAssistantContents
+      <ChatView
         input=""
         interactiveTools={[hostTool]}
         messages={messages}
@@ -2254,18 +2238,18 @@ describe("AiAssistantContents", () => {
       status: "ready" as const,
     };
 
-    const { rerender } = render(<AiAssistantContents {...props} input="" />);
+    const { rerender } = render(<ChatView {...props} input="" />);
 
     expect(renderMarkdown).toHaveBeenCalledOnce();
 
-    rerender(<AiAssistantContents {...props} input="Next message" />);
+    rerender(<ChatView {...props} input="Next message" />);
 
     expect(renderMarkdown).toHaveBeenCalledOnce();
   });
 
   test("renders a host composer control between the textarea and send button", () => {
     render(
-      <AiAssistantContents
+      <ChatView
         composerControl={
           <button type="button" aria-label="Alternate input">
             Alternate
@@ -2294,7 +2278,7 @@ describe("AiAssistantContents", () => {
   test("keeps one trailing Brunch composer action", () => {
     const onInputModeChange = vi.fn();
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={[]}
         onClose={noop}
@@ -2346,16 +2330,13 @@ describe("AiAssistantContents", () => {
       voiceModeAvailable: true,
     };
     const view = render(
-      <AiAssistantContents
-        {...props}
-        experimentStates={{ run: { active: true } }}
-      />,
+      <ChatView {...props} experimentStates={{ run: { active: true } }} />,
     );
     expect(screen.getByText("Experiment running")).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Review" })).toBeNull();
 
     view.rerender(
-      <AiAssistantContents
+      <ChatView
         {...props}
         experimentStates={undefined}
         messages={
@@ -2379,7 +2360,7 @@ describe("AiAssistantContents", () => {
     );
     expect(screen.getByText("Waiting for your decision")).not.toBeNull();
     view.rerender(
-      <AiAssistantContents
+      <ChatView
         {...props}
         interactiveTools={[
           definePetrinautAiInteractiveTool({
@@ -2426,7 +2407,7 @@ describe("AiAssistantContents", () => {
         status: "ready" as const,
         voiceModeAvailable: true,
       };
-      const rendered = render(<AiAssistantContents {...props} input="" />);
+      const rendered = render(<ChatView {...props} input="" />);
 
       const voiceButton = screen.getByRole("button", {
         name: "Start voice mode",
@@ -2441,14 +2422,12 @@ describe("AiAssistantContents", () => {
       expect(onInputModeChange).toHaveBeenCalledWith("voice");
       expect(onSubmit).not.toHaveBeenCalled();
 
-      rendered.rerender(<AiAssistantContents {...props} input="   " />);
+      rendered.rerender(<ChatView {...props} input="   " />);
       expect(
         screen.getByRole("button", { name: "Start voice mode" }),
       ).not.toBeNull();
 
-      rendered.rerender(
-        <AiAssistantContents {...props} input="  Create a queue  " />,
-      );
+      rendered.rerender(<ChatView {...props} input="  Create a queue  " />);
       expect(
         screen.queryByRole("button", { name: "Start voice mode" }),
       ).toBeNull();
@@ -2474,7 +2453,7 @@ describe("AiAssistantContents", () => {
         status: "streaming" as const,
         voiceModeAvailable: true,
       };
-      const rendered = render(<AiAssistantContents {...props} />);
+      const rendered = render(<ChatView {...props} />);
 
       expect(
         screen.queryByRole("button", { name: "Start voice mode" }),
@@ -2484,7 +2463,7 @@ describe("AiAssistantContents", () => {
       expect(onStop).toHaveBeenCalledOnce();
 
       rendered.rerender(
-        <AiAssistantContents
+        <ChatView
           {...props}
           input=""
           status="ready"
@@ -2503,7 +2482,7 @@ describe("AiAssistantContents", () => {
   test("does not submit the draft when a host composer button omits its type", () => {
     const onSubmit = vi.fn();
     render(
-      <AiAssistantContents
+      <ChatView
         composerControl={createElement(
           "button",
           // oxlint-disable-next-line react/button-has-type -- The missing type is the regression under test.
@@ -2591,7 +2570,7 @@ describe("AiAssistantContents", () => {
     ] as unknown as PetrinautAiMessage[];
 
     const { rerender } = render(
-      <AiAssistantContents
+      <ChatView
         input=""
         interactiveTools={[hostTool]}
         messages={awaitingMessages}
@@ -2634,7 +2613,7 @@ describe("AiAssistantContents", () => {
     ] as unknown as PetrinautAiMessage[];
 
     rerender(
-      <AiAssistantContents
+      <ChatView
         input=""
         interactiveTools={[hostTool]}
         messages={submittedMessages}
@@ -2692,7 +2671,7 @@ describe("AiAssistantContents", () => {
       ] as unknown as PetrinautAiMessage[];
 
     const { rerender } = render(
-      <AiAssistantContents
+      <ChatView
         input=""
         interactiveTools={[hostTool]}
         messages={createMessages("input-streaming", {})}
@@ -2709,7 +2688,7 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByText("Ship this change?")).toBeNull();
 
     rerender(
-      <AiAssistantContents
+      <ChatView
         input=""
         interactiveTools={[hostTool]}
         messages={createMessages("input-available", {
@@ -2760,7 +2739,7 @@ describe("AiAssistantContents", () => {
     ] as unknown as PetrinautAiMessage[];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         interactiveTools={[hostTool]}
         messages={messages}
@@ -2785,7 +2764,7 @@ describe("AiAssistantContents", () => {
 
   test("renders the empty assistant state", () => {
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={[]}
         onClose={noop}
@@ -2816,14 +2795,12 @@ describe("AiAssistantContents", () => {
       primaryLabel: "Chat",
       presentation: "brunch" as const,
     };
-    const { rerender } = render(
-      <AiAssistantContents {...props} status="ready" />,
-    );
+    const { rerender } = render(<ChatView {...props} status="ready" />);
     const transcript = screen.getByTestId("ai-transcript");
     expect(screen.queryByTestId("brunch-response-status")).toBeNull();
     expect(within(transcript).queryByRole("status")).toBeNull();
 
-    rerender(<AiAssistantContents {...props} status="submitted" />);
+    rerender(<ChatView {...props} status="submitted" />);
     const waiting = within(transcript).getByRole("status");
     expect(waiting.textContent).toBe("Working…");
     expect(waiting.closest('[data-work-status="pending"]')).not.toBeNull();
@@ -2832,7 +2809,7 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByTestId("brunch-response-status")).toBeNull();
 
     rerender(
-      <AiAssistantContents
+      <ChatView
         {...props}
         status="streaming"
         messages={[
@@ -2849,11 +2826,11 @@ describe("AiAssistantContents", () => {
     expect(working.querySelector('[data-work-status="pending"]')).toBeNull();
     expect(document.querySelector('[data-work-status="pending"]')).toBeNull();
 
-    rerender(<AiAssistantContents {...props} status="ready" />);
+    rerender(<ChatView {...props} status="ready" />);
     expect(within(transcript).queryByRole("status")).toBeNull();
 
     rerender(
-      <AiAssistantContents
+      <ChatView
         {...props}
         primaryLabel="AI assistant"
         presentation="stock"
@@ -2900,7 +2877,7 @@ describe("AiAssistantContents", () => {
           .getByText("I hear you.")
           .closest<HTMLElement>('[data-role="assistant"]')!;
       const { rerender } = render(
-        <AiAssistantContents
+        <ChatView
           {...props}
           messages={[request, spokenReply]}
           status="submitted"
@@ -2915,7 +2892,7 @@ describe("AiAssistantContents", () => {
       expect(replyTurn().nextElementSibling?.contains(waiting)).toBe(true);
 
       rerender(
-        <AiAssistantContents
+        <ChatView
           {...props}
           messages={[
             request,
@@ -2939,7 +2916,7 @@ describe("AiAssistantContents", () => {
       expect(document.querySelector('[data-work-status="pending"]')).toBeNull();
 
       rerender(
-        <AiAssistantContents
+        <ChatView
           {...props}
           messages={[request, spokenReply]}
           status="ready"
@@ -2965,20 +2942,18 @@ describe("AiAssistantContents", () => {
       presentation: "brunch" as const,
       promptChips: [{ id: "review", label: "Review", prompt: "Review" }],
     };
-    const { rerender } = render(
-      <AiAssistantContents {...props} status="ready" />,
-    );
+    const { rerender } = render(<ChatView {...props} status="ready" />);
     const dismiss = screen.getByRole("button", {
       name: "Dismiss quick actions",
     });
-    rerender(<AiAssistantContents {...props} status="submitted" />);
+    rerender(<ChatView {...props} status="submitted" />);
     expect(dismiss.isConnected).toBe(true);
     expect(dismiss.closest("[inert]")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /Review/u })).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Dismiss quick actions" }),
     ).toBeNull();
-    rerender(<AiAssistantContents {...props} status="ready" />);
+    rerender(<ChatView {...props} status="ready" />);
     expect(screen.getByRole("button", { name: /Review/u })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Dismiss quick actions" })).toBe(
       dismiss,
@@ -2995,30 +2970,25 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       workingLabel: "Brunch is working",
     };
-    const { rerender } = render(
-      <AiAssistantContents {...props} status="submitted" />,
-    );
+    const { rerender } = render(<ChatView {...props} status="submitted" />);
 
     expect(screen.getByRole("status").textContent).toContain(
       "Brunch is working",
     );
 
-    rerender(<AiAssistantContents {...props} status="streaming" />);
+    rerender(<ChatView {...props} status="streaming" />);
     expect(screen.getByRole("status").textContent).toContain(
       "Brunch is working",
     );
 
-    rerender(<AiAssistantContents {...props} status="ready" />);
+    rerender(<ChatView {...props} status="ready" />);
     expect(screen.queryByText("Brunch is working")).toBeNull();
   });
 
   test("keeps the Brunch working status visible while the host tab is selected", () => {
     render(
-      <TestWindow
-        tabs={[hostTab("Ledger", <p>Saved account</p>)]}
-        initialTabId="host"
-      >
-        <AiAssistantContents
+      <TestWindow tabs={[hostTab("Ledger", <p>Saved account</p>)]}>
+        <ChatView
           input=""
           messages={[
             {
@@ -3036,6 +3006,7 @@ describe("AiAssistantContents", () => {
         />
       </TestWindow>,
     );
+    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
 
     const status = screen.getByTestId("brunch-response-status");
     expect(status.textContent).toBe("Working…");
@@ -3049,11 +3020,8 @@ describe("AiAssistantContents", () => {
 
   test("keeps the working label visible while the host tab is selected", () => {
     render(
-      <TestWindow
-        tabs={[hostTab("Ledger", <p>Saved account</p>)]}
-        initialTabId="host"
-      >
-        <AiAssistantContents
+      <TestWindow tabs={[hostTab("Ledger", <p>Saved account</p>)]}>
+        <ChatView
           input=""
           messages={[]}
           onClose={noop}
@@ -3066,6 +3034,7 @@ describe("AiAssistantContents", () => {
       </TestWindow>,
     );
 
+    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
     expect(screen.getByRole("tabpanel", { name: "Ledger" })).not.toBeNull();
     const status = screen.getByTestId("ai-working-status");
     expect(status.textContent).toContain("Brunch is working");
@@ -3083,21 +3052,15 @@ describe("AiAssistantContents", () => {
       status: "streaming" as const,
       workingLabel: "Working",
     };
-    const { rerender } = render(<AiAssistantContents {...props} />);
+    const { rerender } = render(<ChatView {...props} />);
     expect(screen.getByTestId("ai-working-status").className).not.toContain(
       "d_none",
     );
 
-    rerender(<AiAssistantContents {...props} primaryLabel="Chat" />);
+    rerender(<ChatView {...props} primaryLabel="Chat" />);
     expect(screen.getByTestId("ai-working-status")).not.toBeNull();
 
-    rerender(
-      <AiAssistantContents
-        {...props}
-        primaryLabel="Chat"
-        presentation="brunch"
-      />,
-    );
+    rerender(<ChatView {...props} primaryLabel="Chat" presentation="brunch" />);
     expect(screen.queryByTestId("ai-working-status")).toBeNull();
   });
 
@@ -3119,7 +3082,7 @@ describe("AiAssistantContents", () => {
       promptChips: [{ id: "review", label: "Review", prompt: "Review" }],
       status: "ready" as const,
     };
-    const { container, rerender } = render(<AiAssistantContents {...props} />);
+    const { container, rerender } = render(<ChatView {...props} />);
 
     expect(container.querySelector('[data-answer="brunch"]')).toBeNull();
     expect(
@@ -3129,7 +3092,7 @@ describe("AiAssistantContents", () => {
       "ov-x_auto",
     );
 
-    rerender(<AiAssistantContents {...props} presentation="brunch" />);
+    rerender(<ChatView {...props} presentation="brunch" />);
 
     expect(container.querySelector('[data-answer="brunch"]')).not.toBeNull();
     expect(
@@ -3150,7 +3113,7 @@ describe("AiAssistantContents", () => {
     const tabs = [hostTab("Ledger", <p>Ledger body</p>)];
     const { rerender } = render(
       <TestWindow tabs={tabs}>
-        <AiAssistantContents {...props} />
+        <ChatView {...props} />
       </TestWindow>,
     );
     const tablist = () => screen.getByRole("tablist");
@@ -3162,7 +3125,7 @@ describe("AiAssistantContents", () => {
 
     rerender(
       <TestWindow tabs={tabs}>
-        <AiAssistantContents {...props} presentation="brunch" />
+        <ChatView {...props} presentation="brunch" />
       </TestWindow>,
     );
     expect(tablist().getAttribute("data-style-variant")).toBe("pill");
@@ -3191,7 +3154,7 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       status: "ready" as const,
     };
-    const { container, rerender } = render(<AiAssistantContents {...props} />);
+    const { container, rerender } = render(<ChatView {...props} />);
     const userMessage = () => container.querySelector('[data-role="user"]');
     const userBubble = () => container.querySelector("[data-user-bubble]");
     const assistantMessage = () =>
@@ -3201,7 +3164,7 @@ describe("AiAssistantContents", () => {
     expect(userBubble()).toBeNull();
     expect(assistantMessage()?.className).not.toContain("p_[6px_0]");
 
-    rerender(<AiAssistantContents {...props} presentation="brunch" />);
+    rerender(<ChatView {...props} presentation="brunch" />);
     expect(userMessage()?.className).not.toContain("bg-c_neutral.bg.subtle");
     expect(userBubble()?.className).toContain("bg-c_neutral.a20");
     expect(assistantMessage()?.className).toContain("p_[6px_0]");
@@ -3217,12 +3180,12 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       status: "ready" as const,
     };
-    const { rerender } = render(<AiAssistantContents {...props} />);
+    const { rerender } = render(<ChatView {...props} />);
     expect(screen.getByText("AI")).not.toBeNull();
 
     rerender(
       <TestWindow tabs={[hostTab("Ledger", <p>Ledger body</p>)]}>
-        <AiAssistantContents {...props} inputMode="voice" />
+        <ChatView {...props} inputMode="voice" />
       </TestWindow>,
     );
     expect(screen.getByRole("tab", { name: "AI" })).not.toBeNull();
@@ -3242,18 +3205,14 @@ describe("AiAssistantContents", () => {
     const tabs = [hostTab("Ledger", <p>Ledger body</p>)];
     const { rerender } = render(
       <TestWindow tabs={tabs}>
-        <AiAssistantContents {...props} primaryLabel="Copilot" />
+        <ChatView {...props} primaryLabel="Copilot" />
       </TestWindow>,
     );
     expect(screen.getByRole("tab", { name: "Copilot" })).not.toBeNull();
 
     rerender(
       <TestWindow tabs={tabs}>
-        <AiAssistantContents
-          {...props}
-          primaryLabel="Chat"
-          presentation="brunch"
-        />
+        <ChatView {...props} primaryLabel="Chat" presentation="brunch" />
       </TestWindow>,
     );
     expect(screen.getByRole("tab", { name: "Voice" })).not.toBeNull();
@@ -3261,7 +3220,7 @@ describe("AiAssistantContents", () => {
 
   test("announces spoken-turn thinking without naming the assistant", () => {
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         inputMode="voice"
         messages={[
@@ -3317,7 +3276,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -3358,7 +3317,7 @@ describe("AiAssistantContents", () => {
     const onClearMessages = vi.fn();
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={[
           {
@@ -3400,7 +3359,7 @@ describe("AiAssistantContents", () => {
     window.cancelAnimationFrame = () => {};
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={[
           {
@@ -3458,15 +3417,12 @@ describe("AiAssistantContents", () => {
       status: "streaming" as const,
     };
     const view = render(
-      <AiAssistantContents {...props} messages={[messageWithReply("I’ll")]} />,
+      <ChatView {...props} messages={[messageWithReply("I’ll")]} />,
     );
     scrollTo.mockClear();
 
     view.rerender(
-      <AiAssistantContents
-        {...props}
-        messages={[messageWithReply("I’ll ask Brunch")]}
-      />,
+      <ChatView {...props} messages={[messageWithReply("I’ll ask Brunch")]} />,
     );
 
     expect(scrollTo.mock.instances).toContain(
@@ -3478,7 +3434,7 @@ describe("AiAssistantContents", () => {
 
   test("does not show an empty Activity fold above a plain Chat answer", () => {
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={[
           {
@@ -3536,7 +3492,7 @@ describe("AiAssistantContents", () => {
         presentation,
         status: "streaming" as const,
       };
-      const view = render(<AiAssistantContents {...props} />);
+      const view = render(<ChatView {...props} />);
       const transcript = screen.getByTestId("ai-transcript");
       Object.defineProperties(transcript, {
         clientHeight: { configurable: true, value: 400 },
@@ -3549,7 +3505,7 @@ describe("AiAssistantContents", () => {
       scrollTo.mockClear();
 
       view.rerender(
-        <AiAssistantContents
+        <ChatView
           {...props}
           messages={[
             {
@@ -3594,7 +3550,7 @@ describe("AiAssistantContents", () => {
       presentation: "brunch" as const,
       status: "streaming" as const,
     };
-    const view = render(<AiAssistantContents {...props} />);
+    const view = render(<ChatView {...props} />);
     const transcript = screen.getByTestId("ai-transcript");
     Object.defineProperties(transcript, {
       clientHeight: { configurable: true, value: 400 },
@@ -3612,7 +3568,7 @@ describe("AiAssistantContents", () => {
     scrollTo.mockClear();
 
     view.rerender(
-      <AiAssistantContents
+      <ChatView
         {...props}
         messages={[
           {
@@ -3644,7 +3600,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         primaryLabel="Chat"
         presentation="brunch"
         input=""
@@ -3690,7 +3646,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -3725,7 +3681,7 @@ describe("AiAssistantContents", () => {
     ];
 
     const { container } = render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -3769,7 +3725,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -3830,7 +3786,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -3897,7 +3853,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -3953,7 +3909,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         hiddenToolNames={new Set(["layout_petrinaut_net"])}
         input=""
         messages={messages}
@@ -4016,7 +3972,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -4061,7 +4017,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -4145,7 +4101,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -4194,7 +4150,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -4245,7 +4201,7 @@ describe("AiAssistantContents", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -4289,7 +4245,7 @@ const toolRowPresentations = [
 ] as const;
 
 describe.each(toolRowPresentations)(
-  "AiAssistantContents tool rows in the $presentation presentation",
+  "ChatView tool rows in the $presentation presentation",
   ({ presentation, revealTools, markers }) => {
     test.each([
       {
@@ -4332,7 +4288,7 @@ describe.each(toolRowPresentations)(
       "renders an explicit $label result as not applied, never requested-value success",
       async ({ output }) => {
         render(
-          <AiAssistantContents
+          <ChatView
             input=""
             status="ready"
             onClose={noop}
@@ -4417,10 +4373,7 @@ describe.each(toolRowPresentations)(
         status: "streaming" as const,
       };
       const rendered = render(
-        <AiAssistantContents
-          {...props}
-          messages={createMessages("input-streaming")}
-        />,
+        <ChatView {...props} messages={createMessages("input-streaming")} />,
       );
 
       await revealTools();
@@ -4432,20 +4385,14 @@ describe.each(toolRowPresentations)(
       expect(pendingRow.querySelector(markers.pending)).not.toBeNull();
 
       rendered.rerender(
-        <AiAssistantContents
-          {...props}
-          messages={createMessages("input-available")}
-        />,
+        <ChatView {...props} messages={createMessages("input-available")} />,
       );
 
       expect(screen.queryByText("Preparing…")).toBeNull();
       expect(screen.getByText("Running…")).not.toBeNull();
 
       rendered.rerender(
-        <AiAssistantContents
-          {...props}
-          messages={createMessages("output-available")}
-        />,
+        <ChatView {...props} messages={createMessages("output-available")} />,
       );
 
       expect(screen.queryByText("Running…")).toBeNull();
@@ -4517,7 +4464,7 @@ describe.each(toolRowPresentations)(
         },
       ] as PetrinautAiMessage[];
       render(
-        <AiAssistantContents
+        <ChatView
           input=""
           messages={messages}
           onClose={noop}
@@ -4644,7 +4591,7 @@ describe.each(toolRowPresentations)(
       };
       const renderTools = (messages: PetrinautAiMessage[]) =>
         render(
-          <AiAssistantContents
+          <ChatView
             input=""
             messages={messages}
             onClose={noop}
@@ -4775,7 +4722,7 @@ describe.each(toolRowPresentations)(
   },
 );
 
-describe("AiAssistantContents in the stock presentation", () => {
+describe("ChatView in the stock presentation", () => {
   test.each([
     { status: "streaming" as const, live: true },
     { status: "error" as const, live: false },
@@ -4783,7 +4730,7 @@ describe("AiAssistantContents in the stock presentation", () => {
     "keeps reasoning live only while its reply streams ($status)",
     ({ status, live }) => {
       render(
-        <AiAssistantContents
+        <ChatView
           input=""
           messages={[
             {
@@ -4841,7 +4788,7 @@ describe("AiAssistantContents in the stock presentation", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -4898,7 +4845,7 @@ describe("AiAssistantContents in the stock presentation", () => {
     ];
 
     render(
-      <AiAssistantContents
+      <ChatView
         input=""
         messages={messages}
         onClose={noop}
@@ -4939,7 +4886,7 @@ describe("AiAssistantContents in the stock presentation", () => {
       status: "streaming" as const,
       voiceModeAvailable: true,
     };
-    const rendered = render(<AiAssistantContents {...props} />);
+    const rendered = render(<ChatView {...props} />);
 
     expect(
       screen.queryByRole("button", { name: "Start voice mode" }),
@@ -4949,7 +4896,7 @@ describe("AiAssistantContents in the stock presentation", () => {
     expect(onStop).toHaveBeenCalledOnce();
 
     rendered.rerender(
-      <AiAssistantContents
+      <ChatView
         {...props}
         input=""
         status="ready"
@@ -4977,7 +4924,7 @@ describe("AiAssistantContents in the stock presentation", () => {
       status: "ready" as const,
       voiceModeAvailable: true,
     };
-    const rendered = render(<AiAssistantContents {...props} input="" />);
+    const rendered = render(<ChatView {...props} input="" />);
 
     const voiceButton = screen.getByRole("button", {
       name: "Start voice mode",
@@ -4992,14 +4939,12 @@ describe("AiAssistantContents in the stock presentation", () => {
     expect(onInputModeChange).toHaveBeenCalledWith("voice");
     expect(onSubmit).not.toHaveBeenCalled();
 
-    rendered.rerender(<AiAssistantContents {...props} input="   " />);
+    rendered.rerender(<ChatView {...props} input="   " />);
     expect(
       screen.getByRole("button", { name: "Start voice mode" }),
     ).not.toBeNull();
 
-    rendered.rerender(
-      <AiAssistantContents {...props} input="  Create a queue  " />,
-    );
+    rendered.rerender(<ChatView {...props} input="  Create a queue  " />);
     expect(
       screen.queryByRole("button", { name: "Start voice mode" }),
     ).toBeNull();

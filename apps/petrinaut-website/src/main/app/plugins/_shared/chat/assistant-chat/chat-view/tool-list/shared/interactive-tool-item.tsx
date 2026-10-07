@@ -2,7 +2,7 @@ import { useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { PetrinautAiAssistantPresentation } from "../../../../../../../petrinaut";
+import type { PetrinautAiAssistantPresentation } from "../../../../petrinaut-ai-assistant";
 import type { OnInteractiveToolSubmit, ToolRenderItem } from "../../tool-list";
 
 const interactiveToolStyle = css({

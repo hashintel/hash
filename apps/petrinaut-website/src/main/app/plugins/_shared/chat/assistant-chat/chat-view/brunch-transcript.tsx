@@ -1,11 +1,11 @@
-import { memo, use, useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { ExperimentalIcon } from "@hashintel/petrinaut/ui";
 
-import { NotificationsContext } from "../../../../../../react/notifications/context";
-import { ExperimentalIcon } from "../../../../../experimental-icons";
+import { useAssistantChatApi } from "../chat-api";
 import {
   BrunchWorkFold,
   BrunchWorkPending,
@@ -19,7 +19,7 @@ import { markdownStyle } from "./shared/markdown-style";
 import { SentUsingVoiceMark } from "./shared/sent-using-voice-mark";
 import { AiAssistantToolList } from "./tool-list";
 
-import type { PetrinautAiMessage } from "../types";
+import type { PetrinautAiMessage } from "../../ai-message";
 import type { TranscriptProps } from "./shared/transcript-props";
 
 const messageStyle = cva({
@@ -178,7 +178,7 @@ const BrunchMessage = memo(
     canRetry,
     latestAnswer,
   }: BrunchMessageProps) => {
-    const { addNotification } = use(NotificationsContext);
+    const { notifications } = useAssistantChatApi();
     const [copied, setCopied] = useState(false);
     useEffect(() => {
       if (!copied) return;
@@ -384,7 +384,7 @@ const BrunchMessage = memo(
                     );
                     setCopied(true);
                   } catch {
-                    addNotification(
+                    notifications.add(
                       errorNotification("Could not copy the answer"),
                     );
                   }

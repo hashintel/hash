@@ -1,10 +1,7 @@
 import {
-  createPetrinautAiWritableCallbacks,
   isSDCPNEqual,
   mutationActionInputSchemas,
-  type Petrinaut,
   type PetrinautAiMutationToolName,
-  type PetrinautMutations,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -13,9 +10,10 @@ import {
   type AiToolOutput,
   summarizePetrinautAiToolCall,
   toPetrinautAiToolOutput,
-} from "./tool-summaries";
+  toRefusalOutput,
+} from "./assistant-chat/tool-summaries";
 
-import type { PetrinautAiMutationExecutor } from "./types";
+import type { EditResult, PluginEdits } from "@hashintel/petrinaut/ui";
 
 type PetrinautAiMutationCall = Extract<
   AiToolCall,
@@ -23,18 +21,18 @@ type PetrinautAiMutationCall = Extract<
 >;
 
 /**
- * Execute one canonical mutation while Petrinaut owns its no-op detection and
- * model-facing output. Hosts may observe around this synchronous boundary,
- * but do not need a full editor instance to use it.
+ * Runs one canonical mutation through the plugin's edits and reports it to
+ * the model: the refusal when the editor refused it, a note when it left the
+ * document unchanged, its summary otherwise.
  */
 export const executePetrinautAiMutation = ({
   aiToolCall,
   getDefinition,
-  mutations,
+  edit,
 }: {
   aiToolCall: PetrinautAiMutationCall;
   getDefinition: () => SDCPN;
-  mutations: PetrinautMutations;
+  edit: PluginEdits;
 }): AiToolOutput => {
   const definition = getDefinition();
 
@@ -43,10 +41,13 @@ export const executePetrinautAiMutation = ({
   }
 
   const summary = summarizePetrinautAiToolCall(aiToolCall, { definition });
-  const callback = mutations[aiToolCall.toolName] as (
+  const apply = edit[aiToolCall.toolName] as (
     input: typeof aiToolCall.input,
-  ) => void;
-  callback(aiToolCall.input);
+  ) => EditResult;
+  const result = apply(aiToolCall.input);
+  if (!result.applied) {
+    return toRefusalOutput(result.reason);
+  }
 
   // Only the unchanged document is observed here. The mutation may have
   // declined for a reason narrower than "already present" (an arc between the
@@ -60,49 +61,4 @@ export const executePetrinautAiMutation = ({
   }
 
   return toPetrinautAiToolOutput(summary);
-};
-
-const applyMutation = ({
-  aiToolCall,
-  instance,
-}: {
-  aiToolCall: PetrinautAiMutationCall;
-  instance: Petrinaut;
-}): AiToolOutput =>
-  executePetrinautAiMutation({
-    aiToolCall,
-    getDefinition: () => instance.definition.get(),
-    mutations: createPetrinautAiWritableCallbacks(instance),
-  });
-
-export const applyPetrinautAiMutation = ({
-  aiToolCall,
-  instance,
-  toolCallId,
-  executeMutation,
-}: Parameters<typeof applyMutation>[0] & {
-  toolCallId?: string;
-  executeMutation?: PetrinautAiMutationExecutor;
-}): AiToolOutput => {
-  if (!executeMutation) return applyMutation({ aiToolCall, instance });
-  if (!toolCallId)
-    throw new Error("A mutation executor requires a tool call ID.");
-
-  let active = true;
-  let executed = false;
-  try {
-    return executeMutation({
-      ...aiToolCall,
-      toolCallId,
-      execute: () => {
-        if (!active) throw new Error("Mutation execution must be synchronous.");
-        if (executed) throw new Error("A mutation may execute only once.");
-        executed = true;
-        return applyMutation({ aiToolCall, instance });
-      },
-    });
-  } finally {
-    // Even a throwing host cannot retain work beyond this generation's turn.
-    active = false;
-  }
 };

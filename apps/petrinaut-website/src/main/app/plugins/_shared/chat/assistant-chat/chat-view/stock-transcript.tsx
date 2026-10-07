@@ -10,7 +10,7 @@ import { markdownStyle } from "./shared/markdown-style";
 import { SentUsingVoiceMark } from "./shared/sent-using-voice-mark";
 import { AiAssistantToolList } from "./tool-list";
 
-import type { PetrinautAiMessage } from "../types";
+import type { PetrinautAiMessage } from "../../ai-message";
 import type { TranscriptProps } from "./shared/transcript-props";
 
 const messageStyle = cva({

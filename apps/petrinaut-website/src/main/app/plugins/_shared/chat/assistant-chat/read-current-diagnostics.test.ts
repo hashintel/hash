@@ -5,9 +5,20 @@ import {
   createPetrinaut,
 } from "@hashintel/petrinaut-core";
 
+import { createTestPluginApi } from "../../testing/create-test-plugin-api";
 import { readCurrentDiagnostics } from "./read-current-diagnostics";
 
-import type { LanguageClient, SDCPN } from "@hashintel/petrinaut-core";
+import type {
+  LanguageClient,
+  Petrinaut,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
+
+/** The document a plugin reads, over `instance`, checked by `requestDiagnostics`. */
+const documentOf = (
+  instance: Petrinaut,
+  requestDiagnostics: LanguageClient["requestDiagnostics"],
+) => createTestPluginApi(instance, { requestDiagnostics }).document;
 
 const emptyNet: SDCPN = {
   places: [],
@@ -29,7 +40,7 @@ describe("readCurrentDiagnostics", () => {
       .mockResolvedValue({ byUri: new Map(), total: 0, errorCount: 0 });
     try {
       await expect(
-        readCurrentDiagnostics(instance, request),
+        readCurrentDiagnostics(documentOf(instance, request)),
       ).resolves.toContain("No errors or warnings found in net function code.");
       instance.mutations.addParameter({
         id: "rate",
@@ -39,7 +50,7 @@ describe("readCurrentDiagnostics", () => {
         defaultValue: "2",
       });
       await expect(
-        readCurrentDiagnostics(instance, request),
+        readCurrentDiagnostics(documentOf(instance, request)),
       ).resolves.toContain("No errors or warnings found in net function code.");
       expect(
         request.mock.calls.map(([definition]) => definition.parameters.length),
@@ -59,7 +70,9 @@ describe("readCurrentDiagnostics", () => {
         Awaited<ReturnType<LanguageClient["requestDiagnostics"]>>
       >();
     try {
-      const read = readCurrentDiagnostics(instance, () => result.promise);
+      const read = readCurrentDiagnostics(
+        documentOf(instance, () => result.promise),
+      );
       instance.mutations.addParameter({
         id: "rate",
         name: "Rate",
@@ -83,8 +96,10 @@ describe("readCurrentDiagnostics", () => {
     });
     try {
       await expect(
-        readCurrentDiagnostics(instance, () =>
-          Promise.reject(new Error("Worker terminated")),
+        readCurrentDiagnostics(
+          documentOf(instance, () =>
+            Promise.reject(new Error("Worker terminated")),
+          ),
         ),
       ).rejects.toThrow("Worker terminated");
     } finally {

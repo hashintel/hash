@@ -1,4 +1,4 @@
-import type { PetrinautAiAssistantPresentation } from "../petrinaut";
+import type { PetrinautAiAssistantPresentation } from "./petrinaut-ai-assistant";
 import type { ComponentType } from "react";
 
 /** A runtime parser such as a Zod schema. */

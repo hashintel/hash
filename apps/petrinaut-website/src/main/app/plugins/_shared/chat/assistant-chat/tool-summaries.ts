@@ -11,9 +11,11 @@ import {
   type SDCPN,
   type SelectionItem,
 } from "@hashintel/petrinaut-core";
-
-import type { PetrinautRevealTarget } from "../../../../../react/hooks/use-reveal-in-editor";
-import type { ReadOnlyReason } from "../../../../../react/state/use-read-only-reason";
+import {
+  describeRefusal,
+  type EditRefusal,
+  type PetrinautRevealTarget,
+} from "@hashintel/petrinaut/ui";
 
 export type AiToolSummary = {
   title: string;
@@ -30,7 +32,7 @@ export type AiToolSummary = {
 
 export type AiToolBlockedOutput = {
   applied: false;
-  blocked: ReadOnlyReason["kind"];
+  blocked: EditRefusal["kind"];
   reason: string;
 };
 
@@ -49,6 +51,13 @@ export type AiToolTarget = PetrinautRevealTarget;
 export type AiToolSummaryContext = {
   definition?: SDCPN;
 };
+
+/** What a tool reports when the editor refused its edit. */
+export const toRefusalOutput = (reason: EditRefusal): AiToolBlockedOutput => ({
+  applied: false,
+  blocked: reason.kind,
+  reason: describeRefusal(reason),
+});
 
 export const toPetrinautAiToolOutput = (
   summary: AiToolSummary,

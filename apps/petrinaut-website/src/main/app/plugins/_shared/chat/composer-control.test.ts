@@ -1,11 +1,11 @@
 import { expectTypeOf, test } from "vitest";
 
-import type { VoiceSessionActions } from "../../react/voice-session/store";
+import type { VoiceSessionActions } from "./assistant-chat/voice-session";
 import type {
   PetrinautAiVoiceModeContext,
   PetrinautAiVoiceModeControls,
   PetrinautAiVoiceModeSessionControls,
-} from "./ai-assistant-composer-control";
+} from "./composer-control";
 
 test("keeps legacy Voice controls required while sessions advertise capabilities", () => {
   expectTypeOf<PetrinautAiVoiceModeControls["reconnect"]>().toEqualTypeOf<

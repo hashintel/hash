@@ -1,4 +1,4 @@
-import type { PetrinautAiVoiceSessionPhase } from "../../../types/ai-assistant-composer-control";
+import type { PetrinautAiVoiceSessionPhase } from "../../../composer-control";
 
 /**
  * Shared between the dock's visible status and the live region announcing it,

@@ -1,4 +1,7 @@
-import type { PetrinautAiMessage, PetrinautReasoningMetadata } from "./types";
+import type {
+  PetrinautAiMessage,
+  PetrinautReasoningMetadata,
+} from "../ai-message";
 
 type MessagePart = PetrinautAiMessage["parts"][number];
 

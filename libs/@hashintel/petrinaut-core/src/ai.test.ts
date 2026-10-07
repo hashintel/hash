@@ -5,7 +5,6 @@ import { z } from "zod";
 import {
   aiCommandActionInputSchemas,
   createExperimentToolName,
-  createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
   normalizePetrinautAiToolInput,
   petrinautAiCapabilityGuidance,
@@ -200,7 +199,7 @@ describe("Petrinaut AI core exports", () => {
 
   test("converts invented entity ids so references and arc ids resolve", () => {
     const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
+    const callbacks = instance.mutations;
 
     callbacks.addPlace({
       id: "place__queue",
@@ -250,9 +249,9 @@ describe("Petrinaut AI core exports", () => {
     expect(instance.definition.get().transitions[0]?.inputArcs).toEqual([]);
   });
 
-  test("callback map applies tool inputs to a Petrinaut instance", () => {
+  test("AI tool inputs apply through the instance's mutations", () => {
     const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
+    const callbacks = instance.mutations;
 
     callbacks.addPlace({
       id: "place-1",
@@ -271,9 +270,9 @@ describe("Petrinaut AI core exports", () => {
     expect(instance.definition.get().places[0]!.name).toBe("UpdatedQueue");
   });
 
-  test("callback map validates tool inputs before applying them", () => {
+  test("the instance's mutations validate AI tool inputs before applying them", () => {
     const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
+    const callbacks = instance.mutations;
 
     expect(() =>
       callbacks.addPlace({
@@ -288,14 +287,5 @@ describe("Petrinaut AI core exports", () => {
     ).toThrow();
 
     expect(instance.definition.get().places).toEqual([]);
-  });
-
-  test("AI writable callbacks include applyAutoLayout from commands", async () => {
-    const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
-
-    expect(typeof callbacks.applyAutoLayout).toBe("function");
-    const result = await callbacks.applyAutoLayout();
-    expect(result.commitCount).toBe(0);
   });
 });

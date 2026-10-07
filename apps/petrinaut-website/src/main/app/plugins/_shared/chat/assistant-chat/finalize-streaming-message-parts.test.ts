@@ -2,7 +2,10 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { finalizeStreamingMessageParts } from "./finalize-streaming-message-parts";
 
-import type { PetrinautAiMessage, PetrinautReasoningMetadata } from "./types";
+import type {
+  PetrinautAiMessage,
+  PetrinautReasoningMetadata,
+} from "../ai-message";
 
 afterEach(() => {
   vi.useRealTimers();

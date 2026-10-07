@@ -1,9 +1,8 @@
 import { Button } from "@hashintel/ds-components";
-
 import {
   VoiceIcon,
   useExperimentalIconPackEnabled,
-} from "../../../experimental-icons";
+} from "@hashintel/petrinaut/ui";
 
 type AiVoiceModeButtonProps = {
   className?: string;

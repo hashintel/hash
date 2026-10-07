@@ -1,4 +1,4 @@
-import type { PetrinautAiTransport } from "./types";
+import type { PetrinautAiTransport } from "../ai-message";
 import type { UIMessageChunk } from "ai";
 
 /**

@@ -1,4 +1,4 @@
-import type { AiToolCall, AiToolOutput } from "./tool-summaries";
+import type { AiToolOutput } from "./assistant-chat/tool-summaries";
 import type {
   createExperimentToolName,
   PetrinautExperimentRequest,
@@ -16,15 +16,6 @@ import type {
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 import type { ChatTransport, UIDataTypes, UIMessage } from "ai";
-
-/** Synchronous host boundary for canonical mutations, not commands or title changes. */
-export type PetrinautAiMutationExecutor = (
-  mutation: Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }> & {
-    toolCallId: string;
-    /** May be called once, only before the executor returns. */
-    execute: () => AiToolOutput;
-  },
-) => AiToolOutput;
 
 type PetrinautAiUiTools = {
   [Name in PetrinautAiMutationToolName]: {

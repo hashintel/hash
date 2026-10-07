@@ -1,6 +1,6 @@
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 
-import type { PetrinautAiMessage, PetrinautAiTransport } from "./types";
+import type { PetrinautAiMessage, PetrinautAiTransport } from "../ai-message";
 import type { ChatTransport } from "ai";
 
 const createDiagnosticsContextMessage = (
