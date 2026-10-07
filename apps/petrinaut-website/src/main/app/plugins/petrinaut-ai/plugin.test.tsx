@@ -3,6 +3,7 @@ import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { createUIMessageStreamResponse, type UIMessageChunk } from "ai";
 import { afterEach, expect, test, vi } from "vitest";
 
+import { VOICE_REQUEST_ID_HEADER } from "../../../../voice-diagnostics";
 import { renderEditorWith } from "../_shared/testing/render-editor-with";
 import { petrinautAiPlugin } from "./plugin";
 
@@ -16,6 +17,9 @@ await vi.hoisted(async () => {
 
 afterEach(cleanup);
 
+const uuidV4 =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
+
 const respond = (chunks: UIMessageChunk[]) =>
   createUIMessageStreamResponse({
     stream: new ReadableStream({
@@ -28,7 +32,7 @@ const respond = (chunks: UIMessageChunk[]) =>
     }),
   });
 
-test("the empty-net prompt starts a chat that edits the net, saving the transcript under the document's id", async () => {
+test("the empty-net prompt starts a chat that edits the net, with a request id per request and the transcript saved under the document's id", async () => {
   const fetch = vi
     .fn<typeof globalThis.fetch>()
     .mockResolvedValueOnce(
@@ -78,7 +82,13 @@ test("the empty-net prompt starts a chat that edits the net, saving the transcri
 
   // Two requests and the window's first mount can outlast the default wait.
   await screen.findByText("Added the queue.", {}, { timeout: 4_000 });
+  const [firstId, secondId] = fetch.mock.calls.map(([, init]) =>
+    new Headers(init?.headers).get(VOICE_REQUEST_ID_HEADER),
+  );
   expect(fetch).toHaveBeenCalledTimes(2);
+  expect(firstId).toMatch(uuidV4);
+  expect(secondId).toMatch(uuidV4);
+  expect(secondId).not.toBe(firstId);
   expect(handle.doc()?.places.map(({ name }) => name)).toEqual(["Queue"]);
   const stored = JSON.parse(
     localStorage.getItem("petrinaut-ai-messages") ?? "{}",

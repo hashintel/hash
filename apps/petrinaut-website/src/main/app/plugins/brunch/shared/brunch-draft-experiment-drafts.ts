@@ -4,7 +4,7 @@ import type {
   PetrinautExperimentResult,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-import type { prepareExperiment } from "@hashintel/petrinaut/react";
+import type { prepareExperiment } from "@hashintel/petrinaut/ui";
 
 export type PreparedExperiment = ReturnType<typeof prepareExperiment>;
 
@@ -44,7 +44,11 @@ type EditorDraftsState = {
   drafts: ReadonlyMap<string, EditorDraft>;
 };
 
-const createEditorDrafts = () => {
+/**
+ * The experiments Brunch drafted in this editor, with what the person did
+ * with each. Create one per plugin: the drafts live as long as it runs.
+ */
+export const createEditorDrafts = () => {
   let state: EditorDraftsState = {
     currentToolCallId: null,
     drafts: new Map(),
@@ -82,20 +86,4 @@ const createEditorDrafts = () => {
   };
 };
 
-// The definition store survives panel remounts, but belongs to one editor.
-// Weak keys release drafts when that editor is disposed rather than retaining
-// every model and run in a tab-wide singleton.
-let editors = new WeakMap<object, ReturnType<typeof createEditorDrafts>>();
-export const editorDraftsFor = (definitionStore: object) => {
-  let drafts = editors.get(definitionStore);
-  if (!drafts) {
-    drafts = createEditorDrafts();
-    editors.set(definitionStore, drafts);
-  }
-  return drafts;
-};
-
-/** Test seam: forget every editor's drafts, as a reload would. */
-export const resetEditorDrafts = () => {
-  editors = new WeakMap();
-};
+export type EditorDrafts = ReturnType<typeof createEditorDrafts>;

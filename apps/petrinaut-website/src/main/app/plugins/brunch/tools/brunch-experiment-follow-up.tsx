@@ -1,17 +1,15 @@
 import { useEffect, useSyncExternalStore } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { usePetrinautInstance } from "@hashintel/petrinaut/react";
-
-import {
-  editorDraftsFor,
-  type EditorDraft,
-} from "./shared/brunch-draft-experiment-drafts";
 
 import type { PetrinautAiComposerControlContext } from "../../_shared/chat/composer-control";
+import type {
+  EditorDraft,
+  EditorDrafts,
+} from "../shared/brunch-draft-experiment-drafts";
 
 const sendResults = (
-  drafts: ReturnType<typeof editorDraftsFor>,
+  drafts: EditorDrafts,
   submitText: PetrinautAiComposerControlContext["submitText"],
   draft: EditorDraft,
 ) => {
@@ -48,11 +46,11 @@ const hasDraftToolCall = (
 /** Sends local run results as a new turn, never as a second draft-tool output. */
 export const BrunchExperimentFollowUp = ({
   context,
+  drafts,
 }: {
   context: PetrinautAiComposerControlContext;
+  drafts: EditorDrafts;
 }) => {
-  const instance = usePetrinautInstance();
-  const drafts = editorDraftsFor(instance.definition);
   const snapshot = useSyncExternalStore(drafts.subscribe, drafts.get);
   const running = [...snapshot.drafts.values()].some(
     (draft) =>

@@ -18,23 +18,18 @@ import {
   createReadableStore,
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
-import {
-  ExperimentHostContext,
-  OptimizationsContext,
-  PetrinautInstanceContext,
-  prepareExperiment,
-} from "@hashintel/petrinaut/react";
+import { prepareExperiment } from "@hashintel/petrinaut/ui";
 
 import {
-  BrunchDraftExperimentWidget,
-  resetBrunchEditorDrafts,
-} from "./brunch-draft-experiment-interactive-tool";
+  createEditorDrafts,
+  type EditorDrafts,
+} from "../shared/brunch-draft-experiment-drafts";
+import { BrunchDraftExperimentWidget } from "./brunch-draft-experiment-interactive-tool";
 import {
   describeBudget,
   describeExperiment,
 } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
-import { editorDraftsFor } from "./shared/brunch-draft-experiment-drafts";
 import { documentRevisionOf } from "./shared/document-revision";
 
 // The `/ui` entry pulls in chart code that probes `matchMedia` at import time.
@@ -71,8 +66,7 @@ import type {
   PetrinautExperimentResult,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-import type { OptimizationsContextValue } from "@hashintel/petrinaut/react";
-import type { ReactNode } from "react";
+import type { ExperimentRecord } from "@hashintel/petrinaut/ui";
 
 // Distributive so the awaiting/submitted discriminant survives the Pick.
 type DistributivePick<T, K extends keyof T> = T extends unknown
@@ -170,11 +164,11 @@ const finishedResult: PetrinautExperimentResult = {
   metrics: [],
 };
 
-const revisionOfHandle = (instance: Petrinaut) => {
-  const definition = instance.handle.doc();
-  if (!definition) throw new Error("The test document is unavailable.");
-  return documentRevisionOf(definition);
-};
+const revisionOf = (instance: Petrinaut) =>
+  documentRevisionOf(instance.definition.get());
+
+/** The drafts of the editor a test renders in; each test starts with none. */
+let drafts: EditorDrafts;
 
 const renderWidget = ({
   input,
@@ -182,24 +176,24 @@ const renderWidget = ({
   state,
   definition,
   runExperiment,
+  records = [],
   optimizationUnavailableReason = null,
-  omitOptimizationUnavailableReason = false,
   submitOutput = async () => {},
   claim = async () => {},
-  readDraftAuthority,
-  instance: suppliedInstance,
+  readDraftAuthority = async () => documentRevisionOf(definition.get()),
+  editorDrafts = drafts,
 }: {
   input: DraftPetrinautExperimentInput;
   toolCallId: string;
   state: WidgetState;
   definition: Petrinaut["definition"];
   runExperiment: PetrinautExperimentHost["runExperiment"];
+  records?: readonly ExperimentRecord[];
   optimizationUnavailableReason?: string | null;
-  omitOptimizationUnavailableReason?: boolean;
   submitOutput?: (output: DraftPetrinautExperimentOutput) => Promise<void>;
   claim?: () => Promise<void>;
   readDraftAuthority?: (toolCallId: string) => Promise<string>;
-  instance?: Petrinaut;
+  editorDrafts?: EditorDrafts;
 }) => {
   const submit = vi.fn(submitOutput);
   const claimAndSubmit = async (
@@ -208,49 +202,33 @@ const renderWidget = ({
     await claim();
     await submit(await prepareOutput());
   };
-  const instance =
-    suppliedInstance ??
-    ({
-      definition,
-      handle: { doc: () => definition.get() },
-    } as unknown as Petrinaut);
-  const host: PetrinautExperimentHost = { runExperiment };
-  const optimizationActions = {
-    optimizations: [],
-    createOptimization: () => Promise.reject(new Error("Not used")),
-    cancelOptimization: () => {},
-    removeOptimization: () => {},
+  const ports = {
+    document: {
+      net: definition,
+      title: createReadableStore("Support desk"),
+      reveal: vi.fn(),
+    },
+    experiments: {
+      records: createReadableStore(records),
+      optimizationUnavailableReason: createReadableStore(
+        optimizationUnavailableReason,
+      ),
+      run: runExperiment,
+    },
+    editorDrafts,
   };
-  const optimizations = (
-    omitOptimizationUnavailableReason
-      ? optimizationActions
-      : { ...optimizationActions, optimizationUnavailableReason }
-  ) as OptimizationsContextValue;
-  const wrap = (children: ReactNode) => (
-    <OptimizationsContext value={optimizations}>
-      <PetrinautInstanceContext.Provider value={instance}>
-        <ExperimentHostContext.Provider value={host}>
-          {children}
-        </ExperimentHostContext.Provider>
-      </PetrinautInstanceContext.Provider>
-    </OptimizationsContext>
-  );
   const utils = render(
-    wrap(
-      <BrunchDraftExperimentWidget
-        {...state}
-        input={input}
-        readTitle={() => "Support desk"}
-        readDraftAuthority={
-          readDraftAuthority ?? (async () => revisionOfHandle(instance))
-        }
-        submit={() => {}}
-        claimAndSubmit={claimAndSubmit}
-        toolCallId={toolCallId}
-      />,
-    ),
+    <BrunchDraftExperimentWidget
+      {...state}
+      {...ports}
+      input={input}
+      readDraftAuthority={readDraftAuthority}
+      submit={() => {}}
+      claimAndSubmit={claimAndSubmit}
+      toolCallId={toolCallId}
+    />,
   );
-  return { ...utils, submit, claimAndSubmit, wrap };
+  return { ...utils, submit, claimAndSubmit, ports };
 };
 
 const heading = () =>
@@ -260,7 +238,7 @@ const heading = () =>
 
 describe("BrunchDraftExperimentWidget", () => {
   beforeEach(() => {
-    resetBrunchEditorDrafts();
+    drafts = createEditorDrafts();
   });
 
   afterEach(() => {
@@ -312,7 +290,7 @@ describe("BrunchDraftExperimentWidget", () => {
 
   it("prepares, reports drafted once, and starts nothing", async () => {
     const runExperiment = vi.fn();
-    const { submit, claimAndSubmit, rerender, wrap } = renderWidget({
+    const { submit, claimAndSubmit, rerender, ports } = renderWidget({
       input: makeInput(makeRequest(), [
         {
           condition: "No more than 5% of callers abandon.",
@@ -358,17 +336,15 @@ describe("BrunchDraftExperimentWidget", () => {
     // Once the panel marks the call submitted the card keeps its draft and
     // does not report again.
     rerender(
-      wrap(
-        <BrunchDraftExperimentWidget
-          {...submitted}
-          input={makeInput()}
-          readTitle={() => "Support desk"}
-          submit={() => {}}
-          claimAndSubmit={claimAndSubmit}
-          toolCallId="call_draft_1"
-          readDraftAuthority={async () => "test-revision"}
-        />,
-      ),
+      <BrunchDraftExperimentWidget
+        {...submitted}
+        {...ports}
+        input={makeInput()}
+        submit={() => {}}
+        claimAndSubmit={claimAndSubmit}
+        toolCallId="call_draft_1"
+        readDraftAuthority={async () => "test-revision"}
+      />,
     );
     expect(submit).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
@@ -434,7 +410,7 @@ describe("BrunchDraftExperimentWidget", () => {
     },
   );
 
-  it("prepares from the observed handle when the readable store normalizes key order", async () => {
+  it("prepares from the net it read when the store normalizes key order", async () => {
     const instance = createPetrinaut({
       document: createJsonDocHandle({
         id: "metric-before-scenario",
@@ -467,17 +443,12 @@ describe("BrunchDraftExperimentWidget", () => {
       parameterOverrides: {},
       initialState: { type: "per_place", content: {} },
     });
-    const observedDefinition = instance.handle.doc();
-    expect(observedDefinition).toBeDefined();
-
     const runExperiment = vi.fn(() => Promise.resolve(finishedResult));
     const { submit } = renderWidget({
       input: makeInput(),
-      readDraftAuthority: async () => revisionOfHandle(instance),
       toolCallId: "metric-before-scenario",
       state: awaiting,
       definition: instance.definition,
-      instance,
       runExperiment,
     });
 
@@ -590,24 +561,19 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
   });
 
-  it("rechecks the live handle after the asynchronous history fetch", async () => {
+  it("rechecks the live net after the asynchronous history fetch", async () => {
     const original = makeDefinition();
-    let liveDefinition = original;
     const definition = createReadableStore(original);
-    const instance = {
-      definition,
-      handle: { doc: () => liveDefinition },
-    } as unknown as Petrinaut;
     const { submit } = renderWidget({
       input: makeInput(),
       toolCallId: "changed-during-history-fetch",
       state: awaiting,
       definition,
-      instance,
       runExperiment: vi.fn(),
       readDraftAuthority: async () => {
-        liveDefinition = structuredClone(original);
-        liveDefinition.metrics![0]!.code = "return 3;";
+        const changed = structuredClone(original);
+        changed.metrics![0]!.code = "return 3;";
+        definition.set(changed);
         return documentRevisionOf(original);
       },
     });
@@ -623,7 +589,7 @@ describe("BrunchDraftExperimentWidget", () => {
         initial: makeDefinition(),
       }),
     });
-    const readRevision = revisionOfHandle(instance);
+    const readRevision = revisionOf(instance);
     const metricId = "metric__average_waiting_time";
     let editedRevision: string | undefined;
     const { submit } = renderWidget({
@@ -631,14 +597,13 @@ describe("BrunchDraftExperimentWidget", () => {
       toolCallId: "restored-during-history-fetch",
       state: awaiting,
       definition: instance.definition,
-      instance,
       runExperiment: vi.fn(),
       readDraftAuthority: async () => {
         instance.mutations.updateMetric({
           metricId,
           update: { code: "return 3;" },
         });
-        editedRevision = revisionOfHandle(instance);
+        editedRevision = revisionOf(instance);
         instance.mutations.updateMetric({
           metricId,
           update: { code: "return 1;" },
@@ -652,33 +617,6 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "drafted" });
     expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
     instance.dispose();
-  });
-
-  it("reports an unavailable browser document without claiming or submitting", async () => {
-    const definition = createReadableStore(makeDefinition());
-    const instance = {
-      definition,
-      handle: { doc: () => undefined },
-    } as unknown as Petrinaut;
-    const claim = vi.fn(async () => {});
-    const { submit } = renderWidget({
-      input: makeInput(),
-      toolCallId: "unavailable-browser-document",
-      state: awaiting,
-      definition,
-      instance,
-      runExperiment: vi.fn(),
-      claim,
-    });
-
-    await waitFor(() =>
-      expect(heading()).toEqual(["Draft could not be prepared"]),
-    );
-    expect(
-      screen.getByText(/bound browser document is unavailable/u),
-    ).toBeTruthy();
-    expect(claim).not.toHaveBeenCalled();
-    expect(submit).not.toHaveBeenCalled();
   });
 
   it("does not offer Run when optimization is unavailable", async () => {
@@ -708,20 +646,30 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(runExperiment).not.toHaveBeenCalled();
   });
 
-  it("keeps legacy optimization contexts without an availability reason usable", async () => {
-    const runExperiment = vi.fn();
-    const { submit } = renderWidget({
+  it("reports optimization availability as it is after the history read", async () => {
+    const definition = createReadableStore(makeDefinition());
+    const { promise: historyRead, resolve: finishHistoryRead } =
+      Promise.withResolvers<void>();
+    const { submit, ports } = renderWidget({
       input: makeInput(),
-      toolCallId: "legacy-optimization-context",
+      toolCallId: "call_draft_unavailable_later",
       state: awaiting,
-      definition: createReadableStore(makeDefinition()),
-      runExperiment,
-      omitOptimizationUnavailableReason: true,
+      definition,
+      runExperiment: vi.fn(),
+      readDraftAuthority: async () => {
+        await historyRead;
+        return documentRevisionOf(definition.get());
+      },
     });
 
+    ports.experiments.optimizationUnavailableReason.set(
+      "Optimization is unavailable",
+    );
+    finishHistoryRead();
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
-    expect(submit.mock.calls[0]?.[0].summary).not.toContain("undefined");
-    expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
+    expect(submit.mock.calls[0]?.[0].diagnostics).toContain(
+      "Execution unavailable: Optimization is unavailable",
+    );
   });
 
   it("lets a later draft supersede the earlier card", async () => {
@@ -832,6 +780,57 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(submit).toHaveBeenCalledTimes(1);
   });
 
+  it("reveals a finished run's experiment from View experiment", async () => {
+    const record: ExperimentRecord = {
+      id: "experiment_1",
+      name: "Staffing under peak demand",
+      createdAt: 0,
+      scenarioId: "scenario__peak_demand",
+      scenarioName: "Peak demand",
+      runCount: 15,
+      seed: 7,
+      dt: 1,
+      maxTime: 120,
+      status: "complete",
+      error: null,
+      metricSpecs: [],
+      computeBackend: "cpu",
+      computeBackendFallbackReason: null,
+      startedAt: 0,
+      finishedAt: 1,
+      progress: null,
+      metricFrames: [],
+      latestMetricFramesById: {},
+      parameterAxes: [],
+      sweep: null,
+      sweepBatches: [],
+      scenarioParameterValues: {},
+      constraints: [],
+      constraintPolicy: null,
+      scenario: null,
+    };
+    const { submit, ports } = renderWidget({
+      input: makeInput(),
+      toolCallId: "call_draft_view",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn(() => Promise.resolve(finishedResult)),
+      records: [record],
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: /View experiment/u }),
+    );
+
+    expect(ports.document.reveal).toHaveBeenCalledWith({
+      kind: "simulateView",
+      mode: "experiments",
+      itemId: record.id,
+    });
+  });
+
   it("retries a run failure from the host", async () => {
     const runExperiment = vi
       .fn()
@@ -906,7 +905,7 @@ describe("BrunchDraftExperimentWidget", () => {
 
   it("reports active runs only to their conversation and clears the hint on unmount", async () => {
     const result = Promise.withResolvers<typeof finishedResult>();
-    const { submit, wrap } = renderWidget({
+    const { submit } = renderWidget({
       input: makeInput(),
       toolCallId: "running-hint",
       state: awaiting,
@@ -940,7 +939,7 @@ describe("BrunchDraftExperimentWidget", () => {
       reportExperimentRunning,
     };
     const followUp = render(
-      wrap(<BrunchExperimentFollowUp context={context} />),
+      <BrunchExperimentFollowUp context={context} drafts={drafts} />,
     );
     expect(reportExperimentRunning).toHaveBeenLastCalledWith(false);
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
@@ -948,10 +947,15 @@ describe("BrunchDraftExperimentWidget", () => {
       expect(reportExperimentRunning).toHaveBeenLastCalledWith(true),
     );
     followUp.rerender(
-      wrap(<BrunchExperimentFollowUp context={{ ...context, messages: [] }} />),
+      <BrunchExperimentFollowUp
+        context={{ ...context, messages: [] }}
+        drafts={drafts}
+      />,
     );
     expect(reportExperimentRunning).toHaveBeenLastCalledWith(false);
-    followUp.rerender(wrap(<BrunchExperimentFollowUp context={context} />));
+    followUp.rerender(
+      <BrunchExperimentFollowUp context={context} drafts={drafts} />,
+    );
     expect(reportExperimentRunning).toHaveBeenLastCalledWith(true);
     clearRunning.mockClear();
     followUp.unmount();
@@ -961,7 +965,7 @@ describe("BrunchDraftExperimentWidget", () => {
 
   it("sends completed results once, only to the originating idle conversation", async () => {
     const definition = createReadableStore(makeDefinition());
-    const { submit, wrap } = renderWidget({
+    const { submit } = renderWidget({
       input: makeInput(),
       toolCallId: "follow-up",
       state: awaiting,
@@ -998,29 +1002,28 @@ describe("BrunchDraftExperimentWidget", () => {
       stop: async () => {},
     };
     const followUp = render(
-      wrap(<BrunchExperimentFollowUp context={context} />),
+      <BrunchExperimentFollowUp context={context} drafts={drafts} />,
     );
     expect(submitText).not.toHaveBeenCalled();
     followUp.rerender(
-      wrap(
-        <BrunchExperimentFollowUp
-          context={{ ...context, status: "ready", messages: [] }}
-        />,
-      ),
+      <BrunchExperimentFollowUp
+        context={{ ...context, status: "ready", messages: [] }}
+        drafts={drafts}
+      />,
     );
     expect(submitText).not.toHaveBeenCalled();
     followUp.rerender(
-      wrap(
-        <BrunchExperimentFollowUp
-          context={{ ...context, status: "ready", stopped: true }}
-        />,
-      ),
+      <BrunchExperimentFollowUp
+        context={{ ...context, status: "ready", stopped: true }}
+        drafts={drafts}
+      />,
     );
     expect(submitText).not.toHaveBeenCalled();
     followUp.rerender(
-      wrap(
-        <BrunchExperimentFollowUp context={{ ...context, status: "ready" }} />,
-      ),
+      <BrunchExperimentFollowUp
+        context={{ ...context, status: "ready" }}
+        drafts={drafts}
+      />,
     );
     await waitFor(() => expect(submitText).toHaveBeenCalledOnce());
     const submission = submitText.mock.calls[0]?.[0];
@@ -1031,11 +1034,10 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(submission?.text).toContain(JSON.stringify(finishedResult));
     await screen.findByRole("button", { name: "Retry result summary" });
     followUp.rerender(
-      wrap(
-        <BrunchExperimentFollowUp
-          context={{ ...context, status: "error", stopped: true }}
-        />,
-      ),
+      <BrunchExperimentFollowUp
+        context={{ ...context, status: "error", stopped: true }}
+        drafts={drafts}
+      />,
     );
     expect(submitText).toHaveBeenCalledOnce();
     fireEvent.click(
@@ -1044,9 +1046,10 @@ describe("BrunchDraftExperimentWidget", () => {
     await waitFor(() => expect(submitText).toHaveBeenCalledTimes(2));
     followUp.unmount();
     render(
-      wrap(
-        <BrunchExperimentFollowUp context={{ ...context, status: "ready" }} />,
-      ),
+      <BrunchExperimentFollowUp
+        context={{ ...context, status: "ready" }}
+        drafts={drafts}
+      />,
     );
     expect(submitText).toHaveBeenCalledTimes(2);
     expect(submit).toHaveBeenCalledOnce();
@@ -1142,8 +1145,6 @@ describe("BrunchDraftExperimentWidget", () => {
   });
 
   it("sends a later completed result after an earlier summary fails", async () => {
-    const definition = createReadableStore(makeDefinition());
-    const drafts = editorDraftsFor(definition);
     for (const toolCallId of ["earlier", "later"]) {
       drafts.register({
         toolCallId,
@@ -1168,25 +1169,22 @@ describe("BrunchDraftExperimentWidget", () => {
       output: {},
     });
     render(
-      <PetrinautInstanceContext.Provider
-        value={{ definition } as unknown as Petrinaut}
-      >
-        <BrunchExperimentFollowUp
-          context={{
-            conversationId: "original",
-            messages: [
-              {
-                id: "drafts",
-                role: "assistant",
-                parts: [toolPart("earlier"), toolPart("later")],
-              },
-            ],
-            status: "ready",
-            submitText,
-            stop: async () => {},
-          }}
-        />
-      </PetrinautInstanceContext.Provider>,
+      <BrunchExperimentFollowUp
+        context={{
+          conversationId: "original",
+          messages: [
+            {
+              id: "drafts",
+              role: "assistant",
+              parts: [toolPart("earlier"), toolPart("later")],
+            },
+          ],
+          status: "ready",
+          submitText,
+          stop: async () => {},
+        }}
+        drafts={drafts}
+      />,
     );
 
     await waitFor(() =>
@@ -1506,6 +1504,7 @@ describe("BrunchDraftExperimentWidget", () => {
     const otherEditor = renderWidget({
       ...props,
       definition: createReadableStore(makeDefinition()),
+      editorDrafts: createEditorDrafts(),
     });
     await waitFor(() => expect(otherEditor.submit).toHaveBeenCalledTimes(1));
     expect(heading()).toEqual([

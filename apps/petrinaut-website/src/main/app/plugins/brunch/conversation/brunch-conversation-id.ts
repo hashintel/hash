@@ -16,54 +16,46 @@ interface ConversationStorage {
   setItem(key: string, value: string): void;
 }
 
-/** Change only the pointer; old conversation history and the model are retained. */
-export const replaceBrunchConversationId = (
-  netId: string,
-  conversationId: string,
-  storage: ConversationStorage = window.localStorage,
-): void => {
-  let stored: Record<string, string> = {};
+/**
+ * Each document's current conversation, keyed by its initial conversation id.
+ * A broken pointer cache reads as empty, so a new conversation can start.
+ */
+const readPointers = (storage: ConversationStorage): Record<string, string> => {
   try {
-    stored = JSON.parse(
+    return JSON.parse(
       storage.getItem(conversationStorageKey) ?? "{}",
     ) as Record<string, string>;
   } catch {
-    // A broken pointer cache must not prevent starting a new conversation.
+    return {};
   }
+};
+
+/** Change only the pointer; old conversation history and the model are retained. */
+export const replaceBrunchConversationId = (
+  initialConversationId: string,
+  conversationId: string,
+  storage: ConversationStorage = window.localStorage,
+): void => {
   try {
     storage.setItem(
       conversationStorageKey,
-      JSON.stringify({ ...stored, [netId]: conversationId }),
+      JSON.stringify({
+        ...readPointers(storage),
+        [initialConversationId]: conversationId,
+      }),
     );
   } catch {
     // The host retains the new id for this page load.
   }
 };
 
-export const getOrCreateBrunchConversationId = (
-  netId: string,
+/** The conversation a cleared chat moved to, if the pointer names one. */
+export const storedBrunchConversationId = (
+  initialConversationId: string,
   storage: ConversationStorage = window.localStorage,
-  createId: () => string = () => crypto.randomUUID(),
-): string => {
-  let stored: Record<string, string> = {};
-  try {
-    const raw = storage.getItem(conversationStorageKey);
-    stored = raw === null ? {} : (JSON.parse(raw) as Record<string, string>);
-  } catch {
-    stored = {};
-  }
-  const existing = stored[netId];
-  if (typeof existing === "string" && existing.length > 0) {
-    return existing;
-  }
-  const conversationId = createId();
-  try {
-    storage.setItem(
-      conversationStorageKey,
-      JSON.stringify({ ...stored, [netId]: conversationId }),
-    );
-  } catch {
-    // The generated id remains valid for this page load.
-  }
-  return conversationId;
+): string | undefined => {
+  const existing = readPointers(storage)[initialConversationId];
+  return typeof existing === "string" && existing.length > 0
+    ? existing
+    : undefined;
 };

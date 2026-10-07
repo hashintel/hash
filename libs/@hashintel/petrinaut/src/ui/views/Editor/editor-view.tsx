@@ -72,8 +72,6 @@ import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
-import type { PetrinautSlots } from "../../types/petrinaut-slots";
-
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
 });
@@ -159,14 +157,12 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  */
 const EditorViewContent = ({
   hideNetManagementControls,
-  slots,
   titleEditable,
 }: {
   /**
    * See {@link TopBar} for the full semantics.
    */
   hideNetManagementControls?: "all" | "except-title";
-  slots?: PetrinautSlots;
   titleEditable: boolean;
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
@@ -505,7 +501,7 @@ const EditorViewContent = ({
       />
       <AssistantSwitchCommands />
       <PluginRoots />
-      <UserSettings settingsLabs={slots?.settingsLabs} />
+      <UserSettings />
       <ImportErrorDialog
         open={importError !== null}
         onOpenChange={({ open }) => {

@@ -25,6 +25,16 @@ export const installPetrinautDomShims = () => {
       escape: (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "\\$&"),
     },
   });
+  // jsdom reads as a WebKit web view, so once loaded, Monaco writes to the
+  // clipboard on every click and keydown.
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { write: () => Promise.resolve() },
+  });
+  Object.defineProperty(globalThis, "ClipboardItem", {
+    configurable: true,
+    value: class {},
+  });
 };
 
 /**

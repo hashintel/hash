@@ -195,10 +195,9 @@ Without plugins the section says so.
 
 ## Labs
 
-Hosts can place application-specific controls after Petrinaut's built-in Labs
-groups. For example, a host may put assistant provider and Voice availability
-choices there. The host owns those controls, their availability, and how their
-preferences are saved.
+Plugins can add experimental settings here, in a group under the plugin's name
+after Petrinaut's built-in Labs groups. For example, a Voice plugin may add a
+Voice switch and a choice of voice engine there.
 
 ### Net Components (experimental)
 

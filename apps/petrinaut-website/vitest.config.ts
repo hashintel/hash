@@ -2,12 +2,12 @@ import react from "@vitejs/plugin-react";
 import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
-  // The shared chat's tests pin memoization, so its components compile as
-  // they do in the app. Test files stay uncompiled: the compiler would hoist
+  // The shared chat, Brunch and Voice compile as in the app, so their tests
+  // see its memoization. Test files stay uncompiled: the compiler would hoist
   // helpers out of `vi.mock` factories, away from the factory's imports.
   plugins: [
     react({
-      include: /[\\/]plugins[\\/]_shared[\\/]chat[\\/].*\.tsx?$/,
+      include: /[\\/]plugins[\\/](_shared[\\/]chat|brunch|voice)[\\/].*\.tsx?$/,
       exclude: [/\.test\.tsx?$/],
       compiler: {
         target: "19",

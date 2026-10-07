@@ -71,17 +71,17 @@ SDK's `addToolOutput`.
 
 A plugin can instead register a non-interactive dynamic tool in
 `automaticTools`. Each registration names the tool, supplies input and output
-parsers, and implements
-`execute({ input, edit, readDiagnosticsContext, toolCallId, signal })`. The
-chat validates the input and passes the document's edits from `api`, a
-`readDiagnosticsContext()` that reports the editor's current TypeScript
-diagnostics as the built-in compilation read does, and an `AbortSignal`
-(aborted on Stop or a conversation switch). It validates the returned output,
-inserts that one outer result, and continues the turn. Each edit returns an
+parsers, and implements `execute({ input, toolCallId, signal })`. The chat
+validates the input and passes an `AbortSignal` (aborted on Stop or a
+conversation switch). It validates the returned output, inserts that one outer
+result, and continues the turn. The tool reaches the editor through the `api`
+its plugin built it with: each `api.document.edit` call returns an
 `EditResult` and is refused while the editor is read-only, as the built-in
-tools' edits are. `petrinautDocsContent` (from `/ui`) holds the user-guide
-pages the built-in documentation read serves, so a host tool under its own
-name can answer with the same text.
+tools' edits are, and the chat kit's `readDiagnosticsForAi(api.document)`
+reports the current TypeScript diagnostics as the built-in compilation read
+does. `petrinautDocsContent` (from `/ui`) holds the user-guide pages the
+built-in documentation read serves, so a host tool under its own name can
+answer with the same text.
 
 The component receives a stable `toolCallId` plus a discriminated lifecycle:
 `state: "awaiting"` has no submitted output, while `state: "submitted"`

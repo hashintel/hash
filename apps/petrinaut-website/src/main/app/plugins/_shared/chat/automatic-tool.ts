@@ -1,23 +1,11 @@
-import type { PluginEdits } from "@hashintel/petrinaut/ui";
-
 /** Runtime parser used at a host-owned automatic dynamic-tool boundary. */
 type PetrinautAiAutomaticToolSchema<Value> = {
   parse: (value: unknown) => Value;
 };
 
-/**
- * Capability passed to a host automatic tool: the same edits and diagnostics
- * the built-in assistant tools execute against.
- */
+/** One call of a host automatic tool, which reaches the editor through its plugin's `api`. */
 export type PetrinautAiAutomaticToolExecuteParams = {
   input: unknown;
-  /** The document's edits, each refused while the editor is read-only. */
-  edit: PluginEdits;
-  /**
-   * The editor's current TypeScript diagnostics formatted for the model, as
-   * the built-in compilation read reports them.
-   */
-  readDiagnosticsContext: () => Promise<string>;
   toolCallId: string;
   signal: AbortSignal;
 };

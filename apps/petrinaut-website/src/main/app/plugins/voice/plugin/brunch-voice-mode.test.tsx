@@ -3,9 +3,9 @@ import { describe, expect, test, vi } from "vitest";
 
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { BrunchPanelConversationTracker } from "../brunch/brunch-panel-transport";
+import { BrunchPanelConversationTracker } from "../../brunch/brunch-panel-transport";
+import { VoiceInterviewControl } from "../session/voice-interview-control";
 import { getBrunchVoiceMode } from "./brunch-voice-mode";
-import { VoiceInterviewControl } from "./session/voice-interview-control";
 
 describe("getBrunchVoiceMode", () => {
   test("does not install voice on the generic local chat fallback", () => {

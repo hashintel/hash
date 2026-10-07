@@ -53,6 +53,7 @@ export {
   useCommands,
 } from "../react/commands/command-registry";
 export { useStore, useStoreSelector } from "../react/use-store";
+export { prepareExperiment } from "../react/experiment-host/prepare-experiment";
 export type { ExperimentRecord } from "../react/experiments/context";
 export type { PetrinautRevealTarget } from "../react/hooks/use-reveal-in-editor";
 export type { AddNotificationInput } from "../react/notifications/context";
@@ -260,6 +261,3 @@ export type {
 // SDCPN value-equality check exposed for consumers that need to detect
 // no-op changes outside the handle (e.g. memoising Storybook stories).
 export { isSDCPNEqual } from "@hashintel/petrinaut-core";
-
-// Slots — named locations into which the host can inject arbitrary React components.
-export type { PetrinautSlots } from "./types/petrinaut-slots";

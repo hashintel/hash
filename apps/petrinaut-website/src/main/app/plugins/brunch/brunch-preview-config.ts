@@ -8,5 +8,10 @@ export const resolveBrunchPreviewConfig = (endpoint: string | undefined) => {
   };
 };
 
+/** The demo's Brunch endpoint, from `VITE_BRUNCH_CHAT_ENDPOINT`. */
+export const brunchPreviewConfig = resolveBrunchPreviewConfig(
+  import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
+);
+
 export const createBrunchPreviewConversationId = (netId: string): string =>
   `${previewConversationIdPrefix}${netId}`;

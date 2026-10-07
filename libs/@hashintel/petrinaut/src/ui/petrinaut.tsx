@@ -44,7 +44,6 @@ const editorRootStyle = css({
 import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
 import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
-import type { PetrinautSlots } from "./types/petrinaut-slots";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;
@@ -71,10 +70,6 @@ export type PetrinautProps = {
   existingNets?: MinimalNetMetadata[];
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
-  /**
-   * Host-supplied components to inject at specific locations in the editor.
-   */
-  slots?: PetrinautSlots;
   /**
    * Optional simulation-worker factory. Provide this when the host bundler
    * needs to own worker instantiation (e.g. when consuming the published
@@ -127,7 +122,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   existingNets = [],
   createNewNet = noop,
   loadPetriNet = noop,
-  slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
@@ -173,7 +167,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               <PetrinautPluginsProvider plugins={plugins}>
                 <EditorView
                   hideNetManagementControls={hideNetManagementControls}
-                  slots={slots}
                   titleEditable={titleEditable}
                 />
               </PetrinautPluginsProvider>

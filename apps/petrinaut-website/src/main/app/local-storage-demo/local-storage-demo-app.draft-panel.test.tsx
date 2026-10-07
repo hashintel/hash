@@ -8,8 +8,14 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
+import { createTestPluginApi } from "../plugins/_shared/testing/create-test-plugin-api";
+import { stubLocalStorage } from "../plugins/_shared/testing/stub-local-storage";
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
@@ -23,7 +29,6 @@ import {
   NoopResizeObserver,
   preloadMonaco,
 } from "../shared/petrinaut-jsdom";
-import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
 import type {
@@ -59,14 +64,6 @@ await vi.hoisted(async () => {
 const fixture = vi.hoisted(() => ({
   client: null as FlueClient | null,
   controller: null as DocumentController | null,
-  binding: null as {
-    documentId: string;
-    conversationId: string;
-  } | null,
-  baseBinding: null as {
-    documentId: string;
-    conversationId: string;
-  } | null,
 }));
 vi.mock(
   "@hashintel/petrinaut-core/workers/monte-carlo",
@@ -89,10 +86,10 @@ vi.mock("@flue/sdk", async (importOriginal) => ({
   },
 }));
 vi.mock("../plugins/brunch/brunch-preview-config", () => ({
-  resolveBrunchPreviewConfig: () => ({
+  brunchPreviewConfig: {
     chatEndpoint: "/agents/chat",
     isBrunchConfigured: true,
-  }),
+  },
 }));
 vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
@@ -102,13 +99,6 @@ vi.mock("./documents/use-document-controller", () => ({
     if (!fixture.controller)
       throw new Error("Missing test document controller");
     return { controller: fixture.controller };
-  },
-}));
-vi.mock("../plugins/brunch/conversation/use-process-agent-binding", () => ({
-  useProcessAgentBinding: () => {
-    if (!fixture.baseBinding)
-      throw new Error("Missing test process agent binding");
-    return fixture.baseBinding;
   },
 }));
 
@@ -166,30 +156,15 @@ test.each(["Dismiss", "Run"] as const)(
     vi.stubGlobal("Worker", InProcessLspWorker);
     vi.stubGlobal("ResizeObserver", NoopResizeObserver);
     // Brunch is the chosen assistant and the welcome guide was dismissed.
-    const stored = new Map([
-      [assistantSelectionStorageKey, "brunch"],
-      [
-        "petrinaut:plugin:website.walkthrough",
-        JSON.stringify({ showOnInit: false }),
-      ],
-    ]);
-    vi.stubGlobal("localStorage", {
-      get length() {
-        return 0;
-      },
-      clear() {},
-      getItem: (key: string) => stored.get(key) ?? null,
-      key: () => null,
-      removeItem() {},
-      setItem() {},
-    } satisfies Storage);
+    stubLocalStorage({
+      "petrinaut:user-settings": { aiAssistantId: "website.brunch" },
+      "petrinaut:plugin:website.walkthrough": { showOnInit: false },
+    });
     const baseId = ordinaryConstructionConversationIdFrom("document");
     const binding = {
       conversationId: brunchEvaluationConversationIdFrom(baseId),
       documentId: "document",
     };
-    fixture.binding = binding;
-    fixture.baseBinding = { ...binding, conversationId: baseId };
     const documentRecord: DocumentRecord = {
       documentId: binding.documentId,
       revisionId: "initial-revision",
@@ -212,8 +187,9 @@ test.each(["Dismiss", "Run"] as const)(
       initial: definition,
     });
     const host = createCanonicalPetrinautHostTools({
-      handle,
-      readTitle: () => "Queue",
+      document: createTestPluginApi(createPetrinaut({ document: handle }), {
+        title: "Queue",
+      }).document,
       replayReadiness: {
         status: "ready",
         replay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
@@ -226,8 +202,6 @@ test.each(["Dismiss", "Run"] as const)(
     const readOutput = read.execute({
       input: {},
       toolCallId: "read-1",
-      edit: {} as never,
-      readDiagnosticsContext: async () => "",
       signal: new AbortController().signal,
     });
     const readMetadata = host.clientToolResultMetadataFor("read-1", readOutput);

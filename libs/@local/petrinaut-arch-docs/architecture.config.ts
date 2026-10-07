@@ -121,6 +121,18 @@ export const config: ArchitectureConfig = {
         "state providers must not depend on the components that render them, so the React layer stays testable without mounting the editor",
     },
     {
+      from: "website.plugins",
+      to: "react",
+      reason:
+        "plugins reach the editor through the plugin api, never through its providers and contexts",
+    },
+    {
+      from: "website.plugins",
+      to: "website.local-storage-demo",
+      reason:
+        "the demo shell wires the plugins in, so a plugin never reaches back into the shell",
+    },
+    {
       from: "ui.worksheet",
       to: "ui.adhoc-form",
       reason:
