@@ -64,7 +64,7 @@
     "@rollup/plugin-typescript": "12.3.0",
     "@rollup/plugin-wasm": "6.2.2",
     "@tsconfig/bases": "catalog:",
-    "@types/node": "22.18.13",
+    "@types/node": "catalog:",
     "@types/react": "19.2.14",
     "@types/semver": "7.7.1",
     "@vitest/coverage-istanbul": "4.1.10",

@@ -42,7 +42,7 @@
     "@tsconfig/bases": "catalog:",
     "@types/fs-extra": "11.0.4",
     "@types/js-yaml": "^4",
-    "@types/node": "22.18.13",
+    "@types/node": "catalog:",
     "eslint": "9.39.4",
     "typescript": "catalog:",
     "vitest": "catalog:"

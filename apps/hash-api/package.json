@@ -133,7 +133,7 @@
     "@types/mailchimp__mailchimp_marketing": "3.0.21",
     "@types/md5": "2.3.6",
     "@types/mime-types": "2.1.4",
-    "@types/node": "22.18.13",
+    "@types/node": "catalog:",
     "@types/sanitize-html": "2.16.0",
     "@vitest/coverage-istanbul": "4.1.10",
     "eslint": "9.39.4",
