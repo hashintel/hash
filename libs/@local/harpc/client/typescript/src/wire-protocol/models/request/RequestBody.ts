@@ -1,15 +1,15 @@
 import {
-  type FastCheck,
-  type Option,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Function,
   Hash,
   Inspectable,
+  type Option,
   pipe,
   Pipeable,
   Predicate,
+  Result,
+  Schema,
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
@@ -28,7 +28,7 @@ export interface RequestBody
   extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
-  readonly body: Either.Either<
+  readonly body: Result.Result<
     RequestBegin.RequestBegin,
     RequestFrame.RequestFrame
   >;
@@ -45,11 +45,7 @@ const RequestBodyProto: Omit<RequestBody, "body"> = {
   },
 
   [Hash.symbol](this: RequestBody) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.body)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.body)));
   },
 
   toString(this: RequestBody) {
@@ -74,14 +70,14 @@ const RequestBodyProto: Omit<RequestBody, "body"> = {
 };
 
 export const make = (
-  body: Either.Either<RequestBegin.RequestBegin, RequestFrame.RequestFrame>,
+  body: Result.Result<RequestBegin.RequestBegin, RequestFrame.RequestFrame>,
 ): RequestBody => createProto(RequestBodyProto, { body });
 
 export const makeBegin = (begin: RequestBegin.RequestBegin): RequestBody =>
-  make(Either.right(begin));
+  make(Result.succeed(begin));
 
 export const makeFrame = (frame: RequestFrame.RequestFrame): RequestBody =>
-  make(Either.left(frame));
+  make(Result.fail(frame));
 
 // eslint-disable-next-line fsecond/no-inline-interfaces
 export const match: {
@@ -106,9 +102,9 @@ export const match: {
       readonly onFrame: (frame: RequestFrame.RequestFrame) => B;
     },
   ) =>
-    Either.match(self.body, {
-      onLeft: options.onFrame,
-      onRight: options.onBegin,
+    Result.match(self.body, {
+      onFailure: options.onFrame,
+      onSuccess: options.onBegin,
     }),
 );
 
@@ -139,7 +135,7 @@ export const mapBoth: {
     }),
 );
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, body: RequestBody) =>
   match(body, {
@@ -148,7 +144,7 @@ export const encode = implEncode((buffer, body: RequestBody) =>
   }),
 );
 
-export type DecodeError = Effect.Effect.Error<
+export type DecodeError = Result.Result.Failure<
   ReturnType<ReturnType<typeof decode>>
 >;
 
@@ -159,14 +155,14 @@ export const decode = (variantHint: RequestBodyVariant) =>
         return pipe(
           buffer,
           RequestBegin.decode,
-          Either.andThen((begin) => make(Either.right(begin))),
+          Result.andThen((begin) => make(Result.succeed(begin))),
         );
       }
       case "RequestFrame": {
         return pipe(
           buffer,
           RequestFrame.decode,
-          Either.andThen((frame) => make(Either.left(frame))),
+          Result.andThen((frame) => make(Result.fail(frame))),
         );
       }
     }
@@ -181,22 +177,26 @@ export const variant = (body: RequestBody): RequestBodyVariant =>
 export const isRequestBody = (value: unknown): value is RequestBody =>
   Predicate.hasProperty(value, TypeId);
 
-export const isBegin = (value: RequestBody) => Either.isRight(value.body);
+export const isBegin = (value: RequestBody) => Result.isSuccess(value.body);
 
-export const isFrame = (value: RequestBody) => Either.isLeft(value.body);
+export const isFrame = (value: RequestBody) => Result.isFailure(value.body);
 
 export const getBegin = (
   body: RequestBody,
-): Option.Option<RequestBegin.RequestBegin> => Either.getRight(body.body);
+): Option.Option<RequestBegin.RequestBegin> => Result.getSuccess(body.body);
 
 export const getFrame = (
   body: RequestBody,
-): Option.Option<RequestFrame.RequestFrame> => Either.getLeft(body.body);
+): Option.Option<RequestFrame.RequestFrame> => Result.getFailure(body.body);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .oneof(
-      RequestBegin.arbitrary(fc).map(Either.right),
-      RequestFrame.arbitrary(fc).map(Either.left),
-    )
-    .map(make);
+const arbitraryRequestBegin = RequestBegin.arbitrary.pipe(
+  Arbitrary.map(makeBegin),
+);
+const arbitraryRequestFrame = RequestFrame.arbitrary.pipe(
+  Arbitrary.map(makeFrame),
+);
+export const arbitrary = Arbitrary.schema(Schema.Boolean).pipe(
+  Arbitrary.flatMap((pickBegin) =>
+    pickBegin ? arbitraryRequestBegin : arbitraryRequestFrame,
+  ),
+);

@@ -94,14 +94,14 @@ const make = (options: Options) =>
       ignoreBOM: true,
     });
 
-    const schemaJson = Schema.parseJson(schema);
-    const decodeJson = Schema.decode(schemaJson);
+    const schemaJson = Schema.fromJsonString(schema);
+    const decodeJson = Schema.decodeEffect(schemaJson);
 
     let fragment = "";
 
     return pipe(
       input,
-      Stream.mapConcatEffect((buffer) =>
+      Stream.mapEffect((buffer) =>
         Effect.gen(function* () {
           const [nextFragment, items] = yield* processArrayBuffer(
             buffer,
@@ -116,6 +116,7 @@ const make = (options: Options) =>
           return items;
         }),
       ),
+      Stream.flattenIterable,
     );
   });
 

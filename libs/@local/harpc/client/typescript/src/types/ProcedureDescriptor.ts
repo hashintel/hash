@@ -1,13 +1,12 @@
 import {
-  type FastCheck,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Hash,
   Inspectable,
   pipe,
   Pipeable,
   Predicate,
+  Result,
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../utils.js";
@@ -37,11 +36,7 @@ const ProcedureDescriptorProto: Omit<ProcedureDescriptor, "id"> = {
   },
 
   [Hash.symbol](this: ProcedureDescriptor) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.id)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.id)));
   },
 
   toString(this: ProcedureDescriptor) {
@@ -68,21 +63,20 @@ const ProcedureDescriptorProto: Omit<ProcedureDescriptor, "id"> = {
 export const make = (id: ProcedureId.ProcedureId): ProcedureDescriptor =>
   createProto(ProcedureDescriptorProto, { id });
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, descriptor: ProcedureDescriptor) =>
   ProcedureId.encode(buffer, descriptor.id),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  ProcedureId.decode(buffer).pipe(Either.map(make)),
+  ProcedureId.decode(buffer).pipe(Result.map(make)),
 );
 
 export const isProcedureDescriptor = (
   value: unknown,
 ): value is ProcedureDescriptor => Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  ProcedureId.arbitrary(fc).map(make);
+export const arbitrary = ProcedureId.arbitrary.pipe(Arbitrary.map(make));

@@ -105,7 +105,7 @@ const enrichContext = (
 ) => {
   const name = pipe(
     value?.constructor.name,
-    Option.fromNullable,
+    Option.fromNullishOr,
     Option.map(String.uncapitalize),
     Option.filter((_) => !Record.has(context, _)),
     Option.getOrElse(() => `unknown${index}`),
@@ -118,7 +118,7 @@ const enrichContext = (
 /** @internal */
 export const format = (
   formatters: FormatterCollection,
-  level: LogLevel.LogLevel,
+  level: LogLevel.Severity,
   input: unknown,
   args: readonly unknown[],
 ) => {
@@ -167,8 +167,7 @@ export const format = (
     const formatOutput = pipe(
       formatters[token.type],
       Option.liftPredicate(Predicate.isNotUndefined),
-      Option.ap(Option.some(argument)),
-      Option.flatten,
+      Option.flatMap((formatter) => formatter(argument)),
       Option.getOrElse(() => "???"),
     );
 
@@ -180,12 +179,12 @@ export const format = (
     enrichContext(context, i, inputArguments[i]);
   }
 
-  return Effect.logWithLevel(level, output).pipe(Effect.annotateLogs(context));
+  return Effect.logWithLevel(level)(output).pipe(Effect.annotateLogs(context));
 };
 
 const nonEmptyString = (value?: string) =>
   pipe(
-    Option.fromNullable(value),
+    Option.fromNullishOr(value),
     Option.map(String.trim),
     Option.filter(String.isNonEmpty),
   );

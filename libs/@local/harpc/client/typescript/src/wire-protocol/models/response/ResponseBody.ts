@@ -1,15 +1,15 @@
 import {
-  type FastCheck,
-  type Option,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Function,
   Hash,
   Inspectable,
+  type Option,
   pipe,
   Pipeable,
   Predicate,
+  Result,
+  Schema,
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
@@ -28,7 +28,7 @@ export interface ResponseBody
   extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
-  readonly body: Either.Either<
+  readonly body: Result.Result<
     ResponseBegin.ResponseBegin,
     ResponseFrame.ResponseFrame
   >;
@@ -45,11 +45,7 @@ const ResponseBodyProto: Omit<ResponseBody, "body"> = {
   },
 
   [Hash.symbol](this: ResponseBody) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.body)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.body)));
   },
 
   toString(this: ResponseBody) {
@@ -74,7 +70,7 @@ const ResponseBodyProto: Omit<ResponseBody, "body"> = {
 };
 
 export const make = (
-  body: Either.Either<ResponseBegin.ResponseBegin, ResponseFrame.ResponseFrame>,
+  body: Result.Result<ResponseBegin.ResponseBegin, ResponseFrame.ResponseFrame>,
 ): ResponseBody => createProto(ResponseBodyProto, { body });
 
 // eslint-disable-next-line fsecond/no-inline-interfaces
@@ -100,9 +96,9 @@ export const match: {
       readonly onFrame: (frame: ResponseFrame.ResponseFrame) => B;
     },
   ) =>
-    Either.match(self.body, {
-      onLeft: options.onFrame,
-      onRight: options.onBegin,
+    Result.match(self.body, {
+      onFailure: options.onFrame,
+      onSuccess: options.onBegin,
     }),
 );
 
@@ -133,7 +129,7 @@ export const mapBoth: {
     }),
 );
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, body: ResponseBody) =>
   match(body, {
@@ -142,7 +138,7 @@ export const encode = implEncode((buffer, body: ResponseBody) =>
   }),
 );
 
-export type DecodeError = Effect.Effect.Error<
+export type DecodeError = Result.Result.Failure<
   ReturnType<ReturnType<typeof decode>>
 >;
 
@@ -153,14 +149,14 @@ export const decode = (variantHint: ResponseBodyVariant) =>
         return pipe(
           buffer,
           ResponseBegin.decode,
-          Either.andThen((begin) => make(Either.right(begin))),
+          Result.andThen((begin) => make(Result.succeed(begin))),
         );
       }
       case "ResponseFrame": {
         return pipe(
           buffer,
           ResponseFrame.decode,
-          Either.andThen((frame) => make(Either.left(frame))),
+          Result.andThen((frame) => make(Result.fail(frame))),
         );
       }
     }
@@ -177,16 +173,20 @@ export const isResponseBody = (value: unknown): value is ResponseBody =>
 
 export const getBegin = (
   body: ResponseBody,
-): Option.Option<ResponseBegin.ResponseBegin> => Either.getRight(body.body);
+): Option.Option<ResponseBegin.ResponseBegin> => Result.getSuccess(body.body);
 
 export const getFrame = (
   body: ResponseBody,
-): Option.Option<ResponseFrame.ResponseFrame> => Either.getLeft(body.body);
+): Option.Option<ResponseFrame.ResponseFrame> => Result.getFailure(body.body);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .oneof(
-      ResponseBegin.arbitrary(fc).map(Either.right),
-      ResponseFrame.arbitrary(fc).map(Either.left),
-    )
-    .map(make);
+const arbitraryBegin = ResponseBegin.arbitrary.pipe(
+  Arbitrary.map((value) => make(Result.succeed(value))),
+);
+const arbitraryFrame = ResponseFrame.arbitrary.pipe(
+  Arbitrary.map((value) => make(Result.fail(value))),
+);
+export const arbitrary = Arbitrary.schema(Schema.Boolean).pipe(
+  Arbitrary.flatMap((pickBegin) =>
+    pickBegin ? arbitraryBegin : arbitraryFrame,
+  ),
+);

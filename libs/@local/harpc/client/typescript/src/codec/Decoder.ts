@@ -1,13 +1,12 @@
 import {
-  type ParseResult,
-  type Schema,
-  type Stream,
+  Context,
   Data,
   Function,
   Inspectable,
   Pipeable,
+  type Schema,
+  type Stream,
 } from "effect";
-import { GenericTag } from "effect/Context";
 
 import { createProto } from "../utils.js";
 
@@ -29,21 +28,21 @@ export interface Decoder<E = DecodingError, R = never>
 
   readonly decode: {
     <SchemaType, SchemaEncoded, SchemaContext>(
-      schema: Schema.Schema<SchemaType, SchemaEncoded, SchemaContext>,
+      schema: Schema.Codec<SchemaType, SchemaEncoded, SchemaContext, unknown>,
     ): <StreamError, StreamContext>(
       input: Stream.Stream<ArrayBuffer, StreamError, StreamContext>,
     ) => Stream.Stream<
       SchemaType,
-      E | StreamError | ParseResult.ParseError,
+      E | StreamError | Schema.SchemaError,
       R | StreamContext | SchemaContext
     >;
 
     <SchemaType, SchemaEncoded, SchemaContext, StreamError, StreamContext>(
       input: Stream.Stream<ArrayBuffer, StreamError, StreamContext>,
-      schema: Schema.Schema<SchemaType, SchemaEncoded, SchemaContext>,
+      schema: Schema.Codec<SchemaType, SchemaEncoded, SchemaContext, unknown>,
     ): Stream.Stream<
       SchemaType,
-      E | StreamError | ParseResult.ParseError,
+      E | StreamError | Schema.SchemaError,
       R | StreamContext | SchemaContext
     >;
   };
@@ -75,7 +74,7 @@ const DecoderProto: Omit<DecoderImpl, "decode"> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- description is defined
-export const Decoder = GenericTag<Decoder>(TypeId.description!);
+export const Decoder = Context.Service<Decoder>(TypeId.description!);
 
 export const make = <E = DecodingError, R = never>(
   decode: <
@@ -86,10 +85,10 @@ export const make = <E = DecodingError, R = never>(
     StreamContext,
   >(
     input: Stream.Stream<ArrayBuffer, StreamError, StreamContext>,
-    schema: Schema.Schema<SchemaType, SchemaEncoded, SchemaContext>,
+    schema: Schema.Codec<SchemaType, SchemaEncoded, SchemaContext, unknown>,
   ) => Stream.Stream<
     SchemaType,
-    E | StreamError | ParseResult.ParseError,
+    E | StreamError | Schema.SchemaError,
     R | StreamContext | SchemaContext
   >,
 ) =>
