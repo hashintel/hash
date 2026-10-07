@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { generateArcId, toPetrinautId } from "@hashintel/petrinaut-core";
+import {
+  ARC_ID_PREFIX,
+  generateArcId,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
 
 import {
   resolveNavigatedId,
@@ -13,8 +17,9 @@ const arcId = generateArcId({
   outputId: toPetrinautId("transition__serve"),
 });
 
+// Like the editor's, it reads every generated arc id as an arc.
 const getItemType = (id: string) =>
-  id === placeId ? "place" : id === arcId ? "arc" : null;
+  id === placeId ? "place" : id.startsWith(ARC_ID_PREFIX) ? "arc" : null;
 
 const definition = {
   scenarios: [

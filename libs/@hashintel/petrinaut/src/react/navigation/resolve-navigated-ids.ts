@@ -25,14 +25,17 @@ const resolveSelectionItem = (
   item: SelectionItem,
   getItemType: (id: string) => string | null,
 ): SelectionItem | null => {
-  if (getItemType(item.id) === item.type) {
-    return item;
+  // `getItemType` reads every generated arc id as an arc, so arc ids always convert.
+  const id =
+    item.type === "arc"
+      ? canonicalizeArcId(item.id)
+      : getItemType(item.id) === item.type
+        ? item.id
+        : toPetrinautId(item.id);
+  if (getItemType(id) !== item.type) {
+    return null;
   }
-  const convertedId =
-    item.type === "arc" ? canonicalizeArcId(item.id) : toPetrinautId(item.id);
-  return getItemType(convertedId) === item.type
-    ? { ...item, id: convertedId }
-    : null;
+  return id === item.id ? item : { ...item, id };
 };
 
 type NavigatedItems = Pick<
