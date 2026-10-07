@@ -434,6 +434,12 @@ export {
 } from "./parameter-values";
 export { SDCPNItemError } from "./errors";
 export { isSDCPNEqual } from "./lib/deep-equal";
+export {
+  hashPetrinautDocument,
+  petrinautNonSemanticParts,
+  type HashPetrinautDocumentOptions,
+  type PetrinautNonSemanticPart,
+} from "./lib/hash-petrinaut-document";
 export { getNodeConnections } from "./lib/get-connections";
 
 // --- Authoring helpers ---

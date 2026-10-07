@@ -143,17 +143,7 @@ vi.mock("./brunch-panel-transport", async (importOriginal) => {
   };
 });
 
-// Content revisions hash with the real function, so the UI package loads for
-// it, and its modules read browser capabilities while they load.
-await vi.hoisted(async () => {
-  const { installPetrinautDomShims } =
-    await import("../shared/petrinaut-jsdom");
-  installPetrinautDomShims();
-});
-vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => ({
-  hashPetrinautDocument: (
-    await importOriginal<typeof import("@hashintel/petrinaut/ui")>()
-  ).hashPetrinautDocument,
+vi.mock("@hashintel/petrinaut/ui", () => ({
   DefaultChatTransport: class {
     public constructor(options: unknown) {
       defaultTransportOptions.current = options;

@@ -7790,6 +7790,7 @@ __metadata:
   resolution: "@hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core"
   dependencies:
     "@local/petrinaut-optimizer-core": "workspace:*"
+    "@noble/hashes": "npm:2.0.1"
     "@types/js-yaml": "npm:^4"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
@@ -7833,7 +7834,6 @@ __metadata:
     "@hashintel/refractive": "workspace:^"
     "@local/petrinaut-optimizer-client": "workspace:*"
     "@monaco-editor/react": "npm:4.8.0-rc.3"
-    "@noble/hashes": "npm:2.0.1"
     "@pandacss/dev": "npm:1.11.1"
     "@storybook/react-vite": "npm:10.4.6"
     "@tanstack/react-form": "npm:1.29.0"

@@ -104,12 +104,6 @@ export {
   type Transition,
   type WorkerFactory,
 } from "@hashintel/petrinaut-core";
-export {
-  hashPetrinautDocument,
-  petrinautNonSemanticParts,
-  type HashPetrinautDocumentOptions,
-  type PetrinautNonSemanticPart,
-} from "./ui/lib/hash-petrinaut-document";
 export { Petrinaut } from "./ui/petrinaut";
 export type {
   PetrinautAiAssistant,

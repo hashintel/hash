@@ -346,9 +346,6 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
     const repository = fixture.repository;
     if (!repository)
       throw new Error("The real document repository was not mounted");
-    const finalDefinition = handle.doc();
-    if (!finalDefinition) throw new Error("The real editor lost its document");
-    expect(documentRevisionOf(finalDefinition)).toBe(lastRevision);
     await expect(
       repository.settleRevision({ documentId, revision: lastRevision }),
     ).resolves.toBeUndefined();

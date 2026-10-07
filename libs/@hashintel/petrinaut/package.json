@@ -74,7 +74,6 @@
     "@hashintel/petrinaut-core": "workspace:^",
     "@hashintel/refractive": "workspace:^",
     "@monaco-editor/react": "4.8.0-rc.3",
-    "@noble/hashes": "2.0.1",
     "@tanstack/react-form": "1.29.0",
     "@xyflow/react": "12.10.1",
     "ai": "6.0.286",

@@ -10,14 +10,6 @@ import { useLocalDocumentRepository } from "./use-local-document-repository";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-// Content revisions are hashed by the Petrinaut UI package, whose modules read
-// browser capabilities while they load.
-await vi.hoisted(async () => {
-  const { installPetrinautDomShims } =
-    await import("../../../shared/petrinaut-jsdom");
-  installPetrinautDomShims();
-});
-
 const emptyDefinition = {
   places: [],
   transitions: [],
@@ -363,9 +355,7 @@ describe("useLocalDocumentRepository", () => {
     await expect(
       result.current.repository.settleRevision({
         documentId: "document-1",
-        revision: documentRevisionOf(
-          JSON.parse(JSON.stringify(placedDefinition)) as SDCPN,
-        ),
+        revision: documentRevisionOf(placedDefinition),
       }),
     ).resolves.toBeUndefined();
   });

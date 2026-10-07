@@ -343,12 +343,7 @@ type ActiveHandle = {
    * longer holds.
    */
   emittedRevisionIds: Set<RecordRevisionId>;
-  /**
-   * The record revision this handle's next change names as its predecessor:
-   * the last one minted for it, or the one it opened at. It lives with the
-   * handle because the persistence effect re-subscribes whenever the
-   * repository changes.
-   */
+  /** Predecessor named by this handle's next write; kept on the handle because the persistence effect re-subscribes. */
   latestRevisionId: { current: RecordRevisionId };
 };
 

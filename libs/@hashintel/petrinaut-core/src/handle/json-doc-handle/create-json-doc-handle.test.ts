@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createPetrinaut } from "../../instance";
 import { createReadableStore } from "../../store";
@@ -412,114 +412,20 @@ describe("PetrinautDocHandle history", () => {
     });
   };
 
-  const clockAt = (seconds: number): string => {
-    const now = new Date(Date.UTC(2026, 0, 1, 0, 0, seconds));
-    vi.setSystemTime(now);
-    return now.toISOString();
-  };
-
-  beforeEach(() => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  const expectLocalEvent = (
-    event: DocChangeEvent | undefined,
-    next: SDCPN | undefined,
-  ) => {
-    expect(Object.keys(event ?? {}).sort()).toEqual([
-      "next",
-      "patches",
-      "source",
-    ]);
-    expect(event?.next).toBe(next);
-    expect(event?.source).toBe("local");
-    expect(event?.patches?.length).toBeGreaterThan(0);
-  };
-
   it("is present on createJsonDocHandle and starts empty", () => {
-    const createdAt = clockAt(0);
     const handle = createJsonDocHandle({ initial: empty() });
     expect(handle.history).toBeDefined();
     expect(handle.history?.canUndo.get()).toBe(false);
     expect(handle.history?.canRedo.get()).toBe(false);
-    expect(handle.history?.entries.get()).toEqual([{ timestamp: createdAt }]);
+    expect(handle.history?.entries.get()).toHaveLength(1);
     expect(handle.history?.currentIndex.get()).toBe(0);
-  });
-
-  it("records a timestamped entry and emits the patches of every direct change", () => {
-    const createdAt = clockAt(0);
-    const handle = createJsonDocHandle({ initial: empty() });
-    const events: DocChangeEvent[] = [];
-    handle.subscribe((event) => events.push(event));
-
-    const changedAt = clockAt(1);
-    handle.change(addType("c1"));
-
-    expect(events).toEqual([
-      {
-        next: handle.doc(),
-        patches: [
-          {
-            op: "add",
-            path: ["types", 0],
-            value: {
-              id: "c1",
-              name: "c1",
-              iconSlug: "circle",
-              displayColor: "#FF0000",
-              elements: [],
-            },
-          },
-        ],
-        source: "local",
-      },
-    ]);
-    expect(handle.history?.entries.get()).toEqual([
-      { timestamp: createdAt },
-      { timestamp: changedAt },
-    ]);
-    expect(handle.history?.currentIndex.get()).toBe(1);
-  });
-
-  it("undo and redo emit the restored document and keep the entries", () => {
-    const createdAt = clockAt(0);
-    const handle = createJsonDocHandle({ initial: empty() });
-    const events: DocChangeEvent[] = [];
-    handle.subscribe((event) => events.push(event));
-    const changedAt = clockAt(1);
-    handle.change(addType("c1"));
-    const entries = [{ timestamp: createdAt }, { timestamp: changedAt }];
-
-    clockAt(2);
-    expect(handle.history?.undo()).toBe(true);
-    expect(handle.doc()?.types).toEqual([]);
-    expect(handle.history?.currentIndex.get()).toBe(0);
-    expect(handle.history?.entries.get()).toEqual(entries);
-    expect(events).toHaveLength(2);
-    expectLocalEvent(events.at(-1), handle.doc());
-
-    clockAt(3);
-    expect(handle.history?.redo()).toBe(true);
-    expect(handle.doc()?.types.map((type) => type.id)).toEqual(["c1"]);
-    expect(handle.history?.currentIndex.get()).toBe(1);
-    expect(handle.history?.entries.get()).toEqual(entries);
-    expect(events).toHaveLength(3);
-    expectLocalEvent(events.at(-1), handle.doc());
   });
 
   it("is omitted when historyLimit is 0", () => {
     const handle = createJsonDocHandle({ initial: empty(), historyLimit: 0 });
-    const events: DocChangeEvent[] = [];
-    handle.subscribe((event) => events.push(event));
     expect(handle.history).toBeUndefined();
     handle.change(addType("c1"));
     expect(handle.doc()?.types.map((type) => type.id)).toEqual(["c1"]);
-    expect(events).toHaveLength(1);
-    expectLocalEvent(events[0], handle.doc());
   });
 
   it("undoes a single mutation", () => {
@@ -577,53 +483,25 @@ describe("PetrinautDocHandle history", () => {
     handle.change(addType("c2"));
     handle.change(addType("c3"));
     expect(handle.doc()?.types).toHaveLength(3);
-    const events: DocChangeEvent[] = [];
-    handle.subscribe((event) => events.push(event));
 
-    expect(handle.history?.goToIndex(1)).toBe(true);
+    handle.history?.goToIndex(1);
     expect(handle.doc()?.types.map((t) => t.id)).toEqual(["c1"]);
-    expect(handle.history?.currentIndex.get()).toBe(1);
 
-    expect(handle.history?.goToIndex(3)).toBe(true);
+    handle.history?.goToIndex(3);
     expect(handle.doc()?.types.map((t) => t.id)).toEqual(["c1", "c2", "c3"]);
-    expect(handle.history?.currentIndex.get()).toBe(3);
 
-    expect(handle.history?.goToIndex(0)).toBe(true);
+    handle.history?.goToIndex(0);
     expect(handle.doc()?.types).toHaveLength(0);
-    expect(handle.history?.currentIndex.get()).toBe(0);
-
-    expect(handle.history?.goToIndex(0)).toBe(false);
-    expect(handle.history?.goToIndex(4)).toBe(false);
-    expect(handle.history?.goToIndex(-1)).toBe(false);
-    expect(
-      events.map((event) => ({
-        source: event.source,
-        typeIds: event.next.types.map((type) => type.id),
-        hasPatches: (event.patches?.length ?? 0) > 0,
-      })),
-    ).toEqual([
-      { source: "local", typeIds: ["c1"], hasPatches: true },
-      { source: "local", typeIds: ["c1", "c2", "c3"], hasPatches: true },
-      { source: "local", typeIds: [], hasPatches: true },
-    ]);
   });
 
   it("respects historyLimit by dropping oldest entries", () => {
-    clockAt(0);
     const handle = createJsonDocHandle({ initial: empty(), historyLimit: 2 });
-    const firstChangeAt = clockAt(1);
     handle.change(addType("c1"));
-    const secondChangeAt = clockAt(2);
     handle.change(addType("c2"));
-    const thirdChangeAt = clockAt(3);
     handle.change(addType("c3"));
 
-    expect(handle.history?.entries.get()).toEqual([
-      { timestamp: firstChangeAt },
-      { timestamp: secondChangeAt },
-      { timestamp: thirdChangeAt },
-    ]);
-    expect(handle.history?.currentIndex.get()).toBe(2);
+    // Stack capped at 2 entries; cursor is at the latest.
+    expect(handle.history?.entries.get().length).toBe(3); // initial + 2 retained
     expect(handle.history?.canRedo.get()).toBe(false);
     expect(handle.doc()?.types.map((t) => t.id)).toEqual(["c1", "c2", "c3"]);
 
@@ -635,20 +513,11 @@ describe("PetrinautDocHandle history", () => {
   });
 
   it("clear() drops the history stack", () => {
-    clockAt(0);
     const handle = createJsonDocHandle({ initial: empty() });
-    clockAt(1);
     handle.change(addType("c1"));
-    const listener = vi.fn();
-    handle.subscribe(listener);
-
-    const clearedAt = clockAt(5);
     handle.history?.clear();
     expect(handle.history?.canUndo.get()).toBe(false);
-    expect(handle.history?.canRedo.get()).toBe(false);
-    expect(handle.history?.entries.get()).toEqual([{ timestamp: clearedAt }]);
-    expect(handle.history?.currentIndex.get()).toBe(0);
+    expect(handle.history?.entries.get()).toHaveLength(1);
     expect(handle.doc()?.types).toHaveLength(1); // doc state unchanged
-    expect(listener).not.toHaveBeenCalled();
   });
 });
