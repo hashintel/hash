@@ -107,7 +107,7 @@ test("keeps voice guidance in a dismissible information popover", async () => {
   fireEvent.click(info);
   expect(
     await screen.findByText(
-      "Applies next session. Mute your mic while the agent is idle to preview.",
+      "Applies next session. To preview, mute your mic while the agent is idle.",
     ),
   ).toBeTruthy();
   const dialog = await screen.findByRole("dialog");

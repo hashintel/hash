@@ -300,7 +300,7 @@ export class LiveBrunchBridge {
     this.#turns.clear();
     if (withdrew)
       this.#dependencies.notice(
-        "Your earlier utterance was not sent because you started speaking again. Use the composer to send it.",
+        "Your earlier words weren’t sent. You started speaking again, so they’re in the composer if you still want them.",
       );
     for (const turn of this.#summarizing) {
       if (turn.delegationId !== null && !this.#abort.signal.aborted)
@@ -346,7 +346,7 @@ export class LiveBrunchBridge {
       submitted: false,
     });
     this.#dependencies.notice(
-      "Your earlier utterance was not sent because the conversation changed. Use the composer to send it.",
+      "Your earlier words weren’t sent. The conversation changed, so they’re in the composer if you still want them.",
     );
     this.#unserved(
       turn.delegationId,
@@ -523,7 +523,7 @@ export class LiveBrunchBridge {
       // Newer speech already replaced these words; resending them is not asked for.
       if (input.superseded) return;
       this.#dependencies.notice(
-        "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
+        "Those words weren’t sent. They’re in the composer to send when the assistant is ready.",
       );
       const history = this.#dependencies.mediation.history;
       const waiting = this.#waitingForComposer;
@@ -637,8 +637,8 @@ export class LiveBrunchBridge {
         });
         this.#dependencies.notice(
           turn.submissionId
-            ? "Your message was admitted, but its response could not be confirmed. Check canonical history; no automatic retry was made."
-            : "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+            ? "Couldn’t confirm the answer. Your message was sent; check the conversation before sending it again."
+            : "Couldn’t confirm your message was sent. Check the conversation before sending it again.",
         );
         this.#unconfirmed(turn);
       }
@@ -861,7 +861,7 @@ export class LiveBrunchBridge {
           delegationId: turn.delegationId,
         });
         this.#dependencies.notice(
-          "Brunch did not complete this turn. Check the conversation; no result was offered to Live.",
+          "The assistant didn’t finish. Nothing will be spoken; check the conversation.",
         );
         this.#preparations.delete(turn.preparation);
         if (settlements.some((settlement) => settlement?.outcome === "aborted"))
@@ -1029,7 +1029,7 @@ export class LiveBrunchBridge {
           delegationId: turn.delegationId,
         });
         this.#dependencies.notice(
-          "Brunch settled without a spoken answer. Check the conversation.",
+          "The assistant finished without a reply to speak. Check the conversation.",
         );
         this.#unserved(
           turn.delegationId,
@@ -1111,7 +1111,7 @@ export class LiveBrunchBridge {
     } catch {
       if (!turn.preparation.signal.aborted && !this.#abort.signal.aborted) {
         this.#dependencies.notice(
-          "Brunch finished, but its spoken summary could not be prepared. Read the written answer; no automatic retry was made.",
+          "Couldn’t prepare a spoken summary. The written answer is in the conversation.",
         );
         this.#unserved(
           turn.delegationId,

@@ -263,7 +263,7 @@ describe("OpenAI Realtime call handler", () => {
     expect(response.status).toBe(502);
     const responseBody = await response.text();
     expect(responseBody).toBe(
-      "The voice connection returned an invalid response. Try again; if it continues, give the diagnostic reference to an operator.",
+      "The voice connection returned an invalid response. Try again. If it keeps happening, share the diagnostic reference with support.",
     );
     expect(responseBody).not.toContain("secret");
     expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe(
@@ -288,7 +288,7 @@ describe("OpenAI Realtime call handler", () => {
 
     expect(response.status).toBe(502);
     expect(await response.text()).toBe(
-      "The voice connection returned an invalid response. Try again; if it continues, give the diagnostic reference to an operator.",
+      "The voice connection returned an invalid response. Try again. If it keeps happening, share the diagnostic reference with support.",
     );
   });
 
@@ -307,7 +307,7 @@ describe("OpenAI Realtime call handler", () => {
 
     expect(response.status).toBe(400);
     expect(await response.text()).toBe(
-      "The voice connection returned an invalid response. Try again; if it continues, give the diagnostic reference to an operator.",
+      "The voice connection returned an invalid response. Try again. If it keeps happening, share the diagnostic reference with support.",
     );
     expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe(
       "invalid-response",
@@ -360,7 +360,7 @@ describe("OpenAI Realtime call handler", () => {
     const response = await responsePromise;
     expect(response.status).toBe(504);
     expect(await response.text()).toBe(
-      "The voice connection timed out. Check your connection, then reconnect voice input.",
+      "The voice connection timed out. Check your connection, then reconnect.",
     );
     expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe("timeout");
     expect(response.headers.get("cache-control")).toBe("no-store");
@@ -438,7 +438,7 @@ describe("OpenAI Realtime call handler", () => {
     expect(response.status).toBe(502);
     expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe("network");
     expect(await response.text()).toBe(
-      "The voice connection could not be reached. Check your connection, then reconnect voice input.",
+      "The voice connection could not be reached. Check your connection, then reconnect.",
     );
     expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain(
       "private network diagnostics",

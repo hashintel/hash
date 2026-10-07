@@ -383,7 +383,7 @@ describe("BrunchDraftExperimentWidget", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(heading()).toEqual(["Preparing draft"]);
     expect(screen.getByText(/being prepared/u)).toBeTruthy();
-    expect(screen.queryByText(/before this editor was loaded/u)).toBeNull();
+    expect(screen.queryByText(/is from an earlier session/u)).toBeNull();
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
 
     await act(async () => submission.resolve());
@@ -423,7 +423,7 @@ describe("BrunchDraftExperimentWidget", () => {
         name: "Run",
       });
       expect(run.disabled).toBe(true);
-      expect(screen.getByRole("alert").textContent).toContain("Run is blocked");
+      expect(screen.getByRole("alert").textContent).toContain("Can’t run");
       fireEvent.click(run);
       expect(runExperiment).not.toHaveBeenCalled();
     },
@@ -534,7 +534,7 @@ describe("BrunchDraftExperimentWidget", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "invalid" });
     expect(submit.mock.calls[0]?.[0].diagnostics[0]).toMatch(
-      /changed since the canonical read/u,
+      /changed since the AI assistant read it/u,
     );
     expect(heading()).toEqual(["Could not be prepared"]);
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
@@ -1441,9 +1441,7 @@ describe("BrunchDraftExperimentWidget", () => {
 
     expect(submit).not.toHaveBeenCalled();
     expect(heading()).toEqual(["Not retained in this editor"]);
-    expect(
-      screen.getByText(/prepared before this editor was loaded/u),
-    ).toBeTruthy();
+    expect(screen.getByText(/draft is from an earlier session/u)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
   });
 

@@ -517,7 +517,7 @@ test("requires renewed consent to save finalized spoken words beyond the browser
   ).toBeTruthy();
   expect(
     screen.getByText(
-      /Brunch saves your finalized spoken words, the brief and its answer/,
+      /Your transcribed words, the request sent to the assistant and its answer are saved/,
     ),
   ).toBeTruthy();
   expect(
@@ -724,7 +724,9 @@ test("reuses setup and reports failure to the host dock and notification surface
     screen.getByRole("region", { name: "Voice mode consent" }),
   ).toBeTruthy();
   expect(screen.getByText("Start a voice conversation")).toBeTruthy();
-  expect(screen.getByText(/OpenAI processes microphone audio/)).toBeTruthy();
+  expect(
+    screen.getByText(/OpenAI processes your microphone audio/),
+  ).toBeTruthy();
   expect(screen.queryByText(/experimental|best-effort/i)).toBeNull();
   expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
   expect(
@@ -798,8 +800,7 @@ test("reuses setup and reports failure to the host dock and notification surface
       microphoneLevel: 0.12,
     }),
   );
-  const playbackNotice =
-    "Audio playback is blocked. Select Play voice audio to hear Live.";
+  const playbackNotice = "Audio blocked. Select Play to listen.";
   act(() =>
     onState({
       phase: "connected",
@@ -838,7 +839,7 @@ test("reuses setup and reports failure to the host dock and notification surface
     .value as ReturnType<typeof createLiveConversation>;
   expect(liveSession.retryPlayback).toHaveBeenCalledOnce();
   const connectionError =
-    "live session request failed (HTTP 502, provider HTTP 401). No automatic retry was made.";
+    "live session request failed (HTTP 502, provider HTTP 401).";
   act(() =>
     onState({
       phase: "error",
@@ -1169,7 +1170,7 @@ test("pins provider, ends through host controls, and never submits or stops cano
   expect(createLiveConversation).toHaveBeenCalledOnce();
   expect(
     screen.getByText(
-      "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio.",
+      "OpenAI processes your audio and speaks the interviewer’s questions. Your transcribed answers are saved; audio isn’t.",
     ),
   ).toBeTruthy();
   expect(screen.getByRole("button", { name: "Start voice" })).toBeTruthy();
@@ -1866,10 +1867,11 @@ test.each(["commentary", "instructions"] as const)(
         );
       }
     }
-    for (const [status, text] of [
-      ["local-failure", "could not be sent to Live locally"],
-      ["rejected", "was rejected by Live"],
-    ] as const) {
+    const text =
+      kind === "commentary"
+        ? "Couldn’t speak the answer."
+        : "Voice may be out of sync.";
+    for (const status of ["local-failure", "rejected"] as const) {
       act(() => call[4]({ ...result, eventId: status, status }));
       expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -1933,7 +1935,7 @@ test("a wrap-up without a delegation still warns when it cannot be sent", async 
   expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
     expect.objectContaining({
       warningMessage: expect.stringContaining(
-        "The answer could not be sent to Live locally",
+        "Couldn’t speak the answer.",
       ) as unknown,
     }),
   );

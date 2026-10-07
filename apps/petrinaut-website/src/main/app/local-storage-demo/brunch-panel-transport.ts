@@ -266,8 +266,8 @@ const summarizeSweepOutput = (
   switch (sweep.status) {
     case "no-settled-range":
       return {
-        title: "No settled range to sweep",
-        detail: "The conversation has no settled user entries.",
+        title: "Nothing confirmed to sweep yet",
+        detail: "None of your messages in this conversation are confirmed yet.",
       };
     case "refused":
       return {
