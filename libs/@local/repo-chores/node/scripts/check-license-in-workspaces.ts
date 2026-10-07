@@ -45,7 +45,7 @@ const script = async () => {
     caseSensitiveMatch: false,
     cwd: monorepoRootDirPath,
     dot: true,
-    ignore: ignoredDirGlobs,
+    ignore: [...ignoredDirGlobs, "**/*.py", "**/*.pyc"],
   });
 
   const misspelledLicenseFileSet = new Set<string>();
