@@ -32,6 +32,7 @@ import {
 } from "./voice-turn-controller";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { ToolApprovalState } from "./live-brunch-bridge";
 import type { VoiceMediationHistory } from "./voice-mediation-history";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
@@ -637,7 +638,7 @@ const PinnedVoiceInterviewControl = ({
   config,
   readWords,
   mediationHistory,
-  isToolAwaitingApproval,
+  toolApprovalState,
   resolveInputSubmission,
   resolveResponseSubmission,
   settlements,
@@ -652,7 +653,7 @@ const PinnedVoiceInterviewControl = ({
   readonly config: OpenAIVoiceConfig;
   readonly readWords?: () => readonly VoiceWord[];
   readonly mediationHistory?: VoiceMediationHistory;
-  readonly isToolAwaitingApproval?: (toolCallId: string) => boolean;
+  readonly toolApprovalState?: (toolCallId: string) => ToolApprovalState | null;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
@@ -697,7 +698,7 @@ const PinnedVoiceInterviewControl = ({
         {...context}
         readWords={readSessionWords}
         mediationHistory={mediationHistory}
-        isToolAwaitingApproval={isToolAwaitingApproval}
+        toolApprovalState={toolApprovalState}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
         isDisclosureAcknowledged={isLiveVoiceInterviewDisclosureAcknowledged}

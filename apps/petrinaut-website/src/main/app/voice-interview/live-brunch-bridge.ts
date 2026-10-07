@@ -96,9 +96,14 @@ interface Dependencies {
   readonly notice: (message: string | null) => void;
   /** Transcription speech has started and its transcript isn't finalized yet. */
   readonly speechPending: () => boolean;
-  /** Browser approval authority; input-available alone also means executing. */
-  readonly isToolAwaitingApproval?: (toolCallId: string) => boolean;
+  /**
+   * Browser approval authority. Without a verdict, input-available means
+   * executing; a refused call stays input-available until its output arrives.
+   */
+  readonly toolApprovalState?: (toolCallId: string) => ToolApprovalState | null;
 }
+
+export type ToolApprovalState = "awaiting" | "refused";
 
 /** GPT-Live accepts at most 500 tokens per append; stay well inside it. */
 const liveAppendCharacterBudget = 1_400;
@@ -214,9 +219,10 @@ export class LiveBrunchBridge {
           continue;
         for (const part of message.parts) {
           if (!isToolUIPart(part)) continue;
+          const approval =
+            this.#dependencies.toolApprovalState?.(part.toolCallId) ?? null;
           const state =
-            this.#dependencies.isToolAwaitingApproval?.(part.toolCallId) ||
-            part.state === "approval-requested"
+            approval === "awaiting" || part.state === "approval-requested"
               ? "awaiting-approval"
               : part.state === "input-streaming"
                 ? "preparing"
@@ -227,7 +233,9 @@ export class LiveBrunchBridge {
             now,
             state,
           );
-          if (
+          if (approval === "refused") {
+            turn.progress.toolFinished(part.toolCallId, now, false);
+          } else if (
             part.state === "output-available" ||
             part.state === "output-error" ||
             part.state === "output-denied"

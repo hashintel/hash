@@ -22,6 +22,7 @@ import {
 } from "./voice-interview-control";
 import { VoiceMediationHistory } from "./voice-mediation-history";
 
+import type { ToolApprovalState } from "./live-brunch-bridge";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
@@ -1984,10 +1985,10 @@ test("Live progress observes the host approval gate and stays out of written voi
     kind: "message" as const,
     messageId: "voice-input",
   }));
-  const awaitingApproval = vi.fn(() => true);
+  const approvalState = vi.fn((): ToolApprovalState | null => "awaiting");
   const wiring = {
     mediationHistory: history,
-    isToolAwaitingApproval: awaitingApproval,
+    toolApprovalState: approvalState,
     resolveInputSubmission: () => "root",
     subscribeToResponseMessageStarted:
       tracker.subscribeToResponseMessageStarted.bind(tracker),
@@ -2053,9 +2054,9 @@ test("Live progress observes the host approval gate and stays out of written voi
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
-    expect(awaitingApproval).toHaveBeenCalledWith("delete");
+    expect(approvalState).toHaveBeenCalledWith("delete");
     expect(session.appendProgress).not.toHaveBeenCalled();
-    awaitingApproval.mockReturnValue(false);
+    approvalState.mockReturnValue(null);
     act(() =>
       call[0]({
         phase: "connected",

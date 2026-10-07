@@ -4,6 +4,7 @@ import { prepareVoiceBrief } from "../../../shared/voice-mediation";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
 import { VoiceMediationHistory } from "./voice-mediation-history";
 
+import type { ToolApprovalState } from "./live-brunch-bridge";
 import type { FlueConversationState } from "@flue/sdk";
 
 beforeEach(() => {
@@ -39,7 +40,7 @@ const setup = (
   );
   const notice = vi.fn();
   const speechPending = vi.fn(() => true);
-  const isToolAwaitingApproval = vi.fn(() => false);
+  const toolApprovalState = vi.fn((): ToolApprovalState | null => null);
   const submit = vi.fn(
     async (
       input: Parameters<
@@ -61,7 +62,7 @@ const setup = (
     appendThinking,
     notice,
     speechPending,
-    isToolAwaitingApproval,
+    toolApprovalState,
     submit,
     mediation,
   });
@@ -85,7 +86,7 @@ const setup = (
     appendThinking,
     notice,
     speechPending,
-    isToolAwaitingApproval,
+    toolApprovalState,
     submit,
     update,
   };
@@ -2602,7 +2603,7 @@ test("approval changes are polled even without a new message snapshot", async ()
   fixture.bridge.acceptDelegation("delegation");
   await fixture.bridge.accept(speech("one", "Remove that place"));
   fixture.speechPending.mockReturnValue(false);
-  fixture.isToolAwaitingApproval.mockReturnValue(true);
+  fixture.toolApprovalState.mockReturnValue("awaiting");
   fixture.bridge.responseStarted(started);
   fixture.update({
     status: "streaming",
@@ -2615,13 +2616,39 @@ test("approval changes are polled even without a new message snapshot", async ()
       text.includes('"phase":"awaiting-approval"'),
     ),
   ).toBe(true);
-  fixture.isToolAwaitingApproval.mockReturnValue(false);
+  fixture.toolApprovalState.mockReturnValue(null);
   await vi.advanceTimersByTimeAsync(2_500);
   expect(fixture.appendProgress).not.toHaveBeenCalled();
   await vi.advanceTimersByTimeAsync(250);
   expect(fixture.appendProgress).toHaveBeenCalledExactlyOnceWith(
     "Making those changes now.",
   );
+  fixture.bridge.stop();
+});
+
+test("a refused edit is not narrated as running while its refusal round-trips", async () => {
+  vi.useFakeTimers();
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("delegation");
+  await fixture.bridge.accept(speech("one", "Remove that place"));
+  fixture.speechPending.mockReturnValue(false);
+  fixture.toolApprovalState.mockReturnValue("awaiting");
+  fixture.bridge.responseStarted(started);
+  fixture.update({
+    status: "streaming",
+    messages: [runningTool("removePlace")],
+  });
+  await vi.advanceTimersByTimeAsync(10_000);
+  fixture.toolApprovalState.mockReturnValue("refused");
+  await vi.advanceTimersByTimeAsync(30_000);
+  expect(fixture.appendProgress).not.toHaveBeenCalledWith(
+    "Making those changes now.",
+  );
+  expect(
+    fixture.appendThinking.mock.calls.some(([text]) =>
+      text.includes('"phase":"mutation"'),
+    ),
+  ).toBe(false);
   fixture.bridge.stop();
 });
 

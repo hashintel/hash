@@ -120,6 +120,7 @@ import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { VoiceWord } from "../../../shared/voice-words";
+import type { ToolApprovalState } from "../voice-interview/live-brunch-bridge";
 import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
 import type {
   DocumentRecord,
@@ -238,7 +239,7 @@ export const getBrunchVoiceMode = (
   settlements?: readonly FlueConversationSettlement[],
   snapshot?: FlueConversationState,
   mediationHistory?: VoiceMediationHistory,
-  isToolAwaitingApproval?: (toolCallId: string) => boolean,
+  toolApprovalState?: (toolCallId: string) => ToolApprovalState | null,
   readWords?: () => readonly VoiceWord[],
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
@@ -268,7 +269,7 @@ export const getBrunchVoiceMode = (
       config={config}
       readWords={readWords}
       mediationHistory={mediationHistory}
-      isToolAwaitingApproval={isToolAwaitingApproval}
+      toolApprovalState={toolApprovalState}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated
       // independently by followMessages.canReplace below.
@@ -850,7 +851,7 @@ export const LocalStorageDemoApp = ({
         flueHistory.settlements,
         flueHistory.snapshot,
         mediationHistory,
-        (toolCallId) => mutationApproval.coordinator.hasPending(toolCallId),
+        (toolCallId) => mutationApproval.coordinator.approvalState(toolCallId),
         readWords,
       ),
     [
