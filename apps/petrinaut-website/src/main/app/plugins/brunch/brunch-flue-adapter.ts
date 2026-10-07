@@ -47,9 +47,14 @@ export const createBrunchFlueAdapter = (
     FlueAiSdkAdapterConfig<UIMessage>,
     "clientToolNames" | "dynamicClientToolNames" | "mapClientToolInput"
   >,
+  reporting: Pick<
+    FlueAiSdkAdapterConfig<UIMessage>,
+    "onInvalidReopenedMetadata"
+  > = {},
 ): BrunchFlueAdapter =>
   createFlueAiSdkAdapter<PetrinautAiMessage>({
     ...tools,
+    ...reporting,
     mapToolOutput: browserToolOutput,
     metadataSchema: petrinautMessageMetadataSchema,
     projectMetadata: projectBrunchMessageMetadata,

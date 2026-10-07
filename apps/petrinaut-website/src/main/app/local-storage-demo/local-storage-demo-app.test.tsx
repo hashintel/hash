@@ -139,10 +139,10 @@ vi.mock("../plugins/brunch/brunch-flue-adapter", async (importOriginal) => {
   return {
     ...actual,
     createBrunchFlueAdapter: (
-      tools: Parameters<typeof actual.createBrunchFlueAdapter>[0],
+      ...args: Parameters<typeof actual.createBrunchFlueAdapter>
     ) => {
-      brunchFlueAdapterTools.current = tools;
-      return actual.createBrunchFlueAdapter(tools);
+      brunchFlueAdapterTools.current = args[0];
+      return actual.createBrunchFlueAdapter(...args);
     },
   };
 });

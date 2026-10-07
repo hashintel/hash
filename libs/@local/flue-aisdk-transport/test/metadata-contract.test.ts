@@ -14,6 +14,7 @@ import {
   startFlueHarness,
 } from "./flue-harness";
 
+import type { InvalidReopenedMetadata } from "../src/client";
 import type { UIMessage, UIMessageChunk } from "ai";
 
 const harness = await startFlueHarness();
@@ -81,16 +82,18 @@ test("start and finish metadata merge live as Flue merges them into history", as
   expectLiveReopenParity(turn);
 });
 
-test("metadata that fails the schema ends the live turn with an error, and reopening throws", async () => {
+test("metadata that fails the schema ends the live turn with an error, and reopening drops and reports it", async () => {
   harness.setResponseMetadata({ model: 1 });
   harness.script([
     fauxAssistantMessage([fauxText("Mistagged.")]),
     fauxAssistantMessage([fauxText("Mistagged again.")]),
   ]);
   const turn = await harness.runTurn("Tag");
+  const reported: InvalidReopenedMetadata[] = [];
   const strict = createFlueAiSdkAdapter<TaggedMessage>({
     ...harnessAdapterConfig,
     metadataSchema: taggedMetadataSchema,
+    onInvalidReopenedMetadata: (invalid) => reported.push(invalid),
   });
   const chunks: UIMessageChunk[] = [];
   for await (const chunk of await strict
@@ -108,9 +111,23 @@ test("metadata that fails the schema ends the live turn with an error, and reope
   }
   harness.setResponseMetadata(undefined);
 
-  expect(() => strict.reopen(turn.history)).toThrow(
-    "Message metadata does not match the host schema",
-  );
+  const reopened = strict.reopen(turn.history);
+  const mistagged = reopened.at(-1);
+  expect(mistagged).toMatchObject({
+    role: "assistant",
+    parts: [{ type: "text", text: "Mistagged." }],
+  });
+  expect(mistagged?.metadata).toBeUndefined();
+  expect(reported).toEqual([
+    {
+      messageId: mistagged?.id,
+      error: expect.objectContaining({
+        message: expect.stringContaining(
+          "Message metadata does not match the host schema",
+        ) as unknown,
+      }) as unknown,
+    },
+  ]);
   expect(chunks.at(-1)).toMatchObject({
     type: "error",
     errorText: expect.stringContaining(

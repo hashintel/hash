@@ -289,7 +289,7 @@ test("keeps the server's current-net freshness marker out of the rendered histor
   );
 });
 
-test("surfaces metadata the host schema refuses as the history error", async () => {
+test("keeps a message whose metadata the host schema refuses, without that metadata", async () => {
   const harness = createObservationHarness({
     conversation: {
       conversationId: "conversation-1",
@@ -314,8 +314,13 @@ test("surfaces metadata the host schema refuses as the history error", async () 
   );
 
   await waitFor(() => expect(result.current.ready).toBe(true));
-  expect(result.current.messages).toBeUndefined();
-  expect(result.current.error?.message).toContain(
-    "Message metadata does not match the host schema",
-  );
+  expect(result.current.error).toBeUndefined();
+  expect(result.current.messages).toEqual([
+    {
+      id: "assistant-1",
+      role: "assistant",
+      parts: [{ type: "text", text: "Canonical reply.", state: "done" }],
+      metadata: undefined,
+    },
+  ]);
 });
