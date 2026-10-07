@@ -19,6 +19,9 @@ export type TypesTableTypeKind =
   | "property-type"
   | "data-type";
 
+/** The kinds of type a types-table tab displays. */
+export type TypesTableKind = "all" | TypesTableTypeKind;
+
 export type TypeFilterField =
   | "archived"
   | "kind"
@@ -98,6 +101,27 @@ export const typeFilterFieldLabels: Record<TypeFilterField, string> = {
   lastEditedBy: "Last edited by",
   inheritsFrom: "Inherits from",
   hasProperty: "Has attribute",
+};
+
+/**
+ * Whether a filter field can match anything on a tab: `kind` is redundant on
+ * single-kind tabs, property types have neither properties nor ancestors, and
+ * data types have no properties.
+ */
+export const isTypeFilterFieldAvailable = (
+  field: TypeFilterField,
+  kind: TypesTableKind,
+): boolean => {
+  switch (field) {
+    case "kind":
+      return kind === "all";
+    case "inheritsFrom":
+      return kind !== "property-type";
+    case "hasProperty":
+      return kind === "all" || kind === "entity-type" || kind === "link-type";
+    default:
+      return true;
+  }
 };
 
 export const getDefaultTypeFilterOperator = (

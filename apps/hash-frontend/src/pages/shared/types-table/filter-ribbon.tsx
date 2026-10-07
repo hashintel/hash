@@ -14,6 +14,7 @@ import { filterChipPillChrome, FilterGroupRibbon } from "../filter-bar";
 import { TypeFilterChip } from "./filter-ribbon/type-filter-chip";
 import {
   getDefaultTypeFilterOperator,
+  isTypeFilterFieldAvailable,
   lastEditedWithinOptions,
   typeFilterFieldLabels,
   typeFilterOperatorsByField,
@@ -21,7 +22,11 @@ import {
 } from "./shared/type-filters";
 
 import type { MinimalActor } from "../../../shared/use-actors";
-import type { TypeFilter, TypeFilterField } from "./shared/type-filters";
+import type {
+  TypeFilter,
+  TypeFilterField,
+  TypesTableKind,
+} from "./shared/type-filters";
 import type {
   ItemOrGroup,
   MenuItem,
@@ -52,15 +57,16 @@ export const TypesFilterRibbon: FunctionComponent<{
   setFilters: (updater: (prev: TypeFilter[]) => TypeFilter[]) => void;
   /** The actors who last edited the displayed types, for the editor picker. */
   editors?: MinimalActor[];
-  /** The kind filter is redundant on single-kind tabs. */
-  showKindFilter: boolean;
+  /** The tab's kind, gating which fields can be filtered on. */
+  kind: TypesTableKind;
   /** Pills leading the chip group (search toggle, web pill). */
   leadingControls?: ReactNode;
-}> = ({ filters, setFilters, editors, showKindFilter, leadingControls }) => {
+}> = ({ filters, setFilters, editors, kind, leadingControls }) => {
   const { latestEntityTypes } = useLatestEntityTypesOptional();
   const { latestDataTypes } = useDataTypesContext();
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
 
+  /** Single-kind tabs only offer ancestors their types can actually have. */
   const inheritsFromItems = useMemo<Array<ItemOrGroup<MultiSelectItem>>>(() => {
     const entityTypeItems = (latestEntityTypes ?? [])
       .map((entityType) => ({
@@ -74,11 +80,14 @@ export const TypesFilterRibbon: FunctionComponent<{
         text: dataType.schema.title,
       }))
       .sort(compareByText);
+    if (kind !== "all") {
+      return kind === "data-type" ? dataTypeItems : entityTypeItems;
+    }
     return [
       { id: "entity-types", label: "Entity types", items: entityTypeItems },
       { id: "data-types", label: "Data types", items: dataTypeItems },
     ];
-  }, [latestEntityTypes, latestDataTypes]);
+  }, [latestEntityTypes, latestDataTypes, kind]);
 
   const propertyItems = useMemo<MultiSelectItem[]>(
     () =>
@@ -197,7 +206,7 @@ export const TypesFilterRibbon: FunctionComponent<{
       Exclude<TypeFilterField, "archived">
     >
   )
-    .filter((field) => field !== "kind" || showKindFilter)
+    .filter((field) => isTypeFilterFieldAvailable(field, kind))
     .sort(compareFieldsByLabel);
 
   const addFilterMenuItems: MenuItem[] = [

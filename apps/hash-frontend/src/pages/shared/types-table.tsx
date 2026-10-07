@@ -57,6 +57,7 @@ import { TypesFilterRibbon } from "./types-table/filter-ribbon";
 import {
   createTypeFilterPredicate,
   getTypeKind,
+  isTypeFilterFieldAvailable,
 } from "./types-table/shared/type-filters";
 import { visualizerViewIcons } from "./visualizer-views";
 
@@ -66,6 +67,7 @@ import type { ChipCell } from "./chip-cell";
 import type { TextIconCell } from "./text-icon-cell";
 import type {
   TypeFilter,
+  TypesTableKind,
   TypesTableTypeKind,
 } from "./types-table/shared/type-filters";
 import type { VisualizerView } from "./visualizer-views";
@@ -109,14 +111,7 @@ const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
   return `${domain}/${firstPathSegment}`;
 };
 
-type TypeTableKind =
-  | "all"
-  | "entity-type"
-  | "link-type"
-  | "property-type"
-  | "data-type";
-
-const typesTablesToTitle: Record<TypeTableKind, string> = {
+const typesTablesToTitle: Record<TypesTableKind, string> = {
   all: "Types",
   "entity-type": "Entity Types",
   "property-type": "Property Types",
@@ -164,7 +159,7 @@ export const TypesTable: FunctionComponent<{
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
-  kind: TypeTableKind;
+  kind: TypesTableKind;
 }> = ({ types, kind, onlyOneWeb, loading = false }) => {
   const router = useRouter();
 
@@ -189,6 +184,16 @@ export const TypesTable: FunctionComponent<{
   }));
 
   const [typeFilters, setTypeFilters] = useState<TypeFilter[]>([]);
+
+  // Filters survive tab switches, but a field the new tab's types can never
+  // match would silently hide every row — drop those.
+  const [filtersKind, setFiltersKind] = useState(kind);
+  if (kind !== filtersKind) {
+    setFiltersKind(kind);
+    setTypeFilters((prev) =>
+      prev.filter((filter) => isTypeFilterFieldAvailable(filter.field, kind)),
+    );
+  }
 
   const includeArchived = typeFilters.some(
     (filter) => filter.field === "archived",
@@ -694,7 +699,7 @@ export const TypesTable: FunctionComponent<{
                   setTypeFilters((prev) => updater(prev))
                 }
                 editors={actors}
-                showKindFilter={kind === "all"}
+                kind={kind}
               />
               {loading && (
                 <Box
