@@ -13,6 +13,7 @@ export { createFlueAiSdkAdapter } from "./client/flue-ai-sdk-adapter";
 export type {
   FlueAiSdkAdapter,
   FlueAiSdkAdapterConfig,
+  InvalidReopenedMetadata,
 } from "./client/flue-ai-sdk-adapter";
 export type { MetadataProjection } from "./client/shared/metadata-projection";
 export { createFlueUiStream } from "./client/ui-stream";

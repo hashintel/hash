@@ -30,8 +30,23 @@ type MetadataContract<Metadata> = unknown extends Metadata
   ? { readonly metadataSchema?: SyncMetadataSchema<Metadata> }
   : { readonly metadataSchema: SyncMetadataSchema<Metadata> };
 
+/** A reopened message whose stored metadata the host schema refused. */
+export interface InvalidReopenedMetadata {
+  readonly messageId: string;
+  readonly error: TypeError;
+}
+
 export type FlueAiSdkAdapterConfig<UiMessage extends UIMessage> =
-  FlueUiProjectionOptions & MetadataContract<MessageMetadata<UiMessage>>;
+  FlueUiProjectionOptions &
+    MetadataContract<MessageMetadata<UiMessage>> & {
+      /**
+       * Reports a stored message `reopen` kept without its metadata, because
+       * the schema refused it.
+       */
+      readonly onInvalidReopenedMetadata?: (
+        invalid: InvalidReopenedMetadata,
+      ) => void;
+    };
 
 export interface FlueAiSdkAdapter<UiMessage extends UIMessage> {
   /** A `useChat` transport for one Flue conversation. */
@@ -42,10 +57,14 @@ export interface FlueAiSdkAdapter<UiMessage extends UIMessage> {
   readonly reopen: (history: FlueHistory) => UiMessage[];
 }
 
-const validateMetadata = <Metadata>(
+type MetadataCheck<Metadata> =
+  | { readonly value: Metadata }
+  | { readonly error: TypeError };
+
+const checkMetadata = <Metadata>(
   schema: SyncMetadataSchema<Metadata>,
   value: unknown,
-): Metadata => {
+): MetadataCheck<Metadata> => {
   const result = schema["~standard"].validate(value);
   if (result instanceof Promise) {
     throw new TypeError(
@@ -53,47 +72,72 @@ const validateMetadata = <Metadata>(
     );
   }
   if (result.issues !== undefined) {
-    throw new TypeError(
-      `Message metadata does not match the host schema: ${result.issues
-        .map(({ message }) => message)
-        .join("; ")}`,
-      { cause: result.issues },
-    );
+    return {
+      error: new TypeError(
+        `Message metadata does not match the host schema: ${result.issues
+          .map(({ message }) => message)
+          .join("; ")}`,
+        { cause: result.issues },
+      ),
+    };
   }
-  return result.value;
+  return { value: result.value };
 };
 
 /**
  * Bind one host's projection of Flue conversations into the AI SDK: its
  * message type, metadata contract and tool presentation, shared by the live
  * transport and by reopened history. Metadata failing the schema ends a live
- * turn with an error and makes `reopen` throw.
+ * turn with an error; `reopen` keeps that message without its metadata and
+ * reports it, so one bad record cannot make a conversation unreadable.
  */
 export const createFlueAiSdkAdapter = <UiMessage extends UIMessage = UIMessage>(
   config: FlueAiSdkAdapterConfig<UiMessage>,
 ): FlueAiSdkAdapter<UiMessage> => {
   type Metadata = MessageMetadata<UiMessage>;
-  const { projectMetadata, ...toolProjection } = config;
+  const { projectMetadata, onInvalidReopenedMetadata, ...toolProjection } =
+    config;
   const metadataSchema: SyncMetadataSchema<Metadata> | undefined =
     config.metadataSchema;
+  const projectUnchecked: MetadataProjection<unknown> = (input) =>
+    projectMetadata === undefined
+      ? input.agentMetadata
+      : projectMetadata(input);
   const project: MetadataProjection<Metadata> = (input) => {
-    const metadata =
-      projectMetadata === undefined
-        ? input.agentMetadata
-        : projectMetadata(input);
+    const metadata = projectUnchecked(input);
     // Without a schema, MetadataContract has already fixed Metadata to unknown.
-    return metadata === undefined || metadataSchema === undefined
-      ? (metadata as Metadata | undefined)
-      : validateMetadata(metadataSchema, metadata);
+    if (metadata === undefined || metadataSchema === undefined) {
+      return metadata as Metadata | undefined;
+    }
+    const checked = checkMetadata(metadataSchema, metadata);
+    if ("error" in checked) throw checked.error;
+    return checked.value;
   };
-  const projection = { ...toolProjection, projectMetadata: project };
 
   return {
     chatTransport: (options) =>
-      createFlueChatTransport({ ...options, ...projection }),
+      createFlueChatTransport({
+        ...options,
+        ...toolProjection,
+        projectMetadata: project,
+      }),
     // Like the AI SDK with streamed chunks, tool parts take the host's tool
     // types unchecked; only metadata has a schema.
     reopen: (history) =>
-      snapshotToUiMessages(history, projection) as UiMessage[],
+      snapshotToUiMessages(history, {
+        ...toolProjection,
+        projectMetadata: projectUnchecked,
+      }).map((message) => {
+        if (message.metadata === undefined || metadataSchema === undefined) {
+          return message;
+        }
+        const checked = checkMetadata(metadataSchema, message.metadata);
+        if ("value" in checked) return { ...message, metadata: checked.value };
+        onInvalidReopenedMetadata?.({
+          messageId: message.id,
+          error: checked.error,
+        });
+        return { ...message, metadata: undefined };
+      }) as UiMessage[],
   };
 };

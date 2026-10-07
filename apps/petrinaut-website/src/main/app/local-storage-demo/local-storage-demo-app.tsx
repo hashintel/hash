@@ -36,10 +36,7 @@ import {
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
-import {
-  canonicalBrunchFlueAdapter,
-  createBrunchFlueAdapter,
-} from "../plugins/brunch/brunch-flue-adapter";
+import { createBrunchFlueAdapter } from "../plugins/brunch/brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -62,7 +59,10 @@ import { foldBrunchWorkpieceHistory } from "../plugins/brunch/ledger/brunch-work
 import { BrunchWorkpiecePane } from "../plugins/brunch/ledger/brunch-workpiece-pane";
 import { requestFlueStop } from "../plugins/brunch/plugin/request-flue-stop";
 import { useImmutableReplayBaseline } from "../plugins/brunch/plugin/use-immutable-replay-baseline";
-import { brunchPetrinautClientToolNames } from "../plugins/brunch/tools/brunch-client-tools";
+import {
+  brunchPetrinautClientToolNames,
+  canonicalPetrinautClientToolNames,
+} from "../plugins/brunch/tools/brunch-client-tools";
 import {
   createBrunchDraftExperimentInteractiveTool,
   resolveDraftAuthorityFromHistory,
@@ -436,13 +436,18 @@ export const LocalStorageDemoApp = ({
     : undefined;
   const flueAdapter = useMemo(
     () =>
-      constructionClientTools === undefined
-        ? canonicalBrunchFlueAdapter
-        : createBrunchFlueAdapter({
-            clientToolNames: constructionClientTools,
-            dynamicClientToolNames,
-          }),
-    [constructionClientTools, dynamicClientToolNames],
+      createBrunchFlueAdapter(
+        {
+          clientToolNames:
+            constructionClientTools ?? canonicalPetrinautClientToolNames,
+          dynamicClientToolNames,
+        },
+        {
+          onInvalidReopenedMetadata: ({ messageId, error }) =>
+            reportBrunchFailure("reopened-metadata", error, { messageId }),
+        },
+      ),
+    [constructionClientTools, dynamicClientToolNames, reportBrunchFailure],
   );
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
