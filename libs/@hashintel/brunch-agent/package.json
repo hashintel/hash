@@ -29,7 +29,7 @@
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
-    "@types/node": "22.18.13",
+    "@types/node": "catalog:",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003",
