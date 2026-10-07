@@ -47,13 +47,13 @@ afterEach(() => {
 
 /** The editor's assistant window, with the start action the empty-net prompt offers. */
 const AssistantProbe = () => {
-  const window = useEditorAssistantWindowHost();
+  const host = useEditorAssistantWindowHost();
   const startAction = useAssistantStartAction();
 
   return (
     <>
       <p>{`start ${startAction?.id ?? "none"}`}</p>
-      <PluginAssistantWindow window={window} />
+      <PluginAssistantWindow host={host} />
     </>
   );
 };
@@ -328,6 +328,44 @@ describe("assistant plugins", () => {
       }),
     );
   });
+
+  it.each([
+    ["chat", "is the chat tab's id"],
+    ["notes", "another tab already has"],
+  ])(
+    "leaves out and reports a tab with the taken id %s, keeping the view and the other tabs",
+    (id, reason) => {
+      const captureException = vi.fn();
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const withTab = createExtension({
+        assistant: { tabs: [{ id, label: "Taken", content: null }] },
+        topBarItems: { shown: null },
+      });
+
+      renderPlugins([basePlugin, withTab], <AssistantProbe />, {
+        Around: ({ children }) => (
+          <ErrorTrackerContext value={{ captureException }}>
+            {children}
+          </ErrorTrackerContext>
+        ),
+      });
+
+      expect(screen.getByText("Base view")).toBeTruthy();
+      expect(tabNames()).toEqual(["Base", "Notes"]);
+      expect(captureException).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: `Petrinaut plugin "test.extension" returned an assistant tab with id "${id}", which ${reason}. Choose another id.`,
+        }),
+        expect.objectContaining({
+          tags: {
+            pluginId: "test.extension",
+            place: "assistant-tab",
+            contributionId: id,
+          },
+        }),
+      );
+    },
+  );
 
   it("replaces a failing view with a window that says so", () => {
     const Failing = () => {

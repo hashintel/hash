@@ -97,7 +97,7 @@ or start request it keeps.
 
 ```ts
 interface PluginAssistantTab {
-  id: string; // not "chat"
+  id: string; // unique among the window's tabs; not "chat"
   label: string;
   mark?: ReactNode;
   activityIdentities?: readonly (number | string)[];
@@ -122,10 +122,11 @@ prompt there gives `{ text }`. The view reads the request from
 
 ## Choosing the assistant
 
-- The default is the first assistant plugin in the list.
+- The default is the first running assistant in the list.
 - With two or more running, the user picks one under User settings → General →
   AI assistant (stored as `aiAssistantId`), or with the palette commands
-  `petrinaut.ai-assistant.use:<id>`.
+  `petrinaut.ai-assistant.use:<id>` ("Use the `<label>` assistant"), one for
+  each running assistant that is not shown.
 - A stored choice that no running plugin provides falls back to the default
   and is kept for when that plugin returns.
 
@@ -151,3 +152,9 @@ working, and is reported under the plugin's id with place `assistant`. A tab
 that throws renders nothing and is reported with place `assistant-tab`. A
 plugin whose hook throws leaves the assistant resolution: the plugins that
 extend it stop, and the editor shows the next running assistant.
+
+A tab whose id is `"chat"` or another tab's is left out, and reported with
+place `assistant-tab` under the id of the plugin that returned it:
+
+- `Petrinaut plugin "<id>" returned an assistant tab with id "<tab>", which is the chat tab's id. Choose another id.`
+- `Petrinaut plugin "<id>" returned an assistant tab with id "<tab>", which another tab already has. Choose another id.`

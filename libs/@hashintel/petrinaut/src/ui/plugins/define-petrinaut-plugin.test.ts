@@ -46,6 +46,18 @@ const EditorPlugin = definePetrinautPlugin({
   provides: pluginService<{ ready: boolean }>(),
 });
 
+const AssistantPlugin = definePetrinautPlugin({
+  id: "test.assistant",
+  name: "Assistant",
+  assistant: { label: "Assistant" },
+});
+
+const ExtensionPlugin = definePetrinautPlugin({
+  id: "test.extension",
+  name: "Extension",
+  assistant: { extends: AssistantPlugin },
+});
+
 describe("definePetrinautPlugin", () => {
   it("exposes the manifest and gives each plugin a new host key", () => {
     const contributions = {
@@ -75,6 +87,8 @@ describe("definePetrinautPlugin", () => {
       // @ts-expect-error A reader cannot navigate.
       void api.editor.navigate;
       void editorMode;
+      // @ts-expect-error A plugin without `assistant` has no assistant state.
+      void api.assistant.isActive;
 
       return { provides: { ready: mode === "a" } };
     };
@@ -101,6 +115,28 @@ describe("definePetrinautPlugin", () => {
     // @ts-expect-error A declared root the contributions leave out.
     RootPlugin({});
     RootPlugin({ root: null, overlay: false });
+    // @ts-expect-error An assistant returns its view.
+    AssistantPlugin({});
+    // @ts-expect-error An extension adds tabs and start actions, not a view.
+    ExtensionPlugin({ assistant: { view: null } });
+    definePetrinautPlugin({
+      id: "test.both",
+      name: "Both",
+      // @ts-expect-error An assistant or an extension, not both.
+      assistant: { label: "Both", extends: AssistantPlugin },
+    });
+    definePetrinautPlugin({
+      id: "test.nested",
+      name: "Nested",
+      // @ts-expect-error Only an assistant's definition can be extended.
+      assistant: { extends: ExtensionPlugin },
+    });
+    definePetrinautPlugin({
+      id: "test.orphan",
+      name: "Orphan",
+      // @ts-expect-error A plugin without an assistant cannot be extended.
+      assistant: { extends: PalettePlugin },
+    });
 
     expect(EditorPlugin(useEditorPlugin).manifest.access).toEqual({
       document: "read",

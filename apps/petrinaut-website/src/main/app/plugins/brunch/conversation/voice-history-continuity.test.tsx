@@ -23,8 +23,8 @@ import { createTestPluginApi } from "../../_shared/testing/create-test-plugin-ap
 import { createBrunchFlueAdapter } from "../brunch-flue-adapter";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 
+import type { PetrinautAiTransport } from "../../_shared/chat/ai-message";
 import type { PetrinautAiVoiceModeContext } from "../../_shared/chat/composer-control";
-import type { PetrinautAiChatTransport } from "../../_shared/chat/petrinaut-ai-assistant";
 import type {
   AgentConversationObservation,
   AgentConversationObservationSnapshot,
@@ -149,7 +149,7 @@ const ContinuityPanel = ({
   endVoice: () => Promise<void>;
   handleId: string;
   requestStop: () => Promise<"already-settled" | "stop-requested">;
-  transport: PetrinautAiChatTransport;
+  transport: PetrinautAiTransport;
 }) => {
   const [api] = useState(() =>
     createTestPluginApi(
@@ -293,7 +293,7 @@ test("projects typed, in-band tool, and stopped fixture history after remount", 
   };
   const observation = createObservationHarness(initialSnapshot);
   const endVoice = vi.fn(async () => undefined);
-  const transport: PetrinautAiChatTransport = {
+  const transport: PetrinautAiTransport = {
     reconnectToStream: () => Promise.resolve(null),
     sendMessages: vi.fn(() =>
       Promise.resolve(

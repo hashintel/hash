@@ -18,12 +18,7 @@ export {
   PetrinautAssistantWindowPreview,
   usePetrinautAssistantWindow,
 } from "./views/Editor/assistant-window";
-export type {
-  PetrinautAssistantStartRequest,
-  PetrinautAssistantWindowPreviewProps,
-  PetrinautAssistantWindowProps,
-  PetrinautAssistantWindowState,
-} from "./views/Editor/assistant-window";
+export type { PetrinautAssistantStartRequest } from "./views/Editor/assistant-window";
 export { AiAssistantIcon } from "./components/ai-assistant-icon";
 export {
   Petricon,

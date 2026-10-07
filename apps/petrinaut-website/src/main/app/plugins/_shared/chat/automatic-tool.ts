@@ -1,7 +1,7 @@
 import type { PluginEdits } from "@hashintel/petrinaut/ui";
 
 /** Runtime parser used at a host-owned automatic dynamic-tool boundary. */
-export type PetrinautAiAutomaticToolSchema<Value> = {
+type PetrinautAiAutomaticToolSchema<Value> = {
   parse: (value: unknown) => Value;
 };
 

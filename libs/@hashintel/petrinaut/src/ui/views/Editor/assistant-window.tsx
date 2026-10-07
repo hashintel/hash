@@ -54,16 +54,14 @@ import { useFloatingPanel } from "./shared/use-floating-panel";
 
 export {
   AssistantWindowContext,
+  chatTabId,
   type PetrinautAssistantStartRequest,
 } from "./assistant-window/window-host";
 export {
   type EditorAssistantWindowHost,
   useEditorAssistantWindowHost,
 } from "./assistant-window/use-editor-window-host";
-export {
-  PetrinautAssistantWindowPreview,
-  type PetrinautAssistantWindowPreviewProps,
-} from "./assistant-window/window-preview";
+export { PetrinautAssistantWindowPreview } from "./assistant-window/window-preview";
 
 export interface PetrinautAssistantWindowProps {
   /**

@@ -148,6 +148,13 @@ User settings lists the plugins and lets the user switch each one off. The
 guide lives in the architecture docs:
 [Plugins](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/plugins/overview.mdx).
 
+The editor's AI assistant comes from a plugin: its view draws the assistant
+window around its own transcript. The guide lives in the architecture docs:
+[Assistant plugins](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/plugins/assistants.mdx).
+The demo website builds its chat as an assistant plugin, outside this package;
+[Host tools in the assistant chat](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/ai/host-tools.mdx)
+describes it as an example, not a package export.
+
 ## Petricon
 
 Enable **Petricon (Experimental)** in the viewport settings to use Petricon, the custom
@@ -354,11 +361,3 @@ The **Simulate / SimulateView / Run Supply Chain optimization (synthetic
 optimizer)** story creates a parameter sweep with its study, as the Create
 Experiment drawer's Optimize does, and drives it with an internal fake
 optimizer, so it does not require the Python service or Docker.
-
-## AI assistant
-
-The editor's AI assistant comes from a plugin: its view draws the assistant
-window around its own transcript. The guide lives in the architecture docs:
-[Assistant plugins](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/plugins/assistants.mdx).
-The demo website's chat and the host tools it runs are described in
-[Host tools in the assistant chat](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/ai/host-tools.mdx).

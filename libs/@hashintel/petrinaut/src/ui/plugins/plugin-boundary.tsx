@@ -55,7 +55,7 @@ export class PluginBoundary extends Component<Props, { failed: boolean }> {
 
   render(): ReactNode {
     return this.state.failed ? (
-      (this.props.fallback ?? null)
+      this.props.fallback
     ) : (
       <Suspense fallback={null}>{this.props.children}</Suspense>
     );

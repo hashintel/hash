@@ -54,7 +54,7 @@ export interface AssistantWindowHost {
 const ignore = () => {};
 
 /** Outside an editor or a preview: an open, docked window without tabs. */
-const standaloneHost: AssistantWindowHost = {
+export const standaloneHost: AssistantWindowHost = {
   label: "AI",
   isOpen: true,
   close: ignore,

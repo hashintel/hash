@@ -9,9 +9,6 @@ import type {
 import type { PetrinautAiInteractiveTool } from "./interactive-tool";
 import type { PetrinautAiToolPresentationResolver } from "./tool-presentation";
 
-/** AI SDK `ChatTransport` that sends the conversation and streams the reply. */
-export type PetrinautAiChatTransport = PetrinautAiTransport;
-
 /**
  * What `requestStop` reports. `"stop-requested"`: Petrinaut also cancels the
  * local stream. `"already-settled"`: the response had already ended.
@@ -28,7 +25,7 @@ export type PetrinautAiAssistantPresentation = "stock" | "brunch";
 export type PetrinautAiAssistant = {
   /** Visual style of the chat. Defaults to `"stock"`. */
   presentation?: PetrinautAiAssistantPresentation;
-  /** Label of the chat tab, or of the header without tabs. Defaults to `"AI"`. */
+  /** Label of the chat tab, or of the header without tabs. Defaults to the plugin's `assistant.label`. */
   primaryLabel?: string;
   /** Status text while a response is submitted or streaming. */
   workingLabel?: string;

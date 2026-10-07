@@ -1,15 +1,9 @@
-import { Button } from "@hashintel/ds-components";
 import {
   VoiceIcon,
   useExperimentalIconPackEnabled,
 } from "@hashintel/petrinaut/ui";
 
-type AiVoiceModeButtonProps = {
-  className?: string;
-  onClick: () => void;
-  size: "sm" | "lg";
-};
-
+/** The waveform that marks Voice mode. */
 export const AiVoiceModeIcon = ({ size = 16 }: { size?: number }) => {
   const experimentalIcons = useExperimentalIconPackEnabled();
   if (experimentalIcons) {
@@ -32,21 +26,3 @@ export const AiVoiceModeIcon = ({ size = 16 }: { size?: number }) => {
     </svg>
   );
 };
-
-export const AiVoiceModeButton = ({
-  className,
-  onClick,
-  size,
-}: AiVoiceModeButtonProps) => (
-  <Button
-    aria-label="Start voice mode"
-    className={className}
-    onClick={onClick}
-    prefix={<AiVoiceModeIcon size={size === "lg" ? 20 : 16} />}
-    size={size}
-    tone="brand"
-    tooltip="Start voice mode"
-    type="button"
-    variant="solid"
-  />
-);

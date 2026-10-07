@@ -14,7 +14,10 @@ import { css } from "@hashintel/ds-helpers/css";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
-import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
+import {
+  PluginSettingsRows,
+  settingSelectStyle,
+} from "../../../../plugins/plugin-settings-rows";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
@@ -41,8 +44,6 @@ const settingsDialogStyles = {
   },
 } as const;
 const settingsDialogStyle = css(settingsDialogStyles);
-
-const assistantSelectStyle = css({ width: "[156px]", maxWidth: "[100%]" });
 
 const sections = [
   {
@@ -492,7 +493,6 @@ export const UserSettingsDialog = ({
                           onChange={settings.setKeepPanelsMounted}
                         />
                       </SettingsGroup>
-                      {/* One assistant needs no choice; several do. */}
                       {assistants.length > 1 &&
                         activeAssistantId !== undefined && (
                           <SettingsGroup title="AI assistant">
@@ -505,7 +505,7 @@ export const UserSettingsDialog = ({
                                 <Select
                                   {...aria}
                                   size="sm"
-                                  className={assistantSelectStyle}
+                                  className={settingSelectStyle}
                                   required
                                   value={activeAssistantId}
                                   onChange={chooseAssistant}
@@ -561,10 +561,7 @@ export const UserSettingsDialog = ({
                               <Select
                                 {...aria}
                                 size="sm"
-                                className={css({
-                                  width: "[156px]",
-                                  maxWidth: "[100%]",
-                                })}
+                                className={settingSelectStyle}
                                 required
                                 value={settings.arcRendering}
                                 onChange={settings.setArcRendering}

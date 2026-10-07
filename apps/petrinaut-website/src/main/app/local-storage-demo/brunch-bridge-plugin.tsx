@@ -17,6 +17,7 @@ import {
   AssistantChat,
   type AssistantChatProps,
 } from "../plugins/_shared/chat/assistant-chat";
+import { voiceStartAction } from "../plugins/_shared/chat/voice-start-action";
 import { editorPlugins } from "../plugins/demo-plugins";
 
 /** What the shell gives Brunch's view: `null` until the document is bound to a conversation. */
@@ -49,6 +50,8 @@ const useBrunchBridgePlugin: PluginHook<typeof createBrunchBridgePlugin> = (
     assistant: {
       view: chat === null ? null : <AssistantChat api={api} {...chat} />,
       tabs: ledger === null ? [] : [ledger],
+      startActions:
+        chat?.renderVoiceMode === undefined ? [] : [voiceStartAction],
     },
   };
 };

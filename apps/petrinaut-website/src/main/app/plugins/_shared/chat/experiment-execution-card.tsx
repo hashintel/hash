@@ -7,7 +7,7 @@ import type {
   PetrinautExperimentResult,
 } from "@hashintel/petrinaut-core";
 
-export type ExperimentExecutionCardProps = {
+type ExperimentExecutionCardProps = {
   /** The approved canonical request, absent while a tool has yet to supply it or failed without one. */
   request?: PetrinautExperimentRequest;
   active: boolean;

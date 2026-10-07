@@ -2,7 +2,7 @@
 # purple palette, core stores the blue `core` one.
 direction: down
 
-provider: "PetrinautPluginsProvider\nstatuses, failed hosts" {
+provider: "PetrinautPluginsProvider\nstatuses, failed hosts, shown assistant" {
   style.fill: "#e8e0ff"
   style.stroke: "#7051b5"
 
@@ -14,6 +14,8 @@ provider: "PetrinautPluginsProvider\nstatuses, failed hosts" {
     commands: "PluginCommandRegistrations\none useCommand per declared command" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
     view: "ViewAfterHosts\nEditorView and its outlets" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
   }
+
+  assistant: "Shown assistant\nresolved once per render from the\nrunning assistants and aiAssistantId" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
 }
 
 stores: "Plugin editor stores\nlatest, title, diagnostics, records,\noptimization reason, navigation" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
@@ -26,3 +28,5 @@ provider.editor.hosts -> contributions: "publish after each commit"
 contributions -> provider.editor.view: "outlets read"
 provider.editor.hosts -> provider.editor.commands: "latest commands"
 provider.editor.commands -> registry: "register while when holds"
+provider.assistant -> provider.editor.hosts: "isActive" {style.stroke-dash: 4}
+provider.assistant -> provider.editor.view: "window" {style.stroke-dash: 4}
