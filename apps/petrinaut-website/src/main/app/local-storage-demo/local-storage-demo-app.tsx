@@ -116,15 +116,12 @@ import {
   InterviewBudgetNote,
   InterviewBudgetPill,
 } from "./interview-budget-control";
+import { useInterviewBudgetPreference } from "./interview-budget-preference";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
 import { useVoiceMediationHistory } from "./use-voice-mediation-history";
-import {
-  useInterviewBudgetPreference,
-  useRealtimePreference,
-  useVoicePreference,
-} from "./voice-preference";
+import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
