@@ -6,7 +6,11 @@ import {
 } from "@hashintel/brunch-agent";
 import { sdcpnLedgerProfile } from "@hashintel/brunch-agent-plugin-sdcpn";
 
-import * as manual from "../../agents/chat-agent/guidance/manual/tools/ledger.ts";
+import * as manual from "../../agents/chat-agent/guidance/manual/tools/ledger2/commits.ts";
+import {
+  projectLedger,
+  renderLedgerMarkdown,
+} from "../../agents/chat-agent/guidance/manual/tools/ledger2/projection.ts";
 import * as receipt from "../../agents/chat-agent/guidance/receipt/ledger.ts";
 
 import type { GuidanceVariant } from "../../agents/chat-agent/guidance-variant.ts";
@@ -28,11 +32,19 @@ const evidence = (
     : { commits };
 
 const ownLedgerEvidence = (
-  ledger: typeof manual | typeof receipt,
+  ledger: typeof receipt,
   history: LedgerHistory,
 ): LedgerEvidence => {
   const commits = ledger.reconstructLedger(history);
   return evidence(commits, ledger.compileMap(commits, { detail: "full" }));
+};
+
+const manualLedgerEvidence = (history: LedgerHistory): LedgerEvidence => {
+  const { state, commits } = manual.foldCommits(history);
+  return {
+    commits,
+    markdown: renderLedgerMarkdown(projectLedger(state), "agent"),
+  };
 };
 
 /**
@@ -43,7 +55,7 @@ export const ledgerEvidence = (
   history: LedgerHistory,
   variant?: GuidanceVariant,
 ): LedgerEvidence => {
-  if (variant === "manual") return ownLedgerEvidence(manual, history);
+  if (variant === "manual") return manualLedgerEvidence(history);
   if (variant === "receipt") return ownLedgerEvidence(receipt, history);
   const commits = reconstructLedger(history);
   return evidence(commits, compileLedger(commits, ledgerProfile));

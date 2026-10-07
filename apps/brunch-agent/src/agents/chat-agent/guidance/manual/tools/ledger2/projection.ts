@@ -1,7 +1,7 @@
 /**
  * The Ledger's user-facing projection: committed records folded into a
  * sectioned structure and rendered to markdown in two skins over one shape.
- * Approved and parked: nothing mounts it yet, and the commenting flow
+ * `ledger_compile` renders the agent skin; the commenting flow
  * (resolve-selection) is design-only. Prototype harness: `_scratch/ledger-view`.
  */
 
