@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Removes the `aiAssistant` prop, the built-in AI chat and its tool types, and the AI SDK dependencies; assistants are plugins (see `PluginAssistant`).
+Adds assistant plugins: a manifest `assistant` key (`PluginAssistant`), `PetrinautAssistantWindow` and its preview, and an AI assistant choice in User settings and the command palette. Removes the `aiAssistant` prop, the built-in chat and its exports (`DefaultChatTransport`, `definePetrinautAiInteractiveTool`, the `PetrinautAi*` types) and the AI SDK dependencies.

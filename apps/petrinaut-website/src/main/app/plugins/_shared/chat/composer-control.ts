@@ -12,7 +12,7 @@ export type { PetrinautAiVoiceSessionPhase, PetrinautAiVoiceSessionState };
 export type PetrinautAiInputMode = "text" | "voice";
 
 /**
- * Current lifecycle state of Petrinaut's conversation. Stays busy across the
+ * Current lifecycle state of the chat's conversation. Stays busy across the
  * automatic follow-up to a step that ended in client tool calls, so hosts
  * never read the SDK's momentary `ready` between them as the end of a turn.
  */
@@ -83,7 +83,7 @@ export type PetrinautAiVoiceModeControls = {
   /**
    * Stops or restarts microphone capture while the session keeps running, so
    * the assistant carries on speaking. Unlike `pause`, which suspends the
-   * whole session when Petrinaut closes the panel.
+   * whole session when the window closes.
    */
   setMicrophoneMuted: (muted: boolean) => void;
   /** Allows speech to interrupt assistant playback without clearing input. */
@@ -113,12 +113,12 @@ export type PetrinautAiVoiceModeSessionControls = Omit<
 
 /** Stable controls and conversation state supplied to a host-owned Voice mode. */
 export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
-  /** True when Petrinaut can retain one next voice turn while chat settles. */
+  /** True when the chat can retain one next voice turn while it settles. */
   canAcceptVoiceInput: boolean;
   inputMode: PetrinautAiInputMode;
   isAiAssistantOpen: boolean;
   /**
-   * Registers the controls Petrinaut uses to coordinate panel closure and
+   * Registers the controls the chat uses to coordinate window closure and
    * typed-message handoff with the host-owned Voice lifecycle.
    */
   registerVoiceModeControls: (
@@ -132,16 +132,16 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
     controls: PetrinautAiVoiceModeSessionControls,
   ) => () => void;
   /**
-   * Publishes the live session state Petrinaut renders from. Pass `null` once
-   * no session is running so Petrinaut can retire its Voice surfaces.
+   * Publishes the live session state the chat renders from. Pass `null` once
+   * no session is running so the chat can retire its Voice surfaces.
    */
   reportVoiceSessionState: (state: PetrinautAiVoiceSessionState | null) => void;
   setInputMode: (mode: PetrinautAiInputMode) => void;
-  /** Tell Petrinaut to protect an active voice session from accidental clearing. */
+  /** Tell the chat to protect an active voice session from accidental clearing. */
   setVoiceActive: (active: boolean) => void;
   /**
    * Accept one finalized voice turn immediately. If generic chat is still busy,
-   * Petrinaut retains it and submits it through the canonical composer path
+   * the chat retains it and submits it through the canonical composer path
    * as soon as that path is ready.
    */
   submitVoiceInput: (

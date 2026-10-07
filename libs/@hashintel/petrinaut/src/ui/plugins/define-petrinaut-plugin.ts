@@ -136,7 +136,7 @@ export interface PluginAssistantTab {
    * hidden badge it. The first list is the baseline; `undefined` until the
    * activity is known.
    */
-  readonly activityIdentities?: readonly (number | string)[];
+  readonly activityIdentities?: readonly string[];
   /** What the tab renders; it stays mounted while another tab shows, and fails alone. */
   readonly content: ReactNode;
 }

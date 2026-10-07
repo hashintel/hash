@@ -8,7 +8,9 @@ import {
   useCommands,
 } from "../../react/commands/command-registry";
 import { ErrorTrackerContext } from "../../react/error-tracker-context";
+import { EditorContext } from "../../react/state/editor-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
+import { useCanvasInsets } from "../hooks/use-canvas-insets";
 import {
   PetrinautAssistantWindow,
   useEditorAssistantWindowHost,
@@ -432,5 +434,41 @@ describe("assistant plugins", () => {
     act(() => screen.getByRole("button", { name: "use other" }).click());
     expect(screen.getByText("Other view")).toBeTruthy();
     expect(commandIds()).toEqual(["petrinaut.ai-assistant.use:test.base"]);
+  });
+
+  it("reserves no canvas space for the open window once its assistant is switched off", () => {
+    const Insets = () => {
+      const { setAiAssistantOpen, setAiAssistantCollapsed } =
+        use(EditorContext);
+      const { right, bottom } = useCanvasInsets();
+
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            setAiAssistantCollapsed(true);
+            setAiAssistantOpen(true);
+          }}
+        >
+          {`insets ${right} ${bottom}`}
+        </button>
+      );
+    };
+    const insets = () => screen.getByRole("button", { name: /^insets/ });
+
+    renderPlugins(
+      [basePlugin],
+      <>
+        <Insets />
+        <PluginSwitch pluginId="test.base" />
+      </>,
+    );
+    act(() => insets().click());
+    expect(insets().textContent).not.toBe("insets 0 0");
+
+    act(() =>
+      screen.getByRole("button", { name: "switch off test.base" }).click(),
+    );
+    expect(insets().textContent).toBe("insets 0 0");
   });
 });

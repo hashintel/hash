@@ -6,7 +6,7 @@
  */
 
 export interface TabAttention {
-  /** Every identity seen so far, as `type:value`; `undefined` before the baseline. */
+  /** Every identity seen so far; `undefined` before the baseline. */
   readonly seen: ReadonlySet<string> | undefined;
   readonly count: number;
 }
@@ -15,23 +15,20 @@ export type TabsAttention = Readonly<Record<string, TabAttention>>;
 
 const noAttention: TabAttention = { seen: undefined, count: 0 };
 
-const identityKey = (identity: number | string) =>
-  `${typeof identity}:${String(identity)}`;
-
 /**
  * The next attention state of one tab. Returns the same object when nothing
  * changed, so callers can compare by identity.
  */
 export const advanceTabAttention = (
   previous: TabAttention,
-  activityIdentities: readonly (number | string)[] | undefined,
+  activityIdentities: readonly string[] | undefined,
   viewing: boolean,
 ): TabAttention => {
   const count = viewing ? 0 : previous.count;
   if (activityIdentities === undefined) {
     return count === previous.count ? previous : { ...previous, count };
   }
-  const current = new Set(activityIdentities.map(identityKey));
+  const current = new Set(activityIdentities);
   const { seen } = previous;
   if (seen === undefined) {
     return { seen: current, count };
@@ -57,7 +54,7 @@ export const advanceTabsAttention = (
   tabs: readonly {
     readonly id: string;
     readonly label: string;
-    readonly activityIdentities?: readonly (number | string)[];
+    readonly activityIdentities?: readonly string[];
   }[],
   viewingTabId: string | null,
 ): { attention: TabsAttention; announcement: string | null } => {

@@ -343,7 +343,7 @@ The assistant has tools for inspecting and modifying the current net. Expand the
 - **Pending tools** (amber dot) -- distinguish unfinished work from completed results.
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
 - **Applied mutation tools** (completed status dot) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Successive tools remain visible as individual chronological rows. The status colour reports completion or failure, not whether a mutation added, updated, or deleted an entity.
-- **Not applied** (neutral summary) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. A completed status dot indicates execution finished, not that a mutation was applied. A host can instead show a compact correctable refusal whose detailed reason stays collapsed. Execution errors show a red dot and the error.
+- **Not applied** (neutral summary) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, and unchanged mutations. A completed status dot indicates execution finished, not that a mutation was applied. A host can instead show a compact correctable refusal whose detailed reason stays collapsed. Execution errors show a red dot and the error.
 - **`setNetTitle`** -- renames the net when the host supplies title editing.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget. Brunch uses **Allow** / **Deny**; Petrinaut AI uses **Yes, auto-layout** / **No, keep current layout**. Otherwise it'll run it without asking.
 - **Host-specific questions and actions** -- an application embedding Petrinaut
@@ -355,8 +355,6 @@ The assistant has tools for inspecting and modifying the current net. Expand the
   still prevent completion.
 
 Clicking a mutation card usually selects the entity it touched (place, transition, scenario, metric, etc.) so you can inspect what changed.
-
-An embedding application can check its live document immediately before and after a mutation, or refuse the change if the document no longer matches the request. A refusal leaves the document unchanged; an execution error remains attached to the matching tool call. These optional host checks do not change Petrinaut AI, read-only restrictions, or Stop behaviour. They do not cover title changes or auto-layout commands.
 
 ### Document titles
 

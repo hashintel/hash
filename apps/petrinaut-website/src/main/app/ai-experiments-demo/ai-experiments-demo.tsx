@@ -53,7 +53,10 @@ const useDemoAssistantPlugin: PluginHook<typeof createDemoAssistantPlugin> = (
   },
 });
 
-const demoPlugins = [createDemoAssistantPlugin(useDemoAssistantPlugin)];
+/** A scripted assistant whose conversation runs real experiments. */
+export const aiExperimentsDemoPlugin = createDemoAssistantPlugin(
+  useDemoAssistantPlugin,
+);
 
 export const AiExperimentsDemo = () => {
   const [handle] = useState(() =>
@@ -83,7 +86,7 @@ export const AiExperimentsDemo = () => {
             handle={handle}
             title="Outbreak experiments"
             hideNetManagementControls="except-title"
-            plugins={demoPlugins}
+            plugins={[aiExperimentsDemoPlugin]}
           />
         </BrowserOptimizationProvider>
       </div>
