@@ -5,6 +5,7 @@
 
 import { commandPalettePlugin } from "./command-palette/plugin";
 import { sentryFeedbackPlugin } from "./sentry-feedback/plugin";
+import { walkthroughPlugin } from "./walkthrough/plugin";
 
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui";
 
@@ -12,4 +13,5 @@ import type { PetrinautPlugin } from "@hashintel/petrinaut/ui";
 export const demoPlugins: readonly PetrinautPlugin[] = [
   sentryFeedbackPlugin,
   commandPalettePlugin,
+  walkthroughPlugin,
 ];

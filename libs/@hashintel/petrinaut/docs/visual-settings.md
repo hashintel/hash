@@ -14,7 +14,7 @@ Changes apply immediately and are saved as your preferences across nets. On host
 
 | Section      | Settings                                                             |
 | ------------ | -------------------------------------------------------------------- |
-| **General**  | Animations, panel loading, and the welcome guide.                    |
+| **General**  | Animations and panel loading.                                        |
 | **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
 | **Plugins**  | The host's plugins: switch each on or off and see what it adds.      |
 | **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
@@ -35,10 +35,6 @@ Canvas hover rings and the fading of nodes, arcs, and minimap shapes also follow
 ### Keep panels mounted
 
 When enabled, hidden panels remain loaded in the background. Switching between panels is faster, but uses more memory. When disabled, panels are unmounted when hidden and re-created when opened.
-
-### Show welcome guide
-
-Show the getting-started guide the next time you open Petrinaut.
 
 ## Viewport
 

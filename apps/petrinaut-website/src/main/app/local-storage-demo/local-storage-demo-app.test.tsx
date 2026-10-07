@@ -176,7 +176,6 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
       null
     );
   },
-  WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
   definePetrinautAiInteractiveTool: (definition: unknown) => definition,
   definePetrinautPlugin: (manifest: unknown) => () => ({ manifest }),
   executePetrinautAiMutation: () => ({
