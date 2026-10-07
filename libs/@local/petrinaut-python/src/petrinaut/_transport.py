@@ -12,18 +12,18 @@ POSIX only: the transport signals process groups with ``os.killpg`` and polls
 descriptors with ``select.select``.
 """
 
-from __future__ import annotations
-
 import json
 import os
 import select
 import signal
-import subprocess
+import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
-from typing import Any, cast
+from typing import IO, Protocol, TypedDict
+
+from pydantic import JsonValue
 
 from .errors import (
     PetrinautClientError,
@@ -55,7 +55,38 @@ def _child_environment() -> dict[str, str]:
     return environment
 
 
-def encode_bootstrap_line(payload: Mapping[str, Any], label: str) -> str:
+class Process(Protocol):
+    """The binary-pipe child operations used by the transport."""
+
+    @property
+    def stdin(self) -> IO[bytes] | None: ...
+
+    @property
+    def stdout(self) -> IO[bytes] | None: ...
+
+    @property
+    def stderr(self) -> IO[bytes] | None: ...
+
+    @property
+    def returncode(self) -> int | None: ...
+
+    @property
+    def pid(self) -> int | None: ...
+
+    def poll(self) -> int | None: ...
+    def wait(self, timeout: float | None = None) -> int: ...
+    def terminate(self) -> None: ...
+    def kill(self) -> None: ...
+
+
+class SessionOptions(TypedDict, total=False):
+    command: Sequence[str]
+    popen_factory: Callable[..., Process]
+    bootstrap_timeout_seconds: float
+    request_timeout_seconds: float
+
+
+def encode_bootstrap_line(payload: Mapping[str, object], label: str) -> str:
     """Serialize a stdin-provided model or manifest, enforcing the line cap.
 
     Raises ``TypeError`` for a payload that will not serialize to JSON and
@@ -67,10 +98,10 @@ def encode_bootstrap_line(payload: Mapping[str, Any], label: str) -> str:
         line = json.dumps(dict(payload), ensure_ascii=False, separators=(",", ":"))
     except (TypeError, ValueError) as error:
         raise TypeError(f"the {label} is not JSON-serializable: {error}") from error
+
     if len(line.encode("utf-8")) > MAX_BOOTSTRAP_LINE_BYTES:
-        raise ValueError(
-            f"the {label} exceeds the {MAX_BOOTSTRAP_LINE_BYTES // _MIB} MiB limit"
-        )
+        raise ValueError(f"the {label} exceeds the {MAX_BOOTSTRAP_LINE_BYTES // _MIB} MiB limit")
+
     return line
 
 
@@ -90,7 +121,7 @@ class CliTransport:
         bootstrap_line: str | None = None,
         source_label: str = "model",
         command: Sequence[str] = ("petrinaut",),
-        popen_factory: Callable[..., Any] = subprocess.Popen,
+        popen_factory: Callable[..., Process] = subprocess.Popen,
         bootstrap_timeout_seconds: float = BOOTSTRAP_TIMEOUT_SECONDS,
         request_timeout_seconds: float = PROTOCOL_READ_TIMEOUT_SECONDS,
     ) -> None:
@@ -107,7 +138,7 @@ class CliTransport:
         self._bootstrap_timeout_seconds = bootstrap_timeout_seconds
         self.base_request_timeout_seconds = request_timeout_seconds
         self.request_timeout_seconds = request_timeout_seconds
-        self._process: subprocess.Popen[bytes] | None = None
+        self._process: Process | None = None
         self._next_id = 1
         self._state_lock = threading.Lock()
         self._stdout_buffer = bytearray()
@@ -132,9 +163,8 @@ class CliTransport:
                     umask=0o077,
                 )
             except (OSError, ValueError) as error:
-                raise PetrinautClientError(
-                    f"failed to start the Petrinaut CLI: {error}"
-                ) from error
+                raise PetrinautClientError(f"failed to start the Petrinaut CLI: {error}") from error
+
             self._process = process
 
         if process.stdin is None or process.stdout is None or process.stderr is None:
@@ -153,9 +183,7 @@ class CliTransport:
             ).strip()
         except (BrokenPipeError, OSError, ValueError, PetrinautClientError) as error:
             self.close(graceful=False)
-            raise PetrinautClientError(
-                "failed to bootstrap the Petrinaut CLI"
-            ) from error
+            raise PetrinautClientError("failed to bootstrap the Petrinaut CLI") from error
 
         if not status.startswith("Petrinaut stdio ready"):
             details = status.strip() or f"process exited with code {process.poll()}"
@@ -174,39 +202,30 @@ class CliTransport:
         self._stderr_thread.start()
 
     @staticmethod
-    def _fallback_readline(stream: Any, maximum_bytes: int) -> bytes:
-        """Read test doubles which do not expose a file descriptor."""
-        line = stream.readline(maximum_bytes + 2)
-        if isinstance(line, str):
-            return line.encode()
-        return line
+    def _decode_line(line: bytes, description: str) -> str:
+        if len(line) > MAX_PROTOCOL_LINE_BYTES:
+            raise PetrinautProtocolError(
+                f"{description} exceeded the {MAX_PROTOCOL_LINE_BYTES // _MIB} MiB line limit"
+            )
+
+        try:
+            return line.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise PetrinautProtocolError(f"{description} was not valid UTF-8") from error
 
     def _readline(
         self,
-        stream: Any,
+        stream: IO[bytes],
         buffer: bytearray,
         *,
         timeout_seconds: float,
         description: str,
     ) -> str:
         """Read one size- and time-bounded UTF-8 protocol line."""
-
-        def decode(line: bytes) -> str:
-            if len(line) > MAX_PROTOCOL_LINE_BYTES:
-                raise PetrinautProtocolError(
-                    f"{description} exceeded the {MAX_PROTOCOL_LINE_BYTES // _MIB} MiB line limit"
-                )
-            try:
-                return line.decode("utf-8")
-            except UnicodeDecodeError as error:
-                raise PetrinautProtocolError(
-                    f"{description} was not valid UTF-8"
-                ) from error
-
         try:
             descriptor = stream.fileno()
-        except (AttributeError, OSError, ValueError):
-            return decode(self._fallback_readline(stream, MAX_PROTOCOL_LINE_BYTES))
+        except AttributeError, OSError, ValueError:
+            return self._decode_line(stream.readline(MAX_PROTOCOL_LINE_BYTES + 2), description)
 
         deadline = time.monotonic() + timeout_seconds
         while True:
@@ -214,7 +233,7 @@ class CliTransport:
             if newline >= 0:
                 line = bytes(buffer[: newline + 1])
                 del buffer[: newline + 1]
-                return decode(line)
+                return self._decode_line(line, description)
             # Checked before the next read, so an unterminated line cannot grow
             # the buffer without bound.
             if len(buffer) > MAX_PROTOCOL_LINE_BYTES:
@@ -233,32 +252,30 @@ class CliTransport:
                 # EOF with no newline: whatever arrived is the last line.
                 line = bytes(buffer)
                 buffer.clear()
-                return decode(line)
+                return self._decode_line(line, description)
             buffer.extend(chunk)
 
     @staticmethod
-    def _drain_stderr(stream: Any) -> None:
+    def _drain_stderr(stream: IO[bytes]) -> None:
         """Prevent CLI diagnostics from filling and blocking its stderr pipe."""
         while True:
             try:
                 chunk = stream.read(_READ_CHUNK_BYTES)
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 return
             if not chunk:
                 return
 
-    def exchange(self, method: str, params: Mapping[str, Any] | None = None) -> Any:
+    def exchange(self, method: str, params: Mapping[str, object] | None = None) -> JsonValue:
         """Send one request and return its ``result``, closing on breakage."""
         process = self._process
         if process is None or process.stdin is None or process.stdout is None:
             raise PetrinautClientError("the Petrinaut CLI is not running")
         if process.poll() is not None:
-            raise PetrinautClientError(
-                f"the Petrinaut CLI exited with code {process.returncode}"
-            )
+            raise PetrinautClientError(f"the Petrinaut CLI exited with code {process.returncode}")
 
         request_id = self._next_id
-        request: dict[str, Any] = {"id": request_id, "method": method}
+        request: dict[str, object] = {"id": request_id, "method": method}
         if params is not None:
             request["params"] = dict(params)
 
@@ -270,9 +287,7 @@ class CliTransport:
         try:
             payload = (json.dumps(request, separators=(",", ":")) + "\n").encode()
         except (TypeError, ValueError) as error:
-            raise TypeError(
-                f"{method} params are not JSON-serializable: {error}"
-            ) from error
+            raise TypeError(f"{method} params are not JSON-serializable: {error}") from error
         self._next_id += 1
 
         try:
@@ -284,7 +299,7 @@ class CliTransport:
                 timeout_seconds=self.request_timeout_seconds,
                 description="Petrinaut protocol response",
             )
-        except (PetrinautProtocolError, PetrinautClientError):
+        except PetrinautProtocolError, PetrinautClientError:
             # Already says which limit or deadline was hit; keep that message.
             self.close(graceful=False)
             raise
@@ -306,39 +321,30 @@ class CliTransport:
             raise
 
     @staticmethod
-    def _parse_response(line: str, request_id: int) -> Any:
+    def _parse_response(line: str, request_id: int) -> JsonValue:
         """Validate one response without conflating handled run errors."""
         try:
-            response = json.loads(line)
+            response: JsonValue = json.loads(line)
         except json.JSONDecodeError as error:
-            raise PetrinautProtocolError(
-                "the Petrinaut CLI returned invalid JSON"
-            ) from error
+            raise PetrinautProtocolError("the Petrinaut CLI returned invalid JSON") from error
         if not isinstance(response, dict):
-            raise PetrinautProtocolError(
-                "the Petrinaut CLI returned a non-object response"
-            )
-        frame = cast("dict[str, Any]", response)
+            raise PetrinautProtocolError("the Petrinaut CLI returned a non-object response")
+        frame = response
         if frame.get("id") != request_id:
-            raise PetrinautProtocolError(
-                "the Petrinaut CLI returned a mismatched response id"
-            )
+            raise PetrinautProtocolError("the Petrinaut CLI returned a mismatched response id")
         if "error" in frame:
-            message: Any = frame["error"]
+            message = frame["error"]
             if isinstance(message, dict):
-                # `json.loads` produced this, so the keys are strings.
-                message = cast("dict[str, Any]", message).get("message", message)
+                message = message.get("message", message)
             raise PetrinautRunError(str(message))
         if "result" not in frame:
-            raise PetrinautProtocolError(
-                "the Petrinaut CLI response omitted its result"
-            )
+            raise PetrinautProtocolError("the Petrinaut CLI response omitted its result")
         return frame["result"]
 
     @staticmethod
-    def _signal_process(process: Any, signal_number: signal.Signals) -> None:
+    def _signal_process(process: Process, signal_number: signal.Signals) -> None:
         """Signal the isolated process group, falling back for test doubles."""
-        process_id = getattr(process, "pid", None)
+        process_id = process.pid
         if isinstance(process_id, int):
             try:
                 os.killpg(process_id, signal_number)
@@ -389,8 +395,5 @@ class CliTransport:
 
         stderr_thread = self._stderr_thread
         self._stderr_thread = None
-        if (
-            stderr_thread is not None
-            and stderr_thread is not threading.current_thread()
-        ):
+        if stderr_thread is not None and stderr_thread is not threading.current_thread():
             stderr_thread.join(timeout=1)

@@ -78,15 +78,13 @@ One optimization can be followed across the HTTP service boundary:
 
 This service emits normal Python log records with bounded structured fields
 such as `event`, `request_id`, and `run_id`. When OTLP is configured,
-`src/telemetry.py` exports those records and the service's traces and metrics.
+`src/petrinaut_optimization/telemetry.py` exports those records and the service's traces and metrics.
 
 The bindings drain their child's diagnostics so it cannot block, and none of
 that output is copied into service logs. Lifecycle logs never intentionally include
 optimization manifests, user-authored code, or raw request bodies.
 
-The process admits at most four active optimizations. Additional requests
-receive HTTP 429, and slots are released after initialization failures, stream
-failures, completion, disconnect, or detached-run cancellation/reaping.
+The process admits at most four active optimizations and returns HTTP 429 for additional requests. Each admitted run holds its slot across event-stream disconnects until initialization fails or its session closes after completion, failure, cancellation or reaping.
 `GET /status` retains the 100 most recent runs so process memory cannot grow
 without bound.
 
@@ -152,12 +150,7 @@ same `otel-collector` target the rest of the HASH stack uses.
 When the variable is unset (a plain `uv run` with no collector) telemetry is
 skipped and the service runs normally, matching the Node workers.
 
-- Traces: incoming HTTP requests are auto-instrumented. Each study runs under an
-  `optimization.study` span (a child of the request span), and every Optuna trial
-  is an `optimization.trial` span beneath it, carrying the trial number, value,
-  and whether it was pruned. The study runs on a worker thread that inherits the
-  request's trace context, so the request → study → trial hierarchy is preserved.
-  The `/status` health probe is excluded from HTTP instrumentation.
+- Traces: FastAPI instrumentation propagates incoming trace context and records each HTTP request through response completion. An SSE request remains open until its stream ends or disconnects. Report streaming latency apart from short requests. Each study runs under an `optimization.study` span beneath its creation request, with `optimization.trial` children carrying trial number, value and pruning status. The study worker inherits that trace context even after the creation response ends. HTTP instrumentation skips `/health` and `/status` probes.
 - Metrics and logs: the FastAPI/Optuna default metrics and stdlib log records are
   exported to the collector (Mimir/Loki in the stack).
 
@@ -173,7 +166,7 @@ Configuration (standard OTLP environment variables):
 - `OTEL_SERVICE_NAME` — service name shown in Tempo/Grafana. Defaults to
   `Petrinaut Optimizer`.
 
-Bootstrap lives in `src/telemetry.py` and runs once when the app is created. A
+Bootstrap lives in `src/petrinaut_optimization/telemetry.py` and runs once at app creation. A
 misconfigured collector is logged and swallowed so it never stops the API from
 serving.
 
@@ -184,7 +177,7 @@ From `apps/petrinaut-opt`:
 ```bash
 uv sync
 uv run pytest
-uv run uvicorn src.optimization_api:app --reload
+uv run uvicorn petrinaut_optimization.api:app --reload
 ```
 
 Outside the Docker image, the bindings need their executable on `PATH`; their
@@ -197,7 +190,9 @@ Generate the checked-in OpenAPI document with:
 uv run python -m scripts.generate_openapi
 ```
 
-Running `python -m src.optimization_api` reads
+Add `--check` to compare the generated schema with the saved document without writing it. The test task uses this check to reject a missing or stale document independently of Git state.
+
+Running `python -m petrinaut_optimization.api` reads
 `HASH_PETRINAUT_OPT_HOST`/`HASH_PETRINAUT_OPT_PORT`, defaulting to
 `localhost:4004`. The Docker image passes `0.0.0.0:4004` explicitly to Uvicorn.
 

@@ -1,44 +1,32 @@
 {
   "extends": ["//"],
   "tasks": {
-    "lint:types": {
-      "command": [
-        "uv",
-        "run",
-        "--active",
-        "--frozen",
-        "--all-packages",
-        "basedpyright"
-      ],
+    "lint:tach": {
       "passThroughEnv": ["UV_CACHE_DIR"],
-      "dependsOn": ["codegen"]
-    },
-    "lint:ruff": {
       "command": [
         "uv",
         "run",
         "--active",
         "--frozen",
         "--all-packages",
-        "ruff",
-        "check",
-        "."
-      ],
-      "passThroughEnv": ["UV_CACHE_DIR"]
+        "tach",
+        "check"
+      ]
     },
-    "format:ruff": {
+    "lint:deptry": {
       "command": [
         "uv",
         "run",
         "--active",
         "--frozen",
         "--all-packages",
-        "ruff",
-        "format",
-        "."
+        "deptry",
+        "src",
+        "scripts"
       ],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
+    "check:ty": { "dependsOn": ["codegen"] },
     "manifest": {
       "dependsOn": ["^manifest", "@hashintel/petrinaut-cli#manifest"]
     },

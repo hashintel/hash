@@ -1,16 +1,14 @@
 """Session variant for manifest-driven optimization studies."""
 
-from __future__ import annotations
-
 import json
 import math
 import os
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TypeVar, Unpack
 
 from pydantic import BaseModel, ValidationError
 
-from ._transport import encode_bootstrap_line
+from ._transport import SessionOptions, encode_bootstrap_line
 from .errors import PetrinautProtocolError, PetrinautRunError
 from .models import OptimizationDescribeResult, OptimizationEvaluateResult
 from .session import PetrinautSession
@@ -36,10 +34,10 @@ class OptimizationSession(PetrinautSession):
 
     def __init__(
         self,
-        optimization_manifest: Mapping[str, Any] | None = None,
+        optimization_manifest: Mapping[str, object] | None = None,
         *,
         manifest_path: str | os.PathLike[str] | None = None,
-        **options: Any,
+        **options: Unpack[SessionOptions],
     ) -> None:
         # Branching on each argument in turn, rather than on a combined check,
         # so the payload is known to be present where it is encoded.
@@ -47,9 +45,7 @@ class OptimizationSession(PetrinautSession):
             if manifest_path is not None:
                 raise ValueError(_ONE_SOURCE)
             serve_arguments = ("--optimization-stdin", "--stdio")
-            bootstrap_line = encode_bootstrap_line(
-                optimization_manifest, "optimization manifest"
-            )
+            bootstrap_line = encode_bootstrap_line(optimization_manifest, "optimization manifest")
         elif manifest_path is not None:
             serve_arguments = ("--optimization", os.fspath(manifest_path), "--stdio")
             bootstrap_line = None
@@ -65,7 +61,7 @@ class OptimizationSession(PetrinautSession):
 
     @staticmethod
     def from_manifest(
-        manifest: Mapping[str, Any], **options: Any
+        manifest: Mapping[str, object], **options: Unpack[SessionOptions]
     ) -> OptimizationSession:
         """Serve a manifest object sent as the first stdin line.
 
@@ -76,7 +72,7 @@ class OptimizationSession(PetrinautSession):
 
     @staticmethod
     def from_manifest_file(
-        path: str | os.PathLike[str], **options: Any
+        path: str | os.PathLike[str], **options: Unpack[SessionOptions]
     ) -> OptimizationSession:
         """Serve a manifest file, YAML or JSON, read by the CLI itself.
 
@@ -90,7 +86,7 @@ class OptimizationSession(PetrinautSession):
         # so an out-of-range value already failed validation in `_validated`.
         result = self._validated("optimization.describe", OptimizationDescribeResult)
         seeds_per_trial = (
-            1 if result.study.seedsPerTrial is None else result.study.seedsPerTrial
+            1 if result.study.seeds_per_trial is None else result.study.seeds_per_trial
         )
         # One evaluate may run this many seeded simulations, sequentially in
         # the worst case, so the per-response deadline scales with it.
@@ -104,9 +100,7 @@ class OptimizationSession(PetrinautSession):
     # `optimization.describe` and reads without repeating the class name.
     describe_optimization = describe
 
-    def evaluate(
-        self, parameter_values: Mapping[str, Any]
-    ) -> OptimizationEvaluateResult:
+    def evaluate(self, parameter_values: Mapping[str, object]) -> OptimizationEvaluateResult:
         """Evaluate one trial and return the whole result frame.
 
         Carries per-seed ``replicates`` when the manifest asks for more than one
@@ -122,22 +116,20 @@ class OptimizationSession(PetrinautSession):
             {"parameterValues": dict(parameter_values)},
         )
 
-    def objective(self, parameter_values: Mapping[str, Any]) -> float:
+    def objective(self, parameter_values: Mapping[str, object]) -> float:
         """Evaluate one trial and return its finite scalar objective."""
         objective = self.evaluate(parameter_values).objective
         # JSON cannot carry Infinity or NaN, but Python's parser admits both,
         # and a non-finite objective would corrupt an Optuna study silently.
         if not math.isfinite(objective):
-            raise PetrinautRunError(
-                "Petrinaut optimization objective is not a finite number"
-            )
+            raise PetrinautRunError("Petrinaut optimization objective is not a finite number")
         return objective
 
     def _validated(
         self,
         method: str,
         model: type[_ModelT],
-        params: Mapping[str, Any] | None = None,
+        params: Mapping[str, object] | None = None,
     ) -> _ModelT:
         """One request whose result must match the protocol schema.
 
