@@ -55,7 +55,7 @@ describe("Block", () => {
      * once the exact role of the block data entity's entity type is known.
      */
     dummyEntityType = await createEntityType(graphContext, authentication, {
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
           kind: "entity-type",
@@ -70,7 +70,7 @@ describe("Block", () => {
     });
 
     testBlockDataEntity = await createEntity(graphContext, authentication, {
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       properties: { value: {} },
       entityTypeIds: [dummyEntityType.schema.$id],
     });
@@ -86,7 +86,7 @@ describe("Block", () => {
     const authentication = { actorId: testUser.accountId };
 
     testBlock = await createBlock(graphContext, authentication, {
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       componentId: testBlockComponentId,
       blockData: testBlockDataEntity,
     });
@@ -121,7 +121,7 @@ describe("Block", () => {
       graphContext,
       authentication,
       {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         properties: { value: {} },
         entityTypeIds: [dummyEntityType.schema.$id],
       },

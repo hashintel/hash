@@ -125,7 +125,7 @@ export const googleOAuthCallback: RequestHandler<
 
     newGoogleAccountEntity = await createEntity(req.context, authentication, {
       entityTypeIds: [googleEntityTypes.account.entityTypeId],
-      webId: req.user.accountId as WebId,
+      webId: req.user.accountId,
       properties: googleAccountProperties,
     });
   }
