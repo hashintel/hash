@@ -25,7 +25,6 @@ export const QueryCount: FunctionComponent<QueryCountProps> = ({
         color: ({ palette }) => palette.gray[70],
         fontSize: 13,
         fontWeight: 500,
-        justifyContent: "flex-end",
       }}
     >
       {loading ? (

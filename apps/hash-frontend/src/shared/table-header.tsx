@@ -273,7 +273,7 @@ export const TableHeader = <R extends GridRow>({
                     numberOfExternalItems !== undefined
                       ? formatNumber(numberOfExternalItems)
                       : "–"
-                  } others`}
+                  } public`}
                   sx={({ palette }) => ({
                     ...commonChipSx,
                     [`.${chipClasses.label}`]: {
@@ -344,7 +344,7 @@ export const TableHeader = <R extends GridRow>({
                 ) : null}
                 {onlyOneWeb ? null : (
                   <CheckboxFilter
-                    label="Include external"
+                    label="Include public"
                     checked={filterState.includeGlobal}
                     onChange={(checked) =>
                       setFilterState((prev) => ({

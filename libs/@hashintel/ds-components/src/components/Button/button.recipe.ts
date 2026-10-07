@@ -18,6 +18,8 @@ export const styles = sva({
       fontWeight: "medium",
       borderWidth: "var(--form-border-width)",
       borderStyle: "solid",
+      background: "[var(--button-bg)]",
+      "--button-bg": "{colors.neutral.s00}",
       textAlign: "center",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
@@ -289,17 +291,16 @@ export const styles = sva({
         button: { paddingRight: "2.5" },
       },
     },
-    // ── Solid + Neutral ──
     {
       variant: "solid",
       tone: "neutral",
       css: {
         button: {
-          background: "neutral.s120",
+          "--button-bg": "{colors.neutral.s120}",
           borderColor: "neutral.s120",
           color: "fg.onSolid",
           "&:not([aria-disabled=true]):hover": {
-            background: "neutral.s110",
+            "--button-bg": "{colors.neutral.s110}",
             borderColor: "neutral.s110",
           },
         },
@@ -311,7 +312,7 @@ export const styles = sva({
       isPressed: true,
       css: {
         button: {
-          background: "neutral.s115",
+          "--button-bg": "{colors.neutral.s115}",
           borderColor: "neutral.s115",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.35)]",
         },
@@ -324,7 +325,7 @@ export const styles = sva({
       css: {
         button: {
           color: "neutral.s20",
-          background: "neutral.s80",
+          "--button-bg": "{colors.neutral.s80}",
           borderColor: "neutral.s80",
         },
       },
@@ -336,11 +337,11 @@ export const styles = sva({
       tone: "brand",
       css: {
         button: {
-          background: "blue.s90",
+          "--button-bg": "{colors.blue.s90}",
           borderColor: "blue.s90",
           color: "fg.onSolid",
           "&:not([aria-disabled=true]):hover": {
-            background: "blue.s85",
+            "--button-bg": "{colors.blue.s85}",
             borderColor: "blue.s85",
           },
         },
@@ -352,7 +353,7 @@ export const styles = sva({
       isPressed: true,
       css: {
         button: {
-          background: "blue.s95",
+          "--button-bg": "{colors.blue.s95}",
           borderColor: "blue.s95",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.15)]",
         },
@@ -364,7 +365,7 @@ export const styles = sva({
       isDisabled: true,
       css: {
         button: {
-          background: "blue.s60",
+          "--button-bg": "{colors.blue.s60}",
           borderColor: "blue.s60",
         },
       },
@@ -376,11 +377,11 @@ export const styles = sva({
       tone: "error",
       css: {
         button: {
-          background: "red.s90",
+          "--button-bg": "{colors.red.s90}",
           borderColor: "red.s90",
           color: "fg.onSolid",
           "&:not([aria-disabled=true]):hover": {
-            background: "red.s85",
+            "--button-bg": "{colors.red.s85}",
             borderColor: "red.s85",
           },
         },
@@ -392,7 +393,7 @@ export const styles = sva({
       isPressed: true,
       css: {
         button: {
-          background: "red.s95",
+          "--button-bg": "{colors.red.s95}",
           borderColor: "red.s95",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.15)]",
         },
@@ -404,7 +405,7 @@ export const styles = sva({
       isDisabled: true,
       css: {
         button: {
-          background: "red.s60",
+          "--button-bg": "{colors.red.s60}",
           borderColor: "red.s60",
         },
       },
@@ -420,6 +421,7 @@ export const styles = sva({
           color: "neutral.s120",
           "&:not([aria-disabled=true]):hover": {
             background: "neutral.a20",
+            "--button-bg": "{colors.neutral.s20}",
             borderColor: "neutral.a80",
           },
         },
@@ -432,6 +434,7 @@ export const styles = sva({
       css: {
         button: {
           background: "neutral.a05",
+          "--button-bg": "{colors.neutral.s05}",
           color: "neutral.s115",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
         },
@@ -444,6 +447,7 @@ export const styles = sva({
       css: {
         button: {
           background: "neutral.a20",
+          "--button-bg": "{colors.neutral.s20}",
           borderColor: "neutral.a50",
           color: "neutral.s80",
         },
@@ -456,10 +460,12 @@ export const styles = sva({
       css: {
         button: {
           background: "blue.a20",
+          "--button-bg": "{colors.blue.s20}",
           borderColor: "blue.a60",
           color: "blue.s90",
           "&:not([aria-disabled=true]):hover": {
             background: "blue.a30",
+            "--button-bg": "{colors.blue.s30}",
             borderColor: "blue.a70",
           },
         },
@@ -473,6 +479,7 @@ export const styles = sva({
         button: {
           color: "blue.s85",
           background: "blue.a25",
+          "--button-bg": "{colors.blue.s25}",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
         },
       },
@@ -484,6 +491,7 @@ export const styles = sva({
       css: {
         button: {
           background: "blue.a20",
+          "--button-bg": "{colors.blue.s20}",
           borderColor: "blue.a40",
           color: "blue.s70",
         },
@@ -496,10 +504,12 @@ export const styles = sva({
       css: {
         button: {
           background: "red.a20",
+          "--button-bg": "{colors.red.s20}",
           borderColor: "red.a60",
           color: "red.s90",
           "&:not([aria-disabled=true]):hover": {
             background: "red.a25",
+            "--button-bg": "{colors.red.s25}",
             borderColor: "red.a70",
           },
         },
@@ -523,6 +533,7 @@ export const styles = sva({
       css: {
         button: {
           background: "red.a15",
+          "--button-bg": "{colors.red.s15}",
           borderColor: "red.a30",
           color: "red.s70",
         },
@@ -538,6 +549,7 @@ export const styles = sva({
           color: "neutral.s120",
           "&:not([aria-disabled=true]):hover": {
             background: "neutral.a20",
+            "--button-bg": "{colors.neutral.s20}",
             borderColor: "neutral.a60",
           },
         },
@@ -551,6 +563,7 @@ export const styles = sva({
         button: {
           color: "neutral.s115",
           background: "neutral.a10",
+          "--button-bg": "{colors.neutral.s10}",
           borderColor: "neutral.a50",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
         },
@@ -576,6 +589,7 @@ export const styles = sva({
           color: "blue.s105",
           "&:not([aria-disabled=true]):hover": {
             background: "blue.a30",
+            "--button-bg": "{colors.blue.s30}",
             borderColor: "blue.a70",
           },
         },
@@ -589,6 +603,7 @@ export const styles = sva({
         button: {
           color: "blue.s85",
           background: "blue.a25",
+          "--button-bg": "{colors.blue.s25}",
           borderColor: "blue.a50",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
         },
@@ -613,6 +628,7 @@ export const styles = sva({
           color: "red.s105",
           "&:not([aria-disabled=true]):hover": {
             background: "red.a25",
+            "--button-bg": "{colors.red.s25}",
             borderColor: "red.a70",
           },
         },
@@ -626,6 +642,7 @@ export const styles = sva({
         button: {
           color: "red.s85",
           background: "red.a20",
+          "--button-bg": "{colors.red.s20}",
           borderColor: "red.a60",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
         },

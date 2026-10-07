@@ -49,6 +49,30 @@ const coerceValueParameter = (
 };
 
 /**
+ * The non-empty selected values of a multi-select filter (`isNoneOf`); an
+ * empty result means the filter is incomplete and contributes no constraint.
+ */
+const selectedValues = (filter: PropertyFilter): string[] =>
+  (filter.values ?? []).filter((value) => value !== "");
+
+/**
+ * Both of a `between` filter's bounds as numbers, or `null` when either is
+ * missing or invalid for the kind (the kind-aware coercion yields strings for
+ * a string-kind filter, rendering a mismatched `between` inert like the other
+ * ordering comparators).
+ */
+const coerceBetweenBounds = (
+  filter: PropertyFilter,
+): [number, number] | null => {
+  const lower = coerceValueParameter(filter);
+  const upper = coerceValueParameter({ ...filter, value: filter.secondValue });
+
+  return typeof lower === "number" && typeof upper === "number"
+    ? [lower, upper]
+    : null;
+};
+
+/**
  * Translates a single property filter into a graph {@link Filter} clause, or
  * returns `null` when the filter contributes no constraint (it is incomplete or
  * its value is invalid for its kind). Null clauses are omitted from the query,
@@ -60,6 +84,11 @@ export const buildPropertyFilterClause = (
   const path = propertyPath(filter.baseUrl);
 
   switch (filter.operator) {
+    // The archived filter's default: no clause — the filter's presence flips
+    // the query scope's `includeArchived` flag instead (see the ribbon).
+    case "included":
+      return null;
+
     // Existence operators apply regardless of kind and need no value.
     case "hasAnyValue":
       return { exists: { path } };
@@ -71,6 +100,38 @@ export const buildPropertyFilterClause = (
       return { equal: [{ path }, { parameter: true }] };
     case "isFalse":
       return { equal: [{ path }, { parameter: false }] };
+
+    // Both bounds inclusive (≥ and ≤), and both required.
+    case "between": {
+      const bounds = coerceBetweenBounds(filter);
+
+      if (!bounds) {
+        return null;
+      }
+
+      return {
+        all: [
+          { greaterOrEqual: [{ path }, { parameter: bounds[0] }] },
+          { lessOrEqual: [{ path }, { parameter: bounds[1] }] },
+        ],
+      };
+    }
+
+    // Excludes every selected value — a conjunction of ≠, so it stays
+    // expressible on the AND-only table endpoint too.
+    case "isNoneOf": {
+      const values = selectedValues(filter);
+
+      if (values.length === 0) {
+        return null;
+      }
+
+      return {
+        all: values.map((value) => ({
+          notEqual: [{ path }, { parameter: value }],
+        })),
+      };
+    }
 
     default:
       break;
@@ -125,24 +186,46 @@ export const buildPropertyFilterClause = (
 
 /**
  * Translates a single property filter into the table endpoint's property
- * filter, or returns `null` when the filter contributes no constraint (it is
- * incomplete or its value is invalid for its kind) — the endpoint counterpart
- * of {@link buildPropertyFilterClause}.
+ * filters — the endpoint counterpart of {@link buildPropertyFilterClause}. A
+ * list because `between` spans two endpoint conditions (the endpoint combines
+ * property filters with AND); an empty list means the filter contributes no
+ * constraint (it is incomplete or its value is invalid for its kind).
  */
 export const buildEndpointPropertyFilter = (
   filter: PropertyFilter,
-): EntityTablePropertyFilter | null => {
+): EntityTablePropertyFilter[] => {
   const property = filter.baseUrl;
 
   switch (filter.operator) {
+    // No constraint — the scope's `includeArchived` flag carries the effect.
+    case "included":
+      return [];
     case "hasAnyValue":
-      return { type: "hasAnyValue", property };
+      return [{ type: "hasAnyValue", property }];
     case "isEmpty":
-      return { type: "isEmpty", property };
+      return [{ type: "isEmpty", property }];
     case "isTrue":
-      return { type: "isTrue", property };
+      return [{ type: "isTrue", property }];
     case "isFalse":
-      return { type: "isFalse", property };
+      return [{ type: "isFalse", property }];
+    // Both bounds inclusive (≥ and ≤), and both required.
+    case "between": {
+      const bounds = coerceBetweenBounds(filter);
+
+      return bounds
+        ? [
+            { type: "greaterThanOrEqual", property, value: bounds[0] },
+            { type: "lessThanOrEqual", property, value: bounds[1] },
+          ]
+        : [];
+    }
+    // Excludes every selected value — a conjunction of ≠ conditions.
+    case "isNoneOf":
+      return selectedValues(filter).map((value) => ({
+        type: "notEquals",
+        property,
+        value,
+      }));
     default:
       break;
   }
@@ -150,45 +233,45 @@ export const buildEndpointPropertyFilter = (
   const parameter = coerceValueParameter(filter);
 
   if (parameter === null) {
-    return null;
+    return [];
   }
 
   switch (filter.operator) {
     case "equals":
-      return { type: "equals", property, value: parameter };
+      return [{ type: "equals", property, value: parameter }];
     case "notEquals":
-      return { type: "notEquals", property, value: parameter };
+      return [{ type: "notEquals", property, value: parameter }];
     // The ordering comparators take numbers and the text operators take
     // strings. Which operators a filter's kind offers is UI convention, so a
     // mismatched value renders the filter inert rather than a rejected query.
     case "greaterThan":
       return typeof parameter === "number"
-        ? { type: "greaterThan", property, value: parameter }
-        : null;
+        ? [{ type: "greaterThan", property, value: parameter }]
+        : [];
     case "greaterThanOrEqual":
       return typeof parameter === "number"
-        ? { type: "greaterThanOrEqual", property, value: parameter }
-        : null;
+        ? [{ type: "greaterThanOrEqual", property, value: parameter }]
+        : [];
     case "lessThan":
       return typeof parameter === "number"
-        ? { type: "lessThan", property, value: parameter }
-        : null;
+        ? [{ type: "lessThan", property, value: parameter }]
+        : [];
     case "lessThanOrEqual":
       return typeof parameter === "number"
-        ? { type: "lessThanOrEqual", property, value: parameter }
-        : null;
+        ? [{ type: "lessThanOrEqual", property, value: parameter }]
+        : [];
     case "contains":
       return typeof parameter === "string"
-        ? { type: "containsSegment", property, value: parameter }
-        : null;
+        ? [{ type: "containsSegment", property, value: parameter }]
+        : [];
     case "startsWith":
       return typeof parameter === "string"
-        ? { type: "startsWith", property, value: parameter }
-        : null;
+        ? [{ type: "startsWith", property, value: parameter }]
+        : [];
     case "endsWith":
       return typeof parameter === "string"
-        ? { type: "endsWith", property, value: parameter }
-        : null;
+        ? [{ type: "endsWith", property, value: parameter }]
+        : [];
   }
 };
 

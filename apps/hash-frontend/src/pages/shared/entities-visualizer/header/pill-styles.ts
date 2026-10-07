@@ -2,8 +2,10 @@ import { chipClasses } from "@mui/material";
 
 import type { SxProps, Theme } from "@mui/material";
 
+const dsFilterChipHeight = "28.4px";
+
 const basePillSx = {
-  height: 26,
+  height: dsFilterChipHeight,
   borderRadius: "4px",
   background: ({ palette }: Theme) => palette.gray[5],
   [`.${chipClasses.label}`]: {
@@ -17,27 +19,23 @@ export const defaultPillSx: SxProps<Theme> = {
   border: ({ palette }: Theme) => `1px solid ${palette.gray[30]}`,
 };
 
-export const dashedPillSx: SxProps<Theme> = {
+export const iconPillSx: SxProps<Theme> = {
   ...basePillSx,
-  border: ({ palette }: Theme) => `1px dashed ${palette.gray[30]}`,
-};
-
-/**
- * Used for property-filter pills that don't yet contribute a clause (no value
- * or an invalid value) – a muted, placeholder-looking variant.
- */
-export const incompletePillSx: SxProps<Theme> = {
-  ...basePillSx,
-  background: "transparent",
-  border: ({ palette }: Theme) => `1px dashed ${palette.gray[40]}`,
-  [`.${chipClasses.label}`]: {
-    fontSize: 13,
-    color: ({ palette }: Theme) => palette.gray[60],
+  border: ({ palette }: Theme) => `1px solid ${palette.gray[30]}`,
+  width: 30,
+  padding: 0,
+  display: "inline-flex",
+  svg: {
+    fontSize: 12,
+    color: ({ palette }: Theme) => palette.common.black,
+  },
+  "&:hover": {
+    background: ({ palette }: Theme) => palette.gray[30],
   },
 };
 
 export const activePillSx: SxProps<Theme> = {
-  height: 26,
+  height: dsFilterChipHeight,
   borderRadius: "4px",
   border: ({ palette }: Theme) => `1px solid ${palette.blue[40]}`,
   background: ({ palette }: Theme) => palette.blue[15],

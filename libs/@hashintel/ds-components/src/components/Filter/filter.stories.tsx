@@ -8,6 +8,7 @@ import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { MultiSelectItem, SelectItem } from "../Select/select";
 import type { FilterChange, FilterValue } from "./filter-util";
 import type { Story, StoryDefault } from "@ladle/react";
+import type { DistributedOmit } from "type-fest";
 
 export default {
   title: "Components/Filter",
@@ -24,6 +25,12 @@ type KitchenSinkValues = {
   false: null;
   between: [number, number, number];
   near: [number, number];
+};
+
+const operatorDescriptionStyle: React.CSSProperties = {
+  color: "#999",
+  fontSize: "0.85em",
+  marginLeft: 6,
 };
 
 const KitchenSinkOperators: Array<
@@ -54,9 +61,18 @@ const KitchenSinkOperators: Array<
     id: "number",
     label: "Number",
     items: [
+      // A rich dropdown row (symbol + subtle English reading) with a
+      // `renderSelectedItem` keeping the chip's operator segment to the
+      // bare symbol.
       {
         key: "equalsNum",
-        label: "equals",
+        label: "=",
+        renderItem: (
+          <span>
+            =<span style={operatorDescriptionStyle}>equal</span>
+          </span>
+        ),
+        renderSelectedItem: "=",
         input: { type: "number" },
       },
       {
@@ -269,24 +285,30 @@ const changeLogStyle: React.CSSProperties = {
   color: "#667",
 };
 
-/** Controlled harness that renders the Filter plus a log of onChange calls. */
+/** Controlled harness: the Filter plus a log of onChange/onInput calls. */
 const Demo = <ValueMap extends Record<string, unknown>>({
   initialValue = null,
   ...filterProps
-}: Omit<React.ComponentProps<typeof Filter<ValueMap>>, "value" | "onChange"> & {
+}: DistributedOmit<
+  React.ComponentProps<typeof Filter<ValueMap>>,
+  "value" | "onChange" | "onInput"
+> & {
   initialValue?: FilterValue<ValueMap> | null;
 }) => {
   const [value, setValue] = useState<FilterValue<ValueMap> | null>(
     initialValue,
   );
   const [changes, setChanges] = useState<string[]>([]);
+  const log = (entry: string) => {
+    setChanges((previous) => [...previous.slice(-4), entry]);
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <Filter<ValueMap>
         removeable={{
           onRemove: () => {
             setValue(null);
-            setChanges((previous) => [...previous.slice(-4), "onRemove()"]);
+            log("onRemove()");
           },
         }}
         {...filterProps}
@@ -294,14 +316,15 @@ const Demo = <ValueMap extends Record<string, unknown>>({
         onChange={(...change: FilterChange<ValueMap>) => {
           const [key, nextValue] = change;
           setValue({ key, value: nextValue } as FilterValue<ValueMap>);
-          setChanges((previous) => [
-            ...previous.slice(-4),
-            `onChange(${JSON.stringify(key)}, ${JSON.stringify(nextValue)})`,
-          ]);
+          log(`onChange(${JSON.stringify(key)}, ${JSON.stringify(nextValue)})`);
+        }}
+        onInput={(...change: FilterChange<ValueMap>) => {
+          const [key, nextValue] = change;
+          log(`onInput(${JSON.stringify(key)}, ${JSON.stringify(nextValue)})`);
         }}
       />
       <pre style={changeLogStyle}>
-        {changes.length > 0 ? changes.join("\n") : "no onChange fired yet"}
+        {changes.length > 0 ? changes.join("\n") : "nothing fired yet"}
       </pre>
     </div>
   );
@@ -325,6 +348,60 @@ const KitchenSinkState = ({
     />
   </>
 );
+
+const switchableProperties = [
+  { id: "name", label: "Name" },
+  { id: "age", label: "Age" },
+  { id: "score", label: "Score" },
+];
+
+/** propertyMenu harness: the menu switches the chip to another property. */
+const PropertyMenuDemo = () => {
+  const [activeProperty, setActiveProperty] = useState({
+    id: "name",
+    label: "Name",
+  });
+  return (
+    <Filter<KitchenSinkValues>
+      property={activeProperty.id}
+      propertyLabel={activeProperty.label}
+      operators={KitchenSinkOperators}
+      value={{ key: "equals", value: "hello" }}
+      onChange={noop}
+      removeable={{ onRemove: noop }}
+      propertyMenu={switchableProperties.map((entry) => ({
+        id: entry.id,
+        text: entry.label,
+        selected: entry.id === activeProperty.id,
+        selectedStyle: "tick",
+        onClick: () => setActiveProperty(entry),
+      }))}
+    />
+  );
+};
+
+/** propertyOnClick harness: counts clicks on the property segment. */
+const PropertyClickDemo = () => {
+  const [clicks, setClicks] = useState(0);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <Filter<KitchenSinkValues>
+        property="value"
+        propertyLabel="Value"
+        operators={KitchenSinkOperators}
+        value={{ key: "equals", value: "hello" }}
+        onChange={noop}
+        removeable={{ onRemove: noop }}
+        propertyOnClick={() => setClicks((count) => count + 1)}
+      />
+      <pre style={changeLogStyle}>
+        {clicks === 0
+          ? "property not clicked yet"
+          : `propertyOnClick fired ${clicks}×`}
+      </pre>
+    </div>
+  );
+};
 
 export const Default: Story = () => (
   <div style={columnStyle}>
@@ -380,6 +457,15 @@ export const Default: Story = () => (
       onChange={noop}
       removeable={{ onRemove: noop }}
     />
+    <span style={stateLabelStyle}>
+      propertyMenu — the property segment opens a menu, here switching the
+      property
+    </span>
+    <PropertyMenuDemo />
+    <span style={stateLabelStyle}>
+      propertyOnClick — the property segment is a plain button
+    </span>
+    <PropertyClickDemo />
     <span style={stateLabelStyle}>
       responsive, long content in a max-width container
     </span>

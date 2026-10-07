@@ -1,10 +1,21 @@
 import { Box } from "@mui/material";
 import { useState } from "react";
 
+import {
+  Filter,
+  FilterGroup,
+  Menu,
+  SelectableListSearch,
+} from "@hashintel/ds-components";
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { DsComponentsScope } from "../shared/ds-components-scope";
 import { getDefaultOperatorForKind } from "../shared/property-filters/get-operators-for-kind";
-import { AddFiltersMenu } from "./add-filters-menu";
-import { IncludeArchivedPill } from "./include-archived-pill";
-import { PropertyFilterPill } from "./property-filter-pill";
+import { filterChipPillChrome } from "./filter-ribbon/filter-chip-pill-chrome";
+import {
+  PropertyFilterChip,
+  type SwitchablePropertyOption,
+} from "./filter-ribbon/property-filter-chip";
 import { TypeFilterPill } from "./type-filter-pill";
 import { type InternalWeb, WebFilterPill } from "./web-filter-pill";
 
@@ -13,11 +24,14 @@ import type {
   FilterableProperty,
   FilterMetadataForProperty,
   PropertyFilter,
+  PropertyFilterDisabledReason,
 } from "../shared/property-filters/property-filter";
 import type { TypeColorOverrides } from "../shared/type-colors";
 import type { AvailableType } from "../shared/use-available-types";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
-import type { FunctionComponent } from "react";
+import type { ItemOrGroup, MenuItem } from "@hashintel/ds-components";
+import type { SxProps, Theme } from "@mui/material";
+import type { FunctionComponent, ReactNode } from "react";
 
 type FilterRibbonProps = {
   availableEntityTypes: AvailableType[];
@@ -26,6 +40,8 @@ type FilterRibbonProps = {
   filterState: EntitiesFilterState;
   internalWebs: InternalWeb[];
   isTypePinned: boolean;
+  /** The search toggle, leading the ribbon's controls (absent in Grid view). */
+  searchControl?: ReactNode;
   setFilterState: (
     updater: (prev: EntitiesFilterState) => EntitiesFilterState,
   ) => void;
@@ -49,6 +65,23 @@ const generatePropertyFilterId = () => {
   return `property-filter-${propertyFilterIdCounter}`;
 };
 
+const disabledReasonText: Record<PropertyFilterDisabledReason, string> = {
+  "multiple-data-types":
+    "Properties with multiple possible data types can’t be filtered yet.",
+  list: "List properties can’t be filtered yet.",
+  nested: "Nested properties can’t be filtered yet.",
+};
+
+const archivedPropertyBaseUrl =
+  systemPropertyTypes.archived.propertyTypeBaseUrl;
+
+const chipWrapperSx: SxProps<Theme> = {
+  display: "inline-flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 1,
+};
+
 export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   availableEntityTypes,
   availableTypesLoading,
@@ -56,6 +89,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   filterState,
   internalWebs,
   isTypePinned,
+  searchControl,
   setFilterState,
   showTypeColors,
   typeColorOverrides,
@@ -63,10 +97,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   hiddenTypeIds,
   hiddenPropertyBaseUrls,
 }) => {
-  const [draftPropertyFilter, setDraftPropertyFilter] =
-    useState<PropertyFilter | null>(null);
-
-  // Properties offered in the picker, and the active property pills, with the
+  // Properties offered in the picker, and the active property chips, with the
   // hidden (link-only) ones removed — display only; `filterState` keeps them.
   const visiblePropertyFilterMetadata = propertyFilterMetadata.filter(
     (property) => !hiddenPropertyBaseUrls.has(property.baseUrl),
@@ -74,9 +105,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   const visiblePropertyFilters = filterState.propertyFilters.filter(
     (propertyFilter) => !hiddenPropertyBaseUrls.has(propertyFilter.baseUrl),
   );
-
-  const setIncludeArchived = (includeArchived: boolean) =>
-    setFilterState((prev) => ({ ...prev, includeArchived }));
 
   const setPropertyFilters = (
     updater: (prev: PropertyFilter[]) => PropertyFilter[],
@@ -87,21 +115,72 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
     }));
 
   const handleAddPropertyFilter = (
-    property: Pick<FilterableProperty, "baseUrl" | "title" | "kind">,
+    property: Pick<
+      FilterableProperty,
+      "baseUrl" | "title" | "kind" | "enumOptions"
+    >,
   ) => {
-    setDraftPropertyFilter({
-      id: generatePropertyFilterId(),
-      baseUrl: property.baseUrl,
-      title: property.title,
-      kind: property.kind,
-      operator: getDefaultOperatorForKind(property.kind),
-    });
+    setPropertyFilters((prev) => [
+      ...prev,
+      {
+        id: generatePropertyFilterId(),
+        baseUrl: property.baseUrl,
+        title: property.title,
+        kind: property.kind,
+        operator: getDefaultOperatorForKind(property.kind),
+        ...(property.enumOptions ? { enumOptions: property.enumOptions } : {}),
+      },
+    ]);
   };
 
-  const handleCommitDraftPropertyFilter = (committed: PropertyFilter) => {
-    setPropertyFilters((prev) => [...prev, committed]);
-    setDraftPropertyFilter(null);
-  };
+  const handleAddArchivedFilter = () =>
+    setFilterState((prev) => ({
+      ...prev,
+      includeArchived: true,
+      propertyFilters: [
+        ...prev.propertyFilters,
+        {
+          id: generatePropertyFilterId(),
+          baseUrl: archivedPropertyBaseUrl,
+          title: "Include archived",
+          kind: "boolean",
+          operator: "included",
+        },
+      ],
+    }));
+
+  const handleSwitchPropertyFilter = (
+    id: string,
+    property: SwitchablePropertyOption,
+  ) =>
+    setPropertyFilters((prev) =>
+      prev.map((propertyFilter) => {
+        if (propertyFilter.id !== id) {
+          return propertyFilter;
+        }
+        const keepsValue =
+          propertyFilter.kind === property.kind && property.kind !== "enum";
+        return {
+          id: propertyFilter.id,
+          baseUrl: property.baseUrl,
+          title: property.title,
+          kind: property.kind,
+          operator: keepsValue
+            ? propertyFilter.operator
+            : getDefaultOperatorForKind(property.kind),
+          ...(keepsValue
+            ? {
+                value: propertyFilter.value,
+                secondValue: propertyFilter.secondValue,
+                values: propertyFilter.values,
+              }
+            : {}),
+          ...(property.enumOptions
+            ? { enumOptions: property.enumOptions }
+            : {}),
+        };
+      }),
+    );
 
   const handleCommitPropertyFilter = (id: string, committed: PropertyFilter) =>
     setPropertyFilters((prev) =>
@@ -111,19 +190,184 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
     );
 
   const handleRemovePropertyFilter = (id: string) =>
-    setPropertyFilters((prev) =>
-      prev.filter((propertyFilter) => propertyFilter.id !== id),
+    setFilterState((prev) => {
+      const removed = prev.propertyFilters.find(
+        (propertyFilter) => propertyFilter.id === id,
+      );
+      return {
+        ...prev,
+        includeArchived:
+          removed?.baseUrl === archivedPropertyBaseUrl
+            ? false
+            : prev.includeArchived,
+        propertyFilters: prev.propertyFilters.filter(
+          (propertyFilter) => propertyFilter.id !== id,
+        ),
+      };
+    });
+
+  const archivedFilterActive = filterState.propertyFilters.some(
+    (propertyFilter) => propertyFilter.baseUrl === archivedPropertyBaseUrl,
+  );
+
+  const handleClearPropertyFilters = () =>
+    setFilterState((prev) => ({
+      ...prev,
+      includeArchived: false,
+      propertyFilters: prev.propertyFilters.filter((propertyFilter) =>
+        hiddenPropertyBaseUrls.has(propertyFilter.baseUrl),
+      ),
+    }));
+
+  const switchablePropertyOptions: SwitchablePropertyOption[] =
+    visiblePropertyFilterMetadata
+      .filter((property) => property.baseUrl !== archivedPropertyBaseUrl)
+      .flatMap((property) => (property.filterable ? [property] : []))
+      .sort((left, right) => left.title.localeCompare(right.title));
+
+  const [propertySearch, setPropertySearch] = useState("");
+  const searchTerms = propertySearch.toLowerCase().split(/\s+/).filter(Boolean);
+  const matchesSearch = (title: string) => {
+    const lowercaseTitle = title.toLowerCase();
+    return searchTerms.every((term) => lowercaseTitle.includes(term));
+  };
+
+  const propertyItems: MenuItem[] = visiblePropertyFilterMetadata
+    .filter(
+      (property) =>
+        property.baseUrl !== archivedPropertyBaseUrl &&
+        matchesSearch(property.title),
+    )
+    .sort((left, right) =>
+      left.filterable === right.filterable
+        ? left.title.localeCompare(right.title)
+        : left.filterable
+          ? -1
+          : 1,
+    )
+    .map(
+      (property): MenuItem =>
+        property.filterable
+          ? {
+              id: property.baseUrl,
+              text: property.title,
+              onClick: () => handleAddPropertyFilter(property),
+            }
+          : {
+              id: property.baseUrl,
+              text: property.title,
+              disabled: true,
+              description: disabledReasonText[property.disabledReason],
+              onClick: () => {},
+            },
     );
+
+  if (propertyItems.length === 0) {
+    propertyItems.push({
+      id: "no-filterable-properties",
+      text:
+        searchTerms.length > 0
+          ? "No matching properties"
+          : availableTypesLoading
+            ? "Loading properties…"
+            : "No filterable properties",
+      disabled: true,
+      onClick: () => {},
+    });
+  }
+
+  const addFilterMenuItems: Array<ItemOrGroup<MenuItem>> = [
+    ...(archivedFilterActive || !matchesSearch("Include archived")
+      ? []
+      : [
+          {
+            id: "include-archived",
+            text: "Include archived",
+            onClick: handleAddArchivedFilter,
+          } satisfies MenuItem,
+        ]),
+    { id: "properties", label: "Properties", items: propertyItems },
+  ];
+
+  const renderPropertyFilterChip = (propertyFilter: PropertyFilter) =>
+    propertyFilter.baseUrl === archivedPropertyBaseUrl ? (
+      <Filter
+        key={propertyFilter.id}
+        className={filterChipPillChrome}
+        property={propertyFilter.id}
+        propertyLabel="Include archived"
+        operators={[]}
+        onChange={() => {}}
+        removeable={{
+          onRemove: () => handleRemovePropertyFilter(propertyFilter.id),
+        }}
+      />
+    ) : (
+      <PropertyFilterChip
+        key={propertyFilter.id}
+        className={filterChipPillChrome}
+        filter={propertyFilter}
+        propertyOptions={switchablePropertyOptions}
+        onSwitchProperty={(property) =>
+          handleSwitchPropertyFilter(propertyFilter.id, property)
+        }
+        onCommit={(committed) =>
+          handleCommitPropertyFilter(propertyFilter.id, committed)
+        }
+        onRemove={() => handleRemovePropertyFilter(propertyFilter.id)}
+      />
+    );
+
+  const trailingControls = (
+    <>
+      <Menu
+        trigger={
+          <FilterGroup.AddFilter
+            renderAs={visiblePropertyFilters.length > 0 ? "plus" : "plusLabel"}
+          />
+        }
+        items={addFilterMenuItems}
+        header={
+          <SelectableListSearch
+            value={propertySearch}
+            onChange={setPropertySearch}
+            placeholder="Search properties"
+            aria-label="Search properties"
+          />
+        }
+        swapHeaderFooterOnFlip
+        onOpen={(open) => {
+          if (!open) {
+            setPropertySearch("");
+          }
+        }}
+      />
+      {visiblePropertyFilters.length > 1 && (
+        <FilterGroup.ClearFilters
+          aria-label="Clear filters"
+          onClick={handleClearPropertyFilters}
+        />
+      )}
+    </>
+  );
 
   return (
     <Box
       sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        flexWrap: "wrap",
+        display: "contents",
+        "& .MuiChip-root, & > .MuiIconButton-root, & [data-part='filter-group'] > *":
+          {
+            verticalAlign: "middle",
+            marginRight: 1,
+            marginTop: 0.5,
+            marginBottom: 0.5,
+          },
+        "& [data-part='filter-group']": {
+          display: "contents !important",
+        },
       }}
     >
+      {searchControl}
       <WebFilterPill
         internalWebs={internalWebs}
         webState={filterState.web}
@@ -145,38 +389,19 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           hiddenTypeIds={hiddenTypeIds}
         />
       )}
-      {filterState.includeArchived && (
-        <IncludeArchivedPill onRemove={() => setIncludeArchived(false)} />
-      )}
-      {visiblePropertyFilters.map((propertyFilter) => (
-        <PropertyFilterPill
-          key={propertyFilter.id}
-          filter={propertyFilter}
-          mode="edit"
-          autoOpen={false}
-          onCommit={(committed) =>
-            handleCommitPropertyFilter(propertyFilter.id, committed)
-          }
-          onRemove={() => handleRemovePropertyFilter(propertyFilter.id)}
-        />
-      ))}
-      {draftPropertyFilter && (
-        <PropertyFilterPill
-          key={draftPropertyFilter.id}
-          filter={draftPropertyFilter}
-          mode="add"
-          autoOpen
-          onCommit={handleCommitDraftPropertyFilter}
-          onRemove={() => setDraftPropertyFilter(null)}
-        />
-      )}
-      <AddFiltersMenu
-        canAddIncludeArchived={!filterState.includeArchived}
-        onAddIncludeArchived={() => setIncludeArchived(true)}
-        filterableProperties={visiblePropertyFilterMetadata}
-        propertiesLoading={availableTypesLoading}
-        onAddPropertyFilter={handleAddPropertyFilter}
-      />
+      <DsComponentsScope sx={{ display: "contents" }}>
+        <FilterGroup dismissAbandoned>
+          {visiblePropertyFilters.map((propertyFilter, index) => (
+            <Box key={propertyFilter.id} sx={chipWrapperSx}>
+              {renderPropertyFilterChip(propertyFilter)}
+              {index === visiblePropertyFilters.length - 1 && trailingControls}
+            </Box>
+          ))}
+          {visiblePropertyFilters.length === 0 && (
+            <Box sx={chipWrapperSx}>{trailingControls}</Box>
+          )}
+        </FilterGroup>
+      </DsComponentsScope>
     </Box>
   );
 };
