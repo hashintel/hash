@@ -15,7 +15,6 @@ import {
   typeFilterFieldLabels,
   typeFilterOperatorsByField,
   typeKindFilterOptions,
-  typeSourceFilterOptions,
 } from "./shared/type-filters";
 
 import type { MinimalActor } from "../../../shared/use-actors";
@@ -111,8 +110,6 @@ export const TypesFilterRibbon: FunctionComponent<{
         return [];
       case "kind":
         return typeKindFilterOptions;
-      case "source":
-        return typeSourceFilterOptions;
       case "lastEdited":
         return lastEditedWithinOptions;
       case "lastEditedBy":

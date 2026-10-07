@@ -1,7 +1,6 @@
 import {
   compareOntologyTypeVersions,
   extractBaseUrl,
-  isExternalOntologyElementMetadata,
 } from "@blockprotocol/type-system";
 
 import type {
@@ -30,14 +29,13 @@ export type TypesTableTypeKind =
 export type TypeFilterField =
   | "archived"
   | "kind"
-  | "source"
   | "lastEdited"
   | "lastEditedBy"
   | "inheritsFrom"
   | "hasProperty";
 
 export type MultiSelectTypeFilterOperator = "anyOf" | "allOf" | "noneOf";
-export type SingleSelectTypeFilterOperator = "is" | "within";
+export type SingleSelectTypeFilterOperator = "within";
 export type DateTypeFilterOperator = "before" | "after";
 
 export type TypeFilterOperator =
@@ -56,9 +54,9 @@ export type TypeFilter = {
   field: TypeFilterField;
   operator: TypeFilterOperator;
   /**
-   * The committed value of single-input operators (`is` / `within` /
-   * `before` / `after`). Absent or invalid for the operator means the filter
-   * is incomplete and contributes no clause.
+   * The committed value of single-input operators (`within` / `before` /
+   * `after`). Absent or invalid for the operator means the filter is
+   * incomplete and contributes no clause.
    */
   value?: string;
   /** The committed selection of multi-select operators; empty ⇒ no clause. */
@@ -92,7 +90,6 @@ export const typeFilterOperatorsByField: Record<
     { operator: "anyOf", label: "is any of", input: "multiSelect" },
     { operator: "noneOf", label: "is none of", input: "multiSelect" },
   ],
-  source: [{ operator: "is", label: "is", input: "singleSelect" }],
   lastEdited: [
     { operator: "within", label: "in the last", input: "singleSelect" },
     { operator: "after", label: "on or after", input: "date" },
@@ -109,7 +106,6 @@ export const typeFilterOperatorsByField: Record<
 export const typeFilterFieldLabels: Record<TypeFilterField, string> = {
   archived: "Include archived",
   kind: "Kind",
-  source: "Source",
   lastEdited: "Last edited",
   lastEditedBy: "Last edited by",
   inheritsFrom: "Inherits from",
@@ -137,11 +133,6 @@ export const typeKindFilterOptions: Array<{
   { value: "link-type", text: "Link type" },
   { value: "property-type", text: "Property type" },
   { value: "data-type", text: "Data type" },
-];
-
-export const typeSourceFilterOptions: Array<{ value: string; text: string }> = [
-  { value: "hash", text: "HASH-hosted" },
-  { value: "external", text: "External" },
 ];
 
 /** Values are a number of days, evaluated against the edition's start time. */
@@ -193,7 +184,6 @@ const isApplicableFilter = (filter: TypeFilter): boolean => {
   switch (filter.operator) {
     case "included":
       return false;
-    case "is":
     case "within":
       return !!filter.value;
     case "before":
@@ -381,12 +371,6 @@ export const createTypeFilterPredicate = (
         return matchesSelection(filter, [
           getTypeKind(type, isSpecialEntityTypeLookup),
         ]);
-      case "source": {
-        const source = isExternalOntologyElementMetadata(type.metadata)
-          ? "external"
-          : "hash";
-        return filter.value === source;
-      }
       case "lastEdited": {
         const lastEditedAt = Date.parse(
           type.metadata.temporalVersioning.transactionTime.start.limit,

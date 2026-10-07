@@ -18,7 +18,6 @@ import type {
 import type { FunctionComponent } from "react";
 
 type TypeFilterValueMap = {
-  is: string;
   within: string;
   before: string;
   after: string;
