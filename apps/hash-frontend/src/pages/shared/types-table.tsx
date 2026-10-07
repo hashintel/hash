@@ -606,7 +606,7 @@ export const TypesTable: FunctionComponent<{
       ? `${contentTop}px - ${theme.spacing(5)}`
       : `(${
           HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + visualizerHeaderHeight
-        }px + ${theme.spacing(2)} + ${theme.spacing(5)}`
+        }px + ${theme.spacing(2)} + ${theme.spacing(5)})`
   })`;
 
   const displayedRowCount = Math.max(filteredRows?.length ?? 1, 1);

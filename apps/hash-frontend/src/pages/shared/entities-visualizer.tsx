@@ -768,7 +768,7 @@ export const EntitiesVisualizer: FunctionComponent<{
       ? `${contentTop}px - ${theme.spacing(5)}`
       : `(${
           HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + visualizerHeaderHeight
-        }px + ${theme.spacing(5)} + ${theme.spacing(5)}`
+        }px + ${theme.spacing(5)} + ${theme.spacing(5)})`
   })`;
 
   const tableHeight = `min(${availableHeight}, 1000px)`;
