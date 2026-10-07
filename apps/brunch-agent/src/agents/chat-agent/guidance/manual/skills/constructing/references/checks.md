@@ -2,7 +2,7 @@
 
 Read this before the first construction, after construction changes, and before delivering a net. For Ledger-only delivery, apply the `eliciting` skill's Verification guidance without loading this construction resource.
 
-A failed check triggers the smallest relevant repair available in the current runtime branch: commit a correcting Note, ask during interactive elicitation, revise construction, or report a visible limitation and re-entry question for a later conversation.
+A failed check triggers the smallest relevant repair available in the current runtime branch: commit a correcting claim or reflection, ask during interactive elicitation, revise construction, or report a visible limitation and re-entry question for a later conversation.
 
 ## Evidence levels
 
@@ -24,7 +24,7 @@ If no behavioral execution or stronger analysis occurred, say so. Do not convert
 
 ## Fragment review
 
-Apply these checks after each construction change, to the fragment added or changed. A finding is repaired in the net or recorded as a construction Note; none is a precondition for building.
+Apply these checks after each construction change, to the fragment added or changed. A finding is repaired in the net or recorded as a reflection; none is a precondition for building.
 
 - The fragment carries what the account established, and each stand-in marks what it did not.
 - Inputs that matter are distinguished as consumed, reserved/released, or read, or carried by a stand-in.

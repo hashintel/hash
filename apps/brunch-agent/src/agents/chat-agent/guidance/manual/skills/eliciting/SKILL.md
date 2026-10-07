@@ -7,11 +7,11 @@ description: Interviewing the USER about their operation. Use before asking a su
 
 The USER knows their operation mostly in practice, not in general statements: they can tell you what happened last Tuesday far better than what "usually" happens, and what they say they do drifts from what they do. So ask about real occasions, choose each question for what its answer could change in the model the purpose needs, and keep what they said apart from what you supplied.
 
-The Ledger's coverage says what the account still needs. This skill is how to ask for it.
+The Ledger's compiled map says what the account still needs: entities missing what their kind needs, and claims still open, tentative or conflicted. This skill is how to ask for it.
 
 ## Choosing the next question
 
-Ask the question whose answer could most change what the model will answer. Early on, that is usually breadth: the part of the operation still in fog, or the purpose not yet pinned. Later, it is the unmet need the purpose's measure depends on. It is not the newest gap, the next Ledger dimension, or whatever the net could represent. Pursue an ambiguity at once only if it could change the goal, a protected condition, or how you read the rest; otherwise record it and keep mapping.
+Ask the question whose answer could most change what the model will answer. Early on, that is usually breadth: the part of the operation still in fog, or the purpose not yet pinned. Later, it is the unmet need the purpose's measure depends on. It is not the newest gap, the next entity kind in the map, or whatever the net could represent. Pursue an ambiguity at once only if it could change the goal, a protected condition, or how you read the rest; otherwise record it and keep mapping.
 
 Open with a short battery that pins the purpose: at most three or four questions, all about what the model is for. After that, one question frame per turn. Use their words, never places, transitions, arcs, tokens or colours.
 
@@ -33,7 +33,7 @@ Choose a move for the active gap, ask, see what changed, then choose again.
 - **Ask for the basis.** When confidence or applicability depends on it. "How do you know? What do you look at? What would a newcomer get wrong here?"
 - **Run a premortem.** When rare or severe outcomes matter and ordinary recall doesn't reach them. "Say it's the worst month you've had a year from now. What happened?" Ask for mechanism and sequence, not sentiment.
 - **Contrast.** When a statement has two consequential readings. Offer both as concrete alternatives that differ on one point, say they are yours, and ask which is closer.
-- **Put accounts side by side.** When two accounts differ. "Earlier you said X; now Y. Are you correcting X, or do both hold under different conditions?" Record a correction as a supersession, a conflict as two contested Notes, and coexistence as two Notes with their selecting conditions.
+- **Put accounts side by side.** When two accounts differ. "Earlier you said X; now Y. Are you correcting X, or do both hold under different conditions?" Record a correction as a new claim superseding the old one, a conflict as claims at `conflicted` status marking each account, and coexistence as separate claims each carrying its selecting condition.
 - **Trade outcomes.** When they can't state a priority. Offer two concrete outcomes that trade one concern against another, and vary the pair until the boundary is useful. Don't invent weights.
 - **Propose for correction.** When low-risk structure is faster to correct than to draw out. It stays your proposal until they settle it; their "yes" is acceptance, not their own evidence.
 - **Consult.** When something must be looked up and a mounted tool can do it. Present the result as attributed material and ask how it relates to their account. Without a tool, say the lookup is not possible.
@@ -63,7 +63,7 @@ Ask only to the precision the purpose needs: whether the typical case, the sprea
 ## When the interview goes wrong
 
 - Fluent, but nothing new recorded: change the move.
-- Questions following Ledger dimensions or net structure: return to a case.
+- Questions following entity kinds or net structure: return to a case.
 - Precision rising without evidence: restore the hedge, or mark the assumption as yours.
 - Several refinements in one place while other parts are still fog: go wide again.
 - Two contextual values merged into one: restore the conditions.

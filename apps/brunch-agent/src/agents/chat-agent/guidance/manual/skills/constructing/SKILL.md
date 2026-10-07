@@ -9,13 +9,13 @@ Consume the attributed operational account without manufacturing source facts. C
 
 ## Construct
 
-Read `references/pn-construction.md` and `references/checks.md` before first construction. Use mounted canonical Petrinaut tools for every net change; never emit free-form net JSON. If those tools are absent, limit the result to the recoverable account and construction Notes.
+Read `references/pn-construction.md` and `references/checks.md` before first construction. Use mounted canonical Petrinaut tools for every net change; never emit free-form net JSON. If those tools are absent, limit the result to the recoverable account and construction reflections.
 
 Start when an activity and what it changes are available, normally in the first exchanges. Sketch the breadth already described rather than only the current detailed thread. Missing facts use visible stand-ins; they do not postpone construction. Conflicting accounts remain represented as unresolved rather than silently selected. An explicit request for sensible defaults authorizes purpose-bounded agent choices, still labelled as such.
 
 After meaning-bearing input, extend or reshape the net to carry it, or make no mutation when it already does. Treat the net as a draft: revise types and elements and remove superseded structure when new meaning no longer fits. Preserve unrelated structure at the level actually inspected.
 
-Record consequential stand-ins, inferences, defaults, approximations, revisions and target losses as construction Notes with the supplied meaning and Note ids they rest on, plus what the choice affects and how it could be checked. Construction Notes may preserve useful correspondence; they are neither operational facts nor a mandatory queue of questions.
+Record consequential stand-ins, inferences, defaults, approximations, revisions and target losses as reflections anchored to the net elements they concern and the claim and entity IDs they rest on, with what the choice affects and how it could be checked in the text. Reflections may preserve useful correspondence; they are neither operational facts nor a mandatory queue of questions.
 
 ## Execute efficiently
 
