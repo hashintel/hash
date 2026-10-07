@@ -1,7 +1,6 @@
 import {
   type ComponentProps,
   type ReactNode,
-  use,
   useEffect,
   useState,
 } from "react";
@@ -11,18 +10,19 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
-import { EditorContext } from "../../../../../react/state/editor-context";
 import { VoiceSessionContext } from "../../../../../react/voice-session/context";
 import {
   createVoiceSessionStore,
   type VoiceSessionActions,
   type VoiceSessionStore,
 } from "../../../../../react/voice-session/store";
+import { PetrinautAssistantWindowPreview } from "../../assistant-window";
 import { AiAssistantContents } from "./ai-assistant-contents";
 import { REVIEW_CHIPS } from "./ai-assistant-contents/prompt-chips";
 
 import type { VoiceAudioSettingsState } from "../../../../../react/voice-session/types";
 import type {
+  PetrinautAiAssistant,
   PetrinautAiAssistantPresentation,
   PetrinautAiToolPresentationResolver,
 } from "../../../../petrinaut";
@@ -387,7 +387,7 @@ const Frame = ({
   voiceSession,
   workingLabel,
 }: {
-  additionalTab?: ComponentProps<typeof AiAssistantContents>["additionalTab"];
+  additionalTab?: PetrinautAiAssistant["additionalTab"];
   composerControl?: ComponentProps<
     typeof AiAssistantContents
   >["composerControl"];
@@ -413,10 +413,6 @@ const Frame = ({
   voiceSession?: PetrinautAiVoiceSessionState;
   workingLabel?: string;
 }) => {
-  const editor = use(EditorContext);
-  const [placement, setPlacement] = useState(initialPlacement);
-  const [width, setWidth] = useState(editor.aiAssistantWidth);
-  const [isOpen, setOpen] = useState(true);
   const [input, setInput] = useState("");
   const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(
     initialVoiceDockCollapsed,
@@ -428,14 +424,9 @@ const Frame = ({
   );
 
   return (
-    <EditorContext
-      value={{
-        ...editor,
-        aiAssistantPlacement: placement,
-        setAiAssistantPlacement: setPlacement,
-        aiAssistantWidth: width,
-        setAiAssistantWidth: setWidth,
-      }}
+    <PetrinautAssistantWindowPreview
+      placement={initialPlacement}
+      tabs={additionalTab ? [{ id: "host", ...additionalTab }] : undefined}
     >
       <VoiceSessionContext.Provider value={voiceSessionStore}>
         <div
@@ -443,7 +434,6 @@ const Frame = ({
           data-testid="ai-assistant-story-frame"
         >
           <AiAssistantContents
-            additionalTab={additionalTab}
             composerControl={composerControl}
             error={error}
             experimentStates={experimentStates}
@@ -451,13 +441,11 @@ const Frame = ({
             input={input}
             inputMode={inputMode}
             messages={messages}
-            isOpen={isOpen}
             primaryLabel={primaryLabel}
             presentation={presentation}
             promptChips={promptChips}
             onSendPrompt={setInput}
             onRetryPrompt={fn()}
-            onClose={() => setOpen(false)}
             onInputChange={setInput}
             onInputModeChange={() => {}}
             onStop={() => {}}
@@ -473,7 +461,7 @@ const Frame = ({
           />
         </div>
       </VoiceSessionContext.Provider>
-    </EditorContext>
+    </PetrinautAssistantWindowPreview>
   );
 };
 

@@ -12,6 +12,18 @@
 export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
 
+// The assistant window an assistant's chat draws.
+export {
+  PetrinautAssistantWindow,
+  PetrinautAssistantWindowPreview,
+  usePetrinautAssistantWindow,
+} from "./views/Editor/assistant-window";
+export type {
+  PetrinautAssistantStartRequest,
+  PetrinautAssistantWindowPreviewProps,
+  PetrinautAssistantWindowProps,
+  PetrinautAssistantWindowState,
+} from "./views/Editor/assistant-window";
 export {
   ExperimentExecutionCard,
   type ExperimentExecutionCardProps,

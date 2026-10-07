@@ -47,6 +47,11 @@ import { PluginRoots } from "../../plugins/plugin-outlets";
 import { usePluginOverlay } from "../../plugins/plugins-provider";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
+import {
+  AssistantWindowContext,
+  type AssistantWindowTab,
+  useEditorAssistantWindowHost,
+} from "./assistant-window";
 import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
@@ -68,7 +73,6 @@ import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
-import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
@@ -143,6 +147,8 @@ const editViewSelectorSpaceStyle = css({
   flexShrink: "0",
 });
 
+const noAssistantTabs: readonly AssistantWindowTab[] = [];
+
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
   sdcpn.transitions.length === 0 &&
@@ -204,35 +210,24 @@ const EditorViewContent = ({
     cursorMode,
     setCursorMode,
     clearSelection,
-    setAiAssistantOpen,
-    setAiAssistantCollapsed,
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
 
-  const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
-    string | null
-  >(null);
-  const [pendingAiInteractionMode, setPendingAiInteractionMode] =
-    useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
-  const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
+  // The assistant window's tab, start request and focus requests live above
+  // the chat, which remounts for another document.
+  const assistantWindow = useEditorAssistantWindowHost(
+    aiAssistant?.additionalTab
+      ? [{ id: "host", ...aiAssistant.additionalTab }]
+      : noAssistantTabs,
+  );
 
   const { enableExperimentalIconPack, showAnimations } =
     use(UserSettingsContext);
   // A plugin covering the canvas, such as a tour, holds back the prompt.
   const pluginOverlay = usePluginOverlay();
-
-  const toggleAiAssistant = () => {
-    if (isAiAssistantOpen) {
-      setAiAssistantOpen(false);
-      return;
-    }
-    setAiAssistantCollapsed(false);
-    setAiAssistantOpen(true);
-    setAiAssistantFocusRequest((request) => request + 1);
-  };
 
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -513,7 +508,7 @@ const EditorViewContent = ({
       <EditorCommands
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
         onNewNet={showNetManagementMenuItems ? handleCreateEmpty : undefined}
-        onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
+        onToggleAiAssistant={aiAssistant ? assistantWindow.toggle : undefined}
       />
       <PluginRoots />
       <UserSettings settingsLabs={slots?.settingsLabs} />
@@ -577,15 +572,12 @@ const EditorViewContent = ({
                           isBottomPanelOpen ? bottomPanelHeight : 0
                         }
                         onDismiss={() => setIsAiCtaDismissed(true)}
-                        onStartVoiceMode={() => {
-                          setPendingAiInteractionMode("voice");
-                          setAiAssistantOpen(true);
-                        }}
-                        onSubmit={(message) => {
-                          setPendingAiAssistantMessage(message);
-                          setPendingAiInteractionMode("text");
-                          setAiAssistantOpen(true);
-                        }}
+                        onStartVoiceMode={() =>
+                          assistantWindow.start({ action: "voice" })
+                        }
+                        onSubmit={(message) =>
+                          assistantWindow.start({ text: message })
+                        }
                         voiceModeAvailable={
                           aiAssistant.renderVoiceMode !== undefined
                         }
@@ -632,22 +624,15 @@ const EditorViewContent = ({
             <SimulationCreationDrawer />
           </SimulationWorkspace>
           {aiAssistant && (
-            <AiAssistantPanel
-              /** Reset state (e.g. initial messages) when the active net changes */
-              key={`ai-assistant-${petriNetId ?? "no-net"}`}
-              aiAssistant={aiAssistant}
-              applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
-              focusRequest={aiAssistantFocusRequest}
-              frameSceneAfterRender={frameSceneAfterRender}
-              initialMessage={pendingAiAssistantMessage}
-              initialInteractionMode={pendingAiInteractionMode}
-              onInitialMessageConsumed={() =>
-                setPendingAiAssistantMessage(null)
-              }
-              onInitialInteractionModeConsumed={() =>
-                setPendingAiInteractionMode(null)
-              }
-            />
+            <AssistantWindowContext value={assistantWindow.host}>
+              <AiAssistantPanel
+                /** Reset state (e.g. initial messages) when the active net changes */
+                key={`ai-assistant-${petriNetId ?? "no-net"}`}
+                aiAssistant={aiAssistant}
+                applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
+                frameSceneAfterRender={frameSceneAfterRender}
+              />
+            </AssistantWindowContext>
           )}
         </Stack>
       </VoiceSessionProvider>
