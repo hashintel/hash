@@ -11,24 +11,6 @@
  * styles are scoped — or just use `@hashintel/ds-components` directly.
  */
 export type PetrinautSlots = {
-  /**
-   * Rendered in the top bar's leading section, after the built-in
-   * sidebar-toggle and burger-menu buttons and immediately before the net
-   * title (when shown) — e.g. for host breadcrumbs leading up to the title.
-   */
-  topBarStart?: React.ReactNode;
-  /**
-   * Rendered at the trailing edge of the top bar, after the built-in
-   * running-experiments popover and version-history button.
-   */
-  topBarEnd?: React.ReactNode;
-  /**
-   * Inline style applied to the net-title input in the top bar (when the
-   * title is shown). Lets hosts blend the title into adjacent slot content
-   * — e.g. tint it as the final crumb of `topBarStart` breadcrumbs —
-   * without competing with the editor's own styles.
-   */
-  titleStyle?: React.CSSProperties;
   /** Rendered after Petrinaut's built-in groups in the Labs settings section. */
   settingsLabs?: React.ReactNode;
 };

@@ -1,9 +1,7 @@
 import type { HostNetMode, IframeToHostMessage } from "./messages";
+import type { ErrorTrackerCaptureContext } from "@hashintel/petrinaut";
 
-type ReportSource = Extract<
-  IframeToHostMessage,
-  { kind: "reportError" }
->["source"];
+type ReportError = Extract<IframeToHostMessage, { kind: "reportError" }>;
 
 let activeMode: HostNetMode | null = null;
 let installed = false;
@@ -36,7 +34,11 @@ const serializeError = (
  * loaded outside an iframe (so directly-visiting `/processes/<id>/embed`
  * doesn't recursively post errors to itself).
  */
-const post = (source: ReportSource, raw: unknown) => {
+const post = (
+  source: ReportError["source"],
+  raw: unknown,
+  tags?: ReportError["tags"],
+) => {
   if (typeof window === "undefined" || window === window.parent) {
     return;
   }
@@ -45,6 +47,7 @@ const post = (source: ReportSource, raw: unknown) => {
     source,
     ...serializeError(raw),
     mode: activeMode,
+    tags,
   };
   /**
    * Target origin is "*" — see `use-iframe-bridge.ts` for why a stricter
@@ -97,4 +100,16 @@ export const setIframeErrorReporterMode = (mode: HostNetMode | null): void => {
  */
 export const reportIframeReactError = (error: unknown): void => {
   post("react", error);
+};
+
+/**
+ * Forward an error Petrinaut caught itself, such as a failing plugin's, with
+ * the tags it attached. Petrinaut's boundaries keep these from the app's
+ * `ErrorBoundary`.
+ */
+export const reportIframePetrinautError = (
+  error: unknown,
+  context?: ErrorTrackerCaptureContext,
+): void => {
+  post("petrinaut", error, context?.tags);
 };

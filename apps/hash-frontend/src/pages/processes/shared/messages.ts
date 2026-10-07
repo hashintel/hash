@@ -264,7 +264,7 @@ export type IframeToHostMessage =
        * `reason` values from `unhandledrejection` etc.
        */
       kind: "reportError";
-      source: "react" | "window-error" | "unhandled-rejection";
+      source: "react" | "petrinaut" | "window-error" | "unhandled-rejection";
       name: string;
       message: string;
       stack: string | undefined;
@@ -273,6 +273,8 @@ export type IframeToHostMessage =
        * tag the Sentry event with which net the user was editing.
        */
       mode: HostNetMode | null;
+      /** Tags Petrinaut attached, such as a failing plugin's id and place. */
+      tags?: Record<string, string | number | boolean>;
     }
   | {
       /**

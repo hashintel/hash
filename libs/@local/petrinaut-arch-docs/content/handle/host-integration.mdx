@@ -398,7 +398,7 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `aiAssistant`                                                            | Transport, message store, and interactive tools for the AI assistant panel. Omitting it hides the panel.                                 |
 | `navigation`                                                             | Host-controlled, router-neutral app location. Omitted: Petrinaut keeps its location internally. See Router integration.                  |
 | `presentationProfile`                                                    | `"editor"` (default) or `"review"`, which keeps the full editor but suppresses authoring actions, for read-only example routes.          |
-| `slots`                                                                  | Host components injected into the top bar (`topBarStart`, `topBarEnd`) plus `titleStyle`.                                                |
+| `slots`                                                                  | `settingsLabs`: host content rendered after the built-in groups in the Labs settings section.                                            |
 | `simulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
 | `plugins`                                                                | Plugins that add buttons, top-bar items, settings and UI. Define each at module scope.                                                   |
 
@@ -445,13 +445,14 @@ enabled.
 
 ## Reference implementations in this repo
 
-| Pattern                                                               | Where                                                                                   |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual` | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`            |
-| Persist on every change event to localStorage                         | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts` |
-| Read-only mirror of a streamed definition                             | `apps/petrinaut-website/src/main/app/brunch-demo/brunch-petrinaut.tsx`                  |
-| One live handle per net, history survives switching                   | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                         |
+| Pattern                                                                                                                   | Where                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual`                                                     | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`            |
+| Persist on every change event to localStorage                                                                             | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts` |
+| Read-only mirror of a streamed definition                                                                                 | `apps/petrinaut-website/src/main/app/brunch-demo/brunch-petrinaut.tsx`                  |
+| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                         |
+| Host plugin: top-bar items reading page state from a host context above `<Petrinaut>`, so the plugin is a module constant | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-chrome-plugin.tsx`      |
 
-All of them wrap `createJsonDocHandle`; no adapter over an external store has
-shipped yet, which is part of why the contract still has the gaps the
-[next page](doc:handle/contract-gaps) lists.
+The handles among them all wrap `createJsonDocHandle`; no adapter over an
+external store has shipped yet, which is part of why the contract still has
+the gaps the [next page](doc:handle/contract-gaps) lists.
