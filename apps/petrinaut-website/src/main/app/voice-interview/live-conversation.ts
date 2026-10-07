@@ -971,8 +971,10 @@ export const createLiveConversation = (
     kind: LiveAppendResult["kind"],
     text: string,
     delegationId: string | null,
-    interviewBudgetLevel?: InterviewBudgetLevel,
-    progress = false,
+    {
+      interviewBudgetLevel,
+      progress = false,
+    }: { interviewBudgetLevel?: InterviewBudgetLevel; progress?: boolean } = {},
   ): boolean => {
     if (stopping) return false;
     const result: LiveAppendResult = {
@@ -1042,7 +1044,7 @@ export const createLiveConversation = (
           ? "Interview length is now Off. Follow Brunch's ordinary interview pacing; Brunch still decides the questions. Do not speak this note."
           : liveInterviewBudgetInstruction(budgetLevel),
         null,
-        budgetLevel,
+        { interviewBudgetLevel: budgetLevel },
       );
     });
   };
@@ -1084,7 +1086,7 @@ export const createLiveConversation = (
       append("commentary", text, delegationId),
     /** Null-delegation commentary still awaits real-provider verification. */
     appendProgress: (text: string) =>
-      append("commentary", text, null, undefined, true),
+      append("commentary", text, null, { progress: true }),
     appendInstructions: (text: string, delegationId: string | null) =>
       append("instructions", text, delegationId),
     appendThinking: (text: string, delegationId: string | null) =>
