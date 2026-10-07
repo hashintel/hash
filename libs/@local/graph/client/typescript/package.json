@@ -18,7 +18,7 @@
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
-    "@types/node": "22.18.13",
+    "@types/node": "catalog:",
     "fix-esm-import-path": "1.10.3",
     "rimraf": "6.1.3",
     "typescript": "catalog:"

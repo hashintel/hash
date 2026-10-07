@@ -102,7 +102,7 @@
     "@tanstack/react-form": "1.29.0",
     "@tanstack/react-virtual": "3.13.24",
     "@tsconfig/bases": "catalog:",
-    "@types/node": "22.18.13",
+    "@types/node": "catalog:",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.1.0",

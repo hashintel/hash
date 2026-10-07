@@ -35,7 +35,7 @@
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "@types/js-yaml": "^4",
-    "@types/node": "22.18.13",
+    "@types/node": "catalog:",
     "oxlint": "1.63.0",
     "tsx": "catalog:",
     "typescript": "catalog:",

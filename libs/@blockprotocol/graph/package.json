@@ -82,7 +82,7 @@
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "@types/lodash.isequal": "4.5.8",
-    "@types/node": "22.18.13",
+    "@types/node": "catalog:",
     "@types/react": "19.2.14",
     "eslint": "9.39.4",
     "rimraf": "6.1.3",
