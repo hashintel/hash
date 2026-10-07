@@ -3,4 +3,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-New and pasted places, transitions, types, type elements, parameters, equations, scenarios, metrics and component instances get plain UUID ids.
+New places, transitions, types and component instances, and pasted places and transitions, get plain UUID ids instead of prefixed or timestamp ids.

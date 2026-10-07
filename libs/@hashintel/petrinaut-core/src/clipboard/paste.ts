@@ -46,20 +46,14 @@ export function pastePayloadIntoSDCPN(
   );
 
   // Pre-generate all new IDs
-  for (const place of data.places) {
-    idMap.set(place.id, generatePetrinautId());
-  }
-  for (const transition of data.transitions) {
-    idMap.set(transition.id, generatePetrinautId());
-  }
-  for (const type of data.types) {
-    idMap.set(type.id, generatePetrinautId());
-  }
-  for (const equation of data.differentialEquations) {
-    idMap.set(equation.id, generatePetrinautId());
-  }
-  for (const parameter of data.parameters) {
-    idMap.set(parameter.id, generatePetrinautId());
+  for (const { id } of [
+    ...data.places,
+    ...data.transitions,
+    ...data.types,
+    ...data.differentialEquations,
+    ...data.parameters,
+  ]) {
+    idMap.set(id, generatePetrinautId());
   }
 
   // Paste types
