@@ -41,7 +41,8 @@ export type FlueAiSdkAdapterConfig<UiMessage extends UIMessage> =
     MetadataContract<MessageMetadata<UiMessage>> & {
       /**
        * Reports a stored message `reopen` kept without its metadata, because
-       * the schema refused it.
+       * the schema refused it. Each adapter reports a message once, however
+       * often its history is reopened.
        */
       readonly onInvalidReopenedMetadata?: (
         invalid: InvalidReopenedMetadata,
@@ -89,7 +90,7 @@ const checkMetadata = <Metadata>(
  * message type, metadata contract and tool presentation, shared by the live
  * transport and by reopened history. Metadata failing the schema ends a live
  * turn with an error; `reopen` keeps that message without its metadata and
- * reports it, so one bad record cannot make a conversation unreadable.
+ * reports it once, so one bad record cannot make a conversation unreadable.
  */
 export const createFlueAiSdkAdapter = <UiMessage extends UIMessage = UIMessage>(
   config: FlueAiSdkAdapterConfig<UiMessage>,
@@ -99,6 +100,7 @@ export const createFlueAiSdkAdapter = <UiMessage extends UIMessage = UIMessage>(
     config;
   const metadataSchema: SyncMetadataSchema<Metadata> | undefined =
     config.metadataSchema;
+  const reportedInvalidMessageIds = new Set<string>();
   const projectUnchecked: MetadataProjection<unknown> = (input) =>
     projectMetadata === undefined
       ? input.agentMetadata
@@ -133,10 +135,13 @@ export const createFlueAiSdkAdapter = <UiMessage extends UIMessage = UIMessage>(
         }
         const checked = checkMetadata(metadataSchema, message.metadata);
         if ("value" in checked) return { ...message, metadata: checked.value };
-        onInvalidReopenedMetadata?.({
-          messageId: message.id,
-          error: checked.error,
-        });
+        if (!reportedInvalidMessageIds.has(message.id)) {
+          reportedInvalidMessageIds.add(message.id);
+          onInvalidReopenedMetadata?.({
+            messageId: message.id,
+            error: checked.error,
+          });
+        }
         return { ...message, metadata: undefined };
       }) as UiMessage[],
   };

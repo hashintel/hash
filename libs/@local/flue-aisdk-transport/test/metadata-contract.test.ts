@@ -82,7 +82,7 @@ test("start and finish metadata merge live as Flue merges them into history", as
   expectLiveReopenParity(turn);
 });
 
-test("metadata that fails the schema ends the live turn with an error, and reopening drops and reports it", async () => {
+test("metadata that fails the schema ends the live turn with an error, and reopening drops it and reports it once", async () => {
   harness.setResponseMetadata({ model: 1 });
   harness.script([
     fauxAssistantMessage([fauxText("Mistagged.")]),
@@ -111,6 +111,7 @@ test("metadata that fails the schema ends the live turn with an error, and reope
   }
   harness.setResponseMetadata(undefined);
 
+  strict.reopen(turn.history);
   const reopened = strict.reopen(turn.history);
   const mistagged = reopened.at(-1);
   expect(mistagged).toMatchObject({

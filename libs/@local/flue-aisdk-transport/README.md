@@ -13,7 +13,7 @@ One adapter per host configuration, shared by the live transport and by reopened
 
 - `clientToolNames`, `dynamicClientToolNames` and `mapClientToolInput` shape how client-executed tools render, and `mapToolOutput` unwraps a host envelope from tool results.
 - `projectMetadata` derives message metadata from the agent's response metadata and the submission's outcome. Without it, agent metadata passes through.
-- `metadataSchema` is the Standard Schema member of the AI SDK's `FlexibleSchema`, so the same schema can be given to `useChat`. It is required when the adapter's message type narrows its metadata, and it must validate synchronously. Projected metadata that fails it ends a live turn with an error. `reopen` keeps that message without its metadata and passes the failure to `onInvalidReopenedMetadata`, so one bad record cannot make a conversation unreadable. Messages carry the schema's output, so a schema that strips unknown keys drops them.
+- `metadataSchema` is the Standard Schema member of the AI SDK's `FlexibleSchema`, so the same schema can be given to `useChat`. It is required when the adapter's message type narrows its metadata, and it must validate synchronously. Projected metadata that fails it ends a live turn with an error. `reopen` keeps that message without its metadata and passes the failure to `onInvalidReopenedMetadata` once per adapter, so one bad record cannot make a conversation unreadable and reopening on every history update does not repeat the report. Messages carry the schema's output, so a schema that strips unknown keys drops them.
 
 Per transport, `submittedUserMessage` frames the admitted user turn, and `initialData`, `liveToolStream` and the admission and response callbacks connect the host.
 
