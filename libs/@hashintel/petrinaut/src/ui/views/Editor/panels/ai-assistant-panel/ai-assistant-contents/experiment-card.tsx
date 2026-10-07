@@ -25,13 +25,12 @@ export const ExperimentCard = ({
   part,
   state,
   onCancel,
-  onReveal,
+  onSelectToolTarget,
 }: {
   part: ExperimentToolPart;
   state?: AiExperimentState;
   onCancel?: (toolCallId: string) => void;
-  /** Opens the experiment the card reports, as tool rows open their targets. */
-  onReveal?: (target: AiToolTarget) => void;
+  onSelectToolTarget?: (target: AiToolTarget) => void;
 }) => {
   const { experiments } = use(ExperimentsContext);
   const result =
@@ -50,9 +49,9 @@ export const ExperimentCard = ({
       error={part.state === "output-error" ? part.errorText : undefined}
       onCancel={onCancel ? () => onCancel(part.toolCallId) : undefined}
       onViewExperiment={
-        available && onReveal
+        available && onSelectToolTarget
           ? () =>
-              onReveal({
+              onSelectToolTarget({
                 kind: "simulateView",
                 mode: "experiments",
                 itemId: experimentId,

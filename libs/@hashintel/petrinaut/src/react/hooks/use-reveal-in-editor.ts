@@ -1,15 +1,14 @@
 import { use } from "react";
 
-import { EditorContext } from "../state/editor-context";
+import { EditorContext, type SimulateViewMode } from "../state/editor-context";
 
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
-/** Something to show in the editor: an item, or Simulate's scenarios, metrics or experiments with one of them open. */
 export type PetrinautRevealTarget =
   | { readonly kind: "selection"; readonly item: SelectionItem }
   | {
       readonly kind: "simulateView";
-      readonly mode: "scenarios" | "metrics" | "experiments";
+      readonly mode: SimulateViewMode;
       readonly itemId?: string;
     };
 

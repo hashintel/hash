@@ -209,7 +209,7 @@ it("opens only the matching record on explicit request, preferring the tool resu
         active: true,
         result: { ...result, experimentId: "stale", status: "error" },
       }}
-      onReveal={reveal}
+      onSelectToolTarget={reveal}
     />
   );
   const view = render(<Providers available>{card}</Providers>);

@@ -11,6 +11,7 @@ import {
   type SelectionItem,
 } from "@hashintel/petrinaut-core";
 
+import type { PetrinautRevealTarget } from "../../../../../react/hooks/use-reveal-in-editor";
 import type { ReadOnlyReason } from "../../../../../react/state/use-read-only-reason";
 
 export type AiToolSummary = {
@@ -42,13 +43,7 @@ export type AiToolOutput =
   | AiToolBlockedOutput
   | AiToolDeclinedOutput;
 
-export type AiToolTarget =
-  | { kind: "selection"; item: SelectionItem }
-  | {
-      kind: "simulateView";
-      mode: "scenarios" | "metrics" | "experiments";
-      itemId?: string;
-    };
+export type AiToolTarget = PetrinautRevealTarget;
 
 export type AiToolSummaryContext = {
   definition?: SDCPN;

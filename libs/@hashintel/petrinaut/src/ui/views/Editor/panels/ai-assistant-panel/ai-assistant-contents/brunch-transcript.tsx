@@ -325,7 +325,7 @@ const BrunchMessage = memo(
               part={item.part}
               state={experimentStates?.[item.part.toolCallId]}
               onCancel={onCancelExperiment}
-              onReveal={(target) =>
+              onSelectToolTarget={(target) =>
                 handlersRef.current.onSelectToolTarget?.(target)
               }
             />

@@ -1116,8 +1116,6 @@ const ConversationAiAssistantPanel = ({
       throw new Error(`Unknown AI tool: ${String(toolName as string)}`);
     }
 
-    // Scenario and metric edits stay available in simulate mode; commands
-    // follow every read-only reason.
     const blockedBy = isPetrinautAiMutationToolName(toolName)
       ? mutationBlockedBy(toolName, readOnlyReasonRef.current)
       : readOnlyReasonRef.current;
