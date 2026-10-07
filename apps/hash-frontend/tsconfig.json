@@ -16,5 +16,5 @@
     "theme-override.d.ts",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next", "panda.config.ts"]
+  "exclude": ["node_modules", "panda.config.ts"]
 }
