@@ -33,8 +33,9 @@ impl ApiTokenEncryptionKey {
     pub fn new(id: ApiTokenEncryptionKeyId, key: &[u8; 32]) -> Self {
         Self {
             id,
-            key: RandomizedNonceKey::new(&AES_256_GCM, key)
-                .unwrap_or_else(|_error| unreachable!("AES-256-GCM should accept a 32-byte key")),
+            key: RandomizedNonceKey::new(&AES_256_GCM, key).unwrap_or_else(|error| {
+                unreachable!("AES-256-GCM should accept a 32-byte key: {error}")
+            }),
         }
     }
 
@@ -58,7 +59,9 @@ impl ApiTokenEncryptionKey {
         let (nonce, tag) = self
             .key
             .seal_in_place_separate_tag(Aad::from(associated_data.layout().as_bytes()), ciphertext)
-            .unwrap_or_else(|_error| unreachable!("AES-256-GCM should seal a SHA-256 hash"));
+            .unwrap_or_else(|error| {
+                unreachable!("AES-256-GCM should seal a SHA-256 hash: {error}")
+            });
         tag_part.copy_from_slice(tag.as_ref());
 
         ApiTokenEncryptedSecretHash::new(zerocopy::transmute!(EncryptedSecretHashLayout {
@@ -90,8 +93,9 @@ impl ApiTokenEncryptionKey {
             .change_context(ApiTokenDecryptionError)?;
 
         Ok(ApiTokenSecretHash::new(
-            <[u8; SECRET_HASH_LENGTH]>::try_from(&*secret_hash)
-                .unwrap_or_else(|_error| unreachable!("the plaintext should be a SHA-256 hash")),
+            <[u8; SECRET_HASH_LENGTH]>::try_from(&*secret_hash).unwrap_or_else(|error| {
+                unreachable!("the plaintext should be a SHA-256 hash: {error}")
+            }),
         ))
     }
 }
