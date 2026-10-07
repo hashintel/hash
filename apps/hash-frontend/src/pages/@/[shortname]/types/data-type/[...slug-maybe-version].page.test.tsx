@@ -4,7 +4,7 @@ import { describe, expect, test, vi } from "vitest";
 import Page from "./[...slug-maybe-version].page";
 
 const router = vi.hoisted(() => ({
-  query: {} as Record<string, string[]>,
+  query: {},
   asPath: "",
 }));
 

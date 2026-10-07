@@ -128,7 +128,7 @@ export const BannerActionButton = ({
 }: ButtonProps) => (
   <Button
     size="xs"
-    {...(props as ButtonProps)}
+    {...props}
     variant={variant ?? "subtle"}
     className={cx(
       variant === undefined ? "banner-action-button" : undefined,
