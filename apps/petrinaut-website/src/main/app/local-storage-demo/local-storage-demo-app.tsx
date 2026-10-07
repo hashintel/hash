@@ -284,7 +284,6 @@ export const LocalStorageDemoApp = ({
     return () => abortController.abort();
   }, [brunchSelected]);
 
-  // Live editable document handle for the selected net only.
   const { activeHandle, unsavedChangeMessage } = useActiveHandle(repository);
 
   const existingNets: MinimalNetMetadata[] = repository.records

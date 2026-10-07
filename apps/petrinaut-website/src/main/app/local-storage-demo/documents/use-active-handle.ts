@@ -16,7 +16,7 @@ const DEMO_CAPABILITIES = {
   disabledExtensions: [],
 } satisfies PetrinautHandleCapabilities;
 
-export type ActiveHandle = {
+type ActiveHandle = {
   handle: PetrinautDocHandle;
   document: DocumentRecord;
   /**

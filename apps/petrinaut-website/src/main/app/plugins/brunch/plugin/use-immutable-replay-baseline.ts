@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export type ReplayReadiness<Replay> =
+type ReplayReadiness<Replay> =
   | { readonly status: "pending" }
   | { readonly status: "ready"; readonly replay: Replay };
 
