@@ -1,14 +1,15 @@
 import {
-  type FastCheck,
+  Arbitrary,
   Data,
   Effect,
-  Either,
   Equal,
   Hash,
   Inspectable,
   pipe,
   Pipeable,
   Predicate,
+  Result,
+  Schema,
 } from "effect";
 
 import { MutableBuffer } from "../binary/index.js";
@@ -55,11 +56,7 @@ const ProcedureIdProto: Omit<ProcedureId, "value"> = {
   },
 
   [Hash.symbol](this: ProcedureId) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.value)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.value)));
   },
 
   toString(this: ProcedureId) {
@@ -103,16 +100,16 @@ export const make = (
   return Effect.succeed(makeUnchecked(id));
 };
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, procedureId: ProcedureId) =>
   MutableBuffer.putU16(buffer, procedureId.value),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  MutableBuffer.getU16(buffer).pipe(Either.map(makeUnchecked)),
+  MutableBuffer.getU16(buffer).pipe(Result.map(makeUnchecked)),
 );
 
 export const isProcedureId = (value: unknown): value is ProcedureId =>
@@ -121,5 +118,6 @@ export const isProcedureId = (value: unknown): value is ProcedureId =>
 export const isReserved = (value: ProcedureId) =>
   (value.value & 0xf0_00) === 0xf0_00;
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc.integer({ min: U16_MIN, max: U16_MAX }).map(makeUnchecked);
+export const arbitrary = Arbitrary.schema(
+  Schema.Int.check(Schema.isBetween({ minimum: U16_MIN, maximum: U16_MAX })),
+).pipe(Arbitrary.map(makeUnchecked));

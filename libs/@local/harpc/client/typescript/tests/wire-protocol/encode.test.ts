@@ -1,6 +1,6 @@
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { type TestContext, describe, it } from "@effect/vitest";
-import { Effect, Option, Predicate, Schema } from "effect";
+import { Effect, Option, Predicate } from "effect";
 
 import { MutableBuffer } from "../../src/binary/index.js";
 import {
@@ -12,10 +12,6 @@ import {
   RequestHeader,
 } from "../../src/wire-protocol/models/request/index.js";
 import { callEncode } from "./utils.js";
-
-const RequestHeaderFromSelf = Schema.declare(RequestHeader.isRequestHeader, {
-  arbitrary: () => RequestHeader.arbitrary,
-});
 
 interface RequestHeaderData {
   protocol: {
@@ -34,10 +30,6 @@ const assertRequestHeader = (
   cx.expect(a.requestId.value).toBe(b.request_id);
   cx.expect(RequestFlags.repr(a.flags)).toBe(b.flags);
 };
-
-const RequestBeginFromSelf = Schema.declare(RequestBegin.isRequestBegin, {
-  arbitrary: () => RequestBegin.arbitrary,
-});
 
 interface RequestBeginData {
   subsystem: {
@@ -65,10 +57,6 @@ const assertRequestBegin = (
   cx.expect([...a.payload.buffer]).toEqual(b.payload);
 };
 
-const RequestFrameFromSelf = Schema.declare(RequestFrame.isRequestFrame, {
-  arbitrary: () => RequestFrame.arbitrary,
-});
-
 interface RequestFrameData {
   payload: number[];
 }
@@ -80,10 +68,6 @@ const assertRequestFrame = (
 ) => {
   cx.expect([...a.payload.buffer]).toEqual(b.payload);
 };
-
-const RequestFromSelf = Schema.declare(Request.isRequest, {
-  arbitrary: () => Request.arbitrary,
-});
 
 interface RequestData {
   header: RequestHeaderData;
@@ -116,12 +100,12 @@ const assertRequest = (cx: TestContext, a: Request.Request, b: RequestData) => {
 describe.concurrent("encode", () => {
   it.effect.prop(
     "encode request-header",
-    { header: RequestHeaderFromSelf },
+    { header: RequestHeader.arbitrary },
     ({ header }, cx) =>
       Effect.gen(function* () {
         const buffer = MutableBuffer.makeWrite();
 
-        yield* RequestHeader.encode(buffer, header);
+        yield* Effect.fromResult(RequestHeader.encode(buffer, header));
 
         const array = MutableBuffer.take(buffer);
         const received = yield* callEncode(
@@ -130,17 +114,17 @@ describe.concurrent("encode", () => {
         );
 
         assertRequestHeader(cx, header, received as RequestHeaderData);
-      }).pipe(Effect.provide(NodeContext.layer)),
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect.prop(
     "encode request-begin",
-    { begin: RequestBeginFromSelf },
+    { begin: RequestBegin.arbitrary },
     ({ begin }, cx) =>
       Effect.gen(function* () {
         const buffer = MutableBuffer.makeWrite();
 
-        yield* RequestBegin.encode(buffer, begin);
+        yield* Effect.fromResult(RequestBegin.encode(buffer, begin));
 
         const array = MutableBuffer.take(buffer);
         const received = yield* callEncode(
@@ -149,17 +133,17 @@ describe.concurrent("encode", () => {
         );
 
         assertRequestBegin(cx, begin, received as RequestBeginData);
-      }).pipe(Effect.provide(NodeContext.layer)),
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect.prop(
     "encode request-frame",
-    { frame: RequestFrameFromSelf },
+    { frame: RequestFrame.arbitrary },
     ({ frame }, cx) =>
       Effect.gen(function* () {
         const buffer = MutableBuffer.makeWrite();
 
-        yield* RequestFrame.encode(buffer, frame);
+        yield* Effect.fromResult(RequestFrame.encode(buffer, frame));
 
         const array = MutableBuffer.take(buffer);
         const received = yield* callEncode(
@@ -168,22 +152,22 @@ describe.concurrent("encode", () => {
         );
 
         assertRequestFrame(cx, frame, received as RequestFrameData);
-      }).pipe(Effect.provide(NodeContext.layer)),
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect.prop(
     "encode request",
-    { request: RequestFromSelf },
+    { request: Request.arbitrary },
     ({ request }, cx) =>
       Effect.gen(function* () {
         const buffer = MutableBuffer.makeWrite();
 
-        yield* Request.encode(buffer, request);
+        yield* Effect.fromResult(Request.encode(buffer, request));
 
         const array = MutableBuffer.take(buffer);
         const received = yield* callEncode("request", new Uint8Array(array));
 
         assertRequest(cx, request, received as RequestData);
-      }).pipe(Effect.provide(NodeContext.layer)),
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

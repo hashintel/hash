@@ -1,6 +1,6 @@
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
-import { Effect, Equal, Schema } from "effect";
+import { Effect, Equal } from "effect";
 
 import { MutableBuffer, MutableBytes } from "../../src/binary/index.js";
 import { ResponseKind } from "../../src/types/index.js";
@@ -13,10 +13,6 @@ import {
   ResponseHeader,
 } from "../../src/wire-protocol/models/response/index.js";
 import { callDecode } from "./utils.js";
-
-const ResponseHeaderFromSelf = Schema.declare(ResponseHeader.isResponseHeader, {
-  arbitrary: () => ResponseHeader.arbitrary,
-});
 
 interface ResponseHeaderData {
   protocol: {
@@ -36,10 +32,6 @@ const convertResponseHeader = (
   flags: ResponseFlags.repr(header.flags),
 });
 
-const ResponseBeginFromSelf = Schema.declare(ResponseBegin.isResponseBegin, {
-  arbitrary: () => ResponseBegin.arbitrary,
-});
-
 interface ResponseBeginData {
   kind: "Ok" | { Err: number };
   payload: number[];
@@ -56,10 +48,6 @@ const convertResponseBegin = (
   payload: [...begin.payload.buffer],
 });
 
-const ResponseFrameFromSelf = Schema.declare(ResponseFrame.isResponseFrame, {
-  arbitrary: () => ResponseFrame.arbitrary,
-});
-
 interface ResponseFrameData {
   payload: number[];
 }
@@ -68,10 +56,6 @@ const convertResponseFrame = (
   frame: ResponseFrame.ResponseFrame,
 ): ResponseFrameData => ({
   payload: [...frame.payload.buffer],
-});
-
-const ResponseFromSelf = Schema.declare(Response.isResponse, {
-  arbitrary: () => Response.arbitrary,
 });
 
 interface ResponseData {
@@ -90,7 +74,7 @@ const convertResponse = (response: Response.Response): ResponseData => ({
 describe.concurrent("decode", () => {
   it.effect.prop(
     "decode response-header",
-    { header: ResponseHeaderFromSelf },
+    { header: ResponseHeader.arbitrary },
     ({ header }, cx) =>
       Effect.gen(function* () {
         const input = convertResponseHeader(header);
@@ -98,15 +82,17 @@ describe.concurrent("decode", () => {
         const array = yield* callDecode("response-header", input);
         const buffer = MutableBuffer.makeRead(MutableBytes.from(array.buffer));
 
-        const received = yield* ResponseHeader.decode(buffer);
+        const received = yield* Effect.fromResult(
+          ResponseHeader.decode(buffer),
+        );
 
         cx.expect(Equal.equals(received, header)).toBeTruthy();
-      }).pipe(Effect.provide(NodeContext.layer)),
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect.prop(
     "decode response-begin",
-    { begin: ResponseBeginFromSelf },
+    { begin: ResponseBegin.arbitrary },
     ({ begin }, cx) =>
       Effect.gen(function* () {
         const input = convertResponseBegin(begin);
@@ -114,15 +100,15 @@ describe.concurrent("decode", () => {
         const array = yield* callDecode("response-begin", input);
         const buffer = MutableBuffer.makeRead(MutableBytes.from(array.buffer));
 
-        const received = yield* ResponseBegin.decode(buffer);
+        const received = yield* Effect.fromResult(ResponseBegin.decode(buffer));
 
         cx.expect(Equal.equals(received, begin)).toBeTruthy();
-      }).pipe(Effect.provide(NodeContext.layer)),
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect.prop(
     "decode response-frame",
-    { frame: ResponseFrameFromSelf },
+    { frame: ResponseFrame.arbitrary },
     ({ frame }, cx) =>
       Effect.gen(function* () {
         const input = convertResponseFrame(frame);
@@ -130,15 +116,15 @@ describe.concurrent("decode", () => {
         const array = yield* callDecode("response-frame", input);
         const buffer = MutableBuffer.makeRead(MutableBytes.from(array.buffer));
 
-        const received = yield* ResponseFrame.decode(buffer);
+        const received = yield* Effect.fromResult(ResponseFrame.decode(buffer));
 
         cx.expect(Equal.equals(received, frame)).toBeTruthy();
-      }).pipe(Effect.provide(NodeContext.layer)),
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect.prop(
     "decode response",
-    { response: ResponseFromSelf },
+    { response: Response.arbitrary },
     ({ response: rawResponse }, cx) =>
       Effect.gen(function* () {
         // we first need to make sure that the response is properly formed (this is done either way during the encoding step)
@@ -149,9 +135,9 @@ describe.concurrent("decode", () => {
         const array = yield* callDecode("response", input);
         const buffer = MutableBuffer.makeRead(MutableBytes.from(array.buffer));
 
-        const received = yield* Response.decode(buffer);
+        const received = yield* Effect.fromResult(Response.decode(buffer));
 
         cx.expect(Equal.equals(received, response)).toBeTruthy();
-      }).pipe(Effect.provide(NodeContext.layer)),
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

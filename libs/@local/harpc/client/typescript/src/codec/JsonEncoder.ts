@@ -12,8 +12,8 @@ const encoder = (options: Options) =>
 
     const textEncoder = new TextEncoder();
 
-    const schemaJson = Schema.parseJson(schema);
-    const encodeJson = Schema.encode(schemaJson);
+    const schemaJson = Schema.fromJsonString(schema);
+    const encodeJson = Schema.encodeEffect(schemaJson);
 
     return pipe(
       input,

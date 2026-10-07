@@ -5,8 +5,9 @@ import {
   Function,
   Option,
   pipe,
-  Predicate,
+  Result,
   Schema,
+  SchemaTransformation,
   Stream,
 } from "effect";
 
@@ -29,40 +30,40 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- otherwise TypeScript will fail on inference, I don't know why
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
 
-const ServerResult = <A, I, R>(ok: Schema.Schema<A, I, R>) =>
-  Schema.transform(
-    Schema.Union(
-      Schema.Struct({
-        Ok: ok,
-      }),
-      Schema.Struct({
-        Err: Schema.Unknown,
+const ServerResult = <A, I, RD, RE>(ok: Schema.Codec<A, I, RD, RE>) =>
+  Schema.Union([
+    Schema.Struct({
+      Ok: ok,
+    }),
+    Schema.Struct({
+      Err: Schema.Unknown,
+    }),
+  ]).pipe(
+    Schema.decodeTo(
+      Schema.Result(
+        Schema.toType(ok),
+        Schema.instanceOf(ClientError.ServerError),
+      ),
+      SchemaTransformation.transform<
+        Result.Result<A, ClientError.ServerError>,
+        { readonly Ok: A } | { readonly Err: unknown }
+      >({
+        decode: (value) => {
+          if ("Ok" in value) {
+            return Result.succeed(value.Ok);
+          }
+
+          return Result.fail(new ClientError.ServerError({ cause: value.Err }));
+        },
+        encode: (value) => {
+          if (Result.isSuccess(value)) {
+            return { Ok: value.success };
+          }
+
+          return { Err: value.failure.cause };
+        },
       }),
     ),
-    Schema.Either({
-      left: Schema.instanceOf(ClientError.ServerError),
-      right: Schema.typeSchema(ok),
-    }),
-    {
-      strict: true,
-      decode: (value) => {
-        if (Predicate.hasProperty(value, "Ok")) {
-          return { _tag: "Right", right: value.Ok } as const;
-        }
-
-        return {
-          _tag: "Left",
-          left: new ClientError.ServerError({ cause: value.Err }),
-        } as const;
-      },
-      encode: (value) => {
-        if (value._tag === "Right") {
-          return { Ok: value.right };
-        }
-
-        return { Err: value.left.cause } as const;
-      },
-    },
   );
 
 export class EchoSubsystem {
@@ -84,7 +85,7 @@ export class EchoSubsystem {
       Stream.succeed,
       encoder.encode(Schema.String),
       Stream.runCollect,
-      Effect.map(Stream.fromChunk),
+      Effect.map(Stream.fromArray),
     );
 
     const request = yield* Request.make(
@@ -102,10 +103,10 @@ export class EchoSubsystem {
     const items = decoder.decode(response.body, ServerResult(Schema.String));
     const item = yield* Stream.runHead(items);
 
-    const eitherItem = Option.getOrThrowWith(item, () =>
+    const resultItem = Option.getOrThrowWith(item, () =>
       ClientError.ExpectedItemCountMismatchError.exactly(1, 0),
     );
 
-    return yield* eitherItem;
+    return yield* Effect.fromResult(resultItem);
   }, Effect.map(Function.identity));
 }

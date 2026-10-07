@@ -1,18 +1,19 @@
 import {
-  type FastCheck,
+  Arbitrary,
   Data,
   Effect,
-  Either,
   Equal,
   Hash,
   Inspectable,
   pipe,
   Pipeable,
   Predicate,
+  Result,
+  Schema,
 } from "effect";
 
 import { MutableBuffer } from "../../binary/index.js";
-import { U16_MAX, U16_MIN } from "../../constants.js";
+import { U16_MAX, U16_MIN, U8_MAX, U8_MIN } from "../../constants.js";
 import {
   createProto,
   hashUint8Array,
@@ -59,7 +60,6 @@ const PayloadProto: Omit<Payload, "buffer"> = {
     return pipe(
       Hash.hash(this[TypeId]),
       Hash.combine(hashUint8Array(this.buffer)),
-      Hash.cached(this),
     );
   },
 
@@ -110,14 +110,14 @@ export const makeAssert = (buffer: Uint8Array<ArrayBuffer>) => {
   return Effect.succeed(makeUnchecked(buffer));
 };
 
-const makeEither = (
+const makeResult = (
   buffer: Uint8Array<ArrayBuffer>,
-): Either.Either<Payload, PayloadTooLargeError> => {
+): Result.Result<Payload, PayloadTooLargeError> => {
   if (buffer.length > MAX_SIZE) {
-    return Either.left(new PayloadTooLargeError({ received: buffer.length }));
+    return Result.fail(new PayloadTooLargeError({ received: buffer.length }));
   }
 
-  return Either.right(makeUnchecked(buffer));
+  return Result.succeed(makeUnchecked(buffer));
 };
 
 /**
@@ -132,12 +132,13 @@ const makeEither = (
  */
 export const make = (
   buffer: Uint8Array<ArrayBuffer>,
-): Effect.Effect<Payload, PayloadTooLargeError> => makeEither(buffer);
+): Effect.Effect<Payload, PayloadTooLargeError> =>
+  Effect.fromResult(makeResult(buffer));
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, payload: Payload) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     yield* MutableBuffer.putU16(buffer, payload.buffer.length);
     yield* MutableBuffer.putSlice(buffer, payload.buffer);
 
@@ -145,23 +146,26 @@ export const encode = implEncode((buffer, payload: Payload) =>
   }),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const length = yield* MutableBuffer.getU16(buffer);
     const slice = yield* MutableBuffer.getSlice(buffer, length);
 
-    return yield* makeEither(slice);
+    return yield* makeResult(slice);
   }),
 );
 
 export const isPayload = (value: unknown): value is Payload =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .uint8Array({ minLength: U16_MIN, maxLength: MAX_SIZE })
-    // cast needed as fast-check doesn't support Uint8Array<ArrayBuffer> yet
-    .map((array) => array as Uint8Array<ArrayBuffer>)
-    .map(makeUnchecked);
+export const arbitrary = Arbitrary.array(
+  Arbitrary.schema(
+    Schema.Int.check(Schema.isBetween({ minimum: U8_MIN, maximum: U8_MAX })),
+  ),
+  {
+    minLength: U16_MIN,
+    maxLength: MAX_SIZE,
+  },
+).pipe(Arbitrary.map((bytes) => makeUnchecked(Uint8Array.from(bytes))));

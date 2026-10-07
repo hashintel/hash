@@ -1,5 +1,5 @@
 import {
-  type FastCheck,
+  Arbitrary,
   Data,
   Effect,
   Equal,
@@ -8,6 +8,8 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  type Result,
+  Schema,
 } from "effect";
 
 import { MutableBuffer } from "../binary/index.js";
@@ -52,11 +54,7 @@ const ErrorCodeProto: Omit<ErrorCode, "value"> = {
   },
 
   [Hash.symbol](this: ErrorCode) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.number(this.value)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.number(this.value)));
   },
 
   toString(this: ErrorCode) {
@@ -100,7 +98,7 @@ export const make = (
   return Effect.succeed(makeUnchecked(value));
 };
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, errorCode: ErrorCode) =>
   MutableBuffer.putU16(buffer, errorCode.value),
@@ -111,5 +109,6 @@ export const encode = implEncode((buffer, errorCode: ErrorCode) =>
 export const isErrorCode = (value: unknown): value is ErrorCode =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc.integer({ min: 1, max: U16_MAX }).map(makeUnchecked);
+export const arbitrary = Arbitrary.schema(
+  Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: U16_MAX })),
+).pipe(Arbitrary.map(makeUnchecked));

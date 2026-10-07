@@ -1,7 +1,5 @@
 import {
-  type FastCheck,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Function,
   Hash,
@@ -9,6 +7,7 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  Result,
 } from "effect";
 
 import { MutableBuffer } from "../../../binary/index.js";
@@ -48,7 +47,6 @@ const ResponseBeginProto: Omit<ResponseBegin, "kind" | "payload"> = {
       Hash.hash(this[TypeId]),
       Hash.combine(Hash.hash(this.kind)),
       Hash.combine(Hash.hash(this.payload)),
-      Hash.cached(this),
     );
   },
 
@@ -79,21 +77,21 @@ export const make = (
   payload: Payload.Payload,
 ): ResponseBegin => createProto(ResponseBeginProto, { kind, payload });
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, begin: ResponseBegin) =>
   pipe(
     buffer,
     MutableBuffer.advance(17),
-    Either.andThen(ResponseKind.encode(buffer, begin.kind)),
-    Either.andThen(Payload.encode(begin.payload)),
+    Result.andThen(ResponseKind.encode(buffer, begin.kind)),
+    Result.andThen(Payload.encode(begin.payload)),
   ),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     yield* MutableBuffer.advance(buffer, 17);
     const kind = yield* ResponseKind.decode(buffer);
     const payload = yield* Payload.decode(buffer);
@@ -105,10 +103,7 @@ export const decode = implDecode((buffer) =>
 export const isResponseBegin = (value: unknown): value is ResponseBegin =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .tuple(
-      ResponseKind.arbitrary(fc), //
-      Payload.arbitrary(fc),
-    )
-    .map(Function.tupled(make));
+export const arbitrary = Arbitrary.all([
+  ResponseKind.arbitrary,
+  Payload.arbitrary,
+]).pipe(Arbitrary.map(Function.tupled(make)));
