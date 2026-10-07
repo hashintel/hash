@@ -15,7 +15,10 @@ import type {
   FlueClient,
   FlueConversationState,
 } from "@flue/sdk";
-import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn";
+import type {
+  BrowserContext,
+  InterviewBudget,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
@@ -259,7 +262,11 @@ export const createBrunchPanelTransport = (
             : { initialData: options.initialData }),
           ...(budget === undefined
             ? {}
-            : { submissionContext: { [interviewBudgetContextKey]: budget } }),
+            : {
+                submissionContext: {
+                  [interviewBudgetContextKey]: budget satisfies InterviewBudget,
+                },
+              }),
           clientToolNames:
             options?.clientToolNames ?? canonicalPetrinautClientToolNames,
           dynamicClientToolNames: options?.dynamicClientToolNames,
