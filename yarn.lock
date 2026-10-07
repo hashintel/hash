@@ -942,6 +942,7 @@ __metadata:
     ai: "npm:6.0.286"
     brotli-wasm: "npm:3.0.1"
     immer: "npm:10.1.3"
+    jsdom: "npm:24.1.3"
     monaco-editor: "npm:0.55.1"
     oxc-transform-react: "npm:0.152.0"
     oxlint: "npm:1.86.0"
