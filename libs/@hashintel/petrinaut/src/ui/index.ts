@@ -12,7 +12,7 @@
 export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
 
-// The assistant window an assistant's chat draws.
+// The assistant window an assistant's view draws.
 export {
   PetrinautAssistantWindow,
   PetrinautAssistantWindowPreview,
@@ -24,10 +24,7 @@ export type {
   PetrinautAssistantWindowProps,
   PetrinautAssistantWindowState,
 } from "./views/Editor/assistant-window";
-export {
-  ExperimentExecutionCard,
-  type ExperimentExecutionCardProps,
-} from "./views/Editor/panels/ai-assistant-panel/ai-assistant-contents/experiment-execution-card";
+export { AiAssistantIcon } from "./components/ai-assistant-icon";
 export {
   Petricon,
   PetriconProvider,
@@ -54,6 +51,7 @@ export type {
 export {
   ExperimentalIcon,
   ExperimentalIconProvider,
+  useExperimentalIconPackEnabled,
   DiagnosticsIcon,
   LoadingIcon,
   ArrowTrendDownIcon,
@@ -204,36 +202,7 @@ export type {
 // The user-guide pages the built-in documentation read serves, so a host
 // tool under its own name can answer with the same text.
 export { petrinautDocsContent } from "./petrinaut-docs-content";
-export type {
-  PetrinautAiMessage,
-  PetrinautAiMessageMetadata,
-} from "./views/Editor/panels/ai-assistant-panel";
-export { executePetrinautAiMutation } from "./views/Editor/panels/ai-assistant-panel/apply-petrinaut-ai-mutation";
-export type {
-  PetrinautAiAssistant,
-  PetrinautAiAssistantPresentation,
-  PetrinautAiChatTransport,
-  PetrinautAiStopResult,
-  PetrinautAiToolPresentation,
-  PetrinautAiToolPresentationContext,
-  PetrinautAiToolPresentationResolver,
-  PetrinautAiToolPresentationState,
-  PetrinautAiToolPresentationTone,
-  PetrinautProps,
-} from "./petrinaut";
-export type {
-  PetrinautAiComposerControl,
-  PetrinautAiComposerControlContext,
-  PetrinautAiComposerStatus,
-  PetrinautAiComposerSubmitTextResult,
-  PetrinautAiInputMode,
-  PetrinautAiVoiceMode,
-  PetrinautAiVoiceModeContext,
-  PetrinautAiVoiceModeControls,
-  PetrinautAiVoiceModeSessionControls,
-  PetrinautAiVoiceSessionPhase,
-  PetrinautAiVoiceSessionState,
-} from "./types/ai-assistant-composer-control";
+export type { PetrinautProps } from "./petrinaut";
 export type {
   PetrinautNavigationAction,
   PetrinautNavigationController,
@@ -246,20 +215,6 @@ export type {
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
 } from "../react/navigation";
-export type {
-  PetrinautAiAutomaticTool,
-  PetrinautAiAutomaticToolExecuteParams,
-  PetrinautAiViewportFrameResult,
-} from "./types/ai-automatic-tool";
-export { definePetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
-export type {
-  PetrinautAiInteractiveTool,
-  PetrinautAiInteractiveToolDefinition,
-  PetrinautAiInteractiveToolSchema,
-  PetrinautAiInteractiveToolWidgetProps,
-} from "./types/ai-interactive-tool";
-export { DefaultChatTransport } from "ai";
-
 // SDCPN value-equality check exposed for consumers that need to detect
 // no-op changes outside the handle (e.g. memoising Storybook stories).
 export { isSDCPNEqual } from "@hashintel/petrinaut-core";

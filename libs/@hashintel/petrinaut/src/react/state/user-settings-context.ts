@@ -62,6 +62,11 @@ export type UserSettings = {
    * only useful when you are debugging why something did not compile.
    */
   showCompilationOutput: boolean;
+  /**
+   * The plugin whose assistant the editor shows, by plugin id. `null`, or an
+   * id no running plugin provides, means the first assistant.
+   */
+  aiAssistantId: string | null;
   /** Plugins the user switched off in the Plugins section, by id. */
   disabledPluginIds: readonly string[];
   subViewPanels: SubViewPanelsSettings;
@@ -90,6 +95,7 @@ export type UserSettingsActions = {
   setPartialSelection: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
+  setAiAssistantId: (pluginId: string | null) => void;
   setPluginEnabled: (pluginId: string, enabled: boolean) => void;
   updateSubViewSection: (
     containerName: string,
@@ -122,6 +128,7 @@ export const defaultUserSettings: UserSettings = {
   partialSelection: true,
   enableNetComponents: false,
   showCompilationOutput: false,
+  aiAssistantId: null,
   disabledPluginIds: [],
   subViewPanels: {},
   canvasViewports: {},
@@ -153,6 +160,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setPartialSelection: () => {},
   setEnableNetComponents: () => {},
   setShowCompilationOutput: () => {},
+  setAiAssistantId: () => {},
   setPluginEnabled: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},
