@@ -150,6 +150,10 @@ pub enum InvalidBranches {
 }
 
 /// One or more branches of a branch step, each with one or more steps.
+///
+/// Every branch runs, each on its own copy of the pipeline's table, and their tables are not
+/// merged back. This lets one source table produce several entity types, each with its own
+/// transformation steps, sink and checkpoints.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Branches(Box<[Box<[BranchStep]>]>);
 
