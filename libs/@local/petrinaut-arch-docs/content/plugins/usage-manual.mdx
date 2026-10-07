@@ -1,0 +1,310 @@
+---
+title: Plugin API
+description: Defining a Petrinaut plugin, what its api holds, what it returns, and how the editor runs it.
+attachTo: ui.plugins
+sidebar_order: 10
+---
+
+A plugin adds buttons, top-bar items, settings and UI to the editor. Its
+**manifest** is plain data: what the plugin adds and which editor state it
+reads or changes. Its **hook** receives `api`, which holds what the manifest
+declares, and returns the **contributions** the manifest declares. Plugin code
+imports from `@hashintel/petrinaut/ui` and, for domain types, from
+`@hashintel/petrinaut-core`.
+
+![From a manifest to the editor's outlets](@diagrams/plugin-definition.svg)
+
+## Define a plugin
+
+```tsx
+import { useState } from "react";
+
+import {
+  definePetrinautPlugin,
+  type PluginHook,
+} from "@hashintel/petrinaut/ui";
+
+const createCounterPlugin = definePetrinautPlugin({
+  id: "example.counter",
+  name: "Counter",
+  topBarItems: { counter: { place: "top-bar-end" } },
+});
+
+const useCounterPlugin: PluginHook<typeof createCounterPlugin> = () => {
+  const [count, setCount] = useState(0);
+
+  return {
+    topBarItems: {
+      counter: <button onClick={() => setCount(count + 1)}>{count}</button>,
+    },
+  };
+};
+
+export const counterPlugin = createCounterPlugin(useCounterPlugin);
+
+// <Petrinaut handle={handle} plugins={[counterPlugin]} />
+```
+
+`definePetrinautPlugin(manifest)` returns the **definition**, `createXPlugin`.
+It is callable and carries `.manifest`, which User settings reads without
+running plugin code. Calling it returns the **plugin** `<Petrinaut plugins>`
+takes.
+
+### Two forms
+
+| Form   | Use it when                                                                              | Write it                                                                                                                                     |
+| ------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Object | The contributions need no `api`. Component state still works inside the JSX they render. | Inline in the call: `export const xPlugin = definePetrinautPlugin({ … })({ … })`. A literal also gets TypeScript's excess-property check.    |
+| Hook   | The contributions read `api`, or the plugin keeps its own state.                         | At module scope: `const useXPlugin: PluginHook<typeof createXPlugin> = (api) => …;` then `export const xPlugin = createXPlugin(useXPlugin);` |
+
+### Rules
+
+- Name the hook `useXPlugin`. The `use` prefix makes the rules of hooks and
+  the React Compiler treat it as a hook. Name a definition you keep
+  `createXPlugin`; keep one only for the hook form or when another plugin
+  imports it.
+- Annotate the hook (`const useX: PluginHook<…> = …`). Never use `satisfies`
+  on it: the compiler skips a function wrapped in `satisfies`.
+- Definitions, hooks and plugins live at module scope. Code that renders never
+  calls `createXPlugin(…)`: each call gets a new `hostKey`, which remounts the
+  plugin on every render. It may choose among plugins, but keeps the array's
+  identity (a module constant, or a literal the React Compiler memoizes): a
+  new array runs every plugin's hook again, without remounting.
+- Export plugins by name, not as default exports.
+- Put the definition in its own `definition.ts` when another plugin imports it
+  (for `usePluginService`), so importing it loads no implementation.
+
+## The manifest
+
+| Key                                   | Adds to `api`             | The hook returns |
+| ------------------------------------- | ------------------------- | ---------------- |
+| `id`, `name`, `description`, `author` |                           |                  |
+| `access`                              | `document`, `experiments` |                  |
+| `settings`                            | `settings`                |                  |
+| `buttons`                             |                           | `buttons`        |
+| `topBarItems`                         |                           | `topBarItems`    |
+| `provides`                            |                           | `provides`       |
+
+`id` is namespaced and stable (`website.brunch`): stored settings and the
+user's switch are keyed by it. `name` titles the plugin's row in User settings
+→ Plugins and its group of setting rows, `author` shows beside the name, as
+in "by HASH", and `description` shows when the row opens. Every key but `id`
+and `name` is optional.
+
+**Places.** Buttons go to `top-bar-start` (before the title), `top-bar-end` or
+`viewport-controls` (below the built-in canvas buttons). Top-bar items go to
+`top-bar-start` or `top-bar-end`, after the plugin's buttons at the same
+place. A button's `tooltip` defaults to its `label`.
+
+**Settings** are switches (`type: "boolean"`) or choices
+(`type: "enum"` with `options`, shown as written), each with a `default`, a
+`label`, an optional `description` and a `section`: `general` (the default),
+`viewport` or `labs`, whose rows carry the Experimental marker. Values are
+stored per plugin under `petrinaut:plugin:<id>`. A stored value the spec
+rejects reads as the default, and unknown keys are dropped on load. The rows
+of a plugin that is off or failed are hidden.
+
+## `access`
+
+```ts
+access: { document?: "read" | "write"; experiments?: "read" | "write" }
+```
+
+| Family        | `"read"` gives                                                           | `"write"` also gives                                 |
+| ------------- | ------------------------------------------------------------------------ | ---------------------------------------------------- |
+| `document`    | `id`, `net` and `title` (stores), `extensions`, `diagnose()`, `reveal()` | `edit.*` (including `applyAutoLayout`), `setTitle()` |
+| `experiments` | `records`, `optimizationUnavailableReason` (stores)                      | `run()`                                              |
+
+- **Undeclared means absent.** A family left out of `access` is missing from
+  the `api` type and from the object, as is a writer member at `"read"`.
+- **Declared does not mean allowed.** Edits are checked when called. Scenario
+  and metric edits are refused only on a read-only host; every other edit,
+  `applyAutoLayout` and `setTitle` need Edit mode, no simulation and a
+  writable host. Canvas edits follow the same rule in the editor; `setTitle`
+  is stricter than the title field, which stays editable in every mode.
+- **Not a security boundary.** Plugins run in the editor's JavaScript realm.
+
+The family types are `PluginDocumentReader` and `PluginDocument`,
+`PluginExperimentsReader` and `PluginExperiments`. A writer is assignable to
+its reader, and `AccessApi<{ document: "read" }>` types an `api` by the least
+it needs.
+
+## `api`
+
+| Member                                          | Present              | Notes                                                                                                                                                                       |
+| ----------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `errors.capture(error, context?)`               | Always               | Sends to the host's error tracker. `context` is `{ source?, tags? }` (string, number or boolean tags); `source` defaults to `plugin.<id>`; `tags.pluginId` is always set.   |
+| `notifications.add(input)`                      | Always               | Shows a toast and returns its id.                                                                                                                                           |
+| `settings.get(key)`, `settings.set(key, value)` | `settings`           | Typed by the spec. `get` reads the latest stored value; `set` validates, stores and persists, then the hook runs again. Two `set` calls in one tick both apply.             |
+| `document`                                      | `access.document`    | See below.                                                                                                                                                                  |
+| `experiments`                                   | `access.experiments` | `records` and `optimizationUnavailableReason` are stores; `run(request, options?)` is the experiment host's own signature and is not refused while the editor is read-only. |
+
+That signature, `runExperiment(request, { signal, onProgress })`, is in
+[AI-created experiments](doc:experiments/ai-created-experiments).
+
+### `api.document`
+
+| Member                   | Level | Notes                                                                                                                                                                                                                                                                    |
+| ------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                     | read  | The handle's id. Plugins remount for each document.                                                                                                                                                                                                                      |
+| `net`                    | read  | `ReadableStore<SDCPN>`: the net without data of disabled extensions; an empty net until the handle is ready.                                                                                                                                                             |
+| `title`                  | read  | `ReadableStore<string>`: the title the host passed, or "Untitled" when it passes none.                                                                                                                                                                                   |
+| `extensions`             | read  | The document's `PetrinautExtensionSettings`.                                                                                                                                                                                                                             |
+| `diagnose()`             | read  | Checks the current net with the language service and returns its diagnostics with `net`, the net it checked: `net !== document.net.get()` afterwards means the document changed meanwhile. Rejects while the language service is starting, just after the editor mounts. |
+| `reveal(target)`         | read  | Selects an item, or opens Simulate's scenarios, metrics or experiments with one record open.                                                                                                                                                                             |
+| `edit.<mutation>(input)` | write | One method per core mutation. Edits the root net unless `input.targetSubnetId` is set. Returns an `EditResult`.                                                                                                                                                          |
+| `edit.applyAutoLayout()` | write | Lays out the viewed subnet in one undo entry, then frames it once drawn. Resolves to `EditResult<ApplyAutoLayoutResult>`.                                                                                                                                                |
+| `setTitle(title)`        | write | Calls the host's `setTitle`. Refused with `{ kind: "no-title-setter" }` when the host passed none, and with the read-only reason while the editor is read-only.                                                                                                          |
+
+There is no handle, no instance and no `change()`. For a content version, use
+`hashPetrinautDocument(document.net.get())` from `@hashintel/petrinaut-core`.
+
+```ts
+type EditResult<Value = undefined> =
+  | { applied: true; value: Value }
+  | { applied: false; reason: EditRefusal }; // a ReadOnlyReason or { kind: "no-title-setter" }
+```
+
+`describeRefusal(reason)` returns a sentence for a toast or an AI tool's
+output. `edit` has its own type, `PluginEdits`: never pass it where
+`PetrinautMutations` is expected, because a function returning `EditResult`
+is assignable to one returning `void` and the refusal would be lost.
+
+## Read `api` the right way
+
+| Kind    | Members                                                                                                  | Read them                                                                                                                          |
+| ------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Values  | `document.id`, `document.extensions`, `settings.get()`                                                   | Anywhere in the hook or its components. A setting change runs the hook again.                                                      |
+| Stores  | `document.net`, `document.title`, `experiments.records`, `experiments.optimizationUnavailableReason`     | In render: `useStore` or `useStoreSelector`, in the component that shows the value. In handlers, effects and async code: `.get()`. |
+| Actions | `edit.*`, `setTitle`, `diagnose`, `reveal`, `run`, `notifications.add`, `errors.capture`, `settings.set` | They act on the editor as it is when called.                                                                                       |
+
+- `api` changes only when a setting does. The family objects
+  (`api.document`, `api.experiments`, `api.errors`, `api.notifications`) never
+  change while the plugin is mounted: pass them, not `api`, to code that lives
+  as long as the plugin. The plugin remounts when the document changes or the
+  host toggles `readonly`.
+- Editor changes never run a plugin hook again. Edits, mode switches and
+  simulations reach a plugin through stores and actions only. The hook does
+  run again whenever its host re-renders: on a setting change, when another
+  plugin switches on, off or fails, or when the host passes a new `plugins`
+  array. Hooks must tolerate extra runs.
+- Read stores in components, not in the hook: a subscription in the hook
+  republishes the contributions, and re-renders the editor's outlets, on
+  every edit.
+- Never call `.get()` during render; the React Compiler caches the result.
+- After an `await`, read stores with `.get()` and change things through
+  actions, never through values captured at render.
+- Components take capabilities as props, typed by the least they need:
+
+```tsx
+const PlaceCount = ({ document }: { document: PluginDocumentReader }) => {
+  const count = useStoreSelector(document.net, (net) => net.places.length);
+
+  return <span>{count} places</span>;
+};
+```
+
+## Contributions
+
+| Key           | Allowed when | Type                                                                                                                                                                                                         |
+| ------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `root`        | Always       | `ReactNode`, rendered inside the editor behind the plugin's error boundary: dialogs, overlays, tours.                                                                                                        |
+| `overlay`     | Always       | `boolean`: `true` while `root` covers the editor. Holds back the empty-canvas assistant prompt.                                                                                                              |
+| `buttons`     | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. Label, tooltip and place come from the manifest; `command` runs a registered command, so the palette lists the button's action with its shortcut. |
+| `topBarItems` | Declared     | Per key: a `ReactNode`.                                                                                                                                                                                      |
+| `provides`    | Declared     | The service type `T` of `pluginService<T>()`.                                                                                                                                                                |
+
+Every declared key is required and every undeclared one is a type error.
+TypeScript also catches a setting value outside an enum's `options`, a service
+of the wrong type, and a read of `api.document` or `api.experiments` without
+declaring the family.
+
+Plugin buttons run commands through the ambient command registry. When the
+host provides none, `<Petrinaut>` provides its own; see
+[Commands and the palette](doc:commands/usage-manual).
+
+## Services between plugins
+
+```ts
+// brunch/definition.ts
+export const createBrunchPlugin = definePetrinautPlugin({
+  …,
+  provides: pluginService<BrunchService>(),
+});
+
+// another plugin's hook, or any component the editor renders
+const brunch = usePluginService(createBrunchPlugin); // BrunchService | undefined
+```
+
+`pluginService<T>()` is a type-only marker. `usePluginService(definition)`
+returns the hook's latest `provides`, or `undefined` while that plugin is not
+running or before its first publish, a layout pass after it mounts and still
+before paint. It adds no dependency, so two plugins can read each other.
+
+## Lifecycle
+
+![How the editor runs plugins](@diagrams/plugin-runtime.svg)
+
+- Each running plugin gets one host beside the view, keyed by its `hostKey`.
+  Hosts remount whenever `<Petrinaut>` creates a new core instance: with the
+  whole editor when the document changes, and alone when the host toggles
+  `readonly`.
+- After each commit a host publishes its contributions to a store the view's
+  outlets read; identical contributions publish nothing. A plugin switched on,
+  off or failing never remounts the view.
+- The view mounts once the hosts have committed, so its first paint shows
+  every contribution.
+- Editor state the actions read is copied into stores in the first layout
+  effect of each commit, so a host's layout effect already sees the read-only
+  reason of the same commit.
+- A plugin re-created with a new definition call, as hot reloading its module
+  does, remounts; the same plugin object keeps its host.
+- The user switches a plugin off under User settings → Plugins. Its host
+  unmounts and its contributions and settings rows go. Every plugin has a
+  switch; a host cannot yet mark a plugin as required, so the user can switch
+  off a plugin the host depends on.
+
+## Failures
+
+One `PluginBoundary`, Suspense plus an error boundary, wraps each host and
+each contribution. A contribution that suspends renders nothing until ready.
+A thrown error is reported to the host's error tracker with source `plugin`
+and tags `{ pluginId, place, contributionId }`, and only that host or
+contribution stops. `place` is `hook`, `root`, `settings`, or the place of the
+button or top-bar item. A hook that throws marks its plugin **Not running**
+until its module is replaced (a new `hostKey`) or another document opens.
+Switching it off and on, or a `readonly` toggle, keeps it failed.
+
+| Message                                                           | When                                                               |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `Petrinaut plugin "<id>" is passed twice. Pass each plugin once.` | Two plugins in `plugins` share an id. Thrown during render.        |
+| `Plugin "<id>" setting "<key>" rejects <value>.`                  | `settings.set` with an undeclared key or a value its spec rejects. |
+
+The refusals `describeRefusal` explains:
+
+| `reason.kind`       | Sentence                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| `host-readonly`     | This document is read-only; mutations are disabled.                                        |
+| `simulate-mode`     | The editor is in simulate mode. Ask the user to switch to edit mode before mutating.       |
+| `actual-mode`       | The editor is in actual mode. Ask the user to switch to edit mode before mutating.         |
+| `simulation-active` | A simulation is currently `<state>`. Ask the user to reset the simulation before mutating. |
+| `no-title-setter`   | The host application does not provide title editing.                                       |
+
+## What plugin code imports
+
+Plugin code imports from `@hashintel/petrinaut/ui`, and domain contracts
+(SDCPN and experiment types, AI tool schemas, `hashPetrinautDocument`) from
+`@hashintel/petrinaut-core`. It never imports `@hashintel/petrinaut/react`, a
+handle, an instance or a Petrinaut context; host state reaches contributions
+through the host's own context.
+
+| Kind       | From `@hashintel/petrinaut/ui`                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Definition | `definePetrinautPlugin`, `pluginService`                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Types      | `PetrinautPlugin`, `PetrinautPluginDefinition`, `PetrinautPluginManifest`, `PetrinautSettingSpec`, `PluginHook`, `PluginApi`, `PluginContributions`, `PluginButton`, `PluginService`, `PluginAccess`, `AccessApi`, `PluginDocumentReader`, `PluginDocument`, `PluginEdits`, `PluginExperimentsReader`, `PluginExperiments`, `PluginErrors`, `PluginNotifications`, `EditResult`, `EditRefusal`, `ReadOnlyReason`, `PetrinautRevealTarget`, `AddNotificationInput`, `ReadableStore` |
+| Hooks      | `usePluginService`, `useStore`, `useStoreSelector`, `useCommand`, `useCommands`, `useCommandRegistry`                                                                                                                                                                                                                                                                                                                                                                              |
+| Helpers    | `describeRefusal(reason)`: a sentence for a refusal. `petrinautDocsContent`: the user guide's pages, by name.                                                                                                                                                                                                                                                                                                                                                                      |
+
+`@hashintel/petrinaut` re-exports `definePetrinautPlugin`, `pluginService` and
+the definition and access types, for hosts that define plugins beside their
+`<Petrinaut>`.

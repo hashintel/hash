@@ -8,8 +8,9 @@ sidebar_order: 10
 A command is a labelled, argument-free action a person picks from a list:
 "Undo", "Add a place", "Auto-layout the net". The registry in
 `petrinaut-core/src/command-registry/command-registry.ts` holds the current
-set. The editor writes to it from components; the host reads it and renders
-a palette. Petrinaut ships no palette.
+set. The editor writes to the host's registry, or to its own when the host
+provides none, from components; the host, or a plugin inside the editor,
+reads it and renders a palette. Petrinaut ships no palette.
 
 ![Who writes to the registry and who reads it](@diagrams/command-registry-flow.svg)
 
@@ -58,6 +59,11 @@ is ambient.
   <MyPalette />
 </CommandRegistryProvider>
 ```
+
+When the host provides none, `<Petrinaut>` provides its own around the editor,
+so plugin buttons can run commands and a palette a plugin renders lists them.
+A palette outside the editor sees them only through a registry the host
+provides.
 
 To share one registry with code outside the tree, create it and pass it in:
 

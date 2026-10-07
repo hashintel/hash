@@ -137,6 +137,45 @@ describe("UserSettingsProvider", () => {
     },
   );
 
+  it("records a plugin switched off once and forgets it when switched on", () => {
+    const PluginSwitch = () => {
+      const { disabledPluginIds, setPluginEnabled } = use(UserSettingsContext);
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setPluginEnabled("test.plugin", false)}
+          >
+            off
+          </button>
+          <button
+            type="button"
+            onClick={() => setPluginEnabled("test.plugin", true)}
+          >
+            on
+          </button>
+          <output>{disabledPluginIds.join(",")}</output>
+        </>
+      );
+    };
+    render(
+      <UserSettingsProvider>
+        <PluginSwitch />
+      </UserSettingsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "off" }));
+    fireEvent.click(screen.getByRole("button", { name: "off" }));
+    expect(screen.getByRole("status").textContent).toBe("test.plugin");
+    expect(JSON.parse(localStorage.getItem(storageKey) ?? "{}")).toMatchObject({
+      disabledPluginIds: ["test.plugin"],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "on" }));
+    expect(screen.getByRole("status").textContent).toBe("");
+  });
+
   it("reuses an ancestor provider, so a host and the editor share one state", () => {
     // The host mounts the provider above the editor and reads the settings
     // in its own components; the editor's own provider must not fork them.

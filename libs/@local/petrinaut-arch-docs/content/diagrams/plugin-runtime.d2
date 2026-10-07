@@ -1,0 +1,24 @@
+# Hand-written; rendered by the arch-docs build. React components use the
+# purple palette, core stores the blue `core` one.
+direction: down
+
+provider: "PetrinautPluginsProvider\nstatuses, failed hosts" {
+  style.fill: "#e8e0ff"
+  style.stroke: "#7051b5"
+
+  editor: "PluginEditorProvider\none plugin editor per core instance" {
+    style.fill: "#ffffff"
+    style.stroke: "#7051b5"
+    sync: "PluginEditorSync\nfirst layout effect of each commit" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+    hosts: "One host per running plugin\nkeyed by plugin editor and hostKey,\nin a PluginBoundary" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+    view: "ViewAfterHosts\nEditorView and its outlets" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+  }
+}
+
+stores: "Plugin editor stores\nlatest, title, records, optimization reason" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+contributions: "Contributions store\nmanifest, contributions, settings per plugin" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+provider.editor.sync -> stores: "copies editor state"
+provider.editor.hosts -> stores: "actions read when called"
+provider.editor.hosts -> contributions: "publish after each commit"
+contributions -> provider.editor.view: "outlets read"

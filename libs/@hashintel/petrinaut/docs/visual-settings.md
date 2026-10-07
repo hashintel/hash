@@ -16,7 +16,11 @@ Changes apply immediately and are saved as your preferences across nets. On host
 | ------------ | -------------------------------------------------------------------- |
 | **General**  | Animations, panel loading, and the welcome guide.                    |
 | **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
+| **Plugins**  | The host's plugins: switch each on or off and see what it adds.      |
 | **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
+
+Plugins can add their own settings to **General**, **Viewport** and **Labs**,
+in a group under the plugin's name after the built-in groups.
 
 ## General
 
@@ -165,6 +169,26 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 - **Enabled** -- nodes that are only partially inside the selection box are selected.
 - **Disabled** -- nodes must be fully enclosed to be selected.
+
+## Plugins
+
+Hosts extend Petrinaut with plugins: extra buttons, top-bar items, settings
+and panels. The **Plugins** section lists every plugin the host gave this
+editor, one line each with its name, its author and a switch. Click a line to
+read the plugin's description and what it adds. The header counts the plugins
+and how many of them run.
+
+- The **switch** runs the plugin, or not. Off, it adds nothing: its buttons,
+  items and settings disappear until you switch it back on. Your selection,
+  panels and open dialogs stay as they are.
+- **Not running** marks a plugin that stopped on an error. Reload the page to
+  start it again.
+- The tags under the description list what the plugin declares: the parts of
+  the net it can read or change, its buttons and where they sit, its top-bar
+  items and settings, a service it offers other plugins, and whether it shows
+  something inside the editor.
+
+Without plugins the section says so.
 
 ## Labs
 

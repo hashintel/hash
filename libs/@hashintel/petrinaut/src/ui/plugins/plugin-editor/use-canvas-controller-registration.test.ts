@@ -5,7 +5,7 @@ import { expect, it, vi } from "vitest";
 
 import { useCanvasControllerRegistration } from "./use-canvas-controller-registration";
 
-import type { CanvasController } from "../../SDCPN/canvas-renderer";
+import type { CanvasController } from "../../views/SDCPN/canvas-renderer";
 
 const controllerWithFrame = (
   frameSceneAfterRender: CanvasController["frameSceneAfterRender"],
