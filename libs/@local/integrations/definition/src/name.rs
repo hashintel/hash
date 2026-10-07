@@ -42,6 +42,8 @@ const fn check_length(value: &str, maximum: usize) -> Result<(), InvalidName> {
 
 /// Returns whether `value` is ASCII letters, digits, `-` and `_`, starting with a letter or digit.
 ///
+/// This is the pattern `[a-zA-Z0-9][a-zA-Z0-9_-]*`, so the empty string is not a name.
+///
 /// A name is safe as a single storage path component and as a quoted SQL identifier.
 pub(crate) fn is_name(value: &str) -> bool {
     value.as_ascii().is_some_and(|chars| {
