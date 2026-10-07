@@ -1,5 +1,4 @@
-import { Effect, Function, Layer, type Scope } from "effect";
-import { GenericTag } from "effect/Context";
+import { Context, Effect, Function, Layer, type Scope } from "effect";
 
 import { createProto } from "../utils.js";
 import * as Connection from "./Connection.js";
@@ -30,7 +29,7 @@ const ClientProto: Omit<ClientImpl, "client" | "config"> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- TypeId is defined
-export const Client = GenericTag<Client>(TypeId.description!);
+export const Client = Context.Service<Client>(TypeId.description!);
 
 // TODO: add a metrics compatability layer
 //  see: https://linear.app/hash/issue/H-3712/libp2p-metrics-compatibility-layer
@@ -45,7 +44,7 @@ export const make = Effect.fn("make")(function* (config?: ClientConfig) {
 });
 
 export const layer = (config?: ClientConfig) =>
-  Layer.scoped(Client, make(config));
+  Layer.effect(Client, make(config));
 
 export const connect = Function.dual<
   (
@@ -77,7 +76,7 @@ export const connect = Function.dual<
 );
 
 export const connectLayer = (address: Transport.Address) =>
-  Layer.scoped(
+  Layer.effect(
     Connection.Connection,
     Effect.gen(function* () {
       const client = yield* Client;

@@ -31,7 +31,7 @@
     "@local/hash-graph-client": "workspace:*",
     "@local/hash-graph-store": "workspace:*",
     "@temporalio/client": "1.20.2",
-    "effect": "3.21.0",
+    "effect": "4.0.0-rc.118",
     "uuid": "14.0.0"
   },
   "devDependencies": {
