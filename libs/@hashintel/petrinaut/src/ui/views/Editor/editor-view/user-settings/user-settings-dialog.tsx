@@ -484,14 +484,6 @@ export const UserSettingsDialog = ({
                           onChange={settings.setKeepPanelsMounted}
                         />
                       </SettingsGroup>
-                      <SettingsGroup title="Getting started">
-                        <SettingToggle
-                          label="Show welcome guide"
-                          description="Show the getting-started guide when you next open Petrinaut."
-                          value={settings.showWalkthroughOnInit}
-                          onChange={settings.setShowWalkthroughOnInit}
-                        />
-                      </SettingsGroup>
                       <PluginSettingsRows
                         section="general"
                         components={pluginRowComponents}
