@@ -1,5 +1,5 @@
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { Box, useTheme } from "@mui/material";
+import { Box, Stack, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -11,6 +11,7 @@ import {
   type PropertyTypeWithMetadata,
   type VersionedUrl,
 } from "@blockprotocol/type-system";
+import { LoadingSpinner } from "@hashintel/design-system";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
 import {
@@ -26,14 +27,23 @@ import { useEntityTypesContextRequired } from "../../shared/entity-types-context
 import { isTypeArchived } from "../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
-import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
+import { CheckboxFilter, tableHeaderHeight } from "../../shared/table-header";
+import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
+import { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
+import { generateCsvFile as buildCsvFile } from "../../shared/table-header/generate-csv-file";
 import {
   isAiMachineActor,
   type MinimalActor,
   useActors,
 } from "../../shared/use-actors";
-import { useAuthenticatedUser } from "./auth-info-context";
 import { createRenderChipCell } from "./chip-cell";
+import {
+  SearchPill,
+  useInternalWebs,
+  VisualizerHeader,
+  WebFilterPill,
+  type WebFilterState,
+} from "./filter-bar";
 import { useSlideStack } from "./slide-stack";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { createRenderTextIconCell } from "./text-icon-cell";
@@ -42,7 +52,7 @@ import { TypeGraphVisualizer } from "./type-graph-visualizer";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
-import type { FilterState } from "../../shared/table-header";
+import type { GenerateCsvFileFunction } from "../../shared/table-header/export-to-csv-button";
 import type { ChipCell } from "./chip-cell";
 import type { TextIconCell } from "./text-icon-cell";
 import type { VisualizerView } from "./visualizer-views";
@@ -114,17 +124,27 @@ export const TypesTable: FunctionComponent<{
 }> = ({ types, kind, onlyOneWeb, loading = false }) => {
   const router = useRouter();
 
-  const [view, setView] = useState<VisualizerView>("Table");
+  const [view, _setView] = useState<VisualizerView>("Table");
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
+  const [showGraphSearch, setShowGraphSearch] = useState<boolean>(false);
+
+  const setView = useCallback((newView: VisualizerView) => {
+    _setView(newView);
+    setShowSearch(false);
+    setShowGraphSearch(false);
+  }, []);
 
   const [selectedRows, setSelectedRows] = useState<TypesTableRow[]>([]);
 
-  const [filterState, setFilterState] = useState<FilterState>({
-    includeArchived: false,
-    includeGlobal: false,
-    limitToWebs: false,
-  });
+  const internalWebs = useInternalWebs();
+
+  const [webFilter, setWebFilter] = useState<WebFilterState>(() => ({
+    selectedInternalWebIds: new Set(internalWebs.map(({ webId }) => webId)),
+    includeOtherWebs: false,
+  }));
+
+  const [includeArchived, setIncludeArchived] = useState(false);
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -154,7 +174,7 @@ export const TypesTable: FunctionComponent<{
               width: 280,
             } as const,
           ]),
-      ...(filterState.includeArchived
+      ...(includeArchived
         ? [
             {
               id: "archived",
@@ -174,7 +194,7 @@ export const TypesTable: FunctionComponent<{
         width: 200,
       },
     ],
-    [filterState.includeArchived, kind, onlyOneWeb],
+    [includeArchived, kind, onlyOneWeb],
   );
 
   const currentlyDisplayedColumnsRef = useRef<TypesTableColumn[] | null>(null);
@@ -198,14 +218,10 @@ export const TypesTable: FunctionComponent<{
     [users, orgs],
   );
 
-  const { authenticatedUser } = useAuthenticatedUser();
-
-  const internalWebIds = useMemo(() => {
-    return [
-      authenticatedUser.accountId,
-      ...authenticatedUser.memberOf.map(({ org }) => org.webId),
-    ];
-  }, [authenticatedUser]);
+  const internalWebIds = useMemo(
+    () => internalWebs.map(({ webId }) => webId),
+    [internalWebs],
+  );
 
   const filteredTypes = useMemo(() => {
     const filtered: ((
@@ -230,13 +246,15 @@ export const TypesTable: FunctionComponent<{
 
       const isArchived = isTypeArchived(type);
 
-      if (
-        (filterState.includeGlobal || onlyOneWeb ? true : !isExternal) &&
-        (filterState.includeArchived ? true : !isArchived) &&
-        (filterState.limitToWebs
-          ? webShortname && filterState.limitToWebs.includes(webShortname)
-          : true)
-      ) {
+      // A type in one of the user's own webs follows that web's checkbox in
+      // the web dropdown; every other type follows "Other webs".
+      const webAllowed = onlyOneWeb
+        ? true
+        : !isExternal && namespaceWebId !== undefined
+          ? webFilter.selectedInternalWebIds.has(namespaceWebId)
+          : webFilter.includeOtherWebs;
+
+      if (webAllowed && (includeArchived ? true : !isArchived)) {
         filtered.push({
           ...type,
           isExternal,
@@ -247,7 +265,14 @@ export const TypesTable: FunctionComponent<{
     }
 
     return filtered;
-  }, [types, filterState, namespaces, internalWebIds, onlyOneWeb]);
+  }, [
+    types,
+    webFilter,
+    includeArchived,
+    namespaces,
+    internalWebIds,
+    onlyOneWeb,
+  ]);
 
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
     () =>
@@ -487,54 +512,129 @@ export const TypesTable: FunctionComponent<{
     [pushToSlideStack],
   );
 
-  const numberOfUserWebItems = useMemo(
-    () =>
-      types?.filter(({ metadata }) =>
-        isExternalOntologyElementMetadata(metadata)
-          ? false
-          : internalWebIds.includes(metadata.webId),
-      ).length,
-    [types, internalWebIds],
+  const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
+    const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
+    const currentlyDisplayedColumns = currentlyDisplayedColumnsRef.current;
+    if (!currentlyDisplayedRows || !currentlyDisplayedColumns) {
+      return null;
+    }
+    return buildCsvFile({
+      columns: currentlyDisplayedColumns,
+      rows: currentlyDisplayedRows,
+      title: typesTablesToTitle[kind],
+    });
+  }, [kind]);
+
+  const selectedTypes = types?.filter((type) =>
+    selectedRows.some(({ typeId }) => type.schema.$id === typeId),
   );
 
-  const numberOfExternalItems =
-    types && typeof numberOfUserWebItems !== "undefined"
-      ? types.length - numberOfUserWebItems
-      : undefined;
+  // Stable identity: a fresh object would re-render the memoized graph on
+  // every table render.
+  const graphSearchPanel = useMemo(
+    () => ({
+      open: showGraphSearch,
+      onClose: () => setShowGraphSearch(false),
+    }),
+    [showGraphSearch],
+  );
 
   return (
     <Box>
-      <TableHeader
-        endAdornment={
-          <TableHeaderToggle
-            value={view}
-            setValue={setView}
-            options={(
-              ["Table", "Graph"] as const satisfies VisualizerView[]
-            ).map((optionValue) => ({
-              icon: visualizerViewIcons[optionValue],
-              label: `${optionValue} view`,
-              value: optionValue,
-            }))}
-          />
+      <VisualizerHeader
+        bottomLeft={
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            gap={1}
+          >
+            {selectedTypes && selectedTypes.length > 0 ? (
+              <BulkActionsDropdown
+                selectedItems={selectedTypes}
+                onBulkActionCompleted={() => setSelectedRows([])}
+              />
+            ) : (
+              <Stack direction="row" alignItems="center" gap={1}>
+                <SearchPill
+                  title={
+                    view === "Table"
+                      ? "Search for text in visible rows"
+                      : "Search for a type in the graph"
+                  }
+                  onClick={() => {
+                    if (view === "Table") {
+                      setShowSearch(!showSearch);
+                    } else {
+                      setShowGraphSearch(!showGraphSearch);
+                    }
+                  }}
+                />
+                {onlyOneWeb ? null : (
+                  <WebFilterPill
+                    internalWebs={internalWebs}
+                    webState={webFilter}
+                    setWebState={(updater) =>
+                      setWebFilter((prev) => updater(prev))
+                    }
+                  />
+                )}
+                <CheckboxFilter
+                  label="Include archived"
+                  checked={includeArchived}
+                  onChange={setIncludeArchived}
+                />
+                {loading && (
+                  <LoadingSpinner size={16} color={theme.palette.blue[70]} />
+                )}
+              </Stack>
+            )}
+            <Stack direction="row" alignItems="center" gap={1}>
+              {view === "Table" ? (
+                <ExportToCsvButton
+                  generateCsvFile={generateCsvFile}
+                  sx={{ px: 1.5, borderRadius: "4px" }}
+                />
+              ) : null}
+              <TableHeaderToggle
+                value={view}
+                setValue={setView}
+                options={(
+                  ["Table", "Graph"] as const satisfies VisualizerView[]
+                ).map((optionValue) => ({
+                  icon: visualizerViewIcons[optionValue],
+                  label: `${optionValue} view`,
+                  value: optionValue,
+                }))}
+              />
+            </Stack>
+          </Stack>
         }
-        itemLabelPlural="types"
-        title={typesTablesToTitle[kind]}
-        currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
-        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-        filterState={filterState}
-        loading={loading}
-        numberOfExternalItems={numberOfExternalItems}
-        numberOfUserWebItems={onlyOneWeb ? types?.length : numberOfUserWebItems}
-        onlyOneWeb={onlyOneWeb}
-        setFilterState={setFilterState}
-        selectedItems={types?.filter((type) =>
-          selectedRows.some(({ typeId }) => type.schema.$id === typeId),
-        )}
-        onBulkActionCompleted={() => setSelectedRows([])}
       />
       {view === "Table" ? (
-        <Box sx={tableContentSx}>
+        <Box
+          sx={[
+            tableContentSx,
+            {
+              "@keyframes types-table-search-in": {
+                from: { transform: "translateX(-400px)" },
+                to: { transform: "translateX(0)" },
+              },
+              "@keyframes types-table-search-out": {
+                from: { transform: "translateX(0)" },
+                to: { transform: "translateX(-400px)" },
+              },
+              "& .gdg-seveqep": {
+                right: "auto",
+                left: 20,
+                animationName: "types-table-search-in",
+              },
+              "& .gdg-seveqep.out": {
+                animationName: "types-table-search-out",
+              },
+            },
+          ]}
+        >
           <Grid
             columns={typesTableColumns}
             createGetCellContent={createGetCellContent}
@@ -577,6 +677,7 @@ export const TypesTable: FunctionComponent<{
         <Box height={maxTableHeight} sx={tableContentSx}>
           <TypeGraphVisualizer
             onTypeClick={onTypeClick}
+            searchPanel={graphSearchPanel}
             types={filteredTypes}
           />
         </Box>

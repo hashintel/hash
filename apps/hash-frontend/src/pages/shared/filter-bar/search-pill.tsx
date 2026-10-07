@@ -2,7 +2,7 @@ import { Tooltip } from "@mui/material";
 
 import { IconButton } from "@hashintel/design-system";
 
-import { MagnifyingGlassRegularIcon } from "../../../../shared/icons/magnifying-glass-regular-icon";
+import { MagnifyingGlassRegularIcon } from "../../../shared/icons/magnifying-glass-regular-icon";
 import { iconPillSx } from "./pill-styles";
 
 import type { FunctionComponent } from "react";

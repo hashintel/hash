@@ -10,7 +10,8 @@ export const visualizerHeaderHeight = 94;
 
 type VisualizerHeaderProps = {
   topLeft?: ReactNode;
-  topRight: ReactNode;
+  /** With neither top slot the header renders the grey bar alone. */
+  topRight?: ReactNode;
   bottomLeft: ReactNode;
   bottomRight?: ReactNode;
 };
@@ -23,19 +24,21 @@ export const VisualizerHeader: FunctionComponent<VisualizerHeaderProps> = ({
 }) => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          columnGap: 1.5,
-        }}
-      >
-        <Box sx={{ alignSelf: "flex-end" }}>{topLeft}</Box>
-        <Box sx={{ display: "flex", alignItems: "center", columnGap: 1.5 }}>
-          {topRight}
+      {topLeft !== undefined || topRight !== undefined ? (
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            columnGap: 1.5,
+          }}
+        >
+          <Box sx={{ alignSelf: "flex-end" }}>{topLeft}</Box>
+          <Box sx={{ display: "flex", alignItems: "center", columnGap: 1.5 }}>
+            {topRight}
+          </Box>
         </Box>
-      </Box>
+      ) : null}
       <Box
         sx={{
           display: "flow-root",
