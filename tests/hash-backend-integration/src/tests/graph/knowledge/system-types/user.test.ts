@@ -75,7 +75,7 @@ const graphQLContextForUser = (user: User): LoggedInGraphQLContext => ({
   },
   emailTransporter: {
     sendMail: async () => {},
-  } as unknown as EmailTransporter,
+  },
   logger,
   authentication: { actorId: user.accountId },
   user,

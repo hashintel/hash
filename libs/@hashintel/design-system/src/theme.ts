@@ -17,7 +17,7 @@ export const theme = createTheme({
   boxShadows,
   dropShadows,
   /** @todo: figure out how to properly override this type */
-  components: components as ThemeOptions["components"],
+  components,
 });
 
 export const createEmotionCache = (key?: string) =>

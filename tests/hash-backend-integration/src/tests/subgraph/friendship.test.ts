@@ -849,6 +849,7 @@ describe("non-zero, simple resolve depths", () => {
     ).toEqual(1);
     expect(
       Object.keys(
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: type is narrowed beforehand to make sure that indexing results in the right type
         (subgraph.edges as KnowledgeGraphRootedEdges)[
           friendshipEntity.metadata.recordId.entityId
         ]![
@@ -918,6 +919,7 @@ describe("non-zero, simple resolve depths", () => {
 
     expect(
       Object.keys(
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: type is narrowed beforehand to make sure that indexing results in the right type
         (subgraph.edges as KnowledgeGraphRootedEdges)[
           friendshipEntity.metadata.recordId.entityId
         ]![
@@ -1162,6 +1164,7 @@ describe("complex resolve depths", () => {
     const aliceEntity = roots[0]!;
     expect(aliceEntity).toStrictEqual(aliceEntities[aliceEntities.length - 1]);
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: type is narrowed beforehand to make sure that indexing results in the right type
     const personTypes = (subgraph.edges as KnowledgeGraphRootedEdges)
       [aliceEntity.metadata.recordId.entityId]![
         aliceEntity.metadata.temporalVersioning.decisionTime.start.limit
@@ -1184,6 +1187,7 @@ describe("complex resolve depths", () => {
     expect(links.length).toEqual(1);
     const link = links[0]!;
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: type is narrowed beforehand to make sure that indexing results in the right type
     const linkTypes = (subgraph.edges as KnowledgeGraphRootedEdges)
       [link.metadata.recordId.entityId]![
         link.metadata.temporalVersioning.decisionTime.start.limit
