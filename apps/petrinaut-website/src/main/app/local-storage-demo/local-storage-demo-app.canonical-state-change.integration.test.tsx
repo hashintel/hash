@@ -17,7 +17,6 @@ import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { DEFAULT_CHAT_MODEL } from "../../../../../brunch-agent/src/chat-model";
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
 import {
   InProcessLspWorker,
@@ -37,11 +36,6 @@ await vi.hoisted(async () => {
     await import("../shared/petrinaut-jsdom");
   installPetrinautDomShims();
 });
-
-/** The server runs its default model when `BRUNCH_CHAT_MODEL` is unset; the faux provider must answer to it. */
-const defaultChatModelId = DEFAULT_CHAT_MODEL.slice(
-  DEFAULT_CHAT_MODEL.indexOf("/") + 1,
-);
 
 const fixture = vi.hoisted(() => ({
   fetch: null as typeof fetch | null,
@@ -128,13 +122,13 @@ const scenario = {
 const metric = { id: "throughput", name: "Throughput", code: "return 1;" };
 
 test("real panel scenario and metric add/update/remove calls produce persisted revisions and a Brunch continuation", async () => {
-  delete process.env.BRUNCH_CHAT_MODEL;
+  process.env.BRUNCH_CHAT_MODEL = "openai/faux-model";
   delete process.env.BRUNCH_CHAT_THINKING;
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   process.env.OTEL_SDK_DISABLED = "true";
   const faux = fauxProvider({
     provider: "openai",
-    models: [{ id: defaultChatModelId, reasoning: true }],
+    models: [{ id: "faux-model", reasoning: true }],
   });
   faux.setResponses([
     fauxAssistantMessage(

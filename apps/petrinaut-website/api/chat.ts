@@ -11,15 +11,11 @@ import { z } from "zod";
 
 import { petrinautAiPrompt, petrinautAiTools } from "@hashintel/petrinaut-core";
 
+import { stockAssistantModel } from "../src/shared/stock-assistant-model.js";
+
 declare const process: {
   env: Record<string, string | undefined>;
 };
-
-/** The stock assistant's model and reasoning effort unless the deployment overrides them. */
-export const stockAssistantModel = {
-  id: "gpt-5.5-2026-04-23",
-  reasoningEffort: "medium",
-} as const;
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;

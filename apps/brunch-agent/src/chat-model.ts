@@ -3,7 +3,7 @@ import { brunchEnv } from "@hashintel/brunch-agent";
 /** Bare Anthropic Sonnet id used by tests and legacy resume. */
 export const STEP_A_MODEL_ID = "claude-sonnet-4-6";
 
-/** Brunch's default model and thinking level unless `BRUNCH_CHAT_MODEL` overrides them. */
+/** Brunch's default model and thinking level; `BRUNCH_CHAT_MODEL` and `BRUNCH_CHAT_THINKING` override them. */
 export const DEFAULT_CHAT_MODEL = "openai/gpt-5.5-2026-04-23";
 export const DEFAULT_CHAT_THINKING = "medium";
 export const LEGACY_PERSONA_THINKING = "medium";

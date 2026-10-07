@@ -5,11 +5,11 @@ import {
   createVoiceMediationHandler,
   voiceMediationInstructions,
 } from "../../src/server/voice/voice-mediation.js";
+import { stockAssistantModel } from "../../src/shared/stock-assistant-model.js";
 import {
   voiceBriefExtractionSchema,
   voiceWrapUpResponseSchema,
 } from "../../src/shared/voice-mediation.js";
-import { stockAssistantModel } from "../chat.js";
 
 declare const process: { env: Record<string, string | undefined> };
 
