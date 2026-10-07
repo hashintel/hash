@@ -41,9 +41,9 @@
     "test:unit": {
       "dependsOn": ["^manifest"],
       "env": [
+        "$TURBO_EXTENDS$",
         "PYTHONHOME",
         "PYTHONPATH",
-        "TEST_COVERAGE",
         "UV_BUILD_CONSTRAINT",
         "UV_COMPILE_BYTECODE",
         "UV_CONFIG_FILE",
@@ -79,8 +79,7 @@
         "VIRTUAL_ENV"
       ],
       "passThroughEnv": [
-        "APPDATA",
-        "HOME",
+        "$TURBO_EXTENDS$",
         "PIP_EXTRA_INDEX_URL",
         "PIP_INDEX_URL",
         "UV_CACHE_DIR",
