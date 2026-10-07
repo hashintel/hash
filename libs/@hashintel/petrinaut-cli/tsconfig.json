@@ -1,19 +1,11 @@
 {
+  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "target": "es2024",
+    "isolatedModules": true,
     "lib": ["ESNext"],
-    "types": ["node"],
     "module": "preserve",
     "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "resolveJsonModule": true,
-    "noEmit": true,
-    "skipLibCheck": true,
-    "isolatedModules": true
+    "noEmit": true
   },
   "include": ["src", "vite.config.ts", "../petrinaut-core/src/vite-types.d.ts"]
 }

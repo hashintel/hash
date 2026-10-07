@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
     "@tsconfig/bases": "catalog:",

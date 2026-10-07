@@ -1,18 +1,10 @@
 {
-  "extends": [
-    "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-    "@tsconfig/bases/recommended"
-  ],
+  "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "rootDir": "../..",
-    "allowJs": false,
-    "checkJs": false,
-    "allowSyntheticDefaultImports": true,
     "jsx": "react-jsx",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "noEmit": false,
+    "lib": ["dom", "esnext"],
+    "module": "ESNext",
+    "rootDir": "../..",
     "target": "ES2021"
   },
   "include": [

@@ -1,8 +1,8 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "include": ["*.ts"],
   "compilerOptions": {
-    "module": "NodeNext",
+    "lib": ["ES2024"],
     "moduleResolution": "NodeNext"
   }
 }

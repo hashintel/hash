@@ -37,6 +37,7 @@
   "devDependencies": {
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@vitest/coverage-istanbul": "4.1.10",
     "eslint": "9.39.4",
     "rimraf": "6.1.3",

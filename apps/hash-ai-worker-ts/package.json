@@ -95,7 +95,6 @@
     "pdf2json": "3.2.0",
     "puppeteer-core": "25.8.0",
     "sanitize-html": "2.17.7",
-    "tsconfig-paths-webpack-plugin": "4.2.0",
     "tsx": "catalog:",
     "typescript": "catalog:"
   },

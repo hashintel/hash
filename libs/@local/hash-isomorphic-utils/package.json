@@ -65,6 +65,7 @@
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@temporalio/workflow": "1.20.2",
+    "@tsconfig/bases": "catalog:",
     "@types/big.js": "6.2.2",
     "@types/express": "5.0.5",
     "@types/lodash-es": "4.17.12",

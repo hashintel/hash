@@ -1,13 +1,9 @@
 {
-  "extends": [
-    "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-    "@tsconfig/bases/node22"
-  ],
+  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "compilerOptions": {
+    "lib": ["ES2024"],
     "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "target": "ES2024",
-    "lib": ["ES2024"]
+    "moduleResolution": "Bundler"
   },
   "include": [
     "./src/",
