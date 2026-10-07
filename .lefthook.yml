@@ -23,12 +23,18 @@ pre-commit:
       priority: 2
       tags: [frontend, style]
       glob: "{package.json,**/package.json}"
-      run: yarn fix:constraints && yarn fix:yarn-deduplicate
+      run: turbo run //#fix:constraints:node && yarn fix:yarn-deduplicate
       stage_fixed: true
     python:
       tags: [backend, style]
       glob: "*.py"
       run: uv run --frozen ruff check --fix {staged_files} && uv run --frozen ruff format {staged_files}
+      stage_fixed: true
+    python-constraints:
+      priority: 3
+      tags: [backend]
+      glob: "{package.json,**/package.json,pyproject.toml,**/pyproject.toml,uv.lock}"
+      run: turbo run fix:constraints && turbo run lint:constraints
       stage_fixed: true
     task-dependencies:
       priority: 6
