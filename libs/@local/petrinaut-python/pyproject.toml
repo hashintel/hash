@@ -15,10 +15,9 @@ sympy = [
 
 [dependency-groups]
 dev = [
-    "basedpyright>=1.39.10",
     "datamodel-code-generator>=0.74.0",
-    "pytest>=8.3",
-    "ruff>=0.16.4",
+    "pytest>=9.1.1,<10",
+    "ruff<0.17,>=0.16.8",
     "sympy>=1.13",
 ]
 
@@ -54,8 +53,5 @@ ignore = [
 include          = ["src"]
 typeCheckingMode = "strict"
 pythonVersion    = "3.10"
-venvPath         = "."
+venvPath         = "../../.."
 venv             = ".venv"
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
