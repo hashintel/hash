@@ -17,6 +17,7 @@ export const isFillerOnly = (text: string): boolean => {
     tokens.length > 0 &&
     tokens.every((token) => isHesitation(token) || courtesy.has(token)) &&
     // "You" alone is a transcript, not thanks.
+    // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack
     tokens.some((token) => token !== "you")
   );
 };

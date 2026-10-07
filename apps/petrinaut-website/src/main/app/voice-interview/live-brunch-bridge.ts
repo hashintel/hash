@@ -57,19 +57,14 @@ interface Turn {
   submissionId?: string;
   /** The conversation history the turn began in, so a switch cannot split it. */
   readonly history: VoiceMediationHistory;
-  /** Earlier unsent words merged into this turn; they stay sendable if it is never sent. */
+  /** Earlier unsent or queued speech merged into this turn; it stays sendable if the turn is never admitted. */
   readonly carried: readonly CarriedInput[];
 }
 
 /** Speech that arrived while the composer was busy; it holds its delegation until sent. */
 type QueuedInput = Pick<
   Turn,
-  | "inputId"
-  | "superseded"
-  | "delegationId"
-  | "submissionId"
-  | "history"
-  | "carried"
+  "inputId" | "superseded" | "delegationId" | "submissionId" | "history"
 > & {
   readonly input: FinalizedInput;
 };
@@ -199,12 +194,12 @@ export class LiveBrunchBridge {
 
   public stop(): void {
     this.#closeDeferredDelegations();
-    let kept = false;
-    for (const turn of this.#turns) kept = this.#restoreCarried(turn) || kept;
-    kept = this.#dropQueued("ended") || kept;
-    if (kept) this.#dependencies.notice(notSentNotice);
+    let kept = this.#dropQueued("ended");
+    const turns = [...this.#turns];
     this.#abort.abort();
     this.speechStarted();
+    for (const turn of turns) kept = this.#restoreCarried(turn) || kept;
+    if (kept) this.#dependencies.notice(notSentNotice);
     this.#turns.clear();
     this.#queued.length = 0;
     this.#holdQueue = false;
@@ -234,13 +229,6 @@ export class LiveBrunchBridge {
           superseded: true,
           delegationId: null,
           history: turn.history,
-          carried: [
-            {
-              inputId: turn.inputId,
-              text: turn.inputText,
-              history: turn.history,
-            },
-          ],
         });
       } else if (!turn.submitted && !this.#abort.signal.aborted) {
         // Words cancelled before submission stay sendable in the conversation
@@ -525,7 +513,6 @@ export class LiveBrunchBridge {
         input: carrying,
         delegationId,
         history: this.#dependencies.mediation.history,
-        carried,
       };
       this.#queued.push(queued);
       logLiveDiagnostic("input.queued", {
@@ -616,7 +603,11 @@ export class LiveBrunchBridge {
     void this.#beginTurn(
       input,
       delegationId,
-      batch.flatMap((queued) => queued.carried),
+      batch.map((queued) => ({
+        inputId: queued.inputId,
+        text: queued.input.text,
+        history: queued.history,
+      })),
     ).run();
   }
 
@@ -666,7 +657,7 @@ export class LiveBrunchBridge {
     return dropped.length > 0;
   }
 
-  /** Words a turn carried were shown as unsent before; they stay so unless Brunch admitted it. */
+  /** Speech a turn carried never reached Brunch on its own; it stays sendable unless Brunch admitted the turn. */
   #restoreCarried(turn: Turn): boolean {
     if (turn.submissionId || turn.carried.length === 0) return false;
     const history = this.#dependencies.mediation.history;

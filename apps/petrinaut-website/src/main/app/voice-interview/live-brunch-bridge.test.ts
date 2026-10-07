@@ -2983,6 +2983,57 @@ test.each(["Stop", "ending voice", "failed admission"] as const)(
   },
 );
 
+test.each(["Stop", "ending voice", "failed admission"] as const)(
+  "%s keeps queued speech sent as one unadmitted turn sendable",
+  async (interruption) => {
+    const history = new VoiceMediationHistory("test");
+    const fixture = setup({
+      history,
+      prepare: async () => ({}),
+      summarize: vi.fn(),
+      offered: vi.fn(),
+    });
+    let admitFirst = () => {};
+    fixture.submit.mockImplementationOnce(async (input) => {
+      await new Promise<void>((resolve) => {
+        admitFirst = resolve;
+      });
+      input.onAdmission("first");
+      return { kind: "message", messageId: "one", submissionId: "first" };
+    });
+    const merged = Promise.withResolvers<never>();
+    fixture.submit.mockImplementationOnce(() => merged.promise);
+    const first = fixture.bridge.accept(speech("one", "Compare staffing"));
+    await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+    await fixture.bridge.accept(speech("two", "Also check the queue"));
+    await fixture.bridge.accept(speech("three", "And the rework rate"));
+    admitFirst();
+    await first;
+    await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
+    expect(fixture.submit.mock.calls[1]?.[0].id).toBe("three");
+
+    if (interruption === "Stop") fixture.bridge.stopResponse();
+    else if (interruption === "ending voice") fixture.bridge.stop();
+    else {
+      merged.reject(new Error("Unavailable"));
+      await vi.waitFor(() =>
+        expect(fixture.notice).toHaveBeenLastCalledWith(
+          expect.stringContaining("admission could not be confirmed"),
+        ),
+      );
+    }
+
+    const unsent = (id: string) =>
+      history.project([]).find((message) => message.id === id)?.parts;
+    expect(unsent("two")).toEqual([
+      { type: "text", text: "Also check the queue" },
+    ]);
+    expect(unsent("three")).toEqual([
+      { type: "text", text: "And the rework rate" },
+    ]);
+  },
+);
+
 test("skipped speech does not release queued speech held by a speech start", async () => {
   const fixture = setup({
     history: new VoiceMediationHistory("test"),
