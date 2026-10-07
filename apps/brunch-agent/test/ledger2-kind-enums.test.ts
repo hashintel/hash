@@ -1,24 +1,35 @@
 // Live probes need BRUNCH_LIVE_MODEL_TESTS=1 and the chat model's API key.
 import { createModels, type Context } from "@earendil-works/pi-ai";
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
-import { type FlueLogger } from "@flue/runtime";
+import { type FlueLogger, type ToolStep } from "@flue/runtime";
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 import { describe, expect, test, vi } from "vitest";
 
+import { brunchTools } from "@hashintel/brunch-agent";
 import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
 
-import { vReflection } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/construction/reflections.ts";
 import {
-  appendToolDescription,
-  appendToolName,
-  demoAppendTool,
-} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/demo-tool.ts";
+  vLedgerAppend,
+  type LedgerAppend,
+} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/append.ts";
+import {
+  foldCommits,
+  prepareAppend,
+  type LedgerHistory,
+  type LedgerHistoryMessage,
+} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/commits.ts";
+import { vReflection } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/construction/reflections.ts";
 import { vClaim } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/elicitation/claims.ts";
 import {
   vEntity,
   vEntityKind,
 } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/elicitation/entities.ts";
+import {
+  commitToolDescription,
+  createLedgerCommitTool,
+  createLedgerCompileTool,
+} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/ledger-tools.ts";
 import {
   vOrigin,
   vStatus,
@@ -29,24 +40,365 @@ import {
 } from "../src/chat-model.ts";
 import { openaiProviderWithAddedModels } from "../src/openai-provider.ts";
 
-import type { LedgerAppend } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/append.ts";
+type Batch = LedgerAppend["entries"];
 
-const runDemo = async (data: LedgerAppend) => {
-  const result = await demoAppendTool.run({
-    data,
-    toolCallId: "ledger2-demo-call",
-    log: {
-      info: vi.fn<FlueLogger["info"]>(),
-      warn: vi.fn<FlueLogger["warn"]>(),
-      error: vi.fn<FlueLogger["error"]>(),
-    },
+/** Parses plain entry literals into the branded batch the schemas produce. */
+const toBatch = (entries: unknown): Batch =>
+  v.parse(vLedgerAppend, { entries }).entries;
+
+interface MutableToolPart {
+  type: "dynamic-tool";
+  toolName: string;
+  toolCallId: string;
+  state: string;
+  input?: unknown;
+  output?: unknown;
+}
+
+const commitPart = (toolCallId: string, entries: Batch): MutableToolPart => ({
+  type: "dynamic-tool",
+  toolName: brunchTools.ledgerCommit,
+  toolCallId,
+  state: "input-available",
+  input: { entries },
+});
+
+/**
+ * A history where each batch sits in its own turn as a settled `ledger_commit`
+ * whose recorded output is exactly what `prepareAppend` issued, so the fold
+ * discipline itself is what the assertions exercise.
+ */
+const settledHistory = (batches: readonly Batch[]): LedgerHistory => {
+  const messages: LedgerHistoryMessage[] = [];
+  batches.forEach((entries, index) => {
+    const toolCallId = `commit-${index + 1}`;
+    const part = commitPart(toolCallId, entries);
+    messages.push(
+      { id: `turn-${index + 1}`, role: "user", parts: [] },
+      { id: `response-${index + 1}`, role: "assistant", parts: [part] },
+    );
+    part.output = prepareAppend({ history: { messages }, toolCallId, entries });
+    part.state = "output-available";
   });
-  return v.parse(demoAppendTool.output, result.output);
+  return { messages };
 };
 
-test("one mixed append batch carries all three record types", async () => {
-  const batch = {
-    entries: [
+const log = () => ({
+  info: vi.fn<FlueLogger["info"]>(),
+  warn: vi.fn<FlueLogger["warn"]>(),
+  error: vi.fn<FlueLogger["error"]>(),
+});
+
+/** A pass-through durable-step surface; nothing is recorded in tests. */
+const step: ToolStep = {
+  do: async (_name, fn) => await fn(),
+};
+
+/** Runs the real commit tool as the next call after the settled batches. */
+const runCommit = async (prior: readonly Batch[], entries: Batch) => {
+  const settled = settledHistory(prior);
+  const toolCallId = `commit-${prior.length + 1}`;
+  const history: LedgerHistory = {
+    messages: [
+      ...settled.messages,
+      { id: `turn-${prior.length + 1}`, role: "user", parts: [] },
+      {
+        id: `response-${prior.length + 1}`,
+        role: "assistant",
+        parts: [commitPart(toolCallId, entries)],
+      },
+    ],
+  };
+  const tool = createLedgerCommitTool(async () => history);
+  const result = await tool.run({
+    data: v.parse(tool.input, { entries }),
+    toolCallId,
+    log: log(),
+    step,
+  });
+  return v.parse(tool.output, result.output);
+};
+
+test("one mixed append batch yields queue-aligned IDs and resolved references", async () => {
+  const batch = toBatch([
+    [
+      "entity/create",
+      {
+        name: "Dryer",
+        kind: "resource",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "claim/create",
+      {
+        text: "There is one dryer, held by each batch while drying.",
+        entities: ["$0"],
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "reflection/create",
+      {
+        text: "Represented dryer capacity as one available token; batches do not yet hold or release it.",
+        claims: ["$1"],
+      },
+    ],
+    [
+      "reflection/create",
+      {
+        text: "The place represents available dryer capacity.",
+        netElements: [{ kind: "place", id: "p-dryer" }],
+        entities: ["$0"],
+        claims: ["$1"],
+      },
+    ],
+  ]);
+  const receipt = await runCommit([], batch);
+  expect(receipt).toEqual({
+    status: "recorded",
+    commitId: "commit-1",
+    revision: 1,
+    ids: ["e1", "c1", "r1", "r2"],
+  });
+  const { state, revision } = foldCommits(settledHistory([batch]));
+  expect(revision).toBe(1);
+  expect(state.turns.map(({ id }) => id)).toEqual(["turn-1"]);
+  expect(state.entities).toEqual([
+    {
+      address: "e1",
+      name: "Dryer",
+      kind: "resource",
+      origin: "stated",
+      status: "confirmed",
+      turn: "turn-1",
+    },
+  ]);
+  expect(
+    state.claims.map(({ address, entities }) => ({ address, entities })),
+  ).toEqual([{ address: "c1", entities: ["e1"] }]);
+  expect(
+    state.reflections.map(({ address, claims, entities }) => ({
+      address,
+      claims,
+      entities,
+    })),
+  ).toEqual([
+    { address: "r1", claims: ["c1"], entities: undefined },
+    { address: "r2", claims: ["c1"], entities: ["e1"] },
+  ]);
+});
+
+test("entity routes split creation from full update of an addressed entity", async () => {
+  const update = {
+    name: "Staffing horizon",
+    kind: "horizon",
+    origin: "stated",
+    status: "confirmed",
+  } as const;
+  const creations = toBatch([
+    [
+      "entity/create",
+      {
+        name: "staffing-horizon",
+        kind: "horizon",
+        origin: "assumed",
+        status: "tentative",
+      },
+    ],
+    [
+      "entity/create",
+      {
+        name: "investment-horizon",
+        kind: "horizon",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ]);
+  const updateBatch = toBatch([["entity/update/e1", update]]);
+  const receipt = await runCommit([creations], updateBatch);
+  expect(receipt).toEqual({
+    status: "recorded",
+    commitId: "commit-2",
+    revision: 2,
+    ids: ["e1"],
+  });
+  const { state } = foldCommits(settledHistory([creations, updateBatch]));
+  expect(
+    state.entities.map(({ address, name, origin }) => ({
+      address,
+      name,
+      origin,
+    })),
+  ).toEqual([
+    { address: "e1", name: "Staffing horizon", origin: "stated" },
+    { address: "e2", name: "investment-horizon", origin: "stated" },
+  ]);
+  expect(v.safeParse(vEntity, { ...update, id: "e1" }).success).toBe(false);
+  expect(
+    v.safeParse(vLedgerAppend, {
+      entries: [
+        ["entity/update/e1", { name: update.name, status: update.status }],
+      ],
+    }).success,
+  ).toBe(false);
+  for (const route of ["entity/update", "entity/update/c1", "entity/update/$0"])
+    expect(
+      v.safeParse(vLedgerAppend, { entries: [[route, update]] }).success,
+    ).toBe(false);
+});
+
+test("updates and references to absent records are refused as unknown addresses", async () => {
+  const entity = {
+    name: "Dryer",
+    kind: "resource",
+    origin: "stated",
+    status: "confirmed",
+  } as const;
+  const updateUnknown = await runCommit(
+    [],
+    toBatch([["entity/update/e9", entity]]),
+  );
+  expect(updateUnknown).toEqual({
+    status: "refused",
+    applied: false,
+    code: "unknown-address",
+    message: "Unknown entity e9; entity/update addresses an existing record.",
+    revision: 0,
+  });
+  const referenceUnknown = await runCommit(
+    [],
+    toBatch([
+      [
+        "reflection/create",
+        {
+          text: "Used a 20-minute mean drying time for the stated drying duration.",
+          claims: ["c99"],
+        },
+      ],
+    ]),
+  );
+  expect(referenceUnknown).toMatchObject({
+    status: "refused",
+    code: "unknown-address",
+    message: "Unknown claim c99.",
+  });
+});
+
+test("committed records accept references from later turns", async () => {
+  const prior = toBatch([
+    [
+      "entity/create",
+      {
+        name: "Dryer",
+        kind: "resource",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "claim/create",
+      {
+        text: "Drying always takes 20 minutes.",
+        entities: ["$0"],
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ]);
+  const receipt = await runCommit(
+    [prior],
+    toBatch([
+      [
+        "reflection/create",
+        {
+          text: "Approximated the fixed drying duration with a 20-minute mean.",
+          claims: ["c1"],
+          entities: ["e1"],
+        },
+      ],
+    ]),
+  );
+  expect(receipt).toEqual({
+    status: "recorded",
+    commitId: "commit-2",
+    revision: 2,
+    ids: ["r1"],
+  });
+  const empty = await runCommit([prior], []);
+  expect(empty).toEqual({
+    status: "recorded",
+    commitId: "commit-2",
+    revision: 2,
+    ids: [],
+  });
+});
+
+test("a commit after an unsettled sibling in the same response is refused", () => {
+  const entries = toBatch([
+    [
+      "entity/create",
+      {
+        name: "Dryer",
+        kind: "resource",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ]);
+  const history: LedgerHistory = {
+    messages: [
+      { id: "turn-1", role: "user", parts: [] },
+      {
+        id: "response-1",
+        role: "assistant",
+        parts: [
+          commitPart("commit-1", entries),
+          commitPart("commit-2", entries),
+        ],
+      },
+    ],
+  };
+  expect(prepareAppend({ history, toolCallId: "commit-2", entries })).toEqual({
+    status: "refused",
+    applied: false,
+    code: "concurrent-commit",
+    message:
+      "An earlier ledger_commit in this response has not settled; wait for its result.",
+    revision: 0,
+  });
+});
+
+test("the fold rejects a commit whose recorded receipt disagrees with its input", () => {
+  const batch = toBatch([
+    [
+      "entity/create",
+      {
+        name: "Dryer",
+        kind: "resource",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ]);
+  const history = settledHistory([batch]);
+  const intact = foldCommits(history);
+  expect(intact.revision).toBe(1);
+  const assistant = history.messages[1];
+  const part = assistant?.parts[0] as MutableToolPart | undefined;
+  if (part === undefined) throw new Error("Missing fabricated commit part");
+  part.output = { ...(part.output as object), ids: ["e9"] };
+  const tampered = foldCommits(history);
+  expect(tampered.revision).toBe(0);
+  expect(tampered.state.entities).toEqual([]);
+});
+
+test("ledger_compile renders the committed state as the agent-skin map", async () => {
+  const history = settledHistory([
+    toBatch([
       [
         "entity/create",
         {
@@ -56,119 +408,19 @@ test("one mixed append batch carries all three record types", async () => {
           status: "confirmed",
         },
       ],
-      [
-        "claim/create",
-        {
-          text: "There is one dryer, held by each batch while drying.",
-          entities: ["$0"],
-          origin: "stated",
-          status: "confirmed",
-        },
-      ],
-      [
-        "reflection/create",
-        {
-          text: "Represented dryer capacity as one available token; batches do not yet hold or release it.",
-          claims: ["$1"],
-        },
-      ],
-      [
-        "reflection/create",
-        {
-          text: "The place represents available dryer capacity.",
-          netElements: [{ kind: "place", id: "p-dryer" }],
-          entities: ["$0"],
-          claims: ["$1"],
-        },
-      ],
-    ],
-  };
-  const parsed = v.parse(demoAppendTool.input, batch);
-  expect(parsed).toEqual(batch);
-  expect(await runDemo(parsed)).toEqual({
-    claims: 1,
-    entities: 1,
-    reflections: 2,
+    ]),
+  ]);
+  const tool = createLedgerCompileTool(async () => history);
+  const result = await tool.run({
+    data: v.parse(tool.input, {}),
+    toolCallId: "compile-1",
+    log: log(),
   });
-});
-
-test("entity routes split creation from full update of an addressed entity", async () => {
-  const update = {
-    name: "Staffing horizon",
-    kind: "horizon",
-    origin: "stated",
-    status: "confirmed",
-  };
-  const batch = {
-    entries: [
-      [
-        "entity/create",
-        {
-          name: "staffing-horizon",
-          kind: "horizon",
-          origin: "assumed",
-          status: "tentative",
-        },
-      ],
-      [
-        "entity/create",
-        {
-          name: "investment-horizon",
-          kind: "horizon",
-          origin: "stated",
-          status: "confirmed",
-        },
-      ],
-      ["entity/update/e1", update],
-    ],
-  };
-  const parsed = v.parse(demoAppendTool.input, batch);
-  expect(parsed).toEqual(batch);
-  expect(await runDemo(parsed)).toEqual({
-    claims: 0,
-    entities: 3,
-    reflections: 0,
-  });
-  expect(v.safeParse(vEntity, { ...update, id: "e1" }).success).toBe(false);
-  expect(
-    v.safeParse(demoAppendTool.input, {
-      entries: [
-        ["entity/update/e1", { name: update.name, status: update.status }],
-      ],
-    }).success,
-  ).toBe(false);
-  for (const route of ["entity/update", "entity/update/c1", "entity/update/$0"])
-    expect(
-      v.safeParse(demoAppendTool.input, { entries: [[route, update]] }).success,
-    ).toBe(false);
-});
-
-test("construction-only queues may reference existing claims", async () => {
-  const batch = {
-    entries: [
-      [
-        "reflection/create",
-        {
-          text: "Used a 20-minute mean drying time for the stated drying duration; the stated fixed duration becomes a distribution.",
-          claims: ["c99"],
-        },
-      ],
-    ],
-  };
-  const parsed = v.parse(demoAppendTool.input, batch);
-  expect(parsed).toEqual(batch);
-  expect(await runDemo(parsed)).toEqual({
-    claims: 0,
-    entities: 0,
-    reflections: 1,
-  });
-  expect(await runDemo(v.parse(demoAppendTool.input, { entries: [] }))).toEqual(
-    {
-      claims: 0,
-      entities: 0,
-      reflections: 0,
-    },
-  );
+  const output = v.parse(tool.output, result.output);
+  expect(output.revision).toBe(1);
+  expect(output.map).toContain("# Ledger");
+  expect(output.map).toContain("Dryer");
+  expect(output.map).toContain("`e1`");
 });
 
 test("claims retain prior assertions when a later claim supersedes them", () => {
@@ -190,7 +442,7 @@ test("claims retain prior assertions when a later claim supersedes them", () => 
   const batch = {
     entries: claims.map((claim) => ["claim/create", claim]),
   };
-  expect(v.parse(demoAppendTool.input, batch)).toEqual(batch);
+  expect(v.parse(vLedgerAppend, batch)).toEqual(batch);
 });
 
 test("a claim's source does not imply the person's agreement", () => {
@@ -245,7 +497,7 @@ test("local references check target kind, bounds and supersession order", () => 
     status: "confirmed",
   };
   expect(
-    v.safeParse(demoAppendTool.input, {
+    v.safeParse(vLedgerAppend, {
       entries: [
         ["entity/create", entity],
         ["claim/create", { ...claim, entities: ["$1"] }],
@@ -253,12 +505,12 @@ test("local references check target kind, bounds and supersession order", () => 
     }).success,
   ).toBe(false);
   expect(
-    v.safeParse(demoAppendTool.input, {
+    v.safeParse(vLedgerAppend, {
       entries: [["claim/create", { ...claim, entities: ["$9"] }]],
     }).success,
   ).toBe(false);
   expect(
-    v.safeParse(demoAppendTool.input, {
+    v.safeParse(vLedgerAppend, {
       entries: [
         ["entity/create", entity],
         ["claim/create", { ...claim, supersedes: ["$1"] }],
@@ -271,16 +523,14 @@ test("local references check target kind, bounds and supersession order", () => 
       ["entity/create", entity],
     ],
   };
-  expect(v.parse(demoAppendTool.input, forwardReference)).toEqual(
-    forwardReference,
-  );
+  expect(v.parse(vLedgerAppend, forwardReference)).toEqual(forwardReference);
   const updateTarget = {
     entries: [
       ["entity/update/e45", entity],
       ["claim/create", claim],
     ],
   };
-  expect(v.parse(demoAppendTool.input, updateTarget)).toEqual(updateTarget);
+  expect(v.parse(vLedgerAppend, updateTarget)).toEqual(updateTarget);
 });
 
 /** What Flue sends as a tool's parameters (`toolInputToJsonSchema`). */
@@ -300,7 +550,7 @@ const literalsOf = (schema: DescribedEnums) =>
   }));
 
 test("Flue's tool schema carries entity kind, origin and status descriptions", () => {
-  const parameters = flueParameters(demoAppendTool.input);
+  const parameters = flueParameters(vLedgerAppend);
   const anyOf = (schema: DescribedEnums) => ({
     description: v.getDescription(schema),
     anyOf: literalsOf(schema).map(({ literal, description }) => ({
@@ -388,7 +638,7 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
 const live = process.env.BRUNCH_LIVE_MODEL_TESTS === "1";
 
 describe.skipIf(!live).concurrent("kind enums with a live model", () => {
-  /** Sends one message with the demo tool; fails unless the call parses. */
+  /** Sends one message with the commit tool; fails unless the call parses. */
   const append = async (message: string, constructionObservation = "") => {
     const models = createModels();
     models.setProvider(anthropicProvider());
@@ -402,13 +652,13 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     if (!model) throw new Error(`Unknown model ${specifier}`);
     const thinking = selectChatThinking();
     const context: Context = {
-      systemPrompt: `You keep the record of a modelling conversation. USER means the interviewee whose account is being elicited. There are no existing entities or claims, so use only create routes. Record the USER's latest message by calling ${appendToolName} exactly once. Each entry is exactly [route, payload]. Do not assign IDs or submit turns; relationships use $index references to positions in this call's entire entries queue. Do not reply in text. ${constructionObservation}`,
+      systemPrompt: `You keep the record of a modelling conversation. USER means the interviewee whose account is being elicited. There are no existing entities or claims, so use only create routes. Record the USER's latest message by calling ${brunchTools.ledgerCommit} exactly once. Each entry is exactly [route, payload]. Do not assign IDs or submit turns; relationships use $index references to positions in this call's entire entries queue. Do not reply in text. ${constructionObservation}`,
       messages: [{ role: "user", content: message, timestamp: Date.now() }],
       tools: [
         {
-          name: appendToolName,
-          description: appendToolDescription,
-          parameters: flueParameters(demoAppendTool.input),
+          name: brunchTools.ledgerCommit,
+          description: commitToolDescription,
+          parameters: flueParameters(vLedgerAppend),
         },
       ],
     };
@@ -421,9 +671,11 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     expect(calls).toHaveLength(1);
     const call = calls[0];
     if (call?.type !== "toolCall")
-      throw new Error(`No ${appendToolName} call: ${response.stopReason}`);
-    expect(call.name).toBe(appendToolName);
-    const recorded = v.parse(demoAppendTool.input, call.arguments);
+      throw new Error(
+        `No ${brunchTools.ledgerCommit} call: ${response.stopReason}`,
+      );
+    expect(call.name).toBe(brunchTools.ledgerCommit);
+    const recorded = v.parse(vLedgerAppend, call.arguments);
     for (const [route] of recorded.entries)
       expect(route).not.toMatch(/\/update\//);
     const entities = recorded.entries.flatMap(([route, payload]) =>
@@ -455,10 +707,18 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
       ])
         expect(reference).toMatch(/^\$\d+$/);
     }
-    expect(await runDemo(recorded)).toEqual({
-      claims: claims.length,
-      entities: entities.length,
-      reflections: reflections.length,
+    const receipt = await runCommit([], recorded.entries);
+    expect(receipt.status).toBe("recorded");
+    if (receipt.status !== "recorded")
+      throw new Error("Receipt expected to be recorded");
+    expect(receipt.ids).toHaveLength(recorded.entries.length);
+    recorded.entries.forEach(([route], index) => {
+      const prefix = route.startsWith("entity/")
+        ? "e"
+        : route === "claim/create"
+          ? "c"
+          : "r";
+      expect(receipt.ids[index]).toMatch(new RegExp(`^${prefix}\\d+$`));
     });
     return { entries: recorded.entries, entities, claims, reflections };
   };

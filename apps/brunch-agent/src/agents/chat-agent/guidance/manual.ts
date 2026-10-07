@@ -1,17 +1,17 @@
-import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
+import { useModel, useSkill, useTool } from "@flue/runtime";
 
 import system from "./manual/prompts/system.md?raw";
 import constructing from "./manual/skills/constructing/SKILL.md";
 import eliciting from "./manual/skills/eliciting/SKILL.md";
 import petrinautCapability from "./manual/skills/petrinaut-capability.md?raw";
 import experimentDrafting from "./manual/tools/experiment-drafting.md?raw";
-import { createLedgerTools } from "./manual/tools/ledger-tools.ts";
+import { createLedger2Tools } from "./manual/tools/ledger2/ledger-tools.ts";
 import { createQueryBasisTool } from "./manual/tools/query-basis-tool.ts";
 import queryBasis from "./manual/tools/query-basis.md?raw";
 import runtimeBound from "./manual/tools/runtime-bound.md?raw";
 import runtimeUnbound from "./manual/tools/runtime-unbound.md?raw";
 
-import type { LedgerHistory } from "./manual/tools/ledger.ts";
+import type { LedgerHistory } from "./manual/tools/ledger2/commits.ts";
 
 /**
  * A hand-edited arm, copied from `identity` as of round 4c. Everything the
@@ -28,7 +28,7 @@ export const useManualGuidance = (
   useModel(model, options);
   useSkill(eliciting);
   useSkill(constructing);
-  for (const tool of createLedgerTools(readHistory)) useTool(tool);
+  for (const tool of createLedger2Tools(readHistory)) useTool(tool);
   return {
     system: system.trim(),
     instructions: {
