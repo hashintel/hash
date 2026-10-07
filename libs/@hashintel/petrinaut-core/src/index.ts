@@ -402,7 +402,6 @@ export {
   canonicalizePetrinautIds,
   generatePetrinautId,
   isPetrinautId,
-  PETRINAUT_ID_NAMESPACE,
   toPetrinautId,
 } from "./petrinaut-id";
 export {

@@ -133,7 +133,7 @@ function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
  * arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
  * `componentInstances`) are only set when present on the input, so the result
  * matches the shape the editor itself produces (relevant for structural
- * dirty-tracking via `isSDCPNEqual`). Subnet ids are converted to net ids
+ * dirty-tracking via `isSDCPNEqual`). Subnet ids are converted to Petrinaut ids
  * with {@link canonicalizePetrinautIds}.
  */
 export function normalizeSDCPN(input: SDCPNInput): SDCPN {

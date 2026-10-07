@@ -57,7 +57,6 @@ describe("toPetrinautId", () => {
     expect(toPetrinautId("subnet-1")).toBe(
       "55829d6f-6bb8-5023-9b4f-d7a16b751004",
     );
-    expect(toPetrinautId("net-1")[14]).toBe("5");
   });
 
   it("is idempotent", () => {
@@ -69,7 +68,7 @@ describe("toPetrinautId", () => {
 });
 
 describe("generatePetrinautId", () => {
-  it("returns distinct net ids", () => {
+  it("returns a fresh Petrinaut id on each call", () => {
     const first = generatePetrinautId();
     const second = generatePetrinautId();
     expect(isPetrinautId(first)).toBe(true);

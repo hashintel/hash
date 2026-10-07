@@ -5,7 +5,6 @@ import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "./user-settings-context";
-import { canonicalizeViewportKeys } from "./user-settings-provider/canonicalize-viewport-keys";
 import { rememberCanvasViewport } from "./user-settings-provider/remember-canvas-viewport";
 
 import type { CanvasViewport } from "./canvas-viewport-context";
@@ -66,9 +65,6 @@ const loadSettings = (): UserSettings => {
       return {
         ...defaultUserSettings,
         ...parsed,
-        canvasViewports: canonicalizeViewportKeys(
-          parsed.canvasViewports ?? defaultUserSettings.canvasViewports,
-        ),
       };
     }
   } catch {

@@ -17,7 +17,7 @@ import type { ComponentInstance, SDCPN, Subnet } from "./types/sdcpn";
  * NEVER change: converted ids are persisted in documents, URLs and host
  * storage, and a new namespace would silently remap every one of them.
  */
-export const PETRINAUT_ID_NAMESPACE = "f346239e-b5e3-53b6-bb7e-297046d1ac64";
+const PETRINAUT_ID_NAMESPACE = "f346239e-b5e3-53b6-bb7e-297046d1ac64";
 
 /** Whether `value` is a Petrinaut id: a UUID string in lowercase. */
 export const isPetrinautId = (value: unknown): value is string =>

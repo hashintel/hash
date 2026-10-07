@@ -5,8 +5,6 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { toPetrinautId } from "@hashintel/petrinaut-core";
-
 import { UserSettingsContext } from "./user-settings-context";
 import { UserSettingsProvider } from "./user-settings-provider";
 
@@ -61,27 +59,6 @@ const ArcConnectionsProbe = () => {
 };
 
 describe("UserSettingsProvider", () => {
-  it("keys saved canvas viewports by net id", () => {
-    const netId = toPetrinautId("net-1");
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify({
-        canvasViewports: {
-          "net-1": { x: 1, y: 1, zoom: 1, savedAt: 20 },
-          [netId]: { x: 2, y: 2, zoom: 2, savedAt: 10 },
-        },
-      }),
-    );
-    render(
-      <UserSettingsProvider>
-        <DemoModeProbe name="demo" />
-      </UserSettingsProvider>,
-    );
-    expect(
-      JSON.parse(localStorage.getItem(storageKey) ?? "{}").canvasViewports,
-    ).toEqual({ [netId]: { x: 1, y: 1, zoom: 1, savedAt: 20 } });
-  });
-
   it("defaults automatic arcs off for saved preferences from before the experiment", () => {
     localStorage.setItem(
       "petrinaut:user-settings",

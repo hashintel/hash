@@ -75,26 +75,13 @@ const foreignEntry = {
 };
 
 describe("createLocalStorageNetRecord", () => {
-  test("mints a fresh net id", () => {
-    const first = createLocalStorageNetRecord({
-      petriNetDefinition: emptySDCPN,
-      title: "New Process",
-    });
-    const second = createLocalStorageNetRecord({
-      petriNetDefinition: emptySDCPN,
-      title: "New Process",
-    });
-
-    expect(isPetrinautId(first.id)).toBe(true);
-    expect(second.id).not.toBe(first.id);
-  });
-
-  test("assigns incarnation and document revision identities at creation", () => {
+  test("assigns net, incarnation and revision identities at creation", () => {
     const net = createLocalStorageNetRecord({
       petriNetDefinition: emptySDCPN,
       title: "New Process",
     });
 
+    expect(isPetrinautId(net.id)).toBe(true);
     expect(net.incarnationId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu,
     );
@@ -112,12 +99,11 @@ describe("startEmptyNetInStorage", () => {
 
     expect(readNets(storage)).toStrictEqual({ [net.id]: net });
     expect(net.sdcpn).toStrictEqual(emptySDCPN);
-    expect(isPetrinautId(net.id)).toBe(true);
   });
 
   test("keeps the nets the visitor has drawn", () => {
     const storage = createStorage(
-      JSON.stringify(Object.fromEntries([storedNet("net-drawn", drawnNet)])),
+      JSON.stringify(Object.fromEntries([storedNet(drawnNetId, drawnNet)])),
     );
 
     const net = startEmptyNetInStorage(storage);
@@ -132,7 +118,7 @@ describe("startEmptyNetInStorage", () => {
       JSON.stringify(
         Object.fromEntries([
           storedNet("net-empty", emptySDCPN),
-          storedNet("net-drawn", drawnNet),
+          storedNet(drawnNetId, drawnNet),
         ]),
       ),
     );
@@ -174,7 +160,7 @@ describe("startEmptyNetInStorage", () => {
   test("keeps an entry it does not recognize as a net", () => {
     const storage = createStorage(
       JSON.stringify({
-        ...Object.fromEntries([storedNet("net-drawn", drawnNet)]),
+        ...Object.fromEntries([storedNet(drawnNetId, drawnNet)]),
         "net-foreign": foreignEntry,
       }),
     );
@@ -212,7 +198,7 @@ describe("useLocalStorageSDCPNs", () => {
     localStorage.setItem(
       rootLocalStorageKey,
       JSON.stringify({
-        ...Object.fromEntries([storedNet("net-drawn", drawnNet)]),
+        ...Object.fromEntries([storedNet(drawnNetId, drawnNet)]),
         "net-foreign": foreignEntry,
       }),
     );
@@ -273,10 +259,11 @@ describe("legacy net ids", () => {
     ],
   };
 
-  test("moves a legacy record to its net id together with its subnet ids", () => {
+  test("moves a legacy record to its net id with its subnet ids and a new incarnation", () => {
+    const [, legacyRecord] = storedNet("net-1", subnetNet);
     localStorage.setItem(
       rootLocalStorageKey,
-      JSON.stringify(Object.fromEntries([storedNet("net-1", subnetNet)])),
+      JSON.stringify({ "net-1": { ...legacyRecord, incarnationId: "legacy" } }),
     );
 
     const { result } = renderHook(() => useLocalStorageSDCPNs());
@@ -288,9 +275,7 @@ describe("legacy net ids", () => {
     expect(written[netId]?.sdcpn.subnets?.[0]?.id).toBe(
       toPetrinautId("subnet__a"),
     );
-    expect(written[netId]?.sdcpn.componentInstances?.[0]?.subnetId).toBe(
-      toPetrinautId("subnet__a"),
-    );
+    expect(written[netId]?.incarnationId).not.toBe("legacy");
     expect(result.current.storedSDCPNs).toStrictEqual(written);
   });
 

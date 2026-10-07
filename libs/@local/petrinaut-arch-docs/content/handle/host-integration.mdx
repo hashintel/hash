@@ -109,9 +109,8 @@ proper.
 - **`id` is a lowercase UUID.** Derive one from a legacy key with
   `toPetrinautId`, which maps the same key to the same UUID every time, or
   mint one with `generatePetrinautId`. `createJsonDocHandle` converts any other
-  id it is given, so its `handle.id` may differ from `opts.id`; Petrinaut reads
-  every handle's id through `toPetrinautId` as well. Subnet ids follow the same
-  rule and are converted when a document loads.
+  id it is given, so its `handle.id` may differ from `opts.id`. Subnet ids
+  follow the same rule and are converted when a document loads.
 - **`subscribe` returns an unsubscribe function** and tolerates it being
   called after disposal.
 
@@ -217,7 +216,7 @@ saves snapshots.
 import { createJsonDocHandle, toPetrinautId } from "@hashintel/petrinaut-core";
 
 const handle = createJsonDocHandle({
-  id: toPetrinautId(graph.id), // a lowercase UUID; other ids are converted anyway
+  id: toPetrinautId(graph.id),
   initial: toSDCPN(graph), // SDCPNInput; normalized internally
   capabilities: { disabledExtensions: ["colors", "stochasticity"] },
   historyLimit: 50, // default 50; 0 disables history entirely

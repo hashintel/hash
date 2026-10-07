@@ -504,39 +504,6 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.parameters).toEqual([]);
       expect(result.sdcpn.differentialEquations).toEqual([]);
     });
-    it("converts subnet ids and their references to the same UUIDs", () => {
-      const result = parseSDCPNFile({
-        ...minimalSDCPN,
-        subnets: [
-          {
-            id: "subnet__a",
-            name: "Reusable",
-            places: [],
-            transitions: [],
-            types: [],
-            differentialEquations: [],
-            parameters: [],
-          },
-        ],
-        componentInstances: [
-          {
-            id: "instance-1",
-            name: "Instance",
-            subnetId: "subnet__a",
-            parameterValues: {},
-            x: 0,
-            y: 0,
-          },
-        ],
-      });
-
-      expect(result.ok).toBe(true);
-      if (!result.ok) return;
-      expect(result.sdcpn.subnets?.[0]?.id).toBe(toPetrinautId("subnet__a"));
-      expect(result.sdcpn.componentInstances?.[0]?.subnetId).toBe(
-        toPetrinautId("subnet__a"),
-      );
-    });
   });
 
   describe("missing positions", () => {

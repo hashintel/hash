@@ -35,7 +35,6 @@ export {
   parameterSchema,
   placeSchema,
   positionSchema,
-  subnetIdSchema,
   subnetSchema,
   transitionSchema,
 } from "./schemas/entity-schemas";

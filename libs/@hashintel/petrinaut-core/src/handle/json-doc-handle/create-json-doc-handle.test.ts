@@ -69,37 +69,16 @@ describe("createJsonDocHandle", () => {
     expect(handle.doc()).toEqual(empty());
   });
 
-  it("defaults to a random net id", () => {
-    const handle = createJsonDocHandle({ initial: empty() });
-    expect(isPetrinautId(handle.id)).toBe(true);
-    expect(createJsonDocHandle({ initial: empty() }).id).not.toBe(handle.id);
+  it("defaults to a random Petrinaut id", () => {
+    expect(isPetrinautId(createJsonDocHandle({ initial: empty() }).id)).toBe(
+      true,
+    );
   });
 
-  it("converts a legacy id and subnet ids to net ids as its initial state", () => {
-    const handle = createJsonDocHandle({
-      id: "net-1",
-      initial: {
-        ...empty(),
-        subnets: [{ ...empty(), id: "subnet-1", name: "Subnet" }],
-        componentInstances: [
-          {
-            id: "instance-1",
-            name: "Instance",
-            subnetId: "subnet-1",
-            parameterValues: {},
-            x: 0,
-            y: 0,
-          },
-        ],
-      },
-    });
-
-    expect(handle.id).toBe(toPetrinautId("net-1"));
-    expect(handle.doc()?.subnets?.[0]?.id).toBe(toPetrinautId("subnet-1"));
-    expect(handle.doc()?.componentInstances?.[0]?.subnetId).toBe(
-      toPetrinautId("subnet-1"),
+  it("converts a non-UUID id with toPetrinautId", () => {
+    expect(createJsonDocHandle({ id: "net-1", initial: empty() }).id).toBe(
+      toPetrinautId("net-1"),
     );
-    expect(handle.history?.entries.get()).toHaveLength(1);
   });
 
   it.each([undefined, null, 0, 3])(

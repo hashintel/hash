@@ -191,7 +191,12 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
       title: value.title,
       lastUpdated: value.lastUpdated,
       sdcpn,
-      incarnationId: incarnationId ?? crypto.randomUUID(),
+      // A moved record starts a new incarnation: Brunch bound the old one's
+      // conversation to the old document id.
+      incarnationId:
+        id === documentId
+          ? (incarnationId ?? crypto.randomUUID())
+          : crypto.randomUUID(),
       revisionId: revisionId ?? crypto.randomUUID(),
     };
   }
