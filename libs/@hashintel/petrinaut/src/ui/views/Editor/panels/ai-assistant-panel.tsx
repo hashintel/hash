@@ -39,7 +39,6 @@ import { useLatest } from "../../../../react/hooks/use-latest";
 import { useRevealInEditor } from "../../../../react/hooks/use-reveal-in-editor";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { LanguageClientContext } from "../../../../react/lsp/context";
-import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import {
   formatReadOnlyReason,
@@ -49,9 +48,10 @@ import {
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
 import { petrinautDocsContent } from "../../../petrinaut-docs-content";
 import {
-  AiAssistantContents,
-  getTranscriptLabel,
-} from "./ai-assistant-panel/ai-assistant-contents";
+  type PetrinautAssistantStartRequest,
+  usePetrinautAssistantWindow,
+} from "../assistant-window";
+import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
 import { selectPromptChips } from "./ai-assistant-panel/ai-assistant-contents/select-prompt-chips";
 import { applyPetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
@@ -472,23 +472,13 @@ interface AiAssistantPanelProps {
     commitCount: number;
     frameStatus: FrameSceneResult;
   }>;
-  focusRequest?: number;
   frameSceneAfterRender?: () => Promise<FrameSceneResult>;
-  initialInteractionMode?: PetrinautAiInputMode | null;
-  initialMessage?: string | null;
-  onInitialInteractionModeConsumed?: () => void;
-  onInitialMessageConsumed?: () => void;
 }
 
 const ConversationAiAssistantPanel = ({
   aiAssistant,
   applyAutoLayoutAndFrame,
-  focusRequest = 0,
   frameSceneAfterRender,
-  initialInteractionMode,
-  initialMessage,
-  onInitialInteractionModeConsumed,
-  onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
   // The wrapped AI transport and language client read their latest host values
   // through refs when `sendMessages` eventually runs. React Compiler can't
@@ -528,12 +518,17 @@ const ConversationAiAssistantPanel = ({
     };
   }, []);
 
+  // The window owns open and compact state; the chat asks it for the
+  // compact Voice dock and reads a start request from the editor's entry
+  // points.
   const {
-    isAiAssistantOpen,
-    isAiAssistantCollapsed: voiceDockCollapsed,
-    setAiAssistantCollapsed: setVoiceDockCollapsed,
-    setAiAssistantOpen,
-  } = use(EditorContext);
+    isOpen: isAiAssistantOpen,
+    compact: voiceDockCollapsed,
+    setCompact: setVoiceDockCollapsed,
+    close: closeWindow,
+    startRequest,
+    consumeStartRequest,
+  } = usePetrinautAssistantWindow();
   const revealInEditor = useRevealInEditor();
 
   const { petriNetDefinition, setTitle, title, titleEditable } =
@@ -603,10 +598,9 @@ const ConversationAiAssistantPanel = ({
   const voiceModeControlsRef =
     useRef<PetrinautAiVoiceModeSessionControls | null>(null);
   const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
-  const consumedInitialInteractionModeRef = useRef<PetrinautAiInputMode | null>(
+  const handledStartRequestRef = useRef<PetrinautAssistantStartRequest | null>(
     null,
   );
-  const submittedInitialMessageRef = useRef<string | null>(null);
 
   const titleRef = useRef(title);
   useEffect(() => {
@@ -1493,92 +1487,6 @@ const ConversationAiAssistantPanel = ({
       : continuationPending && chatStatus === "ready"
         ? "submitted"
         : chatStatus;
-  const [hostTabSelected, setHostTabSelected] = useState(false);
-  const [hostAttentionCount, setHostAttentionCount] = useState(0);
-  const [primaryAttention, setPrimaryAttention] = useState(false);
-  const [attentionAnnouncement, setAttentionAnnouncement] = useState("");
-  const seenHostActivityRef = useRef<Set<string> | undefined>(undefined);
-  const conversationWasBusyRef = useRef(false);
-  const hostActivityIdentities = aiAssistant.additionalTab?.activityIdentities;
-
-  useEffect(() => {
-    if (hostActivityIdentities === undefined) {
-      return;
-    }
-    const currentIdentities = new Set(
-      hostActivityIdentities.map(
-        (identity) => `${typeof identity}:${String(identity)}`,
-      ),
-    );
-    const previousIdentities = seenHostActivityRef.current;
-    if (previousIdentities === undefined) {
-      seenHostActivityRef.current = currentIdentities;
-      return;
-    }
-
-    let additions = 0;
-    for (const identity of currentIdentities) {
-      if (!previousIdentities.has(identity)) {
-        additions += 1;
-        previousIdentities.add(identity);
-      }
-    }
-    if (additions === 0 || (isAiAssistantOpen && hostTabSelected)) {
-      return;
-    }
-    const nextAttentionCount = hostAttentionCount + additions;
-    setHostAttentionCount(nextAttentionCount);
-    setAttentionAnnouncement(
-      `${nextAttentionCount} unseen ${aiAssistant.additionalTab?.label ?? "tab"} update${nextAttentionCount === 1 ? "" : "s"}`,
-    );
-  }, [
-    aiAssistant.additionalTab?.label,
-    hostActivityIdentities,
-    hostAttentionCount,
-    hostTabSelected,
-    isAiAssistantOpen,
-  ]);
-
-  useEffect(() => {
-    if (isAiAssistantOpen && hostTabSelected) {
-      setHostAttentionCount(0);
-    }
-    if (isAiAssistantOpen && !hostTabSelected) {
-      setPrimaryAttention(false);
-    }
-  }, [hostTabSelected, isAiAssistantOpen]);
-
-  useEffect(() => {
-    const isBusy = status === "submitted" || status === "streaming";
-    if (
-      conversationWasBusyRef.current &&
-      !isBusy &&
-      isAiAssistantOpen &&
-      hostTabSelected
-    ) {
-      setPrimaryAttention(true);
-      setAttentionAnnouncement(
-        `${getTranscriptLabel(aiAssistant.primaryLabel, interactionMode, aiAssistant.presentation)} needs your attention`,
-      );
-    }
-    conversationWasBusyRef.current = isBusy;
-  }, [
-    aiAssistant.presentation,
-    aiAssistant.primaryLabel,
-    hostTabSelected,
-    interactionMode,
-    isAiAssistantOpen,
-    status,
-  ]);
-
-  useEffect(() => {
-    if (attentionAnnouncement.length === 0) {
-      return;
-    }
-    const timeout = setTimeout(() => setAttentionAnnouncement(""), 0);
-    return () => clearTimeout(timeout);
-  }, [attentionAnnouncement]);
-
   useEffect(() => {
     if (aiAssistant.followMessages !== undefined) {
       if (
@@ -2176,38 +2084,55 @@ const ConversationAiAssistantPanel = ({
     submitUserText(input);
   };
 
+  // A start request from the editor's entry points, e.g. the empty-net
+  // prompt: an action selects its input mode, text becomes the first message.
   useEffect(() => {
-    if (
-      initialInteractionMode === undefined ||
-      initialInteractionMode === null
-    ) {
-      consumedInitialInteractionModeRef.current = null;
+    if (startRequest === null) {
+      handledStartRequestRef.current = null;
+
       return;
     }
-
     if (
       !isAiAssistantOpen ||
-      consumedInitialInteractionModeRef.current === initialInteractionMode
+      !instance ||
+      handledStartRequestRef.current === startRequest
     ) {
       return;
     }
+    handledStartRequestRef.current = startRequest;
+    consumeStartRequest();
 
-    const nextMode =
-      initialInteractionMode === "voice" &&
-      aiAssistant.renderVoiceMode === undefined
-        ? "text"
-        : initialInteractionMode;
-    selectInteractionMode(nextMode, {
-      collapseVoiceDock: nextMode === "voice",
-    });
-    consumedInitialInteractionModeRef.current = initialInteractionMode;
-    onInitialInteractionModeConsumed?.();
+    if ("action" in startRequest) {
+      const nextMode =
+        startRequest.action === "voice" &&
+        aiAssistant.renderVoiceMode !== undefined
+          ? "voice"
+          : "text";
+      selectInteractionMode(nextMode, {
+        collapseVoiceDock: nextMode === "voice",
+      });
+
+      return;
+    }
+
+    selectInteractionMode("text");
+    const text = startRequest.text.trim();
+    if (!text) {
+      return;
+    }
+    setInput("");
+    setStreamError(null);
+    setStopped(false);
+    stopRequestedRef.current = false;
+    submitUserText(text);
   }, [
     aiAssistant.renderVoiceMode,
-    initialInteractionMode,
+    consumeStartRequest,
+    instance,
     isAiAssistantOpen,
-    onInitialInteractionModeConsumed,
     selectInteractionMode,
+    startRequest,
+    submitUserText,
   ]);
 
   useEffect(() => {
@@ -2218,37 +2143,6 @@ const ConversationAiAssistantPanel = ({
       selectInteractionMode("text");
     }
   }, [aiAssistant.renderVoiceMode, interactionMode, selectInteractionMode]);
-
-  useEffect(() => {
-    const trimmedInitialMessage = initialMessage?.trim();
-    if (!trimmedInitialMessage) {
-      submittedInitialMessageRef.current = null;
-      return;
-    }
-
-    if (!isAiAssistantOpen || !instance) {
-      return;
-    }
-
-    if (submittedInitialMessageRef.current === trimmedInitialMessage) {
-      return;
-    }
-
-    submittedInitialMessageRef.current = trimmedInitialMessage;
-    onInitialMessageConsumed?.();
-    setInput("");
-    setStreamError(null);
-    setStopped(false);
-    stopRequestedRef.current = false;
-
-    submitUserText(trimmedInitialMessage);
-  }, [
-    initialMessage,
-    instance,
-    isAiAssistantOpen,
-    onInitialMessageConsumed,
-    submitUserText,
-  ]);
 
   if (!instance) {
     return null;
@@ -2296,12 +2190,10 @@ const ConversationAiAssistantPanel = ({
 
   return (
     <AiAssistantContents
-      additionalTab={aiAssistant.additionalTab}
-      attentionAnnouncement={attentionAnnouncement}
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
       }
-      composerFocusRequest={composerFocusRequest + focusRequest}
+      composerFocusRequest={composerFocusRequest}
       composerControl={composerControl}
       error={streamError ?? error}
       experimentStates={experimentStates}
@@ -2310,9 +2202,6 @@ const ConversationAiAssistantPanel = ({
       input={input}
       inputMode={interactionMode}
       interactiveTools={aiAssistant.interactiveTools}
-      isOpen={isAiAssistantOpen}
-      hostAttentionCount={hostAttentionCount}
-      hostTabSelected={hostTabSelected}
       hiddenToolNames={hiddenAutomaticToolNames}
       messages={aiAssistant.mapMessagesForDisplay?.(messages) ?? messages}
       onClearMessages={() => {
@@ -2341,9 +2230,8 @@ const ConversationAiAssistantPanel = ({
       }}
       onClose={() => {
         voiceModeControlsRef.current?.pause();
-        setAiAssistantOpen(false);
       }}
-      onCollapsedVoiceEnd={() => setAiAssistantOpen(false)}
+      onCollapsedVoiceEnd={closeWindow}
       onInputChange={setInput}
       onInputModeChange={selectInteractionMode}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
@@ -2428,7 +2316,6 @@ const ConversationAiAssistantPanel = ({
           });
         });
       }}
-      onHostTabSelectedChange={setHostTabSelected}
       onSelectToolTarget={revealInEditor}
       onSendPrompt={(prompt) => {
         submitUserText(prompt, "message");
@@ -2446,7 +2333,6 @@ const ConversationAiAssistantPanel = ({
       onSubmit={submitComposerInput}
       onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
-      primaryAttention={primaryAttention}
       primaryLabel={aiAssistant.primaryLabel}
       presentation={aiAssistant.presentation}
       status={status}

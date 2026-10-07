@@ -54,6 +54,11 @@ import {
   type PetrinautAiInteractiveToolWidgetProps,
 } from "../../../types/ai-interactive-tool";
 import {
+  AssistantWindowContext,
+  type PetrinautAssistantStartRequest,
+  useEditorAssistantWindowHost,
+} from "../assistant-window";
+import {
   addMappedToolOutput,
   AiAssistantPanel,
   getVoiceToolCallIds,
@@ -262,6 +267,62 @@ const EditorTestProvider = ({
   );
 };
 
+/**
+ * Hosts the panel's window as the editor does, from the test's editor
+ * context: the tab the editor builds from `additionalTab`, and a start
+ * request built from the initial mode and message. A new mode or message is a
+ * new request.
+ */
+const TestWindowHost = ({
+  aiAssistant,
+  initialInteractionMode,
+  initialMessage,
+  onStartRequestConsumed,
+  children,
+}: {
+  aiAssistant: PetrinautAiAssistant;
+  initialInteractionMode?: PetrinautAiInputMode;
+  initialMessage?: string;
+  onStartRequestConsumed?: () => void;
+  children: ReactNode;
+}) => {
+  const { host } = useEditorAssistantWindowHost(
+    aiAssistant.additionalTab
+      ? [{ id: "host", ...aiAssistant.additionalTab }]
+      : [],
+  );
+  const requestKey = `${initialInteractionMode ?? ""}:${initialMessage ?? ""}`;
+  const toRequest = (): PetrinautAssistantStartRequest | null =>
+    initialMessage !== undefined
+      ? { text: initialMessage }
+      : initialInteractionMode === "voice"
+        ? { action: "voice" }
+        : initialInteractionMode === "text"
+          ? { text: "" }
+          : null;
+  const [request, setRequest] = useState(toRequest);
+  const [handledKey, setHandledKey] = useState(requestKey);
+  if (requestKey !== handledKey) {
+    setHandledKey(requestKey);
+    setRequest(toRequest());
+  }
+
+  return (
+    <AssistantWindowContext
+      value={{
+        ...host,
+        startRequest: request,
+        consumeStartRequest: () => {
+          setRequest(null);
+          onStartRequestConsumed?.();
+        },
+      }}
+    >
+      {children}
+    </AssistantWindowContext>
+  );
+};
+
 const renderTestPanel = ({
   aiAssistant,
   editorContext = editorContextValue,
@@ -330,14 +391,14 @@ const renderTestPanel = ({
           <NotificationsProvider>
             <EditorTestProvider value={nextEditorContext}>
               <SDCPNContext.Provider value={sdcpnContext}>
-                <AiAssistantPanel
+                <TestWindowHost
                   aiAssistant={nextAiAssistant}
                   initialInteractionMode={nextInitialInteractionMode}
                   initialMessage={nextInitialMessage}
-                  onInitialInteractionModeConsumed={
-                    onInitialInteractionModeConsumed
-                  }
-                />
+                  onStartRequestConsumed={onInitialInteractionModeConsumed}
+                >
+                  <AiAssistantPanel aiAssistant={nextAiAssistant} />
+                </TestWindowHost>
               </SDCPNContext.Provider>
             </EditorTestProvider>
           </NotificationsProvider>
@@ -5648,10 +5709,14 @@ describe("AiAssistantPanel host interactive tools", () => {
         <PetrinautInstanceContext.Provider value={instance}>
           <EditorTestProvider value={editorContextValue}>
             <SDCPNContext.Provider value={sdcpnContext}>
-              <AiAssistantPanel
+              <TestWindowHost
                 aiAssistant={{ interactiveTools: [hostTool], transport }}
                 initialMessage="Start the review"
-              />
+              >
+                <AiAssistantPanel
+                  aiAssistant={{ interactiveTools: [hostTool], transport }}
+                />
+              </TestWindowHost>
             </SDCPNContext.Provider>
           </EditorTestProvider>
         </PetrinautInstanceContext.Provider>,
@@ -5745,24 +5810,28 @@ describe("AiAssistantPanel host interactive tools", () => {
         <PetrinautInstanceContext.Provider value={instance}>
           <EditorContext.Provider value={editorContextValue}>
             <SDCPNContext.Provider value={sdcpnContext}>
-              <AiAssistantPanel
-                aiAssistant={{
-                  automaticTools: [
-                    {
-                      toolName: "hostAutomatic",
-                      inputSchema: {
-                        parse: (raw: unknown) => raw as { value: number },
-                      },
-                      outputSchema: {
-                        parse: (raw: unknown) => raw as { doubled: number },
-                      },
-                      execute,
-                    },
-                  ],
-                  transport,
-                }}
+              <TestWindowHost
+                aiAssistant={{ transport }}
                 initialMessage="Run the automatic tool"
-              />
+              >
+                <AiAssistantPanel
+                  aiAssistant={{
+                    automaticTools: [
+                      {
+                        toolName: "hostAutomatic",
+                        inputSchema: {
+                          parse: (raw: unknown) => raw as { value: number },
+                        },
+                        outputSchema: {
+                          parse: (raw: unknown) => raw as { doubled: number },
+                        },
+                        execute,
+                      },
+                    ],
+                    transport,
+                  }}
+                />
+              </TestWindowHost>
             </SDCPNContext.Provider>
           </EditorContext.Provider>
         </PetrinautInstanceContext.Provider>,
@@ -5940,24 +6009,28 @@ describe("AiAssistantPanel host interactive tools", () => {
         <PetrinautInstanceContext.Provider value={instance}>
           <EditorContext.Provider value={editorContextValue}>
             <SDCPNContext.Provider value={sdcpnContext}>
-              <AiAssistantPanel
-                aiAssistant={{
-                  automaticTools: [
-                    {
-                      toolName: "hostAutomatic",
-                      inputSchema: {
-                        parse: (raw: unknown) => raw as { value: number },
-                      },
-                      outputSchema: {
-                        parse: (raw: unknown) => raw as { doubled: number },
-                      },
-                      execute,
-                    },
-                  ],
-                  transport,
-                }}
+              <TestWindowHost
+                aiAssistant={{ transport }}
                 initialMessage="Run the automatic tool"
-              />
+              >
+                <AiAssistantPanel
+                  aiAssistant={{
+                    automaticTools: [
+                      {
+                        toolName: "hostAutomatic",
+                        inputSchema: {
+                          parse: (raw: unknown) => raw as { value: number },
+                        },
+                        outputSchema: {
+                          parse: (raw: unknown) => raw as { doubled: number },
+                        },
+                        execute,
+                      },
+                    ],
+                    transport,
+                  }}
+                />
+              </TestWindowHost>
             </SDCPNContext.Provider>
           </EditorContext.Provider>
         </PetrinautInstanceContext.Provider>,

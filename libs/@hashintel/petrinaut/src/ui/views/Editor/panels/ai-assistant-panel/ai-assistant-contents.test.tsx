@@ -10,7 +10,7 @@ import {
   within,
   waitFor,
 } from "@testing-library/react";
-import { createElement, use, useEffect, useState } from "react";
+import { createElement, type ReactNode, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
@@ -20,10 +20,13 @@ import {
   type NotificationsContextValue,
 } from "../../../../../react/notifications/context";
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
-import { EditorContext } from "../../../../../react/state/editor-context";
 import { VoiceSessionContext } from "../../../../../react/voice-session/context";
 import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
 import { definePetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
+import {
+  AssistantWindowContext,
+  type AssistantWindowTab,
+} from "../../assistant-window";
 import { AiAssistantContents } from "./ai-assistant-contents";
 
 import type { PetrinautAiMessage } from "./types";
@@ -111,62 +114,61 @@ const HostControl = ({
   }, [onMount, onUnmount]);
   return <span>Host control</span>;
 };
-const DockingHarness = ({
-  onMount,
-  onUnmount,
-  onStop,
+/**
+ * Hosts the window as the editor does: open state, placement and the shown
+ * tab, plus a control that reopens it. `open` overrides the open state.
+ */
+const TestWindow = ({
+  tabs = [],
+  initialTabId = "chat",
+  open,
+  children,
 }: {
-  onMount: () => void;
-  onUnmount: () => void;
-  onStop: () => void;
+  tabs?: readonly AssistantWindowTab[];
+  initialTabId?: string;
+  open?: boolean;
+  children: ReactNode;
 }) => {
-  const editor = use(EditorContext);
-  const [placement, setPlacement] = useState<"docked" | "floating">("docked");
   const [isOpen, setOpen] = useState(true);
-  const [input, setInput] = useState("");
+  const [placement, setPlacement] = useState<"docked" | "floating">("docked");
+  const [activeTabId, setActiveTabId] = useState(initialTabId);
+
   return (
-    <EditorContext
+    <AssistantWindowContext
       value={{
-        ...editor,
-        aiAssistantPlacement: placement,
-        setAiAssistantPlacement: setPlacement,
+        isOpen: open ?? isOpen,
+        close: () => setOpen(false),
+        placement,
+        setPlacement,
+        width: 420,
+        setWidth: noop,
+        isAnimating: false,
+        reportDockHeight: noop,
+        compact: false,
+        setCompact: noop,
+        tabs,
+        activeTabId: tabs.some((tab) => tab.id === activeTabId)
+          ? activeTabId
+          : "chat",
+        setActiveTabId,
+        focusRequest: 0,
+        startRequest: null,
+        consumeStartRequest: noop,
       }}
     >
       <button type="button" onClick={() => setOpen(true)}>
         Reopen assistant
       </button>
-      <AiAssistantContents
-        additionalTab={{
-          label: "Workpiece",
-          content: <p>Saved model account</p>,
-        }}
-        composerControl={
-          <HostControl onMount={onMount} onUnmount={onUnmount} />
-        }
-        input={input}
-        isOpen={isOpen}
-        messages={[
-          {
-            id: "streaming-reply",
-            role: "assistant",
-            parts: [
-              {
-                type: "text",
-                text: "The infection rate",
-                state: "streaming",
-              },
-            ],
-          },
-        ]}
-        onClose={() => setOpen(false)}
-        onInputChange={setInput}
-        onStop={onStop}
-        onSubmit={noop}
-        status="streaming"
-      />
-    </EditorContext>
+      {children}
+    </AssistantWindowContext>
   );
 };
+
+const hostTab = (label: string, content: ReactNode): AssistantWindowTab => ({
+  id: "host",
+  label,
+  content,
+});
 
 describe("AiAssistantContents", () => {
   test("orders optional voice slots around work and produced cards", async () => {
@@ -827,25 +829,25 @@ describe("AiAssistantContents", () => {
     const onStop = vi.fn();
     const contentMounted = vi.fn();
     render(
-      <AiAssistantContents
-        additionalTab={{
-          label: "Workpiece",
-          content: <HostContent onMount={contentMounted} />,
-        }}
-        input="Unsent question"
-        status="streaming"
-        messages={[
-          {
-            id: "reply",
-            role: "assistant",
-            parts: [{ type: "text", text: "Ongoing conversation" }],
-          },
-        ]}
-        onClose={noop}
-        onInputChange={noop}
-        onStop={onStop}
-        onSubmit={noop}
-      />,
+      <TestWindow
+        tabs={[hostTab("Workpiece", <HostContent onMount={contentMounted} />)]}
+      >
+        <AiAssistantContents
+          input="Unsent question"
+          status="streaming"
+          messages={[
+            {
+              id: "reply",
+              role: "assistant",
+              parts: [{ type: "text", text: "Ongoing conversation" }],
+            },
+          ]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={onStop}
+          onSubmit={noop}
+        />
+      </TestWindow>,
     );
     const transcript = screen.getByRole("tabpanel", { name: "AI" });
     const composer = screen.getByRole("textbox", {
@@ -865,75 +867,6 @@ describe("AiAssistantContents", () => {
     fireEvent.click(screen.getByRole("tab", { name: "AI" }));
     expect(screen.getByRole("tabpanel", { name: "AI" })).toBe(transcript);
     expect(contentMounted).toHaveBeenCalledOnce();
-  });
-
-  test.each(["stock", "brunch"] as const)(
-    "keeps tab names stable and one tab live region mounted across announcements in the %s presentation",
-    (presentation) => {
-      const props = {
-        additionalTab: { label: "Ledger", content: <p>Saved account</p> },
-        hostAttentionCount: 2,
-        input: "",
-        messages: [],
-        onClose: noop,
-        onInputChange: noop,
-        onStop: noop,
-        onSubmit: noop,
-        primaryAttention: true,
-        primaryLabel: "Chat",
-        presentation,
-        status: "ready" as const,
-      };
-      const { rerender } = render(
-        <AiAssistantContents
-          {...props}
-          attentionAnnouncement="2 unseen Ledger updates"
-        />,
-      );
-
-      expect(screen.getByRole("tab", { name: "Chat" })).not.toBeNull();
-      expect(screen.getByRole("tab", { name: "Ledger" })).not.toBeNull();
-      const tabHeader = within(screen.getByRole("tablist").parentElement!);
-      expect(tabHeader.getAllByRole("status")).toHaveLength(1);
-      expect(tabHeader.getByRole("status").textContent).toBe(
-        "2 unseen Ledger updates",
-      );
-
-      rerender(<AiAssistantContents {...props} attentionAnnouncement="" />);
-      expect(tabHeader.getAllByRole("status")).toHaveLength(1);
-      expect(tabHeader.getByRole("status").textContent).toBe("");
-      rerender(
-        <AiAssistantContents
-          {...props}
-          attentionAnnouncement="2 unseen Ledger updates"
-        />,
-      );
-      expect(tabHeader.getByRole("status").textContent).toBe(
-        "2 unseen Ledger updates",
-      );
-    },
-  );
-
-  test("returns to chat when the host withdraws its additional tab", () => {
-    const props = {
-      input: "",
-      status: "ready" as const,
-      messages: [],
-      onClose: noop,
-      onInputChange: noop,
-      onStop: noop,
-      onSubmit: noop,
-    };
-    const { rerender } = render(
-      <AiAssistantContents
-        {...props}
-        additionalTab={{ label: "Notes", content: <p>Host notes</p> }}
-      />,
-    );
-    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
-    rerender(<AiAssistantContents {...props} />);
-    expect(screen.queryByRole("tab", { name: "Notes" })).toBeNull();
-    expect(screen.getByTestId("ai-transcript").hidden).toBe(false);
   });
 
   test.each(["output-available", "output-error"] as const)(
@@ -1037,9 +970,38 @@ describe("AiAssistantContents", () => {
     const mount = vi.fn();
     const unmount = vi.fn();
     const stop = vi.fn();
+    const Chat = () => {
+      const [input, setInput] = useState("");
+
+      return (
+        <AiAssistantContents
+          composerControl={<HostControl onMount={mount} onUnmount={unmount} />}
+          input={input}
+          messages={[
+            {
+              id: "streaming-reply",
+              role: "assistant",
+              parts: [
+                {
+                  type: "text",
+                  text: "The infection rate",
+                  state: "streaming",
+                },
+              ],
+            },
+          ]}
+          onInputChange={setInput}
+          onStop={stop}
+          onSubmit={noop}
+          status="streaming"
+        />
+      );
+    };
     render(
       <NotificationsProvider>
-        <DockingHarness onMount={mount} onUnmount={unmount} onStop={stop} />
+        <TestWindow tabs={[hostTab("Workpiece", <p>Saved model account</p>)]}>
+          <Chat />
+        </TestWindow>
       </NotificationsProvider>,
     );
     const panel = screen.getByRole("complementary", { name: "AI assistant" });
@@ -1069,7 +1031,7 @@ describe("AiAssistantContents", () => {
     expect(panel.hasAttribute("inert")).toBe(false);
     expect(screen.getByRole("tabpanel", { name: "Workpiece" })).toBe(workpiece);
     expect(workpiece.textContent).toContain("Saved model account");
-    expect(transcript.hidden).toBe(true);
+    expect(transcript.closest("[hidden]")).not.toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "AI" }));
     expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
       textarea,
@@ -1173,10 +1135,12 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       status: "ready" as const,
       voiceMode: <Stage />,
-      additionalTab: { label: "Notes", content: <p>Saved notes</p> },
     };
+    const tabs = [hostTab("Notes", <p>Saved notes</p>)];
     const { rerender } = render(
-      <AiAssistantContents {...props} isOpen={true} />,
+      <TestWindow tabs={tabs} open>
+        <AiAssistantContents {...props} />
+      </TestWindow>,
     );
 
     expect(screen.getByText("Voice mode")).not.toBeNull();
@@ -1187,12 +1151,16 @@ describe("AiAssistantContents", () => {
     expect(transcript.contains(voiceSlot)).toBe(false);
     const panelRows = [...voiceSlot.parentElement!.children];
     expect(panelRows.indexOf(voiceSlot)).toBeGreaterThan(
-      panelRows.indexOf(transcript),
+      panelRows.indexOf(transcript.parentElement!),
     );
     fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
     expect(screen.getByTestId("ai-voice-mode")).toBe(voiceSlot);
     expect(screen.getByText("Voice mode")).not.toBeNull();
-    rerender(<AiAssistantContents {...props} isOpen={false} />);
+    rerender(
+      <TestWindow tabs={tabs} open={false}>
+        <AiAssistantContents {...props} />
+      </TestWindow>,
+    );
 
     expect(
       screen
@@ -1318,7 +1286,7 @@ describe("AiAssistantContents", () => {
         .getByRole("button", { name: "Close AI assistant", hidden: true })
         .closest("div"),
     ).toBe(header);
-    expect(transcript.className).toContain("d_none");
+    expect(transcript.parentElement!.className).toContain("d_none");
     expect(voiceMode.className).toContain("d_none");
     expect(header.className).toContain("d_none");
 
@@ -1333,7 +1301,7 @@ describe("AiAssistantContents", () => {
       within(dock).getByRole("button", { name: "Show conversation" }),
     );
 
-    expect(transcript.className).not.toContain("d_none");
+    expect(transcript.parentElement!.className).not.toContain("d_none");
     expect(voiceMode.className).not.toContain("d_none");
     expect(header.className).not.toContain("d_none");
     expect(screen.getByText("Spoken request")).not.toBeNull();
@@ -1390,7 +1358,9 @@ describe("AiAssistantContents", () => {
     expect(permission.parentElement?.nextElementSibling).toBe(
       setupDock.parentElement,
     );
-    expect(screen.getByTestId("ai-transcript").className).toContain("d_none");
+    expect(
+      screen.getByTestId("ai-transcript").parentElement!.className,
+    ).toContain("d_none");
     expect(
       screen
         .getByRole("button", { name: "Close AI assistant", hidden: true })
@@ -2013,16 +1983,17 @@ describe("AiAssistantContents", () => {
 
   test("hides a closed chat-only panel from the accessibility tree", () => {
     const { container } = render(
-      <AiAssistantContents
-        input=""
-        isOpen={false}
-        messages={[]}
-        onClose={noop}
-        onInputChange={noop}
-        onStop={noop}
-        onSubmit={noop}
-        status="ready"
-      />,
+      <TestWindow open={false}>
+        <AiAssistantContents
+          input=""
+          messages={[]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status="ready"
+        />
+      </TestWindow>,
     );
 
     expect(
@@ -2038,7 +2009,6 @@ describe("AiAssistantContents", () => {
         clearMessagesDisabled={true}
         input="Draft answer"
         inputMode="voice"
-        isOpen={true}
         messages={[
           {
             id: "assistant-1",
@@ -3044,24 +3014,27 @@ describe("AiAssistantContents", () => {
 
   test("keeps the Brunch working status visible while the host tab is selected", () => {
     render(
-      <AiAssistantContents
-        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
-        hostTabSelected
-        input=""
-        messages={[
-          {
-            id: "request",
-            role: "user",
-            parts: [{ type: "text", text: "Review this model" }],
-          },
-        ]}
-        onClose={noop}
-        onInputChange={noop}
-        onStop={noop}
-        onSubmit={noop}
-        presentation="brunch"
-        status="submitted"
-      />,
+      <TestWindow
+        tabs={[hostTab("Ledger", <p>Saved account</p>)]}
+        initialTabId="host"
+      >
+        <AiAssistantContents
+          input=""
+          messages={[
+            {
+              id: "request",
+              role: "user",
+              parts: [{ type: "text", text: "Review this model" }],
+            },
+          ]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation="brunch"
+          status="submitted"
+        />
+      </TestWindow>,
     );
 
     const status = screen.getByTestId("brunch-response-status");
@@ -3076,18 +3049,21 @@ describe("AiAssistantContents", () => {
 
   test("keeps the working label visible while the host tab is selected", () => {
     render(
-      <AiAssistantContents
-        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
-        hostTabSelected
-        input=""
-        messages={[]}
-        onClose={noop}
-        onInputChange={noop}
-        onStop={noop}
-        onSubmit={noop}
-        status="streaming"
-        workingLabel="Brunch is working"
-      />,
+      <TestWindow
+        tabs={[hostTab("Ledger", <p>Saved account</p>)]}
+        initialTabId="host"
+      >
+        <AiAssistantContents
+          input=""
+          messages={[]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status="streaming"
+          workingLabel="Brunch is working"
+        />
+      </TestWindow>,
     );
 
     expect(screen.getByRole("tabpanel", { name: "Ledger" })).not.toBeNull();
@@ -3163,7 +3139,6 @@ describe("AiAssistantContents", () => {
 
   test("uses stock tabs for a stock assistant with an additional tab", () => {
     const props = {
-      additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
       input: "",
       messages: [],
       onClose: noop,
@@ -3172,7 +3147,12 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       status: "ready" as const,
     };
-    const { rerender } = render(<AiAssistantContents {...props} />);
+    const tabs = [hostTab("Ledger", <p>Ledger body</p>)];
+    const { rerender } = render(
+      <TestWindow tabs={tabs}>
+        <AiAssistantContents {...props} />
+      </TestWindow>,
+    );
     const tablist = () => screen.getByRole("tablist");
     const inactiveTab = () => screen.getByRole("tab", { name: "Ledger" });
 
@@ -3180,9 +3160,13 @@ describe("AiAssistantContents", () => {
     expect(tablist().querySelector("[data-mark]")).toBeNull();
     expect(inactiveTab().className).toContain("op_[0.6]");
 
-    rerender(<AiAssistantContents {...props} presentation="brunch" />);
+    rerender(
+      <TestWindow tabs={tabs}>
+        <AiAssistantContents {...props} presentation="brunch" />
+      </TestWindow>,
+    );
     expect(tablist().getAttribute("data-style-variant")).toBe("pill");
-    expect(tablist().querySelectorAll("[data-mark]")).toHaveLength(2);
+    expect(tablist().querySelectorAll("[data-mark]")).toHaveLength(1);
     expect(inactiveTab().className).not.toContain("op_[0.6]");
   });
 
@@ -3237,18 +3221,15 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText("AI")).not.toBeNull();
 
     rerender(
-      <AiAssistantContents
-        {...props}
-        additionalTab={{ label: "Ledger", content: <p>Ledger body</p> }}
-        inputMode="voice"
-      />,
+      <TestWindow tabs={[hostTab("Ledger", <p>Ledger body</p>)]}>
+        <AiAssistantContents {...props} inputMode="voice" />
+      </TestWindow>,
     );
     expect(screen.getByRole("tab", { name: "AI" })).not.toBeNull();
   });
 
   test("shows the host transcript label, switching Brunch Chat to Voice", () => {
     const props = {
-      additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
       input: "",
       inputMode: "voice" as const,
       messages: [],
@@ -3258,17 +3239,22 @@ describe("AiAssistantContents", () => {
       onSubmit: noop,
       status: "ready" as const,
     };
+    const tabs = [hostTab("Ledger", <p>Ledger body</p>)];
     const { rerender } = render(
-      <AiAssistantContents {...props} primaryLabel="Copilot" />,
+      <TestWindow tabs={tabs}>
+        <AiAssistantContents {...props} primaryLabel="Copilot" />
+      </TestWindow>,
     );
     expect(screen.getByRole("tab", { name: "Copilot" })).not.toBeNull();
 
     rerender(
-      <AiAssistantContents
-        {...props}
-        primaryLabel="Chat"
-        presentation="brunch"
-      />,
+      <TestWindow tabs={tabs}>
+        <AiAssistantContents
+          {...props}
+          primaryLabel="Chat"
+          presentation="brunch"
+        />
+      </TestWindow>,
     );
     expect(screen.getByRole("tab", { name: "Voice" })).not.toBeNull();
   });
