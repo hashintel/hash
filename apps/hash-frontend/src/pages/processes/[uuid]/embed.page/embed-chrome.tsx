@@ -18,10 +18,13 @@ import type { RevisionSummary } from "../../shared/messages";
 const BREADCRUMB_TEXT_COLOR = "#677789";
 const BREADCRUMB_CHEVRON_COLOR = "#95a5b8";
 
-/**
- * What the embed's top-bar items read: the page owns this state and provides
- * it above the editor, so the slots object stays a stable module constant.
- */
+const titleStyle = {
+  color: BREADCRUMB_TEXT_COLOR,
+  fontWeight: 500,
+  margin: "0 8px",
+};
+
+/** The page state the embed's top-bar items read. */
 export type EmbedChrome = {
   title: string;
   onTitleChange: (title: string) => void;
@@ -80,18 +83,19 @@ export const EmbedBreadcrumbs = () => {
         <span style={{ color: BREADCRUMB_TEXT_COLOR }}>Processes</span>
       </Button>
       <Icon name="chevronRight" size="xs" />
-      <TextInput
-        variant="subtle"
-        size="sm"
-        value={chrome.title}
-        onChange={chrome.onTitleChange}
-        placeholder="Process"
-        style={{
-          color: BREADCRUMB_TEXT_COLOR,
-          fontWeight: 500,
-          margin: "0 8px",
-        }}
-      />
+      {/* A read-only `TextInput` renders a bare span that drops `style`. */}
+      {chrome.readonly ? (
+        <span style={titleStyle}>{chrome.title}</span>
+      ) : (
+        <TextInput
+          variant="subtle"
+          size="sm"
+          value={chrome.title}
+          onChange={chrome.onTitleChange}
+          placeholder="Process"
+          style={titleStyle}
+        />
+      )}
     </Box>
   );
 };

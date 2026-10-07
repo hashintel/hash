@@ -310,20 +310,6 @@ export const EmbedContent = () => {
 
   const persistPending = pendingSaveRequestId !== null;
 
-  const isSaved = state?.mode.kind === "saved";
-  const chrome: EmbedChrome = {
-    title: state?.title ?? "",
-    onTitleChange: handleSetTitle,
-    readonly: state?.readonly ?? true,
-    isDirty,
-    persistPending,
-    saveLabel: isSaved ? (isDirty ? "Save" : "Saved") : "Create",
-    revisions,
-    loadedRevisionTime: state?.savedSnapshot?.decisionTime ?? null,
-    onNavigateBack: handleNavigateBack,
-    onSave: handleSaveClick,
-    onLoadRevision: handleLoadRevision,
-  };
   if (!state) {
     /**
      * Host is expected to send `init` immediately after the iframe's
@@ -332,6 +318,21 @@ export const EmbedContent = () => {
      */
     return <Box sx={{ height: "100vh" }} />;
   }
+
+  const chrome: EmbedChrome = {
+    title: state.title,
+    onTitleChange: handleSetTitle,
+    readonly: state.readonly,
+    isDirty,
+    persistPending,
+    saveLabel:
+      state.mode.kind === "saved" ? (isDirty ? "Save" : "Saved") : "Create",
+    revisions,
+    loadedRevisionTime: state.savedSnapshot?.decisionTime ?? null,
+    onNavigateBack: handleNavigateBack,
+    onSave: handleSaveClick,
+    onLoadRevision: handleLoadRevision,
+  };
 
   return (
     <Box sx={{ height: "100vh", overflow: "hidden" }}>
