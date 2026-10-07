@@ -465,7 +465,8 @@ def test_stale_manifest(engine_case: EngineCase, monkeypatch: pytest.MonkeyPatch
     assert engine_case.member_manifest.read_text() == MEMBER + "# external writer\n"
 
 
-def test_turbo_creation_and_live_views(engine_case: EngineCase) -> None:
+@pytest.mark.parametrize("attribute", ["command", "depends_on", "env", "pass_through_env"])
+def test_turbo_array_live_views(engine_case: EngineCase, attribute: str) -> None:
     target = engine_case.member / "turbo.json"
 
     def update(workspace: Workspace) -> None:
@@ -474,10 +475,12 @@ def test_turbo_creation_and_live_views(engine_case: EngineCase) -> None:
         config = workspace.turbo(member)
         first = config.task("lint:deptry")
         second = config.task("lint:deptry")
-        first.command = ["uv", "deptry", "src"]
-        assert second.command == ["uv", "deptry", "src"]
+        setattr(first, attribute, ["first", "second"])
+        assert getattr(second, attribute) == ["first", "second"]
         # Reading a missing root file, or deleting an absent override, creates nothing.
-        workspace.turbo(workspace).task("test-member#lint:deptry").command = None
+        root = workspace.turbo(workspace).task("test-member#lint:deptry")
+        assert getattr(root, attribute) is None
+        setattr(root, attribute, None)
 
     check = engine_case.engine.check((update,))
     assert check.status is CheckStatus.CHANGES
