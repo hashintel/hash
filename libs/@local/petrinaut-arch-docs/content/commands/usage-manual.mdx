@@ -43,8 +43,9 @@ interface CommandRegistry extends CommandRegistryView {
   disposer does nothing, so a stale cleanup cannot remove a newer entry.
 - `list()` returns the same array until the set changes, which is what
   `useSyncExternalStore` requires of a snapshot.
-- `shortcut` is metadata for keycaps. The registry binds no keys; the
-  editor's keyboard handler still dispatches them.
+- `shortcut` is metadata for keycaps. The registry binds no keys: whoever
+  registers a command binds its chord (the editor's keyboard handler for its
+  own commands, the palette for ⌘K).
 
 ## Create and provide a registry
 
@@ -122,6 +123,28 @@ const dispose = registry.register({
 The editor registers its own auto-layout command from `use-editor-commands.ts`,
 gated on edit mode, so a host embedding the full editor needs none of this.
 
+## From a plugin
+
+A [plugin](doc:plugins/usage-manual) registers commands with `useCommand`,
+from `@hashintel/petrinaut/ui`, in a component its `root` renders. A plugin
+button runs one by id through `command`, so the button and the palette entry
+are one action and the palette shows its shortcut. The demo website's palette
+is such a plugin:
+
+```tsx
+export const commandPalettePlugin = definePetrinautPlugin({
+  id: "website.command-palette",
+  name: "Command palette",
+  buttons: { toggle: { label: "Command palette", place: "top-bar-end" } },
+})({
+  // Registers toggleCommandId with shortcut "mod+k", and binds the chord.
+  root: <CommandPalette />,
+  buttons: {
+    toggle: { icon: <MdKeyboardCommandKey />, command: toggleCommandId },
+  },
+});
+```
+
 ## Merge registries
 
 A host with several command sources renders one list over
@@ -155,7 +178,8 @@ const commands = useCommands();
 - `formatShortcutKeys("mod+shift+z")` gives `["⌘", "⇧", "Z"]` on Apple
   platforms and `["Ctrl", "Shift", "Z"]` elsewhere. Pass `{ apple }` to pin
   the platform.
-- The opener chord (⌘K in the examples) is the host's binding.
+- The palette binds its own opener chord (⌘K in the examples), whether the
+  host renders it or a plugin does.
 
 Two reference palettes exist: the `Commands / Command palette` story (`yarn
 workspace @hashintel/petrinaut storybook`) and the demo website's ⌘K palette

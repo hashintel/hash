@@ -1,0 +1,33 @@
+---
+title: The demo site's plugins
+description: The Petrinaut plugins the demo website gives the editor, and how a plugin folder is laid out.
+attachTo: website.plugins
+sidebar_order: 10
+---
+
+The demo shell passes one list, `demoPlugins` from `plugins/demo-plugins.ts`,
+to `<Petrinaut plugins>`. Each plugin is written against the
+[Plugin API](doc:plugins/usage-manual).
+
+| Folder             | Plugin id                 | Contributes                                                                                   |
+| ------------------ | ------------------------- | --------------------------------------------------------------------------------------------- |
+| `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's commands, as a `root`, and a top-bar button that toggles it. |
+
+The shell provides the command registry and registers its own commands in it.
+The editor reuses that registry, so the palette lists the editor's commands and
+the demo's.
+
+## Folder layout
+
+One folder per plugin, named after it:
+
+- `plugin.tsx` holds the plugin and stays short: the manifest, then the
+  contributions or a short hook.
+- `plugin/` holds what only the plugin uses; a long hook goes in
+  `plugin/use-<name>-plugin.tsx`.
+- `definition.ts` holds the definition when another plugin imports it, so the
+  import loads no implementation.
+- `server/` holds code an `api/` route imports.
+
+`_shared/` holds code two plugins share. A folder without `plugin.tsx` holds
+code the demo shell wires in itself.

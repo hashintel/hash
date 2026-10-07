@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 
-import { useCommandRegistry, useCommands } from "@hashintel/petrinaut/react";
-import { KeyboardShortcut } from "@hashintel/petrinaut/ui";
+import {
+  KeyboardShortcut,
+  useCommand,
+  useCommandRegistry,
+  useCommands,
+} from "@hashintel/petrinaut/ui";
 
 import type { CSSProperties } from "react";
 
@@ -70,10 +74,13 @@ const categoryStyle: CSSProperties = {
 const matchesQuery = (haystack: string, query: string): boolean =>
   haystack.toLowerCase().includes(query.toLowerCase());
 
+/** The command the plugin's top-bar button runs; the palette registers it. */
+export const toggleCommandId = "website.command-palette.toggle";
+
 /**
- * The demo site's command palette: host code rendered over the ambient
- * registry (Petrinaut's commands plus the demo's). Owns the ⌘K / Ctrl+K
- * opener.
+ * The demo site's command palette over the ambient registry (Petrinaut's
+ * commands plus the demo's). Binds ⌘K / Ctrl+K and registers the same toggle
+ * as a command, so the plugin's top-bar button can run it.
  */
 export const CommandPalette = () => {
   const registry = useCommandRegistry();
@@ -82,20 +89,32 @@ export const CommandPalette = () => {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const toggle = () => {
+    setOpen((open) => !open);
+    setQuery("");
+    setActiveIndex(0);
+  };
+  useCommand({
+    id: toggleCommandId,
+    label: "Toggle the command palette",
+    category: "Editor",
+    keywords: ["palette", "commands", "search"],
+    shortcut: "mod+k",
+    run: toggle,
+  });
+
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (
+      !event.shiftKey &&
+      !event.altKey &&
+      (event.metaKey || event.ctrlKey) &&
+      event.key.toLowerCase() === "k"
+    ) {
+      event.preventDefault();
+      toggle();
+    }
+  });
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        !event.shiftKey &&
-        !event.altKey &&
-        (event.metaKey || event.ctrlKey) &&
-        event.key.toLowerCase() === "k"
-      ) {
-        event.preventDefault();
-        setOpen((open) => !open);
-        setQuery("");
-        setActiveIndex(0);
-      }
-    };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
@@ -116,13 +135,13 @@ export const CommandPalette = () => {
   const active = Math.min(activeIndex, Math.max(results.length - 1, 0));
 
   const runCommand = (id: string) => {
-    setOpen(false);
+    // Close after running, so the palette's own toggle row closes it rather than reopening it.
     registry?.execute(id);
+    setOpen(false);
   };
 
   return (
     <div
-      className="petrinaut-root"
       style={overlayStyle}
       role="presentation"
       onPointerDown={() => setOpen(false)}

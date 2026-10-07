@@ -17,7 +17,10 @@ import {
   createExperimentToolName,
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
-import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
+import {
+  defaultPetrinautNavigationHistoryPolicy,
+  useCommandRegistry,
+} from "@hashintel/petrinaut/react";
 
 import { BrunchPanelConversationTracker } from "../plugins/brunch/brunch-panel-transport";
 import {
@@ -40,6 +43,7 @@ import { voicePreferenceStorageKey } from "./voice-preference";
 
 import type { AgentConversationObservationSnapshot } from "@flue/sdk";
 import type {
+  CommandRegistryView,
   MinimalNetMetadata,
   PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
@@ -47,6 +51,7 @@ import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 import type {
   PetrinautAiAssistant,
   PetrinautAiMessage,
+  PetrinautPlugin,
 } from "@hashintel/petrinaut/ui";
 
 const netOneId = toPetrinautId("net-1");
@@ -71,7 +76,10 @@ const brunchPanelTransportSessions = vi.hoisted(() => ({
 }));
 const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
 const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
-const renderedPetrinaut = vi.hoisted(() => ({ aiAssistant: null as unknown }));
+const renderedPetrinaut = vi.hoisted(() => ({
+  aiAssistant: null as unknown,
+  commandRegistry: null as CommandRegistryView | null,
+}));
 const renderedAssistants = vi.hoisted(() => [] as PetrinautAiAssistant[]);
 const mutationApprovalCoordinators = vi.hoisted(
   () => [] as { close: () => void }[],
@@ -121,6 +129,7 @@ const editorProps = vi.hoisted(() => ({
     handle?: unknown;
     loadPetriNet?: unknown;
     navigation?: unknown;
+    plugins?: readonly PetrinautPlugin[];
     slots?: { settingsLabs?: ReactNode };
     title?: string;
   } | null,
@@ -157,6 +166,8 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
   },
   Petrinaut: (props: Record<string, unknown>) => {
     editorProps.current = props;
+    // The real editor reuses the registry the host provides.
+    renderedPetrinaut.commandRegistry = useCommandRegistry();
     renderedPetrinaut.aiAssistant = props.aiAssistant;
     renderedAssistants.push(props.aiAssistant as PetrinautAiAssistant);
     return (
@@ -166,6 +177,7 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
   },
   WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
   definePetrinautAiInteractiveTool: (definition: unknown) => definition,
+  definePetrinautPlugin: (manifest: unknown) => () => ({ manifest }),
   executePetrinautAiMutation: () => ({
     applied: false,
     reason: "Mocked document unchanged.",
@@ -1141,22 +1153,6 @@ describe("local storage demo Brunch controls", () => {
     }
   });
 
-  test.each(["metaKey", "ctrlKey"])(
-    "reserves %s + Shift + K for the assistant and keeps plain K for the palette",
-    (modifier) => {
-      seedStoredNet();
-      render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-      fireEvent.keyDown(window, { key: "K", [modifier]: true, shiftKey: true });
-      expect(
-        screen.queryByRole("dialog", { name: "Command palette" }),
-      ).toBeNull();
-      fireEvent.keyDown(window, { key: "k", [modifier]: true });
-      expect(
-        screen.getByRole("dialog", { name: "Command palette" }),
-      ).not.toBeNull();
-    },
-  );
-
   test("mounts document-bound Brunch with canonical overrides and the complete static catalogue", async () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -1286,8 +1282,13 @@ describe("assistant selection", () => {
     }),
   });
   const switchAssistant = (label: RegExp) => {
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
-    fireEvent.click(screen.getByRole("button", { name: label }));
+    const command = renderedPetrinaut.commandRegistry
+      ?.list()
+      .find((entry) => label.test(entry.label));
+    if (command === undefined) throw new Error(`No command matches ${label}`);
+    act(() => {
+      renderedPetrinaut.commandRegistry?.execute(command.id);
+    });
   };
   const currentAssistant = () =>
     editorProps.current?.aiAssistant as PetrinautAiAssistant;
@@ -1977,6 +1978,17 @@ describe("assistant selection", () => {
     expect(handle.doc()?.places).toEqual([]);
   });
 
+  test("gives the editor the command palette plugin and the registry holding the switch command", () => {
+    seedStoredNet();
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    expect(
+      editorProps.current?.plugins?.map(({ manifest }) => manifest.id),
+    ).toEqual(["website.command-palette"]);
+    expect(
+      renderedPetrinaut.commandRegistry?.list().map(({ id }) => id),
+    ).toEqual(["demo.assistant.switch"]);
+  });
+
   test("without a configured Brunch endpoint there is no choice to make", () => {
     brunchPreviewConfig.isBrunchConfigured = false;
     seedStoredNet();
@@ -1984,12 +1996,8 @@ describe("assistant selection", () => {
     const stock = currentAssistant();
     expect(stock.executeMutation).toBeUndefined();
     expect(stock.automaticTools).toEqual([]);
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
     expect(
-      screen.queryByRole("button", {
-        name: /stock Petrinaut assistant|Use Brunch/,
-      }),
-    ).toBeNull();
-    fireEvent.keyDown(window, { key: "Escape" });
+      renderedPetrinaut.commandRegistry?.list().map(({ id }) => id),
+    ).toEqual([]);
   });
 });
