@@ -40,7 +40,7 @@ A physical location becomes target structure only through its recorded operation
 
 ## Petrinaut tool sequence
 
-Use the exact mounted schemas. You choose every ID, so the calls that build one fragment do not depend on each other's results. The host owns immutable binding, protocol correlation, document-base checks, persistence, and record attachment. The model must not copy document hashes, document revisions, observation call IDs, or Ledger addresses into canonical tool inputs.
+Use the exact mounted schemas. You choose every ID, so the calls that build one fragment do not depend on each other's results. The host owns immutable binding, protocol correlation, document-base checks, persistence, and record attachment. The model must not copy document hashes, document revisions, observation call IDs, or Ledger record IDs into canonical tool inputs.
 
 1. Send a whole bounded connected fragment in one step, as parallel canonical mutation calls in dependency order: the types, parameters and differential equations it needs, then places and transitions, then arcs. The host runs a step's calls in that order, and the last change's result carries `netAfterChanges`, the net's structure after the whole step; use it instead of reading the net again. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase.
 2. Check once per fragment: after the step that writes code, call `getNetCompilationErrors` once, and send every repair it calls for in one further step. Read the net again only when you need code or fields `netAfterChanges` omits, before a live explanation, and at delivery. After a failed or no-op call, inspect its outcome and current state, then submit only the needed correction; do not replay already successful work.
@@ -109,7 +109,7 @@ Derive waiting from unavailable resources, unmet prerequisites, calendar state, 
 
 ## Inference, approximation, and target loss
 
-Name every representational choice not directly supported by the operational account. Preserve its reason, consequence, and route to checking as a construction Note.
+Name every representational choice not directly supported by the operational account. Preserve its reason, consequence, and route to checking as a reflection anchored to the net elements, claims and entities it concerns.
 
 Acceptable when visible:
 
@@ -128,7 +128,7 @@ Not acceptable:
 - building invented release, recovery, retry, or branch semantics as if elicited, instead of a labelled stand-in; or
 - claiming a net is loadable, valid, or simulated without corresponding tool evidence.
 
-Record, as construction Notes, account material the target or current tools cannot faithfully carry, including qualitative objectives without usable metrics, policy whose deciding condition remains tacit, live data bindings not connected by the current path, validation judgments outside net semantics, and contextual distinctions collapsed by an accepted simplification.
+Record, as reflections, account material the target or current tools cannot faithfully carry, including qualitative objectives without usable metrics, policy whose deciding condition remains tacit, live data bindings not connected by the current path, validation judgments outside net semantics, and contextual distinctions collapsed by an accepted simplification.
 
 ## Existing-net analysis and bounded change
 
