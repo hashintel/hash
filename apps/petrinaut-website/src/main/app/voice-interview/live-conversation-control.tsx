@@ -63,6 +63,28 @@ const prepareVoice = async (
   return response.json();
 };
 
+type LiveMediation = ConstructorParameters<
+  typeof LiveBrunchBridge
+>[0]["mediation"];
+
+// Kept outside the component: React Compiler cannot compile an object getter.
+const createLiveMediation = (
+  readHistory: () => VoiceMediationHistory,
+  offered: LiveMediation["offered"],
+): LiveMediation => ({
+  get history() {
+    return readHistory();
+  },
+  prepare: async (text, signal) =>
+    z
+      .object({ fields: z.record(z.string(), z.string()) })
+      .parse(await prepareVoice("brief", text, signal)).fields,
+  summarize: async (text, signal) =>
+    voiceWrapUpResponseSchema.parse(await prepareVoice("wrap-up", text, signal))
+      .text,
+  offered,
+});
+
 export const LiveConversationControl = ({
   mediationHistory,
   acknowledgeDisclosure,
@@ -337,22 +359,12 @@ export const LiveConversationControl = ({
     next.setSpeakerVolume(1);
     bridge.current = new LiveBrunchBridge({
       submit: (input) => latest.current.submit(input),
-      mediation: {
-        get history() {
-          return historyRef.current;
-        },
-        prepare: async (text, signal) =>
-          z
-            .object({ fields: z.record(z.string(), z.string()) })
-            .parse(await prepareVoice("brief", text, signal)).fields,
-        summarize: async (text, signal) =>
-          voiceWrapUpResponseSchema.parse(
-            await prepareVoice("wrap-up", text, signal),
-          ).text,
-        offered: (inputId) => {
+      mediation: createLiveMediation(
+        () => historyRef.current,
+        (inputId) => {
           offeredInput = inputId;
         },
-      },
+      ),
       appendCommentary: next.appendCommentary,
       appendInstructions: next.appendInstructions,
       appendThinking: next.appendThinking,
@@ -572,9 +584,8 @@ export const LiveConversationControl = ({
             setMicrophoneCheck(
               "Microphone access was not available. Check your browser permissions and try again.",
             );
-          } finally {
-            setCheckingMicrophone(false);
           }
+          setCheckingMicrophone(false);
         })();
       }}
       onStart={() => {
