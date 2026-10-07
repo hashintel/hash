@@ -216,7 +216,7 @@ const stateRows: Array<{
     extraProps: {
       placeholder: "Placeholder text...",
       required: true,
-    } as Partial<SingleSelectProps>,
+    },
   },
   {
     key: "placeholder-not-required",
@@ -226,7 +226,7 @@ const stateRows: Array<{
   {
     key: "required",
     label: "Required",
-    extraProps: { required: true } as Partial<SingleSelectProps>,
+    extraProps: { required: true },
   },
   {
     key: "searchable",

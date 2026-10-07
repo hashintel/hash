@@ -123,10 +123,10 @@ describe("Envelope.decode success", () => {
     expect(positions.bytes?.[0]).toBe(0xfe);
   });
 
-  it.each([
-    { kind: "tile" as SaltileKind, magic: "SALTILET", minimum: 5 },
-    { kind: "edges" as SaltileKind, magic: "SALTILEE", minimum: 4 },
-    { kind: "locate" as SaltileKind, magic: "SALTILEL", minimum: 7 },
+  it.each<{ readonly kind: SaltileKind; magic: string; minimum: number }>([
+    { kind: "tile", magic: "SALTILET", minimum: 5 },
+    { kind: "edges", magic: "SALTILEE", minimum: 4 },
+    { kind: "locate", magic: "SALTILEL", minimum: 7 },
   ])("decodes_$kind_at_minimum", ({ kind, magic, minimum }) => {
     const payloads: (number[] | null)[] = [
       [0xa0],

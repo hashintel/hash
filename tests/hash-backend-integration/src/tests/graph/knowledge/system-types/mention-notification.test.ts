@@ -40,7 +40,6 @@ import type { MentionNotification } from "@apps/hash-api/src/graph/knowledge/sys
 import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { Text } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { WebId } from "@blockprotocol/type-system";
 import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
