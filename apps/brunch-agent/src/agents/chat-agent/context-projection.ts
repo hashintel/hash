@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
 import { brunchTools } from "@hashintel/brunch-agent";
+import {
+  parsePetrinautUserMessageBody,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent-transport-aisdk";
 
 import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 
@@ -300,6 +304,44 @@ const compactToolCallArguments = (
 };
 
 /**
+ * Submission context is host data the agent reads from the delivery and
+ * restates in its instructions. The model sees the body the turn would have
+ * had without it: the person's text, or the diagnostics envelope.
+ */
+const withoutSubmissionContext = (text: string): string => {
+  const body = parsePetrinautUserMessageBody(text);
+  if (body.kind !== "contextual" || body.submissionContext === undefined)
+    return text;
+  return body.diagnosticsContext === ""
+    ? body.userText
+    : petrinautContextualUserMessageBody({
+        userText: body.userText,
+        diagnosticsContext: body.diagnosticsContext,
+      });
+};
+
+const projectUserBody = (
+  entry: ContextProjectionEntry,
+): ContextProjectionEntry => {
+  const message = entry.message;
+  if (message.role !== "user") return entry;
+  return {
+    ...entry,
+    message:
+      typeof message.content === "string"
+        ? { ...message, content: withoutSubmissionContext(message.content) }
+        : {
+            ...message,
+            content: message.content.map((part) =>
+              part.type === "text"
+                ? { ...part, text: withoutSubmissionContext(part.text) }
+                : part,
+            ),
+          },
+  };
+};
+
+/**
  * The model cites conversation sources by Flue message id, so each true-user
  * entry carries its own id as a leading line. Signals are rendered as user
  * messages only after projection, so they never receive one.
@@ -368,7 +410,8 @@ export const createBrunchContextProjection = (
     }
 
     return entries.map((entry, entryIndex) => {
-      if (entry.message.role === "user") return prefixUserMessageId(entry);
+      if (entry.message.role === "user")
+        return prefixUserMessageId(projectUserBody(entry));
       const withProjectedArguments = projectArguments
         ? compactToolCallArguments(
             entry,
