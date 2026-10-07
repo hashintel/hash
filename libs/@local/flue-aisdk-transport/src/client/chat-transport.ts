@@ -1,4 +1,4 @@
-import { FlueApiError, FlueExecutionError } from "@flue/sdk";
+import { FetchError, FlueApiError, FlueExecutionError } from "@flue/sdk";
 
 import { serializeErrorText } from "./error-text";
 import {
@@ -216,6 +216,50 @@ const streamFailureChunk = (
   };
 };
 
+type ChunkPosition = Exclude<
+  ConversationStreamChunk,
+  { type: "stream-checkpoint" }
+>["position"];
+
+const isAfter = (
+  position: ChunkPosition,
+  watermark: ChunkPosition | undefined,
+): boolean =>
+  watermark === undefined ||
+  position.batch > watermark.batch ||
+  (position.batch === watermark.batch && position.index > watermark.index);
+
+/** One pause per consecutive re-attach that projects nothing new. */
+const reattachDelaysMs = [250, 500, 1000];
+
+const pause = (milliseconds: number, signal: AbortSignal): Promise<void> =>
+  new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    const timer = setTimeout(finish, milliseconds);
+    signal.addEventListener("abort", finish, { once: true });
+  });
+
+/**
+ * A settled turn or a local cancellation ends the stream, and Flue's SDK has
+ * already spent its own retry budget on 401 and 403; anything else may be the
+ * update stream itself.
+ */
+const isReattachable = (error: unknown, signal: AbortSignal): boolean =>
+  !signal.aborted &&
+  !isAbortError(error) &&
+  !(
+    error instanceof FetchError &&
+    (error.status === 401 || error.status === 403)
+  ) &&
+  !(
+    error instanceof FlueExecutionError &&
+    error.failure !== "terminal_event_missing"
+  );
+
 const streamSubmission = (
   options: FlueChatTransportOptions & FlueUiProjectionOptions,
   admission: AgentSendResult,
@@ -289,39 +333,78 @@ const streamSubmission = (
           });
       }
 
-      void options.client
-        .wait(admission, {
-          signal,
-          onEvent: (event) => {
-            projector.accept(event);
+      // Each `wait()` skips chunks it already delivered, but a re-attach is a
+      // new `wait()` that replays from the admission offset. Positions only
+      // restart when a stream is recreated under a new incarnation, which
+      // Flue's durable stores never do to a stream with a live submission.
+      let watermark: ChunkPosition | undefined;
+      let projectionFailed = false;
+      const onEvent = (event: ConversationStreamChunk): void => {
+        if (event.type === "stream-checkpoint") return;
+        if (!isAfter(event.position, watermark)) return;
+        watermark = event.position;
+        try {
+          projector.accept(event);
+          if (
+            event.type === "message-started" &&
+            event.submissionId === admission.submissionId
+          ) {
+            responseMessage = {
+              effectiveId:
+                projector.effectiveMessageId(event.messageId) ??
+                event.messageId,
+              flueId: event.messageId,
+            };
+            notifyObserver(options.onResponseMessage, {
+              messageId: responseMessage.effectiveId,
+              position: event.position,
+              submissionId: admission.submissionId,
+            });
+          }
+          if (
+            event.type === "message-completed" &&
+            event.messageId === responseMessage?.flueId
+          ) {
+            notifyObserver(options.onResponseMessageCompleted, {
+              messageId: responseMessage.effectiveId,
+              position: event.position,
+              submissionId: admission.submissionId,
+            });
+          }
+        } catch (error) {
+          projectionFailed = true;
+          throw error;
+        }
+      };
+
+      const follow = async (): Promise<void> => {
+        let fruitlessReattaches = 0;
+        for (;;) {
+          const watermarkBefore = watermark;
+          try {
+            // Each re-attach depends on the failure of the one before.
+            // eslint-disable-next-line no-await-in-loop
+            await options.client.wait(admission, { signal, onEvent });
+            return;
+          } catch (error) {
+            if (watermark !== watermarkBefore) fruitlessReattaches = 0;
+            const delay = reattachDelaysMs[fruitlessReattaches];
             if (
-              event.type === "message-started" &&
-              event.submissionId === admission.submissionId
+              projectionFailed ||
+              delay === undefined ||
+              !isReattachable(error, signal)
             ) {
-              responseMessage = {
-                effectiveId:
-                  projector.effectiveMessageId(event.messageId) ??
-                  event.messageId,
-                flueId: event.messageId,
-              };
-              notifyObserver(options.onResponseMessage, {
-                messageId: responseMessage.effectiveId,
-                position: event.position,
-                submissionId: admission.submissionId,
-              });
+              throw error;
             }
-            if (
-              event.type === "message-completed" &&
-              event.messageId === responseMessage?.flueId
-            ) {
-              notifyObserver(options.onResponseMessageCompleted, {
-                messageId: responseMessage.effectiveId,
-                position: event.position,
-                submissionId: admission.submissionId,
-              });
-            }
-          },
-        })
+            fruitlessReattaches += 1;
+            // eslint-disable-next-line no-await-in-loop
+            await pause(delay, signal);
+            signal.throwIfAborted();
+          }
+        }
+      };
+
+      void follow()
         .then(close)
         .catch((error: unknown) => {
           if (!terminalEmitted) {

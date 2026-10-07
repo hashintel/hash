@@ -1,4 +1,4 @@
-import { FlueApiError, FlueExecutionError } from "@flue/sdk";
+import { FetchError, FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
 import { useUiChunkRecorder } from "../../test/ai-sdk-oracle";
@@ -21,6 +21,9 @@ const admission: AgentSendResult = {
 };
 
 const position = (index: number) => ({ batch: 1, index });
+
+const refusedReconnect = (status: number) =>
+  new FetchError(status, "Refused.", undefined, {}, admission.streamUrl);
 
 const completedEvents: readonly ConversationStreamChunk[] = [
   {
@@ -59,6 +62,7 @@ const clientWith = (
 ): {
   readonly client: FlueClient;
   readonly send: ReturnType<typeof vi.fn<FlueClient["send"]>>;
+  readonly wait: ReturnType<typeof vi.fn<FlueClient["wait"]>>;
 } => {
   const send = vi.fn<FlueClient["send"]>(async () => admission);
   const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
@@ -69,6 +73,7 @@ const clientWith = (
   return {
     client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
     send,
+    wait,
   };
 };
 
@@ -270,6 +275,7 @@ test.each([
       errorText:
         'Elicitor tool failed.\nCaused by: {"field":"answer","reason":"Required"}',
     },
+    4,
   ],
   [
     "aborted",
@@ -279,6 +285,7 @@ test.each([
       failure: "aborted",
     }),
     { type: "abort", reason: "The chat turn was stopped." },
+    1,
   ],
   [
     "missing terminal event",
@@ -291,10 +298,12 @@ test.each([
       type: "error",
       errorText: "The chat stream ended before the turn settled.",
     },
+    4,
   ],
 ])(
   "maps a %s wait rejection into the finite UI stream",
-  async (_label, waitError, expected) => {
+  async (_label, waitError, expected, waits) => {
+    vi.useFakeTimers();
     const send = vi.fn<FlueClient["send"]>(async () => admission);
     const wait = vi.fn<FlueClient["wait"]>(async () => {
       throw waitError;
@@ -313,10 +322,152 @@ test.each([
         },
       ]),
     );
+    const reading = readChunks(stream);
+    await vi.runAllTimersAsync();
+    vi.useRealTimers();
 
-    expect(await readChunks(stream)).toEqual([expected]);
+    expect(await reading).toEqual([expected]);
+    expect(wait).toHaveBeenCalledTimes(waits);
   },
 );
+
+test("re-attaches after the update stream fails, projecting each chunk once", async () => {
+  vi.useFakeTimers();
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    const replayed = wait.mock.calls.length === 1 ? 2 : completedEvents.length;
+    for (const event of completedEvents.slice(0, replayed)) {
+      // eslint-disable-next-line no-await-in-loop
+      await options?.onEvent?.(event);
+    }
+    if (replayed < completedEvents.length) throw refusedReconnect(410);
+  });
+  const onResponseMessage =
+    vi.fn<NonNullable<FlueChatTransportOptions["onResponseMessage"]>>();
+  const onResponseMessageCompleted =
+    vi.fn<
+      NonNullable<FlueChatTransportOptions["onResponseMessageCompleted"]>
+    >();
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+    onResponseMessage,
+    onResponseMessageCompleted,
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Survive a refused reconnect." }],
+      },
+    ]),
+  );
+  const reading = readChunks(stream);
+  await vi.runAllTimersAsync();
+  vi.useRealTimers();
+
+  expect((await reading).map((chunk) => chunk.type)).toEqual([
+    "start",
+    "start-step",
+    "text-start",
+    "text-delta",
+    "text-end",
+    "finish-step",
+    "finish",
+  ]);
+  expect(wait).toHaveBeenCalledTimes(2);
+  expect(onResponseMessage).toHaveBeenCalledOnce();
+  expect(onResponseMessageCompleted).toHaveBeenCalledOnce();
+});
+
+test.each([401, 403])(
+  "does not re-attach after Flue's SDK has spent its own %i retries",
+  async (status) => {
+    const send = vi.fn<FlueClient["send"]>(async () => admission);
+    const wait = vi.fn<FlueClient["wait"]>(async () => {
+      throw refusedReconnect(status);
+    });
+    const transport = createFlueChatTransport({
+      client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+      clientToolNames: new Set(),
+    });
+
+    const chunks = await readChunks(
+      await transport.sendMessages(
+        sendOptions([
+          {
+            id: "user-1",
+            role: "user",
+            parts: [{ type: "text", text: "Unauthorized." }],
+          },
+        ]),
+      ),
+    );
+
+    expect(chunks).toEqual([expect.objectContaining({ type: "error" })]);
+    expect(wait).toHaveBeenCalledOnce();
+  },
+);
+
+test("makes no further wait() call when stopped during a re-attach pause", async () => {
+  const abortController = new AbortController();
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async () => {
+    throw refusedReconnect(410);
+  });
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+  });
+  const stream = await transport.sendMessages({
+    ...sendOptions([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Stop while paused." }],
+      },
+    ]),
+    abortSignal: abortController.signal,
+  });
+  const reading = readChunks(stream);
+  await vi.waitFor(() => expect(wait).toHaveBeenCalledOnce());
+
+  abortController.abort();
+
+  await expect(reading).resolves.toEqual([
+    { type: "abort", reason: "The local chat stream was cancelled." },
+  ]);
+  expect(wait).toHaveBeenCalledOnce();
+});
+
+test("does not re-attach after its own projection fails", async () => {
+  const { client, wait } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+    onResponseMessage: () => {
+      throw new Error("The host rejected the response message.");
+    },
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Fail in projection." }],
+      },
+    ]),
+  );
+
+  expect(await readChunks(stream)).toContainEqual({
+    type: "error",
+    errorText: "The host rejected the response message.",
+  });
+  expect(wait).toHaveBeenCalledOnce();
+});
 
 test("keeps caller cancellation distinct from durable abort", async () => {
   const abortController = new AbortController();

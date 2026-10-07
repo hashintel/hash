@@ -40,7 +40,8 @@ The upstream and `AbstractChat` suites label each case as a guarantee (behaviour
 | With the live channel, a tool part can appear before text the model wrote earlier in the same step, and the reducer cannot reorder it; history keeps the model's order.          | Open decision |
 | A live tool part ends as not executed only when Flue's stream ends its turn without it; the live channel ending, or reporting the turn over, never decides it.                   | Decision      |
 | A durable Flue abort ends the stream with an `abort` chunk, preceded by the projected metadata for the aborted outcome; the AI SDK does not report it as `isAbort`.              | Decision      |
-| Flue's SDK retries a dropped update stream, so the transport never reports a disconnect.                                                                                         | Observed      |
+| Flue's SDK retries a dropped update stream on network errors, 5xx, 429 and up to three 401s or 403s, so the transport never reports a disconnect.                                | Observed      |
+| When the SDK gives up, except on 401 or 403, the transport re-attaches after a silent pause, skipping projected chunks; three fruitless re-attaches end in an `error` chunk.     | Decision      |
 | The assistant message takes the id of Flue's response message, so live and reopened messages share it.                                                                           | Decision      |
 | A failed submission ends the stream with one `error` chunk carrying Flue's error text.                                                                                           | Decision      |
 | Stopping the chat ends only the local observer; the Flue turn runs on, and a durable stop is Flue's `abort`.                                                                     | Decision      |

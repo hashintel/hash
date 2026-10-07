@@ -20,6 +20,7 @@ import {
   harnessAdapterConfig,
   harnessTools,
   startFlueHarness,
+  withoutLiveOnlyDetails,
 } from "./flue-harness";
 import { TestChat } from "./test-chat";
 
@@ -190,6 +191,38 @@ describe("upstream: 'send handle a disconnected response stream'", () => {
     );
     expect(onFinish).toHaveBeenCalledWith(
       expect.objectContaining({ isDisconnect: false, isError: false }),
+    );
+  });
+
+  // Flue's SDK gives up on a reconnect refused with a 4xx other than 401, 403
+  // or 416, which would leave the submission running with nobody reading it.
+  test("decision: a refused reconnect re-attaches, and the turn completes with each part once", async () => {
+    const { client, cut, refused } = harness.cuttableClient();
+    harness.script([
+      fauxAssistantMessage(
+        [fauxToolCall(harnessTools.lookup, { q: "before" })],
+        { stopReason: "toolUse" },
+      ),
+      () => {
+        cut(410, 1);
+        return fauxAssistantMessage([fauxText("Recovered.")]);
+      },
+    ]);
+    const { chat, onFinish } = createChat({ client });
+
+    await chat.sendMessage({ text: "Look it up" });
+
+    expect(refused()).toBe(1);
+    expect(chat.error).toBeUndefined();
+    expect(chat.status).toBe("ready");
+    expect(onFinish).toHaveBeenCalledWith(
+      expect.objectContaining({ isDisconnect: false, isError: false }),
+    );
+    const reopened = createFlueAiSdkAdapter(harnessAdapterConfig).reopen(
+      await client.history(),
+    );
+    expect(withoutLiveOnlyDetails(chat.messages.at(-1))).toEqual(
+      reopened.at(-1),
     );
   });
 });
