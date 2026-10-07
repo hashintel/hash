@@ -2,7 +2,11 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { hashPetrinautDocument } from "./hash-petrinaut-document";
+import {
+  hashPetrinautDocument,
+  petrinautNonSemanticParts,
+  type PetrinautNonSemanticPart,
+} from "./hash-petrinaut-document";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
@@ -77,6 +81,27 @@ const net: SDCPN = {
         type: "per_place",
         content: { "place-a": [["first"], ["second"]], "place-b": "0" },
       },
+    },
+  ],
+  subnets: [
+    {
+      id: "subnet-1",
+      name: "Inner",
+      places: [
+        {
+          id: "place-inner",
+          name: "Inner",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
     },
   ],
 };
@@ -168,5 +193,44 @@ describe("hashPetrinautDocument", () => {
       hash({ z: "é", y: 0.1, x: { "2": 2, "10": 1 }, a: null, B: false }),
     ).toBe(expected('{"B":false,"a":null,"x":{"10":1,"2":2},"y":0.1,"z":"é"}'));
     expect(hashPetrinautDocument(net)).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("hashPetrinautDocument exclusions", () => {
+  const changes: Record<PetrinautNonSemanticPart, (input: SDCPN) => SDCPN> = {
+    layout: (input) => ({
+      ...input,
+      subnets: input.subnets?.map((subnet) => ({
+        ...subnet,
+        places: subnet.places.map((place) => ({ ...place, x: place.x + 40 })),
+      })),
+    }),
+    descriptions: (input) => ({ ...input, description: "Changed" }),
+    appearance: (input) => ({
+      ...input,
+      types: input.types.map((type) => ({ ...type, displayColor: "#00FF00" })),
+    }),
+    metadata: (input) => ({ ...input, metadata: {} }),
+  };
+
+  it.each(petrinautNonSemanticParts)("leaves out %s when excluded", (part) => {
+    const changed = changes[part](net);
+
+    expect(hashPetrinautDocument(changed)).not.toBe(hashPetrinautDocument(net));
+    expect(hashPetrinautDocument(changed, { exclude: [part] })).toBe(
+      hashPetrinautDocument(net, { exclude: [part] }),
+    );
+  });
+
+  it("still hashes what the net simulates", () => {
+    const semantic = { exclude: petrinautNonSemanticParts };
+    const renamed: SDCPN = {
+      ...net,
+      places: net.places.map((place) => ({ ...place, name: `${place.name}!` })),
+    };
+
+    expect(hashPetrinautDocument(renamed, semantic)).not.toBe(
+      hashPetrinautDocument(net, semantic),
+    );
   });
 });

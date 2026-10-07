@@ -49,6 +49,57 @@ const canonicalJson = (input: unknown, key: string): string | undefined => {
   return `{${members.join(",")}}`;
 };
 
+/** Parts of a net that do not change what it simulates. */
+export const petrinautNonSemanticParts = [
+  "layout",
+  "descriptions",
+  "appearance",
+  "metadata",
+] as const;
+
+export type PetrinautNonSemanticPart =
+  (typeof petrinautNonSemanticParts)[number];
+
+const fieldsByPart: Record<PetrinautNonSemanticPart, readonly string[]> = {
+  layout: ["x", "y"],
+  descriptions: ["description"],
+  appearance: ["iconSlug", "displayColor", "visualizerCode"],
+  metadata: ["metadata"],
+};
+
+const itemCollections = new Set([
+  "places",
+  "transitions",
+  "types",
+  "differentialEquations",
+  "parameters",
+  "scenarios",
+  "metrics",
+  "componentInstances",
+  "subnets",
+]);
+
+/** Copies a net or item without `fields`, recursing into item collections only. */
+const withoutFields = (
+  value: object,
+  fields: ReadonlySet<string>,
+): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !fields.has(key))
+      .map(([key, member]) => [
+        key,
+        itemCollections.has(key) && Array.isArray(member)
+          ? member.map((item: object) => withoutFields(item, fields))
+          : member,
+      ]),
+  );
+
+export type HashPetrinautDocumentOptions = {
+  /** Parts left out of the hash, so changing them keeps it. */
+  readonly exclude?: readonly PetrinautNonSemanticPart[];
+};
+
 /**
  * SHA-256 of a net's canonical JSON, as 64 lowercase hex characters.
  *
@@ -57,6 +108,15 @@ const canonicalJson = (input: unknown, key: string): string | undefined => {
  * is honoured, `undefined` and function members are dropped, `undefined` and
  * functions in arrays become `null`, `NaN` and `±Infinity` become `null`, and
  * `-0` becomes `0`. A net and its JSON round trip hash the same.
+ *
+ * Pass `exclude: petrinautNonSemanticParts` to hash what the net simulates
+ * only, leaving out node positions, descriptions, appearance and metadata.
  */
-export const hashPetrinautDocument = (document: SDCPN): string =>
-  bytesToHex(sha256(utf8ToBytes(canonicalJson(document, "") ?? "null")));
+export const hashPetrinautDocument = (
+  document: SDCPN,
+  { exclude = [] }: HashPetrinautDocumentOptions = {},
+): string => {
+  const fields = new Set(exclude.flatMap((part) => fieldsByPart[part]));
+  const hashed = fields.size === 0 ? document : withoutFields(document, fields);
+  return bytesToHex(sha256(utf8ToBytes(canonicalJson(hashed, "") ?? "null")));
+};
