@@ -99,8 +99,12 @@ export const openRetainedPersonaBrowser = async (
     "Original browser principal is missing or changed",
   );
   const documents = v.parse(v.record(v.string(), v.unknown()), saved.documents);
+  // The website skips stored entries that are not nets, so the entry must be one.
   assert.ok(
-    Object.hasOwn(documents, binding.documentId),
+    v.is(
+      v.object({ id: v.literal(binding.documentId) }),
+      documents[binding.documentId],
+    ),
     "Original browser document is missing",
   );
   await page.goto(new URL(route, origin).href);
