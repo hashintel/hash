@@ -13,13 +13,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-/**
- * The types-table filter ribbon's model: a fixed catalog of filterable fields,
- * the operators each offers, and a predicate factory that evaluates committed
- * filters client-side against the full type objects (the table already holds
- * every type in memory).
- */
-
 export type TypesTableTypeKind =
   | "entity-type"
   | "link-type"
@@ -49,17 +42,12 @@ export type TypeFilterOperator =
   | DateTypeFilterOperator;
 
 export type TypeFilter = {
-  /** Stable client-side id, used for React keys and editing. */
   id: string;
   field: TypeFilterField;
   operator: TypeFilterOperator;
-  /**
-   * The committed value of single-input operators (`within` / `before` /
-   * `after`). Absent or invalid for the operator means the filter is
-   * incomplete and contributes no clause.
-   */
+  /** The committed value of single-input operators */
   value?: string;
-  /** The committed selection of multi-select operators; empty ⇒ no clause. */
+  /** The committed selection of multi-select operators */
   values?: string[];
 };
 
@@ -170,7 +158,6 @@ const dayInMs = 24 * 60 * 60 * 1000;
 
 const dateFilterValueFormat = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Parses a committed `before` / `after` value to a local start-of-day timestamp. */
 const parseDateFilterValue = (value: string): number | null => {
   if (!dateFilterValueFormat.test(value)) {
     return null;
@@ -224,9 +211,7 @@ const emptyLineage: TypeLineage = {
 };
 
 export type TypeFilterEvaluationSources = {
-  /** Every known entity type (all versions), for resolving inheritance chains. */
   entityTypes: EntityTypeWithMetadata[] | null | undefined;
-  /** Every known data type keyed by versioned URL. */
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;
   isSpecialEntityTypeLookup:
     | Record<VersionedUrl, { isLink: boolean }>
@@ -234,12 +219,6 @@ export type TypeFilterEvaluationSources = {
     | undefined;
 };
 
-/**
- * Builds a predicate applying the committed filters to a type. Inheritance is
- * resolved transitively (matching on base URL, so selecting a type matches
- * descendants of any of its versions), and `hasProperty` counts inherited
- * properties as well as the type's own.
- */
 export const createTypeFilterPredicate = (
   filters: TypeFilter[],
   {

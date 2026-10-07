@@ -15,7 +15,6 @@ export type InternalWeb = {
   name: string;
 };
 
-/** The web scope a bar filters to: checked own webs, plus everyone else's. */
 export type WebFilterState = {
   selectedInternalWebIds: Set<WebId>;
   includeOtherWebs: boolean;

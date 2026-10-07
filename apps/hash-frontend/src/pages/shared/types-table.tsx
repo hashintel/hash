@@ -2,7 +2,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Box, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   type DataTypeWithMetadata,
@@ -28,7 +28,6 @@ import { useEntityTypesContextRequired } from "../../shared/entity-types-context
 import { isTypeArchived } from "../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
-import { tableHeaderHeight } from "../../shared/table-header";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
 import { generateCsvFile as buildCsvFile } from "../../shared/table-header/generate-csv-file";
@@ -44,6 +43,7 @@ import {
   SearchPill,
   useInternalWebs,
   VisualizerHeader,
+  visualizerHeaderHeight,
   WebFilterPill,
   type WebFilterState,
 } from "./filter-bar";
@@ -310,8 +310,6 @@ export const TypesTable: FunctionComponent<{
 
       const isArchived = isTypeArchived(type);
 
-      // A type in one of the user's own webs follows that web's checkbox in
-      // the web dropdown; every other type follows "Other webs".
       const webAllowed = onlyOneWeb
         ? true
         : !isExternal && namespaceWebId !== undefined
@@ -380,8 +378,6 @@ export const TypesTable: FunctionComponent<{
     defaultTypesTableSort,
   );
 
-  // The sorted column can disappear (e.g. Archived when its filter is
-  // removed); fall back rather than sorting by an invisible column.
   const activeSort = useMemo(
     () =>
       typesTableColumns.some((column) => column.id === sort.columnKey)
@@ -562,9 +558,35 @@ export const TypesTable: FunctionComponent<{
     [typesTableColumns, pushToSlideStack, router, theme],
   );
 
-  const maxTableHeight = `calc(100vh - (${
-    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
-  }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`;
+  const contentTopRef = useRef<HTMLDivElement>(null);
+  const [contentTop, setContentTop] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = contentTopRef.current;
+    if (!el) {
+      return;
+    }
+
+    const measure = () => {
+      setContentTop(el.getBoundingClientRect().top);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(document.documentElement);
+    return () => observer.disconnect();
+  }, []);
+
+  // 100vh minus the measured content top and the page container's bottom
+  // padding; until measured, an estimate from the page chrome above the table.
+  const maxTableHeight = `calc(100vh - ${
+    contentTop != null
+      ? `${contentTop}px - ${theme.spacing(5)}`
+      : `(${
+          HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + visualizerHeaderHeight
+        }px + ${theme.spacing(2)} + ${theme.spacing(5)}`
+  })`;
 
   const displayedRowCount = Math.max(filteredRows?.length ?? 1, 1);
 
@@ -712,6 +734,7 @@ export const TypesTable: FunctionComponent<{
           ) : undefined
         }
       />
+      <Box ref={contentTopRef} />
       {view === "Table" ? (
         <Box
           sx={[

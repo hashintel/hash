@@ -26,20 +26,12 @@ type TypeFilterValueMap = {
   noneOf: string[];
 };
 
-/**
- * A types-table filter as a ds-components `Filter` chip: the field label as a
- * switcher menu, an operator dropdown from the field's catalog, and the
- * operator's select / text input. Commits apply immediately — filtering is
- * client-side, so there is nothing to debounce.
- */
 export const TypeFilterChip: FunctionComponent<{
   filter: TypeFilter;
   className?: string;
   fieldMenu?: MenuItem[];
-  /** The options of the field's select inputs (multi and single alike). */
   selectItems: ReadonlyArray<ItemOrGroup<MultiSelectItem>>;
   searchable?: boolean;
-  /** Custom renderer for the select inputs' dropdown items (e.g. icon + name). */
   renderSelectItem?: (value: string) => ReactNode;
   onCommit: (committed: TypeFilter) => void;
   onRemove: () => void;

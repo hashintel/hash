@@ -10,7 +10,6 @@ export const visualizerHeaderHeight = 94;
 
 type VisualizerHeaderProps = {
   topLeft?: ReactNode;
-  /** With neither top slot the header renders the grey bar alone. */
   topRight?: ReactNode;
   bottomLeft: ReactNode;
   bottomRight?: ReactNode;

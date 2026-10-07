@@ -15,23 +15,12 @@ const chipWrapperSx: SxProps<Theme> = {
   gap: 1,
 };
 
-/**
- * The shared shell of a filter bar's chip ribbon: leading pills, the active
- * filter chips, an add-filter menu and a clear-all control, in a
- * `display: contents` wrapper so everything flows inline in the header bar
- * with uniform margins (which is also what spaces wrapped rows — don't host
- * this inside a flex container with its own gap).
- */
 export const FilterGroupRibbon: FunctionComponent<{
-  /** Pills leading the chip group (search toggle, web/type pills). */
   leadingControls?: ReactNode;
-  /** The active filter chips, each keyed by its filter's stable id. */
   chips: Array<{ id: string; chip: ReactNode }>;
   addFilterMenuItems: Array<ItemOrGroup<MenuItem>>;
-  /** Optional header for the add-filter menu (e.g. a search input). */
   addFilterMenuHeader?: ReactNode;
   onAddFilterMenuOpen?: (open: boolean) => void;
-  /** Fires from the clear-all control, shown once more than one chip is active. */
   onClearFilters: () => void;
 }> = ({
   leadingControls,
