@@ -53,7 +53,7 @@ const cellVisitor: CborDecoder.CborVisitor<
   }),
 };
 
-const readHead = Result.fn(function* readHead(
+const readHead = Result.fn(function* readLocateHead(
   access: CborDecoder.CborMapAccess,
 ): Result.gen.Return<
   Head,

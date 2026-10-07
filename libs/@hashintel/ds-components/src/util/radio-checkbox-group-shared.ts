@@ -35,12 +35,12 @@ export const getGroupFocusProps = ({
     }
   },
   onFocus: (event) => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
       onFocus?.(event as unknown as React.FocusEvent<HTMLInputElement>);
     }
   },
   onBlur: (event) => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
       onBlur?.(event as unknown as React.FocusEvent<HTMLInputElement>);
     }
   },

@@ -514,6 +514,7 @@ export const EntityResultTable = memo(
         relevance: {
           header: "Relevance",
           initialValue: "All",
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- required so that type narrowing below on initialValue works
           options: {
             All: {
               count: 0,
@@ -526,18 +527,21 @@ export const EntityResultTable = memo(
         status: {
           header: "Status",
           initialValue: new Set<string>(),
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- required so that type narrowing below on initialValue works
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
         entityTypeIds: {
           header: "Type",
           initialValue: new Set<string>(),
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- required so that type narrowing below on initialValue works
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
         entityLabel: {
           header: "Name",
           initialValue: new Set<string>(),
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- required so that type narrowing below on initialValue works
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },

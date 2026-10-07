@@ -354,9 +354,7 @@ export const useNotificationsWithLinksContextValue =
             });
 
             if (
-              !includesPageEntityTypeId(
-                occurredInEntity.metadata.entityTypeIds as VersionedUrl[],
-              )
+              !includesPageEntityTypeId(occurredInEntity.metadata.entityTypeIds)
             ) {
               const kind = getEntityMentionKind(
                 occurredInEntity,

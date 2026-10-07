@@ -25,7 +25,6 @@ import {
   generateRandomShortname,
 } from "../../../util";
 
-import type { EmailTransporter } from "@apps/hash-api/src/email/transporters";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import type { LoggedInGraphQLContext } from "@apps/hash-api/src/graphql/context";

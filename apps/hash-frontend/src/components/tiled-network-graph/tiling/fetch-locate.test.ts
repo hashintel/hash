@@ -32,8 +32,8 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 
 const BASE = "http://api.test/atlas";
 const COLORED_TYPES: readonly VersionedUrl[] = [
-  "https://t.test/person/v/3" as VersionedUrl,
-  "https://t.test/authored/v/1" as VersionedUrl,
+  "https://t.test/person/v/3",
+  "https://t.test/authored/v/1",
 ];
 
 const genHex = (byte: number): string =>
@@ -132,7 +132,7 @@ const stubAuthorityTransport = (
   >,
 ): RecordedRequest[] => {
   const seen: RecordedRequest[] = [];
-  vi.stubGlobal("fetch", ((url: string, init?: RequestInit) => {
+  vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
     const request: RecordedRequest = {
       path: new URL(url, BASE).pathname,
       authority: new Headers(init?.headers).get(ATLAS_AUTHORITY_HEADER),
@@ -144,7 +144,7 @@ const stubAuthorityTransport = (
     seen.push(request);
     const route = routes[request.path];
     return Promise.resolve(route === undefined ? notFound() : route(request));
-  }) as typeof fetch);
+  });
   return seen;
 };
 

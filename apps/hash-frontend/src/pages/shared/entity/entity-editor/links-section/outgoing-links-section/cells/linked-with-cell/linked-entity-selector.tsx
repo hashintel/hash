@@ -148,7 +148,7 @@ export const LinkedEntitySelector = ({
             ] ??
             "File";
 
-          onSelect(upload.createdEntities.fileEntity as HashEntity, label);
+          onSelect(upload.createdEntities.fileEntity, label);
         },
         webId: activeWorkspaceWebId,
         /**

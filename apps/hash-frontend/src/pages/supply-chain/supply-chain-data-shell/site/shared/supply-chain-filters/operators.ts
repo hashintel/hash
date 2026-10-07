@@ -96,7 +96,7 @@ export const pickOperators = <
   keys: ReadonlyArray<keyof OperatorMap & string>,
 ): SupplyChainFilterOperator[] =>
   keys.flatMap((key) => {
-    const config = map[key] as OperatorConfig | undefined;
+    const config = map[key];
     return config ? [{ key, label: config.label, input: config.input }] : [];
   });
 

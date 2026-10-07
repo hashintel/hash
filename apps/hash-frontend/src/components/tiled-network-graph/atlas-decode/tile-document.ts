@@ -128,7 +128,7 @@ export interface DecodeOptions extends Head.Context {
   readonly detail: Detail.Detail;
 }
 
-const decodeDocument = Result.fn(function* decodeDocument<
+const decodeDocument = Result.fn(function* decodeTileDocument<
   T extends ArrayBufferLike,
 >(
   decoder: Decoder.Decoder<T>,

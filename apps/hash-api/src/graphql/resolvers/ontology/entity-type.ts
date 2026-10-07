@@ -36,7 +36,6 @@ import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import type {
   EntityTypeWithMetadata,
   OntologyTemporalMetadata,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
 import type {

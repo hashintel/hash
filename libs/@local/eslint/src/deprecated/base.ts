@@ -475,6 +475,7 @@ export const create = (projectDirectory: string) =>
           {
             args: "all",
             argsIgnorePattern: "^_+",
+            enableAutofixRemoval: { imports: true },
             /* eslint-disable-next-line unicorn/prevent-abbreviations */
             varsIgnorePattern: "^_+",
           },

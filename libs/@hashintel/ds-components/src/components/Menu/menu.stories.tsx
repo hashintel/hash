@@ -58,7 +58,7 @@ function withSelection(
     };
   }
   if ("custom" in entry) {
-    return entry as MenuItem;
+    return entry;
   }
   const nested = (entry as { subItems?: Array<ItemOrGroup<Item>> }).subItems;
   if (nested) {
@@ -68,7 +68,7 @@ function withSelection(
     } as unknown as MenuItem;
   }
   if ("href" in entry && entry.href) {
-    return entry as MenuItem;
+    return entry;
   }
   return {
     ...entry,

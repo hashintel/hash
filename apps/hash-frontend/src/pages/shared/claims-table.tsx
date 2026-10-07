@@ -340,18 +340,21 @@ export const ClaimsTable = memo(
         status: {
           header: "Status",
           initialValue: new Set<string>(),
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- required so that type narrowing below on initialValue works
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
         subject: {
           header: "Subject",
           initialValue: new Set<string>(),
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- required so that type narrowing below on initialValue works
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
         object: {
           header: "Relevant value",
           initialValue: new Set<string>(),
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- required so that type narrowing below on initialValue works
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },

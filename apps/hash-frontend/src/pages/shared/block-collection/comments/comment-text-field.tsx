@@ -35,7 +35,6 @@ import {
 } from "./comment-placeholder-plugin";
 import styles from "./style.module.css";
 
-import type { CommentPlaceholderAction } from "./comment-placeholder-plugin";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { EditorView } from "prosemirror-view";
 import type { FunctionComponent } from "react";
@@ -216,7 +215,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       const tr = view.state.tr.setMeta(commentPlaceholderPluginkey, {
         type: "replacePlaceholder",
         payload: { placeholder },
-      } as CommentPlaceholderAction);
+      });
       view.dispatch(tr);
     }
   }, [placeholder]);

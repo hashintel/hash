@@ -129,7 +129,7 @@ describe("Result.All", () => {
 describe("Result.fn", () => {
   it("fresh_invocations", () => {
     const seen: number[] = [];
-    const increment = Result.fn(function* increment(value: number) {
+    const increment = Result.fn(function* incrementValue(value: number) {
       seen.push(value);
       return (yield* Result.ok(value)) + 1;
     });
@@ -140,7 +140,7 @@ describe("Result.fn", () => {
   });
 
   it("generic_arguments", () => {
-    const identity = Result.fn(function* identity<T>(value: T) {
+    const identity = Result.fn(function* yieldValue<T>(value: T) {
       return yield* Result.ok(value);
     });
     expectTypeOf(identity("text")).toEqualTypeOf<Result.Result<string>>();
@@ -150,7 +150,7 @@ describe("Result.fn", () => {
 
   it("failed_step", () => {
     let continued = false;
-    const fail = Result.fn(function* fail() {
+    const fail = Result.fn(function* yieldFailure() {
       yield* Result.err("failed");
       continued = true;
       return 1;

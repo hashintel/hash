@@ -1018,7 +1018,7 @@ export const Select = <TValue extends string>({
           <ArkSelect.Trigger
             id={inputId}
             {...resolveAutoFocusProps(autoFocus)}
-            ref={internalRef as React.Ref<HTMLButtonElement>}
+            ref={internalRef}
             className={classes.trigger}
             data-part="trigger"
             data-testid={testId}

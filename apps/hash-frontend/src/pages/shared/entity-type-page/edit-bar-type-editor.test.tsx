@@ -8,7 +8,7 @@ import { EditBarTypeEditor } from "./edit-bar-type-editor";
 import type { ReactNode } from "react";
 
 const formState = vi.hoisted(() => ({
-  dirtyFields: {} as Record<string, boolean>,
+  dirtyFields: {},
   isSubmitting: false,
 }));
 

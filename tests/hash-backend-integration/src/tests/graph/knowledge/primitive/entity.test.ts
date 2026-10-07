@@ -50,7 +50,6 @@ import type {
   EntityTypeWithMetadata,
   EntityUuid,
   PropertyTypeWithMetadata,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";

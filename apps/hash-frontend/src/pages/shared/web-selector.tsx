@@ -79,7 +79,7 @@ export const WebSelector = ({
           />
         ),
         label: "My web",
-        value: authenticatedUser.accountId as WebId,
+        value: authenticatedUser.accountId,
       },
       ...authenticatedUser.memberOf.map(
         ({ org: { webId, name, hasAvatar } }) => ({

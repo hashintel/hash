@@ -12,7 +12,6 @@ import { createEntity } from "../../graph/knowledge/primitive/entity";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
 import { enabledIntegrations } from "../enabled-integrations";
 
-import type { WebId } from "@blockprotocol/type-system";
 import type {
   GoogleOAuth2CallbackRequest,
   GoogleOAuth2CallbackResponse,

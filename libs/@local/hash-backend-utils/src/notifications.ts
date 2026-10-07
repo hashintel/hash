@@ -11,7 +11,6 @@ import type {
   ProvidedEntityEditionProvenance,
   Timestamp,
   UserId,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
