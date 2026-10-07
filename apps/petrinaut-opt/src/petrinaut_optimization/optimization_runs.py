@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Detached, reconnectable optimization runs.
 
 A detached run owns one admitted optimizer and session pair, and drives its study from
@@ -16,18 +15,18 @@ above ``MAX_STUDY_TRIALS`` (1000) trials — mirroring the optimization
 manifest contract — rather than trusting the reported trial count.
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 import math
 import os
-from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from collections.abc import AsyncGenerator, Awaitable, Callable, Mapping
 from contextlib import suppress
-from enum import Enum
-from typing import Any
+from enum import StrEnum
+from typing import Protocol
 
-from src.utils import Phase, set_status
+from petrinaut_optimization.events import EventBus
+from petrinaut_optimization.status import Phase, StatusStoreUpdateEvent
+from petrinaut_optimization.tasks import join_task
 
 log = logging.getLogger("pn_runs")
 
@@ -60,11 +59,30 @@ def detach_grace_seconds_from_environment() -> float:
     return value
 
 
-class RunState(str, Enum):
+class RunState(StrEnum):
     running = "running"
     completed = "completed"
     failed = "failed"
     cancelled = "cancelled"
+
+
+class RunOptimizer(Protocol):
+    """The producer driven by a detached run."""
+
+    n_trials: int
+    bus: EventBus[StatusStoreUpdateEvent]
+
+    async def pump_events(
+        self,
+        run_id: str,
+        n_trials: int,
+        /,
+        *,
+        on_event: Callable[[str], object],
+        cancel_event: asyncio.Event,
+        on_outcome: Callable[[str], object] | None = None,
+        correlation: Mapping[str, str | None] | None = None,
+    ) -> str: ...
 
 
 class OptimizationRun:
@@ -80,7 +98,7 @@ class OptimizationRun:
         self,
         *,
         run_id: str,
-        optimizer: Any,
+        optimizer: RunOptimizer | None,
         cleanup: Callable[[], Awaitable[None]],
         correlation: Mapping[str, str | None] | None = None,
         account_id: str | None = None,
@@ -111,6 +129,7 @@ class OptimizationRun:
         self.cancel_requested = asyncio.Event()
         self.cancel_reason = "optimization run cancelled"
         self.finished = asyncio.Event()
+        self.started = asyncio.Event()
         self.task: asyncio.Task[None] | None = None
         self._changed = asyncio.Event()
 
@@ -156,11 +175,9 @@ class OptimizationRun:
         self._changed = asyncio.Event()
         changed.set()
 
-    async def wait_for_change(self, timeout: float) -> None:
+    async def wait_for_change(self) -> None:
         """Wait until the run appends, terminates, or is superseded."""
-        waiter = self._changed
-        with suppress(asyncio.TimeoutError):
-            await asyncio.wait_for(waiter.wait(), timeout)
+        await self._changed.wait()
 
 
 async def attachment_event_stream(
@@ -168,9 +185,9 @@ async def attachment_event_stream(
     *,
     cursor: int,
     epoch: int,
-    request: Any,
+    is_disconnected: Callable[[], Awaitable[bool]],
     correlation: Mapping[str, str | None] | None = None,
-) -> AsyncIterator[str]:
+) -> AsyncGenerator[str]:
     """Replay buffered frames with seq > cursor, then live-tail new ones.
 
     Every frame carries an ``id: <seq>`` line so a consumer can re-attach
@@ -192,6 +209,7 @@ async def attachment_event_stream(
         "consumer attached to optimization run",
         extra={"event": "run_attached", "cursor": cursor, **log_context},
     )
+
     try:
         while True:
             while next_index < len(run.events):
@@ -215,9 +233,14 @@ async def attachment_event_stream(
                 # frame is attachment-scoped, not part of the run's log.
                 yield "event: superseded\ndata: {}\n\n"
                 return
-            if await request.is_disconnected():
+
+            if await is_disconnected():
                 return
-            await run.wait_for_change(_TAIL_POLL_SECONDS)
+
+            with suppress(TimeoutError):
+                async with asyncio.timeout(_TAIL_POLL_SECONDS):
+                    await run.wait_for_change()
+
             if loop.time() >= next_heartbeat:
                 yield ": heartbeat\n\n"
                 next_heartbeat = loop.time() + SSE_HEARTBEAT_SECONDS
@@ -256,6 +279,7 @@ class OptimizationRunRegistry:
             self.retention_seconds = DEFAULT_DETACH_GRACE_SECONDS
         self._runs: dict[str, OptimizationRun] = {}
         self._reaper_task: asyncio.Task[None] | None = None
+        self._shutdown_task: asyncio.Task[None] | None = None
 
     def get(self, run_id: str) -> OptimizationRun | None:
         return self._runs.get(run_id)
@@ -272,32 +296,36 @@ class OptimizationRunRegistry:
 
     def create_run(
         self,
-        app: Any,
         *,
         run_id: str,
-        optimizer: Any,
+        optimizer: RunOptimizer,
         cleanup: Callable[[], Awaitable[None]],
         correlation: Mapping[str, str | None] | None = None,
         account_id: str | None = None,
     ) -> OptimizationRun:
         """Register a run and start the background pump driving its study."""
+        if self._shutdown_task is not None:
+            raise RuntimeError("optimization run registry is shutting down")
         run = OptimizationRun(
             run_id=run_id,
             optimizer=optimizer,
             cleanup=cleanup,
             correlation=correlation,
             account_id=account_id,
-            requested_trials=int(getattr(optimizer, "n_trials", 0) or 0),
+            requested_trials=optimizer.n_trials,
         )
         self._runs[run_id] = run
-        run.task = asyncio.create_task(
-            self._drive_run(app, run), name=f"petrinaut-run-{run_id}"
-        )
+
+        run.task = asyncio.create_task(self._drive_run(run=run), name=f"petrinaut-run-{run_id}")
         self._ensure_reaper()
         return run
 
-    async def _drive_run(self, app: Any, run: OptimizationRun) -> None:
+    @staticmethod
+    async def _drive_run(*, run: OptimizationRun) -> None:
         """Pump one run to a terminal state, then release its resources."""
+        if run.optimizer is None:
+            raise ValueError("to be able to drive events, the optimizer must be initialized")
+
         state = RunState.failed
         cancellation: asyncio.CancelledError | None = None
         # The pump records its outcome right before returning — ahead of its
@@ -305,34 +333,30 @@ class OptimizationRunRegistry:
         # that teardown window cannot relabel an already-decided study.
         recorded_outcomes: list[str] = []
         try:
-            state = RunState(
-                await run.optimizer.pump_events(
-                    app,
-                    run.run_id,
-                    run.optimizer.n_trials,
-                    on_event=run.append_event,
-                    cancel_event=run.cancel_requested,
-                    on_outcome=recorded_outcomes.append,
-                    correlation=run.correlation,
+            run.started.set()
+            if run.cancel_requested.is_set():
+                state, cancellation = RunState.cancelled, asyncio.CancelledError()
+            else:
+                state = RunState(
+                    await run.optimizer.pump_events(
+                        run.run_id,
+                        run.optimizer.n_trials,
+                        on_event=run.append_event,
+                        cancel_event=run.cancel_requested,
+                        on_outcome=recorded_outcomes.append,
+                        correlation=run.correlation,
+                    )
                 )
-            )
         except asyncio.CancelledError as error:
             # Service shutdown cancels the pump task; the pump's own finally
             # already closed the session on its way out. Keep a decided outcome:
             # its terminal frame is already in the log, and appending a
             # cancelled frame after it would corrupt the replay.
-            state = (
-                RunState(recorded_outcomes[0])
-                if recorded_outcomes
-                else RunState.cancelled
-            )
+            state = RunState(recorded_outcomes[0]) if recorded_outcomes else RunState.cancelled
             cancellation = error
-        except Exception as error:
-            # Backstop only: the pump reports study failures itself. The raw
-            # message may quote user content, so log its type only — which is
-            # also why this is not `log.exception`, whose traceback would carry
-            # the message into the logs.
-            log.error(  # noqa: TRY400
+        except Exception as error:  # ruff: ignore[blind-except] - Terminate the run for any backend failure.
+            # Backend messages may quote user content; omit the traceback too.
+            log.error(  # ruff: ignore[error-instead-of-exception] - Exception text can contain user expressions.
                 "optimization run pump failed",
                 extra={
                     "event": "run_pump_failed",
@@ -341,26 +365,24 @@ class OptimizationRunRegistry:
                     **run.correlation,
                 },
             )
-            run.append_event(
-                'data: {"state": "ERROR", "message": "optimization run failed"}\n\n'
-            )
+            run.append_event('data: {"state": "ERROR", "message": "optimization run failed"}\n\n')
             with suppress(Exception):
-                set_status(
-                    app,
-                    run.run_id,
-                    phase=Phase.error,
-                    detail="optimization run failed",
+                run.optimizer.bus.publish(
+                    StatusStoreUpdateEvent(
+                        run_id=run.run_id,
+                        changes={"phase": Phase.error, "detail": "optimization run failed"},
+                    )
                 )
         finally:
             try:
                 if state is RunState.cancelled:
                     run.append_event(CANCELLED_FRAME)
                     with suppress(Exception):
-                        set_status(
-                            app,
-                            run.run_id,
-                            phase=Phase.idle,
-                            detail=run.cancel_reason,
+                        run.optimizer.bus.publish(
+                            StatusStoreUpdateEvent(
+                                run_id=run.run_id,
+                                changes={"phase": Phase.idle, "detail": run.cancel_reason},
+                            )
                         )
                     log.info(
                         "optimization run cancelled",
@@ -371,7 +393,7 @@ class OptimizationRunRegistry:
                             **run.correlation,
                         },
                     )
-                await asyncio.shield(run.cleanup())
+                await join_task(asyncio.ensure_future(run.cleanup()))
             finally:
                 run.mark_terminal(state)
         if cancellation is not None:
@@ -379,9 +401,7 @@ class OptimizationRunRegistry:
 
     def _ensure_reaper(self) -> None:
         if self._reaper_task is None or self._reaper_task.done():
-            self._reaper_task = asyncio.create_task(
-                self._reap_loop(), name="petrinaut-run-reaper"
-            )
+            self._reaper_task = asyncio.create_task(self._reap_loop(), name="petrinaut-run-reaper")
 
     @property
     def _tick_seconds(self) -> float:
@@ -412,9 +432,7 @@ class OptimizationRunRegistry:
                 self.detach_grace_seconds > 0
                 and not run.attached
                 and now - run.last_detached_at >= self.detach_grace_seconds
-                and run.request_cancel(
-                    "no attached consumer within the detach grace period"
-                )
+                and run.request_cancel("no attached consumer within the detach grace period")
             ):
                 log.warning(
                     "optimization run reaped: no attached consumer",
@@ -425,10 +443,7 @@ class OptimizationRunRegistry:
                         **run.correlation,
                     },
                 )
-        elif (
-            run.terminal_at is not None
-            and now - run.terminal_at >= self.retention_seconds
-        ):
+        elif run.terminal_at is not None and now - run.terminal_at >= self.retention_seconds:
             del self._runs[run.run_id]
             log.info(
                 "optimization run log expired",
@@ -440,7 +455,12 @@ class OptimizationRunRegistry:
             )
 
     async def shutdown(self) -> None:
-        """Cancel the reaper and every pump; used by the app's lifespan."""
+        """Cancel producers and join their cleanup before returning."""
+        if self._shutdown_task is None:
+            self._shutdown_task = asyncio.create_task(self._shutdown())
+        await join_task(self._shutdown_task)
+
+    async def _shutdown(self) -> None:
         tasks: list[asyncio.Task[None]] = []
         if self._reaper_task is not None:
             self._reaper_task.cancel()
@@ -448,8 +468,10 @@ class OptimizationRunRegistry:
             self._reaper_task = None
         for run in self.runs():
             if run.task is not None and not run.task.done():
-                if not run.cancel_requested.is_set():
-                    run.cancel_reason = "service shutting down"
+                run.request_cancel("service shutting down")
+                # Cancelling a coroutine before its first poll skips its finally.
+                # Once started is set, cancellation enters the cleanup owner.
+                await run.started.wait()
                 run.task.cancel()
                 tasks.append(run.task)
         if tasks:
