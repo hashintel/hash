@@ -255,7 +255,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       await updateWebShortname(
         context.graphApi,
         { actorId: systemAccountId },
-        { webId: user.accountId as WebId, shortname: updatedShortname },
+        { webId: user.accountId, shortname: updatedShortname },
       );
     }
   };

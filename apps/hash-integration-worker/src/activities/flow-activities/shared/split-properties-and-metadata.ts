@@ -34,7 +34,7 @@ const extractPropertyValue = (
   if (Array.isArray(propertyWithMetadata.value)) {
     return propertyWithMetadata.value.map((element) =>
       extractPropertyValue(element as PropertyWithMetadata),
-    ) as PropertyValue;
+    );
   }
 
   // Check if it's an object (PropertyObjectWithMetadata)
@@ -50,7 +50,7 @@ const extractPropertyValue = (
           key,
           extractPropertyValue(value as PropertyWithMetadata),
         ]),
-      ) as PropertyValue;
+      );
     }
   }
 
@@ -74,7 +74,7 @@ const extractPropertyMetadata = (
     // This is a PropertyValueWithMetadata
     return {
       metadata: propertyWithMetadata.metadata,
-    } as PropertyValueMetadata;
+    };
   }
 
   // Check if it's an array
@@ -127,7 +127,7 @@ const extractPropertyMetadata = (
   // Fallback: return value metadata with null dataTypeId
   return {
     metadata: { dataTypeId: null },
-  } as PropertyValueMetadata;
+  };
 };
 
 /**
