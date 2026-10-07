@@ -1,6 +1,6 @@
 import {
-  type Scope,
-  Chunk,
+  type Cause,
+  Context,
   Deferred,
   Duration,
   Effect,
@@ -9,10 +9,10 @@ import {
   Option,
   pipe,
   Queue,
+  type Scope,
   Sink,
   Stream,
 } from "effect";
-import { GenericTag } from "effect/Context";
 import { isUint8ArrayList, Uint8ArrayList } from "uint8arraylist";
 
 import { MutableBuffer } from "../binary/index.js";
@@ -32,6 +32,7 @@ import * as Transaction from "./Transaction.js";
 import * as Transport from "./Transport.js";
 
 import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
+import type { NonEmptyReadonlyArray } from "effect/Array";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Connection");
 
@@ -60,7 +61,7 @@ export interface ConnectionConfig {
    *
    * @defaultValue 200ms
    */
-  lagTimeout?: Duration.DurationInput;
+  lagTimeout?: Duration.Input;
 
   /**
    * The size of the number of buffered responses to keep in memory.
@@ -96,7 +97,7 @@ export interface Connection {
 }
 
 interface TransactionContext {
-  queue: Queue.Enqueue<WireResponse.Response>;
+  queue: Queue.Enqueue<WireResponse.Response, Cause.Done>;
   drop: Effect.Effect<void>;
 }
 
@@ -119,7 +120,7 @@ const ConnectionProto: Omit<
 };
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- always defined
-export const Connection = GenericTag<Connection>(TypeId.description!);
+export const Connection = Context.Service<Connection>(TypeId.description!);
 
 const makeSink = (connection: ConnectionImpl) =>
   Sink.forEach((response: WireResponse.Response) =>
@@ -139,7 +140,7 @@ const makeSink = (connection: ConnectionImpl) =>
       const isOnline = yield* pipe(
         Queue.offer(transaction.value.queue, response),
         Effect.timeout(lagTimeout),
-        Effect.catchTag("TimeoutException", (timeout) =>
+        Effect.catchTag("TimeoutError", (timeout) =>
           Effect.gen(function* () {
             yield* Effect.logWarning(
               "transaction has lagged behind too far, dropping it",
@@ -179,7 +180,7 @@ const wrapDrop = Effect.fn("wrapDrop")(function* (
   }
 
   MutableHashMap.remove(connection.transactions, id);
-  yield* transaction.value.queue.shutdown;
+  yield* Queue.end(transaction.value.queue);
 
   // call user defined drop function
   const dropImpl = yield* Deferred.poll(drop);
@@ -223,7 +224,8 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
       stream,
       (cause) => new Transport.TransportError({ cause }),
     ),
-    Stream.mapConcat((list) => (isUint8ArrayList(list) ? list : [list])),
+    Stream.map((list) => (isUint8ArrayList(list) ? list : [list])),
+    Stream.flattenIterable,
     // cast needed as uint8arraylist doesn't support Uint8Array<ArrayBuffer> yet
     Stream.map((array) =>
       // take the underlying buffer and slice it to the correct view
@@ -236,11 +238,10 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
   );
 
   const writeSink = pipe(
-    Sink.forEachChunk((chunk: Chunk.Chunk<Uint8Array>) =>
+    Sink.forEachArray((chunk: NonEmptyReadonlyArray<Uint8Array>) =>
       Effect.gen(function* () {
         const shouldContinue = yield* Effect.try({
-          try: () =>
-            stream.send(Uint8ArrayList.fromUint8Arrays(Chunk.toArray(chunk))),
+          try: () => stream.send(Uint8ArrayList.fromUint8Arrays([...chunk])),
           catch: (cause) => new Transport.TransportError({ cause }),
         });
 
@@ -254,7 +255,7 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
         // in the future we might be able to re-use the allocated buffer (we would likely still need to copy the contents tho)
         const buffer = MutableBuffer.makeWrite();
 
-        yield* WireRequest.encode(buffer, request);
+        yield* Effect.fromResult(WireRequest.encode(buffer, request));
 
         const array = MutableBuffer.take(buffer);
 
@@ -275,7 +276,7 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
   });
 
   // TODO: we might want to observe the task, for that we would need to have a partial connection that we then patch
-  yield* Effect.fork(task(self));
+  yield* Effect.forkChild(task(self));
 
   return self;
 });
@@ -301,7 +302,7 @@ export const send = Function.dual<
     const deferredDrop = yield* Deferred.make<void>();
     const drop = wrapDrop(impl, request.id, deferredDrop);
 
-    const queue = yield* Queue.bounded<WireResponse.Response>(
+    const queue = yield* Queue.bounded<WireResponse.Response, Cause.Done>(
       impl.config.responseBufferSize ?? 16,
     );
 
@@ -312,11 +313,12 @@ export const send = Function.dual<
 
     MutableHashMap.set(impl.transactions, request.id, transactionContext);
 
-    yield* Effect.fork(
+    yield* Effect.forkChild(
       pipe(
         request, //
         Request.encode(),
         Stream.run(impl.duplex.write),
+        Effect.scoped,
       ),
     );
 

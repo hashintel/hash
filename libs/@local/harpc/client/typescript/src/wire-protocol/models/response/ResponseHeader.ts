@@ -1,7 +1,5 @@
 import {
-  type FastCheck,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Function,
   Hash,
@@ -9,6 +7,7 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  Result,
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
@@ -56,7 +55,6 @@ const ResponseHeaderProto: Omit<
       Hash.combine(Hash.hash(this.protocol)),
       Hash.combine(Hash.hash(this.requestId)),
       Hash.combine(Hash.hash(this.flags)),
-      Hash.cached(this),
     );
   },
 
@@ -100,21 +98,21 @@ export const applyBodyVariant = (
     ResponseFlags.applyBodyVariant(header.flags, variant),
   );
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, header: ResponseHeader) => {
   return pipe(
     buffer,
     Protocol.encode(header.protocol),
-    Either.andThen(RequestId.encode(header.requestId)),
-    Either.andThen(ResponseFlags.encode(header.flags)),
+    Result.andThen(RequestId.encode(header.requestId)),
+    Result.andThen(ResponseFlags.encode(header.flags)),
   );
 });
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const protocol = yield* Protocol.decode(buffer);
     const requestId = yield* RequestId.decode(buffer);
     const flags = yield* ResponseFlags.decode(buffer);
@@ -126,11 +124,8 @@ export const decode = implDecode((buffer) =>
 export const isResponseHeader = (value: unknown): value is ResponseHeader =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .tuple(
-      Protocol.arbitrary(fc),
-      RequestId.arbitrary(fc),
-      ResponseFlags.arbitrary(fc),
-    )
-    .map(Function.tupled(make));
+export const arbitrary = Arbitrary.all([
+  Protocol.arbitrary,
+  RequestId.arbitrary,
+  ResponseFlags.arbitrary,
+]).pipe(Arbitrary.map(Function.tupled(make)));

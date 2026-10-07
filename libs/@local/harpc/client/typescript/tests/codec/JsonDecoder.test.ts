@@ -1,13 +1,12 @@
 // mirror of the Rust test suite
 
 import { describe, it } from "@effect/vitest";
-import { Chunk, Effect, pipe, Schema, Stream } from "effect";
+import { Effect, pipe, Schema, Stream } from "effect";
 
 import { Decoder, JsonDecoder } from "../../src/codec/index.js";
 import { expectArrayBuffer } from "../wire-protocol/utils.js";
 
 import type { DecodingError } from "../../src/codec/Decoder.js";
-import type { ParseError } from "effect/ParseResult";
 import type * as vitest from "vitest";
 
 const decode = Effect.fn("decode")(function* (
@@ -17,15 +16,14 @@ const decode = Effect.fn("decode")(function* (
   const decoder = yield* Decoder.Decoder;
   const textEncoder = new TextEncoder();
 
-  const schema = Schema.Record({ key: Schema.String, value: Schema.String });
+  const schema = Schema.Record(Schema.String, Schema.String);
 
-  const effect = Stream.fromChunk(Chunk.fromIterable(text)).pipe(
+  const effect = Stream.fromArray(text).pipe(
     Stream.map((input) =>
       expectArrayBuffer(cx, textEncoder.encode(input).buffer),
     ),
     decoder.decode(schema),
     Stream.runCollect,
-    Effect.map(Chunk.toReadonlyArray),
   );
 
   // explicit type annotation needed for eslint
@@ -90,14 +88,12 @@ describe.concurrent("JsonDecoder", () => {
       const textPayload = '{"key": "valu\x1E';
 
       // explicit type annotation needed for eslint
-      const error: DecodingError | ParseError = yield* pipe(
+      const error: DecodingError | Schema.SchemaError = yield* pipe(
         decode(cx, [textPayload]),
         Effect.flip,
       );
 
-      cx.expect(error.toString()).toMatch(
-        /Unterminated string in JSON at position 13/,
-      );
+      cx.expect(error.toString()).toMatch(/Expected a valid JSON string/);
     }).pipe(Effect.provide(JsonDecoder.layer)),
   );
 });
