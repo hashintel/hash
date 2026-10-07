@@ -9,10 +9,12 @@ import { createContext, use } from "react";
 import {
   definePetrinautPlugin,
   type PetrinautPlugin,
+  type PluginAssistantStartAction,
   type PluginAssistantTab,
   type PluginHook,
 } from "@hashintel/petrinaut/ui";
 
+import { AiVoiceModeIcon } from "../plugins/_shared/chat/ai-voice-mode-icon";
 import {
   AssistantChat,
   type AssistantChatProps,
@@ -40,6 +42,13 @@ const createBrunchBridgePlugin = definePetrinautPlugin({
   assistant: { label: "Brunch" },
 });
 
+/** The empty-net prompt's way into the chat's Voice mode. */
+const voiceStartAction: PluginAssistantStartAction = {
+  id: "voice",
+  label: "Start voice mode",
+  icon: <AiVoiceModeIcon size={20} />,
+};
+
 const useBrunchBridgePlugin: PluginHook<typeof createBrunchBridgePlugin> = (
   api,
 ) => {
@@ -49,6 +58,8 @@ const useBrunchBridgePlugin: PluginHook<typeof createBrunchBridgePlugin> = (
     assistant: {
       view: chat === null ? null : <AssistantChat api={api} {...chat} />,
       tabs: ledger === null ? [] : [ledger],
+      startActions:
+        chat?.renderVoiceMode === undefined ? [] : [voiceStartAction],
     },
   };
 };

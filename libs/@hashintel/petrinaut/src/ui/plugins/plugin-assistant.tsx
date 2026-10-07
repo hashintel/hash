@@ -5,7 +5,7 @@
  * prompt, the switch commands and the selector in User settings.
  */
 
-import { use } from "react";
+import { type ReactNode, use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -14,11 +14,12 @@ import { SDCPNContext } from "../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
 import {
   AssistantWindowContext,
+  chatTabId,
   type EditorAssistantWindowHost,
   PetrinautAssistantWindow,
 } from "../views/Editor/assistant-window";
 import { PluginBoundary } from "./plugin-boundary";
-import { parentOf } from "./plugin-statuses";
+import { parentOf, runningAssistantsOf } from "./plugin-statuses";
 import {
   type RunningPlugin,
   useActiveAssistantId,
@@ -27,7 +28,10 @@ import {
   useRunningPluginsSelector,
 } from "./plugins-provider";
 
-import type { PluginAssistantStartAction } from "./define-petrinaut-plugin";
+import type {
+  PluginAssistantStartAction,
+  PluginAssistantTab,
+} from "./define-petrinaut-plugin";
 
 /** The active assistant's plugin, then the running plugins that extend it. */
 const contributorsOf = (
@@ -93,14 +97,61 @@ const FailedAssistantView = () => (
   </PetrinautAssistantWindow>
 );
 
+/** Throws `error` inside a plugin's boundary, which reports it under that plugin's id. */
+const Fail = ({ error }: { error: Error }): never => {
+  throw error;
+};
+
+/**
+ * The contributors' tabs in order, each in its own boundary. A tab that
+ * reuses the chat tab's id or another tab's is left out, and a boundary in
+ * `refused` reports it under its plugin's id.
+ */
+const tabsOf = (contributors: readonly RunningPlugin[]) => {
+  const ids = new Set([chatTabId]);
+  const tabs: PluginAssistantTab[] = [];
+  const refused: ReactNode[] = [];
+  for (const { manifest, contributions } of contributors) {
+    for (const tab of contributions.assistant?.tabs ?? []) {
+      const boundary = {
+        pluginId: manifest.id,
+        place: "assistant-tab",
+        contributionId: tab.id,
+      } as const;
+      if (ids.has(tab.id)) {
+        refused.push(
+          <PluginBoundary key={`${manifest.id}:${tab.id}`} {...boundary}>
+            <Fail
+              error={
+                new Error(
+                  `Petrinaut plugin "${manifest.id}" returned an assistant tab with id "${tab.id}", which ${tab.id === chatTabId ? "is the chat tab's id" : "another tab already has"}. Choose another id.`,
+                )
+              }
+            />
+          </PluginBoundary>,
+        );
+      } else {
+        ids.add(tab.id);
+        tabs.push({
+          ...tab,
+          content: <PluginBoundary {...boundary}>{tab.content}</PluginBoundary>,
+        });
+      }
+    }
+  }
+
+  return { tabs, refused };
+};
+
 /**
  * The shown assistant's view in its window, once per document: the view and
- * each tab fail alone, and a failed view leaves a window that says so.
+ * each tab fail alone, a failed view leaves a window that says so, and a tab
+ * whose id is taken is left out and reported.
  */
 export const PluginAssistantWindow = ({
-  window,
+  host,
 }: {
-  window: EditorAssistantWindowHost;
+  host: EditorAssistantWindowHost;
 }) => {
   const activeAssistantId = useActiveAssistantId();
   const contributors = contributorsOf(useRunningPlugins(), activeAssistantId);
@@ -112,23 +163,11 @@ export const PluginAssistantWindow = ({
     return null;
   }
   const pluginId = provider.manifest.id;
-  const tabs = contributors.flatMap(({ manifest, contributions }) =>
-    (contributions.assistant?.tabs ?? []).map((tab) => ({
-      ...tab,
-      content: (
-        <PluginBoundary
-          pluginId={manifest.id}
-          place="assistant-tab"
-          contributionId={tab.id}
-        >
-          {tab.content}
-        </PluginBoundary>
-      ),
-    })),
-  );
+  const { tabs, refused } = tabsOf(contributors);
 
   return (
-    <AssistantWindowContext value={window.hostFor({ label, tabs })}>
+    <AssistantWindowContext value={host.hostFor({ label, tabs })}>
+      {refused}
       <PluginBoundary
         key={`${pluginId}:${petriNetId ?? "no-net"}`}
         pluginId={pluginId}
@@ -141,22 +180,12 @@ export const PluginAssistantWindow = ({
   );
 };
 
-/** The running assistants, by plugin id and label, in the host's order. */
-const useRunningAssistants = () =>
-  usePluginStatuses().flatMap(({ plugin, status }) => {
-    const label = plugin.manifest.assistant?.label;
-
-    return status === "on" && label !== undefined
-      ? [{ id: plugin.manifest.id, label }]
-      : [];
-  });
-
 /** The running assistants and the shown one, for the selector in User settings. */
 export const useAssistantChoice = () => {
   const { setAiAssistantId } = use(UserSettingsContext);
 
   return {
-    assistants: useRunningAssistants(),
+    assistants: runningAssistantsOf(usePluginStatuses()),
     /** The plugin id of the shown assistant; `undefined` while none runs. */
     activeId: useActiveAssistantId(),
     /** Records the user's choice by plugin id. */
@@ -166,16 +195,17 @@ export const useAssistantChoice = () => {
 
 const AssistantSwitchCommand = ({
   assistant,
+  choose,
 }: {
   assistant: { readonly id: string; readonly label: string };
+  choose: (pluginId: string) => void;
 }) => {
-  const { setAiAssistantId } = use(UserSettingsContext);
   useCommand({
     id: `petrinaut.ai-assistant.use:${assistant.id}`,
     label: `Use the ${assistant.label} assistant`,
     category: "Editor",
     keywords: ["assistant", "ai", "switch", assistant.label],
-    run: () => setAiAssistantId(assistant.id),
+    run: () => choose(assistant.id),
   });
 
   return null;
@@ -183,13 +213,17 @@ const AssistantSwitchCommand = ({
 
 /** A palette command for each running assistant but the shown one, once two or more run. */
 export const AssistantSwitchCommands = () => {
-  const { assistants, activeId } = useAssistantChoice();
+  const { assistants, activeId, choose } = useAssistantChoice();
 
   return assistants.length > 1
     ? assistants
         .filter(({ id }) => id !== activeId)
         .map((assistant) => (
-          <AssistantSwitchCommand key={assistant.id} assistant={assistant} />
+          <AssistantSwitchCommand
+            key={assistant.id}
+            assistant={assistant}
+            choose={choose}
+          />
         ))
     : null;
 };

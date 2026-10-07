@@ -7,7 +7,7 @@
 export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
 
 /** Color of a tool card in the transcript. */
-export type PetrinautAiToolPresentationTone =
+type PetrinautAiToolPresentationTone =
   | "danger"
   | "info"
   | "neutral"

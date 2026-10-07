@@ -8,32 +8,20 @@ import {
 import { afterEach, expect, it, vi } from "vitest";
 
 import {
-  createJsonDocHandle,
-  createPetrinaut,
-  type PetrinautExperimentResult,
-} from "@hashintel/petrinaut-core";
-
-import { createTestPluginApi } from "../../../testing/create-test-plugin-api";
+  createEmptyTestInstance,
+  createTestPluginApi,
+} from "../../../testing/create-test-plugin-api";
 import { AssistantChatApiContext } from "../chat-api";
 import { ExperimentCard } from "./experiment-card";
 
 import type { ExperimentToolPart } from "./experiment-card";
+import type { PetrinautExperimentResult } from "@hashintel/petrinaut-core";
 import type { ExperimentRecord } from "@hashintel/petrinaut/ui";
 import type { ReactElement, ReactNode } from "react";
 
 afterEach(cleanup);
 
-const instance = createPetrinaut({
-  document: createJsonDocHandle({
-    initial: {
-      places: [],
-      transitions: [],
-      types: [],
-      parameters: [],
-      differentialEquations: [],
-    },
-  }),
-});
+const instance = createEmptyTestInstance();
 /** The chat's `api` with the document's experiment records. */
 const apiWith = (records: readonly ExperimentRecord[]) =>
   createTestPluginApi(instance, { records });

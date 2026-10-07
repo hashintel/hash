@@ -47,4 +47,5 @@ const usePetrinautAiPlugin: PluginHook<typeof createPetrinautAiPlugin> = (
   };
 };
 
+/** Petrinaut's own assistant, with each document's transcript saved in this browser. */
 export const petrinautAiPlugin = createPetrinautAiPlugin(usePetrinautAiPlugin);

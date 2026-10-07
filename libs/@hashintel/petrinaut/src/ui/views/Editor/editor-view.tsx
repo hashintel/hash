@@ -211,8 +211,6 @@ const EditorViewContent = ({
   const actualMode = use(ActualModeContext);
 
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
-  // The assistant window's tab, start request and focus requests live above
-  // the assistant's view, which remounts for another document.
   const assistantWindow = useEditorAssistantWindowHost();
   const hasAiAssistant = useHasActiveAssistant();
   const assistantStartAction = useAssistantStartAction();
@@ -614,7 +612,7 @@ const EditorViewContent = ({
           </Activity>
           <SimulationCreationDrawer />
         </SimulationWorkspace>
-        <PluginAssistantWindow window={assistantWindow} />
+        <PluginAssistantWindow host={assistantWindow} />
       </Stack>
     </ExperimentalIconProvider>
   );

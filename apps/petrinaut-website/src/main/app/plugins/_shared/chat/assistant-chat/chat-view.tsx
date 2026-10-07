@@ -47,7 +47,7 @@ type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 
 const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
 
-export type ChatViewProps = {
+type ChatViewProps = {
   primaryLabel?: string;
   presentation?: PetrinautAiAssistant["presentation"];
   resolveToolPresentation?: PetrinautAiAssistant["resolveToolPresentation"];
@@ -233,9 +233,7 @@ const getTranscriptLabel = (
   inputMode: PetrinautAiInputMode,
   presentation: NonNullable<PetrinautAiAssistant["presentation"]> = "stock",
 ) =>
-  presentation === "brunch" && inputMode === "voice"
-    ? "Voice"
-    : (primaryLabel ?? "AI");
+  presentation === "brunch" && inputMode === "voice" ? "Voice" : primaryLabel;
 
 export const ChatView = ({
   experimentStates,

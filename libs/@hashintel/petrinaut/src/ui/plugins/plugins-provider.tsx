@@ -22,7 +22,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
-import { useStore, useStoreSelector } from "../../react/use-store";
+import { useStoreSelector } from "../../react/use-store";
 import { accessApi } from "./plugin-access";
 import { PluginBoundary } from "./plugin-boundary";
 import {
@@ -93,16 +93,6 @@ export const usePluginStatuses = (): readonly PluginStatusEntry[] =>
 export const useActiveAssistantId = (): string | undefined =>
   use(PluginsContext).activeAssistantId;
 
-/** The running plugins with their latest contributions, in the host's order. */
-export const useRunningPlugins = (): readonly RunningPlugin[] => {
-  const { statuses, published } = use(PluginsContext);
-  const running = useStore(published);
-
-  return statuses.flatMap(
-    ({ plugin }) => running.get(plugin.manifest.id) ?? [],
-  );
-};
-
 /**
  * A value selected from the running plugins, in the host's order; the caller
  * re-renders only when the selected value changes.
@@ -118,6 +108,10 @@ export const useRunningPluginsSelector = <T,>(
     ),
   );
 };
+
+/** The running plugins with their latest contributions, in the host's order. */
+export const useRunningPlugins = (): readonly RunningPlugin[] =>
+  useRunningPluginsSelector((running) => running);
 
 /** Whether a running plugin's root covers the editor, as a modal or a tour does. */
 export const usePluginOverlay = (): boolean =>

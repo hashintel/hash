@@ -7,6 +7,7 @@ import {
   type AssistantWindowPlacement,
   chatTabId,
   resolveActiveTabId,
+  standaloneHost,
 } from "./window-host";
 
 import type { PluginAssistantTab } from "../../../plugins/define-petrinaut-plugin";
@@ -61,6 +62,7 @@ export const PetrinautAssistantWindowPreview = ({
   const [chosenTabId, setChosenTabId] = useState(chatTabId);
 
   const host: AssistantWindowHost = {
+    ...standaloneHost,
     label,
     isOpen,
     close: () => setOpen(false),
@@ -68,16 +70,11 @@ export const PetrinautAssistantWindowPreview = ({
     setPlacement,
     width,
     setWidth,
-    isAnimating: false,
-    reportDockHeight: () => {},
     compact,
     setCompact,
     tabs,
     activeTabId: resolveActiveTabId(tabs, chosenTabId),
     setActiveTabId: setChosenTabId,
-    focusRequest: 0,
-    startRequest: null,
-    consumeStartRequest: () => {},
     ...state,
   };
 

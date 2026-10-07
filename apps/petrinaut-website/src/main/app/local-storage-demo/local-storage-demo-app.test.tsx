@@ -83,6 +83,8 @@ const renderedPetrinaut = vi.hoisted(() => ({
     readonly label: string;
     readonly activityIdentities?: readonly unknown[];
   }[],
+  /** The ids of the shown assistant's start actions. */
+  startActionIds: [] as readonly string[],
   commandRegistry: null as CommandRegistryView | null,
 }));
 const renderedAssistants = vi.hoisted(() => [] as PetrinautAiAssistant[]);
@@ -178,11 +180,12 @@ type MockPlugin = {
     readonly assistant?: {
       readonly view?: ReactNode;
       readonly tabs?: typeof renderedPetrinaut.assistantTabs;
+      readonly startActions?: readonly { readonly id: string }[];
     };
   };
 };
 
-/** Runs an assistant plugin's hook as the editor does, and records its chat's props and tabs. */
+/** Runs an assistant plugin's hook as the editor does, and records its chat's props, tabs and start actions. */
 const AssistantProbe = ({
   plugin,
   documentId,
@@ -197,6 +200,8 @@ const AssistantProbe = ({
     : null;
   renderedPetrinaut.aiAssistant = chat;
   renderedPetrinaut.assistantTabs = assistant?.tabs ?? [];
+  renderedPetrinaut.startActionIds =
+    assistant?.startActions?.map(({ id }) => id) ?? [];
   if (chat !== null) renderedAssistants.push(chat);
 
   return null;
@@ -237,6 +242,7 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
 afterEach(() => {
   renderedPetrinaut.aiAssistant = null;
   renderedPetrinaut.assistantTabs = [];
+  renderedPetrinaut.startActionIds = [];
 });
 
 /**
@@ -1584,6 +1590,7 @@ describe("assistant selection", () => {
       });
     });
     expect(currentAssistant().renderVoiceMode).toBeDefined();
+    expect(renderedPetrinaut.startActionIds).toEqual(["voice"]);
 
     defaultView.unmount();
     localStorage.setItem(voicePreferenceStorageKey, "false");
@@ -1592,6 +1599,7 @@ describe("assistant selection", () => {
     );
     await waitFor(() => expect(currentVoiceCapability()).toBeDefined());
     expect(currentAssistant().renderVoiceMode).toBeUndefined();
+    expect(renderedPetrinaut.startActionIds).toEqual([]);
     disabledView.unmount();
     localStorage.setItem(voicePreferenceStorageKey, "true");
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
@@ -1608,6 +1616,7 @@ describe("assistant selection", () => {
         (assistant) => assistant.renderVoiceMode === undefined,
       ),
     ).toBe(true);
+    expect(renderedPetrinaut.startActionIds).toEqual([]);
     expect(localStorage.getItem(voicePreferenceStorageKey)).toBe("true");
   });
 

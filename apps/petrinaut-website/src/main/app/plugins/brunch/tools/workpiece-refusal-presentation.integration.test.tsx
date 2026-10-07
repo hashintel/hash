@@ -25,15 +25,14 @@ import {
   flueConversationIdWeb,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import {
-  createJsonDocHandle,
-  createPetrinaut,
-} from "@hashintel/petrinaut-core";
 
 import { loadBuiltBrunchApplication } from "../../../../../../../brunch-agent/test/load-built-application";
 import { AssistantChatApiContext } from "../../_shared/chat/assistant-chat/chat-api";
 import { ChatView } from "../../_shared/chat/assistant-chat/chat-view";
-import { createTestPluginApi } from "../../_shared/testing/create-test-plugin-api";
+import {
+  createEmptyTestInstance,
+  createTestPluginApi,
+} from "../../_shared/testing/create-test-plugin-api";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -74,19 +73,7 @@ afterAll(() => {
 });
 afterEach(cleanup);
 
-const chatApi = createTestPluginApi(
-  createPetrinaut({
-    document: createJsonDocHandle({
-      initial: {
-        places: [],
-        transitions: [],
-        types: [],
-        parameters: [],
-        differentialEquations: [],
-      },
-    }),
-  }),
-);
+const chatApi = createTestPluginApi(createEmptyTestInstance());
 
 const renderAssistant = (
   messages: readonly PetrinautAiMessage[],

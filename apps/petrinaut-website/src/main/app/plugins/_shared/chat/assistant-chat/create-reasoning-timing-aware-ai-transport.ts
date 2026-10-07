@@ -80,7 +80,7 @@ const createReasoningTimingTransform = () => {
  * Wrap a Petrinaut chat transport so reasoning chunks pick up client-side
  * receipt timestamps as they arrive.
  *
- * This is applied by `AiAssistantPanel` to every consumer-provided transport,
+ * This is applied by `AssistantChat` to every consumer-provided transport,
  * which means consumers do not have to plumb timing into their own backend.
  * The trade-off is that the timestamps reflect when chunks arrived at the
  * client rather than when the model emitted them — for SSE streams the gap

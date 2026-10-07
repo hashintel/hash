@@ -7,7 +7,7 @@ import {
   type PetrinautExperimentResult,
 } from "@hashintel/petrinaut-core";
 
-import type { PetrinautAiChatTransport } from "../plugins/_shared/chat/petrinaut-ai-assistant";
+import type { PetrinautAiTransport } from "../plugins/_shared/chat/ai-message";
 
 const percentage = (value: number) =>
   `${(value * 100).toLocaleString("en", { maximumFractionDigits: 2 })}%`;
@@ -48,7 +48,7 @@ const delay = (duration: number, signal: AbortSignal): Promise<void> =>
     if (signal.aborted) abort();
   });
 
-export const createExperimentDemoTransport = (): PetrinautAiChatTransport => ({
+export const createExperimentDemoTransport = (): PetrinautAiTransport => ({
   reconnectToStream: () => Promise.resolve(null),
   sendMessages: ({ messages, abortSignal }) => {
     const lastUserIndex = messages.findLastIndex(

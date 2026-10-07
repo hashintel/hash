@@ -462,7 +462,6 @@ describe("AssistantChat composer submissions", () => {
           })),
         renderComposerControl: (next) => {
           context = next;
-
           return null;
         },
       },
@@ -489,7 +488,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -679,7 +677,6 @@ describe("AssistantChat composer submissions", () => {
         transport: { reconnectToStream: async () => null, sendMessages },
         renderComposerControl: (context) => {
           latest = context;
-
           return null;
         },
       },
@@ -710,7 +707,6 @@ describe("AssistantChat composer submissions", () => {
             output: expect.objectContaining({ applied: true }) as unknown,
           }),
         );
-
         return streamChunks([
           ...textChunks("a3-reply", "Continued after observation."),
           { type: "finish", finishReason: "stop" },
@@ -800,7 +796,6 @@ describe("AssistantChat composer submissions", () => {
         followMessages,
         renderComposerControl: (context) => {
           control = context;
-
           return null;
         },
       },
@@ -968,7 +963,6 @@ describe("AssistantChat composer submissions", () => {
       followMessages: { canReplace: () => canReplace },
       renderComposerControl: (context) => {
         control = context;
-
         return null;
       },
     };
@@ -1046,7 +1040,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: async () => null,
       sendMessages: vi.fn(async ({ messages }) => {
         requests.push(structuredClone(messages));
-
         return streamChunks(textChunks("reply", "Synthetic continuation"));
       }),
     };
@@ -1082,7 +1075,6 @@ describe("AssistantChat composer submissions", () => {
         ],
         renderComposerControl: (context) => {
           control = context;
-
           return null;
         },
       },
@@ -1111,7 +1103,6 @@ describe("AssistantChat composer submissions", () => {
       { answer: string }
     >) => {
       const [completion, setCompletion] = useState("pending");
-
       return (
         <>
           <button
@@ -1119,7 +1110,6 @@ describe("AssistantChat composer submissions", () => {
             onClick={() => {
               if (!submitAndWait) {
                 setCompletion("unavailable");
-
                 return;
               }
               void submitAndWait({ answer: "Must not submit" }).then(
@@ -1272,7 +1262,6 @@ describe("AssistantChat composer submissions", () => {
           ...(following ? { followMessages: { canReplace: () => false } } : {}),
           renderComposerControl: (context) => {
             control = context;
-
             return null;
           },
         },
@@ -1414,7 +1403,6 @@ describe("AssistantChat composer submissions", () => {
       requestStop: async () => "already-settled",
       renderComposerControl: (context) => {
         latest = context;
-
         return null;
       },
     });
@@ -1470,7 +1458,6 @@ describe("AssistantChat composer submissions", () => {
         await new Promise<void>((resolve) => {
           releaseLayout = resolve;
         });
-
         return applyAutoLayout();
       });
     await waitFor(() => expect(releaseLayout).toBeDefined());
@@ -1501,7 +1488,6 @@ describe("AssistantChat composer submissions", () => {
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
       ({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks([
             { type: "start-step" },
@@ -1581,7 +1567,6 @@ describe("AssistantChat composer submissions", () => {
         requestMessages.push(structuredClone(messages));
         if (requestMessages.length <= 2) {
           const toolCallId = `automatic-net-read-${requestMessages.length}`;
-
           return Promise.resolve(
             streamChunks([
               { type: "start-step" },
@@ -1596,7 +1581,6 @@ describe("AssistantChat composer submissions", () => {
             ]),
           );
         }
-
         return Promise.resolve(
           streamChunks(
             textChunks("automatic-complete", "Construction complete"),
@@ -1662,7 +1646,6 @@ describe("AssistantChat composer submissions", () => {
             ]),
           );
         }
-
         return Promise.resolve(
           streamChunks(textChunks("batch-complete", "Both reads received")),
         );
@@ -1743,7 +1726,6 @@ describe("AssistantChat composer submissions", () => {
         await new Promise<void>((resolve) => {
           releaseLayout = resolve;
         });
-
         return { commitCount: 0 };
       });
 
@@ -1767,14 +1749,12 @@ describe("AssistantChat composer submissions", () => {
     let finishVoiceEnd: (() => void) | undefined;
     const endVoice = vi.fn(() => {
       events.push("end");
-
       return new Promise<void>((resolve) => {
         finishVoiceEnd = resolve;
       });
     });
     const sendMessages = vi.fn(() => {
       events.push("submit");
-
       return Promise.resolve(
         streamChunks(
           textChunks("pending-active-handoff", "Pending handoff accepted"),
@@ -1849,14 +1829,12 @@ describe("AssistantChat composer submissions", () => {
     let finishVoiceEnd: (() => void) | undefined;
     const endVoice = vi.fn(() => {
       events.push("end");
-
       return new Promise<void>((resolve) => {
         finishVoiceEnd = resolve;
       });
     });
     const sendMessages = vi.fn(() => {
       events.push("submit");
-
       return Promise.resolve(
         streamChunks(textChunks("cta-handoff", "CTA handoff accepted")),
       );
@@ -1928,14 +1906,12 @@ describe("AssistantChat composer submissions", () => {
     let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
     const endVoice = vi.fn(() => {
       events.push("end");
-
       return new Promise<void>((resolve) => {
         finishVoiceEnd = resolve;
       });
     });
     const sendMessages = vi.fn(() => {
       events.push("submit");
-
       return Promise.resolve(
         streamChunks(textChunks("typed-handoff", "Typed handoff accepted")),
       );
@@ -1976,7 +1952,6 @@ describe("AssistantChat composer submissions", () => {
       aiAssistant: {
         renderVoiceMode: (context) => {
           latestVoiceContext = context;
-
           return <VoiceMode context={context} />;
         },
         transport: {
@@ -2058,7 +2033,6 @@ describe("AssistantChat composer submissions", () => {
       aiAssistant: {
         renderVoiceMode: (context) => {
           latestVoiceContext = context;
-
           return <VoiceMode context={context} />;
         },
         transport: {
@@ -2326,14 +2300,12 @@ describe("AssistantChat composer submissions", () => {
     let finishVoiceEnd: (() => void) | undefined;
     const endVoice = vi.fn(() => {
       events.push("end");
-
       return new Promise<void>((resolve) => {
         finishVoiceEnd = resolve;
       });
     });
     const sendMessages = vi.fn(() => {
       events.push("submit");
-
       return Promise.resolve(
         streamChunks(textChunks("prompt-response", "Prompt accepted")),
       );
@@ -2564,12 +2536,10 @@ describe("AssistantChat composer submissions", () => {
     const VoiceMode = ({ isOpen }: { isOpen: boolean }) => {
       useEffect(() => {
         voiceModeMounts += 1;
-
         return () => {
           voiceModeUnmounts += 1;
         };
       }, []);
-
       return <div>{`Voice mode ${isOpen ? "open" : "closed"}`}</div>;
     };
     const aiAssistant: PetrinautAiAssistant = {
@@ -2639,7 +2609,6 @@ describe("AssistantChat composer submissions", () => {
           speakerMuted: false,
           speakerVolume: 0.25,
         });
-
         return () => reportVoiceSessionState(null);
       }, [replayAllowed, reportVoiceSessionState]);
 
@@ -2727,7 +2696,6 @@ describe("AssistantChat composer submissions", () => {
 
       useEffect(() => {
         if (!registerVoiceModeSessionControls) return;
-
         return registerVoiceModeSessionControls({
           end: async () => undefined,
           pause: vi.fn(),
@@ -2746,7 +2714,6 @@ describe("AssistantChat composer submissions", () => {
           speakerMuted: false,
           speakerVolume: 0.5,
         });
-
         return () => reportVoiceSessionState(null);
       }, [reportVoiceSessionState]);
 
@@ -2805,7 +2772,6 @@ describe("AssistantChat composer submissions", () => {
       const { inputMode, registerVoiceModeControls, setVoiceActive } = context;
       useEffect(() => {
         voiceModeMounts += 1;
-
         return () => {
           voiceModeUnmounts += 1;
         };
@@ -2826,7 +2792,6 @@ describe("AssistantChat composer submissions", () => {
           setVoiceActive(true);
         }
       }, [inputMode, setVoiceActive]);
-
       return (
         <button type="button" onClick={() => context.setInputMode("text")}>
           {`Voice mode ${inputMode}`}
@@ -2867,7 +2832,6 @@ describe("AssistantChat composer submissions", () => {
     const aiAssistant: PetrinautAiAssistant = {
       renderVoiceMode: (context) => {
         latestInputMode = context.inputMode;
-
         return <div>Voice mode</div>;
       },
       transport: {
@@ -3045,7 +3009,6 @@ describe("AssistantChat composer submissions", () => {
             }),
           );
         }
-
         return Promise.resolve(
           streamChunks(textChunks("next-answer", "Next answer accepted")),
         );
@@ -3069,7 +3032,6 @@ describe("AssistantChat composer submissions", () => {
         interactiveTools: [hostTool],
         renderVoiceMode: (context) => {
           latestVoiceContext = context;
-
           return (
             <button
               type="button"
@@ -3166,7 +3128,6 @@ describe("AssistantChat composer submissions", () => {
       conversationId,
       renderVoiceMode: (context) => {
         latestVoiceContext = context;
-
         return null;
       },
       transport,
@@ -3211,7 +3172,6 @@ describe("AssistantChat composer submissions", () => {
         () => reportExperimentRunning?.(true),
         [reportExperimentRunning],
       );
-
       return null;
     };
     const assistant: PetrinautAiAssistant = {
@@ -3241,7 +3201,6 @@ describe("AssistantChat composer submissions", () => {
         },
         renderComposerControl: (context) => {
           controls = context;
-
           return null;
         },
       },
@@ -3267,7 +3226,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ chatId }) => {
         chatIds.push(chatId);
-
         return Promise.resolve(
           streamChunks(
             textChunks("generated-id-response", "Generated ID used"),
@@ -3280,7 +3238,6 @@ describe("AssistantChat composer submissions", () => {
       aiAssistant: {
         renderComposerControl: (context) => {
           observedConversationIds.add(context.conversationId);
-
           return (
             <button
               type="button"
@@ -3312,7 +3269,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ chatId }) => {
         chatIds.push(chatId);
-
         return Promise.resolve(
           streamChunks(textChunks("second-response", "Second chat used")),
         );
@@ -3346,7 +3302,6 @@ describe("AssistantChat composer submissions", () => {
         chatIds.push(chatId);
         requestMessages.push(structuredClone(messages));
         const responseId = `response-${requestMessages.length}`;
-
         return Promise.resolve(
           streamChunks([
             { type: "start-step" },
@@ -3561,7 +3516,6 @@ describe("AssistantChat composer submissions", () => {
       streamController?.enqueue({ type: "finish-step" });
       streamController?.enqueue({ type: "finish", finishReason: "stop" });
       streamController?.close();
-
       return "already-settled" as const;
     });
 
@@ -3616,7 +3570,6 @@ describe("AssistantChat composer submissions", () => {
       streamController?.enqueue({ type: "finish-step" });
       streamController?.enqueue({ type: "finish", finishReason: "tool-calls" });
       streamController?.close();
-
       return "already-settled" as const;
     });
 
@@ -3682,7 +3635,6 @@ describe("AssistantChat composer submissions", () => {
           transport: { reconnectToStream: async () => null, sendMessages },
           renderComposerControl: (context) => {
             latest = context;
-
             return null;
           },
         },
@@ -3746,7 +3698,6 @@ describe("AssistantChat composer submissions", () => {
         transport: { reconnectToStream: async () => null, sendMessages },
         renderComposerControl: (context) => {
           latest = context;
-
           return null;
         },
       },
@@ -3859,7 +3810,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(() => {
         requestCount += 1;
-
         return Promise.resolve(
           streamChunks(
             requestCount === 1
@@ -3888,7 +3838,6 @@ describe("AssistantChat composer submissions", () => {
       aiAssistant: {
         renderComposerControl: (context) => {
           observedStatuses.push(context.status);
-
           return null;
         },
         transport,
@@ -3925,7 +3874,6 @@ describe("AssistantChat composer submissions", () => {
         if (requestCount > 1) {
           return new Promise<ReadableStream<UIMessageChunk>>(() => {});
         }
-
         return Promise.resolve(
           streamChunks([
             ...textChunks("preamble", "Checking the net"),
@@ -3947,7 +3895,6 @@ describe("AssistantChat composer submissions", () => {
       conversationId,
       renderComposerControl: (context) => {
         statuses.push(`${context.conversationId}:${context.status}`);
-
         return (
           <button
             type="button"
@@ -4104,7 +4051,6 @@ describe("AssistantChat composer submissions", () => {
               }),
             );
           }
-
           return Promise.resolve(
             new ReadableStream<UIMessageChunk>({
               start(controller) {
@@ -4204,7 +4150,6 @@ describe("AssistantChat composer submissions", () => {
         }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) => {
           requestCount += 1;
           const isFirst = requestCount === 1;
-
           return Promise.resolve(
             new ReadableStream<UIMessageChunk>({
               start(controller) {
@@ -4316,7 +4261,6 @@ describe("AssistantChat composer submissions", () => {
       aiAssistant: {
         renderVoiceMode: (context) => {
           latestVoiceContext = context;
-
           return null;
         },
         transport,
@@ -4514,7 +4458,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(textChunks("voice-response", "Voice message accepted")),
         );
@@ -4576,7 +4519,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(textChunks("voice-response", "Voice message accepted")),
         );
@@ -4623,7 +4565,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5062,7 +5003,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5132,7 +5072,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(
             textChunks(
@@ -5178,7 +5117,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5266,7 +5204,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(() => {
         requests += 1;
-
         return Promise.resolve(
           streamChunks(
             requests === 1
@@ -5338,7 +5275,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5405,7 +5341,6 @@ describe("AssistantChat composer submissions", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(textChunks("ordinary-response", "Message received")),
         );
@@ -5532,7 +5467,6 @@ describe("AssistantChat host interactive tools", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5632,7 +5566,6 @@ describe("AssistantChat host interactive tools", () => {
       reconnectToStream: () => Promise.resolve(null),
       sendMessages: vi.fn(({ messages }) => {
         requestMessages.push(structuredClone(messages));
-
         return Promise.resolve(
           streamChunks(
             requestMessages.length === 1
@@ -5736,7 +5669,6 @@ describe("AssistantChat host interactive tools", () => {
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() => {
       const call = turn.calls[turn.current];
       turn.current += 1;
-
       return Promise.resolve(
         streamChunks(
           call === undefined
@@ -5766,7 +5698,6 @@ describe("AssistantChat host interactive tools", () => {
             execute: async ({ readDiagnosticsContext }) => {
               const context = await readDiagnosticsContext();
               diagnosticsOutputs.push(context);
-
               return { context };
             },
           },
@@ -5784,7 +5715,6 @@ describe("AssistantChat host interactive tools", () => {
                 x: 0,
                 y: 0,
               });
-
               return { applied: true };
             },
           },
@@ -5914,7 +5844,6 @@ describe("AI experiment requests", () => {
     sendMessages.mockImplementation(async () =>
       streamChunks(textChunks("done", "Result received")),
     );
-
     return {
       transport: { reconnectToStream: async () => null, sendMessages },
       sendMessages,
@@ -5932,7 +5861,6 @@ describe("AI experiment requests", () => {
           runsCompleted: 3,
           runsTarget: 8,
         });
-
         return completion.promise;
       },
     );
@@ -6108,7 +6036,6 @@ describe("AI experiment requests", () => {
             metrics: [],
           }),
         );
-
         return completion.promise;
       },
     );
@@ -6176,7 +6103,6 @@ describe("AI experiment requests", () => {
           metrics: [],
         }),
       );
-
       return current.promise;
     });
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>

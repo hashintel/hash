@@ -19,17 +19,16 @@ import {
 } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
-import {
-  createJsonDocHandle,
-  createPetrinaut,
-  DEFAULT_PETRINAUT_EXTENSIONS,
-} from "@hashintel/petrinaut-core";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import {
   PetrinautAssistantWindowPreview,
   type PluginAssistantTab,
 } from "@hashintel/petrinaut/ui";
 
-import { createTestPluginApi } from "../../testing/create-test-plugin-api";
+import {
+  createEmptyTestInstance,
+  createTestPluginApi,
+} from "../../testing/create-test-plugin-api";
 import { definePetrinautAiInteractiveTool } from "../interactive-tool";
 import { AssistantChatApiContext } from "./chat-api";
 import { ChatView } from "./chat-view";
@@ -57,20 +56,7 @@ const noop = () => {};
 
 /** The toasts the chat asks for, through its `api`. */
 const notify = vi.fn((_input: unknown) => "notification-id");
-const chatApi = createTestPluginApi(
-  createPetrinaut({
-    document: createJsonDocHandle({
-      initial: {
-        places: [],
-        transitions: [],
-        types: [],
-        parameters: [],
-        differentialEquations: [],
-      },
-    }),
-  }),
-  { notify },
-);
+const chatApi = createTestPluginApi(createEmptyTestInstance(), { notify });
 const WithChatApi = ({ children }: { children: ReactNode }) => (
   <AssistantChatApiContext value={chatApi}>{children}</AssistantChatApiContext>
 );

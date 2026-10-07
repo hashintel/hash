@@ -61,6 +61,18 @@ export const resolvePluginStatuses = (
   return plugins.map((plugin) => ({ plugin, status: statusOf(plugin) }));
 };
 
+/** The running assistants, by plugin id and label, in the host's order. */
+export const runningAssistantsOf = (
+  statuses: readonly PluginStatusEntry[],
+): { readonly id: string; readonly label: string }[] =>
+  statuses.flatMap(({ plugin, status }) => {
+    const label = plugin.manifest.assistant?.label;
+
+    return status === "on" && label !== undefined
+      ? [{ id: plugin.manifest.id, label }]
+      : [];
+  });
+
 /**
  * The plugin id of the assistant the editor shows: the user's choice while
  * its plugin runs, otherwise the first running assistant. A stale choice is
@@ -70,13 +82,10 @@ export const resolveActiveAssistantId = (
   statuses: readonly PluginStatusEntry[],
   chosenPluginId: string | null,
 ): string | undefined => {
-  const assistants = statuses.flatMap(({ plugin, status }) =>
-    status === "on" && plugin.manifest.assistant?.label !== undefined
-      ? [plugin.manifest.id]
-      : [],
-  );
+  const assistants = runningAssistantsOf(statuses);
 
-  return assistants.find((id) => id === chosenPluginId) ?? assistants[0];
+  return (assistants.find(({ id }) => id === chosenPluginId) ?? assistants[0])
+    ?.id;
 };
 
 /** Whether the editor shows the assistant `manifest` provides or extends. */

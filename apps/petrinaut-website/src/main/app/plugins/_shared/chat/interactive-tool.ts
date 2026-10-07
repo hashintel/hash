@@ -2,7 +2,7 @@ import type { PetrinautAiAssistantPresentation } from "./petrinaut-ai-assistant"
 import type { ComponentType } from "react";
 
 /** A runtime parser such as a Zod schema. */
-export type PetrinautAiInteractiveToolSchema<Value> = {
+type PetrinautAiInteractiveToolSchema<Value> = {
   parse: (value: unknown) => Value;
 };
 
@@ -40,7 +40,7 @@ export type PetrinautAiInteractiveToolWidgetProps<Input, Output> =
  * Definition of a host-owned dynamic AI tool rendered inline in Petrinaut's
  * chat panel.
  */
-export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
+type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   /** Must match the dynamic tool name emitted by the host's AI transport. */
   toolName: string;
   /** Produced cards stay below the answer rather than inside the work fold. */
@@ -85,7 +85,7 @@ type ErasedInteractiveToolDefinition = {
 
 const interactiveToolDefinition = Symbol("PetrinautAiInteractiveTool");
 
-/** Opaque, type-safe registration accepted by `aiAssistant.interactiveTools`. */
+/** Opaque, type-safe registration accepted by `AssistantChat`'s `interactiveTools`. */
 export type PetrinautAiInteractiveTool = {
   readonly toolName: string;
   readonly [interactiveToolDefinition]: ErasedInteractiveToolDefinition;

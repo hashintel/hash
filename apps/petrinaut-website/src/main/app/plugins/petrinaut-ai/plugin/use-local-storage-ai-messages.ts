@@ -3,8 +3,8 @@ import { toPetrinautId } from "@hashintel/petrinaut-core";
 import {
   readBrowserStorage,
   writeBrowserStorage,
-} from "../../../local-storage-demo/browser-storage";
-import { usePersistedState } from "../../../local-storage-demo/use-persisted-state";
+} from "../../../shared/browser-storage";
+import { usePersistedState } from "../../../shared/use-persisted-state";
 
 import type { PetrinautAiMessage } from "../../_shared/chat/ai-message";
 

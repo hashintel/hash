@@ -45,7 +45,7 @@ left behind are dropped, matching the editor's own rule when a visitor switches
 away from an untouched net.
 
 The editor chooses the initial document after saved nets load. Open tabs refresh
-their saved nets and stock-assistant messages when local storage changes, and
+their saved nets and Petrinaut AI transcripts when local storage changes, and
 updates start from the latest persisted value so another tab's documents survive.
 
 ## Choosing the assistant

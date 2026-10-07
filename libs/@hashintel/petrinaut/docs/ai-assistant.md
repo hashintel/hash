@@ -32,9 +32,9 @@ The header text is not selectable. Header icons animate on hover and click unles
 
 ## The conversation
 
-In the stock assistant, an empty conversation asks you to **Describe the process you want to create**; later turns say **Continue iterating...**. Press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field starts as a single line beside the action button and grows with your message. In Brunch Chat, the field always says **Continue iterating...**, and its button switches between Voice for an empty field, Send for typed text, and Stop while a response is running. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
+In Petrinaut AI, an empty conversation asks you to **Describe the process you want to create**; later turns say **Continue iterating...**. Press **Enter** or choose **Send message**. **Shift+Enter** adds a line. The field starts as a single line beside the action button and grows with your message. In Brunch Chat, the field always says **Continue iterating...**, and its button switches between Voice for an empty field, Send for typed text, and Stop while a response is running. **Waiting for your decision** marks an open approval; **Experiment running** marks an active run. Suggestion chips hide while Brunch is working and return when idle. Scrolling up keeps your reading position; new text follows automatically only when you are within 96 pixels of the bottom.
 
-The primary tab reads **AI** unless the host names it. In Brunch it reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each Brunch turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead. The stock assistant keeps plain answers and a horizontally scrolling row of suggestion chips; Brunch's chips wrap to fit the panel.
+The primary tab reads the assistant's name, such as **Petrinaut**, unless the assistant names the tab. In Brunch it reads **Chat**, or **Voice** while Voice mode is selected. Your messages appear in right-aligned grey bubbles. Each Brunch turn groups its work in a neutral disclosure, followed by a light-blue answer and any produced cards. In Voice, the written Brunch answer is inside the work disclosure instead. Petrinaut AI keeps plain answers and a horizontally scrolling row of suggestion chips; Brunch's chips wrap to fit the panel.
 
 As soon as you send, **Working…** and a small blue spinner appear in the
 transcript, where that turn's activity will appear, below any spoken Voice
@@ -44,7 +44,7 @@ duplicate status below it. Suggestion chips keep their space while hidden and
 cannot be activated during work. The spinner stays still with reduced motion
 enabled. While viewing Ledger, a status row above the composer reports
 **Working…** instead.
-The stock assistant shows its working label without these Brunch statuses.
+Petrinaut AI shows its working label without these Brunch statuses.
 
 Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps these controls visible; older answers reveal them on hover or keyboard focus. Touch screens keep them visible. Copy keeps the answer's Markdown and briefly shows a check mark after copying succeeds. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
 
@@ -69,7 +69,7 @@ When the host supplies them, Voice also shows a collapsed brief directly under y
 
 Hosts that provide live input captions can show your words while you speak. This partial text is display-only: it does not submit work or start preparing a brief. The finalized transcript replaces it in the same bubble before preparation starts. New spoken words and status labels fade in; reduced-motion preferences disable these effects.
 
-Brunch work, reasoning, and tools use compact inline disclosures. Expand **Thought for Ns** to read the reasoning heading and details; expand the tool group to inspect its indented rows. The stock assistant shows reasoning and tool calls directly, opens streaming reasoning by default, and uses its standard tool cards. Keyboard focus uses Petrinaut's blue outline.
+Brunch work, reasoning, and tools use compact inline disclosures. Expand **Thought for Ns** to read the reasoning heading and details; expand the tool group to inspect its indented rows. Petrinaut AI shows reasoning and tool calls directly, opens streaming reasoning by default, and uses its standard tool cards. Keyboard focus uses Petrinaut's blue outline.
 
 While a response is streaming you can:
 
@@ -345,7 +345,7 @@ The assistant has tools for inspecting and modifying the current net. Expand the
 - **Applied mutation tools** (completed status dot) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Successive tools remain visible as individual chronological rows. The status colour reports completion or failure, not whether a mutation added, updated, or deleted an entity.
 - **Not applied** (neutral summary) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. A completed status dot indicates execution finished, not that a mutation was applied. A host can instead show a compact correctable refusal whose detailed reason stays collapsed. Execution errors show a red dot and the error.
 - **`setNetTitle`** -- renames the net when the host supplies title editing.
-- **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget. Brunch uses **Allow** / **Deny**; the stock assistant uses **Yes, auto-layout** / **No, keep current layout**. Otherwise it'll run it without asking.
+- **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget. Brunch uses **Allow** / **Deny**; Petrinaut AI uses **Yes, auto-layout** / **No, keep current layout**. Otherwise it'll run it without asking.
 - **Host-specific questions and actions** -- an application embedding Petrinaut
   may add interactive widgets. For example, an elicitation assistant can ask a
   structured question inline and continue after you submit the answer. The
@@ -356,7 +356,7 @@ The assistant has tools for inspecting and modifying the current net. Expand the
 
 Clicking a mutation card usually selects the entity it touched (place, transition, scenario, metric, etc.) so you can inspect what changed.
 
-An embedding application can check its live document immediately before and after a mutation, or refuse the change if the document no longer matches the request. A refusal leaves the document unchanged; an execution error remains attached to the matching tool call. These optional host checks do not change the stock assistant, read-only restrictions, or Stop behaviour. They do not cover title changes or auto-layout commands.
+An embedding application can check its live document immediately before and after a mutation, or refuse the change if the document no longer matches the request. A refusal leaves the document unchanged; an execution error remains attached to the matching tool call. These optional host checks do not change Petrinaut AI, read-only restrictions, or Stop behaviour. They do not cover title changes or auto-layout commands.
 
 ### Document titles
 

@@ -22,7 +22,8 @@ interface PluginSettingsRowComponents {
   }) => ReactNode;
 }
 
-const selectStyle = css({ width: "[156px]", maxWidth: "[100%]" });
+/** The width of a select in a settings row. */
+export const settingSelectStyle = css({ width: "[156px]", maxWidth: "[100%]" });
 
 const SettingControl = ({
   spec,
@@ -39,7 +40,7 @@ const SettingControl = ({
     <Select
       {...aria}
       size="sm"
-      className={selectStyle}
+      className={settingSelectStyle}
       required
       value={String(value)}
       onChange={onChange}

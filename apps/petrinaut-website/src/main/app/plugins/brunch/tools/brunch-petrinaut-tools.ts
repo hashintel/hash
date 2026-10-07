@@ -8,7 +8,7 @@ import {
   type PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
 
-import { executePetrinautAiMutation } from "../../_shared/chat/apply-petrinaut-ai-mutation";
+import { executePetrinautAiMutation } from "../../_shared/chat/execute-petrinaut-ai-mutation";
 import {
   type DocumentRevision,
   documentRevisionOf,
@@ -97,8 +97,9 @@ const currentRevision = (
 export const createCanonicalPetrinautHostTools = (
   input: CanonicalPetrinautHostToolsInput,
 ) => {
+  const { handle } = input;
   const before = new Map<string, DocumentRevision>();
-  const stampBefore = (toolCallId: string, handle: PetrinautDocHandle) => {
+  const stampBefore = (toolCallId: string) => {
     const revision = currentRevision(handle);
     if (revision === undefined) before.delete(toolCallId);
     else before.set(toolCallId, revision);
@@ -139,7 +140,6 @@ export const createCanonicalPetrinautHostTools = (
     inputSchema: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
     outputSchema: passthrough,
     execute: ({ toolCallId }) => {
-      const { handle } = input;
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;
       if (input.replayReadiness.status === "pending")
@@ -153,7 +153,7 @@ export const createCanonicalPetrinautHostTools = (
         extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
           .extensions,
       };
-      stampBefore(toolCallId, handle);
+      stampBefore(toolCallId);
       toolNames.set(toolCallId, getLatestNetDefinitionToolName);
       started.set(toolCallId, {
         toolName: getLatestNetDefinitionToolName,
@@ -186,7 +186,6 @@ export const createCanonicalPetrinautHostTools = (
     inputSchema: mutationActionInputSchemas[toolName],
     outputSchema: passthrough,
     execute: ({ toolCallId, input: rawInput, edit }) => {
-      const { handle } = input;
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;
       if (input.replayReadiness.status === "pending")
@@ -198,7 +197,7 @@ export const createCanonicalPetrinautHostTools = (
           throw new Error("The bound browser document is unavailable.");
         return current;
       };
-      stampBefore(toolCallId, handle);
+      stampBefore(toolCallId);
       toolNames.set(toolCallId, toolName);
       const aiToolCall =
         toolName === "addPlace"
@@ -254,7 +253,7 @@ export const createCanonicalPetrinautHostTools = (
         );
       prepared.add(toolCallId);
       toolNames.set(toolCallId, toolName);
-      stampBefore(toolCallId, input.handle);
+      stampBefore(toolCallId);
       return rawInput;
     },
     clientToolResultMetadataFor: (
@@ -264,7 +263,7 @@ export const createCanonicalPetrinautHostTools = (
       const existing = metadata.get(toolCallId);
       if (existing) return existing;
       const revisionBefore = before.get(toolCallId);
-      const revisionAfter = currentRevision(input.handle);
+      const revisionAfter = currentRevision(handle);
       const toolName = toolNames.get(toolCallId);
       const changed =
         revisionBefore !== undefined &&

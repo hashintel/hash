@@ -3,15 +3,14 @@ import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { useLayoutEffect } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import {
-  createJsonDocHandle,
-  createPetrinaut,
-} from "@hashintel/petrinaut-core";
 import { PetrinautAssistantWindowPreview } from "@hashintel/petrinaut/ui";
 
 import { NoopResizeObserver } from "../../../shared/petrinaut-jsdom";
 import { AssistantChat } from "../../_shared/chat/assistant-chat";
-import { createTestPluginApi } from "../../_shared/testing/create-test-plugin-api";
+import {
+  createEmptyTestInstance,
+  createTestPluginApi,
+} from "../../_shared/testing/create-test-plugin-api";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -180,18 +179,7 @@ test.each([
       });
     };
     const api = createTestPluginApi(
-      createPetrinaut({
-        document: createJsonDocHandle({
-          id: "voice-browser-test",
-          initial: {
-            places: [],
-            transitions: [],
-            types: [],
-            parameters: [],
-            differentialEquations: [],
-          },
-        }),
-      }),
+      createEmptyTestInstance("voice-browser-test"),
     );
     render(
       <PetrinautAssistantWindowPreview>

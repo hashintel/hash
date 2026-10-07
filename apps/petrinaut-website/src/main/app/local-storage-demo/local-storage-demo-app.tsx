@@ -498,7 +498,7 @@ export const LocalStorageDemoApp = ({
     ],
   );
   const transportClientPromise = flueClientPromise;
-  const petrinautAiChatTransport = useMemo(() => {
+  const brunchTransport = useMemo(() => {
     if (transportClientPromise !== null) {
       return createBrunchPanelTransport(
         transportClientPromise,
@@ -601,10 +601,7 @@ export const LocalStorageDemoApp = ({
   );
   // What the Brunch plugin renders, until the document is bound.
   const brunchBridge = useMemo((): BrunchBridge => {
-    if (
-      constructionBrowser === undefined ||
-      petrinautAiChatTransport === null
-    ) {
+    if (constructionBrowser === undefined || brunchTransport === null) {
       return { chat: null, ledger: null };
     }
     const activityIdentities = flueHistory.ready
@@ -650,7 +647,7 @@ export const LocalStorageDemoApp = ({
           ...(inBandBrowserTools ? mutationApprovalTools : []),
           ...(draftInteractiveTool ? [draftInteractiveTool] : []),
         ],
-        transport: petrinautAiChatTransport,
+        transport: brunchTransport,
         ...(flueClientPromise === null
           ? {}
           : {
@@ -696,7 +693,7 @@ export const LocalStorageDemoApp = ({
     flueHistory.phase,
     flueHistory.ready,
     flueHistory.snapshot,
-    petrinautAiChatTransport,
+    brunchTransport,
   ]);
 
   if (

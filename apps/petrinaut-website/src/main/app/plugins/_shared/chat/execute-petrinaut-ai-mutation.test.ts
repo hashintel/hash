@@ -9,7 +9,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { createTestPluginApi } from "../testing/create-test-plugin-api";
-import { executePetrinautAiMutation } from "./apply-petrinaut-ai-mutation";
+import { executePetrinautAiMutation } from "./execute-petrinaut-ai-mutation";
 
 import type { EditRefusal } from "@hashintel/petrinaut/ui";
 

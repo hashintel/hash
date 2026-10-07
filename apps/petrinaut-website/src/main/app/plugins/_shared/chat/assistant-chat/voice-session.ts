@@ -2,6 +2,7 @@ import { use, useCallback, useSyncExternalStore } from "react";
 
 import { VoiceSessionContext } from "./voice-session/context";
 
+import type { PetrinautAiVoiceSessionPhase } from "../voice-session-state";
 import type { VoiceSessionActions } from "./voice-session/store";
 
 export { VoiceSessionContext } from "./voice-session/context";
@@ -9,9 +10,7 @@ export { VoiceSessionProvider } from "./voice-session/provider";
 export {
   createVoiceSessionStore,
   type VoiceSessionActions,
-  type VoiceSessionStore,
 } from "./voice-session/store";
-import type { PetrinautAiVoiceSessionPhase } from "../voice-session-state";
 
 /**
  * Each hook selects a single field so a microphone-level update only

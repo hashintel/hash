@@ -49,7 +49,6 @@ import {
   useStoreSelector,
 } from "@hashintel/petrinaut/ui";
 
-import { executePetrinautAiMutation } from "./apply-petrinaut-ai-mutation";
 import {
   type AssistantChatApi,
   AssistantChatApiContext,
@@ -76,6 +75,7 @@ import {
   VoiceSessionContext,
   VoiceSessionProvider,
 } from "./assistant-chat/voice-session";
+import { executePetrinautAiMutation } from "./execute-petrinaut-ai-mutation";
 
 import type { PetrinautAiMessage, PetrinautAiTransport } from "./ai-message";
 import type {
@@ -89,12 +89,6 @@ import type {
   PetrinautAiVoiceSessionState,
 } from "./composer-control";
 import type { PetrinautAiAssistant } from "./petrinaut-ai-assistant";
-
-export type {
-  PetrinautAiMessage,
-  PetrinautAiMessageMetadata,
-  PetrinautAiTransport,
-} from "./ai-message";
 
 type PetrinautAiToolCall = Parameters<
   ChatOnToolCallCallback<PetrinautAiMessage>
@@ -445,6 +439,13 @@ export const addMappedToolOutput = async ({
   }
 };
 
+const autoLayoutOutput = async (edit: PluginEdits): Promise<AiToolOutput> => {
+  const layout = await edit.applyAutoLayout();
+  return layout.applied
+    ? toPetrinautAiToolOutput(summarizeApplyAutoLayout(layout.value))
+    : toRefusalOutput(layout.reason);
+};
+
 const applyPetrinautAiCommand = async ({
   aiToolCall,
   edit,
@@ -456,12 +457,8 @@ const applyPetrinautAiCommand = async ({
   // surface will surface a TypeScript error here until the new case is added.
   switch (aiToolCall.toolName) {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    case "applyAutoLayout": {
-      const layout = await edit.applyAutoLayout();
-      return layout.applied
-        ? toPetrinautAiToolOutput(summarizeApplyAutoLayout(layout.value))
-        : toRefusalOutput(layout.reason);
-    }
+    case "applyAutoLayout":
+      return autoLayoutOutput(edit);
     default: {
       const unhandledToolName: never = aiToolCall.toolName;
       return unhandledToolName;
@@ -2199,15 +2196,13 @@ const ConversationAssistantChat = ({
           return;
         }
 
-        void document.edit.applyAutoLayout().then((layout) => {
+        void autoLayoutOutput(document.edit).then((layoutOutput) =>
           safelyAddToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
-            output: layout.applied
-              ? toPetrinautAiToolOutput(summarizeApplyAutoLayout(layout.value))
-              : toRefusalOutput(layout.reason),
-          });
-        });
+            output: layoutOutput,
+          }),
+        );
       }}
       onSelectToolTarget={(target) => document.reveal(target)}
       onSendPrompt={(prompt) => {
