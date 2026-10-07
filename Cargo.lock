@@ -6398,7 +6398,6 @@ dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
  "problematic",
- "rand 0.10.1",
  "reqwest 0.13.4",
  "rstest",
  "serde",
