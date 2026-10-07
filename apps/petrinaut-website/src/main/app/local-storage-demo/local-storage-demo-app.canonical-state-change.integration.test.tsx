@@ -123,7 +123,7 @@ const metric = { id: "throughput", name: "Throughput", code: "return 1;" };
 
 test("real panel scenario and metric add/update/remove calls produce persisted revisions and a Brunch continuation", async () => {
   process.env.BRUNCH_CHAT_MODEL = "openai/faux-model";
-  delete process.env.BRUNCH_CHAT_THINKING;
+  process.env.BRUNCH_CHAT_THINKING = "medium";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   process.env.OTEL_SDK_DISABLED = "true";
   const faux = fauxProvider({

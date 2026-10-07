@@ -101,7 +101,7 @@ const expandSettledTools = async () => {
 
 test("renders pending gold, applied green, typed refusal compact, and thrown red across reopen", async () => {
   process.env.BRUNCH_CHAT_MODEL = "openai/faux-model";
-  delete process.env.BRUNCH_CHAT_THINKING;
+  process.env.BRUNCH_CHAT_THINKING = "medium";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   const faux = fauxProvider({
     models: [{ id: "faux-model", reasoning: true }],
