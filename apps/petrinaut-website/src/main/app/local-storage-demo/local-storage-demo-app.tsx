@@ -394,6 +394,16 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
  * The demo's own palette commands, registered beside Petrinaut's.
  * Brunch and Stock are selected through the product UI.
  */
+/** Each message's 1-based position among messages of the same role. */
+const ordinalsByRole = (messages: readonly PetrinautAiMessage[]): number[] => {
+  const counts = new Map<PetrinautAiMessage["role"], number>();
+  return messages.map((message) => {
+    const ordinal = (counts.get(message.role) ?? 0) + 1;
+    counts.set(message.role, ordinal);
+    return ordinal;
+  });
+};
+
 const DemoCommands = ({
   createNewNet,
   brunchSelected,
@@ -469,7 +479,7 @@ export const LocalStorageDemoApp = ({
   const [budgetNotes, setBudgetNotes] = useState<
     {
       conversationId: string;
-      after: { id: string; role: string; ordinal: number };
+      after: { id: string; role: PetrinautAiMessage["role"]; ordinal: number };
       level: InterviewBudgetLevel;
       message: PetrinautAiMessage;
     }[]
@@ -1008,24 +1018,20 @@ export const LocalStorageDemoApp = ({
               // once its turn settles, so an anchor whose id is gone falls
               // back to its position among messages of the same role.
               const ids = new Set(messages.map((message) => message.id));
-              const ordinals = new Map<string, number>();
-              const withNotes = messages.flatMap((message) => {
-                const ordinal = (ordinals.get(message.role) ?? 0) + 1;
-                ordinals.set(message.role, ordinal);
-                return [
-                  message,
-                  ...budgetNotes
-                    .filter(
-                      (note) =>
-                        note.conversationId === conversationId &&
-                        (ids.has(note.after.id)
-                          ? note.after.id === message.id
-                          : note.after.role === message.role &&
-                            note.after.ordinal === ordinal),
-                    )
-                    .map((note) => note.message),
-                ];
-              });
+              const ordinals = ordinalsByRole(messages);
+              const withNotes = messages.flatMap((message, index) => [
+                message,
+                ...budgetNotes
+                  .filter(
+                    (note) =>
+                      note.conversationId === conversationId &&
+                      (ids.has(note.after.id)
+                        ? note.after.id === message.id
+                        : note.after.role === message.role &&
+                          note.after.ordinal === ordinals[index]),
+                  )
+                  .map((note) => note.message),
+              ]);
               return mapVoiceMessages?.(withNotes) ?? withNotes;
             },
             renderSystemMessage: (message: PetrinautAiMessage) => {
@@ -1049,7 +1055,10 @@ export const LocalStorageDemoApp = ({
                     onChange={(level) => {
                       if (level === interviewBudgetLevel) return;
                       const last = context.messages.at(-1);
-                      if (last) {
+                      const lastOrdinal = ordinalsByRole(context.messages).at(
+                        -1,
+                      );
+                      if (last && lastOrdinal !== undefined) {
                         const config = interviewBudgetLevelsConfig[level];
                         setBudgetNotes((notes) => [
                           ...notes,
@@ -1059,9 +1068,7 @@ export const LocalStorageDemoApp = ({
                             after: {
                               id: last.id,
                               role: last.role,
-                              ordinal: context.messages.filter(
-                                (message) => message.role === last.role,
-                              ).length,
+                              ordinal: lastOrdinal,
                             },
                             message: {
                               id: `interview-budget:${crypto.randomUUID()}`,
