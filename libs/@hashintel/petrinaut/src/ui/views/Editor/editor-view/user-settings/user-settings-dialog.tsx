@@ -13,12 +13,14 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../../shared/use-floating-panel";
+import { PluginsSection } from "./user-settings-dialog/plugins-section";
 import { SettingsHeading } from "./user-settings-dialog/settings-heading";
 import { SettingsPanel } from "./user-settings-dialog/settings-panel";
 
@@ -51,6 +53,13 @@ const sections = [
     label: "Viewport",
     icon: "grid",
     description: "Choose how your net looks and responds.",
+  },
+  {
+    id: "plugins",
+    label: "Plugins",
+    icon: "puzzlePiece",
+    description:
+      "Switch this editor's plugins on or off, and see what each adds.",
   },
   {
     id: "labs",
@@ -310,6 +319,8 @@ const SettingToggle = ({
   </SettingRow>
 );
 
+const pluginRowComponents = { Group: SettingsGroup, Row: SettingRow };
+
 const SettingsTabs = () => {
   const elementRef = useRef<HTMLDivElement>(null);
   const member = useFocusMember(() =>
@@ -481,6 +492,10 @@ export const UserSettingsDialog = ({
                           onChange={settings.setShowWalkthroughOnInit}
                         />
                       </SettingsGroup>
+                      <PluginSettingsRows
+                        section="general"
+                        components={pluginRowComponents}
+                      />
                     </>
                   )}
                   {item.id === "viewport" && (
@@ -557,8 +572,13 @@ export const UserSettingsDialog = ({
                           onChange={settings.setPartialSelection}
                         />
                       </SettingsGroup>
+                      <PluginSettingsRows
+                        section="viewport"
+                        components={pluginRowComponents}
+                      />
                     </>
                   )}
+                  {item.id === "plugins" && <PluginsSection />}
                   {item.id === "labs" && (
                     <>
                       {extensions.subnets && (
@@ -579,6 +599,10 @@ export const UserSettingsDialog = ({
                           onChange={settings.setShowCompilationOutput}
                         />
                       </SettingsGroup>
+                      <PluginSettingsRows
+                        section="labs"
+                        components={pluginRowComponents}
+                      />
                       {settingsLabs !== undefined && settingsLabs !== null && (
                         <FocusControls>{settingsLabs}</FocusControls>
                       )}

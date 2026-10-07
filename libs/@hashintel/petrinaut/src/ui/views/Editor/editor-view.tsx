@@ -47,6 +47,9 @@ import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
+import { useCanvasRegistration } from "../../plugins/plugin-editor";
+import { PluginRoots } from "../../plugins/plugin-outlets";
+import { usePluginOverlay } from "../../plugins/plugins-provider";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -56,7 +59,6 @@ import { TopBar } from "./components/TopBar/top-bar";
 import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
-import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
 import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
@@ -194,7 +196,7 @@ const EditorViewContent = ({
     frameSceneAfterRender,
     registerController,
     requestFrameOnNextRegistration,
-  } = useCanvasControllerRegistration();
+  } = useCanvasRegistration();
   const runAutoLayoutAndFrame = () =>
     applyAutoLayoutAndFrame({ applyAutoLayout, frameSceneAfterRender });
 
@@ -232,6 +234,8 @@ const EditorViewContent = ({
     setShowWalkthroughOnInit,
   } = use(UserSettingsContext);
   const walkthrough = use(WalkthroughContext);
+  // A plugin covering the canvas, such as a tour, holds back the prompt.
+  const pluginOverlay = usePluginOverlay();
 
   const toggleAiAssistant = () => {
     if (isAiAssistantOpen) {
@@ -527,6 +531,7 @@ const EditorViewContent = ({
     !isAiAssistantOpen &&
     !isAiCtaDismissed &&
     !willShowWalkthroughDialog(walkthrough, isWalkthroughOpen) &&
+    !pluginOverlay &&
     isEmptySDCPN(petriNetDefinition);
 
   return (
@@ -539,6 +544,7 @@ const EditorViewContent = ({
         onNewNet={showNetManagementMenuItems ? handleCreateEmpty : undefined}
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
+      <PluginRoots />
       <UserSettings settingsLabs={slots?.settingsLabs} />
       <ImportErrorDialog
         open={importError !== null}
