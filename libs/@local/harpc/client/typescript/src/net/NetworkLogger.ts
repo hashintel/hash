@@ -1,4 +1,4 @@
-import { Effect, LogLevel, Runtime } from "effect";
+import { type Context, Effect, type LogLevel } from "effect";
 
 import { createProto } from "../utils.js";
 import * as internal from "./internal/networkLogger.js";
@@ -20,19 +20,19 @@ interface NetworkLogger extends ComponentLogger {
 interface NetworkLoggerImpl extends NetworkLogger {
   readonly formatters: FormatterCollection;
 
-  readonly runtime: Runtime.Runtime<never>;
+  readonly context: Context.Context<never>;
 
   logger: (
     name: string,
-    level: LogLevel.LogLevel,
+    level: LogLevel.Severity,
   ) => (formatter: unknown, ...args: readonly unknown[]) => void;
 }
 
-const NetworkLoggerProto: Omit<NetworkLoggerImpl, "formatters" | "runtime"> = {
+const NetworkLoggerProto: Omit<NetworkLoggerImpl, "formatters" | "context"> = {
   [TypeId]: TypeId,
 
-  logger(this: NetworkLoggerImpl, name: string, level: LogLevel.LogLevel) {
-    const fork = Runtime.runFork(this.runtime);
+  logger(this: NetworkLoggerImpl, name: string, level: LogLevel.Severity) {
+    const fork = Effect.runForkWith(this.context);
 
     return (formatter: unknown, ...args: readonly unknown[]) => {
       const effect = internal
@@ -44,9 +44,9 @@ const NetworkLoggerProto: Omit<NetworkLoggerImpl, "formatters" | "runtime"> = {
   },
 
   forComponent(this: NetworkLoggerImpl, name: string): Logger {
-    return Object.assign(this.logger(name, LogLevel.Debug), {
-      error: this.logger(name, LogLevel.Error),
-      trace: this.logger(name, LogLevel.Trace),
+    return Object.assign(this.logger(name, "Debug"), {
+      error: this.logger(name, "Error"),
+      trace: this.logger(name, "Trace"),
       newScope: (child: string) => this.forComponent(`${name}:${child}`),
       enabled: true,
     });
@@ -58,10 +58,10 @@ export const DefaultFormatters = internal.defaultFormatters;
 export const make = Effect.fn("make")(function* (
   formatters?: FormatterCollection,
 ) {
-  const runtime = yield* Effect.runtime();
+  const context = yield* Effect.context();
 
   return createProto(NetworkLoggerProto, {
     formatters: formatters ?? DefaultFormatters,
-    runtime,
+    context,
   }) satisfies NetworkLoggerImpl;
 });
