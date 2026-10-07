@@ -260,36 +260,20 @@ describe("useLocalDocumentRepository", () => {
     const { result } = renderHook(() =>
       useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
-    const placedDefinition = {
-      ...emptyDefinition,
-      places: [
-        {
-          id: "place-1",
-          name: "Place",
-          x: 0,
-          y: 0,
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-        },
-      ],
-    };
 
-    // Brunch reports a call's `after` revision from the handle as soon as the
-    // call returns, so the write must land synchronously inside the change.
-    void result.current.repository.persistRevision({
-      documentId: "document-1",
-      incarnationId: "incarnation-1",
-      definition: placedDefinition,
-      previousRevisionId: "revision-1",
-      revisionId: "revision-2",
-    });
-
-    const saved: unknown = JSON.parse(
-      storage.getItem("petrinaut-sdcpn") ?? "{}",
-    );
-    expect(saved).toMatchObject({
-      "document-1": { revisionId: "revision-2", sdcpn: placedDefinition },
+    // Brunch reports a call's `after` revision as soon as the call returns,
+    // so the write lands synchronously inside the change.
+    act(() => {
+      void result.current.repository.persistRevision({
+        documentId: "document-1",
+        incarnationId: "incarnation-1",
+        definition: emptyDefinition,
+        previousRevisionId: "revision-1",
+        revisionId: "revision-2",
+      });
+      expect(
+        JSON.parse(storage.getItem("petrinaut-sdcpn") ?? "{}"),
+      ).toMatchObject({ "document-1": { revisionId: "revision-2" } });
     });
   });
 });

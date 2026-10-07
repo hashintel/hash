@@ -27,11 +27,6 @@ vi.hoisted(() => {
     dispatchEvent: () => true,
   });
 });
-const binding = {
-  documentId: "document",
-  incarnationId: "incarnation",
-  conversationId: "conversation",
-};
 const input = {
   experiment: {
     name: "Baseline",
@@ -58,7 +53,7 @@ const draft = {
 const history = () => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
-      id: binding.documentId,
+      id: "document",
       initial: {
         places: [],
         transitions: [],
