@@ -1,4 +1,4 @@
-use alloc::{borrow::ToOwned as _, string::String};
+use alloc::boxed::Box;
 use core::{ascii::Char, str::FromStr};
 
 /// The longest name, [`InputAlias`] or [`UnitCode`], in bytes.
@@ -67,12 +67,12 @@ fn is_sql_identifier(value: &str) -> bool {
     })
 }
 
-fn parse_name(value: &str) -> Result<String, InvalidName> {
+fn parse_name(value: &str) -> Result<Box<str>, InvalidName> {
     check_length(value, MAX_NAME_BYTES)?;
     if !is_name(value) {
         return Err(InvalidName::InvalidCharacters);
     }
-    Ok(value.to_owned())
+    Ok(value.into())
 }
 
 /// Identifies an integration within its web.
@@ -80,7 +80,7 @@ fn parse_name(value: &str) -> Result<String, InvalidName> {
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
 )]
 #[as_ref(forward)]
-pub struct ConnectorId(String);
+pub struct ConnectorId(Box<str>);
 
 impl FromStr for ConnectorId {
     type Err = InvalidName;
@@ -95,7 +95,7 @@ impl FromStr for ConnectorId {
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
 )]
 #[as_ref(forward)]
-pub struct SourceName(String);
+pub struct SourceName(Box<str>);
 
 impl FromStr for SourceName {
     type Err = InvalidName;
@@ -110,7 +110,7 @@ impl FromStr for SourceName {
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
 )]
 #[as_ref(forward)]
-pub struct StepId(String);
+pub struct StepId(Box<str>);
 
 impl FromStr for StepId {
     type Err = InvalidName;
@@ -125,7 +125,7 @@ impl FromStr for StepId {
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
 )]
 #[as_ref(forward)]
-pub struct LinkId(String);
+pub struct LinkId(Box<str>);
 
 impl FromStr for LinkId {
     type Err = InvalidName;
@@ -140,7 +140,7 @@ impl FromStr for LinkId {
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
 )]
 #[as_ref(forward)]
-pub struct UnitMapName(String);
+pub struct UnitMapName(Box<str>);
 
 impl FromStr for UnitMapName {
     type Err = InvalidName;
@@ -157,7 +157,7 @@ impl FromStr for UnitMapName {
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
 )]
 #[as_ref(forward)]
-pub struct CheckpointName(String);
+pub struct CheckpointName(Box<str>);
 
 impl FromStr for CheckpointName {
     type Err = InvalidName;
@@ -170,7 +170,7 @@ impl FromStr for CheckpointName {
         {
             return Err(InvalidName::InvalidSegment);
         }
-        Ok(Self(value.to_owned()))
+        Ok(Self(value.into()))
     }
 }
 
@@ -182,7 +182,7 @@ impl FromStr for CheckpointName {
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
 )]
 #[as_ref(forward)]
-pub struct InputAlias(String);
+pub struct InputAlias(Box<str>);
 
 impl InputAlias {
     const RESERVED: &'static str = "input";
@@ -201,7 +201,7 @@ impl FromStr for InputAlias {
                 name: Self::RESERVED,
             });
         }
-        Ok(Self(value.to_owned()))
+        Ok(Self(value.into()))
     }
 }
 
@@ -213,14 +213,14 @@ impl FromStr for InputAlias {
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
 )]
 #[as_ref(forward)]
-pub struct ColumnName(String);
+pub struct ColumnName(Box<str>);
 
 impl FromStr for ColumnName {
     type Err = InvalidName;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         check_length(value, MAX_COLUMN_BYTES)?;
-        Ok(Self(value.to_owned()))
+        Ok(Self(value.into()))
     }
 }
 
@@ -229,14 +229,14 @@ impl FromStr for ColumnName {
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
 )]
 #[as_ref(forward)]
-pub struct UnitCode(String);
+pub struct UnitCode(Box<str>);
 
 impl FromStr for UnitCode {
     type Err = InvalidName;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         check_length(value, MAX_NAME_BYTES)?;
-        Ok(Self(value.to_owned()))
+        Ok(Self(value.into()))
     }
 }
 
