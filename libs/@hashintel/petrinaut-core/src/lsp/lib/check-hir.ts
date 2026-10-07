@@ -6,7 +6,7 @@
  * prefix adjustment is needed — the produced diagnostics can be serialized
  * with the same `serializeDiagnostic` path as adjusted TS diagnostics.
  */
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 
 import { lintHirUserCode } from "../../hir";
 

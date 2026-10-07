@@ -20,7 +20,7 @@
  * surface as errors in the LSP and the affected item cannot simulate until
  * fixed.
  */
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 
 import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
 import {

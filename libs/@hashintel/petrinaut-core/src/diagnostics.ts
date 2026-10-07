@@ -1,8 +1,7 @@
 // Node/tooling-only headless diagnostics entry. The same TypeScript-backed
 // checker the editor's language-server worker runs, callable without a
 // browser so a host or test can ask whether a definition compiles cleanly.
-// Kept separate from the main entry because it bundles the TypeScript
-// compiler.
+// Kept separate from the main entry because it loads the TypeScript compiler.
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "./extensions";
 import { checkSDCPN } from "./lsp/lib/checker";
 import { SDCPNLanguageServer } from "./lsp/lib/create-sdcpn-language-service";

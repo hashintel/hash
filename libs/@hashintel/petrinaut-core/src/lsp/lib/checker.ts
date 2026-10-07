@@ -14,7 +14,7 @@ import { getItemFilePath } from "./file-paths";
 import type { HirSurfaceContext } from "../../hir";
 import type { SDCPN } from "../../types/sdcpn";
 import type { SDCPNLanguageServer } from "./create-sdcpn-language-service";
-import type ts from "typescript";
+import type ts from "@typescript/typescript6";
 
 export type ItemType =
   | "transition-lambda"
