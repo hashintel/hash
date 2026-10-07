@@ -23,48 +23,23 @@ mod tests;
 /// Checks whether the entity has a specific `(base_url, version)` type pair.
 ///
 /// ```sql
-/// array_positions(eit.base_urls, $base::text)
-/// && array_positions(eit.versions, $version::bigint)
+/// $url = ANY(eit.versioned_urls)
 /// ```
-///
-/// The overlap of position sets preserves the pairing invariant: a shared
-/// position means `base_urls[i] = $base AND versions[i] = $version`.
 fn convert_is_of_type<A: Allocator + Clone>(
     unit: &mut PolicyTranslationUnit<'_, A>,
     url: VersionedUrl,
 ) -> Expression {
     let table = unit.projections.entity_edition_cache();
+    let parameter = unit.parameters.push(url);
 
-    let base_url_index = unit.parameters.push(url.base_url);
-    let version_index = unit.parameters.push(url.version);
-
-    // array_positions(eit.base_urls, $base)
-    let base_url_positions = Expression::Function(
-        hash_graph_postgres_store::store::postgres::query::Function::ArrayPositions(
-            Box::new(Expression::ColumnReference(ColumnReference {
-                correlation: Some(table.clone()),
-                name: Column::EntityEditionCache(table::EntityEditionCache::BaseUrls).into(),
-            })),
-            Box::new(Expression::Parameter(base_url_index)),
-        ),
-    );
-
-    // array_positions(eit.versions, $version)
-    let version_positions = Expression::Function(
-        hash_graph_postgres_store::store::postgres::query::Function::ArrayPositions(
-            Box::new(Expression::ColumnReference(ColumnReference {
-                correlation: Some(table),
-                name: Column::EntityEditionCache(table::EntityEditionCache::Versions).into(),
-            })),
-            Box::new(Expression::Parameter(version_index)),
-        ),
-    );
-
-    // array_positions(...) && array_positions(...)
+    // $url = ANY(eit.versioned_urls)
     Expression::Binary(BinaryExpression {
-        op: BinaryOperator::Overlap,
-        left: Box::new(base_url_positions),
-        right: Box::new(version_positions),
+        op: BinaryOperator::In,
+        left: Box::new(Expression::Parameter(parameter)),
+        right: Box::new(Expression::ColumnReference(ColumnReference {
+            correlation: Some(table),
+            name: Column::EntityEditionCache(table::EntityEditionCache::VersionedUrls).into(),
+        })),
     })
 }
 
@@ -333,7 +308,7 @@ impl<A: Allocator> PolicyTranslationUnit<'_, A> {
                     permit_constraints.clear();
                 }
                 (Effect::Forbid, None) => {
-                    // reset the projections to be from what they have been before
+                    // reset the projections to be from what they have been before.
                     *self.projections = projections_snapshot;
 
                     // Blank forbid: deny everything, no further analysis needed.

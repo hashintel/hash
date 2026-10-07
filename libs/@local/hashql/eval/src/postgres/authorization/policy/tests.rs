@@ -45,7 +45,7 @@ fn snapshot_with_params(sql: &str, parameters: &AuxiliaryParameters<Global>) -> 
 }
 
 #[test]
-fn is_of_type_overlap() {
+fn is_of_type_any() {
     let mut fixture = Fixture::new();
     let url = make_url(
         "https://hash.ai/@h/types/entity-type/machine/",
@@ -58,7 +58,7 @@ fn is_of_type_overlap() {
     settings.set_description(description);
     let _guard = settings.bind_to_scope();
     assert_snapshot!(
-        "is_of_type_overlap",
+        "is_of_type_any",
         snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
     );
 }
