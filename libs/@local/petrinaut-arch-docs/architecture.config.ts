@@ -57,15 +57,15 @@ export const config: ArchitectureConfig = {
       language: "typescript",
     },
     {
-      name: "@local/petrinaut-python",
+      name: "petrinaut-python",
       path: "libs/@local/petrinaut-python",
       description:
         "Python bindings for the CLI's JSON-lines protocol: sessions, run requests, optimization studies. POSIX-only; pydantic validates protocol responses.",
       language: "python",
     },
     {
-      name: "@local/petrinaut-optimizer-core",
-      path: "libs/@local/petrinaut-optimizer-core",
+      name: "petrinaut-optimizer-core",
+      path: "libs/@local/petrinaut-optimizer-core/python",
       description:
         "Optuna study construction, suggestion and ask/tell loop shared by the optimizer service and the browser worker. Pure Python; runs under CPython and Pyodide.",
       language: "python",
@@ -83,7 +83,7 @@ export const config: ArchitectureConfig = {
       sourceDirectory: ".",
     },
     {
-      name: "@apps/petrinaut-opt",
+      name: "petrinaut-optimization",
       path: "apps/petrinaut-opt",
       description:
         "Python optimizer service: detached Optuna studies over the CLI, replayable SSE event streams, admission control.",

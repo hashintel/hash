@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 
 import pytest
-from conftest import FakeProcess, spawn
 
 from petrinaut import (
     PetrinautProtocolError,
@@ -11,8 +10,10 @@ from petrinaut import (
     PetrinautSession,
 )
 
+from .conftest import FakeProcess, spawn
 
-def test_model_file_session_serves_run_metadata_and_healthz() -> None:
+
+def test_file_session_requests() -> None:
     process = FakeProcess(
         [
             {"id": 1, "result": {"ok": True}},
@@ -51,7 +52,7 @@ def test_model_file_session_serves_run_metadata_and_healthz() -> None:
     session.close()
 
 
-def test_model_stdin_session_writes_the_model_as_the_bootstrap_line() -> None:
+def test_stdin_model_bootstrap() -> None:
     process = FakeProcess([{"id": 1, "result": {"ok": True}}])
     invocation = spawn(process)
     session = PetrinautSession.from_model(
@@ -75,7 +76,7 @@ def test_model_stdin_session_writes_the_model_as_the_bootstrap_line() -> None:
     session.close()
 
 
-def test_an_error_frame_raises_but_keeps_the_session_usable() -> None:
+def test_error_frame_recovery() -> None:
     process = FakeProcess(
         [
             {"id": 1, "error": {"message": 'Unknown parameter "x"'}},
@@ -94,7 +95,7 @@ def test_an_error_frame_raises_but_keeps_the_session_usable() -> None:
     session.close()
 
 
-def test_a_non_object_result_is_a_protocol_error() -> None:
+def test_non_object_result_rejected() -> None:
     process = FakeProcess([{"id": 1, "result": 42}])
     invocation = spawn(process)
     session = PetrinautSession.from_model_file(
@@ -106,7 +107,7 @@ def test_a_non_object_result_is_a_protocol_error() -> None:
         session.healthz()
 
 
-def test_request_reaches_any_protocol_method() -> None:
+def test_request_custom_method() -> None:
     process = FakeProcess([{"id": 1, "result": [1, 2, 3]}])
     invocation = spawn(process)
     session = PetrinautSession.from_model_file(
@@ -124,7 +125,7 @@ def test_request_reaches_any_protocol_method() -> None:
     session.close()
 
 
-def test_unserializable_params_raise_type_error_and_leave_the_session_usable() -> None:
+def test_invalid_params_recovery() -> None:
     process = FakeProcess([{"id": 1, "result": {"ok": True}}])
     invocation = spawn(process)
     session = PetrinautSession.from_model_file(
@@ -142,11 +143,11 @@ def test_unserializable_params_raise_type_error_and_leave_the_session_usable() -
     session.close()
 
 
-def test_unserializable_model_raises_type_error_before_spawning() -> None:
+def test_invalid_model_before_spawn() -> None:
     with pytest.raises(TypeError, match="not JSON-serializable"):
         PetrinautSession.from_model({"bad": object()})
 
 
-def test_oversized_model_raises_value_error_before_spawning() -> None:
+def test_large_model_before_spawn() -> None:
     with pytest.raises(ValueError, match="MiB limit"):
         PetrinautSession.from_model({"blob": "x" * (9 * 1024 * 1024)})
