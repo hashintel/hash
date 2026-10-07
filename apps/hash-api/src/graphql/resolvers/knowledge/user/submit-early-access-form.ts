@@ -31,7 +31,7 @@ export const submitEarlyAccessFormResolver: ResolverFn<
     /** The user does not yet have permissions to create entities, so we do it with the HASH system account instead */
     authentication,
     {
-      webId: user.accountId as WebId,
+      webId: user.accountId,
       entityTypeIds: [systemEntityTypes.prospectiveUser.entityTypeId],
       properties: {
         value: {

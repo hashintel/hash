@@ -325,7 +325,7 @@ describe("guardKratosProxy", () => {
 
     const guarded = guardKratosProxy({
       logger: { error } as unknown as Logger,
-      proxy: proxy as unknown as RequestHandler,
+      proxy,
     });
 
     const call = (
@@ -341,7 +341,7 @@ describe("guardKratosProxy", () => {
           ip,
         } as unknown as Request,
         { sendStatus } as unknown as Response,
-        next as unknown as NextFunction,
+        next,
       );
     };
 

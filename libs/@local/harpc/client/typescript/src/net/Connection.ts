@@ -277,7 +277,7 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
   // TODO: we might want to observe the task, for that we would need to have a partial connection that we then patch
   yield* Effect.fork(task(self));
 
-  return self as Connection;
+  return self;
 });
 
 // these bounds are stricter than required, as we have no way to inform the remote about a failure in the underlying stream,

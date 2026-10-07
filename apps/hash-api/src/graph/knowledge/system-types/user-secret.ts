@@ -165,7 +165,7 @@ export const createUserSecret = async <
     authentication,
     {
       entityTypeIds: [systemEntityTypes.userSecret.entityTypeId],
-      webId: userAccountId as WebId,
+      webId: userAccountId,
       entityUuid: userSecretEntityUuid,
       properties: secretMetadata,
       policies: [
@@ -188,7 +188,7 @@ export const createUserSecret = async <
     { graphApi, provenance },
     authentication,
     {
-      webId: userAccountId as WebId,
+      webId: userAccountId,
       entityUuid: usesUserSecretEntityUuid,
       properties: { value: {} },
       linkData: {

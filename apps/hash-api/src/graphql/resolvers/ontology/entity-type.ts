@@ -58,7 +58,7 @@ export const createEntityTypeResolver: ResolverFn<
   const { webId, entityType } = params;
 
   const createdEntityType = await createEntityType(context, authentication, {
-    webId: webId ?? (user.accountId as WebId),
+    webId: webId ?? user.accountId,
     schema: entityType,
   });
 

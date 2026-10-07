@@ -94,10 +94,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
      * string rather than an object — parse it before schema validation.
      */
     sanitizeInputBeforeValidation: (rawInput) => {
-      if (
-        "config" in rawInput &&
-        typeof (rawInput as { config: unknown }).config === "string"
-      ) {
+      if ("config" in rawInput && typeof rawInput.config === "string") {
         return {
           ...rawInput,
           config: JSON.parse(
@@ -332,7 +329,7 @@ export const generateChartConfigAction: AiFlowActionActivity<
                   Array.isArray(parsedChartData) &&
                   parsedChartData.length > 0 &&
                   parsedChartData[0]
-                    ? Object.keys(parsedChartData[0] as object).join(", ")
+                    ? Object.keys(parsedChartData[0]).join(", ")
                     : "unknown"
                 }
 

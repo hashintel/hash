@@ -56,13 +56,13 @@ describe("Comment", () => {
       graphContext,
       { actorId: testUser.accountId },
       {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         componentId: "text",
         blockData: await createEntity<Text>(
           graphContext,
           { actorId: testUser.accountId },
           {
-            webId: testUser.accountId as WebId,
+            webId: testUser.accountId,
             entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
@@ -77,7 +77,7 @@ describe("Comment", () => {
 
     testPage = await createPage(graphContext, authentication, {
       initialBlocks: [initialBlock],
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       title: "test page",
       type: "document",
     });
@@ -100,7 +100,7 @@ describe("Comment", () => {
     const authentication = { actorId: testUser.accountId };
 
     const comment = await createComment(graphContext, authentication, {
-      webId: testUser.accountId as WebId,
+      webId: testUser.accountId,
       parentEntityId: testBlock.entity.metadata.recordId.entityId,
       textualContent: [],
       author: testUser,

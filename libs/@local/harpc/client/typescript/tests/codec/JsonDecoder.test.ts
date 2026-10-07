@@ -30,7 +30,7 @@ const decode = Effect.fn("decode")(function* (
   );
 
   // explicit type annotation needed for eslint
-  return (yield* effect) as readonly ReadonlyRecord<string, string>[];
+  return yield* effect;
 });
 
 describe.concurrent("JsonDecoder", () => {

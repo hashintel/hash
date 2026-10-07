@@ -93,7 +93,7 @@
     "@fontsource-variable/geist-mono": "5.2.7",
     "@fontsource-variable/inter": "5.2.8",
     "@fontsource-variable/inter-tight": "5.2.7",
-    "@ladle/react": "5.1.1",
+    "@ladle/react": "patch:@ladle/react@npm%3A5.1.1#~/.yarn/patches/@ladle-react-npm-5.1.1-6b04b34ee6.patch",
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@mantine/hooks": "8.3.5",

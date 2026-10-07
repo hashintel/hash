@@ -453,7 +453,7 @@ export const getCommentAncestorBlock: ImpureGraphFunction<
     )
   ) {
     // @todo - make sure the entity is really a block
-    return getBlockFromEntity({ entity: parentEntity as Block["entity"] });
+    return getBlockFromEntity({ entity: parentEntity });
   } else {
     return getCommentAncestorBlock(context, authentication, {
       commentEntityId: parentEntity.metadata.recordId.entityId,

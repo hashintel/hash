@@ -535,7 +535,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
           onFocus={() => setTextFieldFocused(true)}
           onBlur={(event) => {
             const isMenuClick = popoverRef.current?.contains(
-              event.relatedTarget as Node,
+              event.relatedTarget,
             );
 
             if (!isMenuClick) {

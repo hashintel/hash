@@ -46,7 +46,7 @@ export const createPropertyTypeResolver: ResolverFn<
     context,
     authentication,
     {
-      webId: (webId ?? user.accountId) as WebId,
+      webId: webId ?? user.accountId,
       schema: propertyType,
     },
   );

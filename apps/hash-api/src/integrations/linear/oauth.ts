@@ -246,7 +246,7 @@ export const oAuthLinearCallback: RequestHandler<
       authentication,
       {
         entityTypeIds: [systemEntityTypes.linearIntegration.entityTypeId],
-        webId: userAccountId as WebId,
+        webId: userAccountId,
         entityUuid,
         properties: linearIntegrationProperties,
       },

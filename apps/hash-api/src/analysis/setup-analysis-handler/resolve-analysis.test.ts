@@ -89,7 +89,7 @@ describe("resolveInvocation (supply-chain analyses)", () => {
     clearAnalysisRegistry();
     registerAnalyses(supplyChainAnalyses);
     mockedGetRole.mockReset();
-    mockedGetRole.mockResolvedValue("member" as RoleName);
+    mockedGetRole.mockResolvedValue("member");
   });
 
   it("resolves productGraph to a presigned graph artifact", async () => {
@@ -387,7 +387,7 @@ describe("resolveInvocation (supply-chain analyses)", () => {
         getObjectLastModified: async () => {
           throw new Error("Storage unavailable");
         },
-      } as unknown as FileStorageProvider,
+      },
       cache,
     });
 

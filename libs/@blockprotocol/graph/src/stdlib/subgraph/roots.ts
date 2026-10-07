@@ -46,7 +46,7 @@ export const getRoots = <RootType extends SubgraphRootType>(
       )} was missing`,
     );
 
-    return root.inner as RootType["element"];
+    return root.inner;
   });
 
 /**
