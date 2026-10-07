@@ -177,6 +177,46 @@ test.each([
 });
 
 test.each([
+  ["Mm-hmm, thanks.", false, "filler", null],
+  ["Hold on a second.", false, "control", null],
+  ["Um.", true, "filler", "short-during-output"],
+  ["Wait.", true, "control", "short-during-output"],
+])(
+  "%j started during output: %j is traced as %s, and the active stages decide",
+  (text, startedDuringOutput, stage, decided) => {
+    vi.stubEnv("DEV", true);
+    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+    expect(
+      routeUtterance(
+        { id: "one", text, startedDuringOutput },
+        liveUtteranceStages,
+      ),
+    ).toBe(decided);
+    expect(
+      traceRecords(debug.mock.calls).filter(
+        (record) => record.event === "filter.shadow",
+      ),
+    ).toEqual([expect.objectContaining({ inputId: "one", reason: stage })]);
+  },
+);
+
+test("speech with interview content is never traced as filler or control", () => {
+  vi.stubEnv("DEV", true);
+  const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+  expect(
+    routeUtterance(
+      {
+        id: "one",
+        text: "Wait, it's seven reviewers, not four.",
+        startedDuringOutput: false,
+      },
+      liveUtteranceStages,
+    ),
+  ).toBeNull();
+  expect(debug).not.toHaveBeenCalled();
+});
+
+test.each([
   [
     "four words during output",
     { text: "Seven reviewers, not four.", startedDuringOutput: true },

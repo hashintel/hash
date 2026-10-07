@@ -1,4 +1,7 @@
-import { maxUtteranceTextLength } from "../../../shared/live-utterance-judgment";
+import {
+  maxUtteranceTextLength,
+  shouldWithholdUtterance,
+} from "../../../shared/live-utterance-judgment";
 import { serializeVoiceBrief } from "../../../shared/voice-mediation";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import {
@@ -44,6 +47,7 @@ interface Chat {
 interface Turn {
   readonly inputId: string;
   readonly inputText: string;
+  readonly input: FinalizedInput;
   readonly superseded?: boolean;
   readonly preparation: AbortController;
   readonly baseline: ReadonlySet<string>;
@@ -52,6 +56,21 @@ interface Turn {
   submitted?: boolean;
   submissionId?: string;
   /** The conversation history the turn began in, so a switch cannot split it. */
+  readonly history: VoiceMediationHistory;
+}
+
+/** Speech that arrived while the composer was busy; it holds its delegation until sent. */
+type QueuedInput = Pick<
+  Turn,
+  "inputId" | "superseded" | "delegationId" | "submissionId" | "history"
+> & {
+  readonly input: FinalizedInput;
+};
+
+/** Unsubmitted words that speech withdrew, until the next input carries them. */
+interface CarriedInput {
+  readonly inputId: string;
+  readonly text: string;
   readonly history: VoiceMediationHistory;
 }
 
@@ -68,6 +87,9 @@ const delegationOnSkip: Readonly<Record<SkipReason, "decline" | "leave">> = {
   // Shadow stages never skip, so these apply once the stage is switched on.
   echo: "leave",
   "doubtful-short-during-output": "leave",
+  // Live answers a request to wait or stop itself; filler gets nothing from Brunch.
+  control: "leave",
+  filler: "decline",
   "short-during-output": "leave",
   empty: "decline",
 };
@@ -117,6 +139,15 @@ const speakingAgainInstruction =
 const summaryStoppedInstruction =
   "The person stopped the response before its spoken summary. Do not summarize or read the written answer; it is in the conversation. Wait for the person.";
 
+const mergedInstruction =
+  "This speech was sent to Brunch together with the person's later words, and the answer comes on that later request. Do not answer it separately; keep listening.";
+
+const mergeSeparator = "\n\n";
+
+const joinedLength = (texts: readonly string[]): number =>
+  texts.reduce((total, text) => total + text.length, 0) +
+  mergeSeparator.length * Math.max(texts.length - 1, 0);
+
 /** Session-local correlation only. Flue and the composer retain all canonical ownership. */
 export class LiveBrunchBridge {
   readonly #dependencies: Dependencies;
@@ -140,6 +171,10 @@ export class LiveBrunchBridge {
     >
   >();
   #waitingForComposer: Turn | undefined;
+  readonly #queued: QueuedInput[] = [];
+  /** Set by a speech start, so queued words wait to join what is being said. */
+  #holdQueue = false;
+  #carried: CarriedInput[] = [];
   #lastOfferedText: string | null = null;
   #chat: Chat = {
     canAcceptVoiceInput: false,
@@ -157,6 +192,9 @@ export class LiveBrunchBridge {
     this.#abort.abort();
     this.speechStarted();
     this.#turns.clear();
+    this.#queued.length = 0;
+    this.#holdQueue = false;
+    this.#carried = [];
     this.#unclaimedDelegations.clear();
   }
 
@@ -165,16 +203,40 @@ export class LiveBrunchBridge {
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
     let withdrew = false;
+    const requeued: QueuedInput[] = [];
     for (const turn of this.#turns) {
       if (!turn.submissionId) turn.history.failed(turn.inputId);
-      // Words cancelled before submission stay sendable in the conversation
-      // shown now, even after a switch; teardown withdraws them.
-      if (!turn.submitted && !this.#abort.signal.aborted) {
-        this.#dependencies.mediation.history.unsent(
+      // Queued speech is newer, so these words go ahead of it in the queue.
+      if (
+        !turn.submitted &&
+        !turn.superseded &&
+        this.#queued.length > 0 &&
+        !this.#abort.signal.aborted
+      ) {
+        // Its delegation is told below; a later one must not pair with it.
+        requeued.push({
+          inputId: turn.inputId,
+          input: turn.input,
+          superseded: true,
+          delegationId: null,
+          history: turn.history,
+        });
+      } else if (!turn.submitted && !this.#abort.signal.aborted) {
+        // Words cancelled before submission stay sendable in the conversation
+        // shown now, even after a switch; teardown withdraws them.
+        const history = this.#dependencies.mediation.history;
+        history.unsent(
           turn.inputId,
           turn.inputText,
           this.#chat.messages?.at(-1)?.id,
         );
+        // Newer speech already replaced superseded words.
+        if (!turn.superseded)
+          this.#carried.push({
+            inputId: turn.inputId,
+            text: turn.inputText,
+            history,
+          });
         withdrew = true;
       }
       if (turn.delegationId !== null && !this.#abort.signal.aborted)
@@ -184,6 +246,8 @@ export class LiveBrunchBridge {
         );
     }
     this.#turns.clear();
+    this.#queued.unshift(...requeued);
+    this.#holdQueue = true;
     if (withdrew)
       this.#dependencies.notice(
         "Your earlier utterance was not sent because you started speaking again. Use the composer to send it.",
@@ -279,7 +343,8 @@ export class LiveBrunchBridge {
 
   public acceptDelegation(delegationId: string): void {
     if (this.#abort.signal.aborted) return;
-    const turn = [...this.#turns].findLast(
+    // Queued speech is newer than every turn that began.
+    const turn = [...this.#turns, ...this.#queued].findLast(
       (candidate) => !candidate.superseded && candidate.delegationId === null,
     );
     if (turn) {
@@ -367,6 +432,7 @@ export class LiveBrunchBridge {
         reason: skipReason,
       });
       this.#closeStrayDelegations();
+      this.#sendQueued();
       return;
     }
     const delegationId = input.superseded
@@ -386,14 +452,17 @@ export class LiveBrunchBridge {
           delegationId,
         );
       }
+      this.#sendQueued();
       return;
     }
+    // Skipped speech is not what a speech start held the queue for.
+    this.#holdQueue = false;
     if (!input.superseded && this.#waitingForComposer?.superseded)
       this.#evict(this.#waitingForComposer);
+    const busy = !this.#composerFree() || this.#queued.length > 0;
     if (
       input.text.length > maxUtteranceTextLength ||
-      this.#waitingForComposer ||
-      !this.#chat.canAcceptVoiceInput
+      (input.superseded && busy)
     ) {
       logLiveDiagnostic("input.dropped", {
         inputId: input.id,
@@ -404,9 +473,12 @@ export class LiveBrunchBridge {
         admissionUnavailable: !this.#chat.canAcceptVoiceInput,
       });
       // Newer speech already replaced these words; resending them is not asked for.
-      if (input.superseded) return;
+      if (input.superseded) {
+        this.#sendQueued();
+        return;
+      }
       this.#dependencies.notice(
-        "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
+        "That utterance was too long to send by voice. Use the composer to send it.",
       );
       const history = this.#dependencies.mediation.history;
       const waiting = this.#waitingForComposer;
@@ -418,12 +490,144 @@ export class LiveBrunchBridge {
           : this.#chat.messages?.at(-1)?.id,
       );
       this.#unserved(delegationId, "The request was not submitted.");
+      this.#sendQueued();
       return;
     }
+    const carrying = input.superseded ? input : this.#carry(input);
+    // No await: a slow judge must not change the composer's admission window.
+    const { judge } = this.#dependencies;
+    if (busy) {
+      const queued: QueuedInput = {
+        inputId: carrying.id,
+        input: carrying,
+        delegationId,
+        history: this.#dependencies.mediation.history,
+      };
+      this.#queued.push(queued);
+      logLiveDiagnostic("input.queued", {
+        inputId: input.id,
+        delegationId,
+        waitingForComposer: this.#waitingForComposer !== undefined,
+        admissionUnavailable: !this.#chat.canAcceptVoiceInput,
+      });
+      if (judge) void this.#observeJudgment(judge, queued, input.text);
+      this.#sendQueued();
+      return;
+    }
+    const { turn, run } = this.#beginTurn(carrying, delegationId);
+    if (judge) void this.#observeJudgment(judge, turn, input.text);
+    await run();
+  }
+
+  #composerFree(): boolean {
+    return (
+      this.#waitingForComposer === undefined && this.#chat.canAcceptVoiceInput
+    );
+  }
+
+  /**
+   * Words that speech withdrew before submission join the next input in the
+   * same conversation. They stay unsent if nothing follows or they do not fit.
+   */
+  #carry(input: FinalizedInput): FinalizedInput {
+    const history = this.#dependencies.mediation.history;
+    const carried = this.#carried.filter((entry) => entry.history === history);
+    this.#carried = [];
+    const texts = [...carried.map((entry) => entry.text), input.text];
+    if (carried.length === 0 || joinedLength(texts) > maxUtteranceTextLength)
+      return input;
+    for (const entry of carried) history.withdrawUnsent(entry.inputId);
+    this.#dependencies.notice(null);
+    logLiveDiagnostic("input.merged", {
+      inputId: input.id,
+      mergedInputIds: carried.map((entry) => entry.inputId).join(","),
+      reason: "speech-started",
+    });
+    return { ...input, text: texts.join(mergeSeparator) };
+  }
+
+  /**
+   * Once the composer frees up, everything queued goes as one turn in spoken
+   * order, up to the length limit. The newest delegation answers for it.
+   */
+  #sendQueued(): void {
+    if (this.#abort.signal.aborted) return;
+    this.#dropSwitchedQueue();
+    if (!this.#composerFree()) return;
+    if (this.#holdQueue && this.#dependencies.speechPending()) return;
+    const batch: QueuedInput[] = [];
+    for (const queued of this.#queued) {
+      const texts = [...batch, queued].map(({ input }) => input.text);
+      if (batch.length > 0 && joinedLength(texts) > maxUtteranceTextLength)
+        break;
+      batch.push(queued);
+    }
+    const newest = batch.at(-1);
+    if (!newest) return;
+    this.#queued.splice(0, batch.length);
+    const delegationId =
+      batch.findLast((queued) => queued.delegationId !== null)?.delegationId ??
+      null;
+    for (const queued of batch) {
+      if (queued.delegationId !== null && queued.delegationId !== delegationId)
+        this.#dependencies.appendInstructions(
+          mergedInstruction,
+          queued.delegationId,
+        );
+    }
+    const input: FinalizedInput = {
+      ...newest.input,
+      text: batch.map((queued) => queued.input.text).join(mergeSeparator),
+    };
+    if (batch.length > 1)
+      logLiveDiagnostic("input.merged", {
+        inputId: input.id,
+        mergedInputIds: batch.map((queued) => queued.inputId).join(","),
+        delegationId,
+        reason: "composer-busy",
+      });
+    void this.#beginTurn(input, delegationId).run();
+  }
+
+  /**
+   * Speech queued in another conversation is never submitted to, or merged
+   * into, the current one. Its words stay sendable in the conversation shown.
+   */
+  #dropSwitchedQueue(): void {
+    const history = this.#dependencies.mediation.history;
+    const switched = this.#queued.filter(
+      (queued) => queued.history !== history,
+    );
+    if (switched.length === 0) return;
+    for (const queued of switched) {
+      this.#queued.splice(this.#queued.indexOf(queued), 1);
+      history.unsent(
+        queued.inputId,
+        queued.input.text,
+        this.#chat.messages?.at(-1)?.id,
+      );
+      logLiveDiagnostic("input.dropped", {
+        inputId: queued.inputId,
+        delegationId: queued.delegationId,
+        reason: "conversation-switched",
+      });
+      this.#unserved(queued.delegationId, "The request was not submitted.");
+    }
+    this.#dependencies.notice(
+      "Speech that was waiting for Brunch was not sent. Use the composer to send it.",
+    );
+  }
+
+  /** `run` is separate so observers can attach to the turn before it starts. */
+  #beginTurn(
+    input: FinalizedInput,
+    delegationId: string | null,
+  ): { turn: Turn; run: () => Promise<void> } {
     this.#dependencies.notice(null);
     const turn: Turn = {
       inputId: input.id,
       inputText: input.text,
+      input,
       superseded: input.superseded,
       preparation: new AbortController(),
       delegationId,
@@ -438,87 +642,93 @@ export class LiveBrunchBridge {
     this.#waitingForComposer = turn;
     this.#turns.add(turn);
     this.#preparations.add(turn.preparation);
-    // No await: a slow judge must not change the composer's admission window.
-    const { judge } = this.#dependencies;
-    if (judge) void this.#observeJudgment(judge, turn, input.text);
-    try {
-      let text = input.text;
-      const mediation = this.#dependencies.mediation;
-      turn.history.begin(input);
+    const run = async (): Promise<void> => {
       try {
-        const fields = await mediation.prepare(
-          input.text,
-          turn.preparation.signal,
-        );
-        turn.preparation.signal.throwIfAborted();
-        turn.history.prepared(input.id, fields);
-        text = serializeVoiceBrief(input.text, fields);
-      } catch {
-        turn.preparation.signal.throwIfAborted();
-        logLiveDiagnostic("brief.unavailable", { inputId: input.id });
-        turn.history.preparationFailed(input.id);
-      }
-      if (turn.history !== this.#dependencies.mediation.history) {
-        this.#withdrawSwitched(turn);
-        return;
-      }
-      logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
-      turn.submitted = true;
-      const result = await this.#dependencies.submit({
-        id: input.id,
-        text,
-        admissionTarget: { kind: "user", messageId: input.id },
-        signal: this.#abort.signal,
-        onAdmission: (submissionId) => {
-          turn.submissionId = submissionId;
-          turn.history.admitted(input.id, submissionId);
-          logLiveDiagnostic("brunch.admitted", {
-            inputId: input.id,
-            submissionId,
-            delegationId: turn.delegationId,
-            afterStop: this.#abort.signal.aborted,
-          });
-          // The submission promise includes the response stream. Admission,
-          // not response completion, frees the composer's waiting-input slot.
-          if (this.#waitingForComposer === turn)
-            this.#waitingForComposer = undefined;
-        },
-      });
-      this.#abort.signal.throwIfAborted();
-      if (
-        result.kind !== "message" ||
-        !result.submissionId ||
-        (turn.submissionId && turn.submissionId !== result.submissionId)
-      ) {
-        throw new Error("Uncorrelated admission");
-      }
-      turn.submissionId = result.submissionId;
-      this.#settle();
-    } catch {
-      this.#preparations.delete(turn.preparation);
-      if (!turn.submissionId) turn.history.failed(input.id);
-      if (this.#turns.delete(turn)) {
-        logLiveDiagnostic("brunch.unconfirmed", {
+        let text = input.text;
+        const mediation = this.#dependencies.mediation;
+        turn.history.begin(input);
+        try {
+          const fields = await mediation.prepare(
+            input.text,
+            turn.preparation.signal,
+          );
+          turn.preparation.signal.throwIfAborted();
+          turn.history.prepared(input.id, fields);
+          text = serializeVoiceBrief(input.text, fields);
+        } catch {
+          turn.preparation.signal.throwIfAborted();
+          logLiveDiagnostic("brief.unavailable", { inputId: input.id });
+          turn.history.preparationFailed(input.id);
+        }
+        if (turn.history !== this.#dependencies.mediation.history) {
+          this.#withdrawSwitched(turn);
+          return;
+        }
+        logLiveDiagnostic("brunch.submit", {
           inputId: input.id,
-          submissionId: turn.submissionId,
           delegationId: turn.delegationId,
         });
-        this.#dependencies.notice(
-          turn.submissionId
-            ? "Your message was admitted, but its response could not be confirmed. Check canonical history; no automatic retry was made."
-            : "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
-        );
-        this.#unconfirmed(turn);
+        turn.submitted = true;
+        const result = await this.#dependencies.submit({
+          id: input.id,
+          text,
+          admissionTarget: { kind: "user", messageId: input.id },
+          signal: this.#abort.signal,
+          onAdmission: (submissionId) => {
+            turn.submissionId = submissionId;
+            turn.history.admitted(input.id, submissionId);
+            logLiveDiagnostic("brunch.admitted", {
+              inputId: input.id,
+              submissionId,
+              delegationId: turn.delegationId,
+              afterStop: this.#abort.signal.aborted,
+            });
+            // The submission promise includes the response stream. Admission,
+            // not response completion, frees the composer's waiting-input slot.
+            if (this.#waitingForComposer === turn) {
+              this.#waitingForComposer = undefined;
+              queueMicrotask(() => this.#sendQueued());
+            }
+          },
+        });
+        this.#abort.signal.throwIfAborted();
+        if (
+          result.kind !== "message" ||
+          !result.submissionId ||
+          (turn.submissionId && turn.submissionId !== result.submissionId)
+        ) {
+          throw new Error("Uncorrelated admission");
+        }
+        turn.submissionId = result.submissionId;
+        this.#settle();
+      } catch {
+        this.#preparations.delete(turn.preparation);
+        if (!turn.submissionId) turn.history.failed(input.id);
+        if (this.#turns.delete(turn)) {
+          logLiveDiagnostic("brunch.unconfirmed", {
+            inputId: input.id,
+            submissionId: turn.submissionId,
+            delegationId: turn.delegationId,
+          });
+          this.#dependencies.notice(
+            turn.submissionId
+              ? "Your message was admitted, but its response could not be confirmed. Check canonical history; no automatic retry was made."
+              : "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+          );
+          this.#unconfirmed(turn);
+        }
+      } finally {
+        if (this.#waitingForComposer === turn)
+          this.#waitingForComposer = undefined;
+        this.#sendQueued();
       }
-    } finally {
-      if (this.#waitingForComposer === turn)
-        this.#waitingForComposer = undefined;
-    }
+    };
+    return { turn, run };
   }
 
   async #observeJudgment(
     judge: NonNullable<Dependencies["judge"]>,
-    turn: Turn,
+    turn: Pick<Turn, "inputId" | "delegationId">,
     transcript: string,
   ): Promise<void> {
     const startedAt = performance.now();
@@ -537,12 +747,7 @@ export class LiveBrunchBridge {
       // Provider errors can contain source text. Record only an absent judgment.
     }
     // Delegation is traced separately; any override needs its own decision.
-    const decision =
-      judgment === null ||
-      judgment.confidence < 0.8 ||
-      judgment.contribution === "interview_content"
-        ? "submit"
-        : "withhold";
+    const decision = shouldWithholdUtterance(judgment) ? "withhold" : "submit";
     logLiveDiagnostic("judgment.result", {
       inputId: turn.inputId,
       delegationId: turn.delegationId,
@@ -614,6 +819,7 @@ export class LiveBrunchBridge {
       return;
     }
     this.#settle();
+    this.#sendQueued();
   }
 
   #interruptTurns(reason: "stopped" | "error"): void {
@@ -630,6 +836,27 @@ export class LiveBrunchBridge {
       if (reason === "stopped" && turn.submissionId) this.#interrupted(turn);
       else this.#unconfirmed(turn);
     }
+    // Queued speech never reached Brunch; its words stay sendable instead.
+    for (const queued of this.#queued) {
+      this.#dependencies.mediation.history.unsent(
+        queued.inputId,
+        queued.input.text,
+        this.#chat.messages?.at(-1)?.id,
+      );
+      logLiveDiagnostic("input.dropped", {
+        inputId: queued.inputId,
+        delegationId: queued.delegationId,
+        reason,
+      });
+      this.#unserved(queued.delegationId, "The request was not submitted.");
+    }
+    if (this.#queued.length > 0)
+      this.#dependencies.notice(
+        "Speech that was waiting for Brunch was not sent. Use the composer to send it.",
+      );
+    this.#queued.length = 0;
+    this.#holdQueue = false;
+    this.#carried = [];
     // Aborting preparations cancelled these summaries; close their delegations.
     for (const turn of this.#summarizing) {
       logLiveDiagnostic("brunch.summary-interrupted", {

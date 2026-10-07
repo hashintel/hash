@@ -103,6 +103,12 @@ export class VoiceMediationHistory {
     this.#unsent.set(id, after);
     this.#publish();
   }
+  /** Unsent words that a later input carries to Brunch are no longer shown on their own. */
+  public withdrawUnsent(id: string): void {
+    if (!this.#unsent.delete(id)) return;
+    this.#turns.delete(id);
+    this.#publish();
+  }
   public begin(input: { id: string; text: string }): void {
     this.#turns.set(input.id, { ...input, responseIds: [], fields: {} });
     this.#pending.add(input.id);

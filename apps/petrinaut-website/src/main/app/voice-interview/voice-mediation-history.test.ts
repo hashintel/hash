@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import { VoiceMediationHistory } from "./voice-mediation-history";
 
@@ -131,6 +131,19 @@ test("keeps unsent words where they were spoken and drops them with the chat the
       .map((message) => message.id),
   ).toEqual(["first", "dropped", "answer", "later", "answer-2"]);
   expect(history.project([])).toEqual([]);
+});
+
+test("withdraws unsent words that a later input carries, but no other turn", () => {
+  const history = new VoiceMediationHistory("conversation");
+  const listener = vi.fn();
+  history.subscribe(listener);
+  history.begin({ id: "first", text: "Compare staffing" });
+  history.unsent("carried", "Also check the queue", "first");
+  listener.mockClear();
+  history.withdrawUnsent("carried");
+  history.withdrawUnsent("first");
+  expect(listener).toHaveBeenCalledOnce();
+  expect(history.project([]).map((message) => message.id)).toEqual(["first"]);
 });
 
 test("projects transcript, acknowledgement, work and wrap-up without changing canonical text", () => {
