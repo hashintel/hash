@@ -310,9 +310,7 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
 
     const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map(
       (flowRun) => {
-        const type = isGoalFlowDefinitionId(
-          flowRun.flowDefinitionId as EntityUuid,
-        )
+        const type = isGoalFlowDefinitionId(flowRun.flowDefinitionId)
           ? "goal"
           : "flow";
 

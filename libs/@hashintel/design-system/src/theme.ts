@@ -7,8 +7,6 @@ import { palette } from "./theme/palette";
 import { boxShadows, dropShadows, shadows } from "./theme/shadows";
 import { typography } from "./theme/typography";
 
-import type { ThemeOptions } from "@mui/material";
-
 export const theme = createTheme({
   palette,
   typography,
