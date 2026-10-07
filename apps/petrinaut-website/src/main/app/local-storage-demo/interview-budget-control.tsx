@@ -20,6 +20,9 @@ import {
 
 import type { PetrinautAiComposerControlContext } from "@hashintel/petrinaut/ui";
 
+const lastStop = interviewBudgetLevels.length - 1;
+const stopPercent = (index: number) => (index / lastStop) * 100;
+
 const icons = {
   off: PiPower,
   quick: PiLightning,
@@ -215,7 +218,7 @@ export const InterviewBudgetControl = ({
                       "[width 380ms cubic-bezier(0.34, 1.3, 0.64, 1)]",
                     _motionReduce: { transition: "[none]" },
                   })}
-                  style={{ width: `${selectedIndex * 25}%` }}
+                  style={{ width: `${stopPercent(selectedIndex)}%` }}
                 />
               </div>
               <div
@@ -242,7 +245,7 @@ export const InterviewBudgetControl = ({
                       backgroundColor: "neutral.a40",
                       "&[data-filled]": { backgroundColor: "white.a80" },
                     })}
-                    style={{ left: `${index * 25}%` }}
+                    style={{ left: `${stopPercent(index)}%` }}
                   />
                 ))}
               </div>
@@ -250,7 +253,7 @@ export const InterviewBudgetControl = ({
                 ref={sliderRef}
                 type="range"
                 min={0}
-                max={4}
+                max={lastStop}
                 step={1}
                 value={selectedIndex}
                 aria-label="Interview length"
@@ -305,7 +308,8 @@ export const InterviewBudgetControl = ({
                     ),
                   );
                   setHovered(
-                    interviewBudgetLevels[Math.round(position * 4)] ?? level,
+                    interviewBudgetLevels[Math.round(position * lastStop)] ??
+                      level,
                   );
                 }}
                 onChange={(event) => {
@@ -339,7 +343,7 @@ export const InterviewBudgetControl = ({
                   _motionReduce: { transition: "[none]" },
                 })}
                 style={{
-                  left: `calc(14px + (100% - 28px) * ${selectedIndex / 4})`,
+                  left: `calc(14px + (100% - 28px) * ${selectedIndex / lastStop})`,
                 }}
               >
                 <CurrentIcon size={14} />
@@ -364,7 +368,7 @@ export const InterviewBudgetControl = ({
                     setHovered(null);
                     onChange(stop);
                   }}
-                  style={{ left: `${index * 25}%` }}
+                  style={{ left: `${stopPercent(index)}%` }}
                   className={css({
                     position: "absolute",
                     top: "[0]",
