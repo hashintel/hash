@@ -17,7 +17,6 @@ const turnSchema = z.object({
   submissionId: z.string().optional(),
   canonicalId: z.string().optional(),
   responseIds: z.array(z.string()),
-  anchorOnly: z.boolean().optional(),
   fields: z.record(z.string(), z.string()).optional(),
   preparationFailed: z.boolean().optional(),
   reply: lineSchema.optional(),
@@ -52,7 +51,7 @@ export class VoiceMediationHistory {
         .max(100)
         .parse(JSON.parse(storage?.getItem(this.#key) ?? "[]"));
       for (const turn of saved) {
-        if (!turn.submissionId && !turn.anchorOnly) continue;
+        if (!turn.submissionId) continue;
         if (turn.reply) turn.reply.state = "done";
         if (turn.wrapUp) turn.wrapUp.state = "done";
         this.#turns.set(turn.id, turn);
@@ -77,7 +76,7 @@ export class VoiceMediationHistory {
         this.#key,
         JSON.stringify(
           [...this.#turns.values()]
-            .filter((turn) => turn.submissionId || turn.anchorOnly)
+            .filter((turn) => turn.submissionId)
             .slice(-100),
         ),
       );

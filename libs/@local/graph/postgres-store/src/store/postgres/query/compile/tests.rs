@@ -2052,7 +2052,7 @@ fn transpile_offset() {
 mod predefined {
     use type_system::{
         knowledge::entity::id::{DraftId, EntityId, EntityUuid},
-        ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+        ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
         principal::actor_group::WebId,
     };
 
@@ -2066,7 +2066,7 @@ mod predefined {
             )
             .expect("invalid base url"),
             version: OntologyTypeVersion {
-                major: 1,
+                major: OntologyTypeMajorVersion::MIN,
                 pre_release: None,
             },
         };

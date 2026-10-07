@@ -7,11 +7,13 @@ import {
   componentsFromVersionedUrl,
   currentTimestamp,
   parseOntologyTypeVersion,
+  validateVersionedUrl,
 } from "@blockprotocol/type-system";
 
 import { generateLinkParameters } from "../../../../../shared/generate-link-parameters";
 import { getLayoutWithSidebar } from "../../../../../shared/layout";
 import { DataType } from "../../../../shared/data-type";
+import { NotFound } from "../../../../shared/not-found";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getTypeBaseUrl } from "../shared/get-type-base-url";
 
@@ -45,7 +47,7 @@ const Page: NextPageWithLayout = () => {
     slug,
     _v,
     requestedVersionString,
-  ] = router.asPath.split("/") as [
+  ] = router.asPath.replace(/[?#].*$/, "").split("/") as [
     "",
     `@${string}`,
     "types",
@@ -108,6 +110,14 @@ const Page: NextPageWithLayout = () => {
       return null;
     }
   }, [router.query.draft]);
+
+  if (
+    requestedVersionString &&
+    validateVersionedUrl(`${dataTypeBaseUrl}v/${requestedVersionString}`)
+      .type === "Err"
+  ) {
+    return <NotFound resourceLabel={{ label: "data type" }} />;
+  }
 
   const requestedVersion = requestedVersionString
     ? parseOntologyTypeVersion(requestedVersionString)

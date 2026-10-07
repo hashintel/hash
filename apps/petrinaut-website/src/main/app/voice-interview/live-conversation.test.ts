@@ -1238,16 +1238,14 @@ test.each(["rejects", "throws"] as const)(
 
     expect(fixture.onState).toHaveBeenLastCalledWith({
       phase: "connected",
-      message:
-        "Audio playback is blocked. Select Play voice audio to hear Live.",
+      message: "Audio blocked. Select Play to listen.",
       playbackBlocked: true,
       activity: { microphoneLevel: 0.42, outputActive: false },
     });
     await vi.advanceTimersByTimeAsync(100);
     expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
       phase: "connected",
-      message:
-        "Audio playback is blocked. Select Play voice audio to hear Live.",
+      message: "Audio blocked. Select Play to listen.",
       playbackBlocked: true,
     });
     expect(fixture.input.stop).not.toHaveBeenCalled();
@@ -1391,7 +1389,7 @@ test("reports the failed endpoint and HTTP statuses without reflecting response 
   expect(fixture.onState.mock.lastCall?.[0].message).not.toContain("sensitive");
   expect(warning).toHaveBeenCalledExactlyOnceWith(
     "[Petrinaut Live]",
-    "live session request failed (HTTP 502, provider HTTP 401). No automatic retry was made.",
+    "live session request failed (HTTP 502, provider HTTP 401).",
   );
   expect(fixture.input.stop).toHaveBeenCalledOnce();
   expect(
@@ -1485,7 +1483,7 @@ test("telemetry shows activity but silence and late samples never settle or revi
   await vi.advanceTimersByTimeAsync(1);
   expect(fixture.onState.mock.lastCall?.[0].activity?.outputActive).toBe(false);
   expect(fixture.onFinalizedInput).not.toHaveBeenCalled();
-  getStats.mockRejectedValueOnce(new Error("Optional telemetry failed"));
+  getStats.mockRejectedValueOnce(new Error("Stats unavailable"));
   await vi.advanceTimersByTimeAsync(100);
   expect(fixture.input.stop).not.toHaveBeenCalled();
   getStats.mockResolvedValueOnce(
@@ -1872,66 +1870,6 @@ test("summarises echo evidence for each stretch of audible Live output without p
   await stopped;
 });
 
-test("does not count speech as started during output while the speaker is muted or at zero volume", async () => {
-  vi.useFakeTimers();
-  const fixture = setup();
-  Object.assign(fixture.peers[0]!, {
-    getStats: vi.fn(
-      async (): Promise<Map<string, unknown>> =>
-        new Map([
-          ["output", { type: "inbound-rtp", kind: "audio", audioLevel: 0.2 }],
-        ]),
-    ),
-  });
-  await connect(fixture);
-  fixture.peers[0]!.dispatchEvent(
-    Object.assign(new Event("track"), {
-      track: fixture.outputs[0],
-      streams: [fixture.stream],
-    }),
-  );
-  const speakers = [
-    { itemId: "muted", muted: true, volume: 1 },
-    { itemId: "silent", muted: false, volume: 0 },
-    { itemId: "audible", muted: false, volume: 1 },
-  ];
-  for (const { itemId, muted, volume } of speakers) {
-    fixture.conversation.setSpeakerMuted(muted);
-    fixture.conversation.setSpeakerVolume(volume);
-    await vi.advanceTimersByTimeAsync(100);
-    fixture.emit(1, {
-      type: "input_audio_buffer.speech_started",
-      item_id: itemId,
-    });
-  }
-  let previousItemId: string | null = null;
-  for (const { itemId } of speakers) {
-    fixture.emit(1, {
-      type: "input_audio_buffer.committed",
-      item_id: itemId,
-      previous_item_id: previousItemId,
-    });
-    previousItemId = itemId;
-  }
-  for (const { itemId } of speakers) {
-    fixture.emit(1, {
-      type: "conversation.item.input_audio_transcription.completed",
-      item_id: itemId,
-      content_index: 0,
-      transcript: "Yes.",
-    });
-  }
-
-  expect(
-    fixture.onFinalizedInput.mock.calls.map(
-      ([input]) => input.startedDuringOutput,
-    ),
-  ).toEqual([false, false, true]);
-  const stopped = fixture.conversation.stop();
-  fixture.emit(0, { type: "session.closed" });
-  await stopped;
-});
-
 test("records transcription confidence on input.finalized from numbers only", async () => {
   vi.stubEnv("DEV", true);
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
@@ -2183,7 +2121,7 @@ test("passes Live's recent words only with speech that overlapped its audible ou
   await stopped;
 });
 
-test("does not count speech as overlapping output while the speaker is muted or at zero volume", async () => {
+test("does not count speech as started during or overlapping output while the speaker is muted or at zero volume", async () => {
   vi.useFakeTimers();
   const fixture = setup();
   Object.assign(fixture.peers[0]!, {
@@ -2239,6 +2177,11 @@ test("does not count speech as overlapping output while the speaker is muted or 
     });
   }
 
+  expect(
+    fixture.onFinalizedInput.mock.calls.map(
+      ([input]) => input.startedDuringOutput,
+    ),
+  ).toEqual([false, false, true]);
   expect(
     fixture.onFinalizedInput.mock.calls.map(([input]) => input.liveOutputText),
   ).toEqual([undefined, undefined, "Yes."]);

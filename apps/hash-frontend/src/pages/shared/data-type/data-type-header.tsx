@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import {
   extractBaseUrl,
   extractVersion,
-  makeOntologyTypeVersion,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import {
@@ -46,7 +45,7 @@ export const DataTypeHeader = ({
 
   const latestVersionUrl = versionedUrlFromComponents(
     extractBaseUrl(dataTypeSchema.$id),
-    latestVersion ?? makeOntologyTypeVersion({ major: 0 }),
+    latestVersion ?? currentVersion,
   );
 
   const { slideContainerRef, pushToSlideStack } = useSlideStack();

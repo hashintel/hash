@@ -125,8 +125,8 @@ export const AssistantLabsSettings = ({
   const brunchDescription = !assistantReady
     ? "Loading your assistant preference…"
     : !brunchConfigured
-      ? "Brunch is unavailable because this site has no Brunch endpoint configured."
-      : "Use Brunch instead of the stock Petrinaut assistant.";
+      ? "Brunch isn’t set up on this site."
+      : "Use Brunch instead of the default assistant.";
   const voiceDescription = !voicePreferenceReady
     ? "Loading your Voice preference…"
     : !brunchSelected
@@ -135,7 +135,7 @@ export const AssistantLabsSettings = ({
         ? "Checking whether Voice is available…"
         : openAIVoiceConfig === null
           ? "Voice is unavailable in this deployment."
-          : "Make Voice mode available for Brunch conversations.";
+          : "Talk to Brunch by voice.";
 
   return (
     <section className={sectionStyle} aria-label="AI assistant">
@@ -170,7 +170,7 @@ export const AssistantLabsSettings = ({
       />
       {brunchSelected && voicePreferenceReady && voiceEnabled && (
         <AssistantSetting
-          description="Switch to an alternative voice engine if you’re having trouble with Live."
+          description="Use the alternative voice engine if Voice isn’t working well."
           disabled={!realtimePreferenceReady || !openAIVoiceConfig}
           label="Realtime mode"
           onChange={setRealtimeEnabled}

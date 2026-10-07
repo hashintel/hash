@@ -155,8 +155,7 @@ test.each([
     props: { brunchConfigured: false },
     control: "Use Brunch",
     checked: false,
-    description:
-      "Brunch is unavailable because this site has no Brunch endpoint configured.",
+    description: "Brunch isn’t set up on this site.",
   },
   {
     name: "Voice preference loading",
