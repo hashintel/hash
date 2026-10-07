@@ -33,7 +33,7 @@ pre-commit:
     python-constraints:
       priority: 3
       tags: [backend]
-      glob: "{package.json,**/package.json,pyproject.toml,**/pyproject.toml,uv.lock}"
+      glob: "{package.json,**/package.json,pyproject.toml,**/pyproject.toml,turbo.json,**/turbo.json,uv.lock}"
       run: turbo run fix:constraints && turbo run lint:constraints
       stage_fixed: true
     task-dependencies:
