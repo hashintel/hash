@@ -85,7 +85,7 @@ mod tests {
     use super::{ApiTokenIssuer, IssuedApiToken};
     use crate::api_token::{ApiTokenEncryptionKey, Environment, HashedApiToken};
 
-    const KEY: [u8; 64] = [7; 64];
+    const KEY: [u8; 32] = [7; 32];
 
     fn key_id() -> ApiTokenEncryptionKeyId {
         ApiTokenEncryptionKeyId::new(Uuid::from_u128(0x3333_3333_3333_3333_3333_3333_3333_3333))
@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn issue_matches_token() {
         let issuer = ApiTokenIssuer::new(
-            ApiTokenEncryptionKey::new(key_id(), KEY),
+            ApiTokenEncryptionKey::new(key_id(), &KEY),
             Environment::Staging,
         );
         let user_id = UserId::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
@@ -129,7 +129,7 @@ mod tests {
             "the parameters should name the issuer's key"
         );
         assert_eq!(
-            ApiTokenEncryptionKey::new(key_id(), KEY)
+            ApiTokenEncryptionKey::new(key_id(), &KEY)
                 .decrypt(
                     params.encrypted_secret_hash,
                     &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),

@@ -290,7 +290,7 @@ impl From<ApiTokenEnvironment> for api_token::Environment {
     reason = "the field names are the command-line options, which share the `api-token` prefix"
 )]
 pub struct ApiTokenConfig {
-    /// The AES-256-SIV key that encrypts the secret hashes of API tokens, as 128 hexadecimal
+    /// The AES-256-GCM key that encrypts the secret hashes of API tokens, as 64 hexadecimal
     /// characters.
     #[clap(
         long,
@@ -331,13 +331,14 @@ impl ApiTokenConfig {
             }
         };
 
-        let mut key_bytes = [0; 64];
+        // TODO(BE-791): zeroize the raw key in `key` and `key_bytes`
+        let mut key_bytes = [0; 32];
         let key_length = key_bytes.len();
         match base16ct::mixed::decode(key.trim(), &mut key_bytes) {
             Ok(decoded) if decoded.len() == key_length => {}
             _ => {
                 return Err(Report::new(GraphError).attach(
-                    "--api-token-encryption-key (HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY) must be 128 \
+                    "--api-token-encryption-key (HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY) must be 64 \
                      hexadecimal characters",
                 ));
             }
@@ -345,7 +346,7 @@ impl ApiTokenConfig {
 
         tracing::info!(%key_id, ?environment, "API tokens enabled");
         Ok(Some(ApiTokenIssuer::new(
-            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(key_id), key_bytes),
+            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(key_id), &key_bytes),
             api_token::Environment::from(environment),
         )))
     }
@@ -970,7 +971,7 @@ mod tests {
     #[test]
     fn api_tokens_partial() {
         let report = ApiTokenConfig {
-            api_token_encryption_key: Some(hex_key(128)),
+            api_token_encryption_key: Some(hex_key(64)),
             api_token_encryption_key_id: None,
             api_token_environment: Some(ApiTokenEnvironment::Local),
         }
@@ -986,15 +987,15 @@ mod tests {
     #[test]
     fn api_tokens_short_key() {
         let report = ApiTokenConfig {
-            api_token_encryption_key: Some(hex_key(126)),
+            api_token_encryption_key: Some(hex_key(62)),
             api_token_encryption_key_id: Some(Uuid::nil()),
             api_token_environment: Some(ApiTokenEnvironment::Local),
         }
         .into_issuer()
-        .expect_err("a key of 63 bytes should not convert");
+        .expect_err("a key of 31 bytes should not convert");
 
         assert!(
-            format!("{report:?}").contains("128 hexadecimal characters"),
+            format!("{report:?}").contains("64 hexadecimal characters"),
             "the error should name the key length"
         );
     }
@@ -1002,7 +1003,7 @@ mod tests {
     #[test]
     fn api_tokens_complete() {
         let issuer = ApiTokenConfig {
-            api_token_encryption_key: Some(hex_key(128)),
+            api_token_encryption_key: Some(hex_key(64)),
             api_token_encryption_key_id: Some(Uuid::nil()),
             api_token_environment: Some(ApiTokenEnvironment::Staging),
         }

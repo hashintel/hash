@@ -73,7 +73,7 @@ async fn create_token(
             name: "ci".to_owned(),
             lifetime,
             encryption_key_id: ApiTokenEncryptionKeyId::new(Uuid::new_v4()),
-            encrypted_secret_hash: ApiTokenEncryptedSecretHash::new([7; 48]),
+            encrypted_secret_hash: ApiTokenEncryptedSecretHash::new([7; 60]),
         })
         .await?)
 }

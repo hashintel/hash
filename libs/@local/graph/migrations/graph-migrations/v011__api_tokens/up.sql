@@ -6,7 +6,7 @@ CREATE TABLE api_token (
     web_id UUID NOT NULL REFERENCES web (id) ON DELETE CASCADE,
     name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 128),
     encryption_key_id UUID NOT NULL,
-    encrypted_secret_hash BYTEA NOT NULL CHECK (length(encrypted_secret_hash) = 48),
+    encrypted_secret_hash BYTEA NOT NULL CHECK (length(encrypted_secret_hash) = 60),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     expires_at TIMESTAMP WITH TIME ZONE,
     last_used_at TIMESTAMP WITH TIME ZONE,
