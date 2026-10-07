@@ -36,6 +36,9 @@ const generateTypeFilterId = () => {
 const compareByText = (left: { text: string }, right: { text: string }) =>
   left.text.localeCompare(right.text);
 
+const compareFieldsByLabel = (left: TypeFilterField, right: TypeFilterField) =>
+  typeFilterFieldLabels[left].localeCompare(typeFilterFieldLabels[right]);
+
 const searchableFields: TypeFilterField[] = [
   "lastEditedBy",
   "inheritsFrom",
@@ -158,26 +161,22 @@ export const TypesFilterRibbon: FunctionComponent<{
     Object.keys(typeFilterOperatorsByField) as Array<
       Exclude<TypeFilterField, "archived">
     >
-  ).filter((field) => field !== "kind" || showKindFilter);
+  )
+    .filter((field) => field !== "kind" || showKindFilter)
+    .sort(compareFieldsByLabel);
 
   const addFilterMenuItems: MenuItem[] = [
-    ...(archivedFilterActive
-      ? []
-      : [
-          {
-            id: "archived",
-            text: typeFilterFieldLabels.archived,
-            onClick: () => handleAddFilter("archived"),
-          } satisfies MenuItem,
-        ]),
-    ...switchableFields.map(
+    ...(archivedFilterActive ? [] : (["archived"] as const)),
+    ...switchableFields,
+  ]
+    .sort(compareFieldsByLabel)
+    .map(
       (field): MenuItem => ({
         id: field,
         text: typeFilterFieldLabels[field],
         onClick: () => handleAddFilter(field),
       }),
-    ),
-  ];
+    );
 
   const fieldMenuForFilter = (filter: TypeFilter): MenuItem[] =>
     switchableFields.map((field) => ({
