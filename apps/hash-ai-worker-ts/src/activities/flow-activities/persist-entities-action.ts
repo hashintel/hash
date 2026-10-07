@@ -32,7 +32,7 @@ export const persistEntitiesAction: AiFlowActionActivity<
     });
 
   const proposedEntities = await resolvePayloadValue(
-    getStorageProvider(),
+    { storageProvider: getStorageProvider(), workflowId },
     "ProposedEntity",
     proposedEntitiesInput,
   );

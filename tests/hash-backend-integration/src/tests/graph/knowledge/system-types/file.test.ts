@@ -56,7 +56,6 @@ describe("File", () => {
 
     graphContext.uploadProvider = {
       getFileEntityStorageKey: vi.fn(() => fileKey),
-      getFlowOutputStorageKey: vi.fn(() => "mock-flow-output-key"),
       uploadDirect: vi.fn(() => Promise.resolve()),
       downloadDirect: vi.fn(() =>
         Promise.resolve(Buffer.from("mock-download-body")),
