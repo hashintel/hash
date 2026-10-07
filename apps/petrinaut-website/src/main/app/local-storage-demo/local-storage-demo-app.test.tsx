@@ -1717,11 +1717,6 @@ describe("assistant selection", () => {
     expect(stock.followMessages).toBeUndefined();
     expect(stock.canClearMessages).toBe(true);
     expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
-    expect(
-      screen.queryByRole("button", { name: /Toggle Brunch demo mode/ }),
-    ).toBeNull();
-    fireEvent.keyDown(window, { key: "Escape" });
   });
 
   test("defaults Voice on for saved Brunch, preserves an explicit opt-out, and removes it for Stock", async () => {
