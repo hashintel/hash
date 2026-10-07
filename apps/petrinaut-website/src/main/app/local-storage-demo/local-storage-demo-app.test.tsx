@@ -31,6 +31,7 @@ import {
   canonicalPetrinautClientToolNames,
   brunchPetrinautClientToolNames,
 } from "../plugins/brunch/tools/brunch-client-tools";
+import { demoPlugins } from "../plugins/demo-plugins";
 import { OpenAIRealtimeSession } from "../plugins/voice/realtime/openai-realtime-session";
 import {
   assistantSelectionStorageKey,
@@ -1978,12 +1979,10 @@ describe("assistant selection", () => {
     expect(handle.doc()?.places).toEqual([]);
   });
 
-  test("gives the editor the command palette plugin and the registry holding the switch command", () => {
+  test("gives the editor the demo's plugins and the registry holding the switch command", () => {
     seedStoredNet();
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    expect(
-      editorProps.current?.plugins?.map(({ manifest }) => manifest.id),
-    ).toEqual(["website.command-palette"]);
+    expect(editorProps.current?.plugins).toBe(demoPlugins);
     expect(
       renderedPetrinaut.commandRegistry?.list().map(({ id }) => id),
     ).toEqual(["demo.assistant.switch"]);

@@ -87,7 +87,6 @@ import {
   type OpenAIVoiceConfig,
 } from "../plugins/voice/session/voice-interview-control";
 import { walkthroughSteps } from "../plugins/walkthrough/walkthrough-steps";
-import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
@@ -199,7 +198,6 @@ export const LocalStorageDemoApp = ({
   ) => void;
   search: SharedExampleSearch;
 }) => {
-  const sentryFeedbackAction = useSentryFeedbackAction();
   const {
     ready: assistantSelectionReady,
     selection: assistantSelection,
@@ -792,7 +790,6 @@ export const LocalStorageDemoApp = ({
               ),
             }}
             title={currentDocument.title}
-            viewportActions={[sentryFeedbackAction]}
           />
         </WalkthroughProvider>
         <DemoCommands

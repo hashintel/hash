@@ -185,7 +185,6 @@ import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
 import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
-import type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;
@@ -213,7 +212,6 @@ export type PetrinautProps = {
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
   aiAssistant?: PetrinautAiAssistant;
-  viewportActions?: ViewportAction[];
   /**
    * Host-supplied components to inject at specific locations in the editor.
    */
@@ -271,7 +269,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   createNewNet = noop,
   loadPetriNet = noop,
   aiAssistant,
-  viewportActions,
   slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
@@ -321,7 +318,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                   hideNetManagementControls={hideNetManagementControls}
                   slots={slots}
                   titleEditable={titleEditable}
-                  viewportActions={viewportActions}
                 />
               </PetrinautPluginsProvider>
             </Stack>
