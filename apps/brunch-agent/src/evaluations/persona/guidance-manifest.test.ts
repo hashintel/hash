@@ -59,7 +59,12 @@ test.each(selfContainedGuidanceVariants)(
       path.startsWith(`${guidance}/${arm}/`);
     const ownPaths = own.files.map(({ path }) => path);
     expect(ownPaths).toContain(`${guidance}/${arm}.ts`);
-    for (const file of ["/identity-ledger.md", "/ledger/commit.ts"])
+    // The manual arm's Ledger is ledger2; the receipt arm keeps the identity Ledger.
+    const ownLedgerFiles =
+      arm === "manual"
+        ? ["/ledger2/commits.ts"]
+        : ["/identity-ledger.md", "/ledger/commit.ts"];
+    for (const file of ownLedgerFiles)
       expect(ownPaths.some((path) => isOwn(path) && path.endsWith(file))).toBe(
         true,
       );

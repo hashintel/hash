@@ -12,7 +12,7 @@ import {
   type ArcElement,
   type NetCall,
 } from "../../../../../conversation/net-changes.ts";
-import { reconstructLedger } from "./ledger.ts";
+import { foldCommits } from "./ledger2/commits.ts";
 import description from "./query-basis-tool.md?raw";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
@@ -78,7 +78,7 @@ const elements = (
   });
 };
 
-/** This Ledger as it stood when a call was made, and the Notes its turn had recorded so far. */
+/** This Ledger as it stood when a call was made, and the records its turn had committed so far. */
 const ledgerAtCall = (snapshot: FlueConversationSnapshot, call: NetCall) => {
   const message = snapshot.messages[call.messageIndex];
   if (!message) return undefined;
@@ -88,16 +88,15 @@ const ledgerAtCall = (snapshot: FlueConversationSnapshot, call: NetCall) => {
       { ...message, parts: message.parts.slice(0, call.partIndex) },
     ],
   };
-  const commits = reconstructLedger(prefix);
-  const latest = commits.at(-1);
+  const { commits, revision } = foldCommits(prefix);
   const userMessageId = prefix.messages.findLast(
     (entry) => entry.role === "user" && entry.purpose === "user",
   )?.id;
   return {
-    revision: latest?.revision ?? 0,
-    notesThisTurn: commits
+    revision,
+    recordsThisTurn: commits
       .filter(({ afterMessageId }) => afterMessageId === userMessageId)
-      .flatMap(({ notes }) => notes.map(({ id }) => id)),
+      .flatMap(({ ids }) => ids),
   };
 };
 
@@ -153,7 +152,7 @@ export const queryBasis = (input: {
           operation: call.toolName,
           petrinautRevisionId: call.revisionAfter,
           ledgerRevision: ledger?.revision,
-          notesRecordedThisTurn: ledger?.notesThisTurn ?? [],
+          recordsCommittedThisTurn: ledger?.recordsThisTurn ?? [],
         };
       })
     : [];
