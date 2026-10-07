@@ -19,15 +19,13 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-petrinaut-optimizer-core = { path = "../../libs/@local/petrinaut-optimizer-core", editable = true }
-petrinaut-python         = { path = "../../libs/@local/petrinaut-python", editable = true }
+petrinaut-optimizer-core = { workspace = true }
+petrinaut-python         = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "basedpyright>=1.39.10",
     "httpx>=0.28",
-    "pytest>=8.3",
-    "ruff>=0.16.4",
+    "pytest>=9.1.1,<10",
 ]
 
 [tool.ruff]
@@ -55,9 +53,5 @@ ignore = [
 include          = ["src"]
 typeCheckingMode = "strict"
 pythonVersion    = "3.10"
-venvPath         = "."
+venvPath         = "../.."
 venv             = ".venv"
-
-[tool.pytest.ini_options]
-pythonpath = ["."]
-testpaths  = ["tests"]

@@ -1,31 +1,106 @@
 {
   "extends": ["//"],
   "tasks": {
+    "lint:types": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "basedpyright"
+      ],
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "dependsOn": ["petrinaut-python#codegen"]
+    },
+    "lint:ruff": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "ruff",
+        "check",
+        "."
+      ],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
+    "format:ruff": {
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "ruff",
+        "format",
+        "."
+      ],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    },
+    "build:docker": {
+      "command": [
+        "docker",
+        "buildx",
+        "build",
+        "--tag",
+        "petrinaut-opt",
+        "--file",
+        "docker/Dockerfile",
+        "../../",
+        "--load"
+      ]
+    },
     "codegen": {
+      "command": ["uv", "run", "python", "-m", "scripts.generate_openapi"],
       // The schema is generated from the app, which imports the models that
       // `petrinaut-python` generates.
-      "dependsOn": ["@local/petrinaut-python#codegen"],
-      "inputs": [
-        "pyproject.toml",
-        "uv.lock",
-        "scripts/generate_openapi.py",
-        "src/**/*.py",
-        "../../libs/@local/petrinaut-optimizer-core/src/**/*.py",
-        "../../libs/@local/petrinaut-python/src/**/*.py"
+      "dependsOn": [
+        "petrinaut-python#codegen",
+        "petrinaut-optimizer-core#manifest",
+        "petrinaut-python#manifest"
       ],
+      "inputs": ["scripts/generate_openapi.py", "src/**/*.py"],
       "outputs": ["openapi/openapi.json"],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
     "start": {
-      "dependsOn": ["@local/petrinaut-python#codegen"]
+      "command": ["uv", "run", "uvicorn", "src.optimization_api:app"],
+      "dependsOn": ["petrinaut-python#codegen"]
     },
-    // Type checking resolves the generated models of `petrinaut-python`, not the
-    // schema this package generates from itself.
-    "lint:types": {
-      "dependsOn": ["@local/petrinaut-python#codegen"]
+    "start:dev": {
+      "command": [
+        "uv",
+        "run",
+        "uvicorn",
+        "src.optimization_api:app",
+        "--reload"
+      ],
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["petrinaut-python#codegen"]
+    },
+    "check:openapi": {
+      "command": ["git", "diff", "--exit-code", "--", "openapi/openapi.json"],
+      "cache": false,
+      "dependsOn": ["codegen"]
+    },
+    "test": {
+      "dependsOn": ["check:openapi", "^manifest"]
     },
     "test:unit": {
-      "dependsOn": ["codegen", "^manifest"]
+      "dependsOn": ["check:openapi", "^manifest"],
+      "passThroughEnv": ["UV_CACHE_DIR"],
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--frozen",
+        "--all-packages",
+        "pytest",
+        "."
+      ]
     }
   }
 }

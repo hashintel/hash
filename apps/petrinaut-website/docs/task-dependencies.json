@@ -26,6 +26,12 @@
         "VITE_BRUNCH_CHAT_ENDPOINT",
         "VITE_PETRINAUT_DEFAULT_ASSISTANT",
         "VITE_VERCEL_ENV"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "codegen": {
@@ -43,7 +49,13 @@
         "examples:generate"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
+      ]
     },
     "examples:generate": {
       "dependsOn": [
@@ -53,6 +65,12 @@
         "@hashintel/ds-components#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "fix:eslint": {
@@ -65,6 +83,12 @@
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "lint:eslint": {
@@ -80,6 +104,12 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "lint:tsc": {
@@ -92,6 +122,12 @@
         "@hashintel/petrinaut-core#build",
         "codegen",
         "examples:generate"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "test:integration": {
@@ -113,6 +149,7 @@
         "@apps/brunch-agent",
         "@blockprotocol/graph",
         "@blockprotocol/type-system",
+        "@hashintel/petrinaut-cli",
         "@local/advanced-types",
         "@local/harpc-client",
         "@local/hash-backend-utils",
@@ -136,6 +173,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -152,6 +192,12 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     }
   }
