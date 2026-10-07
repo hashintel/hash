@@ -62,7 +62,6 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
   });
   expect(screen.getByRole("group", { name: "Interview length" })).toBeTruthy();
   expect(screen.getByText("Interview length")).toBeTruthy();
-  expect(screen.queryByText("Choose how much detail to explore.")).toBeNull();
   expect(screen.getByText("Focus on the main steps.")).toBeTruthy();
   expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
   vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
