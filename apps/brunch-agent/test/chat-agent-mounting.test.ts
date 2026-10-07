@@ -13,6 +13,10 @@ import {
 
 import { selfContainedGuidanceVariants } from "../src/agents/chat-agent/guidance-variant.ts";
 import {
+  commitToolDescription as ledger2CommitDescription,
+  compileToolDescription as ledger2CompileDescription,
+} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/ledger-tools.ts";
+import {
   assertPetrinautToolCatalogueConformance,
   canonicalPetrinautToolCatalogue,
   brunchToolCatalogue,
@@ -196,10 +200,12 @@ test.each(selfContainedGuidanceVariants)(
     );
     const pathOf = (name: string) =>
       files.find((path) => basename(path) === name) ?? name;
+    // The manual arm's ledger2 tools carry their descriptions inline, and it
+    // mounts no feedback or identity-Ledger instructions.
+    const ledger2 = arm === "manual";
     const toolDescriptions = [
       "query-basis-tool.md",
-      "ledger-commit.md",
-      "ledger-compile.md",
+      ...(ledger2 ? [] : ["ledger-commit.md", "ledger-compile.md"]),
     ];
     for (const name of toolDescriptions)
       vi.doMock(
@@ -231,8 +237,7 @@ test.each(selfContainedGuidanceVariants)(
     expect(mounted.instructions).toEqual(
       expect.arrayContaining(
         [
-          "feedback.md",
-          "identity-ledger.md",
+          ...(ledger2 ? [] : ["feedback.md", "identity-ledger.md"]),
           "petrinaut-capability.md",
           "experiment-drafting.md",
           "runtime-bound.md",
@@ -244,11 +249,16 @@ test.each(selfContainedGuidanceVariants)(
       `${arm} query-basis-tool.md`,
     );
     expect(mounted.descriptions.get(brunchTools.ledgerCompile)).toBe(
-      `${arm} ledger-compile.md`,
+      ledger2 ? ledger2CompileDescription : `${arm} ledger-compile.md`,
     );
-    expect(mounted.descriptions.get(brunchTools.ledgerCommit)).toMatch(
-      new RegExp(`^${arm} ledger-commit\\.md\\n`, "u"),
+    // The receipt arm appends its vocabulary after the mounted description.
+    const [commitHead, ...commitRest] = (
+      mounted.descriptions.get(brunchTools.ledgerCommit) ?? ""
+    ).split("\n");
+    expect(commitHead).toBe(
+      ledger2 ? ledger2CommitDescription : `${arm} ledger-commit.md`,
     );
+    expect(commitRest.length > 0).toBe(!ledger2);
 
     mounted.initialData = undefined;
     mounted.instructions.length = 0;

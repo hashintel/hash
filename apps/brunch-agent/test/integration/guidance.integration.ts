@@ -13,7 +13,6 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import { selectGuidanceVariant } from "../../src/agents/chat-agent/guidance-variant.ts";
-import { ledgerVocabulary as manualVocabulary } from "../../src/agents/chat-agent/guidance/manual/tools/ledger/terms.ts";
 import { ledgerVocabulary as receiptVocabulary } from "../../src/agents/chat-agent/guidance/receipt/ledger/terms.ts";
 import {
   agentOwnershipHeaders,
@@ -24,14 +23,11 @@ import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 const variant = selectGuidanceVariant();
 const baseline = variant === "baseline";
+/** The manual arm's Ledger is the append-only ledger2: entries, not Notes. */
+const ledger2 = variant === "manual";
 /** Self-contained arms are checked for wiring only, never for their wording or terms. */
-const ownVocabulary =
-  variant === "manual"
-    ? manualVocabulary
-    : variant === "receipt"
-      ? receiptVocabulary
-      : undefined;
-const selfContained = ownVocabulary !== undefined;
+const ownVocabulary = variant === "receipt" ? receiptVocabulary : undefined;
+const selfContained = ledger2 || ownVocabulary !== undefined;
 const identityLedger = variant === "identity" || selfContained;
 const probe = ownVocabulary
   ? {
@@ -121,6 +117,31 @@ faux.setResponses([
       ({ name }) => name === "ledger_commit",
     );
     const schema = JSON.stringify(commitTool?.parameters);
+    if (ledger2) {
+      assert(schema.includes('"entity/create"'));
+      return fauxAssistantMessage(
+        [
+          fauxToolCall(
+            "ledger_commit",
+            {
+              entries: [
+                [
+                  "entity/create",
+                  {
+                    name: "Cleaning crew",
+                    kind: "resource",
+                    origin: "stated",
+                    status: "confirmed",
+                  },
+                ],
+              ],
+            },
+            { id: "commit" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      );
+    }
     assert(schema.includes('"identify"'));
     if (!selfContained)
       assert(
@@ -165,8 +186,12 @@ faux.setResponses([
   },
   (context) => {
     const receipt = toolResult(context, "commit");
-    assert(receipt.includes("identities/cleaning-crew/n1"));
-    assert(receipt.includes(`- ${probe.dimension}: 1 confirmed`));
+    if (ledger2) {
+      assert(receipt.includes('"recorded"') && receipt.includes('"e1"'));
+    } else {
+      assert(receipt.includes("identities/cleaning-crew/n1"));
+      assert(receipt.includes(`- ${probe.dimension}: 1 confirmed`));
+    }
     return fauxAssistantMessage(
       [fauxToolCall("ledger_compile", {}, { id: "map" })],
       { stopReason: "toolUse" },
@@ -175,9 +200,11 @@ faux.setResponses([
   (context) => {
     assert(
       toolResult(context, "map").includes(
-        selfContained
-          ? `- \`cleaning-crew\` [${probe.kind}] — confirmed; n1`
-          : "- `cleaning-crew` [resource] — confirmed; n1; 1 note",
+        ledger2
+          ? "**Cleaning crew** — stated · confirmed `e1`"
+          : selfContained
+            ? `- \`cleaning-crew\` [${probe.kind}] — confirmed; n1`
+            : "- `cleaning-crew` [resource] — confirmed; n1; 1 note",
       ),
     );
     completed = true;
