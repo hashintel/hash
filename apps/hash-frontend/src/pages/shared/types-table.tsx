@@ -1,5 +1,5 @@
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { Box, Stack, useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -638,31 +638,35 @@ export const TypesTable: FunctionComponent<{
               onBulkActionCompleted={() => setSelectedRows([])}
             />
           ) : (
-            <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1}>
-              <SearchPill
-                title={
-                  view === "Table"
-                    ? "Search for text in visible rows"
-                    : "Search for a type in the graph"
-                }
-                onClick={() => {
-                  if (view === "Table") {
-                    setShowSearch(!showSearch);
-                  } else {
-                    setShowGraphSearch(!showGraphSearch);
-                  }
-                }}
-              />
-              {onlyOneWeb ? null : (
-                <WebFilterPill
-                  internalWebs={internalWebs}
-                  webState={webFilter}
-                  setWebState={(updater) =>
-                    setWebFilter((prev) => updater(prev))
-                  }
-                />
-              )}
+            <>
               <TypesFilterRibbon
+                leadingControls={
+                  <>
+                    <SearchPill
+                      title={
+                        view === "Table"
+                          ? "Search for text in visible rows"
+                          : "Search for a type in the graph"
+                      }
+                      onClick={() => {
+                        if (view === "Table") {
+                          setShowSearch(!showSearch);
+                        } else {
+                          setShowGraphSearch(!showGraphSearch);
+                        }
+                      }}
+                    />
+                    {onlyOneWeb ? null : (
+                      <WebFilterPill
+                        internalWebs={internalWebs}
+                        webState={webFilter}
+                        setWebState={(updater) =>
+                          setWebFilter((prev) => updater(prev))
+                        }
+                      />
+                    )}
+                  </>
+                }
                 filters={typeFilters}
                 setFilters={(updater) =>
                   setTypeFilters((prev) => updater(prev))
@@ -671,9 +675,17 @@ export const TypesTable: FunctionComponent<{
                 showKindFilter={kind === "all"}
               />
               {loading && (
-                <LoadingSpinner size={16} color={theme.palette.blue[70]} />
+                <Box
+                  sx={{
+                    display: "inline-flex",
+                    verticalAlign: "middle",
+                    my: 0.5,
+                  }}
+                >
+                  <LoadingSpinner size={16} color={theme.palette.blue[70]} />
+                </Box>
               )}
-            </Stack>
+            </>
           )
         }
         bottomRight={

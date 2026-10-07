@@ -1,13 +1,11 @@
-import { Box } from "@mui/material";
 import { useMemo } from "react";
 
-import { Filter, FilterGroup, Menu } from "@hashintel/ds-components";
+import { Filter } from "@hashintel/ds-components";
 
 import { useLatestEntityTypesOptional } from "../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { useDataTypesContext } from "../data-types-context";
-import { DsComponentsScope } from "../ds-components-scope";
-import { filterChipPillChrome } from "../filter-bar";
+import { filterChipPillChrome, FilterGroupRibbon } from "../filter-bar";
 import { TypeFilterChip } from "./filter-ribbon/type-filter-chip";
 import {
   getDefaultTypeFilterOperator,
@@ -24,8 +22,7 @@ import type {
   MenuItem,
   MultiSelectItem,
 } from "@hashintel/ds-components";
-import type { SxProps, Theme } from "@mui/material";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 let typeFilterIdCounter = 0;
 const generateTypeFilterId = () => {
@@ -45,13 +42,6 @@ const searchableFields: TypeFilterField[] = [
   "hasProperty",
 ];
 
-const chipWrapperSx: SxProps<Theme> = {
-  display: "inline-flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: 1,
-};
-
 export const TypesFilterRibbon: FunctionComponent<{
   filters: TypeFilter[];
   setFilters: (updater: (prev: TypeFilter[]) => TypeFilter[]) => void;
@@ -59,7 +49,9 @@ export const TypesFilterRibbon: FunctionComponent<{
   editors?: MinimalActor[];
   /** The kind filter is redundant on single-kind tabs. */
   showKindFilter: boolean;
-}> = ({ filters, setFilters, editors, showKindFilter }) => {
+  /** Pills leading the chip group (search toggle, web pill). */
+  leadingControls?: ReactNode;
+}> = ({ filters, setFilters, editors, showKindFilter, leadingControls }) => {
   const { latestEntityTypes } = useLatestEntityTypesOptional();
   const { latestDataTypes } = useDataTypesContext();
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
@@ -215,53 +207,15 @@ export const TypesFilterRibbon: FunctionComponent<{
       />
     );
 
-  const trailingControls = (
-    <>
-      <Menu
-        trigger={
-          <FilterGroup.AddFilter
-            renderAs={filters.length > 0 ? "plus" : "plusLabel"}
-          />
-        }
-        items={addFilterMenuItems}
-      />
-      {filters.length > 1 && (
-        <FilterGroup.ClearFilters
-          aria-label="Clear filters"
-          onClick={handleClearFilters}
-        />
-      )}
-    </>
-  );
-
   return (
-    <Box
-      sx={{
-        display: "contents",
-        "& [data-part='filter-group'] > *": {
-          verticalAlign: "middle",
-          marginRight: 1,
-          marginTop: 0.5,
-          marginBottom: 0.5,
-        },
-        "& [data-part='filter-group']": {
-          display: "contents !important",
-        },
-      }}
-    >
-      <DsComponentsScope sx={{ display: "contents" }}>
-        <FilterGroup dismissAbandoned>
-          {filters.map((filter, index) => (
-            <Box key={filter.id} sx={chipWrapperSx}>
-              {renderFilterChip(filter)}
-              {index === filters.length - 1 && trailingControls}
-            </Box>
-          ))}
-          {filters.length === 0 && (
-            <Box sx={chipWrapperSx}>{trailingControls}</Box>
-          )}
-        </FilterGroup>
-      </DsComponentsScope>
-    </Box>
+    <FilterGroupRibbon
+      leadingControls={leadingControls}
+      chips={filters.map((filter) => ({
+        id: filter.id,
+        chip: renderFilterChip(filter),
+      }))}
+      addFilterMenuItems={addFilterMenuItems}
+      onClearFilters={handleClearFilters}
+    />
   );
 };

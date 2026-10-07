@@ -2,6 +2,7 @@ export {
   filterChipPillChrome,
   operatorDescriptionClass,
 } from "./filter-bar/filter-chip-pill-chrome";
+export { FilterGroupRibbon } from "./filter-bar/filter-group-ribbon";
 export { FilterPill } from "./filter-bar/filter-pill";
 export {
   activePillSx,
