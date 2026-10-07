@@ -142,11 +142,7 @@ export const TypeFilterChip: FunctionComponent<{
       operators={operators}
       value={value}
       onChange={(operator, committed) => commit(operator, committed)}
-      onInput={(operator, committed) => {
-        if (committed !== null) {
-          commit(operator, committed);
-        }
-      }}
+      onInput={(operator, committed) => commit(operator, committed)}
       removeable={{ onRemove }}
     />
   );
