@@ -39,7 +39,6 @@ beforeEach(() => {
       open,
       actions: { create, rename: vi.fn() },
       persistRevision: vi.fn(async () => undefined),
-      settleRevision: vi.fn(async () => undefined),
     } satisfies DocumentRepository,
     storedDocuments: {},
     updateStoredDocuments: vi.fn(),

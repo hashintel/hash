@@ -30,8 +30,8 @@ import {
 } from "../shared/petrinaut-jsdom";
 import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
+import { documentRevisionOf } from "./shared/document-revision";
 
-import type { DocumentRepository } from "./documents/document-repository";
 import type { FlueClient } from "@flue/sdk";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -45,7 +45,6 @@ const fixture = vi.hoisted(() => ({
   fetch: null as typeof fetch | null,
   client: null as FlueClient | null,
   handle: null as PetrinautDocHandle | null,
-  repository: null as DocumentRepository | null,
 }));
 vi.mock("@flue/sdk", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@flue/sdk")>();
@@ -70,22 +69,6 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
     Petrinaut: (props: ComponentProps<typeof actual.Petrinaut>) => {
       fixture.handle = props.handle;
       return <actual.Petrinaut {...props} />;
-    },
-  };
-});
-vi.mock("./documents/use-document-controller", async (importOriginal) => {
-  const actual =
-    await importOriginal<
-      typeof import("./documents/use-document-controller")
-    >();
-  return {
-    ...actual,
-    useDocumentController: (
-      input: Parameters<typeof actual.useDocumentController>[0],
-    ) => {
-      const result = actual.useDocumentController(input);
-      fixture.repository = result.controller.repository;
-      return result;
     },
   };
 });
@@ -120,7 +103,6 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup();
   fixture.handle = null;
-  fixture.repository = null;
   localStorage.clear();
 });
 afterAll(() => {
@@ -236,16 +218,18 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
     const handle = fixture.handle;
     if (!handle)
       throw new Error("The real editor did not receive a document handle");
+    const openedDefinition = handle.doc();
+    if (!openedDefinition)
+      throw new Error("The real editor opened without a document");
+    const initialRevision = documentRevisionOf(openedDefinition);
     const changes: {
-      previousRevisionId: string;
-      revisionId: string;
+      revision: string;
       scenarios: { id: string; name: string }[];
       metrics: { id: string; name: string }[];
     }[] = [];
     const unsubscribe = handle.subscribe((event) =>
       changes.push({
-        previousRevisionId: event.previousRevisionId,
-        revisionId: event.revisionId,
+        revision: documentRevisionOf(event.next),
         scenarios:
           event.next.scenarios?.map(({ id, name }) => ({ id, name })) ?? [],
         metrics:
@@ -299,10 +283,10 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
     );
     await waitFor(() => expect(changes).toHaveLength(6));
     expect(deliveries.map(({ metadata }) => metadata)).toEqual(
-      changes.map((change) => ({
+      changes.map((change, index) => ({
         documentRevision: {
-          before: change.previousRevisionId,
-          after: change.revisionId,
+          before: index === 0 ? initialRevision : changes[index - 1]?.revision,
+          after: change.revision,
         },
       })),
     );
@@ -320,15 +304,9 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       { scenarios: [], metrics: [updatedMetric] },
       { scenarios: [], metrics: [] },
     ]);
-    expect(changes[0]?.previousRevisionId).toBe(initialRevisionId);
-    for (let index = 1; index < changes.length; index++) {
-      expect(changes[index]?.previousRevisionId).toBe(
-        changes[index - 1]?.revisionId,
-      );
-    }
-    expect(new Set(changes.map(({ revisionId }) => revisionId)).size).toBe(6);
-    const lastRevisionId = changes.at(-1)?.revisionId;
-    if (!lastRevisionId) throw new Error("The final change had no revision");
+    expect(new Set(changes.map(({ revision }) => revision)).size).toBe(6);
+    const lastRevision = changes.at(-1)?.revision;
+    if (!lastRevision) throw new Error("The final change had no revision");
     await waitFor(() => {
       const stored = JSON.parse(
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
@@ -339,17 +317,13 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
           sdcpn: SDCPN;
         }
       >;
-      expect(stored[documentId]?.revisionId).toBe(lastRevisionId);
-      expect(stored[documentId]?.sdcpn.scenarios ?? []).toEqual([]);
-      expect(stored[documentId]?.sdcpn.metrics ?? []).toEqual([]);
+      const record = stored[documentId];
+      if (!record) throw new Error("The document record was not persisted");
+      expect(record.revisionId).not.toBe(initialRevisionId);
+      expect(documentRevisionOf(record.sdcpn)).toBe(lastRevision);
+      expect(record.sdcpn.scenarios ?? []).toEqual([]);
+      expect(record.sdcpn.metrics ?? []).toEqual([]);
     });
-    const repository = fixture.repository;
-    if (!repository)
-      throw new Error("The real document repository was not mounted");
-    expect(handle.revisionId.get()).toBe(lastRevisionId);
-    await expect(
-      repository.settleRevision({ documentId, revisionId: lastRevisionId }),
-    ).resolves.toBeUndefined();
     unsubscribe();
   } finally {
     unmount();

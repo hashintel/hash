@@ -206,24 +206,20 @@ test.each(["Dismiss", "Run"] as const)(
         open() {},
         actions: { create: () => documentRecord, rename() {} },
         persistRevision: async () => {},
-        settleRevision: async () => {},
       },
       createAndOpen() {},
     };
     const handle = createJsonDocHandle({
       id: binding.documentId,
       initial: definition,
-      initialRevisionId: documentRecord.revisionId,
     });
     const host = createCanonicalPetrinautHostTools({
       handle,
-      binding,
       readTitle: () => "Queue",
       replayReadiness: {
         status: "ready",
         replay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
       },
-      settleRevision: async () => {},
     });
     const read = host.tools.find(
       (tool) => tool.toolName === "getLatestNetDefinition",
@@ -239,10 +235,7 @@ test.each(["Dismiss", "Run"] as const)(
       viewport: { frameSceneAfterRender: async () => "framed" },
       signal: new AbortController().signal,
     });
-    const readMetadata = await host.clientToolResultMetadataFor(
-      "read-1",
-      readOutput,
-    );
+    const readMetadata = host.clientToolResultMetadataFor("read-1", readOutput);
     let history: FlueConversationState = {
       conversationId: binding.conversationId,
       settlements: [],

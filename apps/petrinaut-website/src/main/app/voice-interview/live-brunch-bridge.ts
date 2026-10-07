@@ -1,6 +1,9 @@
+import { getToolName, isToolUIPart } from "ai";
+
 import { maxUtteranceTextLength } from "../../../shared/live-utterance-judgment";
 import { serializeVoiceBrief } from "../../../shared/voice-mediation";
 import { selectCanonicalSpeech } from "./canonical-speech";
+import { ProgressPolicy } from "./live-brunch-bridge/progress-policy";
 import {
   liveUtteranceStages,
   routeUtterance,
@@ -49,6 +52,8 @@ interface Turn {
   readonly baseline: ReadonlySet<string>;
   readonly baselineMessages: ReadonlySet<string>;
   delegationId: string | null;
+  readonly progress: ProgressPolicy;
+  progressOffered: boolean;
   submitted?: boolean;
   submissionId?: string;
   /** The conversation history the turn began in, so a switch cannot split it. */
@@ -87,18 +92,27 @@ interface Dependencies {
     text: string,
     delegationId: string | null,
   ) => boolean;
+  /** A spoken-only progress line, outside any delegation. */
+  readonly appendProgress: (text: string) => boolean;
   readonly appendInstructions: (text: string, delegationId: string) => boolean;
-  /** Quiet interruption context, never spoken or bound to a delegation. */
+  /** Quiet progress/interruption context, never spoken or bound to a delegation. */
   readonly appendThinking: (text: string, delegationId: null) => boolean;
   readonly notice: (message: string | null) => void;
   /** Transcription speech has started and its transcript isn't finalized yet. */
   readonly speechPending: () => boolean;
+  /**
+   * Browser approval authority. Without a verdict, input-available means
+   * executing; a refused call stays input-available until its output arrives.
+   */
+  readonly toolApprovalState?: (toolCallId: string) => ToolApprovalState | null;
   /** Optional log-only observation. Never controls submission or admission. */
   readonly judge?: (
     state: UtteranceJudgmentState,
     signal: AbortSignal,
   ) => Promise<UtteranceJudgment | null>;
 }
+
+export type ToolApprovalState = "awaiting" | "refused";
 
 /** GPT-Live accepts at most 500 tokens per append; stay well inside it. */
 const liveAppendCharacterBudget = 1_400;
@@ -141,6 +155,10 @@ export class LiveBrunchBridge {
   >();
   #waitingForComposer: Turn | undefined;
   #lastOfferedText: string | null = null;
+  #progressTimer: ReturnType<typeof setInterval> | undefined;
+  #liveSpeaking = false;
+  #progressPendingUntil = 0;
+  #liveSpeechHoldUntil = 0;
   #chat: Chat = {
     canAcceptVoiceInput: false,
     segments: [],
@@ -150,6 +168,111 @@ export class LiveBrunchBridge {
 
   public constructor(dependencies: Dependencies) {
     this.#dependencies = dependencies;
+  }
+
+  /** Acoustic activity is a hold, not proof of provider playback completion. */
+  public liveSpeaking(on: boolean): void {
+    if (this.#liveSpeaking && !on) {
+      // Live has no playback-complete event. Require sustained quiet rather
+      // than releasing a pending summary at the first pause in a sentence.
+      this.#liveSpeechHoldUntil = Date.now() + 1_500;
+      for (const turn of this.#turns) {
+        if (turn.delegationId !== null && !turn.progressOffered)
+          turn.progress.acknowledged(Date.now());
+      }
+    }
+    this.#liveSpeaking = on;
+  }
+
+  #liveAudioMayBePlaying(now: number): boolean {
+    return (
+      this.#liveSpeaking ||
+      now < this.#progressPendingUntil ||
+      now < this.#liveSpeechHoldUntil
+    );
+  }
+
+  #stopProgress(): void {
+    clearInterval(this.#progressTimer);
+    this.#progressTimer = undefined;
+  }
+
+  #updateProgress(): void {
+    if (this.#abort.signal.aborted || this.#turns.size === 0) {
+      this.#stopProgress();
+      return;
+    }
+    const now = Date.now();
+    for (const turn of this.#turns) {
+      if (turn.superseded || !turn.submissionId || turn.delegationId === null)
+        continue;
+      const { messages, required } = this.#responseScope(turn.submissionId);
+      // Do not narrate a completed backend turn while its final rendering or
+      // mediation catches up. Client continuations still have missing settlements.
+      if (
+        this.#chat.settlements.some(
+          (entry) =>
+            required.has(entry.submissionId) && entry.outcome !== "completed",
+        ) ||
+        [...required].every((id) =>
+          this.#chat.settlements.some((entry) => entry.submissionId === id),
+        )
+      ) {
+        continue;
+      }
+      for (const message of this.#chat.messages ?? []) {
+        if (
+          message.role !== "assistant" ||
+          !messages.has(message.id) ||
+          turn.baselineMessages.has(message.id)
+        )
+          continue;
+        for (const part of message.parts) {
+          if (!isToolUIPart(part)) continue;
+          const approval =
+            this.#dependencies.toolApprovalState?.(part.toolCallId) ?? null;
+          const state =
+            approval === "awaiting" || part.state === "approval-requested"
+              ? "awaiting-approval"
+              : part.state === "input-streaming"
+                ? "preparing"
+                : "running";
+          turn.progress.toolStarted(
+            part.toolCallId,
+            getToolName(part),
+            now,
+            state,
+          );
+          if (approval === "refused") {
+            turn.progress.toolFinished(part.toolCallId, now, false);
+          } else if (
+            part.state === "output-available" ||
+            part.state === "output-error" ||
+            part.state === "output-denied"
+          ) {
+            const output: unknown =
+              part.state === "output-available" ? part.output : undefined;
+            const failed =
+              typeof output === "object" &&
+              output !== null &&
+              (("applied" in output && output.applied === false) ||
+                ("success" in output && output.success === false) ||
+                ("status" in output &&
+                  ["invalid", "error", "cancelled", "failed"].includes(
+                    String(output.status),
+                  )));
+            turn.progress.toolFinished(
+              part.toolCallId,
+              now,
+              part.state === "output-available" && !failed,
+            );
+          }
+        }
+      }
+      turn.progress.userSpeaking(this.#dependencies.speechPending());
+      turn.progress.liveSpeaking(this.#liveAudioMayBePlaying(now));
+      turn.progress.evaluate(now);
+    }
   }
 
   public stop(): void {
@@ -162,6 +285,8 @@ export class LiveBrunchBridge {
 
   /** Stop future speech offers, not work already admitted by Brunch. */
   public speechStarted(): void {
+    this.#stopProgress();
+    this.#progressPendingUntil = 0;
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
     let withdrew = false;
@@ -186,7 +311,7 @@ export class LiveBrunchBridge {
     this.#turns.clear();
     if (withdrew)
       this.#dependencies.notice(
-        "Your earlier utterance was not sent because you started speaking again. Use the composer to send it.",
+        "Your earlier words weren’t sent. You started speaking again, so they’re in the composer if you still want them.",
       );
     for (const turn of this.#summarizing) {
       if (turn.delegationId !== null && !this.#abort.signal.aborted)
@@ -232,7 +357,7 @@ export class LiveBrunchBridge {
       submitted: false,
     });
     this.#dependencies.notice(
-      "Your earlier utterance was not sent because the conversation changed. Use the composer to send it.",
+      "Your earlier words weren’t sent. The conversation changed, so they’re in the composer if you still want them.",
     );
     this.#unserved(
       turn.delegationId,
@@ -284,6 +409,9 @@ export class LiveBrunchBridge {
     );
     if (turn) {
       turn.delegationId = delegationId;
+      // Live's prompt acknowledges before delegating. Receipt is a conservative
+      // clock proxy; observed acknowledgement audio ending moves it later.
+      turn.progress.acknowledged(Date.now());
       logLiveDiagnostic("delegation.matched", {
         delegationId,
         inputId: turn.inputId,
@@ -406,7 +534,7 @@ export class LiveBrunchBridge {
       // Newer speech already replaced these words; resending them is not asked for.
       if (input.superseded) return;
       this.#dependencies.notice(
-        "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
+        "Those words weren’t sent. They’re in the composer to send when the assistant is ready.",
       );
       const history = this.#dependencies.mediation.history;
       const waiting = this.#waitingForComposer;
@@ -427,6 +555,21 @@ export class LiveBrunchBridge {
       superseded: input.superseded,
       preparation: new AbortController(),
       delegationId,
+      progressOffered: false,
+      progress: new ProgressPolicy({
+        commentary: (line) => {
+          const sent = this.#dependencies.appendProgress(line);
+          turn.progressOffered = true;
+          // Allow output to begin before sending a simultaneously settled wrap-up.
+          // A provider that stays silent must not block the summary indefinitely.
+          if (sent) this.#progressPendingUntil = Date.now() + 5_000;
+          return sent;
+        },
+        thinking: (context) => {
+          this.#dependencies.appendThinking(JSON.stringify(context), null);
+        },
+        diagnostic: logLiveDiagnostic,
+      }),
       history: this.#dependencies.mediation.history,
       baseline: new Set(this.#chat.segments.map((segment) => segment.id)),
       baselineMessages: new Set([
@@ -437,6 +580,9 @@ export class LiveBrunchBridge {
     };
     this.#waitingForComposer = turn;
     this.#turns.add(turn);
+    turn.progress.startTurn(Date.now());
+    if (delegationId !== null) turn.progress.acknowledged(Date.now());
+    this.#progressTimer ??= setInterval(() => this.#updateProgress(), 250);
     this.#preparations.add(turn.preparation);
     // No await: a slow judge must not change the composer's admission window.
     const { judge } = this.#dependencies;
@@ -505,8 +651,8 @@ export class LiveBrunchBridge {
         });
         this.#dependencies.notice(
           turn.submissionId
-            ? "Your message was admitted, but its response could not be confirmed. Check canonical history; no automatic retry was made."
-            : "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+            ? "Couldn’t confirm the answer. Your message was sent; check the conversation before sending it again."
+            : "Couldn’t confirm your message was sent. Check the conversation before sending it again.",
         );
         this.#unconfirmed(turn);
       }
@@ -614,9 +760,12 @@ export class LiveBrunchBridge {
       return;
     }
     this.#settle();
+    this.#updateProgress();
   }
 
   #interruptTurns(reason: "stopped" | "error"): void {
+    this.#stopProgress();
+    this.#progressPendingUntil = 0;
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
     for (const turn of this.#turns) {
@@ -767,7 +916,7 @@ export class LiveBrunchBridge {
           delegationId: turn.delegationId,
         });
         this.#dependencies.notice(
-          "Brunch did not complete this turn. Check the conversation; no result was offered to Live.",
+          "The assistant didn’t finish. Nothing will be spoken; check the conversation.",
         );
         this.#preparations.delete(turn.preparation);
         if (settlements.some((settlement) => settlement?.outcome === "aborted"))
@@ -935,7 +1084,7 @@ export class LiveBrunchBridge {
           delegationId: turn.delegationId,
         });
         this.#dependencies.notice(
-          "Brunch settled without a spoken answer. Check the conversation.",
+          "The assistant finished without a reply to speak. Check the conversation.",
         );
         this.#unserved(
           turn.delegationId,
@@ -964,6 +1113,7 @@ export class LiveBrunchBridge {
         continue;
       }
       for (const segment of segments) this.#offeredSegments.add(segment.id);
+      turn.progress.settled();
       this.#turns.delete(turn);
       // Freeze complete prose once. Sending is neither exact relay nor playback proof.
       const source = segments.map((segment) => segment.text).join("\n\n");
@@ -1001,6 +1151,14 @@ export class LiveBrunchBridge {
         source,
         turn.preparation.signal,
       );
+      while (
+        turn.progressOffered &&
+        this.#liveAudioMayBePlaying(Date.now()) &&
+        !turn.preparation.signal.aborted &&
+        !this.#abort.signal.aborted
+      ) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 250));
+      }
       if (turn.preparation.signal.aborted || this.#abort.signal.aborted) return;
       // Only provider output transcripts prove that these words were spoken.
       mediation.offered(turn.inputId);
@@ -1010,7 +1168,7 @@ export class LiveBrunchBridge {
     } catch {
       if (!turn.preparation.signal.aborted && !this.#abort.signal.aborted) {
         this.#dependencies.notice(
-          "Brunch finished, but its spoken summary could not be prepared. Read the written answer; no automatic retry was made.",
+          "Couldn’t prepare a spoken summary. The written answer is in the conversation.",
         );
         this.#unserved(
           turn.delegationId,

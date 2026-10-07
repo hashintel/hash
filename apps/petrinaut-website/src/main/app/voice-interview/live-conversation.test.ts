@@ -1238,16 +1238,14 @@ test.each(["rejects", "throws"] as const)(
 
     expect(fixture.onState).toHaveBeenLastCalledWith({
       phase: "connected",
-      message:
-        "Audio playback is blocked. Select Play voice audio to hear Live.",
+      message: "Audio blocked. Select Play to listen.",
       playbackBlocked: true,
       activity: { microphoneLevel: 0.42, outputActive: false },
     });
     await vi.advanceTimersByTimeAsync(100);
     expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
       phase: "connected",
-      message:
-        "Audio playback is blocked. Select Play voice audio to hear Live.",
+      message: "Audio blocked. Select Play to listen.",
       playbackBlocked: true,
     });
     expect(fixture.input.stop).not.toHaveBeenCalled();
@@ -1391,7 +1389,7 @@ test("reports the failed endpoint and HTTP statuses without reflecting response 
   expect(fixture.onState.mock.lastCall?.[0].message).not.toContain("sensitive");
   expect(warning).toHaveBeenCalledExactlyOnceWith(
     "[Petrinaut Live]",
-    "live session request failed (HTTP 502, provider HTTP 401). No automatic retry was made.",
+    "live session request failed (HTTP 502, provider HTTP 401).",
   );
   expect(fixture.input.stop).toHaveBeenCalledOnce();
   expect(
@@ -1516,6 +1514,36 @@ test("telemetry shows activity but silence and late samples never settle or revi
   release(new Map());
   await vi.advanceTimersByTimeAsync(500);
   expect(fixture.onState).toHaveBeenCalledTimes(calls);
+});
+
+test("progress commentary has a null delegation and only the later wrap-up closes the local delegation", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  fixture.emit(0, {
+    type: "session.delegation.created",
+    delegation: { id: "opaque", target: "client" },
+  });
+  fixture.conversation.appendCommentary("Give me a moment on this one.", null);
+  const progress = fixture.onAppendResult.mock.lastCall![0];
+  expect(JSON.parse(fixture.sent[0][0]!)).toMatchObject({
+    type: "session.commentary.append",
+    delegation_id: null,
+    content: "Give me a moment on this one.",
+  });
+  fixture.emit(0, {
+    type: "session.commentary.appended",
+    client_event_id: progress.eventId,
+    start_ms: 1_000,
+  });
+  expect(fixture.conversation.openDelegations.has("opaque")).toBe(true);
+  fixture.conversation.appendCommentary("The model is ready.", "opaque");
+  const wrapUp = fixture.onAppendResult.mock.lastCall![0];
+  fixture.emit(0, {
+    type: "session.commentary.appended",
+    client_event_id: wrapUp.eventId,
+    start_ms: 2_000,
+  });
+  expect(fixture.conversation.openDelegations.has("opaque")).toBe(false);
 });
 
 test("quiet interruption context requires its own acknowledgement and leaves the delegation open", async () => {

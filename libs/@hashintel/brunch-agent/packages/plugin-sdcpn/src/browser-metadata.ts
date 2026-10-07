@@ -16,12 +16,6 @@ export const canonicalContent: {
   return JSON.stringify(normalize(value));
 };
 
-export interface BrowserBinding {
-  readonly documentId: string;
-  readonly incarnationId: string;
-  readonly conversationId: string;
-}
-
 /** Host-only context; the canonical Petrinaut output is unchanged. */
 export interface ClientToolResultMetadata {
   readonly documentRevision: {

@@ -246,8 +246,8 @@ describe("useLocalDocumentRepository", () => {
     });
   });
 
-  test("settles an available local revision immediately", async () => {
-    stubStorage({
+  test("writes an accepted revision to storage before persistRevision resolves", () => {
+    const storage = stubStorage({
       "document-1": {
         id: "document-1",
         incarnationId: "incarnation-1",
@@ -261,74 +261,20 @@ describe("useLocalDocumentRepository", () => {
       useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
 
-    await expect(
-      result.current.repository.settleRevision({
-        documentId: "document-1",
-        revisionId: "revision-1",
-      }),
-    ).resolves.toBeUndefined();
-  });
-
-  test("rejects settlement of a revision that has not been persisted", async () => {
-    stubStorage({
-      "document-1": {
-        id: "document-1",
-        incarnationId: "incarnation-1",
-        revisionId: "revision-1",
-        title: "Before",
-        sdcpn: emptyDefinition,
-        lastUpdated: new Date(0).toISOString(),
-      },
-    });
-    const { result } = renderHook(() =>
-      useLocalDocumentRepository({ onOpen: vi.fn() }),
-    );
-
-    await expect(
-      result.current.repository.settleRevision({
-        documentId: "document-1",
-        revisionId: "unpersisted-revision",
-      }),
-    ).rejects.toThrow("has not persisted revision");
-  });
-
-  test("settles only the revision that persistRevision just recorded", async () => {
-    stubStorage({
-      "document-1": {
-        id: "document-1",
-        incarnationId: "incarnation-1",
-        revisionId: "revision-1",
-        title: "Before",
-        sdcpn: emptyDefinition,
-        lastUpdated: new Date(0).toISOString(),
-      },
-    });
-    const { result } = renderHook(() =>
-      useLocalDocumentRepository({ onOpen: vi.fn() }),
-    );
-
-    await act(async () => {
-      await result.current.repository.persistRevision({
+    // Brunch reports a call's `after` revision as soon as the call returns,
+    // so the write lands synchronously inside the change.
+    act(() => {
+      void result.current.repository.persistRevision({
         documentId: "document-1",
         incarnationId: "incarnation-1",
         definition: emptyDefinition,
         previousRevisionId: "revision-1",
         revisionId: "revision-2",
       });
+      expect(
+        JSON.parse(storage.getItem("petrinaut-sdcpn") ?? "{}"),
+      ).toMatchObject({ "document-1": { revisionId: "revision-2" } });
     });
-
-    await expect(
-      result.current.repository.settleRevision({
-        documentId: "document-1",
-        revisionId: "revision-1",
-      }),
-    ).rejects.toThrow("has not persisted revision");
-    await expect(
-      result.current.repository.settleRevision({
-        documentId: "document-1",
-        revisionId: "revision-2",
-      }),
-    ).resolves.toBeUndefined();
   });
 });
 
