@@ -54,7 +54,6 @@ import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
 import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
-import { CreateNewNetCommands } from "./editor-view/create-new-net-commands";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
 import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
@@ -272,14 +271,6 @@ const EditorViewContent = ({
     clearSelection();
   }
 
-  function handleStartBlank() {
-    setIsAiCtaDismissed(true);
-    handleCreateEmpty();
-    if (aiAssistant !== undefined) {
-      setAiAssistantOpen(false);
-    }
-  }
-
   function handleExport(format: DocumentFormat) {
     exportSDCPN({ petriNetDefinition, title, format });
   }
@@ -354,7 +345,7 @@ const EditorViewContent = ({
 
   const menuItems: MenuItem[] = [
     ...(showNetManagementMenuItems
-      ? [{ id: "new", text: "New", onClick: handleStartBlank }]
+      ? [{ id: "new", text: "New", onClick: handleCreateEmpty }]
       : []),
     ...(showNetManagementMenuItems && existingNets.length > 0
       ? [
@@ -545,13 +536,10 @@ const EditorViewContent = ({
     >
       <EditorCommands
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
+        onNewNet={showNetManagementMenuItems ? handleCreateEmpty : undefined}
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
       <UserSettings settingsLabs={slots?.settingsLabs} />
-      <CreateNewNetCommands
-        enabled={showNetManagementMenuItems}
-        onStartBlank={handleStartBlank}
-      />
       <ImportErrorDialog
         open={importError !== null}
         onOpenChange={({ open }) => {

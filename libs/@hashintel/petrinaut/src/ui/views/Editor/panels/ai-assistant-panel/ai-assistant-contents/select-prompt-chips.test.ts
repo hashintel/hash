@@ -10,7 +10,7 @@ describe("selectPromptChips", () => {
     ).toBe(STARTER_CHIPS);
   });
 
-  test("hides the chips once the conversation has begun", () => {
+  test("hides the starter chips once the conversation has begun", () => {
     expect(
       selectPromptChips({ hasConversation: true, isNetEmpty: true }),
     ).toEqual([]);

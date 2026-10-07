@@ -23,7 +23,11 @@ beforeEach(() => {
   }
 });
 
-const NamedArcsProbe = ({ name }: { name: string }) => {
+const ArcConnectionsProbe = ({
+  name = "Automatic arcs",
+}: {
+  name?: string;
+}) => {
   const { enableAutomaticArcConnections, setEnableAutomaticArcConnections } =
     use(UserSettingsContext);
   return (
@@ -34,40 +38,6 @@ const NamedArcsProbe = ({ name }: { name: string }) => {
       }
     >
       {name}: {enableAutomaticArcConnections ? "on" : "off"}
-    </button>
-  );
-};
-
-/** Reads a persisted setting and writes another, so a write happens on demand. */
-const WalkthroughProbe = () => {
-  const {
-    showWalkthroughOnInit,
-    enableAutomaticArcConnections,
-    setEnableAutomaticArcConnections,
-  } = use(UserSettingsContext);
-  return (
-    <button
-      type="button"
-      onClick={() =>
-        setEnableAutomaticArcConnections(!enableAutomaticArcConnections)
-      }
-    >
-      walkthrough: {showWalkthroughOnInit ? "on" : "off"}
-    </button>
-  );
-};
-
-const ArcConnectionsProbe = () => {
-  const { enableAutomaticArcConnections, setEnableAutomaticArcConnections } =
-    use(UserSettingsContext);
-  return (
-    <button
-      type="button"
-      onClick={() =>
-        setEnableAutomaticArcConnections(!enableAutomaticArcConnections)
-      }
-    >
-      Automatic arcs: {enableAutomaticArcConnections ? "on" : "off"}
     </button>
   );
 };
@@ -117,7 +87,7 @@ describe("UserSettingsProvider", () => {
   });
 
   it.each([false, true])(
-    "drops retired simulation flags from saved settings (legacy value=%s)",
+    "drops retired flags from saved settings (legacy value=%s)",
     (enabled) => {
       // An in-memory store: some Node versions expose a global `localStorage`
       // whose methods are missing, so the test owns the storage it inspects.
@@ -143,15 +113,7 @@ describe("UserSettingsProvider", () => {
       });
 
       try {
-        render(
-          <UserSettingsProvider>
-            <WalkthroughProbe />
-          </UserSettingsProvider>,
-        );
-
-        fireEvent.click(
-          screen.getByRole("button", { name: "walkthrough: off" }),
-        );
+        render(<UserSettingsProvider />);
 
         const persisted = JSON.parse(entries.get(storageKey) ?? "{}") as Record<
           string,
@@ -180,9 +142,9 @@ describe("UserSettingsProvider", () => {
     // in its own components; the editor's own provider must not fork them.
     render(
       <UserSettingsProvider>
-        <NamedArcsProbe name="host" />
+        <ArcConnectionsProbe name="host" />
         <UserSettingsProvider>
-          <NamedArcsProbe name="editor" />
+          <ArcConnectionsProbe name="editor" />
         </UserSettingsProvider>
       </UserSettingsProvider>,
     );
