@@ -86,9 +86,6 @@
       "cache": false,
       "dependsOn": ["codegen"]
     },
-    "test": {
-      "dependsOn": ["check:openapi", "^manifest"]
-    },
     "test:unit": {
       "dependsOn": ["check:openapi", "^manifest"],
       "passThroughEnv": ["UV_CACHE_DIR"],
