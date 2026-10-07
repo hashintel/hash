@@ -18,9 +18,11 @@ import {
   type PetrinautNavigationController,
   type PetrinautNavigationState,
 } from "../navigation";
+import { ActiveNetContext } from "./active-net-context";
 import { EditorContext, type EditorContextValue } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
 import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
+import { useSelectionCleanup } from "./use-selection-cleanup";
 import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
@@ -96,6 +98,11 @@ const TestHost = ({
       {children}
     </PetrinautNavigationProvider>
   );
+};
+
+const SelectionCleanup = () => {
+  useSelectionCleanup();
+  return null;
 };
 
 const selectionOf = (...ids: string[]): SelectionMap =>
@@ -378,26 +385,56 @@ describe("EditorProvider deep-link normalization", () => {
       ],
     };
 
+    const activeNet = {
+      places: [
+        {
+          id: placeId,
+          name: "Queue",
+          description: undefined,
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      componentInstances: [],
+    };
+
+    // The editor view's selection cleanup runs its effect before the provider's.
     render(
       <SDCPNContext.Provider
         value={makeSdcpnContextValue(getItemType, definition)}
       >
-        <TestHost
-          recorded={recorded}
-          initialState={{
-            mode: "simulate",
-            simulateResource: { type: "scenario", id: "baseline" },
-            selection: [{ type: "place", id: "place__queue" }],
+        <ActiveNetContext.Provider
+          value={{
+            activeNet,
+            activeSubnetId: null,
+            setActiveSubnetId: () => {},
           }}
         >
-          <EditorProvider>
-            <EditorContextGrabber
-              onContextValue={(value) => {
-                editor = value;
-              }}
-            />
-          </EditorProvider>
-        </TestHost>
+          <TestHost
+            recorded={recorded}
+            initialState={{
+              mode: "simulate",
+              simulateResource: { type: "scenario", id: "baseline" },
+              selection: [{ type: "place", id: "place__queue" }],
+            }}
+          >
+            <EditorProvider>
+              <SelectionCleanup />
+              <EditorContextGrabber
+                onContextValue={(value) => {
+                  editor = value;
+                }}
+              />
+            </EditorProvider>
+          </TestHost>
+        </ActiveNetContext.Provider>
       </SDCPNContext.Provider>,
     );
     await act(async () => {});

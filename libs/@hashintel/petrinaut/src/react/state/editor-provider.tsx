@@ -63,12 +63,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const navigatedResource = navigation.state.simulateResource;
   const navigatedSelection = navigation.state.selection;
   const { scenarios, metrics } = petriNetDefinition;
+  // Resolved during render, so children never see an older link's ids.
+  const resolved = resolveNavigatedItems(
+    { simulateResource: navigatedResource, selection: navigatedSelection },
+    { scenarios, metrics },
+    getItemType,
+  );
   useEffect(() => {
-    const resolved = resolveNavigatedItems(
-      { simulateResource: navigatedResource, selection: navigatedSelection },
-      { scenarios, metrics },
-      getItemType,
-    );
     const resourceChanged = resolved.simulateResource !== navigatedResource;
     const selectionChanged =
       resolved.selection.length !== navigatedSelection.length ||
@@ -102,6 +103,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     navigatedResource,
     navigatedSelection,
     navigation,
+    resolved,
     scenarios,
   ]);
 
@@ -568,14 +570,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     timelineChartType: state.timelineChartType,
   });
 
-  const selection = selectionFromNavigation(navigation.state.selection);
+  const selection = selectionFromNavigation(resolved.selection);
   const effectiveState: EditorState = {
     ...state,
     globalMode: navigation.state.mode,
     editViewMode: navigation.state.editView,
     simulateViewMode: navigation.state.simulateView,
     simulateDrawer: navigationResourceToSimulateDrawer(
-      navigation.state.simulateResource,
+      resolved.simulateResource,
       navigation.state.overlay,
     ),
     selection,
