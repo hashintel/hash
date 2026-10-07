@@ -51,13 +51,7 @@ export default defineConfig(({ command }) => ({
       formats: ["es"],
     },
     rolldownOptions: {
-      external: (id, importer) =>
-        isExternalDependency(id) ||
-        // Keep the AI SDK's transitive declaration graph out of Petrinaut's
-        // bundled types without externalizing its runtime JavaScript.
-        (id === "ai" &&
-          importer !== undefined &&
-          declarationFilePattern.test(importer)),
+      external: (id) => isExternalDependency(id),
     },
     sourcemap: true,
     minify: true,

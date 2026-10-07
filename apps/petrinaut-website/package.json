@@ -19,6 +19,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.114",
+    "@ai-sdk/react": "3.0.289",
+    "@ark-ui/react": "5.38.1",
     "@flue/sdk": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*",
@@ -37,6 +39,7 @@
     "react-icons": "5.5.0",
     "react-markdown": "10.1.0",
     "remark-gfm": "4.0.1",
+    "vscode-languageserver-types": "3.17.5",
     "zod": "4.4.3"
   },
   "devDependencies": {

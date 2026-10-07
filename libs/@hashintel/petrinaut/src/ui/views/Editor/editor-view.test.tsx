@@ -8,10 +8,9 @@ import {
   type EditorGlobalMode,
   type EditViewMode,
 } from "../../../react/state/editor-context";
+import { definePetrinautPlugin } from "../../plugins/define-petrinaut-plugin";
+import { renderPlugins } from "../../plugins/plugins-test-harness";
 import { EditorView } from "./editor-view";
-
-import type { PetrinautAiAssistant } from "../../petrinaut";
-import type { UIMessageChunk } from "ai";
 
 const lifecycle = vi.hoisted(() => ({
   mount: vi.fn(),
@@ -29,15 +28,6 @@ vi.mock("../../../react/state/use-selection-cleanup", () => ({
 }));
 vi.mock("../../../react/state/use-is-read-only", () => ({
   useIsReadOnly: () => false,
-}));
-vi.mock("./panels/ai-assistant-panel", () => ({
-  AiAssistantPanel: () => {
-    useEffect(() => {
-      lifecycle.mount();
-      return lifecycle.cancelPendingRequest;
-    }, []);
-    return <section aria-label="AI assistant">Pending experiment</section>;
-  },
 }));
 vi.mock("./panels/SimulateView/simulate-view", () => ({
   SimulateViewTabs: () => <nav aria-label="Simulation views" />,
@@ -88,19 +78,20 @@ vi.mock("./use-editor-commands", async (importOriginal) => ({
   EditorCommands: () => null,
 }));
 
-const aiAssistant: PetrinautAiAssistant = {
-  transport: {
-    reconnectToStream: () => Promise.resolve(null),
-    sendMessages: () =>
-      Promise.resolve(
-        new ReadableStream<UIMessageChunk>({
-          start(controller) {
-            controller.close();
-          },
-        }),
-      ),
-  },
+/** An assistant view with a pending request: it mounts once and cancels on unmount. */
+const PendingView = () => {
+  useEffect(() => {
+    lifecycle.mount();
+    return lifecycle.cancelPendingRequest;
+  }, []);
+  return <section aria-label="AI assistant">Pending experiment</section>;
 };
+
+const assistantPlugin = definePetrinautPlugin({
+  id: "test.assistant",
+  name: "AI",
+  assistant: { label: "AI" },
+})({ assistant: { view: <PendingView /> } });
 
 const EditorAtMode = ({
   mode,
@@ -119,7 +110,7 @@ const EditorAtMode = ({
         isAiAssistantOpen: true,
       }}
     >
-      <EditorView aiAssistant={aiAssistant} titleEditable />
+      <EditorView titleEditable />
     </EditorContext.Provider>
   );
 };
@@ -155,23 +146,26 @@ afterEach(() => {
 
 describe("EditorView assistant lifecycle", () => {
   test("keeps the pending assistant mounted when opening experiment results and changing modes", () => {
-    const { rerender, unmount } = render(<EditorAtMode mode="edit" />);
+    const { rerender, unmount } = renderPlugins(
+      [assistantPlugin],
+      <EditorAtMode mode="edit" />,
+    );
     const assistant = screen.getByRole("region", { name: "AI assistant" });
     expect(lifecycle.mount).toHaveBeenCalledTimes(1);
 
-    rerender(<EditorAtMode mode="simulate" />);
+    rerender(undefined, <EditorAtMode mode="simulate" />);
     expect(screen.getByRole("region", { name: "Experiments" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "AI assistant" })).toBe(
       assistant,
     );
 
-    rerender(<EditorAtMode mode="edit" view="definitions" />);
+    rerender(undefined, <EditorAtMode mode="edit" view="definitions" />);
     expect(screen.getByRole("region", { name: "Definitions" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "AI assistant" })).toBe(
       assistant,
     );
 
-    rerender(<EditorAtMode mode="edit" />);
+    rerender(undefined, <EditorAtMode mode="edit" />);
     expect(screen.getByRole("region", { name: "AI assistant" })).toBe(
       assistant,
     );

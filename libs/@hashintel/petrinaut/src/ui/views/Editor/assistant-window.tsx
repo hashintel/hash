@@ -54,18 +54,23 @@ import { useFloatingPanel } from "./shared/use-floating-panel";
 
 export {
   AssistantWindowContext,
-  type AssistantWindowTab,
   type PetrinautAssistantStartRequest,
 } from "./assistant-window/window-host";
-export { useEditorAssistantWindowHost } from "./assistant-window/use-editor-window-host";
+export {
+  type EditorAssistantWindowHost,
+  useEditorAssistantWindowHost,
+} from "./assistant-window/use-editor-window-host";
 export {
   PetrinautAssistantWindowPreview,
   type PetrinautAssistantWindowPreviewProps,
 } from "./assistant-window/window-preview";
 
 export interface PetrinautAssistantWindowProps {
-  /** The chat tab's label, and the header's title while there are no other tabs. */
-  readonly label: string;
+  /**
+   * The chat tab's label, and the header's title while there are no other
+   * tabs. Defaults to the manifest's `assistant.label`.
+   */
+  readonly label?: string;
   /** A small mark before the chat tab's label. */
   readonly mark?: ReactNode;
   /**
@@ -135,7 +140,7 @@ const noTabsAttention: TabsAttention = {};
  * Render it once from the chat; the editor keeps the window's placement, size and shown tab.
  */
 export const PetrinautAssistantWindow = ({
-  label,
+  label: labelProp,
   mark,
   busy = false,
   appearance = "default",
@@ -149,6 +154,7 @@ export const PetrinautAssistantWindow = ({
 }: PetrinautAssistantWindowProps) => {
   const host = use(AssistantWindowContext);
   const { isOpen, placement, tabs, activeTabId } = host;
+  const label = labelProp ?? host.label;
   const panelId = useId();
   const tabDomId = (tabId: string) => `${panelId}-${tabId}`;
   const isCompact = compact !== false;

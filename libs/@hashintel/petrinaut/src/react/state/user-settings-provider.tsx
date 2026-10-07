@@ -140,6 +140,8 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, enableNetComponents: value })),
     setShowCompilationOutput: (value: boolean) =>
       setState((prev) => ({ ...prev, showCompilationOutput: value })),
+    setAiAssistantId: (pluginId: string | null) =>
+      setState((prev) => ({ ...prev, aiAssistantId: pluginId })),
     setPluginEnabled: (pluginId: string, enabled: boolean) =>
       setState((prev) => ({
         ...prev,

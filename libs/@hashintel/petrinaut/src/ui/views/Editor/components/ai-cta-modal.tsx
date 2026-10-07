@@ -4,7 +4,8 @@ import { Button, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
-import { AiVoiceModeButton } from "./ai-voice-mode-button";
+
+import type { PluginAssistantStartAction } from "../../../plugins/define-petrinaut-plugin";
 
 const aiCtaModalLayerStyle = css({
   position: "absolute",
@@ -87,15 +88,16 @@ const aiCtaModalInputStyle = css({
 export const AiCtaModal = ({
   bottomClearance,
   onDismiss,
-  onStartVoiceMode,
+  onStartAction,
   onSubmit,
-  voiceModeAvailable,
+  startAction,
 }: {
   bottomClearance: number;
   onDismiss: () => void;
-  onStartVoiceMode: () => void;
+  onStartAction: (actionId: string) => void;
   onSubmit: (message: string) => void;
-  voiceModeAvailable: boolean;
+  /** Offered in place of Send while the prompt is empty. */
+  startAction?: PluginAssistantStartAction;
 }) => {
   const [promptInput, setPromptInput] = useState("");
 
@@ -186,11 +188,17 @@ export const AiCtaModal = ({
                 type="submit"
                 variant="solid"
               />
-            ) : voiceModeAvailable ? (
-              <AiVoiceModeButton
+            ) : startAction ? (
+              <Button
+                aria-label={startAction.label}
                 className={css({ margin: "2" })}
-                onClick={onStartVoiceMode}
+                onClick={() => onStartAction(startAction.id)}
+                prefix={startAction.icon}
                 size="lg"
+                tone="brand"
+                tooltip={startAction.label}
+                type="button"
+                variant="solid"
               />
             ) : (
               <Button

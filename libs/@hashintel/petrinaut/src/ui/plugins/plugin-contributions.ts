@@ -14,6 +14,7 @@ export type PluginContributionKind =
   | "button"
   | "top-bar-item"
   | "setting"
+  | "assistant"
   | "provides"
   | "root";
 
@@ -61,6 +62,17 @@ export const describePluginContributions = (
     subject: spec.label,
     detail: sectionText[spec.section ?? "general"],
   })),
+  ...(manifest.assistant === undefined
+    ? []
+    : [
+        manifest.assistant.extends === undefined
+          ? { kind: "assistant" as const, subject: manifest.assistant.label }
+          : {
+              kind: "assistant" as const,
+              subject: manifest.assistant.extends.manifest.name,
+              detail: "Extends",
+            },
+      ]),
   ...(manifest.provides === undefined
     ? []
     : [{ kind: "provides" as const, subject: manifest.id }]),

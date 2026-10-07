@@ -18,7 +18,7 @@ import {
   PetrinautAssistantWindowPreview,
 } from "./assistant-window";
 
-import type { AssistantWindowTab } from "./assistant-window";
+import type { PluginAssistantTab } from "../../plugins/define-petrinaut-plugin";
 import type { AssistantWindowHost } from "./assistant-window/window-host";
 
 beforeAll(() => {
@@ -76,13 +76,14 @@ const TestHost = ({
   tabs = [],
   children,
 }: {
-  tabs?: readonly AssistantWindowTab[];
+  tabs?: readonly PluginAssistantTab[];
   children: ReactNode;
 }) => {
   const [isOpen, setOpen] = useState(true);
   const [placement, setPlacement] = useState<"docked" | "floating">("docked");
   const [activeTabId, setActiveTabId] = useState("chat");
   const host: AssistantWindowHost = {
+    label: "Chat",
     isOpen,
     close: () => setOpen(false),
     placement,
@@ -115,7 +116,7 @@ const TestHost = ({
 
 const ledger = (
   activityIdentities?: readonly string[],
-): AssistantWindowTab => ({
+): PluginAssistantTab => ({
   id: "ledger",
   label: "Ledger",
   activityIdentities,

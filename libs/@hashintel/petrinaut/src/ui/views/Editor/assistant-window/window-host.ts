@@ -1,27 +1,11 @@
-import { createContext, type ReactNode } from "react";
+import { createContext } from "react";
 
 import { DEFAULT_AI_ASSISTANT_WIDTH } from "../../../../react/state/panel-defaults";
 
+import type { PluginAssistantTab } from "../../../plugins/define-petrinaut-plugin";
+
 /** The chat tab's id among the window's tabs; every other id is another tab's. */
 export const chatTabId = "chat";
-
-/** A tab in the assistant window, shown after the chat tab. */
-export interface AssistantWindowTab {
-  /** Identifies the tab among the window's tabs; never `"chat"`, the chat tab's id. */
-  readonly id: string;
-  /** Text shown on the tab, also its accessible name. */
-  readonly label: string;
-  /** Decorative content before the label, such as an icon. */
-  readonly mark?: ReactNode;
-  /**
-   * Stable ids of the activity the tab lists; ids that appear while the tab is
-   * hidden badge it. The first list is the baseline; `undefined` until the
-   * activity is known.
-   */
-  readonly activityIdentities?: readonly (number | string)[];
-  /** What the tab renders; it stays mounted while another tab shows. */
-  readonly content: ReactNode;
-}
 
 /**
  * How an entry point outside the chat starts it: with a first message, or
@@ -41,6 +25,8 @@ export type AssistantWindowPlacement = "docked" | "floating";
 
 /** The window's state and controls, from the editor or a preview. */
 export interface AssistantWindowHost {
+  /** The assistant's name: the chat tab's label unless the chat passes its own. */
+  readonly label: string;
   readonly isOpen: boolean;
   readonly close: () => void;
   readonly placement: AssistantWindowPlacement;
@@ -55,7 +41,7 @@ export interface AssistantWindowHost {
   readonly compact: boolean;
   readonly setCompact: (compact: boolean) => void;
   /** The tabs beside the chat. */
-  readonly tabs: readonly AssistantWindowTab[];
+  readonly tabs: readonly PluginAssistantTab[];
   /** `chatTabId` or the id of a listed tab. */
   readonly activeTabId: string;
   readonly setActiveTabId: (tabId: string) => void;
@@ -69,6 +55,7 @@ const ignore = () => {};
 
 /** Outside an editor or a preview: an open, docked window without tabs. */
 const standaloneHost: AssistantWindowHost = {
+  label: "AI",
   isOpen: true,
   close: ignore,
   placement: "docked",

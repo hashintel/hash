@@ -8,16 +8,22 @@ import { AiCtaModal } from "./ai-cta-modal";
 
 afterEach(cleanup);
 
+const voiceAction = {
+  id: "voice",
+  label: "Start voice mode",
+  icon: <svg aria-hidden="true" />,
+};
+
 describe("AiCtaModal", () => {
-  test("offers one waveform action without mode tabs and requests Voice mode once", () => {
-    const onStartVoiceMode = vi.fn();
+  test("offers the assistant's start action without mode tabs and requests it once", () => {
+    const onStartAction = vi.fn();
     const onSubmit = vi.fn();
     render(
       <AiCtaModal
         bottomClearance={0}
-        voiceModeAvailable={true}
+        startAction={voiceAction}
         onDismiss={vi.fn()}
-        onStartVoiceMode={onStartVoiceMode}
+        onStartAction={onStartAction}
         onSubmit={onSubmit}
       />,
     );
@@ -52,19 +58,19 @@ describe("AiCtaModal", () => {
 
     fireEvent.click(voiceButton);
 
-    expect(onStartVoiceMode).toHaveBeenCalledOnce();
+    expect(onStartAction).toHaveBeenCalledExactlyOnceWith("voice");
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  test("switches the trailing action from Voice mode to trimmed text submission", () => {
-    const onStartVoiceMode = vi.fn();
+  test("switches the trailing action from the start action to trimmed text submission", () => {
+    const onStartAction = vi.fn();
     const onSubmit = vi.fn();
     render(
       <AiCtaModal
         bottomClearance={0}
-        voiceModeAvailable={true}
+        startAction={voiceAction}
         onDismiss={vi.fn()}
-        onStartVoiceMode={onStartVoiceMode}
+        onStartAction={onStartAction}
         onSubmit={onSubmit}
       />,
     );
@@ -90,16 +96,15 @@ describe("AiCtaModal", () => {
 
     expect(onSubmit).toHaveBeenCalledOnce();
     expect(onSubmit).toHaveBeenCalledWith("Model an SIR outbreak");
-    expect(onStartVoiceMode).not.toHaveBeenCalled();
+    expect(onStartAction).not.toHaveBeenCalled();
   });
 
-  test("retains a disabled Send action when Voice mode is unavailable", () => {
+  test("retains a disabled Send action when the assistant has no start action", () => {
     render(
       <AiCtaModal
         bottomClearance={0}
-        voiceModeAvailable={false}
         onDismiss={vi.fn()}
-        onStartVoiceMode={vi.fn()}
+        onStartAction={vi.fn()}
         onSubmit={vi.fn()}
       />,
     );
@@ -119,9 +124,9 @@ describe("AiCtaModal", () => {
     render(
       <AiCtaModal
         bottomClearance={0}
-        voiceModeAvailable={true}
+        startAction={voiceAction}
         onDismiss={onDismiss}
-        onStartVoiceMode={vi.fn()}
+        onStartAction={vi.fn()}
         onSubmit={vi.fn()}
       />,
     );
