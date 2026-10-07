@@ -3,7 +3,7 @@ use alloc::{
     vec::Vec,
 };
 
-use error_stack::Report;
+use error_stack::{Report, ReportSink, TryReportTupleExt as _};
 
 use super::{DefinitionParts, order::Dependencies};
 use crate::{
@@ -23,7 +23,7 @@ fn entities_path() -> DefinitionPath {
 /// Checks the parts of a definition against each other and collects every issue.
 pub(super) struct Check<'parts> {
     parts: &'parts DefinitionParts,
-    issues: Vec<DefinitionIssue>,
+    issues: ReportSink<DefinitionIssue>,
     /// The position of the pipeline that reads each source.
     pipelines: BTreeMap<&'parts SourceName, usize>,
     /// The position of the entity pipeline that produces each checkpoint.
@@ -33,7 +33,7 @@ pub(super) struct Check<'parts> {
 
 impl<'parts> Check<'parts> {
     fn report(&mut self, path: DefinitionPath, kind: IssueKind) {
-        self.issues.push(DefinitionIssue { path, kind });
+        self.issues.capture(DefinitionIssue { path, kind });
     }
 
     fn pipeline_sources(&mut self) {
@@ -224,8 +224,12 @@ impl<'parts> Check<'parts> {
         }
     }
 
-    /// Returns the positions of the entity pipelines in run order, or reports a dependency cycle.
-    fn run_order(&mut self) -> Option<Vec<usize>> {
+    /// Returns the positions of the entity pipelines in run order.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`IssueKind::DependencyCycle`] issue if the pipelines cannot be ordered.
+    fn run_order(&mut self) -> Result<Vec<usize>, Report<DefinitionIssue>> {
         let entities = entities_path();
         let mut dependencies = Dependencies::new(self.parts.entity_pipelines.len());
 
@@ -267,18 +271,18 @@ impl<'parts> Check<'parts> {
             }
         }
 
-        match dependencies.run_order() {
-            Ok(order) => Some(order),
-            Err(blocked) => {
-                let pipelines = blocked
-                    .into_iter()
-                    .filter_map(|index| self.parts.entity_pipelines.get(index))
-                    .map(|pipeline| pipeline.source.clone())
-                    .collect();
-                self.report(entities, IssueKind::DependencyCycle { pipelines });
-                None
-            }
-        }
+        dependencies.run_order().map_err(|blocked| {
+            Report::new(DefinitionIssue {
+                path: entities,
+                kind: IssueKind::DependencyCycle {
+                    pipelines: blocked
+                        .into_iter()
+                        .filter_map(|index| self.parts.entity_pipelines.get(index))
+                        .map(|pipeline| pipeline.source.clone())
+                        .collect(),
+                },
+            })
+        })
     }
 
     /// Checks `parts` and returns the positions of the entity pipelines in run order.
@@ -287,7 +291,7 @@ impl<'parts> Check<'parts> {
     ) -> Result<Vec<usize>, Report<[DefinitionIssue]>> {
         let mut check = Self {
             parts,
-            issues: Vec::new(),
+            issues: ReportSink::new(),
             pipelines: BTreeMap::new(),
             producers: BTreeMap::new(),
             steps: BTreeSet::new(),
@@ -299,16 +303,8 @@ impl<'parts> Check<'parts> {
         }
         check.links();
         let order = check.run_order();
-
-        if let Some(report) = check
-            .issues
-            .into_iter()
-            .map(Report::new)
-            .collect::<Option<Report<[DefinitionIssue]>>>()
-        {
-            return Err(report);
-        }
-
-        Ok(order.expect("a failed run order should have been reported as an issue"))
+        (check.issues.finish(), order)
+            .try_collect()
+            .map(|((), order)| order)
     }
 }
