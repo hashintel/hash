@@ -30,7 +30,7 @@ export const RequestIdProducer = GenericTag<RequestIdProducer>(
 const make = Effect.fn("make")(function* () {
   const next = yield* Ref.make(0);
 
-  return createProto(RequestIdProducerProto, { next }) as RequestIdProducer;
+  return createProto(RequestIdProducerProto, { next });
 });
 
 export const layer = Layer.effect(RequestIdProducer, make());

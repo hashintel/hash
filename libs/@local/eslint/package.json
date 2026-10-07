@@ -12,6 +12,10 @@
     "./deprecated": {
       "types": "./dist/deprecated/index.d.ts",
       "default": "./dist/deprecated/index.js"
+    },
+    "./plugins": {
+      "types": "./dist/plugins.d.ts",
+      "default": "./dist/plugins.js"
     }
   },
   "scripts": {
@@ -37,6 +41,7 @@
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-react-hooks": "7.0.1",
     "eslint-plugin-react-refresh": "0.5.4",
+    "eslint-plugin-react-x": "1.17.2",
     "eslint-plugin-storybook": "10.3.1",
     "eslint-unicorn": "55.0.0",
     "globals": "16.4.0",

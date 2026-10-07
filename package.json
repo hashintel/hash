@@ -78,6 +78,7 @@
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.30.0#~/.yarn/patches/@changesets-cli-npm-2.30.0-83a4e8887c.patch",
     "@local/claude-hooks": "workspace:*",
     "@yarnpkg/types": "^4.0.1",
+    "eslint-plugin-react-hooks": "7.0.1",
     "lefthook": "2.0.0",
     "npm-run-all2": "8.0.4",
     "oxfmt": "0.50.0"
