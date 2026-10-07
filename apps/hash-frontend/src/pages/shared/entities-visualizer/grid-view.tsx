@@ -24,10 +24,6 @@ export const GridView: FunctionComponent<{
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMatchIndex, setSelectedMatchIndex] = useState(-1);
 
-  /**
-   * The file name is passed down to each card rather than derived there, so
-   * the search below matches against exactly the text the cards display.
-   */
   const items = useMemo(
     () =>
       entities?.map((entity) => {
@@ -95,8 +91,6 @@ export const GridView: FunctionComponent<{
 
   return (
     <Box sx={{ position: "relative" }}>
-      {/* A zero-height sticky slot keeps the overlay in view while the page
-          scrolls through the grid, without displacing it. */}
       <Box sx={{ position: "sticky", top: 8, zIndex: 10, height: 0 }}>
         <GridViewSearch
           open={showSearch}

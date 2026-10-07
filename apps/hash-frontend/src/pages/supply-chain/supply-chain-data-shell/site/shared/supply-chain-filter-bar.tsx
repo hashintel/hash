@@ -39,14 +39,6 @@ const emptyBarAlign = css({
   justifyContent: "flex-end",
 });
 
-// Every chip renders inside an identical keyed wrapper so its position in
-// the element tree is stable as filters come and go — rendering the last
-// chip in a different parent from the rest remounted it whenever the last
-// chip changed, discarding its uncommitted draft. The last wrapper also
-// holds the trailing add/clear buttons, so a wrap never strands them on a
-// line of their own — at least one chip accompanies them. The gap matches
-// the group's; the recipe's action-button tightening still reaches inside
-// (it matches descendants).
 const chipWrapper = css({
   display: "inline-flex",
   alignItems: "center",
@@ -189,10 +181,6 @@ export const SupplyChainFilterBar = ({
           setFilterValue(filter.filterKey, operatorKey, committed)
         }
         onInput={(operatorKey, committed) => {
-          // Filtering is in-memory, so a complete draft applies on every
-          // edit, undebounced. Null drafts apply nothing: an incomplete
-          // draft never un-applies a filter (clearing stays an Enter/blur
-          // commit), and an input-less operator commits through onChange.
           if (committed !== null) {
             setFilterValue(filter.filterKey, operatorKey, committed);
           }
@@ -240,9 +228,6 @@ export const SupplyChainFilterBar = ({
       {filters.map((filter, index) => {
         const chip = renderFilterChip(filter);
         const isLast = index === filters.length - 1;
-        // No wrapper for an unrenderable filter (unknown definition) — an
-        // empty flex item would add stray gap spacing — unless it is the
-        // last one, whose wrapper carries the controls.
         if (!chip && !isLast) {
           return null;
         }

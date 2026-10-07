@@ -7,12 +7,6 @@ export type OperatorDescriptor = {
   operator: PropertyFilterOperator;
   /** Human-readable label shown in the operator dropdown. */
   label: string;
-  /**
-   * English reading of a symbolic label ("greater than" for ">"), shown as
-   * subtle small text beside it in the dropdown — never in the chip. Worded
-   * as the relation's predicate-adjective name (each completes "value is
-   * ___"), so "equal" / "not equal" rather than "equals" / "does not equal".
-   */
   description?: string;
   /** Whether the operator needs a value input (false for boolean / existence). */
   requiresValue: boolean;
@@ -44,11 +38,6 @@ const existenceOperators: OperatorDescriptor[] = [
   hasNoValueOperator,
 ];
 
-/**
- * Comparisons as symbols, as Notion and Airtable label them: compact in the
- * chip ("Amount ≥ 5") and instantly scannable in the dropdown. Grouped
- * comparisons-then-equality, with the default (>) first.
- */
 const numberOperators: OperatorDescriptor[] = [
   {
     operator: "greaterThan",
@@ -140,10 +129,7 @@ const booleanOperators: OperatorDescriptor[] = [
 
 /**
  * Enum-kind properties pick their values from the data type's constants, so
- * their value inputs are selects rather than free text. "is not" is the
- * none-of multi-select (a single selection is just its one-value case; an
- * AND of ≠, so it stays expressible on the AND-only entities-table
- * endpoint). `is any of` awaits a disjunction on that endpoint.
+ * their value inputs are selects rather than free text.
  */
 const enumOperators: OperatorDescriptor[] = [
   {

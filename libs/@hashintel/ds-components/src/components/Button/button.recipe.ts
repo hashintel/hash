@@ -18,8 +18,6 @@ export const styles = sva({
       fontWeight: "medium",
       borderWidth: "var(--form-border-width)",
       borderStyle: "solid",
-      // The painted background defaults to --button-bg, the button's
-      // published fill (see the note at the first compound variant).
       background: "[var(--button-bg)]",
       "--button-bg": "{colors.neutral.s00}",
       textAlign: "center",
@@ -293,14 +291,6 @@ export const styles = sva({
         button: { paddingRight: "2.5" },
       },
     },
-    // ── Solid + Neutral ──
-    // --button-bg publishes the button's effective fill for descendants that
-    // derive hover tints from it (e.g. SortMenu's direction toggle), so it
-    // must be opaque. Solid fills paint the variable itself (via the base
-    // button); subtle/ghost keep their translucent aNN paints — those
-    // composite over whatever surface the button sits on — and publish the
-    // opaque sNN equivalent (aNN over the surface ≈ sNN, ambient surface
-    // taken as s00) alongside.
     {
       variant: "solid",
       tone: "neutral",

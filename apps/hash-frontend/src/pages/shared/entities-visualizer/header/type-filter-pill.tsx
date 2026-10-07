@@ -397,8 +397,6 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
   };
 
   return (
-    // `contents`: the pill participates directly in the ribbon's inline flow
-    // (the menu portals, so the wrapper is only structural).
     <Box sx={{ display: "contents" }}>
       <FilterPill
         icon={AsteriskLightIcon}

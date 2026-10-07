@@ -16,13 +16,6 @@ export const directionSuffix = cva({
   },
 });
 
-// The hover tint is computed from the backdrop fill its owner publishes
-// (--item-bg on list rows, --button-bg on the trigger Button): OKLCH relative
-// color moves the fill's lightness a constant 0.1 toward the opposite
-// extreme — sign() flips the direction at mid lightness — keeping chroma and
-// hue. Uniform contrast at any fill luminance, but only as accurate as the
-// published var (alpha fills publish opaque equivalents; ghost assumes the
-// s00 surface).
 export const directionToggle = cva({
   base: {
     appearance: "none",

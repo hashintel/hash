@@ -507,13 +507,7 @@ export const NetworkGraphView = ({
   filter?: string;
   /** Opens the entity drawer for an entity — the popover's "Go to entity". */
   onOpenEntity?: (entityId: EntityId) => void;
-  /**
-   * Whether the search panel is shown. The trigger lives in the visualizer
-   * header (the same search button the table view uses), so the view only
-   * renders the panel it controls.
-   */
   searchOpen: boolean;
-  /** Fired by the search panel's close button and Escape. */
   onSearchClose: () => void;
 }) => {
   const theme = useTheme();

@@ -7,12 +7,6 @@ import {
   searchRow,
 } from "./selectable-list-search.recipe";
 
-/**
- * The dropdown content shrink-wraps its widest row, so filtering would make
- * it jitter as rows come and go. Pin the width the content had when the
- * query began. Set with `important` to beat recipe min-widths that are
- * themselves `!important` (the Select list slot).
- */
 const lockMinWidth = (content: HTMLElement) => {
   const rect = content.getBoundingClientRect();
   if (rect.width === 0) {

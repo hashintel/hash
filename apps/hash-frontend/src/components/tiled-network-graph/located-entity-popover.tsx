@@ -1,22 +1,5 @@
 /**
- * The selection popover for the Atlas network graph: a compact white entity card
- * anchored to the selected node/edge, showing the located item's title, its
- * type chip, its simple-value properties (nodes), and a "Go to entity" action
- * ("Go to link" for edges).
- * When the located detail is truncated (its type or property set capped) the
- * card flags the missing parts with a "+ more" cue. Used by the
- * entities-visualizer network graph view.
- *
- * Purely presentational — the consumer decodes a {@link fetchLocate} response
- * into {@link LocatedEntityDetail} and owns the
- * {@link LocatedEntityPopoverProps.onGoTo} behaviour; this file only lays the
- * card out (reusing the {@link Button} primitive) and positions it via
- * {@link Popover}. Every text run is clamped so a long label or value can't
- * stretch or overflow the card.
- *
- * The {@link Popover} portals its content, so a consumer that scopes the ds Panda
- * tokens to a subtree (rather than globally) must supply a `PortalContainerContext`
- * inside that scope, or the card's token-based colours won't resolve.
+ * The selection popover for the Atlas network graph
  */
 
 import { Button, Icon, Popover } from "@hashintel/ds-components";

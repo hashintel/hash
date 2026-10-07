@@ -1,24 +1,9 @@
 /**
  * Search panel for the Atlas-tiled network graph view.
  *
- * Opened from the visualizer header's search button (the same button the table
- * view's search uses), it slides in from the left over the graph's top-left
- * corner — the same direction the table view's search box arrives from — as a
- * titled "Search" panel holding a compact autocomplete. Matching results
- * appear in a dropdown the user picks from before a selection is made.
- *
- * The data source differs from the table's visible-row search: the tiled graph
- * never holds its node list in full, so instead we query the graph over GraphQL
- * as the user types (debounced). We use the structural `queryEntities` endpoint
- * rather than the header bar's semantic `searchEntities` — the latter needs an
- * embedding client that isn't configured in local dev. `containsSegment` is
- * case-sensitive, so we match a few case variants of the query against the
- * common label properties and then refine case-insensitively on the generated
- * label. The results carry no coordinates, so the parent view locates each (by
- * entity id) to place and reveal a picked result — it prefetches the whole
- * result set via `onResultsChange` so a pick made while its locate is still
- * pending can share that request (see `network-graph-view.tsx`). A locate that
- * has already settled is deliberately fetched again for request-time detail.
+ * The data source queries the graph over GraphQL as the user types (debounced).
+ * The results carry no coordinates, so the parent view locates each (by
+ * entity id) to place and reveal a picked result
  */
 
 import { useQuery } from "@apollo/client";
@@ -46,25 +31,16 @@ import type {
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 
-/** Cap on results pulled per keystroke. */
 const MAXIMUM_RESULTS = 25;
-/** Debounce (ms) on the typed query before hitting the search endpoint. */
 const SEARCH_DEBOUNCE_MS = 300;
-
-/** Width of the floating search panel. */
 const PANEL_WIDTH = 340;
-
-/** Inset of the panel from the graph frame's top-left corner. */
 const PANEL_INSET = 8;
 
 /**
  * The open panel layers around the selection popover, which sits at a
  * deliberately low base z-index (see `SELECTION_POPOVER_Z_INDEX`) so it — and
  * this panel with it — stay below app overlays like the entity drawer. Which of
- * the two is on top follows the last thing the user actioned (see the `elevated`
- * prop): focusing the panel raises it above the popover; selecting an item
- * drops it below so the popover shows on top. The results dropdown always sits
- * one step above the panel so it isn't clipped behind it.
+ * the two is on top follows the last thing the user actioned
  *
  * Kept in step with the selection popover's z-index (`LocatedEntityPopover`).
  */
@@ -320,9 +296,7 @@ export const NetworkGraphSearch = ({
   return (
     // A clipping container pinned at the graph's top-left corner: the panel
     // slides in from (and out past) its left edge, so mid-transition it never
-    // spills outside the graph frame. The padding leaves room for the panel's
-    // shadow at rest; `pointerEvents: none` keeps the clipped area from
-    // swallowing graph interactions.
+    // spills outside the graph frame.
     <Box
       sx={{
         position: "absolute",
@@ -354,13 +328,8 @@ export const NetworkGraphSearch = ({
           pointerEvents: open ? "auto" : "none",
           background: palette.white,
           border: `1px solid ${palette.gray[30]}`,
-          // Match the other graph controls: a rounded square, not a circle.
           borderRadius: "4px",
           boxShadow: boxShadows.sm,
-          // The slide-from-the-left: fully past the container's clip edge when
-          // closed, in place when open. `visibility` rides the transition so the
-          // panel stays visible while sliding out but can't be tabbed into once
-          // hidden.
           transform: open
             ? "translateX(0)"
             : `translateX(calc(-100% - ${PANEL_INSET}px))`,

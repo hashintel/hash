@@ -101,13 +101,6 @@ export const resolveDataTypeValueKind = ({
   return inheritedKind;
 };
 
-/**
- * The string constants an enum-constrained data type permits, resolved along
- * the same chain as {@link resolveDataTypeValueKind} (own schema, lone
- * `anyOf` branch, `allOf` parents) — or `null` when no enum constrains the
- * type. Only string enums qualify: a number enum's select would commit
- * strings, and a string parameter never equals a stored JSONB number.
- */
 const resolveStringEnumOptions = ({
   dataTypeId,
   dataTypes,
@@ -179,15 +172,6 @@ const resolveStringEnumOptions = ({
  * Classifies a single property (as it appears on one entity type) into a
  * {@link FilterMetadataForProperty}, or `null` if it should be omitted from the picker
  * (a supported-but-unfilterable kind like `null`, or a missing definition).
- *
- * Scalar text/number/boolean values get their full operator catalogs; a text
- * value constrained to a fixed set of constants classifies as `enum`, whose
- * operators pick values from a select instead of free text. Lists whose
- * elements are plain text (enum-constrained or not) classify as `textList`
- * (`contains` reaches inside elements, plus existence checks); every other
- * shape — nested objects, lists of non-text values, multi-data-type
- * properties — classifies as `opaque`, offering only the existence operators
- * (value comparisons on those shapes are misleading server-side).
  */
 const classifyProperty = ({
   baseUrl,
@@ -224,14 +208,6 @@ const classifyProperty = ({
     filterable: true,
   });
 
-  /**
-   * The property type's own value shape, before any entity-level list
-   * wrapping: a scalar kind for a lone data-type reference (`enum` with its
-   * options when the type constrains text to constants), `textList` for a
-   * list of text values, `opaque` for any other shape, or `null` for a data
-   * type resolving to no filterable primitive (e.g. an explicit null), which
-   * stays out of the picker as before.
-   */
   const resolveOwnShape = (): {
     kind: FilterValueKind;
     enumOptions?: string[];

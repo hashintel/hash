@@ -104,18 +104,8 @@ export const EntitiesTable: FunctionComponent<{
   currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
   currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
   disableTypeClick?: boolean;
-  /**
-   * Written with the CSV-export function each render, so the visualizer
-   * header's export button (rendered by the parent) exports what the table
-   * currently shows. Built here rather than in the parent because it resolves
-   * actor and web ids to display names using lookups the table already holds.
-   */
   generateCsvFileRef: MutableRefObject<GenerateCsvFileFunction | null>;
   handleEntityClick: (entityId: EntityId) => void;
-  /**
-   * Whether the view has been narrowed or changed from the default filter
-   * state — selects between "no matches" and "nothing here yet" empty copy.
-   */
   isFiltered: boolean;
   loading: boolean;
   isViewingOnlyPages: boolean;
@@ -776,10 +766,6 @@ export const EntitiesTable: FunctionComponent<{
   return (
     <Stack
       sx={{
-        // Reposition glide's built-in search overlay from the grid's top-right
-        // corner to its top-left, sliding in from the left — mirroring the
-        // graph view's search panel. Glide's own keyframes slide from the
-        // right, so they're replaced wholesale.
         "@keyframes entities-table-search-in": {
           from: { transform: "translateX(-400px)" },
           to: { transform: "translateX(0)" },

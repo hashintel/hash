@@ -121,9 +121,6 @@ const propertyOperatorsByKind: Record<
     { id: "isFalse", label: "is false", requiresValue: false },
     ...existenceOperators,
   ],
-  // This builder classifies via `resolveDataTypeValueKind`, which only yields
-  // scalar kinds — the enum/list/structured kinds exist here for type
-  // completeness with the entities table's richer classifier.
   enum: [
     { id: "equal", label: "is", requiresValue: true },
     { id: "notEqual", label: "is not", requiresValue: true },

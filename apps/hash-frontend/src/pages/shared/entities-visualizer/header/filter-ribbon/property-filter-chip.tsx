@@ -14,36 +14,15 @@ import type {
 import type { FilterOperator, MenuItem } from "@hashintel/ds-components";
 import type { FunctionComponent } from "react";
 
-/** What a property switch carries over to the chip — see `onSwitchProperty`. */
 export type SwitchablePropertyOption = Pick<
   FilterableProperty,
   "baseUrl" | "title" | "kind" | "enumOptions"
 >;
 
-/**
- * How long after the last edit a complete draft is applied without an explicit
- * commit. Tuned against the entities-table endpoint: a filtered page with its
- * count takes 200–600ms on larger webs, and the half-typed values are the most
- * expensive to answer — 400ms coalesces fluent typing into one request while
- * the result still lands within ~1s of the last keystroke.
- */
 const liveFilterDebounceMs = 400;
 
-/**
- * Operator keys map to `unknown` rather than per-operator value types: which
- * operators the chip offers varies with the property's value kind at runtime,
- * and the commit handler stores every value as a string regardless (see
- * {@link PropertyFilter.value}).
- */
 type PropertyFilterValueMap = Record<PropertyFilterOperator, unknown>;
 
-/**
- * A stored raw string as the committed value the chip displays. Mirrors
- * `coerceValueParameter` in `build-property-filter-clause.ts`: a missing,
- * empty, or (for numbers) unparseable value counts as none — the chip then
- * renders the operator's input empty, matching the filter contributing no
- * query clause.
- */
 const scalarChipValue = (
   raw: string | undefined,
   kind: PropertyFilter["kind"],
@@ -58,12 +37,6 @@ const scalarChipValue = (
   return raw;
 };
 
-/**
- * The committed value the chip displays: a `[lower, upper]` pair for
- * `between` (both bounds required — a half-filled pair renders both inputs
- * empty, matching the inert filter), the selected values for a multi-select
- * operator, a scalar otherwise.
- */
 const chipValue = (
   filter: PropertyFilter,
 ): string | number | string[] | [number, number] | null => {
@@ -84,25 +57,11 @@ const chipValue = (
  * A property filter as a ds-components `Filter` chip: the property title,
  * an operator dropdown built from the kind's operator catalog, and a
  * text/number input for value-taking operators.
- *
- * The chip commits only complete or fully cleared drafts: a cleared commit
- * keeps the filter with no value (inert — it contributes no query clause),
- * mirroring how value-less operators are active from the moment they are
- * selected.
- *
- * A complete draft also applies live while the user edits (debounced — see
- * {@link liveFilterDebounceMs}); an incomplete draft never un-applies a
- * filter, so clearing stays an explicit Enter/blur commit.
  */
 export const PropertyFilterChip: FunctionComponent<{
   filter: PropertyFilter;
   className?: string;
-  /**
-   * The properties the chip's property segment offers switching to (it
-   * renders as a menu trigger when present, ticking the current property).
-   */
   propertyOptions?: SwitchablePropertyOption[];
-  /** Fires with the picked property when it differs from the current one. */
   onSwitchProperty?: (property: SwitchablePropertyOption) => void;
   onCommit: (committed: PropertyFilter) => void;
   onRemove: () => void;
@@ -117,8 +76,6 @@ export const PropertyFilterChip: FunctionComponent<{
   const operators = useMemo<
     Array<FilterOperator<PropertyFilterValueMap>>
   >(() => {
-    // Enum-kind values are picked from the data type's constants rather than
-    // typed free-form.
     const selectItems = (filter.enumOptions ?? []).map((option) => ({
       value: option,
       text: option,
@@ -133,9 +90,6 @@ export const PropertyFilterChip: FunctionComponent<{
       return {
         key: descriptor.operator,
         label: descriptor.label,
-        // A symbolic operator's dropdown row carries its English reading
-        // as subtle text; `renderSelectedItem` keeps the chip's operator
-        // segment to the bare symbol.
         renderItem: descriptor.description ? (
           <span>
             {descriptor.label}
@@ -169,11 +123,6 @@ export const PropertyFilterChip: FunctionComponent<{
 
   const commitChange = useCallback(
     (operator: PropertyFilterOperator, committed: unknown) => {
-      // The chip's inputs produce strings, numbers, a pair of numbers
-      // (`between`), or a list of strings (multi-select); a cleared commit
-      // (null) stores no value, leaving the filter inert. Every per-shape
-      // field is reset on each commit so switching operators sheds stale
-      // bounds and selections.
       const asRawString = (raw: unknown): string | undefined =>
         typeof raw === "string"
           ? raw
@@ -215,12 +164,6 @@ export const PropertyFilterChip: FunctionComponent<{
     commitChangeRef.current = commitChange;
   });
 
-  // The live path: a complete draft applies while the user edits. The
-  // debounce is created once and commits through the ref, so parent renders
-  // (each passing a new inline `onCommit`) leave a pending live apply
-  // ticking — recreating the debounce per `commitChange` identity wiped it
-  // on every parent update, including those the previous live commit itself
-  // caused, leaving typed values unapplied until Enter or blur.
   const debouncedCommitChange = useMemo(
     () =>
       debounce((operator: PropertyFilterOperator, committed: unknown) => {

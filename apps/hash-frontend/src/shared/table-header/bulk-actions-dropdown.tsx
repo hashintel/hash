@@ -71,7 +71,6 @@ export const BulkActionsDropdown: FunctionComponent<{
     | DataTypeWithMetadata
   )[];
   onBulkActionCompleted?: () => void;
-  /** Overrides for the trigger chip's styling. */
   sx?: SxProps<Theme>;
 }> = ({ selectedItems, onBulkActionCompleted, sx }) => {
   const { authenticatedUser } = useAuthenticatedUser();

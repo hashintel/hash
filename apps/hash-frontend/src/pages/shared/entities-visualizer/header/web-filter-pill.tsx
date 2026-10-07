@@ -124,8 +124,6 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
   const isActive = !allInternalSelected || webState.includeOtherWebs;
 
   return (
-    // `contents`: the pill participates directly in the ribbon's inline flow
-    // (the menu portals, so the wrapper is only structural).
     <Box sx={{ display: "contents" }}>
       <FilterPill
         icon={HouseRegularIcon}

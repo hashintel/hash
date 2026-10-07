@@ -340,7 +340,6 @@ export const Filter = <
   >;
   const portalContainerRef = usePortalContainerRef();
   const rootRef = useRef<HTMLDivElement>(null);
-  // Assigned only while the property segment is interactive (a button)
   const propertyRef = useRef<HTMLButtonElement>(null);
   const operatorTriggerRef = useRef<HTMLButtonElement>(null);
   const inputRefs = useRef<Array<HTMLElement | null>>([]);
@@ -528,9 +527,6 @@ export const Filter = <
       return;
     }
     const configs = inputConfigsOf(operator);
-    // Matching input shapes (same count, pairwise-equal types) carry the
-    // draft across the switch; otherwise restore the committed value when
-    // returning to its operator, or reset.
     const previousOperator = operatorByKey(draftKey);
     const nextSlots =
       previousOperator && inputShapesEqual(previousOperator, operator)
@@ -835,9 +831,7 @@ export const Filter = <
     complete,
   });
 
-  // An interactive property segment renders as a button — the label moves
-  // into an inner truncating span (like the operator trigger's) so the
-  // button itself never clips its focus ring.
+  // An interactive property segment renders as a button
   const propertyButton = (
     <button
       ref={propertyRef}

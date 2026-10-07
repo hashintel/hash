@@ -94,9 +94,6 @@ export type GridProps<
    * Provide to set an initial sort if sorting state is NOT managed by the parent component.
    */
   initialSort?: GridSort<Sortable>;
-  /**
-   * Overrides the default message shown when the grid has no rows.
-   */
   noResultsMessage?: { title: string; description?: string };
   onConversionTargetSelected?: ({
     columnKey,
@@ -138,7 +135,6 @@ const emptyRect: ReturnType<VirtualElement["getBoundingClientRect"]> = {
   toJSON: () => "",
 };
 
-/** Glide's default `bgSearchResult` theme color. */
 export const searchResultHighlightColor = "#fff9e3";
 
 /** Mirrors the cell text glide's built-in search tests, per cell kind. */
@@ -378,13 +374,7 @@ export const Grid = <
 
   /**
    * Search supplied to glide in place of its built-in cell-by-cell search.
-   * `searchResults` holds one result per matching row (its first matching
-   * cell), so the overlay's count and prev/next arrows work in rows rather
-   * than occurrences — its items are in glide's internal coordinate space,
-   * where the checkbox row-marker column shifts data columns right by one.
-   * A row's remaining matching cells go into `searchHighlightRegions`
-   * (user coordinates), fill-only regions in the same color glide gives
-   * search results, so every occurrence still shows as highlighted.
+   * instead replacing it with a row-by-row search.
    */
   const { searchResults, searchHighlightRegions } = useMemo<{
     searchResults: Item[];
@@ -459,7 +449,6 @@ export const Grid = <
           (row) => row.rowId === selectedRow.rowId,
         );
 
-        // A selected row no longer in the grid has no index to mark.
         if (selectedRowIndex !== -1) {
           mergedRowSelection = mergedRowSelection.add(selectedRowIndex);
         }
@@ -852,7 +841,6 @@ export const Grid = <
         /**
          * Painted over the grid body so the vertical column borders and the
          * skeleton row are hidden while the canvas-drawn header stays as-is.
-         * pointerEvents is off so the header can still be scrolled horizontally.
          */
         <Fade in timeout={150}>
           <Stack
@@ -868,7 +856,6 @@ export const Grid = <
               zIndex: 1,
             }}
           >
-            {/* 2:3 spacers center the block slightly above geometric center */}
             <Box sx={{ flexGrow: 2 }} />
             {dataLoading ? (
               /* Delayed so sub-300ms fetches never flash a spinner */

@@ -255,13 +255,6 @@ const selectItemsEqual = (
   );
 };
 
-/**
- * Whether two operators take interchangeable input: the same number of
- * inputs, pairwise-equal in value type — for selects the multiplicity (a
- * multi select's slot is an array) and the option values must match too.
- * Labels, placeholders, icons and separators are ignored, so a draft can
- * carry across an operator switch.
- */
 export const inputShapesEqual = (
   a: LooseOperator,
   b: LooseOperator,
@@ -385,17 +378,6 @@ export const focusWithoutRing = (
   target.focus();
 };
 
-/**
- * Mount/creation focus for a chip: the first input when an operator is
- * already selected and takes input (only then are input slots rendered),
- * otherwise the operator trigger. Never the remove button, and never the
- * property segment (even when interactive): the thing to fill in comes
- * after it. A select input's focus target is its trigger; an empty one
- * (zag marks it `data-placeholder-shown`) also gets its dropdown opened: at
- * rest it doesn't read as pressable, so landing on it closed is
- * disorienting. zag's select trigger toggles on plain clicks, synthetic
- * ones included.
- */
 export const focusInitialSegment = (chip: HTMLElement): void => {
   const target =
     chip.querySelector<HTMLElement>(

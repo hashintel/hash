@@ -58,7 +58,6 @@ export const filterRecipe = sva({
       width: "[fit-content]",
       maxWidth: "[100%]",
       whiteSpace: "nowrap",
-      // 80% static white: frosts the surface beneath in both modes
       background: "white.a100",
       fontWeight: "medium",
       borderRadius: "[var(--filter-radius)]",
@@ -108,27 +107,16 @@ export const filterRecipe = sva({
       borderStartStartRadius: "[var(--filter-radius)]",
       borderEndStartRadius: "[var(--filter-radius)]",
       transition: "[border-color 0.15s ease]",
-      // With no operators and no remove button the property is the whole chip
       "&:last-child": {
         borderInlineEnd:
           "var(--form-border-width) solid var(--filter-outer-border)",
         borderStartEndRadius: "[var(--filter-radius)]",
         borderEndEndRadius: "[var(--filter-radius)]",
       },
-      // propertyMenu/propertyOnClick render the segment as a button: same
-      // geometry, plus the operator trigger's hover/open/focus affordances.
-      // The label truncates in an inner span, so the button itself stays
-      // unclipped (overflow would swallow the focus ring) — flex + the
-      // span's minWidth:0 reproduce the ellipsis.
       "&:is(button)": {
         appearance: "none",
         display: "flex",
         alignItems: "center",
-        overflow: "visible",
-        background: "[transparent]",
-        font: "inherit",
-        fontSize: "[var(--filter-font-size)]",
-        borderInlineEnd: "none",
         position: "relative",
         cursor: "pointer",
         outline: "none",
@@ -569,21 +557,14 @@ export const filterRecipe = sva({
             "--filter-remove-divider": "var(--colors-neutral-a40)",
           },
         },
-        // The wash is painted per segment rather than on the root: the
-        // remove button stays interactive while the rest is disabled, and
-        // with alpha fills there is no opaque paint to lift it back out of
-        // a root-level wash.
         property: {
           color: "neutral.s90",
           background: "neutral.a20",
-          // Out-specifies the button form's base transparent background
           "&:disabled": { background: "neutral.a20" },
         },
         trigger: {
           cursor: "auto",
           color: "neutral.s90",
-          // Covers the Ark trigger (disabled/data-disabled) and the
-          // lone-operator static span; out-specifies the base transparent
           "&:is(:disabled, [data-disabled], [data-static])": {
             background: "neutral.a20",
           },

@@ -31,10 +31,6 @@ export const styles = sva({
       paddingX: "[var(--selectable-list-item-padding-x)]",
       paddingY: "[var(--selectable-list-item-padding-y)]",
 
-      // --item-bg publishes the row's effective fill for descendants that
-      // derive hover tints from it (e.g. SortMenu's direction toggle). It
-      // must stay opaque — the sNN equivalent of the painted aNN tint over
-      // the popover surface — so it accompanies each backgroundColor.
       "&[data-highlighted]": {
         backgroundColor: "neutral.a35",
         "--item-bg": "{colors.neutral.s35}",

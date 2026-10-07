@@ -60,11 +60,7 @@ const defaultFileIcon = <FileLightIcon />;
 
 export const GridViewItem: FunctionComponent<{
   entity: HashEntity;
-  /**
-   * The entity's file name, derived by the grid view so the text each card
-   * displays and the text its search matches against are the same by
-   * construction.
-   */
+  /** The entity's file name used for search */
   fileName?: string;
   numberOfItems: number;
   index: number;
@@ -159,8 +155,6 @@ export const GridViewItem: FunctionComponent<{
             display: "flex",
             flexDirection: "column",
           },
-          // The highlight treatment the table's search gives matches: its
-          // background on every match, an accent ring on the current one.
           searchHighlight !== undefined && {
             background: searchResultHighlightColor,
           },

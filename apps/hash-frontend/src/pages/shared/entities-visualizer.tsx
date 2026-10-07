@@ -242,7 +242,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     [resetCursors],
   );
 
-  // Whether the user has changed the view from the default filter state
   const isFiltered = useMemo(
     () =>
       filterState.web.includeOtherWebs ||
@@ -674,9 +673,6 @@ export const EntitiesVisualizer: FunctionComponent<{
 
       nextPropertyFilters = filterState.propertyFilters.filter(
         ({ baseUrl, kind }) =>
-          // The archived filter is offered regardless of the visible types'
-          // property metadata (it drives the query's includeArchived scope),
-          // so it must survive views whose types don't carry the property.
           baseUrl === systemPropertyTypes.archived.propertyTypeBaseUrl ||
           filterablePropertyKindsByBaseUrl.get(baseUrl) === kind,
       );
@@ -775,8 +771,6 @@ export const EntitiesVisualizer: FunctionComponent<{
   const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
   const currentlyDisplayedRowsRef = useRef<EntitiesTableRow[] | null>(null);
 
-  // Written by the table each render (it resolves actor/web display names), read
-  // by the header's export button at click time.
   const generateCsvFileRef = useRef<GenerateCsvFileFunction | null>(null);
 
   const contentTopRef = useRef<HTMLDivElement>(null);
@@ -817,11 +811,7 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   /**
    * A query change that drops rows from the table drops them from the
-   * selection with it: bulk actions act on what the table shows, and the grid
-   * resolves selected rows to row indexes, so a selected row the table no
-   * longer holds would misreport the selection. Rows held on screen through a
-   * refetch still count as shown — the selection narrows only when the rows
-   * actually go.
+   * selection with it so a selected row would misreport the selection.
    */
   useEffect(() => {
     if (!tableRows) {
@@ -922,8 +912,6 @@ export const EntitiesVisualizer: FunctionComponent<{
             {view === "Table" ? (
               <ExportToCsvButton
                 generateCsvFile={() => generateCsvFileRef.current?.() ?? null}
-                // Square off the TableHeaderButton pill to the 4px radius the
-                // app's other buttons use (design-system IconButton, pills).
                 sx={{ px: 1.5, borderRadius: "4px" }}
               />
             ) : null}
@@ -947,12 +935,6 @@ export const EntitiesVisualizer: FunctionComponent<{
         bottomLeft={
           <>
             {selectedEntities.length > 0 && (
-              /*
-               * Inline-block so the dropdown joins the ribbon's wrapping line
-               * flow, with the margins/alignment the ribbon gives its own
-               * controls. The pill chrome levels the chip with the pills
-               * beside it.
-               */
               <Box
                 sx={{
                   display: "inline-block",

@@ -75,16 +75,6 @@ const disabledReasonText: Record<PropertyFilterDisabledReason, string> = {
 const archivedPropertyBaseUrl =
   systemPropertyTypes.archived.propertyTypeBaseUrl;
 
-/**
- * Every chip renders inside an identical keyed wrapper so its position in the
- * element tree is stable as filters come and go — rendering the last chip in
- * a different parent from the rest remounted it whenever the last chip
- * changed, discarding its uncommitted draft. The trailing add/clear controls
- * live inside the last wrapper, making it an atomic inline box: a wrap
- * carries the controls to the next line with at least one filter for company.
- * Inside a wrapper, `gap` takes over from the per-item margins the ribbon
- * gives the group's direct children.
- */
 const chipWrapperSx: SxProps<Theme> = {
   display: "inline-flex",
   alignItems: "center",
@@ -124,14 +114,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       propertyFilters: updater(prev.propertyFilters),
     }));
 
-  /**
-   * Adds the filter directly with the kind's default operator pre-selected,
-   * ready for a value — the fresh chip receives focus via the group. An
-   * incomplete filter contributes no query clause, so adding one refetches
-   * nothing; a chip left incomplete is dismissed by the group
-   * (`dismissAbandoned`). The input-less boolean default ("is true") is
-   * active from the moment it is added.
-   */
   const handleAddPropertyFilter = (
     property: Pick<
       FilterableProperty,
@@ -151,15 +133,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
     ]);
   };
 
-  /**
-   * Adds the archived filter and widens the query scope to archived entities
-   * in the same update — the filter's presence is what carries the inclusion:
-   * its "included" operator builds no clause, and its chip is a label-only
-   * toggle. Narrowing operators ("is true" = only archived) await first-class
-   * archived filtering on the entities-table endpoint: its property filters
-   * hit the page-style archived *property*, which entities archived via the
-   * metadata flag don't carry.
-   */
   const handleAddArchivedFilter = () =>
     setFilterState((prev) => ({
       ...prev,
@@ -176,12 +149,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       ],
     }));
 
-  /**
-   * Switches an existing chip to a different property. A same-kind switch
-   * keeps the operator and value (except enums, whose option sets are
-   * per-property); otherwise the chip resets to the new kind's default
-   * operator, ready for a value like a freshly added filter.
-   */
   const handleSwitchPropertyFilter = (
     id: string,
     property: SwitchablePropertyOption,
@@ -229,8 +196,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       );
       return {
         ...prev,
-        // Removing the archived filter narrows the scope back to non-archived
-        // entities — its presence is what widened it.
         includeArchived:
           removed?.baseUrl === archivedPropertyBaseUrl
             ? false
@@ -245,19 +210,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
     (propertyFilter) => propertyFilter.baseUrl === archivedPropertyBaseUrl,
   );
 
-  /**
-   * Clears every added filter chip. The web and type pills are deliberately
-   * untouched: they are permanent scope selectors with default values —
-   * "where am I looking" — while the chips are criteria stacked through
-   * "+ Add filter", which is exactly the action "Clear" undoes. Wiping the
-   * scope would also be the costlier mistake: re-adding a chip is cheap,
-   * reconstructing a careful web/type selection is not.
-   *
-   * Only the visible chips are cleared: filters hidden in this view (the
-   * graph's link-only properties) are preserved for the table view, matching
-   * how hiding works everywhere else in the ribbon. The archived chip is
-   * never hidden, so its scope-widening always resets with it.
-   */
   const handleClearPropertyFilters = () =>
     setFilterState((prev) => ({
       ...prev,
@@ -267,9 +219,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       ),
     }));
 
-  // What a chip's property segment offers switching to: every filterable
-  // property on display (the archived pseudo-property stays out — its chip
-  // carries scope side-effects and renders as a label-only toggle).
   const switchablePropertyOptions: SwitchablePropertyOption[] =
     visiblePropertyFilterMetadata
       .filter((property) => property.baseUrl !== archivedPropertyBaseUrl)
@@ -283,9 +232,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
     return searchTerms.every((term) => lowercaseTitle.includes(term));
   };
 
-  // The archived property is offered as the pinned "Include archived" entry
-  // below rather than as an ordinary property. Filterable properties come
-  // first, alphabetically; the disabled (non-filterable) ones trail the list.
   const propertyItems: MenuItem[] = visiblePropertyFilterMetadata
     .filter(
       (property) =>
@@ -345,9 +291,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
 
   const renderPropertyFilterChip = (propertyFilter: PropertyFilter) =>
     propertyFilter.baseUrl === archivedPropertyBaseUrl ? (
-      // A label-only chip: the filter's presence is the whole constraint
-      // (the scope widening), so there is no operator segment and nothing
-      // to commit.
       <Filter
         key={propertyFilter.id}
         className={filterChipPillChrome}
@@ -399,7 +342,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           }
         }}
       />
-      {/* A lone chip's own remove button already covers clearing. */}
       {visiblePropertyFilters.length > 1 && (
         <FilterGroup.ClearFilters
           aria-label="Clear filters"
@@ -410,22 +352,9 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   );
 
   return (
-    /*
-     * The ribbon dissolves into the header bar's block flow (`display:
-     * contents` here, on the ds scope, and on the filter group's own box) so
-     * every pill and chip is an individual inline item in one wrapping
-     * context: chips wrap one by one rather than the group moving as a unit,
-     * and lines flow around/beneath the bar's floated sort menu. The MUI
-     * pills deliberately stay OUTSIDE the `.hash-ds-root` scope element — its
-     * preflight would strip their padding and borders.
-     */
     <Box
       sx={{
         display: "contents",
-        // Block flow has no `gap`, so each control carries the spacing and
-        // middle-aligns within its line box. The pills are matched as
-        // descendants: web/type nest their chip inside a structural wrapper.
-        // (Menus and dropdowns portal away, so nothing portalled is hit.)
         "& .MuiChip-root, & > .MuiIconButton-root, & [data-part='filter-group'] > *":
           {
             verticalAlign: "middle",
@@ -433,10 +362,6 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
             marginTop: 0.5,
             marginBottom: 0.5,
           },
-        // The group's flex-wrap box would wrap as one unit; dissolve it into
-        // the surrounding flow. Its display atom carries the @layer
-        // polyfill's ID-level specificity boost, which only `!important`
-        // outranks.
         "& [data-part='filter-group']": {
           display: "contents !important",
         },

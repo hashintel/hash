@@ -131,8 +131,6 @@ export const SortMenu = <SortKey extends string = string>({
       ? value.direction
       : (directionsOf(sorter)[0] ?? "ASCENDING");
 
-  // Flipping a row's direction selects that sorter too; the menu stays open
-  // because the toggle swallows the events that would select the row itself.
   const flipDirection = (sorter: Sorter<SortKey>) => {
     commit(sorter.sortKey, flipped(shownDirection(sorter)));
   };
