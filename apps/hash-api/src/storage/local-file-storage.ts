@@ -12,7 +12,6 @@ import type { Url } from "@blockprotocol/type-system";
 import type {
   FileStorageProvider,
   GetFileEntityStorageKeyParams,
-  GetFlowOutputStorageKeyParams,
   PresignedDownloadByKeyRequest,
   PresignedDownloadRequest,
   PresignedPutUpload,
@@ -114,19 +113,6 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
     }
 
     return `${folder}/${filename}` as const;
-  }
-
-  /**
-   * Generate a storage key for flow output payloads.
-   * Format: flows/{workflowId}/{runId}/{stepId}/{outputName}.json
-   */
-  getFlowOutputStorageKey({
-    workflowId,
-    runId,
-    stepId,
-    outputName,
-  }: GetFlowOutputStorageKeyParams) {
-    return `flows/${workflowId}/${runId}/${stepId}/${outputName}.json` as const;
   }
 
   /**

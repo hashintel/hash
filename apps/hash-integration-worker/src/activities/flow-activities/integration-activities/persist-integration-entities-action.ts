@@ -688,7 +688,7 @@ export const createPersistIntegrationEntitiesAction = ({
         });
 
       const proposedEntities = await resolvePayloadValue(
-        getStorageProvider(),
+        { storageProvider: getStorageProvider(), workflowId },
         "ProposedEntity",
         proposedEntitiesInput,
       );
