@@ -193,9 +193,14 @@ impl SessionCache {
             })
             .build();
 
+        let mut key = [0; 32];
+        aws_lc_rs::rand::fill(&mut key).unwrap_or_else(|error| {
+            unreachable!("the random generator should fill the session cache key: {error}")
+        });
+
         Self {
             verified,
-            key: rand::random(),
+            key,
             lookups: meter
                 .u64_counter("hash.authentication.session_cache.lookups")
                 .with_description("Session-cache lookups by outcome")
