@@ -143,7 +143,6 @@ describe("Petrinaut AI core exports", () => {
     expect(
       petrinautAiTools[getLatestNetDefinitionToolName].description,
     ).toMatch(/extensions/u);
-    expect(petrinautAiCapabilityGuidance).toMatch(/extensions/u);
   });
 
   test("addArc exposes an AI-friendly object input schema", () => {

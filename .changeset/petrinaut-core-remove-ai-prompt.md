@@ -2,4 +2,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Removes `petrinautAiPrompt`; each host composes its own system prompt around `petrinautAiCapabilityGuidance`, now also exported in sections as `petrinautAiCapabilitySections`.
+Removes `petrinautAiPrompt`; hosts compose their own system prompt from `petrinautAiCapabilityGuidance` or its parts, `petrinautAiCapabilitySections`.
