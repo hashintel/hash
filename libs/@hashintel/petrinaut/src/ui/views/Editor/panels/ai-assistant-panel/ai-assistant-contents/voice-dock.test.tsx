@@ -147,7 +147,7 @@ test("keeps crowded Voice actions fixed while status content can shrink", () => 
       collapsed={false}
       indicator={<span data-testid="waveform" />}
       microphoneMuted={false}
-      notice="Audio playback is blocked. Select Play voice audio to hear Live."
+      notice="Audio blocked. Select Play to listen."
       onCollapsedToggle={noop}
       onStop={noop}
       phase="speaking"
@@ -181,7 +181,7 @@ test("keeps crowded Voice actions fixed while status content can shrink", () => 
   expect(status.className).toContain("tov_ellipsis");
   expect(within(indicator).getByTestId("waveform")).toBeTruthy();
   expect(liveStatus.textContent).toBe(
-    "Voice status: Audio playback is blocked. Select Play voice audio to hear Live.",
+    "Voice status: Audio blocked. Select Play to listen.",
   );
 });
 
@@ -196,7 +196,7 @@ test("offers a user-gesture retry while session audio is blocked", () => {
     collapsed: false,
     indicator: <span />,
     microphoneMuted: false,
-    notice: "Audio playback is blocked. Select Play voice audio to hear Live.",
+    notice: "Audio blocked. Select Play to listen.",
     onCollapsedToggle: noop,
     onStop: noop,
     phase: "connected" as const,

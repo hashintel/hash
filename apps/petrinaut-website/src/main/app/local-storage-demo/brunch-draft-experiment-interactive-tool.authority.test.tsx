@@ -147,5 +147,5 @@ test("a changed net after the read requires another canonical read before a draf
       { ...snapshot, messages } as FlueConversationState,
       "draft-1",
     ),
-  ).rejects.toThrow(/latest settled canonical net read/u);
+  ).rejects.toThrow(/read the latest model before drafting/u);
 });

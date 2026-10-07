@@ -98,8 +98,8 @@ export const VoiceInterviewDisclosure = ({
         })}
       >
         {experimental
-          ? "OpenAI processes microphone audio for voice and transcription, and text to prepare briefs and summaries. Brunch saves your finalized spoken words, the brief and its answer. Spoken captions stay in this browser; Petrinaut does not save audio."
-          : "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio."}
+          ? "OpenAI processes your microphone audio and the conversation text. Your transcribed words, the request sent to the assistant and its answer are saved. Audio isn’t saved, and captions stay in this browser."
+          : "OpenAI processes your audio and speaks the interviewer’s questions. Your transcribed answers are saved; audio isn’t."}
       </p>
       <Checkbox
         className={disclosureConsentStyle}
