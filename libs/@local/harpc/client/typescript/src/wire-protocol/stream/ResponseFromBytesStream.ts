@@ -45,7 +45,7 @@ const tryDecodePacket = Effect.fn("tryDecodePacket")(function* (
 
   // decode the message
   const reader = MutableBuffer.makeRead(packet);
-  const response = yield* Response.decode(reader);
+  const response = yield* Effect.fromResult(Response.decode(reader));
 
   return Option.some(response);
 });
@@ -97,13 +97,14 @@ export const make = <E, R>(
 
       return Effect.logTrace(`Received chunk: ${hexView}`);
     }),
-    Stream.mapConcatEffect((chunk) =>
+    Stream.mapEffect((chunk) =>
       Effect.gen(function* () {
         MutableBytes.appendBuffer(scratch, chunk);
 
         return yield* tryDecode(scratch);
       }),
     ),
+    Stream.flattenIterable,
     Stream.concat(
       Stream.fromIterableEffect(
         Effect.suspend(() =>

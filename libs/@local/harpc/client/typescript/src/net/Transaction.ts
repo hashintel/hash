@@ -1,4 +1,11 @@
-import { type Effect, type Queue, Deferred, Function } from "effect";
+import {
+  type Cause,
+  Deferred,
+  type Effect,
+  Function,
+  type Queue,
+  Stream,
+} from "effect";
 
 import { createProto } from "../utils.js";
 import * as Response from "./Response.js";
@@ -17,7 +24,7 @@ export interface Transaction {
 }
 
 interface TransactionImpl extends Transaction {
-  readonly read: Queue.Dequeue<WireResponse.Response>;
+  readonly read: Queue.Dequeue<WireResponse.Response, Cause.Done>;
 
   readonly drop: Deferred.Deferred<void>;
 }
@@ -29,7 +36,7 @@ const TransactionProto: Omit<TransactionImpl, "id" | "read" | "drop"> = {
 /** @internal */
 export const makeUnchecked = (
   id: RequestId.RequestId,
-  readQueue: Queue.Dequeue<WireResponse.Response>,
+  readQueue: Queue.Dequeue<WireResponse.Response, Cause.Done>,
   drop: Deferred.Deferred<void>,
 ): Transaction => createProto(TransactionProto, { id, read: readQueue, drop });
 
@@ -44,4 +51,4 @@ export const registerDestructor: {
 );
 
 export const read = (transaction: Transaction) =>
-  Response.decode((transaction as TransactionImpl).read);
+  Response.decode(Stream.fromQueue((transaction as TransactionImpl).read));

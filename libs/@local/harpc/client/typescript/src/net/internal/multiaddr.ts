@@ -68,7 +68,6 @@ const HashableMultiaddrProto: Omit<HashableMultiaddr, "inner"> = {
     return pipe(
       Hash.hash(MultiaddrSymbol),
       Hash.combine(hashUint8Array(this.bytes)),
-      Hash.cached(this),
     );
   },
 };

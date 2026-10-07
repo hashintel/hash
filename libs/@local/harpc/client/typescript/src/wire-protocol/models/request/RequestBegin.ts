@@ -1,7 +1,5 @@
 import {
-  type FastCheck,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Function,
   Hash,
@@ -9,6 +7,7 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  Result,
 } from "effect";
 
 import { MutableBuffer } from "../../../binary/index.js";
@@ -55,7 +54,6 @@ const RequestBeginProto: Omit<
       Hash.combine(Hash.hash(this.subsystem)),
       Hash.combine(Hash.hash(this.procedure)),
       Hash.combine(Hash.hash(this.payload)),
-      Hash.cached(this),
     );
   },
 
@@ -89,22 +87,22 @@ export const make = (
 ): RequestBegin =>
   createProto(RequestBeginProto, { subsystem, procedure, payload });
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, begin: RequestBegin) =>
   pipe(
     buffer,
     SubsystemDescriptor.encode(begin.subsystem),
-    Either.andThen(ProcedureDescriptor.encode(begin.procedure)),
-    Either.andThen(MutableBuffer.advance(13)),
-    Either.andThen(Payload.encode(begin.payload)),
+    Result.andThen(ProcedureDescriptor.encode(begin.procedure)),
+    Result.andThen(MutableBuffer.advance(13)),
+    Result.andThen(Payload.encode(begin.payload)),
   ),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const subsystem = yield* SubsystemDescriptor.decode(buffer);
     const procedure = yield* ProcedureDescriptor.decode(buffer);
 
@@ -118,11 +116,8 @@ export const decode = implDecode((buffer) =>
 export const isRequestBegin = (value: unknown): value is RequestBegin =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .tuple(
-      SubsystemDescriptor.arbitrary(fc),
-      ProcedureDescriptor.arbitrary(fc),
-      Payload.arbitrary(fc),
-    )
-    .map(Function.tupled(make));
+export const arbitrary = Arbitrary.all([
+  SubsystemDescriptor.arbitrary,
+  ProcedureDescriptor.arbitrary,
+  Payload.arbitrary,
+]).pipe(Arbitrary.map(Function.tupled(make)));

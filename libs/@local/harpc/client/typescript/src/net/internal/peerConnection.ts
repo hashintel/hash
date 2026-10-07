@@ -126,11 +126,7 @@ const PeerConnectionProto: Omit<PeerConnection, "inner"> = {
   },
 
   [Hash.symbol](this: PeerConnection): number {
-    return pipe(
-      Hash.hash(TypeId),
-      Hash.combine(Hash.string(this.id)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(TypeId), Hash.combine(Hash.string(this.id)));
   },
 
   toString(this: PeerConnection) {

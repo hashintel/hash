@@ -1,7 +1,5 @@
 import {
-  type FastCheck,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Function,
   Hash,
@@ -9,6 +7,8 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  Result,
+  Schema,
 } from "effect";
 
 import { MutableBuffer } from "../binary/index.js";
@@ -46,7 +46,6 @@ const VersionProto: Omit<Version, "major" | "minor"> = {
       Hash.hash(this[TypeId]),
       Hash.combine(Hash.hash(this.major)),
       Hash.combine(Hash.hash(this.minor)),
-      Hash.cached(this),
     );
   },
 
@@ -75,10 +74,10 @@ const VersionProto: Omit<Version, "major" | "minor"> = {
 export const make = (major: number, minor: number): Version =>
   createProto(VersionProto, { major, minor });
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, version: Version) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     yield* MutableBuffer.putU8(buffer, version.major);
     yield* MutableBuffer.putU8(buffer, version.minor);
 
@@ -86,10 +85,10 @@ export const encode = implEncode((buffer, version: Version) =>
   }),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const major = yield* MutableBuffer.getU8(buffer);
     const minor = yield* MutableBuffer.getU8(buffer);
 
@@ -100,10 +99,10 @@ export const decode = implDecode((buffer) =>
 export const isVersion = (value: unknown): value is Version =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .tuple(
-      fc.integer({ min: U8_MIN, max: U8_MAX }),
-      fc.integer({ min: U8_MIN, max: U8_MAX }),
-    )
-    .map(Function.tupled(make));
+const arbitraryU8 = Arbitrary.schema(
+  Schema.Int.check(Schema.isBetween({ minimum: U8_MIN, maximum: U8_MAX })),
+);
+
+export const arbitrary = Arbitrary.all([arbitraryU8, arbitraryU8]).pipe(
+  Arbitrary.map(Function.tupled(make)),
+);

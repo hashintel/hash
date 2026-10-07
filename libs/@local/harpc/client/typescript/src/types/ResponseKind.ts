@@ -1,9 +1,7 @@
 /* eslint-disable unicorn/prevent-abbreviations -- same name as Rust reference implementation */
 import {
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
-  type FastCheck,
   Function,
   Hash,
   Inspectable,
@@ -11,6 +9,8 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  Result,
+  Schema,
 } from "effect";
 
 import { MutableBuffer } from "../binary/index.js";
@@ -41,7 +41,6 @@ const OkProto: Ok = {
   [Hash.symbol](this: Ok) {
     return pipe(
       Hash.hash(this[TypeId]), //
-      Hash.cached(this),
     );
   },
 
@@ -86,11 +85,7 @@ const ErrProto: Omit<Err, "code"> = {
   },
 
   [Hash.symbol](this: Err) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.code)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.code)));
   },
 
   toString(this: Err) {
@@ -120,7 +115,7 @@ export const err = (code: ErrorCode.ErrorCode): Err =>
 
 export type ResponseKind = Ok | Err;
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, kind: ResponseKind) =>
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -129,10 +124,10 @@ export const encode = implEncode((buffer, kind: ResponseKind) =>
     : ErrorCode.encode(buffer, kind.code),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const value = yield* MutableBuffer.getU16(buffer);
 
     if (value === 0) {
@@ -193,5 +188,8 @@ export const getErr = (
     onErr: Option.some,
   });
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  fc.oneof(fc.constant(ok()), ErrorCode.arbitrary(fc).map(err));
+const arbitraryOk = Arbitrary.Constant<ResponseKind>(ok());
+const arbitraryErr = ErrorCode.arbitrary.pipe(Arbitrary.map(err));
+export const arbitrary = Arbitrary.schema(Schema.Boolean).pipe(
+  Arbitrary.flatMap((pickOk) => (pickOk ? arbitraryOk : arbitraryErr)),
+);
