@@ -3,6 +3,7 @@ import askTellSource from "@local/petrinaut-optimizer-core/python/ask_tell.py?ra
 import descriptionSource from "@local/petrinaut-optimizer-core/python/description.py?raw";
 import importanceSource from "@local/petrinaut-optimizer-core/python/importance.py?raw";
 import pyodideEntrySource from "@local/petrinaut-optimizer-core/python/pyodide_entry.py?raw";
+import reportsSource from "@local/petrinaut-optimizer-core/python/reports.py?raw";
 import studySource from "@local/petrinaut-optimizer-core/python/study.py?raw";
 
 /** The optimizer's Python package, keyed by path relative to the import root. */
@@ -13,4 +14,5 @@ export const optimizerPythonSources: Readonly<Record<string, string>> = {
   "petrinaut_optimizer_core/ask_tell.py": askTellSource,
   "petrinaut_optimizer_core/importance.py": importanceSource,
   "petrinaut_optimizer_core/pyodide_entry.py": pyodideEntrySource,
+  "petrinaut_optimizer_core/reports.py": reportsSource,
 };

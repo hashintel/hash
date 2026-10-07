@@ -3,55 +3,61 @@ name = "petrinaut-optimization"
 version = "0.1.0"
 description = "Scenario-parameter optimization for Petrinaut using Optuna"
 readme = "README.md"
-requires-python = ">=3.10.20"
+requires-python = "<3.15,>=3.14"
+license = "MIT or Apache-2.0"
 dependencies = [
-    "fastapi>=0.128.8",
-    "opentelemetry-exporter-otlp-proto-grpc>=1.44.0",
-    "opentelemetry-exporter-otlp-proto-http>=1.44.0",
-    "opentelemetry-instrumentation-fastapi>=0.65b0",
-    "opentelemetry-sdk>=1.44.0",
+    "fastapi<0.129.0,>=0.128.8",
+    "opentelemetry-exporter-otlp-proto-grpc<2.0.0,>=1.44.0",
+    "opentelemetry-exporter-otlp-proto-http<2.0.0,>=1.44.0",
+    "opentelemetry-instrumentation-fastapi>=0.65b0,<0.66.0",
+    "opentelemetry-sdk<2.0.0,>=1.44.0",
     "optuna>=4.9,<5",
     "petrinaut-optimizer-core",
     "petrinaut-python",
-    "pydantic>=2.13.4",
-    "python-dotenv>=1.0.0",
-    "uvicorn[standard]>=0.39.0",
+    "pydantic<3.0.0,>=2.13.4",
+    "pydantic-settings>=2.15.0,<3.0.0",
+    "python-dotenv<2.0.0,>=1.0.0",
+    "starlette<0.53.0,>=0.52.1",
+    "uvicorn[standard]<0.40.0,>=0.39.0",
+]
+authors = [
+    { name = "HASH" },
+]
+
+
+[build-system]
+requires      = ["uv_build<0.13.0,>=0.12.16"]
+build-backend = "uv_build"
+[dependency-groups]
+dev = [
+    "deptry<0.26,>=0.25.1",
+    "httpx<0.29.0,>=0.28",
+    "pytest>=9.1.1,<10",
+    "pytest-asyncio>=1.4,<2",
+    "ruff<0.17,>=0.16.8",
+    "tach<0.36,>=0.35",
+    "ty<0.0.83,>=0.0.82",
 ]
 
 [tool.uv.sources]
 petrinaut-optimizer-core = { workspace = true }
 petrinaut-python         = { workspace = true }
 
-[dependency-groups]
-dev = [
-    "httpx>=0.28",
-    "pytest>=9.1.1,<10",
-]
+[tool.deptry.package_module_name_map]
+petrinaut-python = "petrinaut"
 
-[tool.ruff]
-target-version = "py310"
+[tool.tach]
+source_roots                 = ["src"]
+exclude                      = []
+exact                        = true
+forbid_circular_dependencies = true
+ignore_type_checking_imports = false
+root_module                  = "forbid"
 
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "TRY", "DTZ", "PTH"]
-ignore = [
-    # Error messages name the value that failed: the metric, the seed, the limit.
-    # This rule asks for that detail to move into exception subclasses instead.
-    "TRY003",
-    # Protocol responses are data, and data that does not conform raises
-    # ValueError. This rule reads every isinstance check as an argument-type
-    # check and asks for TypeError.
-    "TRY004",
-    # `ruff format` owns line width. What it cannot split is a long string or an
-    # `@role` annotation, which the architecture-docs extractor reads as one line.
-    "E501",
-]
+[[tool.tach.modules]]
+path       = "petrinaut_optimization"
+depends_on = []
 
-[tool.basedpyright]
-# Production code only. The suites lean on duck-typed doubles and on log records
-# whose fields arrive through `extra=`, which a checker cannot see; typing those
-# is tracked separately.
-include          = ["src"]
-typeCheckingMode = "strict"
-pythonVersion    = "3.10"
-venvPath         = "../.."
-venv             = ".venv"
+[tool.tach.rules]
+require_ignore_directive_reasons = "error"
+unused_ignore_directives         = "error"

@@ -13,97 +13,11 @@
         "petrinaut-optimizer-core"
       ]
     },
-    "format:ruff": {
-      "dependsOn": [],
-      "cache": false,
-      "env": [
-        "PYTHONHOME",
-        "PYTHONPATH",
-        "UV_BUILD_CONSTRAINT",
-        "UV_COMPILE_BYTECODE",
-        "UV_CONFIG_FILE",
-        "UV_CONSTRAINT",
-        "UV_ENV_FILE",
-        "UV_EXCLUDE",
-        "UV_FORK_STRATEGY",
-        "UV_GIT_LFS",
-        "UV_ISOLATED",
-        "UV_LINK_MODE",
-        "UV_NO_BINARY",
-        "UV_NO_BINARY_PACKAGE",
-        "UV_NO_BUILD",
-        "UV_NO_BUILD_ISOLATION",
-        "UV_NO_BUILD_ISOLATION_PACKAGE",
-        "UV_NO_BUILD_PACKAGE",
-        "UV_NO_CONFIG",
-        "UV_NO_DEFAULT_GROUPS",
-        "UV_NO_DEV",
-        "UV_NO_EDITABLE",
-        "UV_NO_ENV_FILE",
-        "UV_NO_GROUP",
-        "UV_NO_PROJECT",
-        "UV_NO_SOURCES",
-        "UV_NO_SOURCES_PACKAGE",
-        "UV_NO_SYNC",
-        "UV_NO_SYSTEM_CONFIG",
-        "UV_OFFLINE",
-        "UV_OVERRIDE",
-        "UV_PROJECT",
-        "UV_PROJECT_ENVIRONMENT",
-        "UV_WORKING_DIR",
-        "VIRTUAL_ENV"
-      ]
+    "lint:deptry": {
+      "dependsOn": []
     },
-    "lint:ruff": {
-      "dependsOn": [],
-      "env": [
-        "PYTHONHOME",
-        "PYTHONPATH",
-        "UV_BUILD_CONSTRAINT",
-        "UV_COMPILE_BYTECODE",
-        "UV_CONFIG_FILE",
-        "UV_CONSTRAINT",
-        "UV_ENV_FILE",
-        "UV_EXCLUDE",
-        "UV_FORK_STRATEGY",
-        "UV_GIT_LFS",
-        "UV_ISOLATED",
-        "UV_LINK_MODE",
-        "UV_NO_BINARY",
-        "UV_NO_BINARY_PACKAGE",
-        "UV_NO_BUILD",
-        "UV_NO_BUILD_ISOLATION",
-        "UV_NO_BUILD_ISOLATION_PACKAGE",
-        "UV_NO_BUILD_PACKAGE",
-        "UV_NO_CONFIG",
-        "UV_NO_DEFAULT_GROUPS",
-        "UV_NO_DEV",
-        "UV_NO_EDITABLE",
-        "UV_NO_ENV_FILE",
-        "UV_NO_GROUP",
-        "UV_NO_PROJECT",
-        "UV_NO_SOURCES",
-        "UV_NO_SOURCES_PACKAGE",
-        "UV_NO_SYNC",
-        "UV_NO_SYSTEM_CONFIG",
-        "UV_OFFLINE",
-        "UV_OVERRIDE",
-        "UV_PROJECT",
-        "UV_PROJECT_ENVIRONMENT",
-        "UV_WORKING_DIR",
-        "VIRTUAL_ENV"
-      ]
-    },
-    "lint:types": {
-      "dependsOn": [
-        "codegen"
-      ],
-      "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core",
-        "petrinaut-optimizer-core"
-      ]
+    "lint:tach": {
+      "dependsOn": []
     },
     "test:unit": {
       "dependsOn": [

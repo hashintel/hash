@@ -1,14 +1,13 @@
-from __future__ import annotations
-
 import asyncio
 import math
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Awaitable, Callable, Mapping, Sequence
+from typing import override
 
 import pytest
-from optuna.trial import TrialState
+from optuna.trial import BaseTrial, TrialState
 
 from petrinaut_optimizer_core import (
+    ask_tell,
     create_study,
     parse_description,
     run_study,
@@ -16,32 +15,36 @@ from petrinaut_optimizer_core import (
 )
 from petrinaut_optimizer_core.ask_tell import (
     UNREPORTED_ATTR,
+    Evaluate,
     best_summary,
     objective_of,
     study_summary,
     told_trials,
     trial_event,
 )
+from petrinaut_optimizer_core.description import Parameter
+from petrinaut_optimizer_core.reports import RunSummary, TrialEvent
+from petrinaut_optimizer_core.study import Scalar
 
-from .conftest import objective_of_values
+from ._support import OptimizationDescription, completed, objective_of_values
 
 
 class Harness:
-    def __init__(self, description: dict[str, Any]) -> None:
+    def __init__(self, description: OptimizationDescription) -> None:
         self.description = parse_description(description)
         self.study = create_study(self.description)
-        self.evaluations: list[dict[str, Any]] = []
-        self.events: list[dict[str, Any]] = []
+        self.evaluations: list[dict[str, Scalar]] = []
+        self.events: list[TrialEvent] = []
         self.cancelled = False
 
-    async def evaluate(self, values: dict[str, Any]) -> dict[str, Any]:
+    def evaluate(self, values: dict[str, Scalar]) -> Awaitable[dict[str, float]]:
         self.evaluations.append(values)
-        return {"objective": objective_of_values(values)}
+        return completed({"objective": objective_of_values(values)})
 
     def start(
-        self, evaluate: Any = None, **options: Any
-    ) -> asyncio.Task[dict[str, Any]]:
-        options.setdefault("trials", self.description.trials)
+        self, evaluate: Evaluate | None = None, *, trials: int | None = None, parallelism: int = 1
+    ) -> asyncio.Task[RunSummary]:
+        trials = self.description.trials if trials is None else trials
         return asyncio.ensure_future(
             run_study(
                 self.study,
@@ -49,26 +52,22 @@ class Harness:
                 evaluate=evaluate or self.evaluate,
                 on_trial=self.events.append,
                 is_cancelled=lambda: self.cancelled,
-                **options,
+                trials=trials,
+                parallelism=parallelism,
             )
         )
 
-    def run(self, evaluate: Any = None, **options: Any) -> dict[str, Any]:
-        async def scenario() -> dict[str, Any]:
-            return await self.start(evaluate, **options)
-
-        return asyncio.run(scenario())
-
 
 class PausableHarness(Harness):
-    def __init__(self, description: dict[str, Any]) -> None:
+    def __init__(self, description: OptimizationDescription) -> None:
         super().__init__(description)
         self.paused = False
 
+    @override
     def start(
-        self, evaluate: Any = None, **options: Any
-    ) -> asyncio.Task[dict[str, Any]]:
-        options.setdefault("trials", self.description.trials)
+        self, evaluate: Evaluate | None = None, *, trials: int | None = None, parallelism: int = 1
+    ) -> asyncio.Task[RunSummary]:
+        trials = self.description.trials if trials is None else trials
         return asyncio.ensure_future(
             run_study(
                 self.study,
@@ -77,7 +76,8 @@ class PausableHarness(Harness):
                 on_trial=self.events.append,
                 is_cancelled=lambda: self.cancelled,
                 is_paused=lambda: self.paused,
-                **options,
+                trials=trials,
+                parallelism=parallelism,
             )
         )
 
@@ -85,21 +85,21 @@ class PausableHarness(Harness):
 class ParallelHarness(PausableHarness):
     """Evaluations settle only when the test says so, in the order it chooses."""
 
-    def __init__(self, description: dict[str, Any]) -> None:
+    def __init__(self, description: OptimizationDescription) -> None:
         super().__init__(description)
-        self.pending: dict[int, asyncio.Future[dict[str, Any]]] = {}
+        self.pending: dict[int, asyncio.Future[dict[str, float]]] = {}
         self.asked_and_told_at_call: list[tuple[int, int]] = []
         self.interrupted: list[int] = []
 
-    async def evaluate(self, values: dict[str, Any]) -> dict[str, Any]:
+    @override
+    async def evaluate(self, values: dict[str, Scalar]) -> dict[str, float]:
         index = len(self.evaluations)
         self.evaluations.append(values)
-        self.asked_and_told_at_call.append(
-            (len(self.study.get_trials(deepcopy=False)), len(self.events))
-        )
-        future: asyncio.Future[dict[str, Any]] = (
-            asyncio.get_running_loop().create_future()
-        )
+        self.asked_and_told_at_call.append((
+            len(self.study.get_trials(deepcopy=False)),
+            len(self.events),
+        ))
+        future: asyncio.Future[dict[str, float]] = asyncio.get_running_loop().create_future()
         self.pending[index] = future
         try:
             return await future
@@ -108,9 +108,9 @@ class ParallelHarness(PausableHarness):
             raise
 
     def settle(self, index: int) -> None:
-        self.pending.pop(index).set_result(
-            {"objective": objective_of_values(self.evaluations[index])}
-        )
+        self.pending.pop(index).set_result({
+            "objective": objective_of_values(self.evaluations[index])
+        })
 
     def fail(self, index: int, error: Exception) -> None:
         self.pending.pop(index).set_exception(error)
@@ -124,12 +124,19 @@ async def until(condition: Callable[[], bool]) -> None:
     raise AssertionError("the loop never reached the expected state")
 
 
-def test_tells_each_objective_and_reports_every_trial(
-    optimization_description: dict[str, Any],
+def complete_objective(event: TrialEvent) -> float:
+    objective = event["objective"]
+    assert objective is not None
+    return objective
+
+
+@pytest.mark.asyncio
+async def test_run_reports(
+    optimization_description: OptimizationDescription,
 ) -> None:
     harness = Harness(optimization_description)
 
-    summary = harness.run()
+    summary = await harness.start()
 
     assert len(harness.evaluations) == 3
     assert [event["trial"] for event in harness.events] == [0, 1, 2]
@@ -142,7 +149,9 @@ def test_tells_each_objective_and_reports_every_trial(
         objective_of_values(values) for values in harness.evaluations
     ]
     assert all(event["state"] == "complete" for event in harness.events)
-    best_objective = max(event["objective"] for event in harness.events)
+    assert all(event["objective"] is not None for event in harness.events)
+    best_objective = max(complete_objective(event) for event in harness.events)
+    assert harness.events[-1]["best"] is not None
     assert harness.events[-1]["best"]["objective"] == best_objective
     assert summary == {
         "completedTrials": 3,
@@ -154,16 +163,17 @@ def test_tells_each_objective_and_reports_every_trial(
     }
 
 
-def test_matches_a_plain_ask_tell_sequence(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_run_plain_sequence(
+    optimization_description: OptimizationDescription,
 ) -> None:
     optimization_description["study"]["sampler"] = "tpe"
     optimization_description["study"]["trials"] = 12
     harness = Harness(optimization_description)
-    harness.run()
+    await harness.start()
 
     plain = create_study(harness.description)
-    expected: list[dict[str, Any]] = []
+    expected: list[dict[str, Scalar]] = []
     for _ in range(12):
         trial = plain.ask()
         values = suggest(trial, harness.description.parameters)
@@ -173,13 +183,14 @@ def test_matches_a_plain_ask_tell_sequence(
     assert harness.evaluations == expected
 
 
-def test_further_trials_continue_the_same_study(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_run_continued(
+    optimization_description: OptimizationDescription,
 ) -> None:
     harness = Harness(optimization_description)
 
-    first = harness.run(trials=2)
-    second = harness.run(trials=3)
+    first = await harness.start(trials=2)
+    second = await harness.start(trials=3)
 
     assert [event["trial"] for event in harness.events] == [0, 1, 2, 3, 4]
     assert first["completedTrials"] == 2
@@ -193,80 +204,77 @@ def test_further_trials_continue_the_same_study(
     }
 
 
-def test_a_continued_tpe_study_keeps_its_sampler_history(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_run_sampler_history(
+    optimization_description: OptimizationDescription,
 ) -> None:
     optimization_description["study"]["sampler"] = "tpe"
     optimization_description["study"]["trials"] = 15
     continued = Harness(optimization_description)
-    continued.run(trials=10)
-    continued.run(trials=5)
+    await continued.start(trials=10)
+    await continued.start(trials=5)
     straight = Harness(optimization_description)
-    straight.run()
+    await straight.start()
     restarted = Harness(optimization_description)
-    restarted.run(trials=5)
+    await restarted.start(trials=5)
 
     assert continued.evaluations == straight.evaluations
     assert restarted.evaluations == straight.evaluations[:5]
     assert continued.evaluations[10:] != restarted.evaluations
 
 
-def test_parallel_trials_are_asked_ahead_and_told_in_completion_order(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_parallel_completion_order(
+    optimization_description: OptimizationDescription,
 ) -> None:
     optimization_description["study"]["trials"] = 5
     harness = ParallelHarness(optimization_description)
 
-    async def scenario() -> dict[str, Any]:
-        run = harness.start(parallelism=3)
-        await until(lambda: len(harness.pending) == 3)
-        harness.settle(1)
-        harness.settle(2)
-        await until(lambda: len(harness.events) == 2 and len(harness.pending) == 3)
-        harness.settle(0)
-        harness.settle(4)
-        harness.settle(3)
-        return await run
-
-    summary = asyncio.run(scenario())
+    run = harness.start(parallelism=3)
+    await until(lambda: len(harness.pending) == 3)
+    harness.settle(1)
+    harness.settle(2)
+    await until(lambda: len(harness.events) == 2 and len(harness.pending) == 3)
+    harness.settle(0)
+    harness.settle(4)
+    harness.settle(3)
+    summary = await run
 
     assert harness.asked_and_told_at_call[:3] == [(3, 0), (3, 0), (3, 0)]
     assert [event["trial"] for event in harness.events] == [1, 2, 0, 4, 3]
     assert all(
-        event["parameters"] == harness.evaluations[event["trial"]]
-        for event in harness.events
+        event["parameters"] == harness.evaluations[event["trial"]] for event in harness.events
     )
     assert summary["completedTrials"] == 5
-    best = max(harness.events, key=lambda event: event["objective"])
+    best = max(harness.events, key=complete_objective)
+    assert summary["best"] is not None
     assert summary["best"]["trial"] == best["trial"]
 
 
-def test_cancellation_waits_for_the_trials_in_flight_and_the_study_continues(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_cancel_drains_and_continues(
+    optimization_description: OptimizationDescription,
 ) -> None:
     optimization_description["study"]["trials"] = 6
     harness = ParallelHarness(optimization_description)
 
-    async def scenario() -> tuple[dict[str, Any], bool, dict[str, Any]]:
-        run = harness.start(parallelism=3)
-        await until(lambda: len(harness.pending) == 3)
-        harness.cancelled = True
-        harness.settle(0)
-        for _ in range(20):
-            await asyncio.sleep(0)
-        settled_early = run.done()
-        harness.settle(1)
-        harness.settle(2)
-        stopped = await run
-        harness.cancelled = False
-        resumed_run = harness.start(trials=2)
-        await until(lambda: 3 in harness.pending)
-        harness.settle(3)
-        await until(lambda: 4 in harness.pending)
-        harness.settle(4)
-        return stopped, settled_early, await resumed_run
-
-    stopped, settled_early, resumed = asyncio.run(scenario())
+    run = harness.start(parallelism=3)
+    await until(lambda: len(harness.pending) == 3)
+    harness.cancelled = True
+    harness.settle(0)
+    for _ in range(20):
+        await asyncio.sleep(0)
+    settled_early = run.done()
+    harness.settle(1)
+    harness.settle(2)
+    stopped = await run
+    harness.cancelled = False
+    resumed_run = harness.start(trials=2)
+    await until(lambda: 3 in harness.pending)
+    harness.settle(3)
+    await until(lambda: 4 in harness.pending)
+    harness.settle(4)
+    resumed = await resumed_run
 
     assert settled_early is False
     assert stopped["cancelled"] is True
@@ -287,35 +295,33 @@ def test_cancellation_waits_for_the_trials_in_flight_and_the_study_continues(
     ] == told_trials(harness.study)
 
 
-def test_a_pause_drains_the_trials_in_flight_and_the_study_continues(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_pause_drains_and_continues(
+    optimization_description: OptimizationDescription,
 ) -> None:
     optimization_description["study"]["trials"] = 6
     harness = ParallelHarness(optimization_description)
 
-    async def scenario() -> tuple[dict[str, Any], bool, dict[str, Any]]:
-        run = harness.start(parallelism=2)
-        await until(lambda: len(harness.pending) == 2)
-        harness.paused = True
-        harness.settle(0)
-        for _ in range(20):
-            await asyncio.sleep(0)
-        # Trial 1 is still in flight, so the run waits; no third trial is asked.
-        settled_early = run.done()
-        assert len(harness.evaluations) == 2
-        harness.settle(1)
-        paused = await run
-        harness.paused = False
-        resumed_run = harness.start(trials=4, parallelism=2)
-        await until(lambda: {2, 3} <= set(harness.pending))
-        for index in (2, 3):
-            harness.settle(index)
-        await until(lambda: {4, 5} <= set(harness.pending))
-        for index in (4, 5):
-            harness.settle(index)
-        return paused, settled_early, await resumed_run
-
-    paused, settled_early, resumed = asyncio.run(scenario())
+    run = harness.start(parallelism=2)
+    await until(lambda: len(harness.pending) == 2)
+    harness.paused = True
+    harness.settle(0)
+    for _ in range(20):
+        await asyncio.sleep(0)
+    # Trial 1 is still in flight, so the run waits; no third trial is asked.
+    settled_early = run.done()
+    assert len(harness.evaluations) == 2
+    harness.settle(1)
+    paused = await run
+    harness.paused = False
+    resumed_run = harness.start(trials=4, parallelism=2)
+    await until(lambda: {2, 3} <= set(harness.pending))
+    for index in (2, 3):
+        harness.settle(index)
+    await until(lambda: {4, 5} <= set(harness.pending))
+    for index in (4, 5):
+        harness.settle(index)
+    resumed = await resumed_run
 
     assert settled_early is False
     assert paused["paused"] is True
@@ -333,34 +339,33 @@ def test_a_pause_drains_the_trials_in_flight_and_the_study_continues(
     ] * 6
 
 
-def test_a_pause_after_the_last_ask_drains_into_a_completion(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_pause_last_ask(
+    optimization_description: OptimizationDescription,
 ) -> None:
     optimization_description["study"]["trials"] = 2
     harness = ParallelHarness(optimization_description)
 
-    async def scenario() -> dict[str, Any]:
-        run = harness.start(parallelism=2)
-        await until(lambda: len(harness.pending) == 2)
-        harness.paused = True
-        harness.settle(0)
-        harness.settle(1)
-        return await run
-
-    summary = asyncio.run(scenario())
+    run = harness.start(parallelism=2)
+    await until(lambda: len(harness.pending) == 2)
+    harness.paused = True
+    harness.settle(0)
+    harness.settle(1)
+    summary = await run
 
     assert summary["paused"] is False
     assert summary["completedTrials"] == 2
     assert [event["trial"] for event in harness.events] == [0, 1]
 
 
-def test_a_pause_before_the_first_ask_asks_nothing(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_pause_before_ask(
+    optimization_description: OptimizationDescription,
 ) -> None:
     harness = PausableHarness(optimization_description)
     harness.paused = True
 
-    summary = harness.run()
+    summary = await harness.start()
 
     assert summary["paused"] is True
     assert harness.evaluations == []
@@ -368,19 +373,18 @@ def test_a_pause_before_the_first_ask_asks_nothing(
     assert harness.study.get_trials(deepcopy=False) == []
 
 
-def test_an_evaluation_error_cancels_and_fails_the_trials_in_flight(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_evaluate_error_cancels_peers(
+    optimization_description: OptimizationDescription,
 ) -> None:
     harness = ParallelHarness(optimization_description)
 
-    async def scenario() -> dict[str, Any]:
-        run = harness.start(parallelism=3)
-        await until(lambda: len(harness.pending) == 3)
-        harness.fail(1, RuntimeError("worker crashed"))
-        return await run
+    run = harness.start(parallelism=3)
+    await until(lambda: len(harness.pending) == 3)
+    harness.fail(1, RuntimeError("worker crashed"))
 
     with pytest.raises(RuntimeError, match="worker crashed"):
-        asyncio.run(scenario())
+        await run
 
     assert sorted(harness.interrupted) == [0, 2]
     assert harness.events == []
@@ -390,26 +394,30 @@ def test_an_evaluation_error_cancels_and_fails_the_trials_in_flight(
 
 
 @pytest.mark.parametrize("options", [{"trials": 0}, {"parallelism": 0}])
-def test_rejects_a_run_without_trials_or_parallelism(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_run_invalid_limits(
+    optimization_description: OptimizationDescription,
     options: dict[str, int],
 ) -> None:
     with pytest.raises(ValueError, match="at least 1"):
-        Harness(optimization_description).run(**options)
+        await Harness(optimization_description).start(
+            trials=options.get("trials"), parallelism=options.get("parallelism", 1)
+        )
 
 
-def test_records_pruned_outcomes_without_an_objective(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_run_pruned(
+    optimization_description: OptimizationDescription,
 ) -> None:
     harness = Harness(optimization_description)
 
-    async def evaluate(values: dict[str, Any]) -> dict[str, Any]:
+    async def evaluate(values: dict[str, Scalar]) -> Mapping[str, object]:
         if len(harness.evaluations) == 1:
             harness.evaluations.append(values)
             return {"pruned": "simulation failed"}
         return await harness.evaluate(values)
 
-    summary = harness.run(evaluate)
+    summary = await harness.start(evaluate)
 
     assert [event["state"] for event in harness.events] == [
         "complete",
@@ -417,6 +425,7 @@ def test_records_pruned_outcomes_without_an_objective(
         "complete",
     ]
     assert harness.events[1]["objective"] is None
+    assert harness.events[1]["best"] is not None
     assert harness.events[1]["best"]["trial"] == 0
     assert summary["completedTrials"] == 2
     assert summary["prunedTrials"] == 1
@@ -433,21 +442,22 @@ def test_records_pruned_outcomes_without_an_objective(
         {},
     ],
 )
-def test_rejects_outcomes_without_a_finite_objective(outcome: dict[str, Any]) -> None:
+def test_objective_invalid(outcome: dict[str, object]) -> None:
     with pytest.raises(ValueError, match="finite number"):
         objective_of(outcome)
 
 
-def test_a_non_finite_objective_ends_the_study(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_objective_error_fails_trial(
+    optimization_description: OptimizationDescription,
 ) -> None:
     harness = Harness(optimization_description)
 
-    async def evaluate(_values: dict[str, Any]) -> dict[str, Any]:
-        return {"objective": math.inf}
+    def evaluate(_values: dict[str, Scalar]) -> asyncio.Future[dict[str, float]]:
+        return completed({"objective": math.inf})
 
     with pytest.raises(ValueError, match="finite number"):
-        harness.run(evaluate)
+        await harness.start(evaluate)
 
     assert harness.events == []
     assert [trial.state for trial in harness.study.get_trials(deepcopy=False)] == [
@@ -455,17 +465,18 @@ def test_a_non_finite_objective_ends_the_study(
     ], "the rejected trial is told failed, not left running"
 
 
-def test_cancellation_after_an_evaluate_fails_the_trial_without_an_event(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_cancel_after_evaluate(
+    optimization_description: OptimizationDescription,
 ) -> None:
     harness = Harness(optimization_description)
 
-    async def evaluate(values: dict[str, Any]) -> dict[str, Any]:
+    async def evaluate(values: dict[str, Scalar]) -> dict[str, float]:
         outcome = await harness.evaluate(values)
         harness.cancelled = len(harness.evaluations) == 1
         return outcome
 
-    summary = harness.run(evaluate)
+    summary = await harness.start(evaluate)
 
     assert len(harness.evaluations) == 1
     assert harness.events == []
@@ -477,25 +488,24 @@ def test_cancellation_after_an_evaluate_fails_the_trial_without_an_event(
     assert failed.user_attrs == {UNREPORTED_ATTR: True}
 
 
-def test_cancellation_between_trials_keeps_the_told_trials(
-    optimization_description: dict[str, Any],
+@pytest.mark.asyncio
+async def test_cancel_after_report(
+    optimization_description: OptimizationDescription,
 ) -> None:
     harness = Harness(optimization_description)
     original_append = harness.events.append
 
-    def on_trial(event: dict[str, Any]) -> None:
+    def on_trial(event: TrialEvent) -> None:
         original_append(event)
         harness.cancelled = True
 
-    summary = asyncio.run(
-        run_study(
-            harness.study,
-            harness.description,
-            trials=harness.description.trials,
-            evaluate=harness.evaluate,
-            on_trial=on_trial,
-            is_cancelled=lambda: harness.cancelled,
-        )
+    summary = await run_study(
+        harness.study,
+        harness.description,
+        trials=harness.description.trials,
+        evaluate=harness.evaluate,
+        on_trial=on_trial,
+        is_cancelled=lambda: harness.cancelled,
     )
 
     assert len(harness.evaluations) == 1
@@ -505,8 +515,8 @@ def test_cancellation_between_trials_keeps_the_told_trials(
     assert summary["cancelled"] is True
 
 
-def test_told_trials_counts_the_trials_with_an_outcome(
-    optimization_description: dict[str, Any],
+def test_told_trials_reported(
+    optimization_description: OptimizationDescription,
 ) -> None:
     description = parse_description(optimization_description)
     study = create_study(description)
@@ -525,8 +535,8 @@ def test_told_trials_counts_the_trials_with_an_outcome(
     assert told_trials(study) == 2
 
 
-def test_trial_events_and_summary_track_best_and_states(
-    optimization_description: dict[str, Any],
+def test_reports_best_and_states(
+    optimization_description: OptimizationDescription,
 ) -> None:
     description = parse_description(optimization_description)
     study = create_study(description)
@@ -552,6 +562,7 @@ def test_trial_events_and_summary_track_best_and_states(
     }
     assert second_event["state"] == "pruned"
     assert second_event["objective"] is None
+    assert second_event["best"] is not None
     assert second_event["best"]["trial"] == 0
     assert third_event["best"] == {
         "trial": 2,
@@ -571,6 +582,125 @@ def test_trial_events_and_summary_track_best_and_states(
     study.tell(fourth, state=TrialState.FAIL)
     fifth = study.ask()
     suggest(fifth, description.parameters)
-    fifth.set_user_attr(UNREPORTED_ATTR, True)
+    unreported = True
+    fifth.set_user_attr(UNREPORTED_ATTR, unreported)
     study.tell(fifth, state=TrialState.FAIL)
     assert study_summary(study)["failedTrials"] == 1
+
+
+@pytest.mark.asyncio
+async def test_report_error_cancels_peers(
+    optimization_description: OptimizationDescription,
+) -> None:
+    harness = ParallelHarness(optimization_description)
+
+    def on_trial(event: TrialEvent) -> None:
+        harness.events.append(event)
+        raise RuntimeError("report failed")
+
+    run = asyncio.ensure_future(
+        run_study(
+            harness.study,
+            harness.description,
+            trials=6,
+            evaluate=harness.evaluate,
+            on_trial=on_trial,
+            parallelism=3,
+        )
+    )
+    await until(lambda: len(harness.pending) == 3)
+    harness.settle(1)
+    await until(run.done)
+    with pytest.raises(RuntimeError, match="report failed"):
+        await run
+
+    assert [event["trial"] for event in harness.events] == [1]
+    assert sorted(harness.interrupted) == [0, 2]
+    assert [trial.state for trial in harness.study.trials] == [
+        TrialState.FAIL,
+        TrialState.COMPLETE,
+        TrialState.FAIL,
+    ]
+    assert study_summary(harness.study)["failedTrials"] == 0
+
+
+@pytest.mark.asyncio
+async def test_task_cancel_fails_pending(
+    optimization_description: OptimizationDescription,
+) -> None:
+    harness = ParallelHarness(optimization_description)
+    run = harness.start(parallelism=3)
+    await until(lambda: len(harness.pending) == 3)
+    run.cancel()
+    await until(run.done)
+
+    with pytest.raises(asyncio.CancelledError):
+        await run
+
+    assert sorted(harness.interrupted) == [0, 1, 2]
+    assert harness.events == []
+    assert [trial.state for trial in harness.study.trials] == [TrialState.FAIL] * 3
+    assert all(trial.user_attrs == {UNREPORTED_ATTR: True} for trial in harness.study.trials)
+    assert study_summary(harness.study)["failedTrials"] == 0
+
+
+@pytest.mark.asyncio
+async def test_cancel_before_ask(
+    optimization_description: OptimizationDescription,
+) -> None:
+    harness = PausableHarness(optimization_description)
+    harness.cancelled = True
+    harness.paused = True
+
+    summary = await harness.start()
+
+    assert summary["cancelled"] is True
+    assert summary["paused"] is False
+    assert harness.study.trials == []
+    assert harness.evaluations == []
+    assert harness.events == []
+
+
+@pytest.mark.asyncio
+async def test_pause_latched(
+    optimization_description: OptimizationDescription,
+) -> None:
+    harness = ParallelHarness(optimization_description)
+    run = harness.start(parallelism=2)
+    await until(lambda: len(harness.pending) == 2)
+    harness.paused = True
+    harness.settle(0)
+    await until(lambda: len(harness.events) == 1)
+    harness.paused = False
+    harness.settle(1)
+    await until(run.done)
+    summary = await run
+
+    assert summary["paused"] is True
+    assert summary["completedTrials"] == 2
+    assert [event["trial"] for event in harness.events] == [0, 1]
+    assert len(harness.evaluations) == 2
+
+
+@pytest.mark.asyncio
+async def test_suggest_error_fails_batch(
+    optimization_description: OptimizationDescription,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    harness = Harness(optimization_description)
+
+    def fail_second(trial: BaseTrial, parameters: Sequence[Parameter]) -> dict[str, Scalar]:
+        if trial.number == 1:
+            raise RuntimeError("suggest failed")
+        return suggest(trial, parameters)
+
+    monkeypatch.setattr(ask_tell, "suggest", fail_second)
+    with pytest.raises(RuntimeError, match="suggest failed"):
+        await harness.start(parallelism=3)
+
+    # Asking the batch has no suspension point: the first task is cancelled
+    # before its evaluation starts, and the second ask still needs cleanup.
+    assert harness.evaluations == []
+    assert harness.events == []
+    assert [trial.state for trial in harness.study.trials] == [TrialState.FAIL] * 2
+    assert all(trial.user_attrs == {UNREPORTED_ATTR: True} for trial in harness.study.trials)

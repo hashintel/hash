@@ -1,40 +1,27 @@
 {
   "extends": ["//"],
   "tasks": {
-    "lint:types": {
+    "lint:tach": {
+      "passThroughEnv": ["UV_CACHE_DIR"],
       "command": [
         "uv",
         "run",
         "--active",
         "--frozen",
         "--all-packages",
-        "basedpyright"
-      ],
-      "passThroughEnv": ["UV_CACHE_DIR"]
+        "tach",
+        "check"
+      ]
     },
-    "lint:ruff": {
+    "lint:deptry": {
       "command": [
         "uv",
         "run",
         "--active",
         "--frozen",
         "--all-packages",
-        "ruff",
-        "check",
-        "."
-      ],
-      "passThroughEnv": ["UV_CACHE_DIR"]
-    },
-    "format:ruff": {
-      "command": [
-        "uv",
-        "run",
-        "--active",
-        "--frozen",
-        "--all-packages",
-        "ruff",
-        "format",
-        "."
+        "deptry",
+        "src"
       ],
       "passThroughEnv": ["UV_CACHE_DIR"]
     },
