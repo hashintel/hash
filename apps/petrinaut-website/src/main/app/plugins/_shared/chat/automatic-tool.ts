@@ -30,6 +30,6 @@ export type PetrinautAiAutomaticTool = {
   visibility?: "visible" | "hidden";
   inputSchema: PetrinautAiAutomaticToolSchema<unknown>;
   outputSchema: PetrinautAiAutomaticToolSchema<unknown>;
-  /** Execute once; Petrinaut owns validated output insertion and continuation. */
+  /** Execute once; the chat owns validated output insertion and continuation. */
   execute: (params: PetrinautAiAutomaticToolExecuteParams) => unknown;
 };

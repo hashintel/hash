@@ -28,22 +28,22 @@ export type PetrinautAiToolPresentationContext = {
   error: string | undefined;
 };
 
-/** How the transcript shows a tool call, in place of Petrinaut's card text. */
+/** How the transcript shows a tool call, in place of the chat's card text. */
 export type PetrinautAiToolPresentation = {
-  /** Card title, in place of Petrinaut's summary. */
+  /** Card title, in place of the chat's summary. */
   title: string;
   /**
    * Text under the title; a failed call shows its error text instead.
-   * Omitted: Petrinaut's own detail, unless `items` is set.
+   * Omitted: the chat's own detail, unless `items` is set.
    */
   detail?: string;
-  /** Card color. Omitted: Petrinaut picks one from the call's state and tool. */
+  /** Card color. Omitted: the chat picks one from the call's state and tool. */
   tone?: PetrinautAiToolPresentationTone;
-  /** Lines listed on the card, in place of Petrinaut's own list. */
+  /** Lines listed on the card, in place of the chat's own list. */
   items?: readonly string[];
 };
 
-/** Returns how to show a tool call, or `undefined` to keep Petrinaut's card. */
+/** Returns how to show a tool call, or `undefined` to keep the chat's card. */
 export type PetrinautAiToolPresentationResolver = (
   context: PetrinautAiToolPresentationContext,
 ) => PetrinautAiToolPresentation | undefined;

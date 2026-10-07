@@ -37,8 +37,7 @@ export type PetrinautAiInteractiveToolWidgetProps<Input, Output> =
     );
 
 /**
- * Definition of a host-owned dynamic AI tool rendered inline in Petrinaut's
- * chat panel.
+ * Definition of a host-owned dynamic AI tool rendered inline in the chat.
  */
 type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   /** Must match the dynamic tool name emitted by the host's AI transport. */
@@ -61,7 +60,7 @@ type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   shouldHandle?: (call: { toolCallId: string }) => boolean;
   /**
    * Optionally map text submitted through the assistant composer to this
-   * tool's output. Petrinaut validates both the pending input and mapped
+   * tool's output. The chat validates both the pending input and mapped
    * output before completing the tool call.
    */
   fromComposerText?: (params: { input: Input; text: string }) => Output;

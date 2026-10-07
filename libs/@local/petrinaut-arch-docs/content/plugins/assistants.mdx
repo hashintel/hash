@@ -100,7 +100,7 @@ interface PluginAssistantTab {
   id: string; // unique among the window's tabs; not "chat"
   label: string;
   mark?: ReactNode;
-  activityIdentities?: readonly (number | string)[];
+  activityIdentities?: readonly string[];
   content: ReactNode;
 }
 interface PluginAssistantStartAction {

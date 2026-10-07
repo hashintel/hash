@@ -10,7 +10,7 @@ import type { PetrinautAiInteractiveTool } from "./interactive-tool";
 import type { PetrinautAiToolPresentationResolver } from "./tool-presentation";
 
 /**
- * What `requestStop` reports. `"stop-requested"`: Petrinaut also cancels the
+ * What `requestStop` reports. `"stop-requested"`: the chat also cancels the
  * local stream. `"already-settled"`: the response had already ended.
  */
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
@@ -47,7 +47,7 @@ export type PetrinautAiAssistant = {
     has: (toolName: string) => boolean;
     /**
      * Runs one tool call, once the previous call settles; `signal` aborts on Stop.
-     * Call `execute` at most once, with the input to run, to have Petrinaut run the tool.
+     * Call `execute` at most once, with the input to run, to have the chat run the tool.
      * A `createExperiment` call lets the next call start once `execute` starts.
      */
     run: (
@@ -67,7 +67,7 @@ export type PetrinautAiAssistant = {
       execute: (input: unknown) => Promise<unknown>,
     ) => Promise<void>;
   };
-  /** Tools Petrinaut runs for this assistant without user input, against the mounted editor. */
+  /** Tools the chat runs for this assistant without user input, against the mounted editor. */
   automaticTools?: readonly PetrinautAiAutomaticTool[];
   /** Tools the user answers through a widget shown inline in the conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];

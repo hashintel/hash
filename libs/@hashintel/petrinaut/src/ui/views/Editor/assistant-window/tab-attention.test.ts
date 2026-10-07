@@ -11,9 +11,9 @@ const fresh: TabAttention = { seen: undefined, count: 0 };
 describe("advanceTabAttention", () => {
   it("counts nothing while the activity is unknown and takes the first collection as the baseline", () => {
     expect(advanceTabAttention(fresh, undefined, false)).toBe(fresh);
-    const baseline = advanceTabAttention(fresh, ["a", 1], false);
+    const baseline = advanceTabAttention(fresh, ["a", "b"], false);
     expect(baseline.count).toBe(0);
-    expect(baseline.seen).toEqual(new Set(["string:a", "number:1"]));
+    expect(baseline.seen).toEqual(new Set(["a", "b"]));
   });
 
   it("counts identities that appear after the baseline until the tab is shown", () => {
