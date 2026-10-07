@@ -460,6 +460,7 @@ __metadata:
     ai: "npm:6.0.286"
     dependency-cruiser: "npm:18.0.0"
     hono: "npm:4.13.10"
+    md-pen: "npm:1.2.0"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
     pg: "npm:8.23.0"
@@ -33782,6 +33783,13 @@ __metadata:
   version: 1.1.0
   resolution: "math-intrinsics@npm:1.1.0"
   checksum: 10c0/7579ff94e899e2f76ab64491d76cf606274c874d8f2af4a442c016bd85688927fcfca157ba6bf74b08e9439dc010b248ce05b96cc7c126a354c3bae7fcb48b7f
+  languageName: node
+  linkType: hard
+
+"md-pen@npm:1.2.0":
+  version: 1.2.0
+  resolution: "md-pen@npm:1.2.0"
+  checksum: 10c0/fd1ab021b24648e4741123c683ac95c26ff38d25dc0b5462b3d9121be22c213224df944c81ffd8b66b4103a542d76bd904350b37a8678f92c9476b1663316c02
   languageName: node
   linkType: hard
 
