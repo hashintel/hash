@@ -1,0 +1,20 @@
+diff --git a/typings-for-build/app/src/ui.tsx b/typings-for-build/app/src/ui.tsx
+index 21e819893e3fd88850885baafff352ad9a2b11a1..d3235072929fb030a7af7b72073cdbdb6531f53b 100644
+--- a/typings-for-build/app/src/ui.tsx
++++ b/typings-for-build/app/src/ui.tsx
+@@ -62,6 +62,7 @@ export const Modal = ({
+   return (
+     //@ts-ignore
+     <DialogOverlay
++      // @ts-ignore -- TypeScript 7 reports the untyped dialog props here.
+       isOpen={isOpen}
+       onDismiss={() => close()}
+       data-testid="ladle-dialog-overlay"
+@@ -70,6 +71,7 @@ export const Modal = ({
+       <DialogContent
+         aria-label={label || "Modal"}
+         data-testid="ladle-dialog"
++        // @ts-ignore -- TypeScript 7 reports the untyped dialog props here.
+         style={{ maxWidth }}
+       >
+         <div

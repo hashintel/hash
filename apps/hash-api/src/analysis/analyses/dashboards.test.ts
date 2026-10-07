@@ -177,7 +177,7 @@ describe("dashboardItemData analysis", () => {
     registerAnalyses(dashboardAnalyses);
 
     mockedGetRole.mockReset();
-    mockedGetRole.mockResolvedValue("member" as RoleName);
+    mockedGetRole.mockResolvedValue("member");
 
     mockedGetWebMachineId.mockReset();
     mockedGetWebMachineId.mockResolvedValue(WEB_MACHINE_ID);
@@ -209,7 +209,7 @@ describe("dashboardItemData analysis", () => {
   it("errors when the item does not exist in the web", async () => {
     mockedQueryEntities.mockResolvedValue({
       entities: [],
-    } as unknown as Awaited<ReturnType<typeof queryEntities>>);
+    });
 
     const result = await resolve({ itemUuid: ITEM_UUID });
     expect(result.status).toBe("error");
