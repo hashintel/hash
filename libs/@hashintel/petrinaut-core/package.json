@@ -122,10 +122,10 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "typescript": ">=5.5"
+    "@typescript/typescript6": "*"
   },
   "peerDependenciesMeta": {
-    "typescript": {
+    "@typescript/typescript6": {
       "optional": true
     }
   }
