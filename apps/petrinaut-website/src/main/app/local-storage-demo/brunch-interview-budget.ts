@@ -62,3 +62,17 @@ export const countInterviewReplies = ({
   }
   return replies;
 };
+
+/**
+ * Whether the latest submission was sent with no questions remaining, so
+ * Brunch is wrapping up rather than awaiting an answer to its last question.
+ */
+export const isInterviewClosing = ({
+  messages,
+}: Pick<FlueConversationState, "messages">): boolean => {
+  const latest = messages.findLast(
+    (message) =>
+      message.purpose === "user" && message.submissionId !== undefined,
+  );
+  return latest !== undefined && closesInterview(latest);
+};

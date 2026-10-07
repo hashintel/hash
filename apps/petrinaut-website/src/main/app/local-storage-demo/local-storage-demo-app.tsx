@@ -86,7 +86,10 @@ import {
   resolveDraftAuthorityFromHistory,
 } from "./brunch-draft-experiment-interactive-tool";
 import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
-import { countInterviewReplies } from "./brunch-interview-budget";
+import {
+  countInterviewReplies,
+  isInterviewClosing,
+} from "./brunch-interview-budget";
 import {
   createBrunchMutationAdmission,
   createBrunchMutationApprovalCoordinator,
@@ -783,6 +786,9 @@ export const LocalStorageDemoApp = ({
   const interviewRepliesAsked = countInterviewReplies(
     flueHistory.snapshot ?? { messages: [] },
   );
+  const interviewClosing = isInterviewClosing(
+    flueHistory.snapshot ?? { messages: [] },
+  );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.incarnationId}:${constructionBrowser.binding.conversationId}`
     : undefined;
@@ -1084,6 +1090,7 @@ export const LocalStorageDemoApp = ({
                   level={interviewBudgetLevel}
                   context={context}
                   asked={interviewRepliesAsked}
+                  closing={interviewClosing}
                 />
               ) : null,
           }
@@ -1162,6 +1169,7 @@ export const LocalStorageDemoApp = ({
     interviewBudgetEnabled,
     interviewBudgetLevel,
     interviewRepliesAsked,
+    interviewClosing,
     setInterviewBudgetLevel,
     mapVoiceMessages,
     brunchSelected,

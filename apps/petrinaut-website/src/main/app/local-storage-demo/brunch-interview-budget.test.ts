@@ -7,7 +7,10 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { getInterviewBudget } from "../../../shared/interview-budget";
-import { countInterviewReplies } from "./brunch-interview-budget";
+import {
+  countInterviewReplies,
+  isInterviewClosing,
+} from "./brunch-interview-budget";
 
 import type { FlueConversationMessage } from "@flue/sdk";
 
@@ -132,4 +135,40 @@ test("a closing answer that joins a busy reply makes only the host's later text 
       ],
     }),
   ).toBe(6);
+});
+
+test("the interview is closing only once the latest submission had no questions left", () => {
+  const answer = (
+    submissionId: string,
+    level: "standard" | "thorough",
+  ): FlueConversationMessage => ({
+    id: `answer-${submissionId}`,
+    submissionId,
+    role: "user",
+    purpose: "user",
+    display: "visible",
+    parts: [
+      {
+        type: "text",
+        state: "done",
+        text: petrinautContextualUserMessageBody({
+          userText: "Weekends too.",
+          diagnosticsContext: "",
+          submissionContext: {
+            [interviewBudgetContextKey]: getInterviewBudget(level, "text", 6),
+          },
+        }),
+      },
+    ],
+  });
+  const messages = Array.from({ length: 6 }, (_, index) =>
+    reply(`question-${index}`, "Which hours?"),
+  );
+  expect(isInterviewClosing({ messages })).toBe(false);
+  messages.push(answer("closing", "standard"));
+  expect(isInterviewClosing({ messages })).toBe(true);
+  messages.push(reply("closing", "Stated: six agents. Open: arrival rate."));
+  expect(isInterviewClosing({ messages })).toBe(true);
+  messages.push(answer("raised", "thorough"));
+  expect(isInterviewClosing({ messages })).toBe(false);
 });

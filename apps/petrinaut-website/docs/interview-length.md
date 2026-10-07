@@ -10,7 +10,7 @@ When enabled, the round icon at the left of the message input opens **Interview 
 
 After the first reply, a quiet status sits at the right above the composer or Voice controls in the expanded conversation. It estimates time from questions left; it is not a countdown. The row stays blank before the first reply and when Off is selected, but keeps its space so the input controls do not move. The collapsed Voice dock omits this row entirely to stay compact; expand the conversation to see the estimate. Hover or focus the estimate for a card with the question count and closing behaviour.
 
-Quick, Standard and Thorough allow respectively 3, 6 and 10 replies in text, or 2, 4 and 7 in Voice. Each Brunch reply counts as one question, including a grouped question or a confirmation-only reply. The estimate progresses to **1 question left**, then **Ready to wrap up**. These labels reflect the count, not whether Brunch is currently speaking or the model is complete. Deep shows the running count and offers pauses between topics; Off uses Brunch's usual pacing.
+Quick, Standard and Thorough allow respectively 3, 6 and 10 replies in text, or 2, 4 and 7 in Voice. Each Brunch reply counts as one question, including a grouped question or a confirmation-only reply. The estimate progresses to **1 question left**, then **Last question** while Brunch's final question awaits your answer, then **Wrapping up** once you have answered it. These labels reflect the count and your submissions, not whether Brunch is currently speaking or the model is complete. Deep shows the running count and offers pauses between topics; Off uses Brunch's usual pacing.
 
 ## Change the length or reach the cap
 

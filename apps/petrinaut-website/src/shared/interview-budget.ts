@@ -75,12 +75,13 @@ export const interviewBudgetLabel = (
   level: InterviewBudgetLevel,
   mode: "text" | "voice",
   asked: number,
+  { closing }: { closing: boolean },
 ): string | null => {
   const budget = getInterviewBudget(level, mode, asked);
   if (!budget) return null;
   if (budget.remaining === null || budget.questionCap === null)
     return `Question ${asked} · no limit`;
-  if (budget.remaining === 0) return "Ready to wrap up";
+  if (budget.remaining === 0) return closing ? "Wrapping up" : "Last question";
   const minutes = Math.round(
     (budget.remaining * interviewBudgetLevelsConfig[level].minutes) /
       budget.questionCap,

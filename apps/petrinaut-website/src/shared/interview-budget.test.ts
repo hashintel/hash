@@ -32,16 +32,29 @@ it("uses mode-specific caps and keeps already asked questions after a downgrade"
 });
 
 it("renders a question-derived estimate, never a clock", () => {
-  expect(interviewBudgetLabel("standard", "text", 2)).toBe("~7 min left");
-  expect(interviewBudgetLabel("standard", "text", 5)).toBe(
+  const asking = { closing: false };
+  expect(interviewBudgetLabel("standard", "text", 2, asking)).toBe(
+    "~7 min left",
+  );
+  expect(interviewBudgetLabel("standard", "text", 5, asking)).toBe(
     "1 question left · ~2 min",
   );
-  expect(interviewBudgetLabel("standard", "text", 6)).toBe("Ready to wrap up");
-  expect(interviewBudgetLabel("standard", "voice", 3)).toBe(
+  expect(interviewBudgetLabel("standard", "voice", 3, asking)).toBe(
     "1 question left · ~3 min",
   );
-  expect(interviewBudgetLabel("deep", "text", 4)).toBe("Question 4 · no limit");
-  expect(interviewBudgetLabel("off", "voice", 2)).toBeNull();
+  expect(interviewBudgetLabel("deep", "text", 4, asking)).toBe(
+    "Question 4 · no limit",
+  );
+  expect(interviewBudgetLabel("off", "voice", 2, asking)).toBeNull();
+});
+
+it("separates the unanswered last question from wrapping up", () => {
+  expect(interviewBudgetLabel("standard", "text", 6, { closing: false })).toBe(
+    "Last question",
+  );
+  expect(interviewBudgetLabel("standard", "text", 6, { closing: true })).toBe(
+    "Wrapping up",
+  );
 });
 
 it("adds no startup instruction for Off", () => {

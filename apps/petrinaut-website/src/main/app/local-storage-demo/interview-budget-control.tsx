@@ -465,10 +465,13 @@ export const InterviewBudgetPill = ({
   level,
   context,
   asked,
+  closing,
 }: {
   level: InterviewBudgetLevel;
   context: PetrinautAiComposerControlContext;
   asked: number;
+  /** The latest submission was sent with no questions remaining. */
+  closing: boolean;
 }) => {
   const mode = context.inputMode ?? "text";
   const budget = getInterviewBudget(level, mode, asked);
@@ -482,7 +485,7 @@ export const InterviewBudgetPill = ({
       />
     );
   const config = interviewBudgetLevelsConfig[level];
-  const label = interviewBudgetLabel(level, mode, asked) ?? "";
+  const label = interviewBudgetLabel(level, mode, asked, { closing }) ?? "";
   const nearCap = budget.remaining !== null && budget.remaining <= 1;
   const mechanism =
     budget.questionCap === null
@@ -492,7 +495,9 @@ export const InterviewBudgetPill = ({
     budget.questionCap === null
       ? "Brunch offers pauses between topics, with no question limit."
       : budget.remaining === 0
-        ? "Question limit reached. Wrap-up lists open items."
+        ? closing
+          ? "Question limit reached. Wrap-up lists open items."
+          : "Wrap-up follows your answer to this question; open items stay listed."
         : budget.remaining === 1
           ? "Wrap-up follows your answer to the final question; open items stay listed."
           : "An estimate, not a countdown.";

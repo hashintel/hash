@@ -128,7 +128,12 @@ test("pill uses the host count regardless of displayed messages, changes with mo
     submitText: vi.fn(),
   };
   const { rerender } = render(
-    <InterviewBudgetPill level="standard" context={context} asked={5} />,
+    <InterviewBudgetPill
+      level="standard"
+      context={context}
+      asked={5}
+      closing={false}
+    />,
   );
   expect(screen.getByRole("status").textContent).toBe(
     "1 question left · ~2 min",
@@ -148,16 +153,41 @@ test("pill uses the host count regardless of displayed messages, changes with mo
       level="standard"
       context={{ ...context, inputMode: "voice" }}
       asked={5}
+      closing={false}
     />,
   );
-  expect(screen.getByRole("status").textContent).toBe("Ready to wrap up");
+  expect(screen.getByRole("status").textContent).toBe("Last question");
+  expect(card.textContent).toContain("your answer to this question");
+  rerender(
+    <InterviewBudgetPill
+      level="standard"
+      context={{ ...context, inputMode: "voice" }}
+      asked={5}
+      closing
+    />,
+  );
+  expect(screen.getByRole("status").textContent).toBe("Wrapping up");
   expect(card.textContent).toContain("Question limit reached.");
-  rerender(<InterviewBudgetPill level="deep" context={context} asked={5} />);
+  rerender(
+    <InterviewBudgetPill
+      level="deep"
+      context={context}
+      asked={5}
+      closing={false}
+    />,
+  );
   expect(screen.getByRole("status").textContent).toBe("Question 5 · no limit");
   expect(card.textContent).toContain(
     "Brunch offers pauses between topics, with no question limit.",
   );
-  rerender(<InterviewBudgetPill level="off" context={context} asked={5} />);
+  rerender(
+    <InterviewBudgetPill
+      level="off"
+      context={context}
+      asked={5}
+      closing={false}
+    />,
+  );
   expect(screen.queryByRole("status")).toBeNull();
 });
 
@@ -168,6 +198,7 @@ test.each(["text", "voice"] as const)(
       <InterviewBudgetPill
         level="standard"
         asked={0}
+        closing={false}
         context={{
           conversationId: "new",
           inputMode,
