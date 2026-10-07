@@ -307,11 +307,8 @@ describe("buildSweepOptimizationInput", () => {
       runsPerStep: 8,
     });
 
-    expect(record.scenario.id).toBe("adhoc-scenario");
-    expect(manifest.model.definition.scenarios).toEqual([
-      { ...record.scenario, id: toPetrinautId("adhoc-scenario") },
-    ]);
-    expect(manifest.scenario.id).toBe(toPetrinautId("adhoc-scenario"));
+    expect(manifest.model.definition.scenarios).toEqual([record.scenario]);
+    expect(manifest.scenario.id).toBe(record.scenario.id);
     expect(Object.keys(manifest.scenario.parameterBindings)).toEqual([
       "adhoc_count_Queue",
     ]);

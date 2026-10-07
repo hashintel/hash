@@ -6,6 +6,7 @@
  */
 
 import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
+import { z } from "zod";
 
 import { getArcEndpointKey, parseArcEndpointKey } from "./arc-endpoints";
 import { generateArcId } from "./arc-id";
@@ -23,7 +24,6 @@ import type {
   Place,
   Scenario,
   SDCPN,
-  Subnet,
   Transition,
 } from "./types/sdcpn";
 
@@ -49,20 +49,8 @@ export const toPetrinautId = (id: string): string =>
 /** A fresh random Petrinaut id. */
 export const generatePetrinautId = (): string => uuidv4();
 
-type ConvertId = (id: string) => string;
-
-/** `toPetrinautId` with a cache, for one pass over a net whose ids repeat. */
-const createIdConverter = (): ConvertId => {
-  const converted = new Map<string, string>();
-  return (id) => {
-    let canonical = converted.get(id);
-    if (canonical === undefined) {
-      canonical = toPetrinautId(id);
-      converted.set(id, canonical);
-    }
-    return canonical;
-  };
-};
+/** An id in any form, converted to a Petrinaut id when parsed. */
+export const petrinautIdSchema = z.string().min(1).overwrite(toPetrinautId);
 
 /** `item` itself when no change differs from it, otherwise a changed copy. */
 const assignChanged = <Item extends object>(
@@ -87,194 +75,128 @@ const mapUnlessUnchanged = <Item>(
   return mapped.every((item, index) => item === items[index]) ? items : mapped;
 };
 
-/** `record` with every key converted; itself when every key is canonical. */
-const rekeyUnlessUnchanged = <Value>(
-  record: Record<string, Value>,
-  convertId: ConvertId,
-): Record<string, Value> => {
-  const entries = Object.entries(record);
-  if (entries.every(([key]) => convertId(key) === key)) {
-    return record;
-  }
-  return Object.fromEntries(
-    entries.map(([key, value]) => [convertId(key), value]),
-  );
-};
-
-const canonicalizeEndpoint = (
-  endpoint: ArcEndpoint,
-  convertId: ConvertId,
-): ArcEndpoint =>
-  endpoint.kind === "place"
-    ? assignChanged(endpoint, { placeId: convertId(endpoint.placeId) })
-    : assignChanged(endpoint, {
-        componentInstanceId: convertId(endpoint.componentInstanceId),
-        portPlaceId: convertId(endpoint.portPlaceId),
-      });
-
-const canonicalizeArc = <Arc extends InputArc | OutputArc>(
-  arc: Arc,
-  convertId: ConvertId,
-): Arc =>
-  assignChanged<InputArc | OutputArc>(arc, {
-    placeId: arc.placeId === undefined ? undefined : convertId(arc.placeId),
-    endpoint:
-      arc.endpoint === undefined
-        ? undefined
-        : canonicalizeEndpoint(arc.endpoint, convertId),
-  }) as Arc;
-
-const canonicalizeOptionalId = (
-  id: string | null,
-  convertId: ConvertId,
-): string | null => (id === null ? null : convertId(id));
-
-const canonicalizePlace = (place: Place, convertId: ConvertId): Place =>
-  assignChanged(place, {
-    id: convertId(place.id),
-    colorId: canonicalizeOptionalId(place.colorId, convertId),
-    differentialEquationId: canonicalizeOptionalId(
-      place.differentialEquationId,
-      convertId,
-    ),
-  });
-
-const canonicalizeTransition = (
-  transition: Transition,
-  convertId: ConvertId,
-): Transition =>
-  assignChanged(transition, {
-    id: convertId(transition.id),
-    inputArcs: mapUnlessUnchanged(transition.inputArcs, (arc) =>
-      canonicalizeArc(arc, convertId),
-    ),
-    outputArcs: mapUnlessUnchanged(transition.outputArcs, (arc) =>
-      canonicalizeArc(arc, convertId),
-    ),
-  });
-
-const canonicalizeColor = (color: Color, convertId: ConvertId): Color =>
-  assignChanged(color, {
-    id: convertId(color.id),
-    elements: mapUnlessUnchanged(color.elements, (element) =>
-      assignChanged(element, { elementId: convertId(element.elementId) }),
-    ),
-  });
-
-const canonicalizeDifferentialEquation = (
-  equation: DifferentialEquation,
-  convertId: ConvertId,
-): DifferentialEquation =>
-  assignChanged(equation, {
-    id: convertId(equation.id),
-    colorId: canonicalizeOptionalId(equation.colorId, convertId),
-  });
-
-const canonicalizeComponentInstance = (
-  instance: ComponentInstance,
-  convertId: ConvertId,
-): ComponentInstance =>
-  assignChanged(instance, {
-    id: convertId(instance.id),
-    subnetId: convertId(instance.subnetId),
-    parameterValues: rekeyUnlessUnchanged(instance.parameterValues, convertId),
-  });
-
-const canonicalizeAdHocState = (
-  state: AdHocScenarioState,
-  convertId: ConvertId,
-): AdHocScenarioState =>
-  assignChanged(state, {
-    netParameters: mapUnlessUnchanged(state.netParameters, (parameter) =>
-      assignChanged(parameter, {
-        parameterId: convertId(parameter.parameterId),
-      }),
-    ),
-    places: rekeyUnlessUnchanged(state.places, convertId),
-  });
-
-const canonicalizeInitialState = (
-  initialState: Scenario["initialState"],
-  convertId: ConvertId,
-): Scenario["initialState"] => {
-  switch (initialState.type) {
-    case "per_place":
-      return assignChanged(initialState, {
-        content: rekeyUnlessUnchanged(initialState.content, convertId),
-      });
-    case "adhoc":
-      return assignChanged(initialState, {
-        content: canonicalizeAdHocState(initialState.content, convertId),
-      });
-    case "code":
-      return initialState;
-  }
-};
-
-const canonicalizeScenario = (
-  scenario: Scenario,
-  convertId: ConvertId,
-): Scenario =>
-  assignChanged(scenario, {
-    id: convertId(scenario.id),
-    parameterOverrides: rekeyUnlessUnchanged(
-      scenario.parameterOverrides,
-      convertId,
-    ),
-    initialState: canonicalizeInitialState(scenario.initialState, convertId),
-  });
-
 const mapOptional = <Item>(
   items: Item[] | undefined,
   mapItem: (item: Item) => Item,
 ): Item[] | undefined =>
   items === undefined ? undefined : mapUnlessUnchanged(items, mapItem);
 
+/** `record` with every key converted; itself when every key is canonical. */
+const rekeyUnlessUnchanged = <Value>(
+  record: Record<string, Value>,
+): Record<string, Value> => {
+  const entries = Object.entries(record);
+  if (entries.every(([key]) => toPetrinautId(key) === key)) {
+    return record;
+  }
+  return Object.fromEntries(
+    entries.map(([key, value]) => [toPetrinautId(key), value]),
+  );
+};
+
+const toOptionalPetrinautId = (id: string | null): string | null =>
+  id === null ? null : toPetrinautId(id);
+
+const canonicalizeEndpoint = (endpoint: ArcEndpoint): ArcEndpoint =>
+  endpoint.kind === "place"
+    ? assignChanged(endpoint, { placeId: toPetrinautId(endpoint.placeId) })
+    : assignChanged(endpoint, {
+        componentInstanceId: toPetrinautId(endpoint.componentInstanceId),
+        portPlaceId: toPetrinautId(endpoint.portPlaceId),
+      });
+
+const canonicalizeArc = <Arc extends InputArc | OutputArc>(arc: Arc): Arc =>
+  assignChanged<InputArc | OutputArc>(arc, {
+    placeId: arc.placeId === undefined ? undefined : toPetrinautId(arc.placeId),
+    endpoint:
+      arc.endpoint === undefined
+        ? undefined
+        : canonicalizeEndpoint(arc.endpoint),
+  }) as Arc;
+
+const canonicalizePlace = (place: Place): Place =>
+  assignChanged(place, {
+    id: toPetrinautId(place.id),
+    colorId: toOptionalPetrinautId(place.colorId),
+    differentialEquationId: toOptionalPetrinautId(place.differentialEquationId),
+  });
+
+const canonicalizeTransition = (transition: Transition): Transition =>
+  assignChanged(transition, {
+    id: toPetrinautId(transition.id),
+    inputArcs: mapUnlessUnchanged(transition.inputArcs, canonicalizeArc),
+    outputArcs: mapUnlessUnchanged(transition.outputArcs, canonicalizeArc),
+  });
+
+const canonicalizeColor = (color: Color): Color =>
+  assignChanged(color, {
+    id: toPetrinautId(color.id),
+    elements: mapUnlessUnchanged(color.elements, (element) =>
+      assignChanged(element, { elementId: toPetrinautId(element.elementId) }),
+    ),
+  });
+
+const canonicalizeDifferentialEquation = (
+  equation: DifferentialEquation,
+): DifferentialEquation =>
+  assignChanged(equation, {
+    id: toPetrinautId(equation.id),
+    colorId: toOptionalPetrinautId(equation.colorId),
+  });
+
+const canonicalizeComponentInstance = (
+  instance: ComponentInstance,
+): ComponentInstance =>
+  assignChanged(instance, {
+    id: toPetrinautId(instance.id),
+    subnetId: toPetrinautId(instance.subnetId),
+    parameterValues: rekeyUnlessUnchanged(instance.parameterValues),
+  });
+
+const canonicalizeAdHocState = (
+  state: AdHocScenarioState,
+): AdHocScenarioState =>
+  assignChanged(state, {
+    netParameters: mapUnlessUnchanged(state.netParameters, (parameter) =>
+      assignChanged(parameter, {
+        parameterId: toPetrinautId(parameter.parameterId),
+      }),
+    ),
+    places: rekeyUnlessUnchanged(state.places),
+  });
+
+const canonicalizeInitialState = (
+  initialState: Scenario["initialState"],
+): Scenario["initialState"] => {
+  switch (initialState.type) {
+    case "per_place":
+      return assignChanged(initialState, {
+        content: rekeyUnlessUnchanged(initialState.content),
+      });
+    case "adhoc":
+      return assignChanged(initialState, {
+        content: canonicalizeAdHocState(initialState.content),
+      });
+    case "code":
+      return initialState;
+  }
+};
+
+const canonicalizeScenario = (scenario: Scenario): Scenario =>
+  assignChanged(scenario, {
+    id: toPetrinautId(scenario.id),
+    parameterOverrides: rekeyUnlessUnchanged(scenario.parameterOverrides),
+    initialState: canonicalizeInitialState(scenario.initialState),
+  });
+
 /** The entity collections a net, a subnet or a clipboard selection carries. */
-export type PetrinautIdNet = Pick<
+type PetrinautIdNet = Pick<
   SDCPN,
   "places" | "transitions" | "types" | "differentialEquations" | "parameters"
 > &
-  Partial<Pick<SDCPN, "componentInstances" | "scenarios" | "metrics">> & {
-    subnets?: Subnet[];
-  };
-
-const canonicalizeNet = <Net extends PetrinautIdNet>(
-  net: Net,
-  convertId: ConvertId,
-): Net =>
-  assignChanged<PetrinautIdNet>(net, {
-    places: mapUnlessUnchanged(net.places, (place) =>
-      canonicalizePlace(place, convertId),
-    ),
-    transitions: mapUnlessUnchanged(net.transitions, (transition) =>
-      canonicalizeTransition(transition, convertId),
-    ),
-    types: mapUnlessUnchanged(net.types, (color) =>
-      canonicalizeColor(color, convertId),
-    ),
-    differentialEquations: mapUnlessUnchanged(
-      net.differentialEquations,
-      (equation) => canonicalizeDifferentialEquation(equation, convertId),
-    ),
-    parameters: mapUnlessUnchanged(net.parameters, (parameter) =>
-      assignChanged(parameter, { id: convertId(parameter.id) }),
-    ),
-    componentInstances: mapOptional(net.componentInstances, (instance) =>
-      canonicalizeComponentInstance(instance, convertId),
-    ),
-    scenarios: mapOptional(net.scenarios, (scenario) =>
-      canonicalizeScenario(scenario, convertId),
-    ),
-    metrics: mapOptional(net.metrics, (metric) =>
-      assignChanged(metric, { id: convertId(metric.id) }),
-    ),
-    subnets: mapOptional(net.subnets, (subnet) =>
-      assignChanged(canonicalizeNet(subnet, convertId), {
-        id: convertId(subnet.id),
-      }),
-    ),
-  }) as Net;
+  Partial<
+    Pick<SDCPN, "componentInstances" | "scenarios" | "metrics" | "subnets">
+  >;
 
 /**
  * Converts every entity id in `net` to a Petrinaut id, together with every
@@ -286,7 +208,32 @@ const canonicalizeNet = <Net extends PetrinautIdNet>(
  */
 export const canonicalizePetrinautIds = <Net extends PetrinautIdNet>(
   net: Net,
-): Net => canonicalizeNet(net, createIdConverter());
+): Net =>
+  assignChanged<PetrinautIdNet>(net, {
+    places: mapUnlessUnchanged(net.places, canonicalizePlace),
+    transitions: mapUnlessUnchanged(net.transitions, canonicalizeTransition),
+    types: mapUnlessUnchanged(net.types, canonicalizeColor),
+    differentialEquations: mapUnlessUnchanged(
+      net.differentialEquations,
+      canonicalizeDifferentialEquation,
+    ),
+    parameters: mapUnlessUnchanged(net.parameters, (parameter) =>
+      assignChanged(parameter, { id: toPetrinautId(parameter.id) }),
+    ),
+    componentInstances: mapOptional(
+      net.componentInstances,
+      canonicalizeComponentInstance,
+    ),
+    scenarios: mapOptional(net.scenarios, canonicalizeScenario),
+    metrics: mapOptional(net.metrics, (metric) =>
+      assignChanged(metric, { id: toPetrinautId(metric.id) }),
+    ),
+    subnets: mapOptional(net.subnets, (subnet) =>
+      assignChanged(canonicalizePetrinautIds(subnet), {
+        id: toPetrinautId(subnet.id),
+      }),
+    ),
+  }) as Net;
 
 /**
  * Converts the ids inside a generated arc id (`$A_<input>___<output>`), so an
@@ -302,7 +249,7 @@ export const canonicalizeArcId = (arcId: string): string => {
     const endpoint = parseArcEndpointKey(side);
     return endpoint === null
       ? toPetrinautId(side)
-      : getArcEndpointKey(canonicalizeEndpoint(endpoint, toPetrinautId));
+      : getArcEndpointKey(canonicalizeEndpoint(endpoint));
   };
   return generateArcId({
     inputId: canonicalizeSide(parsed.sourceId),

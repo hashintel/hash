@@ -7,7 +7,7 @@
 
 import { z } from "zod";
 
-import { toPetrinautId } from "../../../../petrinaut-id";
+import { petrinautIdSchema } from "../../../../petrinaut-id";
 
 import type {
   AdHocPlaceState,
@@ -69,10 +69,10 @@ export const adHocScenarioStateSchema = z
     netParameters: z.array(
       z.strictObject({
         ...valueShape,
-        parameterId: z.string().overwrite(toPetrinautId),
+        parameterId: petrinautIdSchema,
       }),
     ),
-    places: z.record(z.string().overwrite(toPetrinautId), placeStateSchema),
+    places: z.record(petrinautIdSchema, placeStateSchema),
   })
   .meta({
     description:

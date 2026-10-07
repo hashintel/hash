@@ -273,9 +273,9 @@ describe("Petrinaut core actions", () => {
 
     expect(() =>
       callActionWithUnknownInput(instance.mutations.addArc, {
-        transitionId: idOf("transition-1"),
+        transitionId: "transition-1",
         arcDirection: "output",
-        placeId: idOf("place-3"),
+        placeId: "place-3",
         weight: 1,
         type: "read",
       }),
@@ -585,12 +585,12 @@ describe("Petrinaut core actions", () => {
 
     expect(() =>
       instance.mutations.addArc({
-        transitionId: idOf("transition-1"),
+        transitionId: "transition-1",
         arcDirection: "output",
         endpoint: {
           kind: "componentPort",
-          componentInstanceId: idOf("instance-1"),
-          portPlaceId: idOf("place-internal"),
+          componentInstanceId: "instance-1",
+          portPlaceId: "place-internal",
         },
         weight: 1,
       }),
@@ -923,7 +923,7 @@ describe("Petrinaut core actions", () => {
 
     expect(() =>
       instance.mutations.updatePlace({
-        placeId: idOf("place-1"),
+        placeId: "place-1",
         update: {
           name: "",
         },
@@ -936,66 +936,66 @@ describe("Petrinaut core actions", () => {
 
     expect(() =>
       callActionWithUnknownInput(instance.mutations.updatePlace, {
-        placeId: idOf("place-1"),
-        update: { id: idOf("place-2") },
+        placeId: "place-1",
+        update: { id: "place-2" },
       }),
     ).toThrow();
     expect(() =>
       callActionWithUnknownInput(instance.mutations.updatePlace, {
-        placeId: idOf("place-1"),
+        placeId: "place-1",
         update: { x: 10 },
       }),
     ).toThrow();
     expect(() =>
       callActionWithUnknownInput(instance.mutations.updateTransition, {
-        transitionId: idOf("transition-1"),
+        transitionId: "transition-1",
         update: { inputArcs: [] },
       }),
     ).toThrow();
     expect(() =>
       callActionWithUnknownInput(instance.mutations.updateTransition, {
-        transitionId: idOf("transition-1"),
+        transitionId: "transition-1",
         update: { y: 10 },
       }),
     ).toThrow();
     expect(() =>
       callActionWithUnknownInput(instance.mutations.updateType, {
-        typeId: idOf("type-1"),
+        typeId: "type-1",
         update: { elements: [] },
       }),
     ).toThrow();
     expect(() =>
       callActionWithUnknownInput(instance.mutations.updateTypeElement, {
-        typeId: idOf("type-1"),
-        elementId: idOf("element-1"),
-        update: { elementId: idOf("element-2") },
+        typeId: "type-1",
+        elementId: "element-1",
+        update: { elementId: "element-2" },
       }),
     ).toThrow();
     expect(() =>
       callActionWithUnknownInput(
         instance.mutations.updateDifferentialEquation,
         {
-          equationId: idOf("equation-1"),
-          update: { id: idOf("equation-2") },
+          equationId: "equation-1",
+          update: { id: "equation-2" },
         },
       ),
     ).toThrow();
     expect(() =>
       callActionWithUnknownInput(instance.mutations.updateParameter, {
-        parameterId: idOf("parameter-1"),
-        update: { id: idOf("parameter-2") },
+        parameterId: "parameter-1",
+        update: { id: "parameter-2" },
       }),
     ).toThrow();
     expect(() =>
       callActionWithUnknownInput(instance.mutations.updateScenario, {
-        scenarioId: idOf("scenario-1"),
-        update: { id: idOf("scenario-2") },
+        scenarioId: "scenario-1",
+        update: { id: "scenario-2" },
       }),
     ).toThrow();
     expect(() =>
       callActionWithUnknownInput(instance.mutations.updateMetric, {
-        metricId: idOf("metric-1"),
-        update: { id: idOf("metric-2") },
+        metricId: "metric-1",
+        update: { id: "metric-2" },
       }),
     ).toThrow();
   });
@@ -1029,22 +1029,22 @@ describe("Petrinaut core actions", () => {
 
     expect(() =>
       instance.mutations.updateArcPlace({
-        transitionId: idOf("transition-1"),
+        transitionId: "transition-1",
         arcDirection: "input",
-        oldPlaceId: idOf("place-1"),
+        oldPlaceId: "place-1",
         newPlaceId: "",
       }),
     ).toThrow();
     expect(() =>
       instance.mutations.addTypeElement({
-        typeId: idOf("type-1"),
-        element: { elementId: idOf("element-2"), name: "", type: "real" },
+        typeId: "type-1",
+        element: { elementId: "element-2", name: "", type: "real" },
       }),
     ).toThrow();
     expect(() =>
       instance.mutations.moveTypeElement({
-        typeId: idOf("type-1"),
-        elementId: idOf("element-1"),
+        typeId: "type-1",
+        elementId: "element-1",
         toIndex: -1,
       }),
     ).toThrow();
@@ -1062,7 +1062,7 @@ describe("Petrinaut core actions", () => {
 
     expect(() =>
       instance.mutations.addPlace({
-        id: idOf("place-1"),
+        id: "place-1",
         name: "invalid place name",
         colorId: null,
         dynamicsEnabled: false,
@@ -1074,7 +1074,7 @@ describe("Petrinaut core actions", () => {
 
     expect(() =>
       instance.mutations.addTransition({
-        id: idOf("transition-1"),
+        id: "transition-1",
         name: "Display Name",
         inputArcs: [],
         outputArcs: [],
@@ -1092,7 +1092,7 @@ describe("Petrinaut core actions", () => {
 
     expect(() =>
       instance.mutations.addScenario({
-        id: idOf("scenario-1"),
+        id: "scenario-1",
         name: "Scenario",
         scenarioParameters: [
           { type: "real", identifier: "launch_rate", default: 1 },
@@ -1105,7 +1105,7 @@ describe("Petrinaut core actions", () => {
 
     expect(() =>
       instance.mutations.addScenario({
-        id: idOf("scenario-1"),
+        id: "scenario-1",
         name: "Scenario",
         scenarioParameters: [
           { type: "real", identifier: "LaunchRate", default: 1 },

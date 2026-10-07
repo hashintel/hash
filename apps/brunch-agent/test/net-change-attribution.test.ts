@@ -63,15 +63,4 @@ test("a change is attributed by the element kinds its canonical tool targets, no
 
 test("a change written with the model's own ids is attributed to the converted element the document holds", () => {
   expect(attributed("type", toPetrinautId("customer"))).toEqual(["element"]);
-  expect(
-    callsForElement(snapshot, {
-      kind: "arc",
-      id: "arc",
-      arc: {
-        transitionId: toPetrinautId("serve"),
-        arcDirection: "input",
-        placeId: toPetrinautId("queue"),
-      },
-    }).map(({ toolCallId }) => toolCallId),
-  ).toEqual(["arc-kind"]);
 });

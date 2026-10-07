@@ -281,8 +281,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   };
 
   test("a denied removal settles as not applied without running", async () => {
-    // Brunch issues the schema-parsed input, with ids converted.
-    const input = { placeId: toPetrinautId("queue") };
+    const input = { placeId: "queue" };
     const { calls, coordinator, posted } = issuedCalls("removePlace", input);
     const execute = vi.fn(async () => ({ applied: true }));
     const run = calls.run(
@@ -312,8 +311,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   });
 
   test("an allowed removal runs once and reports its own result", async () => {
-    // Brunch issues the schema-parsed input, with ids converted.
-    const input = { placeId: toPetrinautId("queue") };
+    const input = { placeId: "queue" };
     const { calls, coordinator, posted } = issuedCalls("removePlace", input);
     const execute = vi.fn(async () => ({
       applied: true,
@@ -343,8 +341,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   });
 
   test("the host records a removal's starting revision only once it is allowed", async () => {
-    // Brunch issues the schema-parsed input, with ids converted.
-    const input = { placeId: toPetrinautId("queue") };
+    const input = { placeId: "queue" };
     const denied = issuedCalls("removePlace", input);
     const deniedRun = denied.calls.run(
       {
@@ -384,7 +381,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
 
   test("a constructive call runs without asking", async () => {
     const input = {
-      id: toPetrinautId("place"),
+      id: "place",
       name: "Place",
       colorId: null,
       dynamicsEnabled: false,
@@ -410,8 +407,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   });
 
   test("Stop before approval reports nothing and never runs", async () => {
-    // Brunch issues the schema-parsed input, with ids converted.
-    const input = { placeId: toPetrinautId("queue") };
+    const input = { placeId: "queue" };
     const { calls, coordinator, posted } = issuedCalls("removePlace", input);
     const controller = new AbortController();
     const execute = vi.fn(async () => ({ applied: true }));

@@ -26,7 +26,7 @@ Choose **Export Stream** to download the received event stream. Brunch stream ex
 
 Choose **Export Net** to download a normal Petrinaut net file (YAML). This file contains the read-only Petri net currently shown in Actual mode and can be imported back into Petrinaut like other net exports.
 
-For Brunch, the export is a JSON object with an `events` array. Each item stores the SSE event name and the parsed JSON payload exactly as Petrinaut received it. Transition payloads store the firing effect rather than a full before/after snapshot. The `input` and `output` fields are numeric count maps keyed by place id:
+For Brunch, the export is a JSON object with an `events` array. Each item stores the SSE event name and the parsed JSON payload exactly as Petrinaut received it. Transition payloads store the firing effect rather than a full before/after snapshot. The `input` and `output` fields are numeric count maps keyed by place id. The stream may use any id string: Petrinaut converts the ids in the net and in each event to the same UUIDs, and the export keeps the ids as received.
 
 ```json
 {

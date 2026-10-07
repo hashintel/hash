@@ -173,15 +173,15 @@ describe("Petrinaut AI core exports", () => {
       propertyNames?: JsonSchemaNode;
     };
     const propertiesOf = (schema: z.ZodType) =>
-      (z.toJSONSchema(schema, { io: "output" }) as JsonSchemaNode)
-        .properties ?? {};
+      (z.toJSONSchema(schema, { io: "output" }) as JsonSchemaNode).properties ??
+      {};
 
     expect(
       propertiesOf(petrinautAiTools.removeSubnet.inputSchema).subnetId,
     ).toMatchObject({ type: "string" });
-    expect(propertiesOf(petrinautAiTools.addPlace.inputSchema).id).toMatchObject(
-      { type: "string" },
-    );
+    expect(
+      propertiesOf(petrinautAiTools.addPlace.inputSchema).id,
+    ).toMatchObject({ type: "string" });
     expect(
       propertiesOf(petrinautAiTools.addScenario.inputSchema).parameterOverrides,
     ).toMatchObject({ type: "object", propertyNames: { type: "string" } });

@@ -94,7 +94,7 @@ export const isAppliedChange = (call: NetCall): boolean =>
  * document stores for an id the model invented. Flue keeps the model's raw
  * arguments, while ids read from the document are converted.
  */
-const namesId = (written: unknown, id: string): boolean =>
+export const namesId = (written: unknown, id: string): boolean =>
   typeof written === "string" &&
   (written === id ||
     toPetrinautId(written) === id ||

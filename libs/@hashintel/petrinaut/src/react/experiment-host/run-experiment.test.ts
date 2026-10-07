@@ -413,7 +413,7 @@ describe("runExperiment", () => {
       means: {
         [metricEntityId]: sweepCellObjective([refinedFrame], metricEntityId)!,
       },
-      sampleCounts: { metric: 25 },
+      sampleCounts: { [metricEntityId]: 25 },
     });
     expect(harness.experiments.get()[0]?.metricFrames).toEqual([refinedFrame]);
     expect(await pending).toMatchObject({

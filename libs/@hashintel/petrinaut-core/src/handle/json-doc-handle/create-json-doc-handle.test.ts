@@ -8,8 +8,6 @@ import { createJsonDocHandle } from "./create-json-doc-handle";
 import type { SDCPN } from "../../types/sdcpn";
 import type { DocChangeEvent, PetrinautDocHandle } from "../types";
 
-const idOf = toPetrinautId;
-
 const empty = (): SDCPN => ({
   places: [],
   transitions: [],
@@ -21,11 +19,11 @@ const empty = (): SDCPN => ({
 const coloured = (): SDCPN => ({
   places: [
     {
-      id: idOf("p1"),
+      id: "p1",
       name: "Place 1",
-      colorId: idOf("t1"),
+      colorId: "t1",
       dynamicsEnabled: true,
-      differentialEquationId: idOf("d1"),
+      differentialEquationId: "d1",
       visualizerCode: "export default Visualization(() => <svg />);",
       x: 0,
       y: 0,
@@ -34,25 +32,25 @@ const coloured = (): SDCPN => ({
   transitions: [],
   types: [
     {
-      id: idOf("t1"),
+      id: "t1",
       name: "Color 1",
       iconSlug: "circle",
       displayColor: "#FF0000",
-      elements: [{ elementId: idOf("e1"), name: "x", type: "real" }],
+      elements: [{ elementId: "e1", name: "x", type: "real" }],
     },
   ],
   parameters: [],
   differentialEquations: [
     {
-      id: idOf("d1"),
+      id: "d1",
       name: "Dynamics 1",
-      colorId: idOf("t1"),
+      colorId: "t1",
       code: "export default Dynamics(({ x }) => ({ x }));",
     },
   ],
   scenarios: [
     {
-      id: idOf("s1"),
+      id: "s1",
       name: "Scenario 1",
       scenarioParameters: [],
       parameterOverrides: {},
@@ -90,7 +88,7 @@ describe("createJsonDocHandle", () => {
         ...empty(),
         places: [
           {
-            id: idOf("p1"),
+            id: toPetrinautId("p1"),
             name: "Capacity",
             colorId: null,
             dynamicsEnabled: false,
@@ -117,7 +115,7 @@ describe("createJsonDocHandle", () => {
 
     handle.change((draft) => {
       draft.places.push({
-        id: idOf("p1"),
+        id: "p1",
         name: "Place 1",
         colorId: null,
         dynamicsEnabled: false,
@@ -165,7 +163,7 @@ describe("createJsonDocHandle", () => {
 
     handle.change((draft) => {
       draft.types.push({
-        id: idOf("t1"),
+        id: "t1",
         name: "Color 1",
         iconSlug: "circle",
         displayColor: "#FF0000",
@@ -194,16 +192,16 @@ describe("createJsonDocHandle", () => {
 
     handle.change((draft) => {
       draft.types.push({
-        id: idOf("t1"),
+        id: "t1",
         name: "Color 1",
         iconSlug: "circle",
         displayColor: "#FF0000",
-        elements: [{ elementId: idOf("e1"), name: "x", type: "real" }],
+        elements: [{ elementId: "e1", name: "x", type: "real" }],
       });
       draft.places.push({
-        id: idOf("p1"),
+        id: "p1",
         name: "Place 1",
-        colorId: idOf("t1"),
+        colorId: "t1",
         dynamicsEnabled: true,
         differentialEquationId: null,
         x: 0,
@@ -264,7 +262,7 @@ describe("createPetrinaut", () => {
     const off = instance.definition.subscribe((value) => seen.push(value));
 
     instance.mutations.addType({
-      id: idOf("t1"),
+      id: "t1",
       name: "Color 1",
       iconSlug: "circle",
       displayColor: "#FF0000",
@@ -286,7 +284,7 @@ describe("createPetrinaut", () => {
     instance.patches.subscribe((patches) => seenPatches.push(patches.length));
 
     instance.mutations.addType({
-      id: idOf("t1"),
+      id: "t1",
       name: "Color 1",
       iconSlug: "circle",
       displayColor: "#FF0000",
@@ -302,7 +300,7 @@ describe("createPetrinaut", () => {
     const instance = createPetrinaut({ document: handle, readonly: true });
 
     instance.mutations.addType({
-      id: idOf("t1"),
+      id: "t1",
       name: "Color 1",
       iconSlug: "circle",
       displayColor: "#FF0000",
@@ -364,7 +362,7 @@ describe("createPetrinaut", () => {
     const subscribers = new Set<(event: DocChangeEvent) => void>();
     let upstreamSubscriptions = 0;
     const handle: PetrinautDocHandle = {
-      id: idOf("external-doc"),
+      id: "external-doc",
       capabilities: { disabledExtensions: ["colors"] },
       state: createReadableStore("ready"),
       whenReady: () => Promise.resolve(),

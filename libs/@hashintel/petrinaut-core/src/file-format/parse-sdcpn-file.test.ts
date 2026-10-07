@@ -731,17 +731,21 @@ describe("parseSDCPNFile", () => {
       expect(result.error).toContain('colour element name "constructor"');
     });
 
-    it("converts reserved ids in the legacy format too", () => {
+    it("rejects reserved names in the legacy format too", () => {
       const result = parseSDCPNFile({
         ...minimalSDCPN,
-        transitions: [{ ...minimalTransition, id: "constructor" }],
+        types: [
+          {
+            id: "c1",
+            name: "Colour 1",
+            elements: [{ elementId: "e1", name: "constructor", type: "real" }],
+          },
+        ],
       });
 
-      expect(result.ok).toBe(true);
-      if (!result.ok) return;
-      expect(result.sdcpn.transitions[0]?.id).toBe(
-        toPetrinautId("constructor"),
-      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toContain('colour element name "constructor"');
     });
   });
 });

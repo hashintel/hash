@@ -3,15 +3,13 @@ import * as v from "valibot";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
-import {
-  getLatestNetDefinitionToolName,
-  toPetrinautId,
-} from "@hashintel/petrinaut-core";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import {
   callsForElement,
   isAppliedChange,
   latestNetDefinition,
+  namesId,
   netCalls,
   workpieceRevisionAtCall,
   type ArcElement,
@@ -33,14 +31,6 @@ const elementSchema = v.object({
   }),
 });
 type Selector = v.InferOutput<typeof elementSchema>["selector"];
-
-/**
- * Whether a model-written selector names the element with `id`: the id from
- * the latest read, or an id the model invented, which the document holds
- * converted.
- */
-const selectsId = (id: string, selector: string): boolean =>
-  id === selector || id === toPetrinautId(selector);
 
 const elements = (
   definition: SDCPN,
@@ -158,17 +148,14 @@ export const queryWorkpiece = (input: {
   const candidates = latest
     ? elements(latest.definition, input.query.kind).filter(
         (element) =>
-          (input.query.id !== undefined &&
-            selectsId(element.id, input.query.id)) ||
+          namesId(input.query.id, element.id) ||
           (input.query.name !== undefined &&
             element.name === input.query.name) ||
           (input.query.kind === "arc" &&
             element.arc !== undefined &&
-            input.query.transitionId !== undefined &&
-            selectsId(element.arc.transitionId, input.query.transitionId) &&
+            namesId(input.query.transitionId, element.arc.transitionId) &&
             input.query.arcDirection === element.arc.arcDirection &&
-            input.query.placeId !== undefined &&
-            selectsId(element.arc.placeId, input.query.placeId)),
+            namesId(input.query.placeId, element.arc.placeId)),
       )
     : [];
   const target = candidates.length === 1 ? candidates.at(0) : undefined;

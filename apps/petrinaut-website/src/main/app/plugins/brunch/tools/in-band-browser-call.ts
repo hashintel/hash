@@ -110,8 +110,12 @@ export const createInBandBrowserCalls = (input: {
       !inputSchema
     )
       throw new Error("Browser call was not issued for this document.");
-    const canonicalInput = inputSchema.parse(call.input);
-    if (canonicalContent(canonicalInput) !== canonicalContent(issued.input))
+    // Both sides parse, so ids compare converted whether or not the server
+    // that issued the call converts them.
+    if (
+      canonicalContent(inputSchema.parse(call.input)) !==
+      canonicalContent(inputSchema.parse(issued.input))
+    )
       throw new Error("Issued browser input does not match the admitted call.");
     const claimed = issued;
     const lease = setInterval(() => {

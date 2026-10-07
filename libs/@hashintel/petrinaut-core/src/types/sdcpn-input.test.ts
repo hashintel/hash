@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { isSDCPNEqual } from "../lib/deep-equal";
-import { canonicalizePetrinautIds, toPetrinautId } from "../petrinaut-id";
+import { toPetrinautId } from "../petrinaut-id";
 import { normalizeSDCPN } from "./sdcpn-input";
 
 import type { SDCPN } from "./sdcpn";
@@ -227,7 +227,7 @@ describe("normalizeSDCPN", () => {
     const complete: SDCPN = {
       places: [
         {
-          id: "p1",
+          id: idOf("p1"),
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
@@ -238,10 +238,10 @@ describe("normalizeSDCPN", () => {
       ],
       transitions: [
         {
-          id: "t1",
+          id: idOf("t1"),
           name: "T1",
-          inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
-          outputArcs: [{ placeId: "p1", weight: 1 }],
+          inputArcs: [{ placeId: idOf("p1"), weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: idOf("p1"), weight: 1 }],
           lambdaType: "predicate",
           lambdaCode: "",
           transitionKernelCode: "",
@@ -254,13 +254,6 @@ describe("normalizeSDCPN", () => {
       differentialEquations: [],
     };
 
-    expect(
-      isSDCPNEqual(
-        normalizeSDCPN(complete),
-        canonicalizePetrinautIds(complete),
-      ),
-    ).toBe(true);
-    const normalized = normalizeSDCPN(complete);
-    expect(normalizeSDCPN(normalized)).toStrictEqual(normalized);
+    expect(isSDCPNEqual(normalizeSDCPN(complete), complete)).toBe(true);
   });
 });

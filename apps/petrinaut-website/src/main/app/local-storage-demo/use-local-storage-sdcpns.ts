@@ -155,8 +155,8 @@ const supersedes = (
 
 /**
  * Reads every recognized document, keyed by its net id. An entry stored under
- * a legacy id, with legacy subnet ids, or without a revision id is
- * rewritten once, so the key, the record id and the subnet ids move together.
+ * a legacy id, with legacy entity ids, or without a revision id is
+ * rewritten once, so the key, the record id and the entity ids move together.
  */
 const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
   const raw = readRawStore(storage);

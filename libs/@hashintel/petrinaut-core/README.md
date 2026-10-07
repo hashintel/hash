@@ -31,7 +31,9 @@ const handle = createJsonDocHandle({
 `initial` accepts `SDCPNInput`, a loose document shape for host integrations.
 Plain-net defaults are filled in automatically: omitted arc weights become `1`,
 input arc types become `"standard"`, extension arrays default to `[]`, and
-disabled extension data is sanitized according to handle capabilities.
+disabled extension data is sanitized according to handle capabilities. Entity
+ids that are not UUIDs, such as `p1` above, are converted with
+`toPetrinautId`, which maps the same id to the same UUID every time.
 
 When another application is the source of truth, implement `PetrinautDocHandle`
 directly so editor edits can emit `source: "local"` and host/store updates can

@@ -78,45 +78,6 @@ describe("generatePetrinautId", () => {
   });
 });
 
-describe("canonicalizePetrinautIds", () => {
-  it("rewrites subnet definitions together with their references", () => {
-    const sdcpn: SDCPN = {
-      ...emptyNet,
-      subnets: [
-        subnet("outer", [instance("nested", "inner")]),
-        subnet("inner"),
-      ],
-      componentInstances: [instance("root", "outer")],
-    };
-
-    const canonical = canonicalizePetrinautIds(sdcpn);
-
-    expect(canonical.subnets?.map(({ id }) => id)).toEqual([
-      toPetrinautId("outer"),
-      toPetrinautId("inner"),
-    ]);
-    expect(canonical.subnets?.[0]?.componentInstances?.[0]?.subnetId).toBe(
-      toPetrinautId("inner"),
-    );
-    expect(canonical.componentInstances?.[0]?.subnetId).toBe(
-      toPetrinautId("outer"),
-    );
-    expect(canonical.subnets?.[1]).not.toHaveProperty("componentInstances");
-    expect(sdcpn.subnets?.[0]?.id).toBe("outer");
-  });
-
-  it("returns the same reference when every id is canonical", () => {
-    const sdcpn = canonicalizePetrinautIds({
-      ...emptyNet,
-      subnets: [subnet("outer", [instance("nested", "inner")])],
-      componentInstances: [instance("root", "outer")],
-    });
-
-    expect(canonicalizePetrinautIds(sdcpn)).toBe(sdcpn);
-    expect(canonicalizePetrinautIds(emptyNet)).toBe(emptyNet);
-  });
-});
-
 const idOf = toPetrinautId;
 const value = (expression: string) => ({ expression, optimize: null });
 const tokenUuid = "7f1d8c2e-5b8a-4c3d-9e1f-2a3b4c5d6e7f";
@@ -271,7 +232,33 @@ const legacyNet = (): SDCPN => ({
   metrics: [{ id: "throughput", name: "Throughput", code: "return 1;" }],
 });
 
-describe("canonicalizePetrinautIds on every entity", () => {
+describe("canonicalizePetrinautIds", () => {
+  it("rewrites subnet definitions together with their references", () => {
+    const sdcpn: SDCPN = {
+      ...emptyNet,
+      subnets: [
+        subnet("outer", [instance("nested", "inner")]),
+        subnet("inner"),
+      ],
+      componentInstances: [instance("root", "outer")],
+    };
+
+    const canonical = canonicalizePetrinautIds(sdcpn);
+
+    expect(canonical.subnets?.map(({ id }) => id)).toEqual([
+      toPetrinautId("outer"),
+      toPetrinautId("inner"),
+    ]);
+    expect(canonical.subnets?.[0]?.componentInstances?.[0]?.subnetId).toBe(
+      toPetrinautId("inner"),
+    );
+    expect(canonical.componentInstances?.[0]?.subnetId).toBe(
+      toPetrinautId("outer"),
+    );
+    expect(canonical.subnets?.[1]).not.toHaveProperty("componentInstances");
+    expect(sdcpn.subnets?.[0]?.id).toBe("outer");
+  });
+
   const canonical = canonicalizePetrinautIds(legacyNet());
 
   it("converts every definition and every reference to it", () => {
@@ -369,6 +356,7 @@ describe("canonicalizePetrinautIds on every entity", () => {
 
   it("is idempotent and keeps a canonical net by reference", () => {
     expect(canonicalizePetrinautIds(canonical)).toBe(canonical);
+    expect(canonicalizePetrinautIds(emptyNet)).toBe(emptyNet);
   });
 });
 

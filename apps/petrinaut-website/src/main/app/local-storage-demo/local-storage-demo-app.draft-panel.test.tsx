@@ -8,11 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import {
-  createJsonDocHandle,
-  toPetrinautId,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
+import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
 
 import {
   brunchEvaluationConversationIdFrom,
@@ -146,17 +142,16 @@ const definition: SDCPN = {
   ],
   metrics: [{ id: "throughput", name: "Throughput", code: "return 1;" }],
 };
-/** The proposal as Brunch issues it: schema-parsed, with ids converted. */
 const proposal = {
   experiment: {
     name: "Baseline trial",
-    scenarioId: toPetrinautId("baseline"),
+    scenarioId: "baseline",
     scenarioParameterValues: {},
     runCount: 20,
     seed: 42,
     dt: 1,
     maxTime: 1,
-    metricIds: [toPetrinautId("throughput")],
+    metricIds: ["throughput"],
     execution: { mode: "simulate" as const },
   },
   declarations: [

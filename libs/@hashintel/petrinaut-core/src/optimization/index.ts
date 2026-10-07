@@ -7,7 +7,7 @@ import { z } from "zod";
 import { constraintListSchema } from "../constraint/constraint";
 import { parseSDCPNFile } from "../file-format/parse-sdcpn-file";
 import { sdcpnSchema } from "../file-format/types";
-import { toPetrinautId } from "../petrinaut-id";
+import { petrinautIdSchema } from "../petrinaut-id";
 
 import type { AbortSignalLike } from "../environment";
 
@@ -136,7 +136,7 @@ function addIssue(
 
 export const petrinautOptimizationObjectiveSchema = z
   .strictObject({
-    metricId: z.string().min(1).overwrite(toPetrinautId),
+    metricId: petrinautIdSchema,
     direction: z.enum(["maximize", "minimize"]),
   })
   .meta({
@@ -188,7 +188,7 @@ const optimizationModelSchema = z
 
 const optimizationScenarioSchema = z
   .strictObject({
-    id: z.string().min(1).overwrite(toPetrinautId),
+    id: petrinautIdSchema,
     parameterBindings: z.record(
       z.string(),
       petrinautOptimizationParameterBindingSchema,

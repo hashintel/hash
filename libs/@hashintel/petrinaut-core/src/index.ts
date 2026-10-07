@@ -404,7 +404,6 @@ export {
   generatePetrinautId,
   isPetrinautId,
   toPetrinautId,
-  type PetrinautIdNet,
 } from "./petrinaut-id";
 export {
   arcEndpointsEqual,

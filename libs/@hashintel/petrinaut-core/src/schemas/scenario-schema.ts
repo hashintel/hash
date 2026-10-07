@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { petrinautIdSchema } from "../petrinaut-id";
 import { adHocScenarioStateSchema } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
 import { displayNameSchema } from "../validation/display-name";
 import { isDangerousRecordKey } from "../validation/record-keys";
@@ -54,7 +55,7 @@ const initialStateSchema = z
         type: z.literal("per_place"),
         content: z
           .record(
-            idSchema,
+            petrinautIdSchema,
             z.union([z.string(), z.array(z.array(tokenAttributeValueSchema))]),
           )
           .meta({
@@ -130,7 +131,7 @@ export const scenarioSchema = z
           "User-tunable parameters available only within this scenario. Add scenario parameters for important scenario variables so users can adjust them without editing net-level parameters or code. Reference them as scenario.identifier in parameterOverrides and initialState expressions.",
       }),
     parameterOverrides: z
-      .record(idSchema, z.string())
+      .record(petrinautIdSchema, z.string())
       .default({})
       .meta({
         description: [
