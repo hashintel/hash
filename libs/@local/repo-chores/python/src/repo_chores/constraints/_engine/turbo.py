@@ -59,6 +59,40 @@ class TurboTask:
         document.assign((*self._field, "dependsOn"), value)
         configuration.document = document
 
+    @property
+    def env(self) -> list[str] | None:
+        document = self._configuration.document
+        return document.strings((*self._field, "env")) if document is not None else None
+
+    @env.setter
+    def env(self, value: Iterable[str] | None) -> None:
+        configuration = self._configuration
+        document = configuration.document
+
+        if document is None and value is None:
+            return
+
+        document = self._bootstrap()
+        document.assign((*self._field, "env"), value)
+        configuration.document = document
+
+    @property
+    def pass_through_env(self) -> list[str] | None:
+        document = self._configuration.document
+        return document.strings((*self._field, "passThroughEnv")) if document is not None else None
+
+    @pass_through_env.setter
+    def pass_through_env(self, value: Iterable[str] | None) -> None:
+        configuration = self._configuration
+        document = configuration.document
+
+        if document is None and value is None:
+            return
+
+        document = self._bootstrap()
+        document.assign((*self._field, "passThroughEnv"), value)
+        configuration.document = document
+
 
 class TurboConfiguration(SourceFile):
     def __init__(self, *, path: Path, original: bytes | None) -> None:
