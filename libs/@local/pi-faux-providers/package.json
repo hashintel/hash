@@ -24,6 +24,8 @@
     "@earendil-works/pi-ai": "1.2.0"
   },
   "devDependencies": {
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.86.0",

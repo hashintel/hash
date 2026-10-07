@@ -1,9 +1,7 @@
 {
-  "extends": [
-    "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-    "@tsconfig/bases/next"
-  ],
+  "extends": ["@tsconfig/bases/next", "@local/tsconfig/policy.json"],
   "compilerOptions": {
+    "checkJs": true,
     "target": "ES2021",
     "types": ["gapi", "google.accounts", "google.picker"]
   },

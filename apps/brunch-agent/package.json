@@ -53,7 +53,9 @@
   "devDependencies": {
     "@flue/vite": "2.3.0",
     "@local/pi-faux-providers": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@playwright/test": "1.58.2",
+    "@tsconfig/bases": "catalog:",
     "@types/node": "22.18.13",
     "@types/pg": "8.23.1",
     "@types/react": "19.2.14",

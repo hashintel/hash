@@ -1,10 +1,13 @@
 {
-  "extends": "./legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/recommended", "./policy.json"],
   "compilerOptions": {
     "allowJs": true,
+    "checkJs": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "ESNext"],
+    "lib": ["dom", "ESNext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "noEmit": true,
     "target": "ES2021"
   }

@@ -30,8 +30,8 @@ const timelineInShorthand =
  */
 const idleOpacityTokens = (css) =>
   new Set(
-    [...css.matchAll(/(--pnd-[a-z-]*idle-opacity)\s*:/gu)].map(
-      (match) => match[1],
+    [...css.matchAll(/--pnd-[a-z-]*idle-opacity(?=\s*:)/gu)].map(
+      (match) => match[0],
     ),
   );
 
