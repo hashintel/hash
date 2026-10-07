@@ -38,7 +38,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageStarted"
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
-    | "isToolAwaitingApproval"
+    | "toolApprovalState"
   > & {
     readonly mediationHistory?: VoiceMediationHistory;
     readonly acknowledgeDisclosure: () => void;
@@ -86,7 +86,7 @@ export const LiveConversationControl = ({
   subscribeToResponseMessageStarted,
   subscribeToResponseMessageCompleted,
   subscribeToStopRequested,
-  isToolAwaitingApproval,
+  toolApprovalState,
 }: LiveControlsContext) => {
   const [localHistory] = useState(() => new VoiceMediationHistory("session"));
   const history = mediationHistory ?? localHistory;
@@ -129,7 +129,7 @@ export const LiveConversationControl = ({
   const latest = useRef({
     submit,
     messages,
-    isToolAwaitingApproval,
+    toolApprovalState,
     chat: {
       status,
       stopped,
@@ -166,7 +166,7 @@ export const LiveConversationControl = ({
     latest.current = {
       submit,
       messages,
-      isToolAwaitingApproval,
+      toolApprovalState,
       chat: {
         status,
         stopped,
@@ -187,7 +187,7 @@ export const LiveConversationControl = ({
     resolveResponseSubmission,
     settlements,
     snapshot,
-    isToolAwaitingApproval,
+    toolApprovalState,
   ]);
 
   useEffect(
@@ -378,8 +378,8 @@ export const LiveConversationControl = ({
       appendThinking: next.appendThinking,
       notice: setWarningMessage,
       speechPending: next.speechPending,
-      isToolAwaitingApproval: (toolCallId) =>
-        latest.current.isToolAwaitingApproval?.(toolCallId) ?? false,
+      toolApprovalState: (toolCallId) =>
+        latest.current.toolApprovalState?.(toolCallId) ?? null,
     });
     bridge.current.update(latest.current.chat);
     session.current = next;
