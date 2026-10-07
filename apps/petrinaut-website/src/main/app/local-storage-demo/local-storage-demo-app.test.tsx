@@ -1422,6 +1422,7 @@ describe("local storage demo Brunch controls", () => {
     expect(transportOptions.initialData?.binding).toEqual({
       conversationId,
       documentId: netOneId,
+      incarnationId: netOneId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual(
       [...brunchPetrinautClientToolNames].toSorted(),
@@ -1952,6 +1953,7 @@ describe("assistant selection", () => {
                   binding: {
                     conversationId,
                     documentId: netOneId,
+                    incarnationId: netOneId,
                   },
                   currentWorkpiece: {
                     revisionId: "ledger-revision",

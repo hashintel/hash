@@ -31,6 +31,21 @@ const document = (
 });
 
 describe("useProcessAgentBinding", () => {
+  test("repeats the net id as incarnationId for servers that require it", () => {
+    const { result } = renderHook(() =>
+      useProcessAgentBinding({
+        document: document("net"),
+        fixture: { conversationId: "conversation" },
+      }),
+    );
+
+    expect(result.current).toEqual({
+      conversationId: "conversation",
+      documentId: "net",
+      incarnationId: "net",
+    });
+  });
+
   test("preserves binding identity across revision and container changes", () => {
     const initialDocument = document("stable-document", "first-revision");
     const { rerender, result } = renderHook(

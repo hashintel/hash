@@ -7,6 +7,11 @@ import type { DocumentRecord } from "../../../local-storage-demo/documents/docum
 export interface ProcessAgentBinding {
   readonly conversationId: string;
   readonly documentId: string;
+  /**
+   * The net id again. Brunch servers deployed before conversations were
+   * scoped by net id reject a binding without it.
+   */
+  readonly incarnationId?: string;
 }
 
 export interface FixtureProcessAgentConfiguration {
@@ -41,6 +46,8 @@ export const useProcessAgentBinding = (input: {
   return useMemo(() => {
     if (documentId === undefined) return null;
     const conversationId = fixtureConversationId ?? fallbackConversationId;
-    return conversationId === undefined ? null : { conversationId, documentId };
+    return conversationId === undefined
+      ? null
+      : { conversationId, documentId, incarnationId: documentId };
   }, [documentId, fallbackConversationId, fixtureConversationId]);
 };
