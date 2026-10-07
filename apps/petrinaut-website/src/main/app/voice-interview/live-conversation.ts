@@ -147,9 +147,7 @@ export const createLiveConversation = (
     activity?: LiveConversationState["activity"],
   ): LiveConversationState => ({
     phase,
-    message: playbackBlocked
-      ? "Audio playback is blocked. Select Play voice audio to hear Live."
-      : null,
+    message: playbackBlocked ? "Audio blocked. Select Play to listen." : null,
     ...(playbackBlocked ? { playbackBlocked: true } : {}),
     ...(activity ? { activity } : {}),
   });
@@ -281,10 +279,7 @@ export const createLiveConversation = (
       recoveryTimers.set(
         kind,
         setTimeout(
-          () =>
-            fail(
-              `${label} media connection did not recover. No automatic retry was made.`,
-            ),
+          () => fail(`${label} media connection did not recover.`),
           connectionTimeoutMs,
         ),
       );
@@ -385,9 +380,7 @@ export const createLiveConversation = (
       ([, previous]) => previous === null,
     );
     if (roots.length > 1) {
-      fail(
-        "Transcription item ordering conflicted. No automatic retry was made.",
-      );
+      fail("Transcription item ordering conflicted.");
       return;
     }
     let itemId = roots[0]?.[0];
@@ -504,9 +497,7 @@ export const createLiveConversation = (
         conflictingSuccessor ||
         (ancestor !== null && ancestor !== undefined)
       ) {
-        fail(
-          "Transcription item ordering conflicted. No automatic retry was made.",
-        );
+        fail("Transcription item ordering conflicted.");
         return;
       }
       committedPrevious.set(data.item_id, data.previous_item_id);
@@ -531,7 +522,7 @@ export const createLiveConversation = (
         existing &&
         (existing.id !== input.id || existing.text !== input.text)
       ) {
-        fail("Transcription identity conflicted. No automatic retry was made.");
+        fail("Transcription identity conflicted.");
         return;
       }
       if (!existing) {
@@ -546,7 +537,7 @@ export const createLiveConversation = (
       data.type === "error" ||
       data.type === "session.error"
     )
-      fail("Transcription failed. No fallback or automatic retry was made.");
+      fail("Transcription failed.");
   };
 
   const parseEvent = (kind: ConnectionKind, event: MessageEvent<string>) => {
@@ -742,7 +733,7 @@ export const createLiveConversation = (
         reportAppendResult({ ...pending, status: "rejected" });
         return;
       }
-      fail("Live reported an error. No automatic retry was made.");
+      fail("Live reported an error.");
     }
   };
 
@@ -866,7 +857,7 @@ export const createLiveConversation = (
           ? `, provider HTTP ${upstreamStatus}`
           : "";
       fail(
-        `${kind} session request failed (HTTP ${response.status}${providerStatus}). No automatic retry was made.`,
+        `${kind} session request failed (HTTP ${response.status}${providerStatus}).`,
       );
       throw new Error("Session creation failed");
     }
@@ -898,10 +889,7 @@ export const createLiveConversation = (
     logLiveDiagnostic("session.starting", { sessionId });
     onState(activeState("connecting"));
     connectionTimer = setTimeout(
-      () =>
-        fail(
-          `Voice connections timed out (${connectionProgress()}). No automatic retry was made.`,
-        ),
+      () => fail(`Voice connections timed out (${connectionProgress()}).`),
       connectionTimeoutMs,
     );
     try {
@@ -943,9 +931,7 @@ export const createLiveConversation = (
         createConnection("transcription", stream),
       ]);
     } catch {
-      fail(
-        `Voice could not connect (${connectionProgress()}). No automatic retry was made.`,
-      );
+      fail(`Voice could not connect (${connectionProgress()}).`);
     }
   };
 

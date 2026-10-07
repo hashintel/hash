@@ -17,6 +17,7 @@
     "@astrojs/react": "6.0.2",
     "@astrojs/starlight": "0.41.5",
     "astro": "7.2.8",
+    "cookie": "2.0.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "sharp": "0.35.4"
@@ -33,8 +34,5 @@
   },
   "engines": {
     "node": "22.x"
-  },
-  "installConfig": {
-    "hoistingLimits": "dependencies"
   }
 }

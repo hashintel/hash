@@ -1688,15 +1688,15 @@ describe("AiAssistantContents", () => {
         errorMessage: null,
         microphoneLevel: 0,
         microphoneMuted: false,
-        notice: "We didn't catch that. Please try again.",
+        notice: "We didn't catch that. Try again.",
         phase: "listening",
       });
     });
     expect(
       within(dock).getByRole("status", { name: "Voice status" }).textContent,
-    ).toBe("Voice status: We didn't catch that. Please try again.");
+    ).toBe("Voice status: We didn't catch that. Try again.");
     expect(
-      within(dock).getByText("We didn't catch that. Please try again."),
+      within(dock).getByText("We didn't catch that. Try again."),
     ).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: /Show .*Voice issue/ }),
@@ -1864,8 +1864,8 @@ describe("AiAssistantContents", () => {
   });
 
   test.each([
-    "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
-    "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
+    "Couldn’t confirm your message was sent. Check the conversation before sending it again.",
+    "Those words weren’t sent. They’re in the composer to send when the assistant is ready.",
   ])(
     "contains a session warning in the warning popover until dismissed: %s",
     async (warningMessage) => {

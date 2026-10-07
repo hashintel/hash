@@ -425,7 +425,7 @@ describe("voice interview control", () => {
     ).not.toBeNull();
     expect(
       within(disclosure).getByText(
-        "OpenAI processes live audio and speaks the interviewer’s words. Petrinaut saves finalized answers—not audio.",
+        "OpenAI processes your audio and speaks the interviewer’s questions. Your transcribed answers are saved; audio isn’t.",
       ),
     ).not.toBeNull();
 

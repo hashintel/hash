@@ -67,10 +67,10 @@ describe("toVoiceSessionState", () => {
 
   test("describes recoverable transcript rejections", () => {
     expect(mapSnapshot({ inputNotice: "not-heard" })?.notice).toBe(
-      "We didn't catch that. Please try again.",
+      "We didn't catch that. Try again.",
     );
     expect(mapSnapshot({ inputNotice: "too-long" })?.notice).toBe(
-      "That answer is too long. Please try a shorter response.",
+      "That answer is too long. Try a shorter one.",
     );
   });
 

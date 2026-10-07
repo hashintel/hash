@@ -1305,16 +1305,14 @@ test.each(["rejects", "throws"] as const)(
 
     expect(fixture.onState).toHaveBeenLastCalledWith({
       phase: "connected",
-      message:
-        "Audio playback is blocked. Select Play voice audio to hear Live.",
+      message: "Audio blocked. Select Play to listen.",
       playbackBlocked: true,
       activity: { microphoneLevel: 0.42, outputActive: false },
     });
     await vi.advanceTimersByTimeAsync(100);
     expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
       phase: "connected",
-      message:
-        "Audio playback is blocked. Select Play voice audio to hear Live.",
+      message: "Audio blocked. Select Play to listen.",
       playbackBlocked: true,
     });
     expect(fixture.input.stop).not.toHaveBeenCalled();
@@ -1458,7 +1456,7 @@ test("reports the failed endpoint and HTTP statuses without reflecting response 
   expect(fixture.onState.mock.lastCall?.[0].message).not.toContain("sensitive");
   expect(warning).toHaveBeenCalledExactlyOnceWith(
     "[Petrinaut Live]",
-    "live session request failed (HTTP 502, provider HTTP 401). No automatic retry was made.",
+    "live session request failed (HTTP 502, provider HTTP 401).",
   );
   expect(fixture.input.stop).toHaveBeenCalledOnce();
   expect(
