@@ -160,7 +160,7 @@ mod tests {
     use super::{ApiTokenDecryptionError, ApiTokenEncryptionKey, AssociatedData};
     use crate::api_token::{Environment, HashedApiToken};
 
-    /// The token the format tests pin.
+    /// A production token with a fixed token ID and secret.
     const FIXED_TOKEN: &str =
         "hsh_pat_pd_0296tiiBb3U904RIpygpjj_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg39B9Yp";
 
@@ -224,7 +224,7 @@ mod tests {
             key.decrypt(encrypted, &fixed_associated_data(&token))
                 .expect("the encrypted secret hash should decrypt"),
             token.secret_hash(),
-            "decrypting should yield the encrypted secret hash"
+            "decrypting should yield the secret hash that was encrypted"
         );
     }
 
