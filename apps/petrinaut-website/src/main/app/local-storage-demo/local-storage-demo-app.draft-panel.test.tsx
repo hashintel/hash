@@ -213,7 +213,6 @@ test.each(["Dismiss", "Run"] as const)(
     const handle = createJsonDocHandle({
       id: binding.documentId,
       initial: definition,
-      initialRevisionId: documentRecord.revisionId,
     });
     const host = createCanonicalPetrinautHostTools({
       handle,

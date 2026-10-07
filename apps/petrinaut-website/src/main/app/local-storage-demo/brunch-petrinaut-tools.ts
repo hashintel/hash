@@ -8,13 +8,17 @@ import {
   mutationActionInputSchemas,
   petrinautAiTools,
   resolvePetrinautHandleCapabilities,
-  type DocumentRevisionId,
   type PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
 import {
   executePetrinautAiMutation,
   type PetrinautAiAutomaticTool,
 } from "@hashintel/petrinaut/ui";
+
+import {
+  type DocumentRevision,
+  documentRevisionOf,
+} from "./shared/document-revision";
 
 import type { FlueConversationState } from "@flue/sdk";
 
@@ -88,15 +92,27 @@ export interface CanonicalPetrinautHostToolsInput {
   readonly replayReadiness: CanonicalPetrinautReplayReadiness;
   readonly settleRevision: (input: {
     readonly documentId: string;
-    readonly revisionId: DocumentRevisionId;
+    readonly revision: DocumentRevision;
   }) => Promise<void>;
 }
 
-/** Petrinaut executes canonical actions; the host records only settled revision identities. */
+const currentRevision = (
+  handle: PetrinautDocHandle,
+): DocumentRevision | undefined => {
+  const definition = handle.doc();
+  return definition === undefined ? undefined : documentRevisionOf(definition);
+};
+
+/** Petrinaut executes canonical actions; the host records only settled content revisions. */
 export const createCanonicalPetrinautHostTools = (
   input: CanonicalPetrinautHostToolsInput,
 ) => {
-  const before = new Map<string, DocumentRevisionId>();
+  const before = new Map<string, DocumentRevision>();
+  const stampBefore = (toolCallId: string, handle: PetrinautDocHandle) => {
+    const revision = currentRevision(handle);
+    if (revision === undefined) before.delete(toolCallId);
+    else before.set(toolCallId, revision);
+  };
   const toolNames = new Map<string, string>();
   const prepared = new Set<string>();
   const replay =
@@ -146,7 +162,7 @@ export const createCanonicalPetrinautHostTools = (
         extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
           .extensions,
       };
-      before.set(toolCallId, handle.revisionId.get());
+      stampBefore(toolCallId, handle);
       toolNames.set(toolCallId, getLatestNetDefinitionToolName);
       started.set(toolCallId, {
         toolName: getLatestNetDefinitionToolName,
@@ -190,7 +206,7 @@ export const createCanonicalPetrinautHostTools = (
           throw new Error("The bound browser document is unavailable.");
         return current;
       };
-      before.set(toolCallId, handle.revisionId.get());
+      stampBefore(toolCallId, handle);
       toolNames.set(toolCallId, toolName);
       const aiToolCall =
         toolName === "addPlace"
@@ -246,7 +262,7 @@ export const createCanonicalPetrinautHostTools = (
         );
       prepared.add(toolCallId);
       toolNames.set(toolCallId, toolName);
-      before.set(toolCallId, input.handle.revisionId.get());
+      stampBefore(toolCallId, input.handle);
       return rawInput;
     },
     clientToolResultMetadataFor: async (
@@ -256,16 +272,17 @@ export const createCanonicalPetrinautHostTools = (
       const existing = metadata.get(toolCallId);
       if (existing) return existing;
       const revisionBefore = before.get(toolCallId);
-      const revisionAfter = input.handle.revisionId.get();
+      const revisionAfter = currentRevision(input.handle);
       const toolName = toolNames.get(toolCallId);
       const changed =
         revisionBefore !== undefined &&
+        revisionAfter !== undefined &&
         revisionBefore !== revisionAfter &&
         (toolName === undefined || browserToolMutatesDocument(toolName));
       if (changed)
         await input.settleRevision({
           documentId: input.binding.documentId,
-          revisionId: revisionAfter,
+          revision: revisionAfter,
         });
       const result: DocumentRevisionMetadata = {
         documentRevision: {

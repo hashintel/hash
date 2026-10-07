@@ -25,7 +25,6 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   createJsonDocHandle,
-  type DocumentRevisionId,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
   type PetrinautHandleCapabilities,
@@ -121,6 +120,7 @@ import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-h
 import type {
   DocumentRecord,
   DocumentRepository,
+  RecordRevisionId,
 } from "./documents/document-repository";
 
 const useCurrentSettlementAction = (
@@ -130,7 +130,7 @@ const useCurrentSettlementAction = (
   useLayoutEffect(() => {
     latest.current = settleRevision;
   }, [settleRevision]);
-  return useCallback((revision) => latest.current(revision), []);
+  return useCallback((input) => latest.current(input), []);
 };
 
 const DEMO_CAPABILITIES = {
@@ -283,7 +283,6 @@ const createHandle = (document: DocumentRecord): PetrinautDocHandle =>
   createJsonDocHandle({
     id: document.documentId,
     initial: document.definition,
-    initialRevisionId: document.revisionId,
     capabilities: DEMO_CAPABILITIES,
   });
 
@@ -340,12 +339,15 @@ type ActiveHandle = {
   handle: PetrinautDocHandle;
   document: DocumentRecord;
   /**
-   * Every revision this handle has produced (plus the one it opened at). A
-   * repository revision outside this set was written by someone else — another
-   * tab, typically — and the handle must be recreated from it rather than keep
-   * chaining edits from a predecessor the repository no longer holds.
+   * Every record revision minted for this handle's changes (plus the one it
+   * opened at). A repository revision outside this set was written by someone
+   * else — another tab, typically — and the handle must be recreated from it
+   * rather than keep chaining edits from a predecessor the repository no
+   * longer holds.
    */
-  emittedRevisionIds: Set<DocumentRevisionId>;
+  emittedRevisionIds: Set<RecordRevisionId>;
+  /** Predecessor named by this handle's next write; kept on the handle because the persistence effect re-subscribes. */
+  latestRevisionId: { current: RecordRevisionId };
 };
 
 type PersistFailure = {
@@ -378,6 +380,7 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
     handle,
     document,
     emittedRevisionIds: new Set([document.revisionId]),
+    latestRevisionId: { current: document.revisionId },
   };
 };
 
@@ -531,11 +534,12 @@ export const LocalStorageDemoApp = ({
 
   // The handle follows the repository: it is recreated from the repository's
   // record whenever the two diverge — another document is open, the record
-  // shows a revision this handle never emitted (another tab wrote it), or the
-  // repository refused one of this handle's changes, after which every further
-  // change from it would be refused too, because each names the rejected
-  // revision as predecessor. It is decided during render, not in an effect, so
-  // no render pairs the open document with another document's handle.
+  // shows a revision not minted for this handle's changes (another tab wrote
+  // it), or the repository refused one of this handle's changes, after which
+  // every further change from it would be refused too, because each names the
+  // rejected revision as predecessor. It is decided during render, not in an
+  // effect, so no render pairs the open document with another document's
+  // handle.
   const activeHandle =
     currentDocument === null
       ? null
@@ -563,16 +567,20 @@ export const LocalStorageDemoApp = ({
       return;
     }
 
-    const { document, emittedRevisionIds, handle } = activeHandle;
+    const { document, emittedRevisionIds, handle, latestRevisionId } =
+      activeHandle;
     return handle.subscribe((event) => {
-      emittedRevisionIds.add(event.revisionId);
+      const previousRevisionId = latestRevisionId.current;
+      const revisionId = crypto.randomUUID();
+      latestRevisionId.current = revisionId;
+      emittedRevisionIds.add(revisionId);
       repository
         .persistRevision({
           documentId: document.documentId,
           incarnationId: document.incarnationId,
           definition: event.next,
-          previousRevisionId: event.previousRevisionId,
-          revisionId: event.revisionId,
+          previousRevisionId,
+          revisionId,
         })
         .then(
           () =>
