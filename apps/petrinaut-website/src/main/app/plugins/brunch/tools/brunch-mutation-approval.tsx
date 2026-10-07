@@ -9,11 +9,12 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import { usePetrinautInstance, useStore } from "@hashintel/petrinaut/react";
+
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
-} from "@hashintel/petrinaut/ui";
+} from "../../_shared/chat/interactive-tool";
 
 import type { InBandBrowserCallAdmission } from "./in-band-browser-call";
 

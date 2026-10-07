@@ -11,7 +11,7 @@ import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 import type {
   PetrinautAiMessage,
   PetrinautAiMessageMetadata,
-} from "@hashintel/petrinaut/ui";
+} from "../_shared/chat/ai-message";
 import type {
   FlueAiSdkAdapter,
   FlueAiSdkAdapterConfig,

@@ -56,6 +56,8 @@ vi.hoisted(() => {
   });
 });
 
+import type { PetrinautAiComposerControlContext } from "../../_shared/chat/composer-control";
+import type { PetrinautAiInteractiveToolWidgetProps } from "../../_shared/chat/interactive-tool";
 import type {
   DraftPetrinautExperimentInput,
   DraftPetrinautExperimentOutput,
@@ -70,10 +72,6 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 import type { OptimizationsContextValue } from "@hashintel/petrinaut/react";
-import type {
-  PetrinautAiInteractiveToolWidgetProps,
-  PetrinautAiComposerControlContext,
-} from "@hashintel/petrinaut/ui";
 import type { ReactNode } from "react";
 
 // Distributive so the awaiting/submitted discriminant survives the Pick.

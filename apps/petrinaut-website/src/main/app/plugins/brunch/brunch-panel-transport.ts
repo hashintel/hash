@@ -5,6 +5,7 @@ import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
 import { sweepOutputSchema } from "./tools/brunch-sweep-output";
 
+import type { PetrinautAiChatTransport } from "../_shared/chat/petrinaut-ai-assistant";
 import type { BrunchFlueAdapter } from "./brunch-flue-adapter";
 import type {
   SweepCapture,
@@ -16,7 +17,6 @@ import type {
   FlueClient,
   FlueConversationState,
 } from "@flue/sdk";
-import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,

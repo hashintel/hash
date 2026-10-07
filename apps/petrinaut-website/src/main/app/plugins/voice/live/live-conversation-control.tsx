@@ -23,8 +23,8 @@ import {
 } from "./live-conversation";
 import { LiveSpeechCaptions } from "./live-speech-captions";
 
+import type { PetrinautAiVoiceModeContext } from "../../_shared/chat/composer-control";
 import type { VoiceInterviewControl } from "../session/voice-interview-control";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 type LiveControlsContext = PetrinautAiVoiceModeContext &
   Required<

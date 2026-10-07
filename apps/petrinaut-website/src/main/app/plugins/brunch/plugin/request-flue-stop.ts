@@ -1,6 +1,6 @@
+import type { PetrinautAiStopResult } from "../../_shared/chat/petrinaut-ai-assistant";
 import type { BrunchPanelConversationTracker } from "../brunch-panel-transport";
 import type { createFlueClient } from "@flue/sdk";
-import type { PetrinautAiStopResult } from "@hashintel/petrinaut/ui";
 
 /**
  * Flue's `abort()` is conversation-wide and only reaches unsettled work, so a

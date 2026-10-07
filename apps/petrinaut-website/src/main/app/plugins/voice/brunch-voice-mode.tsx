@@ -4,6 +4,10 @@ import {
 } from "./session/voice-interview-control";
 
 import type {
+  PetrinautAiVoiceMode,
+  PetrinautAiVoiceModeContext,
+} from "../_shared/chat/composer-control";
+import type {
   BrunchPanelAdmissionTarget,
   BrunchPanelConversationTracker,
 } from "../brunch/brunch-panel-transport";
@@ -13,10 +17,6 @@ import type {
   FlueConversationSettlement,
   FlueConversationState,
 } from "@flue/sdk";
-import type {
-  PetrinautAiVoiceMode,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
 
 /**
  * Binds the Voice interview control to one Brunch conversation: the tracker's

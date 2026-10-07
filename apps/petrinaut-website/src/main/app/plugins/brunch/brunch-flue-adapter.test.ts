@@ -3,12 +3,12 @@ import { describe, expect, test, vi } from "vitest";
 
 import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 
+import type { PetrinautAiMessage } from "../_shared/chat/ai-message";
 import type {
   AgentSendResult,
   FlueClient,
   FlueConversationSettlement,
 } from "@flue/sdk";
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const agentMetadata = { stopped: true, source: "voice", unrendered: 1 };
 
