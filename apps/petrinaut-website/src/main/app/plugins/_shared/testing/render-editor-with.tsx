@@ -13,9 +13,9 @@ import {
   NoopResizeObserver,
 } from "../../../shared/petrinaut-jsdom";
 
-/** Renders the real editor on an empty net with `plugin` installed. */
+/** Renders the real editor on an empty net with `plugins` installed. */
 export const renderEditorWith = (
-  plugin: PetrinautPlugin,
+  plugins: readonly PetrinautPlugin[],
   props?: Omit<PetrinautProps, "handle" | "plugins">,
 ) => {
   // Kept until the environment is disposed: the language server starts lazily.
@@ -26,7 +26,7 @@ export const renderEditorWith = (
     <Petrinaut
       {...props}
       handle={createJsonDocHandle({ initial: { places: [], transitions: [] } })}
-      plugins={[plugin]}
+      plugins={plugins}
     />,
   );
 };

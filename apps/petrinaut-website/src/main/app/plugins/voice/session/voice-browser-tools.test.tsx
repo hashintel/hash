@@ -1,15 +1,17 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { useLayoutEffect } from "react";
-import { afterEach, beforeAll, expect, test, vi } from "vitest";
-
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
+import { afterEach, expect, test, vi } from "vitest";
 
 import {
-  NoopResizeObserver,
-  preloadMonaco,
-} from "../../../shared/petrinaut-jsdom";
+  createJsonDocHandle,
+  createPetrinaut,
+} from "@hashintel/petrinaut-core";
+import { PetrinautAssistantWindowPreview } from "@hashintel/petrinaut/ui";
+
+import { NoopResizeObserver } from "../../../shared/petrinaut-jsdom";
+import { AssistantChat } from "../../_shared/chat/assistant-chat";
+import { createTestPluginApi } from "../../_shared/testing/create-test-plugin-api";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -19,20 +21,17 @@ import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
 
+import type { PetrinautAiVoiceModeContext } from "../../_shared/chat/composer-control";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "../realtime/openai-realtime-session";
 import type { RealtimeBrunchBridgeEvent } from "../realtime/realtime-brunch-bridge";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
-import type { LspWorkerFactory } from "@hashintel/petrinaut-core";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
     await import("../../../shared/petrinaut-jsdom");
   installPetrinautDomShims();
 });
-
-beforeAll(preloadMonaco, 30_000);
 
 const VoiceObserver = ({
   current,
@@ -43,34 +42,6 @@ const VoiceObserver = ({
 }) => {
   useLayoutEffect(() => onUpdate(current), [current, onUpdate]);
   return null;
-};
-type LspWorker = Awaited<ReturnType<LspWorkerFactory>>;
-type LspWorkerMessage = Parameters<LspWorker["postMessage"]>[0];
-type LspWorkerListener = Parameters<LspWorker["addEventListener"]>[1];
-
-const cleanDiagnosticsWorker: LspWorkerFactory = () => {
-  const listeners = new Set<LspWorkerListener>();
-  return {
-    postMessage(message: LspWorkerMessage) {
-      if (message.method !== "sdcpn/diagnostics" || !("id" in message)) return;
-      queueMicrotask(() => {
-        for (const listener of listeners) {
-          listener({
-            data: { jsonrpc: "2.0", id: message.id, result: [] },
-          });
-        }
-      });
-    },
-    addEventListener(_type, listener) {
-      listeners.add(listener);
-    },
-    removeEventListener(_type, listener) {
-      listeners.delete(listener);
-    },
-    terminate() {
-      listeners.clear();
-    },
-  };
 };
 const hosts: Array<() => void> = [];
 afterEach(() => {
@@ -208,40 +179,43 @@ test.each([
         ),
       });
     };
-    const handle = createJsonDocHandle({
-      id: "voice-browser-test",
-      initial: {
-        places: [],
-        transitions: [],
-        types: [],
-        parameters: [],
-        differentialEquations: [],
-      },
-    });
+    const api = createTestPluginApi(
+      createPetrinaut({
+        document: createJsonDocHandle({
+          id: "voice-browser-test",
+          initial: {
+            places: [],
+            transitions: [],
+            types: [],
+            parameters: [],
+            differentialEquations: [],
+          },
+        }),
+      }),
+    );
     render(
-      <Petrinaut
-        handle={handle}
-        lspWorkerFactory={cleanDiagnosticsWorker}
-        aiAssistant={{
-          automaticTools: [],
-          conversationId: "test",
-          requestStop: async () => {
+      <PetrinautAssistantWindowPreview>
+        <AssistantChat
+          api={api}
+          automaticTools={[]}
+          conversationId="test"
+          requestStop={async () => {
             tracker.recordStopRequested();
             bridge.cancelPendingSpeech();
             bridge.completeTurnHandoff();
             finishStoppedStep?.();
             return "already-settled";
-          },
-          transport: createBrunchPanelTransport(
+          }}
+          transport={createBrunchPanelTransport(
             Promise.resolve(client),
             tracker,
             { clientToolNames: canonicalPetrinautClientToolNames },
-          ),
-          renderVoiceMode: (current) => (
+          )}
+          renderVoiceMode={(current) => (
             <VoiceObserver current={current} onUpdate={updateVoice} />
-          ),
-        }}
-      />,
+          )}
+        />
+      </PetrinautAssistantWindowPreview>,
     );
     await waitFor(() => expect(context).toBeDefined());
     await act(async () => {

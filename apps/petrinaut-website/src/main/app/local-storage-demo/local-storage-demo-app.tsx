@@ -18,23 +18,18 @@ import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { Icon } from "@hashintel/ds-components";
 import {
   CommandRegistryProvider,
   ErrorTrackerContext,
   useCommand,
 } from "@hashintel/petrinaut/react";
-import {
-  DefaultChatTransport,
-  Petrinaut,
-  type PetrinautAiComposerControlContext,
-  type PetrinautAiMessage,
-} from "@hashintel/petrinaut/ui";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import {
   useSharedSearchNavigation,
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
-import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -78,7 +73,6 @@ import {
 import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "../plugins/brunch/tools/in-band-browser-call";
 import { demoPlugins } from "../plugins/demo-plugins";
-import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
 import { getBrunchVoiceMode } from "../plugins/voice/brunch-voice-mode";
 import { useVoiceMediationHistory } from "../plugins/voice/history/use-voice-mediation-history";
 import {
@@ -88,16 +82,21 @@ import {
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
-  stockChatEndpoint,
   type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
+import {
+  type BrunchBridge,
+  BrunchBridgeContext,
+  brunchDemoPlugins,
+} from "./brunch-bridge-plugin";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
 import { UnsavedChangeNotice } from "./unsaved-change-notice";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
+import type { PetrinautAiComposerControlContext } from "../plugins/_shared/chat/composer-control";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
 
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
@@ -108,15 +107,6 @@ const brunchPrincipal = getOrCreateBrunchPrincipal();
 
 const subscribeToNothing = () => () => {};
 const readNothing = () => undefined;
-
-// The stock assistant's transport is the same whether or not Brunch is
-// configured: selecting the stock assistant must not route it through Brunch.
-const stockChatTransport = new DefaultChatTransport({
-  api: stockChatEndpoint,
-  headers: () => ({
-    [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID(),
-  }),
-});
 
 const createBrunchFlueClient = async (conversationId: string) => {
   const identity = { conversationId, principalKey: brunchPrincipal };
@@ -251,8 +241,6 @@ export const LocalStorageDemoApp = ({
       intent: { cause: "normalization", action: "selection" },
     });
   }, [navigation]);
-  const { aiMessagesByNetId, setAiMessagesByNetId } =
-    useLocalStorageAiMessages();
   const { controller } = useDocumentController({
     onOpenDocument: clearSharedLocation,
   });
@@ -551,7 +539,7 @@ export const LocalStorageDemoApp = ({
         },
       );
     }
-    return stockChatTransport;
+    return null;
   }, [
     conversationTracker,
     conversationId,
@@ -611,85 +599,75 @@ export const LocalStorageDemoApp = ({
         : undefined,
     [activeHandle, flueClientPromise, inBandBrowserTools, constructionBrowser],
   );
-  const aiAssistant = useMemo(() => {
-    const activityIdentities =
-      constructionBrowser && flueHistory.ready
-        ? flueHistory.phase === "absent"
-          ? []
-          : flueHistory.snapshot === undefined
-            ? undefined
-            : foldBrunchWorkpieceHistory(
-                flueHistory.snapshot.messages,
-                constructionBrowser.binding,
-              ).activityIdentities
-        : undefined;
+  // What the Brunch plugin renders, until the document is bound.
+  const brunchBridge = useMemo((): BrunchBridge => {
+    if (
+      constructionBrowser === undefined ||
+      petrinautAiChatTransport === null
+    ) {
+      return { chat: null, ledger: null };
+    }
+    const activityIdentities = flueHistory.ready
+      ? flueHistory.phase === "absent"
+        ? []
+        : flueHistory.snapshot === undefined
+          ? undefined
+          : foldBrunchWorkpieceHistory(
+              flueHistory.snapshot.messages,
+              constructionBrowser.binding,
+            ).activityIdentities
+      : undefined;
     return {
-      additionalTab: constructionBrowser
-        ? {
-            label: "Ledger",
-            activityIdentities,
-            content: (
-              <BrunchWorkpiecePane
-                messages={flueHistory.snapshot?.messages ?? []}
-                binding={constructionBrowser.binding}
-              />
-            ),
-          }
-        : undefined,
-      ...(brunchSelected
-        ? {
-            primaryLabel: "Chat",
-            presentation: "brunch" as const,
-            mapMessagesForDisplay: mapVoiceMessages,
-            resolveToolPresentation: resolveBrunchToolPresentation,
-            workingLabel: "Working…",
-            renderComposerControl: (
-              context: PetrinautAiComposerControlContext,
-            ) => <BrunchExperimentFollowUp context={context} />,
-          }
-        : {}),
-      ...(conversationId === null ? {} : { conversationId }),
-      canClearMessages: true,
-      // These exact-name tools override the static registry only while a
-      // document binding is attached. Every other canonical capability remains
-      // on Petrinaut's registry.
-      inBandBrowserTools,
-      automaticTools: [...(canonicalHostTools?.tools ?? [])],
-      interactiveTools: [
-        ...(inBandBrowserTools ? mutationApprovalTools : []),
-        ...(draftInteractiveTool ? [draftInteractiveTool] : []),
-      ],
-      transport: petrinautAiChatTransport,
-      ...(flueClientPromise === null
-        ? {}
-        : {
-            requestStop: () =>
-              requestFlueStop(flueClientPromise, conversationTracker),
-            followMessages: {
-              // This closure and `messages` below describe the same observed
-              // snapshot, never a later mutable settlement cache.
-              canReplace: () =>
-                conversationTracker.canReplaceMessages(flueHistory.snapshot),
-            },
-          }),
-      messages:
-        flueClientPromise === null
-          ? currentNetId
-            ? aiMessagesByNetId[currentNetId]
-            : undefined
-          : flueHistory.messages,
-      onMessages: (messages: PetrinautAiMessage[]) => {
-        if (!currentNetId || flueClientPromise !== null) {
-          return;
-        }
-
-        setAiMessagesByNetId((prev) => ({
-          ...prev,
-          [currentNetId]: messages,
-        }));
+      ledger: {
+        id: "ledger",
+        label: "Ledger",
+        mark: <Icon name="bars" size="xs" />,
+        activityIdentities,
+        content: (
+          <BrunchWorkpiecePane
+            messages={flueHistory.snapshot?.messages ?? []}
+            binding={constructionBrowser.binding}
+          />
+        ),
       },
-      onClearMessages: () => {
-        if (flueClientPromise !== null && currentNetId !== null) {
+      chat: {
+        primaryLabel: "Chat",
+        presentation: "brunch",
+        mapMessagesForDisplay: mapVoiceMessages,
+        resolveToolPresentation: resolveBrunchToolPresentation,
+        workingLabel: "Working…",
+        renderComposerControl: (context: PetrinautAiComposerControlContext) => (
+          <BrunchExperimentFollowUp context={context} />
+        ),
+        ...(conversationId === null ? {} : { conversationId }),
+        canClearMessages: true,
+        // These exact-name tools override the static registry only while a
+        // document binding is attached. Every other canonical capability
+        // remains on Petrinaut's registry.
+        inBandBrowserTools,
+        automaticTools: [...(canonicalHostTools?.tools ?? [])],
+        interactiveTools: [
+          ...(inBandBrowserTools ? mutationApprovalTools : []),
+          ...(draftInteractiveTool ? [draftInteractiveTool] : []),
+        ],
+        transport: petrinautAiChatTransport,
+        ...(flueClientPromise === null
+          ? {}
+          : {
+              requestStop: () =>
+                requestFlueStop(flueClientPromise, conversationTracker),
+              followMessages: {
+                // This closure and `messages` below describe the same
+                // observed snapshot, never a later mutable settlement cache.
+                canReplace: () =>
+                  conversationTracker.canReplaceMessages(flueHistory.snapshot),
+              },
+            }),
+        messages: flueHistory.messages,
+        onClearMessages: () => {
+          if (currentNetId === null) {
+            return;
+          }
           const initialId =
             ordinaryConstructionConversationIdFrom(currentNetId);
           const nextId = `${initialId}:${crypto.randomUUID()}`;
@@ -698,28 +676,12 @@ export const LocalStorageDemoApp = ({
             ...current,
             [currentNetId]: nextId,
           }));
-          return;
-        }
-        if (!currentNetId || flueClientPromise !== null) {
-          return;
-        }
-
-        setAiMessagesByNetId((prev) => {
-          const next = { ...prev };
-          delete next[currentNetId];
-          return next;
-        });
+        },
+        ...(brunchVoiceMode ? { renderVoiceMode: brunchVoiceMode } : {}),
       },
-      ...(brunchVoiceMode
-        ? {
-            renderVoiceMode: brunchVoiceMode,
-          }
-        : {}),
     };
   }, [
-    aiMessagesByNetId,
     mapVoiceMessages,
-    brunchSelected,
     brunchVoiceMode,
     canonicalHostTools,
     inBandBrowserTools,
@@ -735,7 +697,6 @@ export const LocalStorageDemoApp = ({
     flueHistory.ready,
     flueHistory.snapshot,
     petrinautAiChatTransport,
-    setAiMessagesByNetId,
   ]);
 
   if (
@@ -759,35 +720,36 @@ export const LocalStorageDemoApp = ({
         <UnsavedChangeNotice message={unsavedChangeMessage} />
       ) : null}
       <CommandRegistryProvider>
-        <Petrinaut
-          aiAssistant={aiAssistant}
-          handle={activeHandle.handle}
-          existingNets={existingNets}
-          createNewNet={createNewNet}
-          loadPetriNet={loadPetriNet}
-          navigation={navigation}
-          plugins={demoPlugins}
-          readonly={false}
-          setTitle={setTitle}
-          slots={{
-            settingsLabs: (
-              <AssistantLabsSettings
-                assistantReady={assistantSelectionReady}
-                brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
-                brunchSelected={brunchSelected}
-                openAIVoiceConfig={openAIVoiceConfig}
-                realtimeEnabled={realtimeEnabled}
-                realtimePreferenceReady={realtimePreferenceReady}
-                selectAssistant={selectAssistant}
-                setRealtimeEnabled={setRealtimeEnabled}
-                setVoiceEnabled={setVoiceEnabled}
-                voiceEnabled={brunchSelected && voiceEnabled}
-                voicePreferenceReady={voicePreferenceReady}
-              />
-            ),
-          }}
-          title={currentDocument.title}
-        />
+        <BrunchBridgeContext value={brunchBridge}>
+          <Petrinaut
+            handle={activeHandle.handle}
+            existingNets={existingNets}
+            createNewNet={createNewNet}
+            loadPetriNet={loadPetriNet}
+            navigation={navigation}
+            plugins={brunchSelected ? brunchDemoPlugins : demoPlugins}
+            readonly={false}
+            setTitle={setTitle}
+            slots={{
+              settingsLabs: (
+                <AssistantLabsSettings
+                  assistantReady={assistantSelectionReady}
+                  brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
+                  brunchSelected={brunchSelected}
+                  openAIVoiceConfig={openAIVoiceConfig}
+                  realtimeEnabled={realtimeEnabled}
+                  realtimePreferenceReady={realtimePreferenceReady}
+                  selectAssistant={selectAssistant}
+                  setRealtimeEnabled={setRealtimeEnabled}
+                  setVoiceEnabled={setVoiceEnabled}
+                  voiceEnabled={brunchSelected && voiceEnabled}
+                  voicePreferenceReady={voicePreferenceReady}
+                />
+              ),
+            }}
+            title={currentDocument.title}
+          />
+        </BrunchBridgeContext>
         <DemoCommands
           brunchSelected={brunchSelected}
           selectAssistant={selectAssistant}

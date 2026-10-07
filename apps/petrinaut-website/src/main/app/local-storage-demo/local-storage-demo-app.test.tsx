@@ -42,6 +42,8 @@ import {
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import { voicePreferenceStorageKey } from "./voice-preference";
 
+import type { PetrinautAiMessage } from "../plugins/_shared/chat/ai-message";
+import type { PetrinautAiAssistant } from "../plugins/_shared/chat/petrinaut-ai-assistant";
 import type { AgentConversationObservationSnapshot } from "@flue/sdk";
 import type {
   CommandRegistryView,
@@ -49,11 +51,7 @@ import type {
   PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
-import type {
-  PetrinautAiAssistant,
-  PetrinautAiMessage,
-  PetrinautPlugin,
-} from "@hashintel/petrinaut/ui";
+import type { PetrinautPlugin } from "@hashintel/petrinaut/ui";
 
 const netOneId = toPetrinautId("net-1");
 const netTwoId = toPetrinautId("net-2");
@@ -78,7 +76,13 @@ const brunchPanelTransportSessions = vi.hoisted(() => ({
 const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
 const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({
+  /** The props of the shown assistant's chat, or `null` while it has no view. */
   aiAssistant: null as unknown,
+  /** The tabs the shown assistant adds beside its chat. */
+  assistantTabs: [] as readonly {
+    readonly label: string;
+    readonly activityIdentities?: readonly unknown[];
+  }[],
   commandRegistry: null as CommandRegistryView | null,
 }));
 const renderedAssistants = vi.hoisted(() => [] as PetrinautAiAssistant[]);
@@ -121,7 +125,6 @@ vi.mock(
 
 const editorProps = vi.hoisted(() => ({
   current: null as {
-    aiAssistant?: unknown;
     createNewNet?: (params: {
       petriNetDefinition: unknown;
       title: string;
@@ -159,30 +162,82 @@ vi.mock("../plugins/brunch/brunch-panel-transport", async (importOriginal) => {
   };
 });
 
-vi.mock("@hashintel/petrinaut/ui", () => ({
+vi.mock("ai", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("ai")>()),
   DefaultChatTransport: class {
     public constructor(options: unknown) {
       defaultTransportOptions.current = options;
     }
   },
+}));
+
+/** A plugin as the mocked `definePetrinautPlugin` makes it. */
+type MockPlugin = {
+  readonly manifest: { readonly id: string; readonly assistant?: object };
+  readonly hook: (api: unknown) => {
+    readonly assistant?: {
+      readonly view?: ReactNode;
+      readonly tabs?: typeof renderedPetrinaut.assistantTabs;
+    };
+  };
+};
+
+/** Runs an assistant plugin's hook as the editor does, and records its chat's props and tabs. */
+const AssistantProbe = ({
+  plugin,
+  documentId,
+}: {
+  plugin: MockPlugin;
+  documentId: string;
+}) => {
+  const useAssistantPlugin = plugin.hook;
+  const { assistant } = useAssistantPlugin({ document: { id: documentId } });
+  const chat = isValidElement<PetrinautAiAssistant>(assistant?.view)
+    ? assistant.view.props
+    : null;
+  renderedPetrinaut.aiAssistant = chat;
+  renderedPetrinaut.assistantTabs = assistant?.tabs ?? [];
+  if (chat !== null) renderedAssistants.push(chat);
+
+  return null;
+};
+
+vi.mock("@hashintel/petrinaut/ui", () => ({
   Petrinaut: (props: Record<string, unknown>) => {
     editorProps.current = props;
     // The real editor reuses the registry the host provides.
     renderedPetrinaut.commandRegistry = useCommandRegistry();
-    renderedPetrinaut.aiAssistant = props.aiAssistant;
-    renderedAssistants.push(props.aiAssistant as PetrinautAiAssistant);
+    const documentId = (props.handle as PetrinautDocHandle).id;
     return (
-      (props.slots as { settingsLabs?: ReactNode } | undefined)?.settingsLabs ??
-      null
+      <>
+        {(props.plugins as readonly MockPlugin[])
+          .filter(({ manifest }) => manifest.assistant !== undefined)
+          .map((plugin) => (
+            <AssistantProbe
+              key={plugin.manifest.id}
+              plugin={plugin}
+              documentId={documentId}
+            />
+          ))}
+        {(props.slots as { settingsLabs?: ReactNode } | undefined)
+          ?.settingsLabs ?? null}
+      </>
     );
   },
-  definePetrinautAiInteractiveTool: (definition: unknown) => definition,
-  definePetrinautPlugin: (manifest: unknown) => () => ({ manifest }),
-  executePetrinautAiMutation: () => ({
-    applied: false,
-    reason: "Mocked document unchanged.",
-  }),
+  definePetrinautPlugin:
+    (manifest: unknown) => (implementation: MockPlugin["hook"] | object) => ({
+      manifest,
+      hook:
+        typeof implementation === "function"
+          ? implementation
+          : () => implementation,
+    }),
 }));
+
+afterEach(() => {
+  renderedPetrinaut.aiAssistant = null;
+  renderedPetrinaut.assistantTabs = [];
+});
 
 /**
  * Node supplies its own `localStorage` global that shadows the jsdom one and
@@ -274,7 +329,6 @@ describe("local storage demo Brunch voice integration", () => {
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
-    expect(aiAssistant.executeMutation).toBeUndefined();
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
     ).toEqual(
@@ -350,8 +404,7 @@ describe("local storage demo Brunch voice integration", () => {
     await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
 
     expect(
-      (renderedPetrinaut.aiAssistant as PetrinautAiAssistant).additionalTab
-        ?.activityIdentities,
+      renderedPetrinaut.assistantTabs[0]?.activityIdentities,
     ).toBeUndefined();
 
     rendered.unmount();
@@ -1045,13 +1098,13 @@ describe("local storage demo Brunch controls", () => {
     const view = render(
       <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
     );
-    await waitFor(() => expect(editorProps.current?.aiAssistant).toBeDefined());
-    const first = editorProps.current?.aiAssistant as PetrinautAiAssistant;
+    await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
+    const first = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
     const originalId = first.conversationId;
     const handle = editorProps.current?.handle;
     expect(first.canClearMessages).toBe(true);
     act(() => first.onClearMessages?.());
-    const next = editorProps.current?.aiAssistant as PetrinautAiAssistant;
+    const next = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
     expect(next.conversationId).not.toBe(originalId);
     expect(next.conversationId).toContain(
       `${ordinaryConstructionConversationIdFrom(netOneId)}:`,
@@ -1063,7 +1116,7 @@ describe("local storage demo Brunch controls", () => {
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(
-        (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
+        (renderedPetrinaut.aiAssistant as PetrinautAiAssistant | undefined)
           ?.conversationId,
       ).toBe(nextId),
     );
@@ -1112,12 +1165,11 @@ describe("local storage demo Brunch controls", () => {
       render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
       await waitFor(() =>
         expect(
-          (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
+          (renderedPetrinaut.aiAssistant as PetrinautAiAssistant | undefined)
             ?.inBandBrowserTools,
         ).toBeDefined(),
       );
-      const assistant = editorProps.current
-        ?.aiAssistant as PetrinautAiAssistant;
+      const assistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
       const initialTools = assistant.interactiveTools;
       const execute = vi.fn(async () => ({ applied: true }));
       const run = assistant.inBandBrowserTools?.run(
@@ -1130,7 +1182,7 @@ describe("local storage demo Brunch controls", () => {
         execute,
       );
       const interactiveTools = () =>
-        (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
+        (renderedPetrinaut.aiAssistant as PetrinautAiAssistant | undefined)
           ?.interactiveTools;
       await waitFor(() => expect(claimed).toHaveBeenCalled());
       await waitFor(() => expect(interactiveTools()).not.toBe(initialTools));
@@ -1174,9 +1226,8 @@ describe("local storage demo Brunch controls", () => {
     };
 
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(editorProps.current?.aiAssistant).toBeDefined());
-    const aiAssistant = editorProps.current
-      ?.aiAssistant as PetrinautAiAssistant;
+    await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
+    const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
     const transportOptions = brunchPanelTransportOptions.current as {
       readonly initialData?: { readonly binding?: unknown };
       readonly clientToolNames?: ReadonlySet<string>;
@@ -1192,7 +1243,6 @@ describe("local storage demo Brunch controls", () => {
       ordinaryConstructionConversationIdFrom(netOneId),
     );
     expect(aiAssistant.conversationId).toBe(conversationId);
-    expect(aiAssistant.executeMutation).toBeUndefined();
     expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
       [
         "getLatestNetDefinition",
@@ -1203,7 +1253,7 @@ describe("local storage demo Brunch controls", () => {
       ],
     );
     expect(aiAssistant.primaryLabel).toBe("Chat");
-    expect(aiAssistant.additionalTab?.label).toBe("Ledger");
+    expect(renderedPetrinaut.assistantTabs[0]?.label).toBe("Ledger");
     expect(
       aiAssistant.resolveToolPresentation?.({
         toolName: "layout_petrinaut_net",
@@ -1291,7 +1341,13 @@ describe("assistant selection", () => {
     });
   };
   const currentAssistant = () =>
-    editorProps.current?.aiAssistant as PetrinautAiAssistant;
+    renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
+  /** Edits that apply without changing the net, so Petrinaut reports the net unchanged. */
+  const unchangingEdits = {
+    addPlace: () => ({ applied: true, value: undefined }),
+    addTransition: () => ({ applied: true, value: undefined }),
+    addArc: () => ({ applied: true, value: undefined }),
+  };
   const currentVoiceCapability = () => {
     const settingsLabs = editorProps.current?.slots?.settingsLabs;
     if (!isValidElement<{ openAIVoiceConfig: unknown }>(settingsLabs)) {
@@ -1319,14 +1375,11 @@ describe("assistant selection", () => {
     );
     expect(tool).toBeDefined();
     return tool?.execute({
-      commands: {},
-      handle: editorProps.current?.handle,
+      edit: unchangingEdits,
       input,
-      mutations: {},
       readDiagnosticsContext: async () => "",
       signal: new AbortController().signal,
       toolCallId,
-      viewport: {},
     } as never);
   };
   const executeCurrentReadCall = (toolCallId: string) => {
@@ -1335,14 +1388,11 @@ describe("assistant selection", () => {
     );
     expect(tool).toBeDefined();
     return tool?.execute({
-      commands: {},
-      handle: editorProps.current?.handle,
+      edit: unchangingEdits,
       input: {},
-      mutations: {},
       readDiagnosticsContext: async () => "",
       signal: new AbortController().signal,
       toolCallId,
-      viewport: {},
     } as never);
   };
   const currentVoiceProvider = () => {
@@ -1388,9 +1438,9 @@ describe("assistant selection", () => {
     expect((defaultTransportOptions.current as { api: string }).api).toBe(
       "/api/chat",
     );
-    // An empty host catalogue leaves Petrinaut's canonical built-ins active;
-    // their execution is pinned in ai-assistant-panel.test.tsx.
-    expect(stock.automaticTools).toEqual([]);
+    // Without host tools the chat runs only its canonical built-ins, whose
+    // execution is pinned in assistant-chat.test.tsx.
+    expect(stock.automaticTools).toBeUndefined();
     expect(flueClientOptions.current).toBeNull();
     expect(history).not.toHaveBeenCalled();
     expect(observe).not.toHaveBeenCalled();
@@ -1496,7 +1546,6 @@ describe("assistant selection", () => {
     flueClientMock.current = flueHistoryClient();
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
-    expect(currentAssistant().executeMutation).toBeUndefined();
     expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
     const brunchTransport = currentAssistant().transport;
 
@@ -1504,17 +1553,15 @@ describe("assistant selection", () => {
 
     await waitFor(() => expect(currentAssistant().requestStop).toBeUndefined());
     const stock = currentAssistant();
-    expect(stock.executeMutation).toBeUndefined();
     expect(stock.transport).not.toBe(brunchTransport);
     expect((defaultTransportOptions.current as { api: string }).api).toBe(
       "/api/chat",
     );
-    expect(stock.automaticTools).toEqual([]);
-    expect(stock.additionalTab).toBeUndefined();
+    expect(stock.automaticTools).toBeUndefined();
+    expect(renderedPetrinaut.assistantTabs).toEqual([]);
     expect(stock.renderVoiceMode).toBeUndefined();
     expect(stock.requestStop).toBeUndefined();
     expect(stock.followMessages).toBeUndefined();
-    expect(stock.canClearMessages).toBe(true);
     expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
   });
 
@@ -1648,9 +1695,8 @@ describe("assistant selection", () => {
     localStorage.setItem(assistantSelectionStorageKey, "stock");
     flueClientMock.current = flueHistoryClient();
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(currentAssistant()).toBeDefined());
+    await waitFor(() => expect(currentAssistant()).not.toBeNull());
     const stock = currentAssistant();
-    expect(stock.executeMutation).toBeUndefined();
 
     const stockMessage = {
       id: "stock-1",
@@ -1670,7 +1716,6 @@ describe("assistant selection", () => {
     switchAssistant(/Use Brunch/);
     await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
     const brunch = currentAssistant();
-    expect(brunch.executeMutation).toBeUndefined();
     expect(brunch.messages ?? []).not.toContainEqual(stockMessage);
     act(() =>
       brunch.onMessages?.([
@@ -1685,7 +1730,6 @@ describe("assistant selection", () => {
 
     switchAssistant(/Use the stock Petrinaut assistant/);
     await waitFor(() => expect(currentAssistant().requestStop).toBeUndefined());
-    expect(currentAssistant().executeMutation).toBeUndefined();
     expect(currentAssistant().messages).toEqual([stockMessage]);
   });
 
@@ -1991,9 +2035,10 @@ describe("assistant selection", () => {
     brunchPreviewConfig.isBrunchConfigured = false;
     seedStoredNet();
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    const stock = currentAssistant();
-    expect(stock.executeMutation).toBeUndefined();
-    expect(stock.automaticTools).toEqual([]);
+    expect(currentAssistant().automaticTools).toBeUndefined();
+    expect(
+      editorProps.current?.plugins?.map(({ manifest }) => manifest.id),
+    ).toContain("website.petrinaut-ai");
     expect(
       renderedPetrinaut.commandRegistry?.list().map(({ id }) => id),
     ).toEqual([]);

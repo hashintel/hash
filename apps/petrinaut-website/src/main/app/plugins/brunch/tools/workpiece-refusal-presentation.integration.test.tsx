@@ -1,8 +1,6 @@
 /**
  * @vitest-environment jsdom
  */
-// oxlint-disable-next-line typescript/triple-slash-reference -- The rendered source fixture needs the package's CSS-only module declarations.
-/// <reference path="../../../../../../../../libs/@hashintel/petrinaut/src/ui/fontsource.d.ts" />
 import {
   fauxAssistantMessage,
   fauxProvider,
@@ -27,16 +25,22 @@ import {
   flueConversationIdWeb,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+} from "@hashintel/petrinaut-core";
 
-import { AiAssistantContents } from "../../../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
 import { loadBuiltBrunchApplication } from "../../../../../../../brunch-agent/test/load-built-application";
+import { AssistantChatApiContext } from "../../_shared/chat/assistant-chat/chat-api";
+import { ChatView } from "../../_shared/chat/assistant-chat/chat-view";
+import { createTestPluginApi } from "../../_shared/testing/create-test-plugin-api";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../brunch-panel-transport";
 import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiMessage } from "../../_shared/chat/ai-message";
 
 const noop = () => {};
 const originalFetch = globalThis.fetch;
@@ -70,22 +74,38 @@ afterAll(() => {
 });
 afterEach(cleanup);
 
+const chatApi = createTestPluginApi(
+  createPetrinaut({
+    document: createJsonDocHandle({
+      initial: {
+        places: [],
+        transitions: [],
+        types: [],
+        parameters: [],
+        differentialEquations: [],
+      },
+    }),
+  }),
+);
+
 const renderAssistant = (
   messages: readonly PetrinautAiMessage[],
   status: "ready" | "streaming" = "ready",
 ) =>
   render(
-    <AiAssistantContents
-      input=""
-      messages={[...messages]}
-      onClose={noop}
-      onInputChange={noop}
-      onStop={noop}
-      onSubmit={noop}
-      presentation="brunch"
-      resolveToolPresentation={resolveBrunchToolPresentation}
-      status={status}
-    />,
+    <AssistantChatApiContext value={chatApi}>
+      <ChatView
+        input=""
+        messages={[...messages]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        presentation="brunch"
+        resolveToolPresentation={resolveBrunchToolPresentation}
+        status={status}
+      />
+    </AssistantChatApiContext>,
   );
 
 const expandSettledTools = async () => {

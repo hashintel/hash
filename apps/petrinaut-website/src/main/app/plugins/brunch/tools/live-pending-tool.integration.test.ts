@@ -27,7 +27,7 @@ import {
   createBrunchPanelTransport,
 } from "../brunch-panel-transport";
 
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiMessage } from "../../_shared/chat/ai-message";
 
 const originalFetch = globalThis.fetch;
 

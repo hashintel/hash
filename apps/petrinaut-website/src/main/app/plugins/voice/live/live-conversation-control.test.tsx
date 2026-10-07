@@ -22,9 +22,9 @@ import {
 } from "../session/voice-interview-control";
 import { createLiveConversation } from "./live-conversation";
 
+import type { PetrinautAiVoiceModeContext } from "../../_shared/chat/composer-control";
 import type { ToolApprovalState } from "./live-brunch-bridge";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 const liveConversationMocks = vi.hoisted(() => ({
   setMicrophoneMuted: vi.fn(),

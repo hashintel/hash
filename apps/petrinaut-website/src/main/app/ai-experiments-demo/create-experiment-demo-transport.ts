@@ -7,7 +7,7 @@ import {
   type PetrinautExperimentResult,
 } from "@hashintel/petrinaut-core";
 
-import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiChatTransport } from "../plugins/_shared/chat/petrinaut-ai-assistant";
 
 const percentage = (value: number) =>
   `${(value * 100).toLocaleString("en", { maximumFractionDigits: 2 })}%`;

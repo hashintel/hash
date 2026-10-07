@@ -7,6 +7,7 @@ import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 import { sweepOutputSchema } from "./tools/brunch-sweep-output";
 
+import type { PetrinautAiChatTransport } from "../_shared/chat/petrinaut-ai-assistant";
 import type {
   SweepCapture,
   SweepCompletionFailure,
@@ -22,7 +23,6 @@ import type {
   FlueChatResponseMessageStartedEvent,
   FlueChatTransportOptions,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
 
 export type BrunchPanelAdmission = Parameters<

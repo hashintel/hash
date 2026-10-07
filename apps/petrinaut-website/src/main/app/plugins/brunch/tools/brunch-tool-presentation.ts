@@ -6,7 +6,7 @@ import type {
   PetrinautAiToolPresentationContext,
   PetrinautAiToolPresentationResolver,
   PetrinautAiToolPresentationState,
-} from "@hashintel/petrinaut/ui";
+} from "../../_shared/chat/tool-presentation";
 
 /**
  * Visible ordinary tools mirrored from the Brunch browser catalogue. The

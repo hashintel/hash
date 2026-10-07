@@ -15,9 +15,9 @@ import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
 import { VoiceTurnController } from "./voice-turn-controller";
 
+import type { PetrinautAiMessage } from "../../_shared/chat/ai-message";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const origin = "https://petrinaut.test";
 const browserOffer = "v=0\r\na=private-browser-sdp\r\n";

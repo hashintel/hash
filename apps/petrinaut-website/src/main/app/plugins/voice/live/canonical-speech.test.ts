@@ -6,7 +6,7 @@ import {
   selectCanonicalSpeechSegments,
 } from "./canonical-speech";
 
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiMessage } from "../../_shared/chat/ai-message";
 
 const select = (messages: PetrinautAiMessage[]) =>
   selectCanonicalSpeechSegments(messages);

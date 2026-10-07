@@ -8,7 +8,7 @@ import {
   type EditorDraft,
 } from "./shared/brunch-draft-experiment-drafts";
 
-import type { PetrinautAiComposerControlContext } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiComposerControlContext } from "../../_shared/chat/composer-control";
 
 const sendResults = (
   drafts: ReturnType<typeof editorDraftsFor>,

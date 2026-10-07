@@ -7,16 +7,14 @@ import {
   resolvePetrinautHandleCapabilities,
   type PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
-import {
-  executePetrinautAiMutation,
-  type PetrinautAiAutomaticTool,
-} from "@hashintel/petrinaut/ui";
 
+import { executePetrinautAiMutation } from "../../_shared/chat/apply-petrinaut-ai-mutation";
 import {
   type DocumentRevision,
   documentRevisionOf,
 } from "./shared/document-revision";
 
+import type { PetrinautAiAutomaticTool } from "../../_shared/chat/automatic-tool";
 import type { FlueConversationState } from "@flue/sdk";
 
 interface DocumentRevisionMetadata {
@@ -140,7 +138,8 @@ export const createCanonicalPetrinautHostTools = (
     toolName: getLatestNetDefinitionToolName,
     inputSchema: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
     outputSchema: passthrough,
-    execute: ({ toolCallId, handle }) => {
+    execute: ({ toolCallId }) => {
+      const { handle } = input;
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;
       if (input.replayReadiness.status === "pending")
@@ -186,7 +185,8 @@ export const createCanonicalPetrinautHostTools = (
     toolName,
     inputSchema: mutationActionInputSchemas[toolName],
     outputSchema: passthrough,
-    execute: ({ toolCallId, input: rawInput, handle, mutations }) => {
+    execute: ({ toolCallId, input: rawInput, edit }) => {
+      const { handle } = input;
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;
       if (input.replayReadiness.status === "pending")
@@ -218,7 +218,7 @@ export const createCanonicalPetrinautHostTools = (
       const output = executePetrinautAiMutation({
         aiToolCall,
         getDefinition: definition,
-        mutations,
+        edit,
       });
       started.set(toolCallId, { toolName, input: parsed, output });
       return output;
