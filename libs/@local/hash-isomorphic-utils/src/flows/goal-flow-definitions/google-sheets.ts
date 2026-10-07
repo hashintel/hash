@@ -1,7 +1,7 @@
 import type {
   AiFlowActionDefinitionId,
-  InputNameForAiFlowAction,
-  OutputNameForAiFlowAction,
+  InputNameForFlowAction,
+  OutputNameForFlowAction,
 } from "../action-definitions.js";
 import type { FlowDefinition } from "../types.js";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
@@ -30,7 +30,7 @@ export const googleSheetStep = {
   inputSources: [
     {
       inputName:
-        "audience" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+        "audience" satisfies InputNameForFlowAction<"writeGoogleSheet">,
       kind: "hardcoded",
       payload: {
         kind: "ActorType",
@@ -39,25 +39,25 @@ export const googleSheetStep = {
     },
     {
       inputName:
-        "googleAccountId" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+        "googleAccountId" satisfies InputNameForFlowAction<"writeGoogleSheet">,
       kind: "step-output",
       sourceStepId: "trigger",
       sourceStepOutputName: "Google Account" satisfies GoogleSheetTriggerInput,
     },
     {
       inputName:
-        "googleSheet" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+        "googleSheet" satisfies InputNameForFlowAction<"writeGoogleSheet">,
       kind: "step-output",
       sourceStepId: "trigger",
       sourceStepOutputName: "Google Sheet" satisfies GoogleSheetTriggerInput,
     },
     {
       inputName:
-        "dataToWrite" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+        "dataToWrite" satisfies InputNameForFlowAction<"writeGoogleSheet">,
       kind: "step-output",
       sourceStepId: "2",
       sourceStepOutputName:
-        "persistedEntities" satisfies OutputNameForAiFlowAction<"persistEntities">,
+        "persistedEntities" satisfies OutputNameForFlowAction<"persistEntities">,
     },
   ],
 } satisfies DistributiveOmit<
@@ -67,7 +67,7 @@ export const googleSheetStep = {
 
 export const googleSheetDeliverable = {
   stepOutputName:
-    "googleSheetEntity" satisfies OutputNameForAiFlowAction<"writeGoogleSheet">,
+    "googleSheetEntity" satisfies OutputNameForFlowAction<"writeGoogleSheet">,
   payloadKind: "PersistedEntityMetadata",
   name: "googleSheetEntity" as const,
   array: false,

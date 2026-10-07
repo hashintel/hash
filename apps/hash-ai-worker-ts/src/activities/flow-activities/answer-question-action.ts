@@ -8,7 +8,7 @@ import {
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
   almostFullOntologyResolveDepths,
@@ -31,7 +31,7 @@ import { openAiSeed } from "../shared/open-ai-seed.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
-import type { AiActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { FlowActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { FormattedText } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
 import type { OpenAI } from "openai";
@@ -164,7 +164,7 @@ const callModel = async (
   iteration: number,
 ): Promise<
   Status<{
-    outputs: AiActionStepOutput<"answerQuestion">[];
+    outputs: FlowActionStepOutput<"answerQuestion">[];
   }>
 > => {
   const { flowEntityId, userAuthentication, stepId, webId } =
@@ -230,7 +230,7 @@ const callModel = async (
         const { answer, confidence } = parsedArguments;
         explanation = parsedArguments.explanation;
 
-        const outputs: AiActionStepOutput<"answerQuestion">[] = [];
+        const outputs: FlowActionStepOutput<"answerQuestion">[] = [];
         if (answer) {
           outputs.push({
             outputName: "answer",
@@ -337,7 +337,7 @@ const callModel = async (
   }
 
   if (iteration > maximumIterations) {
-    const outputs: AiActionStepOutput<"answerQuestion">[] = [];
+    const outputs: FlowActionStepOutput<"answerQuestion">[] = [];
     if (explanation) {
       outputs.push({
         outputName: "explanation",
@@ -406,7 +406,7 @@ export const answerQuestionAction: AiFlowActionActivity<
     context,
     entities: entitiesInput,
     question,
-  } = getSimplifiedAiFlowActionInputs({
+  } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "answerQuestion",
   });

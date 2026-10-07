@@ -1,6 +1,6 @@
 import dedent from "dedent";
 
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -12,8 +12,8 @@ import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthrop
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import type {
-  AiActionStepOutput,
-  InputNameForAiFlowAction,
+  FlowActionStepOutput,
+  InputNameForFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
 export type DashboardRefinementScope = "query" | "analysis" | "chart" | "none";
@@ -41,7 +41,7 @@ const tools: LlmToolDefinition<"submit_refinement_plan">[] = [
   },
 ];
 
-type ActionOutputs = AiActionStepOutput<"planDashboardRefinement">[];
+type ActionOutputs = FlowActionStepOutput<"planDashboardRefinement">[];
 
 export const planDashboardRefinementAction: AiFlowActionActivity<
   "planDashboardRefinement"
@@ -53,11 +53,11 @@ export const planDashboardRefinementAction: AiFlowActionActivity<
     existingPythonScript,
     existingChartType,
     existingChartConfig,
-  } = getSimplifiedAiFlowActionInputs({
+  } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "planDashboardRefinement",
   }) as {
-    [Key in InputNameForAiFlowAction<"planDashboardRefinement">]: string;
+    [Key in InputNameForFlowAction<"planDashboardRefinement">]: string;
   };
 
   const { userAuthentication, stepId, flowEntityId, webId } =

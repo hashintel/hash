@@ -1,7 +1,7 @@
 import { backOff } from "exponential-backoff";
 
 import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { logger } from "../shared/activity-logger.js";
@@ -27,7 +27,7 @@ const mapWebSearchResults = (
 export const webSearchAction: AiFlowActionActivity<"webSearch"> = async ({
   inputs,
 }) => {
-  const { query, numberOfSearchResults } = getSimplifiedAiFlowActionInputs({
+  const { query, numberOfSearchResults } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "webSearch",
   });

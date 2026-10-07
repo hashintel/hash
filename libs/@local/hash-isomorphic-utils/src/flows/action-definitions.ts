@@ -2,6 +2,7 @@ import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
   ActionDefinition,
   DeepReadOnly,
+  FlowActionDefinitionId,
   PayloadKind,
   PayloadValue,
   StepInput,
@@ -965,150 +966,73 @@ export const actionDefinitions = {
   ...integrationActionDefinitions,
 };
 
-export type InputNameForAiFlowAction<
-  T extends keyof typeof aiFlowActionDefinitionsAsConst,
-> = (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number]["name"];
-
-export type OutputNameForAiFlowAction<
-  T extends keyof typeof aiFlowActionDefinitionsAsConst,
-> = (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number]["name"];
-
-export type InputPayloadKindForAiFlowAction<
-  T extends AiFlowActionDefinitionId,
-  N extends InputNameForAiFlowAction<T>,
-> = Extract<
-  (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-  { name: N }
->["oneOfPayloadKinds"][number];
-
-export type InputNameForIntegrationFlowAction<
-  T extends keyof typeof integrationFlowActionDefinitionsAsConst,
-> =
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number]["name"];
-
-export type OutputNameForIntegrationFlowAction<
-  T extends keyof typeof integrationFlowActionDefinitionsAsConst,
-> =
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["outputs"][number]["name"];
-
-export type InputPayloadKindForIntegrationFlowAction<
-  T extends IntegrationFlowActionDefinitionId,
-  N extends InputNameForIntegrationFlowAction<T>,
-> = Extract<
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-  { name: N }
->["oneOfPayloadKinds"][number];
-
-export type OutputPayloadKindForAiFlowAction<
-  T extends AiFlowActionDefinitionId,
-  N extends OutputNameForAiFlowAction<T>,
-> = Extract<
-  (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number],
-  { name: N }
->["payloadKind"];
-
-type AiFlowInputPayloadType<
-  T extends AiFlowActionDefinitionId,
-  N extends InputNameForAiFlowAction<T>,
-> =
-  Extract<
-    (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-    { name: N }
-  > extends { required: true; array: true }
-    ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true>
-    : Extract<
-          (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-          { name: N }
-        > extends { required: false; array: true }
-      ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true> | undefined
-      : Extract<
-            (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-            { name: N }
-          > extends { required: true; array: false }
-        ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
-        :
-            | PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
-            | undefined;
-
-type SimplifiedActionInputsObject<T extends AiFlowActionDefinitionId> = {
-  [N in InputNameForAiFlowAction<T>]: AiFlowInputPayloadType<T, N>;
+/**
+ * Every action definition with its literal types preserved: input and output names, payload kinds, and the
+ * `array`, `required` and `default` flags. Use this where the types matter (e.g. the typed flow builder), and
+ * {@link actionDefinitions} for lookups by an id that is only known at runtime.
+ */
+export const typedActionDefinitions = {
+  ...aiFlowActionDefinitionsAsConst,
+  ...integrationFlowActionDefinitionsAsConst,
 };
 
-export const getSimplifiedAiFlowActionInputs = <
-  T extends AiFlowActionDefinitionId,
+export type TypedActionDefinitions = typeof typedActionDefinitions;
+
+type InputDefinitionForFlowAction<T extends FlowActionDefinitionId> =
+  TypedActionDefinitions[T]["inputs"][number];
+
+type OutputDefinitionForFlowAction<T extends FlowActionDefinitionId> =
+  TypedActionDefinitions[T]["outputs"][number];
+
+export type InputNameForFlowAction<T extends FlowActionDefinitionId> =
+  InputDefinitionForFlowAction<T>["name"];
+
+export type OutputNameForFlowAction<T extends FlowActionDefinitionId> =
+  OutputDefinitionForFlowAction<T>["name"];
+
+type InputPayloadKindForFlowAction<
+  T extends FlowActionDefinitionId,
+  N extends InputNameForFlowAction<T>,
+> = Extract<
+  InputDefinitionForFlowAction<T>,
+  { name: N }
+>["oneOfPayloadKinds"][number];
+
+type FlowActionInputPayloadType<
+  T extends FlowActionDefinitionId,
+  N extends InputNameForFlowAction<T>,
+> =
+  Extract<InputDefinitionForFlowAction<T>, { name: N }> extends {
+    array: infer A extends boolean;
+    required: infer R extends boolean;
+  }
+    ?
+        | PayloadValue<InputPayloadKindForFlowAction<T, N>, A>
+        | (R extends true ? never : undefined)
+    : never;
+
+type SimplifiedFlowActionInputsObject<T extends FlowActionDefinitionId> = {
+  [N in InputNameForFlowAction<T>]: FlowActionInputPayloadType<T, N>;
+};
+
+export const getSimplifiedFlowActionInputs = <
+  T extends FlowActionDefinitionId,
 >(params: {
   inputs: StepInput[];
   actionType: T;
-}): SimplifiedActionInputsObject<T> => {
+}): SimplifiedFlowActionInputsObject<T> => {
   const { inputs } = params;
 
   return inputs.reduce((acc, input) => {
-    const inputName = input.inputName as InputNameForAiFlowAction<T>;
+    const inputName = input.inputName as InputNameForFlowAction<T>;
 
-    acc[inputName] = input.payload.value as AiFlowInputPayloadType<
+    acc[inputName] = input.payload.value as FlowActionInputPayloadType<
       T,
       typeof inputName
     >;
 
     return acc;
-  }, {} as SimplifiedActionInputsObject<T>);
-};
-
-type IntegrationFlowInputPayloadType<
-  T extends IntegrationFlowActionDefinitionId,
-  N extends InputNameForIntegrationFlowAction<T>,
-> =
-  Extract<
-    (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-    { name: N }
-  > extends { required: true; array: true }
-    ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
-    : Extract<
-          (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-          { name: N }
-        > extends { required: false; array: true }
-      ?
-          | PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
-          | undefined
-      : Extract<
-            (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-            { name: N }
-          > extends { required: true; array: false }
-        ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, false>
-        :
-            | PayloadValue<
-                InputPayloadKindForIntegrationFlowAction<T, N>,
-                false
-              >
-            | undefined;
-
-type SimplifiedIntegrationActionInputsObject<
-  T extends IntegrationFlowActionDefinitionId,
-> = {
-  [N in InputNameForIntegrationFlowAction<T>]: IntegrationFlowInputPayloadType<
-    T,
-    N
-  >;
-};
-
-export const getSimplifiedIntegrationFlowActionInputs = <
-  T extends IntegrationFlowActionDefinitionId,
->(params: {
-  inputs: StepInput[];
-  actionType: T;
-}): SimplifiedIntegrationActionInputsObject<T> => {
-  const { inputs } = params;
-
-  return inputs.reduce((acc, input) => {
-    const inputName = input.inputName as InputNameForIntegrationFlowAction<T>;
-
-    acc[inputName] = input.payload.value as IntegrationFlowInputPayloadType<
-      T,
-      typeof inputName
-    >;
-
-    return acc;
-  }, {} as SimplifiedIntegrationActionInputsObject<T>);
+  }, {} as SimplifiedFlowActionInputsObject<T>);
 };
 
 /**
@@ -1141,18 +1065,7 @@ type ActionStepOutput<
   : never;
 
 /**
- * Get the union of all typed StepOutput types for a given AI flow action.
+ * Get the union of all typed StepOutput types for a given flow action.
  */
-export type AiActionStepOutput<T extends AiFlowActionDefinitionId> =
-  ActionStepOutput<
-    (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number]
-  >;
-
-/**
- * Get the union of all typed StepOutput types for a given integration flow action.
- */
-export type IntegrationActionStepOutput<
-  T extends IntegrationFlowActionDefinitionId,
-> = ActionStepOutput<
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["outputs"][number]
->;
+export type FlowActionStepOutput<T extends FlowActionDefinitionId> =
+  ActionStepOutput<OutputDefinitionForFlowAction<T>>;

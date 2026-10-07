@@ -6,7 +6,7 @@ import {
   getStorageProvider,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
@@ -53,7 +53,7 @@ export const inferMetadataFromDocumentAction: AiFlowActionActivity<
     workflowId,
   } = await getFlowContext();
 
-  const { documentEntityId } = getSimplifiedAiFlowActionInputs({
+  const { documentEntityId } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "inferMetadataFromDocument",
   });

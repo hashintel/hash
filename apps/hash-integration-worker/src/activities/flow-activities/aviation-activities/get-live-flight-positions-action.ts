@@ -16,7 +16,7 @@ import {
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getFlightPositionProperties } from "@local/hash-backend-utils/integrations/aviation/flightradar24/client";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -109,7 +109,7 @@ export const createGetLiveFlightPositionsAction = ({
         await getFlowContext({ graphApiClient });
 
       const { persistedEntities: persistedEntitiesInput } =
-        getSimplifiedIntegrationFlowActionInputs({
+        getSimplifiedFlowActionInputs({
           inputs,
           actionType: "getLiveFlightPositions",
         });

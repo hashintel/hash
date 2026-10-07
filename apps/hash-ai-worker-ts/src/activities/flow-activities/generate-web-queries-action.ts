@@ -1,7 +1,7 @@
 import dedent from "dedent";
 
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -45,7 +45,7 @@ type ProposeQueryFunctionCallArguments = {
 export const generateWebQueriesAction: AiFlowActionActivity<
   "generateWebQueries"
 > = async ({ inputs }) => {
-  const { prompt, model } = getSimplifiedAiFlowActionInputs({
+  const { prompt, model } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "generateWebQueries",
   });

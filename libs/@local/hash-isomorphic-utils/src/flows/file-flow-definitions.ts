@@ -1,7 +1,7 @@
 import type {
   AiFlowActionDefinitionId,
-  InputNameForAiFlowAction,
-  OutputNameForAiFlowAction,
+  InputNameForFlowAction,
+  OutputNameForFlowAction,
 } from "./action-definitions.js";
 import type { FlowDefinition } from "./types.js";
 import type { EntityUuid } from "@blockprotocol/type-system";
@@ -121,7 +121,7 @@ export const inferMetadataFromDocumentFlowDefinition: FlowDefinition<AiFlowActio
         inputSources: [
           {
             inputName:
-              "documentEntityId" satisfies InputNameForAiFlowAction<"inferMetadataFromDocument">,
+              "documentEntityId" satisfies InputNameForFlowAction<"inferMetadataFromDocument">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "fileEntityId",
@@ -136,11 +136,11 @@ export const inferMetadataFromDocumentFlowDefinition: FlowDefinition<AiFlowActio
         inputSources: [
           {
             inputName:
-              "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
+              "proposedEntities" satisfies InputNameForFlowAction<"persistEntities">,
             kind: "step-output",
             sourceStepId: "1",
             sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForAiFlowAction<"inferMetadataFromDocument">,
+              "proposedEntities" satisfies OutputNameForFlowAction<"inferMetadataFromDocument">,
           },
         ],
       },

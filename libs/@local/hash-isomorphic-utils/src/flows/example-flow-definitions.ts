@@ -1,7 +1,7 @@
 import type {
   AiFlowActionDefinitionId,
-  InputNameForAiFlowAction,
-  OutputNameForAiFlowAction,
+  InputNameForFlowAction,
+  OutputNameForFlowAction,
 } from "./action-definitions.js";
 import type { FlowDefinition } from "./types.js";
 import type { EntityUuid } from "@blockprotocol/type-system";
@@ -78,14 +78,14 @@ export const researchTaskFlowDefinition: FlowDefinition<AiFlowActionDefinitionId
         inputSources: [
           {
             inputName:
-              "prompt" satisfies InputNameForAiFlowAction<"researchEntities">,
+              "prompt" satisfies InputNameForFlowAction<"researchEntities">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Research guidance",
           },
           {
             inputName:
-              "entityTypeIds" satisfies InputNameForAiFlowAction<"researchEntities">,
+              "entityTypeIds" satisfies InputNameForFlowAction<"researchEntities">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Entity Types",
@@ -101,15 +101,15 @@ export const researchTaskFlowDefinition: FlowDefinition<AiFlowActionDefinitionId
         inputSources: [
           {
             inputName:
-              "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
+              "proposedEntities" satisfies InputNameForFlowAction<"persistEntities">,
             kind: "step-output",
             sourceStepId: "1",
             sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
+              "proposedEntities" satisfies OutputNameForFlowAction<"researchEntities">,
           },
           {
             inputName:
-              "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
+              "draft" satisfies InputNameForFlowAction<"persistEntities">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Create as draft",
@@ -125,18 +125,18 @@ export const researchTaskFlowDefinition: FlowDefinition<AiFlowActionDefinitionId
         inputSources: [
           {
             inputName:
-              "question" satisfies InputNameForAiFlowAction<"answerQuestion">,
+              "question" satisfies InputNameForFlowAction<"answerQuestion">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Research question",
           },
           {
             inputName:
-              "entities" satisfies InputNameForAiFlowAction<"answerQuestion">,
+              "entities" satisfies InputNameForFlowAction<"answerQuestion">,
             kind: "step-output",
             sourceStepId: "2",
             sourceStepOutputName:
-              "persistedEntities" satisfies OutputNameForAiFlowAction<"persistEntities">,
+              "persistedEntities" satisfies OutputNameForFlowAction<"persistEntities">,
           },
         ],
       },
@@ -149,7 +149,7 @@ export const researchTaskFlowDefinition: FlowDefinition<AiFlowActionDefinitionId
         inputSources: [
           {
             inputName:
-              "audience" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+              "audience" satisfies InputNameForFlowAction<"writeGoogleSheet">,
             kind: "hardcoded",
             payload: {
               kind: "ActorType",
@@ -158,25 +158,25 @@ export const researchTaskFlowDefinition: FlowDefinition<AiFlowActionDefinitionId
           },
           {
             inputName:
-              "googleAccountId" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+              "googleAccountId" satisfies InputNameForFlowAction<"writeGoogleSheet">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Google Account",
           },
           {
             inputName:
-              "googleSheet" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+              "googleSheet" satisfies InputNameForFlowAction<"writeGoogleSheet">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Google Sheet",
           },
           {
             inputName:
-              "dataToWrite" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+              "dataToWrite" satisfies InputNameForFlowAction<"writeGoogleSheet">,
             kind: "step-output",
             sourceStepId: "3",
             sourceStepOutputName:
-              "answer" satisfies OutputNameForAiFlowAction<"answerQuestion">,
+              "answer" satisfies OutputNameForFlowAction<"answerQuestion">,
           },
         ],
       },
@@ -185,7 +185,7 @@ export const researchTaskFlowDefinition: FlowDefinition<AiFlowActionDefinitionId
       {
         stepId: "3",
         stepOutputName:
-          "answer" satisfies OutputNameForAiFlowAction<"answerQuestion">,
+          "answer" satisfies OutputNameForFlowAction<"answerQuestion">,
         payloadKind: "Text",
         name: "answer" as const,
         array: false,
@@ -194,7 +194,7 @@ export const researchTaskFlowDefinition: FlowDefinition<AiFlowActionDefinitionId
       {
         stepId: "4",
         stepOutputName:
-          "googleSheetEntity" satisfies OutputNameForAiFlowAction<"writeGoogleSheet">,
+          "googleSheetEntity" satisfies OutputNameForFlowAction<"writeGoogleSheet">,
         payloadKind: "PersistedEntityMetadata",
         name: "googleSheetEntity" as const,
         array: false,
@@ -269,14 +269,14 @@ export const researchEntitiesFlowDefinition: FlowDefinition<AiFlowActionDefiniti
         inputSources: [
           {
             inputName:
-              "prompt" satisfies InputNameForAiFlowAction<"researchEntities">,
+              "prompt" satisfies InputNameForFlowAction<"researchEntities">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Research guidance",
           },
           {
             inputName:
-              "entityTypeIds" satisfies InputNameForAiFlowAction<"researchEntities">,
+              "entityTypeIds" satisfies InputNameForFlowAction<"researchEntities">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Entity Types",
@@ -292,15 +292,15 @@ export const researchEntitiesFlowDefinition: FlowDefinition<AiFlowActionDefiniti
         inputSources: [
           {
             inputName:
-              "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
+              "proposedEntities" satisfies InputNameForFlowAction<"persistEntities">,
             kind: "step-output",
             sourceStepId: "1",
             sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
+              "proposedEntities" satisfies OutputNameForFlowAction<"researchEntities">,
           },
           {
             inputName:
-              "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
+              "draft" satisfies InputNameForFlowAction<"persistEntities">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Create as draft",
@@ -316,7 +316,7 @@ export const researchEntitiesFlowDefinition: FlowDefinition<AiFlowActionDefiniti
         inputSources: [
           {
             inputName:
-              "audience" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+              "audience" satisfies InputNameForFlowAction<"writeGoogleSheet">,
             kind: "hardcoded",
             payload: {
               kind: "ActorType",
@@ -325,25 +325,25 @@ export const researchEntitiesFlowDefinition: FlowDefinition<AiFlowActionDefiniti
           },
           {
             inputName:
-              "googleAccountId" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+              "googleAccountId" satisfies InputNameForFlowAction<"writeGoogleSheet">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Google Account",
           },
           {
             inputName:
-              "googleSheet" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+              "googleSheet" satisfies InputNameForFlowAction<"writeGoogleSheet">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Google Sheet",
           },
           {
             inputName:
-              "dataToWrite" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+              "dataToWrite" satisfies InputNameForFlowAction<"writeGoogleSheet">,
             kind: "step-output",
             sourceStepId: "2",
             sourceStepOutputName:
-              "persistedEntities" satisfies OutputNameForAiFlowAction<"persistEntities">,
+              "persistedEntities" satisfies OutputNameForFlowAction<"persistEntities">,
           },
         ],
       },
@@ -352,7 +352,7 @@ export const researchEntitiesFlowDefinition: FlowDefinition<AiFlowActionDefiniti
       {
         stepId: "3",
         stepOutputName:
-          "googleSheetEntity" satisfies OutputNameForAiFlowAction<"writeGoogleSheet">,
+          "googleSheetEntity" satisfies OutputNameForFlowAction<"writeGoogleSheet">,
         payloadKind: "PersistedEntityMetadata",
         name: "googleSheetEntity" as const,
         array: false,
@@ -406,7 +406,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
         inputSources: [
           {
             inputName:
-              "prompt" satisfies InputNameForAiFlowAction<"researchEntities">,
+              "prompt" satisfies InputNameForFlowAction<"researchEntities">,
             kind: "hardcoded",
             payload: {
               kind: "Text",
@@ -415,7 +415,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
           },
           {
             inputName:
-              "entityTypeIds" satisfies InputNameForAiFlowAction<"researchEntities">,
+              "entityTypeIds" satisfies InputNameForFlowAction<"researchEntities">,
             kind: "hardcoded",
             payload: {
               kind: "VersionedUrl",
@@ -436,15 +436,15 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
         inputSources: [
           {
             inputName:
-              "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
+              "proposedEntities" satisfies InputNameForFlowAction<"persistEntities">,
             kind: "step-output",
             sourceStepId: "1",
             sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
+              "proposedEntities" satisfies OutputNameForFlowAction<"researchEntities">,
           },
           {
             inputName:
-              "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
+              "draft" satisfies InputNameForFlowAction<"persistEntities">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "draft",
@@ -461,7 +461,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
           kind: "step-output",
           sourceStepId: "2",
           sourceStepOutputName:
-            "persistedEntities" satisfies OutputNameForAiFlowAction<"persistEntities">,
+            "persistedEntities" satisfies OutputNameForFlowAction<"persistEntities">,
         },
         steps: [
           {
@@ -474,7 +474,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
             inputSources: [
               {
                 inputName:
-                  "prompt" satisfies InputNameForAiFlowAction<"researchEntities">,
+                  "prompt" satisfies InputNameForFlowAction<"researchEntities">,
                 kind: "hardcoded",
                 payload: {
                   kind: "Text",
@@ -484,7 +484,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
               },
               {
                 inputName:
-                  "entityTypeIds" satisfies InputNameForAiFlowAction<"researchEntities">,
+                  "entityTypeIds" satisfies InputNameForFlowAction<"researchEntities">,
                 kind: "hardcoded",
                 payload: {
                   kind: "VersionedUrl",
@@ -497,7 +497,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
               },
               {
                 inputName:
-                  "existingEntities" satisfies InputNameForAiFlowAction<"researchEntities">,
+                  "existingEntities" satisfies InputNameForFlowAction<"researchEntities">,
                 kind: "parallel-group-input",
               },
             ],
@@ -512,15 +512,15 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
             inputSources: [
               {
                 inputName:
-                  "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
+                  "proposedEntities" satisfies InputNameForFlowAction<"persistEntities">,
                 kind: "step-output",
                 sourceStepId: "3.1",
                 sourceStepOutputName:
-                  "proposedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
+                  "proposedEntities" satisfies OutputNameForFlowAction<"researchEntities">,
               },
               {
                 inputName:
-                  "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
+                  "draft" satisfies InputNameForFlowAction<"persistEntities">,
                 kind: "step-output",
                 sourceStepId: "trigger",
                 sourceStepOutputName: "draft",
@@ -531,7 +531,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
         aggregateOutput: {
           stepId: "3.2",
           stepOutputName:
-            "persistedEntities" satisfies OutputNameForAiFlowAction<"persistEntities">,
+            "persistedEntities" satisfies OutputNameForFlowAction<"persistEntities">,
           required: true,
           name: "persistedEntities" as const,
           payloadKind: "PersistedEntityMetadata",
@@ -548,18 +548,18 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
         inputSources: [
           {
             inputName:
-              "question" satisfies InputNameForAiFlowAction<"answerQuestion">,
+              "question" satisfies InputNameForFlowAction<"answerQuestion">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "question",
           },
           {
             inputName:
-              "entities" satisfies InputNameForAiFlowAction<"answerQuestion">,
+              "entities" satisfies InputNameForFlowAction<"answerQuestion">,
             kind: "step-output",
             sourceStepId: "3",
             sourceStepOutputName:
-              "persistedEntities" satisfies OutputNameForAiFlowAction<"persistEntities">,
+              "persistedEntities" satisfies OutputNameForFlowAction<"persistEntities">,
           },
         ],
       },
@@ -568,7 +568,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
       {
         stepId: "3",
         stepOutputName:
-          "persistedEntities" satisfies OutputNameForAiFlowAction<"persistEntities">,
+          "persistedEntities" satisfies OutputNameForFlowAction<"persistEntities">,
         name: "persistedEntities" as const,
         payloadKind: "PersistedEntitiesMetadata",
         array: false,
@@ -577,7 +577,7 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
       {
         stepId: "4",
         stepOutputName:
-          "answer" satisfies OutputNameForAiFlowAction<"answerQuestion">,
+          "answer" satisfies OutputNameForFlowAction<"answerQuestion">,
         payloadKind: "Text",
         name: "answer" as const,
         array: false,
@@ -627,7 +627,7 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition<AiFlowAc
         inputSources: [
           {
             inputName:
-              "url" satisfies InputNameForAiFlowAction<"getWebPageByUrl">,
+              "url" satisfies InputNameForFlowAction<"getWebPageByUrl">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "visitedWebPageUrl",
@@ -642,15 +642,15 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition<AiFlowAc
         inputSources: [
           {
             inputName:
-              "content" satisfies InputNameForAiFlowAction<"inferEntitiesFromContent">,
+              "content" satisfies InputNameForFlowAction<"inferEntitiesFromContent">,
             kind: "step-output",
             sourceStepId: "0",
             sourceStepOutputName:
-              "webPage" satisfies OutputNameForAiFlowAction<"getWebPageByUrl">,
+              "webPage" satisfies OutputNameForFlowAction<"getWebPageByUrl">,
           },
           {
             inputName:
-              "entityTypeIds" satisfies InputNameForAiFlowAction<"inferEntitiesFromContent">,
+              "entityTypeIds" satisfies InputNameForFlowAction<"inferEntitiesFromContent">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "entityTypeIds",
@@ -665,15 +665,15 @@ export const inferUserEntitiesFromWebPageFlowDefinition: FlowDefinition<AiFlowAc
         inputSources: [
           {
             inputName:
-              "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
+              "proposedEntities" satisfies InputNameForFlowAction<"persistEntities">,
             kind: "step-output",
             sourceStepId: "1",
             sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForAiFlowAction<"inferEntitiesFromContent">,
+              "proposedEntities" satisfies OutputNameForFlowAction<"inferEntitiesFromContent">,
           },
           {
             inputName:
-              "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
+              "draft" satisfies InputNameForFlowAction<"persistEntities">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "draft",
@@ -744,14 +744,14 @@ export const answerQuestionFlow: FlowDefinition<AiFlowActionDefinitionId> = {
       inputSources: [
         {
           inputName:
-            "question" satisfies InputNameForAiFlowAction<"answerQuestion">,
+            "question" satisfies InputNameForFlowAction<"answerQuestion">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "question",
         },
         {
           inputName:
-            "context" satisfies InputNameForAiFlowAction<"answerQuestion">,
+            "context" satisfies InputNameForFlowAction<"answerQuestion">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "context",
@@ -766,7 +766,7 @@ export const answerQuestionFlow: FlowDefinition<AiFlowActionDefinitionId> = {
       inputSources: [
         {
           inputName:
-            "audience" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+            "audience" satisfies InputNameForFlowAction<"writeGoogleSheet">,
           kind: "hardcoded",
           payload: {
             kind: "ActorType",
@@ -775,25 +775,25 @@ export const answerQuestionFlow: FlowDefinition<AiFlowActionDefinitionId> = {
         },
         {
           inputName:
-            "googleAccountId" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+            "googleAccountId" satisfies InputNameForFlowAction<"writeGoogleSheet">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "Google Account",
         },
         {
           inputName:
-            "googleSheet" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+            "googleSheet" satisfies InputNameForFlowAction<"writeGoogleSheet">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "Google Sheet",
         },
         {
           inputName:
-            "dataToWrite" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+            "dataToWrite" satisfies InputNameForFlowAction<"writeGoogleSheet">,
           kind: "step-output",
           sourceStepId: "1",
           sourceStepOutputName:
-            "answer" satisfies OutputNameForAiFlowAction<"answerQuestion">,
+            "answer" satisfies OutputNameForFlowAction<"answerQuestion">,
         },
       ],
     },
@@ -834,7 +834,7 @@ export const answerQuestionFlow: FlowDefinition<AiFlowActionDefinitionId> = {
     {
       stepId: "2",
       stepOutputName:
-        "googleSheetEntity" satisfies OutputNameForAiFlowAction<"writeGoogleSheet">,
+        "googleSheetEntity" satisfies OutputNameForFlowAction<"writeGoogleSheet">,
       payloadKind: "PersistedEntityMetadata",
       name: "googleSheetEntity" as const,
       array: false,
@@ -882,21 +882,21 @@ export const saveFileFromUrl: FlowDefinition<AiFlowActionDefinitionId> = {
         "Retrieve file from URL, mirror into HASH and create associated entity",
       inputSources: [
         {
-          inputName: "url" satisfies InputNameForAiFlowAction<"getFileFromUrl">,
+          inputName: "url" satisfies InputNameForFlowAction<"getFileFromUrl">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "url",
         },
         {
           inputName:
-            "description" satisfies InputNameForAiFlowAction<"getFileFromUrl">,
+            "description" satisfies InputNameForFlowAction<"getFileFromUrl">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "description",
         },
         {
           inputName:
-            "displayName" satisfies InputNameForAiFlowAction<"getFileFromUrl">,
+            "displayName" satisfies InputNameForFlowAction<"getFileFromUrl">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "displayName",

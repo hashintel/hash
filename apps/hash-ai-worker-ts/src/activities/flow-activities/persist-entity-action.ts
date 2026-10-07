@@ -12,7 +12,7 @@ import {
   HashLinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
@@ -356,7 +356,7 @@ export const persistEntityAction: AiFlowActionActivity<
   "persistEntity"
 > = async ({ inputs }) => {
   const { draft, proposedEntityWithResolvedLinks: proposedEntityInput } =
-    getSimplifiedAiFlowActionInputs({
+    getSimplifiedFlowActionInputs({
       inputs,
       actionType: "persistEntity",
     });

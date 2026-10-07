@@ -23,7 +23,7 @@ import {
   chartTypes,
   type StructuralQueryDefinition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
@@ -43,8 +43,8 @@ import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { EntityTraversalPath, Filter } from "@local/hash-graph-client";
 import type {
-  AiActionStepOutput,
-  InputNameForAiFlowAction,
+  FlowActionStepOutput,
+  InputNameForFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
@@ -610,7 +610,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
  */
 const maximumIterations = 20;
 
-type ActionOutputs = AiActionStepOutput<"generateStructuralQuery">[];
+type ActionOutputs = FlowActionStepOutput<"generateStructuralQuery">[];
 
 export const generateStructuralQueryAction: AiFlowActionActivity<
   "generateStructuralQuery"
@@ -621,11 +621,11 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
     existingStructuralQuery,
     existingChartType,
     refinementScope,
-  } = getSimplifiedAiFlowActionInputs({
+  } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "generateStructuralQuery",
   }) as {
-    [K in InputNameForAiFlowAction<"generateStructuralQuery">]:
+    [K in InputNameForFlowAction<"generateStructuralQuery">]:
       | string
       | undefined;
   };

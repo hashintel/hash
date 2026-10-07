@@ -1,4 +1,4 @@
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { getWebPageActivity } from "../get-web-page-activity.js";
@@ -9,7 +9,7 @@ import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 export const getWebPageByUrlAction: AiFlowActionActivity<
   "getWebPageByUrl"
 > = async ({ inputs }) => {
-  const { url } = getSimplifiedAiFlowActionInputs({
+  const { url } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "getWebPageByUrl",
   });
