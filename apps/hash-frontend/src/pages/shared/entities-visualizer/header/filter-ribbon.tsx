@@ -256,10 +256,10 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       id: "no-filterable-properties",
       text:
         searchTerms.length > 0
-          ? "No matching properties"
+          ? "No matching attributes"
           : availableTypesLoading
-            ? "Loading properties…"
-            : "No filterable properties",
+            ? "Loading attributes…"
+            : "No filterable attributes",
       disabled: true,
       onClick: () => {},
     });
@@ -275,7 +275,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
             onClick: handleAddArchivedFilter,
           } satisfies MenuItem,
         ]),
-    { id: "properties", label: "Properties", items: propertyItems },
+    { id: "properties", label: "Attributes", items: propertyItems },
   ];
 
   const renderPropertyFilterChip = (propertyFilter: PropertyFilter) =>
@@ -347,8 +347,8 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
         <SelectableListSearch
           value={propertySearch}
           onChange={setPropertySearch}
-          placeholder="Search properties"
-          aria-label="Search properties"
+          placeholder="Search attributes"
+          aria-label="Search attributes"
         />
       }
       onAddFilterMenuOpen={(open) => {

@@ -109,7 +109,7 @@ export const typeFilterFieldLabels: Record<TypeFilterField, string> = {
   lastEdited: "Last edited",
   lastEditedBy: "Last edited by",
   inheritsFrom: "Inherits from",
-  hasProperty: "Has property",
+  hasProperty: "Has attribute",
 };
 
 export const getDefaultTypeFilterOperator = (
