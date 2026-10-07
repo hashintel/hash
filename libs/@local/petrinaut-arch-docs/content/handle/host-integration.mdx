@@ -395,18 +395,18 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `readonly`                                                               | Disables editing. ORed with `capabilities.readonly` from the handle.                                                                     |
 | `hideNetManagementControls`                                              | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                    |
 | `existingNets`, `createNewNet`, `loadPetriNet`                           | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                             |
-| `aiAssistant`                                                            | Transport, message store, and interactive tools for the AI assistant panel. Omitting it hides the panel.                                 |
 | `navigation`                                                             | Host-controlled, router-neutral app location. Omitted: Petrinaut keeps its location internally. See Router integration.                  |
 | `presentationProfile`                                                    | `"editor"` (default) or `"review"`, which keeps the full editor but suppresses authoring actions, for read-only example routes.          |
 | `slots`                                                                  | `settingsLabs`: host content rendered after the built-in groups in the Labs settings section.                                            |
 | `simulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
-| `plugins`                                                                | Plugins that add buttons, top-bar items, settings and UI. Define each at module scope.                                                   |
+| `plugins`                                                                | Plugins that add buttons, top-bar items, settings, the AI assistant and UI. Define each at module scope.                                 |
 
 A plugin declares what it adds in a manifest and returns it from a hook the
-editor runs per document; see [Plugins](doc:plugins/overview).
-Wrap `<Petrinaut>` in `ErrorTrackerContext` (exported from
-`@hashintel/petrinaut`) to receive plugin failures and `api.errors.capture`
-calls; without it they are dropped.
+editor runs per document; see [Plugins](doc:plugins/overview). The AI
+assistant comes from a plugin too; see
+[Assistant plugins](doc:plugins/assistants). Wrap `<Petrinaut>` in
+`ErrorTrackerContext` (exported from `@hashintel/petrinaut`) to receive plugin
+failures and `api.errors.capture` calls; without it they are dropped.
 
 ## Capabilities
 

@@ -1,6 +1,6 @@
 # AI Assistant
 
-Petrinaut has an in-app AI assistant that can build a net from a natural-language description, review or revise an existing one, read TypeScript compilation diagnostics, run experiments, and consult its own user-guide pages to answer "how do I ..." questions. The host application controls whether the assistant and its tools are available -- it is enabled on [demo.petrinaut.org](https://demo.petrinaut.org) and may or may not be enabled in other Petrinaut embeds.
+Petrinaut has an in-app AI assistant that can build a net from a natural-language description, review or revise an existing one, read TypeScript compilation diagnostics, run experiments, and consult its own user-guide pages to answer "how do I ..." questions. The assistant comes from a plugin the host application gives the editor, so it is available only where the host provides one -- it is enabled on [demo.petrinaut.org](https://demo.petrinaut.org) and may or may not be enabled in other Petrinaut embeds. When the host provides several, choose one under **User settings → General → AI assistant**.
 
 ## Opening the panel
 
