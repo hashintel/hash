@@ -19,7 +19,8 @@
       "description": "Bump the AI SDK and Flue together; @local/flue-aisdk-transport derives test cases from both and fails a bump until they are reviewed",
       "groupName": "AI SDK and Flue npm packages",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["ai", "/^@ai-sdk\\//", "/^@flue\\//"]
+      "matchPackageNames": ["ai", "/^@ai-sdk\\//", "/^@flue\\//"],
+      "minimumReleaseAge": "14 days"
     }
   ],
   "customManagers": [
