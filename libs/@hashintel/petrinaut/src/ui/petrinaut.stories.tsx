@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 
+import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   sirModel,
@@ -14,8 +15,17 @@ import {
   type SDCPN,
 } from "../main";
 import { PetrinautOptimizationContext } from "../react/optimization-context";
+import { useStoreSelector } from "../react/use-store";
 import { Petrinaut } from "../ui/petrinaut";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
+import {
+  definePetrinautPlugin,
+  type PluginHook,
+} from "./plugins/define-petrinaut-plugin";
+import {
+  describeRefusal,
+  type PluginDocumentReader,
+} from "./plugins/plugin-access";
 import { createStorybookAiTransport } from "./views/Editor/panels/create-storybook-ai-transport";
 
 import type { PetrinautAiMessage } from "./views/Editor/panels/ai-assistant-panel";
@@ -515,6 +525,98 @@ export const HiddenNetManagement: Story = {
         initialTitle={sirModel.title}
         initialDefinition={sirModel.petriNetDefinition}
         hideNetManagementControls="all"
+      />
+    </div>
+  ),
+};
+
+const createCounterPlugin = definePetrinautPlugin({
+  id: "story.counter",
+  name: "Counter",
+  description: "Counts clicks at the end of the top bar.",
+  author: "Storybook",
+  topBarItems: { counter: { place: "top-bar-end" } },
+});
+
+const useCounterPlugin: PluginHook<typeof createCounterPlugin> = () => {
+  const [count, setCount] = useState(0);
+
+  return {
+    topBarItems: {
+      counter: (
+        <Button size="sm" variant="ghost" onClick={() => setCount(count + 1)}>
+          {`Clicked ${count}`}
+        </Button>
+      ),
+    },
+  };
+};
+
+const placeCountStyle = css({ whiteSpace: "nowrap" });
+
+const PlaceCount = ({ document }: { document: PluginDocumentReader }) => {
+  const count = useStoreSelector(document.net, (net) => net.places.length);
+
+  return <span className={placeCountStyle}>{`${count} places`}</span>;
+};
+
+const createNetSummaryPlugin = definePetrinautPlugin({
+  id: "story.net-summary",
+  name: "Net summary",
+  description:
+    "Shows the place count before the title, and lays the net out from the viewport controls.",
+  author: "Storybook",
+  access: { document: "write" },
+  settings: {
+    showCount: {
+      type: "boolean",
+      default: true,
+      label: "Place count",
+      description: "Show the number of places before the title.",
+      section: "viewport",
+    },
+  },
+  buttons: { layout: { label: "Lay out the net", place: "viewport-controls" } },
+  topBarItems: { count: { place: "top-bar-start" } },
+});
+
+const useNetSummaryPlugin: PluginHook<typeof createNetSummaryPlugin> = (
+  api,
+) => ({
+  buttons: {
+    layout: {
+      icon: <Icon name="diagramProject" size="xs" />,
+      onClick: () =>
+        void api.document.edit.applyAutoLayout().then((result) => {
+          if (!result.applied) {
+            api.notifications.add({
+              message: describeRefusal(result.reason),
+              tone: "error",
+            });
+          }
+        }),
+    },
+  },
+  topBarItems: {
+    count: api.settings.get("showCount") ? (
+      <PlaceCount document={api.document} />
+    ) : null,
+  },
+});
+
+const storyPlugins = [
+  createCounterPlugin(useCounterPlugin),
+  createNetSummaryPlugin(useNetSummaryPlugin),
+];
+
+/** Two plugins: see them in User settings → Plugins, and their setting under Viewport. */
+export const WithPlugins: Story = {
+  render: () => (
+    <div style={{ height: "100vh", width: "100vw" }}>
+      <PetrinautStoryProvider
+        plugins={storyPlugins}
+        initialTitle={sirModel.title}
+        initialDefinition={sirModel.petriNetDefinition}
       />
     </div>
   ),
