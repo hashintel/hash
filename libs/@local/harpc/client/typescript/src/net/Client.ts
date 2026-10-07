@@ -41,7 +41,7 @@ export const make = Effect.fn("make")(function* (config?: ClientConfig) {
   return createProto(ClientProto, {
     client,
     config,
-  }) satisfies ClientImpl as Client;
+  }) satisfies ClientImpl;
 });
 
 export const layer = (config?: ClientConfig) =>

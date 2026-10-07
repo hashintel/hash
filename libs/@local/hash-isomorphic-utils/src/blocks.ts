@@ -126,7 +126,7 @@ const transformBlockConfig = ({
     schema: deriveAbsoluteUrl({
       baseUrl,
       path: metadata.schema,
-    }) as VersionedUrl,
+    }),
     source: deriveAbsoluteUrl({ baseUrl, path: metadata.source }),
   };
 };

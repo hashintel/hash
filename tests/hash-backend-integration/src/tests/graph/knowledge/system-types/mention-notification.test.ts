@@ -99,7 +99,7 @@ describe.skip("Page Mention Notification", () => {
 
     occurredInEntity = await createPage(graphContext, authentication, {
       title: "Test Page",
-      webId: triggerUser.accountId as WebId,
+      webId: triggerUser.accountId,
       type: "document",
     });
 
@@ -130,7 +130,7 @@ describe.skip("Page Mention Notification", () => {
         occurredInEntity,
         occurredInText,
         occurredInBlock,
-        webId: recipientUser.accountId as WebId,
+        webId: recipientUser.accountId,
       },
     );
 
@@ -385,7 +385,7 @@ describe.skip("Page Mention Notification", () => {
       { actorId: triggerUser.accountId },
       {
         parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
-        webId: triggerUser.accountId as WebId,
+        webId: triggerUser.accountId,
         textualContent: [
           {
             mentionType: "user",
@@ -535,7 +535,7 @@ describe("Entity Mention Notification", () => {
       {
         triggeredByUser: triggerUser,
         occurredInEntity: recipientUser,
-        webId: recipientUser.accountId as WebId,
+        webId: recipientUser.accountId,
       },
     );
     const outgoingLinks = await getEntityOutgoingLinks(
