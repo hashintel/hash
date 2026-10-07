@@ -23,6 +23,8 @@
     "@typescript/typescript6": "catalog:"
   },
   "devDependencies": {
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxfmt": "0.50.0",

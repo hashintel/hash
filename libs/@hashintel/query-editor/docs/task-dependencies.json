@@ -4,7 +4,8 @@
     "@blockprotocol/graph",
     "@blockprotocol/type-system",
     "@hashintel/design-system",
-    "@local/eslint"
+    "@local/eslint",
+    "@local/tsconfig"
   ],
   "tasks": {
     "fix:eslint": {

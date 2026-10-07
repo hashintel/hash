@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/node": "22.18.13",
     "rimraf": "6.1.3",
     "typescript": "catalog:"

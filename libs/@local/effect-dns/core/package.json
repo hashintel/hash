@@ -7,12 +7,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./*": {
-      "types": "./dist/src/*/index.d.ts",
-      "import": "./dist/src/*/index.js"
+      "types": "./dist/*/index.d.ts",
+      "import": "./dist/*/index.js"
     }
   },
   "scripts": {
@@ -24,6 +24,7 @@
   "devDependencies": {
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/node": "22.18.13",
     "eslint": "9.39.4",
     "rimraf": "6.1.3",

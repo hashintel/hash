@@ -1,8 +1,5 @@
 {
-  "extends": [
-    "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-    "@tsconfig/bases/node22"
-  ],
+  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "include": [
     "tests",
     "codegen.config.ts",
@@ -10,10 +7,9 @@
     "playwright.config.ts"
   ],
   "compilerOptions": {
+    "lib": ["dom", "ESNext"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "target": "ES2024",
-    "types": ["node", "chrome"],
-    "lib": ["dom", "dom.iterable", "ESNext"]
+    "types": ["node", "chrome"]
   }
 }

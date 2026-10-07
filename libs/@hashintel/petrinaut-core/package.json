@@ -108,6 +108,8 @@
   },
   "devDependencies": {
     "@local/petrinaut-optimizer-core": "workspace:*",
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/js-yaml": "^4",
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",

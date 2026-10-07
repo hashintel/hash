@@ -1,12 +1,9 @@
 {
-  "extends": [
-    "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-    "@tsconfig/bases/node22"
-  ],
+  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "include": ["src", "eslint.config.js", "vitest.config.ts"],
   "compilerOptions": {
+    "checkJs": true,
     "lib": ["ES2024"],
-    "moduleResolution": "NodeNext",
-    "target": "ES2024"
+    "moduleResolution": "NodeNext"
   }
 }

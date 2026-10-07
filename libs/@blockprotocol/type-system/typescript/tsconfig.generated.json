@@ -1,11 +1,9 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
   "include": ["src/generated/**/*.d.ts"],
   "compilerOptions": {
     "lib": ["DOM", "ES2024"],
     "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "skipLibCheck": false,
-    "types": []
+    "skipLibCheck": false
   }
 }

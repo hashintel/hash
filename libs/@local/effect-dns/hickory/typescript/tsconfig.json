@@ -1,7 +1,7 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "module": "NodeNext",
+    "lib": ["ES2024"],
     "moduleResolution": "nodenext",
     "types": ["vitest/importMeta"],
     "rootDirs": ["src", "dist"]

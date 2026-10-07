@@ -33,7 +33,9 @@
     "test:unit": "vitest"
   },
   "devDependencies": {
+    "@local/tsconfig": "workspace:*",
     "@storybook/react-vite": "10.4.6",
+    "@tsconfig/bases": "catalog:",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",

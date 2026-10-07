@@ -24,6 +24,7 @@
   "devDependencies": {
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/node": "22.18.13",
     "eslint": "9.39.4",
     "react": "19.2.6",

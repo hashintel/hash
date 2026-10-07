@@ -1,7 +1,8 @@
 {
   "package": "@hashintel/petrinaut-core",
   "dependencies": [
-    "@local/petrinaut-optimizer-core"
+    "@local/petrinaut-optimizer-core",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {
