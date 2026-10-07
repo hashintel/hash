@@ -52,7 +52,11 @@ const withoutFields = (
 /** JSON with object keys sorted, so key order never changes the result. */
 const canonicalJson = (value: unknown): string => {
   if (Array.isArray(value)) {
-    return `[${value.map((item) => (item === undefined ? "null" : canonicalJson(item))).join(",")}]`;
+    // `Array.from` visits holes, which JSON writes as `null` like `undefined`.
+    const items = Array.from(value, (item: unknown) =>
+      item === undefined ? "null" : canonicalJson(item),
+    );
+    return `[${items.join(",")}]`;
   }
   if (typeof value !== "object" || value === null) {
     return JSON.stringify(value);

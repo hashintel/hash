@@ -75,6 +75,11 @@ describe("hashPetrinautDocument", () => {
     expect(
       hashPetrinautDocument(JSON.parse(JSON.stringify(net)) as SDCPN),
     ).toBe(hashPetrinautDocument(net));
+
+    const sparse: SDCPN = { ...net, metadata: { values: new Array(1) } };
+    expect(
+      hashPetrinautDocument(JSON.parse(JSON.stringify(sparse)) as SDCPN),
+    ).toBe(hashPetrinautDocument(sparse));
   });
 
   it("changes with what the net simulates, whatever is excluded", () => {
