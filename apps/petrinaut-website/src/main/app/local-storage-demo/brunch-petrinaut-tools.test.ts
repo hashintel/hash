@@ -45,11 +45,6 @@ const place = {
   y: 0,
   targetSubnetId: null,
 };
-const binding = {
-  documentId: "document",
-  incarnationId: "incarnation",
-  conversationId: "conversation",
-};
 const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
@@ -58,13 +53,10 @@ const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
       capabilities: { disabledExtensions: [] },
     }),
   });
-  const settleRevision = vi.fn(async () => undefined);
   const adapter = createCanonicalPetrinautHostTools({
     handle: instance.handle,
-    binding,
     readTitle: () => "Untitled",
     replayReadiness: { status: "ready", replay },
-    settleRevision,
   });
   const tool = (name: string) => {
     const found = adapter.tools.find(
@@ -91,21 +83,20 @@ const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
     if (!definition) throw new Error("The test document is unavailable.");
     return documentRevisionOf(definition);
   };
-  return { adapter, instance, settleRevision, tool, params, revision };
+  return { adapter, instance, tool, params, revision };
 };
 
 describe("canonical browser revision attribution", () => {
-  test("returns the canonical read unchanged with the revision it observed", async () => {
+  test("returns the canonical read unchanged with the revision it observed", () => {
     const { adapter, tool, params } = setup();
     const output = tool("getLatestNetDefinition").execute(params({}, "read"));
     expect(output).toMatchObject({ title: "Untitled", definition: emptyNet });
-    expect(await adapter.clientToolResultMetadataFor("read", output)).toEqual({
+    expect(adapter.clientToolResultMetadataFor("read", output)).toEqual({
       documentRevision: { before: documentRevisionOf(emptyNet) },
     });
   });
-  test("settles an applied mutation once and leaves a no-op at its prior revision", async () => {
-    const { adapter, instance, settleRevision, tool, params, revision } =
-      setup();
+  test("stamps an applied mutation with its new revision and leaves a no-op at its prior revision", () => {
+    const { adapter, instance, tool, params, revision } = setup();
     const before = revision();
     adapter.mapClientToolInput({
       toolName: "addPlace",
@@ -116,12 +107,8 @@ describe("canonical browser revision attribution", () => {
     expect(applied).not.toMatchObject({ applied: false });
     const after = revision();
     expect(after).not.toBe(before);
-    expect(
-      await adapter.clientToolResultMetadataFor("create", applied),
-    ).toEqual({ documentRevision: { before, after } });
-    expect(settleRevision).toHaveBeenCalledWith({
-      documentId: "document",
-      revision: after,
+    expect(adapter.clientToolResultMetadataFor("create", applied)).toEqual({
+      documentRevision: { before, after },
     });
     adapter.mapClientToolInput({
       toolName: "addPlace",
@@ -133,10 +120,9 @@ describe("canonical browser revision attribution", () => {
       mutations: { ...instance.mutations, addPlace: () => undefined },
     });
     expect(noop).toMatchObject({ applied: false });
-    expect(await adapter.clientToolResultMetadataFor("noop", noop)).toEqual({
+    expect(adapter.clientToolResultMetadataFor("noop", noop)).toEqual({
       documentRevision: { before: after },
     });
-    expect(settleRevision).toHaveBeenCalledOnce();
   });
   test("history blocks an uncertain write rather than retrying it", async () => {
     const snapshot = {

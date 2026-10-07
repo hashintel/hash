@@ -4,11 +4,8 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { documentRevisionOf } from "../../shared/document-revision";
 import { startEmptyNetInStorage } from "../../use-local-storage-sdcpns";
 import { useLocalDocumentRepository } from "./use-local-document-repository";
-
-import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const emptyDefinition = {
   places: [],
@@ -16,21 +13,6 @@ const emptyDefinition = {
   types: [],
   parameters: [],
   differentialEquations: [],
-};
-
-const placedDefinition: SDCPN = {
-  ...emptyDefinition,
-  places: [
-    {
-      id: "place-1",
-      name: "Place",
-      x: 0,
-      y: 0,
-      colorId: null,
-      dynamicsEnabled: false,
-      differentialEquationId: null,
-    },
-  ],
 };
 
 const stubStorage = (initial?: Record<string, unknown>) => {
@@ -264,8 +246,8 @@ describe("useLocalDocumentRepository", () => {
     });
   });
 
-  test("settles the content revision of the stored definition immediately", async () => {
-    stubStorage({
+  test("writes an accepted revision to storage before persistRevision resolves", () => {
+    const storage = stubStorage({
       "document-1": {
         id: "document-1",
         incarnationId: "incarnation-1",
@@ -279,85 +261,20 @@ describe("useLocalDocumentRepository", () => {
       useLocalDocumentRepository({ onOpen: vi.fn() }),
     );
 
-    await expect(
-      result.current.repository.settleRevision({
-        documentId: "document-1",
-        revision: documentRevisionOf(emptyDefinition),
-      }),
-    ).resolves.toBeUndefined();
-  });
-
-  test("rejects settlement of a revision that has not been persisted", async () => {
-    stubStorage({
-      "document-1": {
-        id: "document-1",
-        incarnationId: "incarnation-1",
-        revisionId: "revision-1",
-        title: "Before",
-        sdcpn: emptyDefinition,
-        lastUpdated: new Date(0).toISOString(),
-      },
-    });
-    const { result } = renderHook(() =>
-      useLocalDocumentRepository({ onOpen: vi.fn() }),
-    );
-
-    await expect(
-      result.current.repository.settleRevision({
-        documentId: "document-1",
-        revision: documentRevisionOf(placedDefinition),
-      }),
-    ).rejects.toThrow(
-      `Local document document-1 has not persisted revision ${documentRevisionOf(placedDefinition)}.`,
-    );
-  });
-
-  test("settles the content revision of the definition persistRevision just wrote and no other", async () => {
-    stubStorage({
-      "document-1": {
-        id: "document-1",
-        incarnationId: "incarnation-1",
-        revisionId: "revision-1",
-        title: "Before",
-        sdcpn: emptyDefinition,
-        lastUpdated: new Date(0).toISOString(),
-      },
-    });
-    const { result } = renderHook(() =>
-      useLocalDocumentRepository({ onOpen: vi.fn() }),
-    );
-    const { repository } = result.current;
-
-    // The repository read before the write has not re-rendered with it, so
-    // settlement must see the write the moment `persistRevision` makes it.
-    await act(async () => {
-      await repository.persistRevision({
+    // Brunch reports a call's `after` revision as soon as the call returns,
+    // so the write lands synchronously inside the change.
+    act(() => {
+      void result.current.repository.persistRevision({
         documentId: "document-1",
         incarnationId: "incarnation-1",
-        definition: placedDefinition,
+        definition: emptyDefinition,
         previousRevisionId: "revision-1",
         revisionId: "revision-2",
       });
-      await expect(
-        repository.settleRevision({
-          documentId: "document-1",
-          revision: documentRevisionOf(placedDefinition),
-        }),
-      ).resolves.toBeUndefined();
+      expect(
+        JSON.parse(storage.getItem("petrinaut-sdcpn") ?? "{}"),
+      ).toMatchObject({ "document-1": { revisionId: "revision-2" } });
     });
-
-    await expect(
-      result.current.repository.settleRevision({
-        documentId: "document-1",
-        revision: documentRevisionOf(emptyDefinition),
-      }),
-    ).rejects.toThrow("has not persisted revision");
-    await expect(
-      result.current.repository.settleRevision({
-        documentId: "document-1",
-        revision: documentRevisionOf(placedDefinition),
-      }),
-    ).resolves.toBeUndefined();
   });
 });
 

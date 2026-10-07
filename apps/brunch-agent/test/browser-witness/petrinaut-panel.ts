@@ -72,7 +72,7 @@ const assertContentRevision = (revision: string | undefined) => {
   assert.match(revision ?? "", /^[0-9a-f]{64}$/u);
 };
 
-/** Canonical construction and compiler diagnostics, settled into browser storage and Flue history. */
+/** Canonical construction and compiler diagnostics, written to browser storage and Flue history. */
 const canonicalConstruction = async () => {
   const dirtyCode = "return definitelyNotDefined;";
   const repairedCode = "return tokens.map(({ level }) => ({ level: -level }));";

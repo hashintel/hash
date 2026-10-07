@@ -1,4 +1,3 @@
-import type { DocumentRevision } from "../shared/document-revision";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 /** Identifies one write of a stored record; each write names its predecessor. */
@@ -39,14 +38,6 @@ export interface DocumentRepository {
     readonly definition: SDCPN;
     readonly previousRevisionId: RecordRevisionId;
     readonly revisionId: RecordRevisionId;
-  }): Promise<void>;
-  /**
-   * Resolves when the definition last persisted for the document has
-   * `revision` as its content revision, and rejects otherwise.
-   */
-  settleRevision(input: {
-    readonly documentId: string;
-    readonly revision: DocumentRevision;
   }): Promise<void>;
 }
 
