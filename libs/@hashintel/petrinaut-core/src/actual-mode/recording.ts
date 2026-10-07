@@ -1,4 +1,4 @@
-import { canonicalizePetrinautIds } from "../petrinaut-id";
+import { normalizeSDCPN } from "../types/sdcpn-input";
 import { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
 import { actualModeRecordingSchema } from "./schemas";
 import { parseRequiredActualModeTimestampMs } from "./time";
@@ -52,7 +52,8 @@ export const parseActualModeRecording = (
   const recording = actualModeRecordingSchema.parse(data);
   return {
     ...recording,
-    definition: canonicalizePetrinautIds(recording.definition),
+    // The schema accepts omitted collections; normalizing fills them and converts ids.
+    definition: normalizeSDCPN(recording.definition),
   };
 };
 

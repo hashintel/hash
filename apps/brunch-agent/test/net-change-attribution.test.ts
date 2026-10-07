@@ -63,4 +63,6 @@ test("a change is attributed by the element kinds its canonical tool targets, no
 
 test("a change written with the model's own ids is attributed to the converted element the document holds", () => {
   expect(attributed("type", toPetrinautId("customer"))).toEqual(["element"]);
+  // Only values under id keys convert, so the element type `real` names no type.
+  expect(attributed("type", toPetrinautId("real"))).toEqual([]);
 });

@@ -123,6 +123,21 @@ describe("Actual mode recordings", () => {
     ]);
   });
 
+  it("fills the collections a recorded definition omits", () => {
+    const parsed = parseActualModeRecording({
+      version: 1,
+      exportedAt: "2026-06-05T10:01:00.000Z",
+      title: "Replay",
+      source: null,
+      definition: { places: definition.places, transitions: [] },
+      initialState: { queued: 1 },
+      transitionFirings: [],
+    });
+
+    expect(parsed.definition.types).toEqual([]);
+    expect(parsed.definition.places[0]?.id).toBe(toPetrinautId("queued"));
+  });
+
   it("rejects transition firings with extra fields", () => {
     expect(() =>
       parseActualModeRecording({

@@ -100,13 +100,17 @@ export const namesId = (written: unknown, id: string): boolean =>
     toPetrinautId(written) === id ||
     canonicalizeArcId(written) === id);
 
-const hasId = (value: unknown, id: string): boolean => {
-  if (namesId(value, id)) return true;
-  if (Array.isArray(value)) return value.some((item) => hasId(item, id));
+/** Only values under an id key (`id` or `...Id`) are converted; names and code compare exactly. */
+const hasId = (value: unknown, id: string, underIdKey = false): boolean => {
+  if (underIdKey ? namesId(value, id) : value === id) return true;
+  if (Array.isArray(value))
+    return value.some((item) => hasId(item, id, underIdKey));
   return (
     typeof value === "object" &&
     value !== null &&
-    Object.values(value).some((item) => hasId(item, id))
+    Object.entries(value).some(([key, item]) =>
+      hasId(item, id, key === "id" || key.endsWith("Id")),
+    )
   );
 };
 
