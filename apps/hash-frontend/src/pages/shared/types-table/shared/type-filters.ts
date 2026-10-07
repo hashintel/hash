@@ -124,6 +124,54 @@ export const isTypeFilterFieldAvailable = (
   }
 };
 
+/**
+ * Drops filters a tab can't match: fields unavailable on it, and
+ * `inheritsFrom` selections from the other type family (entity and link types
+ * only inherit from entity types, data types only from data types). A chip
+ * whose whole selection is pruned is dropped; `all` keeps both families, and
+ * an unloaded family source leaves the selection untouched.
+ */
+export const pruneTypeFiltersForKind = (
+  filters: TypeFilter[],
+  kind: TypesTableKind,
+  {
+    entityTypes,
+    dataTypes,
+  }: Pick<TypeFilterEvaluationSources, "entityTypes" | "dataTypes">,
+): TypeFilter[] => {
+  const ancestorFamilyBaseUrls =
+    kind === "entity-type" || kind === "link-type"
+      ? entityTypes &&
+        new Set<string>(
+          entityTypes.map((entityType) => entityType.metadata.recordId.baseUrl),
+        )
+      : kind === "data-type"
+        ? dataTypes &&
+          new Set<string>(
+            Object.values(dataTypes).map(
+              (dataType) => dataType.metadata.recordId.baseUrl,
+            ),
+          )
+        : null;
+
+  return filters.flatMap((filter) => {
+    if (!isTypeFilterFieldAvailable(filter.field, kind)) {
+      return [];
+    }
+    if (
+      filter.field !== "inheritsFrom" ||
+      !ancestorFamilyBaseUrls ||
+      !filter.values
+    ) {
+      return [filter];
+    }
+    const values = filter.values.filter((value) =>
+      ancestorFamilyBaseUrls.has(value),
+    );
+    return values.length > 0 ? [{ ...filter, values }] : [];
+  });
+};
+
 export const getDefaultTypeFilterOperator = (
   field: TypeFilterField,
 ): TypeFilterOperator => {

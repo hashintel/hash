@@ -57,7 +57,7 @@ import { TypesFilterRibbon } from "./types-table/filter-ribbon";
 import {
   createTypeFilterPredicate,
   getTypeKind,
-  isTypeFilterFieldAvailable,
+  pruneTypeFiltersForKind,
 } from "./types-table/shared/type-filters";
 import { visualizerViewIcons } from "./visualizer-views";
 
@@ -185,23 +185,39 @@ export const TypesTable: FunctionComponent<{
 
   const [typeFilters, setTypeFilters] = useState<TypeFilter[]>([]);
 
-  // Filters survive tab switches, but a field the new tab's types can never
-  // match would silently hide every row — drop those.
-  const [filtersKind, setFiltersKind] = useState(kind);
-  if (kind !== filtersKind) {
-    setFiltersKind(kind);
+  const { entityTypes, isSpecialEntityTypeLookup } =
+    useEntityTypesContextRequired();
+  const { dataTypes } = useDataTypesContext();
+
+  // Filters survive tab switches, but a filter the new tab's types can never
+  // match would silently hide every row — drop unavailable fields, and prune
+  // inherits-from selections to the tab's type family. The family source may
+  // not have loaded when the tab switches (the prune then can't classify the
+  // selections), so the prune re-runs once it arrives.
+  const inheritsFromFamilyLoaded =
+    kind === "entity-type" || kind === "link-type"
+      ? !!entityTypes
+      : kind === "data-type"
+        ? !!dataTypes
+        : true;
+
+  const [prunedFor, setPrunedFor] = useState(() => ({
+    kind,
+    familyLoaded: inheritsFromFamilyLoaded,
+  }));
+  if (
+    kind !== prunedFor.kind ||
+    (inheritsFromFamilyLoaded && !prunedFor.familyLoaded)
+  ) {
+    setPrunedFor({ kind, familyLoaded: inheritsFromFamilyLoaded });
     setTypeFilters((prev) =>
-      prev.filter((filter) => isTypeFilterFieldAvailable(filter.field, kind)),
+      pruneTypeFiltersForKind(prev, kind, { entityTypes, dataTypes }),
     );
   }
 
   const includeArchived = typeFilters.some(
     (filter) => filter.field === "archived",
   );
-
-  const { entityTypes, isSpecialEntityTypeLookup } =
-    useEntityTypesContextRequired();
-  const { dataTypes } = useDataTypesContext();
 
   const typeFilterPredicate = useMemo(
     () =>
