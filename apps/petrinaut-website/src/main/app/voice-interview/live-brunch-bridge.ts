@@ -57,12 +57,19 @@ interface Turn {
   submissionId?: string;
   /** The conversation history the turn began in, so a switch cannot split it. */
   readonly history: VoiceMediationHistory;
+  /** Earlier unsent words merged into this turn; they stay sendable if it is never sent. */
+  readonly carried: readonly CarriedInput[];
 }
 
 /** Speech that arrived while the composer was busy; it holds its delegation until sent. */
 type QueuedInput = Pick<
   Turn,
-  "inputId" | "superseded" | "delegationId" | "submissionId" | "history"
+  | "inputId"
+  | "superseded"
+  | "delegationId"
+  | "submissionId"
+  | "history"
+  | "carried"
 > & {
   readonly input: FinalizedInput;
 };
@@ -142,6 +149,9 @@ const summaryStoppedInstruction =
 const mergedInstruction =
   "This speech was sent to Brunch together with the person's later words, and the answer comes on that later request. Do not answer it separately; keep listening.";
 
+const notSentNotice =
+  "Speech that was waiting for Brunch was not sent. Use the composer to send it.";
+
 const mergeSeparator = "\n\n";
 
 const joinedLength = (texts: readonly string[]): number =>
@@ -189,6 +199,10 @@ export class LiveBrunchBridge {
 
   public stop(): void {
     this.#closeDeferredDelegations();
+    let kept = false;
+    for (const turn of this.#turns) kept = this.#restoreCarried(turn) || kept;
+    kept = this.#dropQueued("ended") || kept;
+    if (kept) this.#dependencies.notice(notSentNotice);
     this.#abort.abort();
     this.speechStarted();
     this.#turns.clear();
@@ -220,6 +234,13 @@ export class LiveBrunchBridge {
           superseded: true,
           delegationId: null,
           history: turn.history,
+          carried: [
+            {
+              inputId: turn.inputId,
+              text: turn.inputText,
+              history: turn.history,
+            },
+          ],
         });
       } else if (!turn.submitted && !this.#abort.signal.aborted) {
         // Words cancelled before submission stay sendable in the conversation
@@ -493,7 +514,9 @@ export class LiveBrunchBridge {
       this.#sendQueued();
       return;
     }
-    const carrying = input.superseded ? input : this.#carry(input);
+    const { input: carrying, carried } = input.superseded
+      ? { input, carried: [] }
+      : this.#carry(input);
     // No await: a slow judge must not change the composer's admission window.
     const { judge } = this.#dependencies;
     if (busy) {
@@ -502,6 +525,7 @@ export class LiveBrunchBridge {
         input: carrying,
         delegationId,
         history: this.#dependencies.mediation.history,
+        carried,
       };
       this.#queued.push(queued);
       logLiveDiagnostic("input.queued", {
@@ -514,7 +538,7 @@ export class LiveBrunchBridge {
       this.#sendQueued();
       return;
     }
-    const { turn, run } = this.#beginTurn(carrying, delegationId);
+    const { turn, run } = this.#beginTurn(carrying, delegationId, carried);
     if (judge) void this.#observeJudgment(judge, turn, input.text);
     await run();
   }
@@ -529,13 +553,16 @@ export class LiveBrunchBridge {
    * Words that speech withdrew before submission join the next input in the
    * same conversation. They stay unsent if nothing follows or they do not fit.
    */
-  #carry(input: FinalizedInput): FinalizedInput {
+  #carry(input: FinalizedInput): {
+    input: FinalizedInput;
+    carried: readonly CarriedInput[];
+  } {
     const history = this.#dependencies.mediation.history;
     const carried = this.#carried.filter((entry) => entry.history === history);
     this.#carried = [];
     const texts = [...carried.map((entry) => entry.text), input.text];
     if (carried.length === 0 || joinedLength(texts) > maxUtteranceTextLength)
-      return input;
+      return { input, carried: [] };
     for (const entry of carried) history.withdrawUnsent(entry.inputId);
     this.#dependencies.notice(null);
     logLiveDiagnostic("input.merged", {
@@ -543,7 +570,7 @@ export class LiveBrunchBridge {
       mergedInputIds: carried.map((entry) => entry.inputId).join(","),
       reason: "speech-started",
     });
-    return { ...input, text: texts.join(mergeSeparator) };
+    return { input: { ...input, text: texts.join(mergeSeparator) }, carried };
   }
 
   /**
@@ -586,7 +613,11 @@ export class LiveBrunchBridge {
         delegationId,
         reason: "composer-busy",
       });
-    void this.#beginTurn(input, delegationId).run();
+    void this.#beginTurn(
+      input,
+      delegationId,
+      batch.flatMap((queued) => queued.carried),
+    ).run();
   }
 
   /**
@@ -613,15 +644,46 @@ export class LiveBrunchBridge {
       });
       this.#unserved(queued.delegationId, "The request was not submitted.");
     }
-    this.#dependencies.notice(
-      "Speech that was waiting for Brunch was not sent. Use the composer to send it.",
-    );
+    this.#dependencies.notice(notSentNotice);
+  }
+
+  /** Queued speech never reached Brunch; its words stay sendable instead. */
+  #dropQueued(reason: "stopped" | "error" | "ended"): boolean {
+    const dropped = this.#queued.splice(0);
+    for (const queued of dropped) {
+      this.#dependencies.mediation.history.unsent(
+        queued.inputId,
+        queued.input.text,
+        this.#chat.messages?.at(-1)?.id,
+      );
+      logLiveDiagnostic("input.dropped", {
+        inputId: queued.inputId,
+        delegationId: queued.delegationId,
+        reason,
+      });
+      this.#unserved(queued.delegationId, "The request was not submitted.");
+    }
+    return dropped.length > 0;
+  }
+
+  /** Words a turn carried were shown as unsent before; they stay so unless Brunch admitted it. */
+  #restoreCarried(turn: Turn): boolean {
+    if (turn.submissionId || turn.carried.length === 0) return false;
+    const history = this.#dependencies.mediation.history;
+    for (const entry of turn.carried)
+      history.unsent(
+        entry.inputId,
+        entry.text,
+        this.#chat.messages?.at(-1)?.id,
+      );
+    return true;
   }
 
   /** `run` is separate so observers can attach to the turn before it starts. */
   #beginTurn(
     input: FinalizedInput,
     delegationId: string | null,
+    carried: readonly CarriedInput[] = [],
   ): { turn: Turn; run: () => Promise<void> } {
     this.#dependencies.notice(null);
     const turn: Turn = {
@@ -632,6 +694,7 @@ export class LiveBrunchBridge {
       preparation: new AbortController(),
       delegationId,
       history: this.#dependencies.mediation.history,
+      carried,
       baseline: new Set(this.#chat.segments.map((segment) => segment.id)),
       baselineMessages: new Set([
         ...this.#chat.segments.map((segment) => segment.messageId),
@@ -705,6 +768,7 @@ export class LiveBrunchBridge {
         this.#preparations.delete(turn.preparation);
         if (!turn.submissionId) turn.history.failed(input.id);
         if (this.#turns.delete(turn)) {
+          this.#restoreCarried(turn);
           logLiveDiagnostic("brunch.unconfirmed", {
             inputId: input.id,
             submissionId: turn.submissionId,
@@ -825,8 +889,10 @@ export class LiveBrunchBridge {
   #interruptTurns(reason: "stopped" | "error"): void {
     for (const preparation of this.#preparations) preparation.abort();
     this.#preparations.clear();
+    let kept = false;
     for (const turn of this.#turns) {
       if (!turn.submissionId) turn.history.failed(turn.inputId);
+      kept = this.#restoreCarried(turn) || kept;
       logLiveDiagnostic("brunch.interrupted", {
         inputId: turn.inputId,
         submissionId: turn.submissionId,
@@ -836,25 +902,8 @@ export class LiveBrunchBridge {
       if (reason === "stopped" && turn.submissionId) this.#interrupted(turn);
       else this.#unconfirmed(turn);
     }
-    // Queued speech never reached Brunch; its words stay sendable instead.
-    for (const queued of this.#queued) {
-      this.#dependencies.mediation.history.unsent(
-        queued.inputId,
-        queued.input.text,
-        this.#chat.messages?.at(-1)?.id,
-      );
-      logLiveDiagnostic("input.dropped", {
-        inputId: queued.inputId,
-        delegationId: queued.delegationId,
-        reason,
-      });
-      this.#unserved(queued.delegationId, "The request was not submitted.");
-    }
-    if (this.#queued.length > 0)
-      this.#dependencies.notice(
-        "Speech that was waiting for Brunch was not sent. Use the composer to send it.",
-      );
-    this.#queued.length = 0;
+    kept = this.#dropQueued(reason) || kept;
+    if (kept) this.#dependencies.notice(notSentNotice);
     this.#holdQueue = false;
     this.#carried = [];
     // Aborting preparations cancelled these summaries; close their delegations.
