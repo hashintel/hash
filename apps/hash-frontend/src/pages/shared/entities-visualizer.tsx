@@ -20,19 +20,18 @@ import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
 import { Button } from "../../shared/ui";
+import { DsComponentsScope } from "./ds-components-scope";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/grid-view";
 import { FilterRibbon, QueryCount } from "./entities-visualizer/header";
 import { NetworkGraphView } from "./entities-visualizer/network-graph-view";
 import { buildEntitiesFilter } from "./entities-visualizer/shared/build-filter";
 import { displaysFilesOnly } from "./entities-visualizer/shared/displays-files-only";
-import { DsComponentsScope } from "./entities-visualizer/shared/ds-components-scope";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
 import {
   type SummarySource,
   useAvailableTypes,
 } from "./entities-visualizer/shared/use-available-types";
-import { sortMenuTriggerChrome } from "./entities-visualizer/sort-menu-chrome";
 import { useEntitiesTableQuery } from "./entities-visualizer/use-entities-table-query";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import {
@@ -43,6 +42,7 @@ import {
   visualizerHeaderHeight,
 } from "./filter-bar";
 import { useSlideStack } from "./slide-stack";
+import { sortMenuTriggerChrome } from "./sort-menu-chrome";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { visualizerViewIcons, visualizerViewLabels } from "./visualizer-views";

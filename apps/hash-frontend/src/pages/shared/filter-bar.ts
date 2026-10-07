@@ -1,3 +1,7 @@
+export {
+  filterChipPillChrome,
+  operatorDescriptionClass,
+} from "./filter-bar/filter-chip-pill-chrome";
 export { FilterPill } from "./filter-bar/filter-pill";
 export {
   activePillSx,

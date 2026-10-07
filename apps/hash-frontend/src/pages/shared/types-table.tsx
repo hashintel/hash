@@ -12,13 +12,14 @@ import {
   type VersionedUrl,
 } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
+import { SortMenu } from "@hashintel/ds-components";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
 import {
   Grid,
   gridHeaderHeightWithBorder,
   gridHorizontalScrollbarHeight,
-  type GridProps,
+  type GridSort,
 } from "../../components/grid/grid";
 import { useOrgs } from "../../components/hooks/use-orgs";
 import { useUsers } from "../../components/hooks/use-users";
@@ -27,7 +28,7 @@ import { useEntityTypesContextRequired } from "../../shared/entity-types-context
 import { isTypeArchived } from "../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
-import { CheckboxFilter, tableHeaderHeight } from "../../shared/table-header";
+import { tableHeaderHeight } from "../../shared/table-header";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
 import { generateCsvFile as buildCsvFile } from "../../shared/table-header/generate-csv-file";
@@ -37,6 +38,8 @@ import {
   useActors,
 } from "../../shared/use-actors";
 import { createRenderChipCell } from "./chip-cell";
+import { useDataTypesContext } from "./data-types-context";
+import { DsComponentsScope } from "./ds-components-scope";
 import {
   SearchPill,
   useInternalWebs,
@@ -45,22 +48,33 @@ import {
   type WebFilterState,
 } from "./filter-bar";
 import { useSlideStack } from "./slide-stack";
+import { sortMenuTriggerChrome } from "./sort-menu-chrome";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { createRenderTextIconCell } from "./text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { TypeGraphVisualizer } from "./type-graph-visualizer";
+import { TypesFilterRibbon } from "./types-table/filter-ribbon";
+import {
+  createTypeFilterPredicate,
+  getTypeKind,
+} from "./types-table/shared/type-filters";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import type { GenerateCsvFileFunction } from "../../shared/table-header/export-to-csv-button";
 import type { ChipCell } from "./chip-cell";
 import type { TextIconCell } from "./text-icon-cell";
+import type {
+  TypeFilter,
+  TypesTableTypeKind,
+} from "./types-table/shared/type-filters";
 import type { VisualizerView } from "./visualizer-views";
 import type {
   Item,
   SizedGridColumn,
   TextCell,
 } from "@glideapps/glide-data-grid";
+import type { Sorter } from "@hashintel/ds-components";
 import type { FunctionComponent } from "react";
 
 export type TypesTableColumnId =
@@ -77,7 +91,7 @@ type TypesTableColumn = {
 
 export type TypesTableRow = {
   rowId: string;
-  kind: "entity-type" | "property-type" | "link-type" | "data-type";
+  kind: TypesTableTypeKind;
   lastEdited: string;
   lastEditedBy?: MinimalActor;
   icon?: string;
@@ -112,6 +126,36 @@ const typesTablesToTitle: Record<TypeTableKind, string> = {
 
 const firstColumnLeftPadding = 16;
 
+const defaultTypesTableSort: GridSort<TypesTableColumnId> = {
+  columnKey: "title",
+  direction: "asc",
+};
+
+const sortTypesTableRows = (
+  rows: TypesTableRow[],
+  sort: GridSort<TypesTableColumnId>,
+): TypesTableRow[] =>
+  rows.toSorted((a, b) => {
+    const isActorSort = (key: string): key is "lastEditedBy" =>
+      key === "lastEditedBy";
+
+    const value1: string = isActorSort(sort.columnKey)
+      ? (a[sort.columnKey]?.displayName ?? "")
+      : String(a[sort.columnKey]);
+
+    const value2: string = isActorSort(sort.columnKey)
+      ? (b[sort.columnKey]?.displayName ?? "")
+      : String(b[sort.columnKey]);
+
+    let comparison = value1.localeCompare(value2);
+
+    if (sort.direction === "desc") {
+      comparison = -comparison;
+    }
+
+    return comparison;
+  });
+
 export const TypesTable: FunctionComponent<{
   loading?: boolean;
   onlyOneWeb?: boolean;
@@ -144,9 +188,25 @@ export const TypesTable: FunctionComponent<{
     includeOtherWebs: false,
   }));
 
-  const [includeArchived, setIncludeArchived] = useState(false);
+  const [typeFilters, setTypeFilters] = useState<TypeFilter[]>([]);
 
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+  const includeArchived = typeFilters.some(
+    (filter) => filter.field === "archived",
+  );
+
+  const { entityTypes, isSpecialEntityTypeLookup } =
+    useEntityTypesContextRequired();
+  const { dataTypes } = useDataTypesContext();
+
+  const typeFilterPredicate = useMemo(
+    () =>
+      createTypeFilterPredicate(typeFilters, {
+        entityTypes,
+        dataTypes,
+        isSpecialEntityTypeLookup,
+      }),
+    [typeFilters, entityTypes, dataTypes, isSpecialEntityTypeLookup],
+  );
 
   const typesTableColumns = useMemo<TypesTableColumn[]>(
     () => [
@@ -228,8 +288,12 @@ export const TypesTable: FunctionComponent<{
       | EntityTypeWithMetadata
       | PropertyTypeWithMetadata
       | DataTypeWithMetadata
-    ) & { isExternal: boolean; webShortname?: string; archived: boolean })[] =
-      [];
+    ) & {
+      isExternal: boolean;
+      webShortname?: string;
+      archived: boolean;
+      kind: TypesTableTypeKind;
+    })[] = [];
 
     for (const type of types ?? []) {
       const isExternal = isExternalOntologyElementMetadata(type.metadata)
@@ -254,12 +318,17 @@ export const TypesTable: FunctionComponent<{
           ? webFilter.selectedInternalWebIds.has(namespaceWebId)
           : webFilter.includeOtherWebs;
 
-      if (webAllowed && (includeArchived ? true : !isArchived)) {
+      if (
+        webAllowed &&
+        (includeArchived ? true : !isArchived) &&
+        typeFilterPredicate(type)
+      ) {
         filtered.push({
           ...type,
           isExternal,
           webShortname,
           archived: isArchived,
+          kind: getTypeKind(type, isSpecialEntityTypeLookup),
         });
       }
     }
@@ -272,6 +341,8 @@ export const TypesTable: FunctionComponent<{
     namespaces,
     internalWebIds,
     onlyOneWeb,
+    typeFilterPredicate,
+    isSpecialEntityTypeLookup,
   ]);
 
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
@@ -296,49 +367,46 @@ export const TypesTable: FunctionComponent<{
           icon: "icon" in type.schema ? type.schema.icon : undefined,
           lastEdited,
           lastEditedBy,
-          kind:
-            type.schema.kind === "entityType"
-              ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
-                ? "link-type"
-                : "entity-type"
-              : type.schema.kind === "propertyType"
-                ? "property-type"
-                : "data-type",
+          kind: type.kind,
           external: type.isExternal,
           webShortname: type.webShortname,
           archived: type.archived,
         } as const;
       }),
-    [actors, isSpecialEntityTypeLookup, filteredTypes],
+    [actors, filteredTypes],
   );
 
-  const sortRows = useCallback<
-    NonNullable<
-      GridProps<TypesTableRow, TypesTableColumn, TypesTableColumnId>["sortRows"]
-    >
-  >((unsortedRows, sort) => {
-    return unsortedRows.toSorted((a, b) => {
-      const isActorSort = (key: string): key is "lastEditedBy" | "createdBy" =>
-        ["lastEditedBy", "createdBy"].includes(key);
+  const [sort, setSort] = useState<GridSort<TypesTableColumnId>>(
+    defaultTypesTableSort,
+  );
 
-      const value1: string = isActorSort(sort.columnKey)
-        ? (a[sort.columnKey]?.displayName ?? "")
-        : String(a[sort.columnKey]);
+  // The sorted column can disappear (e.g. Archived when its filter is
+  // removed); fall back rather than sorting by an invisible column.
+  const activeSort = useMemo(
+    () =>
+      typesTableColumns.some((column) => column.id === sort.columnKey)
+        ? sort
+        : defaultTypesTableSort,
+    [typesTableColumns, sort],
+  );
 
-      const value2: string = isActorSort(sort.columnKey)
-        ? (b[sort.columnKey]?.displayName ?? "")
-        : String(b[sort.columnKey]);
+  const sorters = useMemo<ReadonlyArray<Sorter<TypesTableColumnId>>>(
+    () =>
+      typesTableColumns.map((column) => ({
+        name: column.title,
+        sortKey: column.id,
+        ...(column.id === "lastEdited" || column.id === "archived"
+          ? { sortIcon: "generic" as const }
+          : {}),
+      })),
+    [typesTableColumns],
+  );
 
-      let comparison = value1.localeCompare(value2);
-
-      if (sort.direction === "desc") {
-        // reverse if descending
-        comparison = -comparison;
-      }
-
-      return comparison;
-    });
-  }, []);
+  const sortedRows = useMemo(
+    () =>
+      filteredRows ? sortTypesTableRows(filteredRows, activeSort) : undefined,
+    [filteredRows, activeSort],
+  );
 
   const { pushToSlideStack } = useSlideStack();
 
@@ -542,73 +610,94 @@ export const TypesTable: FunctionComponent<{
   return (
     <Box>
       <VisualizerHeader
+        topRight={
+          <>
+            {view === "Table" ? (
+              <ExportToCsvButton
+                generateCsvFile={generateCsvFile}
+                sx={{ px: 1.5, borderRadius: "4px" }}
+              />
+            ) : null}
+            <TableHeaderToggle
+              value={view}
+              setValue={setView}
+              options={(
+                ["Table", "Graph"] as const satisfies VisualizerView[]
+              ).map((optionValue) => ({
+                icon: visualizerViewIcons[optionValue],
+                label: `${optionValue} view`,
+                value: optionValue,
+              }))}
+            />
+          </>
+        }
         bottomLeft={
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            gap={1}
-          >
-            {selectedTypes && selectedTypes.length > 0 ? (
-              <BulkActionsDropdown
-                selectedItems={selectedTypes}
-                onBulkActionCompleted={() => setSelectedRows([])}
-              />
-            ) : (
-              <Stack direction="row" alignItems="center" gap={1}>
-                <SearchPill
-                  title={
-                    view === "Table"
-                      ? "Search for text in visible rows"
-                      : "Search for a type in the graph"
+          selectedTypes && selectedTypes.length > 0 ? (
+            <BulkActionsDropdown
+              selectedItems={selectedTypes}
+              onBulkActionCompleted={() => setSelectedRows([])}
+            />
+          ) : (
+            <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1}>
+              <SearchPill
+                title={
+                  view === "Table"
+                    ? "Search for text in visible rows"
+                    : "Search for a type in the graph"
+                }
+                onClick={() => {
+                  if (view === "Table") {
+                    setShowSearch(!showSearch);
+                  } else {
+                    setShowGraphSearch(!showGraphSearch);
                   }
-                  onClick={() => {
-                    if (view === "Table") {
-                      setShowSearch(!showSearch);
-                    } else {
-                      setShowGraphSearch(!showGraphSearch);
-                    }
-                  }}
-                />
-                {onlyOneWeb ? null : (
-                  <WebFilterPill
-                    internalWebs={internalWebs}
-                    webState={webFilter}
-                    setWebState={(updater) =>
-                      setWebFilter((prev) => updater(prev))
-                    }
-                  />
-                )}
-                <CheckboxFilter
-                  label="Include archived"
-                  checked={includeArchived}
-                  onChange={setIncludeArchived}
-                />
-                {loading && (
-                  <LoadingSpinner size={16} color={theme.palette.blue[70]} />
-                )}
-              </Stack>
-            )}
-            <Stack direction="row" alignItems="center" gap={1}>
-              {view === "Table" ? (
-                <ExportToCsvButton
-                  generateCsvFile={generateCsvFile}
-                  sx={{ px: 1.5, borderRadius: "4px" }}
-                />
-              ) : null}
-              <TableHeaderToggle
-                value={view}
-                setValue={setView}
-                options={(
-                  ["Table", "Graph"] as const satisfies VisualizerView[]
-                ).map((optionValue) => ({
-                  icon: visualizerViewIcons[optionValue],
-                  label: `${optionValue} view`,
-                  value: optionValue,
-                }))}
+                }}
               />
+              {onlyOneWeb ? null : (
+                <WebFilterPill
+                  internalWebs={internalWebs}
+                  webState={webFilter}
+                  setWebState={(updater) =>
+                    setWebFilter((prev) => updater(prev))
+                  }
+                />
+              )}
+              <TypesFilterRibbon
+                filters={typeFilters}
+                setFilters={(updater) =>
+                  setTypeFilters((prev) => updater(prev))
+                }
+                editors={actors}
+                showKindFilter={kind === "all"}
+              />
+              {loading && (
+                <LoadingSpinner size={16} color={theme.palette.blue[70]} />
+              )}
             </Stack>
-          </Stack>
+          )
+        }
+        bottomRight={
+          view === "Table" ? (
+            <DsComponentsScope>
+              <SortMenu<TypesTableColumnId>
+                size="xs"
+                className={sortMenuTriggerChrome}
+                position="bottom-end"
+                items={sorters}
+                value={{
+                  sortKey: activeSort.columnKey,
+                  direction:
+                    activeSort.direction === "asc" ? "ASCENDING" : "DESCENDING",
+                }}
+                onChange={(sortKey, direction) =>
+                  setSort({
+                    columnKey: sortKey,
+                    direction: direction === "ASCENDING" ? "asc" : "desc",
+                  })
+                }
+              />
+            </DsComponentsScope>
+          ) : undefined
         }
       />
       {view === "Table" ? (
@@ -659,9 +748,11 @@ export const TypesTable: FunctionComponent<{
             onSelectedRowsChange={(updatedSelectedRows) =>
               setSelectedRows(updatedSelectedRows)
             }
-            rows={filteredRows}
+            rows={sortedRows}
             selectedRows={selectedRows}
+            setSort={setSort}
             showSearch={showSearch}
+            sort={activeSort}
             sortableColumns={[
               "title",
               "kind",
@@ -670,7 +761,6 @@ export const TypesTable: FunctionComponent<{
               "lastEdited",
               "lastEditedBy",
             ]}
-            sortRows={sortRows}
           />
         </Box>
       ) : (

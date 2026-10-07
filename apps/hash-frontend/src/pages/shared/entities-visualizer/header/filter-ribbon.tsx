@@ -9,10 +9,13 @@ import {
 } from "@hashintel/ds-components";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { type InternalWeb, WebFilterPill } from "../../filter-bar";
-import { DsComponentsScope } from "../shared/ds-components-scope";
+import { DsComponentsScope } from "../../ds-components-scope";
+import {
+  filterChipPillChrome,
+  type InternalWeb,
+  WebFilterPill,
+} from "../../filter-bar";
 import { getDefaultOperatorForKind } from "../shared/property-filters/get-operators-for-kind";
-import { filterChipPillChrome } from "./filter-ribbon/filter-chip-pill-chrome";
 import {
   PropertyFilterChip,
   type SwitchablePropertyOption,

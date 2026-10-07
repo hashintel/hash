@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { Filter } from "@hashintel/ds-components";
 
+import { operatorDescriptionClass } from "../../../filter-bar";
 import { getOperatorsForKind } from "../../shared/property-filters/get-operators-for-kind";
-import { operatorDescriptionClass } from "./filter-chip-pill-chrome";
 
 import type {
   FilterableProperty,

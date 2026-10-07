@@ -298,7 +298,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           </Stack>
         </Container>
       </Box>
-      <Container sx={{ paddingTop: 5, ...largePageMaxWidthCss }}>
+      <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
         <TypesTable kind={currentTab} types={currentTypes} />
       </Container>
     </>
