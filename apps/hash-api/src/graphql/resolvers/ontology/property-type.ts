@@ -27,7 +27,6 @@ import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import type {
   OntologyTemporalMetadata,
   PropertyTypeWithMetadata,
-  WebId,
 } from "@blockprotocol/type-system";
 
 export const createPropertyTypeResolver: ResolverFn<

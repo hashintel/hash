@@ -9,7 +9,6 @@ import {
 import type {
   ActorEntityUuid,
   MachineId,
-  RoleName,
   WebId,
 } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";

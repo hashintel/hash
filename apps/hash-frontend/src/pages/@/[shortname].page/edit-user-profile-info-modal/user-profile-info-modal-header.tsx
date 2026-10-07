@@ -15,7 +15,6 @@ import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-prof
 import { leftColumnWidth } from "../util";
 
 import type { User } from "../../../../lib/user-and-org";
-import type { WebId } from "@blockprotocol/type-system";
 import type { ChangeEventHandler, FunctionComponent } from "react";
 
 // const AvatarButton = styled((props: ButtonProps) => (
@@ -137,7 +136,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
       // setNewCoverImageUploading(true);
 
       await uploadFile({
-        webId: userProfile.accountId as WebId,
+        webId: userProfile.accountId,
         makePublic: true,
         fileData: {
           description: `The cover image for the ${userProfile.displayName} user in HASH`,

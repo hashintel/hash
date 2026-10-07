@@ -50,7 +50,6 @@ import type {
   ClosedMultiEntityType,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-  WebId,
 } from "@blockprotocol/type-system";
 import type {
   ConstructEntityTypeParams,

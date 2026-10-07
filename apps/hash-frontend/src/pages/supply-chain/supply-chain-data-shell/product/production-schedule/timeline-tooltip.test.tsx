@@ -9,18 +9,17 @@ const rect = (
   top: number,
   width: number,
   height: number,
-): DOMRect =>
-  ({
-    bottom: top + height,
-    height,
-    left,
-    right: left + width,
-    top,
-    width,
-    x: left,
-    y: top,
-    toJSON: () => ({}),
-  }) as DOMRect;
+): DOMRect => ({
+  bottom: top + height,
+  height,
+  left,
+  right: left + width,
+  top,
+  width,
+  x: left,
+  y: top,
+  toJSON: () => ({}),
+});
 
 afterEach(() => {
   vi.restoreAllMocks();

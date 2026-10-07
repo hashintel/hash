@@ -27,7 +27,6 @@ import { createTestImpureGraphContext, createTestUser } from "../../../util";
 import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { WebId } from "@blockprotocol/type-system";
 import type {
   HasIndexedContent,
   Text,

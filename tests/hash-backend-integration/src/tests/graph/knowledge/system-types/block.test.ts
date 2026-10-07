@@ -18,7 +18,7 @@ import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 const logger = new Logger({
