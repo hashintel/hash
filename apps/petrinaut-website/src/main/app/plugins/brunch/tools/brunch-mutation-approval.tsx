@@ -8,7 +8,7 @@ import {
   type PetrinautAiMutationToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import { usePetrinautInstance, useStore } from "@hashintel/petrinaut/react";
+import { type PluginDocumentReader, useStore } from "@hashintel/petrinaut/ui";
 
 import {
   definePetrinautAiInteractiveTool,
@@ -41,7 +41,7 @@ export interface BrunchMutationApprovalCoordinator {
    * A refused call keeps its streamed input-available state until the refusal
    * output round-trips, so its part alone cannot tell it from an executing call.
    */
-  approvalState(toolCallId: string): "awaiting" | "refused" | null;
+  approvalState: (toolCallId: string) => "awaiting" | "refused" | null;
   /** Changes whenever a call enters or leaves the approval gate. */
   getVersion: () => number;
   subscribe: (listener: () => void) => () => void;
@@ -330,9 +330,10 @@ type WidgetProps = PetrinautAiInteractiveToolWidgetProps<unknown, unknown>;
 export const createBrunchMutationApprovalWidget = (
   coordinator: BrunchMutationApprovalCoordinator,
   toolName: DestructiveToolName,
+  net: PluginDocumentReader["net"],
 ) => {
   const Widget = ({ input, toolCallId }: WidgetProps) => {
-    const nameOf = nameLookupOf(useStore(usePetrinautInstance().definition));
+    const nameOf = nameLookupOf(useStore(net));
     return (
       <section
         className={containerStyle}
@@ -390,8 +391,10 @@ export const createBrunchMutationApprovalWidget = (
 
 const passthrough = { parse: (value: unknown) => value };
 
+/** Approval widgets for destructive edits, naming the removed items from the document's net. */
 export const createBrunchMutationApprovalInteractiveTools = (
   coordinator: BrunchMutationApprovalCoordinator,
+  net: PluginDocumentReader["net"],
 ): readonly PetrinautAiInteractiveTool[] =>
   destructiveToolNames.map((toolName) =>
     definePetrinautAiInteractiveTool<unknown, unknown>({
@@ -402,6 +405,6 @@ export const createBrunchMutationApprovalInteractiveTools = (
       outputSchema: passthrough,
       // Earlier rows of the same tool keep their normal presentation.
       shouldHandle: ({ toolCallId }) => coordinator.hasPending(toolCallId),
-      component: createBrunchMutationApprovalWidget(coordinator, toolName),
+      component: createBrunchMutationApprovalWidget(coordinator, toolName, net),
     }),
   );

@@ -3,9 +3,11 @@ import { useMemo, useState } from "react";
 import { VoiceMediationHistory } from "./voice-mediation-history";
 
 /**
- * One history per conversation for the lifetime of the page. A Live turn keeps
- * the history it began in, so switching away and back must return that same
- * instance rather than a fresh one that has never seen the turn.
+ * One history per conversation while the plugin stays mounted. A Live turn
+ * keeps the history it began in, so switching away and back must return that
+ * same instance rather than a fresh one that has never seen the turn. The
+ * editor remounts its plugins for a new core instance, and the new histories
+ * reload their submitted turns from local storage.
  */
 export const useVoiceMediationHistory = (
   conversationId: string | null,

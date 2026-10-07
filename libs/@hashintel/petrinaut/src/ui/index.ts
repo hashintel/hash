@@ -213,6 +213,3 @@ export type {
 // SDCPN value-equality check exposed for consumers that need to detect
 // no-op changes outside the handle (e.g. memoising Storybook stories).
 export { isSDCPNEqual } from "@hashintel/petrinaut-core";
-
-// Slots — named locations into which the host can inject arbitrary React components.
-export type { PetrinautSlots } from "./types/petrinaut-slots";

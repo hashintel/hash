@@ -16,6 +16,7 @@ import {
 import { documentRevisionOf } from "./shared/document-revision";
 
 import type { PetrinautAiAutomaticToolExecuteParams } from "../../_shared/chat/automatic-tool";
+import type { EditRefusal } from "@hashintel/petrinaut/ui";
 
 vi.hoisted(() => {
   window.matchMedia = (media) => ({
@@ -46,7 +47,10 @@ const place = {
   y: 0,
   targetSubnetId: null,
 };
-const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
+const setup = (
+  replay = EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  refusal: EditRefusal | null = null,
+) => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
       id: "document",
@@ -54,9 +58,12 @@ const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
       capabilities: { disabledExtensions: [] },
     }),
   });
+  const { document } = createTestPluginApi(instance, {
+    refusal: () => refusal,
+    requestDiagnostics: () => Promise.reject(new Error("Live diagnostics")),
+  });
   const adapter = createCanonicalPetrinautHostTools({
-    handle: instance.handle,
-    readTitle: () => "Untitled",
+    document,
     replayReadiness: { status: "ready", replay },
   });
   const tool = (name: string) => {
@@ -72,16 +79,10 @@ const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
   ): PetrinautAiAutomaticToolExecuteParams => ({
     input: rawInput,
     toolCallId,
-    edit: createTestPluginApi(instance).document.edit,
-    readDiagnosticsContext: async () => "No diagnostics",
     signal: new AbortController().signal,
   });
-  const revision = () => {
-    const definition = instance.handle.doc();
-    if (!definition) throw new Error("The test document is unavailable.");
-    return documentRevisionOf(definition);
-  };
-  return { adapter, instance, tool, params, revision };
+  const revision = () => documentRevisionOf(instance.definition.get());
+  return { adapter, document, instance, tool, params, revision };
 };
 
 describe("canonical browser revision attribution", () => {
@@ -94,7 +95,7 @@ describe("canonical browser revision attribution", () => {
     });
   });
   test("stamps an applied mutation with its new revision and leaves a no-op at its prior revision", () => {
-    const { adapter, tool, params, revision } = setup();
+    const { adapter, document, tool, params, revision } = setup();
     const before = revision();
     adapter.mapClientToolInput({
       toolName: "addPlace",
@@ -113,18 +114,25 @@ describe("canonical browser revision attribution", () => {
       toolCallId: "noop",
       input: place,
     });
-    const { edit } = params(place, "noop");
-    const noop = tool("addPlace").execute({
-      ...params(place, "noop"),
-      edit: {
-        ...edit,
-        addPlace: () => ({ applied: true, value: undefined }),
-      },
+    vi.spyOn(document.edit, "addPlace").mockReturnValue({
+      applied: true,
+      value: undefined,
     });
+    const noop = tool("addPlace").execute(params(place, "noop"));
     expect(noop).toMatchObject({ applied: false });
     expect(adapter.clientToolResultMetadataFor("noop", noop)).toEqual({
       documentRevision: { before: after },
     });
+  });
+  test("reports an edit the editor refuses in Simulate mode and leaves the net unchanged", () => {
+    const { instance, tool, params } = setup(EMPTY_CANONICAL_PETRINAUT_REPLAY, {
+      kind: "simulate-mode",
+    });
+    expect(tool("addPlace").execute(params(place, "simulate"))).toMatchObject({
+      applied: false,
+      blocked: "simulate-mode",
+    });
+    expect(instance.definition.get().places).toEqual([]);
   });
   test("history blocks an uncertain write rather than retrying it", async () => {
     const snapshot = {
@@ -175,13 +183,8 @@ describe("canonical browser revision attribution", () => {
     } as never;
     const replay = await issuedCanonicalCallsFromHistory({ snapshot });
     const { tool, params } = setup(replay);
-    const readDiagnosticsContext = vi.fn(async () => "Live diagnostics");
     expect(
-      await tool("getNetCompilationErrors").execute({
-        ...params({}, "diagnosed"),
-        readDiagnosticsContext,
-      }),
+      await tool("getNetCompilationErrors").execute(params({}, "diagnosed")),
     ).toBe("Recorded diagnostics");
-    expect(readDiagnosticsContext).not.toHaveBeenCalled();
   });
 });

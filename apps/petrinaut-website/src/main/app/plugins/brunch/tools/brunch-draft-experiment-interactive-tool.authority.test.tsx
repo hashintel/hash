@@ -6,6 +6,7 @@ import {
   createPetrinaut,
 } from "@hashintel/petrinaut-core";
 
+import { createTestPluginApi } from "../../_shared/testing/create-test-plugin-api";
 import { resolveDraftAuthorityFromHistory } from "./brunch-draft-experiment-interactive-tool";
 import {
   createCanonicalPetrinautHostTools,
@@ -65,8 +66,7 @@ const history = () => {
     }),
   });
   const host = createCanonicalPetrinautHostTools({
-    handle: instance.handle,
-    readTitle: () => "Queue",
+    document: createTestPluginApi(instance, { title: "Queue" }).document,
     replayReadiness: {
       status: "ready",
       replay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
@@ -79,13 +79,9 @@ const history = () => {
   const output = read.execute({
     input: {},
     toolCallId: "read-1",
-    edit: {} as never,
-    readDiagnosticsContext: async () => "",
     signal: new AbortController().signal,
   });
   const metadata = host.clientToolResultMetadataFor("read-1", output);
-  const definition = instance.handle.doc();
-  if (!definition) throw new Error("The test document is unavailable.");
   const readCall = {
     type: "dynamic-tool",
     toolCallId: "read-1",
@@ -100,7 +96,7 @@ const history = () => {
   ];
   return {
     snapshot: { messages } as FlueConversationState,
-    revision: documentRevisionOf(definition),
+    revision: documentRevisionOf(instance.definition.get()),
   };
 };
 

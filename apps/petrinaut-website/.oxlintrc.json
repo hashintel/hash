@@ -142,7 +142,11 @@
   },
   "overrides": [
     {
-      "files": ["src/main/app/plugins/_shared/chat/**"],
+      "files": [
+        "src/main/app/plugins/_shared/chat/**",
+        "src/main/app/plugins/brunch/**",
+        "src/main/app/plugins/voice/**"
+      ],
       "rules": {
         "react/static-components": "error",
         "react/use-memo": "error",

@@ -4,9 +4,9 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { agentOwnershipHeaders } from "@hashintel/brunch-agent/conversation-identity";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
+import { petrinautAiTools } from "@hashintel/petrinaut-core";
 
-import type { ProcessAgentBinding } from "../conversation/use-process-agent-binding";
+import type { ProcessAgentBinding } from "../conversation/process-agent-binding";
 import type { FlueClient } from "@flue/sdk";
 import type { ClientToolResultMetadata } from "@hashintel/brunch-agent-plugin-sdcpn";
 

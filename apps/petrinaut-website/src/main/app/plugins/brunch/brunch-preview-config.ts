@@ -1,5 +1,3 @@
-import { previewConversationIdPrefix } from "@hashintel/brunch-agent/constants";
-
 export const resolveBrunchPreviewConfig = (endpoint: string | undefined) => {
   const configuredEndpoint = endpoint?.trim();
   return {
@@ -8,5 +6,7 @@ export const resolveBrunchPreviewConfig = (endpoint: string | undefined) => {
   };
 };
 
-export const createBrunchPreviewConversationId = (netId: string): string =>
-  `${previewConversationIdPrefix}${netId}`;
+/** The demo's Brunch endpoint, from `VITE_BRUNCH_CHAT_ENDPOINT`. */
+export const brunchPreviewConfig = resolveBrunchPreviewConfig(
+  import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
+);

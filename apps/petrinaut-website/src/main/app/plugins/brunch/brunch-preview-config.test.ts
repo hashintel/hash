@@ -1,9 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import {
-  createBrunchPreviewConversationId,
-  resolveBrunchPreviewConfig,
-} from "./brunch-preview-config";
+import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 
 describe("Brunch preview host configuration", () => {
   test("keeps the local generic chat fallback voice-free", () => {
@@ -20,14 +17,5 @@ describe("Brunch preview host configuration", () => {
       chatEndpoint: "https://brunch.test/api/petrinaut/chat",
       isBrunchConfigured: true,
     });
-  });
-
-  test("derives a stable preview conversation identity from the saved net", () => {
-    expect(createBrunchPreviewConversationId("net-123")).toBe(
-      "petrinaut-preview:net-123",
-    );
-    expect(createBrunchPreviewConversationId("net-123")).toBe(
-      "petrinaut-preview:net-123",
-    );
   });
 });

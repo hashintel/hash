@@ -31,8 +31,8 @@ const errorHeadline = (errorCode: VoiceTurnSnapshot["errorCode"]): string => {
 };
 
 /**
- * Petrinaut shows this in a toast, so the diagnostic identifiers that used to
- * sit behind a "Technical details" disclosure are folded into one sentence.
+ * One message for the Voice dock's alerts: the headline, then the error
+ * message and the error code and request id, each when known.
  */
 const errorMessageOf = (snapshot: VoiceTurnSnapshot): string => {
   const headline = errorHeadline(snapshot.errorCode);

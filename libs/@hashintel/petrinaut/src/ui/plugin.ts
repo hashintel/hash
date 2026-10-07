@@ -62,6 +62,7 @@ export type { PetrinautRevealTarget } from "../react/hooks/use-reveal-in-editor"
 export type { AddNotificationInput } from "../react/notifications/context";
 export type { ReadOnlyReason } from "../react/state/use-read-only-reason";
 export type { ExperimentRecord } from "../react/experiments/context";
+export { prepareExperiment } from "../react/experiment-host/prepare-experiment";
 export { parseDocumentUri } from "@hashintel/petrinaut-core";
 export type {
   DiagnosticsSnapshot,

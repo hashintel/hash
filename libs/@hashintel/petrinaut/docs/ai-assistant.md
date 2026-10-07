@@ -454,6 +454,6 @@ conversation is stored (in-memory, in your host app's database, or anywhere else
 behind it are all controlled by the host application that embeds Petrinaut. Read-only documents
 and the simulate-mode restrictions described above always apply when applicable.
 
-A host may place its assistant provider and Voice availability controls under
-**User settings → Labs**. Petrinaut displays that host-provided content after
-its built-in Labs groups; the host defines and saves those choices.
+A host's plugins may add assistant settings, such as Voice choices, under
+**User settings → Labs**, in a group under the plugin's name after the
+built-in Labs groups.

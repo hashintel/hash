@@ -1,0 +1,27 @@
+import { type PluginHook, usePluginService } from "@hashintel/petrinaut/ui";
+
+import { voiceStartAction } from "../_shared/chat/voice-start-action";
+import { createBrunchPlugin } from "../brunch/definition";
+import { createVoicePlugin } from "./definition";
+import { useBrunchVoice } from "./plugin/use-brunch-voice";
+
+const useVoicePlugin: PluginHook<typeof createVoicePlugin> = (api) => {
+  const brunch = usePluginService(createBrunchPlugin);
+  const voice = useBrunchVoice({
+    shown: api.assistant.isActive,
+    conversation: brunch?.conversation ?? null,
+    enabled: api.settings.get("voice"),
+    realtime: api.settings.get("realtime"),
+  });
+
+  return {
+    assistant: { startActions: voice.available ? [voiceStartAction] : [] },
+    provides: voice.chat,
+  };
+};
+
+/**
+ * Voice mode for Brunch. It has no `access`: Voice cannot read or change the
+ * net, only Brunch's conversation.
+ */
+export const voicePlugin = createVoicePlugin(useVoicePlugin);

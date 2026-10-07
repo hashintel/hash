@@ -1,4 +1,4 @@
-import type { PreparedExperiment } from "../shared/brunch-draft-experiment-drafts";
+import type { PreparedExperiment } from "../../shared/brunch-draft-experiment-drafts";
 import type {
   PetrinautExperimentRequest,
   SDCPN,
