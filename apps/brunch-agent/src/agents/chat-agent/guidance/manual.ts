@@ -1,24 +1,20 @@
 import { useModel, useSkill, useTool } from "@flue/runtime";
 
+import petrinautCapability from "./manual/prompts/petrinaut-capability.md?raw";
 import system from "./manual/prompts/system.md?raw";
 import constructing from "./manual/skills/constructing/SKILL.md";
 import eliciting from "./manual/skills/eliciting/SKILL.md";
-import petrinautCapability from "./manual/skills/petrinaut-capability.md?raw";
-import experimentDrafting from "./manual/tools/experiment-drafting.md?raw";
 import { createLedger2Tools } from "./manual/tools/ledger2/ledger-tools.ts";
-import { createQueryBasisTool } from "./manual/tools/query-basis-tool.ts";
-import queryBasis from "./manual/tools/query-basis.md?raw";
-import runtimeBound from "./manual/tools/runtime-bound.md?raw";
-import runtimeUnbound from "./manual/tools/runtime-unbound.md?raw";
+import { createQueryBasisTool } from "./manual/tools/query-basis.ts";
 
 import type { LedgerHistory } from "./manual/tools/ledger2/commits.ts";
 
 /**
  * A hand-edited arm, copied from `identity` as of round 4c. Everything the
  * model reads and every tool that writes or reads the Ledger comes from
- * `manual/`: instructions, skills, the Ledger tools with their schema,
- * refusals, coverage and map, and the runtime instructions and `query_basis`
- * it hands back for the agent to mount in their usual places.
+ * `manual/`. Its only mounted instruction besides the system prompt is the
+ * Petrinaut capability text; runtime, experiment and `query_basis` guidance
+ * live in its skills and tool descriptions instead.
  */
 export const useManualGuidance = (
   model: string,
@@ -31,13 +27,7 @@ export const useManualGuidance = (
   for (const tool of createLedger2Tools(readHistory)) useTool(tool);
   return {
     system: system.trim(),
-    instructions: {
-      bound: runtimeBound.trim(),
-      unbound: runtimeUnbound.trim(),
-      queryBasis: queryBasis.trim(),
-      capability: petrinautCapability.trim(),
-      experimentDrafting: experimentDrafting.trim(),
-    },
+    instructions: { capability: petrinautCapability.trim() },
     createQueryBasisTool,
   };
 };

@@ -26,20 +26,20 @@ import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 /**
  * What an arm hands back once it has mounted its model, skills, Ledger tools
- * and instructions. A self-contained arm also returns its own copies of the
- * runtime instructions and of `query_basis`, which the agent and the SDCPN
- * plugin mount where the shared ones would go.
+ * and instructions. A self-contained arm also returns its own runtime
+ * instructions and `query_basis`, which the agent and the SDCPN plugin mount
+ * in place of the shared ones; an instruction it leaves out mounts nothing.
  */
 export interface ChatGuidance {
   readonly system: string;
   readonly instructions?: {
     /** The ping and browser-tool policy in a document-bound conversation. */
-    readonly bound: string;
+    readonly bound?: string;
     /** The ping policy in a conversation without browser tools. */
-    readonly unbound: string;
-    readonly queryBasis: string;
-    readonly capability: string;
-    readonly experimentDrafting: string;
+    readonly unbound?: string;
+    readonly queryBasis?: string;
+    readonly capability?: string;
+    readonly experimentDrafting?: string;
   };
   /** Mounted only in a document-bound conversation. */
   readonly createQueryBasisTool?: (options: {
