@@ -15,6 +15,7 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { OverflowRow } from "../../util/OverflowRow/overflow-row";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { hasMultiItemSuffix } from "../../util/SelectableList/has-multi-item-suffix";
 import {
@@ -1083,7 +1084,7 @@ export const Select = <TValue extends string>({
         )}
       </div>
       <Portal container={portalContainerRef}>
-        <ArkSelect.Positioner>
+        <ArkSelect.Positioner className={parkedPopperPositioner}>
           <SelectableList
             as="Select"
             className={classes.list}

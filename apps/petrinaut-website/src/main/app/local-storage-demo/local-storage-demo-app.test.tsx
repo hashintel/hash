@@ -17,23 +17,23 @@ import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { createExperimentToolName } from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
-import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
-import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
+import { BrunchPanelConversationTracker } from "../plugins/brunch/brunch-panel-transport";
+import {
+  brunchEvaluationConversationIdFrom,
+  ordinaryConstructionConversationIdFrom,
+} from "../plugins/brunch/conversation/brunch-conversation-id";
+import {
+  canonicalPetrinautClientToolNames,
+  brunchPetrinautClientToolNames,
+} from "../plugins/brunch/tools/brunch-client-tools";
+import { OpenAIRealtimeSession } from "../plugins/voice/realtime/openai-realtime-session";
+import { VoiceInterviewControl } from "../plugins/voice/session/voice-interview-control";
 import {
   assistantSelectionStorageKey,
   defaultAssistantSelection,
   parseAssistantSelection,
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
-import {
-  canonicalPetrinautClientToolNames,
-  brunchPetrinautClientToolNames,
-} from "./brunch-client-tools";
-import {
-  brunchEvaluationConversationIdFrom,
-  ordinaryConstructionConversationIdFrom,
-} from "./brunch-conversation-id";
-import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
   getBrunchVoiceMode,
   LocalStorageDemoApp,
@@ -88,23 +88,28 @@ const brunchPreviewConfig = vi.hoisted(() => ({
   chatEndpoint: "/agents/chat",
   isBrunchConfigured: true,
 }));
-vi.mock("./brunch-preview-config", () => ({
+vi.mock("../plugins/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => brunchPreviewConfig,
 }));
 
-vi.mock("./brunch-mutation-approval", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("./brunch-mutation-approval")>();
-  return {
-    ...actual,
-    createBrunchMutationApprovalCoordinator: () => {
-      const coordinator = actual.createBrunchMutationApprovalCoordinator();
-      vi.spyOn(coordinator, "close");
-      mutationApprovalCoordinators.push(coordinator);
-      return coordinator;
-    },
-  };
-});
+vi.mock(
+  "../plugins/brunch/tools/brunch-mutation-approval",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("../plugins/brunch/tools/brunch-mutation-approval")
+      >();
+    return {
+      ...actual,
+      createBrunchMutationApprovalCoordinator: () => {
+        const coordinator = actual.createBrunchMutationApprovalCoordinator();
+        vi.spyOn(coordinator, "close");
+        mutationApprovalCoordinators.push(coordinator);
+        return coordinator;
+      },
+    };
+  },
+);
 
 const editorProps = vi.hoisted(() => ({
   current: null as {
@@ -122,12 +127,14 @@ const editorProps = vi.hoisted(() => ({
   } | null,
 }));
 
-vi.mock("./brunch-principal", () => ({
+vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
-vi.mock("./brunch-panel-transport", async (importOriginal) => {
+vi.mock("../plugins/brunch/brunch-panel-transport", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("./brunch-panel-transport")>();
+    await importOriginal<
+      typeof import("../plugins/brunch/brunch-panel-transport")
+    >();
   return {
     ...actual,
     createBrunchPanelTransport: (

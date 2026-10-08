@@ -39,6 +39,8 @@ export type GraphContainerProps<
    */
   fullScreenMode?: "document" | "element";
   onRender?: () => void;
+  /** Externally controlled search panel — hides the in-graph toggle button. */
+  searchPanel?: { open: boolean; onClose: () => void };
 };
 
 const borderRadii = {
@@ -75,6 +77,7 @@ export const GraphContainer = memo(
     onEdgeClick,
     onNodeSecondClick,
     onRender,
+    searchPanel,
   }: GraphContainerProps<NodeSizing>) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -154,7 +157,7 @@ export const GraphContainer = memo(
               onRender={onRender}
             >
               <PathFinderControl nodes={nodes} />
-              <SearchControl nodes={nodes} />
+              <SearchControl nodes={nodes} externalState={searchPanel} />
               <ConfigControl />
               <FilterControl defaultFilters={defaultFilters} nodes={nodes} />
               <Stack

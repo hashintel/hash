@@ -15,12 +15,10 @@ const tabIds = [
 
 type TypesPageTabsProps = {
   currentTab: TabId;
-  numberOfTypesByTab: Record<TabId, number | undefined>;
 };
 
 export const TypesPageTabs: FunctionComponent<TypesPageTabsProps> = ({
   currentTab,
-  numberOfTypesByTab,
 }) => {
   return (
     <Tabs value={currentTab}>
@@ -31,8 +29,6 @@ export const TypesPageTabs: FunctionComponent<TypesPageTabsProps> = ({
           href={tabId === "all" ? "/types" : `/types/${tabId}`}
           active={tabId === currentTab}
           label={tabTitles[tabId]}
-          count={numberOfTypesByTab[tabId]}
-          loading={numberOfTypesByTab[tabId] === undefined}
         />
       ))}
     </Tabs>
