@@ -1,5 +1,8 @@
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
-import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
+import {
+  FlueChatAdmissionError,
+  FlueChatDisconnectError,
+} from "@local/flue-aisdk-transport";
 
 import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
@@ -321,6 +324,26 @@ const decorateBrunchStream = (
   );
 };
 
+const observeDisconnect = (
+  stream: ReadableStream<UIMessageChunk>,
+  onDisconnect: (error: FlueChatDisconnectError) => void,
+): ReadableStream<UIMessageChunk> => {
+  const reader = stream.getReader();
+  return new ReadableStream({
+    async pull(controller) {
+      try {
+        const result = await reader.read();
+        if (result.done) controller.close();
+        else controller.enqueue(result.value);
+      } catch (error) {
+        if (error instanceof FlueChatDisconnectError) onDisconnect(error);
+        controller.error(error);
+      }
+    },
+    cancel: (reason) => reader.cancel(reason),
+  });
+};
+
 /** Adapt one mounted Flue conversation to Petrinaut's AI SDK rendering contract. */
 export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
@@ -332,6 +355,9 @@ export const createBrunchPanelTransport = (
     readonly onAdmission?: (admission: AgentSendResult) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
+    readonly onReattach?: FlueChatTransportOptions["onReattach"];
+    /** The transport stopped following a turn that may still be running. */
+    readonly onDisconnect?: (error: FlueChatDisconnectError) => void;
   },
 ): PetrinautAiChatTransport => ({
   reconnectToStream: async () => null,
@@ -354,11 +380,15 @@ export const createBrunchPanelTransport = (
           onResponseMessageCompleted: (event) =>
             tracker.recordResponseMessageCompleted(event),
           onToolOutputError: options?.onToolOutputError,
+          onReattach: options?.onReattach,
         });
         try {
-          return decorateBrunchStream(
+          const stream = decorateBrunchStream(
             await transport.sendMessages(sendOptions),
           );
+          return options?.onDisconnect === undefined
+            ? stream
+            : observeDisconnect(stream, options.onDisconnect);
         } catch (error) {
           const messageId =
             sendOptions.messageId ?? sendOptions.messages.at(-1)?.id;
