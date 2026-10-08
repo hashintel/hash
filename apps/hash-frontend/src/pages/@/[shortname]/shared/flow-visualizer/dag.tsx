@@ -6,20 +6,17 @@ import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { flowSectionBorderRadius, transitionOptions } from "./shared/styles";
 import { Swimlane } from "./swimlane";
 
-import type {
-  GroupWithEdgesAndNodes,
-  UngroupedEdgesAndNodes,
-} from "./shared/types";
+import type { EdgesAndNodes } from "./shared/types";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 export const DAG = ({
-  groups,
+  graph,
   selectedFlowDefinition,
 }: {
-  groups: [UngroupedEdgesAndNodes] | GroupWithEdgesAndNodes[];
+  graph: EdgesAndNodes;
   selectedFlowDefinition: FlowDefinition<FlowActionDefinitionId>;
 }) => {
   const { selectedFlowRun } = useFlowRunsContext();
@@ -82,16 +79,9 @@ export const DAG = ({
           </>
         )}
       </Stack>
-      {groups.map(({ group, nodes, edges }) => (
-        <ReactFlowProvider key={group?.groupId ?? "single-group-dag"}>
-          <Swimlane
-            group={group}
-            nodes={nodes}
-            edges={edges}
-            isOnlySwimlane={groups.length === 1}
-          />
-        </ReactFlowProvider>
-      ))}
+      <ReactFlowProvider>
+        <Swimlane nodes={graph.nodes} edges={graph.edges} />
+      </ReactFlowProvider>
     </Stack>
   );
 };

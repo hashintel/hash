@@ -13,19 +13,12 @@ import {
   WaitingIcon,
 } from "./group-status/group-step-status";
 
-import type {
-  GroupWithEdgesAndNodes,
-  UngroupedEdgesAndNodes,
-} from "../shared/types";
+import type { EdgesAndNodes } from "../shared/types";
 
-export const GroupStatus = ({
-  groupData,
-}: {
-  groupData: UngroupedEdgesAndNodes | GroupWithEdgesAndNodes;
-}) => {
+export const GroupStatus = ({ graph }: { graph: EdgesAndNodes }) => {
   const groupStepsWithIds = useMemo(
-    () => groupData.nodes.map((node) => ({ ...node, stepId: node.id })),
-    [groupData],
+    () => graph.nodes.map((node) => ({ ...node, stepId: node.id })),
+    [graph],
   );
 
   const {
@@ -94,7 +87,7 @@ export const GroupStatus = ({
             variant="smallTextParagraphs"
             sx={{ lineHeight: 1.2, ml: 1.5 }}
           >
-            {groupData.group?.description ?? "Flow"}
+            Flow
           </Typography>
         </Stack>
         <Stack alignItems="center" direction="row" gap={1} mt={0.2}>

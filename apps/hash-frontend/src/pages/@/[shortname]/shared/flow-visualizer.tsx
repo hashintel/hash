@@ -9,9 +9,13 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { IconButton, Skeleton } from "@hashintel/design-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import {
+  automaticBrowserInferenceFlow,
+  manualBrowserInferenceFlow,
+} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import { inferMetadataFromDocumentFlow } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
@@ -41,6 +45,7 @@ import { Outputs } from "./flow-visualizer/outputs";
 import { RunFlowModal } from "./flow-visualizer/run-flow-modal";
 import { SectionLabel } from "./flow-visualizer/section-label";
 import { nodeDimensions } from "./flow-visualizer/shared/dimensions";
+import { getNamedInputSources } from "./flow-visualizer/shared/named-input-sources";
 import { transitionOptions } from "./flow-visualizer/shared/styles";
 import {
   getFlattenedSteps,
@@ -52,7 +57,7 @@ import type {
   CustomEdgeType,
   CustomNodeType,
   EdgeData,
-  FlowMaybeGrouped,
+  EdgesAndNodes,
   LocalProgressLog,
   LogDisplay,
   LogThread,
@@ -70,80 +75,29 @@ import type { OutputNameForFlowAction } from "@local/hash-isomorphic-utils/flows
 import type {
   FlowActionDefinitionId,
   FlowDefinition as FlowDefinitionType,
-  FlowInputs,
-  FlowTrigger,
   PersistedEntityMetadata,
+  FlowInputValues,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType<FlowActionDefinitionId>,
   showAllDependencies = false,
 ) => {
-  /**
-   * Flows may organize their steps into 'groups'.
-   * Groups are essentially a way of labelling sets of steps, used to organize the UI into sequentially-executing lanes.
-   * Assigning steps to groups does not affect how the flow runs – it is for user/UI convenience.
-   * The only constraint is that each 'dependency layer' (set of steps that can run in parallel)
-   * must be fully contained in a group, such that only one group is executing at a time.
-   */
-  const hasGroups = (flowDefinition.groups ?? []).length > 0;
-
   const { layerByStepId } = groupStepsByDependencyLayer(flowDefinition.steps);
-
-  const groupAssignments: number[] = [];
-
-  const groupByLayer: Map<number, number> = new Map();
 
   const flattenedSteps = getFlattenedSteps(flowDefinition.steps);
 
   const derivedNodes: CustomNodeType[] = flattenedSteps.map((step) => {
-    if (hasGroups && !step.groupId) {
-      throw new Error(
-        `Flow defines groups, but step ${step.stepId} is missing a groupId.`,
-      );
-    }
-
-    if (step.groupId) {
-      const lastGroupAssigned = groupAssignments.at(-1);
-      if (lastGroupAssigned && lastGroupAssigned > step.groupId) {
-        throw new Error(
-          `Step ${step.stepId} belongs to groupId ${step.groupId}, but appears after member(s) of group ${lastGroupAssigned}.`,
-        );
-      }
-
-      const layer = layerByStepId.get(step.stepId);
-      if (layer === undefined) {
-        throw new Error(
-          `Step ${step.stepId} is missing from the dependency layers.`,
-        );
-      }
-
-      const groupForLayer = groupByLayer.get(layer);
-      if (groupForLayer === undefined) {
-        groupByLayer.set(layer, step.groupId);
-      } else if (groupForLayer !== step.groupId) {
-        throw new Error(
-          `Step ${step.stepId} is assigned to group ${step.groupId}, but an earlier step in the same dependency layer is assigned to group ${groupForLayer}. Dependency layers must belong to the same group.`,
-        );
-      }
-
-      groupAssignments.push(step.groupId);
-    }
-
     const node: CustomNodeType = {
       id: step.stepId,
       data: {
-        groupId: step.groupId,
         kind: step.kind,
         actionDefinition:
           step.kind === "action"
             ? actionDefinitions[step.actionDefinitionId]
             : null,
         label: step.description,
-        inputSources:
-          step.kind === "parallel-group"
-            ? [step.inputSourceToParallelizeOn]
-            : step.inputSources,
+        inputSources: getNamedInputSources(step),
       },
       type: step.kind,
       parentNode: step.parallelParentId,
@@ -174,9 +128,9 @@ const getGraphFromFlowDefinition = (
       for (const inputSource of node.data.inputSources) {
         if (inputSource.kind === "step-output") {
           derivedEdges.push({
-            id: `${flowDefinition.name}-${inputSource.sourceStepId}-${node.id}`,
-            source: inputSource.sourceStepId,
-            sourceHandle: inputSource.sourceStepOutputName,
+            id: `${flowDefinition.name}-${inputSource.stepId}-${node.id}`,
+            source: inputSource.stepId,
+            sourceHandle: inputSource.outputName,
             target: node.id,
             targetHandle: inputSource.inputName,
             ...baseEdgeOptions,
@@ -186,13 +140,9 @@ const getGraphFromFlowDefinition = (
     } else {
       const nextNode = derivedNodes[i + 1];
 
-      const groupForThisNode = node.data.groupId;
-      const groupForNextNode = nextNode?.data.groupId;
-
       if (
         nextNode &&
         nextNode.parentNode !== node.id &&
-        groupForThisNode === groupForNextNode &&
         layerByStepId.get(node.id) !== layerByStepId.get(nextNode.id)
       ) {
         derivedEdges.push({
@@ -215,8 +165,11 @@ const logHeight = 400;
 
 const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
+/** Flows that only the browser plugin or a file upload starts, because their inputs come from there. */
 const unrunnableDefinitionIds = [
-  manualBrowserInferenceFlowDefinition.flowDefinitionId,
+  manualBrowserInferenceFlow.flowDefinitionId,
+  automaticBrowserInferenceFlow.flowDefinitionId,
+  inferMetadataFromDocumentFlow.flowDefinitionId,
 ];
 
 export const FlowRunVisualizerSkeleton = () => (
@@ -246,8 +199,11 @@ export const FlowVisualizer = () => {
 
   const { push } = useRouter();
 
-  const { flowDefinitions, selectedFlowDefinitionId } =
-    useFlowDefinitionsContext();
+  const {
+    flowDefinitions,
+    loading: flowDefinitionsLoading,
+    selectedFlowDefinitionId,
+  } = useFlowDefinitionsContext();
 
   const { selectedFlowRun } = useFlowRunsContext();
 
@@ -266,11 +222,17 @@ export const FlowVisualizer = () => {
 
   const getOwner = useGetOwnerForEntity();
 
-  const selectedFlowDefinition = useMemo(() => {
-    return flowDefinitions.find(
-      (def) => def.flowDefinitionId === selectedFlowDefinitionId,
-    );
-  }, [flowDefinitions, selectedFlowDefinitionId]);
+  const selectedFlow = useMemo(
+    () =>
+      flowDefinitions.find(
+        ({ flowDefinitionId }) =>
+          flowDefinitionId ===
+          (selectedFlowRun?.flowDefinitionId ?? selectedFlowDefinitionId),
+      ),
+    [flowDefinitions, selectedFlowDefinitionId, selectedFlowRun],
+  );
+
+  const selectedFlowDefinition = selectedFlow?.flowDefinition;
 
   const { nodes: derivedNodes, edges: derivedEdges } = useMemo(() => {
     if (!selectedFlowDefinition) {
@@ -281,66 +243,10 @@ export const FlowVisualizer = () => {
 
   const [showRunModal, setShowRunModal] = useState(false);
 
-  const flowMaybeGrouped = useMemo<FlowMaybeGrouped>(() => {
-    const graphsByGroup: FlowMaybeGrouped = { type: "grouped", groups: [] };
-
-    if (!selectedFlowDefinition) {
-      return {
-        groups: [{ group: null, edges: [], nodes: [] }],
-        type: "ungrouped",
-      };
-    }
-
-    for (const node of derivedNodes) {
-      if (!node.data.groupId) {
-        /**
-         * We validate that either all or no steps have a groupId, so this must be an ungrouped Flow
-         */
-        return {
-          type: "ungrouped",
-          groups: [
-            {
-              group: null,
-              edges: derivedEdges,
-              nodes: derivedNodes,
-            },
-          ],
-        };
-      }
-
-      const groupDefinition = selectedFlowDefinition.groups?.find(
-        (grp) => grp.groupId === node.data.groupId,
-      );
-
-      if (!groupDefinition) {
-        throw new Error(
-          `No group with id ${node.data.groupId} found in flow definition`,
-        );
-      }
-
-      let group = graphsByGroup.groups.find(
-        (grp) => grp.group.groupId === groupDefinition.groupId,
-      );
-
-      if (!group) {
-        group = {
-          edges: [],
-          group: groupDefinition,
-          nodes: [],
-        };
-
-        graphsByGroup.groups.push(group);
-      }
-
-      group.nodes.push(node);
-
-      group.edges.push(
-        ...derivedEdges.filter((edge) => edge.source === node.id),
-      );
-    }
-
-    return graphsByGroup;
-  }, [derivedNodes, derivedEdges, selectedFlowDefinition]);
+  const graph = useMemo<EdgesAndNodes>(
+    () => ({ nodes: derivedNodes, edges: derivedEdges }),
+    [derivedNodes, derivedEdges],
+  );
 
   const {
     logs,
@@ -368,7 +274,7 @@ export const FlowVisualizer = () => {
         level: 1,
         message: "Flow run started",
         recordedAt: selectedFlowRun.startedAt,
-        stepId: "trigger",
+        stepId: "start",
         type: "StateChange",
       },
     ];
@@ -654,11 +560,11 @@ export const FlowVisualizer = () => {
 
   const runFlow = useCallback(
     async (
-      args: { outputs: FlowTrigger["outputs"]; webId: WebId } | { reRun: true },
+      args: { flowInputs: FlowInputValues; webId: WebId } | { reRun: true },
     ) => {
-      let flowInputs: FlowInputs[number];
+      let variables: StartFlowMutationVariables;
 
-      if (!selectedFlowDefinition) {
+      if (!selectedFlow) {
         throw new Error("Can't start flow with no flow definition selected");
       }
 
@@ -667,14 +573,16 @@ export const FlowVisualizer = () => {
           throw new Error("Can't re-run flow with no flow run selected");
         }
 
-        const { inputs } = selectedFlowRun;
-        flowInputs = {
-          ...inputs[0],
-          flowType: selectedFlowDefinition.type === "ai" ? "ai" : "integration",
+        variables = {
+          dataSources: selectedFlowRun.dataSources,
+          flowDefinition: selectedFlow.flowDefinition,
+          flowDefinitionId: selectedFlow.flowDefinitionId,
+          flowInputs: selectedFlowRun.flowInputs,
+          webId: selectedFlowRun.webId,
         };
       } else {
-        const { webId, outputs } = args;
-        flowInputs = {
+        const { webId, flowInputs } = args;
+        variables = {
           dataSources: {
             files: { fileEntityIds: [] },
             internetAccess: {
@@ -685,12 +593,9 @@ export const FlowVisualizer = () => {
               enabled: true,
             },
           },
-          flowDefinition: selectedFlowDefinition,
-          flowType: selectedFlowDefinition.type === "ai" ? "ai" : "integration",
-          flowTrigger: {
-            outputs,
-            triggerDefinitionId: "userTrigger",
-          },
+          flowDefinition: selectedFlow.flowDefinition,
+          flowDefinitionId: selectedFlow.flowDefinitionId,
+          flowInputs,
           webId,
         };
       }
@@ -698,9 +603,7 @@ export const FlowVisualizer = () => {
       setStartFlowPending(true);
 
       try {
-        const { data } = await startFlow({
-          variables: flowInputs,
-        });
+        const { data } = await startFlow({ variables });
 
         const flowRunId = data?.startFlow;
         if (!flowRunId) {
@@ -713,21 +616,14 @@ export const FlowVisualizer = () => {
 
         setShowRunModal(false);
 
-        const { shortname } = getOwner({ webId: flowInputs.webId });
+        const { shortname } = getOwner({ webId: variables.webId });
 
         void push(generateWorkerRunPath({ shortname, flowRunId }));
       } finally {
         setStartFlowPending(false);
       }
     },
-    [
-      apolloClient,
-      getOwner,
-      push,
-      selectedFlowDefinition,
-      selectedFlowRun,
-      startFlow,
-    ],
+    [apolloClient, getOwner, push, selectedFlow, selectedFlowRun, startFlow],
   );
 
   const handleRunFlowClicked = useCallback(async () => {
@@ -738,12 +634,13 @@ export const FlowVisualizer = () => {
     setShowRunModal(true);
   }, [runFlow, selectedFlowRun]);
 
-  if (!selectedFlowDefinition) {
+  if (!selectedFlow || !selectedFlowDefinition) {
+    if (flowDefinitionsLoading) {
+      return <FlowRunVisualizerSkeleton />;
+    }
+
     if (selectedFlowDefinitionId) {
-      /**
-       * If we have a selected definition id but no definition, it doesn't exist
-       * @todo when flow definitions are loaded from the database, this may no longer be true
-       */
+      /* The definition doesn't exist, or the user can't view it. */
       return <NotFound />;
     }
     throw new Error("Is this possible?");
@@ -754,22 +651,21 @@ export const FlowVisualizer = () => {
     selectedFlowRun?.flowRunId ?? "definition"
   }`;
 
-  const isRunnableFromHere =
-    selectedFlowDefinition.trigger.triggerDefinitionId === "userTrigger" &&
-    !unrunnableDefinitionIds.includes(selectedFlowDefinition.flowDefinitionId);
-
-  const isGoal = goalFlowDefinitionIds.includes(
-    selectedFlowDefinition.flowDefinitionId,
+  const isRunnableFromHere = !unrunnableDefinitionIds.includes(
+    selectedFlow.flowDefinitionId,
   );
+
+  const isGoal = isGoalFlowDefinitionId(selectedFlow.flowDefinitionId);
 
   return (
     <>
       {selectedFlowRun && (
         <DagSlide
-          groups={flowMaybeGrouped.groups}
+          graph={graph}
           open={showDag}
           onClose={() => setShowDag(false)}
           selectedFlowDefinition={selectedFlowDefinition}
+          flowDefinitionId={selectedFlow.flowDefinitionId}
         />
       )}
       <Stack sx={{ height: containerHeight }}>
@@ -777,13 +673,14 @@ export const FlowVisualizer = () => {
           <RunFlowModal
             key={selectedFlowDefinition.name}
             flowDefinition={selectedFlowDefinition}
+            flowDefinitionId={selectedFlow.flowDefinitionId}
             open={showRunModal}
             onClose={() => setShowRunModal(false)}
             onScheduleCreated={() => {
               void push("/workers");
             }}
-            runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
-              await runFlow({ outputs, webId });
+            runFlow={async (flowInputs, webId) => {
+              await runFlow({ flowInputs, webId });
             }}
           />
         )}
@@ -811,10 +708,10 @@ export const FlowVisualizer = () => {
         >
           {selectedFlowRun ? (
             <FlowRunSidebar
-              flowDefinition={selectedFlowDefinition}
+              flowDefinitionId={selectedFlow.flowDefinitionId}
               flowRunId={selectedFlowRun.flowRunId}
               flowScheduleId={selectedFlowRun.flowScheduleId ?? null}
-              groups={flowMaybeGrouped.groups}
+              graph={graph}
               name={selectedFlowRun.name}
               showDag={() => setShowDag(true)}
             />
@@ -841,7 +738,7 @@ export const FlowVisualizer = () => {
             ) : (
               <DAG
                 key={flowDefinitionStateKey}
-                groups={flowMaybeGrouped.groups}
+                graph={graph}
                 selectedFlowDefinition={selectedFlowDefinition}
               />
             )}

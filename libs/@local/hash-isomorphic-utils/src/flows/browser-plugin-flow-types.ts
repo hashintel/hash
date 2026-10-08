@@ -15,21 +15,21 @@ export type AutomaticInferenceSettings = {
   }[];
 };
 
-export type AutomaticInferenceTriggerInputName = "visitedWebPage";
+export type AutomaticInferenceInputName = "visitedWebPage";
 
-export type AutomaticInferenceTriggerInputs = Subtype<
-  Record<AutomaticInferenceTriggerInputName, Payload>,
+export type AutomaticInferenceInputs = Subtype<
+  Record<AutomaticInferenceInputName, Payload>,
   { visitedWebPage: { kind: "WebPage"; value: WebPage } }
 >;
 
-export type ManualInferenceTriggerInputName =
+export type ManualInferenceInputName =
   | "draft"
   | "entityTypeIds"
   | "model"
   | "visitedWebPage";
 
-export type ManualInferenceTriggerInputs = Subtype<
-  Record<ManualInferenceTriggerInputName, Payload>,
+export type ManualInferenceInputs = Subtype<
+  Record<ManualInferenceInputName, Payload>,
   {
     draft: {
       kind: "Boolean";
@@ -52,10 +52,10 @@ export type ManualInferenceTriggerInputs = Subtype<
 
 type BaseInferenceArguments = { webId: WebId };
 
-export type AutomaticInferenceArguments = AutomaticInferenceTriggerInputs &
+export type AutomaticInferenceArguments = AutomaticInferenceInputs &
   BaseInferenceArguments;
 
-export type ManualInferenceArguments = ManualInferenceTriggerInputs &
+export type ManualInferenceArguments = ManualInferenceInputs &
   BaseInferenceArguments;
 
 export const browserInferenceFlowOutput = {

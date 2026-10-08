@@ -1,12 +1,13 @@
 import {
   ApplicationFailure,
   proxyActivities,
+  upsertMemo,
   workflowInfo,
 } from "@temporalio/workflow";
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
-import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
+import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
@@ -17,7 +18,7 @@ import { getStepDefinitionFromFlowDefinition } from "./process-flow-workflow/get
 import {
   initializeActionStep,
   initializeFlow,
-  initializeParallelGroup,
+  initializeForEachStep,
 } from "./process-flow-workflow/initialize-flow.js";
 import { passOutputsToUnprocessedSteps } from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
 
@@ -26,16 +27,22 @@ import type {
   CreateFlowActivities,
   ProxyFlowActivity,
 } from "./action-types.js";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import type {
   BaseRunFlowWorkflowParams,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
+  ArrayPayload,
   FlowActionDefinitionId,
   FlowDefinition,
+  FlowInputValues,
+  FlowOutputDefinition,
   FlowStep,
-  FlowTrigger,
+  LocalFlowRun,
   Payload,
+  StepInputSource,
+  SkippedStep,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
@@ -47,37 +54,128 @@ const log = (message: string) => {
   console.log(message);
 };
 
-const doesFlowStepHaveSatisfiedDependencies = (params: {
-  step: FlowStep;
-  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
-  processedStepIds: string[];
+/**
+ * Whether a step can run now, must wait for more of its inputs, or is skipped because a value it needs is
+ * missing: either from a step that was itself skipped, or from a connection marked `whenMissing: "skip"`.
+ */
+type StepReadiness = "ready" | "waiting" | "skip";
+
+/**
+ * The run step that provides a source's output to a consumer: in a for-each branch, the producer in the same
+ * branch if there is one, otherwise the producer outside the for-each step.
+ */
+const getProducerRunStepId = ({
+  flow,
+  consumerStepId,
+  producerStepId,
+}: {
+  flow: LocalFlowRun;
+  consumerStepId: string;
+  producerStepId: string;
 }) => {
-  const { step, flowDefinition, processedStepIds } = params;
+  const [_, branchIndex] = consumerStepId.split("~");
 
-  if (step.kind === "action") {
-    /**
-     * An action step has satisfied dependencies if all of its inputs have
-     * been provided, based on the input sources defined in the step's
-     * definition.
-     *
-     * We don't need to check if all required inputs have been provided,
-     * as this will have been enforced when the flow was validated.
+  if (branchIndex !== undefined) {
+    const producerInBranch = `${producerStepId}~${branchIndex}`;
+
+    if (
+      getAllStepsInFlow(flow).some(({ stepId }) => stepId === producerInBranch)
+    ) {
+      return producerInBranch;
+    }
+  }
+
+  return producerStepId;
+};
+
+const getStepReadiness = (params: {
+  step: FlowStep;
+  flow: LocalFlowRun;
+  flowDefinition: FlowDefinition;
+  processedStepIds: string[];
+  skippedStepIds: string[];
+}): StepReadiness => {
+  const { step, flow, flowDefinition, processedStepIds, skippedStepIds } =
+    params;
+
+  /**
+   * The readiness of one missing value, from the source that would provide it.
+   */
+  const getMissingValueReadiness = ({
+    source,
+    required,
+  }: {
+    source: StepInputSource;
+    required: boolean;
+  }): StepReadiness => {
+    if (source.kind !== "step-output") {
+      /*
+       * Flow inputs, items and constants are provided when the step is initialized, so a missing one never
+       * arrives: an optional flow input that wasn't given skips the step if the connection says to.
+       */
+      if (!required) {
+        return "ready";
+      }
+
+      return source.kind !== "constant" && source.whenMissing === "skip"
+        ? "skip"
+        : "waiting";
+    }
+
+    const producerStepId = getProducerRunStepId({
+      flow,
+      consumerStepId: step.stepId,
+      producerStepId: source.stepId,
+    });
+
+    if (skippedStepIds.includes(producerStepId)) {
+      return required ? "skip" : "ready";
+    }
+
+    if (!processedStepIds.includes(producerStepId)) {
+      /* Wait for the producer to run, even for an optional input, so that it's provided if produced. */
+      return "waiting";
+    }
+
+    if (!required) {
+      return "ready";
+    }
+
+    /*
+     * The producer ran but didn't produce the value. Unless the connection skips this step when the value is
+     * missing, the step never becomes ready, and the run fails.
      */
+    return source.whenMissing === "skip" ? "skip" : "waiting";
+  };
 
-    const { inputSources } = getStepDefinitionFromFlowDefinition({
+  if (step.kind === "for-each") {
+    if (step.over) {
+      return "ready";
+    }
+
+    const { over } = getStepDefinitionFromFlowDefinition({
       step,
       flowDefinition,
     });
 
-    const actionDefinition = actionDefinitions[step.actionDefinitionId];
+    return getMissingValueReadiness({ source: over, required: true });
+  }
 
-    return inputSources.every((inputSource) => {
+  const { inputs } = getStepDefinitionFromFlowDefinition({
+    step,
+    flowDefinition,
+  });
+
+  const actionDefinition = actionDefinitions[step.actionDefinitionId];
+
+  const readinessOfInputs = Object.entries(inputs).map(
+    ([inputName, source]): StepReadiness => {
       const inputDefinition = actionDefinition.inputs.find(
-        ({ name }) => name === inputSource.inputName,
+        ({ name }) => name === inputName,
       );
 
       if (!inputDefinition) {
-        const errorMessage = `Definition for inputName '${inputSource.inputName}' in step ${step.stepId} not found in action definition ${step.actionDefinitionId}`;
+        const errorMessage = `Definition for inputName '${inputName}' in step ${step.stepId} not found in action definition ${step.actionDefinitionId}`;
 
         throw ApplicationFailure.create({
           message: errorMessage,
@@ -90,57 +188,56 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
         });
       }
 
-      if (
-        step.inputs?.some((input) => input.inputName === inputSource.inputName)
-      ) {
-        /**
-         * If the input has been provided, the input has been satisfied.
-         */
-        return true;
-      } else if (inputDefinition.required) {
-        /**
-         * If the input is required, and it hasn't been provided the step
-         * has not satisfied its dependencies.
-         */
-        return false;
-      } else if (
-        inputSource.kind === "step-output" &&
-        inputSource.sourceStepId !== "trigger"
-      ) {
-        /**
-         * If the input is optional, but depends on a runnable step (i.e. not
-         * the trigger), the step only has satisfied its dependencies if the
-         * step it depends on has been processed.
-         *
-         * This ensures that the step is processed when all possible inputs
-         * are provided in the flow.
-         */
-        return processedStepIds.includes(inputSource.sourceStepId);
-      } else if (inputSource.kind === "parallel-group-input") {
-        /**
-         * If the input is optional, but has a parallel group input as it's source
-         * the step should only be processed once this input has been provided.
-         *
-         * Otherwise the parallel group won't run, and produce any outputs.
-         */
-        return false;
-      } else {
-        /**
-         * Otherwise, we consider the input satisfied because it is optional.
-         */
-        return true;
+      if (step.inputs?.some((input) => input.inputName === inputName)) {
+        return "ready";
       }
-    });
-  } else {
-    /**
-     * A parallel group step has satisfied dependencies if the input it
-     * parallelizes over has been provided.
-     */
 
-    const { inputToParallelizeOn } = step;
+      return getMissingValueReadiness({
+        source,
+        required: inputDefinition.required,
+      });
+    },
+  );
 
-    return !!inputToParallelizeOn;
+  if (readinessOfInputs.includes("skip")) {
+    return "skip";
   }
+
+  return readinessOfInputs.every((readiness) => readiness === "ready")
+    ? "ready"
+    : "waiting";
+};
+
+/**
+ * Whether a flow output is always produced: the output of an action that always produces it, or a for-each
+ * step's collected output.
+ */
+/**
+ * Whether a flow output must be present for the run to succeed: an output the action may not produce, or whose
+ * step was skipped (because a value it needs was missing), is not.
+ */
+const isRequiredFlowOutput = (
+  flowDefinition: FlowDefinition,
+  outputDefinition: FlowOutputDefinition,
+  skippedStepIds: string[],
+) => {
+  if (skippedStepIds.includes(outputDefinition.stepId)) {
+    return false;
+  }
+
+  const stepDefinition = getAllStepDefinitionsInFlowDefinition(
+    flowDefinition,
+  ).find(({ stepId }) => stepId === outputDefinition.stepId);
+
+  if (stepDefinition?.kind !== "action") {
+    return true;
+  }
+
+  return (
+    actionDefinitions[stepDefinition.actionDefinitionId].outputs.find(
+      ({ name }) => name === outputDefinition.outputName,
+    )?.required ?? true
+  );
 };
 
 const { persistFlowActivity, userHasPermissionToRunFlowInWebActivity } =
@@ -155,14 +252,11 @@ export const processFlowWorkflow = async <
   ValidActionDefinitionId extends FlowActionDefinitionId,
   CreateActivitiesFn extends CreateFlowActivities<ValidActionDefinitionId>,
 >(
-  params: BaseRunFlowWorkflowParams<ValidActionDefinitionId> & {
-    flowType: "ai" | "integration";
-    generateFlowRunName?: ({
-      flowDefinition,
-      flowTrigger,
-    }: {
-      flowDefinition: FlowDefinition<ValidActionDefinitionId>;
-      flowTrigger: FlowTrigger;
+  params: BaseRunFlowWorkflowParams & {
+    generateFlowRunName?: (params: {
+      flowDefinition: FlowDefinition;
+      flowDefinitionId: EntityUuid;
+      flowInputs: FlowInputValues;
     }) => Promise<string>;
     proxyFlowActivity: ProxyFlowActivity<
       ValidActionDefinitionId,
@@ -172,30 +266,15 @@ export const processFlowWorkflow = async <
 ): Promise<RunFlowWorkflowResponse> => {
   const {
     flowDefinition,
+    flowDefinitionId,
     flowRunId,
     flowRunName,
-    flowType,
-    flowTrigger,
+    flowInputs,
     proxyFlowActivity,
     userAuthentication,
     webId,
     generateFlowRunName,
   } = params;
-
-  try {
-    validateFlowDefinition(flowDefinition, flowType);
-  } catch (error) {
-    throw ApplicationFailure.create({
-      message: (error as Error).message,
-      details: [
-        {
-          code: StatusCode.InvalidArgument,
-          message: (error as Error).message,
-          contents: [],
-        },
-      ],
-    });
-  }
 
   // Ensure the user has permission to create entities in specified web
   const userHasPermissionToRunFlowInWeb =
@@ -225,7 +304,8 @@ export const processFlowWorkflow = async <
 
   const flow = initializeFlow({
     flowDefinition,
-    flowTrigger,
+    flowDefinitionId,
+    flowInputs,
     temporalWorkflowId: workflowId,
     /**
      * Use flowRunName if provided (e.g. from a schedule), otherwise use the flow definition's name.
@@ -245,7 +325,8 @@ export const processFlowWorkflow = async <
   if (generateFlowRunName) {
     const generatedName = await generateFlowRunName({
       flowDefinition,
-      flowTrigger,
+      flowDefinitionId,
+      flowInputs,
     });
     flow.name = generatedName;
 
@@ -258,6 +339,9 @@ export const processFlowWorkflow = async <
   }
 
   const processedStepIds: string[] = [];
+  /** Steps skipped because a value they need is missing (see `getStepReadiness`); also in `processedStepIds`. */
+  const skippedStepIds: string[] = [];
+  const skippedSteps: SkippedStep[] = [];
   const processStepErrors: Record<string, Omit<Status<never>, "contents">> = {};
 
   // Function to process a single step
@@ -358,8 +442,6 @@ export const processFlowWorkflow = async <
         outputs,
         processedStepIds,
         stepId: currentStepId,
-        outputDefinitions:
-          actionDefinitions[currentStep.actionDefinitionId].outputs,
       });
 
       if (status.code !== StatusCode.Ok) {
@@ -372,86 +454,161 @@ export const processFlowWorkflow = async <
         return;
       }
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    } else if (currentStep.kind === "parallel-group") {
-      const parallelGroupStepDefinition = getStepDefinitionFromFlowDefinition({
+    } else if (currentStep.kind === "for-each") {
+      const forEachStepDefinition = getStepDefinitionFromFlowDefinition({
         step: currentStep,
         flowDefinition,
       });
 
-      const { inputToParallelizeOn } = currentStep;
+      const { over } = currentStep;
 
-      if (!inputToParallelizeOn) {
+      if (!over) {
         processStepErrors[currentStepId] = {
           code: StatusCode.Internal,
-          message: `No input provided to parallelize on for step ${currentStepId}`,
+          message: `No array to iterate over provided for step ${currentStepId}`,
         };
 
         return;
       }
-
-      const { steps: parallelGroupStepDefinitions } =
-        parallelGroupStepDefinition;
-
-      const arrayToParallelizeOn = inputToParallelizeOn.payload.value;
 
       /**
-       * @todo H-6169: could enable this by creating an activity to retrieve the stored payloads and pass out the values,
-       *     but we'd need to be careful that this didn't re-introduce the problem the offloaded storage is trying to solve (big outputs and inputs to Temporal activities).
-       *     A better solution would be for activities to somehow pick items from the stored array after retrieving it, but at that point we're rethinking how Flows
-       *     are orchestrated and we want to do so wholesale. Deferred until there's a need.
+       * The items to run the nested steps for. A stored array is iterated using its length alone, giving each
+       * branch a reference to its item, which the activities it runs resolve.
        */
-      if (isStoredPayloadRef(arrayToParallelizeOn)) {
-        processStepErrors[currentStepId] = {
-          code: StatusCode.Internal,
-          message: `Cannot parallelize on a stored payload reference for step ${currentStepId}. Stored payloads can only be resolved by activities.`,
-        };
+      const items = getArrayPayloadItems(over.value);
 
-        return;
-      }
+      const newSteps = items.flatMap((itemValue, index) => {
+        const item = { kind: over.kind, value: itemValue } as Payload;
 
-      const newSteps = arrayToParallelizeOn.flatMap(
-        (parallelizedValue, index) =>
-          parallelGroupStepDefinitions.map((stepDefinition) => {
-            if (stepDefinition.kind === "action") {
-              const parallelGroupInputPayload: Payload = {
-                kind: inputToParallelizeOn.payload.kind,
-                value: parallelizedValue,
-                /** @todo: figure out why this isn't assignable */
-              } as Payload;
-
-              return initializeActionStep({
-                flowTrigger,
+        return forEachStepDefinition.steps.map((stepDefinition) =>
+          stepDefinition.kind === "action"
+            ? initializeActionStep({
+                flowInputs,
                 stepDefinition,
                 overrideStepId: `${stepDefinition.stepId}~${index}`,
-                parallelGroupInputPayload,
-              });
-            } else {
-              return initializeParallelGroup({ flowTrigger, stepDefinition });
-            }
-          }),
-      );
+                existingFlow: flow,
+                item,
+              })
+            : initializeForEachStep({
+                flowInputs,
+                stepDefinition,
+                overrideStepId: `${stepDefinition.stepId}~${index}`,
+                existingFlow: flow,
+                item,
+              }),
+        );
+      });
 
       /**
-       * Add the new steps to the child steps of the parallel group step.
+       * Add the new steps to the child steps of the for-each step.
        */
       currentStep.steps = [...(currentStep.steps ?? []), ...newSteps];
 
       /**
-       * We consider the parallel group step "processed", even though its child
-       * steps may not have finished executing, so that the step is not re-evaluated
-       * in a subsequent iteration of `processSteps`.
+       * We consider the for-each step "processed", even though its child steps may not have finished executing,
+       * so that the step is not re-evaluated in a subsequent iteration of `processSteps`.
        */
       processedStepIds.push(currentStep.stepId);
+
+      if (items.length === 0) {
+        /* With no items, nothing is collected: the collected output is complete, and empty. */
+        const collectedStepDefinition = getAllStepDefinitionsInFlowDefinition(
+          forEachStepDefinition,
+        ).find(({ stepId }) => stepId === forEachStepDefinition.collect.stepId);
+
+        const collectedPayloadKind =
+          collectedStepDefinition?.kind === "action"
+            ? actionDefinitions[
+                collectedStepDefinition.actionDefinitionId
+              ].outputs.find(
+                ({ name }) => name === forEachStepDefinition.collect.outputName,
+              )?.payloadKind
+            : undefined;
+
+        if (!collectedPayloadKind) {
+          processStepErrors[currentStepId] = {
+            code: StatusCode.Internal,
+            message: `Could not determine the kind of output step ${currentStepId} collects`,
+          };
+
+          return;
+        }
+
+        currentStep.collected = {
+          outputName: forEachStepDefinition.collect.as,
+          payload: { kind: collectedPayloadKind, value: [] } as ArrayPayload,
+        };
+        currentStep.collectedBranchCount = 0;
+
+        passOutputsToUnprocessedSteps({
+          flow,
+          flowDefinition,
+          stepId: currentStepId,
+          outputs: [currentStep.collected],
+          processedStepIds,
+        });
+      }
     }
   };
 
-  const stepWithSatisfiedDependencies = getAllStepsInFlow(flow).filter((step) =>
-    doesFlowStepHaveSatisfiedDependencies({
+  /**
+   * Skips every step that can never run because a value it needs is missing, repeating until no more are
+   * skipped, since skipping a step can skip the steps that depend on it.
+   */
+  let skippedStepCountInMemo = 0;
+
+  const skipUnrunnableSteps = () => {
+    let skippedAny = true;
+
+    while (skippedAny) {
+      skippedAny = false;
+
+      for (const step of getAllStepsInFlow(flow)) {
+        if (
+          !processedStepIds.includes(step.stepId) &&
+          getStepReadiness({
+            step,
+            flow,
+            flowDefinition,
+            processedStepIds,
+            skippedStepIds,
+          }) === "skip"
+        ) {
+          log(
+            `Step ${step.stepId}: skipped, because a value it needs is missing`,
+          );
+
+          processedStepIds.push(step.stepId);
+          skippedStepIds.push(step.stepId);
+          skippedSteps.push({
+            stepId: step.stepId,
+            stepType:
+              step.kind === "action" ? step.actionDefinitionId : "forEach",
+            skippedAt: new Date().toISOString(),
+          });
+          skippedAny = true;
+        }
+      }
+    }
+
+    if (skippedSteps.length > skippedStepCountInMemo) {
+      upsertMemo({ skippedSteps });
+      skippedStepCountInMemo = skippedSteps.length;
+    }
+  };
+
+  const isReadyToProcess = (step: FlowStep) =>
+    !processedStepIds.includes(step.stepId) &&
+    getStepReadiness({
       step,
+      flow,
       flowDefinition,
       processedStepIds,
-    }),
-  );
+      skippedStepIds,
+    }) === "ready";
+
+  const stepWithSatisfiedDependencies =
+    getAllStepsInFlow(flow).filter(isReadyToProcess);
 
   if (stepWithSatisfiedDependencies.length === 0) {
     const errorMessage =
@@ -470,17 +627,9 @@ export const processFlowWorkflow = async <
 
   // Recursively process steps which have satisfied dependencies
   const processSteps = async () => {
-    const stepsToProcess = getAllStepsInFlow(flow).filter(
-      (step) =>
-        doesFlowStepHaveSatisfiedDependencies({
-          step,
-          flowDefinition,
-          processedStepIds,
-        }) &&
-        !processedStepIds.some(
-          (processedStepId) => processedStepId === step.stepId,
-        ),
-    );
+    skipUnrunnableSteps();
+
+    const stepsToProcess = getAllStepsInFlow(flow).filter(isReadyToProcess);
 
     // There are no more steps which can be processed, so we exit the recursive loop
     if (stepsToProcess.length === 0) {
@@ -537,14 +686,22 @@ export const processFlowWorkflow = async <
       (flowStep) => flowStep.stepId === outputDefinition.stepId,
     );
 
-    const errorPrefix = `Error processing output definition '${outputDefinition.name}', `;
+    const output =
+      step?.kind === "action"
+        ? step.outputs?.find(
+            ({ outputName }) => outputName === outputDefinition.outputName,
+          )
+        : step?.collected;
 
-    if (!step) {
-      if (!outputDefinition.required) {
+    if (!output) {
+      if (
+        !isRequiredFlowOutput(flowDefinition, outputDefinition, skippedStepIds)
+      ) {
         continue;
       }
 
-      const errorMessage = `${errorPrefix}required step with id '${outputDefinition.stepId}' not found in outputs.`;
+      const errorMessage = `Error processing output definition '${outputDefinition.name}': step '${outputDefinition.stepId}' did not produce its required output '${outputDefinition.outputName}'`;
+
       throw ApplicationFailure.create({
         message: errorMessage,
         details: [
@@ -557,62 +714,13 @@ export const processFlowWorkflow = async <
       });
     }
 
-    if (step.kind === "action") {
-      const output = step.outputs?.find(
-        ({ outputName }) => outputName === outputDefinition.stepOutputName,
-      );
-
-      if (!output) {
-        if (!outputDefinition.required) {
-          continue;
-        }
-
-        const errorMessage = `${errorPrefix}there is no output with name '${outputDefinition.stepOutputName}' in step ${step.stepId}`;
-
-        throw ApplicationFailure.create({
-          message: errorMessage,
-          details: [
-            {
-              code: StatusCode.NotFound,
-              message: errorMessage,
-              contents: [{ stepErrors }],
-            },
-          ],
-        });
-      }
-
-      flow.outputs = [
-        ...(flow.outputs ?? []),
-        {
-          outputName: outputDefinition.name,
-          payload: output.payload,
-        },
-      ];
-    } else {
-      const output = step.aggregateOutput;
-
-      if (!output) {
-        const errorMessage = `${errorPrefix}no aggregate output found in step ${step.stepId}`;
-        throw ApplicationFailure.create({
-          message: errorMessage,
-          details: [
-            {
-              code: StatusCode.NotFound,
-              message: errorMessage,
-              contents: [{ stepErrors }],
-            },
-          ],
-        });
-      }
-
-      flow.outputs = [
-        ...(flow.outputs ?? []),
-        {
-          outputName: outputDefinition.name,
-          payload: output.payload,
-        },
-      ];
-    }
+    flow.outputs = [
+      ...(flow.outputs ?? []),
+      {
+        outputName: outputDefinition.name,
+        payload: output.payload,
+      },
+    ];
   }
 
   await persistFlowActivity({
@@ -629,10 +737,17 @@ export const processFlowWorkflow = async <
      * Steps may error and be retried, or the whole workflow retried, while still producing the required outputs
      * – start with an initial status of OK if the outputs are present, to be adjusted if necessary.
      */
-    code:
-      outputs.length === flowDefinition.outputs.length
-        ? StatusCode.Ok
-        : StatusCode.Internal,
+    code: flowDefinition.outputs.every(
+      (outputDefinition) =>
+        !isRequiredFlowOutput(
+          flowDefinition,
+          outputDefinition,
+          skippedStepIds,
+        ) ||
+        outputs.some(({ outputName }) => outputName === outputDefinition.name),
+    )
+      ? StatusCode.Ok
+      : StatusCode.Internal,
     contents: [{ outputs, stepErrors }],
   };
 };

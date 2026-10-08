@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Callout, Select, TextField } from "@hashintel/design-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
+import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
 
 import { createFlowScheduleMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
 import { Button } from "../../../../../shared/ui/button";
@@ -16,7 +17,7 @@ import {
   useIsGoogleAuthAvailable,
 } from "../../../../shared/integrations/google/google-auth-context";
 import { WebSelector } from "../../../../shared/web-selector";
-import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
+import { FlowInputField } from "./run-flow-modal/flow-input-field";
 import { inputHeight } from "./run-flow-modal/shared/dimensions";
 import { isSupportedPayloadKind } from "./run-flow-modal/types";
 
@@ -30,10 +31,10 @@ import type { CreateFlowScheduleInput } from "@local/hash-isomorphic-utils/flows
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
-  FlowTrigger,
-  OutputDefinition,
+  FlowInputDefinition,
+  FlowInputValues,
+  Payload,
   PayloadKind,
-  StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
 
@@ -59,23 +60,23 @@ const InputWrapper = ({
   </Box>
 );
 
-const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
-  outputDefinitions.reduce<FormState>((acc, outputDefinition) => {
-    if (isSupportedPayloadKind(outputDefinition.payloadKind)) {
+const generateInitialFormState = (inputDefinitions: FlowInputDefinition[]) =>
+  inputDefinitions.reduce<FormState>((acc, inputDefinition) => {
+    if (isSupportedPayloadKind(inputDefinition.payloadKind)) {
       let defaultValue: LocalPayload["value"] = "";
 
-      if (outputDefinition.array) {
+      if (inputDefinition.array) {
         defaultValue = [];
-      } else if (outputDefinition.payloadKind === "Boolean") {
+      } else if (inputDefinition.payloadKind === "Boolean") {
         defaultValue = false;
-      } else if (outputDefinition.payloadKind === "Date") {
+      } else if (inputDefinition.payloadKind === "Date") {
         defaultValue = format(new Date(), "yyyy-MM-dd");
       }
 
-      acc[outputDefinition.name] = {
-        outputName: outputDefinition.name,
+      acc[inputDefinition.name] = {
+        inputName: inputDefinition.name,
         payload: {
-          kind: outputDefinition.payloadKind satisfies LocalPayload["kind"],
+          kind: inputDefinition.payloadKind satisfies LocalPayload["kind"],
           value: defaultValue satisfies LocalPayload["value"],
         } as LocalPayload,
       };
@@ -117,20 +118,22 @@ const intervalUnitToMs: Record<IntervalUnit, number> = {
 
 type RunFlowModalProps = {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
+  flowDefinitionId: EntityUuid;
   onClose: () => void;
   open: boolean;
-  runFlow: (outputs: FlowTrigger["outputs"], webId: WebId) => Promise<void>;
+  runFlow: (flowInputs: FlowInputValues, webId: WebId) => Promise<void>;
   onScheduleCreated: (scheduleId: EntityUuid) => void;
 };
 
 export const RunFlowModal = ({
   flowDefinition,
+  flowDefinitionId,
   open,
   onClose,
   runFlow,
   onScheduleCreated,
 }: RunFlowModalProps) => {
-  const { outputs } = flowDefinition.trigger;
+  const { inputs } = flowDefinition;
 
   const { authenticatedUser } = useAuthenticatedUser();
 
@@ -139,18 +142,18 @@ export const RunFlowModal = ({
   );
 
   const [formState, setFormState] = useState<FormState>(() =>
-    generateInitialFormState(outputs ?? []),
+    generateInitialFormState(inputs),
   );
 
-  const googleOutputs = (outputs ?? []).filter((output) =>
-    googlePayloadKinds.includes(output.payloadKind),
+  const googleInputs = inputs.filter((input) =>
+    googlePayloadKinds.includes(input.payloadKind),
   );
-  const hasGoogleInputs = googleOutputs.length > 0;
+  const hasGoogleInputs = googleInputs.length > 0;
 
   const isGoogleAuthAvailable = useIsGoogleAuthAvailable();
   const hideGoogleInputs = hasGoogleInputs && !isGoogleAuthAvailable;
   const isMissingGoogleAuth =
-    hideGoogleInputs && googleOutputs.some((output) => output.required);
+    hideGoogleInputs && googleInputs.some((input) => input.required);
 
   const [pending, setPending] = useState(false);
 
@@ -165,15 +168,14 @@ export const RunFlowModal = ({
     CreateFlowScheduleMutationVariables
   >(createFlowScheduleMutation);
 
-  const allRequiredValuesPresent = (outputs ?? []).every(
-    (output) =>
-      !output.required ||
-      !isPayloadValueMissing(formState[output.name]?.payload),
+  const allRequiredValuesPresent = inputs.every(
+    (input) =>
+      !input.required || !isPayloadValueMissing(formState[input.name]?.payload),
   );
 
-  const buildOutputValues = (): FlowTrigger["outputs"] => {
-    const outputValues: FlowTrigger["outputs"] = [];
-    for (const { outputName, payload } of typedValues(formState)) {
+  const buildFlowInputs = (): FlowInputValues => {
+    const flowInputs: FlowInputValues = {};
+    for (const { inputName, payload } of typedValues(formState)) {
       if (hideGoogleInputs && googlePayloadKinds.includes(payload.kind)) {
         continue;
       }
@@ -184,29 +186,23 @@ export const RunFlowModal = ({
         }
 
         if (payload.kind === "VersionedUrl") {
-          outputValues.push({
-            outputName,
-            payload: {
-              kind: payload.kind,
-              value: Array.isArray(payload.value)
-                ? payload.value.map((entityType) => entityType.schema.$id)
-                : payload.value.schema.$id,
-            },
-          });
+          flowInputs[inputName] = {
+            kind: payload.kind,
+            value: Array.isArray(payload.value)
+              ? payload.value.map((entityType) => entityType.schema.$id)
+              : payload.value.schema.$id,
+          };
         } else {
           const assertedPayload = {
             kind: payload.kind satisfies LocalPayload["kind"],
             value: payload.value satisfies LocalPayload["value"],
-          } as StepOutput["payload"]; // this is necessary because TS isn't inferring that payload.value is not undefined
+          } as Payload; // this is necessary because TS isn't inferring that payload.value is not undefined
 
-          outputValues.push({
-            outputName,
-            payload: assertedPayload,
-          });
+          flowInputs[inputName] = assertedPayload;
         }
       }
     }
-    return outputValues;
+    return flowInputs;
   };
 
   const submitValues = async () => {
@@ -214,7 +210,7 @@ export const RunFlowModal = ({
       return;
     }
 
-    const outputValues = buildOutputValues();
+    const flowInputs = buildFlowInputs();
 
     setPending(true);
 
@@ -225,18 +221,16 @@ export const RunFlowModal = ({
         const scheduleInput: CreateFlowScheduleInput = {
           name: scheduleName || `${flowDefinition.name} schedule`,
           flowDefinition,
+          flowDefinitionId,
           webId,
           scheduleSpec: {
             type: "interval",
             intervalMs,
           },
-          flowTrigger: {
-            outputs: outputValues,
-            triggerDefinitionId: "scheduledTrigger",
-          },
+          flowInputs,
           triggerImmediately,
           dataSources:
-            flowDefinition.type === "ai"
+            getFlowType(flowDefinition) === "ai"
               ? {
                   files: { fileEntityIds: [] },
                   internetAccess: {
@@ -260,7 +254,7 @@ export const RunFlowModal = ({
 
         onClose();
       } else {
-        await runFlow(outputValues, webId);
+        await runFlow(flowInputs, webId);
       }
     } finally {
       setPending(false);
@@ -396,19 +390,19 @@ export const RunFlowModal = ({
             </Callout>
           )}
 
-          {(outputs ?? []).map((outputDef) => {
-            if (!isSupportedPayloadKind(outputDef.payloadKind)) {
+          {inputs.map((inputDefinition) => {
+            if (!isSupportedPayloadKind(inputDefinition.payloadKind)) {
               throw new Error("Unsupported input kind");
             }
 
             if (
               hideGoogleInputs &&
-              googlePayloadKinds.includes(outputDef.payloadKind)
+              googlePayloadKinds.includes(inputDefinition.payloadKind)
             ) {
               return null;
             }
 
-            const payload = formState[outputDef.name]?.payload;
+            const payload = formState[inputDefinition.name]?.payload;
 
             if (!payload) {
               throw new Error("Missing form state for output");
@@ -416,21 +410,21 @@ export const RunFlowModal = ({
 
             return (
               <InputWrapper
-                key={outputDef.name}
-                label={outputDef.name}
-                required={outputDef.required}
+                key={inputDefinition.name}
+                label={inputDefinition.label ?? inputDefinition.name}
+                required={inputDefinition.required}
               >
-                <ManualTriggerInput
-                  array={outputDef.array}
+                <FlowInputField
+                  array={inputDefinition.array}
                   formState={formState}
-                  key={outputDef.name}
+                  key={inputDefinition.name}
                   payload={payload}
-                  required={!!outputDef.required}
+                  required={!!inputDefinition.required}
                   setValue={(newValue) =>
                     setFormState((currentFormState) => ({
                       ...currentFormState,
-                      [outputDef.name]: {
-                        outputName: outputDef.name,
+                      [inputDefinition.name]: {
+                        inputName: inputDefinition.name,
                         payload: {
                           kind: payload.kind satisfies LocalPayload["kind"],
                           value: newValue satisfies LocalPayload["value"],

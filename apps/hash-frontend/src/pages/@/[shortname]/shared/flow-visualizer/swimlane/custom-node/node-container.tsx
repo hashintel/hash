@@ -50,7 +50,7 @@ const Tab = ({
           color:
             position === "left"
               ? styles.text
-              : status === "Waiting"
+              : status === "Waiting" || status === "Skipped"
                 ? palette.gray[80]
                 : palette.common.white,
           fontSize: 12,
@@ -101,10 +101,10 @@ export const NodeContainer = ({
       <Stack direction="row" justifyContent="space-between">
         <Tab
           status={stepStatusName}
-          label={nodeId === "trigger" ? "Trigger" : `Action ${nodeId ?? "?"}`}
+          label={`Action ${nodeId ?? "?"}`}
           position="left"
         />
-        {selectedFlowRun && kind !== "parallel-group" && (
+        {selectedFlowRun && kind !== "for-each" && (
           <Tab
             status={stepStatusName}
             label={stepStatusName}

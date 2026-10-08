@@ -1,242 +1,85 @@
-import type {
-  InputNameForFlowAction,
-  IntegrationFlowActionDefinitionId,
-  OutputNameForFlowAction,
-} from "./action-definitions.js";
-import type { FlowDefinition } from "./types.js";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import { typedActionDefinitions as actions } from "./action-definitions.js";
+import { defineFlow, flowInput } from "./define-flow.js";
 
 /**
- * Flow definition for fetching historical flight arrivals for an airport over a date range and persisting them to the graph.
+ * Flow for fetching historical flight arrivals for an airport over a date range and persisting them to the graph.
  */
-export const historicalFlightsFlowDefinition: FlowDefinition<IntegrationFlowActionDefinitionId> =
+export const historicalFlightsFlow = defineFlow(
   {
+    /* historical-flights */
+    flowDefinitionId: "113ce2ec-6a12-56b6-b495-072475889b37",
     name: "Get Historical Flights",
-    type: "integration",
-    flowDefinitionId: "historical-flights" as EntityUuid,
-    groups: [
-      {
-        groupId: 1,
-        description: "Retrieve and save historical flights",
-      },
-    ],
     description:
       "Fetch and save historical flight arrivals for an airport over a date range.",
-    trigger: {
-      triggerDefinitionId: "userTrigger",
-      description:
-        "User provides an airport ICAO code and date range to fetch historical flights for",
-      kind: "trigger",
-      outputs: [
-        {
-          payloadKind: "Text",
-          name: "Airport ICAO",
-          array: false,
-          required: true,
-        },
-        {
-          payloadKind: "Date",
-          name: "Start Date",
-          array: false,
-          required: true,
-        },
-        {
-          payloadKind: "Date",
-          name: "End Date",
-          array: false,
-          required: true,
-        },
-      ],
+    inputs: {
+      airportIcao: flowInput("Text", { label: "Airport ICAO" }),
+      startDate: flowInput("Date", { label: "Start Date" }),
+      endDate: flowInput("Date", { label: "End Date" }),
     },
-    steps: [
-      {
-        stepId: "1",
-        groupId: 1,
-        kind: "action",
-        actionDefinitionId: "getHistoricalFlightArrivals",
-        description:
-          "Fetch historical flight arrivals for the specified airport and date range",
-        inputSources: [
-          {
-            inputName:
-              "airportIcao" satisfies InputNameForFlowAction<"getHistoricalFlightArrivals">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "Airport ICAO",
-          },
-          {
-            inputName:
-              "startDate" satisfies InputNameForFlowAction<"getHistoricalFlightArrivals">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "Start Date",
-          },
-          {
-            inputName:
-              "endDate" satisfies InputNameForFlowAction<"getHistoricalFlightArrivals">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "End Date",
-          },
-        ],
+  },
+  ({ inputs, step }) => {
+    const arrivals = step("1", actions.getHistoricalFlightArrivals, {
+      description:
+        "Fetch historical flight arrivals for the specified airport and date range",
+      inputs: {
+        airportIcao: inputs.airportIcao,
+        startDate: inputs.startDate,
+        endDate: inputs.endDate,
       },
-      {
-        stepId: "2",
-        groupId: 1,
-        kind: "action",
-        description: "Save discovered entities and relationships to HASH graph",
-        actionDefinitionId: "persistIntegrationEntities",
-        inputSources: [
-          {
-            inputName:
-              "proposedEntities" satisfies InputNameForFlowAction<"persistIntegrationEntities">,
-            kind: "step-output",
-            sourceStepId: "1",
-            sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForFlowAction<"getHistoricalFlightArrivals">,
-          },
-        ],
-      },
-    ],
-    outputs: [
-      {
-        stepId: "2",
-        stepOutputName:
-          "persistedEntities" satisfies OutputNameForFlowAction<"persistIntegrationEntities">,
-        payloadKind: "PersistedEntityMetadata",
-        name: "persistedEntities" as const,
-        array: true,
-        required: true,
-      },
-    ],
-  };
+    });
+
+    const persist = step("2", actions.persistIntegrationEntities, {
+      description: "Save discovered entities and relationships to HASH graph",
+      inputs: { proposedEntities: arrivals.outputs.proposedEntities },
+    });
+
+    return {
+      outputs: { persistedEntities: persist.outputs.persistedEntities },
+    };
+  },
+);
 
 /**
- * Flow definition for fetching scheduled flights for an airport on a given date and persisting them to the graph.
+ * Flow for fetching scheduled flights for an airport on a given date and persisting them to the graph.
  */
-export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActionDefinitionId> =
+export const scheduledFlightsFlow = defineFlow(
   {
+    /* scheduled-flights */
+    flowDefinitionId: "96a80402-c41b-5978-a018-b30f7e09bfe0",
     name: "Get Scheduled Flights",
-    type: "integration",
-    flowDefinitionId: "scheduled-flights" as EntityUuid,
-    groups: [
-      {
-        groupId: 1,
-        description: "Retrieve and save scheduled flights",
-      },
-      {
-        groupId: 2,
-        description: "Retrieve and save live flight positions",
-      },
-    ],
     description:
       "Fetch and save scheduled flight arrivals for an airport on a given date, with position updates for live flights.",
-    trigger: {
-      triggerDefinitionId: "userTrigger",
-      description:
-        "User provides an airport ICAO code and date to fetch scheduled flights for",
-      kind: "trigger",
-      outputs: [
-        {
-          payloadKind: "Text",
-          name: "Airport ICAO",
-          array: false,
-          required: true,
-        },
-        {
-          payloadKind: "Date",
-          name: "Date",
-          array: false,
-          required: true,
-        },
-      ],
+    inputs: {
+      airportIcao: flowInput("Text", { label: "Airport ICAO" }),
+      date: flowInput("Date", { label: "Date" }),
     },
-    steps: [
-      {
-        stepId: "1",
-        groupId: 1,
-        kind: "action",
-        actionDefinitionId: "getScheduledFlights",
-        description:
-          "Fetch scheduled flight arrivals from for the specified airport and date",
-        inputSources: [
-          {
-            inputName:
-              "airportIcao" satisfies InputNameForFlowAction<"getScheduledFlights">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "Airport ICAO",
-          },
-          {
-            inputName:
-              "date" satisfies InputNameForFlowAction<"getScheduledFlights">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "Date",
-          },
-        ],
+  },
+  ({ inputs, step }) => {
+    const scheduledFlights = step("1", actions.getScheduledFlights, {
+      description:
+        "Fetch scheduled flight arrivals from for the specified airport and date",
+      inputs: { airportIcao: inputs.airportIcao, date: inputs.date },
+    });
+
+    const persistFlights = step("2", actions.persistIntegrationEntities, {
+      description: "Save discovered entities and relationships to HASH graph",
+      inputs: { proposedEntities: scheduledFlights.outputs.proposedEntities },
+    });
+
+    const livePositions = step("3", actions.getLiveFlightPositions, {
+      description: "Fetch current position of active flights",
+      inputs: { persistedEntities: persistFlights.outputs.persistedEntities },
+    });
+
+    const persistPositions = step("4", actions.persistIntegrationEntities, {
+      description: "Save live flight position updates to HASH graph",
+      inputs: { proposedEntities: livePositions.outputs.proposedEntities },
+    });
+
+    return {
+      outputs: {
+        persistedEntities: persistPositions.outputs.persistedEntities,
       },
-      {
-        stepId: "2",
-        groupId: 1,
-        kind: "action",
-        description: "Save discovered entities and relationships to HASH graph",
-        actionDefinitionId: "persistIntegrationEntities",
-        inputSources: [
-          {
-            inputName:
-              "proposedEntities" satisfies InputNameForFlowAction<"persistIntegrationEntities">,
-            kind: "step-output",
-            sourceStepId: "1",
-            sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForFlowAction<"getScheduledFlights">,
-          },
-        ],
-      },
-      {
-        stepId: "3",
-        groupId: 2,
-        kind: "action",
-        actionDefinitionId: "getLiveFlightPositions",
-        description: "Fetch current position of active flights",
-        inputSources: [
-          {
-            inputName:
-              "persistedEntities" satisfies InputNameForFlowAction<"getLiveFlightPositions">,
-            kind: "step-output",
-            sourceStepId: "2",
-            sourceStepOutputName:
-              "persistedEntities" satisfies OutputNameForFlowAction<"persistIntegrationEntities">,
-          },
-        ],
-      },
-      {
-        stepId: "4",
-        groupId: 2,
-        kind: "action",
-        description: "Save live flight position updates to HASH graph",
-        actionDefinitionId: "persistIntegrationEntities",
-        inputSources: [
-          {
-            inputName:
-              "proposedEntities" satisfies InputNameForFlowAction<"persistIntegrationEntities">,
-            kind: "step-output",
-            sourceStepId: "3",
-            sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForFlowAction<"getLiveFlightPositions">,
-          },
-        ],
-      },
-    ],
-    outputs: [
-      {
-        stepId: "4",
-        stepOutputName:
-          "persistedEntities" satisfies OutputNameForFlowAction<"persistIntegrationEntities">,
-        payloadKind: "PersistedEntityMetadata",
-        name: "persistedEntities" as const,
-        array: true,
-        required: true,
-      },
-    ],
-  };
+    };
+  },
+);

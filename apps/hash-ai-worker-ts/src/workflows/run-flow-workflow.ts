@@ -10,6 +10,7 @@ import { heartbeatTimeoutSeconds } from "../shared/heartbeats.js";
 import { setQueryAndSignalHandlers } from "./run-flow-workflow/set-query-and-signal-handlers.js";
 
 import type { createFlowActivities } from "../activities/flow-activities.js";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import type { ProxyFlowActivity } from "@local/hash-backend-utils/flows";
 import type {
   RunAiFlowWorkflowParams,
@@ -17,7 +18,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
   FlowDefinition,
-  FlowTrigger,
+  FlowInputValues,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
@@ -82,11 +83,10 @@ const proxyFlowActivity: ProxyFlowActivity<
 };
 
 const generateFlowRunName = (params: {
-  flowDefinition: FlowDefinition<AiFlowActionDefinitionId>;
-  flowTrigger: FlowTrigger;
+  flowDefinition: FlowDefinition;
+  flowDefinitionId: EntityUuid;
+  flowInputs: FlowInputValues;
 }) => {
-  const { flowDefinition, flowTrigger } = params;
-
   const { generateFlowRunName: generateFlowRunNameActivity } = proxyActivities<
     ReturnType<typeof createFlowActivities>
   >({
@@ -94,7 +94,7 @@ const generateFlowRunName = (params: {
     retry: { maximumAttempts: 1 },
   });
 
-  return generateFlowRunNameActivity({ flowDefinition, flowTrigger });
+  return generateFlowRunNameActivity(params);
 };
 
 export const runFlowWorkflow = async (
@@ -104,7 +104,6 @@ export const runFlowWorkflow = async (
 
   return await processFlowWorkflow({
     ...params,
-    flowType: "ai",
     proxyFlowActivity,
     generateFlowRunName,
   });

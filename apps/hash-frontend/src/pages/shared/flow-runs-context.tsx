@@ -166,7 +166,8 @@ export type SimpleStatus =
   | "In Progress"
   | "Complete"
   | "Errored"
-  | "Cancelled";
+  | "Cancelled"
+  | "Skipped";
 
 export const statusToSimpleStatus = (
   status: StepRun["status"] | null,
@@ -190,6 +191,9 @@ export const statusToSimpleStatus = (
       break;
     case FlowStepStatus.InformationRequired:
       simpleStatus = "Information Required";
+      break;
+    case FlowStepStatus.Skipped:
+      simpleStatus = "Skipped";
       break;
   }
 

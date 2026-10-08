@@ -1,11 +1,10 @@
 import type { ScheduleOverlapPolicyDataType } from "../system-types/shared.js";
 import type {
-  FlowActionDefinitionId,
   FlowDataSources,
   FlowDefinition,
-  FlowTrigger,
+  FlowInputValues,
 } from "./types.js";
-import type { WebId } from "@blockprotocol/type-system";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 
 /**
  * Interval-based schedule specification.
@@ -44,8 +43,9 @@ export const defaultScheduleCatchupWindowMs = 60 * 60 * 1000;
 export type CreateFlowScheduleInput = {
   /** Human-readable name for this schedule */
   name: string;
-  /** The full flow definition to execute (including steps) */
-  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
+  /** The definition the schedule starts runs of */
+  flowDefinition: FlowDefinition;
+  flowDefinitionId: EntityUuid;
   /** The web this schedule belongs to */
   webId: WebId;
   /** The scheduling specification */
@@ -58,8 +58,8 @@ export type CreateFlowScheduleInput = {
   pauseOnFailure?: boolean;
   /** Data sources for AI flows */
   dataSources?: FlowDataSources;
-  /** The trigger configuration for the flow */
-  flowTrigger: FlowTrigger;
+  /** The values the schedule gives the flow's inputs on every run */
+  flowInputs: FlowInputValues;
   /** Whether to trigger the first run immediately when the schedule is created */
   triggerImmediately: boolean;
 };

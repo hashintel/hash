@@ -10,7 +10,7 @@ export const getMinimalFlowRunsQuery = /* GraphQL */ `
         status
         executedAt
         closedAt
-        inputs
+        flowInputs
         inputRequests
         outputs
       }

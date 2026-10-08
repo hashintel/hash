@@ -1,27 +1,20 @@
 import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
+import type { NamedStepInputSource } from "./named-input-sources";
 import type {
   ActionDefinition,
-  ActionStepDefinition,
-  ActionStepWithParallelInput,
   FlowActionDefinitionId,
-  ParallelGroupStepDefinition,
   ProgressLogBase,
   ProposedEntity,
   StepDefinition,
-  StepGroup,
   StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Edge, Node } from "reactflow";
 
 export type NodeData = {
   kind: StepDefinition["kind"];
-  groupId?: number;
   actionDefinition?: ActionDefinition<FlowActionDefinitionId> | null;
   label: string;
-  inputSources:
-    | ActionStepDefinition["inputSources"]
-    | ActionStepWithParallelInput["inputSources"]
-    | ParallelGroupStepDefinition["inputSourceToParallelizeOn"][];
+  inputSources: NamedStepInputSource[];
 };
 
 export type CustomNodeType = Node<NodeData>;
@@ -34,26 +27,6 @@ export type EdgesAndNodes = {
   edges: CustomEdgeType[];
   nodes: CustomNodeType[];
 };
-
-export type GroupWithEdgesAndNodes = {
-  group: StepGroup;
-} & EdgesAndNodes;
-
-export type MultiGroupFlow = {
-  type: "grouped";
-  groups: GroupWithEdgesAndNodes[];
-};
-
-export type UngroupedEdgesAndNodes = {
-  group: null;
-} & EdgesAndNodes;
-
-export type SingleGroupFlow = {
-  type: "ungrouped";
-  groups: [UngroupedEdgesAndNodes];
-};
-
-export type FlowMaybeGrouped = SingleGroupFlow | MultiGroupFlow;
 
 export type StateChangeLog = ProgressLogBase & {
   message: string;

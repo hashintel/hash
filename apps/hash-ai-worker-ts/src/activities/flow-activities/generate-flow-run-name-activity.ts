@@ -1,8 +1,8 @@
 import {
-  automaticBrowserInferenceFlowDefinition,
-  manualBrowserInferenceFlowDefinition,
+  automaticBrowserInferenceFlow,
+  manualBrowserInferenceFlow,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response.js";
@@ -10,22 +10,24 @@ import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-mes
 import { graphApiClient } from "../shared/graph-api-client.js";
 
 import type { UsageTrackingParams } from "../shared/get-llm-response.js";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import type {
-  AutomaticInferenceTriggerInputName,
-  ManualInferenceTriggerInputName,
+  AutomaticInferenceInputName,
+  ManualInferenceInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
-  FlowTrigger,
+  FlowInputValues,
   PayloadKind,
   PayloadKindValues,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 type GenerateFlowRunNameActivityParams = {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
-  flowTrigger: FlowTrigger;
+  flowDefinitionId: EntityUuid;
+  flowInputs: FlowInputValues;
 };
 
 const systemPrompt = `
@@ -85,7 +87,7 @@ const getModelSuggestedFlowRunName = async (
   return text;
 };
 
-const outputKindsToIgnore: PayloadKind[] = [
+const inputKindsToIgnore: PayloadKind[] = [
   "GoogleSheet",
   "GoogleAccountId",
   "EntityId",
@@ -94,28 +96,25 @@ const outputKindsToIgnore: PayloadKind[] = [
 export const generateFlowRunName = async (
   params: GenerateFlowRunNameActivityParams,
 ) => {
-  const { flowDefinition, flowTrigger } = params;
+  const { flowDefinition, flowDefinitionId, flowInputs } = params;
 
   if (
     [
-      automaticBrowserInferenceFlowDefinition.flowDefinitionId,
-      manualBrowserInferenceFlowDefinition.flowDefinitionId,
-    ].includes(flowDefinition.flowDefinitionId)
+      automaticBrowserInferenceFlow.flowDefinitionId,
+      manualBrowserInferenceFlow.flowDefinitionId,
+    ].includes(flowDefinitionId)
   ) {
-    const webPage = flowTrigger.outputs?.find(
-      ({ outputName }) =>
-        outputName ===
-        ("visitedWebPage" satisfies AutomaticInferenceTriggerInputName &
-          ManualInferenceTriggerInputName),
-    )?.payload.value as PayloadKindValues["WebPage"] | undefined;
+    const webPage = flowInputs[
+      "visitedWebPage" satisfies AutomaticInferenceInputName &
+        ManualInferenceInputName
+    ]?.value as PayloadKindValues["WebPage"] | undefined;
 
     if (!webPage) {
-      throw new Error(`Web page not found in browser flow trigger outputs`);
+      throw new Error(`Web page not found in browser flow inputs`);
     }
 
     return `${
-      flowDefinition.flowDefinitionId ===
-      automaticBrowserInferenceFlowDefinition.flowDefinitionId
+      flowDefinitionId === automaticBrowserInferenceFlow.flowDefinitionId
         ? "Auto-analyze"
         : "Analyze"
     } webpage: ${webPage.url}`;
@@ -132,14 +131,13 @@ export const generateFlowRunName = async (
     webId,
   };
 
-  if (goalFlowDefinitionIds.includes(flowDefinition.flowDefinitionId)) {
-    const researchBrief = flowTrigger.outputs?.find(
-      ({ outputName }) =>
-        outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
-    )?.payload.value as PayloadKindValues["Text"] | undefined;
+  if (isGoalFlowDefinitionId(flowDefinitionId)) {
+    const researchBrief = flowInputs[
+      "researchGuidance" satisfies GoalFlowInputName
+    ]?.value as PayloadKindValues["Text"] | undefined;
 
     if (!researchBrief) {
-      throw new Error(`Research brief not found in goal flow trigger outputs`);
+      throw new Error(`Research brief not found in goal flow inputs`);
     }
 
     return getModelSuggestedFlowRunName(
@@ -148,17 +146,18 @@ export const generateFlowRunName = async (
     );
   }
 
-  const inputsOfInterest = flowTrigger.outputs?.filter(
-    (output) =>
-      !["draft", "create as draft"].includes(output.outputName.toLowerCase()) &&
-      !outputKindsToIgnore.includes(output.payload.kind),
+  const inputsOfInterest = Object.entries(flowInputs).flatMap(
+    ([inputName, payload]) =>
+      inputName !== "draft" && !inputKindsToIgnore.includes(payload.kind)
+        ? [{ inputName, payload }]
+        : [],
   );
 
   let workflowDescriptionString = `The workflow template is named ${
     flowDefinition.name
   } with a description of ${flowDefinition.description}.`;
 
-  if (inputsOfInterest?.length) {
+  if (inputsOfInterest.length) {
     workflowDescriptionString += ` The inputs to the workflow run to be named: ${inputsOfInterest
       .map((input) => JSON.stringify(input))
       .join("\n")}.`;

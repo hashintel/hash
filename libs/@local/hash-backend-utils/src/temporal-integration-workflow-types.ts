@@ -7,7 +7,6 @@ import type {
 } from "@blockprotocol/type-system";
 import type { Team } from "@linear/sdk";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import type { IntegrationFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   BaseRunFlowWorkflowParams,
   RunFlowWorkflowResponse,
@@ -67,7 +66,7 @@ export type SyncQueryToGoogleSheetWorkflow = (params: {
 }) => Promise<void>;
 
 export type RunIntegrationFlowWorkflow = (
-  params: BaseRunFlowWorkflowParams<IntegrationFlowActionDefinitionId>,
+  params: BaseRunFlowWorkflowParams,
 ) => Promise<RunFlowWorkflowResponse>;
 
 export type WorkflowTypeMap = {
