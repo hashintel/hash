@@ -83,11 +83,6 @@ export type FailedEntityProposal = {
   message: string;
 };
 
-export type PersistedEntitiesMetadata = {
-  persistedEntities: PersistedEntityMetadata[];
-  failedEntityProposals: FailedEntityProposal[];
-};
-
 type BaseFlowInputs = {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   flowType: FlowTypeDataType;
@@ -119,11 +114,11 @@ export type PayloadKindValues = {
   Boolean: boolean;
   Date: string; // e.g. "2025-01-01"
   EntityId: EntityId;
+  FailedEntityProposal: FailedEntityProposal;
   FormattedText: FormattedText;
   GoogleAccountId: string;
   GoogleSheet: GoogleSheet;
   Number: number;
-  PersistedEntitiesMetadata: PersistedEntitiesMetadata;
   PersistedEntityMetadata: PersistedEntityMetadata;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
@@ -139,7 +134,7 @@ export type PayloadKind = keyof PayloadKindValues;
  * Payload kinds whose values are always stored in S3, whether singular or an array, due to their potential size.
  */
 export const storedPayloadKinds = [
-  "PersistedEntitiesMetadata",
+  "FailedEntityProposal",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",
 ] as const;
@@ -147,17 +142,17 @@ export const storedPayloadKinds = [
 export type StoredPayloadKind = (typeof storedPayloadKinds)[number];
 
 /**
- * Payload kinds that can appear in a stored payload reference.
+ * Payload kinds whose singular values are small enough to pass inline, but whose arrays are stored in S3,
+ * because they can grow without bound.
  */
-export type StorablePayloadKind = StoredPayloadKind;
+export const storedArrayPayloadKinds = ["PersistedEntityMetadata"] as const;
+
+export type StoredArrayPayloadKind = (typeof storedArrayPayloadKinds)[number];
 
 /**
- * Check if a payload kind's values are always stored in S3.
+ * Payload kinds that can appear in a stored payload reference.
  */
-export const isStoredPayloadKind = (
-  kind: PayloadKind,
-): kind is StoredPayloadKind =>
-  storedPayloadKinds.includes(kind as StoredPayloadKind);
+export type StorablePayloadKind = StoredPayloadKind | StoredArrayPayloadKind;
 
 /**
  * A payload written to S3 as one object.
@@ -268,6 +263,9 @@ export const isSingularStoredPayloadRef = <K extends StorablePayloadKind>(
  *
  * - For a {@link StoredPayloadKind}, the value is always a stored reference: to a stored object, to one item of a
  *   stored array, or to stored arrays concatenated.
+ * - For a {@link StoredArrayPayloadKind}, an array is a stored reference, and a singular value is inline or, as
+ *   an item of a stored array, a reference to that item. An array built from singular values may hold item
+ *   references.
  * - For other kinds, the value is the actual payload value (or array of values).
  */
 export type PayloadValue<
@@ -275,9 +273,13 @@ export type PayloadValue<
   IsArray extends boolean,
 > = K extends StoredPayloadKind
   ? StoredPayloadRef<K, IsArray>
-  : IsArray extends true
-    ? PayloadKindValues[K][]
-    : PayloadKindValues[K];
+  : K extends StoredArrayPayloadKind
+    ? IsArray extends true
+      ? ArrayStoredPayloadRef<K> | (PayloadKindValues[K] | StoredItemRef<K>)[]
+      : PayloadKindValues[K] | StoredItemRef<K>
+    : IsArray extends true
+      ? PayloadKindValues[K][]
+      : PayloadKindValues[K];
 
 /**
  * Singular payload types for all payload kinds.

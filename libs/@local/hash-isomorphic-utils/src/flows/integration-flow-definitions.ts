@@ -103,9 +103,9 @@ export const historicalFlightsFlowDefinition: FlowDefinition<IntegrationFlowActi
         stepId: "2",
         stepOutputName:
           "persistedEntities" satisfies OutputNameForFlowAction<"persistIntegrationEntities">,
-        payloadKind: "PersistedEntitiesMetadata",
+        payloadKind: "PersistedEntityMetadata",
         name: "persistedEntities" as const,
-        array: false,
+        array: true,
         required: true,
       },
     ],
@@ -233,9 +233,9 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
         stepId: "4",
         stepOutputName:
           "persistedEntities" satisfies OutputNameForFlowAction<"persistIntegrationEntities">,
-        payloadKind: "PersistedEntitiesMetadata",
+        payloadKind: "PersistedEntityMetadata",
         name: "persistedEntities" as const,
-        array: false,
+        array: true,
         required: true,
       },
     ],
