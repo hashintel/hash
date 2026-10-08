@@ -21,18 +21,6 @@ These are the categories the schema structurally cannot express, because they're
 
 # rhizomatic actualization
 
-This exchange lands squarely on the manual arm's design, so let me ground the consideration in what the guidance actually says before reacting.
-
-Read , lines 1 to 130
-
-Read
-
-Read
-
-Searched for files matching `**/apps/brunch-agent/src/agents/chat-agent/guidance/manual/**/checks.md`, 1 match
-
-Read , lines 1 to 100
-
 This exchange is unusually relevant to read against the manual arm, because the guidance already contains the sentence "Work in a rhizomatic fashion rather than an arborescent one" — and the rest of the corpus is, in effect, a test of the response's own warning that the word risks becoming "a decorative synonym for 'iterative'" unless operationalized. Having re-read `system.md`, eliciting/SKILL.md, constructing/SKILL.md, and `checks.md`, here is my read.
 
 ## Most of the response's operationalization already exists — as machinery, not prose
