@@ -13,12 +13,9 @@ use futures::{
 };
 use type_system::{
     Valid, Validator as _,
-    ontology::{
-        entity_type::{
-            ClosedEntityType, EntityTypeUuid,
-            schema::{EntityConstraints, EntityTypeValidator, InverseEntityTypeMetadata},
-        },
-        id::{OntologyTypeVersion, VersionedUrl},
+    ontology::entity_type::{
+        ClosedEntityType, EntityTypeUuid,
+        schema::{EntityConstraints, EntityTypeValidator, InverseEntityTypeMetadata},
     },
 };
 
@@ -84,13 +81,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 // An empty schema is inserted initially. This will be replaced later by the closed
                 // schema.
                 closed_schema: Valid::new_unchecked(ClosedEntityType {
-                    id: VersionedUrl {
-                        base_url: schema.id.base_url.clone(),
-                        version: OntologyTypeVersion {
-                            major: 0,
-                            pre_release: None,
-                        },
-                    },
+                    id: schema.id.clone(),
                     title: String::new(),
                     title_plural: None,
                     description: String::new(),

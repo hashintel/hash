@@ -54,6 +54,7 @@ export type {
 } from "./ui/types/ai-interactive-tool";
 
 export {
+  canonicalizePetrinautIds,
   combineCommandRegistries,
   createCommandRegistry,
   createJsonDocHandle,
@@ -74,7 +75,6 @@ export {
   type DocChangeEvent,
   type DocHandleState,
   type DocumentId,
-  type DocumentRevisionId,
   type EventStream,
   type HistoryEntry,
   type MinimalNetMetadata,

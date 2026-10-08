@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import {
+  canonicalizePetrinautIds,
   createJsonDocHandle,
   isSDCPNEqual,
   Petrinaut,
@@ -27,23 +28,13 @@ import { setIframeErrorReporterMode } from "../../shared/iframe-error-reporter";
 import {
   type HostNetMode,
   nextRequestId,
-  type PetrinautAiMessage,
   type PetrinautHostCapabilities,
   type RevisionSummary,
   type SavedSnapshot,
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
-import { createBridgeAiChatTransport } from "./create-bridge-ai-transport";
 import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
 import { VersionPicker } from "./version-picker";
-
-/**
- * Chat transport for the AI assistant. Created once at module scope: it's
- * stateless beyond the per-request bookkeeping it owns internally, so a single
- * instance is shared across renders (and is safe even though the editor never
- * remounts when switching nets).
- */
-const aiChatTransport = createBridgeAiChatTransport();
 
 /**
  * The grays HASH's breadcrumbs use elsewhere in the app: crumb text (and
@@ -68,14 +59,20 @@ type EditorState = {
   readonly: boolean;
   mode: HostNetMode;
   savedSnapshot: SavedSnapshot;
-  /**
-   * Conversation the host restored for this net (empty for drafts / nets
-   * with no saved conversation). Seeds the assistant panel's initial
-   * messages; the panel is keyed by the doc handle id (replaced on every
-   * `init`/`load`), so it remounts and re-reads these on each net change.
-   */
-  aiMessages: PetrinautAiMessage[];
 };
+
+/**
+ * The snapshot with its ids converted, as the handle holds the open net, so
+ * dirty tracking compares like with like. Saved nets with legacy ids persist
+ * the converted ids on their next save.
+ */
+const withPetrinautIds = (snapshot: SavedSnapshot): SavedSnapshot =>
+  snapshot === null
+    ? null
+    : {
+        ...snapshot,
+        definition: canonicalizePetrinautIds(snapshot.definition),
+      };
 
 const computeIsDirty = (
   definition: SDCPN,
@@ -127,20 +124,20 @@ export const EmbedContent = () => {
       const handle = createJsonDocHandle({
         initial: payload.initialDefinition,
       });
+      const savedSnapshot = withPetrinautIds(payload.savedSnapshot);
       setState({
         handle,
         title: payload.initialTitle,
         readonly: payload.readonly,
         mode: payload.mode,
-        savedSnapshot: payload.savedSnapshot,
-        aiMessages: payload.aiMessages,
+        savedSnapshot,
       });
       setRevisions(payload.revisions);
       setIsDirty(
         computeIsDirty(
-          payload.initialDefinition,
+          handle.doc() ?? payload.initialDefinition,
           payload.initialTitle,
-          payload.savedSnapshot,
+          savedSnapshot,
         ),
       );
       setIframeErrorReporterMode(payload.mode);
@@ -153,21 +150,21 @@ export const EmbedContent = () => {
     },
     onLoad: (payload) => {
       const handle = createJsonDocHandle({ initial: payload.definition });
+      const savedSnapshot = withPetrinautIds(payload.savedSnapshot);
       setState({
         handle,
         title: payload.title,
         readonly:
           payload.mode.kind === "saved" ? !payload.mode.userEditable : false,
         mode: payload.mode,
-        savedSnapshot: payload.savedSnapshot,
-        aiMessages: payload.aiMessages,
+        savedSnapshot,
       });
       setRevisions(payload.revisions);
       setIsDirty(
         computeIsDirty(
-          payload.definition,
+          handle.doc() ?? payload.definition,
           payload.title,
-          payload.savedSnapshot,
+          savedSnapshot,
         ),
       );
       setIframeErrorReporterMode(payload.mode);
@@ -204,7 +201,7 @@ export const EmbedContent = () => {
             ? {
                 ...prev,
                 mode,
-                savedSnapshot,
+                savedSnapshot: withPetrinautIds(savedSnapshot),
               }
             : prev,
         );
@@ -276,22 +273,6 @@ export const EmbedContent = () => {
   const handleSetTitle = useCallback((title: string) => {
     setState((prev) => (prev ? { ...prev, title } : prev));
   }, []);
-
-  /**
-   * Relay conversation changes up to the host, which owns persistence — the
-   * sandboxed iframe's opaque origin has no usable `localStorage`. Fired by
-   * the assistant whenever a turn finishes or the conversation is cleared.
-   */
-  const handleAiMessages = useCallback(
-    (messages: PetrinautAiMessage[]) => {
-      bridge.send({ kind: "aiMessagesChanged", messages });
-    },
-    [bridge],
-  );
-
-  const handleClearAiMessages = useCallback(() => {
-    bridge.send({ kind: "aiMessagesCleared" });
-  }, [bridge]);
 
   const handleSaveClick = useCallback(() => {
     if (!state || pendingSaveRequestId) {
@@ -426,12 +407,6 @@ export const EmbedContent = () => {
         enabled={hostCapabilities?.optimization === true}
       >
         <Petrinaut
-          aiAssistant={{
-            transport: aiChatTransport,
-            messages: state.aiMessages,
-            onMessages: handleAiMessages,
-            onClearMessages: handleClearAiMessages,
-          }}
           handle={state.handle}
           createNewNet={noNetSwitchingError}
           existingNets={[]}

@@ -5,7 +5,6 @@ import { Controller } from "react-hook-form";
 import {
   extractBaseUrl,
   extractVersion,
-  makeOntologyTypeVersion,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import {
@@ -65,7 +64,7 @@ export const EntityTypeHeader = ({
 
   const latestVersionUrl = versionedUrlFromComponents(
     extractBaseUrl(entityTypeSchema.$id),
-    latestVersion ?? makeOntologyTypeVersion({ major: 0 }),
+    latestVersion ?? currentVersion,
   );
 
   const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();

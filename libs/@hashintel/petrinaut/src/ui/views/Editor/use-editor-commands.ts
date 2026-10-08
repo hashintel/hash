@@ -15,9 +15,11 @@ export const autoLayoutShortcut = "mod+shift+l";
  */
 const useEditorCommands = ({
   applyAutoLayoutAndFrame,
+  onNewNet,
   onToggleAiAssistant,
 }: {
   applyAutoLayoutAndFrame?: () => Promise<unknown>;
+  onNewNet?: () => void;
   onToggleAiAssistant?: () => void;
 }): void => {
   const {
@@ -165,6 +167,16 @@ const useEditorCommands = ({
   );
   useCommand(
     {
+      id: "petrinaut.net.new",
+      label: "Start a blank net",
+      category: "Net",
+      keywords: ["new", "file", "empty"],
+      run: () => onNewNet?.(),
+    },
+    { when: onNewNet !== undefined },
+  );
+  useCommand(
+    {
       id: "petrinaut.net.auto-layout",
       label: "Auto-layout the net",
       category: "Net",
@@ -206,8 +218,9 @@ const useEditorCommands = ({
  */
 export const EditorCommands: React.FC<{
   applyAutoLayoutAndFrame?: () => Promise<unknown>;
+  onNewNet?: () => void;
   onToggleAiAssistant?: () => void;
-}> = ({ applyAutoLayoutAndFrame, onToggleAiAssistant }) => {
-  useEditorCommands({ applyAutoLayoutAndFrame, onToggleAiAssistant });
+}> = ({ applyAutoLayoutAndFrame, onNewNet, onToggleAiAssistant }) => {
+  useEditorCommands({ applyAutoLayoutAndFrame, onNewNet, onToggleAiAssistant });
   return null;
 };

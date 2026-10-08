@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
+import { toPetrinautId } from "./petrinaut-id";
 
 import type { SDCPN } from "./types/sdcpn";
 
@@ -1155,7 +1156,7 @@ describe("Petrinaut core actions", () => {
     ]);
     expect(instance.definition.get().subnets).toEqual([
       {
-        id: "subnet-1",
+        id: toPetrinautId("subnet-1"),
         name: "Reusable subnet",
         places: [],
         transitions: [],

@@ -81,11 +81,13 @@ stylistic. The bundle's inter-page links are relative and assume a page's slug
 maps to a URL with no trailing slash; serving `/architecture/core/` instead would
 resolve those links one level too deep.
 
-`installConfig.hoistingLimits` nests this app's dependencies rather than hoisting
-them. Astro's generated prerender entry resolves `cookie` from this app's build
-output, which would otherwise reach the root-hoisted `cookie@0.7.2` that
-`express` pins and fail on a missing `parseCookie` export. Nesting keeps Astro on
-its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
+`cookie` is a direct dependency, though no source file imports it. Astro's
+generated prerender entry imports `cookie`, and Node resolves it from this app's
+build output rather than from Astro's own directory. The direct dependency makes
+that lookup reach `cookie@2.x`. Without it, the lookup reaches the root-hoisted
+`cookie@0.7.2` that `express` pins, and the build fails on a missing
+`parseCookie` export. Keep the pin inside Astro's declared `cookie` range when
+bumping `astro`.
 
 ## Chrome overrides
 

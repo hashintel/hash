@@ -40,7 +40,6 @@ const browser = {
   binding: {
     conversationId: "conversation",
     documentId: "document",
-    incarnationId: "incarnation",
   },
 };
 const snapshot = {
@@ -134,7 +133,7 @@ const snapshot = {
   ],
 } as FlueConversationSnapshot;
 
-test("credits only canonical applied calls with a settled revision, in history order", () => {
+test("credits only canonical applied calls with an after revision, in history order", () => {
   const calls = netCalls(snapshot);
   expect(calls.map(({ toolCallId }) => toolCallId)).toEqual([
     "add-queue",

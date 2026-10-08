@@ -14,7 +14,6 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -25,7 +24,6 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   createJsonDocHandle,
-  type DocumentRevisionId,
   type MinimalNetMetadata,
   type PetrinautDocHandle,
   type PetrinautHandleCapabilities,
@@ -54,12 +52,55 @@ import {
 } from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { CommandPalette } from "../command-palette";
-import { useSentryFeedbackAction } from "../sentry-feedback-button";
+import {
+  BrunchPanelConversationTracker,
+  type BrunchPanelAdmissionTarget,
+  createBrunchPanelTransport,
+} from "../plugins/brunch/brunch-panel-transport";
+import { resolveBrunchPreviewConfig } from "../plugins/brunch/brunch-preview-config";
+import {
+  brunchEvaluationConversationIdFrom,
+  getOrCreateBrunchConversationId,
+  ordinaryConstructionConversationIdFrom,
+  replaceBrunchConversationId,
+} from "../plugins/brunch/conversation/brunch-conversation-id";
+import { getOrCreateBrunchPrincipal } from "../plugins/brunch/conversation/brunch-principal";
+import { useFlueChatHistory } from "../plugins/brunch/conversation/use-flue-chat-history";
+import {
+  useProcessAgentBinding,
+  type FixtureProcessAgentConfiguration,
+  type ProcessAgentBinding,
+} from "../plugins/brunch/conversation/use-process-agent-binding";
+import { foldBrunchWorkpieceHistory } from "../plugins/brunch/ledger/brunch-workpiece-history";
+import { BrunchWorkpiecePane } from "../plugins/brunch/ledger/brunch-workpiece-pane";
+import { brunchPetrinautClientToolNames } from "../plugins/brunch/tools/brunch-client-tools";
+import {
+  createBrunchDraftExperimentInteractiveTool,
+  resolveDraftAuthorityFromHistory,
+} from "../plugins/brunch/tools/brunch-draft-experiment-interactive-tool";
+import { BrunchExperimentFollowUp } from "../plugins/brunch/tools/brunch-experiment-follow-up";
+import {
+  createBrunchMutationAdmission,
+  createBrunchMutationApprovalCoordinator,
+  createBrunchMutationApprovalInteractiveTools,
+} from "../plugins/brunch/tools/brunch-mutation-approval";
+import {
+  createCanonicalPetrinautHostTools,
+  issuedCanonicalCallsFromHistory,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautReplay,
+  type CanonicalPetrinautReplayReadiness,
+} from "../plugins/brunch/tools/brunch-petrinaut-tools";
+import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
+import { createInBandBrowserCalls } from "../plugins/brunch/tools/in-band-browser-call";
+import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
+import { useVoiceMediationHistory } from "../plugins/voice/history/use-voice-mediation-history";
 import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
-} from "../voice-interview/voice-interview-control";
+} from "../plugins/voice/session/voice-interview-control";
+import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
@@ -67,70 +108,18 @@ import {
   type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
-import {
-  useProcessAgentBinding,
-  type FixtureProcessAgentConfiguration,
-  type ProcessAgentBinding,
-} from "./assistants/brunch/use-process-agent-binding";
-import { brunchPetrinautClientToolNames } from "./brunch-client-tools";
-import {
-  brunchEvaluationConversationIdFrom,
-  getOrCreateBrunchConversationId,
-  ordinaryConstructionConversationIdFrom,
-  replaceBrunchConversationId,
-} from "./brunch-conversation-id";
-import {
-  createBrunchDraftExperimentInteractiveTool,
-  resolveDraftAuthorityFromHistory,
-} from "./brunch-draft-experiment-interactive-tool";
-import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
-import {
-  createBrunchMutationAdmission,
-  createBrunchMutationApprovalCoordinator,
-  createBrunchMutationApprovalInteractiveTools,
-} from "./brunch-mutation-approval";
-import {
-  BrunchPanelConversationTracker,
-  type BrunchPanelAdmissionTarget,
-  createBrunchPanelTransport,
-} from "./brunch-panel-transport";
-import {
-  createCanonicalPetrinautHostTools,
-  issuedCanonicalCallsFromHistory,
-  EMPTY_CANONICAL_PETRINAUT_REPLAY,
-  type CanonicalPetrinautReplay,
-  type CanonicalPetrinautReplayReadiness,
-} from "./brunch-petrinaut-tools";
-import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
-import { getOrCreateBrunchPrincipal } from "./brunch-principal";
-import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
-import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
-import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
-import { createInBandBrowserCalls } from "./in-band-browser-call";
-import { useFlueChatHistory } from "./use-flue-chat-history";
-import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
-import { useVoiceMediationHistory } from "./use-voice-mediation-history";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
-import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
+import type { VoiceMediationHistory } from "../plugins/voice/history/voice-mediation-history";
+import type { ToolApprovalState } from "../plugins/voice/live/live-brunch-bridge";
 import type {
   DocumentRecord,
-  DocumentRepository,
+  RecordRevisionId,
 } from "./documents/document-repository";
-
-const useCurrentSettlementAction = (
-  settleRevision: DocumentRepository["settleRevision"],
-): DocumentRepository["settleRevision"] => {
-  const latest = useRef(settleRevision);
-  useLayoutEffect(() => {
-    latest.current = settleRevision;
-  }, [settleRevision]);
-  return useCallback((revision) => latest.current(revision), []);
-};
 
 const DEMO_CAPABILITIES = {
   disabledExtensions: [],
@@ -234,6 +223,7 @@ export const getBrunchVoiceMode = (
   settlements?: readonly FlueConversationSettlement[],
   snapshot?: FlueConversationState,
   mediationHistory?: VoiceMediationHistory,
+  toolApprovalState?: (toolCallId: string) => ToolApprovalState | null,
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -261,6 +251,7 @@ export const getBrunchVoiceMode = (
       {...context}
       config={config}
       mediationHistory={mediationHistory}
+      toolApprovalState={toolApprovalState}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated
       // independently by followMessages.canReplace below.
@@ -280,7 +271,6 @@ const createHandle = (document: DocumentRecord): PetrinautDocHandle =>
   createJsonDocHandle({
     id: document.documentId,
     initial: document.definition,
-    initialRevisionId: document.revisionId,
     capabilities: DEMO_CAPABILITIES,
   });
 
@@ -337,19 +327,21 @@ type ActiveHandle = {
   handle: PetrinautDocHandle;
   document: DocumentRecord;
   /**
-   * Every revision this handle has produced (plus the one it opened at). A
-   * repository revision outside this set was written by someone else — another
-   * tab, typically — and the handle must be recreated from it rather than keep
-   * chaining edits from a predecessor the repository no longer holds.
+   * Every record revision minted for this handle's changes (plus the one it
+   * opened at). A repository revision outside this set was written by someone
+   * else — another tab, typically — and the handle must be recreated from it
+   * rather than keep chaining edits from a predecessor the repository no
+   * longer holds.
    */
-  emittedRevisionIds: Set<DocumentRevisionId>;
+  emittedRevisionIds: Set<RecordRevisionId>;
+  /** Predecessor named by this handle's next write; kept on the handle because the persistence effect re-subscribes. */
+  latestRevisionId: { current: RecordRevisionId };
 };
 
 type PersistFailure = {
   /** The handle whose change was refused; it is replaced, not kept. */
   handle: PetrinautDocHandle;
   documentId: DocumentRecord["documentId"];
-  incarnationId: DocumentRecord["incarnationId"];
   error: Error;
 };
 
@@ -375,6 +367,7 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
     handle,
     document,
     emittedRevisionIds: new Set([document.revisionId]),
+    latestRevisionId: { current: document.revisionId },
   };
 };
 
@@ -528,17 +521,16 @@ export const LocalStorageDemoApp = ({
 
   // The handle follows the repository: it is recreated from the repository's
   // record whenever the two diverge — another document is open, the record
-  // shows a revision this handle never emitted (another tab wrote it), or the
-  // repository refused one of this handle's changes, after which every further
-  // change from it would be refused too, because each names the rejected
-  // revision as predecessor. It is decided during render, not in an effect, so
-  // no render pairs the open document with another document's handle.
+  // shows a revision not minted for this handle's changes (another tab wrote
+  // it), or the repository refused one of this handle's changes, after which
+  // every further change from it would be refused too, because each names the
+  // rejected revision as predecessor. It is decided during render, not in an
+  // effect, so no render pairs the open document with another document's
+  // handle.
   const activeHandle =
     currentDocument === null
       ? null
       : storedHandle?.document.documentId === currentDocument.documentId &&
-          storedHandle.document.incarnationId ===
-            currentDocument.incarnationId &&
           storedHandle.emittedRevisionIds.has(currentDocument.revisionId) &&
           persistFailure?.handle !== storedHandle.handle
         ? storedHandle
@@ -547,8 +539,7 @@ export const LocalStorageDemoApp = ({
   if (
     persistFailure !== null &&
     currentDocument !== null &&
-    (persistFailure.documentId !== currentDocument.documentId ||
-      persistFailure.incarnationId !== currentDocument.incarnationId)
+    persistFailure.documentId !== currentDocument.documentId
   )
     setPersistFailure(null);
 
@@ -560,30 +551,29 @@ export const LocalStorageDemoApp = ({
       return;
     }
 
-    const { document, emittedRevisionIds, handle } = activeHandle;
+    const { document, emittedRevisionIds, handle, latestRevisionId } =
+      activeHandle;
     return handle.subscribe((event) => {
-      emittedRevisionIds.add(event.revisionId);
+      const previousRevisionId = latestRevisionId.current;
+      const revisionId = crypto.randomUUID();
+      latestRevisionId.current = revisionId;
+      emittedRevisionIds.add(revisionId);
       repository
         .persistRevision({
           documentId: document.documentId,
-          incarnationId: document.incarnationId,
           definition: event.next,
-          previousRevisionId: event.previousRevisionId,
-          revisionId: event.revisionId,
+          previousRevisionId,
+          revisionId,
         })
         .then(
           () =>
             setPersistFailure((failure) =>
-              failure?.documentId === document.documentId &&
-              failure.incarnationId === document.incarnationId
-                ? null
-                : failure,
+              failure?.documentId === document.documentId ? null : failure,
             ),
           (error: unknown) =>
             setPersistFailure({
               handle,
               documentId: document.documentId,
-              incarnationId: document.incarnationId,
               error: error instanceof Error ? error : new Error(String(error)),
             }),
         );
@@ -591,8 +581,7 @@ export const LocalStorageDemoApp = ({
   }, [activeHandle, repository]);
   const unsavedChangeMessage =
     persistFailure !== null &&
-    persistFailure.documentId === currentDocument?.documentId &&
-    persistFailure.incarnationId === currentDocument.incarnationId
+    persistFailure.documentId === currentDocument?.documentId
       ? persistFailure.error.message
       : null;
 
@@ -630,19 +619,18 @@ export const LocalStorageDemoApp = ({
   const [freshConversationIds, setFreshConversationIds] = useState<
     Record<string, string>
   >({});
-  const incarnationId = currentDocument?.incarnationId;
   const baseConstructionConversationId = useMemo(() => {
-    if (!brunchSelected || incarnationId === undefined) return undefined;
-    const initialId = ordinaryConstructionConversationIdFrom(incarnationId);
+    if (!brunchSelected || currentNetId === null) return undefined;
+    const initialId = ordinaryConstructionConversationIdFrom(currentNetId);
     return (
-      freshConversationIds[incarnationId] ??
+      freshConversationIds[currentNetId] ??
       getOrCreateBrunchConversationId(
         initialId,
         window.localStorage,
         () => initialId,
       )
     );
-  }, [brunchSelected, freshConversationIds, incarnationId]);
+  }, [brunchSelected, currentNetId, freshConversationIds]);
   const fixtureProcessAgentConfiguration = useMemo<
     FixtureProcessAgentConfiguration | undefined
   >(
@@ -748,7 +736,7 @@ export const LocalStorageDemoApp = ({
     dynamicClientToolNames,
   );
   const replayBindingKey = constructionBrowser
-    ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.incarnationId}:${constructionBrowser.binding.conversationId}`
+    ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
     : undefined;
   const deriveCanonicalReplay = useCallback(
     async (snapshot: NonNullable<typeof flueHistory.snapshot>) => {
@@ -768,28 +756,14 @@ export const LocalStorageDemoApp = ({
     snapshot: flueHistory.snapshot,
     derive: deriveCanonicalReplay,
   }) satisfies CanonicalPetrinautReplayReadiness;
-  // A persisted revision can change the repository action's identity while a
-  // canonical tool is still settling. Keep the host adapter's evidence store
-  // alive, but dispatch settlement through the latest committed action.
-  const settleConstructionRevision = useCurrentSettlementAction(
-    // eslint-disable-next-line typescript/unbound-method -- repository actions do not use `this`
-    repository.settleRevision,
-  );
   const canonicalHostTools = useMemo(() => {
     if (!constructionBrowser || !activeHandle) return undefined;
     return createCanonicalPetrinautHostTools({
       handle: activeHandle.handle,
-      binding: constructionBrowser.binding,
       readTitle: () => activeHandle.document.title,
       replayReadiness: canonicalReplayReadiness,
-      settleRevision: settleConstructionRevision,
     });
-  }, [
-    activeHandle,
-    canonicalReplayReadiness,
-    constructionBrowser,
-    settleConstructionRevision,
-  ]);
+  }, [activeHandle, canonicalReplayReadiness, constructionBrowser]);
   const mediationHistory = useVoiceMediationHistory(conversationId);
   const mapVoiceMessages = useSyncExternalStore(
     mediationHistory?.subscribe ?? subscribeToNothing,
@@ -822,6 +796,7 @@ export const LocalStorageDemoApp = ({
         flueHistory.settlements,
         flueHistory.snapshot,
         mediationHistory,
+        (toolCallId) => mutationApproval.coordinator.approvalState(toolCallId),
       ),
     [
       brunchSelected,
@@ -829,6 +804,7 @@ export const LocalStorageDemoApp = ({
       flueHistory.settlements,
       flueHistory.snapshot,
       mediationHistory,
+      mutationApproval,
       openAIVoiceConfig,
       realtimeEnabled,
       realtimePreferenceReady,
@@ -899,7 +875,7 @@ export const LocalStorageDemoApp = ({
             client: flueClientPromise,
             principalKey: brunchPrincipal,
             binding: constructionBrowser.binding,
-            metadataFor: async (toolCallId, output) =>
+            metadataFor: (toolCallId, output) =>
               canonicalHostTools?.clientToolResultMetadataFor(
                 toolCallId,
                 output,
@@ -1016,14 +992,14 @@ export const LocalStorageDemoApp = ({
         }));
       },
       onClearMessages: () => {
-        if (flueClientPromise !== null && incarnationId !== undefined) {
+        if (flueClientPromise !== null && currentNetId !== null) {
           const initialId =
-            ordinaryConstructionConversationIdFrom(incarnationId);
+            ordinaryConstructionConversationIdFrom(currentNetId);
           const nextId = `${initialId}:${crypto.randomUUID()}`;
           replaceBrunchConversationId(initialId, nextId);
           setFreshConversationIds((current) => ({
             ...current,
-            [incarnationId]: nextId,
+            [currentNetId]: nextId,
           }));
           return;
         }
@@ -1051,7 +1027,6 @@ export const LocalStorageDemoApp = ({
     canonicalHostTools,
     inBandBrowserTools,
     draftInteractiveTool,
-    incarnationId,
     mutationApprovalTools,
     constructionBrowser,
     conversationTracker,

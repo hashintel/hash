@@ -10,6 +10,8 @@ import type {
 import type { BaseUrl, OntologyTypeVersion } from "../generated/types.js";
 import type { SemVer } from "semver";
 
+const u32Max = 4_294_967_295;
+
 /**
  * Checks if a given URL string is a valid base URL.
  *
@@ -125,8 +127,6 @@ const toSemVer = (version: OntologyTypeVersion): SemVer => {
 export const validateVersionedUrl = (
   url: string,
 ): Result<VersionedUrl, ParseVersionedUrlError> => {
-  const U32_MAX = 4294967295;
-
   if (url.length > 2048) {
     return {
       type: "Err",
@@ -161,7 +161,23 @@ export const validateVersionedUrl = (
     try {
       const parsedVersion = toSemVer(version as OntologyTypeVersion);
 
-      if (parsedVersion.major > U32_MAX) {
+      if (parsedVersion.major === 0) {
+        return {
+          type: "Err",
+          inner: {
+            reason: "InvalidVersion",
+            inner: [
+              version,
+              {
+                reason: "ParseVersion",
+                inner: "number would be zero for non-zero type",
+              },
+            ],
+          },
+        };
+      }
+
+      if (parsedVersion.major > u32Max) {
         return {
           type: "Err",
           inner: {
@@ -177,12 +193,12 @@ export const validateVersionedUrl = (
         };
       }
 
-      // Check U32_MAX for revision in draft versions
+      // Check u32Max for revision in draft versions
       if (parsedVersion.prerelease.length > 0) {
         // Format is ["draft", "lane", "revision"] - revision is last element
         const revision =
           parsedVersion.prerelease[parsedVersion.prerelease.length - 1];
-        if (typeof revision === "number" && revision > U32_MAX) {
+        if (typeof revision === "number" && revision > u32Max) {
           return {
             type: "Err",
             inner: {
@@ -345,8 +361,15 @@ export const ontologyTypeRecordIdToVersionedUrl = (
 ): VersionedUrl =>
   `${ontologyTypeRecordId.baseUrl}v/${ontologyTypeRecordId.version.toString()}`;
 
-export const makeOntologyTypeVersion = ({ major }: { major: number }) =>
-  `${major}` as unknown as OntologyTypeVersion;
+export const makeOntologyTypeVersion = ({ major }: { major: number }) => {
+  if (!Number.isInteger(major) || major < 1 || major > u32Max) {
+    throw new Error(
+      `Ontology type version must be an integer between 1 and ${u32Max}, received ${major}`,
+    );
+  }
+
+  return `${major}` as unknown as OntologyTypeVersion;
+};
 
 export const parseOntologyTypeVersion = (
   version: string,

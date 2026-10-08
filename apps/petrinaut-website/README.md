@@ -96,8 +96,8 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 | `OPENAI_VOICE_API_KEY`             | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
 | `PETRINAUT_OPENAI_VOICE_ENABLED`   | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
 | `PETRINAUT_VOICE_PROVIDER`         | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
-| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the model id; the default is `petrinautAiModel` in `@hashintel/petrinaut-core`.                        |
-| `PETRINAUT_AI_REASONING_EFFORT`    | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `petrinautAiModel.reasoningEffort`.                               |
+| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the model id; the default is `stockAssistantModel` in `src/shared/stock-assistant-model.ts`.           |
+| `PETRINAUT_AI_REASONING_EFFORT`    | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `stockAssistantModel.reasoningEffort`.                            |
 | `VITE_BRUNCH_CHAT_ENDPOINT`        | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
 | `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
 | `SENTRY_DSN`                       | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                                        |
@@ -261,14 +261,14 @@ gets through, open DevTools, enable the **Verbose** console level and filter by
   it.
 - `input.ignored` with `reason: "short-during-output"` marks a short transcript
   that started during output and was not sent to Brunch.
-- `filter.shadow` with `stage: "echo"` marks a transcript the echo check would
+- `filter.shadow` with `reason: "echo"` marks a transcript the echo check would
   skip. The check runs in shadow, so the transcript is still handled as before
   and can also appear as `input.ignored`. It compares speech that overlapped
   output, in memory only, with Live's output transcript from three seconds
   before the speech started until it stopped. Six or more words count as a
   repeat when they mostly match Live's words in order; fewer count only when
   they appear together, in order, in Live's words.
-- `filter.shadow` with `stage: "doubtful-short-during-output"` tries a narrower
+- `filter.shadow` with `reason: "doubtful-short-during-output"` tries a narrower
   three-word rule: short speech during output counts only when its least
   likely token has a log probability below -1.9 (`minLogprob`) or it repeats
   Live's words as the echo check defines them. The three-word rule still

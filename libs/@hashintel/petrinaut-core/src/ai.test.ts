@@ -191,6 +191,14 @@ describe("Petrinaut AI core exports", () => {
     });
   });
 
+  test("subnet id inputs export as plain string schemas", () => {
+    expect(
+      z.toJSONSchema(petrinautAiTools.removeSubnet.inputSchema, {
+        io: "output",
+      }).properties?.subnetId,
+    ).toMatchObject({ type: "string", minLength: 1 });
+  });
+
   test("callback map applies tool inputs to a Petrinaut instance", () => {
     const instance = createInstance();
     const callbacks = createPetrinautAiWritableCallbacks(instance);

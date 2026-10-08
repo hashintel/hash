@@ -16,13 +16,10 @@ import {
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
-import {
-  petrinautAiModel,
-  type PetrinautDocHandle,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
+import { documentRevisionOf } from "../plugins/brunch/tools/shared/document-revision";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
@@ -31,8 +28,8 @@ import {
 import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
-import type { DocumentRepository } from "./documents/document-repository";
 import type { FlueClient } from "@flue/sdk";
+import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
 import type { ComponentProps, ReactNode } from "react";
 
 await vi.hoisted(async () => {
@@ -45,7 +42,6 @@ const fixture = vi.hoisted(() => ({
   fetch: null as typeof fetch | null,
   client: null as FlueClient | null,
   handle: null as PetrinautDocHandle | null,
-  repository: null as DocumentRepository | null,
 }));
 vi.mock("@flue/sdk", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@flue/sdk")>();
@@ -73,29 +69,13 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
     },
   };
 });
-vi.mock("./documents/use-document-controller", async (importOriginal) => {
-  const actual =
-    await importOriginal<
-      typeof import("./documents/use-document-controller")
-    >();
-  return {
-    ...actual,
-    useDocumentController: (
-      input: Parameters<typeof actual.useDocumentController>[0],
-    ) => {
-      const result = actual.useDocumentController(input);
-      fixture.repository = result.controller.repository;
-      return result;
-    },
-  };
-});
-vi.mock("./brunch-preview-config", () => ({
+vi.mock("../plugins/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
     chatEndpoint: "/agents/chat",
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("./brunch-principal", () => ({
+vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
 
@@ -120,7 +100,6 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup();
   fixture.handle = null;
-  fixture.repository = null;
   localStorage.clear();
 });
 afterAll(() => {
@@ -144,13 +123,13 @@ const scenario = {
 const metric = { id: "throughput", name: "Throughput", code: "return 1;" };
 
 test("real panel scenario and metric add/update/remove calls produce persisted revisions and a Brunch continuation", async () => {
-  delete process.env.BRUNCH_CHAT_MODEL;
-  delete process.env.BRUNCH_CHAT_THINKING;
+  process.env.BRUNCH_CHAT_MODEL = "openai/faux-model";
+  process.env.BRUNCH_CHAT_THINKING = "medium";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   process.env.OTEL_SDK_DISABLED = "true";
   const faux = fauxProvider({
     provider: "openai",
-    models: [{ id: petrinautAiModel.id, reasoning: true }],
+    models: [{ id: "faux-model", reasoning: true }],
   });
   faux.setResponses([
     fauxAssistantMessage(
@@ -209,7 +188,7 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
   setProvider(faux.provider);
   fixture.fetch = async (input, init) =>
     server.fetch(input instanceof Request ? input : new Request(input, init));
-  const documentId = "net-1";
+  const documentId = toPetrinautId("net-1");
   const initialRevisionId = "initial-revision";
   let unmount = () => {};
   try {
@@ -219,7 +198,6 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       JSON.stringify({
         [documentId]: {
           id: documentId,
-          incarnationId: "incarnation",
           revisionId: initialRevisionId,
           title: "Queue",
           sdcpn: initialDefinition,
@@ -236,16 +214,18 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
     const handle = fixture.handle;
     if (!handle)
       throw new Error("The real editor did not receive a document handle");
+    const openedDefinition = handle.doc();
+    if (!openedDefinition)
+      throw new Error("The real editor opened without a document");
+    const initialRevision = documentRevisionOf(openedDefinition);
     const changes: {
-      previousRevisionId: string;
-      revisionId: string;
+      revision: string;
       scenarios: { id: string; name: string }[];
       metrics: { id: string; name: string }[];
     }[] = [];
     const unsubscribe = handle.subscribe((event) =>
       changes.push({
-        previousRevisionId: event.previousRevisionId,
-        revisionId: event.revisionId,
+        revision: documentRevisionOf(event.next),
         scenarios:
           event.next.scenarios?.map(({ id, name }) => ({ id, name })) ?? [],
         metrics:
@@ -299,10 +279,10 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
     );
     await waitFor(() => expect(changes).toHaveLength(6));
     expect(deliveries.map(({ metadata }) => metadata)).toEqual(
-      changes.map((change) => ({
+      changes.map((change, index) => ({
         documentRevision: {
-          before: change.previousRevisionId,
-          after: change.revisionId,
+          before: index === 0 ? initialRevision : changes[index - 1]?.revision,
+          after: change.revision,
         },
       })),
     );
@@ -320,15 +300,9 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       { scenarios: [], metrics: [updatedMetric] },
       { scenarios: [], metrics: [] },
     ]);
-    expect(changes[0]?.previousRevisionId).toBe(initialRevisionId);
-    for (let index = 1; index < changes.length; index++) {
-      expect(changes[index]?.previousRevisionId).toBe(
-        changes[index - 1]?.revisionId,
-      );
-    }
-    expect(new Set(changes.map(({ revisionId }) => revisionId)).size).toBe(6);
-    const lastRevisionId = changes.at(-1)?.revisionId;
-    if (!lastRevisionId) throw new Error("The final change had no revision");
+    expect(new Set(changes.map(({ revision }) => revision)).size).toBe(6);
+    const lastRevision = changes.at(-1)?.revision;
+    if (!lastRevision) throw new Error("The final change had no revision");
     await waitFor(() => {
       const stored = JSON.parse(
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
@@ -339,17 +313,13 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
           sdcpn: SDCPN;
         }
       >;
-      expect(stored[documentId]?.revisionId).toBe(lastRevisionId);
-      expect(stored[documentId]?.sdcpn.scenarios ?? []).toEqual([]);
-      expect(stored[documentId]?.sdcpn.metrics ?? []).toEqual([]);
+      const record = stored[documentId];
+      if (!record) throw new Error("The document record was not persisted");
+      expect(record.revisionId).not.toBe(initialRevisionId);
+      expect(documentRevisionOf(record.sdcpn)).toBe(lastRevision);
+      expect(record.sdcpn.scenarios ?? []).toEqual([]);
+      expect(record.sdcpn.metrics ?? []).toEqual([]);
     });
-    const repository = fixture.repository;
-    if (!repository)
-      throw new Error("The real document repository was not mounted");
-    expect(handle.revisionId.get()).toBe(lastRevisionId);
-    await expect(
-      repository.settleRevision({ documentId, revisionId: lastRevisionId }),
-    ).resolves.toBeUndefined();
     unsubscribe();
   } finally {
     unmount();

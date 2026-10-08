@@ -1,9 +1,11 @@
-import type { DocumentRevisionId, SDCPN } from "@hashintel/petrinaut-core";
+import type { SDCPN } from "@hashintel/petrinaut-core";
+
+/** Identifies one write of a stored record; each write names its predecessor. */
+export type RecordRevisionId = string;
 
 export interface DocumentRecord {
   readonly documentId: string;
-  readonly incarnationId: string;
-  readonly revisionId: DocumentRevisionId;
+  readonly revisionId: RecordRevisionId;
   readonly title: string;
   readonly definition: SDCPN;
   /** ISO timestamp of the last write, when the source records one. */
@@ -31,14 +33,9 @@ export interface DocumentRepository {
   };
   persistRevision(change: {
     readonly documentId: string;
-    readonly incarnationId: string;
     readonly definition: SDCPN;
-    readonly previousRevisionId: DocumentRevisionId;
-    readonly revisionId: DocumentRevisionId;
-  }): Promise<void>;
-  settleRevision(input: {
-    readonly documentId: string;
-    readonly revisionId: DocumentRevisionId;
+    readonly previousRevisionId: RecordRevisionId;
+    readonly revisionId: RecordRevisionId;
   }): Promise<void>;
 }
 
