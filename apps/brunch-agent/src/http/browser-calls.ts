@@ -4,6 +4,7 @@ import * as v from "valibot";
 import {
   claimBrowserCall,
   failBrowserCall,
+  pendingBrowserCalls,
   renewBrowserCall,
   settleBrowserCall,
 } from "../conversation/browser-call-rendezvous.ts";
@@ -33,9 +34,19 @@ const readBody = async <Schema extends v.GenericSchema>(
   return parsed.success ? parsed.output : undefined;
 };
 
-/** The browser half of an issued client-tool call: claim, lease renewal, result, failure. */
+/** The browser half of an issued client-tool call: discovery, claim, lease renewal, result, failure. */
 export const createBrowserCallRouter = (): Hono => {
   const router = new Hono();
+
+  router.get("/:id/browser-calls", (context) => {
+    context.header("Cache-Control", "no-store");
+    const binding = context.req.query("binding");
+    if (binding === undefined)
+      return context.json({ error: "invalid-binding" }, 400);
+    return context.json({
+      calls: pendingBrowserCalls(context.req.param("id"), binding),
+    });
+  });
 
   router.get("/:id/browser-calls/:callId", (context) => {
     context.header("Cache-Control", "no-store");

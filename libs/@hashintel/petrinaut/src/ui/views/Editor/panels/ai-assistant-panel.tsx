@@ -1227,6 +1227,8 @@ const ConversationAiAssistantPanel = ({
   };
 
   const inBandDocumentLaneRef = useRef<Promise<void>>(Promise.resolve());
+  // Calls this panel has scheduled, whether it saw them streamed or polled.
+  const scheduledInBandCallsRef = useRef(new Set<string>());
   const executeIssuedBrowserCall = (
     toolCall: Parameters<
       ChatOnToolCallCallback<PetrinautAiMessage>
@@ -1234,6 +1236,9 @@ const ConversationAiAssistantPanel = ({
   ) => {
     const host = aiAssistant.inBandBrowserTools;
     if (!host?.has(toolCall.toolName)) return;
+    const scheduledKey = `${toolHostIdentityRef.current}:${toolCall.toolCallId}`;
+    if (scheduledInBandCallsRef.current.has(scheduledKey)) return;
+    scheduledInBandCallsRef.current.add(scheduledKey);
     const controller = new AbortController();
     automaticToolAbortsRef.current.add(controller);
     let yieldLane = () => {};
@@ -1280,6 +1285,8 @@ const ConversationAiAssistantPanel = ({
     void scheduled
       .finally(() => automaticToolAbortsRef.current.delete(controller))
       .catch((error: unknown) => {
+        // A claimed call is never pending again, so polling only re-runs a call no browser claimed.
+        scheduledInBandCallsRef.current.delete(scheduledKey);
         // A started experiment reports even after Stop, as its simulation does.
         if (!controller.signal.aborted || experimentExecuting)
           reportOperationalFailure(
@@ -1506,6 +1513,34 @@ const ConversationAiAssistantPanel = ({
     [conversationId],
   );
   const executeToolCallRef = useLatest(executeToolCall);
+  const executeIssuedBrowserCallRef = useLatest(executeIssuedBrowserCall);
+  const pendingInBandCalls = aiAssistant.inBandBrowserTools?.pending;
+  useEffect(() => {
+    if (!pendingInBandCalls) return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      try {
+        const calls = await pendingInBandCalls(controller.signal);
+        if (controller.signal.aborted) return;
+        if (toolHostIdentityRef.current !== null && !stopRequestedRef.current) {
+          for (const call of calls) {
+            executeIssuedBrowserCallRef.current({ ...call, dynamic: true });
+          }
+        }
+      } catch {
+        // The next poll retries; the server expires a call no browser claims.
+      }
+      if (!controller.signal.aborted) {
+        timer = setTimeout(() => void poll(), 1_000);
+      }
+    };
+    void poll();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [conversationId, executeIssuedBrowserCallRef, pendingInBandCalls]);
   const submissionConversationIdRef = useRef(conversationId);
   useLayoutEffect(() => {
     if (submissionConversationIdRef.current === conversationId) return;

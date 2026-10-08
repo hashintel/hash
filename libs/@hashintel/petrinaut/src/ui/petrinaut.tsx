@@ -139,6 +139,18 @@ export type PetrinautAiAssistant = {
       },
       execute: (input: unknown) => Promise<unknown>,
     ) => Promise<void>;
+    /**
+     * Issued calls that no browser has claimed, in issue order. The panel
+     * polls this and runs each call it is not already running, so a call
+     * issued after the response stream ended still runs.
+     */
+    pending?: (signal: AbortSignal) => Promise<
+      readonly {
+        toolCallId: string;
+        toolName: string;
+        input: unknown;
+      }[]
+    >;
   };
   /** Host-owned dynamic tools executed automatically against the mounted editor. */
   automaticTools?: readonly PetrinautAiAutomaticTool[];

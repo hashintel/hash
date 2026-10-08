@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import {
   canonicalContent,
   draftPetrinautExperimentInputSchema,
@@ -22,6 +24,16 @@ const issuedInputSchemas: Readonly<
   ),
   [brunchTools.draftPetrinautExperiment]: draftPetrinautExperimentInputSchema,
 };
+
+const pendingCallsSchema = z.object({
+  calls: z.array(
+    z.object({
+      toolCallId: z.string(),
+      toolName: z.string(),
+      input: z.unknown(),
+    }),
+  ),
+});
 
 /**
  * Decides, after the claim and before `prepareInput`, whether a call may
@@ -53,6 +65,11 @@ export const createInBandBrowserCalls = (input: {
   }) => void;
   readonly admit?: InBandBrowserCallAdmission;
 }) => {
+  const headers = agentOwnershipHeaders({
+    principalKey: input.principalKey,
+    conversationId: input.binding.conversationId,
+  });
+  const bindingQuery = `binding=${encodeURIComponent(canonicalContent(input.binding))}`;
   const claim = async (call: {
     readonly toolCallId: string;
     readonly toolName: string;
@@ -61,11 +78,7 @@ export const createInBandBrowserCalls = (input: {
   }) => {
     const client = await input.client;
     const url = `${client.url}/browser-calls/${encodeURIComponent(call.toolCallId)}`;
-    const boundClaimUrl = `${url}?binding=${encodeURIComponent(canonicalContent(input.binding))}`;
-    const headers = agentOwnershipHeaders({
-      principalKey: input.principalKey,
-      conversationId: input.binding.conversationId,
-    });
+    const boundClaimUrl = `${url}?${bindingQuery}`;
     const claimSignal = AbortSignal.any([
       call.signal,
       AbortSignal.timeout(6_000),
@@ -181,6 +194,21 @@ export const createInBandBrowserCalls = (input: {
   return {
     has: (toolName: string) => toolName in petrinautAiTools,
     claim,
+    /** Canonical calls issued to this document that no browser has claimed, in issue order. */
+    pending: async (signal: AbortSignal) => {
+      const client = await input.client;
+      const response = await fetch(
+        `${client.url}/browser-calls?${bindingQuery}`,
+        { headers, signal },
+      );
+      if (!response.ok)
+        throw new Error(
+          `Pending browser calls were refused (${response.status}).`,
+        );
+      return pendingCallsSchema
+        .parse(await response.json())
+        .calls.filter(({ toolName }) => toolName in petrinautAiTools);
+    },
     /**
      * Claim at this call's turn, run it under a renewed lease, then settle it.
      * A call is unstarted until `execute` is entered; after Stop nothing is reported.

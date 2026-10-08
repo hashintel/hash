@@ -5,6 +5,7 @@ import {
   claimBrowserCall,
   failBrowserCall,
   issueBrowserCall,
+  pendingBrowserCalls,
   renewBrowserCall,
   settleBrowserCall,
 } from "../src/conversation/browser-call-rendezvous.ts";
@@ -317,6 +318,85 @@ it("a renewal keeps calls queued behind it on the same document claimable", asyn
     }),
   ).toBe("settled");
   await expect(queuedResult).resolves.toBeDefined();
+});
+
+it("lists only this binding's unclaimed, live calls, in issue order", async () => {
+  const controller = new AbortController();
+  const base = {
+    instanceId: "owner",
+    toolName: "addPlace",
+    binding: "document-incarnation",
+    verify,
+  };
+  const first = {
+    ...base,
+    toolCallId: crypto.randomUUID(),
+    canonicalInput: { id: "a" },
+  };
+  const second = {
+    ...base,
+    toolCallId: crypto.randomUUID(),
+    toolName: "getLatestNetDefinition",
+    canonicalInput: {},
+  };
+  const claimed = {
+    ...base,
+    toolCallId: crypto.randomUUID(),
+    canonicalInput: {},
+  };
+  const stopped = {
+    ...base,
+    toolCallId: crypto.randomUUID(),
+    canonicalInput: {},
+    signal: controller.signal,
+  };
+  const otherInstance = {
+    ...base,
+    toolCallId: crypto.randomUUID(),
+    instanceId: "other",
+    canonicalInput: {},
+  };
+  const otherBinding = {
+    ...base,
+    toolCallId: crypto.randomUUID(),
+    binding: "other-document-incarnation",
+    canonicalInput: {},
+  };
+  const results = [
+    first,
+    second,
+    claimed,
+    stopped,
+    otherInstance,
+    otherBinding,
+  ].map((call) => issueBrowserCall(call).catch(() => undefined));
+  const claimedCapability = claimBrowserCall(
+    claimed.instanceId,
+    claimed.toolCallId,
+    claimed.binding,
+  )?.capability;
+  controller.abort();
+
+  expect(pendingBrowserCalls("owner", "document-incarnation")).toEqual([
+    { toolCallId: first.toolCallId, toolName: "addPlace", input: { id: "a" } },
+    {
+      toolCallId: second.toolCallId,
+      toolName: "getLatestNetDefinition",
+      input: {},
+    },
+  ]);
+
+  for (const call of [first, second, otherInstance, otherBinding]) {
+    const capability = claimBrowserCall(
+      call.instanceId,
+      call.toolCallId,
+      call.binding,
+    )?.capability;
+    settleBrowserCall({ ...call, capability: capability!, output: {} });
+  }
+  settleBrowserCall({ ...claimed, capability: claimedCapability!, output: {} });
+  await Promise.all(results);
+  expect(pendingBrowserCalls("owner", "document-incarnation")).toEqual([]);
 });
 
 it("classifies a claimed call that cannot change the document as unchanged when stopped or expired, and a claimed write as unknown", async () => {

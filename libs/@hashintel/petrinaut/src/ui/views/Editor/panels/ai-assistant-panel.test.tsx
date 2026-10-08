@@ -3880,6 +3880,77 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(abortedAtRun.get("queued-read")).toBe(true);
   });
 
+  test("runs an issued browser call that arrives after the response stream ended, once", async () => {
+    const run = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
+    >(async () => {});
+    let streamEnded = false;
+    const pending = vi.fn<
+      NonNullable<
+        NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["pending"]
+      >
+    >(async () =>
+      streamEnded
+        ? [
+            {
+              toolCallId: "streamed-read",
+              toolName: getLatestNetDefinitionToolName,
+              input: {},
+            },
+            {
+              toolCallId: "read-after-loss",
+              toolName: getLatestNetDefinitionToolName,
+              input: {},
+            },
+          ]
+        : [],
+    );
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: "start-step" });
+            controller.enqueue({
+              type: "tool-input-available",
+              toolCallId: "streamed-read",
+              toolName: getLatestNetDefinitionToolName,
+              input: {},
+            });
+            setTimeout(() => {
+              streamEnded = true;
+              controller.error(new Error("The chat stream ended."));
+            }, 20);
+          },
+        }),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        inBandBrowserTools: {
+          has: (toolName) => toolName === getLatestNetDefinitionToolName,
+          run,
+          pending,
+        },
+      },
+      initialMessage: "Read the net twice",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(2), {
+      timeout: 3_000,
+    });
+    const callsAfterRecovery = pending.mock.calls.length;
+    await waitFor(
+      () =>
+        expect(pending.mock.calls.length).toBeGreaterThan(callsAfterRecovery),
+      { timeout: 3_000 },
+    );
+    expect(run.mock.calls.map(([call]) => call.toolCallId)).toEqual([
+      "streamed-read",
+      "read-after-loss",
+    ]);
+  });
+
   test("does not execute tools from a durably stopped reopened response", async () => {
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
       streamChunks([]),

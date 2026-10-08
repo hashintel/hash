@@ -227,3 +227,39 @@ test("a call stopped during its claim neither executes nor reports", async () =>
   expect(execute).not.toHaveBeenCalled();
   expect(posted).toEqual([]);
 });
+
+test("pending lists this document's unclaimed canonical calls and leaves the draft card's call alone", async () => {
+  const requested: unknown[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (url) => {
+      requested.push(url);
+      return Response.json({
+        calls: [
+          { toolCallId: "place", toolName: "addPlace", input },
+          {
+            toolCallId: "draft",
+            toolName: "draft_petrinaut_experiment",
+            input: {},
+          },
+        ],
+      });
+    }),
+  );
+  const calls = createInBandBrowserCalls({
+    client: Promise.resolve({
+      url: "http://brunch.local/agents/chat/instance",
+    } as FlueClient),
+    principalKey: "principal",
+    binding,
+    metadataFor: () => undefined,
+    prepareInput: () => {},
+  });
+
+  await expect(calls.pending(new AbortController().signal)).resolves.toEqual([
+    { toolCallId: "place", toolName: "addPlace", input },
+  ]);
+  expect(requested).toEqual([
+    `http://brunch.local/agents/chat/instance/browser-calls?binding=${encodeURIComponent(canonicalContent(binding))}`,
+  ]);
+});

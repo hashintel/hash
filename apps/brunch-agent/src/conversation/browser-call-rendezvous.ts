@@ -9,6 +9,8 @@ const leaseMs = 25_000;
 export const BROWSER_CALL_UNSTARTED_ERROR =
   "Browser call was not started; no document operation was invoked.";
 interface IssuedCall {
+  readonly instanceId: string;
+  readonly toolCallId: string;
   readonly binding: string;
   readonly input: string;
   readonly toolName: string;
@@ -111,6 +113,8 @@ export const issueBrowserCall = (input: {
   if (input.signal?.aborted) throw new Error(BROWSER_CALL_UNSTARTED_ERROR);
   const result = Promise.withResolvers<ClientToolResult>();
   const entry: IssuedCall = {
+    instanceId: input.instanceId,
+    toolCallId: input.toolCallId,
     binding: input.binding,
     input: JSON.stringify(input.canonicalInput),
     toolName: input.toolName,
@@ -146,6 +150,28 @@ export const issueBrowserCall = (input: {
   }
   return result.promise;
 };
+
+/**
+ * Calls issued to this binding that no browser has claimed, in issue order.
+ * A browser that lost the live stream finds its calls here; claiming stays one-use.
+ */
+export const pendingBrowserCalls = (instanceId: string, binding: string) =>
+  [...calls.values()].flatMap((entry) =>
+    entry.instanceId === instanceId &&
+    entry.binding === binding &&
+    !entry.claimed &&
+    !entry.finished &&
+    !entry.signal?.aborted &&
+    Date.now() < entry.deadline
+      ? [
+          {
+            toolCallId: entry.toolCallId,
+            toolName: entry.toolName,
+            input: JSON.parse(entry.input) as unknown,
+          },
+        ]
+      : [],
+  );
 
 /** The caller's ownership middleware runs before these operations. The capability is one-use, not user authentication. */
 export const claimBrowserCall = (

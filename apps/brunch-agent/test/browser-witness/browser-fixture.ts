@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { mkdtempSync, readFileSync } from "node:fs";
-import { createServer, type Server } from "node:http";
+import { createServer, type Server, type ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 
@@ -87,10 +87,18 @@ const closeServer = (server: Server) =>
     server.close((error) => (error ? reject(error) : done())),
   );
 
+/** The browser's conversation update and live tool streams, which `wait()` and the panel follow. */
+const isConversationStream = (url: URL) =>
+  url.pathname.startsWith("/agents/") &&
+  (url.searchParams.get("view") === "updates" ||
+    url.pathname.endsWith("/live"));
+
 export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
   const deliveries: { path: string; body: string }[] = [];
   const errors: string[] = [];
   const blocked: string[] = [];
+  const openStreams = new Set<ServerResponse>();
+  let streamsCut = false;
   const server = createServer((incoming, outgoing) => {
     const abort = new AbortController();
     outgoing.on("close", () => abort.abort());
@@ -100,7 +108,13 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
         `http://${incoming.headers.host}`,
       );
       let response: Response;
-      if (url.pathname.startsWith("/agents/")) {
+      if (isConversationStream(url) && streamsCut)
+        response = Response.json({ error: "stream-cut" }, { status: 410 });
+      else if (url.pathname.startsWith("/agents/")) {
+        if (isConversationStream(url)) {
+          openStreams.add(outgoing);
+          outgoing.on("close", () => openStreams.delete(outgoing));
+        }
         const chunks: Buffer[] = [];
         for await (const chunk of incoming) {
           const bytes: unknown = chunk;
@@ -237,6 +251,30 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
     return JSON.parse(deliveries[start]?.body ?? "null") as BrowserDelivery;
   };
 
+  /** Sends one prompt without waiting for a reply; returns the body it posted. */
+  const send = async (page: Page, prompt: string) => {
+    const start = deliveries.length;
+    const composer = page.getByRole("textbox", {
+      name: "Message AI assistant",
+      exact: true,
+    });
+    await composer.fill(prompt);
+    await composer.press("Enter");
+    while (deliveries[start] === undefined)
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    return JSON.parse(deliveries[start].body) as BrowserDelivery;
+  };
+
+  /**
+   * Ends the browser's open conversation streams and refuses their reconnects
+   * with a 410, which `wait()` does not retry. The server submission runs on.
+   */
+  const cutStreams = () => {
+    streamsCut = true;
+    for (const stream of openStreams) stream.destroy();
+    openStreams.clear();
+  };
+
   const principalOf = async (page: Page) => {
     const principalKey = await page.evaluate(() => {
       const key = Object.keys(localStorage).find((entry) =>
@@ -291,6 +329,11 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
     blocked,
     openAssistant,
     ask,
+    send,
+    cutStreams,
+    restoreStreams: () => {
+      streamsCut = false;
+    },
     conversationOf,
     storedDocument,
     close,
