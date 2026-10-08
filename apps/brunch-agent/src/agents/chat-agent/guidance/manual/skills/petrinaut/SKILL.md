@@ -84,6 +84,17 @@ The exact shapes the runtime expects:
 - Scenario parameter wiring: a `per_place` initial-state expression reads a scenario parameter as `scenario.<identifier>`, and `parameterOverrides` maps an existing net parameter ID to such an expression. A value that transition code reads through `parameters.<variableName>` therefore needs both the net parameter and the override. Metrics cannot read scenario parameters.
 - Parameter access in any code surface: use `parameters.<variableName>` where `<variableName>` is the parameter's lower_snake_case `variableName` value (e.g. `parameters.crash_threshold`, never `parameters.crashThreshold`).
 
+### Durations
+
+A stochastic lambda's rate makes the time to firing exponentially distributed, with mean `1 / rate`. Use a rate only for what is random in time, such as arrivals or breakdowns. For a fixed or otherwise distributed duration, count it down on the token instead:
+
+1. give the in-progress place's colour a real `remaining_time` element;
+2. set it in the starting transition's kernel: a constant or `parameters.<variableName>` for a fixed duration, a `Distribution` for a spread;
+3. give the in-progress place a differential equation returning `-1` for it: `return tokens.map(() => ({ remaining_time: -1 }));`;
+4. guard the completing transition with a predicate: `return input.InProgress[0].remaining_time <= 0;`.
+
+This needs `extensions.colors` and `extensions.dynamics`, and `extensions.stochasticity` for a `Distribution`. Durations are in simulation time units. The `useful-patterns` page that `readPetrinautDoc` returns has the full example.
+
 ### After a code change
 
 Validate every code-writing change. After the step that writes code — lambda, transition kernel, dynamics, visualizer, metric, or scenario code-mode initial state — call getNetCompilationErrors once for the whole step, and send every repair it calls for in one further step before relying on the new code. Mutations validate only the schema, not the runtime contract. Saved scenario and metric code is compiled separately, when an experiment is created, so a clean diagnostic does not prove it.

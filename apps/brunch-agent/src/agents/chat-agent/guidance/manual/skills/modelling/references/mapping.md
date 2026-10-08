@@ -38,16 +38,18 @@ The stage each kind opens with tells you which layer of the net it usually reach
 | Stage   | Kind          | Usual counterpart                                                                                  | Watch for                                                                                 |
 | ------- | ------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | framing | `purpose`     | No element; it decides what to build and an experiment's question                                  | What the result must not claim                                                            |
+| framing | `appetite`    | No element; it bounds the session, not the model                                                   | Turns left, re-estimated as the session runs                                              |
 | scope   | `horizon`     | An experiment's `maxTime`                                                                          | Its unit, and the simulation time unit it converts to                                     |
 | scope   | `boundary`    | Source and sink transitions, externally supplied input places, scenario initial state              | What crosses it in each direction                                                         |
 | input   | `lever`       | A net parameter; a scenario parameter when it varies between runs or regimes                       | A count is an `integer` parameter, a proportion a `ratio`, a continuous quantity a `real` |
 | input   | `limit`       | The range of the lever it bounds                                                                   | A bound across several levers cannot reach an experiment                                  |
 | input   | `optimum`     | No element; an experiment over its levers                                                          | It needs its directions; when it balances several, the USER says how                      |
 | system  | `thing`       | A token type, with colour elements when its attributes change behaviour                            | Distinctions that change nothing stay in the Ledger                                       |
+| system  | `signal`      | A token in a place of its own, apart from the condition it reports or the effect it commands       | Age, loss and delay; what acts on it                                                      |
 | system  | `location`    | No element of its own; separate places or a transfer activity where position changes behaviour     | A location whose capacity can run out is a resource                                       |
 | system  | `resource`    | A place whose tokens are acquired and returned, its capacity as initial tokens                     | Consumed, reserved or read                                                                |
 | system  | `activity`    | A transition; start, in-progress place and completion when its duration matters                    | What it holds while it runs                                                               |
-| system  | `actor`       | A resource when only how many are free matters; a rule when it decides                             | Rarely a place of its own                                                                 |
+| system  | `actor`       | A resource when only how many are free matters; a rule when it decides                             | A device gets a state place only when it can fail, drift or be busy                       |
 | system  | `rule`        | A guard, predicate lambda or priority                                                              | Posted and practiced versions; a rule the USER compares is a lever                        |
 | system  | `event`       | A transition that takes no time; a source transition or stochastic rate when it comes from outside | What it interrupts, and what survives it                                                  |
 | system  | `flow`        | A path through places and transitions, not one element                                             | Checked as a candidate structural path                                                    |
@@ -75,7 +77,7 @@ Patterns are candidate transformations whose premises must already be present in
 
 ### Timed work
 
-When a logical activity occupies consequential time, represent start, in-progress state, and completion separately. Preserve what remains occupied while work runs. Use a constant or named parameter when only a typical duration is supported; do not invent a distribution family or tail.
+When a logical activity occupies consequential time, represent start, in-progress state, and completion separately. Preserve what remains occupied while work runs. A stated fixed or typical duration becomes a constant or named parameter counted down on the in-progress token, as the `petrinaut` skill's Durations section describes; a stated spread becomes a distribution of that duration. Do not give it a stochastic rate: a rate makes the duration exponential, a distribution family and tail the account did not supply. Rates are for what the account describes as random in time, such as arrivals and breakdowns.
 
 ### Conditional or probabilistic outcome
 
@@ -118,6 +120,8 @@ Carry a changing quantity in state with the supported evolution law. Fire conseq
 ### Observation and command
 
 When the account lets a physical condition and what the system knows of it diverge, represent them apart: the condition, the latest reading with its age, and the decision taken on that reading. Likewise separate issuing a command from its delivery, acceptance and physical effect where any of these can fail or lag. Collapse them only as a labelled simplification when no objective depends on the gap.
+
+Sensors, controllers and actuators are actors; readings and commands are signals. A link's delay and loss are claims on the signals it carries: when delay matters, transmission is an activity with that duration and a loss outcome. A link is an entity of its own only when it has state: a `resource` whose token transmission acquires and returns when its capacity is contended or it can go down, with outages as events that take and restore that token.
 
 ### Spatial transfer
 

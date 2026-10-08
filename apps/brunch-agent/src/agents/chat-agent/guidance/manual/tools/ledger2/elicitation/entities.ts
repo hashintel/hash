@@ -18,6 +18,12 @@ export const vEntityKind = v.pipe(
       ),
     ),
     v.pipe(
+      v.literal("signal"),
+      v.description(
+        "System: information about the operation, or an instruction to it, that can be stale, lost or late, e.g. 'the level reading', 'the stop command'. Claims describe what it reports or commands, how often it is sent and how it can fail. The physical condition it reports or changes is a separate entity.",
+      ),
+    ),
+    v.pipe(
       v.literal("location"),
       v.description(
         "System: a place things are in or move between, where position matters to the answer, e.g. 'site B', 'ward 3'. When its capacity can run out, it is a resource.",
@@ -38,7 +44,7 @@ export const vEntityKind = v.pipe(
     v.pipe(
       v.literal("actor"),
       v.description(
-        "System: a person, team or organisation that performs steps or makes decisions, e.g. 'the planner', 'quality control'. When only how many are free matters, it is a resource.",
+        "System: a person, team, organisation or device that performs steps or makes decisions, e.g. 'the planner', 'quality control', 'the level sensor', 'the pump controller'. When only how many are free matters, it is a resource.",
       ),
     ),
     v.pipe(
@@ -63,6 +69,12 @@ export const vEntityKind = v.pipe(
       v.literal("purpose"),
       v.description(
         "Framing: a question or goal the model exists to address, e.g. 'can we meet winter demand without a second dryer?'.",
+      ),
+    ),
+    v.pipe(
+      v.literal("appetite"),
+      v.description(
+        "Framing: how much time or how many turns the USER will spend on this session, e.g. 'about 20 minutes'. Claims describe the limit and the number of turns it is estimated to allow. It bounds the conversation, not the model; a simulated time span is a horizon.",
       ),
     ),
     v.pipe(
@@ -127,7 +139,7 @@ export const vEntityKind = v.pipe(
     ),
   ]),
   v.description(
-    "What the entity is, not the role a claim gives it. Each kind opens with its stage relative to a run: framing (why the model exists), scope (its time span and edges), input (set before a run), system (how the operation behaves during a run) or output (what a run produces and how it is judged). Any kind can occur more than once.",
+    "What the entity is, not the role a claim gives it. Each kind opens with its stage relative to a run: framing (why the model exists, and the session's appetite), scope (its time span and edges), input (set before a run), system (how the operation behaves during a run) or output (what a run produces and how it is judged). Any kind can occur more than once.",
   ),
 );
 
@@ -159,12 +171,14 @@ export type EntityStage = (typeof entityStages)[number];
 /** Where each kind sits relative to a simulation run, in display order. */
 export const entityKindStages = {
   purpose: "framing",
+  appetite: "framing",
   horizon: "scope",
   boundary: "scope",
   lever: "input",
   limit: "input",
   optimum: "input",
   thing: "system",
+  signal: "system",
   location: "system",
   resource: "system",
   activity: "system",
