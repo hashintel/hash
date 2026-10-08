@@ -146,5 +146,38 @@ export const vEntity = v.pipe(
 export type EntityKind = v.InferOutput<typeof vEntityKind>;
 export type Entity = v.InferOutput<typeof vEntity>;
 
+export const entitySides = [
+  "framing",
+  "scope",
+  "input",
+  "system",
+  "output",
+] as const;
+
+export type EntitySide = (typeof entitySides)[number];
+
+/** Where each kind sits relative to a simulation run, in display order. */
+export const entityKindSides = {
+  purpose: "framing",
+  horizon: "scope",
+  boundary: "scope",
+  lever: "input",
+  limit: "input",
+  optimum: "input",
+  thing: "system",
+  location: "system",
+  resource: "system",
+  activity: "system",
+  actor: "system",
+  rule: "system",
+  event: "system",
+  flow: "system",
+  metric: "output",
+  direction: "output",
+  target: "output",
+  threshold: "output",
+  externality: "output",
+} as const satisfies Record<EntityKind, EntitySide>;
+
 export const EntityKindSchema = toJsonSchema(vEntityKind);
 export const EntitySchema = toJsonSchema(vEntity, { errorMode: "ignore" });

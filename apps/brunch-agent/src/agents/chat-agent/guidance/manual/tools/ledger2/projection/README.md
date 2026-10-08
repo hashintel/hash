@@ -6,7 +6,7 @@ The Ledger's user-facing projection: committed ledger2 records folded into one d
 
 Live:
 
-- `ledger_compile` ([../ledger-tools.ts](../ledger-tools.ts)) renders the agent skin as its `map` output, over the fold in [../commits.ts](../commits.ts).
+- `ledger_compile` ([../../ledger.ts](../../ledger.ts)) renders the agent skin as its `map` output, over the fold in [../commits.ts](../commits.ts).
 - The persona harness reads a manual-arm run back through the same pair (`foldCommits` → `projectLedger` → `renderLedgerMarkdown(…, "agent")`) in `src/evaluations/persona/ledger-evidence.ts`.
 
 Parked (design-only, nothing mounts it):
@@ -26,7 +26,7 @@ Tests: `test/ledger2-projection.test.ts` with snapshots pinning both skins under
 
 ## Settled design decisions
 
-- Section clusters and kind labels are fixed (user-approved): **Framing & objectives** (purpose/Goals, metric/Metrics, lever/Levers), **Scope & constraints** (target/Targets, direction/"Maximizations / Minimizations", optimum/Optimizations, horizon/Horizons, boundary/Boundaries, limit/Limits, threshold/Thresholds, externality/Externalities), **The system** (thing/Items, location/Locations, resource/Resources, activity/Activities, actor/Actors, rule/Policies, event/Events, flow/Sequences). Empty kinds and sections are omitted.
+- Sections follow each kind's side relative to a simulation run, from `entityKindSides` in [../elicitation/entities.ts](../elicitation/entities.ts): **Framing** (purpose/Goals), **Scope** (horizon/Horizons, boundary/Boundaries), **Inputs** (lever/Levers, limit/Limits, optimum/Optimizations), **The system** (thing/Items, location/Locations, resource/Resources, activity/Activities, actor/Actors, rule/Policies, event/Events, flow/Sequences), **Outputs** (metric/Metrics, direction/"Maximizations / Minimizations", target/Targets, threshold/Thresholds, externality/Externalities). Kind labels are user-approved. Empty kinds and sections are omitted.
 - Canonical kind tokens appear in agent-skin headings only, never in the user skin.
 - A claim referencing several entities repeats under each one — accepted, no see-also form ("it reflects something about the way that the projection really works").
 - Question choices are generic: conflicted claims offer "It holds" / "It does not hold" / "Leave it unresolved"; open claims are free-text with no choices.
