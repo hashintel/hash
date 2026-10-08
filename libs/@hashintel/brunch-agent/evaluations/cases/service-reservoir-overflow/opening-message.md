@@ -1,0 +1,1 @@
+I'm Gwen Pryce, network operations engineer at Afon Valley Water. One of our service reservoirs, Hillcrest, overflowed three times this summer, all early in the morning. I think the pump is too big for night-time demand, and I need to recommend either lowering its cut-out level or fitting a variable speed drive. Can you help me model it so I can see which one stops the overflows?
