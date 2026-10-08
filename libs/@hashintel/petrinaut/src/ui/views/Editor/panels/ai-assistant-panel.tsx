@@ -47,6 +47,7 @@ import {
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
+import { petrinautDocsContent } from "../../../petrinaut-docs-content";
 import {
   AiAssistantContents,
   getTranscriptLabel,
@@ -60,7 +61,6 @@ import {
   getInteractiveTool,
   resolveDynamicInteractiveTool,
 } from "./ai-assistant-panel/interactive-tools/registry";
-import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
 import { readCurrentDiagnostics } from "./ai-assistant-panel/read-current-diagnostics";
 import {
   type AiToolOutput,
@@ -91,7 +91,6 @@ export type {
   PetrinautAiMessageMetadata,
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
-export { petrinautDocsContent };
 
 type PetrinautAiToolCall = Parameters<
   ChatOnToolCallCallback<PetrinautAiMessage>
