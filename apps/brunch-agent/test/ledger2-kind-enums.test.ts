@@ -775,6 +775,30 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     );
   }, 120_000);
 
+  test("records a reading as a signal and its controller as an actor", async () => {
+    const recorded = await append(
+      "The pump controller switches the pump on the tank level reading it gets over the radio every five minutes, and sometimes those readings drop.",
+    );
+    expect(
+      recorded.entities.filter(
+        ({ kind, name }) => kind === "signal" && /reading/i.test(name),
+      ),
+    ).not.toHaveLength(0);
+    expect(
+      recorded.entities.filter(
+        ({ kind, name }) => kind === "actor" && /controller/i.test(name),
+      ),
+    ).not.toHaveLength(0);
+  }, 120_000);
+
+  test("records the session's time as an appetite, not a horizon", async () => {
+    const recorded = await append(
+      "I've only got about half an hour for this today.",
+    );
+    expect(recorded.entities.map(({ kind }) => kind)).toContain("appetite");
+    expect(recorded.entities.map(({ kind }) => kind)).not.toContain("horizon");
+  }, 120_000);
+
   test("one tuple queue connects elicitation to an explained construction choice", async () => {
     const placeId = "73bb8e88-a8d7-4a81-99e1-8398b928d6d3";
     const recorded = await append(
