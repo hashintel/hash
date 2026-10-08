@@ -1,8 +1,8 @@
 import {
-  entityKindSides,
-  entitySides,
+  entityKindStages,
+  entityStages,
   type EntityKind,
-  type EntitySide,
+  type EntityStage,
 } from "../elicitation/entities.ts";
 
 import type { ClaimRecord, EntityRecord, LedgerState } from "./records.ts";
@@ -52,7 +52,7 @@ export interface LedgerProjection {
   addressEntries: AddressEntry[];
 }
 
-const sideTitles: Record<EntitySide, string> = {
+const stageTitles: Record<EntityStage, string> = {
   framing: "Framing",
   scope: "Scope",
   input: "Inputs",
@@ -83,7 +83,7 @@ const kindLabels: Record<EntityKind, string> = {
   externality: "Externalities",
 };
 
-const kindsInOrder = Object.keys(entityKindSides) as EntityKind[];
+const kindsInOrder = Object.keys(entityKindStages) as EntityKind[];
 
 const addressNumber = (address: string) => Number(address.slice(1));
 
@@ -135,11 +135,11 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     .filter((entity) => entity.status === "out-of-scope")
     .map(projectEntity);
 
-  const sections = entitySides
-    .map((side) => ({
-      title: sideTitles[side],
+  const sections = entityStages
+    .map((stage) => ({
+      title: stageTitles[stage],
       kinds: kindsInOrder
-        .filter((kind) => entityKindSides[kind] === side)
+        .filter((kind) => entityKindStages[kind] === stage)
         .map((kind) => ({
           kind,
           label: kindLabels[kind],

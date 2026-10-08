@@ -127,7 +127,7 @@ export const vEntityKind = v.pipe(
     ),
   ]),
   v.description(
-    "What the entity is, not the role a claim gives it. Each kind opens with where it sits relative to a run: framing (why the model exists), scope (its time span and edges), input (set before a run), system (how the operation behaves during a run) or output (what a run produces and how it is judged). Any kind can occur more than once.",
+    "What the entity is, not the role a claim gives it. Each kind opens with its stage relative to a run: framing (why the model exists), scope (its time span and edges), input (set before a run), system (how the operation behaves during a run) or output (what a run produces and how it is judged). Any kind can occur more than once.",
   ),
 );
 
@@ -146,7 +146,7 @@ export const vEntity = v.pipe(
 export type EntityKind = v.InferOutput<typeof vEntityKind>;
 export type Entity = v.InferOutput<typeof vEntity>;
 
-export const entitySides = [
+export const entityStages = [
   "framing",
   "scope",
   "input",
@@ -154,10 +154,10 @@ export const entitySides = [
   "output",
 ] as const;
 
-export type EntitySide = (typeof entitySides)[number];
+export type EntityStage = (typeof entityStages)[number];
 
 /** Where each kind sits relative to a simulation run, in display order. */
-export const entityKindSides = {
+export const entityKindStages = {
   purpose: "framing",
   horizon: "scope",
   boundary: "scope",
@@ -177,7 +177,7 @@ export const entityKindSides = {
   target: "output",
   threshold: "output",
   externality: "output",
-} as const satisfies Record<EntityKind, EntitySide>;
+} as const satisfies Record<EntityKind, EntityStage>;
 
 export const EntityKindSchema = toJsonSchema(vEntityKind);
 export const EntitySchema = toJsonSchema(vEntity, { errorMode: "ignore" });
