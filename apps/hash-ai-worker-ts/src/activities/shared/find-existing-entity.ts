@@ -1,5 +1,3 @@
-/// <reference lib="esnext.collection" />
-
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
   extractEntityUuidFromEntityId,
