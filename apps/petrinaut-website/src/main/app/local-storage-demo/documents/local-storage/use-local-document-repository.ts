@@ -36,7 +36,6 @@ const mostRecentDocumentId = (documents: StoredDocuments): string | undefined =>
 const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
   return {
     documentId: stored.id,
-    incarnationId: stored.incarnationId ?? crypto.randomUUID(),
     revisionId: stored.revisionId ?? crypto.randomUUID(),
     title: stored.title,
     definition: stored.sdcpn,
@@ -49,7 +48,6 @@ const createDefaultDocument = (): SDCPNInLocalStorage => ({
   title: "New Process",
   sdcpn: emptySDCPN,
   lastUpdated: new Date(0).toISOString(),
-  incarnationId: crypto.randomUUID(),
   revisionId: crypto.randomUUID(),
 });
 
@@ -91,17 +89,13 @@ export const useLocalDocumentRepository = (input: {
   useEffect(() => {
     if (current === null) return;
     const stored = storedSDCPNs[current.documentId];
-    if (
-      stored?.incarnationId === current.incarnationId &&
-      stored.revisionId === current.revisionId
-    ) {
+    if (stored?.revisionId === current.revisionId) {
       return;
     }
     setStoredSDCPNs((previous) => ({
       ...previous,
       [current.documentId]: {
         ...(previous[current.documentId] ?? defaultDocument),
-        incarnationId: current.incarnationId,
         revisionId: current.revisionId,
       },
     }));
@@ -196,7 +190,7 @@ export const useLocalDocumentRepository = (input: {
 
   const persistRevision: DocumentRepository["persistRevision"] = useCallback(
     async (change) => {
-      // Predecessor and incarnation are checked against the very store the
+      // The predecessor is checked against the very store the
       // write lands in: `setStoredSDCPNs` re-reads storage when another tab
       // has written since this tab last did, so a check made outside the
       // updater could pass on a revision the store no longer holds and then
@@ -211,20 +205,12 @@ export const useLocalDocumentRepository = (input: {
           );
           return previous;
         }
-        // A stored entry predating incarnation tracking takes the identity
-        // its record was given until the mirroring effect stamps it.
+        // A stored entry without a revision takes the one its record was
+        // given until the mirroring effect stamps it.
         const record = records.find(
           ({ documentId }) => documentId === change.documentId,
         );
-        const storedIncarnationId =
-          stored.incarnationId ?? record?.incarnationId;
         const storedRevisionId = stored.revisionId ?? record?.revisionId;
-        if (storedIncarnationId !== change.incarnationId) {
-          refusal.error = new Error(
-            `Local document ${change.documentId} has a different incarnation.`,
-          );
-          return previous;
-        }
         if (storedRevisionId !== change.previousRevisionId) {
           refusal.error = new Error(
             `Local document ${change.documentId} revision does not follow its predecessor.`,
@@ -233,7 +219,6 @@ export const useLocalDocumentRepository = (input: {
         }
         const next: SDCPNInLocalStorage = {
           ...stored,
-          incarnationId: change.incarnationId,
           revisionId: change.revisionId,
           sdcpn: change.definition,
           lastUpdated: new Date().toISOString(),

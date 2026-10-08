@@ -51,7 +51,6 @@ export const BrunchWorkpiecePane = ({
   binding: {
     conversationId: string;
     documentId: string;
-    incarnationId: string;
   };
 }) => {
   const { report, stateChangedSinceReport, whyPredatesSettlement } =

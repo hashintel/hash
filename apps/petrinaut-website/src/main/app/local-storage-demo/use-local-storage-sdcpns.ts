@@ -13,8 +13,6 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
 export type SDCPNInLocalStorage = {
-  /** Assigned when a construction-bound document is created or first opened. */
-  incarnationId?: string;
   /** The last write to this record; the next write must name it as predecessor. */
   revisionId?: RecordRevisionId;
   id: string;
@@ -39,7 +37,6 @@ const isStoredSDCPN = (value: unknown): value is SDCPN =>
 
 type StoredDocumentIngress = {
   readonly id: string;
-  readonly incarnationId?: unknown;
   readonly lastUpdated: string;
   readonly revisionId?: unknown;
   readonly sdcpn: SDCPN;
@@ -91,7 +88,6 @@ export const createLocalStorageNetRecord = (params: {
     title: params.title,
     sdcpn: params.petriNetDefinition,
     lastUpdated: now.toISOString(),
-    incarnationId: crypto.randomUUID(),
     revisionId: crypto.randomUUID(),
   };
 };
@@ -159,7 +155,7 @@ const supersedes = (
 
 /**
  * Reads every recognized document, keyed by its net id. An entry stored under
- * a legacy id, with legacy subnet ids, or without its identity fields is
+ * a legacy id, with legacy subnet ids, or without a revision id is
  * rewritten once, so the key, the record id and the subnet ids move together.
  */
 const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
@@ -172,15 +168,10 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
     }
     const id = toPetrinautId(documentId);
     const sdcpn = canonicalizePetrinautIds(value.sdcpn);
-    const incarnationId =
-      typeof value.incarnationId === "string" ? value.incarnationId : undefined;
     const revisionId =
       typeof value.revisionId === "string" ? value.revisionId : undefined;
     needsNormalization ||=
-      id !== documentId ||
-      sdcpn !== value.sdcpn ||
-      incarnationId === undefined ||
-      revisionId === undefined;
+      id !== documentId || sdcpn !== value.sdcpn || revisionId === undefined;
     if (
       !supersedes({ documentId, lastUpdated: value.lastUpdated }, documents[id])
     ) {
@@ -191,12 +182,6 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
       title: value.title,
       lastUpdated: value.lastUpdated,
       sdcpn,
-      // A moved record starts a new incarnation: Brunch bound the old one's
-      // conversation to the old document id.
-      incarnationId:
-        id === documentId
-          ? (incarnationId ?? crypto.randomUUID())
-          : crypto.randomUUID(),
       revisionId: revisionId ?? crypto.randomUUID(),
     };
   }

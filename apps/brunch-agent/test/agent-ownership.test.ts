@@ -55,7 +55,6 @@ test("a document binding cannot name another conversation", async () => {
           binding: {
             conversationId: "another",
             documentId: "document",
-            incarnationId: "incarnation",
           },
         },
         message: { kind: "user", body: "test" },

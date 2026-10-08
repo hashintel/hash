@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop -- Local services start in order; readiness is polled until ready or cancelled. */
 import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
@@ -322,7 +322,6 @@ const launchPersona = async ({
           const sourceSha256 = createHash("sha256").update(bytes).digest("hex");
           return {
             id: toPetrinautId(`persona-source-${sourceSha256.slice(0, 12)}`),
-            incarnationId: randomUUID(),
             lastUpdated: new Date().toISOString(),
             sdcpn,
             sourceSha256,
@@ -496,7 +495,6 @@ const launchPersona = async ({
       const serializedInitialNet = JSON.stringify({
         [initialNet.id]: {
           id: initialNet.id,
-          incarnationId: initialNet.incarnationId,
           lastUpdated: initialNet.lastUpdated,
           sdcpn: initialNet.sdcpn,
           title: initialNet.title,

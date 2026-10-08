@@ -62,12 +62,10 @@ const fixture = vi.hoisted(() => ({
   controller: null as DocumentController | null,
   binding: null as {
     documentId: string;
-    incarnationId: string;
     conversationId: string;
   } | null,
   baseBinding: null as {
     documentId: string;
-    incarnationId: string;
     conversationId: string;
   } | null,
 }));
@@ -183,17 +181,15 @@ test.each(["Dismiss", "Run"] as const)(
       removeItem() {},
       setItem() {},
     } satisfies Storage);
-    const baseId = ordinaryConstructionConversationIdFrom("incarnation");
+    const baseId = ordinaryConstructionConversationIdFrom("document");
     const binding = {
       conversationId: brunchEvaluationConversationIdFrom(baseId),
       documentId: "document",
-      incarnationId: "incarnation",
     };
     fixture.binding = binding;
     fixture.baseBinding = { ...binding, conversationId: baseId };
     const documentRecord: DocumentRecord = {
       documentId: binding.documentId,
-      incarnationId: binding.incarnationId,
       revisionId: "initial-revision",
       title: "Queue",
       definition,

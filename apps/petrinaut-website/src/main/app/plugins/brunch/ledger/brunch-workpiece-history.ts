@@ -78,7 +78,6 @@ export const foldBrunchWorkpieceHistory = (
   binding: {
     readonly conversationId: string;
     readonly documentId: string;
-    readonly incarnationId: string;
   },
 ): BrunchWorkpieceHistory => {
   let report: BrunchWorkpieceHistory["report"];

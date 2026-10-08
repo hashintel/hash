@@ -239,7 +239,6 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   const binding = {
     conversationId: "conversation",
     documentId: "document",
-    incarnationId: "incarnation",
   };
 
   const issuedCalls = (toolName: string, input: unknown) => {

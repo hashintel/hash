@@ -342,7 +342,6 @@ type PersistFailure = {
   /** The handle whose change was refused; it is replaced, not kept. */
   handle: PetrinautDocHandle;
   documentId: DocumentRecord["documentId"];
-  incarnationId: DocumentRecord["incarnationId"];
   error: Error;
 };
 
@@ -532,8 +531,6 @@ export const LocalStorageDemoApp = ({
     currentDocument === null
       ? null
       : storedHandle?.document.documentId === currentDocument.documentId &&
-          storedHandle.document.incarnationId ===
-            currentDocument.incarnationId &&
           storedHandle.emittedRevisionIds.has(currentDocument.revisionId) &&
           persistFailure?.handle !== storedHandle.handle
         ? storedHandle
@@ -542,8 +539,7 @@ export const LocalStorageDemoApp = ({
   if (
     persistFailure !== null &&
     currentDocument !== null &&
-    (persistFailure.documentId !== currentDocument.documentId ||
-      persistFailure.incarnationId !== currentDocument.incarnationId)
+    persistFailure.documentId !== currentDocument.documentId
   )
     setPersistFailure(null);
 
@@ -565,7 +561,6 @@ export const LocalStorageDemoApp = ({
       repository
         .persistRevision({
           documentId: document.documentId,
-          incarnationId: document.incarnationId,
           definition: event.next,
           previousRevisionId,
           revisionId,
@@ -573,16 +568,12 @@ export const LocalStorageDemoApp = ({
         .then(
           () =>
             setPersistFailure((failure) =>
-              failure?.documentId === document.documentId &&
-              failure.incarnationId === document.incarnationId
-                ? null
-                : failure,
+              failure?.documentId === document.documentId ? null : failure,
             ),
           (error: unknown) =>
             setPersistFailure({
               handle,
               documentId: document.documentId,
-              incarnationId: document.incarnationId,
               error: error instanceof Error ? error : new Error(String(error)),
             }),
         );
@@ -590,8 +581,7 @@ export const LocalStorageDemoApp = ({
   }, [activeHandle, repository]);
   const unsavedChangeMessage =
     persistFailure !== null &&
-    persistFailure.documentId === currentDocument?.documentId &&
-    persistFailure.incarnationId === currentDocument.incarnationId
+    persistFailure.documentId === currentDocument?.documentId
       ? persistFailure.error.message
       : null;
 
@@ -629,19 +619,18 @@ export const LocalStorageDemoApp = ({
   const [freshConversationIds, setFreshConversationIds] = useState<
     Record<string, string>
   >({});
-  const incarnationId = currentDocument?.incarnationId;
   const baseConstructionConversationId = useMemo(() => {
-    if (!brunchSelected || incarnationId === undefined) return undefined;
-    const initialId = ordinaryConstructionConversationIdFrom(incarnationId);
+    if (!brunchSelected || currentNetId === null) return undefined;
+    const initialId = ordinaryConstructionConversationIdFrom(currentNetId);
     return (
-      freshConversationIds[incarnationId] ??
+      freshConversationIds[currentNetId] ??
       getOrCreateBrunchConversationId(
         initialId,
         window.localStorage,
         () => initialId,
       )
     );
-  }, [brunchSelected, freshConversationIds, incarnationId]);
+  }, [brunchSelected, currentNetId, freshConversationIds]);
   const fixtureProcessAgentConfiguration = useMemo<
     FixtureProcessAgentConfiguration | undefined
   >(
@@ -747,7 +736,7 @@ export const LocalStorageDemoApp = ({
     dynamicClientToolNames,
   );
   const replayBindingKey = constructionBrowser
-    ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.incarnationId}:${constructionBrowser.binding.conversationId}`
+    ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
     : undefined;
   const deriveCanonicalReplay = useCallback(
     async (snapshot: NonNullable<typeof flueHistory.snapshot>) => {
@@ -1003,14 +992,14 @@ export const LocalStorageDemoApp = ({
         }));
       },
       onClearMessages: () => {
-        if (flueClientPromise !== null && incarnationId !== undefined) {
+        if (flueClientPromise !== null && currentNetId !== null) {
           const initialId =
-            ordinaryConstructionConversationIdFrom(incarnationId);
+            ordinaryConstructionConversationIdFrom(currentNetId);
           const nextId = `${initialId}:${crypto.randomUUID()}`;
           replaceBrunchConversationId(initialId, nextId);
           setFreshConversationIds((current) => ({
             ...current,
-            [incarnationId]: nextId,
+            [currentNetId]: nextId,
           }));
           return;
         }
@@ -1038,7 +1027,6 @@ export const LocalStorageDemoApp = ({
     canonicalHostTools,
     inBandBrowserTools,
     draftInteractiveTool,
-    incarnationId,
     mutationApprovalTools,
     constructionBrowser,
     conversationTracker,
