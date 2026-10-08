@@ -20,31 +20,30 @@ import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
 import { Button } from "../../shared/ui";
-import { useMemoCompare } from "../../shared/use-memo-compare";
-import { useAuthenticatedUser } from "./auth-info-context";
+import { DsComponentsScope } from "./ds-components-scope";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/grid-view";
-import {
-  defaultPillSx,
-  FilterRibbon,
-  QueryCount,
-  SearchPill,
-  VisualizerHeader,
-  visualizerHeaderHeight,
-} from "./entities-visualizer/header";
+import { FilterRibbon } from "./entities-visualizer/header";
 import { NetworkGraphView } from "./entities-visualizer/network-graph-view";
 import { buildEntitiesFilter } from "./entities-visualizer/shared/build-filter";
 import { displaysFilesOnly } from "./entities-visualizer/shared/displays-files-only";
-import { DsComponentsScope } from "./entities-visualizer/shared/ds-components-scope";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
 import {
   type SummarySource,
   useAvailableTypes,
 } from "./entities-visualizer/shared/use-available-types";
-import { sortMenuTriggerChrome } from "./entities-visualizer/sort-menu-chrome";
 import { useEntitiesTableQuery } from "./entities-visualizer/use-entities-table-query";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
+import {
+  defaultPillSx,
+  SearchPill,
+  useInternalWebs,
+  VisualizerHeader,
+  visualizerHeaderHeight,
+} from "./filter-bar";
+import { QueryCount } from "./query-count";
 import { useSlideStack } from "./slide-stack";
+import { sortMenuTriggerChrome } from "./sort-menu-chrome";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { visualizerViewIcons, visualizerViewLabels } from "./visualizer-views";
@@ -66,7 +65,6 @@ import type {
   EntityId,
   PropertyObject,
   VersionedUrl,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Sorter } from "@hashintel/ds-components";
@@ -166,36 +164,9 @@ export const EntitiesVisualizer: FunctionComponent<{
 }> = ({ entityTypeBaseUrl, entityTypeId, hideColumns }) => {
   const theme = useTheme();
 
-  const { authenticatedUser } = useAuthenticatedUser();
-
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
-  const internalWebs = useMemoCompare(
-    () => {
-      return [
-        {
-          webId: authenticatedUser.accountId as WebId,
-          name: `@${authenticatedUser.shortname}`,
-        },
-        ...authenticatedUser.memberOf.map(({ org }) => ({
-          webId: org.webId,
-          name: `@${org.shortname}`,
-        })),
-      ];
-    },
-    [authenticatedUser],
-    (oldValue, newValue) => {
-      return (
-        oldValue.length === newValue.length &&
-        oldValue.every((oldWeb) =>
-          newValue.some(
-            (newWeb) =>
-              oldWeb.webId === newWeb.webId && oldWeb.name === newWeb.name,
-          ),
-        )
-      );
-    },
-  );
+  const internalWebs = useInternalWebs();
 
   const [filterState, _setFilterState] = useState<EntitiesFilterState>(() =>
     createDefaultFilterState(internalWebs.map(({ webId }) => webId)),
@@ -798,7 +769,7 @@ export const EntitiesVisualizer: FunctionComponent<{
       ? `${contentTop}px - ${theme.spacing(5)}`
       : `(${
           HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + visualizerHeaderHeight
-        }px + ${theme.spacing(5)} + ${theme.spacing(5)}`
+        }px + ${theme.spacing(5)} + ${theme.spacing(5)})`
   })`;
 
   const tableHeight = `min(${availableHeight}, 1000px)`;
@@ -905,7 +876,11 @@ export const EntitiesVisualizer: FunctionComponent<{
     <Box>
       <VisualizerHeader
         topLeft={
-          <QueryCount count={totalResultCount} loading={resultsLoading} />
+          <QueryCount
+            count={totalResultCount}
+            loading={resultsLoading}
+            noun={{ singular: "entity", plural: "entities" }}
+          />
         }
         topRight={
           <>

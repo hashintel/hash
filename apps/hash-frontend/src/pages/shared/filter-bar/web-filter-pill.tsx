@@ -4,10 +4,9 @@ import { useCallback, useMemo } from "react";
 
 import { MenuCheckboxItem } from "@hashintel/design-system";
 
-import { HouseRegularIcon } from "../../../../shared/icons/house-regular-icon";
+import { HouseRegularIcon } from "../../../shared/icons/house-regular-icon";
 import { FilterPill } from "./filter-pill";
 
-import type { EntitiesFilterState } from "../shared/filter-state";
 import type { WebId } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
@@ -16,12 +15,15 @@ export type InternalWeb = {
   name: string;
 };
 
+export type WebFilterState = {
+  selectedInternalWebIds: Set<WebId>;
+  includeOtherWebs: boolean;
+};
+
 type WebFilterPillProps = {
   internalWebs: InternalWeb[];
-  webState: EntitiesFilterState["web"];
-  setWebState: (
-    updater: (prev: EntitiesFilterState["web"]) => EntitiesFilterState["web"],
-  ) => void;
+  webState: WebFilterState;
+  setWebState: (updater: (prev: WebFilterState) => WebFilterState) => void;
 };
 
 const buildLabel = ({

@@ -6,6 +6,10 @@ const tolerableConsoleMessageMatches: RegExp[] = [
   /Download the Apollo DevTools for a better development experience/,
   /Download the React DevTools for a better development experience/,
   /\[Fast Refresh\]/, // Next.js dev server (for local test runs)
+  /^\[HMR\] connected$/, // Next.js dev server (for local test runs)
+  /^\[HMR\] Invalid message: \{"action":"isrManifest"/, // Next.js dev server (for local test runs)
+  /^\[Client Instrumentation Hook\] Slow execution detected/, // Next.js dev server (for local test runs)
+  /^Detected `scroll-behavior: smooth` on the `<html>` element/, // Next.js dev-only warning
   /^\[LATE_SETUP_CALL\] \{\}/, // Tailwind (to be removed)
   /^Build: commit-.*-local-dev$/, // Sentry build id
 
@@ -16,6 +20,9 @@ const tolerableConsoleMessageMatches: RegExp[] = [
 
   // You can add temporarily add more RegExps, but please track their removal
   /No validator provided for shape type bpBlock/, // canvas page warning from TLDraw
+  // Dev-only deprecation warnings via the shared Link component (shared/ui/link.tsx)
+  /^`legacyBehavior` is deprecated/,
+  /^Accessing element\.ref was removed in React 19/,
 ];
 
 /**

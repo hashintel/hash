@@ -2,7 +2,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Box, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   type DataTypeWithMetadata,
@@ -11,13 +11,14 @@ import {
   type PropertyTypeWithMetadata,
   type VersionedUrl,
 } from "@blockprotocol/type-system";
+import { SortMenu } from "@hashintel/ds-components";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
 import {
   Grid,
   gridHeaderHeightWithBorder,
   gridHorizontalScrollbarHeight,
-  type GridProps,
+  type GridSort,
 } from "../../components/grid/grid";
 import { useOrgs } from "../../components/hooks/use-orgs";
 import { useUsers } from "../../components/hooks/use-users";
@@ -26,31 +27,56 @@ import { useEntityTypesContextRequired } from "../../shared/entity-types-context
 import { isTypeArchived } from "../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
-import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
+import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
+import { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
+import { generateCsvFile as buildCsvFile } from "../../shared/table-header/generate-csv-file";
 import {
   isAiMachineActor,
   type MinimalActor,
   useActors,
 } from "../../shared/use-actors";
-import { useAuthenticatedUser } from "./auth-info-context";
 import { createRenderChipCell } from "./chip-cell";
+import { useDataTypesContext } from "./data-types-context";
+import { DsComponentsScope } from "./ds-components-scope";
+import {
+  SearchPill,
+  useInternalWebs,
+  VisualizerHeader,
+  visualizerHeaderHeight,
+  WebFilterPill,
+  type WebFilterState,
+} from "./filter-bar";
+import { QueryCount } from "./query-count";
 import { useSlideStack } from "./slide-stack";
+import { sortMenuTriggerChrome } from "./sort-menu-chrome";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { createRenderTextIconCell } from "./text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { TypeGraphVisualizer } from "./type-graph-visualizer";
+import { TypesFilterRibbon } from "./types-table/filter-ribbon";
+import {
+  createTypeFilterPredicate,
+  getTypeKind,
+  pruneTypeFiltersForKind,
+} from "./types-table/shared/type-filters";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
-import type { FilterState } from "../../shared/table-header";
+import type { GenerateCsvFileFunction } from "../../shared/table-header/export-to-csv-button";
 import type { ChipCell } from "./chip-cell";
 import type { TextIconCell } from "./text-icon-cell";
+import type {
+  TypeFilter,
+  TypesTableKind,
+  TypesTableTypeKind,
+} from "./types-table/shared/type-filters";
 import type { VisualizerView } from "./visualizer-views";
 import type {
   Item,
   SizedGridColumn,
   TextCell,
 } from "@glideapps/glide-data-grid";
+import type { Sorter } from "@hashintel/ds-components";
 import type { FunctionComponent } from "react";
 
 export type TypesTableColumnId =
@@ -67,7 +93,7 @@ type TypesTableColumn = {
 
 export type TypesTableRow = {
   rowId: string;
-  kind: "entity-type" | "property-type" | "link-type" | "data-type";
+  kind: TypesTableTypeKind;
   lastEdited: string;
   lastEditedBy?: MinimalActor;
   icon?: string;
@@ -85,14 +111,7 @@ const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
   return `${domain}/${firstPathSegment}`;
 };
 
-type TypeTableKind =
-  | "all"
-  | "entity-type"
-  | "link-type"
-  | "property-type"
-  | "data-type";
-
-const typesTablesToTitle: Record<TypeTableKind, string> = {
+const typesTablesToTitle: Record<TypesTableKind, string> = {
   all: "Types",
   "entity-type": "Entity Types",
   "property-type": "Property Types",
@@ -102,6 +121,36 @@ const typesTablesToTitle: Record<TypeTableKind, string> = {
 
 const firstColumnLeftPadding = 16;
 
+const defaultTypesTableSort: GridSort<TypesTableColumnId> = {
+  columnKey: "title",
+  direction: "asc",
+};
+
+const sortTypesTableRows = (
+  rows: TypesTableRow[],
+  sort: GridSort<TypesTableColumnId>,
+): TypesTableRow[] =>
+  rows.toSorted((a, b) => {
+    const isActorSort = (key: string): key is "lastEditedBy" =>
+      key === "lastEditedBy";
+
+    const value1: string = isActorSort(sort.columnKey)
+      ? (a[sort.columnKey]?.displayName ?? "")
+      : String(a[sort.columnKey]);
+
+    const value2: string = isActorSort(sort.columnKey)
+      ? (b[sort.columnKey]?.displayName ?? "")
+      : String(b[sort.columnKey]);
+
+    let comparison = value1.localeCompare(value2);
+
+    if (sort.direction === "desc") {
+      comparison = -comparison;
+    }
+
+    return comparison;
+  });
+
 export const TypesTable: FunctionComponent<{
   loading?: boolean;
   onlyOneWeb?: boolean;
@@ -110,23 +159,75 @@ export const TypesTable: FunctionComponent<{
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
-  kind: TypeTableKind;
+  kind: TypesTableKind;
 }> = ({ types, kind, onlyOneWeb, loading = false }) => {
   const router = useRouter();
 
-  const [view, setView] = useState<VisualizerView>("Table");
+  const [view, _setView] = useState<VisualizerView>("Table");
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
+  const [showGraphSearch, setShowGraphSearch] = useState<boolean>(false);
+
+  const setView = useCallback((newView: VisualizerView) => {
+    _setView(newView);
+    setShowSearch(false);
+    setShowGraphSearch(false);
+  }, []);
 
   const [selectedRows, setSelectedRows] = useState<TypesTableRow[]>([]);
 
-  const [filterState, setFilterState] = useState<FilterState>({
-    includeArchived: false,
-    includeGlobal: false,
-    limitToWebs: false,
-  });
+  const internalWebs = useInternalWebs();
 
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+  const [webFilter, setWebFilter] = useState<WebFilterState>(() => ({
+    selectedInternalWebIds: new Set(internalWebs.map(({ webId }) => webId)),
+    includeOtherWebs: false,
+  }));
+
+  const [typeFilters, setTypeFilters] = useState<TypeFilter[]>([]);
+
+  const { entityTypes, isSpecialEntityTypeLookup } =
+    useEntityTypesContextRequired();
+  const { dataTypes } = useDataTypesContext();
+
+  // Filters survive tab switches, but a filter the new tab's types can never
+  // match would silently hide every row — drop unavailable fields, and prune
+  // inherits-from selections to the tab's type family. The family source may
+  // not have loaded when the tab switches (the prune then can't classify the
+  // selections), so the prune re-runs once it arrives.
+  const inheritsFromFamilyLoaded =
+    kind === "entity-type" || kind === "link-type"
+      ? !!entityTypes
+      : kind === "data-type"
+        ? !!dataTypes
+        : true;
+
+  const [prunedFor, setPrunedFor] = useState(() => ({
+    kind,
+    familyLoaded: inheritsFromFamilyLoaded,
+  }));
+  if (
+    kind !== prunedFor.kind ||
+    (inheritsFromFamilyLoaded && !prunedFor.familyLoaded)
+  ) {
+    setPrunedFor({ kind, familyLoaded: inheritsFromFamilyLoaded });
+    setTypeFilters((prev) =>
+      pruneTypeFiltersForKind(prev, kind, { entityTypes, dataTypes }),
+    );
+  }
+
+  const includeArchived = typeFilters.some(
+    (filter) => filter.field === "archived",
+  );
+
+  const typeFilterPredicate = useMemo(
+    () =>
+      createTypeFilterPredicate(typeFilters, {
+        entityTypes,
+        dataTypes,
+        isSpecialEntityTypeLookup,
+      }),
+    [typeFilters, entityTypes, dataTypes, isSpecialEntityTypeLookup],
+  );
 
   const typesTableColumns = useMemo<TypesTableColumn[]>(
     () => [
@@ -154,7 +255,7 @@ export const TypesTable: FunctionComponent<{
               width: 280,
             } as const,
           ]),
-      ...(filterState.includeArchived
+      ...(includeArchived
         ? [
             {
               id: "archived",
@@ -174,7 +275,7 @@ export const TypesTable: FunctionComponent<{
         width: 200,
       },
     ],
-    [filterState.includeArchived, kind, onlyOneWeb],
+    [includeArchived, kind, onlyOneWeb],
   );
 
   const currentlyDisplayedColumnsRef = useRef<TypesTableColumn[] | null>(null);
@@ -198,22 +299,22 @@ export const TypesTable: FunctionComponent<{
     [users, orgs],
   );
 
-  const { authenticatedUser } = useAuthenticatedUser();
-
-  const internalWebIds = useMemo(() => {
-    return [
-      authenticatedUser.accountId,
-      ...authenticatedUser.memberOf.map(({ org }) => org.webId),
-    ];
-  }, [authenticatedUser]);
+  const internalWebIds = useMemo(
+    () => internalWebs.map(({ webId }) => webId),
+    [internalWebs],
+  );
 
   const filteredTypes = useMemo(() => {
     const filtered: ((
       | EntityTypeWithMetadata
       | PropertyTypeWithMetadata
       | DataTypeWithMetadata
-    ) & { isExternal: boolean; webShortname?: string; archived: boolean })[] =
-      [];
+    ) & {
+      isExternal: boolean;
+      webShortname?: string;
+      archived: boolean;
+      kind: TypesTableTypeKind;
+    })[] = [];
 
     for (const type of types ?? []) {
       const isExternal = isExternalOntologyElementMetadata(type.metadata)
@@ -230,24 +331,38 @@ export const TypesTable: FunctionComponent<{
 
       const isArchived = isTypeArchived(type);
 
+      const webAllowed = onlyOneWeb
+        ? true
+        : !isExternal && namespaceWebId !== undefined
+          ? webFilter.selectedInternalWebIds.has(namespaceWebId)
+          : webFilter.includeOtherWebs;
+
       if (
-        (filterState.includeGlobal || onlyOneWeb ? true : !isExternal) &&
-        (filterState.includeArchived ? true : !isArchived) &&
-        (filterState.limitToWebs
-          ? webShortname && filterState.limitToWebs.includes(webShortname)
-          : true)
+        webAllowed &&
+        (includeArchived ? true : !isArchived) &&
+        typeFilterPredicate(type)
       ) {
         filtered.push({
           ...type,
           isExternal,
           webShortname,
           archived: isArchived,
+          kind: getTypeKind(type, isSpecialEntityTypeLookup),
         });
       }
     }
 
     return filtered;
-  }, [types, filterState, namespaces, internalWebIds, onlyOneWeb]);
+  }, [
+    types,
+    webFilter,
+    includeArchived,
+    namespaces,
+    internalWebIds,
+    onlyOneWeb,
+    typeFilterPredicate,
+    isSpecialEntityTypeLookup,
+  ]);
 
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
     () =>
@@ -271,49 +386,44 @@ export const TypesTable: FunctionComponent<{
           icon: "icon" in type.schema ? type.schema.icon : undefined,
           lastEdited,
           lastEditedBy,
-          kind:
-            type.schema.kind === "entityType"
-              ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
-                ? "link-type"
-                : "entity-type"
-              : type.schema.kind === "propertyType"
-                ? "property-type"
-                : "data-type",
+          kind: type.kind,
           external: type.isExternal,
           webShortname: type.webShortname,
           archived: type.archived,
         } as const;
       }),
-    [actors, isSpecialEntityTypeLookup, filteredTypes],
+    [actors, filteredTypes],
   );
 
-  const sortRows = useCallback<
-    NonNullable<
-      GridProps<TypesTableRow, TypesTableColumn, TypesTableColumnId>["sortRows"]
-    >
-  >((unsortedRows, sort) => {
-    return unsortedRows.toSorted((a, b) => {
-      const isActorSort = (key: string): key is "lastEditedBy" | "createdBy" =>
-        ["lastEditedBy", "createdBy"].includes(key);
+  const [sort, setSort] = useState<GridSort<TypesTableColumnId>>(
+    defaultTypesTableSort,
+  );
 
-      const value1: string = isActorSort(sort.columnKey)
-        ? (a[sort.columnKey]?.displayName ?? "")
-        : String(a[sort.columnKey]);
+  const activeSort = useMemo(
+    () =>
+      typesTableColumns.some((column) => column.id === sort.columnKey)
+        ? sort
+        : defaultTypesTableSort,
+    [typesTableColumns, sort],
+  );
 
-      const value2: string = isActorSort(sort.columnKey)
-        ? (b[sort.columnKey]?.displayName ?? "")
-        : String(b[sort.columnKey]);
+  const sorters = useMemo<ReadonlyArray<Sorter<TypesTableColumnId>>>(
+    () =>
+      typesTableColumns.map((column) => ({
+        name: column.title,
+        sortKey: column.id,
+        ...(column.id === "lastEdited" || column.id === "archived"
+          ? { sortIcon: "generic" as const }
+          : {}),
+      })),
+    [typesTableColumns],
+  );
 
-      let comparison = value1.localeCompare(value2);
-
-      if (sort.direction === "desc") {
-        // reverse if descending
-        comparison = -comparison;
-      }
-
-      return comparison;
-    });
-  }, []);
+  const sortedRows = useMemo(
+    () =>
+      filteredRows ? sortTypesTableRows(filteredRows, activeSort) : undefined,
+    [filteredRows, activeSort],
+  );
 
   const { pushToSlideStack } = useSlideStack();
 
@@ -469,9 +579,35 @@ export const TypesTable: FunctionComponent<{
     [typesTableColumns, pushToSlideStack, router, theme],
   );
 
-  const maxTableHeight = `calc(100vh - (${
-    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
-  }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`;
+  const contentTopRef = useRef<HTMLDivElement>(null);
+  const [contentTop, setContentTop] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = contentTopRef.current;
+    if (!el) {
+      return;
+    }
+
+    const measure = () => {
+      setContentTop(el.getBoundingClientRect().top);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(document.documentElement);
+    return () => observer.disconnect();
+  }, []);
+
+  // 100vh minus the measured content top and the page container's bottom
+  // padding; until measured, an estimate from the page chrome above the table.
+  const maxTableHeight = `calc(100vh - ${
+    contentTop != null
+      ? `${contentTop}px - ${theme.spacing(5)}`
+      : `(${
+          HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + visualizerHeaderHeight
+        }px + ${theme.spacing(2)} + ${theme.spacing(5)})`
+  })`;
 
   const displayedRowCount = Math.max(filteredRows?.length ?? 1, 1);
 
@@ -487,54 +623,155 @@ export const TypesTable: FunctionComponent<{
     [pushToSlideStack],
   );
 
-  const numberOfUserWebItems = useMemo(
-    () =>
-      types?.filter(({ metadata }) =>
-        isExternalOntologyElementMetadata(metadata)
-          ? false
-          : internalWebIds.includes(metadata.webId),
-      ).length,
-    [types, internalWebIds],
+  const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
+    const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
+    const currentlyDisplayedColumns = currentlyDisplayedColumnsRef.current;
+    if (!currentlyDisplayedRows || !currentlyDisplayedColumns) {
+      return null;
+    }
+    return buildCsvFile({
+      columns: currentlyDisplayedColumns,
+      rows: currentlyDisplayedRows,
+      title: typesTablesToTitle[kind],
+    });
+  }, [kind]);
+
+  const selectedTypes = types?.filter((type) =>
+    selectedRows.some(({ typeId }) => type.schema.$id === typeId),
   );
 
-  const numberOfExternalItems =
-    types && typeof numberOfUserWebItems !== "undefined"
-      ? types.length - numberOfUserWebItems
-      : undefined;
+  // Stable identity: a fresh object would re-render the memoized graph on
+  // every table render.
+  const graphSearchPanel = useMemo(
+    () => ({
+      open: showGraphSearch,
+      onClose: () => setShowGraphSearch(false),
+    }),
+    [showGraphSearch],
+  );
 
   return (
     <Box>
-      <TableHeader
-        endAdornment={
-          <TableHeaderToggle
-            value={view}
-            setValue={setView}
-            options={(
-              ["Table", "Graph"] as const satisfies VisualizerView[]
-            ).map((optionValue) => ({
-              icon: visualizerViewIcons[optionValue],
-              label: `${optionValue} view`,
-              value: optionValue,
-            }))}
+      <VisualizerHeader
+        topLeft={
+          <QueryCount
+            count={filteredRows?.length}
+            loading={!types || loading}
+            noun={{ singular: "type", plural: "types" }}
           />
         }
-        itemLabelPlural="types"
-        title={typesTablesToTitle[kind]}
-        currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
-        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-        filterState={filterState}
-        loading={loading}
-        numberOfExternalItems={numberOfExternalItems}
-        numberOfUserWebItems={onlyOneWeb ? types?.length : numberOfUserWebItems}
-        onlyOneWeb={onlyOneWeb}
-        setFilterState={setFilterState}
-        selectedItems={types?.filter((type) =>
-          selectedRows.some(({ typeId }) => type.schema.$id === typeId),
-        )}
-        onBulkActionCompleted={() => setSelectedRows([])}
+        topRight={
+          <>
+            {view === "Table" ? (
+              <ExportToCsvButton
+                generateCsvFile={generateCsvFile}
+                sx={{ px: 1.5, borderRadius: "4px" }}
+              />
+            ) : null}
+            <TableHeaderToggle
+              value={view}
+              setValue={setView}
+              options={(
+                ["Table", "Graph"] as const satisfies VisualizerView[]
+              ).map((optionValue) => ({
+                icon: visualizerViewIcons[optionValue],
+                label: `${optionValue} view`,
+                value: optionValue,
+              }))}
+            />
+          </>
+        }
+        bottomLeft={
+          selectedTypes && selectedTypes.length > 0 ? (
+            <BulkActionsDropdown
+              selectedItems={selectedTypes}
+              onBulkActionCompleted={() => setSelectedRows([])}
+            />
+          ) : (
+            <TypesFilterRibbon
+              leadingControls={
+                <>
+                  <SearchPill
+                    title={
+                      view === "Table"
+                        ? "Search for text in visible rows"
+                        : "Search for a type in the graph"
+                    }
+                    onClick={() => {
+                      if (view === "Table") {
+                        setShowSearch(!showSearch);
+                      } else {
+                        setShowGraphSearch(!showGraphSearch);
+                      }
+                    }}
+                  />
+                  {onlyOneWeb ? null : (
+                    <WebFilterPill
+                      internalWebs={internalWebs}
+                      webState={webFilter}
+                      setWebState={(updater) =>
+                        setWebFilter((prev) => updater(prev))
+                      }
+                    />
+                  )}
+                </>
+              }
+              filters={typeFilters}
+              setFilters={(updater) => setTypeFilters((prev) => updater(prev))}
+              editors={actors}
+              kind={kind}
+            />
+          )
+        }
+        bottomRight={
+          view === "Table" ? (
+            <DsComponentsScope>
+              <SortMenu<TypesTableColumnId>
+                size="xs"
+                className={sortMenuTriggerChrome}
+                position="bottom-end"
+                items={sorters}
+                value={{
+                  sortKey: activeSort.columnKey,
+                  direction:
+                    activeSort.direction === "asc" ? "ASCENDING" : "DESCENDING",
+                }}
+                onChange={(sortKey, direction) =>
+                  setSort({
+                    columnKey: sortKey,
+                    direction: direction === "ASCENDING" ? "asc" : "desc",
+                  })
+                }
+              />
+            </DsComponentsScope>
+          ) : undefined
+        }
       />
+      <Box ref={contentTopRef} />
       {view === "Table" ? (
-        <Box sx={tableContentSx}>
+        <Box
+          sx={[
+            tableContentSx,
+            {
+              "@keyframes types-table-search-in": {
+                from: { transform: "translateX(-400px)" },
+                to: { transform: "translateX(0)" },
+              },
+              "@keyframes types-table-search-out": {
+                from: { transform: "translateX(0)" },
+                to: { transform: "translateX(-400px)" },
+              },
+              "& .gdg-seveqep": {
+                right: "auto",
+                left: 20,
+                animationName: "types-table-search-in",
+              },
+              "& .gdg-seveqep.out": {
+                animationName: "types-table-search-out",
+              },
+            },
+          ]}
+        >
           <Grid
             columns={typesTableColumns}
             createGetCellContent={createGetCellContent}
@@ -559,9 +796,11 @@ export const TypesTable: FunctionComponent<{
             onSelectedRowsChange={(updatedSelectedRows) =>
               setSelectedRows(updatedSelectedRows)
             }
-            rows={filteredRows}
+            rows={sortedRows}
             selectedRows={selectedRows}
+            setSort={setSort}
             showSearch={showSearch}
+            sort={activeSort}
             sortableColumns={[
               "title",
               "kind",
@@ -570,13 +809,13 @@ export const TypesTable: FunctionComponent<{
               "lastEdited",
               "lastEditedBy",
             ]}
-            sortRows={sortRows}
           />
         </Box>
       ) : (
         <Box height={maxTableHeight} sx={tableContentSx}>
           <TypeGraphVisualizer
             onTypeClick={onTypeClick}
+            searchPanel={graphSearchPanel}
             types={filteredTypes}
           />
         </Box>

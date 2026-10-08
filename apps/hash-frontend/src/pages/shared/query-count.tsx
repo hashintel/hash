@@ -8,11 +8,13 @@ import type { FunctionComponent } from "react";
 type QueryCountProps = {
   count: number | null | undefined;
   loading: boolean;
+  noun: { singular: string; plural: string };
 };
 
 export const QueryCount: FunctionComponent<QueryCountProps> = ({
   count,
   loading,
+  noun,
 }) => {
   const theme = useTheme();
 
@@ -33,7 +35,7 @@ export const QueryCount: FunctionComponent<QueryCountProps> = ({
           <span>Loading</span>
         </>
       ) : count != null ? (
-        `${formatNumber(count)} ${count === 1 ? "entity" : "entities"}`
+        `${formatNumber(count)} ${count === 1 ? noun.singular : noun.plural}`
       ) : (
         ""
       )}
