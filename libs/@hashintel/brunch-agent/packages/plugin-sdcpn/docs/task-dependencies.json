@@ -2,7 +2,8 @@
   "package": "@hashintel/brunch-agent-plugin-sdcpn",
   "dependencies": [
     "@hashintel/brunch-agent",
-    "@hashintel/petrinaut-core"
+    "@hashintel/petrinaut-core",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {

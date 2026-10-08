@@ -1,7 +1,8 @@
 {
   "package": "@hashintel/petrinaut-cli",
   "dependencies": [
-    "@hashintel/petrinaut-core"
+    "@hashintel/petrinaut-core",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {

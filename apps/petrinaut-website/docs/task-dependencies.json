@@ -7,7 +7,8 @@
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
     "@hashintel/petrinaut",
-    "@hashintel/petrinaut-core"
+    "@hashintel/petrinaut-core",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {

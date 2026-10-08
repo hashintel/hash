@@ -1,0 +1,10 @@
+{
+  "$schema": "https://www.schemastore.org/tsconfig",
+  // Local overrides that are applicable across all TypeScript configs in the repository.
+  "compilerOptions": {
+    "target": "es2024",
+    "outDir": "${configDir}/dist",
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true
+  }
+}

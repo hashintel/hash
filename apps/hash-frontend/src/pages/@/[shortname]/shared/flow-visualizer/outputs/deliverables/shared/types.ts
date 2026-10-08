@@ -1,4 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 export type DeliverableData =
   | {

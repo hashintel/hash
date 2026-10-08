@@ -2,6 +2,7 @@
  * @typedef {import('@yarnpkg/types').Yarn.Constraints.Context} Context
  * @typedef {import('@yarnpkg/types').Yarn.Constraints.Dependency} Dependency
  */
+const { execFileSync } = require("node:child_process");
 
 /**
  * `@yarnpkg/types` provides types only: `defineConfig` is the identity function
@@ -38,9 +39,6 @@ const ignoredDependencies = [
   // Petrinaut uses Storybook 10
   "storybook",
   "@storybook/react-vite",
-  // Petrinaut uses multiple packages which are many versions behind in other workspaces
-  // To be un-ignored once H-5639 completed
-  "vitest",
   "@dnd-kit/sortable",
   "@babel/core",
 ];
@@ -62,6 +60,13 @@ const bannedInstallScripts = [
   "prepare",
 ];
 
+const catalog = JSON.parse(
+  execFileSync("yarn", ["config", "get", "catalog", "--json"], {
+    cwd: __dirname,
+    encoding: "utf8",
+  }),
+);
+
 /**
  * Whether to ignore a dependency for consistency checks (version alignment).
  * Skips peerDependencies entirely (they may legitimately differ).
@@ -71,6 +76,7 @@ const bannedInstallScripts = [
 const shouldIgnoreDependencyForConsistency = (dependency) =>
   ignoredDependencies.includes(dependency.ident) ||
   ignoredWorkspaces.includes(dependency.workspace.ident) ||
+  (dependency.ident in catalog && !dependency.range.startsWith("catalog:")) ||
   dependency.type === "peerDependencies";
 
 /**
@@ -156,9 +162,15 @@ function enforceProtocols({ Yarn }) {
           ? "workspace:^"
           : "workspace:*";
 
-      if (dependency.range !== expectedRange) {
-        dependency.update(expectedRange);
-      }
+      dependency.update(expectedRange);
+    }
+
+    if (
+      dependency.type !== "peerDependencies" &&
+      dependency.ident in catalog &&
+      !dependency.range.startsWith("catalog:") // we skip updating specific catalog entries
+    ) {
+      dependency.update("catalog:");
     }
 
     if (dependency.range.startsWith("file:")) {

@@ -1,8 +1,9 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
   "compilerOptions": {
     "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "ESNext"],
+    "lib": ["dom", "ESNext"],
+    "module": "ESNext",
     "noEmit": true
   },
   "include": ["assets.d.ts", "theme-override.d.ts", "./src/"]

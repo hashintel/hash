@@ -1,6 +1,8 @@
 {
   "package": "@hashintel/refractive",
-  "dependencies": [],
+  "dependencies": [
+    "@local/tsconfig"
+  ],
   "tasks": {
     "build": {
       "dependsOn": []

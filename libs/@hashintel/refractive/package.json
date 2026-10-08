@@ -33,7 +33,9 @@
     "test:unit": "vitest"
   },
   "devDependencies": {
+    "@local/tsconfig": "workspace:*",
     "@storybook/react-vite": "10.4.6",
+    "@tsconfig/bases": "catalog:",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
@@ -47,8 +49,8 @@
     "rolldown": "1.2.6",
     "rolldown-plugin-dts": "0.28.3",
     "storybook": "10.4.6",
-    "vite": "8.2.2",
-    "vitest": "4.1.11"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "react": "^19.0.0",

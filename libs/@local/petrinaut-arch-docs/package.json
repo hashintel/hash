@@ -33,11 +33,12 @@
     "@local/petrinaut-optimizer-core": "workspace:*",
     "@local/petrinaut-python": "workspace:*",
     "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "@types/js-yaml": "^4",
-    "@types/node": "22.18.13",
+    "@types/node": "catalog:",
     "oxlint": "1.63.0",
-    "tsx": "4.20.6",
-    "typescript": "5.9.3",
-    "vitest": "4.1.11"
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

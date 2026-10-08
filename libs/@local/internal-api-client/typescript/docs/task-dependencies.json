@@ -1,6 +1,8 @@
 {
   "package": "@local/internal-api-client",
-  "dependencies": [],
+  "dependencies": [
+    "@local/tsconfig"
+  ],
   "tasks": {
     "build": {
       "dependsOn": []

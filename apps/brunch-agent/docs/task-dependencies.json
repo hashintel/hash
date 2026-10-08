@@ -5,7 +5,8 @@
     "@hashintel/brunch-agent-plugin-sdcpn",
     "@hashintel/brunch-agent-transport-aisdk",
     "@hashintel/petrinaut-core",
-    "@local/hash-backend-utils"
+    "@local/hash-backend-utils",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {

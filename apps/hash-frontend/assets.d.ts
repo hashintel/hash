@@ -10,5 +10,8 @@ declare module "*.wasm" {
   export default content;
 }
 
+declare module "*.css" {}
+declare module "*.scss" {}
+
 declare module "*.woff";
 declare module "*.ttf";

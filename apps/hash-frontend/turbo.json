@@ -2,8 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "codegen": {
-      // Outputs of GraphQL generation and of `panda cssgen`
-      "outputs": ["./src/**/*.gen.*"],
+      "outputs": ["./src/**/*.gen.*", ".next/types/**", "next-env.d.ts"],
       // graphql-codegen loads its config from the isomorphic utils' dist, and the Panda
       // config loads both presets from their packages' dist.
       "dependsOn": [
