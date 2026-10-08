@@ -23,7 +23,7 @@ import { Button } from "../../shared/ui";
 import { DsComponentsScope } from "./ds-components-scope";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/grid-view";
-import { FilterRibbon, QueryCount } from "./entities-visualizer/header";
+import { FilterRibbon } from "./entities-visualizer/header";
 import { NetworkGraphView } from "./entities-visualizer/network-graph-view";
 import { buildEntitiesFilter } from "./entities-visualizer/shared/build-filter";
 import { displaysFilesOnly } from "./entities-visualizer/shared/displays-files-only";
@@ -41,6 +41,7 @@ import {
   VisualizerHeader,
   visualizerHeaderHeight,
 } from "./filter-bar";
+import { QueryCount } from "./query-count";
 import { useSlideStack } from "./slide-stack";
 import { sortMenuTriggerChrome } from "./sort-menu-chrome";
 import { TableHeaderToggle } from "./table-header-toggle";
@@ -875,7 +876,11 @@ export const EntitiesVisualizer: FunctionComponent<{
     <Box>
       <VisualizerHeader
         topLeft={
-          <QueryCount count={totalResultCount} loading={resultsLoading} />
+          <QueryCount
+            count={totalResultCount}
+            loading={resultsLoading}
+            noun={{ singular: "entity", plural: "entities" }}
+          />
         }
         topRight={
           <>

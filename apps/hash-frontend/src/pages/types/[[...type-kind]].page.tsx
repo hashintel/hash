@@ -266,16 +266,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             Types
           </Typography>
           <Stack direction="row" justifyContent="space-between">
-            <TypesPageTabs
-              currentTab={currentTab}
-              numberOfTypesByTab={{
-                all: allTypes?.length,
-                "entity-type": latestNonLinkEntityTypes?.length,
-                "link-type": latestLinkEntityTypes?.length,
-                "property-type": latestPropertyTypes?.length,
-                "data-type": latestDataTypes?.length,
-              }}
-            />
+            <TypesPageTabs currentTab={currentTab} />
             {createButton ? (
               <CreateButton
                 href={createButton.href}

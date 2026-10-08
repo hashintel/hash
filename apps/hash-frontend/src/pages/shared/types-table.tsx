@@ -11,7 +11,6 @@ import {
   type PropertyTypeWithMetadata,
   type VersionedUrl,
 } from "@blockprotocol/type-system";
-import { LoadingSpinner } from "@hashintel/design-system";
 import { SortMenu } from "@hashintel/ds-components";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
@@ -47,6 +46,7 @@ import {
   WebFilterPill,
   type WebFilterState,
 } from "./filter-bar";
+import { QueryCount } from "./query-count";
 import { useSlideStack } from "./slide-stack";
 import { sortMenuTriggerChrome } from "./sort-menu-chrome";
 import { TableHeaderToggle } from "./table-header-toggle";
@@ -653,6 +653,13 @@ export const TypesTable: FunctionComponent<{
   return (
     <Box>
       <VisualizerHeader
+        topLeft={
+          <QueryCount
+            count={filteredRows?.length}
+            loading={!types || loading}
+            noun={{ singular: "type", plural: "types" }}
+          />
+        }
         topRight={
           <>
             {view === "Table" ? (
@@ -681,54 +688,39 @@ export const TypesTable: FunctionComponent<{
               onBulkActionCompleted={() => setSelectedRows([])}
             />
           ) : (
-            <>
-              <TypesFilterRibbon
-                leadingControls={
-                  <>
-                    <SearchPill
-                      title={
-                        view === "Table"
-                          ? "Search for text in visible rows"
-                          : "Search for a type in the graph"
+            <TypesFilterRibbon
+              leadingControls={
+                <>
+                  <SearchPill
+                    title={
+                      view === "Table"
+                        ? "Search for text in visible rows"
+                        : "Search for a type in the graph"
+                    }
+                    onClick={() => {
+                      if (view === "Table") {
+                        setShowSearch(!showSearch);
+                      } else {
+                        setShowGraphSearch(!showGraphSearch);
                       }
-                      onClick={() => {
-                        if (view === "Table") {
-                          setShowSearch(!showSearch);
-                        } else {
-                          setShowGraphSearch(!showGraphSearch);
-                        }
-                      }}
+                    }}
+                  />
+                  {onlyOneWeb ? null : (
+                    <WebFilterPill
+                      internalWebs={internalWebs}
+                      webState={webFilter}
+                      setWebState={(updater) =>
+                        setWebFilter((prev) => updater(prev))
+                      }
                     />
-                    {onlyOneWeb ? null : (
-                      <WebFilterPill
-                        internalWebs={internalWebs}
-                        webState={webFilter}
-                        setWebState={(updater) =>
-                          setWebFilter((prev) => updater(prev))
-                        }
-                      />
-                    )}
-                  </>
-                }
-                filters={typeFilters}
-                setFilters={(updater) =>
-                  setTypeFilters((prev) => updater(prev))
-                }
-                editors={actors}
-                kind={kind}
-              />
-              {loading && (
-                <Box
-                  sx={{
-                    display: "inline-flex",
-                    verticalAlign: "middle",
-                    my: 0.5,
-                  }}
-                >
-                  <LoadingSpinner size={16} color={theme.palette.blue[70]} />
-                </Box>
-              )}
-            </>
+                  )}
+                </>
+              }
+              filters={typeFilters}
+              setFilters={(updater) => setTypeFilters((prev) => updater(prev))}
+              editors={actors}
+              kind={kind}
+            />
           )
         }
         bottomRight={
