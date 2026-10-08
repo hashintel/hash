@@ -96,7 +96,9 @@ faux.setResponses([
   (context) => {
     const activation = toolResult(context, "activate");
     const path = activation.match(
-      /\/\.flue\/packaged-skills\/[^\s"<>]+\/references\/pn-construction\.md/u,
+      ledger2
+        ? /\/\.flue\/packaged-skills\/[^\s"<>]+\/references\/mapping\.md/u
+        : /\/\.flue\/packaged-skills\/[^\s"<>]+\/references\/pn-construction\.md/u,
     )?.[0];
     assert(
       path,
