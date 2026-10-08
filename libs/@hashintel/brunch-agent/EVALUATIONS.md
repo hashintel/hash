@@ -12,6 +12,7 @@ The maintained cases are:
 - `inventory-purchasing`
 - `pharma-cold-chain`
 - `semiconductor-fab-operations`
+- `service-reservoir-overflow`
 - `support-desk-staffing`
 - `truck-fleet-maintenance`
 - `vestera-scheduling`
