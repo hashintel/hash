@@ -67,7 +67,7 @@ Ask only to the precision the purpose needs: whether the typical case, the sprea
 - Several refinements in one place while other parts are still fog: go wide again.
 - Two contextual values merged into one: restore the conditions.
 - Answers keep needing exceptions, workarounds or new parts to fit the purpose or decomposition you hold: suspect the frame rather than the detail; name what does not fit and offer the reframing.
-- Patience running out: name the smallest gap that matters and offer the choice between spending the next turn there or stopping with it visible. Impatience changes how you ask, not what is known.
+- Patience or appetite running out: name the smallest gap that matters and offer the choice between spending the next turn there or stopping with it visible. Impatience changes how you ask, not what is known.
 
 ## Closing
 

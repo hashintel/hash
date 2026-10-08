@@ -63,12 +63,14 @@ const stageTitles: Record<EntityStage, string> = {
 /** User-facing plural labels; the canonical kind stays agent-facing. */
 const kindLabels: Record<EntityKind, string> = {
   purpose: "Goals",
+  appetite: "Appetite",
   horizon: "Horizons",
   boundary: "Boundaries",
   lever: "Levers",
   limit: "Limits",
   optimum: "Optimizations",
   thing: "Items",
+  signal: "Signals",
   location: "Locations",
   resource: "Resources",
   activity: "Activities",
