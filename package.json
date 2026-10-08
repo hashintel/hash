@@ -75,7 +75,7 @@
     "test:unit": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:unit --env-mode=loose --"
   },
   "devDependencies": {
-    "@changesets/cli": "patch:@changesets/cli@npm%3A2.30.0#~/.yarn/patches/@changesets-cli-npm-2.30.0-83a4e8887c.patch",
+    "@changesets/cli": "patch:@changesets/cli@npm%3A3.0.3#~/.yarn/patches/@changesets-cli-npm-3.0.3-37da92ed6c.patch",
     "@local/claude-hooks": "workspace:*",
     "@yarnpkg/types": "^4.0.1",
     "lefthook": "2.0.0",
@@ -85,7 +85,6 @@
   "resolutions": {
     "@anthropic-ai/bedrock-sdk/@anthropic-ai/sdk": "0.74.0",
     "@blockprotocol/core": "0.1.5",
-    "@changesets/assemble-release-plan@npm:^6.0.9": "patch:@changesets/assemble-release-plan@npm%3A6.0.9#~/.yarn/patches/@changesets-assemble-release-plan-npm-6.0.9-e01af97ef4.patch",
     "@earendil-works/pi-agent-core@npm:^0.83.0": "patch:@earendil-works/pi-agent-core@npm%3A0.83.0#~/.yarn/patches/@earendil-works-pi-agent-core-npm-0.83.0-6cd8fe314f.patch",
     "@earendil-works/pi-ai@npm:0.83.0": "patch:@earendil-works/pi-ai@npm%3A0.83.0#~/.yarn/patches/@earendil-works-pi-ai-npm-0.83.0-c607801251.patch",
     "@earendil-works/pi-ai@npm:^0.83.0": "patch:@earendil-works/pi-ai@npm%3A0.83.0#~/.yarn/patches/@earendil-works-pi-ai-npm-0.83.0-c607801251.patch",

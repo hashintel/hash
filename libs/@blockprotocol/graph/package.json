@@ -64,7 +64,7 @@
     "lint:tsc": "tsc --noEmit",
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
     "prepack": "node ../../../scripts/check-package-payload.mjs",
-    "prepublishOnly": "turbo run build && tsx scripts/prepublish.ts"
+    "prepublish": "turbo run build && tsx scripts/prepublish.ts"
   },
   "dependencies": {
     "@blockprotocol/core": "0.1.5",

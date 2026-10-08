@@ -59,7 +59,7 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "prepack": "node ../../../scripts/check-package-payload.mjs",
-    "prepublishOnly": "turbo run build",
+    "prepublish": "turbo run build",
     "test:unit": "vitest"
   },
   "dependencies": {
