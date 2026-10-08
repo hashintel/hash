@@ -1,4 +1,4 @@
-import type { MetadataProjection } from "./shared/metadata-projection";
+import type { MetadataProjection } from "./metadata-projection";
 import type { FlueUiProjectionOptions } from "./ui-stream";
 import type {
   FlueConversationMessage,

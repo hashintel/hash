@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { snapshotToUiMessages } from "./transcript";
 
-import type { MetadataProjectionInput } from "./shared/metadata-projection";
+import type { MetadataProjectionInput } from "./metadata-projection";
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
 const snapshotWithPendingClientTool: FlueConversationSnapshot = {

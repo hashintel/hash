@@ -4,7 +4,7 @@ import {
 } from "./chat-transport";
 import { snapshotToUiMessages, type FlueHistory } from "./transcript";
 
-import type { MetadataProjection } from "./shared/metadata-projection";
+import type { MetadataProjection } from "./metadata-projection";
 import type { FlueUiProjectionOptions } from "./ui-stream";
 import type { ChatTransport, FlexibleSchema, UIMessage } from "ai";
 
