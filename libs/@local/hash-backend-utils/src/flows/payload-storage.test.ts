@@ -9,10 +9,13 @@ import {
 import { resolvePayloadValue, storePayload } from "./payload-storage.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
+import type { EntityId } from "@blockprotocol/type-system";
 import type {
   ArrayStoredPayloadRef,
+  PersistedEntityMetadata,
   ProposedEntity,
   SingularStoredPayloadRef,
+  StoredItemRef,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
@@ -193,22 +196,31 @@ describe("stored arrays", () => {
   it("resolves item references inside an inline array", async () => {
     const { storageProvider } = createMemoryStorageProvider();
 
-    const ref = await storeEntities(storageProvider, "persist", [
-      entity(0),
-      entity(1),
-    ]);
+    const persisted: PersistedEntityMetadata[] = [
+      { entityId: "web~entity-0" as EntityId, operation: "create" },
+      { entityId: "web~entity-1" as EntityId, operation: "create" },
+    ];
 
+    const ref = await storePayload({
+      storageProvider,
+      workflowId,
+      runId: `run-${Math.random()}`,
+      stepId: "persist",
+      outputName: "persistedEntities",
+      kind: "PersistedEntityMetadata",
+      value: persisted,
+    });
+
+    /* A for-each branch puts its item into an array for an input that takes one. */
     const [, secondItem] = getArrayPayloadItems(ref);
 
-    /*
-     * A for-each branch puts its item into an array for an input that takes one. No stored kind can hold this
-     * shape in its types yet, so the value is cast.
-     */
     await expect(
-      resolvePayloadValue({ storageProvider, workflowId }, "ProposedEntity", [
-        secondItem,
-      ] as unknown as ArrayStoredPayloadRef<"ProposedEntity">),
-    ).resolves.toEqual([entity(1)]);
+      resolvePayloadValue(
+        { storageProvider, workflowId },
+        "PersistedEntityMetadata",
+        [secondItem as StoredItemRef<"PersistedEntityMetadata">],
+      ),
+    ).resolves.toEqual([persisted[1]]);
   });
 
   it("fails to resolve an item that isn't in its array", async () => {

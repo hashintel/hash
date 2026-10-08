@@ -53,7 +53,7 @@ export const googleSheetStep = {
     },
     {
       inputName:
-        "dataToWrite" satisfies InputNameForFlowAction<"writeGoogleSheet">,
+        "persistedEntities" satisfies InputNameForFlowAction<"writeGoogleSheet">,
       kind: "step-output",
       sourceStepId: "2",
       sourceStepOutputName:
