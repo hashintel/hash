@@ -342,7 +342,7 @@ describe("applyPetrinautAiMutation", () => {
         },
         instance,
       }),
-    ).toThrow(toPetrinautId("missing-place"));
+    ).toThrow("`missing-place`");
     expect(instance.definition.get().transitions[0]?.inputArcs).toEqual([]);
 
     instance.dispose();

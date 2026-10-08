@@ -1216,4 +1216,17 @@ describe("Petrinaut core actions", () => {
       },
     ]);
   });
+
+  test("names an id as written in errors about it", () => {
+    const instance = createInstance();
+
+    expect(() =>
+      instance.mutations.addArc({
+        transitionId: "serve",
+        arcDirection: "input",
+        placeId: "queu",
+        weight: 1,
+      }),
+    ).toThrow("Arc references place ID `queu` which does not exist");
+  });
 });

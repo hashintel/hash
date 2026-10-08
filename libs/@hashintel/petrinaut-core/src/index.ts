@@ -403,6 +403,7 @@ export {
   canonicalizePetrinautIds,
   generatePetrinautId,
   isPetrinautId,
+  petrinautIdSchema,
   toPetrinautId,
 } from "./petrinaut-id";
 export {
