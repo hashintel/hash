@@ -9,8 +9,9 @@ import {
 } from "ai";
 import { z } from "zod";
 
-import { petrinautAiPrompt, petrinautAiTools } from "@hashintel/petrinaut-core";
+import { petrinautAiTools } from "@hashintel/petrinaut-core";
 
+import { petrinautAiPrompt } from "../src/main/app/plugins/petrinaut-ai/server/petrinaut-ai-prompt.js";
 import { stockAssistantModel } from "../src/shared/stock-assistant-model.js";
 
 declare const process: {
