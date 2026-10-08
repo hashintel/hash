@@ -2,6 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    dir: "src",
     coverage: {
       enabled: process.env.TEST_COVERAGE === "true",
       provider: "istanbul",
