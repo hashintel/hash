@@ -5,30 +5,19 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  PersistedEntitiesMetadata,
-  PersistedEntityMetadata,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 
 export const mapActionInputEntitiesToEntities = async (params: {
   actorId: ActorEntityUuid;
   graphApiClient: GraphApi;
-  inputEntities:
-    | SerializedEntity[]
-    | PersistedEntityMetadata[]
-    | PersistedEntitiesMetadata;
+  inputEntities: SerializedEntity[] | PersistedEntityMetadata[];
 }): Promise<HashEntity[]> => {
   const { actorId, graphApiClient, inputEntities } = params;
 
   const entityIdsToFetch: EntityId[] = [];
   const directEntities: HashEntity[] = [];
 
-  const inputEntitiesArray =
-    "persistedEntities" in inputEntities
-      ? inputEntities.persistedEntities
-      : inputEntities;
-
-  for (const inputEntity of inputEntitiesArray) {
+  for (const inputEntity of inputEntities) {
     if ("operation" in inputEntity) {
       entityIdsToFetch.push(inputEntity.entityId);
     } else {

@@ -374,9 +374,17 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntitiesMetadata",
+        payloadKind: "PersistedEntityMetadata",
         name: "persistedEntities",
-        array: false,
+        description: "The entities that were created or updated",
+        array: true,
+        required: true,
+      },
+      {
+        payloadKind: "FailedEntityProposal",
+        name: "failedEntityProposals",
+        description: "The proposed entities that could not be persisted",
+        array: true,
         required: true,
       },
     ],
@@ -447,10 +455,10 @@ const aiFlowActionDefinitionsAsConst = {
        * @todo make this do something / rethink it as needed
        */
       {
-        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
         name: "existingEntities",
         required: false,
-        array: false,
+        array: true,
       },
     ],
     outputs: [
@@ -536,10 +544,10 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
         name: "entities",
         required: false,
-        array: false,
+        array: true,
       },
     ],
     outputs: [
@@ -779,16 +787,20 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: [
-          "FormattedText",
-          "PersistedEntitiesMetadata",
-          "EntityId",
-        ],
+        oneOfPayloadKinds: ["FormattedText", "EntityId"],
         description:
-          "The data to write to the Google Sheet, as one of: CSV-formatted text; entities; or the id of a query to retrieve the data via.",
+          "The data to write to the Google Sheet, as either CSV-formatted text or the id of a query to retrieve the data via. Provide either this or `persistedEntities`.",
         name: "dataToWrite",
-        required: true,
+        required: false,
         array: false,
+      },
+      {
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
+        description:
+          "Entities to write to the Google Sheet. Provide either this or `dataToWrite`.",
+        name: "persistedEntities",
+        required: false,
+        array: true,
       },
       {
         oneOfPayloadKinds: ["ActorType"],
@@ -866,12 +878,12 @@ const integrationFlowActionDefinitionsAsConst = {
     kind: "action",
     inputs: [
       {
-        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
         name: "persistedEntities",
         description:
           "The persisted flight entities to check for live positions",
         required: true,
-        array: false,
+        array: true,
       },
     ],
     outputs: [
@@ -935,11 +947,17 @@ const integrationFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntitiesMetadata",
+        payloadKind: "PersistedEntityMetadata",
         name: "persistedEntities",
-        description:
-          "The result of persisting the entities, including any failures",
-        array: false,
+        description: "The entities that were created or updated",
+        array: true,
+        required: true,
+      },
+      {
+        payloadKind: "FailedEntityProposal",
+        name: "failedEntityProposals",
+        description: "The proposed entities that could not be persisted",
+        array: true,
         required: true,
       },
     ],

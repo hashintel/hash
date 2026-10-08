@@ -339,7 +339,7 @@ export const researchEntitiesFlowDefinition: FlowDefinition<AiFlowActionDefiniti
           },
           {
             inputName:
-              "dataToWrite" satisfies InputNameForFlowAction<"writeGoogleSheet">,
+              "persistedEntities" satisfies InputNameForFlowAction<"writeGoogleSheet">,
             kind: "step-output",
             sourceStepId: "2",
             sourceStepOutputName:
@@ -570,8 +570,8 @@ export const ftseInvestorsFlowDefinition: FlowDefinition<AiFlowActionDefinitionI
         stepOutputName:
           "persistedEntities" satisfies OutputNameForFlowAction<"persistEntities">,
         name: "persistedEntities" as const,
-        payloadKind: "PersistedEntitiesMetadata",
-        array: false,
+        payloadKind: "PersistedEntityMetadata",
+        array: true,
         required: true,
       },
       {
