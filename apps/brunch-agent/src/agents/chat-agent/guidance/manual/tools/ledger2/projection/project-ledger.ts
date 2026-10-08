@@ -62,27 +62,27 @@ const stageTitles: Record<EntityStage, string> = {
 
 /** User-facing plural labels; the canonical kind stays agent-facing. */
 const kindLabels: Record<EntityKind, string> = {
-  purpose: "Goals",
-  appetite: "Appetite",
-  horizon: "Horizons",
+  purpose: "Purpose",
+  appetite: "Session time",
+  horizon: "Time spans",
   boundary: "Boundaries",
   lever: "Levers",
   limit: "Limits",
-  optimum: "Optimizations",
+  optimum: "Best settings",
   thing: "Items",
   signal: "Signals",
   location: "Locations",
   resource: "Resources",
   activity: "Activities",
-  actor: "Actors",
+  actor: "People and devices",
   rule: "Policies",
   event: "Events",
-  flow: "Sequences",
-  metric: "Metrics",
-  direction: "Maximizations / Minimizations",
+  flow: "Routes",
+  metric: "Measures",
+  direction: "Aims",
   target: "Targets",
   threshold: "Thresholds",
-  externality: "Externalities",
+  externality: "External effects",
 };
 
 const kindsInOrder = Object.keys(entityKindStages) as EntityKind[];

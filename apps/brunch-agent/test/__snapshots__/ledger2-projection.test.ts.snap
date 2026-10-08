@@ -5,13 +5,13 @@ exports[`the worked example renders the approved markdown structure > agent skin
 
 ## Framing
 
-### Goals \`purpose\`
+### Purpose \`purpose\`
 
 - **Decide peak staffing** — stated · confirmed \`e1\`
 
 ## Scope
 
-### Horizons \`horizon\`
+### Time spans \`horizon\`
 
 - **Weekday morning peak** — stated · confirmed \`e7\`
   - The measure is average waiting time from joining the queue to answer, over the peak window, reported weekly. — stated · confirmed \`c1\`
@@ -67,12 +67,12 @@ exports[`the worked example renders the approved markdown structure > agent skin
 
 ## Outputs
 
-### Metrics \`metric\`
+### Measures \`metric\`
 
 - **Average waiting time** — stated · confirmed \`e2\`
   - The measure is average waiting time from joining the queue to answer, over the peak window, reported weekly. — stated · confirmed \`c1\`
 
-### Maximizations / Minimizations \`direction\`
+### Aims \`direction\`
 
 - **Keep peak waiting time low** — stated · confirmed \`e3\`
 
@@ -110,13 +110,13 @@ exports[`the worked example renders the approved markdown structure > user skin 
 
 ## Framing
 
-### Goals
+### Purpose
 
 - **Decide peak staffing** — stated · confirmed
 
 ## Scope
 
-### Horizons
+### Time spans
 
 - **Weekday morning peak** — stated · confirmed
   - The measure is average waiting time from joining the queue to answer, over the peak window, reported weekly. — stated · confirmed
@@ -172,12 +172,12 @@ exports[`the worked example renders the approved markdown structure > user skin 
 
 ## Outputs
 
-### Metrics
+### Measures
 
 - **Average waiting time** — stated · confirmed
   - The measure is average waiting time from joining the queue to answer, over the peak window, reported weekly. — stated · confirmed
 
-### Maximizations / Minimizations
+### Aims
 
 - **Keep peak waiting time low** — stated · confirmed
 

@@ -19,24 +19,24 @@ test("the worked example renders the approved markdown structure", () => {
 });
 
 test("kind headings carry user labels; addresses stay out of the user skin", () => {
-  expect(user).toMatch(/^### Goals$/mu);
-  expect(user).toMatch(/^### Maximizations \/ Minimizations$/mu);
+  expect(user).toMatch(/^### Purpose$/mu);
+  expect(user).toMatch(/^### Aims$/mu);
   expect(user).not.toContain("`purpose`");
   expect(user).not.toContain("`e1`");
-  expect(agent).toContain("### Goals `purpose`");
+  expect(agent).toContain("### Purpose `purpose`");
   expect(agent).toContain("`c5`");
 });
 
 test("empty kinds and clusters render no heading", () => {
   expect(user).not.toContain("### Targets");
-  expect(user).not.toContain("### Actors");
+  expect(user).not.toContain("### People and devices");
 });
 
 test("superseded claims collapse under their successor, struck through", () => {
   expect(user).toContain(
     "~~About 45 calls an hour arrive during the peak.~~ \u2014 superseded",
   );
-  const horizons = user.slice(user.indexOf("### Horizons"));
+  const horizons = user.slice(user.indexOf("### Time spans"));
   expect(
     horizons.indexOf("The phone-system export shows about 50 calls"),
   ).toBeLessThan(horizons.indexOf("~~About 45 calls"));
@@ -55,9 +55,11 @@ test("open and conflicted claims become question cards; open ones take free text
 });
 
 test("out-of-scope entities leave their kind section for the excluded list", () => {
+  const measuresStart = user.indexOf("### Measures");
+  expect(measuresStart).toBeGreaterThan(-1);
   const metrics = user.slice(
-    user.indexOf("### Metrics"),
-    user.indexOf("### Levers"),
+    measuresStart,
+    user.indexOf("\n#", measuresStart + 1),
   );
   expect(metrics).not.toContain("Cost of an agent-hour");
   const excluded = user.slice(user.indexOf("## Excluded from the model"));
