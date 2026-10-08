@@ -405,8 +405,9 @@ export const LocalStorageDemoApp = ({
   });
   const { conversationTracker, flueClientPromise } = processAgentSession;
   // Failures the host contains — a stopped batch operation, an unrecordable
-  // transition, a lost history observation, a failed server tool — resolve
-  // normally for the panel and the model; this is where they become visible.
+  // transition, a lost history observation, a failed server tool, a dropped
+  // update stream — resolve normally for the panel and the model; this is
+  // where they become visible.
   const { captureException } = use(ErrorTrackerContext);
   const reportBrunchFailure = useCallback(
     (
@@ -560,6 +561,12 @@ export const LocalStorageDemoApp = ({
               toolCallId: event.toolCallId,
               toolName: event.toolName ?? "unknown",
             }),
+          onReattach: (event) =>
+            reportBrunchFailure("stream-reattach", event.error, {
+              submissionId: event.submissionId,
+              attempt: event.attempt,
+            }),
+          onDisconnect: flueHistory.refresh,
         },
       );
     }
