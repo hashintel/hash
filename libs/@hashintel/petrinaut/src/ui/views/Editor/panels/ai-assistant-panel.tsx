@@ -503,7 +503,6 @@ interface AiAssistantPanelProps {
   frameSceneAfterRender?: () => Promise<FrameSceneResult>;
   initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
-  offerStartPosture?: boolean;
   onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
 }
@@ -515,7 +514,6 @@ const ConversationAiAssistantPanel = ({
   frameSceneAfterRender,
   initialInteractionMode,
   initialMessage,
-  offerStartPosture = false,
   onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
@@ -2299,11 +2297,7 @@ const ConversationAiAssistantPanel = ({
     petriNetDefinition.places.length === 0 &&
     petriNetDefinition.transitions.length === 0;
 
-  const promptChips = selectPromptChips({
-    hasConversation,
-    isNetEmpty,
-    offerStartPosture,
-  });
+  const promptChips = selectPromptChips({ hasConversation, isNetEmpty });
 
   const composerControlContext: PetrinautAiComposerControlContext = {
     conversationId,

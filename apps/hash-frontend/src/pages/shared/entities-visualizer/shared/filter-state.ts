@@ -1,11 +1,9 @@
+import type { WebFilterState } from "../../filter-bar";
 import type { PropertyFilter } from "./property-filters/property-filter";
 import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 
 export type EntitiesFilterState = {
-  web: {
-    selectedInternalWebIds: Set<WebId>;
-    includeOtherWebs: boolean;
-  };
+  web: WebFilterState;
   type: {
     selectedTypeIds: Set<VersionedUrl> | null;
   };

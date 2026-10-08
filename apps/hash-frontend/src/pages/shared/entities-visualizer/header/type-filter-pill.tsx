@@ -6,8 +6,8 @@ import { MenuCheckboxItem, TextField } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 import { AsteriskLightIcon } from "../../../../shared/icons/asterisk-light-icon";
+import { FilterPill } from "../../filter-bar";
 import { resolveTypeColor, typeColorRanks } from "../shared/type-colors";
-import { FilterPill } from "./filter-pill";
 import { triggerSwatchSize, TypeColorSelector } from "./type-color-selector";
 
 import type { EntitiesFilterState } from "../shared/filter-state";
@@ -78,10 +78,10 @@ const buildLabel = ({
   if (selectedIds.length === 1) {
     const [only] = selectedIds;
     const match = availableTypes.find((type) => type.entityTypeId === only);
-    return match?.title ?? "1 type";
+    return match?.title ?? `1 of ${availableIds.length}`;
   }
 
-  return `one of ${selectedIds.length}`;
+  return `${selectedIds.length} of ${availableIds.length}`;
 };
 
 type TypeFilterMenuItemProps = {
@@ -397,7 +397,7 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
   };
 
   return (
-    <Box>
+    <Box sx={{ display: "contents" }}>
       <FilterPill
         icon={AsteriskLightIcon}
         prefix="Type is"

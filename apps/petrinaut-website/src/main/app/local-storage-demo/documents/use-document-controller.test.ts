@@ -10,7 +10,6 @@ import type { DocumentRecord, DocumentRepository } from "./document-repository";
 
 const record: DocumentRecord = {
   documentId: "local-document",
-  incarnationId: "local-incarnation",
   revisionId: "local-revision",
   title: "Local",
   definition: {

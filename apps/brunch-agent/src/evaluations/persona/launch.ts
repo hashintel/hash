@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop -- Local services start in order; readiness is polled until ready or cancelled. */
 import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
@@ -21,7 +21,7 @@ import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
 import { brunchEnv } from "@hashintel/brunch-agent";
-import { parseSDCPNFile } from "@hashintel/petrinaut-core";
+import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { DEFAULT_CHAT_MODEL, DEFAULT_CHAT_THINKING } from "../../chat-model.ts";
 import { agentOwnershipHeaders } from "../../conversation/identity.ts";
@@ -321,8 +321,7 @@ const launchPersona = async ({
           const { title, ...sdcpn } = parsed.sdcpn;
           const sourceSha256 = createHash("sha256").update(bytes).digest("hex");
           return {
-            id: `persona-source-${sourceSha256.slice(0, 12)}`,
-            incarnationId: randomUUID(),
+            id: toPetrinautId(`persona-source-${sourceSha256.slice(0, 12)}`),
             lastUpdated: new Date().toISOString(),
             sdcpn,
             sourceSha256,
@@ -496,7 +495,6 @@ const launchPersona = async ({
       const serializedInitialNet = JSON.stringify({
         [initialNet.id]: {
           id: initialNet.id,
-          incarnationId: initialNet.incarnationId,
           lastUpdated: initialNet.lastUpdated,
           sdcpn: initialNet.sdcpn,
           title: initialNet.title,

@@ -11,7 +11,6 @@ const bound = {
   binding: {
     conversationId: "conversation",
     documentId: "document",
-    incarnationId: "incarnation",
   },
 };
 
@@ -19,6 +18,12 @@ describe("Petrinaut catalogue", () => {
   test("admits no initial data or initial data carrying a document binding", () => {
     expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
     expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
+    const withIncarnation = {
+      binding: { ...bound.binding, incarnationId: "document" },
+    };
+    expect(v.parse(sdcpnInitialDataSchema, withIncarnation)).toEqual(
+      withIncarnation,
+    );
     expect(v.safeParse(sdcpnInitialDataSchema, {}).success).toBe(false);
   });
   test("mounts the complete async canonical catalogue for a bound conversation", () => {

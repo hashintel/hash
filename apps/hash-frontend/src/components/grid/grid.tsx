@@ -4,10 +4,11 @@ import {
   DataEditor,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { Box, useTheme } from "@mui/material";
+import { Box, Fade, Stack, Typography, useTheme } from "@mui/material";
 import { uniqueId } from "lodash";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { LoadingSpinner } from "@hashintel/design-system";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
 import { getCellHorizontalPadding, gridHeaderBaseFont } from "./utils";
@@ -34,6 +35,7 @@ import type {
   GridColumn as LibraryGridColumn,
   GridSelection,
   HeaderClickedEventArgs,
+  Highlight,
   Item,
   SizedGridColumn,
   TextCell,
@@ -92,6 +94,7 @@ export type GridProps<
    * Provide to set an initial sort if sorting state is NOT managed by the parent component.
    */
   initialSort?: GridSort<Sortable>;
+  noResultsMessage?: { title: string; description?: string };
   onConversionTargetSelected?: ({
     columnKey,
     dataTypeId,
@@ -132,6 +135,29 @@ const emptyRect: ReturnType<VirtualElement["getBoundingClientRect"]> = {
   toJSON: () => "",
 };
 
+export const searchResultHighlightColor = "#fff9e3";
+
+/** Mirrors the cell text glide's built-in search tests, per cell kind. */
+const getCellSearchableText = (cell: GridCell): string | undefined => {
+  switch (cell.kind) {
+    case GridCellKind.Text:
+    case GridCellKind.Number:
+      return cell.displayData;
+    case GridCellKind.Uri:
+    case GridCellKind.Markdown:
+      return cell.data;
+    case GridCellKind.Boolean:
+      return typeof cell.data === "boolean" ? cell.data.toString() : undefined;
+    case GridCellKind.Image:
+    case GridCellKind.Bubble:
+      return cell.data.join("\n");
+    case GridCellKind.Custom:
+      return cell.copyData;
+    default:
+      return undefined;
+  }
+};
+
 const gridHeaderHeight = 42;
 
 export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
@@ -157,13 +183,17 @@ export const Grid = <
   externallyManagedFiltering,
   firstColumnLeftPadding,
   gridRef,
+  highlightRegions,
   initialSort,
+  noResultsMessage,
   onConversionTargetSelected,
+  onSearchClose,
   onSelectedRowsChange,
   onVisibleRegionChanged,
   resizable = true,
   rows,
   selectedRows,
+  showSearch,
   sortableColumns,
   sort: externalSort,
   setSort: externalSetSort,
@@ -340,6 +370,76 @@ export const Grid = <
     }
   }, [externalSort, filteredRows, localSort, sortRows]);
 
+  const [searchValue, setSearchValue] = useState("");
+
+  /**
+   * Search supplied to glide in place of its built-in cell-by-cell search.
+   * instead replacing it with a row-by-row search.
+   */
+  const { searchResults, searchHighlightRegions } = useMemo<{
+    searchResults: Item[];
+    searchHighlightRegions: Highlight[];
+  }>(() => {
+    if (!showSearch || !searchValue || !sortedAndFilteredRows?.length) {
+      return { searchResults: [], searchHighlightRegions: [] };
+    }
+
+    const getCellContent = createGetCellContent(sortedAndFilteredRows);
+    const lowercaseSearchValue = searchValue.toLowerCase();
+    const columnOffset = enableCheckboxSelection ? 1 : 0;
+
+    const matchingRows: Item[] = [];
+    const furtherMatchingCells: Highlight[] = [];
+    for (
+      let rowIndex = 0;
+      rowIndex < sortedAndFilteredRows.length;
+      rowIndex++
+    ) {
+      let rowAlreadyMatched = false;
+
+      for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+        const searchableText = getCellSearchableText(
+          getCellContent([columnIndex, rowIndex]),
+        );
+
+        if (searchableText?.toLowerCase().includes(lowercaseSearchValue)) {
+          if (rowAlreadyMatched) {
+            furtherMatchingCells.push({
+              color: searchResultHighlightColor,
+              range: { x: columnIndex, y: rowIndex, width: 1, height: 1 },
+              style: "no-outline",
+            });
+          } else {
+            matchingRows.push([columnIndex + columnOffset, rowIndex]);
+            rowAlreadyMatched = true;
+          }
+        }
+      }
+    }
+
+    return {
+      searchResults: matchingRows,
+      searchHighlightRegions: furtherMatchingCells,
+    };
+  }, [
+    columns.length,
+    createGetCellContent,
+    enableCheckboxSelection,
+    searchValue,
+    showSearch,
+    sortedAndFilteredRows,
+  ]);
+
+  const combinedHighlightRegions = useMemo<Highlight[] | undefined>(() => {
+    const combined = [...(highlightRegions ?? []), ...searchHighlightRegions];
+    return combined.length > 0 ? combined : undefined;
+  }, [highlightRegions, searchHighlightRegions]);
+
+  const handleSearchClose = useCallback(() => {
+    setSearchValue("");
+    onSearchClose?.();
+  }, [onSearchClose]);
+
   const gridSelection = useMemo(() => {
     if (sortedAndFilteredRows && selectedRows) {
       let mergedRowSelection = CompactSelection.empty();
@@ -349,7 +449,9 @@ export const Grid = <
           (row) => row.rowId === selectedRow.rowId,
         );
 
-        mergedRowSelection = mergedRowSelection.add(selectedRowIndex);
+        if (selectedRowIndex !== -1) {
+          mergedRowSelection = mergedRowSelection.add(selectedRowIndex);
+        }
       }
 
       return {
@@ -374,6 +476,7 @@ export const Grid = <
       textBubble: palette.gray[70],
       bgBubble: palette.gray[20],
       accentLight: "transparent", // cell highlight color
+      bgSearchResult: searchResultHighlightColor,
       bgHeaderHovered: palette.white,
       cellHorizontalPadding: getCellHorizontalPadding(),
       baseFontStyle: "500 14px Inter",
@@ -440,22 +543,15 @@ export const Grid = <
     });
   }, [columns, columnSizes]);
 
-  const emptyStateText = dataLoading
-    ? "Loading..."
-    : "No results with the applied filters.";
-
+  // Blank cells — the empty-state message is shown in a DOM overlay instead
   const getSkeletonCellContent = useCallback(
-    ([colIndex]: Item): TextCell => ({
+    (): TextCell => ({
       kind: GridCellKind.Text,
-      displayData: colIndex === 0 ? emptyStateText : "",
-      data: colIndex === 0 ? emptyStateText : "",
+      displayData: "",
+      data: "",
       allowOverlay: false,
-      themeOverride: {
-        cellHorizontalPadding: 15,
-      },
-      style: "faded",
     }),
-    [emptyStateText],
+    [],
   );
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -670,6 +766,7 @@ export const Grid = <
         gridSelection={gridSelection}
         headerHeight={gridHeaderHeight}
         headerIcons={customGridIcons}
+        highlightRegions={combinedHighlightRegions}
         maxColumnWidth={1000}
         onCellEdited={
           sortedAndFilteredRows
@@ -693,6 +790,8 @@ export const Grid = <
         onItemHovered={({ location: [_colIndex, rowIndex], kind }) => {
           setHoveredRow(kind === "cell" ? rowIndex : undefined);
         }}
+        onSearchClose={handleSearchClose}
+        onSearchValueChange={setSearchValue}
         onVisibleRegionChanged={handleVisibleRegionChanged}
         rangeSelect="cell"
         ref={gridRef}
@@ -703,6 +802,9 @@ export const Grid = <
             ? sortedAndFilteredRows.length
             : 1
         }
+        searchResults={searchResults}
+        searchValue={searchValue}
+        showSearch={showSearch}
         smoothScrollX
         smoothScrollY
         theme={gridTheme}
@@ -735,6 +837,76 @@ export const Grid = <
          */
         width="100%"
       />
+      {(sortedAndFilteredRows?.length ?? 0) === 0 && (
+        /**
+         * Painted over the grid body so the vertical column borders and the
+         * skeleton row are hidden while the canvas-drawn header stays as-is.
+         */
+        <Fade in timeout={150}>
+          <Stack
+            sx={{
+              alignItems: "center",
+              backgroundColor: palette.white,
+              bottom: 0,
+              left: 0,
+              pointerEvents: "none",
+              position: "absolute",
+              right: 0,
+              top: gridHeaderHeightWithBorder,
+              zIndex: 1,
+            }}
+          >
+            <Box sx={{ flexGrow: 2 }} />
+            {dataLoading ? (
+              /* Delayed so sub-300ms fetches never flash a spinner */
+              <Fade in style={{ transitionDelay: "300ms" }} timeout={150}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: "center" }}
+                >
+                  <LoadingSpinner color={palette.gray[60]} size={16} />
+                  <Typography
+                    sx={{
+                      color: palette.gray[60],
+                      fontSize: 14,
+                      fontWeight: 500,
+                    }}
+                  >
+                    Loading...
+                  </Typography>
+                </Stack>
+              </Fade>
+            ) : (
+              <Stack sx={{ alignItems: "center" }}>
+                <Typography
+                  sx={{
+                    color: palette.gray[80],
+                    fontSize: 16,
+                    fontWeight: 600,
+                    lineHeight: "24px",
+                  }}
+                >
+                  {noResultsMessage?.title ?? "No results found"}
+                </Typography>
+                {noResultsMessage?.description && (
+                  <Typography
+                    sx={{
+                      color: palette.gray[60],
+                      fontSize: 14,
+                      fontWeight: 500,
+                      mt: 0.75,
+                    }}
+                  >
+                    {noResultsMessage.description}
+                  </Typography>
+                )}
+              </Stack>
+            )}
+            <Box sx={{ flexGrow: 3 }} />
+          </Stack>
+        </Fade>
+      )}
     </Box>
   );
 };

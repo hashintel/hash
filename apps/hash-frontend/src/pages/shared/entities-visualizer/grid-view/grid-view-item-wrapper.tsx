@@ -2,15 +2,16 @@ import { Grid, useMediaQuery, useTheme } from "@mui/material";
 import { useMemo } from "react";
 
 import type { GridProps } from "@mui/material";
-import type { FunctionComponent, PropsWithChildren } from "react";
+import type { FunctionComponent, PropsWithChildren, Ref } from "react";
 
 export const GridViewItemWrapper: FunctionComponent<
   {
     numberOfItems: number;
     index: number;
+    rootRef?: Ref<HTMLDivElement>;
     sx?: GridProps["sx"];
   } & PropsWithChildren
-> = ({ numberOfItems, index, children, sx }) => {
+> = ({ numberOfItems, index, children, rootRef, sx }) => {
   const theme = useTheme();
 
   const isLg = useMediaQuery(theme.breakpoints.up("lg"));
@@ -29,6 +30,7 @@ export const GridViewItemWrapper: FunctionComponent<
   return (
     <Grid
       item
+      ref={rootRef}
       xs={6}
       md={4}
       lg={3}

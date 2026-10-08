@@ -202,7 +202,6 @@ try {
         binding: {
           conversationId: identity.conversationId,
           documentId: "a4-no-browser-crash-diagnostic",
-          incarnationId: basename(directory),
         },
       },
       message: {

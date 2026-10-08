@@ -238,9 +238,10 @@ export const useEntitiesTableQuery = (params: {
       resolvedPinnedEntityTypeIds ??
       (selectedTypeIds ? [...selectedTypeIds] : null);
 
-    const propertyFilters = filterState.propertyFilters
-      .map(buildEndpointPropertyFilter)
-      .filter((propertyFilter) => propertyFilter !== null);
+    // Inert filters contribute nothing; `between` contributes two conditions.
+    const propertyFilters = filterState.propertyFilters.flatMap(
+      buildEndpointPropertyFilter,
+    );
 
     return {
       conversions,

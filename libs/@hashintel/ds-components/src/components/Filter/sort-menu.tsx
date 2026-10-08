@@ -30,6 +30,7 @@ import {
   triggerIcon,
 } from "./sort-menu.recipe";
 
+import type { Position } from "../Tooltip/tooltip";
 import type { DistributedOmit } from "type-fest";
 
 export const SortMenu = <SortKey extends string = string>({
@@ -39,8 +40,9 @@ export const SortMenu = <SortKey extends string = string>({
   saveSortId,
   searchable = false,
   align = "left",
+  position,
   renderTrigger = "default",
-  variant = "subtle",
+  variant = "ghost",
   size = "sm",
   className,
   iconName,
@@ -57,6 +59,8 @@ export const SortMenu = <SortKey extends string = string>({
   searchable?: boolean;
   /** Which side of the trigger label the sort icon sits on. Defaults to left. */
   align?: "left" | "right";
+  /** Dropdown placement relative to the trigger. Defaults to bottom-start. */
+  position?: Position;
   /**
    * "default" labels the trigger with the active sorter's name; "icon"
    * collapses it to an icon-only button. A function renders a fully custom trigger
@@ -72,12 +76,6 @@ export const SortMenu = <SortKey extends string = string>({
   ButtonElementProps,
   "children" | "pressed" | "onClick" | "type"
 >) => {
-  // Uncommitted directions set with the row toggles or the arrow keys: they
-  // adjust what selecting a row would apply, without selecting it.
-  const [draftDirections, setDraftDirections] = useState<
-    Partial<Record<SortKey, SortDirection>>
-  >({});
-
   const [search, setSearch] = useState("");
   const searchTerms = search.toLowerCase().split(/\s+/).filter(Boolean);
   const visibleSorters =
@@ -129,21 +127,12 @@ export const SortMenu = <SortKey extends string = string>({
   });
 
   const shownDirection = (sorter: Sorter<SortKey>): SortDirection =>
-    draftDirections[sorter.sortKey] ??
-    (value && value.sortKey === sorter.sortKey
+    value && value.sortKey === sorter.sortKey
       ? value.direction
-      : (directionsOf(sorter)[0] ?? "ASCENDING"));
+      : (directionsOf(sorter)[0] ?? "ASCENDING");
 
   const flipDirection = (sorter: Sorter<SortKey>) => {
-    const next = flipped(shownDirection(sorter));
-    if (value?.sortKey === sorter.sortKey) {
-      commit(sorter.sortKey, next);
-      return;
-    }
-    setDraftDirections((previous) => ({
-      ...previous,
-      [sorter.sortKey]: next,
-    }));
+    commit(sorter.sortKey, flipped(shownDirection(sorter)));
   };
 
   const selectSorter = (sorter: Sorter<SortKey>) => {
@@ -159,7 +148,7 @@ export const SortMenu = <SortKey extends string = string>({
     commit(sorter.sortKey, direction);
   };
 
-  // Left/right arrows flip the highlighted row's displayed direction
+  // Left/right arrows flip and apply the highlighted row's direction.
   // Keys typed into the search header report a null highlighted id, so
   // caret movement in the input is never intercepted.
   const handleContentKeyDown = (
@@ -186,7 +175,7 @@ export const SortMenu = <SortKey extends string = string>({
     const directions = directionsOf(sorter);
     const flippable = directions.length > 1;
     const direction = shownDirection(sorter);
-    // The toggle's label names the direction its click would display.
+    // The toggle's label names the direction its click would apply.
     const outcome = flipped(direction);
 
     return {
@@ -201,7 +190,8 @@ export const SortMenu = <SortKey extends string = string>({
           className={directionSuffix()}
           onPointerDown={(event) => {
             // Keep focus on the menu content and hide the press from the
-            // menu item so selecting (and closing) never triggers.
+            // menu item so the row's own select (which closes the menu)
+            // never triggers.
             event.preventDefault();
             event.stopPropagation();
           }}
@@ -340,6 +330,7 @@ export const SortMenu = <SortKey extends string = string>({
     <Menu
       trigger={trigger}
       items={menuItems}
+      position={position}
       className={menuContent()}
       header={
         searchable ? (
@@ -353,7 +344,6 @@ export const SortMenu = <SortKey extends string = string>({
       swapHeaderFooterOnFlip
       onOpen={(open) => {
         if (!open) {
-          setDraftDirections({});
           setSearch("");
         }
       }}

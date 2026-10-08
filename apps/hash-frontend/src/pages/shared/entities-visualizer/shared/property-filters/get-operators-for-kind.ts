@@ -7,107 +7,107 @@ export type OperatorDescriptor = {
   operator: PropertyFilterOperator;
   /** Human-readable label shown in the operator dropdown. */
   label: string;
-  /**
-   * The connector shown in the pill. For value-requiring operators this sits
-   * between the property title and the value (e.g. `Age >`{value}); for
-   * value-less operators it is the whole condition (e.g. `is true`, `is empty`).
-   */
-  pillConnector: string;
+  description?: string;
   /** Whether the operator needs a value input (false for boolean / existence). */
   requiresValue: boolean;
-};
-
-const isEmptyOperator: OperatorDescriptor = {
-  operator: "isEmpty",
-  label: "is empty",
-  pillConnector: "is empty",
-  requiresValue: false,
+  /** The operator takes two value inputs (`between`'s inclusive bounds). */
+  range?: true;
+  /** The operator takes a multi-select of values (`isNoneOf`). */
+  multi?: true;
 };
 
 const hasAnyValueOperator: OperatorDescriptor = {
   operator: "hasAnyValue",
   label: "has any value",
-  pillConnector: "has any value",
+  requiresValue: false,
+};
+
+const hasNoValueOperator: OperatorDescriptor = {
+  operator: "isEmpty",
+  label: "has no value",
   requiresValue: false,
 };
 
 /**
  * Existence operators are available for every kind, and always come last.
+ * "has any value / has no value" rather than "is empty / is not empty": the
+ * clauses are existence checks on the property (absent vs present at all).
  */
 const existenceOperators: OperatorDescriptor[] = [
-  isEmptyOperator,
   hasAnyValueOperator,
+  hasNoValueOperator,
 ];
 
 const numberOperators: OperatorDescriptor[] = [
   {
-    operator: "equals",
-    label: "equals",
-    pillConnector: "=",
-    requiresValue: true,
-  },
-  {
-    operator: "notEquals",
-    label: "not equals",
-    pillConnector: "≠",
-    requiresValue: true,
-  },
-  {
     operator: "greaterThan",
-    label: "greater than",
-    pillConnector: ">",
+    label: ">",
+    description: "greater than",
     requiresValue: true,
   },
   {
     operator: "greaterThanOrEqual",
-    label: "greater than or equal",
-    pillConnector: "≥",
+    label: "≥",
+    description: "greater than or equal",
     requiresValue: true,
   },
   {
     operator: "lessThan",
-    label: "less than",
-    pillConnector: "<",
+    label: "<",
+    description: "less than",
     requiresValue: true,
   },
   {
     operator: "lessThanOrEqual",
-    label: "less than or equal",
-    pillConnector: "≤",
+    label: "≤",
+    description: "less than or equal",
     requiresValue: true,
+  },
+  {
+    operator: "equals",
+    label: "=",
+    description: "equal",
+    requiresValue: true,
+  },
+  {
+    operator: "notEquals",
+    label: "≠",
+    description: "not equal",
+    requiresValue: true,
+  },
+  {
+    operator: "between",
+    label: "between",
+    requiresValue: true,
+    range: true,
   },
   ...existenceOperators,
 ];
 
 const stringOperators: OperatorDescriptor[] = [
   {
-    operator: "equals",
-    label: "equals",
-    pillConnector: "equals",
+    operator: "contains",
+    label: "contains",
     requiresValue: true,
   },
   {
-    operator: "contains",
-    label: "contains",
-    pillConnector: "contains",
+    operator: "equals",
+    label: "is",
     requiresValue: true,
   },
   {
     operator: "notEquals",
-    label: "not equals",
-    pillConnector: "does not equal",
+    label: "is not",
     requiresValue: true,
   },
   {
     operator: "startsWith",
     label: "starts with",
-    pillConnector: "starts with",
     requiresValue: true,
   },
   {
     operator: "endsWith",
     label: "ends with",
-    pillConnector: "ends with",
     requiresValue: true,
   },
   ...existenceOperators,
@@ -117,28 +117,71 @@ const booleanOperators: OperatorDescriptor[] = [
   {
     operator: "isTrue",
     label: "is true",
-    pillConnector: "is true",
     requiresValue: false,
   },
   {
     operator: "isFalse",
     label: "is false",
-    pillConnector: "is false",
     requiresValue: false,
   },
   ...existenceOperators,
 ];
 
+/**
+ * Enum-kind properties pick their values from the data type's constants, so
+ * their value inputs are selects rather than free text.
+ */
+const enumOperators: OperatorDescriptor[] = [
+  {
+    operator: "equals",
+    label: "is",
+    requiresValue: true,
+  },
+  {
+    operator: "isNoneOf",
+    label: "is not",
+    requiresValue: true,
+    multi: true,
+  },
+  ...existenceOperators,
+];
+
+/**
+ * Lists of plain text support `contains` — a substring match anywhere within
+ * any element (verified against the entities-table endpoint) — plus the
+ * existence operators. Equality is deliberately absent: the server compares
+ * the whole list value, so it never matches a single element.
+ */
+const textListOperators: OperatorDescriptor[] = [
+  {
+    operator: "contains",
+    label: "contains",
+    requiresValue: true,
+  },
+  ...existenceOperators,
+];
+
+/**
+ * Shapes we can only existence-check (nested objects, lists of non-text
+ * values, multi-data-type properties): value comparisons on these are
+ * misleading server-side — equality compares the whole JSONB value, and text
+ * search on objects also matches JSON keys.
+ */
+const opaqueOperators: OperatorDescriptor[] = [...existenceOperators];
+
 const operatorsByKind: Record<FilterValueKind, OperatorDescriptor[]> = {
   number: numberOperators,
   string: stringOperators,
   boolean: booleanOperators,
+  enum: enumOperators,
+  textList: textListOperators,
+  opaque: opaqueOperators,
 };
 
 /**
  * Returns the operator descriptors for a value kind, ordered so that the first
- * entry is the sensible default (`equals` for numbers and text, `is true` for
- * booleans).
+ * entry is the sensible default (`contains` for text, `>` for numbers,
+ * `is true` for booleans).
  */
 export const getOperatorsForKind = (
   kind: FilterValueKind,
@@ -156,10 +199,3 @@ export const getDefaultOperatorForKind = (
 
   return operator;
 };
-
-/** Look up a single operator descriptor for a kind, if it exists. */
-export const getOperatorDescriptor = (
-  kind: FilterValueKind,
-  operator: PropertyFilterOperator,
-): OperatorDescriptor | undefined =>
-  operatorsByKind[kind].find((descriptor) => descriptor.operator === operator);
