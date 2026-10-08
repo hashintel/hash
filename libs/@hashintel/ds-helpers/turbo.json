@@ -28,7 +28,7 @@
         "../ds-components/src/**"
       ],
       // `styled-system/**` is the only publishable artifact this package needs
-      // to regenerate before `npm pack`/`npm publish`.
+      // to regenerate before `yarn pack`/`yarn npm publish`.
       "outputs": ["styled-system/**"]
     }
   }
