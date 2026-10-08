@@ -38,6 +38,7 @@ The upstream and `AbstractChat` suites label each case as a guarantee (behaviour
 | Reopened messages have no `step-start` parts, because Flue history does not keep step boundaries.                                                                                | Accepted gap  |
 | A live reasoning part carries the stream's own optional `id`; a reopened one does not.                                                                                           | Accepted gap  |
 | With the live channel, a tool part can appear before text the model wrote earlier in the same step, and the reducer cannot reorder it; history keeps the model's order.          | Open decision |
+| A live tool part ends as not executed only when Flue's stream ends its turn without it; the live channel ending, or reporting the turn over, never decides it.                   | Decision      |
 | A durable Flue abort ends the stream with an `abort` chunk, preceded by the projected metadata for the aborted outcome; the AI SDK does not report it as `isAbort`.              | Decision      |
 | Flue's SDK retries a dropped update stream, so the transport never reports a disconnect.                                                                                         | Observed      |
 | The assistant message takes the id of Flue's response message, so live and reopened messages share it.                                                                           | Decision      |
