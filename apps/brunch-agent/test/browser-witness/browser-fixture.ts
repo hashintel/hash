@@ -74,7 +74,6 @@ export const toolCall = (
 type BrowserBinding = {
   readonly conversationId: string;
   readonly documentId: string;
-  readonly incarnationId: string;
 };
 
 type BrowserDelivery = {

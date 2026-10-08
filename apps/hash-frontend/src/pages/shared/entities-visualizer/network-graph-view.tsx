@@ -492,6 +492,8 @@ export const NetworkGraphView = ({
   typeColorOverrides,
   filter,
   onOpenEntity,
+  searchOpen,
+  onSearchClose,
 }: {
   /** Types shown in the filter dropdown; position drives the default palette. */
   availableEntityTypes: AvailableType[];
@@ -505,6 +507,8 @@ export const NetworkGraphView = ({
   filter?: string;
   /** Opens the entity drawer for an entity — the popover's "Go to entity". */
   onOpenEntity?: (entityId: EntityId) => void;
+  searchOpen: boolean;
+  onSearchClose: () => void;
 }) => {
   const theme = useTheme();
   const { triggerSnackbar } = useSnackbar();
@@ -1613,8 +1617,8 @@ export const NetworkGraphView = ({
     ],
   );
 
-  // "Go to entity" opens the drawer for the selected node's entity (or the edge's
-  // link entity), via the consumer-supplied `onOpenEntity`.
+  // "Go to entity" / "Go to link" opens the drawer for the selected node's
+  // entity (or the edge's link entity), via the consumer-supplied `onOpenEntity`.
   const handleGoTo = useCallback(() => {
     if (selection) {
       onOpenEntity?.(selection.entityId);
@@ -1697,6 +1701,8 @@ export const NetworkGraphView = ({
               />
             ) : null}
             <NetworkGraphSearch
+              open={searchOpen}
+              onClose={onSearchClose}
               elevated={searchOnTop}
               filter={filter}
               onActivate={() => setSearchOnTop(true)}
@@ -1714,8 +1720,7 @@ export const NetworkGraphView = ({
                   display: "flex",
                   alignItems: "center",
                   gap: 0.75,
-                  // Match the collapsed search button's height (top-left), growing
-                  // taller when the truncation note is shown beneath the label.
+                  // Grows taller when the truncation note is shown beneath the label.
                   minHeight: 30,
                   maxWidth: 320,
                   px: 1.25,

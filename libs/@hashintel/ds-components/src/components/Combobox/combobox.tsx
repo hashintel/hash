@@ -15,6 +15,7 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { OverflowRow } from "../../util/OverflowRow/overflow-row";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
   type Item,
@@ -1175,7 +1176,7 @@ export const Combobox = <TValue extends string>({
   const dropdown = (
     <ArkCombobox.RootProvider value={combobox} lazyMount unmountOnExit asChild>
       <Portal container={portalContainerRef}>
-        <ArkCombobox.Positioner>
+        <ArkCombobox.Positioner className={parkedPopperPositioner}>
           <SelectableList
             as="Combobox"
             className={comboboxDropdownRecipe({ variant })}
