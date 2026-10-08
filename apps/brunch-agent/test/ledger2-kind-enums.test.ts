@@ -27,7 +27,7 @@ import {
 import { vReflection } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/construction/reflections.ts";
 import { vClaim } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/elicitation/claims.ts";
 import {
-  entityKindSides,
+  entityKindStages,
   vEntity,
   vEntityKind,
 } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/elicitation/entities.ts";
@@ -550,10 +550,10 @@ const literalsOf = (schema: DescribedEnums) =>
     description: v.getDescription(option),
   }));
 
-test("each entity kind's description opens with its side", () => {
+test("each entity kind's description opens with its stage", () => {
   for (const option of vEntityKind.options)
     expect(v.getDescription(option)?.toLowerCase()).toMatch(
-      new RegExp(`^${entityKindSides[option.literal]}: `),
+      new RegExp(`^${entityKindStages[option.literal]}: `),
     );
 });
 
