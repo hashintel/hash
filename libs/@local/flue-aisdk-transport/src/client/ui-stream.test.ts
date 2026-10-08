@@ -380,110 +380,113 @@ test("does not regress admitted calls on duplicate, out-of-order, or terminal li
   expect(written).toEqual(before);
 });
 
-test.each(["turn", "disconnect"] as const)(
-  "terminates an abandoned live proposal on %s",
-  (terminal) => {
-    const written = recordChunks();
-    const projector = createFlueUiStream({
-      submissionId: "submission-1",
-      clientToolNames: new Set(),
-      write: (chunk) => written.push(chunk),
-    });
-    projector.accept({
-      type: "message-started",
-      conversationId: "conversation-1",
-      messageId: "message-1",
-      submissionId: "submission-1",
-      turnId: "turn-1",
-      position: position(0),
-    });
-    projector.acceptLive(
-      liveEvent(0, {
-        kind: "tool-input-start",
-        toolCallId: "abandoned-call",
-        toolName: "lookup",
-      }),
-    );
-    if (terminal === "turn") {
-      projector.acceptLive({
-        instanceId: "instance-1",
-        kind: "turn-finished",
-        sequence: 1,
-        submissionId: "submission-1",
-        turnId: "turn-1",
-        v: 1,
-      });
-    } else {
-      projector.disconnectLive();
-    }
-    expect(written).toContainEqual({
-      type: "tool-input-error",
+test("ends a live proposal as not executed when its canonical turn completes without it", () => {
+  const written = recordChunks();
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.acceptLive(
+    liveEvent(0, {
+      kind: "tool-input-start",
       toolCallId: "abandoned-call",
       toolName: "lookup",
-      input: undefined,
-      errorText: "This tool proposal was not executed.",
-    });
+    }),
+  );
+  projector.accept({
+    type: "message-completed",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    position: position(1),
+  });
+
+  expect(written).toContainEqual({
+    type: "tool-input-error",
+    toolCallId: "abandoned-call",
+    toolName: "lookup",
+    input: undefined,
+    errorText: "This tool proposal was not executed.",
+  });
+});
+
+// The live channel is advisory: only the canonical stream decides whether a
+// proposal ran, however long it trails the live channel.
+test.each(["disconnect", "turn-finished", "submission-finished"] as const)(
+  "a live %s does not end a proposal the canonical stream later admits",
+  (liveSignal) => {
+    vi.useFakeTimers();
+    try {
+      const written = recordChunks();
+      const projector = createFlueUiStream({
+        submissionId: "submission-1",
+        clientToolNames: new Set(),
+        provisionalMessageId: (turnId) => `live:${turnId}`,
+        write: (chunk) => written.push(chunk),
+      });
+      projector.acceptLive(
+        liveEvent(0, {
+          kind: "tool-input-start",
+          toolCallId: "trailing-call",
+          toolName: "lookup",
+        }),
+      );
+      vi.runAllTimers();
+      if (liveSignal === "disconnect") {
+        projector.disconnectLive();
+      } else {
+        projector.acceptLive({
+          instanceId: "instance-1",
+          sequence: 1,
+          submissionId: "submission-1",
+          v: 1,
+          ...(liveSignal === "turn-finished"
+            ? { kind: liveSignal, turnId: "turn-1" }
+            : { kind: liveSignal, outcome: "completed" }),
+        });
+      }
+      vi.advanceTimersByTime(2_000);
+      projector.accept({
+        type: "message-started",
+        conversationId: "conversation-1",
+        messageId: "message-1",
+        submissionId: "submission-1",
+        turnId: "turn-1",
+        position: position(0),
+      });
+      projector.accept({
+        type: "tool-input",
+        conversationId: "conversation-1",
+        input: {},
+        messageId: "message-1",
+        position: position(1),
+        toolCallId: "trailing-call",
+        toolName: "lookup",
+      });
+
+      expect(written.some((chunk) => chunk.type === "tool-input-error")).toBe(
+        false,
+      );
+      expect(written).toContainEqual({
+        type: "tool-input-available",
+        input: {},
+        providerExecuted: true,
+        toolCallId: "trailing-call",
+        toolName: "lookup",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   },
 );
-
-test("lets canonical admission win the live turn-terminal race", () => {
-  vi.useFakeTimers();
-  try {
-    const written = recordChunks();
-    const projector = createFlueUiStream({
-      submissionId: "submission-1",
-      clientToolNames: new Set(),
-      provisionalMessageId: (turnId) => `live:${turnId}`,
-      write: (chunk) => written.push(chunk),
-    });
-    projector.accept({
-      type: "message-started",
-      conversationId: "conversation-1",
-      messageId: "message-1",
-      submissionId: "submission-1",
-      turnId: "turn-1",
-      position: position(0),
-    });
-    projector.acceptLive(
-      liveEvent(0, {
-        kind: "tool-input-start",
-        toolCallId: "racing-call",
-        toolName: "lookup",
-      }),
-    );
-    projector.acceptLive({
-      instanceId: "instance-1",
-      kind: "turn-finished",
-      sequence: 1,
-      submissionId: "submission-1",
-      turnId: "turn-1",
-      v: 1,
-    });
-    projector.accept({
-      type: "tool-input",
-      conversationId: "conversation-1",
-      input: {},
-      messageId: "message-1",
-      position: position(1),
-      toolCallId: "racing-call",
-      toolName: "lookup",
-    });
-    vi.runAllTimers();
-
-    expect(written.some((chunk) => chunk.type === "tool-input-error")).toBe(
-      false,
-    );
-    expect(written).toContainEqual({
-      type: "tool-input-available",
-      input: {},
-      providerExecuted: true,
-      toolCallId: "racing-call",
-      toolName: "lookup",
-    });
-  } finally {
-    vi.useRealTimers();
-  }
-});
 
 test("carries response metadata onto a provisionally started message", () => {
   vi.useFakeTimers();

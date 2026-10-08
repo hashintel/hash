@@ -84,7 +84,6 @@ export const createFlueUiStream = (
   let canonicalMessageId: string | undefined;
   let liveDisconnected = false;
   let liveStartTimer: ReturnType<typeof setTimeout> | undefined;
-  const liveTerminalTimers = new Set<ReturnType<typeof setTimeout>>();
   let lastLiveSequence = -1;
   let messageId: string | undefined;
   let turnId: string | undefined;
@@ -150,6 +149,7 @@ export const createFlueUiStream = (
   const finishTurn = (): void => {
     finishPart();
     if (!turnId) return;
+    terminateSpeculativeTurn(turnId);
     options.write({ type: "finish-step" });
     turnId = undefined;
   };
@@ -182,23 +182,6 @@ export const createFlueUiStream = (
     for (const toolCallId of speculativeToolCalls.keys()) {
       terminateSpeculativeCall(toolCallId);
     }
-  };
-
-  const afterCanonicalRace = (terminate: () => void): void => {
-    if (options.provisionalMessageId === undefined) {
-      terminate();
-      return;
-    }
-    const timer = setTimeout(() => {
-      liveTerminalTimers.delete(timer);
-      terminate();
-    }, 100);
-    liveTerminalTimers.add(timer);
-  };
-
-  const clearLiveTerminalTimers = (): void => {
-    for (const timer of liveTerminalTimers) clearTimeout(timer);
-    liveTerminalTimers.clear();
   };
 
   const publishLiveEvent = (event: LiveToolEvent): void => {
@@ -277,14 +260,12 @@ export const createFlueUiStream = (
         clearTimeout(liveStartTimer);
         liveStartTimer = undefined;
       }
-      afterCanonicalRace(terminateAllSpeculativeCalls);
       liveDisconnected = true;
       return;
     }
     if (event.kind === "turn-finished") {
       terminalLiveTurns.add(event.turnId);
       bufferedLiveEvents.delete(event.turnId);
-      afterCanonicalRace(() => terminateSpeculativeTurn(event.turnId));
       return;
     }
     if (event.turnId !== turnId) {
@@ -360,7 +341,6 @@ export const createFlueUiStream = (
         }
         case "submission-settled": {
           if (chunk.submissionId !== options.submissionId) return;
-          clearLiveTerminalTimers();
           if (liveStartTimer !== undefined) {
             clearTimeout(liveStartTimer);
             liveStartTimer = undefined;
@@ -494,12 +474,10 @@ export const createFlueUiStream = (
     disconnectLive: () => {
       if (liveDisconnected) return;
       liveDisconnected = true;
-      clearLiveTerminalTimers();
       if (liveStartTimer !== undefined) {
         clearTimeout(liveStartTimer);
         liveStartTimer = undefined;
       }
-      terminateAllSpeculativeCalls();
     },
     effectiveMessageId: (candidate) =>
       candidate === canonicalMessageId ? messageId : undefined,
