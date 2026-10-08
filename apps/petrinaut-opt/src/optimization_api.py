@@ -40,19 +40,50 @@ MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
 MAX_ACTIVE_OPTIMIZATIONS = 4
 RETRY_AFTER_SECONDS = 30
 _OPTIMIZATION_PATHS = {"/optimize/runs"}
+
+
+class ErrorDetail(BaseModel):
+    """Body of the error responses this service writes itself."""
+
+    detail: str
+
+
+_RUN_NOT_FOUND_RESPONSE: dict[str, Any] = {
+    "description": "No optimization run with this id is registered",
+    "model": ErrorDetail,
+}
 _CREATE_RUN_RESPONSES: dict[int | str, dict[str, Any]] = {
     201: {"description": "A detached optimization run was started"},
-    413: {"description": "The optimization manifest exceeds 8 MiB"},
+    413: {
+        "description": "The optimization manifest exceeds 8 MiB",
+        "model": ErrorDetail,
+    },
     429: {
-        "description": "The service is already at its study limit",
+        "description": (
+            "The account already drives an optimization, or the service is at "
+            "its study limit"
+        ),
+        "model": ErrorDetail,
         "headers": {
             "Retry-After": {
-                "description": "Seconds to wait before retrying the study",
+                "description": (
+                    "Seconds to wait before retrying the study; only sent when "
+                    "the service is at its study limit"
+                ),
                 "schema": {"type": "string"},
             },
         },
     },
-    500: {"description": "The session or optimization study could not initialize"},
+    500: {
+        "description": "The session or optimization study could not initialize",
+        "model": ErrorDetail,
+        "headers": {
+            "X-Optimization-Run-ID": {
+                "description": "Identifier of the run that failed to initialize",
+                "schema": {"type": "string"},
+            },
+        },
+    },
 }
 _RUN_EVENTS_RESPONSES: dict[int | str, dict[str, Any]] = {
     200: {
@@ -78,7 +109,7 @@ _RUN_EVENTS_RESPONSES: dict[int | str, dict[str, Any]] = {
             },
         },
     },
-    404: {"description": "No optimization run with this id is registered"},
+    404: _RUN_NOT_FOUND_RESPONSE,
 }
 _DELETE_RUN_RESPONSES: dict[int | str, dict[str, Any]] = {
     204: {
@@ -88,7 +119,10 @@ _DELETE_RUN_RESPONSES: dict[int | str, dict[str, Any]] = {
             "frame is `event: cancelled`"
         ),
     },
-    404: {"description": "No optimization run with this id is registered"},
+    404: _RUN_NOT_FOUND_RESPONSE,
+}
+_RUN_STATUS_RESPONSES: dict[int | str, dict[str, Any]] = {
+    404: _RUN_NOT_FOUND_RESPONSE,
 }
 
 
@@ -563,7 +597,7 @@ def get_status() -> list[RunStatus]:
     return app.state.statuses.all()
 
 
-@app.get("/status/{run_id}")
+@app.get("/status/{run_id}", responses=_RUN_STATUS_RESPONSES)
 def get_run_status(run_id: str) -> RunStatus:
     """Return the status of one optimization run."""
     status = app.state.statuses.get(run_id)
