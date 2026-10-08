@@ -4254,7 +4254,6 @@ __metadata:
     lit: "npm:2.8.0"
     lodash.isequal: "npm:4.5.0"
     rimraf: "npm:6.1.3"
-    tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
   peerDependencies:
     react: ^19.0.0
@@ -4312,7 +4311,6 @@ __metadata:
     rollup: "npm:4.59.0"
     semver: "npm:7.7.3"
     tslib: "npm:2.8.1"
-    tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
     uuid: "npm:14.0.0"
     vite-plugin-wasm-pack: "npm:0.1.12"
@@ -9961,7 +9959,6 @@ __metadata:
     envalid: "npm:8.1.0"
     eslint: "npm:9.39.4"
     execa: "npm:9.6.0"
-    fix-esm-import-path: "npm:1.10.3"
     fs-extra: "npm:11.3.2"
     globby: "npm:15.0.0"
     ignore: "npm:7.0.5"
