@@ -54,11 +54,6 @@ import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
 import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
-import { CreateNewNetCommands } from "./editor-view/create-new-net-commands";
-import {
-  createNewNetMenuItem,
-  shouldShowBrunchCreateNew,
-} from "./editor-view/create-new-net-menu";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
 import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
@@ -228,20 +223,14 @@ const EditorViewContent = ({
   const [pendingAiInteractionMode, setPendingAiInteractionMode] =
     useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
-  const [offerStartPosture, setOfferStartPosture] = useState(false);
   const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
   const {
-    brunchDemoMode,
     enableExperimentalIconPack,
     showAnimations,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
   } = use(UserSettingsContext);
-  const showBrunchCreateNew = shouldShowBrunchCreateNew({
-    brunchDemoMode,
-    hasAiAssistant: aiAssistant !== undefined,
-  });
   const walkthrough = use(WalkthroughContext);
 
   const toggleAiAssistant = () => {
@@ -280,22 +269,6 @@ const EditorViewContent = ({
       petriNetDefinition: emptyPetriNetDefinition,
     });
     clearSelection();
-  }
-
-  function handleStartBlank() {
-    setOfferStartPosture(false);
-    setIsAiCtaDismissed(true);
-    handleCreateEmpty();
-    if (aiAssistant !== undefined) {
-      setAiAssistantOpen(false);
-    }
-  }
-
-  function handleBuildWithBrunch() {
-    setIsAiCtaDismissed(true);
-    setOfferStartPosture(true);
-    handleCreateEmpty();
-    setAiAssistantOpen(true);
   }
 
   function handleExport(format: DocumentFormat) {
@@ -372,13 +345,7 @@ const EditorViewContent = ({
 
   const menuItems: MenuItem[] = [
     ...(showNetManagementMenuItems
-      ? [
-          createNewNetMenuItem({
-            showBrunchOptions: showBrunchCreateNew,
-            onBuildWithBrunch: handleBuildWithBrunch,
-            onStartBlank: handleStartBlank,
-          }),
-        ]
+      ? [{ id: "new", text: "New", onClick: handleCreateEmpty }]
       : []),
     ...(showNetManagementMenuItems && existingNets.length > 0
       ? [
@@ -569,15 +536,10 @@ const EditorViewContent = ({
     >
       <EditorCommands
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
+        onNewNet={showNetManagementMenuItems ? handleCreateEmpty : undefined}
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
       <UserSettings settingsLabs={slots?.settingsLabs} />
-      <CreateNewNetCommands
-        enabled={showNetManagementMenuItems}
-        showBrunchOptions={showBrunchCreateNew}
-        onBuildWithBrunch={handleBuildWithBrunch}
-        onStartBlank={handleStartBlank}
-      />
       <ImportErrorDialog
         open={importError !== null}
         onOpenChange={({ open }) => {
@@ -708,7 +670,6 @@ const EditorViewContent = ({
               frameSceneAfterRender={frameSceneAfterRender}
               initialMessage={pendingAiAssistantMessage}
               initialInteractionMode={pendingAiInteractionMode}
-              offerStartPosture={offerStartPosture}
               onInitialMessageConsumed={() =>
                 setPendingAiAssistantMessage(null)
               }

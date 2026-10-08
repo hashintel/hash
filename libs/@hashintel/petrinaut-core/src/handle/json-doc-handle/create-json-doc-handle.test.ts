@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createPetrinaut } from "../../instance";
+import { isPetrinautId, toPetrinautId } from "../../petrinaut-id";
 import { createReadableStore } from "../../store";
 import { createJsonDocHandle } from "./create-json-doc-handle";
 
@@ -66,6 +67,18 @@ describe("createJsonDocHandle", () => {
     const handle = createJsonDocHandle({ initial: empty() });
     expect(handle.state.get()).toBe("ready");
     expect(handle.doc()).toEqual(empty());
+  });
+
+  it("defaults to a random Petrinaut id", () => {
+    expect(isPetrinautId(createJsonDocHandle({ initial: empty() }).id)).toBe(
+      true,
+    );
+  });
+
+  it("converts a non-UUID id with toPetrinautId", () => {
+    expect(createJsonDocHandle({ id: "net-1", initial: empty() }).id).toBe(
+      toPetrinautId("net-1"),
+    );
   });
 
   it.each([undefined, null, 0, 3])(

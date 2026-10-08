@@ -102,5 +102,6 @@ export {
   usePortalContainerRef,
 } from "./util/portal-container-context";
 export type { Item, ItemOrGroup } from "./util/SelectableList/selectable-list";
+export { SelectableListSearch } from "./util/SelectableList/selectable-list-search";
 export { useAvoidScrollWidthChange } from "./util/use-avoid-scroll-width-change";
 export { useScrollLock } from "./util/use-scroll-lock";
