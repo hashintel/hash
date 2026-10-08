@@ -77,6 +77,10 @@ vi.mock(
   () => ({ default: { name: "manual constructing" } }),
 );
 vi.mock(
+  "../src/agents/chat-agent/guidance/manual/skills/petrinaut/SKILL.md",
+  () => ({ default: { name: "manual petrinaut" } }),
+);
+vi.mock(
   "../src/agents/chat-agent/guidance/receipt/skills/eliciting/SKILL.md",
   () => ({ default: { name: "receipt eliciting" } }),
 );
@@ -230,14 +234,19 @@ test.each(selfContainedGuidanceVariants)(
     const { ChatAgent: candidate } =
       await import("../src/agents/chat-agent/agent.ts");
     expect(candidate({ id: arm })).toBe(texts.get("system.md"));
-    expect(mounted.skills).toEqual([`${arm} eliciting`, `${arm} constructing`]);
+    expect(mounted.skills).toEqual([
+      `${arm} eliciting`,
+      `${arm} constructing`,
+      ...(manual ? [`${arm} petrinaut`] : []),
+    ]);
     expect(mounted.tools.sort()).toEqual(tools.sort());
     const own = new Set(texts.values());
     expect(mounted.instructions.filter((text) => !own.has(text))).toEqual([]);
+    expect(mounted.instructions.length === 0).toBe(manual);
     expect(mounted.instructions).toEqual(
       expect.arrayContaining(
         (manual
-          ? ["petrinaut-capability.md"]
+          ? []
           : [
               "feedback.md",
               "identity-ledger.md",
