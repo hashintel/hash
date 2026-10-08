@@ -171,15 +171,6 @@ export type {
 } from "./command-schemas";
 export { mutationActionInputSchemas } from "./action-schemas";
 export {
-  executeSelectedMutationBatch,
-  selectedMutationBatchSchema,
-  selectedMutationOperationSchema,
-  type SelectedMutationAttempt,
-  type SelectedMutationEffect,
-  type SelectedMutationOperation,
-  type SelectedMutationOutcome,
-} from "./selected-mutation-batch";
-export {
   calculateGraphLayout,
   classicNodeDimensions,
   compactNodeDimensions,
@@ -208,7 +199,6 @@ export {
   metricSchema,
   parameterSchema,
   petrinautAiCommandTools,
-  petrinautAiModel,
   petrinautAiMutationTools,
   petrinautAiPrompt,
   petrinautAiTools,

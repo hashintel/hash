@@ -16,11 +16,6 @@ import {
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
-import {
-  petrinautAiModel,
-  type PetrinautDocHandle,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
 
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
 import {
@@ -33,6 +28,7 @@ import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import { documentRevisionOf } from "./shared/document-revision";
 
 import type { FlueClient } from "@flue/sdk";
+import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
 import type { ComponentProps, ReactNode } from "react";
 
 await vi.hoisted(async () => {
@@ -126,13 +122,13 @@ const scenario = {
 const metric = { id: "throughput", name: "Throughput", code: "return 1;" };
 
 test("real panel scenario and metric add/update/remove calls produce persisted revisions and a Brunch continuation", async () => {
-  delete process.env.BRUNCH_CHAT_MODEL;
-  delete process.env.BRUNCH_CHAT_THINKING;
+  process.env.BRUNCH_CHAT_MODEL = "openai/faux-model";
+  process.env.BRUNCH_CHAT_THINKING = "medium";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   process.env.OTEL_SDK_DISABLED = "true";
   const faux = fauxProvider({
     provider: "openai",
-    models: [{ id: petrinautAiModel.id, reasoning: true }],
+    models: [{ id: "faux-model", reasoning: true }],
   });
   faux.setResponses([
     fauxAssistantMessage(

@@ -27,7 +27,6 @@ import {
   flueConversationIdWeb,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { petrinautAiModel } from "@hashintel/petrinaut-core";
 
 import { AiAssistantContents } from "../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
@@ -101,11 +100,11 @@ const expandSettledTools = async () => {
 };
 
 test("renders pending gold, applied green, typed refusal compact, and thrown red across reopen", async () => {
-  delete process.env.BRUNCH_CHAT_MODEL;
-  delete process.env.BRUNCH_CHAT_THINKING;
+  process.env.BRUNCH_CHAT_MODEL = "openai/faux-model";
+  process.env.BRUNCH_CHAT_THINKING = "medium";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   const faux = fauxProvider({
-    models: [{ id: petrinautAiModel.id, reasoning: true }],
+    models: [{ id: "faux-model", reasoning: true }],
     provider: "openai",
   });
   faux.setResponses([
