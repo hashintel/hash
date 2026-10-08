@@ -44,6 +44,7 @@ Apply the `petrinaut` skill's acceptance checks to each step, and record rejecte
 
 Compare the latest inspected definition with the USER's account. During incremental construction, review the represented fragment and name its open boundaries; at final delivery, review coverage against the full intended scope. A partial fragment is not an end-to-end result.
 
+- Every `confirmed` entity that is not out of scope is referenced by a reflection: one anchoring its net counterpart, or one saying why it has none.
 - The definition contains at least one meaningful place and transition corresponding to the process account.
 - The fragment's supported states and activities are connected as recorded. For an end-to-end result, the definition contains a candidate structural path from a represented initial or admitted condition toward an outcome. This does not establish that the path can fire.
 - Visible branches, joins, loops, and recovery structures correspond to the stated ordering and conditions.

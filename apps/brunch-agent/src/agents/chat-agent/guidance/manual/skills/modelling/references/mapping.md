@@ -1,8 +1,8 @@
-# SDCPN Construction
+# Mapping the Ledger to an SDCPN
 
-Read this only when constructing, revising, or checking a net.
+Read this before constructing, revising or checking a net.
 
-Construction translates established operational meaning into SDCPN structure. It may choose a representation, stand in for what the account has not yet established, introduce a visibly named approximation, or report a loss. It may not present an invented fact as elicited: every stand-in and assumption is labelled as yours.
+Construction translates the Ledger's entities and claims into SDCPN structure. It may choose a representation, stand in for what the Ledger does not yet establish, introduce a visibly named approximation, or report a loss. It may not present an invented fact as elicited: every stand-in and assumption is labelled as yours.
 
 ## Building from an incomplete account
 
@@ -15,29 +15,59 @@ Where a fact the fragment needs is missing, use a stand-in rather than waiting:
 - an unknown branch rule becomes distinct outcome paths gated on a named parameter or external input, never an invented probability;
 - unknown internal steps become one activity, noted as collapsed.
 
-Record each stand-in in the Ledger, ask for the missing fact when it bears on the purpose, and replace the stand-in when the USER supplies it. When a missing distinction would give materially different structure, build the likelier structure, label it, and ask which holds.
+Record each stand-in as an `assumed`, `tentative` claim on the entities it concerns, and anchor a reflection from that claim to the net elements standing in. Ask for the missing fact when it bears on the purpose; when the USER supplies it, supersede the claim and replace the stand-in. When a missing distinction would give materially different structure, build the likelier structure, label it, and ask which holds.
 
 An explicit request to use sensible defaults, decide on the USER's behalf, make up a suitable example, or equivalent authorizes concrete purpose-bounded values; they remain labelled as yours.
 
 When Petrinaut construction tools are mounted, their accepted schemas and the inspected resulting definition are the authority for payload fields and net state; the `petrinaut` skill covers how to use them. When tools are absent, leave construction-ready notes and do not claim a loadable net.
 
-## Mapping principles
+## Reading an entity
 
-| Operational meaning                                                       | Possible SDCPN interpretation                                                                                                                                                               |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Things that flow, are acted on, or do work                                | Typed tokens and colour elements when distinctions change behavior                                                                                                                          |
-| Initial populations, arrivals, departures, calendars, and external inputs | Initial marking, parameters, boundary conditions, or source and sink transitions where representable                                                                                        |
-| Logical activities                                                        | Transitions, factored into start, in-progress state, and completion only when timing or resource semantics require it                                                                       |
-| Waiting, availability, and occupied state                                 | Places derived from the activities and conditions on either side, not independently elicited queue nodes                                                                                    |
-| Ordering, branching, joining, triggers, and practiced decision rules      | Arcs, guards, priorities, and explicit enabling state                                                                                                                                       |
-| Resource consumption, reservation, release, and read-only use             | Consumed tokens, held and returned resource tokens, or read behavior                                                                                                                        |
-| Continuous change                                                         | Dynamics on real-valued colour elements when a rate, threshold, or objective makes it consequential                                                                                         |
-| Quantities the USER may want to tune                                      | Net parameters; scenario parameters when the value varies between regimes or runs                                                                                                           |
-| Metrics and objectives                                                    | Saved metrics (`addMetric`) where representable; qualitative goals and unsupported weights remain in the Ledger                                                                             |
-| Named operating regimes and decisions the USER may vary                   | Saved scenarios (`addScenario`) carrying a per-place initial state and typed scenario parameters; a count is an `integer` parameter, a proportion a `ratio`, a continuous quantity a `real` |
-| Data bindings and validation criteria                                     | Ledger obligations until a separate integration represents them                                                                                                                             |
+An entity's kind suggests a representation; its claims decide it. The map lists each current claim under every entity it concerns, so read all of an entity's claims together before choosing structure for it. One entity can become several net elements, and one element can carry several entities: a `resource` whose count the USER wants to vary is also behind a `lever`, and a `rule` the USER wants to compare becomes a parameter that selects between paths.
 
-A physical location becomes target structure only through its recorded operational effect; it is not automatically a Petri-net place. A simulation scenario is assembled from initial state, boundary conditions, parameters, and candidate policies rather than represented as one process node; when the USER names such a regime, save it as a scenario so later runs and experiments can name it.
+The stage each kind opens with tells you which layer of the net it usually reaches:
+
+- **framing** reaches no element: it decides what the net is for;
+- **scope** sets where the net stops, in time and in what it includes;
+- **input** becomes something set before a run: parameters, initial state, experiment ranges;
+- **system** becomes structure: types, places, transitions, arcs, guards, kernels and dynamics;
+- **output** becomes something a run produces or is judged by: metrics and experiment objectives.
+
+## Kind hints
+
+| Stage   | Kind          | Usual counterpart                                                                                  | Watch for                                                                                 |
+| ------- | ------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| framing | `purpose`     | No element; it decides what to build and an experiment's question                                  | What the result must not claim                                                            |
+| scope   | `horizon`     | An experiment's `maxTime`                                                                          | Its unit, and the simulation time unit it converts to                                     |
+| scope   | `boundary`    | Source and sink transitions, externally supplied input places, scenario initial state              | What crosses it in each direction                                                         |
+| input   | `lever`       | A net parameter; a scenario parameter when it varies between runs or regimes                       | A count is an `integer` parameter, a proportion a `ratio`, a continuous quantity a `real` |
+| input   | `limit`       | The range of the lever it bounds                                                                   | A bound across several levers cannot reach an experiment                                  |
+| input   | `optimum`     | No element; an experiment over its levers                                                          | It needs its directions; when it balances several, the USER says how                      |
+| system  | `thing`       | A token type, with colour elements when its attributes change behaviour                            | Distinctions that change nothing stay in the Ledger                                       |
+| system  | `location`    | No element of its own; separate places or a transfer activity where position changes behaviour     | A location whose capacity can run out is a resource                                       |
+| system  | `resource`    | A place whose tokens are acquired and returned, its capacity as initial tokens                     | Consumed, reserved or read                                                                |
+| system  | `activity`    | A transition; start, in-progress place and completion when its duration matters                    | What it holds while it runs                                                               |
+| system  | `actor`       | A resource when only how many are free matters; a rule when it decides                             | Rarely a place of its own                                                                 |
+| system  | `rule`        | A guard, predicate lambda or priority                                                              | Posted and practiced versions; a rule the USER compares is a lever                        |
+| system  | `event`       | A transition that takes no time; a source transition or stochastic rate when it comes from outside | What it interrupts, and what survives it                                                  |
+| system  | `flow`        | A path through places and transitions, not one element                                             | Checked as a candidate structural path                                                    |
+| output  | `metric`      | A saved metric                                                                                     | Last-frame, accumulated or peak; accumulation needs a place or attribute                  |
+| output  | `direction`   | The objective metric and direction of an experiment                                                | Which metric, and which way                                                               |
+| output  | `target`      | A metric reported against its value                                                                | Reported, not enforced                                                                    |
+| output  | `threshold`   | A metric reported against its bound                                                                | Never an objective penalty; an operation that acts at the level is a rule                 |
+| output  | `externality` | A metric when the net can measure it; otherwise a recorded loss                                    | Who or what it affects                                                                    |
+
+Waiting, availability and occupied state are places derived from the activities and conditions on either side, not separately elicited queue nodes. A simulation scenario is assembled from initial state, boundary conditions, parameters and candidate policies rather than represented as one process node; when the USER names such a regime, save it as a scenario so later runs and experiments can name it. Data bindings and validation criteria stay in the Ledger until a separate integration represents them.
+
+## Origin and status
+
+| Record         | In the net                                                                                                     |
+| -------------- | -------------------------------------------------------------------------------------------------------------- |
+| `confirmed`    | Built; an `inferred` or `assumed` origin stays named in its reflection                                         |
+| `tentative`    | Built, with a reflection naming what awaits the USER's agreement                                               |
+| `open`         | A placeholder parameter or externally supplied input, named as provisional                                     |
+| `conflicted`   | Each account kept visible: alternative paths gated on a parameter, or the element held back, with a reflection |
+| `out-of-scope` | Omitted; where something crosses that line, it is a `boundary`                                                 |
 
 ## Construction patterns
 

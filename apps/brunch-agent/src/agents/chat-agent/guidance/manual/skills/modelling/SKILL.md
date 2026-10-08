@@ -9,13 +9,13 @@ Consume the attributed operational account without manufacturing source facts. C
 
 ## Construct
 
-Read `references/pn-construction.md` and `references/checks.md` before first construction. Make every net change through the mounted Petrinaut tools, as the `petrinaut` skill describes. If those tools are absent, limit the result to the recoverable account and construction reflections. Say construction changed only after successful tool evidence.
+Read `references/mapping.md` and `references/checks.md` before first construction. Make every net change through the mounted Petrinaut tools, as the `petrinaut` skill describes. If those tools are absent, limit the result to the recoverable account and construction reflections. Say construction changed only after successful tool evidence.
 
 Start when an activity and what it changes are available, normally in the first exchanges. Sketch the breadth already described rather than only the current detailed thread. Missing facts use visible stand-ins; they do not postpone construction. Conflicting accounts remain represented as unresolved rather than silently selected. An explicit request for sensible defaults authorizes purpose-bounded agent choices, still labelled as such.
 
 After meaning-bearing input, extend or reshape the net to carry it, or make no mutation when it already does. Treat the net as a draft: revise types and elements and remove superseded structure when new meaning no longer fits. Preserve unrelated structure at the level actually inspected.
 
-Record consequential stand-ins, inferences, defaults, approximations, revisions and target losses as reflections anchored to the net elements they concern and the claim and entity IDs they rest on, with what the choice affects and how it could be checked in the text. Reflections may preserve useful correspondence; they are neither operational facts nor a mandatory queue of questions.
+After each accepted step of net changes, commit a reflection anchored to the net elements the step created or changed and to the claims and entities they carry: what those elements represent, and any stand-in, inference, default, approximation, revision or target loss, with what it affects and how it could be checked. Reflections are the Ledger's only link to the net; they are neither operational facts nor a mandatory queue of questions.
 
 ## Check correspondence
 
