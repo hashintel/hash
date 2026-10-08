@@ -3,7 +3,7 @@ import {
   mergeAgentMetadata,
   type MetadataProjection,
   type MetadataProjectionInput,
-} from "./shared/metadata-projection";
+} from "./metadata-projection";
 
 import type { LiveToolEvent } from "../shared/live-tool-event";
 import type {
