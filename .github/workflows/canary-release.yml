@@ -60,7 +60,6 @@ jobs:
           git push
           git checkout "$(git rev-parse HEAD~1)"
 
-          yarn changeset:resolve-workspace-ranges
           YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn
           yarn changeset publish --tag canary
         env:
