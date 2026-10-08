@@ -13,7 +13,7 @@ import {
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
-} from "../../_shared/brunch-panel-transport";
+} from "../../brunch/brunch-panel-transport";
 import { canonicalPetrinautClientToolNames } from "../../brunch/tools/brunch-client-tools";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";

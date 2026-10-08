@@ -12,7 +12,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
-} from "../../_shared/brunch-panel-transport";
+} from "../../brunch/brunch-panel-transport";
 import { VoiceMediationHistory } from "../history/voice-mediation-history";
 import {
   LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,

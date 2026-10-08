@@ -17,7 +17,7 @@ import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { createExperimentToolName } from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
-import { BrunchPanelConversationTracker } from "../plugins/_shared/brunch-panel-transport";
+import { BrunchPanelConversationTracker } from "../plugins/brunch/brunch-panel-transport";
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
@@ -130,10 +130,10 @@ const editorProps = vi.hoisted(() => ({
 vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
-vi.mock("../plugins/_shared/brunch-panel-transport", async (importOriginal) => {
+vi.mock("../plugins/brunch/brunch-panel-transport", async (importOriginal) => {
   const actual =
     await importOriginal<
-      typeof import("../plugins/_shared/brunch-panel-transport")
+      typeof import("../plugins/brunch/brunch-panel-transport")
     >();
   return {
     ...actual,

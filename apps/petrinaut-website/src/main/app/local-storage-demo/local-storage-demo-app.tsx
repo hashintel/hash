@@ -56,7 +56,7 @@ import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
   createBrunchPanelTransport,
-} from "../plugins/_shared/brunch-panel-transport";
+} from "../plugins/brunch/brunch-panel-transport";
 import { resolveBrunchPreviewConfig } from "../plugins/brunch/brunch-preview-config";
 import {
   brunchEvaluationConversationIdFrom,

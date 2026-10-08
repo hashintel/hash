@@ -1,12 +1,12 @@
 import { FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
-import { canonicalPetrinautClientToolNames } from "../brunch/tools/brunch-client-tools";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
   createUnavailableBrunchPanelTransport,
 } from "./brunch-panel-transport";
+import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
 

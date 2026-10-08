@@ -8,7 +8,7 @@ import {
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
-} from "../../_shared/brunch-panel-transport";
+} from "../../brunch/brunch-panel-transport";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { OpenAIRealtimeSession } from "../realtime/openai-realtime-session";
 import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";

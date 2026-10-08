@@ -25,7 +25,7 @@ import {
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
-} from "../../_shared/brunch-panel-transport";
+} from "../brunch-panel-transport";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 

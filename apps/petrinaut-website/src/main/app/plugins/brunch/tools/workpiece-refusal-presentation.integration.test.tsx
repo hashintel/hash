@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 // oxlint-disable-next-line typescript/triple-slash-reference -- The rendered source fixture needs the package's CSS-only module declarations.
-/// <reference path="../../../../../../libs/@hashintel/petrinaut/src/ui/fontsource.d.ts" />
+/// <reference path="../../../../../../../../libs/@hashintel/petrinaut/src/ui/fontsource.d.ts" />
 import {
   fauxAssistantMessage,
   fauxProvider,
@@ -28,13 +28,13 @@ import {
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { AiAssistantContents } from "../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
-import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
+import { AiAssistantContents } from "../../../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
+import { loadBuiltBrunchApplication } from "../../../../../../../brunch-agent/test/load-built-application";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
-} from "../plugins/_shared/brunch-panel-transport";
-import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
+} from "../brunch-panel-transport";
+import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 

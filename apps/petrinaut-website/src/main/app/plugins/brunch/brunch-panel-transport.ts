@@ -4,14 +4,14 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 
-import { canonicalPetrinautClientToolNames } from "../brunch/tools/brunch-client-tools";
-import { sweepOutputSchema } from "../brunch/tools/brunch-sweep-output";
+import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
+import { sweepOutputSchema } from "./tools/brunch-sweep-output";
 
 import type {
   SweepCapture,
   SweepCompletionFailure,
   SweepCompletionReport,
-} from "../brunch/tools/brunch-sweep-output";
+} from "./tools/brunch-sweep-output";
 import type {
   AgentSendResult,
   FlueClient,
