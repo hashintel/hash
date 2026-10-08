@@ -120,6 +120,33 @@ describe("Brunch destructive edit approval", () => {
     expect(fresh.hasPending("delete-3")).toBe(false);
   });
 
+  test("approval state reports waiting and refused calls, not allowed ones", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const request = (
+      toolCallId: string,
+      signal = new AbortController().signal,
+    ) => coordinator.request({ toolCallId, toolName: "removePlace", signal });
+
+    const allowed = request("allowed");
+    const denied = request("denied");
+    const stopped = new AbortController();
+    const aborted = request("aborted", stopped.signal);
+    expect(coordinator.approvalState("denied")).toBe("awaiting");
+
+    coordinator.resolve("allowed", "allow");
+    coordinator.resolve("denied", "deny");
+    stopped.abort();
+    await Promise.all([allowed, denied, aborted]);
+    expect(coordinator.approvalState("allowed")).toBeNull();
+    expect(coordinator.approvalState("denied")).toBe("refused");
+    expect(coordinator.approvalState("aborted")).toBe("refused");
+    expect(coordinator.approvalState("unknown")).toBeNull();
+
+    coordinator.close();
+    await request("after-close");
+    expect(coordinator.approvalState("after-close")).toBe("refused");
+  });
+
   test("closing stops waiting approvals and reopening accepts new ones", async () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const waiting = coordinator.request({
@@ -242,7 +269,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
       } as FlueClient),
       principalKey: "principal",
       binding,
-      metadataFor: async () => undefined,
+      metadataFor: () => undefined,
       prepareInput,
       admit: createBrunchMutationAdmission(coordinator),
     });

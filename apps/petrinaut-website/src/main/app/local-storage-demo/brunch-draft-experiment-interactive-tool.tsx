@@ -40,6 +40,7 @@ import {
   type PreparedExperiment,
   resetEditorDrafts,
 } from "./shared/brunch-draft-experiment-drafts";
+import { documentRevisionOf } from "./shared/document-revision";
 
 import type { createInBandBrowserCalls } from "./in-band-browser-call";
 import type { FlueConversationState } from "@flue/sdk";
@@ -183,7 +184,7 @@ export const resolveDraftAuthorityFromHistory = async (
     latest.state !== "output-available"
   )
     throw new Error(
-      "Draft requires the latest settled canonical net read after changes.",
+      "The AI assistant needs to read the latest model before drafting.",
     );
   const envelope = latest.output;
   const metadata =
@@ -192,7 +193,9 @@ export const resolveDraftAuthorityFromHistory = async (
       : undefined;
   const revision = metadata?.documentRevision.before;
   if (revision === undefined)
-    throw new Error("The latest canonical read has no document revision.");
+    throw new Error(
+      "The AI assistant’s latest model read has no document revision.",
+    );
   return revision;
 };
 
@@ -315,12 +318,13 @@ export const BrunchDraftExperimentWidget = ({
         const latestDefinition = instance.handle.doc();
         if (latestDefinition) definition = latestDefinition;
         outcome =
-          latestDefinition && instance.handle.revisionId.get() === readRevision
+          latestDefinition &&
+          documentRevisionOf(latestDefinition) === readRevision
             ? prepareOrExplain(input.experiment, definition, readTitle())
             : {
                 prepared: null,
                 error:
-                  "The model changed since the canonical read. Ask Brunch to read the current model and draft again.",
+                  "The model changed since the AI assistant read it. Ask it to draft again.",
               };
       } catch (caught) {
         outcome = {
@@ -606,7 +610,7 @@ export const BrunchDraftExperimentWidget = ({
                 ? preparationFailure.kind === "prepare"
                   ? `The experiment proposal could not be prepared: ${preparationFailure.message}`
                   : `The prepared proposal could not be submitted: ${preparationFailure.message}`
-                : "This draft was prepared before this editor was loaded. Ask Brunch to draft it again to run it.")}
+                : "This draft is from an earlier session. Ask the AI assistant to draft it again to run it.")}
         </p>
       )}
       <p className={sectionLabelStyle}>Declared</p>
@@ -620,8 +624,7 @@ export const BrunchDraftExperimentWidget = ({
       <p className={sectionLabelStyle}>Not carried into execution</p>
       {input.unsupported.length === 0 ? (
         <p className={bodyStyle}>
-          No restrictions were stated. The request carries no constraints, so
-          none are enforced.
+          No restrictions were stated, so none are enforced.
         </p>
       ) : (
         <ul className={listStyle}>
@@ -639,8 +642,9 @@ export const BrunchDraftExperimentWidget = ({
       )}
       {blocksRun ? (
         <p className={noticeStyle} role="alert">
-          Run is blocked by an unsupported restriction. Ask Brunch to revise the
-          proposal; a reporting-only exploration needs your explicit acceptance.
+          Can’t run: a restriction isn’t supported. Ask the AI assistant to
+          revise the proposal, or tell it you accept a run that only reports on
+          it.
         </p>
       ) : null}
       {optimizationUnavailable !== null ? (
@@ -657,7 +661,7 @@ export const BrunchDraftExperimentWidget = ({
         <div className={noticeStyle}>
           <p role="status">
             The model changed since this was drafted. Review the changes below
-            before running, or ask Brunch to draft it again.
+            before running, or ask the AI assistant to draft it again.
           </p>
           <details>
             <summary>Review model changes</summary>

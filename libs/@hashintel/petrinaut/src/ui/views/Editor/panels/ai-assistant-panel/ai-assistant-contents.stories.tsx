@@ -268,9 +268,8 @@ const HostVoiceSlotPreview = () => (
   <section aria-label="Voice mode consent" className={hostSlotStyle}>
     <span className={hostSlotTitleStyle}>Voice mode</span>
     <span>
-      OpenAI processes live audio to speak the interviewer's questions.
-      Petrinaut keeps finalized answers in the conversation rather than the
-      audio.
+      OpenAI processes your audio and speaks the interviewer’s questions. Your
+      transcribed answers are saved; audio isn’t.
     </span>
     <Button size="xs" type="button" variant="solid">
       Start voice mode
@@ -865,7 +864,7 @@ export const ExtendedAudioSettings: Story = {
     await waitFor(() =>
       expect(
         canvas.getByText(
-          "Applies next session. Mute your mic while the agent is idle to preview.",
+          "Applies next session. To preview, mute your mic while the agent is idle.",
         ),
       ).toBeVisible(),
     );
@@ -948,7 +947,7 @@ export const AudioSettingsConnecting: Story = {
       canvas.getByRole("button", { name: "Audio options" }),
     );
     const notice = await canvas.findByText(
-      "Audio controls are unavailable until Voice is connected.",
+      "Connect Voice to use audio controls.",
     );
     const voice = canvas.getByRole("combobox", { name: "Voice" });
     await expect(notice.getBoundingClientRect().left).toBe(
@@ -1010,7 +1009,7 @@ export const AudioSettingsUnavailableDevices: Story = {
 };
 
 const longVoiceStatus =
-  "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.";
+  "Couldn’t confirm your message was sent. Check the conversation before sending it again.";
 
 export const VoiceSessionLongWarning: Story = {
   render: () => (
@@ -1100,7 +1099,7 @@ export const VoiceSessionInputNotRetained: Story = {
       voiceSession={liveSession({
         phase: "connected",
         warningMessage:
-          "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
+          "Those words weren’t sent. They’re in the composer to send when the assistant is ready.",
       })}
     />
   ),
@@ -1432,7 +1431,7 @@ export const MultipleVoiceIssues: Story = {
         errorMessage:
           "Voice connection interrupted. Check your connection before reconnecting.",
         warningMessage:
-          "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+          "Couldn’t confirm your message was sent. Check the conversation before sending it again.",
       })}
     />
   ),
@@ -1464,7 +1463,7 @@ export const CollapsedVoiceIssues: Story = {
         errorMessage:
           "Voice connection interrupted. Check your connection before reconnecting.",
         warningMessage:
-          "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+          "Couldn’t confirm your message was sent. Check the conversation before sending it again.",
       })}
     />
   ),

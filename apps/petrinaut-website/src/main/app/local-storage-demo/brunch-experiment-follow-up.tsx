@@ -89,7 +89,7 @@ export const BrunchExperimentFollowUp = ({
         context.status === "submitted" ||
         context.status === "streaming"
       }
-      tooltip="The experiment finished, but its results could not be sent to Brunch."
+      tooltip="The experiment finished, but its results could not be sent to the AI assistant."
       onClick={() => sendResults(drafts, context.submitText, failed)}
     >
       Retry result summary

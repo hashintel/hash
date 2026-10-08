@@ -99,7 +99,7 @@ test("the binding matches the issued call whatever its key order", async () => {
     } as FlueClient),
     principalKey: "principal",
     binding: reordered,
-    metadataFor: async () => undefined,
+    metadataFor: () => undefined,
     prepareInput: () => {},
   });
 
@@ -157,7 +157,7 @@ const createCalls = (
     } as FlueClient),
     principalKey: "principal",
     binding,
-    metadataFor: async () => undefined,
+    metadataFor: () => undefined,
     prepareInput,
   });
 

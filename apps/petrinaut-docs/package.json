@@ -34,8 +34,5 @@
   },
   "engines": {
     "node": "22.x"
-  },
-  "installConfig": {
-    "hoistingLimits": "dependencies"
   }
 }
