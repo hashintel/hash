@@ -28,6 +28,7 @@ Apply these checks after each construction change, to the fragment added or chan
 
 - The fragment carries what the account established, and each stand-in marks what it did not.
 - Inputs that matter are distinguished as consumed, reserved/released, or read, or carried by a stand-in.
+- Physical conditions are not collapsed into the readings or commands that concern them where the account lets them diverge in age, delivery or effect.
 - Resource availability and release are represented, or carried by a stand-in.
 - Consequential quantities retain their context and supported precision; placeholder values are named as placeholders.
 - Practiced and prescribed rules, corrections, conflicts, and contextual variants are not silently collapsed.
@@ -72,6 +73,7 @@ Only report observations produced by an actual execution or named stronger analy
 - For state-space or invariant analysis, report the explored scope, assumptions, and any unexamined behaviors.
 - Relate each observation back to the stated objective it bears on.
 - Preserve failures and counterexamples; do not summarize them as a pass because another run succeeded.
+- Treat a counterexample as evidence about the model first: judge whether it describes plausible operation or an artefact of a simplification before reporting it as either.
 
 No behavioral tool or result means no behavioral claim.
 
@@ -82,6 +84,7 @@ No behavioral tool or result means no behavioral claim.
 - No conflict has been averaged and no contextual value has been made universal without an accepted simplification.
 - Assumptions state why they were introduced, what they affect, and how they could be checked.
 - Material retained only in the Ledger is named as a target or tooling loss rather than omitted silently.
+- A behaviour the model cannot produce is reported as excluded by the model, not prevented in operation, unless the account establishes what prevents it.
 - The delivery distinguishes accepted structure, agent review, observed behavior, and universal guarantees.
 
 ## Revision checks
@@ -94,6 +97,7 @@ When revising an existing account or analyzing a requested net change:
 - a representation that no longer fits was revised or removed, not left beside a competing replacement;
 - structure the change did not intend to touch is preserved at the level actually inspected;
 - assumptions and losses displaced or introduced by the revision are reported;
+- behavioural results observed before the change are re-run, argued to survive it, or reported against the revision that produced them;
 - the delivery distinguishes what changed from what was only inspected and says what the model can now support that it could not support before, or vice versa.
 
 ## Delivery

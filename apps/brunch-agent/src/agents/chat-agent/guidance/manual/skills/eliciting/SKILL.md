@@ -27,7 +27,7 @@ Open with a short battery that pins the purpose: at most three or four questions
 
 Choose a move for the active gap, ask, see what changed, then choose again.
 
-- **Walk a case.** At the start, and whenever an account turns general. Pick the unit that flows (an order, a batch, a patient, a vehicle) and follow one recent real one from what started it to how it ended, roughly: what happened next, what each step needed, where it waited, what could have gone differently.
+- **Walk a case.** At the start, and whenever an account turns general. Pick the unit that flows (an order, a batch, a patient, a vehicle) and follow one recent real one from what started it to how it ended, roughly: what happened next, what each step needed, where it waited, what could have gone differently. Before the parts settle, walk a second, different case (an exception, a bad day, another unit) so that one story does not set the decomposition.
 - **Ask about the last time.** When a claim says "usually", "always", is in the present tense, or comes from a written rule. "When did that last happen? What did you do?" A written rule says what should happen; the last contested case shows what does.
 - **Sweep one property.** Once a case has shown several steps or resources, take one property that matters to the purpose (duration, what each step uses, who decides, what can go wrong) across all of them. Sweep properties, never headings.
 - **Ask for the basis.** When confidence or applicability depends on it. "How do you know? What do you look at? What would a newcomer get wrong here?"
@@ -43,18 +43,19 @@ Choose a move for the active gap, ask, see what changed, then choose again.
 
 A cue is a hypothesis to test, not a fact to record. Follow it only when it could bear on the purpose.
 
-| They say                                              | Suspect                                                     | Ask                                                                                            |
-| ----------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| "usually", "roughly", "it depends"                    | variation with a selecting condition, or harmless vagueness | whether it matters; if so, the last time, or what decides                                      |
-| "always", "never", "the rule is", a document          | a posted rule that practice bends                           | the last contested or exceptional case                                                         |
-| waiting, "we have to wait for"                        | an unavailable input, resource, approval, batch or calendar | what it waits for and what event lets it continue                                              |
-| a person, machine, bay or vehicle several steps share | contention                                                  | how many, who gets it when two need it, when it frees, in what state                           |
-| something a step needs                                | used up, held then released, or only looked at              | which; if held, when and in what state it comes back                                           |
-| breaks, redo, retry, scrap, expires                   | a failure path                                              | what is lost, what repeats (one step, a stretch, the whole case), what stays held, how it ends |
-| warming, wear, charge, level, draining                | a drifting quantity with a threshold                        | what crosses what, what happens then, whether it resets                                        |
-| changeover, setup, cleaning, restart                  | a mode change                                               | whether A to B costs the same as B to A                                                        |
-| batch, lot, load                                      | grouped movement                                            | released by count or by clock; whether groups split or merge                                   |
-| shifts, opening hours, weekends                       | a calendar                                                  | elapsed time versus work time                                                                  |
+| They say                                                      | Suspect                                                           | Ask                                                                                                                  |
+| ------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| "usually", "roughly", "it depends"                            | variation with a selecting condition, or harmless vagueness       | whether it matters; if so, the last time, or what decides                                                            |
+| "always", "never", "the rule is", a document                  | a posted rule that practice bends                                 | the last contested or exceptional case                                                                               |
+| waiting, "we have to wait for"                                | an unavailable input, resource, approval, batch or calendar       | what it waits for and what event lets it continue                                                                    |
+| a person, machine, bay or vehicle several steps share         | contention                                                        | how many, who gets it when two need it, when it frees, in what state                                                 |
+| something a step needs                                        | used up, held then released, or only looked at                    | which; if held, when and in what state it comes back                                                                 |
+| breaks, redo, retry, scrap, expires                           | a failure path                                                    | what is lost, what repeats (one step, a stretch, the whole case), what stays held, how it ends                       |
+| warming, wear, charge, level, draining                        | a drifting quantity with a threshold                              | what crosses what, what happens then, whether it resets                                                              |
+| changeover, setup, cleaning, restart                          | a mode change                                                     | whether A to B costs the same as B to A                                                                              |
+| batch, lot, load                                              | grouped movement                                                  | released by count or by clock; whether groups split or merge                                                         |
+| shifts, opening hours, weekends                               | a calendar                                                        | elapsed time versus work time                                                                                        |
+| "the system knows", "the sensor shows", "we send the command" | a reading or command standing in for the physical state or effect | how old a reading can be when acted on; whether a command can be lost, refused or late; what confirms it took effect |
 
 ## Quantities
 
@@ -67,6 +68,7 @@ Ask only to the precision the purpose needs: whether the typical case, the sprea
 - Precision rising without evidence: restore the hedge, or mark the assumption as yours.
 - Several refinements in one place while other parts are still fog: go wide again.
 - Two contextual values merged into one: restore the conditions.
+- Answers keep needing exceptions, workarounds or new parts to fit the purpose or decomposition you hold: suspect the frame rather than the detail; name what does not fit and offer the reframing.
 - Patience running out: name the smallest gap that matters and offer the choice between spending the next turn there or stopping with it visible. Impatience changes how you ask, not what is known.
 
 ## Closing
