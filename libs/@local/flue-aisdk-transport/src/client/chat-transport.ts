@@ -46,6 +46,16 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
   >["position"];
 }
 
+/** A re-attach to the update stream after Flue's SDK gave up on it. */
+export interface FlueChatReattachEvent {
+  readonly submissionId: AgentSendResult["submissionId"];
+  /** Consecutive re-attaches that projected nothing new, this one included. */
+  readonly attempt: number;
+  readonly delayMs: number;
+  /** The failure Flue's SDK gave up on. */
+  readonly error: unknown;
+}
+
 /**
  * Host settings for one chat transport; projection comes from the adapter.
  * The `on*` callbacks are observers: one that throws cannot change the turn.
@@ -74,6 +84,11 @@ export interface FlueChatTransportOptions {
   readonly onResponseMessageCompleted?: (
     event: FlueChatResponseMessageCompletedEvent,
   ) => void;
+  /**
+   * Each re-attach the turn survives. When re-attaching gives up, the stream
+   * fails with {@link FlueChatDisconnectError}, which only `onError` reports.
+   */
+  readonly onReattach?: (event: FlueChatReattachEvent) => void;
   /**
    * Server tool failures never reach `useChat.onError`; this is the only seam
    * that sees them. Admission, stream and settlement
@@ -115,6 +130,27 @@ export class FlueChatAdmissionError extends Error {
     super(admissionFailureMessage(failure), options);
     this.name = "FlueChatAdmissionError";
     this.failure = failure;
+  }
+}
+
+/**
+ * The transport stopped following a submission that had not settled, so the
+ * turn may still be running; reopened history recovers it. A `TypeError` whose
+ * message names the network is what the AI SDK reports as `isDisconnect`.
+ */
+export class FlueChatDisconnectError extends TypeError {
+  public readonly submissionId: AgentSendResult["submissionId"];
+
+  public constructor(
+    submissionId: AgentSendResult["submissionId"],
+    options?: { readonly cause?: unknown },
+  ) {
+    super(
+      "The network connection to the agent was lost before the chat turn settled; the turn may still be running. Reopen the conversation to recover.",
+      options,
+    );
+    this.name = "FlueChatDisconnectError";
+    this.submissionId = submissionId;
   }
 }
 
@@ -206,14 +242,7 @@ const streamFailureChunk = (
           : "The local chat stream was cancelled.",
     };
   }
-  return {
-    type: "error",
-    errorText:
-      error instanceof FlueExecutionError &&
-      error.failure === "terminal_event_missing"
-        ? "The chat stream ended before the turn settled."
-        : serializeErrorText(error),
-  };
+  return { type: "error", errorText: serializeErrorText(error) };
 };
 
 type ChunkPosition = Exclude<
@@ -243,22 +272,16 @@ const pause = (milliseconds: number, signal: AbortSignal): Promise<void> =>
     signal.addEventListener("abort", finish, { once: true });
   });
 
-/**
- * A settled turn or a local cancellation ends the stream, and Flue's SDK has
- * already spent its own retry budget on 401 and 403; anything else may be the
- * update stream itself.
- */
-const isReattachable = (error: unknown, signal: AbortSignal): boolean =>
-  !signal.aborted &&
-  !isAbortError(error) &&
-  !(
-    error instanceof FetchError &&
-    (error.status === 401 || error.status === 403)
-  ) &&
-  !(
-    error instanceof FlueExecutionError &&
-    error.failure !== "terminal_event_missing"
-  );
+/** A settled turn or a local cancellation; anything else may be the update stream itself. */
+const endsTheTurn = (error: unknown, signal: AbortSignal): boolean =>
+  signal.aborted ||
+  isAbortError(error) ||
+  (error instanceof FlueExecutionError &&
+    error.failure !== "terminal_event_missing");
+
+/** Flue's SDK has already spent its own retry budget on 401 and 403. */
+const isSpentAuthRetry = (error: unknown): boolean =>
+  error instanceof FetchError && (error.status === 401 || error.status === 403);
 
 const streamSubmission = (
   options: FlueChatTransportOptions & FlueUiProjectionOptions,
@@ -291,6 +314,13 @@ const streamSubmission = (
         disconnectLive?.();
         localAbort.abort();
         controller.close();
+      };
+      const fail = (error: FlueChatDisconnectError): void => {
+        if (closed) return;
+        closed = true;
+        disconnectLive?.();
+        localAbort.abort();
+        controller.error(error);
       };
       const write = (chunk: UIMessageChunk): void => {
         if (closed) return;
@@ -387,16 +417,21 @@ const streamSubmission = (
             await options.client.wait(admission, { signal, onEvent });
             return;
           } catch (error) {
+            if (projectionFailed || endsTheTurn(error, signal)) throw error;
             if (watermark !== watermarkBefore) fruitlessReattaches = 0;
             const delay = reattachDelaysMs[fruitlessReattaches];
-            if (
-              projectionFailed ||
-              delay === undefined ||
-              !isReattachable(error, signal)
-            ) {
-              throw error;
+            if (delay === undefined || isSpentAuthRetry(error)) {
+              throw new FlueChatDisconnectError(admission.submissionId, {
+                cause: error,
+              });
             }
             fruitlessReattaches += 1;
+            options.onReattach?.({
+              submissionId: admission.submissionId,
+              attempt: fruitlessReattaches,
+              delayMs: delay,
+              error,
+            });
             // eslint-disable-next-line no-await-in-loop
             await pause(delay, signal);
             signal.throwIfAborted();
@@ -407,6 +442,10 @@ const streamSubmission = (
       void follow()
         .then(close)
         .catch((error: unknown) => {
+          if (error instanceof FlueChatDisconnectError && !terminalEmitted) {
+            fail(error);
+            return;
+          }
           if (!terminalEmitted) {
             write(streamFailureChunk(error, signal));
           }

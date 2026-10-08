@@ -3,7 +3,10 @@ import { expect, test, vi } from "vitest";
 
 import { useUiChunkRecorder } from "../../test/ai-sdk-oracle";
 import { useRaisedErrors } from "../../test/raised-errors";
-import { createFlueChatTransport } from "./chat-transport";
+import {
+  createFlueChatTransport,
+  FlueChatDisconnectError,
+} from "./chat-transport";
 
 import type { FlueChatTransportOptions } from "./chat-transport";
 import type {
@@ -267,15 +270,12 @@ test("starts with history-only reconnection", async () => {
 test.each([
   [
     "failed",
-    new Error("Elicitor tool failed.", {
-      cause: { field: "answer", reason: "Required" },
+    new FlueExecutionError({
+      target: "agent_submission",
+      targetId: admission.submissionId,
+      failure: "failed",
     }),
-    {
-      type: "error",
-      errorText:
-        'Elicitor tool failed.\nCaused by: {"field":"answer","reason":"Required"}',
-    },
-    4,
+    expect.objectContaining({ type: "error" }),
   ],
   [
     "aborted",
@@ -285,25 +285,10 @@ test.each([
       failure: "aborted",
     }),
     { type: "abort", reason: "The chat turn was stopped." },
-    1,
-  ],
-  [
-    "missing terminal event",
-    new FlueExecutionError({
-      target: "agent_submission",
-      targetId: admission.submissionId,
-      failure: "terminal_event_missing",
-    }),
-    {
-      type: "error",
-      errorText: "The chat stream ended before the turn settled.",
-    },
-    4,
   ],
 ])(
-  "maps a %s wait rejection into the finite UI stream",
-  async (_label, waitError, expected, waits) => {
-    vi.useFakeTimers();
+  "maps a settled %s wait rejection into the finite UI stream",
+  async (_label, waitError, expected) => {
     const send = vi.fn<FlueClient["send"]>(async () => admission);
     const wait = vi.fn<FlueClient["wait"]>(async () => {
       throw waitError;
@@ -322,12 +307,71 @@ test.each([
         },
       ]),
     );
+
+    expect(await readChunks(stream)).toEqual([expected]);
+    expect(wait).toHaveBeenCalledOnce();
+  },
+);
+
+test.each([
+  ["a refused reconnect", refusedReconnect(410)],
+  [
+    "a stream that ends before the turn settles",
+    new FlueExecutionError({
+      target: "agent_submission",
+      targetId: admission.submissionId,
+      failure: "terminal_event_missing",
+    }),
+  ],
+  ["an unclassified wait failure", new Error("The stream broke.")],
+])(
+  "fails the stream as an AI SDK disconnect once re-attaching gives up on %s",
+  async (_label, waitError) => {
+    vi.useFakeTimers();
+    const send = vi.fn<FlueClient["send"]>(async () => admission);
+    const wait = vi.fn<FlueClient["wait"]>(async () => {
+      throw waitError;
+    });
+    const onReattach =
+      vi.fn<NonNullable<FlueChatTransportOptions["onReattach"]>>();
+    const transport = createFlueChatTransport({
+      client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+      clientToolNames: new Set(),
+      onReattach,
+    });
+
+    const stream = await transport.sendMessages(
+      sendOptions([
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "Lose the stream." }],
+        },
+      ]),
+    );
     const reading = readChunks(stream);
+    reading.catch(() => {});
     await vi.runAllTimersAsync();
     vi.useRealTimers();
 
-    expect(await reading).toEqual([expected]);
-    expect(wait).toHaveBeenCalledTimes(waits);
+    const failure = await reading.then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(failure).toBeInstanceOf(FlueChatDisconnectError);
+    expect(failure).toBeInstanceOf(TypeError);
+    expect(failure).toMatchObject({
+      submissionId: admission.submissionId,
+      cause: waitError,
+    });
+    expect(wait).toHaveBeenCalledTimes(4);
+    expect(
+      onReattach.mock.calls.map(([event]) => [event.attempt, event.delayMs]),
+    ).toEqual([
+      [1, 250],
+      [2, 500],
+      [3, 1000],
+    ]);
   },
 );
 
@@ -348,9 +392,12 @@ test("re-attaches after the update stream fails, projecting each chunk once", as
     vi.fn<
       NonNullable<FlueChatTransportOptions["onResponseMessageCompleted"]>
     >();
+  const onReattach =
+    vi.fn<NonNullable<FlueChatTransportOptions["onReattach"]>>();
   const transport = createFlueChatTransport({
     client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
     clientToolNames: new Set(),
+    onReattach,
     onResponseMessage,
     onResponseMessageCompleted,
   });
@@ -378,6 +425,13 @@ test("re-attaches after the update stream fails, projecting each chunk once", as
     "finish",
   ]);
   expect(wait).toHaveBeenCalledTimes(2);
+  expect(onReattach).toHaveBeenCalledOnce();
+  expect(onReattach.mock.calls[0]?.[0]).toMatchObject({
+    submissionId: admission.submissionId,
+    attempt: 1,
+    delayMs: 250,
+    error: { status: 410 },
+  });
   expect(onResponseMessage).toHaveBeenCalledOnce();
   expect(onResponseMessageCompleted).toHaveBeenCalledOnce();
 });
@@ -480,16 +534,20 @@ test("a live tool call survives its live channel and update stream dropping toge
 test.each([401, 403])(
   "does not re-attach after Flue's SDK has spent its own %i retries",
   async (status) => {
+    const refusal = refusedReconnect(status);
     const send = vi.fn<FlueClient["send"]>(async () => admission);
     const wait = vi.fn<FlueClient["wait"]>(async () => {
-      throw refusedReconnect(status);
+      throw refusal;
     });
+    const onReattach =
+      vi.fn<NonNullable<FlueChatTransportOptions["onReattach"]>>();
     const transport = createFlueChatTransport({
       client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
       clientToolNames: new Set(),
+      onReattach,
     });
 
-    const chunks = await readChunks(
+    const reading = readChunks(
       await transport.sendMessages(
         sendOptions([
           {
@@ -501,8 +559,10 @@ test.each([401, 403])(
       ),
     );
 
-    expect(chunks).toEqual([expect.objectContaining({ type: "error" })]);
+    await expect(reading).rejects.toBeInstanceOf(FlueChatDisconnectError);
+    await expect(reading).rejects.toMatchObject({ cause: refusal });
     expect(wait).toHaveBeenCalledOnce();
+    expect(onReattach).not.toHaveBeenCalled();
   },
 );
 
