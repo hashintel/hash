@@ -99,6 +99,10 @@ Represent disruptions separately from normal progress when they befall the proce
 
 Carry a changing quantity in state with the supported evolution law. Fire consequential behavior at the recorded threshold and add a reset only when one is supported. Omit a floating continuous variable that affects no objective or process behavior.
 
+### Observation and command
+
+When the account lets a physical condition and what the system knows of it diverge, represent them apart: the condition, the latest reading with its age, and the decision taken on that reading. Likewise separate issuing a command from its delivery, acceptance and physical effect where any of these can fail or lag. Collapse them only as a labelled simplification when no objective depends on the gap.
+
 ### Spatial transfer
 
 Represent transfer as an activity when location change consumes time or resources. Reserve transport capacity when contended and preserve origin-to-destination dependence when supported.
