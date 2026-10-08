@@ -1,6 +1,10 @@
 import { use } from "react";
 
-import { EditorContext, type SimulateViewMode } from "../state/editor-context";
+import {
+  EditorContext,
+  type SimulateDrawerState,
+  type SimulateViewMode,
+} from "../state/editor-context";
 
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
@@ -11,6 +15,23 @@ export type PetrinautRevealTarget =
       readonly mode: SimulateViewMode;
       readonly itemId?: string;
     };
+
+const simulateDrawerFor = (
+  mode: SimulateViewMode,
+  itemId: string | undefined,
+): SimulateDrawerState => {
+  if (!itemId) {
+    return { type: "closed" };
+  }
+  switch (mode) {
+    case "scenarios":
+      return { type: "view-scenario", scenarioId: itemId };
+    case "metrics":
+      return { type: "view-metric", metricId: itemId };
+    case "experiments":
+      return { type: "view-experiment", experimentId: itemId };
+  }
+};
 
 /**
  * Shows a target the way the editor's own controls do: an item becomes the
@@ -32,14 +53,7 @@ export const useRevealInEditor = (): ((
     navigateTo({
       globalMode: "simulate",
       simulateViewMode: target.mode,
-      simulateDrawer:
-        target.itemId === undefined
-          ? { type: "closed" }
-          : target.mode === "scenarios"
-            ? { type: "view-scenario", scenarioId: target.itemId }
-            : target.mode === "metrics"
-              ? { type: "view-metric", metricId: target.itemId }
-              : { type: "view-experiment", experimentId: target.itemId },
+      simulateDrawer: simulateDrawerFor(target.mode, target.itemId),
     });
   };
 };

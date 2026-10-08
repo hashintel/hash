@@ -16,6 +16,7 @@ import {
 import { BrunchToolList } from "./tool-list/brunch-tool-list";
 import { StockToolList } from "./tool-list/stock-tool-list";
 
+import type { SimulateViewMode } from "../../../../../../react/state/editor-context";
 import type {
   PetrinautAiAssistantPresentation,
   PetrinautAiToolPresentationResolver,
@@ -95,6 +96,15 @@ export const getToolName = (part: RenderableToolPart) =>
 const hasInteractiveToolInput = (state: string): boolean =>
   state === "input-available" || state === "output-available";
 
+const simulateViewModes = {
+  scenarios: true,
+  metrics: true,
+  experiments: true,
+} satisfies Record<SimulateViewMode, true>;
+
+const isSimulateViewMode = (value: unknown): value is SimulateViewMode =>
+  typeof value === "string" && Object.hasOwn(simulateViewModes, value);
+
 const getAiToolTarget = (value: unknown): AiToolTarget | undefined => {
   if (typeof value !== "object" || value === null) {
     return undefined;
@@ -113,12 +123,7 @@ const getAiToolTarget = (value: unknown): AiToolTarget | undefined => {
     return { kind: "selection", item: candidate.item as SelectionItem };
   }
 
-  if (
-    candidate.kind === "simulateView" &&
-    (candidate.mode === "scenarios" ||
-      candidate.mode === "metrics" ||
-      candidate.mode === "experiments")
-  ) {
+  if (candidate.kind === "simulateView" && isSimulateViewMode(candidate.mode)) {
     return {
       kind: "simulateView",
       mode: candidate.mode,
