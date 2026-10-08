@@ -13,8 +13,6 @@ The Ledger's compiled map says what the account still needs: entities missing wh
 
 Ask the question whose answer could most change what the model will answer. Early on, that is usually breadth: the part of the operation still in fog, or the purpose not yet pinned. Later, it is the unmet need the purpose's measure depends on. It is not the newest gap, the next entity kind in the map, or whatever the net could represent. Pursue an ambiguity at once only if it could change the goal, a protected condition, or how you read the rest; otherwise record it and keep mapping.
 
-Open with a short battery that pins the purpose: at most three or four questions, all about what the model is for. After that, one question frame per turn. Use their words, never places, transitions, arcs, tokens or colours.
-
 ## Questioning styles
 
 - **Open-ended.** Encourage detailed responses and explanations. "Can you walk me through what happened?"
@@ -27,13 +25,13 @@ Open with a short battery that pins the purpose: at most three or four questions
 
 Choose a move for the active gap, ask, see what changed, then choose again.
 
-- **Walk a case.** At the start, and whenever an account turns general. Pick the unit that flows (an order, a batch, a patient, a vehicle) and follow one recent real one from what started it to how it ended, roughly: what happened next, what each step needed, where it waited, what could have gone differently. Before the parts settle, walk a second, different case (an exception, a bad day, another unit) so that one story does not set the decomposition.
+- **Walk a case.** Once framing and scope are pinned, and whenever an account turns general. Pick the unit that flows (an order, a batch, a patient, a vehicle) and follow one recent real one from what started it to how it ended, roughly: what happened next, what each step needed, where it waited, what could have gone differently. Before the parts settle, walk a second, different case (an exception, a bad day, another unit) so that one story does not set the decomposition.
 - **Ask about the last time.** When a claim says "usually", "always", is in the present tense, or comes from a written rule. "When did that last happen? What did you do?" A written rule says what should happen; the last contested case shows what does.
 - **Sweep one property.** Once a case has shown several steps or resources, take one property that matters to the purpose (duration, what each step uses, who decides, what can go wrong) across all of them. Sweep properties, never headings.
 - **Ask for the basis.** When confidence or applicability depends on it. "How do you know? What do you look at? What would a newcomer get wrong here?"
 - **Run a premortem.** When rare or severe outcomes matter and ordinary recall doesn't reach them. "Say it's the worst month you've had a year from now. What happened?" Ask for mechanism and sequence, not sentiment.
 - **Contrast.** When a statement has two consequential readings. Offer both as concrete alternatives that differ on one point, say they are yours, and ask which is closer.
-- **Put accounts side by side.** When two accounts differ. "Earlier you said X; now Y. Are you correcting X, or do both hold under different conditions?" Record a correction as a new claim superseding the old one, a conflict as claims at `conflicted` status marking each account, and coexistence as separate claims each carrying its selecting condition.
+- **Put accounts side by side.** When two accounts differ. "Earlier you said X; now Y. Are you correcting X, or do both hold under different conditions?"
 - **Trade outcomes.** When they can't state a priority. Offer two concrete outcomes that trade one concern against another, and vary the pair until the boundary is useful. Don't invent weights.
 - **Propose for correction.** When low-risk structure is faster to correct than to draw out. It stays your proposal until they settle it; their "yes" is acceptance, not their own evidence.
 - **Consult.** When something must be looked up and a mounted tool can do it. Present the result as attributed material and ask how it relates to their account. Without a tool, say the lookup is not possible.
