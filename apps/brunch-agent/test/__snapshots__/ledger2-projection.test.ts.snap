@@ -3,28 +3,13 @@
 exports[`the worked example renders the approved markdown structure > agent skin 1`] = `
 "# Brightwater support desk — peak staffing
 
-## Framing & objectives
+## Framing
 
 ### Goals \`purpose\`
 
 - **Decide peak staffing** — stated · confirmed \`e1\`
 
-### Metrics \`metric\`
-
-- **Average waiting time** — stated · confirmed \`e2\`
-  - The measure is average waiting time from joining the queue to answer, over the peak window, reported weekly. — stated · confirmed \`c1\`
-
-### Levers \`lever\`
-
-- **Agents on the block** — stated · confirmed \`e4\`
-  - Staffing is a whole number of agents from two to eight; eight seats and licences is the cap, two is the floor the team leads will accept. — stated · confirmed \`c2\`
-  - Is the current six one agent too many on the peak block? — stated · conflicted \`c10\`
-
-## Scope & constraints
-
-### Maximizations / Minimizations \`direction\`
-
-- **Keep peak waiting time low** — stated · confirmed \`e3\`
+## Scope
 
 ### Horizons \`horizon\`
 
@@ -35,15 +20,18 @@ exports[`the worked example renders the approved markdown structure > agent skin
     - ~~About 45 calls an hour arrive during the peak.~~ — superseded \`c4\`
   - Is there a pattern inside the two-hour block beyond “it builds after ten”? — stated · open \`c11\`
 
+## Inputs
+
+### Levers \`lever\`
+
+- **Agents on the block** — stated · confirmed \`e4\`
+  - Staffing is a whole number of agents from two to eight; eight seats and licences is the cap, two is the floor the team leads will accept. — stated · confirmed \`c2\`
+  - Is the current six one agent too many on the peak block? — stated · conflicted \`c10\`
+
 ### Limits \`limit\`
 
 - **Seat and licence cap** — stated · confirmed \`e5\`
   - Staffing is a whole number of agents from two to eight; eight seats and licences is the cap, two is the floor the team leads will accept. — stated · confirmed \`c2\`
-
-### Thresholds \`threshold\`
-
-- **The ten-minute promise** — stated · confirmed \`e6\`
-  - No caller waits more than ten minutes — a hard rule, not a preference to trade off. — stated · confirmed \`c8\`
 
 ## The system
 
@@ -77,6 +65,22 @@ exports[`the worked example renders the approved markdown structure > agent skin
 - **Caller abandonment** — stated · tentative \`e12\`
   - Callers start hanging up after about eight to ten minutes on hold; the export shows when they left, not why. — stated · tentative \`c9\`
 
+## Outputs
+
+### Metrics \`metric\`
+
+- **Average waiting time** — stated · confirmed \`e2\`
+  - The measure is average waiting time from joining the queue to answer, over the peak window, reported weekly. — stated · confirmed \`c1\`
+
+### Maximizations / Minimizations \`direction\`
+
+- **Keep peak waiting time low** — stated · confirmed \`e3\`
+
+### Thresholds \`threshold\`
+
+- **The ten-minute promise** — stated · confirmed \`e6\`
+  - No caller waits more than ten minutes — a hard rule, not a preference to trade off. — stated · confirmed \`c8\`
+
 ## Open questions
 
 :::question
@@ -104,28 +108,13 @@ It matters and nobody knows yet. Concerns: Weekday morning peak, Callers. Record
 exports[`the worked example renders the approved markdown structure > user skin 1`] = `
 "# Brightwater support desk — peak staffing
 
-## Framing & objectives
+## Framing
 
 ### Goals
 
 - **Decide peak staffing** — stated · confirmed
 
-### Metrics
-
-- **Average waiting time** — stated · confirmed
-  - The measure is average waiting time from joining the queue to answer, over the peak window, reported weekly. — stated · confirmed
-
-### Levers
-
-- **Agents on the block** — stated · confirmed
-  - Staffing is a whole number of agents from two to eight; eight seats and licences is the cap, two is the floor the team leads will accept. — stated · confirmed
-  - Is the current six one agent too many on the peak block? — stated · conflicted
-
-## Scope & constraints
-
-### Maximizations / Minimizations
-
-- **Keep peak waiting time low** — stated · confirmed
+## Scope
 
 ### Horizons
 
@@ -136,15 +125,18 @@ exports[`the worked example renders the approved markdown structure > user skin 
     - ~~About 45 calls an hour arrive during the peak.~~ — superseded
   - Is there a pattern inside the two-hour block beyond “it builds after ten”? — stated · open
 
+## Inputs
+
+### Levers
+
+- **Agents on the block** — stated · confirmed
+  - Staffing is a whole number of agents from two to eight; eight seats and licences is the cap, two is the floor the team leads will accept. — stated · confirmed
+  - Is the current six one agent too many on the peak block? — stated · conflicted
+
 ### Limits
 
 - **Seat and licence cap** — stated · confirmed
   - Staffing is a whole number of agents from two to eight; eight seats and licences is the cap, two is the floor the team leads will accept. — stated · confirmed
-
-### Thresholds
-
-- **The ten-minute promise** — stated · confirmed
-  - No caller waits more than ten minutes — a hard rule, not a preference to trade off. — stated · confirmed
 
 ## The system
 
@@ -177,6 +169,22 @@ exports[`the worked example renders the approved markdown structure > user skin 
 
 - **Caller abandonment** — stated · tentative
   - Callers start hanging up after about eight to ten minutes on hold; the export shows when they left, not why. — stated · tentative
+
+## Outputs
+
+### Metrics
+
+- **Average waiting time** — stated · confirmed
+  - The measure is average waiting time from joining the queue to answer, over the peak window, reported weekly. — stated · confirmed
+
+### Maximizations / Minimizations
+
+- **Keep peak waiting time low** — stated · confirmed
+
+### Thresholds
+
+- **The ten-minute promise** — stated · confirmed
+  - No caller waits more than ten minutes — a hard rule, not a preference to trade off. — stated · confirmed
 
 ## Open questions
 

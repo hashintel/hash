@@ -1,4 +1,10 @@
-import type { EntityKind } from "../elicitation/entities.ts";
+import {
+  entityKindSides,
+  entitySides,
+  type EntityKind,
+  type EntitySide,
+} from "../elicitation/entities.ts";
+
 import type { ClaimRecord, EntityRecord, LedgerState } from "./records.ts";
 
 export interface ProjectedClaim {
@@ -46,45 +52,38 @@ export interface LedgerProjection {
   addressEntries: AddressEntry[];
 }
 
-const sectionClusters: {
-  title: string;
-  kinds: { kind: EntityKind; label: string }[];
-}[] = [
-  {
-    title: "Framing & objectives",
-    kinds: [
-      { kind: "purpose", label: "Goals" },
-      { kind: "metric", label: "Metrics" },
-      { kind: "lever", label: "Levers" },
-    ],
-  },
-  {
-    title: "Scope & constraints",
-    kinds: [
-      { kind: "target", label: "Targets" },
-      { kind: "direction", label: "Maximizations / Minimizations" },
-      { kind: "optimum", label: "Optimizations" },
-      { kind: "horizon", label: "Horizons" },
-      { kind: "boundary", label: "Boundaries" },
-      { kind: "limit", label: "Limits" },
-      { kind: "threshold", label: "Thresholds" },
-      { kind: "externality", label: "Externalities" },
-    ],
-  },
-  {
-    title: "The system",
-    kinds: [
-      { kind: "thing", label: "Items" },
-      { kind: "location", label: "Locations" },
-      { kind: "resource", label: "Resources" },
-      { kind: "activity", label: "Activities" },
-      { kind: "actor", label: "Actors" },
-      { kind: "rule", label: "Policies" },
-      { kind: "event", label: "Events" },
-      { kind: "flow", label: "Sequences" },
-    ],
-  },
-];
+const sideTitles: Record<EntitySide, string> = {
+  framing: "Framing",
+  scope: "Scope",
+  input: "Inputs",
+  system: "The system",
+  output: "Outputs",
+};
+
+/** User-facing plural labels; the canonical kind stays agent-facing. */
+const kindLabels: Record<EntityKind, string> = {
+  purpose: "Goals",
+  horizon: "Horizons",
+  boundary: "Boundaries",
+  lever: "Levers",
+  limit: "Limits",
+  optimum: "Optimizations",
+  thing: "Items",
+  location: "Locations",
+  resource: "Resources",
+  activity: "Activities",
+  actor: "Actors",
+  rule: "Policies",
+  event: "Events",
+  flow: "Sequences",
+  metric: "Metrics",
+  direction: "Maximizations / Minimizations",
+  target: "Targets",
+  threshold: "Thresholds",
+  externality: "Externalities",
+};
+
+const kindsInOrder = Object.keys(entityKindSides) as EntityKind[];
 
 const addressNumber = (address: string) => Number(address.slice(1));
 
@@ -136,13 +135,14 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     .filter((entity) => entity.status === "out-of-scope")
     .map(projectEntity);
 
-  const sections = sectionClusters
-    .map(({ title, kinds }) => ({
-      title,
-      kinds: kinds
-        .map(({ kind, label }) => ({
+  const sections = entitySides
+    .map((side) => ({
+      title: sideTitles[side],
+      kinds: kindsInOrder
+        .filter((kind) => entityKindSides[kind] === side)
+        .map((kind) => ({
           kind,
-          label,
+          label: kindLabels[kind],
           entities: included
             .filter((entity) => entity.kind === kind)
             .sort(
