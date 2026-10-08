@@ -15,7 +15,7 @@ import { selfContainedGuidanceVariants } from "../src/agents/chat-agent/guidance
 import {
   commitToolDescription as ledger2CommitDescription,
   compileToolDescription as ledger2CompileDescription,
-} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/ledger-tools.ts";
+} from "../src/agents/chat-agent/guidance/manual/tools/ledger.ts";
 import { queryBasisToolDescription as manualQueryBasisDescription } from "../src/agents/chat-agent/guidance/manual/tools/query-basis.ts";
 import {
   assertPetrinautToolCatalogueConformance,

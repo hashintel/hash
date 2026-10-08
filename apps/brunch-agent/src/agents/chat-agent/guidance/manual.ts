@@ -4,7 +4,7 @@ import petrinautCapability from "./manual/prompts/petrinaut-capability.md?raw";
 import system from "./manual/prompts/system.md?raw";
 import constructing from "./manual/skills/constructing/SKILL.md";
 import eliciting from "./manual/skills/eliciting/SKILL.md";
-import { createLedger2Tools } from "./manual/tools/ledger2/ledger-tools.ts";
+import { createLedger2Tools } from "./manual/tools/ledger.ts";
 import { createQueryBasisTool } from "./manual/tools/query-basis.ts";
 
 import type { LedgerHistory } from "./manual/tools/ledger2/commits.ts";
