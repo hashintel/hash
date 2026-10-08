@@ -1,5 +1,5 @@
 import { Either, FastCheck, pipe } from "effect";
-import { bench, describe } from "vitest";
+import { describe, test } from "vitest";
 
 import { MutableBuffer, MutableBytes } from "../../src/binary/index.js";
 import { Request } from "../../src/wire-protocol/models/request/index.js";
@@ -35,29 +35,35 @@ const responseEncoded = pipe(
 );
 
 describe("request", () => {
-  bench("encode", () => {
-    Request.encode(MutableBuffer.makeWrite(), request[0]!).pipe(
-      Either.getOrThrow,
-    );
-  });
+  // eslint-disable-next-line vitest/expect-expect
+  test("codec", async ({ bench }) => {
+    await bench("encode", () => {
+      Request.encode(MutableBuffer.makeWrite(), request[0]!).pipe(
+        Either.getOrThrow,
+      );
+    }).run();
 
-  bench("decode", () => {
-    const buffer = MutableBuffer.makeRead(MutableBytes.from(requestEncoded));
+    await bench("decode", () => {
+      const buffer = MutableBuffer.makeRead(MutableBytes.from(requestEncoded));
 
-    Request.decode(buffer);
+      Request.decode(buffer);
+    }).run();
   });
 });
 
 describe("response", () => {
-  bench("encode", () => {
-    Response.encode(MutableBuffer.makeWrite(), response[0]!).pipe(
-      Either.getOrThrow,
-    );
-  });
+  // eslint-disable-next-line vitest/expect-expect
+  test("codec", async ({ bench }) => {
+    await bench("encode", () => {
+      Response.encode(MutableBuffer.makeWrite(), response[0]!).pipe(
+        Either.getOrThrow,
+      );
+    }).run();
 
-  bench("decode", () => {
-    const buffer = MutableBuffer.makeRead(MutableBytes.from(responseEncoded));
+    await bench("decode", () => {
+      const buffer = MutableBuffer.makeRead(MutableBytes.from(responseEncoded));
 
-    Response.decode(buffer);
+      Response.decode(buffer);
+    }).run();
   });
 });
