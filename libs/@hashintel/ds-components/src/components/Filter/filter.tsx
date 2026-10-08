@@ -26,6 +26,7 @@ import {
 } from "../../util/SelectableList/selectable-list";
 import { getItemId } from "../../util/SelectableList/selectable-list-util";
 import { Icon } from "../Icon/icon";
+import { Menu, type MenuItem } from "../Menu/menu";
 import { Select } from "../Select/select";
 import { BaseTooltip } from "../Tooltip/base-tooltip";
 import { RejectedKeysHint } from "./filter-keypress-hint";
@@ -36,10 +37,12 @@ import {
   abandonedFadeStyle,
   CHIP_COLLAPSE_MS,
   FilterGroupAbandonmentContext,
-  focusWithoutRing,
+  focusInitialSegment,
   shouldAnimateChipRemoval,
   startChipCollapse,
+  inputShapesEqual,
   isAbandonable,
+  isEmptySlot,
   isIntegerConfig,
   isSelectDropdownOpen,
   committedEqual,
@@ -61,11 +64,29 @@ import { filterRecipe } from "./filter.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
 import type { MultiSelectItem } from "../Select/select";
+import type { ExclusifyUnion } from "type-fest";
 
 export type FilterOperator<ValueMap extends Record<string, unknown>> = {
   [Key in keyof ValueMap & string]: {
     key: Key;
+    /**
+     * Plain-text name of the operator: the default rendering everywhere,
+     * and always what dropdown typeahead matches and the value inputs'
+     * aria-labels read.
+     */
     label: string;
+    /**
+     * Custom content for the operator's dropdown row. Defaults to `label`.
+     * A single element keeps natural inline flow, so e.g. a subtle
+     * description span stays baseline-aligned with the main text.
+     */
+    renderItem?: React.ReactNode;
+    /**
+     * Custom content for the chip's operator segment once this operator is
+     * selected. Defaults to `renderItem`, or `label` if neither is
+     * provided.
+     */
+    renderSelectedItem?: React.ReactNode;
     input: InputFor<ValueMap[Key]>;
     onChange?: (value: ValueMap[Key] | null) => void;
   };
@@ -136,7 +157,7 @@ const FilterSelectInput = ({
   size: FormInputSize;
   disabled?: boolean;
   invalid?: boolean;
-  /** Mount with the dropdown already open (a fresh operator's first input) */
+  /** Mount with the dropdown already open (a fresh operator's still-empty first input) */
   defaultOpen?: boolean;
   ariaLabel: string;
   assignRef: (element: HTMLElement | null) => void;
@@ -203,11 +224,12 @@ const FilterSelectInput = ({
     <Select
       {...shared}
       multiple={false}
+      required
       items={resolvedItems}
       searchable={config.searchable}
       renderSelectedItem={config.renderSelectedItem}
-      value={typeof slot === "string" ? slot : null}
-      onChange={(next) => onSlotChange(next ?? null)}
+      value={typeof slot === "string" ? slot : ""}
+      onChange={(next) => onSlotChange(next)}
       hideArrow
     />
   );
@@ -216,15 +238,21 @@ const FilterSelectInput = ({
 /**
  * An inline, chip-like filter control: a property label, an operator
  * dropdown, and — once an operator is chosen — that operator's input(s).
+ * The property segment is static unless `propertyMenu` (a dropdown of
+ * property-related actions) or `propertyOnClick` makes it interactive.
  *
  * `ValueMap` is hand-passed and maps each operator key to the value type its
  * input produces, e.g.
  * `<Filter<{ contains: string; between: [string, number]; empty: null }>>`.
  *
  * `onChange` (and the selected operator's own `onChange`) fires only once
- * every input is filled in and the user either presses Enter or moves focus
- * outside the control. Clearing every input and submitting the same way
+ * every input is filled in and the user either presses Enter — in any of the
+ * inputs, so a draft filled out of order still commits — or moves focus
+ * outside the control. Clearing every input and committing the same way
  * fires `(key, null)`; a partially filled multi-input draft never fires.
+ * The optional `onInput` instead fires on every edit — each keystroke,
+ * select change and operator switch — with the draft's value while it is
+ * complete and `null` otherwise.
  * Operators with `input: null` commit immediately on selection. Select
  * inputs additionally commit when their dropdown closes — except when it
  * closes via Escape, which cancels without committing: a single select's
@@ -243,9 +271,12 @@ export const Filter = <
   className,
   property,
   propertyLabel,
+  propertyMenu,
+  propertyOnClick,
   operators,
   value = null,
   onChange,
+  onInput,
   errors,
   disabled,
   testId,
@@ -258,7 +289,13 @@ export const Filter = <
   propertyLabel: string;
   operators: ItemOrGroup<FilterOperator<ValueMap>>[];
   value?: FilterValue<ValueMap> | null;
+  /** Fires when a complete (or fully cleared) draft is committed */
   onChange: (...change: FilterChange<ValueMap>) => void;
+  /**
+   * Fires on every edit, with the draft's value while it is complete and
+   * `null` otherwise
+   */
+  onInput?: (...change: FilterChange<ValueMap>) => void;
   /** Validation errors, shown in a tooltip below the filter on hover/focus */
   errors?: string[];
   disabled?: boolean;
@@ -266,8 +303,10 @@ export const Filter = <
   /** The size (height) of the element */
   size?: FormInputSize;
   /**
-   * Focus the chip's first interactive segment (the operator trigger, or the
-   * first input) once on mount. For chips created by a user action whose
+   * Focus the chip once on mount — its first input when an operator is
+   * pre-selected and takes input (an empty select input opens its dropdown
+   * too), otherwise the operator trigger. For chips created by a user action
+   * whose
    * mount coincides with their container's — where FilterGroup's own
    * fresh-chip focus treats them as restored state — so keyboard flow still
    * lands inside the new chip.
@@ -279,12 +318,29 @@ export const Filter = <
    * the chip as abandoned.
    */
   removeable?: false | { onRemove: () => void };
-}) => {
+} & ExclusifyUnion<
+  | {
+      /**
+       * Renders the property segment as a menu trigger — typically for
+       * switching the filter to a different property, or other
+       * property-related actions. Mutually exclusive with `propertyOnClick`.
+       */
+      propertyMenu?: Array<ItemOrGroup<MenuItem>>;
+    }
+  | {
+      /**
+       * Renders the property segment as a button. Mutually exclusive with
+       * `propertyMenu`.
+       */
+      propertyOnClick?: () => void;
+    }
+>) => {
   const looseOperators = operators as unknown as Array<
     ItemOrGroup<LooseOperator>
   >;
   const portalContainerRef = usePortalContainerRef();
   const rootRef = useRef<HTMLDivElement>(null);
+  const propertyRef = useRef<HTMLButtonElement>(null);
   const operatorTriggerRef = useRef<HTMLButtonElement>(null);
   const inputRefs = useRef<Array<HTMLElement | null>>([]);
   const operatorDropdownOpenRef = useRef(false);
@@ -315,12 +371,7 @@ export const Filter = <
         if (root.contains(document.activeElement)) {
           return;
         }
-        const segment = root.querySelector<HTMLElement>(
-          'button:enabled:not([data-part="remove"]), input:enabled',
-        );
-        if (segment) {
-          focusWithoutRing(root, segment);
-        }
+        focusInitialSegment(root);
       });
     });
   }, []);
@@ -427,6 +478,24 @@ export const Filter = <
     );
   };
 
+  const emitInput = (key: string | null, draftSlots: SlotValue[]) => {
+    if (!onInput || key === null) {
+      return;
+    }
+    const operator = operatorByKey(key);
+    if (!operator) {
+      return;
+    }
+    const normalized = normalizeSlots(operator, draftSlots);
+    const nextValue = isDraftComplete(normalized)
+      ? draftValue(operator, normalized)
+      : null;
+    (onInput as unknown as (key: string, value: unknown) => void)(
+      key,
+      nextValue,
+    );
+  };
+
   const focusSlot = (index: number) => {
     const element = inputRefs.current[index];
     if (!element) {
@@ -458,23 +527,32 @@ export const Filter = <
       return;
     }
     const configs = inputConfigsOf(operator);
+    const previousOperator = operatorByKey(draftKey);
     const nextSlots =
-      value && value.key === nextKey
-        ? slotsForValue(operator, value.value)
-        : slotsForValue(operator, null);
+      previousOperator && inputShapesEqual(previousOperator, operator)
+        ? [...slotsRef.current]
+        : value && value.key === nextKey
+          ? slotsForValue(operator, value.value)
+          : slotsForValue(operator, null);
     setDraftKey(nextKey);
     applySlots(nextSlots);
+    emitInput(nextKey, nextSlots);
     if (configs.length === 0) {
       // No input to fill in: choosing the operator is itself the submission.
       commitDraft(nextKey, nextSlots);
       setAutoOpenKey(null);
       return;
     }
-    // A leading select input mounts with its dropdown already open (in the
-    // same commit — opening after the fact would paint a closed frame
-    // first). No open-state bookkeeping is needed: openness is derived from
-    // the DOM via isSelectDropdownOpen.
-    setAutoOpenKey(configs[0]?.type === "select" ? nextKey : null);
+    // A leading select input that is still empty mounts with its dropdown
+    // already open (in the same commit — opening after the fact would paint
+    // a closed frame first); a carried or restored value needs no picking.
+    // No open-state bookkeeping is needed: openness is derived from the DOM
+    // via isSelectDropdownOpen.
+    setAutoOpenKey(
+      configs[0]?.type === "select" && isEmptySlot(nextSlots[0] ?? null)
+        ? nextKey
+        : null,
+    );
     focusFirstInput();
   };
 
@@ -498,10 +576,12 @@ export const Filter = <
     const next = [...slotsRef.current];
     next[index] = slotValue;
     applySlots(next);
+    emitInput(draftKey, next);
   };
 
-  // Left/Right move focus between the chip's segments — the operator trigger
-  // and each input, clamped to the chip (never the remove button, never
+  // Left/Right move focus between the chip's segments — the property segment
+  // (when interactive), the operator trigger and each input, clamped to the
+  // chip (never the remove button, never
   // outside it). Inside a text input the jump only happens once the caret
   // sits at the matching edge, so arrows still move the caret; a number
   // input hides its caret position, so it only jumps while empty. Open
@@ -522,6 +602,9 @@ export const Filter = <
     }
     const direction = event.key === "ArrowRight" ? 1 : -1;
     const stops: HTMLElement[] = [];
+    if (propertyRef.current) {
+      stops.push(propertyRef.current);
+    }
     if (operatorTriggerRef.current) {
       stops.push(operatorTriggerRef.current);
     }
@@ -583,13 +666,18 @@ export const Filter = <
   ) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      // In a multi-input operator, Enter advances to the next input; only
-      // Enter on the last input submits the draft.
-      if (inputRefs.current[inputIndex + 1]) {
-        focusSlot(inputIndex + 1);
-        return;
-      }
+      // Enter submits from any input, so a multi-input draft filled out of
+      // order still commits; while the draft is incomplete it instead
+      // advances to the next input.
       commitDraft(draftKey, slotsRef.current);
+      const operator = operatorByKey(draftKey);
+      if (
+        operator &&
+        !isDraftComplete(normalizeSlots(operator, slotsRef.current)) &&
+        inputRefs.current[inputIndex + 1]
+      ) {
+        focusSlot(inputIndex + 1);
+      }
     } else if (event.key === "Escape") {
       // Restore the value this input held when it received focus
       setSlot(inputIndex, inputFocusValueRef.current);
@@ -611,7 +699,7 @@ export const Filter = <
   const menuItems = useMemo<Array<ItemOrGroup<Item>>>(() => {
     const toItem = (operator: LooseOperator): Item => ({
       id: operator.key,
-      text: operator.label,
+      text: operator.renderItem ?? operator.label,
       selectedStyle: "tick",
       onClick: () => {},
     });
@@ -654,10 +742,13 @@ export const Filter = <
   const invalid = !!errors && errors.length > 0;
   // Complete = an operator is selected and every input slot holds a value
   // (number slots one that parses); the recipe merges the segments into one
-  // unit at rest by hiding the internal dividers.
+  // unit at rest by hiding the internal dividers. A chip with no operators
+  // (a label-only chip) has nothing to fill in, so it is complete as it
+  // stands — in particular it is never dismissed as abandoned.
   const complete =
-    selectedOperator !== undefined &&
-    isDraftComplete(normalizeSlots(selectedOperator, slots));
+    flatOperators.length === 0 ||
+    (selectedOperator !== undefined &&
+      isDraftComplete(normalizeSlots(selectedOperator, slots)));
 
   const onRemove = removeable ? removeable.onRemove : null;
   const abandonable = isAbandonable({
@@ -740,6 +831,32 @@ export const Filter = <
     complete,
   });
 
+  // An interactive property segment renders as a button
+  const propertyButton = (
+    <button
+      ref={propertyRef}
+      type="button"
+      data-part="property"
+      className={classes.property}
+      disabled={disabled}
+      onClick={propertyOnClick}
+      onMouseEnter={syncTruncationTitle}
+    >
+      <span className={classes.triggerLabel} data-truncates="">
+        {propertyLabel}
+      </span>
+    </button>
+  );
+  const propertySegment = propertyMenu ? (
+    <Menu items={propertyMenu} trigger={propertyButton} />
+  ) : propertyOnClick ? (
+    propertyButton
+  ) : (
+    <span className={classes.property} onMouseEnter={syncTruncationTitle}>
+      {propertyLabel}
+    </span>
+  );
+
   const chip = (
     <ArkSelect.Root
       collection={collection}
@@ -768,9 +885,7 @@ export const Filter = <
       data-property={property}
     >
       {selectableOperators && <ArkSelect.HiddenSelect />}
-      <span className={classes.property} onMouseEnter={syncTruncationTitle}>
-        {propertyLabel}
-      </span>
+      {propertySegment}
       {/* A single operator is fixed rather than selectable, so its segment is
           a plain non-interactive span; with no operators there is no segment */}
       {selectableOperators ? (
@@ -782,7 +897,11 @@ export const Filter = <
           onMouseEnter={syncTruncationTitle}
         >
           <span className={classes.triggerLabel} data-truncates="">
-            {selectedOperator?.label ?? "is…"}
+            {selectedOperator
+              ? (selectedOperator.renderSelectedItem ??
+                selectedOperator.renderItem ??
+                selectedOperator.label)
+              : "is…"}
           </span>
           {!selectedOperator && (
             <Icon name="chevronDown" size={caretSizeMap[size]} />
@@ -795,7 +914,9 @@ export const Filter = <
           onMouseEnter={syncTruncationTitle}
         >
           <span className={classes.triggerLabel} data-truncates="">
-            {selectedOperator.label}
+            {selectedOperator.renderSelectedItem ??
+              selectedOperator.renderItem ??
+              selectedOperator.label}
           </span>
         </span>
       ) : null}
@@ -831,6 +952,7 @@ export const Filter = <
           return (
             <span
               className={cx(classes.inputSlot, classes.selectSlot)}
+              data-part="input-slot"
               data-disabled={disabled ? "" : undefined}
               key={segmentKey}
             >
@@ -912,6 +1034,7 @@ export const Filter = <
         return (
           <span
             className={classes.inputSlot}
+            data-part="input-slot"
             data-disabled={disabled ? "" : undefined}
             key={segmentKey}
           >

@@ -33,6 +33,7 @@ export const styles = sva({
 
       "&[data-highlighted]": {
         backgroundColor: "neutral.a35",
+        "--item-bg": "{colors.neutral.s35}",
       },
       "&[data-disabled]:not([data-loading])": {
         cursor: "default",
@@ -188,6 +189,7 @@ export const styles = sva({
           color: "fg.heading",
           "&[data-highlighted]": {
             backgroundColor: "neutral.a25",
+            "--item-bg": "{colors.neutral.s25}",
           },
         },
       },
@@ -196,6 +198,7 @@ export const styles = sva({
           color: "blue.s90",
           "&[data-highlighted]": {
             backgroundColor: "blue.a25",
+            "--item-bg": "{colors.blue.s25}",
           },
         },
       },
@@ -204,6 +207,7 @@ export const styles = sva({
           color: "red.s90",
           "&[data-highlighted]": {
             backgroundColor: "red.a25",
+            "--item-bg": "{colors.red.s25}",
           },
         },
       },
@@ -236,6 +240,7 @@ export const styles = sva({
         item: {
           "&[data-highlighted]": {
             backgroundColor: "neutral.a25",
+            "--item-bg": "{colors.neutral.s25}",
           },
         },
       },
@@ -247,6 +252,7 @@ export const styles = sva({
         item: {
           "&[data-highlighted]": {
             backgroundColor: "blue.a25",
+            "--item-bg": "{colors.blue.s25}",
           },
         },
       },
@@ -258,6 +264,7 @@ export const styles = sva({
         item: {
           "&[data-highlighted]": {
             backgroundColor: "red.a25",
+            "--item-bg": "{colors.red.s25}",
           },
         },
       },
@@ -273,8 +280,10 @@ export const styles = sva({
       css: {
         item: {
           backgroundColor: "neutral.a35",
+          "--item-bg": "{colors.neutral.s35}",
           "&[data-highlighted]": {
             backgroundColor: "neutral.a35",
+            "--item-bg": "{colors.neutral.s35}",
           },
           "[data-highlight-navigated] &": {
             "&[data-highlighted]": {
@@ -283,6 +292,7 @@ export const styles = sva({
           },
           "&[data-highlighted]:hover": {
             backgroundColor: "neutral.a25",
+            "--item-bg": "{colors.neutral.s25}",
           },
         },
       },
@@ -294,8 +304,10 @@ export const styles = sva({
       css: {
         item: {
           backgroundColor: "blue.a40",
+          "--item-bg": "{colors.blue.s40}",
           "&[data-highlighted]": {
             backgroundColor: "blue.a40",
+            "--item-bg": "{colors.blue.s40}",
           },
           "[data-highlight-navigated] &": {
             "&[data-highlighted]": {
@@ -304,6 +316,7 @@ export const styles = sva({
           },
           "&[data-highlighted]:hover": {
             backgroundColor: "blue.a30",
+            "--item-bg": "{colors.blue.s30}",
           },
         },
       },
@@ -315,8 +328,10 @@ export const styles = sva({
       css: {
         item: {
           backgroundColor: "red.a40",
+          "--item-bg": "{colors.red.s40}",
           "&[data-highlighted]": {
             backgroundColor: "red.a40",
+            "--item-bg": "{colors.red.s40}",
           },
           "[data-highlight-navigated] &": {
             "&[data-highlighted]": {
@@ -325,6 +340,7 @@ export const styles = sva({
           },
           "&[data-highlighted]:hover": {
             backgroundColor: "red.a30",
+            "--item-bg": "{colors.red.s30}",
           },
         },
       },

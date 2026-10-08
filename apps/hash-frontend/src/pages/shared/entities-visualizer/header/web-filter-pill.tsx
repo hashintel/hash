@@ -47,16 +47,16 @@ const buildLabel = ({
       return "any";
     }
     if (selectedCount === 0) {
-      return "not yours";
+      return "Public only";
     }
     if (selectedWebName) {
-      return `other + ${selectedWebName}`;
+      return `Public + ${selectedWebName}`;
     }
-    return `Other webs + ${selectedCount} own`;
+    return `Public + ${selectedCount} webs`;
   }
 
   if (allSelected) {
-    return totalCount === 1 ? (selectedWebName ?? "yours") : "one of yours";
+    return totalCount === 1 ? (selectedWebName ?? "yours") : "any of yours";
   }
 
   if (selectedCount === 0) {
@@ -65,7 +65,7 @@ const buildLabel = ({
   if (selectedWebName) {
     return selectedWebName;
   }
-  return `${selectedCount} of ${totalCount} webs`;
+  return `${selectedCount} of ${totalCount}`;
 };
 
 export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
@@ -124,7 +124,7 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
   const isActive = !allInternalSelected || webState.includeOtherWebs;
 
   return (
-    <Box>
+    <Box sx={{ display: "contents" }}>
       <FilterPill
         icon={HouseRegularIcon}
         prefix="Web is"
@@ -152,7 +152,7 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
           selected={webState.includeOtherWebs}
           onClick={toggleOtherWebs}
         >
-          <ListItemText primary="Other webs" />
+          <ListItemText primary="Public in any web" />
         </MenuCheckboxItem>
       </Menu>
     </Box>

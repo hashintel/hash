@@ -2,48 +2,58 @@ import { Box } from "@mui/material";
 
 import type { FunctionComponent, ReactNode } from "react";
 
-export const visualizerHeaderHeight = 52;
+/**
+ * Fallback height for the header (floating top row + grey bar), used in the
+ * available-height calculation until the content position is measured.
+ */
+export const visualizerHeaderHeight = 94;
 
 type VisualizerHeaderProps = {
-  left: ReactNode;
-  right: ReactNode;
+  topLeft?: ReactNode;
+  topRight: ReactNode;
+  bottomLeft: ReactNode;
+  bottomRight?: ReactNode;
 };
 
 export const VisualizerHeader: FunctionComponent<VisualizerHeaderProps> = ({
-  left,
-  right,
+  topLeft,
+  topRight,
+  bottomLeft,
+  bottomRight,
 }) => {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        background: ({ palette }) => palette.gray[20],
-        borderWidth: 1,
-        borderStyle: "solid",
-        borderColor: ({ palette }) => palette.gray[30],
-        px: 1.5,
-        py: 1,
-        borderTopLeftRadius: "6px",
-        borderTopRightRadius: "6px",
-        gap: 1.5,
-        minHeight: visualizerHeaderHeight,
-      }}
-    >
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       <Box
         sx={{
           display: "flex",
-          gap: 1.5,
           alignItems: "center",
-          flex: 1,
-          minWidth: 0,
+          justifyContent: "space-between",
+          columnGap: 1.5,
         }}
       >
-        {left}
+        <Box sx={{ alignSelf: "flex-end" }}>{topLeft}</Box>
+        <Box sx={{ display: "flex", alignItems: "center", columnGap: 1.5 }}>
+          {topRight}
+        </Box>
       </Box>
-      <Box sx={{ display: "flex", alignItems: "center", columnGap: 1.5 }}>
-        {right}
+      <Box
+        sx={{
+          display: "flow-root",
+          background: ({ palette }) => palette.gray[20],
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: ({ palette }) => palette.gray[30],
+          px: 1.5,
+          py: 1,
+          borderTopLeftRadius: "6px",
+          borderTopRightRadius: "6px",
+          minHeight: 52,
+        }}
+      >
+        {bottomRight ? (
+          <Box sx={{ float: "right", ml: 1, my: 0.5 }}>{bottomRight}</Box>
+        ) : null}
+        {bottomLeft}
       </Box>
     </Box>
   );
