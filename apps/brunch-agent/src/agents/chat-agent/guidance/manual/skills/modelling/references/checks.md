@@ -1,6 +1,6 @@
 # Ledger, Construction, and Delivery Checks
 
-Read this before the first construction, after construction changes, and before delivering a net. For Ledger-only delivery, apply the `eliciting` skill's Verification guidance without loading this construction resource.
+Read this before the first construction, after construction changes, and before delivering a net. For Ledger-only delivery, apply the `eliciting` skill's Closing guidance without loading this construction resource.
 
 A failed check triggers the smallest relevant repair available in the current runtime branch: commit a correcting claim or reflection, ask during interactive elicitation, revise construction, or report a visible limitation and re-entry question for a later conversation.
 
