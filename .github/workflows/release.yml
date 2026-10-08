@@ -99,7 +99,6 @@ jobs:
         env:
           YARN_NPM_PUBLISH_PROVENANCE: "true"
           YARN_NPM_PUBLISH_REGISTRY: https://registry.npmjs.org
-          NPM_CONFIG_LOGLEVEL: verbose
           TURBO_LOG_LEVEL: debug
           TURBO_TELEMETRY_DISABLED: 1
           # Ensure turbo outputs full build logs (not just summaries) so
@@ -177,12 +176,6 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
 
-      - name: Print npm logs on failure
-        if: failure()
-        run: |
-          echo "🪵 Dumping npm debug logs..."
-          find /home/runner/.npm/_logs -type f -exec echo "--- {} ---" \; -exec cat {} \; || echo "No npm logs found."
-
       - name: Print Turbo logs on failure
         if: failure()
         run: |
@@ -198,7 +191,6 @@ jobs:
         with:
           name: release-debug-logs
           path: |
-            /home/runner/.npm/_logs/
             **/.turbo/*.log
 
   publish-rust:
