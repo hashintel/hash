@@ -346,7 +346,7 @@ export type ComponentInstance = {
   description?: string;
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
-  /** ID of the subnet this instance instantiates. */
+  /** ID of the subnet this instance instantiates, a lowercase UUID. */
   subnetId: ID;
   /**
    * Concrete values for the subnet's parameters.
@@ -359,6 +359,7 @@ export type ComponentInstance = {
 };
 
 export type Subnet = {
+  /** Subnet id, a lowercase UUID (see `isPetrinautId`). */
   id: ID;
   name: string;
   description?: string;
@@ -388,6 +389,7 @@ export type SDCPN = {
 };
 
 export type MinimalNetMetadata = {
+  /** Net id, a lowercase UUID (see `isPetrinautId`). */
   netId: string;
   title: string;
   lastUpdated: string;

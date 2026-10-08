@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { isSDCPNEqual } from "../lib/deep-equal";
+import { toPetrinautId } from "../petrinaut-id";
 import { normalizeSDCPN } from "./sdcpn-input";
 
 import type { SDCPN } from "./sdcpn";
@@ -191,8 +192,10 @@ describe("normalizeSDCPN", () => {
       endpoint: { kind: "place", placeId: "p1" },
       weight: 1,
     });
-    expect(result.subnets).toHaveLength(1);
-    expect(result.componentInstances).toHaveLength(1);
+    expect(result.subnets?.map(({ id }) => id)).toEqual([toPetrinautId("s1")]);
+    expect(result.componentInstances?.map(({ subnetId }) => subnetId)).toEqual([
+      toPetrinautId("s1"),
+    ]);
   });
 
   it("omits subnet fields and arc endpoints that are absent", () => {

@@ -21,7 +21,7 @@ import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
 import { brunchEnv } from "@hashintel/brunch-agent";
-import { parseSDCPNFile } from "@hashintel/petrinaut-core";
+import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { DEFAULT_CHAT_MODEL, DEFAULT_CHAT_THINKING } from "../../chat-model.ts";
 import { agentOwnershipHeaders } from "../../conversation/identity.ts";
@@ -321,7 +321,7 @@ const launchPersona = async ({
           const { title, ...sdcpn } = parsed.sdcpn;
           const sourceSha256 = createHash("sha256").update(bytes).digest("hex");
           return {
-            id: `persona-source-${sourceSha256.slice(0, 12)}`,
+            id: toPetrinautId(`persona-source-${sourceSha256.slice(0, 12)}`),
             incarnationId: randomUUID(),
             lastUpdated: new Date().toISOString(),
             sdcpn,

@@ -2,6 +2,10 @@ import type { PetrinautHandleCapabilities } from "../extensions";
 import type { ReadableStore } from "../store";
 import type { SDCPN } from "../types/sdcpn";
 
+/**
+ * A net id: a lowercase UUID (see `isPetrinautId`). Derive one from a legacy key
+ * with `toPetrinautId`.
+ */
 export type DocumentId = string;
 
 export type DocHandleState = "loading" | "ready" | "deleted" | "unavailable";

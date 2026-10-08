@@ -399,6 +399,12 @@ export {
   type ArcIdPrefix,
 } from "./arc-id";
 export {
+  canonicalizePetrinautIds,
+  generatePetrinautId,
+  isPetrinautId,
+  toPetrinautId,
+} from "./petrinaut-id";
+export {
   arcEndpointsEqual,
   arcMatchesEndpoint,
   arcReferencesComponentInstance,

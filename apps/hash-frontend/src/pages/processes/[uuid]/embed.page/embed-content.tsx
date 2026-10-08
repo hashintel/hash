@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import {
+  canonicalizePetrinautIds,
   createJsonDocHandle,
   isSDCPNEqual,
   Petrinaut,
@@ -77,6 +78,19 @@ type EditorState = {
   aiMessages: PetrinautAiMessage[];
 };
 
+/**
+ * The snapshot with its ids converted, as the handle holds the open net, so
+ * dirty tracking compares like with like. Saved nets with legacy ids persist
+ * the converted ids on their next save.
+ */
+const withPetrinautIds = (snapshot: SavedSnapshot): SavedSnapshot =>
+  snapshot === null
+    ? null
+    : {
+        ...snapshot,
+        definition: canonicalizePetrinautIds(snapshot.definition),
+      };
+
 const computeIsDirty = (
   definition: SDCPN,
   title: string,
@@ -127,20 +141,21 @@ export const EmbedContent = () => {
       const handle = createJsonDocHandle({
         initial: payload.initialDefinition,
       });
+      const savedSnapshot = withPetrinautIds(payload.savedSnapshot);
       setState({
         handle,
         title: payload.initialTitle,
         readonly: payload.readonly,
         mode: payload.mode,
-        savedSnapshot: payload.savedSnapshot,
+        savedSnapshot,
         aiMessages: payload.aiMessages,
       });
       setRevisions(payload.revisions);
       setIsDirty(
         computeIsDirty(
-          payload.initialDefinition,
+          handle.doc() ?? payload.initialDefinition,
           payload.initialTitle,
-          payload.savedSnapshot,
+          savedSnapshot,
         ),
       );
       setIframeErrorReporterMode(payload.mode);
@@ -153,21 +168,22 @@ export const EmbedContent = () => {
     },
     onLoad: (payload) => {
       const handle = createJsonDocHandle({ initial: payload.definition });
+      const savedSnapshot = withPetrinautIds(payload.savedSnapshot);
       setState({
         handle,
         title: payload.title,
         readonly:
           payload.mode.kind === "saved" ? !payload.mode.userEditable : false,
         mode: payload.mode,
-        savedSnapshot: payload.savedSnapshot,
+        savedSnapshot,
         aiMessages: payload.aiMessages,
       });
       setRevisions(payload.revisions);
       setIsDirty(
         computeIsDirty(
-          payload.definition,
+          handle.doc() ?? payload.definition,
           payload.title,
-          payload.savedSnapshot,
+          savedSnapshot,
         ),
       );
       setIframeErrorReporterMode(payload.mode);
@@ -204,7 +220,7 @@ export const EmbedContent = () => {
             ? {
                 ...prev,
                 mode,
-                savedSnapshot,
+                savedSnapshot: withPetrinautIds(savedSnapshot),
               }
             : prev,
         );

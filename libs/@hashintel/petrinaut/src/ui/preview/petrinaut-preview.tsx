@@ -144,7 +144,10 @@ const previewCanvasStyle = css({
 export type PetrinautPreviewProps = {
   /** The immutable model snapshot to display. */
   definition: SDCPN;
-  /** Stable identity for the in-memory document created by Preview. */
+  /**
+   * Stable identity for the in-memory document created by Preview. Any id
+   * that is not a UUID is converted to one with `toPetrinautId`.
+   */
   documentId?: string;
   title?: string;
   /**
