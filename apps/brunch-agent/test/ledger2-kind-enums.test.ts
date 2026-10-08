@@ -10,6 +10,11 @@ import { brunchTools } from "@hashintel/brunch-agent";
 import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import {
+  commitToolDescription,
+  createLedgerCommitTool,
+  createLedgerCompileTool,
+} from "../src/agents/chat-agent/guidance/manual/tools/ledger.ts";
+import {
   vLedgerAppend,
   type LedgerAppend,
 } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/append.ts";
@@ -25,11 +30,6 @@ import {
   vEntity,
   vEntityKind,
 } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/elicitation/entities.ts";
-import {
-  commitToolDescription,
-  createLedgerCommitTool,
-  createLedgerCompileTool,
-} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/ledger-tools.ts";
 import {
   vOrigin,
   vStatus,
