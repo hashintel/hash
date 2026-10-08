@@ -382,6 +382,101 @@ test("re-attaches after the update stream fails, projecting each chunk once", as
   expect(onResponseMessageCompleted).toHaveBeenCalledOnce();
 });
 
+test("a live tool call survives its live channel and update stream dropping together", async () => {
+  let liveBody: ReadableStreamDefaultController<Uint8Array> | undefined;
+  const liveStart = {
+    v: 1,
+    kind: "tool-input-start",
+    sequence: 0,
+    instanceId: "instance-1",
+    submissionId: admission.submissionId,
+    turnId: "turn-1",
+    toolCallId: "call-1",
+    toolName: "render_widget",
+  };
+  const liveFetch: typeof fetch = async () =>
+    new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          liveBody = controller;
+          controller.enqueue(
+            new TextEncoder().encode(`data: ${JSON.stringify(liveStart)}\n\n`),
+          );
+        },
+      }),
+    );
+  const events: readonly ConversationStreamChunk[] = [
+    {
+      type: "message-started",
+      conversationId: "conversation-1",
+      messageId: "assistant-1",
+      submissionId: admission.submissionId,
+      turnId: "turn-1",
+      position: position(0),
+    },
+    {
+      type: "tool-input",
+      conversationId: "conversation-1",
+      messageId: "assistant-1",
+      toolCallId: "call-1",
+      toolName: "render_widget",
+      input: {},
+      position: position(1),
+    },
+    {
+      type: "message-completed",
+      conversationId: "conversation-1",
+      messageId: "assistant-1",
+      position: position(2),
+    },
+    {
+      type: "submission-settled",
+      conversationId: "conversation-1",
+      submissionId: admission.submissionId,
+      outcome: "completed",
+      position: position(3),
+    },
+  ];
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    if (wait.mock.calls.length === 1) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 30);
+      });
+      liveBody?.error(new TypeError("terminated"));
+      throw refusedReconnect(410);
+    }
+    // eslint-disable-next-line no-await-in-loop
+    for (const event of events) await options?.onEvent?.(event);
+  });
+  const transport = createFlueChatTransport({
+    client: {
+      url: "http://agent.test/conversation",
+      send,
+      wait,
+    } as Pick<FlueClient, "url" | "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(["render_widget"]),
+    liveToolStream: { fetch: liveFetch, headers: {} },
+  });
+
+  const chunks = await readChunks(
+    await transport.sendMessages(
+      sendOptions([
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "Show a widget." }],
+        },
+      ]),
+    ),
+  );
+
+  expect(
+    chunks.filter((chunk) => "toolCallId" in chunk).map((chunk) => chunk.type),
+  ).toEqual(["tool-input-start", "tool-input-available"]);
+  expect(wait).toHaveBeenCalledTimes(2);
+});
+
 test.each([401, 403])(
   "does not re-attach after Flue's SDK has spent its own %i retries",
   async (status) => {
