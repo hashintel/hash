@@ -44,7 +44,8 @@ export const EmbedChromeContext = createContext<EmbedChrome | null>(null);
 /**
  * HASH-style breadcrumbs at the start of Petrinaut's top bar, so the embed
  * shows a single bar. The editable process title is the final crumb, tinted
- * to match, and renames in place through the page's title state.
+ * to match, and renames in place through the page's title state. Crumbs and
+ * title are siblings in the bar, so the title takes the remaining width.
  */
 export const EmbedBreadcrumbs = () => {
   const chrome = use(EmbedChromeContext);
@@ -53,36 +54,37 @@ export const EmbedBreadcrumbs = () => {
   }
 
   return (
-    <Box
-      sx={{
-        alignItems: "center",
-        /** Inherited by the chevron separator's `currentColor` fill. */
-        color: BREADCRUMB_CHEVRON_COLOR,
-        display: "flex",
-        gap: 0.5,
-        minWidth: 0,
-      }}
-    >
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={chrome.onNavigateBack}
-        prefix={
-          <ChartNetworkRegularIcon
-            style={{ color: BREADCRUMB_TEXT_COLOR, fontSize: 14 }}
-          />
-        }
+    <>
+      <Box
+        sx={{
+          alignItems: "center",
+          /** Inherited by the chevron separator's `currentColor` fill. */
+          color: BREADCRUMB_CHEVRON_COLOR,
+          display: "flex",
+          gap: 0.5,
+        }}
       >
-        {/*
-         * The ds Button recipe sets its own text color, and the editor's
-         * layer-polyfilled Panda bundle compiles that rule to a
-         * specificity that beats host emotion classes (FE-1228) — inline
-         * styles are the only reliable channel, hence the styled span
-         * and the inline-styled icon above.
-         */}
-        <span style={{ color: BREADCRUMB_TEXT_COLOR }}>Processes</span>
-      </Button>
-      <Icon name="chevronRight" size="xs" />
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={chrome.onNavigateBack}
+          prefix={
+            <ChartNetworkRegularIcon
+              style={{ color: BREADCRUMB_TEXT_COLOR, fontSize: 14 }}
+            />
+          }
+        >
+          {/*
+           * The ds Button recipe sets its own text color, and the editor's
+           * layer-polyfilled Panda bundle compiles that rule to a
+           * specificity that beats host emotion classes (FE-1228) — inline
+           * styles are the only reliable channel, hence the styled span
+           * and the inline-styled icon above.
+           */}
+          <span style={{ color: BREADCRUMB_TEXT_COLOR }}>Processes</span>
+        </Button>
+        <Icon name="chevronRight" size="xs" />
+      </Box>
       {/* A read-only `TextInput` renders a bare span that drops `style`. */}
       {chrome.readonly ? (
         <span style={titleStyle}>{chrome.title}</span>
@@ -96,7 +98,7 @@ export const EmbedBreadcrumbs = () => {
           style={titleStyle}
         />
       )}
-    </Box>
+    </>
   );
 };
 
