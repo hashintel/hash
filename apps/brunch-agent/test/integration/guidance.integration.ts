@@ -35,7 +35,11 @@ const probe = ownVocabulary
       dimension: ownVocabulary.dimensions[0].name,
     }
   : { kind: "resource", dimension: "resources" };
-const skill = baseline ? "sdcpn-modelling" : "constructing";
+const skill = baseline
+  ? "sdcpn-modelling"
+  : ledger2
+    ? "modelling"
+    : "constructing";
 const directory = mkdtempSync(join(tmpdir(), "brunch-guidance-"));
 process.env.NODE_ENV = "test";
 process.env.OTEL_SDK_DISABLED = "true";

@@ -1,6 +1,6 @@
 ---
 name: eliciting
-description: Interviewing the USER about their operation. Use before asking a substantive question, consulting a source, handling a correction or conflict, pinning down a quantity, or deciding the account is enough. Not for changing the net; that is `constructing`.
+description: Interviewing the USER about their operation. Use before asking a substantive question, consulting a source, handling a correction or conflict, pinning down a quantity, or deciding the account is enough. Not for changing the net; that is `modelling`.
 ---
 
 # Interviewing for an operational model

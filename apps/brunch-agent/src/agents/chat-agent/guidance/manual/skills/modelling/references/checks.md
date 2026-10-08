@@ -38,13 +38,7 @@ Where missing material admits materially different structures, the fragment carr
 
 ## Tool-schema acceptance checks
 
-- Every intended construction call was accepted or its rejection remains explicitly unresolved.
-- The latest inspected definition contains each accepted place, transition, type, parameter, and connection under the identifier returned or supplied.
-- Every referenced endpoint exists in the inspected definition.
-- Arc weights or multiplicities are positive and conform to the mounted schema.
-- No later step depends on a rejected or absent change.
-
-Inspect each step's `netAfterChanges`; read the net again only at the end, or when a check needs fields it omits. Record rejected calls and repairs. Describe this result as **tool-schema accepted**, not valid, runnable, or simulated.
+Apply the `petrinaut` skill's acceptance checks to each step, and record rejected calls and repairs.
 
 ## Agent-reviewed structural correspondence
 

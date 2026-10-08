@@ -1,6 +1,6 @@
 ---
 name: petrinaut
-description: Using the Petrinaut tools and writing net code. Use before the first net change, before writing lambda, kernel, dynamics, visualizer, metric or scenario code, and when the USER asks how something in the Petrinaut UI works.
+description: Using the Petrinaut tools and writing net code. Use before the first net change, before writing lambda, kernel, dynamics, visualizer, metric or scenario code, before drafting or creating an experiment, and when the USER asks how something in the Petrinaut UI works.
 ---
 
 # Petrinaut
@@ -11,24 +11,60 @@ When the USER asks how a Petrinaut UI workflow works, or you need to confirm a U
 
 When you need a worked example of a complete net definition (coloured tokens, stochastic and predicate transitions, kernels with distributions, continuous dynamics, parameters, visualizer code, metrics and scenarios), read `references/examples.md`.
 
+Before drafting or creating an experiment, read `references/experiments.md` for the request's fields and limits and what the draft and run tools do.
+
 ## Tools
 
-Use the provided tools to directly modify the current net. The tools use Petrinaut's raw mutation interfaces, so include stable IDs, full entity objects where required, and canvas positions for places and transitions.
-You can check the current net state at any point using the getLatestNetDefinition tool, which returns `{ title, definition, extensions }` — the user-visible net title, the complete SDCPN, and the active extension capabilities for this document. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types; consult `extensions` before authoring extension-specific content; and consult the `title` when deciding whether the net could use a more descriptive name.
-You can check current TypeScript compilation diagnostics at any point using the getNetCompilationErrors tool.
-You can rename the net at any point using the setNetTitle tool.
+Make every net change through the mounted tools; never emit free-form net JSON. They use Petrinaut's raw mutation interfaces, so include stable IDs, full entity objects where required, and canvas positions for places and transitions. The mounted schemas, not this prose, govern exact payload fields.
+
+You can check current TypeScript compilation diagnostics at any point using the getNetCompilationErrors tool, and rename the net using the setNetTitle tool.
+
+### Reading the net
+
+Three tools read the current net, each returning `{ title, definition, extensions }`: the user-visible net title, the SDCPN, and the active extension capabilities for this document.
+
+- `readNetOutline` leaves out code bodies, canvas positions and visual settings.
+- `readNetStructure` adds lambda, kernel, equation, scenario and metric code.
+- `getLatestNetDefinition` returns the complete definition, including positions and visualizer code.
+
+A change is refused unless a current read of the net is in context, so read it before the first change, and again when the USER may have edited the net since. After a step of changes, use the last result's `netAfterChanges` instead of rereading. Read again only for code or fields `netAfterChanges` omits, before a live explanation, and at delivery. Consult `extensions` before authoring extension-specific content, and `title` when deciding whether the net needs a more descriptive name.
+
+### Making changes
+
+Send one bounded connected fragment in one step, as parallel mutation calls in dependency order: the types, parameters and differential equations it needs; then places and transitions; then arcs. The host runs a step's calls in that order. You choose every new ID, so the calls that build one fragment do not depend on each other's results. References to existing elements, endpoints and experiment inputs use identifiers observed in a read, never IDs guessed from names.
+
+The host owns immutable binding, protocol correlation, document-base checks, persistence and record attachment. Never copy document hashes, document revisions, observation call IDs or Ledger record IDs into tool inputs.
+
+On a failure, a no-op or an unknown outcome, inspect the result and the current net, then submit only the correction. Never repeat a change that succeeded or may have.
+
+### Keep incidental choices small
+
+Required `x` and `y` are provisional presentation values: place new nodes on a rough grid, then use layout. For a new type, `iconSlug: "circle"` and a simple CSS `displayColor` are sufficient. Optional metadata and port fields are unnecessary for a simple root-net fragment; use them only when the task needs their capability.
+
+For separately wired transitions, start with empty `inputArcs` and `outputArcs`, then use `addArc` operations. Uncoloured places use `colorId: null`; disabled dynamics use `dynamicsEnabled: false` and `differentialEquationId: null`. Keep code strings empty only where their schema permits the built-in behaviour; coloured outputs or a meaningful guard or rate require the corresponding code. Arc weights are token multiplicities, never branch probabilities.
+
+### Acceptance
+
+An accepted call establishes conformance to its input schema, and nothing more. After each step check that:
+
+- every intended call was accepted, or its rejection remains explicitly unresolved;
+- `netAfterChanges` contains each accepted element under the ID you supplied or the tool returned;
+- every referenced endpoint exists;
+- arc weights are positive;
+- no later step depends on a rejected or absent change.
+
+Describe this result as tool-schema accepted, not valid, runnable or simulated.
 
 ## Extensions
 
-- Check the active `extensions` from getLatestNetDefinition before using optional SDCPN features. If an extension is disabled, do not create or rely on its data.
-- Use coloured-token types when tokens need attributes and `extensions.colors` is true.
-- Use parameters for values the USER may want to tune when `extensions.parameters` is true.
-- When adding scenarios, prefer scenario parameters for key assumptions the USER may want to modify between runs. Reference them as scenario.identifier in parameter overrides and initial-state expressions.
-- Use stochastic transition lambdas for rate-based firing when `extensions.stochasticity` is true.
+- Check the active `extensions` from your latest read before using optional SDCPN features. If an extension is disabled, do not create or rely on its data.
+- Coloured-token types require `extensions.colors`.
+- Parameters require `extensions.parameters`.
+- Stochastic transition lambdas, for rate-based firing, require `extensions.stochasticity`.
 - Use predicate transition lambdas for boolean firing conditions when `extensions.stochasticity` is true, or when `extensions.colors` is true and the transition has at least one standard or read input arc from a coloured place.
 - Leave transition lambda code empty when neither stochasticity nor coloured standard/read inputs are available; the runtime treats the transition as always enabled once its arc weights are satisfied.
 - Use transition kernels to transform or generate coloured output tokens. Use stochastic distributions in kernel outputs only when `extensions.stochasticity` is true. Leave kernel code empty when the transition has no coloured output places.
-- Use differential equations only when `extensions.colors` and `extensions.dynamics` are both true, and only for places whose coloured tokens have continuous dynamics.
+- Differential equations require both `extensions.colors` and `extensions.dynamics`, and apply only to places whose coloured tokens have continuous dynamics.
 
 ## Writing net code
 
@@ -45,19 +81,19 @@ The exact shapes the runtime expects:
 - Metric (`metric.code`): a plain function body — NOT a module, no `export default`, no wrapper. `state` is in scope, and net `parameters` are available ambiently (read them as `parameters.<variableName>`). Must `return` a finite number. Example: `return state.places.Infected.count / (state.places.Susceptible.count + state.places.Infected.count + state.places.Recovered.count);`. `scenario` parameters are NOT available inside metrics (only net parameters are).
 - Scenario per_place initial state: `content` keys are place IDs; uncoloured values are expressions with `parameters` and `scenario` in scope; coloured values are row arrays in colour element order using numbers and booleans; string columns take literal text; uuid columns accept UUID strings (any other text converts deterministically to a UUID via UUIDv5).
 - Scenario code-mode initial state: function body returning `{ PlaceName: tokens }` keyed by NAME (asymmetric with per_place IDs); unknown names are silently dropped.
+- Scenario parameter wiring: a `per_place` initial-state expression reads a scenario parameter as `scenario.<identifier>`, and `parameterOverrides` maps an existing net parameter ID to such an expression. A value that transition code reads through `parameters.<variableName>` therefore needs both the net parameter and the override. Metrics cannot read scenario parameters.
 - Parameter access in any code surface: use `parameters.<variableName>` where `<variableName>` is the parameter's lower_snake_case `variableName` value (e.g. `parameters.crash_threshold`, never `parameters.crashThreshold`).
 
 ### After a code change
 
-Validate every code-writing change. After any tool call that writes code — lambda, transition kernel, dynamics, visualizer, metric, or scenario code-mode initial state — call getNetCompilationErrors before continuing and fix any reported diagnostics before relying on the new code. Do not assume a code edit is correct just because the tool call succeeded; mutations only validate the schema, not the runtime contract.
+Validate every code-writing change. After the step that writes code — lambda, transition kernel, dynamics, visualizer, metric, or scenario code-mode initial state — call getNetCompilationErrors once for the whole step, and send every repair it calls for in one further step before relying on the new code. Mutations validate only the schema, not the runtime contract. Saved scenario and metric code is compiled separately, when an experiment is created, so a clean diagnostic does not prove it.
 
 Place names are part of the code surface: lambdas/kernels read `input.PlaceName`, metrics read `state.places.PlaceName.count`, and scenario code-mode initial state keys are place names. Renaming a place via `updatePlace` requires updating every dependent lambda, kernel, dynamics, metric, visualizer, and scenario in the same batch — otherwise you will silently break references.
 
 ## Finishing a change
 
-- Prefer small, meaningful mutations rather than replacing unrelated content.
 - Keep executable code self-contained and readable.
-- Title the net. After building or substantially extending a model, check the title returned by `getLatestNetDefinition`. If it is `Untitled` or an obvious placeholder, call `setNetTitle` with a concise, descriptive title (sentence case, ideally under ~60 characters). Don't overwrite a USER-chosen title without being asked.
-- Suggest place visualisations. Once the structure is agreed, proactively propose 1–2 vivid, domain-specific `visualizerCode` ideas (e.g. a queue as a stacked bar, satellites as orbit dots, infected population as a heat-dot grid, machines as a row of state-coloured rectangles, inventory as a shelf of boxes) and offer to add them. Default to compact, single-glance SVGs sized for a place node, following the place visualizer rules under Code surfaces.
+- Title the net. After building or substantially extending a model, check the title from your latest read. If it is `Untitled` or an obvious placeholder, call `setNetTitle` with a concise, descriptive title (sentence case, ideally under ~60 characters). Don't overwrite a USER-chosen title without being asked.
+- Place visualizers are compact, single-glance SVGs sized for a place node, following the place visualizer rules under Code surfaces.
 
 Auto-layout policy. Once you've finished adding or restructuring places and transitions, call `applyAutoLayout` so the canvas isn't littered with overlapping nodes at the origin. Pass `askUserFirst: false` ONLY when the net was empty at the start of the conversation and you built it from scratch. If USER-arranged content existed beforehand — even if you only added a few nodes to it — pass `askUserFirst: true` and the USER will be shown a Yes/No prompt. If they decline, leave the layout alone and continue without retrying unless they ask.
