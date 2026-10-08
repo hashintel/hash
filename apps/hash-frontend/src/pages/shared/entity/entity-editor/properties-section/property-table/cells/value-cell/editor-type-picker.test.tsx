@@ -42,7 +42,7 @@ beforeAll(() => {
     observe() {}
 
     unobserve() {}
-  } as unknown as typeof ResizeObserver;
+  };
   HTMLElement.prototype.scrollIntoView = scrollIntoView;
 });
 

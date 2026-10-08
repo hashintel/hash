@@ -63,6 +63,7 @@ export const getOutgoingLinksForEntity = (
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: type is narrowed beforehand to make sure that indexing results in the right type
   const entityEdges = (subgraph.edges as KnowledgeGraphRootedEdges)[entityId];
 
   if (!entityEdges) {
@@ -135,6 +136,7 @@ export const getIncomingLinksForEntity = (
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: type is narrowed beforehand to make sure that indexing results in the right type
   const entityEdges = (subgraph.edges as KnowledgeGraphRootedEdges)[entityId];
 
   if (!entityEdges) {
@@ -206,9 +208,7 @@ export const getLeftEntityForLinkEntity = (
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const outwardEdge = Object.values(
-    (subgraph.edges as KnowledgeGraphRootedEdges)[entityId] ?? {},
-  )
+  const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
     .flat()
     .find(isHasLeftEntityEdge);
 
@@ -257,9 +257,7 @@ export const getRightEntityForLinkEntity = (
   const searchInterval =
     interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const outwardEdge = Object.values(
-    (subgraph.edges as KnowledgeGraphRootedEdges)[entityId] ?? {},
-  )
+  const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
     .flat()
     .find(isHasRightEntityEdge);
 

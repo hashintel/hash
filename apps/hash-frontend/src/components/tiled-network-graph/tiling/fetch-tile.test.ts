@@ -339,12 +339,12 @@ const unauthorized = (): Response =>
 /** Stubs the global fetch with canned routes and records every path hit. */
 const stubTransport = (routes: Record<string, () => Response>): string[] => {
   const paths: string[] = [];
-  vi.stubGlobal("fetch", ((url: string) => {
+  vi.stubGlobal("fetch", (url: string) => {
     const path = new URL(url, BASE).pathname;
     paths.push(path);
     const route = routes[path];
     return Promise.resolve(route === undefined ? notFound() : route());
-  }) as typeof fetch);
+  });
   return paths;
 };
 
@@ -553,7 +553,7 @@ describe("fetchTile", () => {
   it("requests the detail trailer and attaches per-point labels", async () => {
     const generation = genHex(0x66);
     const bodies: (string | undefined)[] = [];
-    vi.stubGlobal("fetch", ((url: string, init?: RequestInit) => {
+    vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
       const path = new URL(url, BASE).pathname;
       if (path.includes("/atlas/tile/")) {
         bodies.push(typeof init?.body === "string" ? init.body : undefined);
@@ -566,7 +566,7 @@ describe("fetchTile", () => {
         return Promise.resolve(manifest(generation));
       }
       return Promise.resolve(notFound());
-    }) as typeof fetch);
+    });
 
     const { nodes } = await fetchTile(u64(3), u64(13), {
       baseUrl: BASE,
@@ -587,7 +587,7 @@ describe("fetchTile", () => {
   it("sends coloredTypeIds and decodes the per-point type mask", async () => {
     const generation = genHex(0x77);
     const bodies: (string | undefined)[] = [];
-    vi.stubGlobal("fetch", ((url: string, init?: RequestInit) => {
+    vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
       const path = new URL(url, BASE).pathname;
       if (path.includes("/atlas/tile/")) {
         bodies.push(typeof init?.body === "string" ? init.body : undefined);
@@ -600,7 +600,7 @@ describe("fetchTile", () => {
         return Promise.resolve(manifest(generation));
       }
       return Promise.resolve(notFound());
-    }) as typeof fetch);
+    });
 
     const { nodes } = await fetchTile(u64(3), u64(13), {
       baseUrl: BASE,
@@ -680,11 +680,11 @@ describe("the atlas base", () => {
         saltile(tileBytes(0x99, 3, 5, 1)),
     };
     const credentials: (RequestCredentials | undefined)[] = [];
-    vi.stubGlobal("fetch", ((url: string, init?: RequestInit) => {
+    vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
       credentials.push(init?.credentials);
       const route = routes[new URL(url, BASE).pathname];
       return Promise.resolve(route === undefined ? notFound() : route());
-    }) as typeof fetch);
+    });
 
     await fetchTile(u64(3), u64(13), { baseUrl: BASE });
 
@@ -826,7 +826,7 @@ const stubAuthorityTransport = (
   >,
 ): RecordedRequest[] => {
   const seen: RecordedRequest[] = [];
-  vi.stubGlobal("fetch", ((url: string, init?: RequestInit) => {
+  vi.stubGlobal("fetch", (url: string, init?: RequestInit) => {
     const request: RecordedRequest = {
       path: new URL(url, BASE).pathname,
       method: init?.method ?? "GET",
@@ -837,7 +837,7 @@ const stubAuthorityTransport = (
     seen.push(request);
     const route = routes[request.path];
     return Promise.resolve(route === undefined ? notFound() : route(request));
-  }) as typeof fetch);
+  });
   return seen;
 };
 

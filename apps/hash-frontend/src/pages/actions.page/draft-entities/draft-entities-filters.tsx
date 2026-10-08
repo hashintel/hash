@@ -473,9 +473,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
               },
             )
             .map(({ web, label }) => {
-              const webWebId = (
-                web.kind === "user" ? web.accountId : web.webId
-              ) as WebId;
+              const webWebId = web.kind === "user" ? web.accountId : web.webId;
               return {
                 icon: web.kind === "user" ? <UserIcon /> : <UsersRegularIcon />,
                 label,

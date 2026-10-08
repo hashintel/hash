@@ -528,7 +528,8 @@ export const EnumEditor = ({
         }
         if (mergedSchema.format === "uri") {
           try {
-            void new URL(value);
+            // eslint-disable-next-line no-new -- URL validation throws on invalid input.
+            new URL(value);
           } catch {
             setError(`constraints.enum.${index}`, {
               message: "Value must be a valid URL",

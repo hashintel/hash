@@ -871,7 +871,7 @@ export const Filter = <
       loopFocus={false}
       lazyMount
       unmountOnExit
-      ref={rootRef as React.Ref<HTMLDivElement>}
+      ref={rootRef}
       className={cx(classes.root, className)}
       style={
         dismissing ? { opacity: 0 } : fading ? abandonedFadeStyle : undefined

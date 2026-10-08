@@ -86,6 +86,7 @@ export const createApolloClient = (params?: {
   const httpLink = new HttpLink({
     uri: apiGraphQLEndpoint,
     credentials: "include",
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive
     fetch: wrappedFetch as WindowOrWorkerGlobalScope["fetch"],
     headers,
   });

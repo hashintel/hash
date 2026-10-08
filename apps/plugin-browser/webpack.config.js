@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import ReactRefreshWebpackPlugin from "@pmmmwh/react-refresh-webpack-plugin";
 import { sentryWebpackPlugin } from "@sentry/webpack-plugin";
+import ts from "@typescript/typescript6";
 import { CleanWebpackPlugin } from "clean-webpack-plugin";
 import CopyWebpackPlugin from "copy-webpack-plugin";
 import dotenv from "dotenv-flow";
@@ -125,10 +126,14 @@ const options = {
           {
             loader: "ts-loader",
             options: {
+              // The loader and Refresh need the JS API, while standalone checks use native TS7.
+              compiler: fileURLToPath(
+                import.meta.resolve("@typescript/typescript6"),
+              ),
               getCustomTransformers: () => ({
-                before: [isDevelopment && ReactRefreshTypeScript()].filter(
-                  Boolean,
-                ),
+                before: [
+                  isDevelopment && ReactRefreshTypeScript({ ts }),
+                ].filter(Boolean),
               }),
               transpileOnly: isDevelopment,
             },

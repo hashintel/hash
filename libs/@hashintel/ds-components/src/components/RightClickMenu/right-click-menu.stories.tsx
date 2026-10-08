@@ -63,12 +63,12 @@ function withSelectedFlags(entry: ItemOrGroup<Item>): ItemOrGroup<MenuItem> {
     };
   }
   if ("custom" in entry) {
-    return entry as MenuItem;
+    return entry;
   }
   return {
     ...entry,
     selected: defaultSelected.includes(getItemId(entry)),
-  } as MenuItem;
+  };
 }
 
 export const Default: Story<RightClickMenuProps> = (args) => {

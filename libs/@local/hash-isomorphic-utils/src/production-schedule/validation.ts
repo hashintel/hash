@@ -504,7 +504,7 @@ export const parseProductionSchedule = (
       },
     ]);
   }
-  return schedule as ProductionSchedule;
+  return schedule;
 };
 
 export const safeParseProductionSchedule = (

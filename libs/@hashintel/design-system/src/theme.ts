@@ -7,8 +7,6 @@ import { palette } from "./theme/palette";
 import { boxShadows, dropShadows, shadows } from "./theme/shadows";
 import { typography } from "./theme/typography";
 
-import type { ThemeOptions } from "@mui/material";
-
 export const theme = createTheme({
   palette,
   typography,
@@ -17,7 +15,7 @@ export const theme = createTheme({
   boxShadows,
   dropShadows,
   /** @todo: figure out how to properly override this type */
-  components: components as ThemeOptions["components"],
+  components,
 });
 
 export const createEmotionCache = (key?: string) =>

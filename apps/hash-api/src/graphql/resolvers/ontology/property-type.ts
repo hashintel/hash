@@ -27,7 +27,6 @@ import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import type {
   OntologyTemporalMetadata,
   PropertyTypeWithMetadata,
-  WebId,
 } from "@blockprotocol/type-system";
 
 export const createPropertyTypeResolver: ResolverFn<
@@ -46,7 +45,7 @@ export const createPropertyTypeResolver: ResolverFn<
     context,
     authentication,
     {
-      webId: (webId ?? user.accountId) as WebId,
+      webId: webId ?? user.accountId,
       schema: propertyType,
     },
   );

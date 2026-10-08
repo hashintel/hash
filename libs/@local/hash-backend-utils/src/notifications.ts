@@ -11,7 +11,6 @@ import type {
   ProvidedEntityEditionProvenance,
   Timestamp,
   UserId,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
@@ -66,7 +65,7 @@ export const createGraphChangeNotification = async (
     {
       draft: false,
       entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
-      webId: notifiedUserAccountId as WebId,
+      webId: notifiedUserAccountId,
       properties: {
         value: {
           "https://hash.ai/@h/types/property-type/graph-change-type/": {
@@ -95,7 +94,7 @@ export const createGraphChangeNotification = async (
     {
       draft: false,
       entityTypeIds: [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId],
-      webId: notifiedUserAccountId as WebId,
+      webId: notifiedUserAccountId,
       linkData: {
         leftEntityId: notificationEntity.metadata.recordId.entityId,
         rightEntityId: changedEntityId,

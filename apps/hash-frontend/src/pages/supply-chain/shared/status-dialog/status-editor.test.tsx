@@ -25,7 +25,7 @@ beforeAll(() => {
     observe() {}
 
     unobserve() {}
-  } as unknown as typeof ResizeObserver;
+  };
   HTMLElement.prototype.scrollIntoView = scrollIntoView;
   Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
   Range.prototype.getBoundingClientRect = () =>

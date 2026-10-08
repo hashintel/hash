@@ -50,7 +50,6 @@ import type {
   EntityTypeWithMetadata,
   EntityUuid,
   PropertyTypeWithMetadata,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
@@ -105,7 +104,7 @@ describe("Entity CRU", () => {
 
     await Promise.all([
       createEntityType(graphContext, authentication, {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         schema: {
           title: "Friends",
           description: "Friend of",
@@ -122,7 +121,7 @@ describe("Entity CRU", () => {
           throw err;
         }),
       createPropertyType(graphContext, authentication, {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         schema: {
           title: "Favorite Book",
           description: "The favorite book of a person",
@@ -137,7 +136,7 @@ describe("Entity CRU", () => {
           throw err;
         }),
       createPropertyType(graphContext, authentication, {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         schema: {
           title: "Name",
           description: "The name of a person",
@@ -421,7 +420,7 @@ describe("Entity CRU", () => {
       graphContext,
       { actorId: testUser.accountId },
       {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         // First create a new entity given the following definition
         entityTypeIds: [entityType.schema.$id],
         properties: {
@@ -483,7 +482,7 @@ describe("Entity CRU", () => {
       graphContext,
       { actorId: testUser.accountId },
       {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         entityUuid: rootEntityUuid,
         entityTypeIds: [entityType.schema.$id],
         properties: {
@@ -577,7 +576,7 @@ describe("Entity CRU", () => {
 
     await expect(
       createEntity<Actor>(graphContext, authentication, {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         properties: {
           value: {
             "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
@@ -609,7 +608,7 @@ describe("Entity CRU", () => {
 
     await expect(
       createEntity<UserEntity>(graphContext, authentication, {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         properties: {
           value: {
             "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
@@ -650,7 +649,7 @@ describe("Entity CRU", () => {
 
     await expect(
       createEntity<Machine>(graphContext, authentication, {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         properties: {
           value: {
             "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
@@ -688,7 +687,7 @@ describe("Entity CRU", () => {
 
     await expect(
       createEntity<Organization>(graphContext, authentication, {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         properties: {
           value: {
             "https://hash.ai/@h/types/property-type/shortname/": {
@@ -725,7 +724,7 @@ describe("Entity CRU", () => {
 
     await expect(
       createEntity<HASHInstance>(graphContext, authentication, {
-        webId: testUser.accountId as WebId,
+        webId: testUser.accountId,
         properties: {
           value: {
             "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/":

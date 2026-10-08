@@ -125,6 +125,7 @@ export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
 export const brandPropertyObject = <T extends Record<string, PropertyValue>>(
   obj: T,
 ): BrandedPropertyObject<T> => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive
   return obj as BrandedPropertyObject<T>;
 };
 
@@ -1502,7 +1503,7 @@ export class HashLinkEntity<
       );
     }
 
-    super(input as EntityInput<Properties>);
+    super(input);
   }
 
   public static async createMultiple<T extends TypeIdsAndPropertiesForEntity[]>(
@@ -1553,7 +1554,7 @@ export class HashLinkEntity<
   ): Promise<this> {
     if (propertyPatches) {
       const isUserEntity = this.metadata.entityTypeIds.some((id) =>
-        id.startsWith(userEntityTypeBaseUrl as string),
+        id.startsWith(userEntityTypeBaseUrl),
       );
 
       if (isUserEntity) {
@@ -1650,17 +1651,11 @@ export const summarizeEntities = async (
     .summarizeEntities(authentication.actorId, params)
     .then(({ data: response }) => ({
       ...response,
-      webIds: response.webIds as Record<WebId, number> | undefined,
-      createdByIds: response.createdByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-      editionCreatedByIds: response.editionCreatedByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-      typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
-      typeTitles: response.typeTitles as
-        | Record<VersionedUrl, string>
-        | undefined,
+      webIds: response.webIds,
+      createdByIds: response.createdByIds,
+      editionCreatedByIds: response.editionCreatedByIds,
+      typeIds: response.typeIds,
+      typeTitles: response.typeTitles,
     }));
 
 export const queryEntitiesTable = async (
@@ -1675,7 +1670,7 @@ export const queryEntitiesTable = async (
     .then(({ data: response }) => ({
       ...response,
       rows: response.rows as QueryEntitiesTableResponse["rows"],
-      summary: response.summary as QueryEntitiesTableResponse["summary"],
+      summary: response.summary,
       closedMultiEntityTypes: response.closedMultiEntityTypes
         ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
             response.closedMultiEntityTypes,

@@ -66,7 +66,6 @@ import type {
   EntityId,
   PropertyObject,
   VersionedUrl,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Sorter } from "@hashintel/ds-components";
@@ -174,7 +173,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     () => {
       return [
         {
-          webId: authenticatedUser.accountId as WebId,
+          webId: authenticatedUser.accountId,
           name: `@${authenticatedUser.shortname}`,
         },
         ...authenticatedUser.memberOf.map(({ org }) => ({

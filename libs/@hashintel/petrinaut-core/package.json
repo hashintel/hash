@@ -91,7 +91,7 @@
     "build": "vite build && node scripts/check-browser-safe-entries.mjs",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit",
+    "lint:tsc": "tsc --noEmit",
     "prepack": "node ../../../scripts/check-package-payload.mjs",
     "prepublishOnly": "turbo run build",
     "test:unit": "vitest"
@@ -112,7 +112,6 @@
     "@tsconfig/bases": "catalog:",
     "@types/js-yaml": "^4",
     "@types/node": "catalog:",
-    "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "@typescript/typescript6": "catalog:",
     "@webgpu/types": "0.1.71",
     "oxlint": "1.63.0",

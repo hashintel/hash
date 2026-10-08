@@ -52,7 +52,6 @@ import {
   generateRandomShortname,
 } from "../../../util";
 
-import type { EmailTransporter } from "@apps/hash-api/src/email/transporters";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import type { LoggedInGraphQLContext } from "@apps/hash-api/src/graphql/context";
 import type { EntityId } from "@blockprotocol/type-system";
@@ -75,7 +74,7 @@ const graphQLContextForUser = (user: User): LoggedInGraphQLContext => ({
   },
   emailTransporter: {
     sendMail: async () => {},
-  } as unknown as EmailTransporter,
+  },
   logger,
   authentication: { actorId: user.accountId },
   user,

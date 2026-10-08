@@ -79,7 +79,7 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
 
     return typedKeys(closedMultiEntityType.properties).flatMap(
       (propertyTypeBaseUrl) => {
-        if (processedPropertyTypes.has(propertyTypeBaseUrl as BaseUrl)) {
+        if (processedPropertyTypes.has(propertyTypeBaseUrl)) {
           return [];
         }
 
@@ -90,14 +90,14 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
           throw new Error(`Property ${propertyTypeBaseUrl} not found`);
         }
 
-        processedPropertyTypes.add(propertyTypeBaseUrl as BaseUrl);
+        processedPropertyTypes.add(propertyTypeBaseUrl);
 
         return generatePropertyRowRecursively({
           closedMultiEntityType,
           closedMultiEntityTypesDefinitions,
           generateNewMetadataObject,
-          propertyTypeBaseUrl: propertyTypeBaseUrl as BaseUrl,
-          propertyKeyChain: [propertyTypeBaseUrl as BaseUrl],
+          propertyTypeBaseUrl,
+          propertyKeyChain: [propertyTypeBaseUrl],
           entity,
           requiredPropertyTypes:
             (closedMultiEntityType.required as BaseUrl[] | undefined) ?? [],

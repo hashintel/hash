@@ -51,7 +51,7 @@ const checkCount = (field: string, expected: bigint) =>
       ),
   );
 
-const decodeDocument = Result.fn(function* decodeDocument<
+const decodeDocument = Result.fn(function* decodeLocateDocument<
   T extends ArrayBufferLike,
 >(
   decoder: Decoder.Decoder<T>,

@@ -17,14 +17,8 @@ import type {
   QueryEntitySubgraphQueryVariables,
   SubgraphAndPermissions as SubgraphAndPermissionsGQL,
 } from "../graphql/api-types.gen";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
-  EntityRootType,
-  KnowledgeGraphVertices,
-  Subgraph,
-} from "@blockprotocol/graph";
-import type {
-  ActorEntityUuid,
-  EntityEditionId,
   EntityId,
   PropertyObject,
   VersionedUrl,
@@ -65,8 +59,8 @@ export const useFetchBlockSubgraph = (): ((
         const placeholderEntity = new HashEntity({
           metadata: {
             recordId: {
-              entityId: "placeholder-account~entity-id-not-set" as EntityId,
-              editionId: now as string as EntityEditionId,
+              entityId: "placeholder-account~entity-id-not-set",
+              editionId: now,
             },
             entityTypeIds: blockEntityTypeIds,
             temporalVersioning: {
@@ -92,13 +86,13 @@ export const useFetchBlockSubgraph = (): ((
             archived: false,
             provenance: {
               edition: {
-                createdById: "placeholder-account" as ActorEntityUuid,
+                createdById: "placeholder-account",
                 actorType: "user",
                 origin: {
                   type: "web-app",
                 },
               },
-              createdById: "placeholder-account" as ActorEntityUuid,
+              createdById: "placeholder-account",
               createdAtTransactionTime: now,
               createdAtDecisionTime: now,
             },
@@ -140,7 +134,7 @@ export const useFetchBlockSubgraph = (): ((
                 inner: placeholderEntity,
               },
             },
-          } as KnowledgeGraphVertices,
+          },
           temporalAxes: {
             initial: subgraphTemporalAxes,
             resolved: subgraphTemporalAxes,

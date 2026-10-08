@@ -59,7 +59,7 @@ interface Head {
 }
 
 /** Reads the fields needed to interpret edge columns and the trailer. */
-const readHead = Result.fn(function* readHead(
+const readHead = Result.fn(function* readEdgeHead(
   access: CborDecoder.CborMapAccess,
 ): Result.gen.Return<Head, DecodeError> {
   const partial: Partial<Mutable<Head>> = {};
@@ -303,7 +303,7 @@ export interface DecodeOptions {
 }
 
 /** Assembles the envelope's edge columns with their decoded metadata. */
-const decodeDocument = Result.fn(function* decodeDocument<
+const decodeDocument = Result.fn(function* decodeEdgeDocument<
   T extends ArrayBufferLike,
 >(
   decoder: Decoder.Decoder<T>,

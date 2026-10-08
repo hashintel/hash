@@ -27,6 +27,7 @@ export const PropertyTypeSelector = ({
     [propertyTypes],
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive
   const filterErrors = formState.errors.filters?.[index] as
     | FieldErrorsImpl<PropertyFilter>
     | undefined;

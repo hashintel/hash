@@ -66,7 +66,7 @@ export function useSearchParams(): [URLSearchParams, SetURLSearchParams] {
       const resolved =
         typeof nextInit === "function"
           ? nextInit(new URLSearchParams(optimisticQueryString))
-          : new URLSearchParams(nextInit as Record<string, string> | undefined);
+          : new URLSearchParams(nextInit);
 
       const path = router.asPath.split("?")[0];
       if (!path) {

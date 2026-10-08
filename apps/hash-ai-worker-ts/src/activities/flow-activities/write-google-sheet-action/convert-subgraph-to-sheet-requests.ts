@@ -106,7 +106,7 @@ const createColumnsForEntity = (
 
   for (const { schema } of entityTypeAndParents) {
     for (const baseUrl of typedKeys(schema.properties)) {
-      properties.add(baseUrl as BaseUrl);
+      properties.add(baseUrl);
     }
     for (const linkTypeId of typedKeys(schema.links ?? {})) {
       links.add(linkTypeId);

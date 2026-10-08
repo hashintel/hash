@@ -28,7 +28,6 @@ import type {
   User,
   UserServiceAccount,
 } from "../../../../lib/user-and-org";
-import type { WebId } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { ProfileURLPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { FunctionComponent } from "react";
@@ -57,9 +56,7 @@ export const UserProfileInfoForm: FunctionComponent<{
   const [updateUser] = useUpdateAuthenticatedUser();
 
   const { archiveEntity } = useBlockProtocolArchiveEntity();
-  const { createEntity } = useBlockProtocolCreateEntity(
-    userProfile.accountId as WebId,
-  );
+  const { createEntity } = useBlockProtocolCreateEntity(userProfile.accountId);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
