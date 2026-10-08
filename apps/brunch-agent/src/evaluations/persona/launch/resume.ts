@@ -19,6 +19,21 @@ import type { PersonaBrowserSession } from "../browser-turn.ts";
 import type { Page } from "@playwright/test";
 
 const text = v.pipe(v.string(), v.minLength(1));
+const netArray = v.array(v.unknown());
+/** The website opens only stored entries of this shape and skips the rest. */
+const storedNetSchema = (documentId: string) =>
+  v.object({
+    id: v.literal(documentId),
+    title: v.string(),
+    lastUpdated: v.string(),
+    sdcpn: v.object({
+      places: netArray,
+      transitions: netArray,
+      types: netArray,
+      parameters: netArray,
+      differentialEquations: netArray,
+    }),
+  });
 const runSchema = v.pipe(
   v.looseObject({
     caseDirectory: text,
@@ -99,13 +114,11 @@ export const openRetainedPersonaBrowser = async (
     "Original browser principal is missing or changed",
   );
   const documents = v.parse(v.record(v.string(), v.unknown()), saved.documents);
-  // The website skips stored entries that are not nets, so the entry must be one.
+  const stored = documents[binding.documentId];
+  assert.ok(stored !== undefined, "Original browser document is missing");
   assert.ok(
-    v.is(
-      v.object({ id: v.literal(binding.documentId) }),
-      documents[binding.documentId],
-    ),
-    "Original browser document is missing",
+    v.is(storedNetSchema(binding.documentId), stored),
+    "Original browser document is not a net the website opens",
   );
   await page.goto(new URL(route, origin).href);
 };
