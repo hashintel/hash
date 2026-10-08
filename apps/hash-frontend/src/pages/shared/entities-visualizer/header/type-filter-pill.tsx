@@ -6,8 +6,8 @@ import { MenuCheckboxItem, TextField } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 import { AsteriskLightIcon } from "../../../../shared/icons/asterisk-light-icon";
+import { FilterPill } from "../../filter-bar";
 import { resolveTypeColor, typeColorRanks } from "../shared/type-colors";
-import { FilterPill } from "./filter-pill";
 import { triggerSwatchSize, TypeColorSelector } from "./type-color-selector";
 
 import type { EntitiesFilterState } from "../shared/filter-state";

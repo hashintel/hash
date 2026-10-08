@@ -11,6 +11,7 @@ import {
   stripDisabledExtensionData,
   type PetrinautHandleCapabilities,
 } from "../../extensions";
+import { generatePetrinautId, toPetrinautId } from "../../petrinaut-id";
 import { createReadableStore } from "../../store";
 import { normalizeSDCPN } from "../../types/sdcpn-input";
 
@@ -36,12 +37,6 @@ function fromImmerPatch(patch: ImmerPatch): PetrinautPatch {
   };
 }
 
-let idCounter = 0;
-function generateId(): DocumentId {
-  idCounter += 1;
-  return `petrinaut-doc-${Date.now()}-${idCounter}`;
-}
-
 type HistoryStackEntry = {
   forward: ImmerPatch[];
   inverse: ImmerPatch[];
@@ -51,6 +46,10 @@ type HistoryStackEntry = {
 const DEFAULT_HISTORY_LIMIT = 50;
 
 export type CreateJsonDocHandleOptions = {
+  /**
+   * Net id. Any id that is not a UUID is converted with `toPetrinautId`, so
+   * `handle.id` may differ from it. Defaults to a fresh random UUID.
+   */
   id?: DocumentId;
   /**
    * Initial document. Accepts a loose {@link SDCPNInput} — extension fields
@@ -83,7 +82,8 @@ export type CreateJsonDocHandleOptions = {
 export function createJsonDocHandle(
   opts: CreateJsonDocHandleOptions,
 ): PetrinautDocHandle {
-  const id = opts.id ?? generateId();
+  const id =
+    opts.id === undefined ? generatePetrinautId() : toPetrinautId(opts.id);
   const historyLimit = opts.historyLimit ?? DEFAULT_HISTORY_LIMIT;
   const capabilities = opts.capabilities;
   const resolvedCapabilities = resolvePetrinautHandleCapabilities(capabilities);

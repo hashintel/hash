@@ -106,6 +106,11 @@ proper.
 - **`id` is unique per document and immutable for the handle's lifetime.**
   Reusing one id across documents leaks simulation and language-server state
   between them; deriving it from mutable state resets that state mid-session.
+- **`id` is a lowercase UUID.** Derive one from a legacy key with
+  `toPetrinautId`, which maps the same key to the same UUID every time, or
+  mint one with `generatePetrinautId`. `createJsonDocHandle` converts any other
+  id it is given, so its `handle.id` may differ from `opts.id`. Subnet ids
+  follow the same rule and are converted when a document loads.
 - **`subscribe` returns an unsubscribe function** and tolerates it being
   called after disposal.
 
@@ -208,10 +213,10 @@ Use it when Petrinaut can own the working copy and the host only seeds it and
 saves snapshots.
 
 ```ts
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import { createJsonDocHandle, toPetrinautId } from "@hashintel/petrinaut-core";
 
 const handle = createJsonDocHandle({
-  id: graph.id,
+  id: toPetrinautId(graph.id),
   initial: toSDCPN(graph), // SDCPNInput; normalized internally
   capabilities: { disabledExtensions: ["colors", "stochasticity"] },
   historyLimit: 50, // default 50; 0 disables history entirely

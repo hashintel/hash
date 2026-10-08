@@ -126,8 +126,25 @@ const Search = ({
   );
 };
 
-export const SearchControl = ({ nodes }: { nodes: GraphVizNode[] }) => {
+export const SearchControl = ({
+  nodes,
+  externalState,
+}: {
+  nodes: GraphVizNode[];
+  /** Externally controlled panel state — hides the in-graph toggle button. */
+  externalState?: { open: boolean; onClose: () => void };
+}) => {
   const { searchPanelOpen, setSearchPanelOpen } = useGraphContext();
+
+  if (externalState) {
+    return (
+      <Search
+        nodes={nodes}
+        open={externalState.open}
+        onClose={externalState.onClose}
+      />
+    );
+  }
 
   return (
     <>

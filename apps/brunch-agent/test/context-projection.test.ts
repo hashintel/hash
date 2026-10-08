@@ -27,7 +27,7 @@ test("removes historical vocabulary envelopes before model context and compactio
 
 test("projects in-band canonical output without exposing host sidecars or altering Flue history", () => {
   const sidecar = {
-    observation: { binding: "private-incarnation", sha256: "private-hash" },
+    observation: { binding: "private-binding", sha256: "private-hash" },
   };
   const canonical = { definition: { places: [] }, title: "Queue" };
   const input: ContextProjectionEntry[] = [
@@ -80,8 +80,8 @@ test("projects in-band canonical output without exposing host sidecars or alteri
       [{ type: "text", text: JSON.stringify("Petrinaut guide") }],
     ],
   );
-  assert(JSON.stringify(input).includes("private-incarnation"));
-  assert(!JSON.stringify(projected).includes("private-incarnation"));
+  assert(JSON.stringify(input).includes("private-binding"));
+  assert(!JSON.stringify(projected).includes("private-binding"));
   assert(!JSON.stringify(projected).includes("brunchBrowserResult"));
 });
 

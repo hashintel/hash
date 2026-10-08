@@ -52,12 +52,55 @@ import {
 } from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { CommandPalette } from "../command-palette";
-import { useSentryFeedbackAction } from "../sentry-feedback-button";
+import {
+  BrunchPanelConversationTracker,
+  type BrunchPanelAdmissionTarget,
+  createBrunchPanelTransport,
+} from "../plugins/brunch/brunch-panel-transport";
+import { resolveBrunchPreviewConfig } from "../plugins/brunch/brunch-preview-config";
+import {
+  brunchEvaluationConversationIdFrom,
+  getOrCreateBrunchConversationId,
+  ordinaryConstructionConversationIdFrom,
+  replaceBrunchConversationId,
+} from "../plugins/brunch/conversation/brunch-conversation-id";
+import { getOrCreateBrunchPrincipal } from "../plugins/brunch/conversation/brunch-principal";
+import { useFlueChatHistory } from "../plugins/brunch/conversation/use-flue-chat-history";
+import {
+  useProcessAgentBinding,
+  type FixtureProcessAgentConfiguration,
+  type ProcessAgentBinding,
+} from "../plugins/brunch/conversation/use-process-agent-binding";
+import { foldBrunchWorkpieceHistory } from "../plugins/brunch/ledger/brunch-workpiece-history";
+import { BrunchWorkpiecePane } from "../plugins/brunch/ledger/brunch-workpiece-pane";
+import { brunchPetrinautClientToolNames } from "../plugins/brunch/tools/brunch-client-tools";
+import {
+  createBrunchDraftExperimentInteractiveTool,
+  resolveDraftAuthorityFromHistory,
+} from "../plugins/brunch/tools/brunch-draft-experiment-interactive-tool";
+import { BrunchExperimentFollowUp } from "../plugins/brunch/tools/brunch-experiment-follow-up";
+import {
+  createBrunchMutationAdmission,
+  createBrunchMutationApprovalCoordinator,
+  createBrunchMutationApprovalInteractiveTools,
+} from "../plugins/brunch/tools/brunch-mutation-approval";
+import {
+  createCanonicalPetrinautHostTools,
+  issuedCanonicalCallsFromHistory,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautReplay,
+  type CanonicalPetrinautReplayReadiness,
+} from "../plugins/brunch/tools/brunch-petrinaut-tools";
+import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
+import { createInBandBrowserCalls } from "../plugins/brunch/tools/in-band-browser-call";
+import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
+import { useVoiceMediationHistory } from "../plugins/voice/history/use-voice-mediation-history";
 import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
-} from "../voice-interview/voice-interview-control";
+} from "../plugins/voice/session/voice-interview-control";
+import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
@@ -65,52 +108,9 @@ import {
   type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
-import {
-  useProcessAgentBinding,
-  type FixtureProcessAgentConfiguration,
-  type ProcessAgentBinding,
-} from "./assistants/brunch/use-process-agent-binding";
-import { brunchPetrinautClientToolNames } from "./brunch-client-tools";
-import {
-  brunchEvaluationConversationIdFrom,
-  getOrCreateBrunchConversationId,
-  ordinaryConstructionConversationIdFrom,
-  replaceBrunchConversationId,
-} from "./brunch-conversation-id";
-import {
-  createBrunchDraftExperimentInteractiveTool,
-  resolveDraftAuthorityFromHistory,
-} from "./brunch-draft-experiment-interactive-tool";
-import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
-import {
-  createBrunchMutationAdmission,
-  createBrunchMutationApprovalCoordinator,
-  createBrunchMutationApprovalInteractiveTools,
-} from "./brunch-mutation-approval";
-import {
-  BrunchPanelConversationTracker,
-  type BrunchPanelAdmissionTarget,
-  createBrunchPanelTransport,
-} from "./brunch-panel-transport";
-import {
-  createCanonicalPetrinautHostTools,
-  issuedCanonicalCallsFromHistory,
-  EMPTY_CANONICAL_PETRINAUT_REPLAY,
-  type CanonicalPetrinautReplay,
-  type CanonicalPetrinautReplayReadiness,
-} from "./brunch-petrinaut-tools";
-import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
-import { getOrCreateBrunchPrincipal } from "./brunch-principal";
-import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
-import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
-import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useConversationWords } from "./conversation-words";
 import { useDocumentController } from "./documents/use-document-controller";
-import { createInBandBrowserCalls } from "./in-band-browser-call";
-import { useFlueChatHistory } from "./use-flue-chat-history";
-import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
-import { useVoiceMediationHistory } from "./use-voice-mediation-history";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 import { WordsHeaderAction } from "./words-configurer";
@@ -118,8 +118,8 @@ import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { VoiceWord } from "../../../shared/voice-words";
-import type { ToolApprovalState } from "../voice-interview/live-brunch-bridge";
-import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
+import type { VoiceMediationHistory } from "../plugins/voice/history/voice-mediation-history";
+import type { ToolApprovalState } from "../plugins/voice/live/live-brunch-bridge";
 import type {
   DocumentRecord,
   RecordRevisionId,
@@ -348,7 +348,6 @@ type PersistFailure = {
   /** The handle whose change was refused; it is replaced, not kept. */
   handle: PetrinautDocHandle;
   documentId: DocumentRecord["documentId"];
-  incarnationId: DocumentRecord["incarnationId"];
   error: Error;
 };
 
@@ -539,8 +538,6 @@ export const LocalStorageDemoApp = ({
     currentDocument === null
       ? null
       : storedHandle?.document.documentId === currentDocument.documentId &&
-          storedHandle.document.incarnationId ===
-            currentDocument.incarnationId &&
           storedHandle.emittedRevisionIds.has(currentDocument.revisionId) &&
           persistFailure?.handle !== storedHandle.handle
         ? storedHandle
@@ -549,8 +546,7 @@ export const LocalStorageDemoApp = ({
   if (
     persistFailure !== null &&
     currentDocument !== null &&
-    (persistFailure.documentId !== currentDocument.documentId ||
-      persistFailure.incarnationId !== currentDocument.incarnationId)
+    persistFailure.documentId !== currentDocument.documentId
   )
     setPersistFailure(null);
 
@@ -572,7 +568,6 @@ export const LocalStorageDemoApp = ({
       repository
         .persistRevision({
           documentId: document.documentId,
-          incarnationId: document.incarnationId,
           definition: event.next,
           previousRevisionId,
           revisionId,
@@ -580,16 +575,12 @@ export const LocalStorageDemoApp = ({
         .then(
           () =>
             setPersistFailure((failure) =>
-              failure?.documentId === document.documentId &&
-              failure.incarnationId === document.incarnationId
-                ? null
-                : failure,
+              failure?.documentId === document.documentId ? null : failure,
             ),
           (error: unknown) =>
             setPersistFailure({
               handle,
               documentId: document.documentId,
-              incarnationId: document.incarnationId,
               error: error instanceof Error ? error : new Error(String(error)),
             }),
         );
@@ -597,8 +588,7 @@ export const LocalStorageDemoApp = ({
   }, [activeHandle, repository]);
   const unsavedChangeMessage =
     persistFailure !== null &&
-    persistFailure.documentId === currentDocument?.documentId &&
-    persistFailure.incarnationId === currentDocument.incarnationId
+    persistFailure.documentId === currentDocument?.documentId
       ? persistFailure.error.message
       : null;
 
@@ -636,19 +626,18 @@ export const LocalStorageDemoApp = ({
   const [freshConversationIds, setFreshConversationIds] = useState<
     Record<string, string>
   >({});
-  const incarnationId = currentDocument?.incarnationId;
   const baseConstructionConversationId = useMemo(() => {
-    if (!brunchSelected || incarnationId === undefined) return undefined;
-    const initialId = ordinaryConstructionConversationIdFrom(incarnationId);
+    if (!brunchSelected || currentNetId === null) return undefined;
+    const initialId = ordinaryConstructionConversationIdFrom(currentNetId);
     return (
-      freshConversationIds[incarnationId] ??
+      freshConversationIds[currentNetId] ??
       getOrCreateBrunchConversationId(
         initialId,
         window.localStorage,
         () => initialId,
       )
     );
-  }, [brunchSelected, freshConversationIds, incarnationId]);
+  }, [brunchSelected, currentNetId, freshConversationIds]);
   const fixtureProcessAgentConfiguration = useMemo<
     FixtureProcessAgentConfiguration | undefined
   >(
@@ -773,7 +762,7 @@ export const LocalStorageDemoApp = ({
     dynamicClientToolNames,
   );
   const replayBindingKey = constructionBrowser
-    ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.incarnationId}:${constructionBrowser.binding.conversationId}`
+    ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
     : undefined;
   const deriveCanonicalReplay = useCallback(
     async (snapshot: NonNullable<typeof flueHistory.snapshot>) => {
@@ -1043,15 +1032,15 @@ export const LocalStorageDemoApp = ({
         }));
       },
       onClearMessages: () => {
-        if (flueClientPromise !== null && incarnationId !== undefined) {
+        if (flueClientPromise !== null && currentNetId !== null) {
           words.clear();
           const initialId =
-            ordinaryConstructionConversationIdFrom(incarnationId);
+            ordinaryConstructionConversationIdFrom(currentNetId);
           const nextId = `${initialId}:${crypto.randomUUID()}`;
           replaceBrunchConversationId(initialId, nextId);
           setFreshConversationIds((current) => ({
             ...current,
-            [incarnationId]: nextId,
+            [currentNetId]: nextId,
           }));
           return;
         }
@@ -1079,7 +1068,6 @@ export const LocalStorageDemoApp = ({
     canonicalHostTools,
     inBandBrowserTools,
     draftInteractiveTool,
-    incarnationId,
     mutationApprovalTools,
     constructionBrowser,
     conversationTracker,

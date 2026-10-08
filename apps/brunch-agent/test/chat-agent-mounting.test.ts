@@ -52,7 +52,6 @@ const bound = {
   binding: {
     conversationId: "conversation",
     documentId: "document",
-    incarnationId: "incarnation",
   },
 };
 beforeEach(() => {
