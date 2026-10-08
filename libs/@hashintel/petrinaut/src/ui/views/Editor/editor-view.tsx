@@ -3,7 +3,7 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, use, useState } from "react";
+import { Activity, use, useState, type CSSProperties } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -22,6 +22,7 @@ import {
   sirModel,
   supplyChainWithDisruption,
   supplyChainProfit,
+  ticketProcessingSDCPN,
   vaccinationCampaign,
 } from "@hashintel/petrinaut-core/examples";
 
@@ -30,6 +31,10 @@ import { ActualModeContext } from "../../../react/actual-mode-context";
 import { usePetrinautNavigation } from "../../../react/navigation";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import {
+  useEffectiveEditViewMode,
+  useKanbanViewAvailable,
+} from "../../../react/state/use-effective-edit-view-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
@@ -47,6 +52,7 @@ import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
+import { KanbanView } from "../Kanban/kanban-view";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -129,6 +135,7 @@ const canvasContainerStyle = css({
 const workspaceStyle = css({
   position: "relative",
   "--edit-view-selector-width": "[160px]",
+  "--edit-view-selector-height": "[24px]",
   display: "flex",
   flexDirection: "column",
   flex: "[1]",
@@ -206,7 +213,6 @@ const EditorViewContent = ({
   // Get editor context
   const {
     globalMode,
-    editViewMode,
     isAiAssistantOpen,
     navigateTo,
     setGlobalMode,
@@ -220,6 +226,8 @@ const EditorViewContent = ({
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
+  const editViewMode = useEffectiveEditViewMode();
+  const kanbanAvailable = useKanbanViewAvailable();
   const actualMode = use(ActualModeContext);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
@@ -234,6 +242,7 @@ const EditorViewContent = ({
   const {
     brunchDemoMode,
     enableExperimentalIconPack,
+    enableStatusViews,
     showAnimations,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
@@ -496,6 +505,20 @@ const EditorViewContent = ({
                   clearSelection();
                 },
               },
+              // Built around a status view, so listed only while the setting
+              // that shows status views is on.
+              ...(enableStatusViews
+                ? [
+                    {
+                      id: "load-example-ticket-processing",
+                      text: "Ticket Processing",
+                      onClick: () => {
+                        createNewNet(ticketProcessingSDCPN);
+                        clearSelection();
+                      },
+                    },
+                  ]
+                : []),
               {
                 id: "load-example-supply-chain-stochastic",
                 text: "Supply Chain with Disruption",
@@ -554,6 +577,16 @@ const EditorViewContent = ({
       },
     },
   ];
+
+  // Actual mode has no Definitions view, so its selector appears only once
+  // the Kanban board gives it a second option.
+  const showEditViewSelector =
+    globalMode === "edit" || (globalMode === "actual" && kanbanAvailable);
+  // Three labels need more room than the two the selector is sized for.
+  const workspaceVariables = {
+    "--edit-view-selector-width":
+      globalMode === "edit" && kanbanAvailable ? "232px" : undefined,
+  } as CSSProperties;
 
   const showEmptyAiHero =
     aiAssistant !== undefined &&
@@ -616,14 +649,10 @@ const EditorViewContent = ({
             {globalMode === "simulate" ? (
               <SimulateView />
             ) : (
-              <div className={workspaceStyle}>
-                {globalMode === "edit" && <EditViewSelector />}
+              <div className={workspaceStyle} style={workspaceVariables}>
+                {showEditViewSelector && <EditViewSelector />}
                 <Activity
-                  mode={
-                    globalMode === "actual" || editViewMode === "canvas"
-                      ? "visible"
-                      : "hidden"
-                  }
+                  mode={editViewMode === "definitions" ? "hidden" : "visible"}
                 >
                   <Box className={canvasContainerStyle}>
                     {/* Left Sidebar - Tools and content panels */}
@@ -632,11 +661,28 @@ const EditorViewContent = ({
                     {/* Properties Panel - Right Side */}
                     <PropertiesPanel />
 
-                    {/* SDCPN Visualization */}
-                    <SDCPNView
-                      onControllerChange={registerController}
-                      viewportActions={viewportActions}
-                    />
+                    {/* SDCPN Visualization, or the Kanban projection of a status
+                        view over the same frame source */}
+                    <Activity
+                      mode={editViewMode === "kanban" ? "hidden" : "visible"}
+                    >
+                      <SDCPNView
+                        onControllerChange={registerController}
+                        viewportActions={viewportActions}
+                      />
+                    </Activity>
+                    <Activity
+                      mode={editViewMode === "kanban" ? "visible" : "hidden"}
+                    >
+                      <KanbanView
+                        toolbarStart={
+                          <div
+                            aria-hidden
+                            className={editViewSelectorSpaceStyle}
+                          />
+                        }
+                      />
+                    </Activity>
 
                     {showEmptyAiHero && (
                       <AiCtaModal
@@ -664,11 +710,7 @@ const EditorViewContent = ({
                   </Box>
                 </Activity>
                 <Activity
-                  mode={
-                    globalMode === "edit" && editViewMode === "definitions"
-                      ? "visible"
-                      : "hidden"
-                  }
+                  mode={editViewMode === "definitions" ? "visible" : "hidden"}
                 >
                   <NotebookView
                     key={petriNetId ?? "no-net"}
@@ -681,8 +723,7 @@ const EditorViewContent = ({
             )}
             <Activity
               mode={
-                globalMode === "actual" ||
-                (globalMode === "edit" && editViewMode === "canvas")
+                globalMode !== "simulate" && editViewMode !== "definitions"
                   ? "visible"
                   : "hidden"
               }

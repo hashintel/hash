@@ -1,0 +1,439 @@
+/**
+ * @layerRoot ui.views.kanban
+ * @role Kanban projection of a status view: columns are labels, cards are tracked instances
+ */
+import { use, useEffect, useRef, useState, type ReactNode } from "react";
+
+import { Select } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
+import {
+  getStatusViewEvaluationScope,
+  summarizeStatusIntervals,
+  type InstanceStatus,
+  type StatusLabel,
+  type StatusView,
+} from "@hashintel/petrinaut-core";
+
+import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
+import { EditorContext } from "../../../react/state/editor-context";
+import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { StatusConditionArtifactsContext } from "../../../react/status-condition-artifacts";
+import { useCanvasInsets } from "../../hooks/use-canvas-insets";
+import { formatDwellMs } from "../shared/format-dwell";
+import {
+  createBoardReplay,
+  type BoardSnapshot,
+} from "./kanban-view/board-replay";
+
+/**
+ * Fills the canvas container like the net canvas does. The left, right, and
+ * bottom edges are set inline from the same insets the canvas controls keep
+ * clear of, so the board only ever occupies the visible region between the
+ * overlay panels.
+ */
+const rootStyle = css({
+  position: "absolute",
+  top: "[0]",
+  display: "flex",
+  flexDirection: "column",
+  minWidth: "[0]",
+  minHeight: "[0]",
+  gap: "3",
+  padding: "4",
+  // The toolbar row shares a line with the floating view switcher, which
+  // sits 12px from the top and is `--edit-view-selector-height` tall.
+  paddingTop: "3",
+  backgroundColor: "neutral.s10",
+});
+
+const rootAnimatingStyle = cva({
+  base: {},
+  variants: {
+    animating: {
+      true: {
+        transition:
+          "[left 150ms ease-in-out, right 150ms ease-in-out, bottom 150ms ease-in-out]",
+      },
+    },
+  },
+});
+
+const toolbarStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "3",
+  flexShrink: 0,
+});
+
+const viewSelectStyle = css({
+  display: "flex",
+  width: "[220px]",
+});
+
+const viewSelectControlStyle = css({
+  height: "[var(--edit-view-selector-height)]",
+});
+
+const emptyStyle = css({
+  color: "neutral.s100",
+  fontStyle: "italic",
+  fontSize: "sm",
+  padding: "4",
+});
+
+const noticeStyle = css({
+  color: "red.s105",
+  fontSize: "xs",
+  flexShrink: 0,
+});
+
+const pendingNoticeStyle = css({
+  color: "neutral.s100",
+  fontSize: "xs",
+  fontStyle: "italic",
+  flexShrink: 0,
+});
+
+const boardStyle = css({
+  display: "flex",
+  gap: "3",
+  flex: "[1]",
+  minHeight: "[0]",
+  overflowX: "auto",
+  alignItems: "stretch",
+});
+
+const columnStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  width: "[240px]",
+  flexShrink: 0,
+  padding: "2",
+  borderRadius: "md",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  backgroundColor: "neutral.s25",
+  overflowY: "auto",
+});
+
+const columnHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  paddingX: "1",
+  fontSize: "sm",
+  fontWeight: "semibold",
+  color: "neutral.s120",
+});
+
+const columnSwatchStyle = css({
+  width: "[10px]",
+  height: "[10px]",
+  borderRadius: "full",
+  flexShrink: 0,
+});
+
+const columnCountStyle = css({
+  marginLeft: "auto",
+  fontSize: "xs",
+  color: "neutral.s90",
+  fontWeight: "medium",
+});
+
+const cardStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  padding: "2",
+  borderRadius: "sm",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  backgroundColor: "neutral.s00",
+  shadow: "[0px 1px 3px rgba(0, 0, 0, 0.06)]",
+});
+
+const cardKeyStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s125",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const cardMetaStyle = css({
+  fontSize: "[11px]",
+  color: "neutral.s90",
+});
+
+/** Columns follow the labels array order, with the exit label last. */
+const toColumnOrder = (labels: readonly StatusLabel[]): StatusLabel[] => [
+  ...labels.filter((label) => !label.isExit),
+  ...labels.filter((label) => label.isExit),
+];
+
+const KanbanCard = ({
+  instance,
+  labelId,
+  nowMs,
+}: {
+  instance: InstanceStatus;
+  labelId: string;
+  nowMs: number;
+}) => {
+  const { totalMs, entryCount } = summarizeStatusIntervals(
+    instance.intervals,
+    labelId,
+    nowMs,
+  );
+  const currentStayMs = nowMs - instance.enteredCurrentAtMs;
+  return (
+    <div className={cardStyle} data-kanban-interactive="">
+      <div className={cardKeyStyle}>{instance.keyValues.join(", ")}</div>
+      <div className={cardMetaStyle}>
+        {formatDwellMs(currentStayMs)} in this status
+        {entryCount > 1
+          ? ` · ${formatDwellMs(totalMs)} over ${entryCount} stays`
+          : ""}
+      </div>
+    </div>
+  );
+};
+
+type BoardReplayHandle = {
+  replay: ReturnType<typeof createBoardReplay>;
+  key: readonly unknown[];
+};
+
+const keysEqual = (
+  left: readonly unknown[],
+  right: readonly unknown[],
+): boolean =>
+  left.length === right.length &&
+  left.every((entry, index) => entry === right[index]);
+
+const KanbanBoard = ({ statusView }: { statusView: StatusView }) => {
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { sourceId, currentFrameIndex, currentFrameReader, getFramesInRange } =
+    use(ExecutionFrameSourceContext);
+  const {
+    statusConditions,
+    pending: conditionsPending,
+    error: conditionsError,
+  } = use(StatusConditionArtifactsContext);
+
+  const [board, setBoard] = useState<BoardSnapshot>({
+    instances: [],
+    nowMs: 0,
+    conditionErrors: null,
+  });
+  const [replayError, setReplayError] = useState<string | null>(null);
+  const replayRef = useRef<BoardReplayHandle | null>(null);
+  const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!currentFrameReader) {
+      return;
+    }
+    // getFramesInRange is deliberately not part of the identity: in actual
+    // mode it is recreated per arriving event, while the replay only needs
+    // the latest one when it fetches.
+    const replayKey = [
+      sourceId,
+      statusView,
+      statusConditions,
+      petriNetDefinition,
+    ];
+    if (!replayRef.current || !keysEqual(replayRef.current.key, replayKey)) {
+      const { places, types } =
+        getStatusViewEvaluationScope(petriNetDefinition);
+      replayRef.current = {
+        replay: createBoardReplay({
+          statusView,
+          places,
+          types,
+          statusConditions,
+        }),
+        key: replayKey,
+      };
+    }
+    const requestId = ++requestIdRef.current;
+    replayRef.current.replay
+      .advanceTo(currentFrameIndex, getFramesInRange)
+      .then((snapshot) => {
+        if (requestIdRef.current === requestId) {
+          setBoard(snapshot);
+          setReplayError(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (requestIdRef.current === requestId) {
+          setReplayError(
+            error instanceof Error ? error.message : String(error),
+          );
+        }
+      });
+  }, [
+    currentFrameIndex,
+    currentFrameReader,
+    getFramesInRange,
+    petriNetDefinition,
+    sourceId,
+    statusConditions,
+    statusView,
+  ]);
+
+  if (!currentFrameReader) {
+    return (
+      <span className={emptyStyle}>
+        Run a simulation or connect an actual-mode stream to populate the board.
+      </span>
+    );
+  }
+
+  const unlabelledCount = board.instances.filter(
+    (instance) => instance.currentLabelId === null,
+  ).length;
+
+  return (
+    <>
+      {replayError !== null && (
+        <span className={noticeStyle}>
+          Could not derive statuses from frames: {replayError}
+        </span>
+      )}
+      {conditionsError !== null && (
+        <span className={noticeStyle}>{conditionsError}</span>
+      )}
+      {board.conditionErrors !== null && (
+        <span className={noticeStyle}>
+          {board.conditionErrors.count} token-condition evaluation error
+          {board.conditionErrors.count === 1 ? "" : "s"}:{" "}
+          {board.conditionErrors.firstMessage}
+        </span>
+      )}
+      {conditionsPending && (
+        <span className={pendingNoticeStyle}>
+          Compiling token conditions — labels with a condition match nothing
+          until compilation lands.
+        </span>
+      )}
+      {unlabelledCount > 0 && (
+        <span className={pendingNoticeStyle}>
+          {unlabelledCount} tracked instance{unlabelledCount === 1 ? "" : "s"}{" "}
+          currently match{unlabelledCount === 1 ? "es" : ""} no label.
+        </span>
+      )}
+      <div className={boardStyle}>
+        {toColumnOrder(statusView.labels).map((label) => {
+          const columnInstances = board.instances.filter(
+            (instance) => instance.currentLabelId === label.id,
+          );
+          return (
+            <div key={label.id} className={columnStyle}>
+              <div className={columnHeaderStyle}>
+                <span
+                  className={columnSwatchStyle}
+                  style={{ backgroundColor: label.displayColor }}
+                />
+                {label.name}
+                <span className={columnCountStyle}>
+                  {columnInstances.length}
+                </span>
+              </div>
+              {columnInstances.map((instance) => (
+                <KanbanCard
+                  key={instance.key}
+                  instance={instance}
+                  labelId={label.id}
+                  nowMs={board.nowMs}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+};
+
+/**
+ * Kanban projection of one status view over the current frame source
+ * (simulation playback or an actual-mode stream): one column per label in
+ * array order with the exit label last, and one card per tracked instance
+ * showing its raw key values, time in the current stay, and the total time
+ * and entry count when it has entered the status more than once.
+ */
+export const KanbanView = ({
+  toolbarStart,
+}: {
+  /** Rendered ahead of the view selector, e.g. to clear a floating control. */
+  toolbarStart?: ReactNode;
+}) => {
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { clearSelection, isPanelAnimating } = use(EditorContext);
+  const statusViews = petriNetDefinition.statusViews ?? [];
+  const [selectedStatusViewId, setSelectedStatusViewId] = useState<
+    string | null
+  >(null);
+
+  const statusView =
+    statusViews.find((view) => view.id === selectedStatusViewId) ??
+    statusViews[0];
+
+  const rootClassName = `${rootStyle} ${rootAnimatingStyle({ animating: isPanelAnimating })}`;
+
+  /**
+   * Clicking empty board background deselects, as clicking the empty net
+   * canvas does; cards and the view selector are marked interactive and keep
+   * the selection.
+   */
+  const handleBackgroundClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if ((event.target as Element).closest("[data-kanban-interactive]")) {
+      return;
+    }
+    clearSelection();
+  };
+  const insets = useCanvasInsets();
+
+  if (!statusView) {
+    return (
+      <div className={rootClassName} style={insets}>
+        <span className={emptyStyle}>
+          No status views yet. Create one in the Simulate panel's Status views
+          tab to project net state onto a board.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={rootClassName}
+      style={insets}
+      role="presentation"
+      onClick={handleBackgroundClick}
+    >
+      <div className={toolbarStyle} data-kanban-interactive="">
+        {toolbarStart}
+        <div className={viewSelectStyle}>
+          <Select
+            className={viewSelectControlStyle}
+            required
+            size="xs"
+            value={statusView.id}
+            onChange={setSelectedStatusViewId}
+            items={statusViews.map((view) => ({
+              value: view.id,
+              text: view.name,
+            }))}
+          />
+        </div>
+      </div>
+      <KanbanBoard key={statusView.id} statusView={statusView} />
+    </div>
+  );
+};

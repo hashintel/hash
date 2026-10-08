@@ -7,9 +7,11 @@ import {
   EditorContext,
   type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { ExperimentsView } from "./experiments/experiments-view";
 import { MetricsView } from "./metrics/metrics-view";
 import { ScenariosView } from "./scenarios/scenarios-view";
+import { StatusViewsView } from "./status-views/status-views-view";
 
 import type { SegmentedControlItem } from "@hashintel/ds-components";
 import type { ComponentType } from "react";
@@ -57,27 +59,48 @@ const modeOptions: SegmentedControlItem<SimulateViewMode>[] = [
     tooltip: "Metrics",
     tooltipOptions: { position: "right" },
   },
+  {
+    value: "status-views",
+    iconName: "squareCheck",
+    tooltip: "Status views",
+    tooltipOptions: { position: "right" },
+  },
 ];
 
 const views = {
   experiments: ExperimentsView,
   scenarios: ScenariosView,
   metrics: MetricsView,
+  "status-views": StatusViewsView,
 } satisfies Record<SimulateViewMode, ComponentType>;
+
+/**
+ * Metrics live inside Experiments, and a stored Status views mode whose tab
+ * is not offered falls back to Experiments.
+ */
+const visibleSimulateView = (
+  mode: SimulateViewMode,
+  enableStatusViews: boolean,
+): SimulateViewMode =>
+  mode === "metrics" || (mode === "status-views" && !enableStatusViews)
+    ? "experiments"
+    : mode;
 
 // -- Component -----------------------------------------------------------------
 
 export const SimulateViewTabs = () => {
   const { simulateViewMode: mode, setSimulateViewMode: setMode } =
     use(EditorContext);
+  const { enableStatusViews } = use(UserSettingsContext);
   const visibleModeOptions = modeOptions.filter(
-    (option) => option.value !== "metrics",
+    (option) =>
+      option.value !== "metrics" &&
+      (option.value !== "status-views" || enableStatusViews),
   );
-  const visibleMode = mode === "metrics" ? "experiments" : mode;
   return (
     <nav aria-label="Simulation views" className={sidebarStyle}>
       <SegmentedControl
-        value={visibleMode}
+        value={visibleSimulateView(mode, enableStatusViews)}
         items={visibleModeOptions}
         onChange={setMode}
         layout="vertical"
@@ -89,7 +112,8 @@ export const SimulateViewTabs = () => {
 
 export const SimulateView = () => {
   const { simulateViewMode: mode } = use(EditorContext);
-  const ActiveView = views[mode === "metrics" ? "experiments" : mode];
+  const { enableStatusViews } = use(UserSettingsContext);
+  const ActiveView = views[visibleSimulateView(mode, enableStatusViews)];
   return (
     <div className={containerStyle}>
       <ActiveView />

@@ -561,16 +561,23 @@ export const UserSettingsDialog = ({
                   )}
                   {item.id === "labs" && (
                     <>
-                      {extensions.subnets && (
-                        <SettingsGroup title="Modeling">
+                      <SettingsGroup title="Modeling">
+                        {extensions.subnets && (
                           <SettingToggle
                             label="Net Components"
                             description="Build hierarchical nets with subnet definitions and component instances."
                             value={settings.enableNetComponents}
                             onChange={settings.setEnableNetComponents}
                           />
-                        </SettingsGroup>
-                      )}
+                        )}
+                        <SettingToggle
+                          label="Status views"
+                          experimental
+                          description="Derive per-instance statuses from the net: a Status views tab in the Simulate panel, an identity picker on token type attributes, a Kanban board in the view switcher, and a status changes column in Actual mode's Events tab."
+                          value={settings.enableStatusViews}
+                          onChange={settings.setEnableStatusViews}
+                        />
+                      </SettingsGroup>
                       <SettingsGroup title="Developer tools">
                         <SettingToggle
                           label="Compilation output"

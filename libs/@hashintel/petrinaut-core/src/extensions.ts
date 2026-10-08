@@ -507,6 +507,23 @@ export const sanitizeSDCPNForExtensions = (
     next.metrics = sdcpn.metrics.map((metric) => ({ ...metric }));
   }
 
+  if (sdcpn.identities) {
+    next.identities = sdcpn.identities.map((identity) => ({
+      ...identity,
+      keyElementTypes: [...identity.keyElementTypes],
+    }));
+  }
+
+  if (sdcpn.statusViews) {
+    next.statusViews = sdcpn.statusViews.map((statusView) => ({
+      ...statusView,
+      labels: statusView.labels.map((label) => ({
+        ...label,
+        places: [...label.places],
+      })),
+    }));
+  }
+
   if (sdcpn.subnets) {
     next.subnets = sdcpn.subnets.map(cloneSubnet);
   }

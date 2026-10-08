@@ -1,6 +1,6 @@
 ---
 layer: ui.views
-role: The top-level screens the editor composes — the editor shell, the net canvas, and the notebook
+role: The top-level screens the editor composes — the editor shell, the net canvas, the Kanban board, and the notebook
 ---
 
 Each subfolder is a screen rather than a widget. The split matters because the
