@@ -5,7 +5,7 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { getGroupFocusProps } from "../../util/radio-checkbox-group-shared";
-import { iconSizeMap } from "../Button/icon-size-map";
+import { iconSizeMap } from "../Button/button-util";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon, type IconName } from "../Icon/icon";
 import { Tooltip } from "../Tooltip/tooltip";

@@ -4,13 +4,13 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
 import { Icon } from "../Icon/icon";
-import { iconNames } from "../Icon/icon-map";
+import { iconNames } from "../Icon/icon-util";
 import {
   Button as ButtonComponent,
   type ButtonElementProps,
   type Variant,
 } from "./button";
-import { iconSizeMap } from "./icon-size-map";
+import { iconSizeMap } from "./button-util";
 
 import type { Story, StoryDefault } from "@ladle/react";
 

@@ -2,7 +2,7 @@ import { css, type Styles } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
 import { Icon } from "./icon";
-import { iconNames } from "./icon-map";
+import { iconNames } from "./icon-util";
 
 import type { Story, StoryDefault } from "@ladle/react";
 

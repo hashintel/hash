@@ -2,12 +2,12 @@ import { createContext, use } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { IconMap } from "./icon-map";
+import { IconMap } from "./icon-util";
 import { styles } from "./icon.recipe";
 
 import type { DataAttributes } from "../../util/dom";
 import type { FormInputSize } from "../../util/form-shared";
-import type { IconName } from "./icon-map";
+import type { IconName } from "./icon-util";
 
 export type { IconName };
 

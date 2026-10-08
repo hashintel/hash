@@ -1,7 +1,7 @@
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { Icon } from "../components/Icon/icon";
-import { iconSizeMap } from "../components/TextInput/icon-size-map";
+import { iconSizeMap } from "../components/TextInput/text-input-util";
 
 import type { IconName } from "../components/Icon/icon";
 import type { PrefixOrSuffix } from "../components/TextInput/base-input";

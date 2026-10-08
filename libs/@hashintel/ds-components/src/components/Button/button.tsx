@@ -5,8 +5,8 @@ import { resolveAutoFocusProps } from "../../util/form-shared";
 import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { Tooltip } from "../Tooltip/tooltip";
+import { iconSizeMap } from "./button-util";
 import { styles } from "./button.recipe";
-import { iconSizeMap } from "./icon-size-map";
 
 import type { FormInputSize, Tone } from "../../util/form-shared";
 import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";

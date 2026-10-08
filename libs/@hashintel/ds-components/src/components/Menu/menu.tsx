@@ -14,7 +14,7 @@ import {
   useLoopSelection,
 } from "../../util/SelectableList/selectable-list-util";
 import { type Position } from "../Tooltip/tooltip";
-import { collectSelectedIds } from "./collect-selected-ids";
+import { collectSelectedIds } from "./menu-util";
 
 export type MenuItem = Item & { selected?: boolean };
 

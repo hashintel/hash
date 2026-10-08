@@ -12,8 +12,8 @@ import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { baseInputRecipe } from "./base-input.recipe";
-import { iconSizeMap } from "./icon-size-map";
 import { InputConnector } from "./input-connector";
+import { iconSizeMap } from "./text-input-util";
 
 import type {
   FormInputSize,

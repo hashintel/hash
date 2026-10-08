@@ -5,14 +5,19 @@ import { cx } from "@hashintel/ds-helpers/css";
 import { useIsomorphicLayoutEffect } from "../../util/use-isomorphic-layout-effect";
 import { Icon } from "../Icon/icon";
 import { Menu } from "../Menu/menu";
-import { collectEntries, isCollapsible } from "./breadcrumbs-entries";
 import {
   type Classes,
   Item,
   ItemContent,
   VisibleItem,
 } from "./breadcrumbs-item";
-import { chevronIcons, crumbStyle, toMenuItem } from "./breadcrumbs-item-util";
+import {
+  chevronIcons,
+  collectEntries,
+  crumbStyle,
+  isCollapsible,
+  toMenuItem,
+} from "./breadcrumbs-item-util";
 import {
   computeCollapse,
   hiddenIndicesFor,
@@ -26,7 +31,7 @@ export type {
   BreadcrumbEntry,
   BreadcrumbItem,
   BreadcrumbSubItem,
-} from "./breadcrumbs-item";
+} from "./breadcrumbs-item-util";
 
 const Separator = ({
   size,
@@ -69,7 +74,7 @@ const BreadCrumbsRoot = ({
 }) => {
   const classes = styles({ size });
 
-  const entries = useMemo(() => collectEntries(children), [children]);
+  const entries = useMemo(() => collectEntries(children, Item), [children]);
   const count = entries.length;
   // Encoded as a string so `measure` gets a stable, value-equal dependency.
   const collapsibleKey = useMemo(

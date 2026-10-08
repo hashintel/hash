@@ -5,7 +5,7 @@ import { LoadingSpinner } from "../Loading/loading-spinner";
 import { affixStyles, dotStyles, styles } from "./chip.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
-import type { ChipSize } from "./chip-sizes";
+import type { ChipSize } from "./chip-util";
 import type { ExclusifyUnion, RequireAllOrNone } from "type-fest";
 
 /**

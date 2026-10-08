@@ -44,7 +44,7 @@ import {
 } from "./combobox.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
-import type { ChipSize } from "../Chip/chip-sizes";
+import type { ChipSize } from "../Chip/chip-util";
 import type { TextInput } from "../TextInput/text-input";
 
 export type ComboboxItem<TValue extends string = string> = {
