@@ -27,6 +27,7 @@ import {
 import { vReflection } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/construction/reflections.ts";
 import { vClaim } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/elicitation/claims.ts";
 import {
+  entityKindSides,
   vEntity,
   vEntityKind,
 } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/elicitation/entities.ts";
@@ -548,6 +549,13 @@ const literalsOf = (schema: DescribedEnums) =>
     literal: option.literal,
     description: v.getDescription(option),
   }));
+
+test("each entity kind's description opens with its side", () => {
+  for (const option of vEntityKind.options)
+    expect(v.getDescription(option)?.toLowerCase()).toMatch(
+      new RegExp(`^${entityKindSides[option.literal]}: `),
+    );
+});
 
 test("Flue's tool schema carries entity kind, origin and status descriptions", () => {
   const parameters = flueParameters(vLedgerAppend);

@@ -14,120 +14,120 @@ export const vEntityKind = v.pipe(
     v.pipe(
       v.literal("thing"),
       v.description(
-        "What moves through the system and is counted, transformed or consumed, e.g. 'orders', 'blanks', 'samples'.",
+        "System: what moves through the system and is counted, transformed or consumed, e.g. 'orders', 'blanks', 'samples'.",
       ),
     ),
     v.pipe(
       v.literal("location"),
       v.description(
-        "A place things are in or move between, where position matters to the answer, e.g. 'site B', 'ward 3'. When its capacity can run out, it is a resource.",
+        "System: a place things are in or move between, where position matters to the answer, e.g. 'site B', 'ward 3'. When its capacity can run out, it is a resource.",
       ),
     ),
     v.pipe(
       v.literal("resource"),
       v.description(
-        "Something a step needs and holds while it runs, whose capacity can run out, e.g. 'the dryer', 'forklifts', 'nurses on shift'.",
+        "System: something a step needs and holds while it runs, whose capacity can run out, e.g. 'the dryer', 'forklifts', 'nurses on shift'. Claims describe its capacity.",
       ),
     ),
     v.pipe(
       v.literal("activity"),
       v.description(
-        "A step that takes time and turns inputs into outputs, e.g. 'drying', 'inspection'.",
+        "System: a step that takes time and turns inputs into outputs, e.g. 'drying', 'inspection'.",
       ),
     ),
     v.pipe(
       v.literal("actor"),
       v.description(
-        "A person, team or organisation that performs steps or makes decisions, e.g. 'the planner', 'quality control'. When only how many are free matters, it is a resource.",
+        "System: a person, team or organisation that performs steps or makes decisions, e.g. 'the planner', 'quality control'. When only how many are free matters, it is a resource.",
       ),
     ),
     v.pipe(
       v.literal("rule"),
       v.description(
-        "A policy that decides what happens next, e.g. 'rush orders jump the queue'. When the USER wants to compare versions of it, it is a lever.",
+        "System: a policy that decides what happens next, e.g. 'rush orders jump the queue', 'reorder when stock falls below 20'. When the USER wants to compare versions of it, it is a lever.",
       ),
     ),
     v.pipe(
       v.literal("event"),
       v.description(
-        "Something that happens at a moment rather than taking time, often from outside, e.g. 'a machine breaks down', 'a delivery arrives'.",
+        "System: something that happens at a moment rather than taking time, often from outside, e.g. 'a machine breaks down', 'a delivery arrives'.",
       ),
     ),
     v.pipe(
       v.literal("flow"),
       v.description(
-        "A route things take through several activities from start to finish, e.g. 'order to dispatch', 'the rework loop'.",
+        "System: a route things take through several activities from start to finish, e.g. 'order to dispatch', 'the rework loop'.",
       ),
     ),
     v.pipe(
       v.literal("purpose"),
       v.description(
-        "A question or goal the model exists to address, e.g. 'can we meet winter demand without a second dryer?'.",
+        "Framing: a question or goal the model exists to address, e.g. 'can we meet winter demand without a second dryer?'.",
       ),
     ),
     v.pipe(
       v.literal("direction"),
       v.description(
-        "An objective to maximise or minimise a metric, e.g. 'minimise waiting time'. Claims describe which metric and which direction.",
+        "Output: an objective to maximise or minimise a metric, e.g. 'minimise waiting time'. Claims describe which metric and which direction.",
       ),
     ),
     v.pipe(
       v.literal("target"),
       v.description(
-        "A desired value that would count as success, e.g. 'the waiting-time service standard'. Claims describe the metric and its desired value.",
+        "Output: a desired value of a metric that would count as success, e.g. 'the waiting-time service standard'. Claims describe the metric and its desired value.",
       ),
     ),
     v.pipe(
       v.literal("optimum"),
       v.description(
-        "The best achievable setting or outcome to find, rather than a desired value already chosen, e.g. 'the best staffing level'. Claims describe what makes it best.",
+        "Input: a setting of one or more levers to find, best by the directions it balances, rather than a value already chosen, e.g. 'the best staffing level'. Claims link it to its levers and directions.",
       ),
     ),
     v.pipe(
       v.literal("metric"),
       v.description(
-        "A quantity measured from a run that the answer is judged by, e.g. 'waiting time', 'weekly output'.",
+        "Output: a quantity measured from a run that the answer is judged by, e.g. 'waiting time', 'weekly output'.",
       ),
     ),
     v.pipe(
       v.literal("lever"),
       v.description(
-        "Something the USER can change and wants to compare settings of, e.g. 'number of shifts', 'reorder point'.",
+        "Input: something the USER can change and wants to compare settings of, e.g. 'number of shifts', 'reorder point'.",
       ),
     ),
     v.pipe(
       v.literal("limit"),
       v.description(
-        "A capacity or bound on an allowable resource, lever or rule setting, e.g. 'dryer capacity', 'the hiring cap'. Claims describe what is bounded and its value.",
+        "Input: a bound on what may be set or spent, e.g. 'the hiring cap', 'the overtime budget'. Claims describe what is bounded and its value. A resource's own capacity is a claim about that resource, not a limit.",
       ),
     ),
     v.pipe(
       v.literal("threshold"),
       v.description(
-        "A boundary an outcome must not cross, e.g. 'the maximum acceptable patient wait'. Claims describe the metric and its boundary value.",
+        "Output: a bound a run's outcome must not cross, e.g. 'the maximum acceptable patient wait'. Claims describe the metric and its bound. A level at which the operation itself acts is a rule.",
       ),
     ),
     v.pipe(
       v.literal("horizon"),
       v.description(
-        "A simulated time span the model runs over, e.g. 'the staffing horizon', 'the investment horizon'. Claims describe its duration.",
+        "Scope: a simulated time span the model runs over, e.g. 'the staffing horizon', 'the investment horizon'. Claims describe its duration.",
       ),
     ),
     v.pipe(
       v.literal("boundary"),
       v.description(
-        "An inclusion, exclusion or interface with something outside the model, e.g. 'the supplier boundary'. Claims describe where the model stops and what crosses it.",
+        "Scope: an inclusion, exclusion or interface with something outside the model, e.g. 'the supplier boundary'. Claims describe where the model stops and what crosses it.",
       ),
     ),
     v.pipe(
       v.literal("externality"),
       v.description(
-        "An effect on something outside the model, e.g. 'downstream congestion', 'neighbourhood noise'. Claims describe the effect and who or what it affects.",
+        "Output: an effect on something outside the model, e.g. 'downstream congestion', 'neighbourhood noise'. Claims describe the effect and who or what it affects.",
       ),
     ),
   ]),
   v.description(
-    "What the entity is, not the role a claim gives it. Any kind can occur more than once.",
+    "What the entity is, not the role a claim gives it. Each kind opens with where it sits relative to a run: framing (why the model exists), scope (its time span and edges), input (set before a run), system (how the operation behaves during a run) or output (what a run produces and how it is judged). Any kind can occur more than once.",
   ),
 );
 
