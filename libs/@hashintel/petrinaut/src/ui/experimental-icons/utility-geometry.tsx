@@ -173,17 +173,19 @@ export const utilityGeometry = {
   ),
   ruler: <path d="m3 16 13-13 5 5L8 21Zm5-5 2 2m1-5 2 2m1-5 2 2M5 14l2 2" />,
   sortDown: <path d="M5 3v18m-3-3 3 3 3-3M11 5h10M11 10h7M11 15h4" />,
-  sortDown19: (
+  sortDownNumeric: (
     <path d="M5 3v18m-3-3 3 3 3-3M13.5 5l2-2v6M17.5 16.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0c0 3-1 4.5-3.5 4.5" />
   ),
   sortUp: <path d="M5 21V3m-3 3 3-3 3 3M11 5h4M11 10h7M11 15h10" />,
-  sortUp19: (
+  sortUpNumeric: (
     <path d="M5 21V3m-3 3 3-3 3 3M17.5 6.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0c0 3-1 4.5-3.5 4.5M13.5 16l2-2v7" />
   ),
-  sortDownAZ: (
+  sortDownAlphabetical: (
     <path d="M5 3v18m-3-3 3 3 3-3m3-9 4-6 4 6m-6-2h4m-6 7h8l-8 7h8" />
   ),
-  sortUpAZ: <path d="M5 21V3m-3 3 3-3 3 3m3-2h8l-8 7h8m-8 10 4-7 4 7m-6-2h4" />,
+  sortUpAlphabetical: (
+    <path d="M5 21V3m-3 3 3-3 3 3m3-2h8l-8 7h8m-8 10 4-7 4 7m-6-2h4" />
+  ),
   squareCheck: (
     <>
       <rect x="3" y="3" width="18" height="18" rx="2" />

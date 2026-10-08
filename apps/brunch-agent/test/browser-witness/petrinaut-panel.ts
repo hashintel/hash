@@ -12,6 +12,7 @@ import {
 } from "@earendil-works/pi-ai";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
 
 import {
   isAppliedChange,
@@ -25,8 +26,6 @@ import {
   prepareWitnessProcess,
   toolCall,
 } from "./browser-fixture.ts";
-
-import type { SDCPN } from "@hashintel/petrinaut-core";
 
 prepareWitnessProcess("browser-witness");
 const faux = installFauxOpenai();
@@ -51,10 +50,11 @@ const experimentNet: SDCPN = {
   ],
   metrics: [{ id: "throughput", name: "Throughput", code: "return 1;" }],
 };
+const experimentNetId = toPetrinautId("experiment-net");
+const draftNetId = toPetrinautId("draft-net");
 const savedDocument = (id: string, sdcpn: SDCPN) => ({
   [id]: {
     id,
-    incarnationId: `${id}-incarnation`,
     revisionId: `${id}-revision`,
     title: "Queue",
     lastUpdated: "2020-01-01T00:00:00.000Z",
@@ -185,11 +185,11 @@ const canonicalConstruction = async () => {
     ),
     ["store"],
   );
-  const stored = await fixture.storedDocument<{
-    incarnationId: string;
-    sdcpn: SDCPN;
-  }>(page, binding.documentId);
-  assert.equal(stored?.incarnationId, binding.incarnationId);
+  const stored = await fixture.storedDocument<{ sdcpn: SDCPN }>(
+    page,
+    binding.documentId,
+  );
+  assert(stored);
   assert.deepEqual(
     stored.sdcpn.differentialEquations.map(({ id, code }) => ({ id, code })),
     [{ id: "decay", code: repairedCode }],
@@ -211,7 +211,7 @@ const directExperiment = async () => {
   };
   const page = await fixture.openAssistant(
     "/",
-    savedDocument("experiment-net", experimentNet),
+    savedDocument(experimentNetId, experimentNet),
   );
   faux.setResponses([
     toolCall("getLatestNetDefinition", {}, "read-1"),
@@ -242,7 +242,7 @@ const directExperiment = async () => {
     revisionId: string;
     sdcpn: SDCPN;
   }>(page, binding.documentId);
-  assert.equal(stored?.revisionId, "experiment-net-revision");
+  assert.equal(stored?.revisionId, `${experimentNetId}-revision`);
   assert.deepEqual(stored.sdcpn, experimentNet);
 };
 
@@ -250,7 +250,7 @@ const directExperiment = async () => {
 const draftedExperiment = async () => {
   const page = await fixture.openAssistant(
     "/",
-    savedDocument("draft-net", experimentNet),
+    savedDocument(draftNetId, experimentNet),
   );
   faux.setResponses([
     toolCall("getLatestNetDefinition", {}, "read-1"),
@@ -298,8 +298,7 @@ const draftedExperiment = async () => {
     .waitFor({ timeout: 30_000 });
   assert.equal(delivery.kind, "user");
   const { binding, client } = await fixture.conversationOf(page, delivery);
-  assert.equal(binding.documentId, "draft-net");
-  assert.equal(binding.incarnationId, "draft-net-incarnation");
+  assert.equal(binding.documentId, draftNetId);
   const history = await client.history();
   const results = clientToolHistoryFrom(history.messages).results;
   assert.deepEqual(

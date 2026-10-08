@@ -56,7 +56,6 @@ import {
 } from "./quick-simulation";
 
 import type { NetManagement } from "../../react/net-management-context";
-import type { ViewportAction } from "../types/viewport-action";
 
 const noop = () => {};
 
@@ -144,7 +143,10 @@ const previewCanvasStyle = css({
 export type PetrinautPreviewProps = {
   /** The immutable model snapshot to display. */
   definition: SDCPN;
-  /** Stable identity for the in-memory document created by Preview. */
+  /**
+   * Stable identity for the in-memory document created by Preview. Any id
+   * that is not a UUID is converted to one with `toPetrinautId`.
+   */
   documentId?: string;
   title?: string;
   /**
@@ -163,8 +165,6 @@ export type PetrinautPreviewProps = {
    * model's named scenarios without mounting Petrinaut's language tooling.
    */
   quickSimulation?: PetrinautPreviewQuickSimulation;
-  /** Host actions displayed alongside the canvas zoom controls. */
-  viewportActions?: ViewportAction[];
 };
 
 /**
@@ -182,7 +182,6 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   navigation,
   quickSimulation,
   title = "Petrinaut model",
-  viewportActions,
 }) => {
   const generatedDocumentId = useId();
   const portalContainerRef = useRef<HTMLDivElement>(null);
@@ -314,7 +313,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
         </header>
         <main className={previewMainStyle}>
           <div className={previewCanvasStyle}>
-            <SDCPNView viewportActions={viewportActions} />
+            <SDCPNView />
             {quickSimulation && (
               <PreviewSimulationPlaybackControls
                 allowedPlaybackSpeeds={playbackOptions?.allowedPlaybackSpeeds}

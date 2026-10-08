@@ -54,6 +54,7 @@ export type {
 } from "./ui/types/ai-interactive-tool";
 
 export {
+  canonicalizePetrinautIds,
   combineCommandRegistries,
   createCommandRegistry,
   createJsonDocHandle,

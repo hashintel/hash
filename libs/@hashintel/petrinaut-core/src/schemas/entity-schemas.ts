@@ -6,6 +6,7 @@
 import { z } from "zod";
 
 import { getParameterValueError } from "../parameter-values";
+import { toPetrinautId } from "../petrinaut-id";
 import { COLOR_ELEMENT_TYPES } from "../simulation/engine/type-policies";
 import { displayNameSchema } from "../validation/display-name";
 import { entityNameSchema } from "../validation/entity-name";
@@ -28,6 +29,11 @@ import type {
 export const idSchema = z.string().min(1).meta({
   description:
     "Stable identifier for an SDCPN entity. Use unique IDs within the net.",
+});
+
+export const subnetIdSchema = z.string().min(1).overwrite(toPetrinautId).meta({
+  description:
+    "Subnet ID, a UUID. Any other string is converted to a stable UUID, so the same string always names the same subnet.",
 });
 
 export const descriptionSchema = z.string().optional().meta({
@@ -392,8 +398,9 @@ export const componentInstanceSchema = z
     }),
     description: descriptionSchema,
     metadata: metadataSchema,
-    subnetId: idSchema.meta({
-      description: "ID of the subnet definition this component instantiates.",
+    subnetId: subnetIdSchema.meta({
+      description:
+        "ID of the subnet definition this component instantiates, a UUID. Any other string is converted to a stable UUID.",
     }),
     parameterValues: z.record(idSchema, z.string()).meta({
       description:
@@ -413,7 +420,7 @@ export const componentInstanceSchema = z
 
 export const subnetSchema = z
   .strictObject({
-    id: idSchema,
+    id: subnetIdSchema,
     name: displayNameSchema.meta({
       description: "Human-readable subnet name.",
     }),
