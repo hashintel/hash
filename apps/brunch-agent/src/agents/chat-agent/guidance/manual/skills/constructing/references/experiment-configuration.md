@@ -1,6 +1,6 @@
 # Experiment Configuration
 
-Read this while constructing, whenever the USER states a decision the model should answer, and again whenever the decision, its measure, a tunable quantity or its range changes. Do not read it merely because the net has parameters or metrics.
+Read this while constructing, whenever the USER states a decision the model should answer or asks to run an experiment, and again whenever the decision, its measure, a tunable quantity or its range changes. Do not read it merely because the net has parameters or metrics.
 
 An experiment is an ordinary thing a model has, like a scenario or a metric: the USER's account supplies what it means, the net supplies what makes it executable, and you propose it when both are present. The USER does not need to ask for one or know the word.
 
@@ -66,6 +66,8 @@ When ready, do two things in one turn, in this order:
 The tool drafts a proposal in this editor's memory and returns `{ status, summary, diagnostics }`. It does not run anything, save anything with the document or navigate. Say "drafted for review, not run", not "added to the model". The USER runs a drafted proposal from the card's Run action. Approval of a draft in conversation is not a request to execute it: point them to the card. If `status` is `invalid`, repair from the diagnostics against a fresh observation and redraft; do not ask the USER to fix identifiers.
 
 If a load-bearing restriction lands in `unsupported`, state that gap in the sentence before the tool call and explain that Run is blocked. Do not tell the USER to press Run while a blocking restriction remains. If they explicitly accept a reporting-only exploration, redraft without claiming the restriction is enforced.
+
+Call canonical `createExperiment` instead of drafting only when the USER explicitly asks to run now. It carries no restrictions either, so first name each restriction or threshold they stated that the run will not enforce.
 
 ## Once, not repeatedly
 

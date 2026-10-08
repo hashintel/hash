@@ -13,21 +13,44 @@ import {
   type NetCall,
 } from "../../../../../conversation/net-changes.ts";
 import { foldCommits } from "./ledger2/commits.ts";
-import description from "./query-basis-tool.md?raw";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
+export const queryBasisToolDescription =
+  "Use when the USER asks why a visible net element exists, instead of answering from memory. Finds the element in the latest net read and lists the canonical calls that changed it, each with its settled document revision, the Ledger revision current at the call, and the IDs of Ledger records committed earlier in the same turn; compile the Ledger for their content. These are chronological associations, not semantic justification: say so, and say plainly when no call is associated. A stale-read disposition means the net changed after the latest read: read it again, then query.";
+
 const elementSchema = v.object({
-  selector: v.object({
-    kind: v.picklist(netElementKinds),
-    name: v.optional(v.string()),
-    id: v.optional(v.string()),
-    transitionId: v.optional(v.string()),
-    arcDirection: v.optional(v.picklist(["input", "output"])),
-    placeId: v.optional(v.string()),
-  }),
+  selector: v.pipe(
+    v.object({
+      kind: v.picklist(netElementKinds),
+      name: v.optional(
+        v.pipe(
+          v.string(),
+          v.description("The element's recorded name, unique within its kind."),
+        ),
+      ),
+      id: v.optional(v.pipe(v.string(), v.description("The element's ID."))),
+      transitionId: v.optional(
+        v.pipe(v.string(), v.description("For an arc: its transition's ID.")),
+      ),
+      arcDirection: v.optional(
+        v.pipe(
+          v.picklist(["input", "output"]),
+          v.description(
+            "For an arc: its direction relative to the transition.",
+          ),
+        ),
+      ),
+      placeId: v.optional(
+        v.pipe(v.string(), v.description("For an arc: its place's ID.")),
+      ),
+    }),
+    v.description(
+      "One element by kind and its name or ID; an arc by transitionId, arcDirection and placeId.",
+    ),
+  ),
 });
 type Selector = v.InferOutput<typeof elementSchema>["selector"];
 
@@ -175,7 +198,7 @@ export const createQueryBasisTool = (options: {
 }) =>
   defineTool({
     name: brunchTools.queryBasis,
-    description: description.trim(),
+    description: queryBasisToolDescription,
     input: elementSchema,
     output: v.custom<ReturnType<typeof queryBasis>>(() => true),
     async run({ data }) {

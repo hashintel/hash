@@ -31,12 +31,12 @@ type SdcpnToolOptions = {
   readonly authorizeDraft?: Parameters<
     typeof createDraftExperimentTool
   >[0]["authorizeDraft"];
-  /** Replace the instructions mounted in a document-bound conversation. */
+  /** Replace the instructions mounted in a document-bound conversation; one left out mounts nothing. */
   readonly instructions?: {
-    /** Mounted before the tools; defaults to Petrinaut's AI capability guidance. */
-    readonly capability: string;
+    /** Mounted before the tools. */
+    readonly capability?: string;
     /** Mounted after the experiment draft tool. */
-    readonly experimentDrafting: string;
+    readonly experimentDrafting?: string;
   };
 };
 
@@ -44,9 +44,12 @@ type SdcpnToolOptions = {
 export const useSdcpnTools = (options?: SdcpnToolOptions): void => {
   const initialData = useInitialData<SdcpnInitialData>();
   if (initialData) {
-    useInstruction(
-      options?.instructions?.capability ?? petrinautAiCapabilityGuidance,
-    );
+    const instructions = options?.instructions ?? {
+      capability: petrinautAiCapabilityGuidance,
+      experimentDrafting: experimentDraftingInstruction,
+    };
+    if (instructions.capability !== undefined)
+      useInstruction(instructions.capability);
     if (!options?.authorizeDraft)
       throw new Error(
         "A document-bound conversation requires draft history authorization.",
@@ -61,9 +64,8 @@ export const useSdcpnTools = (options?: SdcpnToolOptions): void => {
         executeBrowserTool: options.executeBrowserTool,
       }),
     );
-    useInstruction(
-      options.instructions?.experimentDrafting ?? experimentDraftingInstruction,
-    );
+    if (instructions.experimentDrafting !== undefined)
+      useInstruction(instructions.experimentDrafting);
     for (const tool of asyncCanonicalPetrinautTools(options.executeBrowserTool))
       useTool(tool);
     for (const tool of netReaderTools(options.executeBrowserTool))

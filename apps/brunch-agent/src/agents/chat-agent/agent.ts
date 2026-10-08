@@ -142,24 +142,26 @@ export function ChatAgent({ id }: AgentProps) {
       }),
     );
 
-  useInstruction(
-    instructions?.[initialData ? "bound" : "unbound"] ??
-      `
+  const runtimeInstruction =
+    instructions === undefined
+      ? `
 Call ping when you need to confirm the server tool path.
 ${
   initialData
     ? "Canonical browser tools return actual browser outputs as ordinary tool results, under the output key with host-only metadata; continue the task after each result. A browser operation does not require a prior Ledger commit. Independent server and browser calls may share a proposal, but a concurrent Ledger commit is not evidence of a settled browser effect; make a call that depends on another's result only after that result has returned. Calls whose inputs you choose yourself, such as a fragment's elements and arcs with your own IDs, do not depend on each other; send them together. Never repeat an attempted write whose outcome is unknown. A net change starts only when a current view of the net is in your context and the document has not changed by other means since; the latest change's result carries netAfterChanges, the net's structure after that proposal's changes."
     : "This conversation has no browser tools; use the available server tools and modelling skill."
 }
-`.replace(/^\s+|\s+$/gu, ""),
-  );
-  if (initialData)
-    useInstruction(
-      instructions?.queryBasis ??
-        `
+`.replace(/^\s+|\s+$/gu, "")
+      : instructions[initialData ? "bound" : "unbound"];
+  if (runtimeInstruction !== undefined) useInstruction(runtimeInstruction);
+  const queryBasisInstruction =
+    instructions === undefined
+      ? `
 When the user asks why a visible element exists, do not answer from memory. If no current net read exists or the net may have changed since it, read the net first, then call ${brunchTools.queryBasis} with the element's kind and recorded name or ID (for an arc, the transition ID, direction and place ID). The answer lists the calls that changed it, the Ledger revision current at each, and the Notes recorded earlier in the same turn; compile those Notes when you need their content. Chronological association is not semantic justification. If no call is associated, say so plainly.
-`.replace(/^\s+|\s+$/gu, ""),
-    );
+`.replace(/^\s+|\s+$/gu, "")
+      : instructions.queryBasis;
+  if (initialData && queryBasisInstruction !== undefined)
+    useInstruction(queryBasisInstruction);
   useTool(ping);
 
   return coreSystemPrompt;

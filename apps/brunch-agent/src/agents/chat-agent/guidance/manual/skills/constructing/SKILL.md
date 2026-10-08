@@ -19,9 +19,9 @@ Record consequential stand-ins, inferences, defaults, approximations, revisions 
 
 ## Execute efficiently
 
-For one bounded connected fragment, submit independent canonical mutations as parallel calls in one step, ordered by dependency: types, parameters and differential equations; then places and transitions; then arcs. Use the last result's `netAfterChanges` rather than rereading.
+For one bounded connected fragment, submit independent canonical mutations as parallel calls in one step, ordered by dependency: types, parameters and differential equations; then places and transitions; then arcs. Use the last result's `netAfterChanges` rather than rereading. A change is refused unless a current read of the net is in context, so read it first when none is, or when the USER may have edited the net since.
 
-After the step that writes code, call `getNetCompilationErrors` once for the fragment. Submit every requested repair in one further step. Read again only for code or fields omitted by `netAfterChanges`, before a live explanation, and at delivery. On failure or no-op, inspect the result and current state, then submit only the correction; do not replay successful changes.
+After the step that writes code, call `getNetCompilationErrors` once for the fragment. Submit every requested repair in one further step. Read again only for code or fields omitted by `netAfterChanges`, before a live explanation, and at delivery. On failure, no-op or an unknown outcome, inspect the result and current state, then submit only the correction; never repeat a change that succeeded or may have.
 
 The mounted schemas govern exact payloads. Choose IDs for new elements so a fragment can be created in one step; references to existing elements and experiment inputs use observed identifiers, never IDs guessed from names. Required coordinates are provisional layout only. Arc multiplicities are not probabilities. Existing endpoints are observed, not invented. Say construction changed only after successful tool evidence.
 
@@ -39,7 +39,7 @@ A lower level never implies a higher one. A compilation diagnostic does not prov
 
 ## Prepare experiments
 
-When the USER states a decision the model should answer, or changes its measure, direction, tunable quantity/range or regime, read `references/experiment-configuration.md`. Early purpose, levers and protected conditions are operational meaning; they are not experiment readiness.
+When the USER states a decision the model should answer, asks to run an experiment, or changes its measure, direction, tunable quantity/range or regime, read `references/experiment-configuration.md`. Early purpose, levers and protected conditions are operational meaning; they are not experiment readiness.
 
 Readiness requires both the stated decision configuration and current executable counterparts described in that reference. Construct missing net prerequisites; ask only for missing source facts. Parameters and metrics alone never trigger a proposal. Hard restrictions remain distinct from soft objectives, and unsupported enforcement is disclosed rather than encoded as a penalty.
 

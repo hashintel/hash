@@ -16,6 +16,7 @@ import {
   commitToolDescription as ledger2CommitDescription,
   compileToolDescription as ledger2CompileDescription,
 } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/ledger-tools.ts";
+import { queryBasisToolDescription as manualQueryBasisDescription } from "../src/agents/chat-agent/guidance/manual/tools/query-basis.ts";
 import {
   assertPetrinautToolCatalogueConformance,
   canonicalPetrinautToolCatalogue,
@@ -200,13 +201,12 @@ test.each(selfContainedGuidanceVariants)(
     );
     const pathOf = (name: string) =>
       files.find((path) => basename(path) === name) ?? name;
-    // The manual arm's ledger2 tools carry their descriptions inline, and it
-    // mounts no feedback or identity-Ledger instructions.
-    const ledger2 = arm === "manual";
-    const toolDescriptions = [
-      "query-basis-tool.md",
-      ...(ledger2 ? [] : ["ledger-commit.md", "ledger-compile.md"]),
-    ];
+    // The manual arm's tools carry their descriptions inline, and it mounts
+    // only the Petrinaut capability instruction beside its system prompt.
+    const manual = arm === "manual";
+    const toolDescriptions = manual
+      ? []
+      : ["query-basis-tool.md", "ledger-commit.md", "ledger-compile.md"];
     for (const name of toolDescriptions)
       vi.doMock(
         `../src/agents/chat-agent/guidance/${arm}/${pathOf(name)}?raw`,
@@ -236,35 +236,42 @@ test.each(selfContainedGuidanceVariants)(
     expect(mounted.instructions.filter((text) => !own.has(text))).toEqual([]);
     expect(mounted.instructions).toEqual(
       expect.arrayContaining(
-        [
-          ...(ledger2 ? [] : ["feedback.md", "identity-ledger.md"]),
-          "petrinaut-capability.md",
-          "experiment-drafting.md",
-          "runtime-bound.md",
-          "query-basis.md",
-        ].map((name) => texts.get(name)),
+        (manual
+          ? ["petrinaut-capability.md"]
+          : [
+              "feedback.md",
+              "identity-ledger.md",
+              "petrinaut-capability.md",
+              "experiment-drafting.md",
+              "runtime-bound.md",
+              "query-basis.md",
+            ]
+        ).map((name) => texts.get(name)),
       ),
     );
     expect(mounted.descriptions.get(brunchTools.queryBasis)).toBe(
-      `${arm} query-basis-tool.md`,
+      manual ? manualQueryBasisDescription : `${arm} query-basis-tool.md`,
     );
     expect(mounted.descriptions.get(brunchTools.ledgerCompile)).toBe(
-      ledger2 ? ledger2CompileDescription : `${arm} ledger-compile.md`,
+      manual ? ledger2CompileDescription : `${arm} ledger-compile.md`,
     );
     // The receipt arm appends its vocabulary after the mounted description.
     const [commitHead, ...commitRest] = (
       mounted.descriptions.get(brunchTools.ledgerCommit) ?? ""
     ).split("\n");
     expect(commitHead).toBe(
-      ledger2 ? ledger2CommitDescription : `${arm} ledger-commit.md`,
+      manual ? ledger2CommitDescription : `${arm} ledger-commit.md`,
     );
-    expect(commitRest.length > 0).toBe(!ledger2);
+    expect(commitRest.length > 0).toBe(!manual);
 
     mounted.initialData = undefined;
     mounted.instructions.length = 0;
     candidate({ id: `${arm}-unbound` });
     expect(mounted.instructions.filter((text) => !own.has(text))).toEqual([]);
-    expect(mounted.instructions).toContain(texts.get("runtime-unbound.md"));
+    expect(mounted.instructions.length === 0).toBe(manual);
+    expect(
+      mounted.instructions.includes(texts.get("runtime-unbound.md") ?? ""),
+    ).toBe(!manual);
   },
 );
 

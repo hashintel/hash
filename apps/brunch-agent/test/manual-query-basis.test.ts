@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { queryBasis } from "../src/agents/chat-agent/guidance/manual/tools/query-basis-tool.ts";
+import { queryBasis } from "../src/agents/chat-agent/guidance/manual/tools/query-basis.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
