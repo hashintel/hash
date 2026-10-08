@@ -18,6 +18,7 @@ import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
+import { documentRevisionOf } from "../plugins/brunch/tools/shared/document-revision";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
@@ -25,7 +26,6 @@ import {
 } from "../shared/petrinaut-jsdom";
 import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
-import { documentRevisionOf } from "./shared/document-revision";
 
 import type { FlueClient } from "@flue/sdk";
 import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
@@ -68,13 +68,13 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
     },
   };
 });
-vi.mock("./brunch-preview-config", () => ({
+vi.mock("../plugins/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
     chatEndpoint: "/agents/chat",
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("./brunch-principal", () => ({
+vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
 
