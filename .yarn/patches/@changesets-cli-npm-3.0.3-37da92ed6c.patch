@@ -11,17 +11,3 @@ index dc6ca95c3c26de55b3355d1f339b97ab79ba3d20..8944065ef7275f48f3a0f988af2e7c25
  function isAlreadyPublishedError(message) {
  	return message.includes("cannot publish over the previously published");
  }
-diff --git a/dist/status.mjs b/dist/status.mjs
-index 73bf423070926abf5543aead05b8f606815f86ed..90ca7ab188331dbc66778938a50800968e6bab22 100644
---- a/dist/status.mjs
-+++ b/dist/status.mjs
-@@ -27,7 +27,8 @@ async function status(options) {
- Some packages have been changed but no changesets were found. Run ${src_default.cyan("changeset add")} to resolve this error.
- If this change doesn't need a release, run ${src_default.cyan("changeset add --empty")}.
-       `.trim());
--		throw new ExitError(1);
-+		// Prevent CI failures in Renovate PRs that immediately follow ‘Version Packages’
-+		// throw new ExitError(1);
- 	}
- 	if (options?.output) {
- 		await fs.writeFile(path.resolve(cwd, options.output), JSON.stringify(releasePlan, void 0, 2));
