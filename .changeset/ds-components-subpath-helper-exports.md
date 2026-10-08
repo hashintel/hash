@@ -2,17 +2,6 @@
 "@hashintel/ds-components": minor
 ---
 
-Per-component subpaths (`@hashintel/ds-components/<name>`) now export only components.
-
-No longer exported:
-
-- `iconSizeMap`: from `/button`
-- `chipSizes`: from `/chip`
-- `collectSelectedIds`: from `/menu`
-
-Moved:
-
-- `iconNames`: `/icon` → package root
-- `ChipSize`: `/chip` → package root
-- `useFieldId`: `/field-id-context` → package root
-- `FieldIdProvider`: `/field-id-context` → `/field-id-provider`
+Per-component subpaths (`@hashintel/ds-components/<name>`) now export only components. Moved:
+- `iconNames`, `ChipSize`, `useFieldId` → now exported from root
+- `FieldIdProvider`: `/field-id-context` → now exported from `/field-id-provider`
