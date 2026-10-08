@@ -93,7 +93,7 @@ export default withSentryConfig(
         ];
       },
       images: {
-        domains: [apiDomain],
+        remotePatterns: [{ hostname: apiDomain }],
       },
       async redirects() {
         return [
@@ -156,10 +156,9 @@ export default withSentryConfig(
       },
       pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx", "api.ts"],
 
-      // We call linters in GitHub Actions for all pull requests. By not linting
+      // We type-check in GitHub Actions for all pull requests. By not checking
       // again during `next build`, we save CI minutes and unlock more feedback.
       // Thus, we can get Playwright test results and Preview releases for WIP PRs.
-      eslint: { ignoreDuringBuilds: true },
       typescript: { ignoreBuildErrors: true },
 
       experimental: {
