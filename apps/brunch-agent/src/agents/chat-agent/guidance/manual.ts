@@ -1,8 +1,8 @@
 import { useModel, useSkill, useTool } from "@flue/runtime";
 
 import system from "./manual/prompts/system.md?raw";
-import constructing from "./manual/skills/constructing/SKILL.md";
 import eliciting from "./manual/skills/eliciting/SKILL.md";
+import modelling from "./manual/skills/modelling/SKILL.md";
 import petrinaut from "./manual/skills/petrinaut/SKILL.md";
 import { createLedger2Tools } from "./manual/tools/ledger.ts";
 import { createQueryBasisTool } from "./manual/tools/query-basis.ts";
@@ -23,7 +23,7 @@ export const useManualGuidance = (
 ) => {
   useModel(model, options);
   useSkill(eliciting);
-  useSkill(constructing);
+  useSkill(modelling);
   useSkill(petrinaut);
   for (const tool of createLedger2Tools(readHistory)) useTool(tool);
   return {

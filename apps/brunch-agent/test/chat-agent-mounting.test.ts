@@ -73,8 +73,8 @@ vi.mock(
   () => ({ default: { name: "manual eliciting" } }),
 );
 vi.mock(
-  "../src/agents/chat-agent/guidance/manual/skills/constructing/SKILL.md",
-  () => ({ default: { name: "manual constructing" } }),
+  "../src/agents/chat-agent/guidance/manual/skills/modelling/SKILL.md",
+  () => ({ default: { name: "manual modelling" } }),
 );
 vi.mock(
   "../src/agents/chat-agent/guidance/manual/skills/petrinaut/SKILL.md",
@@ -234,11 +234,11 @@ test.each(selfContainedGuidanceVariants)(
     const { ChatAgent: candidate } =
       await import("../src/agents/chat-agent/agent.ts");
     expect(candidate({ id: arm })).toBe(texts.get("system.md"));
-    expect(mounted.skills).toEqual([
-      `${arm} eliciting`,
-      `${arm} constructing`,
-      ...(manual ? [`${arm} petrinaut`] : []),
-    ]);
+    expect(mounted.skills).toEqual(
+      manual
+        ? [`${arm} eliciting`, `${arm} modelling`, `${arm} petrinaut`]
+        : [`${arm} eliciting`, `${arm} constructing`],
+    );
     expect(mounted.tools.sort()).toEqual(tools.sort());
     const own = new Set(texts.values());
     expect(mounted.instructions.filter((text) => !own.has(text))).toEqual([]);
