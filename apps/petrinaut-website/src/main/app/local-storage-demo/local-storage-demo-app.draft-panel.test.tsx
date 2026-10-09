@@ -388,7 +388,14 @@ test.each(["Dismiss", "Run"] as const)(
       }),
     } as unknown as FlueClient;
     fixture.client = client;
-    render(<LocalStorageDemoApp search={{}} onSearchChange={() => {}} />);
+    render(
+      <LocalStorageDemoApp
+        netId={binding.documentId}
+        onOpenNet={() => {}}
+        search={{}}
+        onSearchChange={() => {}}
+      />,
+    );
     const showPanel = await screen.findByRole("button", {
       name: "Show AI assistant",
     });
