@@ -21,6 +21,9 @@
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@blockprotocol/graph"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "types": "./dist/main.d.ts",
   "typesVersions": {
