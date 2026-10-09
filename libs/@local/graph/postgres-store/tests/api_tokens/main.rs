@@ -355,12 +355,12 @@ async fn revoke_other_web() -> Result<(), Box<dyn Error>> {
     clippy::unnecessary_wraps,
     reason = "the signature is the one `authenticate_api_token` takes"
 )]
-const fn accept(_credential: &ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> {
+const fn accept(_credential: &ApiTokenCredential) -> Result<(), ApiTokenVerificationError> {
     Ok(())
 }
 
-fn reject(_credential: &ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> {
-    Err(Report::new(ApiTokenVerificationError::SecretMismatch))
+const fn reject(_credential: &ApiTokenCredential) -> Result<(), ApiTokenVerificationError> {
+    Err(ApiTokenVerificationError::SecretMismatch)
 }
 
 /// Sets the recorded use of `token_id` to `interval` before the transaction time and returns it.
@@ -587,8 +587,8 @@ async fn authenticate_unknown() -> Result<(), Box<dyn Error>> {
         result
             .expect_err("an unknown token should not authenticate")
             .current_context(),
-        ApiTokenAuthenticationError::NotFound,
-        "the failure should be reported as not found"
+        ApiTokenAuthenticationError::Invalid,
+        "the failure should be reported as invalid"
     );
 
     Ok(())
@@ -609,8 +609,8 @@ async fn authenticate_non_user() -> Result<(), Box<dyn Error>> {
         result
             .expect_err("a token of a machine should not authenticate")
             .current_context(),
-        ApiTokenAuthenticationError::NotFound,
-        "the failure should be reported as not found"
+        ApiTokenAuthenticationError::Invalid,
+        "the failure should be reported as invalid"
     );
     assert_eq!(
         listed_token(&store, web_id).await?.last_used_at,
@@ -628,16 +628,20 @@ async fn authenticate_wrong_secret() -> Result<(), Box<dyn Error>> {
     let (user_id, web_id) = user_with_web(&mut store).await?;
     let token = create_token(&mut store, user_id, Some(LIFETIME)).await?;
 
-    let result = store.authenticate_api_token(token.token_id, reject).await;
+    let report = store
+        .authenticate_api_token(token.token_id, reject)
+        .await
+        .expect_err("a rejected secret should not authenticate");
 
     assert_matches!(
-        result
-            .expect_err("a rejected secret should not authenticate")
-            .current_context(),
-        ApiTokenAuthenticationError::Verification {
-            reason: ApiTokenVerificationError::SecretMismatch
-        },
-        "the failure should be reported as a failed verification with its reason"
+        report.current_context(),
+        ApiTokenAuthenticationError::Invalid,
+        "the failure should be reported as invalid"
+    );
+    assert_matches!(
+        report.downcast_ref::<ApiTokenVerificationError>(),
+        Some(ApiTokenVerificationError::SecretMismatch),
+        "the report should keep the reason the verification failed"
     );
     assert_eq!(
         listed_token(&store, web_id).await?.last_used_at,
@@ -662,59 +666,13 @@ async fn authenticate_revoked() -> Result<(), Box<dyn Error>> {
         result
             .expect_err("a revoked token should not authenticate")
             .current_context(),
-        ApiTokenAuthenticationError::Revoked,
-        "the failure should be reported as revoked"
+        ApiTokenAuthenticationError::Invalid,
+        "the failure should be reported as invalid"
     );
     assert_eq!(
         listed_token(&store, web_id).await?.last_used_at,
         None,
         "the use should not be recorded"
-    );
-
-    Ok(())
-}
-
-/// A revoked token with the wrong secret fails the verification, so the revocation of a token is
-/// only learned with its secret.
-#[tokio::test]
-async fn authenticate_revoked_wrong_secret() -> Result<(), Box<dyn Error>> {
-    let mut db = DatabaseTestWrapper::new().await;
-    let mut store = db.connection.transaction().await?;
-    let (user_id, web_id) = user_with_web(&mut store).await?;
-    let token = create_token(&mut store, user_id, Some(LIFETIME)).await?;
-    store.revoke_api_token(web_id, token.token_id).await?;
-
-    let result = store.authenticate_api_token(token.token_id, reject).await;
-
-    assert_matches!(
-        result
-            .expect_err("a revoked token should not authenticate")
-            .current_context(),
-        ApiTokenAuthenticationError::Verification { .. },
-        "a revoked token with a rejected secret should fail the verification, not report the \
-         revocation"
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn authenticate_expired_wrong_secret() -> Result<(), Box<dyn Error>> {
-    let mut db = DatabaseTestWrapper::new().await;
-    let mut store = db.connection.transaction().await?;
-    let (user_id, _) = user_with_web(&mut store).await?;
-    let token = create_token(&mut store, user_id, Some(LIFETIME)).await?;
-    expire(&store, token.token_id).await?;
-
-    let result = store.authenticate_api_token(token.token_id, reject).await;
-
-    assert_matches!(
-        result
-            .expect_err("an expired token should not authenticate")
-            .current_context(),
-        ApiTokenAuthenticationError::Verification { .. },
-        "an expired token with a rejected secret should fail the verification, not report the \
-         expiry"
     );
 
     Ok(())
@@ -734,8 +692,8 @@ async fn authenticate_expired() -> Result<(), Box<dyn Error>> {
         result
             .expect_err("an expired token should not authenticate")
             .current_context(),
-        ApiTokenAuthenticationError::Expired,
-        "the failure should be reported as expired"
+        ApiTokenAuthenticationError::Invalid,
+        "the failure should be reported as invalid"
     );
     assert_eq!(
         listed_token(&store, web_id).await?.last_used_at,
@@ -959,7 +917,7 @@ impl AuthenticateApiToken for TransactionTokens<'_, '_> {
         verify: F,
     ) -> Result<UserId, Report<ApiTokenAuthenticationError>>
     where
-        F: FnOnce(&ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> + Send,
+        F: FnOnce(&ApiTokenCredential) -> Result<(), ApiTokenVerificationError> + Send,
     {
         self.0
             .lock()
@@ -1072,6 +1030,34 @@ async fn provider_moved_row() -> Result<(), Box<dyn Error>> {
         report.current_context().kind(),
         &AuthenticationErrorKind::UnverifiableApiToken,
         "a token moved to another user should be unverifiable"
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn provider_unknown_key() -> Result<(), Box<dyn Error>> {
+    let mut db = DatabaseTestWrapper::new().await;
+    let mut store = db.connection.transaction().await?;
+    let (user_id, _) = user_with_web(&mut store).await?;
+    let token = record_issued(&mut store, user_id).await?;
+    let hashed: HashedApiToken = token.parse()?;
+    store
+        .as_client()
+        .execute(
+            "UPDATE api_token SET encryption_key_id = $2 WHERE token_id = $1",
+            &[&hashed.token_id(), &Uuid::new_v4()],
+        )
+        .await?;
+
+    let report = authenticate_bearer(&mut store, &token)
+        .await
+        .expect_err("a token encrypted with another key should not authenticate");
+
+    assert_eq!(
+        report.current_context().kind(),
+        &AuthenticationErrorKind::UnverifiableApiToken,
+        "a token encrypted with another key should be unverifiable"
     );
 
     Ok(())

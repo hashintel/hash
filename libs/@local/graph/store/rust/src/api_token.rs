@@ -367,18 +367,26 @@ pub enum ApiTokenVerificationError {
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum ApiTokenAuthenticationError {
-    /// No user has an API token with the requested ID.
-    #[display("the API token does not exist")]
-    NotFound,
-    /// The presented token does not verify, for `reason`.
-    #[display("the API token could not be verified")]
-    Verification { reason: ApiTokenVerificationError },
-    #[display("the API token is revoked")]
-    Revoked,
-    #[display("the API token is expired")]
-    Expired,
+    /// No user has a valid API token with the requested ID, or the presented token does not match
+    /// its record.
+    #[display("the API token is invalid")]
+    Invalid,
+    /// The record of the API token cannot be checked against the presented token.
+    #[display("the API token cannot be verified")]
+    Unverifiable,
     #[display("the API token could not be read or its use could not be recorded")]
     Store,
+}
+
+impl From<ApiTokenVerificationError> for ApiTokenAuthenticationError {
+    fn from(reason: ApiTokenVerificationError) -> Self {
+        match reason {
+            ApiTokenVerificationError::TokenMismatch
+            | ApiTokenVerificationError::SecretMismatch => Self::Invalid,
+            ApiTokenVerificationError::UnknownKey { .. }
+            | ApiTokenVerificationError::Undecryptable => Self::Unverifiable,
+        }
+    }
 }
 
 /// Records, lists, authenticates and revokes API tokens.
@@ -436,22 +444,19 @@ pub trait ApiTokenStore {
 
     /// Authenticates the API token `token_id` and returns the user it acts as.
     ///
-    /// Reads the [`ApiTokenCredential`] of `token_id` and passes it to `verify`. Only a verified
-    /// token is checked for revocation and expiry, and only a token that authenticates has its use
-    /// recorded, at most once a minute.
+    /// Reads the [`ApiTokenCredential`] of `token_id` if the token is neither revoked nor expired,
+    /// and passes it to `verify`. Only a token that authenticates has its use recorded, at most
+    /// once a minute.
     ///
     /// # Errors
     ///
-    /// - [`NotFound`] if no user has a token `token_id`
-    /// - [`Verification`] if `verify` fails
-    /// - [`Revoked`] if the token is revoked
-    /// - [`Expired`] if the token is expired
+    /// - [`Invalid`] if no user has a token `token_id` that is neither revoked nor expired
+    /// - [`Invalid`] or [`Unverifiable`] if `verify` fails, converted [`From`] its
+    ///   [`ApiTokenVerificationError`], which stays in the report
     /// - [`Store`] if the token cannot be read or its use cannot be recorded
     ///
-    /// [`NotFound`]: ApiTokenAuthenticationError::NotFound
-    /// [`Verification`]: ApiTokenAuthenticationError::Verification
-    /// [`Revoked`]: ApiTokenAuthenticationError::Revoked
-    /// [`Expired`]: ApiTokenAuthenticationError::Expired
+    /// [`Invalid`]: ApiTokenAuthenticationError::Invalid
+    /// [`Unverifiable`]: ApiTokenAuthenticationError::Unverifiable
     /// [`Store`]: ApiTokenAuthenticationError::Store
     fn authenticate_api_token<F>(
         &mut self,
@@ -459,7 +464,7 @@ pub trait ApiTokenStore {
         verify: F,
     ) -> impl Future<Output = Result<UserId, Report<ApiTokenAuthenticationError>>> + Send
     where
-        F: FnOnce(&ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> + Send;
+        F: FnOnce(&ApiTokenCredential) -> Result<(), ApiTokenVerificationError> + Send;
 }
 
 #[cfg(test)]
