@@ -1,11 +1,9 @@
 //! Authentication providers shared by the Graph HTTP APIs.
 //!
-//! A router composes them as a chain that consults the API token first, then the explicit
-//! credential, then a session, then what the environment stamps onto the request. The public APIs
-//! verify API tokens and take no sessions: `(ApiTokenProvider, (ExplicitProviders,
-//! EnvironmentProviders))`. Every other API rejects API tokens: `(ApiTokenRejection,
-//! (ExplicitProviders, (SessionProviders, EnvironmentProviders)))`, or without sessions
-//! `(ApiTokenRejection, (ExplicitProviders, EnvironmentProviders))`.
+//! Only the first credential found in a request is checked. The providers look for an API token
+//! first, then for a service delegation, then for a Kratos session, and last for a Cloudflare
+//! Access JWT. The public APIs accept API tokens and no sessions. Every other API rejects a request
+//! that carries an API token.
 
 use alloc::sync::Arc;
 
