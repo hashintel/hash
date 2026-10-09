@@ -7,6 +7,7 @@ import {
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -201,6 +202,14 @@ export const persistEntitiesAction: AiFlowActionActivity<
       continue;
     }
 
+    if (isStoredPayloadRef(output.value)) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `Expected persisted entity metadata, but received a stored payload reference`,
+      };
+      continue;
+    }
+
     if (persistedEntityOutputs.code !== StatusCode.Ok) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         existingEntityId: output.value.entityId,
@@ -217,19 +226,29 @@ export const persistEntitiesAction: AiFlowActionActivity<
 
   const persistedEntities = Object.values(persistedEntitiesByLocalId);
 
-  // Store the output in S3 to avoid passing large payloads through Temporal
-  const storedRef = await storePayload({
-    storageProvider: getStorageProvider(),
-    workflowId,
-    runId,
-    stepId,
-    outputName: "persistedEntities",
-    kind: "PersistedEntitiesMetadata",
-    value: {
-      persistedEntities,
-      failedEntityProposals: Object.values(failedEntitiesByLocalId),
-    },
-  });
+  const failedEntityProposals = Object.values(failedEntitiesByLocalId);
+
+  // Store the outputs in S3 to avoid passing large payloads through Temporal
+  const [persistedEntitiesRef, failedEntityProposalsRef] = await Promise.all([
+    storePayload({
+      storageProvider: getStorageProvider(),
+      workflowId,
+      runId,
+      stepId,
+      outputName: "persistedEntities",
+      kind: "PersistedEntityMetadata",
+      value: persistedEntities,
+    }),
+    storePayload({
+      storageProvider: getStorageProvider(),
+      workflowId,
+      runId,
+      stepId,
+      outputName: "failedEntityProposals",
+      kind: "FailedEntityProposal",
+      value: failedEntityProposals,
+    }),
+  ]);
 
   return {
     /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */
@@ -243,7 +262,7 @@ export const persistEntitiesAction: AiFlowActionActivity<
       persistedEntities.length > 0
         ? `Persisted ${persistedEntities.length} entities`
         : proposedEntities.length > 0
-          ? `Failed to persist ${Object.values(failedEntitiesByLocalId).length} entities`
+          ? `Failed to persist ${failedEntityProposals.length} entities`
           : `No entities to persist`,
     contents: [
       {
@@ -251,8 +270,15 @@ export const persistEntitiesAction: AiFlowActionActivity<
           {
             outputName: "persistedEntities",
             payload: {
-              kind: "PersistedEntitiesMetadata",
-              value: storedRef,
+              kind: "PersistedEntityMetadata",
+              value: persistedEntitiesRef,
+            },
+          },
+          {
+            outputName: "failedEntityProposals",
+            payload: {
+              kind: "FailedEntityProposal",
+              value: failedEntityProposalsRef,
             },
           },
         ],
