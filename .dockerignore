@@ -25,6 +25,7 @@
 !libs/@local/graph/api/src/rest/documentation/overview.md
 # Brunch packages prompts and skills through `?raw` imports in their builds.
 !libs/@hashintel/brunch-agent/packages/*/src/**/*.md
+!apps/brunch-agent/src/**/*.md
 
 ########################
 ## Same as in .gitignore
