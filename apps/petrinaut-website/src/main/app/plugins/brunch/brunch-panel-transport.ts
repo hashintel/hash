@@ -5,12 +5,12 @@ import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
 import { sweepOutputSchema } from "./tools/brunch-sweep-output";
 
+import type { BrunchFlueAdapter } from "./brunch-flue-adapter";
 import type {
   SweepCapture,
   SweepCompletionFailure,
   SweepCompletionReport,
 } from "./tools/brunch-sweep-output";
-import type { BrunchFlueAdapter } from "./brunch-flue-adapter";
 import type {
   AgentSendResult,
   FlueClient,

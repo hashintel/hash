@@ -2,7 +2,6 @@ import { FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
 import { createBrunchFlueAdapter } from "./brunch-flue-adapter";
-import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
