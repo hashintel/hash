@@ -3,7 +3,7 @@ import * as v from "valibot";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 
 import { vLedgerAppend, type LedgerAppend } from "./append";
-import { owedObligations } from "./projection";
+import { owedObligations, projectLedger } from "./projection";
 
 import type {
   ClaimRecord,
@@ -49,11 +49,14 @@ interface LedgerCall {
 
 const isSettled = (part: ToolPart) => part.state.startsWith("output-");
 
+const isUserMessage = (message: LedgerHistoryMessage) =>
+  message.role === "user" && (message.purpose ?? "user") === "user";
+
 /** Every `ledger_commit` call in canonical order, whatever its state. */
 const ledgerCalls = (history: LedgerHistory): LedgerCall[] => {
   let afterMessageId: string | undefined;
   return history.messages.flatMap((message) => {
-    if (message.role === "user" && (message.purpose ?? "user") === "user") {
+    if (isUserMessage(message)) {
       afterMessageId = message.id;
       return [];
     }
@@ -88,6 +91,10 @@ export const ledgerAppendOutputSchema = v.variant("status", [
     revision: v.number(),
     /** System-assigned record IDs, aligned with the submitted entries queue. */
     ids: v.array(v.string()),
+    /** USER messages so far, through the one this commit follows. */
+    exchanges: v.optional(v.number()),
+    /** Current open and conflicted claims after this commit. */
+    openQuestions: v.optional(v.number()),
     /** Obligations no reflection has discharged yet; absent when none are owed. */
     owed: v.optional(v.array(v.object({ id: v.string(), text: v.string() }))),
     /** Consequences of this commit the model should weigh; absent when there are none. */
@@ -401,9 +408,20 @@ export const prepareAppend = (call: {
     commitId: call.toolCallId,
     revision: revision + 1,
     ids: derived.ids,
+    exchanges: exchangesThrough(call.history, own?.afterMessageId),
+    openQuestions: projectLedger(derived.state).questions.length,
     ...(owed.length > 0 ? { owed } : {}),
     ...(notes.length > 0 ? { notes } : {}),
   };
+};
+
+const exchangesThrough = (
+  history: LedgerHistory,
+  messageId: string | undefined,
+): number => {
+  if (messageId === undefined) return 0;
+  const end = history.messages.findIndex(({ id }) => id === messageId);
+  return history.messages.slice(0, end + 1).filter(isUserMessage).length;
 };
 
 const accountOrigins = new Set(["stated", "evidenced"]);

@@ -159,6 +159,8 @@ test("one mixed append batch yields queue-aligned IDs and resolved references", 
     commitId: "commit-1",
     revision: 1,
     ids: ["e1", "c1", "r1", "r2"],
+    exchanges: 1,
+    openQuestions: 0,
   });
   const { state, revision } = foldCommits(settledHistory([batch]));
   expect(revision).toBe(1);
@@ -222,6 +224,8 @@ test("entity routes split creation from full update of an addressed entity", asy
     commitId: "commit-2",
     revision: 2,
     ids: ["e1"],
+    exchanges: 2,
+    openQuestions: 0,
   });
   const { state } = foldCommits(settledHistory([creations, updateBatch]));
   expect(
@@ -324,6 +328,8 @@ test("committed records accept references from later turns", async () => {
     commitId: "commit-2",
     revision: 2,
     ids: ["r1"],
+    exchanges: 2,
+    openQuestions: 0,
   });
   const empty = await runCommit([prior], []);
   expect(empty).toEqual({
@@ -331,6 +337,8 @@ test("committed records accept references from later turns", async () => {
     commitId: "commit-2",
     revision: 2,
     ids: [],
+    exchanges: 2,
+    openQuestions: 0,
   });
 });
 
@@ -565,6 +573,42 @@ test("a misdirected local reference names the entry, field and target", () => {
   );
 });
 
+test("the receipt counts open questions after the commit", async () => {
+  const receipt = await runCommit(
+    [],
+    toBatch([
+      [
+        "entity/create",
+        {
+          name: "Starting level",
+          kind: "thing",
+          origin: "stated",
+          status: "confirmed",
+        },
+      ],
+      [
+        "claim/create",
+        {
+          text: "The level a summer night starts at is unknown.",
+          entities: ["$0"],
+          origin: "stated",
+          status: "open",
+        },
+      ],
+      [
+        "claim/create",
+        {
+          text: "The trend and the operator disagree on the 2 July peak level.",
+          entities: ["$0"],
+          origin: "stated",
+          status: "conflicted",
+        },
+      ],
+    ]),
+  );
+  expect(receipt).toMatchObject({ exchanges: 1, openQuestions: 2 });
+});
+
 test("the receipt notes an agent claim superseding the account", async () => {
   // Run p7ZTaN: a claim describing the draft superseded Gwen's stated range.
   const account = toBatch([
@@ -650,6 +694,8 @@ test("an obligation stays owed until a reflection discharges it", async () => {
     commitId: "commit-1",
     revision: 1,
     ids: ["e1", "o1"],
+    exchanges: 1,
+    openQuestions: 0,
     owed: [
       {
         id: "o1",
@@ -694,6 +740,8 @@ test("an obligation stays owed until a reflection discharges it", async () => {
     commitId: "commit-2",
     revision: 2,
     ids: ["r1"],
+    exchanges: 2,
+    openQuestions: 0,
   });
   expect(
     renderLedgerMarkdown(
