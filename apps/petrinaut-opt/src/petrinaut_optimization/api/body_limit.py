@@ -4,14 +4,15 @@ from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
+MAX_REQUEST_BODY_MIB = 8
+MAX_REQUEST_BODY_BYTES = MAX_REQUEST_BODY_MIB * 1024 * 1024
 
 
 class _RequestBodyTooLargeError(HTTPException):
     def __init__(self) -> None:
         # FastAPI preserves HTTP errors raised while it reads the body; other
         # exceptions become a generic 400 before this middleware can catch them.
-        super().__init__(413, "Request body exceeds the 8 MiB limit")
+        super().__init__(413, f"Request body exceeds the {MAX_REQUEST_BODY_MIB} MiB limit")
 
 
 class RequestBodyLimitMiddleware:
@@ -58,6 +59,6 @@ class RequestBodyLimitMiddleware:
     async def _reject(scope: Scope, receive: Receive, send: Send) -> None:
         response = JSONResponse(
             status_code=413,
-            content={"detail": "Request body exceeds the 8 MiB limit"},
+            content={"detail": f"Request body exceeds the {MAX_REQUEST_BODY_MIB} MiB limit"},
         )
         await response(scope, receive, send)
