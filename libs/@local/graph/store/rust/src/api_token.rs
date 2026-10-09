@@ -331,8 +331,8 @@ pub enum ApiTokenRevocationError {
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-#[display("the API tokens of the user could not be revoked")]
-pub struct UserApiTokenRevocationError;
+#[display("the API tokens of the web could not be revoked")]
+pub struct WebApiTokenRevocationError;
 
 /// What a store records about an API token, which a presented token is verified against.
 #[derive(Debug)]
@@ -421,18 +421,18 @@ pub trait ApiTokenStore {
         token_id: ApiTokenId,
     ) -> impl Future<Output = Result<(), Report<ApiTokenRevocationError>>> + Send;
 
-    /// Revokes the API tokens of `user_id` that are not revoked yet, and returns how many it
+    /// Revokes the API tokens of `web_id` that are not revoked yet, and returns how many it
     /// revoked.
     ///
     /// A revoked token keeps the time it was first revoked at.
     ///
     /// # Errors
     ///
-    /// Returns [`UserApiTokenRevocationError`] if the tokens cannot be revoked.
-    fn revoke_user_api_tokens(
+    /// Returns [`WebApiTokenRevocationError`] if the tokens cannot be revoked.
+    fn revoke_web_api_tokens(
         &mut self,
-        user_id: UserId,
-    ) -> impl Future<Output = Result<u64, Report<UserApiTokenRevocationError>>> + Send;
+        web_id: WebId,
+    ) -> impl Future<Output = Result<u64, Report<WebApiTokenRevocationError>>> + Send;
 
     /// Authenticates the API token `token_id` and returns the user it acts as.
     ///

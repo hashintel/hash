@@ -3,7 +3,7 @@ use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_store::api_token::{
     ApiTokenAuthenticationError, ApiTokenCredential, ApiTokenId, ApiTokenInsertionError,
     ApiTokenMetadata, ApiTokenRetrievalError, ApiTokenRevocationError, ApiTokenStore,
-    ApiTokenVerificationError, CreateApiTokenParams, UserApiTokenRevocationError,
+    ApiTokenVerificationError, CreateApiTokenParams, WebApiTokenRevocationError,
 };
 use postgres_types::FromSql;
 use tokio_postgres::{GenericClient as _, Row};
@@ -158,18 +158,18 @@ impl<C: AsClient, S: TransactionState> ApiTokenStore for PostgresStore<C, S> {
         Ok(())
     }
 
-    async fn revoke_user_api_tokens(
+    async fn revoke_web_api_tokens(
         &mut self,
-        user_id: UserId,
-    ) -> Result<u64, Report<UserApiTokenRevocationError>> {
+        web_id: WebId,
+    ) -> Result<u64, Report<WebApiTokenRevocationError>> {
         self.as_mut_client()
             .execute(
                 "
                 UPDATE api_token
                 SET revoked_at = now()
-                WHERE (actor_id = $1 OR web_id = $1) AND revoked_at IS NULL
+                WHERE web_id = $1 AND revoked_at IS NULL
                 ",
-                &[&user_id],
+                &[&web_id],
             )
             .instrument(tracing::info_span!(
                 "UPDATE",
@@ -178,7 +178,7 @@ impl<C: AsClient, S: TransactionState> ApiTokenStore for PostgresStore<C, S> {
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(UserApiTokenRevocationError)
+            .change_context(WebApiTokenRevocationError)
     }
 
     async fn authenticate_api_token<F>(
