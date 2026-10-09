@@ -25,13 +25,13 @@ Your boss wants a simulation model of how you schedule production, so decisions 
 
 ## Changeovers
 
-- One changeover crew, two techs on day shift, serves all three lines. If two lines want a washdown at once, someone waits. You'd say "changeovers mostly overlap fine", though you can recall Tuesdays when Line 3 sat clean but idle waiting for the crew.
+- One changeover crew, two techs on day shift, serves all three lines. Both techs work a washdown together. If two lines want a washdown at once, someone waits. You'd say "changeovers mostly overlap fine".
 - A quick rinse within a family takes about 20–30 minutes. Family switches are the expensive ones, and they aren't symmetric: white to tint is maybe 45 minutes, but tint to white is a full washdown of about 3 hours, because any pigment carryover wrecks a white batch. Specialty in or out is about 2 hours either way.
 - After any family switch, the first units are junk while the line settles: "ramp scrap". It's worse after the big washdowns.
 
 ## Rates and the sheet
 
-- You'd say "Line 2 is about twice as fast as Line 1". That's true for whites; for tints they're nearly even, which is funny, and you've never thought about why.
+- You'd say "Line 2 is about twice as fast as Line 1". That's true for whites; for tints they're nearly even.
 - The sheet's arithmetic: each product-line pair has a rate; a run takes fill-up time plus units divided by rate; you add changeover time by feel. The sheet assumes one rate per product per line.
 - You know the sheet flatters reality ("the lines never quite do what the sheet says"), and you put that down to breakdowns and slow QA.
 
@@ -48,11 +48,20 @@ Your boss wants a simulation model of how you schedule production, so decisions 
 - Orders are produced in runs, and you decide the run sizes. Bigger runs spread the changeover but risk missing due dates elsewhere, and every extra run pays its ramp scrap again.
 - There are minimum run sizes per product ("not worth starting the mill for less than a half-batch of specialty").
 
+## Tuesday 29 September
+
+- That was the week the book slipped. You told the ops director on the Wednesday that the Line 2 filler jam cost you the week, and that's how you think of it.
+- Line 2 was on a big Meridian white run. The filler jammed at about half nine and was down a couple of hours, back up around half eleven. Two distributor orders queued behind the Meridian run on Line 2 got pushed to Wednesday.
+- Line 1 finished a tint run at about 7, and the crew started the tint-to-white washdown straight away; both techs were on it until about 10. Then Line 1 ran a white for a distributor.
+- Line 3 ran out its white order around 8. Next on it was a tint, so it sat waiting for the crew until they came off Line 1 at about 10. The white-to-tint changeover took the usual 45 minutes, and the tint started a bit before 11. Line 3 was on day shift only that week, so the tint didn't finish and carried over to Wednesday.
+- When Line 2 jammed, you thought about putting the rest of the Meridian order on Line 3, which was sitting there on whites with nothing to do. You didn't, because Meridian whites go on Line 2.
+- The Meridian order shipped on time. By Friday, five orders in that week's book had gone out late, none of them Meridian. You never went back through which hold-up made which order late.
+
 ## What you take for granted
 
 - After a dark tint, one white SKU, VW-02 (the retail gloss), still can't run next even after a washdown. QA had a contamination scare in 2023 and quietly vetoes it; it isn't written on any document.
 - Which stage is the slow one depends on the product: thick specialty crawls at the mill, and high-volume whites are limited at fill. Nobody's spreadsheet reflects that, yours included.
-- Line 1's mill-to-fill tank backing up is one of the reasons the lines don't do what the sheet says.
+- Line 1's mill-to-fill tank backs up most days: it fills and the mill stops until fill catches up. You see it so often you don't mention it.
 - Everyone informally lines a preventive maintenance job up with a washdown that's being paid for anyway.
 - There's no penalty table for late orders anywhere. Your working rule is "we do not ship late to Meridian", the big retail chain, mostly whites, who fine and delist. Key distributors can slip 2–3 days with a phone call; small accounts slide a week and nobody notices. Commercial "knows" this, but ask them for numbers and you'd get a shrug. Putting numbers on it would mean sitting down with commercial and inventing them.
 - Meridian white orders always run on Line 2, partly for speed and partly because a customer audit years ago qualified Line 2's fill area. Specialty runs only on Lines 1 and 3, because Line 2 was never piped for the clear resins. Line 3 still isn't signed off for two of the tint SKUs.
