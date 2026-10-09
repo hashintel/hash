@@ -449,6 +449,35 @@ export const processFlowWorkflow = async <
         `Step ${currentStepId}: obtained ${outputs.length} outputs from "${currentStep.actionDefinitionId}" action`,
       );
 
+      /*
+       * An output that takes its kind from an input (`kindFrom`) is only typed as any kind that input accepts, so check
+       * the action returned the kind it was given.
+       */
+      for (const outputDefinition of actionDefinitions[
+        currentStep.actionDefinitionId
+      ].outputs) {
+        if (!("kindFrom" in outputDefinition)) {
+          continue;
+        }
+
+        const outputKind = outputs.find(
+          ({ outputName }) => outputName === outputDefinition.name,
+        )?.payload.kind;
+
+        const inputKind = currentStep.inputs?.find(
+          ({ inputName }) => inputName === outputDefinition.kindFrom,
+        )?.payload.kind;
+
+        if (outputKind !== undefined && outputKind !== inputKind) {
+          processStepErrors[currentStepId] = {
+            code: StatusCode.Internal,
+            message: `Action ${currentStep.actionDefinitionId} returned output "${outputDefinition.name}" of kind ${outputKind}, but it must have the kind of input "${outputDefinition.kindFrom}" (${inputKind ?? "not given"})`,
+          };
+
+          return;
+        }
+      }
+
       currentStep.outputs = outputs;
 
       const status = passOutputsToUnprocessedSteps({
