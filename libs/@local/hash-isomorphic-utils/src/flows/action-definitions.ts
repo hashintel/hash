@@ -1071,7 +1071,8 @@ export type KindSource = {
  * The validator uses it to report a kind source that isn't connected. `getPayloadInputNames` uses it to decide which
  * inputs an implementation receives as payloads.
  *
- * @throws if a `kindFrom` names an input the action doesn't have, or one that has a derived kind itself.
+ * @throws if a `kindFrom` names an input the action doesn't have, or one that has a derived kind itself; or if a
+ *   required output takes its kind from an optional input, which may not be given.
  */
 export const getKindSources = (
   actionDefinition: Pick<
@@ -1099,9 +1100,17 @@ export const getKindSources = (
       ({ name }) => name === definition.kindFrom,
     );
 
+    const subject = `The ${of} "${definition.name}" of action "${actionDefinition.actionDefinitionId}"`;
+
     if (!input || !("oneOfPayloadKinds" in input)) {
       throw new Error(
-        `The ${of} "${definition.name}" of action "${actionDefinition.actionDefinitionId}" takes its kind from input "${definition.kindFrom}", which the action doesn't have, or which takes its own kind from another`,
+        `${subject} takes its kind from input "${definition.kindFrom}", which the action doesn't have, or which takes its own kind from another`,
+      );
+    }
+
+    if (of === "output" && definition.required && !input.required) {
+      throw new Error(
+        `${subject} is required, but takes its kind from input "${input.name}", which is optional: when it isn't given, the output has no kind`,
       );
     }
 

@@ -57,6 +57,20 @@ describe("getKindSources", () => {
       }),
     ).toThrow(/takes its kind from input "fallback"/);
   });
+
+  it("rejects a required output that takes its kind from an optional input", () => {
+    expect(() =>
+      getKindSources({
+        ...findAction,
+        inputs: findAction.inputs.map((input) =>
+          input.name === "items" ? { ...input, required: false } : input,
+        ),
+        outputs: [
+          { name: "match", kindFrom: "items", array: false, required: true },
+        ],
+      }),
+    ).toThrow(/is required, but takes its kind from input "items"/);
+  });
 });
 
 describe("getPayloadInputNames", () => {

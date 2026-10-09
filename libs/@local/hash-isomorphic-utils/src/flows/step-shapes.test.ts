@@ -77,11 +77,25 @@ const testActionDefinitions = Object.fromEntries(
             name: "items",
             oneOfPayloadKinds: allPayloadKinds,
             array: true,
-            required: false,
+            required: true,
           },
         ],
         outputs: [
           { name: "first", kindFrom: "items", array: false, required: true },
+        ],
+      },
+      {
+        actionDefinitionId: "pickIfGiven",
+        inputs: [
+          {
+            name: "items",
+            oneOfPayloadKinds: allPayloadKinds,
+            array: true,
+            required: false,
+          },
+        ],
+        outputs: [
+          { name: "first", kindFrom: "items", array: false, required: false },
         ],
       },
       {
@@ -250,8 +264,10 @@ describe("outputs that take their kind from an input", () => {
     expect(
       diagnosticsOf(
         flowWith([
-          step("pick", "pick"),
-          step("echo", "echo", { text: outputOf("pick", "first") }),
+          step("pick", "pickIfGiven"),
+          step("echo", "echo", {
+            text: { ...outputOf("pick", "first"), whenMissing: "skip" },
+          }),
         ]),
       ),
     ).toEqual([
