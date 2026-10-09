@@ -66,6 +66,23 @@ A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSIS
 
 Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 
+## Snapshot links
+
+**Share** in a local document's top bar builds a self-contained
+`/share#v1.br.<payload>` link. The payload is the net as compact canonical JSON,
+Brotli-compressed (quality 11) and base64url-encoded, so nothing is uploaded. The
+optional current view travels in the same query parameters as the other routes.
+Example pages and snapshots offer no **Share**: their own URL is the link.
+
+A worker does the compression and decompression and is terminated when it
+finishes, is cancelled, or runs 30 seconds. Both directions cap the net at 2 MiB
+and the fragment at 16,000 characters; a larger net can be downloaded as a file
+from the same dialog.
+
+`/share` opens the snapshot read-only and saves nothing. **Make a local copy**
+saves it at its own `/local/<net id>` URL with the current view. Sentry events,
+transactions, spans and breadcrumbs have the fragment stripped before sending.
+
 ## Example embeds and oEmbed
 
 Canonical example pages live below `/examples`. The JSON oEmbed endpoint at

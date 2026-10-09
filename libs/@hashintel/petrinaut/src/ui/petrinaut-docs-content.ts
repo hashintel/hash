@@ -14,6 +14,7 @@ import experiments from "../../docs/experiments.md?raw";
 import petriNetExtensions from "../../docs/petri-net-extensions.md?raw";
 import preview from "../../docs/preview.md?raw";
 import scenarios from "../../docs/scenarios.md?raw";
+import sharing from "../../docs/sharing.md?raw";
 import simulationPanels from "../../docs/simulation-panels.md?raw";
 import simulation from "../../docs/simulation.md?raw";
 import usefulPatterns from "../../docs/useful-patterns.md?raw";
@@ -32,6 +33,7 @@ export const stripImages = (markdown: string): string =>
     .replace(tripleBlankLinePattern, "\n\n");
 
 const rawDocsByName: Record<PetrinautDocName, string> = {
+  sharing,
   "drawing-a-net": drawingANet,
   "petri-net-extensions": petriNetExtensions,
   "useful-patterns": usefulPatterns,

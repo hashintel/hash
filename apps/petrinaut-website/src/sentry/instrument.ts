@@ -5,10 +5,16 @@
 
 import * as Sentry from "@sentry/react";
 
+import { stripSnapshotLinks } from "./strip-snapshot-links";
+
 Sentry.init({
   dsn: __SENTRY_DSN__,
   enabled: __ENVIRONMENT__ === "production",
   environment: __ENVIRONMENT__,
+  beforeBreadcrumb: stripSnapshotLinks,
+  beforeSend: stripSnapshotLinks,
+  beforeSendTransaction: stripSnapshotLinks,
+  beforeSendSpan: stripSnapshotLinks,
   integrations: [
     Sentry.browserApiErrorsIntegration(),
     Sentry.browserTracingIntegration(),
