@@ -5,44 +5,57 @@
 use core::alloc::Allocator;
 
 use hash_graph_postgres_store::store::postgres::query::{
-    self, Alias, Column, ColumnName, ColumnReference, ForeignKeyReference, FromItem, Identifier,
-    JoinType, PostgresType, SelectExpression, SimpleSelect, Table, TableName, TableReference,
-    table,
+    self, Alias, Column, ColumnName, ColumnReference, Correlation, ForeignKeyReference, FromItem,
+    Identifier, JoinType, PostgresType, SelectExpression, SelectStatement, SimpleSelect, Table,
+    TableName, TableReference,
+    table::{self, DatabaseColumn},
 };
 use hashql_core::symbol::sym;
 
 use super::Parameters;
 
-/// Computed columns not directly backed by a single table column.
-enum ComputedColumn {
-    /// Aggregated JSONB array of entity type IDs, produced by a `LEFT JOIN LATERAL` subquery.
-    EntityTypeIds,
+#[cfg(test)]
+mod tests;
+
+/// Output columns of the direct-type aggregation lateral.
+enum EntityTypeIds {
+    /// The entity's direct type IDs as a JSONB array.
+    Value,
 }
 
-impl From<ComputedColumn> for ColumnName<'_> {
-    #[inline]
-    fn from(value: ComputedColumn) -> Self {
-        match value {
-            ComputedColumn::EntityTypeIds => ColumnName::from(Identifier::from("entity_type_ids")),
+impl DatabaseColumn<'_> for EntityTypeIds {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::Value => "entity_type_ids".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::Value => PostgresType::JsonB,
         }
     }
 }
+
+/// The relation exposing the aggregated direct type IDs.
+const ENTITY_TYPE_IDS: Correlation<EntityTypeIds> = Correlation::new("entity_edition_cache");
 
 /// Lazy join planner for entity-backed SQL queries.
 ///
 /// Accessors like [`Self::entity_editions`] register that a table is needed and return a
 /// reference to it. The actual `FROM` tree is built once at the end via [`Self::build_from`].
+#[derive(Debug, Clone)]
 pub(crate) struct Projections {
     index: usize,
 
     /// Always present as the base table; everything joins through it.
-    base_alias: Alias,
+    pub base_alias: Alias,
 
-    entity_editions: Option<Alias>,
-    entity_ids: Option<Alias>,
-    entity_type_ids: Option<Alias>,
-    left: Option<Alias>,
-    right: Option<Alias>,
+    pub entity_editions: Option<Alias>,
+    pub entity_ids: Option<Alias>,
+    pub entity_type_ids: Option<Alias>,
+    pub left: Option<Alias>,
+    pub right: Option<Alias>,
 }
 
 impl Projections {
@@ -94,17 +107,13 @@ impl Projections {
         Table::EntityIds.aliased(alias)
     }
 
-    /// Unlike other accessors this returns a [`ColumnReference`]: entity type IDs are a computed
-    /// column produced by a `LEFT JOIN LATERAL` subquery, not a direct table column.
-    pub(crate) fn entity_type_ids(&mut self) -> ColumnReference<'static> {
+    /// Registers the direct-type aggregation lateral and returns its JSONB column expression.
+    pub(crate) fn entity_type_ids(&mut self) -> query::Expression {
         let alias = *self
             .entity_type_ids
             .get_or_insert_with(|| Self::next_alias(&mut self.index));
 
-        ColumnReference {
-            correlation: Some(Table::EntityEditionCache.aliased(alias)),
-            name: ComputedColumn::EntityTypeIds.into(),
-        }
+        ENTITY_TYPE_IDS.at(alias).column(&EntityTypeIds::Value)
     }
 
     pub(crate) fn left_entity(&mut self) -> TableReference<'static> {
@@ -139,11 +148,6 @@ impl Projections {
 
         let mut from = base;
 
-        // entity_editions ON edition_id (INNER)
-        if let Some(alias) = self.entity_editions {
-            from = self.build_entity_editions(from, alias);
-        }
-
         // entity_ids ON (web_id, entity_uuid) (INNER)
         if let Some(alias) = self.entity_ids {
             from = self.build_entity_ids(from, alias);
@@ -177,6 +181,11 @@ impl Projections {
             from = self.build_entity_has_right_entity(from, alias);
         }
 
+        // CROSS JOIN LATERAL entity_editions ON edition_id (INNER)
+        if let Some(alias) = self.entity_editions {
+            from = self.build_entity_editions(from, alias);
+        }
+
         // CROSS JOIN LATERALs for continuation subqueries (must come after
         // all regular joins since they may reference any of the joined tables)
         for lateral in laterals {
@@ -186,22 +195,89 @@ impl Projections {
         from
     }
 
-    fn build_entity_editions<'item>(&self, from: FromItem<'item>, alias: Alias) -> FromItem<'item> {
-        let fk = ForeignKeyReference::Single {
-            on: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId),
-            join: Column::EntityEditions(table::EntityEditions::EditionId),
-            join_type: JoinType::Inner,
+    /// Builds `entity_editions` as a LATERAL subquery with explicit column projections.
+    ///
+    /// ```sql
+    /// CROSS JOIN LATERAL (
+    ///     SELECT ee.<col> AS <col>, ...
+    ///     FROM entity_editions AS ee
+    ///     WHERE ee.edition_id = base.edition_id
+    /// ) AS <alias>
+    /// ```
+    ///
+    /// The explicit projections let the authorization graft locate and replace
+    /// individual column expressions (e.g. applying a property mask to `properties`).
+    pub(crate) fn build_entity_editions<'item>(
+        &self,
+        from: FromItem<'item>,
+        alias: Alias,
+    ) -> FromItem<'item> {
+        let inner_ref = TableReference {
+            schema: None,
+            name: TableName::from("ee"),
         };
 
-        from.join(
-            JoinType::Inner,
-            FromItem::table(Table::EntityEditions).alias(Table::EntityEditions.aliased_name(alias)),
-        )
-        .on(fk.conditions(self.base_alias, alias))
-        .build()
+        // entity_editions AS ee
+        let inner_from = FromItem::table(Table::EntityEditions)
+            .alias(inner_ref.name.clone())
+            .build();
+
+        // ee.edition_id = base.edition_id
+        let correlation = query::Expression::equal(
+            query::Expression::ColumnReference(ColumnReference {
+                correlation: Some(inner_ref.clone()),
+                name: Column::EntityEditions(table::EntityEditions::EditionId).into(),
+            }),
+            query::Expression::ColumnReference(ColumnReference {
+                correlation: Some(self.temporal_metadata()),
+                name: Column::EntityTemporalMetadata(table::EntityTemporalMetadata::EditionId)
+                    .into(),
+            }),
+        );
+
+        // Project every column, `ee.[property] AS [property]`, this mirrors `*`, but makes each
+        // column available by name.
+        let selects = table::EntityEditions::ALL
+            .into_iter()
+            .map(|column| SelectExpression::Expression {
+                expression: query::Expression::ColumnReference(ColumnReference {
+                    correlation: Some(inner_ref.clone()),
+                    name: Column::EntityEditions(column).into(),
+                }),
+                output_name: Some(column.name().into_identifier()),
+            })
+            .collect();
+
+        // SELECT
+        //  ee.[property] AS [property],
+        //  ...
+        // FROM entity_editions as ee
+        // WHERE ee.edition_id = base.edition_id
+        let select = SimpleSelect::builder()
+            .selects(selects)
+            .from(inner_from)
+            .where_clause(correlation)
+            .build();
+
+        let subquery = SelectStatement::builder().select_clause(select).build();
+
+        // LATERAL (subquery) AS [alias]
+        let lateral = FromItem::Subquery {
+            lateral: true,
+            statement: Box::new(subquery),
+            alias: Some(Table::EntityEditions.aliased_name(alias)),
+            column_aliases: vec![],
+        };
+
+        // CROSS JOIN LATERAL (...)
+        from.cross_join(lateral)
     }
 
-    fn build_entity_ids<'item>(&self, from: FromItem<'item>, alias: Alias) -> FromItem<'item> {
+    pub(crate) fn build_entity_ids<'item>(
+        &self,
+        from: FromItem<'item>,
+        alias: Alias,
+    ) -> FromItem<'item> {
         let fk = ForeignKeyReference::Double {
             on: [
                 Column::EntityTemporalMetadata(table::EntityTemporalMetadata::WebId),
@@ -309,7 +385,7 @@ impl Projections {
                         ),
                     ])),
                 ))),
-                output_name: Some(Identifier::from("entity_type_ids")),
+                output_name: Some(EntityTypeIds::Value.name().into_identifier()),
             }])
             .from(inner_from)
             .where_clause(query::Expression::all(vec![correlation, direct_prefix]))
@@ -318,7 +394,7 @@ impl Projections {
         let lateral = query::FromItem::Subquery {
             lateral: true,
             statement: Box::new(subquery.into()),
-            alias: Some(Table::EntityEditionCache.aliased_name(alias)),
+            alias: Some(ENTITY_TYPE_IDS.at(alias).into()),
             column_aliases: vec![],
         };
 
