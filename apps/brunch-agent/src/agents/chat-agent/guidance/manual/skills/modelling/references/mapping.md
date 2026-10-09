@@ -15,7 +15,7 @@ Where a fact the fragment needs is missing, use a stand-in rather than waiting:
 - an unknown branch rule becomes distinct outcome paths gated on a named parameter or external input, never an invented probability;
 - unknown internal steps become one activity, noted as collapsed.
 
-Record each stand-in as an `assumed`, `tentative` claim on the entities it concerns, and anchor a reflection from that claim to the net elements standing in. Ask for the missing fact when it bears on the purpose; when the USER supplies it, supersede the claim and replace the stand-in. When a missing distinction would give materially different structure, build the likelier structure, label it, and ask which holds.
+Record each stand-in as an `assumed`, `tentative` claim on the entities it concerns, and anchor a reflection from that claim to the net elements standing in. When a reported result will rest on the stand-in, also record an obligation on that claim naming the variation that would test it. Ask for the missing fact when it bears on the purpose; when the USER supplies it, supersede the claim and replace the stand-in. When a missing distinction would give materially different structure, build the likelier structure, label it, and ask which holds.
 
 An explicit request to use sensible defaults, decide on the USER's behalf, make up a suitable example, or equivalent authorizes concrete purpose-bounded values; they remain labelled as yours.
 

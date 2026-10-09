@@ -64,7 +64,8 @@ Record discrepancies and the agent judgment used to resolve or preserve them. De
 Only report observations produced by an actual execution or named stronger analysis.
 
 - Record the exact definition revision, scenario, initial state, parameters, duration or stopping condition, and analysis method.
-- Before results compare levers or options, run the current settings over the stated horizon and confirm the model reproduces the problem the purpose names. A model in which the current settings already avoid the problem cannot rank fixes for it: repair the model, or say it does not reproduce the problem, before comparing.
+- Before results compare levers or options, run the current settings over the stated horizon and confirm the model reproduces the problem the purpose names, discharging each case's obligation with the run that reproduced it. A model in which the current settings already avoid the problem cannot rank fixes for it: repair the model, or say it does not reproduce the problem, before comparing.
+- Before reporting a result that rests on a stand-in, vary the stand-in across its plausible range and discharge its obligation with what changed. A result that holds only at the stand-in's value is reported as a consequence of the stand-in, not as an answer.
 - State which process path or property was exercised.
 - For a simulation, report only observed progress, resource balances, mode states, outputs, and failures from the runs performed.
 - For state-space or invariant analysis, report the explored scope, assumptions, and any unexamined behaviors.
@@ -79,7 +80,7 @@ No behavioral tool or result means no behavioral claim.
 - Every load-bearing net choice rests on the USER's account or a named stand-in, construction inference, approximation, or default.
 - No hedge has been hardened solely to satisfy a schema.
 - No conflict has been averaged and no contextual value has been made universal without an accepted simplification.
-- Assumptions state why they were introduced, what they affect, and how they could be checked.
+- Assumptions state why they were introduced and what they affect; one a result rests on is an obligation naming the check, not only a note on how it could be checked.
 - Material retained only in the Ledger is named as a target or tooling loss rather than omitted silently.
 - A behaviour the model cannot produce is reported as excluded by the model, not prevented in operation, unless the account establishes what prevents it.
 - The delivery distinguishes accepted structure, agent review, observed behavior, and universal guarantees.
@@ -111,6 +112,7 @@ State plainly:
 - what the agent inferred, approximated, defaulted, simplified, or omitted;
 - what remains unknown, unasked, declined, deferred, conflicting, or unsupported;
 - what the target formalism or current tooling could not represent;
-- what smallest next evidence would change the result.
+- what smallest next evidence would change the result;
+- which obligations are still owed, and which results rest on them.
 
 Do not collapse these levels into “validated,” “correct,” “runnable,” or “simulatable” without naming the evidence that supports that exact claim. Do not convert the delivery descriptions into a closed completion algebra.
