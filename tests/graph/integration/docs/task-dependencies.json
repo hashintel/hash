@@ -37,7 +37,27 @@
       "affectedBy": [
         "darwin-kperf-codegen",
         "error-stack-macros",
-        "hash-graph"
+        "harpc-client",
+        "harpc-codec",
+        "harpc-net",
+        "harpc-server",
+        "harpc-system",
+        "harpc-tower",
+        "hash-graph",
+        "hash-graph-api",
+        "hash-graph-atlas",
+        "hash-graph-authentication",
+        "hash-graph-type-fetcher",
+        "hash-middleware",
+        "hashql-ast",
+        "hashql-core",
+        "hashql-diagnostics",
+        "hashql-eval",
+        "hashql-hir",
+        "hashql-macros",
+        "hashql-mir",
+        "hashql-syntax-jexpr",
+        "problematic"
       ]
     }
   }

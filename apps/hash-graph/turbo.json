@@ -89,7 +89,16 @@
       ]
     },
     "compile": {
-      "command": ["cargo", "build", "--bin", "hash-graph", "--all-features"]
+      "command": ["cargo", "build", "--bin", "hash-graph", "--all-features"],
+      "cache": true,
+      // The binary links every workspace crate it reaches, and the root manifest carries
+      // the profiles and the workspace dependency versions.
+      "dependsOn": ["^manifest"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/Cargo.toml"],
+      "outputs": ["$TURBO_ROOT$/target/debug/hash-graph"],
+      // Turbo does not hash the platform, so a binary restored from the remote cache
+      // could otherwise come from another OS or architecture.
+      "env": ["CARGO_PROFILE_DEV_DEBUG", "RUNNER_ARCH", "RUNNER_OS"]
     },
     "compile:release": {
       "command": [

@@ -52,7 +52,8 @@
       "affectedBy": [
         "darwin-kperf-codegen",
         "error-stack-macros",
-        "hash-graph"
+        "hash-graph",
+        "hash-graph-atlas"
       ]
     },
     "test:integration:manual": {

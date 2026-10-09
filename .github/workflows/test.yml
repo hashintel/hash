@@ -291,6 +291,9 @@ jobs:
           HASH_GRAPH_LOG_FILE_ENABLED: true
           HASH_GRAPH_LOG_FILE_LEVEL: info
           HASH_GRAPH_LOG_FOLDER: ${{ github.workspace }}/var/logs
+          # Keeps file and line numbers in backtraces while shrinking what sccache fetches,
+          # what the linker writes, and the binary `hash-graph#compile` caches.
+          CARGO_PROFILE_DEV_DEBUG: line-tables-only
         run: |
           # Optimistically compile background tasks. Ideally, we also `build` them but this includes
           # `@apps/plugin-browser` which needs `build:test` instead. We cannot filter it out because

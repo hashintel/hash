@@ -31,7 +31,15 @@
     },
     "compile": {
       "dependsOn": [],
-      "cache": false
+      "env": [
+        "CARGO_PROFILE_DEV_DEBUG",
+        "RUNNER_ARCH",
+        "RUNNER_OS"
+      ],
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "compile:release": {
       "dependsOn": [],
@@ -84,19 +92,31 @@
         "start:test:migrate"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "start:test:healthcheck": {
       "dependsOn": [
         "compile"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "start:test:migrate": {
       "dependsOn": [
         "compile"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "test:unit": {
       "dependsOn": [],
