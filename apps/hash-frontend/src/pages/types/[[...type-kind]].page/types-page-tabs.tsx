@@ -1,5 +1,6 @@
 import { TabLink } from "../../../shared/ui/tab-link";
 import { Tabs } from "../../../shared/ui/tabs";
+import { tabTitles } from "./tab-titles";
 
 import type { TabId } from "../[[...type-kind]].page";
 import type { FunctionComponent } from "react";
@@ -11,14 +12,6 @@ const tabIds = [
   "property-type",
   "data-type",
 ] satisfies TabId[];
-
-export const tabTitles: Record<TabId, string> = {
-  all: "All",
-  "entity-type": "Entity Types",
-  "link-type": "Link Types",
-  "property-type": "Property Types",
-  "data-type": "Data Types",
-};
 
 type TypesPageTabsProps = {
   currentTab: TabId;

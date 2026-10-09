@@ -21,8 +21,8 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { WhiteCard } from "@hashintel/design-system";
 
 import { useIsReadonly } from "../../shared/read-only-context";
+import { FLASHING_ROW_MS } from "./use-flash-row";
 
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { TypographyProps } from "@mui/material";
 import type { PropsWithChildren, ReactNode, RefObject } from "react";
 
@@ -44,35 +44,6 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(({ theme }) =>
   }),
 );
 
-/**
- * The shape of data for properties/links is slightly different, but the sort logic is
- * the same. This is a generic sort function which maps from a react hook form
- * field array to an object preserving the original index and sorting by title
- */
-export const sortRows = <V, R extends { $id: VersionedUrl }>(
-  rows: R[],
-  resolveRow: ($id: VersionedUrl) => V | undefined,
-  resolveTitle: (row: V) => string,
-) =>
-  rows
-    .map((field, index) => {
-      const row = resolveRow(field.$id);
-      return { field, row, index, title: row ? resolveTitle(row) : null };
-    })
-    .sort((a, b) => {
-      if (a.title === null && b.title === null) {
-        return 0;
-      }
-      if (a.title === null) {
-        return 1;
-      }
-      if (b.title === null) {
-        return -1;
-      }
-      return a.title.localeCompare(b.title);
-    });
-
-const FLASHING_ROW_MS = 3_000;
 // We want the flash to fade in / fade out at this speed, with the remaining
 // time of the animation spent in a 'flashed' state
 const FLASH_IN_OUT_MS = 500;
@@ -98,25 +69,6 @@ const flashAnimation = memoize(
   }
 `,
 );
-
-export const useFlashRow = () => {
-  const [flashingRows, setFlashingRows] = useState<string[]>([]);
-  const flashingTimeouts = useRef<
-    Record<string, ReturnType<typeof setTimeout>>
-  >({});
-
-  const flashRow = (row: string) => {
-    setFlashingRows([...flashingRows, row]);
-
-    clearTimeout(flashingTimeouts.current[row]);
-
-    flashingTimeouts.current[row] = setTimeout(() => {
-      setFlashingRows((current) => current.filter((id) => id !== row));
-    }, FLASHING_ROW_MS);
-  };
-
-  return [flashingRows, flashRow] as const;
-};
 
 export const EntityTypeTableRow = forwardRef<
   HTMLTableRowElement,
