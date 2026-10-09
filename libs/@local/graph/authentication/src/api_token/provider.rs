@@ -290,6 +290,7 @@ mod tests {
                 ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
                 None,
             )
+            .expect("the random number generator should provide bytes")
             .token
             .expose()
     }

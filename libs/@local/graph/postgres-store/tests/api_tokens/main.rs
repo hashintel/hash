@@ -929,7 +929,9 @@ impl AuthenticateApiToken for TransactionTokens<'_, '_> {
 
 /// Issues a token for `user_id`, records it, and returns its string.
 async fn record_issued(store: &mut Store<'_>, user_id: UserId) -> Result<String, Box<dyn Error>> {
-    let generated = issuer().issue(user_id, ApiTokenName::new("ci".to_owned())?, Some(LIFETIME));
+    let generated = issuer()
+        .issue(user_id, ApiTokenName::new("ci".to_owned())?, Some(LIFETIME))
+        .expect("the random number generator should provide bytes");
     store.create_api_token(generated.params).await?;
     Ok(generated.token.expose())
 }
