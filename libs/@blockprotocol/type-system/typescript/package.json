@@ -46,8 +46,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit && tsc --noEmit --project tsconfig.generated.json",
-    "prepack": "node ../../../../scripts/check-package-payload.mjs",
-    "prepublish": "turbo run build",
+    "prepack": "turbo run build && node ../../../../scripts/check-package-payload.mjs",
     "test:unit": "vitest --run"
   },
   "dependencies": {

@@ -65,8 +65,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepack": "node ../../../scripts/check-package-payload.mjs",
-    "prepublish": "turbo run build"
+    "prepack": "turbo run build && node ../../../scripts/check-package-payload.mjs"
   },
   "dependencies": {
     "@blockprotocol/core": "0.1.5",
