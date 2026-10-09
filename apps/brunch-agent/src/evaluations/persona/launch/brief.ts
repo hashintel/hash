@@ -24,7 +24,7 @@ Other commands:
 - \`${helper} state\` prints the run state as JSON.
 - \`${helper} end "<reason>"\` ends the conversation and closes the run. Use it once, when you stop.
 
-A Brunch turn can take several minutes while it works. Let the command run to completion: if your shell tool has a timeout, set it to the longest allowed (at least ten minutes). Interrupting the command stops Brunch's turn. If the command fails or is interrupted, do not resend the message; run \`transcript\` to see what Brunch received, then report to the operator.`;
+A Brunch turn can take several minutes while it works. Let the command run to completion: if your shell tool takes a timeout, leave it unset, or give the longest it allows if it requires one; a ten-minute timeout has cut off a Brunch turn before. Interrupting the command stops Brunch's turn. If the command fails or is interrupted, do not resend the message; run \`transcript\` to see what Brunch received, then report to the operator.`;
 
 export const writePersonaBrief = async (input: {
   readonly run: string;
