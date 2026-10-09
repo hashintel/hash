@@ -3,6 +3,7 @@ import * as v from "valibot";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { foldCommits } from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
 
 import {
   callsForElement,
@@ -12,7 +13,6 @@ import {
   type ArcElement,
   type NetCall,
 } from "../../../../../conversation/net-changes.ts";
-import { foldCommits } from "./ledger2/commits.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn";

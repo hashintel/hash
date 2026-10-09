@@ -11,7 +11,7 @@ export type {
   LedgerState,
   ReflectionRecord,
   Turn,
-} from "./projection/records.ts";
+} from "./projection/records";
 export {
   projectLedger,
   type AddressEntry,
@@ -21,16 +21,16 @@ export {
   type ProjectedKindGroup,
   type ProjectedQuestion,
   type ProjectedSection,
-} from "./projection/project-ledger.ts";
+} from "./projection/project-ledger";
 export {
   renderLedgerMarkdown,
   type Skin,
-} from "./projection/render-ledger-markdown.ts";
+} from "./projection/render-ledger-markdown";
 export {
   opForAnswer,
   opForFeedback,
   resolveSelection,
   type LedgerOp,
   type ResolvedRecord,
-} from "./projection/resolve-selection.ts";
-export { supportDeskLedger } from "./projection/worked-example.ts";
+} from "./projection/resolve-selection";
+export { supportDeskLedger } from "./projection/worked-example";

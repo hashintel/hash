@@ -3,9 +3,9 @@ import {
   entityStages,
   type EntityKind,
   type EntityStage,
-} from "../elicitation/entities.ts";
+} from "../elicitation/entities";
 
-import type { ClaimRecord, EntityRecord, LedgerState } from "./records.ts";
+import type { ClaimRecord, EntityRecord, LedgerState } from "./records";
 
 export interface ProjectedClaim {
   record: ClaimRecord;

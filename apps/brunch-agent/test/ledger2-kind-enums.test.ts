@@ -8,33 +8,27 @@ import { describe, expect, test, vi } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  entityKindStages,
+  foldCommits,
+  prepareAppend,
+  vClaim,
+  vEntity,
+  vEntityKind,
+  vLedgerAppend,
+  vOrigin,
+  vReflection,
+  vStatus,
+  type LedgerAppend,
+  type LedgerHistory,
+  type LedgerHistoryMessage,
+} from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
 
 import {
   commitToolDescription,
   createLedgerCommitTool,
   createLedgerCompileTool,
 } from "../src/agents/chat-agent/guidance/manual/tools/ledger.ts";
-import {
-  vLedgerAppend,
-  type LedgerAppend,
-} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/append.ts";
-import {
-  foldCommits,
-  prepareAppend,
-  type LedgerHistory,
-  type LedgerHistoryMessage,
-} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/commits.ts";
-import { vReflection } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/construction/reflections.ts";
-import { vClaim } from "../src/agents/chat-agent/guidance/manual/tools/ledger2/elicitation/claims.ts";
-import {
-  entityKindStages,
-  vEntity,
-  vEntityKind,
-} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/elicitation/entities.ts";
-import {
-  vOrigin,
-  vStatus,
-} from "../src/agents/chat-agent/guidance/manual/tools/ledger2/shared/epistemics.ts";
 import {
   selectChatModelSpecifier,
   selectChatThinking,

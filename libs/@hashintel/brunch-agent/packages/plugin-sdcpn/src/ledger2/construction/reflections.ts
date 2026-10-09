@@ -1,9 +1,8 @@
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
-import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
-
-import { vClaimReference, vEntityReference } from "../shared/references.ts";
+import { netElementKinds } from "../../petrinaut-tool-effects";
+import { vClaimReference, vEntityReference } from "../shared/references";
 
 export const vNetElementAddress = v.pipe(
   v.strictObject({

@@ -1,7 +1,7 @@
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
-import { vOrigin, vStatus } from "../shared/epistemics.ts";
+import { vOrigin, vStatus } from "../shared/epistemics";
 
 export const vEntityName = v.pipe(
   v.string(),

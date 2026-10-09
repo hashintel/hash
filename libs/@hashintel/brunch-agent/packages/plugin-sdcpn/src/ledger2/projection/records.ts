@@ -1,6 +1,6 @@
-import type { NetElementAddress } from "../construction/reflections.ts";
-import type { EntityKind } from "../elicitation/entities.ts";
-import type { Origin, Status } from "../shared/epistemics.ts";
+import type { NetElementAddress } from "../construction/reflections";
+import type { EntityKind } from "../elicitation/entities";
+import type { Origin, Status } from "../shared/epistemics";
 
 /** A conversation turn anchor: the preceding user message's ID and excerpt. */
 export interface Turn {

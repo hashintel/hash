@@ -1,5 +1,5 @@
-import type { AddressEntry } from "./project-ledger.ts";
-import type { ClaimRecord } from "./records.ts";
+import type { AddressEntry } from "./project-ledger";
+import type { ClaimRecord } from "./records";
 
 /**
  * Parked commenting-flow design: resolving a selection in the rendered view
