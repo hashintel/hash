@@ -113,6 +113,6 @@ State plainly:
 - what remains unknown, unasked, declined, deferred, conflicting, or unsupported;
 - what the target formalism or current tooling could not represent;
 - what smallest next evidence would change the result;
-- which obligations are still owed, and which results rest on them.
+- every obligation still owed, each with the results that rest on it. Before delivering, discharge any that a calculation or an inspection of the current net settles, and any the model no longer rests on, saying why.
 
 Do not collapse these levels into “validated,” “correct,” “runnable,” or “simulatable” without naming the evidence that supports that exact claim. Do not convert the delivery descriptions into a closed completion algebra.

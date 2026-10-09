@@ -62,7 +62,7 @@ export const vReflection = v.pipe(
       v.pipe(
         v.array(vObligationReference),
         v.description(
-          "Obligations this reflection discharges: existing obligation IDs or $index references to obligation entries in this call. The text names the run or inspection that met each one, with its observed result, or the USER's explicit waiver.",
+          "Obligations this reflection discharges: existing obligation IDs or $index references to obligation entries in this call. The text names the run, calculation or inspection that met each one, with its observed result, the USER's explicit waiver, or the model change that left no result resting on it.",
         ),
       ),
     ),
