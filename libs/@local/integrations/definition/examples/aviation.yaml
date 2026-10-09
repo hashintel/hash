@@ -1,0 +1,62 @@
+# Loads aircraft and airfields, and links each aircraft to its home base.
+connector: aviation
+
+vars:
+  TYPES: https://example.com/@demo/types
+
+unitMaps:
+  masses:
+    units:
+      KG: ${TYPES}/data-type/kilogram/v/1
+      LB: ${TYPES}/data-type/pound/v/1
+    fallback: ${TYPES}/data-type/mass/v/1
+
+sources:
+  aircraft:
+    primaryKey: [TAIL]
+    sql: |
+      SELECT * FROM (VALUES
+        ('SE-XXX', 'DC-3', '1946-04-02', '8030', 'KG', 'ESSA'),
+        ('N100', 'L-1049', '1957-07-15', '69000', 'LB', 'ESSA')
+      ) t(TAIL, MODEL, FIRST_FLIGHT, EMPTY_MASS, MASS_UNIT, HOME_BASE)
+  airfields:
+    primaryKey: [ICAO]
+    sql: |
+      SELECT * FROM (VALUES
+        ('ESSA', 'Arlanda'),
+        ('ESSB', 'Bromma')
+      ) t(ICAO, FIELD_NAME)
+
+pipelines:
+  entities:
+    - source: airfields
+      steps:
+        - id: sink-airfields
+          sink:
+            entityType: ${TYPES}/entity-type/airfield/v/1
+            entityId: ICAO
+            properties:
+              ${TYPES}/property-type/name/v/1: FIELD_NAME
+
+    - source: aircraft
+      dependsOn: [airfields]
+      steps:
+        - id: sink-aircraft
+          sink:
+            entityType: ${TYPES}/entity-type/aircraft/v/1
+            entityId: TAIL
+            properties:
+              ${TYPES}/property-type/model/v/1: MODEL
+              ${TYPES}/property-type/first-flight/v/1:
+                { column: FIRST_FLIGHT, coerce: date }
+              ${TYPES}/property-type/empty-mass/v/1:
+                { amount: EMPTY_MASS, unit: MASS_UNIT, unitMap: masses }
+        - id: cp-aircraft
+          checkpoint: aviation/aircraft
+
+  links:
+    - id: aircraft-based-at
+      checkpoint: aviation/aircraft
+      from: { entityType: "${TYPES}/entity-type/aircraft/v/1", column: TAIL }
+      to: { entityType: "${TYPES}/entity-type/airfield/v/1", column: HOME_BASE }
+      linkType: ${TYPES}/entity-type/based-at/v/1
