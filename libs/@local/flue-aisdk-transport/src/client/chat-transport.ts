@@ -5,6 +5,7 @@ import {
   readLiveToolStream,
   type LiveToolStreamOptions,
 } from "./live-tool-stream";
+import { notifyObserver } from "./notify-observer";
 import {
   createFlueUiStream,
   type FlueUiProjectionOptions,
@@ -45,7 +46,10 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
   >["position"];
 }
 
-/** Host settings for one chat transport; projection comes from the adapter. */
+/**
+ * Host settings for one chat transport; projection comes from the adapter.
+ * The `on*` callbacks are observers: one that throws cannot change the turn.
+ */
 export interface FlueChatTransportOptions {
   readonly client: FlueClient;
   /**
@@ -280,7 +284,7 @@ const streamSubmission = (
             if (!signal.aborted) projector.disconnectLive();
           })
           .catch((error: unknown) => {
-            options.liveToolStream?.onError?.(error);
+            notifyObserver(options.liveToolStream?.onError, error);
             if (!signal.aborted) projector.disconnectLive();
           });
       }
@@ -300,7 +304,7 @@ const streamSubmission = (
                   event.messageId,
                 flueId: event.messageId,
               };
-              options.onResponseMessage?.({
+              notifyObserver(options.onResponseMessage, {
                 messageId: responseMessage.effectiveId,
                 position: event.position,
                 submissionId: admission.submissionId,
@@ -310,7 +314,7 @@ const streamSubmission = (
               event.type === "message-completed" &&
               event.messageId === responseMessage?.flueId
             ) {
-              options.onResponseMessageCompleted?.({
+              notifyObserver(options.onResponseMessageCompleted, {
                 messageId: responseMessage.effectiveId,
                 position: event.position,
                 submissionId: admission.submissionId,
@@ -363,7 +367,7 @@ export const createFlueChatTransport = (
     } catch (error) {
       throw admissionError(error, abortSignal);
     }
-    options.onAdmission?.({
+    notifyObserver(options.onAdmission, {
       admission,
       kind: "user",
       messageId: userMessage.messageId,

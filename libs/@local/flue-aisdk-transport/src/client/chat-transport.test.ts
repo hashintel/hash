@@ -2,6 +2,7 @@ import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
 import { useUiChunkRecorder } from "../../test/ai-sdk-oracle";
+import { useRaisedErrors } from "../../test/raised-errors";
 import { createFlueChatTransport } from "./chat-transport";
 
 import type { FlueChatTransportOptions } from "./chat-transport";
@@ -72,6 +73,7 @@ const clientWith = (
 };
 
 const recordChunks = useUiChunkRecorder();
+const captureRaisedErrors = useRaisedErrors();
 
 const readChunks = async (
   stream: ReadableStream<UIMessageChunk>,
@@ -130,6 +132,39 @@ test("admits one user message and projects a finite per-turn stream", async () =
     "finish-step",
     "finish",
   ]);
+});
+
+test("observers that throw cannot fail the admission or the turn", async () => {
+  const raised = captureRaisedErrors();
+  const observerFailure = new Error("Observer failure.");
+  const throwObserverFailure = () => {
+    throw observerFailure;
+  };
+  const { client } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+    onAdmission: throwObserverFailure,
+    onResponseMessage: throwObserverFailure,
+    onResponseMessageCompleted: throwObserverFailure,
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions([
+      { id: "user-1", role: "user", parts: [{ type: "text", text: "Hi" }] },
+    ]),
+  );
+
+  expect((await readChunks(stream)).map((chunk) => chunk.type)).toEqual([
+    "start",
+    "start-step",
+    "text-start",
+    "text-delta",
+    "text-end",
+    "finish-step",
+    "finish",
+  ]);
+  expect(raised).toEqual([observerFailure, observerFailure, observerFailure]);
 });
 
 test("admits the host-derived user turn under its own message identity", async () => {

@@ -13,6 +13,7 @@ import {
   harnessAdapterConfig,
   startFlueHarness,
 } from "./flue-harness";
+import { useRaisedErrors } from "./raised-errors";
 
 import type { InvalidReopenedMetadata } from "../src/client";
 import type { UIMessage, UIMessageChunk } from "ai";
@@ -22,6 +23,7 @@ afterAll(() => harness.stop());
 
 type TaggedMessage = UIMessage<{ model: string }>;
 const taggedMetadataSchema = v.object({ model: v.string() });
+const captureRaisedErrors = useRaisedErrors();
 
 test("a host with its own metadata type must supply the schema that owns it", () => {
   // @ts-expect-error A narrowed metadata type needs its schema.
@@ -82,7 +84,7 @@ test("start and finish metadata merge live as Flue merges them into history", as
   expectLiveReopenParity(turn);
 });
 
-test("metadata that fails the schema ends the live turn with an error, and reopening drops it and reports it once", async () => {
+test("metadata that fails the schema ends the live turn with an error, and reopening drops it and reports it once, after reopen returns", async () => {
   harness.setResponseMetadata({ model: 1 });
   harness.script([
     fauxAssistantMessage([fauxText("Mistagged.")]),
@@ -113,6 +115,8 @@ test("metadata that fails the schema ends the live turn with an error, and reope
 
   strict.reopen(turn.history);
   const reopened = strict.reopen(turn.history);
+  expect(reported).toEqual([]);
+  await Promise.resolve();
   const mistagged = reopened.at(-1);
   expect(mistagged).toMatchObject({
     role: "assistant",
@@ -135,6 +139,37 @@ test("metadata that fails the schema ends the live turn with an error, and reope
       "Message metadata does not match the host schema",
     ) as unknown,
   });
+});
+
+test("a reporter that throws cannot make reopening fail", () => {
+  const raised = captureRaisedErrors();
+  const reporterFailure = new Error("Reporter failure.");
+  const adapter = createFlueAiSdkAdapter<TaggedMessage>({
+    clientToolNames: new Set(),
+    metadataSchema: taggedMetadataSchema,
+    onInvalidReopenedMetadata: () => {
+      throw reporterFailure;
+    },
+  });
+
+  const reopened = adapter.reopen({
+    messages: [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        metadata: { model: 1 },
+        parts: [{ type: "text", text: "Hi", state: "done" }],
+      },
+    ],
+  });
+
+  expect(reopened).toMatchObject([
+    { id: "assistant-1", parts: [{ type: "text", text: "Hi" }] },
+  ]);
+  expect(reopened.at(0)?.metadata).toBeUndefined();
+  expect(raised).toEqual([reporterFailure]);
 });
 
 test("an asynchronous schema is refused rather than skipped", () => {

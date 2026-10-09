@@ -4,6 +4,7 @@ import {
   reduceUiMessageChunks,
   useUiChunkRecorder,
 } from "../../test/ai-sdk-oracle";
+import { useRaisedErrors } from "../../test/raised-errors";
 import { createFlueUiStream } from "./ui-stream";
 
 import type { LiveToolEvent } from "../shared/live-tool-event";
@@ -13,6 +14,7 @@ import type { UIMessageChunk } from "ai";
 const position = (index: number) => ({ batch: 1, index });
 
 const recordChunks = useUiChunkRecorder();
+const captureRaisedErrors = useRaisedErrors();
 
 const project = (
   chunks: readonly ConversationStreamChunk[],
@@ -271,6 +273,56 @@ test("reports server tool failures to the diagnostic callback before projection"
       providerExecuted: true,
     },
   ]);
+});
+
+test("projects a server tool failure even when its diagnostic callback throws", () => {
+  const raised = captureRaisedErrors();
+  const observerFailure = new Error("Observer failure.");
+  const written = recordChunks();
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(),
+    onToolOutputError: () => {
+      throw observerFailure;
+    },
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    toolCallId: "visible-1",
+    toolName: "search",
+    input: {},
+    position: position(1),
+  });
+  projector.accept({
+    type: "tool-output-error",
+    conversationId: "conversation-1",
+    toolCallId: "visible-1",
+    errorText: "Unknown governing revision",
+    position: position(2),
+  });
+
+  expect(written.filter((chunk) => chunk.type === "tool-output-error")).toEqual(
+    [
+      {
+        type: "tool-output-error",
+        toolCallId: "visible-1",
+        errorText: "Unknown governing revision",
+        providerExecuted: true,
+      },
+    ],
+  );
+  expect(raised).toEqual([observerFailure]);
 });
 
 test("does not report tool failures from another submission", () => {
