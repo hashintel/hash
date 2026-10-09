@@ -25,6 +25,7 @@ Cargo.toml @hashintel/rust
 /libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/backend-rust
 /libs/@local/graph/migrations/graph-migrations/ @hashintel/backend-rust
 
+# Code ownership
 /.github/CODEOWNERS @hashintel/infra-admins
 
 # Legal
