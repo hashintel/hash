@@ -1,0 +1,101 @@
+import { useQuery } from "@apollo/client";
+import { useMemo, useState } from "react";
+
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
+import { usePollInterval } from "../../shared/use-poll-interval";
+import { useAuthInfo } from "../shared/auth-info-context";
+import {
+  DraftEntitiesContext,
+  type DraftEntitiesContextValue,
+} from "./draft-entities-context";
+
+import type {
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
+} from "../../graphql/api-types.gen";
+import type { FunctionComponent, PropsWithChildren } from "react";
+
+/**
+ * Context to provide full information of draft entities, for use in the actions page.
+ * A separate app-wide context provides simply a count of draft entities.
+ */
+export const DraftEntitiesContextProvider: FunctionComponent<
+  PropsWithChildren
+> = ({ children }) => {
+  const [
+    previouslyFetchedDraftEntitiesData,
+    setPreviouslyFetchedDraftEntitiesData,
+  ] = useState<QueryEntitiesQuery>();
+
+  const { authenticatedUser } = useAuthInfo();
+
+  const { refetch: refetchDraftEntitiesCount } = useDraftEntitiesCount();
+
+  const pollInterval = usePollInterval();
+
+  const {
+    data: draftEntitiesData,
+    refetch: refetchFullData,
+    loading,
+  } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
+    {
+      variables: {
+        request: {
+          filter: {
+            all: [
+              {
+                exists: {
+                  path: ["draftId"],
+                },
+              },
+              {
+                equal: [{ path: ["archived"] }, { parameter: false }],
+              },
+            ],
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: true,
+          includePermissions: false,
+        },
+      },
+      onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
+      pollInterval,
+      fetchPolicy: "network-only",
+      skip: !authenticatedUser,
+    },
+  );
+
+  const draftEntities = useMemo(
+    () =>
+      (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)
+        ? deserializeQueryEntitiesResponse(
+            (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
+              .queryEntities,
+          ).entities
+        : undefined,
+    [draftEntitiesData, previouslyFetchedDraftEntitiesData],
+  );
+
+  const value = useMemo<DraftEntitiesContextValue>(
+    () => ({
+      draftEntities,
+      loading,
+      refetch: async () => {
+        await refetchFullData();
+        await refetchDraftEntitiesCount();
+      },
+    }),
+    [draftEntities, loading, refetchFullData, refetchDraftEntitiesCount],
+  );
+
+  return (
+    <DraftEntitiesContext.Provider value={value}>
+      {children}
+    </DraftEntitiesContext.Provider>
+  );
+};

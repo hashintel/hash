@@ -30,10 +30,8 @@ import { getLayoutWithSidebar } from "../shared/layout";
 import { MenuItem } from "../shared/ui";
 import { DraftEntities } from "./actions.page/draft-entities";
 import { DraftEntitiesBulkActionsDropdown } from "./actions.page/draft-entities-bulk-actions-dropdown";
-import {
-  DraftEntitiesContextProvider,
-  useDraftEntities,
-} from "./actions.page/draft-entities-context";
+import { useDraftEntities } from "./actions.page/draft-entities-context";
+import { DraftEntitiesContextProvider } from "./actions.page/draft-entities-context-provider";
 import { InlineSelect } from "./shared/inline-select";
 import { TopContextBar } from "./shared/top-context-bar";
 

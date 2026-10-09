@@ -1,59 +1,21 @@
-import {
-  Children,
-  createContext,
-  isValidElement,
-  useContext,
-  useMemo,
-  useRef,
-} from "react";
+import { Children, isValidElement, useMemo, useRef } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { Button } from "../components/Button/button";
 import { Icon, type IconName } from "../components/Icon/icon";
 import { LoadingSpinner } from "../components/Loading/loading-spinner";
+import { OverlayContext, useOverlayContext } from "./overlay-context";
 import { overlayPartsStyles } from "./overlay-parts.recipe";
 import { useAvoidScrollWidthChange } from "./use-avoid-scroll-width-change";
 
+import type { OverlayPrimitive } from "./overlay-context";
 import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
 
 export type OverlayShouldCloseOn =
   | "closeButtonAndOverlay"
   | "closeButton"
   | "none";
-
-/**
- * The Ark UI `Title` / `Description` primitives differ between Dialog and
- * Drawer (each wires up its own `aria-labelledby` / `aria-describedby`), so the
- * owning component injects them through context rather than the shared chrome
- * importing a specific namespace.
- */
-type OverlayPrimitive = React.ElementType;
-
-type OverlayContextValue = {
-  classes: ReturnType<typeof overlayPartsStyles>;
-  onClose?: () => void;
-  renderCloseButton: boolean;
-  loading?: boolean;
-  Title: OverlayPrimitive;
-  Description: OverlayPrimitive;
-  /** Sets the close-button label and squares off the Drawer's right edge. */
-  componentName: "Dialog" | "Drawer" | "Popover";
-  /** Popover-only: whether an outside interaction dismisses it. */
-  closeOnInteractOutside?: boolean;
-};
-
-export const OverlayContext = createContext<OverlayContextValue | null>(null);
-
-export const useOverlayContext = () => {
-  const ctx = useContext(OverlayContext);
-  if (!ctx) {
-    throw new Error(
-      "OverlayHeader, OverlayBody and OverlayFooter must be rendered inside a <Dialog>, <Drawer> or <Popover>",
-    );
-  }
-  return ctx;
-};
 
 export type OverlayHeaderProps = ExclusifyUnion<
   | {

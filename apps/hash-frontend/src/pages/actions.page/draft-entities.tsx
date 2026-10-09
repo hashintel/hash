@@ -20,17 +20,17 @@ import { Button } from "../../shared/ui";
 import { useActors } from "../../shared/use-actors";
 import { useDraftEntities } from "./draft-entities-context";
 import { DraftEntitiesContextBar } from "./draft-entities/draft-entities-context-bar";
+import { DraftEntitiesFilters } from "./draft-entities/draft-entities-filters";
 import {
-  DraftEntitiesFilters,
   filterDraftEntities,
   generateDefaultFilterState,
   getDraftEntityTypeBaseUrls,
   isFilerStateDefaultFilterState,
-} from "./draft-entities/draft-entities-filters";
+} from "./draft-entities/filter-state";
 import { DraftEntity } from "./draft-entity";
 
 import type { MinimalActor } from "../../shared/use-actors";
-import type { DraftEntityFilterState } from "./draft-entities/draft-entities-filters";
+import type { DraftEntityFilterState } from "./draft-entities/filter-state";
 import type { EntityTypeDisplayInfoByBaseUrl } from "./draft-entities/types";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";

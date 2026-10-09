@@ -7,11 +7,13 @@ import {
   preventAutocompleteProps,
   resolveAutoFocusProps,
 } from "../../util/form-shared";
+import { renderAdornment } from "../../util/render-adornment";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { baseInputRecipe } from "./base-input.recipe";
 import { InputConnector } from "./input-connector";
+import { iconSizeMap } from "./text-input-util";
 
 import type {
   FormInputSize,
@@ -79,32 +81,11 @@ export type BaseInputProps = {
 > &
   React.AriaAttributes;
 
-type BaseInputSlots = ReturnType<typeof baseInputRecipe>;
 export type PrefixOrSuffix = (
   | { iconName: IconName; onClick?: () => void; disabled?: boolean }
   | { text: string; onClick?: () => void; disabled?: boolean }
   | { content: React.ReactNode }
 ) & { variant?: "default" | "subtle" };
-
-function isIconAdornment(
-  val: unknown,
-): val is { iconName: IconName; onClick?: () => void } {
-  return val != null && typeof val === "object" && "iconName" in val;
-}
-
-function isTextAdornment(
-  val: unknown,
-): val is { text: string; onClick?: () => void } {
-  return val != null && typeof val === "object" && "text" in val;
-}
-
-const iconSizeMap: Record<FormInputSize, FormInputSize> = {
-  xxs: "xs",
-  xs: "xs",
-  sm: "sm",
-  md: "md",
-  lg: "md",
-};
 
 const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",
@@ -113,58 +94,6 @@ const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
   md: "sm",
   lg: "md",
 };
-
-export function renderAdornment(
-  type: "prefix" | "suffix",
-  adornment: PrefixOrSuffix,
-  size: FormInputSize,
-  classes: Pick<
-    BaseInputSlots,
-    | "prefix"
-    | "suffix"
-    | "adornment"
-    | "adornmentButton"
-    | "adornmentText"
-    | "disabledButton"
-  >,
-): React.ReactNode {
-  const content = isIconAdornment(adornment) ? (
-    <Icon name={adornment.iconName} size={iconSizeMap[size]} />
-  ) : isTextAdornment(adornment) ? (
-    adornment.text
-  ) : (
-    adornment.content
-  );
-  const dataVariant = adornment.variant === "subtle" ? "subtle" : undefined;
-  if (!("content" in adornment) && adornment.onClick) {
-    return (
-      <button
-        type="button"
-        onClick={adornment.onClick}
-        disabled={adornment.disabled}
-        data-part="adornment-button"
-        data-variant={dataVariant}
-        className={cx(
-          classes[type],
-          classes.adornment,
-          classes.adornmentButton,
-          adornment.disabled && classes.disabledButton,
-        )}
-      >
-        {content}
-      </button>
-    );
-  }
-  return (
-    <span
-      className={cx(classes[type], classes.adornment, classes.adornmentText)}
-      data-part="adornment-text"
-      data-variant={dataVariant}
-    >
-      {content}
-    </span>
-  );
-}
 
 export const BaseInput = ({
   type = "text",

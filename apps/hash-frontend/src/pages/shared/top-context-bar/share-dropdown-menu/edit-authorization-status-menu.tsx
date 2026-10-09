@@ -25,11 +25,9 @@ import {
   removeEntityViewerMutation,
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { ChevronDownRegularIcon } from "../../../../shared/icons/chevron-down-regular-icon";
-import { GlobeRegularIcon } from "../../../../shared/icons/globe-regular-icon";
-import { LockRegularIcon } from "../../../../shared/icons/lock-regular-icon";
-import { PersonBoothRegularIcon } from "../../../../shared/icons/person-booth-regular-icon";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { Button, MenuItem } from "../../../../shared/ui";
+import { entityAuthorizationStatusIcons } from "./entity-authorization-status-icons";
 
 import type {
   AddEntityViewerMutation,
@@ -60,12 +58,6 @@ export type EntityAuthorizationStatus =
   | "public"
   | "shared-with-others"
   | "private";
-
-export const entityAuthorizationStatusIcons = {
-  public: <GlobeRegularIcon />,
-  "shared-with-others": <PersonBoothRegularIcon />,
-  private: <LockRegularIcon />,
-} as const;
 
 export const EditAuthorizationStatusMenu: FunctionComponent<{
   entity: Entity;
