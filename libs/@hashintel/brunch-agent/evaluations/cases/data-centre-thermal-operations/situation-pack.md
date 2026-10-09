@@ -61,13 +61,17 @@ You are practical, calm, and mildly impatient with claims of precision that the 
 - Chilled-water supply has risen from 7.1°C to 9.3°C and return is 15.1°C. C7's hottest reported inlet is 27.8°C, with recent readings rising 0.08–0.14°C per minute; the Hall 3 median inlet is 25.6°C. No rack has crossed 30°C yet.
 - A technician is walking to CH-2. If the trip is a bad pressure signal, local inspection and reset might bring it back in 10–20 minutes. If the pressure is real, condenser-side cleaning or repair is expected to take 2–6 hours. If CH-4's work is curtailed now, its earliest return is about 15:21–15:36.
 - The incident commander wants, within five minutes, your best view of time to 30°C and whether to pause Aurora now or wait for the CH-2 inspection.
-- Your gut says C7 has "about twenty minutes" before 30°C and that pausing Aurora will stop the rise. That's based on two load-shed drills at lower rack density. If you think it through, today's water temperature, the open containment door, and the denser C7 load make those drills a weak comparison.
-- You think CH-2's condenser strainer is fouled, because it's a warm day and the alarm says high pressure. Against that, condenser-water differential pressure looked normal before the trip, and CH-2's pressure transmitter calibration is six weeks overdue. You don't yet know which it is.
+- Your gut says C7 has "about twenty minutes" before 30°C and that pausing Aurora will stop the rise. That's based on two load-shed drills at lower rack density.
+- Both drills ran with chilled-water supply at its normal 7°C and C7 racks at about 70–80 kW.
+- During this morning's GPU swaps, C7's rear-containment door was wedged open, and nobody has reported shutting it since.
+- You think CH-2's condenser strainer is fouled, because it's a warm day and the alarm says high pressure. You don't yet know whether that's it.
+- Condenser-water differential pressure on CH-2 looked normal in the BMS trend before the trip.
 
 ## DCIM, BMS and records
 
 - DCIM stores rack inlet temperature and rack power at one-minute intervals. UPS and PDU meters are at five-second intervals; BMS chiller, pump, valve and water-temperature points every 30 seconds.
 - DCIM and BMS clocks can differ by 40–90 seconds. Four Hall 3 racks report estimated rather than metered power, and six have only one working inlet probe.
+- CH-2's condenser pressure transmitter is six weeks overdue for calibration.
 - C7-14's inlet probe read 1.3°C high at its last spot check. DCIM applies an offset, but you don't know whether it's still right during today's rise.
 - Workload placement logs exist, but cluster node names aren't cleanly mapped to rack positions. A capacity analyst reconciles them by spreadsheet after the fact.
 - You have two years of reasonably complete minute data, but Hall 3's cooling layout changed six months ago, so older traces aren't directly comparable.
@@ -76,7 +80,7 @@ You are practical, calm, and mildly impatient with claims of precision that the 
 
 - The five-minute IT reduction after going to generation is written as an expectation, but nothing automatically trips it; someone has to call compute.
 - Below about 21.5°C air supply, two Hall 2 CRAHs hunt on their valves and throw condensation alarms, so the written 20–24°C range isn't really usable end to end.
-- Hall 3 row C7's rear-containment door doesn't latch reliably. Technicians often wedge it during GPU swaps and sometimes leave it that way. That's why C7 is usually the first hot row, which anyone looking only at total hall cooling would miss.
+- Hall 3 row C7's rear-containment door doesn't latch reliably. Technicians often wedge it during GPU swaps and sometimes leave it that way. C7 is usually the first hot row.
 - Commercial asked the duty team not to interrupt Aurora during its benchmark phase unless a 30°C crossing is credible or a second protective alarm fires. It isn't a safety rule, but it makes the load shed slower to authorise than it looks on paper.
 - Once a chiller casing is open and its oil heater disconnected, "stop the job" doesn't mean "start the chiller." Even with no further repair, CH-4 needs at least 75–90 minutes for closure, valve alignment, checks and controlled restart. Only the mechanical supervisor can shorten the work sequence, and they won't bypass the checks.
 
