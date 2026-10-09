@@ -6,6 +6,7 @@ export {
   ExperimentalIcon as Petricon,
   ExperimentalIconProvider as PetriconProvider,
   experimentalIconNames as petriconNames,
+  experimentalIconPack as petriconPack,
   experimentalIconEffects as petriconEffects,
   getExperimentalIconEffects as getPetriconEffects,
   useExperimentalIconMotionAllowed as usePetriconMotionAllowed,

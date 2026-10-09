@@ -699,6 +699,7 @@ __metadata:
     "@hashintel/design-system": "workspace:*"
     "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:*"
+    "@hashintel/ds-icons": "workspace:*"
     "@hashintel/integrations-catalog": "npm:^0.0.1"
     "@hashintel/petrinaut": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
@@ -7753,10 +7754,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/ds-icons@workspace:libs/@hashintel/ds-icons":
+"@hashintel/ds-icons@workspace:*, @hashintel/ds-icons@workspace:^, @hashintel/ds-icons@workspace:libs/@hashintel/ds-icons":
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-icons@workspace:libs/@hashintel/ds-icons"
   dependencies:
+    "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:^"
     "@pandacss/dev": "npm:1.11.1"
     "@testing-library/dom": "npm:10.4.1"
@@ -7858,6 +7860,7 @@ __metadata:
     "@fontsource-variable/jetbrains-mono": "npm:5.2.8"
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:*"
+    "@hashintel/ds-icons": "workspace:^"
     "@hashintel/petrinaut-core": "workspace:^"
     "@hashintel/refractive": "workspace:^"
     "@local/petrinaut-optimizer-client": "workspace:*"
@@ -7898,6 +7901,7 @@ __metadata:
   peerDependencies:
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:^"
+    "@hashintel/ds-icons": "workspace:^"
     react: ^19.0.0
     react-dom: ^19.0.0
   languageName: unknown

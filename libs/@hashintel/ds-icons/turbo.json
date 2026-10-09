@@ -9,7 +9,7 @@
       "dependsOn": ["@hashintel/ds-helpers#codegen"]
     },
     "test:unit": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen", "^build"]
     }
   }
 }

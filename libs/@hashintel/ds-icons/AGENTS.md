@@ -15,7 +15,7 @@ It owns:
 - Function components only. React Compiler is enabled in the build, so do not add `useMemo`, `useCallback` or `React.memo` without a reason the compiler cannot handle.
 - `use()` for context consumption (React 19), not `useContext()`.
 - Styles via Panda CSS `css()` from `@hashintel/ds-helpers/css`. The package ships `dist/panda.buildinfo.json` (`yarn build:buildinfo`) and `./panda-preset`, not a stylesheet. Every keyframe an icon references must exist in `src/panda-preset.ts`.
-- No dependency on `@hashintel/ds-components`, `@hashintel/petrinaut` or any `@local/*` package. This is a published package.
+- No runtime dependency on `@hashintel/ds-components`, `@hashintel/petrinaut` or any `@local/*` package. This is a published package. `@hashintel/ds-components` is a devDependency only, for the test that checks `experimentalIconPack` maps every design-system icon name.
 - Prefix unused parameters with `_`.
 
 ## Commands

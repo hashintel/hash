@@ -328,6 +328,7 @@
         "@apps/petrinaut-opt",
         "@hashintel/ds-components",
         "@hashintel/ds-helpers",
+        "@hashintel/ds-icons",
         "@hashintel/petrinaut",
         "@hashintel/petrinaut-cli",
         "@hashintel/refractive",

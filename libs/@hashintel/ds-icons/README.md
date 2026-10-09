@@ -24,6 +24,8 @@ import { ExperimentalIconProvider, PlayIcon } from "@hashintel/ds-icons";
 
 The provider's `enabled` prop only sets the value `useExperimentalIconPackEnabled` returns. Icons render either way; a host uses it to decide whether to swap its own icons for these.
 
+`experimentalIconPack` maps every `@hashintel/ds-components` icon name to an icon from this set. Pass it to that package's `IconProvider` to swap the design-system icons for these.
+
 ## Styles
 
 The icons style themselves with Panda CSS. The package ships no stylesheet. Instead, add its build info and preset to the Panda config of the application that renders the icons:

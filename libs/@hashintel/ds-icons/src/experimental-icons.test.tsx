@@ -11,9 +11,17 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  Icon,
+  IconProvider,
+  iconNames,
+  type IconPack,
+} from "@hashintel/ds-components";
+
+import {
   ExperimentalIcon,
   ExperimentalIconProvider,
   experimentalIconNames,
+  experimentalIconPack,
   PlaceIcon,
   AddPlaceIcon,
   AddTransitionIcon,
@@ -61,6 +69,23 @@ describe("experimental SVG API", () => {
       expect(svgs, name).toHaveLength(1);
       expect(svgs[0]?.getAttribute("viewBox"), name).toBe("0 0 24 24");
       unmount();
+    }
+  });
+
+  it("replaces every icon available to shared app controls", () => {
+    render(
+      <ExperimentalIconProvider motion="none">
+        <IconProvider icons={experimentalIconPack satisfies Required<IconPack>}>
+          {iconNames.map((name) => (
+            <Icon key={name} name={name} alt={name} />
+          ))}
+        </IconProvider>
+      </ExperimentalIconProvider>,
+    );
+    for (const name of iconNames) {
+      expect(
+        screen.getByRole("img", { name }).getAttribute("data-icon-pack"),
+      ).toBe("petrinaut-experimental");
     }
   });
 

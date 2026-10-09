@@ -1,7 +1,7 @@
 ---
 title: Petricon
 description: The icon library's design references, motion rules, SVG implementation, and React API.
-attachTo: ui.petricon
+attachTo: ui
 sidebar_order: 15
 ---
 
@@ -82,12 +82,16 @@ angle, and visible length without crossfading between separate icons.
 
 ![How Petricon combines state, geometry, and motion](@diagrams/petricon-rendering.svg)
 
-The public `petricon.ts` module exports `Petricon`, `PetriconProvider`, the typed
-catalog, and design studies. It delegates to the SVG renderer in
-`experimental-icons.tsx`. Existing `ExperimentalIcon` exports remain aliases
-for compatibility with earlier integrations.
+The SVG renderer, catalog, and design studies live in the
+`@hashintel/ds-icons` package. Petrinaut's `petricon.ts` re-exports
+`Petricon`, `PetriconProvider`, the typed catalog, and design studies from it.
+Its `experimental-icons.tsx` wraps the package's provider in the ds-components
+`IconProvider`, so shared controls draw Petricon while the user setting is on.
+Existing `ExperimentalIcon` exports remain aliases for compatibility with
+earlier integrations.
 
-The geometry and motion helpers live in `ui/experimental-icons/`:
+The geometry and motion helpers live in `src/experimental-icons/` in
+`@hashintel/ds-icons`:
 
 - Geometry modules describe paths, groups, frames, and moving details.
 - `shared/petricon-hints.ts` declares the complete set of hover behaviours.
@@ -101,7 +105,8 @@ The geometry and motion helpers live in `ui/experimental-icons/`:
 - `modeling-geometry.tsx` authors the modeling alternatives and normalized
   draw targets. `shared/cube-projection.ts` projects the subnet cube's vertices
   and culls edges whose two adjacent faces both point away from the viewer.
-- `panda-preset.ts` supplies shared keyframes to the package and host builds.
+- `panda-preset.ts` supplies the icon keyframes, which Petrinaut's preset
+  spreads into its own for the package and host builds.
 
 Most state changes use CSS transforms and transitions. Diagnostics animate
 stroke dash lengths so the same two paths can form all three symbols. The
