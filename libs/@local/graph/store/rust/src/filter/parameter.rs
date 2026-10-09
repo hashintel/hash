@@ -93,10 +93,12 @@ pub enum FilterExpressionList<'p, R: QueryRecord> {
     ParameterList { parameters: ParameterList<'p> },
 }
 
-impl<'p> From<PropertyFilterExpressionList<'p>> for FilterExpressionList<'p, Entity> {
-    fn from(value: PropertyFilterExpressionList<'p>) -> Self {
+impl From<PropertyFilterExpressionList> for FilterExpressionList<'_, Entity> {
+    fn from(value: PropertyFilterExpressionList) -> Self {
         match value {
-            PropertyFilterExpressionList::Path { path } => FilterExpressionList::Path { path },
+            PropertyFilterExpressionList::Path { path } => {
+                FilterExpressionList::Path { path: path.into() }
+            }
         }
     }
 }
