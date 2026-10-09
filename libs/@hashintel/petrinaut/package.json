@@ -15,7 +15,7 @@
     "LICENSE",
     "LICENSE-APACHE.md",
     "LICENSE-MIT.md",
-    "README.md",
+    "/README.md",
     "package.json"
   ],
   "type": "module",
