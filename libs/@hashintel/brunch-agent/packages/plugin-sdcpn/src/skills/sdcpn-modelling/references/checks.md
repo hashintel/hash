@@ -40,7 +40,7 @@ If missing material admits materially different structures for the proposed frag
 ## Tool-schema acceptance checks
 
 - Every intended construction call was accepted or its rejection remains explicitly unresolved.
-- The latest inspected definition contains each accepted place, transition, type, parameter, and connection under the identifier returned or supplied.
+- The latest inspected definition contains each accepted place, transition, type, parameter, and connection under the identifier the latest read returns. An identifier you supply is stored as a UUID.
 - Every referenced endpoint exists in the inspected definition.
 - Arc weights or multiplicities are positive and conform to the mounted schema.
 - No later step depends on a rejected or absent change.

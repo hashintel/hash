@@ -286,8 +286,12 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
         },
       })),
     );
-    const originalScenario = { id: scenario.id, name: scenario.name };
-    const originalMetric = { id: metric.id, name: metric.name };
+    // The model invents legacy ids; the stored document holds them converted.
+    const originalScenario = {
+      id: toPetrinautId(scenario.id),
+      name: scenario.name,
+    };
+    const originalMetric = { id: toPetrinautId(metric.id), name: metric.name };
     const updatedScenario = { ...originalScenario, name: "Updated baseline" };
     const updatedMetric = { ...originalMetric, name: "Updated throughput" };
     expect(

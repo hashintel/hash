@@ -5,6 +5,14 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+  generateArcId,
+  toPetrinautId,
+  type SDCPNInput,
+} from "@hashintel/petrinaut-core";
+import { PetrinautInstanceContext } from "@hashintel/petrinaut/react";
 
 import {
   createBrunchMutationAdmission,
@@ -38,8 +46,15 @@ const destructiveInput = {
   items: [
     { type: "place", id: "queue" },
     { type: "differentialEquation", id: "decay" },
+    {
+      type: "arc",
+      id: generateArcId({ inputId: "place:queue", outputId: "serve" }),
+    },
   ],
 };
+
+const editorWith = (initial: SDCPNInput) =>
+  createPetrinaut({ document: createJsonDocHandle({ initial }) });
 
 describe("Brunch destructive edit approval", () => {
   test("covers every destructive canonical tool and no constructive one", () => {
@@ -59,24 +74,43 @@ describe("Brunch destructive edit approval", () => {
       toolName: "deleteItemsByIds",
       signal: new AbortController().signal,
     });
+    // The equation is missing from the document, so its row shows the id.
+    const editor = editorWith({
+      places: [{ id: "queue", name: "Queue", x: 0, y: 0 }],
+      transitions: [
+        {
+          id: "serve",
+          name: "Serve",
+          inputArcs: [],
+          outputArcs: [],
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
     const ApprovalWidget = createBrunchMutationApprovalWidget(
       coordinator,
       "deleteItemsByIds",
     );
     const submit = vi.fn();
     render(
-      <ApprovalWidget
-        input={destructiveInput}
-        state="awaiting"
-        submit={submit}
-        submitAndWait={vi.fn()}
-        toolCallId="delete-1"
-      />,
+      <PetrinautInstanceContext value={editor}>
+        <ApprovalWidget
+          input={destructiveInput}
+          state="awaiting"
+          submit={submit}
+          submitAndWait={vi.fn()}
+          toolCallId="delete-1"
+        />
+      </PetrinautInstanceContext>,
     );
 
-    expect(screen.getByText(/Remove place.*queue/u)).not.toBeNull();
+    expect(screen.getByText("Remove place — Queue")).not.toBeNull();
+    expect(screen.getByText("Remove arc — Queue → Serve")).not.toBeNull();
     expect(
-      screen.getByText(/Remove differential equation.*decay/u),
+      screen.getByText(
+        `Remove differential equation — ${toPetrinautId("decay")}`,
+      ),
     ).not.toBeNull();
     expect(
       screen.getByText(/associated arcs or references may also be removed/iu),
@@ -221,13 +255,17 @@ describe("Brunch destructive edit approval", () => {
       "deleteItemsByIds",
     );
     render(
-      <ApprovalWidget
-        input={destructiveInput}
-        state="awaiting"
-        submit={vi.fn()}
-        submitAndWait={vi.fn()}
-        toolCallId="historical-call"
-      />,
+      <PetrinautInstanceContext
+        value={editorWith({ places: [], transitions: [] })}
+      >
+        <ApprovalWidget
+          input={destructiveInput}
+          state="awaiting"
+          submit={vi.fn()}
+          submitAndWait={vi.fn()}
+          toolCallId="historical-call"
+        />
+      </PetrinautInstanceContext>,
     );
     fireEvent.click(screen.getByRole("button", { name: "Allow" }));
     expect(coordinator.hasPending("historical-call")).toBe(false);

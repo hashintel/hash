@@ -8,6 +8,7 @@ import {
   retimeActualModeRecordingForReplay,
 } from ".";
 import { compileHirArtifacts } from "../hir/compile";
+import { canonicalizePetrinautIds, toPetrinautId } from "../petrinaut-id";
 import { createHirMetricEvaluator } from "../simulation/frames/hir-metric";
 
 import type { SDCPN } from "../types/sdcpn";
@@ -51,7 +52,19 @@ describe("Actual mode recordings", () => {
       exportedAt: "2026-06-05T10:01:00.000Z",
     });
 
-    expect(parseActualModeRecording(recording)).toEqual(recording);
+    expect(parseActualModeRecording(recording)).toEqual({
+      ...recording,
+      definition: canonicalizePetrinautIds(definition),
+      initialState: { [toPetrinautId("queued")]: 1 },
+      transitionFirings: [
+        {
+          transitionId: toPetrinautId("start"),
+          input: { [toPetrinautId("queued")]: 1 },
+          output: {},
+          ts: "2026-06-05T10:00:00.000Z",
+        },
+      ],
+    });
   });
 
   it("exports raw received events without mapping to SDCPN", () => {
@@ -108,6 +121,21 @@ describe("Actual mode recordings", () => {
       "2026-06-05T12:00:00.000Z",
       "2026-06-05T12:00:03.250Z",
     ]);
+  });
+
+  it("fills the collections a recorded definition omits", () => {
+    const parsed = parseActualModeRecording({
+      version: 1,
+      exportedAt: "2026-06-05T10:01:00.000Z",
+      title: "Replay",
+      source: null,
+      definition: { places: definition.places, transitions: [] },
+      initialState: { queued: 1 },
+      transitionFirings: [],
+    });
+
+    expect(parsed.definition.types).toEqual([]);
+    expect(parsed.definition.places[0]?.id).toBe(toPetrinautId("queued"));
   });
 
   it("rejects transition firings with extra fields", () => {

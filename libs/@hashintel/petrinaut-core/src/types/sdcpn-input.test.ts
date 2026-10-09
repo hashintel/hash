@@ -7,6 +7,8 @@ import { normalizeSDCPN } from "./sdcpn-input";
 import type { SDCPN } from "./sdcpn";
 import type { SDCPNInput } from "./sdcpn-input";
 
+const idOf = toPetrinautId;
+
 // Compile-time invariant: every complete SDCPN is a valid SDCPNInput, so
 // existing createJsonDocHandle callers that pass a full document keep working.
 const _sdcpnIsAssignableToInput: (doc: SDCPN) => SDCPNInput = (doc) => doc;
@@ -28,7 +30,7 @@ describe("normalizeSDCPN", () => {
     });
 
     expect(result.places[0]).toEqual({
-      id: "p1",
+      id: idOf("p1"),
       name: "P1",
       colorId: null,
       dynamicsEnabled: false,
@@ -37,10 +39,10 @@ describe("normalizeSDCPN", () => {
       y: 2,
     });
     expect(result.transitions[0]).toEqual({
-      id: "t1",
+      id: idOf("t1"),
       name: "T1",
-      inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
-      outputArcs: [{ placeId: "p1", weight: 1 }],
+      inputArcs: [{ placeId: idOf("p1"), weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: idOf("p1"), weight: 1 }],
       lambdaType: "predicate",
       lambdaCode: "",
       transitionKernelCode: "",
@@ -74,7 +76,7 @@ describe("normalizeSDCPN", () => {
       const normalized = normalizeSDCPN(input);
       expect(normalized.places).toStrictEqual([
         {
-          id: "p1",
+          id: idOf("p1"),
           name: "Capacity",
           x: 1,
           y: 2,
@@ -119,15 +121,15 @@ describe("normalizeSDCPN", () => {
     });
 
     expect(result.places[0]).toMatchObject({
-      colorId: "c1",
+      colorId: idOf("c1"),
       dynamicsEnabled: true,
-      differentialEquationId: "d1",
+      differentialEquationId: idOf("d1"),
       visualizerCode: "code",
       showAsInitialState: true,
     });
     expect(result.transitions[0]).toMatchObject({
-      inputArcs: [{ placeId: "p1", weight: 2, type: "inhibitor" }],
-      outputArcs: [{ placeId: "p1", weight: 3 }],
+      inputArcs: [{ placeId: idOf("p1"), weight: 2, type: "inhibitor" }],
+      outputArcs: [{ placeId: idOf("p1"), weight: 3 }],
       lambdaType: "stochastic",
       lambdaCode: "l",
       transitionKernelCode: "k",
@@ -182,14 +184,14 @@ describe("normalizeSDCPN", () => {
     expect(result.transitions[0]!.inputArcs[0]).toEqual({
       endpoint: {
         kind: "componentPort",
-        componentInstanceId: "ci1",
-        portPlaceId: "p9",
+        componentInstanceId: idOf("ci1"),
+        portPlaceId: idOf("p9"),
       },
       weight: 1,
       type: "standard",
     });
     expect(result.transitions[0]!.outputArcs[0]).toEqual({
-      endpoint: { kind: "place", placeId: "p1" },
+      endpoint: { kind: "place", placeId: idOf("p1") },
       weight: 1,
     });
     expect(result.subnets?.map(({ id }) => id)).toEqual([toPetrinautId("s1")]);
@@ -225,7 +227,7 @@ describe("normalizeSDCPN", () => {
     const complete: SDCPN = {
       places: [
         {
-          id: "p1",
+          id: idOf("p1"),
           name: "P1",
           colorId: null,
           dynamicsEnabled: false,
@@ -236,10 +238,10 @@ describe("normalizeSDCPN", () => {
       ],
       transitions: [
         {
-          id: "t1",
+          id: idOf("t1"),
           name: "T1",
-          inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
-          outputArcs: [{ placeId: "p1", weight: 1 }],
+          inputArcs: [{ placeId: idOf("p1"), weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: idOf("p1"), weight: 1 }],
           lambdaType: "predicate",
           lambdaCode: "",
           transitionKernelCode: "",

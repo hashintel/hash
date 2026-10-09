@@ -83,4 +83,5 @@ URL before calling the endpoint, or to the iframe `src` directly:
 query string is ignored.
 
 Embed URLs are stable but not immutable: they always render the current model
-for that slug.
+for that slug. Embeds published before ids were converted keep their older
+ids, and the editor resolves those to the converted ids when it opens.

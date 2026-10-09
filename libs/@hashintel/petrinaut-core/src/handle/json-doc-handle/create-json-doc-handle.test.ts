@@ -88,7 +88,7 @@ describe("createJsonDocHandle", () => {
         ...empty(),
         places: [
           {
-            id: "p1",
+            id: toPetrinautId("p1"),
             name: "Capacity",
             colorId: null,
             dynamicsEnabled: false,

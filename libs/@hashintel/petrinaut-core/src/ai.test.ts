@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   aiCommandActionInputSchemas,
+  createExperimentToolName,
   createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
   normalizePetrinautAiToolInput,
@@ -13,8 +14,10 @@ import {
   petrinautDocNames,
   petrinautDocSummaries,
 } from "./ai";
+import { generateArcId } from "./arc-id";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
+import { toPetrinautId } from "./petrinaut-id";
 
 const createInstance = () =>
   createPetrinaut({
@@ -160,12 +163,91 @@ describe("Petrinaut AI core exports", () => {
     });
   });
 
-  test("subnet id inputs export as plain string schemas", () => {
+  test("id inputs export as plain string schemas", () => {
+    type JsonSchemaNode = {
+      type?: unknown;
+      const?: unknown;
+      properties?: Record<string, JsonSchemaNode>;
+      items?: JsonSchemaNode;
+      oneOf?: JsonSchemaNode[];
+      propertyNames?: JsonSchemaNode;
+    };
+    const propertiesOf = (schema: z.ZodType) =>
+      (z.toJSONSchema(schema, { io: "output" }) as JsonSchemaNode).properties ??
+      {};
+
     expect(
-      z.toJSONSchema(petrinautAiTools.removeSubnet.inputSchema, {
-        io: "output",
-      }).properties?.subnetId,
-    ).toMatchObject({ type: "string", minLength: 1 });
+      propertiesOf(petrinautAiTools.removeSubnet.inputSchema).subnetId,
+    ).toMatchObject({ type: "string" });
+    expect(
+      propertiesOf(petrinautAiTools.addPlace.inputSchema).id,
+    ).toMatchObject({ type: "string" });
+    expect(
+      propertiesOf(petrinautAiTools.addScenario.inputSchema).parameterOverrides,
+    ).toMatchObject({ type: "object", propertyNames: { type: "string" } });
+    const deleteItems = propertiesOf(
+      petrinautAiTools.deleteItemsByIds.inputSchema,
+    ).items?.items?.oneOf;
+    expect(
+      deleteItems?.find((item) => item.properties?.type?.const === "arc")
+        ?.properties?.id,
+    ).toMatchObject({ type: "string" });
+    expect(
+      propertiesOf(petrinautAiTools[createExperimentToolName].inputSchema)
+        .scenarioId,
+    ).toMatchObject({ type: "string" });
+  });
+
+  test("converts invented entity ids so references and arc ids resolve", () => {
+    const instance = createInstance();
+    const callbacks = createPetrinautAiWritableCallbacks(instance);
+
+    callbacks.addPlace({
+      id: "place__queue",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    });
+    callbacks.addTransition({
+      id: "transition__serve",
+      name: "Serve",
+      inputArcs: [],
+      outputArcs: [],
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    });
+    callbacks.addArc({
+      transitionId: "transition__serve",
+      arcDirection: "input",
+      placeId: "place__queue",
+      weight: 1,
+    });
+
+    const [transition] = instance.definition.get().transitions;
+    expect(transition?.id).toBe(toPetrinautId("transition__serve"));
+    expect(transition?.inputArcs[0]?.placeId).toBe(
+      toPetrinautId("place__queue"),
+    );
+
+    callbacks.deleteItemsByIds({
+      items: [
+        {
+          type: "arc",
+          id: generateArcId({
+            inputId: "place:place__queue",
+            outputId: "transition__serve",
+          }),
+        },
+      ],
+    });
+
+    expect(instance.definition.get().transitions[0]?.inputArcs).toEqual([]);
   });
 
   test("callback map applies tool inputs to a Petrinaut instance", () => {
