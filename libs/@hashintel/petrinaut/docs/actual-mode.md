@@ -20,7 +20,7 @@ If the stream connection is interrupted, Petrinaut keeps any loaded Actual mode 
 
 Actual mode opens the bottom panel with an Actual timeline once execution data is available. The timeline can be scrubbed to inspect the net state at earlier points in the received stream. Use the series selector below the chart to show, hide, or focus individual traces. Hover a trace and click the eye icon to hide it -- it stays in place, struck through, until the pointer leaves the selector, so a second click undoes the change -- or open the dropdown to search and use **Only**.
 
-The bottom panel also includes an **Events** tab. It shows the received transition stream in order, including each event timestamp, transition id, input tokens, and output tokens. Use the **Export** dropdown in this tab to download either the received event stream or the current Petri net.
+The bottom panel also includes an **Events** tab. It shows the received transition stream in order, including each event timestamp, transition name, and the input and output tokens by place name. An unnamed transition or place shows its id. Use the **Export** dropdown in this tab to download either the received event stream or the current Petri net.
 
 Choose **Export Stream** to download the received event stream. Brunch stream exports preserve the raw JSON payloads received from the SSE endpoint instead of the normalized SDCPN used internally for rendering.
 

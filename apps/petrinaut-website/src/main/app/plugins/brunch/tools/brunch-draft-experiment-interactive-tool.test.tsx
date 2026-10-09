@@ -320,7 +320,7 @@ describe("BrunchDraftExperimentWidget", () => {
           condition: "No more than 5% of callers abandon.",
           reason: "The request carries no constraints.",
           blocksRun: false,
-          reportedByMetricId: "metric__abandonment_rate",
+          reportedByMetricId: toPetrinautId("metric__abandonment_rate"),
         },
       ]),
       toolCallId: "call_draft_1",
@@ -350,7 +350,7 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(screen.getByText("objective")).toBeTruthy();
     expect(screen.getByText("reported, not enforced")).toBeTruthy();
     expect(
-      screen.getByText("reported by metric__abandonment_rate, not enforced"),
+      screen.getByText("reported by Abandonment rate, not enforced"),
     ).toBeTruthy();
     expect(
       screen.getByRole<HTMLButtonElement>("button", { name: "Run" }).disabled,
