@@ -344,4 +344,45 @@ test("deduplicates a notice and offers its action without stealing focus", async
   expect(document.activeElement).toBe(trigger);
   fireEvent.click(action);
   expect(onClick).toHaveBeenCalledOnce();
+  // The toast leaves after the toaster's remove delay, whose timer fires late
+  // while other suites load the machine.
+  await waitFor(
+    () => expect(screen.queryByText("This document is read-only.")).toBeNull(),
+    { timeout: 3000 },
+  );
+});
+
+test("leaves no notification behind for the next editor", async () => {
+  const Notify = () => {
+    const { addNotification } = use(NotificationsContext);
+    return (
+      <button
+        type="button"
+        onClick={() =>
+          addNotification({ message: "From the first editor", tone: "neutral" })
+        }
+      >
+        Notify
+      </button>
+    );
+  };
+  const first = render(
+    <NotificationsProvider>
+      <Notify />
+    </NotificationsProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Notify" }));
+  await screen.findByText("From the first editor");
+  first.unmount();
+
+  render(
+    <NotificationsProvider>
+      <span>Second editor</span>
+    </NotificationsProvider>,
+  );
+
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
+  expect(screen.queryByText("From the first editor")).toBeNull();
 });
