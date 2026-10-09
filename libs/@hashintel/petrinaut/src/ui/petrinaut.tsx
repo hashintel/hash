@@ -186,6 +186,8 @@ export type PetrinautProps = {
   title?: string;
   setTitle?: (title: string) => void;
   readonly?: boolean;
+  /** Offered when an edit is blocked because the document is read-only. */
+  readOnlyAction?: NetManagement["readOnlyAction"];
   /**
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
@@ -252,6 +254,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   title = "Untitled",
   setTitle,
   readonly = false,
+  readOnlyAction,
   hideNetManagementControls,
   existingNets = [],
   createNewNet = noop,
@@ -280,6 +283,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
     existingNets,
     createNewNet,
     loadPetriNet,
+    readOnlyAction,
   };
 
   return (

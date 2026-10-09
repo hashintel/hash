@@ -306,3 +306,42 @@ test("shows Copy failed when preparing the document fallback throws", async () =
     await screen.findByRole("button", { name: "Copy failed" }),
   ).toBeTruthy();
 });
+
+test("deduplicates a notice and offers its action without stealing focus", async () => {
+  const onClick = vi.fn();
+  const Trigger = () => {
+    const { addNotification } = use(NotificationsContext);
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          for (let i = 0; i < 3; i++)
+            addNotification({
+              id: "read-only:test",
+              message: "This document is read-only.",
+              tone: "neutral",
+              durationMs: 4500,
+              action: { label: "Make a local copy", onClick },
+            });
+        }}
+      >
+        Try editing
+      </button>
+    );
+  };
+  render(
+    <NotificationsProvider>
+      <Trigger />
+    </NotificationsProvider>,
+  );
+  const trigger = screen.getByRole("button", { name: "Try editing" });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const action = await screen.findByRole("button", {
+    name: "Make a local copy",
+  });
+  expect(screen.getAllByText("This document is read-only.")).toHaveLength(1);
+  expect(document.activeElement).toBe(trigger);
+  fireEvent.click(action);
+  expect(onClick).toHaveBeenCalledOnce();
+});
