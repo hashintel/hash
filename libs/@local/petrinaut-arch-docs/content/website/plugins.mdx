@@ -8,24 +8,28 @@ sidebar_order: 10
 The plugins the demo website gives the Petrinaut editor, and where their code
 lives, for developers working on the website. Each one is written against the
 [plugin API](doc:plugins/overview).
+[Brunch on the plugin API](doc:website/brunch-migration) covers the largest
+one.
 
 ## The plugins
 
 | Folder             | Plugin id                 | Contributes                                                                                                       |
 | ------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `brunch/`          | `website.brunch`          | HASH's process agent: the shared chat on a Flue conversation per net, a Ledger tab, and a service for Voice.      |
 | `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's commands, as a `root`, and a top-bar button that toggles it.                     |
 | `petrinaut-ai/`    | `website.petrinaut-ai`    | Petrinaut's own assistant: the shared chat as its `view`, with the transcript saved per document in this browser. |
 | `sentry-feedback/` | `website.sentry-feedback` | A button under the viewport controls that opens Sentry's feedback form.                                           |
+| `voice/`           | `website.voice`           | Extends Brunch: voice mode and captions for its chat, a "Start voice mode" start action, and two Labs rows.       |
 | `walkthrough/`     | `website.walkthrough`     | The welcome guide as a `root` marked `overlay` while open, and its "Show welcome guide" row.                      |
 
 ## The list the editor receives
 
 The demo shell passes `demoPlugins` from `plugins/demo-plugins.ts` to
-`<Petrinaut plugins>`. While Brunch is the selected assistant it passes
-`brunchDemoPlugins` instead, from
-`local-storage-demo/brunch-bridge-plugin.tsx`, which swaps Petrinaut AI for a
-Brunch plugin that renders the chat the shell still builds. The Brunch Actual
-Mode route passes `[sentryFeedbackPlugin]` alone.
+`<Petrinaut plugins>`. With a Brunch endpoint configured
+(`VITE_BRUNCH_CHAT_ENDPOINT`), the list holds both assistants and Voice, the
+one `VITE_PETRINAUT_DEFAULT_ASSISTANT` names first. Without one, Petrinaut AI
+is the only assistant. The Brunch Actual Mode route passes
+`[sentryFeedbackPlugin]` alone.
 
 The `/ai-experiments` route passes one plugin of its own,
 `website.ai-experiments-demo` in
@@ -33,9 +37,8 @@ The `/ai-experiments` route passes one plugin of its own,
 chat follows a scripted conversation over a module-scope transport and runs
 real experiments.
 
-The shell provides the command registry and registers its own commands in it.
-The editor reuses that registry, so the palette lists the editor's commands and
-the demo's.
+The editor provides the command registry, so the palette lists the editor's
+commands, including **Use the … assistant** while two assistants run.
 
 ## Folder layout
 
@@ -44,13 +47,19 @@ One folder per plugin, named after it:
 - `plugin.tsx` holds the plugin and stays short: the manifest, then the
   contributions or a short hook.
 - `plugin/` holds what only the plugin uses. A long hook goes in
-  `plugin/use-<name>-plugin.tsx`.
+  `plugin/use-<name>-plugin.tsx`, or in a helper hook the plugin hook calls.
 - `definition.ts` holds the definition when another plugin imports it.
 - `server/` holds code an `api/` route imports.
+- A large plugin splits what only it uses into feature folders beside
+  `plugin/`, named for the concern (Brunch's `conversation/`, `ledger/` and
+  `tools/`; Voice's `history/`, `live/`, `realtime/` and `session/`). Its
+  `shared/` holds code several of them use, and a module that serves the whole
+  plugin, such as `brunch-preview-config.ts`, sits at the folder's root.
 
 `_shared/` holds code two plugins share; `_shared/chat/` holds the
-[assistant chat](layer:website.plugins.chat) the assistant plugins render. A
-folder without `plugin.tsx` holds code the demo shell wires in itself.
+[assistant chat](layer:website.plugins.chat) the assistant plugins render.
+Code a plugin shares with the demo shell, such as the browser-storage helpers,
+lives in `src/main/app/shared/`: plugins never import the shell.
 
 ## Testing a plugin
 
@@ -63,6 +72,8 @@ folder without `plugin.tsx` holds code the demo shell wires in itself.
   test renders the plugin's hook, or a component that takes `api`, with it.
 - `renderEditorWith(plugins, props?)` renders a real `<Petrinaut>` on an empty
   net with those plugins.
+- `stubLocalStorage(seed)` puts an in-memory store holding `seed` as JSON in
+  place of Node's own `localStorage`, which has no `setItem`.
 
 To start a plugin with stored settings, seed its
 [settings key](doc:plugins/runtime#settings-storage) in `localStorage`.

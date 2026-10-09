@@ -1,0 +1,69 @@
+---
+title: Brunch on the plugin API
+description: How the Brunch assistant is built as a Petrinaut plugin, what it reads through api, what it still imports, and how Voice and Brunch read each other.
+attachTo: website.plugins
+sidebar_order: 20
+---
+
+How Brunch, HASH's process agent, runs as a Petrinaut plugin in the demo
+website, for the Brunch team. Brunch is the largest plugin and the template
+for moving a host's assistant onto the [plugin API](doc:plugins/overview).
+
+## The manifest
+
+`brunch/definition.ts` declares `access: { document: "write", experiments:
+"write" }`, an [assistant](doc:plugins/assistants) labelled Brunch, and a
+service, `{ conversation }`. The hook in `brunch/plugin.tsx` calls
+`useBrunchSession(api)` and returns the chat as `view`, the Ledger tab, and the
+service.
+
+## What Brunch reads through `api`
+
+| From `api`              | Used for                                                                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `document.id`           | The net's construction conversation and the binding the server checks.                                                                      |
+| `assistant.isActive`    | Whether to bind at all: while another assistant is shown, Brunch opens no Flue client and mounts no tools.                                  |
+| `document.net`, `title` | The canonical read, the revision stamped on each browser call, the draft card's live model and the approval card's item names (`useStore`). |
+| `document.extensions`   | Returned by the canonical read with the title and the net.                                                                                  |
+| `document.edit`         | `addPlace`, `addTransition` and `addArc`, refused while the editor is read-only.                                                            |
+| `document.diagnose()`   | The compilation read, through the chat kit's `readDiagnosticsForAi`.                                                                        |
+| `document.reveal()`     | View experiment on a finished draft.                                                                                                        |
+| `experiments`           | Running a drafted experiment, its records, and why optimization is unavailable.                                                             |
+| `errors.capture`        | Failures Brunch contains: a lost history observation, a failed server tool.                                                                 |
+
+The session hook keeps what lives as long as the plugin: the drafts of
+experiments Brunch proposed, and one approval authority, Flue client and tool
+set per bound conversation.
+
+## What it still imports
+
+- From `@hashintel/petrinaut-core`: the AI tool names and input schemas,
+  `hashPetrinautDocument` for revisions, `parseArcId` and
+  `parseArcEndpointKey` for naming removed arcs, and SDCPN and experiment
+  types.
+- From `@hashintel/petrinaut/ui`: the definition API and its types
+  (`definePetrinautPlugin`, `pluginService`, `PluginHook`, `PluginApi`,
+  `PluginDocument`, `PluginDocumentReader`, `PluginExperiments`), and
+  `useStore`, `usePluginService` and `prepareExperiment`.
+
+It imports nothing from `@hashintel/petrinaut/react`; the architecture rule
+`website.plugins → react` keeps it that way.
+
+## Conversation ids
+
+`brunch-construction-v1:<id>` names the net's conversation, bound as
+`brunch-construction-v1:<id>:evaluation-I`, where `<id>` is `document.id`.
+Clearing the chat starts a new conversation and stores its id under
+`brunch-conversation-id-v1`.
+
+## Voice and Brunch
+
+Voice [extends](doc:plugins/assistants#extending-an-assistant) Brunch's
+assistant, so it runs only while Brunch does. The two read each other through
+[services](doc:plugins/writing-a-plugin#share-a-service-between-plugins),
+which add no dependency:
+
+- Voice reads the conversation, and whether a tool call waits on the user's
+  approval or was refused, with `usePluginService(createBrunchPlugin)`.
+- Brunch's chat reads Voice's voice mode and captions with
+  `usePluginService(createVoicePlugin)`.
