@@ -2,16 +2,18 @@
 
 For whoever scores a run. The launcher loads only `situation-pack.md` and `opening-message.md`, so the persona never sees this file. Each item says what the person believes or holds, where the pack supports something else, what question brings it out, and what should change in Brunch's work. Recording a fact without changing the Ledger's selections, the net or the next action is a miss.
 
+Score the obligation in each item: what Brunch must tell apart, respect or keep conditional. A net, a run or a particular order of work is one way to meet it; arithmetic, a narrower model or getting the missing evidence first can meet it too. Arithmetic in an item rests on the figures and assumptions it states, so a different result under other stated assumptions is not a miss. The session at the end is one example, not an acceptance condition.
+
 The trap in this case is competing explanations for one disputed day, plus simplifications that hold in the sheet and break under questioning. Marta's account is something to investigate, not a specification to encode, but some of her beliefs survive.
 
 ## 1. Tuesday 29 September: "the jam cost us the week"
 
 - **Belief:** the Line 2 filler jam slipped the book. Partly survives: the jam was real, but it is one of three things that day.
 - **Evidence in the pack:** Line 2 jammed about 09:30 to 11:30; the crew were on Line 1's tint-to-white washdown from about 07:00 to 10:00, both techs together; Line 3 ran out its white order around 08:00 and waited for them; she considered moving the rest of the Meridian order to the idle Line 3 and didn't, because Meridian whites go on Line 2; Line 3's tint started just before 11:00 and carried to Wednesday on day shift only.
-- **Arithmetic:** the jam cost Line 2 about 2 hours. Line 3 lost about 2 hours waiting for the crew (08:00–10:00), then took the 45-minute white-to-tint changeover. The 3-hour washdown on Line 1 matches the pack's tint-to-white figure. When the jam started at 09:30, Line 3 had been idle on whites for an hour and a half, so moving the Meridian white there needed no family change; the qualification rule, not capacity, ruled it out. The two pushed distributor orders and the carried tint account for three of the five late orders; the other two are not traced.
+- **Arithmetic:** the jam cost Line 2 about 2 hours. Line 3 lost about 2 hours waiting for the crew (08:00–10:00), then took the 45-minute white-to-tint changeover. The 3-hour washdown on Line 1 matches the pack's tint-to-white figure. When the jam started at 09:30, Line 3 had been idle on whites for an hour and a half, so moving the Meridian white there needed no family change; the qualification rule, not capacity, ruled it out. Three jobs slipped into Wednesday (the two pushed distributor orders and the carried tint), but the pack gives neither their due dates nor which five orders were late, so whether any of them is among the five is unknown.
 - **What brings it out:** asking for a recent day or week that went wrong, then walking it line by line in order: what each line was doing, when, who was where, and what she tried to move.
-- **Caught when:** Brunch separates the explanations before expanding the model, and the work changes accordingly: the crew is a shared resource that changeover transitions need, routing is constrained by qualification (Meridian whites only on Line 2), and the net can reproduce the day roughly with the jam alone versus with crew contention and qualifications. The delivery says the jam mattered and was not the whole story.
-- **Missed when:** the jam is taken as the whole explanation and the next action is breakdown statistics; the day is recorded as a narrative but the net has no shared crew or routing limits; or Brunch tells her the jam didn't matter.
+- **Caught when:** Brunch keeps the jam, the crew and the qualification rule apart as explanations before settling on any, and its work carries all three: changeovers draw on one shared crew, Meridian whites are held to Line 2, and the jam is a breakdown. Reproducing the day roughly with the jam alone and with crew and routing is one way to weigh them. The delivery says the jam mattered and was not the whole story, and does not share the five late orders out among the causes.
+- **Missed when:** the jam is taken as the whole explanation and the next action is breakdown statistics; the day is recorded as a narrative but a net built afterwards has no shared crew or routing limits; late orders are attributed to causes nobody traced; or Brunch tells her the jam didn't matter.
 
 ## 2. "Changeovers mostly overlap fine"
 
@@ -19,7 +21,7 @@ The trap in this case is competing explanations for one disputed day, plus simpl
 - **Evidence in the pack:** one crew of two techs on day shift serves three lines; both techs work a washdown together; a tint-to-white washdown holds them for about 3 hours.
 - **Arithmetic:** while a 3-hour washdown runs, any other line wanting any changeover waits up to 3 hours. On 29 September that was 2 hours of Line 3.
 - **What brings it out:** asking who does changeovers, how many at once, and what happens when two lines want one; or item 1's walk-through.
-- **Caught when:** the crew is a place with limited capacity that every changeover draws from, and the comparison of sequences reports crew waiting time.
+- **Caught when:** changeovers draw on one crew of limited capacity, however the net expresses it, and any comparison of sequences reports crew waiting time.
 - **Missed when:** changeovers are per-line fixed delays with no shared resource; "one crew" is recorded but the net lets changeovers on all lines run in parallel.
 
 ## 3. "Line 2 is about twice as fast as Line 1"
@@ -62,9 +64,9 @@ Meridian orders never ship late. A run reports Meridian lateness separately besi
 - Failure and repair statistics for the Line 2 filler and Line 1 mill, until someone pulls the CMMS downtime codes.
 - Ramp scrap per changeover type.
 - Step-level cycle times by product, and so which stage limits tints.
-- Which hold-up made the other two of that week's five late orders late.
+- Which of that week's five late orders the Tuesday hold-ups made late, including whether any of the three jobs that slipped to Wednesday is among them.
 - Whether holding a line idle pays in general.
 
-## A right-sized session
+## One right-sized session
 
 Ask for a recent day that went wrong before building; walk 29 September in order; build the shared crew and qualification routing once the day points to them; reproduce the day roughly with the jam alone and with crew and routing; then compare hold-versus-washdown under stated assumptions, with Meridian protected; deliver with the owed records (CMMS downtime, historian cycle times, commercial's view on lateness). The Line 1 tank argument can stay out of the first pass and be named as a later question.
