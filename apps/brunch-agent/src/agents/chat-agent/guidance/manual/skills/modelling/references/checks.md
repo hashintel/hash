@@ -63,6 +63,7 @@ Record discrepancies and the agent judgment used to resolve or preserve them. De
 Only report observations produced by an actual execution or named stronger analysis.
 
 - Record the exact definition revision, scenario, initial state, parameters, duration or stopping condition, and analysis method.
+- Before results compare levers or options, run the current settings over the stated horizon and confirm the model reproduces the problem the purpose names. A model in which the current settings already avoid the problem cannot rank fixes for it: repair the model, or say it does not reproduce the problem, before comparing.
 - State which process path or property was exercised.
 - For a simulation, report only observed progress, resource balances, mode states, outputs, and failures from the runs performed.
 - For state-space or invariant analysis, report the explored scope, assumptions, and any unexamined behaviors.
