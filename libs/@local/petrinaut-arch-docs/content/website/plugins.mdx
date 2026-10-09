@@ -14,11 +14,13 @@ lives, for developers working on the website. Each one is written against the
 | Folder             | Plugin id                 | Contributes                                                                                   |
 | ------------------ | ------------------------- | --------------------------------------------------------------------------------------------- |
 | `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's commands, as a `root`, and a top-bar button that toggles it. |
+| `sentry-feedback/` | `website.sentry-feedback` | A button under the viewport controls that opens Sentry's feedback form.                       |
 
 ## The list the editor receives
 
 The demo shell passes one list, `demoPlugins` from `plugins/demo-plugins.ts`,
-to `<Petrinaut plugins>`.
+to `<Petrinaut plugins>`. The Brunch Actual Mode route passes
+`[sentryFeedbackPlugin]` alone.
 
 The shell provides the command registry and registers its own commands in it.
 The editor reuses that registry, so the palette lists the editor's commands and

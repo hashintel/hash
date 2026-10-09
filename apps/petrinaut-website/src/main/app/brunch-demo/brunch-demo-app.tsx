@@ -4,7 +4,6 @@
  */
 
 import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
-import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { BrunchActualModeRoute } from "./brunch-actual-mode-route";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
@@ -20,7 +19,6 @@ export const BrunchDemoApp = ({
   ) => void;
   search: BrunchRouteSearch;
 }) => {
-  const sentryFeedbackAction = useSentryFeedbackAction();
   // Petrinaut only mounts below once the Brunch stream is available, and the
   // stream is the whole point of this route, so the location starts in Actual
   // mode. Without this the controlled state would open in Edit mode and the
@@ -29,11 +27,5 @@ export const BrunchDemoApp = ({
     initialState: { mode: "actual" },
   });
 
-  return (
-    <BrunchActualModeRoute
-      navigation={navigation}
-      search={search}
-      viewportActions={[sentryFeedbackAction]}
-    />
-  );
+  return <BrunchActualModeRoute navigation={navigation} search={search} />;
 };

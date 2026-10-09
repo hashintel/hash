@@ -75,7 +75,6 @@ import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
-import type { ViewportAction } from "../../types/viewport-action";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
@@ -165,7 +164,6 @@ const EditorViewContent = ({
   hideNetManagementControls,
   slots,
   titleEditable,
-  viewportActions,
 }: {
   aiAssistant?: PetrinautAiAssistant;
   /**
@@ -174,7 +172,6 @@ const EditorViewContent = ({
   hideNetManagementControls?: "all" | "except-title";
   slots?: PetrinautSlots;
   titleEditable: boolean;
-  viewportActions?: ViewportAction[];
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
   const navigation = usePetrinautNavigation();
@@ -601,10 +598,7 @@ const EditorViewContent = ({
                     <PropertiesPanel />
 
                     {/* SDCPN Visualization */}
-                    <SDCPNView
-                      onControllerChange={registerController}
-                      viewportActions={viewportActions}
-                    />
+                    <SDCPNView onControllerChange={registerController} />
 
                     {showEmptyAiHero && (
                       <AiCtaModal
