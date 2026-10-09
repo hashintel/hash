@@ -1,0 +1,10 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/check-links.yaml
+---
+15:19: pipelines.entities[0].inputs.previous: pipeline reads checkpoint `demo/orders`, which it produces itself
+19:15: pipelines.entities[1].source: source `orders` already has a pipeline
+23:9: pipelines.links[0].inputs: link reads several checkpoints but has no step to combine them
+24:17: pipelines.links[0].inputs.second: no step produces checkpoint `demo/missing`
+29:9: pipelines.links[0].properties["https://example.com/@demo/types/property-type/weight/v/1"]: unit map `weights` is not declared

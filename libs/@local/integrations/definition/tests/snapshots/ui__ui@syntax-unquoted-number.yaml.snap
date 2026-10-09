@@ -1,0 +1,6 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/syntax-unquoted-number.yaml
+---
+16:15: expected a column name or an accessor mapping, found integer `2024`

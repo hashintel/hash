@@ -1,0 +1,16 @@
+# A `column` written as an unquoted number is a syntax error, reported at the number.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id, 2024 AS year
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: sink-orders
+          sink:
+            entityType: https://example.com/@demo/types/entity-type/order/v/1
+            entityId: id
+            properties:
+              https://example.com/@demo/types/property-type/year/v/1: { column: 2024 }
