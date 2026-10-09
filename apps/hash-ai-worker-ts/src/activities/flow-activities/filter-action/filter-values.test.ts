@@ -2,16 +2,23 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { evaluateIf, filterList } from "./filter-values.js";
 
-import type { SingleFilterCondition } from "./evaluate-condition.js";
+import type { FilterCondition, FilterLeaf } from "./evaluate-condition.js";
 import type { FilterListResult, IfResult } from "./filter-values.js";
 import type { Url } from "@blockprotocol/type-system";
 
-const condition: SingleFilterCondition = {
+const and = (...conditions: FilterLeaf[]): FilterCondition => ({
+  kind: "group",
+  combinator: "and",
+  conditions,
+});
+
+const leaf: FilterLeaf = {
   kind: "condition",
   subject: { kind: "input", payloadKind: "Number" },
   operator: "greaterThan",
   value: { kind: "Number", value: 5 },
 };
+const condition = and(leaf);
 
 describe("evaluateIf", () => {
   it.each([
@@ -37,12 +44,15 @@ describe("evaluateIf", () => {
         innerText: "",
       },
     };
-    const result = evaluateIf(input, {
-      kind: "condition",
-      subject: { kind: "field", path: ["title"], payloadKind: "Text" },
-      operator: "equals",
-      value: { kind: "Text", value: "HASH" },
-    });
+    const result = evaluateIf(
+      input,
+      and({
+        kind: "condition",
+        subject: { kind: "field", path: ["title"], payloadKind: "Text" },
+        operator: "equals",
+        value: { kind: "Text", value: "HASH" },
+      }),
+    );
     expectTypeOf(result).toEqualTypeOf<IfResult<"WebPage">>();
     expect(result).toEqual({
       status: "success",
@@ -57,7 +67,7 @@ describe("evaluateIf", () => {
   it("does not emit either branch for invalid conditions", () => {
     const result = evaluateIf(
       { kind: "Number", value: 6 },
-      { ...condition, operator: "contains" },
+      and({ ...leaf, operator: "contains" }),
     );
     expect(result).toMatchObject({ status: "error", code: "invalidCondition" });
     expect(result).not.toHaveProperty("payload");
@@ -88,7 +98,7 @@ describe("filterList", () => {
     expect(
       filterList(
         { kind: "Number", value: [] },
-        { ...condition, operator: "contains" },
+        and({ ...leaf, operator: "contains" }),
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });
   });
