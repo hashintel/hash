@@ -1053,11 +1053,13 @@ mod tests {
         .expect("a complete configuration should make API tokens available");
         let user_id = UserId::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
 
-        let IssuedApiToken { token, params } = issuer.issue(
-            user_id,
-            ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
-            None,
-        );
+        let IssuedApiToken { token, params } = issuer
+            .issue(
+                user_id,
+                ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
+                None,
+            )
+            .expect("the random number generator should provide bytes");
 
         let hashed = HashedApiToken::from(&token);
         assert_eq!(

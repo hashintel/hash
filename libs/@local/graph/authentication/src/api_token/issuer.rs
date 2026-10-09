@@ -1,12 +1,15 @@
 use core::time::Duration;
 
+use error_stack::Report;
 use hash_graph_store::api_token::{ApiTokenName, ApiTokenType, CreateApiTokenParams};
 use type_system::principal::{
     actor::{ActorEntityUuid, UserId},
     actor_group::WebId,
 };
 
-use super::{ApiToken, ApiTokenEncryptionKey, Environment, HashedApiToken};
+use super::{
+    ApiToken, ApiTokenEncryptionKey, ApiTokenGenerationError, Environment, HashedApiToken,
+};
 
 /// Generates API tokens for an environment and encrypts their secret hashes with a key.
 #[derive(Debug)]
@@ -30,19 +33,22 @@ impl ApiTokenIssuer {
     /// Generates a token that acts as `user_id`, and the parameters a store records it with.
     ///
     /// The secret hash is encrypted for the row of `user_id` in the user's web.
-    #[must_use]
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ApiTokenGenerationError`] if the random number generator fails.
     pub fn issue(
         &self,
         user_id: UserId,
         name: ApiTokenName,
         lifetime: Option<Duration>,
-    ) -> IssuedApiToken {
-        let token = ApiToken::generate(ApiTokenType::User, self.environment);
+    ) -> Result<IssuedApiToken, Report<ApiTokenGenerationError>> {
+        let token = ApiToken::generate(ApiTokenType::User, self.environment)?;
         let hashed = HashedApiToken::from(&token);
         let associated_data =
             hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id));
 
-        IssuedApiToken {
+        Ok(IssuedApiToken {
             params: CreateApiTokenParams {
                 token_id: hashed.token_id(),
                 token_type: hashed.token_type(),
@@ -54,7 +60,7 @@ impl ApiTokenIssuer {
                 encrypted_secret_hash: self.key.encrypt(hashed.secret_hash(), &associated_data),
             },
             token,
-        }
+        })
     }
 }
 
@@ -94,11 +100,13 @@ mod tests {
         let user_id = UserId::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
         let lifetime = Duration::from_hours(24);
 
-        let IssuedApiToken { token, params } = issuer.issue(
-            user_id,
-            ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
-            Some(lifetime),
-        );
+        let IssuedApiToken { token, params } = issuer
+            .issue(
+                user_id,
+                ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
+                Some(lifetime),
+            )
+            .expect("the random number generator should provide bytes");
 
         let hashed: HashedApiToken = token
             .expose()
