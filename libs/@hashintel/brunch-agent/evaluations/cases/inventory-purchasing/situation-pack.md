@@ -49,9 +49,12 @@ You are starting from scratch here, with nothing built yet. You'd like help, but
 ## Purchasing
 
 - Each material has an inventory position. When it falls below a reorder point, you order up to a target, rounded to the vendor's minimum order quantity.
+- The inventory position is SAP's standard MRP availability as set up at the site: unrestricted stock, plus stock in quality inspection, plus open purchase orders.
 - Sonaflozin: reorder point 2,500, target 7,500.
 - Flowbind: reorder point 1,500, target 5,000.
-- German Supplier can provide an urgent Flowbind top-up of 250 when stock falls below 500.
+- German Supplier can provide an urgent Flowbind top-up of 250 when stock falls below 500. The top-up is a second MRP rule on the same material and reads the same inventory position.
+- Top-ups of 250 are what's arranged with German Supplier. Nobody has asked whether they would take a 2,500-unit order, and you don't know whether they could.
+- German deliveries turn up when they're expected; you can't remember one being badly late.
 - The purchase orders in SAP support 2,500-unit bulk orders and 250-unit top-ups.
 - Fitted total lead times from the records are about 28.2 ± 3.3 days from Chinese Supplier, 13.8 ± 3.7 days from Indian Supplier, and 15.1 ± 0.9 days from German Supplier. The team assumes one week of each is supplier preparation and the rest is transit.
 - Recorded unit prices are about EUR 89.43 from the Chinese source, EUR 109.91 from the Indian and EUR 81.73 from the German.
@@ -85,6 +88,13 @@ You are starting from scratch here, with nothing built yet. You'd like help, but
 - Production then takes about a week before the batch completes or is scrapped.
 - Production failure, scrap cost and several of the shortage costs are numbers the team put in, not fitted from the data.
 
+## A week you remember
+
+- Last February a Sonic Flow production order sat waiting for Flowbind, and the shortage cost went on the books.
+- The stock report that week showed Flowbind at about 2,850, well over the 1,500 reorder point, so no purchase order went out and no German top-up either. About 350 of it was unrestricted; the rest was a 2,500 delivery from Indian Supplier in quality inspection.
+- Quality rejected that lot a few days later on its certificate of analysis. The Indian order and a German top-up went out after the rejection, and the production order waited about three weeks in all.
+- You put it down to a bad lot from Indian Supplier. It's the only rejection you remember clearly; you couldn't say how often it happens.
+
 ## Shelf life, stock use and costs
 
 - Stock uses up shelf life through supplier preparation, transit, quarantine, raw-material storage and finished-goods storage.
@@ -103,9 +113,9 @@ You are starting from scratch here, with nothing built yet. You'd like help, but
 ## What you take for granted
 
 - Stock isn't usable just because it's physically at the factory. Pharmaceutical raw materials have to go through quarantine and quality release first.
-- German Supplier isn't simply a faster copy of the Indian one. It's there for urgent Flowbind top-ups and for when the normal source is out or stock is critically low.
+- German Supplier is your urgent source for Flowbind: the one you call on for top-ups and when Indian Supplier is out or stock is critically low.
 - Shelf life keeps running down while material is delayed or sitting in quarantine; late material isn't fresher for having been late.
-- Driving production off the live forecast can amplify a noisy demand estimate. That's the whole reason the team wants to compare it with the recorded static plan.
+- Driving production off the live forecast can amplify a noisy demand estimate. That's why you want to see it against the recorded static plan.
 - A lost shipment, a rejected lot or a scrapped batch still costs money, even though no usable stock ever comes of it.
 - Demand from the five sites is combined, but getting product to those sites isn't part of this; bringing in transfers and delivery would add logistics nobody has data for.
 
