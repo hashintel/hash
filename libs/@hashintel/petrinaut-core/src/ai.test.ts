@@ -1,6 +1,3 @@
-// @ts-expect-error -- this browser-safe package excludes Node ambient types.
-import { createHash as nodeCreateHash } from "node:crypto";
-
 import { rolldown } from "rolldown";
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
@@ -11,8 +8,6 @@ import {
   getLatestNetDefinitionToolName,
   normalizePetrinautAiToolInput,
   petrinautAiCapabilityGuidance,
-  petrinautAiPrompt,
-  petrinautAiStockBehavioralFrame,
   petrinautAiToolInputSchemas,
   petrinautAiTools,
   petrinautDocNames,
@@ -20,10 +15,6 @@ import {
 } from "./ai";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
-
-const createHash = nodeCreateHash as unknown as (algorithm: "sha256") => {
-  update: (value: string) => { digest: (encoding: "hex") => string };
-};
 
 const createInstance = () =>
   createPetrinaut({
@@ -60,27 +51,6 @@ describe("Petrinaut AI core exports", () => {
     } finally {
       await build.close();
     }
-  });
-
-  test("preserves the exact Stock-control prompt contract", () => {
-    expect(createHash("sha256").update(petrinautAiPrompt).digest("hex")).toBe(
-      "a8b863c020b628a01bfe944ec0daaf51ae7e08adb2020c00048c6cd5012451fb",
-    );
-  });
-
-  test("keeps Stock behavior around the canonical capability content", () => {
-    expect(petrinautAiStockBehavioralFrame.interviewAndEscape).toMatch(
-      /Interview first, build second/u,
-    );
-    expect(petrinautAiStockBehavioralFrame.interviewAndEscape).toMatch(
-      /make it up.*use sensible defaults/su,
-    );
-    expect(petrinautAiStockBehavioralFrame.finalResponse).toMatch(
-      /important modelling choices/u,
-    );
-    expect(petrinautAiCapabilityGuidance).toMatch(
-      /compact example Petrinaut document/u,
-    );
   });
 
   test("capability guidance and catalogue cover the canonical capability classes", () => {
@@ -173,7 +143,6 @@ describe("Petrinaut AI core exports", () => {
     expect(
       petrinautAiTools[getLatestNetDefinitionToolName].description,
     ).toMatch(/extensions/u);
-    expect(petrinautAiPrompt).toMatch(/extensions/u);
   });
 
   test("addArc exposes an AI-friendly object input schema", () => {

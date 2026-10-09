@@ -3,21 +3,21 @@ import {
   petrinautDocNames,
 } from "@hashintel/petrinaut-core";
 
-import actualMode from "../../../../../../docs/actual-mode.md?raw";
-import adHocScenarios from "../../../../../../docs/ad-hoc-scenarios.md?raw";
-import aiAssistant from "../../../../../../docs/ai-assistant.md?raw";
-import codeEditor from "../../../../../../docs/code-editor.md?raw";
-import compilationOutput from "../../../../../../docs/compilation-output.md?raw";
-import drawingANet from "../../../../../../docs/drawing-a-net.md?raw";
-import examples from "../../../../../../docs/examples.md?raw";
-import experiments from "../../../../../../docs/experiments.md?raw";
-import petriNetExtensions from "../../../../../../docs/petri-net-extensions.md?raw";
-import preview from "../../../../../../docs/preview.md?raw";
-import scenarios from "../../../../../../docs/scenarios.md?raw";
-import simulationPanels from "../../../../../../docs/simulation-panels.md?raw";
-import simulation from "../../../../../../docs/simulation.md?raw";
-import usefulPatterns from "../../../../../../docs/useful-patterns.md?raw";
-import visualSettings from "../../../../../../docs/visual-settings.md?raw";
+import actualMode from "../../docs/actual-mode.md?raw";
+import adHocScenarios from "../../docs/ad-hoc-scenarios.md?raw";
+import aiAssistant from "../../docs/ai-assistant.md?raw";
+import codeEditor from "../../docs/code-editor.md?raw";
+import compilationOutput from "../../docs/compilation-output.md?raw";
+import drawingANet from "../../docs/drawing-a-net.md?raw";
+import examples from "../../docs/examples.md?raw";
+import experiments from "../../docs/experiments.md?raw";
+import petriNetExtensions from "../../docs/petri-net-extensions.md?raw";
+import preview from "../../docs/preview.md?raw";
+import scenarios from "../../docs/scenarios.md?raw";
+import simulationPanels from "../../docs/simulation-panels.md?raw";
+import simulation from "../../docs/simulation.md?raw";
+import usefulPatterns from "../../docs/useful-patterns.md?raw";
+import visualSettings from "../../docs/visual-settings.md?raw";
 
 const htmlImagePattern = /<img\b[^>]*\/?>(?:\s*<\/img>)?/gi;
 const markdownImagePattern = /!\[[^\]]*]\([^)]*\)/g;

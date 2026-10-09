@@ -36,19 +36,18 @@ import {
 import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
 import { ExperimentHostContext } from "../../../../react/experiment-host/context";
 import { useLatest } from "../../../../react/hooks/use-latest";
+import { useRevealInEditor } from "../../../../react/hooks/use-reveal-in-editor";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { LanguageClientContext } from "../../../../react/lsp/context";
-import {
-  EditorContext,
-  type EditorContextValue,
-} from "../../../../react/state/editor-context";
+import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
-import { simulateModeAllowedMutationNames } from "../../../../react/state/simulate-mode-allowed-mutation-names";
 import {
   formatReadOnlyReason,
+  mutationBlockedBy,
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
+import { petrinautDocsContent } from "../../../petrinaut-docs-content";
 import {
   AiAssistantContents,
   getTranscriptLabel,
@@ -62,12 +61,10 @@ import {
   getInteractiveTool,
   resolveDynamicInteractiveTool,
 } from "./ai-assistant-panel/interactive-tools/registry";
-import { petrinautDocsContent } from "./ai-assistant-panel/petrinaut-docs-content";
 import { readCurrentDiagnostics } from "./ai-assistant-panel/read-current-diagnostics";
 import {
   type AiToolOutput,
   type AiToolCall,
-  type AiToolTarget,
   summarizeApplyAutoLayout,
   toPetrinautAiToolOutput,
 } from "./ai-assistant-panel/tool-summaries";
@@ -94,34 +91,10 @@ export type {
   PetrinautAiMessageMetadata,
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
-export { petrinautDocsContent };
 
 type PetrinautAiToolCall = Parameters<
   ChatOnToolCallCallback<PetrinautAiMessage>
 >[0]["toolCall"];
-
-const selectTarget = (
-  target: AiToolTarget,
-  actions: Pick<EditorContextValue, "navigateTo" | "selectItem">,
-) => {
-  if (target.kind === "selection") {
-    actions.selectItem(target.item);
-    return;
-  }
-
-  actions.navigateTo({
-    globalMode: "simulate",
-    simulateViewMode: target.mode,
-    simulateDrawer:
-      target.mode === "scenarios"
-        ? target.itemId
-          ? { type: "view-scenario", scenarioId: target.itemId }
-          : { type: "closed" }
-        : target.itemId
-          ? { type: "view-metric", metricId: target.itemId }
-          : { type: "closed" },
-  });
-};
 
 type QueuedVoiceInput = {
   readonly input: Parameters<
@@ -558,11 +531,10 @@ const ConversationAiAssistantPanel = ({
   const {
     isAiAssistantOpen,
     isAiAssistantCollapsed: voiceDockCollapsed,
-    navigateTo,
-    selectItem,
     setAiAssistantCollapsed: setVoiceDockCollapsed,
     setAiAssistantOpen,
   } = use(EditorContext);
+  const revealInEditor = useRevealInEditor();
 
   const { petriNetDefinition, setTitle, title, titleEditable } =
     use(SDCPNContext);
@@ -1143,27 +1115,20 @@ const ConversationAiAssistantPanel = ({
       throw new Error(`Unknown AI tool: ${String(toolName as string)}`);
     }
 
-    const currentReadOnlyReason = readOnlyReasonRef.current;
-    if (currentReadOnlyReason !== null) {
-      const isSimulateAllowedMutation =
-        isPetrinautAiMutationToolName(toolName) &&
-        simulateModeAllowedMutationNames.has(toolName);
-      const allowedDespiteReadOnly =
-        isSimulateAllowedMutation &&
-        currentReadOnlyReason.kind !== "host-readonly";
-
-      if (!allowedDespiteReadOnly) {
-        await addAutomaticToolOutput({
-          tool: toolName,
-          toolCallId: toolCall.toolCallId,
-          output: {
-            applied: false,
-            blocked: currentReadOnlyReason.kind,
-            reason: formatReadOnlyReason(currentReadOnlyReason),
-          } satisfies AiToolOutput,
-        });
-        return;
-      }
+    const blockedBy = isPetrinautAiMutationToolName(toolName)
+      ? mutationBlockedBy(toolName, readOnlyReasonRef.current)
+      : readOnlyReasonRef.current;
+    if (blockedBy !== null) {
+      await addAutomaticToolOutput({
+        tool: toolName,
+        toolCallId: toolCall.toolCallId,
+        output: {
+          applied: false,
+          blocked: blockedBy.kind,
+          reason: formatReadOnlyReason(blockedBy),
+        } satisfies AiToolOutput,
+      });
+      return;
     }
 
     if (isPetrinautAiCommandToolName(toolName)) {
@@ -2469,12 +2434,7 @@ const ConversationAiAssistantPanel = ({
         });
       }}
       onHostTabSelectedChange={setHostTabSelected}
-      onSelectToolTarget={(target) =>
-        selectTarget(target, {
-          navigateTo,
-          selectItem,
-        })
-      }
+      onSelectToolTarget={revealInEditor}
       onSendPrompt={(prompt) => {
         submitUserText(prompt, "message");
       }}

@@ -5,11 +5,11 @@
  */
 
 import { use } from "react";
-import { v4 as generateUuid } from "uuid";
 
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
+  generatePetrinautId,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
@@ -236,7 +236,7 @@ export const useCanvasInteractions = (
     if (readonly) {
       return;
     }
-    const id = `${kind}__${generateUuid()}`;
+    const id = generatePetrinautId();
     const itemNumber = scene.nodes.length + 1;
     const position = snap(rawPosition);
 
@@ -275,7 +275,7 @@ export const useCanvasInteractions = (
       ({ id }) => id === componentSubnetId,
     );
     const position = snap(rawPosition);
-    const id = `componentInstance__${generateUuid()}`;
+    const id = generatePetrinautId();
 
     addComponentInstance({
       id,
