@@ -57,12 +57,8 @@ thunk is_positive:0() -> (Integer) -> Boolean {
 }
 
 *thunk {thunk#3}() -> Boolean {
-    let %0: Boolean
-
     bb0(): {
-        %0 = apply ({closure#4} as FnPtr) () 42
-
-        return %0
+        return true
     }
 }
 
@@ -89,26 +85,8 @@ thunk is_positive:0() -> (Integer) -> Boolean {
 }
 
 *thunk {thunk#3}() -> Boolean {
-    let %0: Boolean
-    let %1: ()
-    let %2: Integer
-    let %3: Boolean
-
     bb0(): {
-        %1 = ()
-        %2 = 42
-
-        goto -> bb2()
-    }
-
-    bb1(%0): {
-        return %0
-    }
-
-    bb2(): {
-        %3 = %2 > 0
-
-        goto -> bb1(%3)
+        return true
     }
 }
 

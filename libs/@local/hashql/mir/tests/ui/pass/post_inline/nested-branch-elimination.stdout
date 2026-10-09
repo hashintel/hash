@@ -140,38 +140,14 @@ thunk check_low:0() -> (Integer) -> Boolean {
 }
 
 thunk {thunk#8}() -> Boolean {
-    let %0: Boolean
-
     bb0(): {
-        %0 = apply ({closure#10} as FnPtr) () 50
-
-        return %0
+        return false
     }
 }
 
 *thunk {thunk#9}() -> String {
-    let %0: Boolean
-    let %1: String
-    let %2: Boolean
-
     bb0(): {
-        %2 = apply ({closure#10} as FnPtr) () 50
-
-        switchInt(%2) -> [0: bb1(), 1: bb2()]
-    }
-
-    bb1(): {
-        %0 = apply ({closure#11} as FnPtr) () 50
-
-        switchInt(%0) -> [0: bb3("in range"), 1: bb3("too low")]
-    }
-
-    bb2(): {
-        return "too high"
-    }
-
-    bb3(%1): {
-        return %1
+        return "in range"
     }
 }
 
@@ -218,80 +194,14 @@ thunk check_low:0() -> (Integer) -> Boolean {
 }
 
 thunk {thunk#8}() -> Boolean {
-    let %0: Boolean
-    let %1: ()
-    let %2: Integer
-    let %3: Boolean
-
     bb0(): {
-        %1 = ()
-        %2 = 50
-
-        goto -> bb2()
-    }
-
-    bb1(%0): {
-        return %0
-    }
-
-    bb2(): {
-        %3 = %2 > 100
-
-        goto -> bb1(%3)
+        return false
     }
 }
 
 *thunk {thunk#9}() -> String {
-    let %0: Boolean
-    let %1: String
-    let %2: Boolean
-    let %3: ()
-    let %4: Integer
-    let %5: Boolean
-    let %6: ()
-    let %7: Integer
-    let %8: Boolean
-
     bb0(): {
-        %6 = ()
-        %7 = 50
-
-        goto -> bb7()
-    }
-
-    bb1(): {
-        %3 = ()
-        %4 = 50
-
-        goto -> bb5()
-    }
-
-    bb2(): {
-        return "too high"
-    }
-
-    bb3(%1): {
-        return %1
-    }
-
-    bb4(%0): {
-        switchInt(%0) -> [0: bb3("in range"), 1: bb3("too low")]
-    }
-
-    bb5(): {
-        %5 = %4 < 0
-
-        goto -> bb4(%5)
-    }
-
-    bb6(%2): {
-        switchInt(%2) -> [0: bb1(), 1: bb2()]
-    }
-
-    bb7(): {
-        %8 = %7 > 100
-
-        goto -> bb6(%8)
+        return "in range"
     }
 }
 

@@ -1,0 +1,92 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/administrative_reduction/tests.rs
+assertion_line: 347
+expression: value
+---
+fn {closure@4294967040}(%0: Integer, %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %0 > %1
+
+        return %2
+    }
+}
+
+fn {closure@4294967040}(%0: Integer, %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = apply ({def@0} as FnPtr) %0 %1
+
+        return %2
+    }
+}
+
+fn {closure@4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        %0 = 10
+        %1 = 20
+        %2 = apply ({def@1} as FnPtr) %0 %1
+
+        return %2
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {closure@4294967040}(%0: Integer, %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %0 > %1
+
+        return %2
+    }
+}
+
+fn {closure@4294967040}(%0: Integer, %1: Integer) -> Boolean {
+    let %2: Boolean
+    let %3: Integer
+    let %4: Integer
+    let %5: Boolean
+
+    bb0(): {
+        %3 = %0
+        %4 = %1
+        %5 = %3 > %4
+        %2 = %5
+
+        return %2
+    }
+}
+
+fn {closure@4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+    let %3: Integer
+    let %4: Integer
+    let %5: Boolean
+    let %6: Integer
+    let %7: Integer
+    let %8: Boolean
+
+    bb0(): {
+        %0 = 10
+        %1 = 20
+        %3 = %0
+        %4 = %1
+        %6 = %3
+        %7 = %4
+        %8 = %6 > %7
+        %5 = %8
+        %2 = %5
+
+        return %2
+    }
+}
