@@ -436,9 +436,31 @@ export const selectRecipe = sva({
         select: {
           "&::after": { display: "none" },
         },
+        // The default offset tucks the clear button into the arrow's margin;
+        // without the arrow it would overflow the border
+        clear: {
+          right: "1",
+        },
       },
     },
     willClear: { true: {} },
+    // The clear button takes the arrow's place whenever it shows: on hover,
+    // keyboard focus, and while the dropdown is open (the only reveal touch
+    // devices get). While loading, the spinner already sits between them, so
+    // both keep their own place.
+    replaceArrow: {
+      true: {
+        select: {
+          "&[data-can-clear]:not(.layer-style_disabled):hover::after, &[data-can-clear]:has(:focus-visible)::after, &[data-can-clear]:has([data-part='trigger'][data-state='open'])::after":
+            { visibility: "hidden" },
+        },
+        clear: {
+          right: "0",
+          transform:
+            "[translateX(calc(50% + var(--base-input-padding-x) + 0.25em))]",
+        },
+      },
+    },
     hasPrefix: { true: {} },
     overflowRow: {
       true: {
