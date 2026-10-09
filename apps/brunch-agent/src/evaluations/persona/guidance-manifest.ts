@@ -59,13 +59,23 @@ export const guidanceManifest = async (variant: GuidanceVariant) => {
     ),
     `${packages}/plugin-sdcpn/src/ledger-profile.ts`,
   ];
+  // The manual arm's Ledger lives in the plugin so the website can render it.
+  const manualLedger = [
+    `${packages}/plugin-sdcpn/src/ledger2.ts`,
+    ...(
+      await filesWithin(join(repoRoot, `${packages}/plugin-sdcpn/src/ledger2`))
+    ).map((path) => relative(repoRoot, path)),
+  ];
   const paths = [
     `${app}/agent.ts`,
     `${app}/guidance.ts`,
     `${app}/guidance-variant.ts`,
     ...(selfContained === undefined
       ? sharedLedger
-      : [`${armSources(selfContained)}.ts`]),
+      : [
+          `${armSources(selfContained)}.ts`,
+          ...(selfContained === "manual" ? manualLedger : []),
+        ]),
     `${packages}/plugin-sdcpn/src/flue.ts`,
     "yarn.lock",
     ...(

@@ -1,8 +1,8 @@
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
-import { vOrigin, vStatus } from "../shared/epistemics.ts";
-import { vClaimReference, vEntityReference } from "../shared/references.ts";
+import { vOrigin, vStatus } from "../shared/epistemics";
+import { vClaimReference, vEntityReference } from "../shared/references";
 
 export const vClaim = v.pipe(
   v.strictObject({

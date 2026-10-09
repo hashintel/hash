@@ -5,7 +5,7 @@ import type {
   ProjectedClaim,
   ProjectedEntity,
   ProjectedQuestion,
-} from "./project-ledger.ts";
+} from "./project-ledger";
 
 /**
  * One structure, two skins: the user skin is clean prose; the agent skin

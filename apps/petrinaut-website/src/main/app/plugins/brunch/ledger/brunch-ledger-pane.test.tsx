@@ -104,3 +104,35 @@ test("counts accepted commits and settled document changes as activity", () => {
     ]).activityIdentities,
   ).toEqual(["c1", "canonical-call"]);
 });
+
+const ledger2Commit = {
+  type: "dynamic-tool",
+  toolName: "ledger_commit",
+  toolCallId: "m1",
+  state: "output-available",
+  input: {
+    entries: [
+      [
+        "entity/create",
+        {
+          name: "Hillcrest service reservoir",
+          kind: "resource",
+          origin: "stated",
+          status: "confirmed",
+        },
+      ],
+    ],
+  },
+  output: { status: "recorded", commitId: "m1", revision: 1, ids: ["e1"] },
+};
+
+test("renders the manual arm's route-encoded Ledger in the user skin", () => {
+  const messages = [assistant(ledger2Commit)];
+  const html = renderToStaticMarkup(<BrunchLedgerPane messages={messages} />);
+  expect(html).toContain("Hillcrest service reservoir");
+  expect(html).not.toContain("e1");
+  expect(foldBrunchLedgerHistory(messages).activityIdentities).toEqual(["m1"]);
+  expect(
+    foldBrunchLedgerHistory(messages, { skin: "agent" }).markdown,
+  ).toContain("`e1`");
+});

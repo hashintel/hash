@@ -1,10 +1,10 @@
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
-import { vReflection } from "./construction/reflections.ts";
-import { vClaim } from "./elicitation/claims.ts";
-import { vEntity } from "./elicitation/entities.ts";
-import { entityIdGrammar } from "./shared/references.ts";
+import { vReflection } from "./construction/reflections";
+import { vClaim } from "./elicitation/claims";
+import { vEntity } from "./elicitation/entities";
+import { entityIdGrammar } from "./shared/references";
 
 const vEntityUpdateRoute = v.pipe(
   v.string(),

@@ -1,15 +1,15 @@
 import * as v from "valibot";
 
-import { brunchTools } from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent/constants";
 
-import { vLedgerAppend, type LedgerAppend } from "./append.ts";
+import { vLedgerAppend, type LedgerAppend } from "./append";
 
 import type {
   ClaimRecord,
   EntityRecord,
   LedgerState,
   ReflectionRecord,
-} from "./projection.ts";
+} from "./projection";
 
 /** Structural view of a conversation history; Flue and AI SDK messages both fit. */
 export interface LedgerHistoryMessage {
