@@ -1,0 +1,252 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/valid-forms.yaml
+---
+Definition {
+    connector: ConnectorId(
+        "demo",
+    ),
+    sources: {
+        SourceName(
+            "orders",
+        ): Source {
+            kind: Sql {
+                query: SqlQuery(
+                    "SELECT 1 AS id, 'EU' AS region",
+                ),
+                primary_key: PrimaryKey(
+                    [
+                        ColumnName(
+                            "id",
+                        ),
+                        ColumnName(
+                            "region",
+                        ),
+                    ],
+                ),
+            },
+            coverage: Complete,
+        },
+        SourceName(
+            "saved-orders",
+        ): Source {
+            kind: Checkpoint {
+                checkpoint: CheckpointName(
+                    "demo/orders",
+                ),
+            },
+            coverage: Complete,
+        },
+    },
+    unit_maps: {},
+    entity_pipelines: [
+        EntityPipeline {
+            source: SourceName(
+                "orders",
+            ),
+            depends_on: [],
+            inputs: {},
+            steps: [
+                Step {
+                    id: StepId(
+                        "save-orders",
+                    ),
+                    kind: Action(
+                        Checkpoint(
+                            CheckpointName(
+                                "demo/orders",
+                            ),
+                        ),
+                    ),
+                },
+                Step {
+                    id: StepId(
+                        "sink-orders",
+                    ),
+                    kind: Action(
+                        Sink(
+                            EntitySink {
+                                entity_type: VersionedUrl {
+                                    base_url: "https://example.com/@demo/types/entity-type/order/",
+                                    version: OntologyTypeVersion {
+                                        major: OntologyTypeMajorVersion(
+                                            1,
+                                        ),
+                                        pre_release: None,
+                                    },
+                                },
+                                entity_id: ColumnName(
+                                    "id",
+                                ),
+                                properties: Properties(
+                                    {
+                                        VersionedUrl {
+                                            base_url: "https://example.com/@demo/types/property-type/active/",
+                                            version: OntologyTypeVersion {
+                                                major: OntologyTypeMajorVersion(
+                                                    1,
+                                                ),
+                                                pre_release: None,
+                                            },
+                                        }: Column(
+                                            ColumnName(
+                                                "true",
+                                            ),
+                                        ),
+                                        VersionedUrl {
+                                            base_url: "https://example.com/@demo/types/property-type/approved/",
+                                            version: OntologyTypeVersion {
+                                                major: OntologyTypeMajorVersion(
+                                                    1,
+                                                ),
+                                                pre_release: None,
+                                            },
+                                        }: Column(
+                                            ColumnName(
+                                                "y",
+                                            ),
+                                        ),
+                                        VersionedUrl {
+                                            base_url: "https://example.com/@demo/types/property-type/paid/",
+                                            version: OntologyTypeVersion {
+                                                major: OntologyTypeMajorVersion(
+                                                    1,
+                                                ),
+                                                pre_release: None,
+                                            },
+                                        }: Column(
+                                            ColumnName(
+                                                "on",
+                                            ),
+                                        ),
+                                        VersionedUrl {
+                                            base_url: "https://example.com/@demo/types/property-type/region/",
+                                            version: OntologyTypeVersion {
+                                                major: OntologyTypeMajorVersion(
+                                                    1,
+                                                ),
+                                                pre_release: None,
+                                            },
+                                        }: Column(
+                                            ColumnName(
+                                                "region",
+                                            ),
+                                        ),
+                                        VersionedUrl {
+                                            base_url: "https://example.com/@demo/types/property-type/shipped/",
+                                            version: OntologyTypeVersion {
+                                                major: OntologyTypeMajorVersion(
+                                                    1,
+                                                ),
+                                                pre_release: None,
+                                            },
+                                        }: Column(
+                                            ColumnName(
+                                                "yes",
+                                            ),
+                                        ),
+                                        VersionedUrl {
+                                            base_url: "https://example.com/@demo/types/property-type/year/",
+                                            version: OntologyTypeVersion {
+                                                major: OntologyTypeMajorVersion(
+                                                    1,
+                                                ),
+                                                pre_release: None,
+                                            },
+                                        }: Column(
+                                            ColumnName(
+                                                "2024",
+                                            ),
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                    ),
+                },
+            ],
+        },
+        EntityPipeline {
+            source: SourceName(
+                "saved-orders",
+            ),
+            depends_on: [],
+            inputs: {},
+            steps: [],
+        },
+    ],
+    link_pipelines: [
+        LinkPipeline {
+            id: LinkId(
+                "order-to-order",
+            ),
+            input: Inputs(
+                LinkInputs(
+                    {
+                        InputAlias(
+                            "earlier",
+                        ): CheckpointName(
+                            "demo/orders",
+                        ),
+                        InputAlias(
+                            "later",
+                        ): CheckpointName(
+                            "demo/orders",
+                        ),
+                    },
+                ),
+            ),
+            steps: [
+                LinkStep {
+                    id: StepId(
+                        "pair-orders",
+                    ),
+                    query: SqlQuery(
+                        "SELECT earlier.id AS a, later.id AS b FROM earlier, later",
+                    ),
+                },
+            ],
+            from: LinkEndpoint {
+                entity_type: VersionedUrl {
+                    base_url: "https://example.com/@demo/types/entity-type/order/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                column: ColumnName(
+                    "a",
+                ),
+            },
+            to: LinkEndpoint {
+                entity_type: VersionedUrl {
+                    base_url: "https://example.com/@demo/types/entity-type/order/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                column: ColumnName(
+                    "b",
+                ),
+            },
+            link_type: VersionedUrl {
+                base_url: "https://example.com/@demo/types/entity-type/follows/",
+                version: OntologyTypeVersion {
+                    major: OntologyTypeMajorVersion(
+                        1,
+                    ),
+                    pre_release: None,
+                },
+            },
+            properties: Properties(
+                {},
+            ),
+        },
+    ],
+}

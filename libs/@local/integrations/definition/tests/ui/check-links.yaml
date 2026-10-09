@@ -1,0 +1,29 @@
+# Checks that need a parsed definition: a pipeline reading its own checkpoint, a second
+# pipeline for one source, a link that combines inputs without a step, a link input that no
+# step produces, and a link property naming an undeclared unit map.
+connector: demo
+vars:
+  TYPES: https://example.com/@demo/types
+sources:
+  orders:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      inputs:
+        previous: demo/orders
+      steps:
+        - id: save-orders
+          checkpoint: demo/orders
+    - source: orders
+  links:
+    - id: order-to-order
+      inputs:
+        first: demo/orders
+        second: demo/missing
+      from: { entityType: "${TYPES}/entity-type/order/v/1", column: id }
+      to: { entityType: "${TYPES}/entity-type/order/v/1", column: id }
+      linkType: ${TYPES}/entity-type/follows/v/1
+      properties:
+        ${TYPES}/property-type/weight/v/1: { amount: weight, unit: unit, unitMap: weights }
