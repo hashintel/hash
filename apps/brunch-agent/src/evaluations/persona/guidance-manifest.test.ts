@@ -60,15 +60,16 @@ test.each(selfContainedGuidanceVariants)(
     const ownPaths = own.files.map(({ path }) => path);
     expect(ownPaths).toContain(`${guidance}/${arm}.ts`);
     // The manual arm's Ledger is the plugin's ledger2; the receipt arm keeps the identity Ledger.
-    if (arm === "manual")
-      expect(ownPaths).toContain(
-        "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/ledger2/commits.ts",
-      );
-    else
-      for (const file of ["/identity-ledger.md", "/ledger/commit.ts"])
-        expect(
-          ownPaths.some((path) => isOwn(path) && path.endsWith(file)),
-        ).toBe(true);
+    const ownLedgerFiles =
+      arm === "manual"
+        ? [
+            "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/ledger2/commits.ts",
+          ]
+        : [
+            `${guidance}/receipt/identity-ledger.md`,
+            `${guidance}/receipt/ledger/commit.ts`,
+          ];
+    expect(ownPaths).toEqual(expect.arrayContaining(ownLedgerFiles));
     expect(
       ownPaths.filter((path) =>
         path.startsWith(
