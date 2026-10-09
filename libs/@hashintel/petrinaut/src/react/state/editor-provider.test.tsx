@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  toPetrinautId,
   type SDCPN,
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
@@ -17,9 +18,11 @@ import {
   type PetrinautNavigationController,
   type PetrinautNavigationState,
 } from "../navigation";
+import { ActiveNetContext } from "./active-net-context";
 import { EditorContext, type EditorContextValue } from "./editor-context";
 import { EditorProvider } from "./editor-provider";
 import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
+import { useSelectionCleanup } from "./use-selection-cleanup";
 import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
@@ -38,12 +41,13 @@ const emptySdcpn: SDCPN = {
 
 const makeSdcpnContextValue = (
   getItemType: SDCPNContextValue["getItemType"],
+  petriNetDefinition: SDCPN = emptySdcpn,
 ): SDCPNContextValue => ({
   createNewNet: () => {},
   existingNets: [],
   loadPetriNet: () => {},
   petriNetId: "test-net",
-  petriNetDefinition: emptySdcpn,
+  petriNetDefinition,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   setTitle: () => {},
@@ -94,6 +98,11 @@ const TestHost = ({
       {children}
     </PetrinautNavigationProvider>
   );
+};
+
+const SelectionCleanup = () => {
+  useSelectionCleanup();
+  return null;
 };
 
 const selectionOf = (...ids: string[]): SelectionMap =>
@@ -355,6 +364,91 @@ describe("EditorProvider deep-link normalization", () => {
     expect(
       recorded.filter((entry) => entry.intent.cause === "normalization"),
     ).toHaveLength(1);
+  });
+
+  it("reopens an older link's scenario and place by their converted ids", async () => {
+    const recorded: RecordedNavigation[] = [];
+    let editor: EditorContextValue;
+    const placeId = toPetrinautId("place__queue");
+    const getItemType: SDCPNContextValue["getItemType"] = (id) =>
+      id === placeId ? "place" : null;
+    const definition: SDCPN = {
+      ...emptySdcpn,
+      scenarios: [
+        {
+          id: toPetrinautId("baseline"),
+          name: "Baseline",
+          scenarioParameters: [],
+          parameterOverrides: {},
+          initialState: { type: "per_place", content: {} },
+        },
+      ],
+    };
+
+    const activeNet = {
+      places: [
+        {
+          id: placeId,
+          name: "Queue",
+          description: undefined,
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      componentInstances: [],
+    };
+
+    // The editor view's selection cleanup runs its effect before the provider's.
+    render(
+      <SDCPNContext.Provider
+        value={makeSdcpnContextValue(getItemType, definition)}
+      >
+        <ActiveNetContext.Provider
+          value={{
+            activeNet,
+            activeSubnetId: null,
+            setActiveSubnetId: () => {},
+          }}
+        >
+          <TestHost
+            recorded={recorded}
+            initialState={{
+              mode: "simulate",
+              simulateResource: { type: "scenario", id: "baseline" },
+              selection: [{ type: "place", id: "place__queue" }],
+            }}
+          >
+            <EditorProvider>
+              <SelectionCleanup />
+              <EditorContextGrabber
+                onContextValue={(value) => {
+                  editor = value;
+                }}
+              />
+            </EditorProvider>
+          </TestHost>
+        </ActiveNetContext.Provider>
+      </SDCPNContext.Provider>,
+    );
+    await act(async () => {});
+
+    const normalizations = recorded.filter(
+      (entry) => entry.intent.cause === "normalization",
+    );
+    expect(normalizations).toHaveLength(1);
+    expect(normalizations[0]?.history).toBe("replace");
+    expect(editor!.simulateDrawer).toEqual({
+      type: "view-scenario",
+      scenarioId: toPetrinautId("baseline"),
+    });
+    expect(Array.from(editor!.selection.keys())).toEqual([placeId]);
   });
 });
 

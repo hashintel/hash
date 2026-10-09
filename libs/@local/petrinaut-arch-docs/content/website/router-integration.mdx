@@ -100,6 +100,10 @@ oEmbed endpoint drops an explicit `none` when it builds the embed URL, because
 an embed with no scenario has nothing to run. The embed route itself honours
 `none`, so a hand-written embed URL can still ask for no scenario.
 
+Ids in a URL are the net's UUIDs. A link made before ids were converted names
+items by their older ids; the editor resolves each one to its converted id and
+replaces the URL once, so the link opens the same scenario and item.
+
 ## Hosting Petrinaut without a router
 
 The prop is optional. Omit it and Petrinaut keeps its location in internal

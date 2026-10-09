@@ -95,7 +95,9 @@ Request lines are capped at 10 MiB. Five methods exist:
 | `optimization.evaluate` | One trial: suggested values in, objective out         | manifest   |
 
 `metadata` lists the parameter aliases, place names, and metric ids that the
-other requests use.
+other requests use. Ids are lowercase UUIDs: a model file with other ids has
+them converted when it loads, and a request may still name an element by its
+older id.
 
 ```json
 {
@@ -103,7 +105,7 @@ other requests use.
   "result": {
     "parameters": [
       {
-        "id": "param__infection_rate",
+        "id": "a9c04113-0a66-54eb-9e85-d6b4b7bddbdf",
         "name": "Infection Rate",
         "variableName": "infection_rate",
         "type": "real",
@@ -112,11 +114,16 @@ other requests use.
       }
     ],
     "places": [
-      { "id": "place__infected", "name": "Infected", "index": 0, "color": null }
+      {
+        "id": "104901de-cb7b-592e-a76c-842e3624e9bd",
+        "name": "Infected",
+        "index": 0,
+        "color": null
+      }
     ],
     "metrics": [
       {
-        "id": "metric__infected_fraction",
+        "id": "a7a63806-27f9-5985-990c-a1ba8ada7e19",
         "name": "Infected Fraction",
         "optimizationObjective": null
       }
@@ -182,9 +189,9 @@ The response is summary-first — no frame histories or metric distributions:
     "frameCount": 101,
     "finalTime": 10,
     "finalPlaceTokenCounts": {
-      "place__susceptible": 900,
-      "place__infected": 40,
-      "place__recovered": 60
+      "51b95f6b-8a6e-52c1-9d29-59dc32625f53": 900,
+      "104901de-cb7b-592e-a76c-842e3624e9bd": 40,
+      "2ecf51a0-69da-592b-b2f0-9e3a5c8e14ba": 60
     },
     "metrics": { "Infected Fraction": 0.04 }
   }

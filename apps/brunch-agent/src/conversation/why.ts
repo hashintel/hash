@@ -9,6 +9,7 @@ import {
   callsForElement,
   isAppliedChange,
   latestNetDefinition,
+  namesId,
   netCalls,
   workpieceRevisionAtCall,
   type ArcElement,
@@ -147,14 +148,14 @@ export const queryWorkpiece = (input: {
   const candidates = latest
     ? elements(latest.definition, input.query.kind).filter(
         (element) =>
-          (input.query.id !== undefined && element.id === input.query.id) ||
+          namesId(input.query.id, element.id) ||
           (input.query.name !== undefined &&
             element.name === input.query.name) ||
           (input.query.kind === "arc" &&
             element.arc !== undefined &&
-            input.query.transitionId === element.arc.transitionId &&
+            namesId(input.query.transitionId, element.arc.transitionId) &&
             input.query.arcDirection === element.arc.arcDirection &&
-            input.query.placeId === element.arc.placeId),
+            namesId(input.query.placeId, element.arc.placeId)),
       )
     : [];
   const target = candidates.length === 1 ? candidates.at(0) : undefined;

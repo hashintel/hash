@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 import { deriveOptimizationTrialSeeds } from "@hashintel/petrinaut-core/optimization";
 
 import { MAX_REQUEST_LINE_BYTES } from "../runtime/protocol";
@@ -129,9 +130,9 @@ describe("CLI transports", () => {
         result: {
           seed: 42,
           finalPlaceTokenCounts: {
-            place__susceptible: 180,
-            place__infected: 20,
-            place__recovered: 0,
+            [toPetrinautId("place__susceptible")]: 180,
+            [toPetrinautId("place__infected")]: 20,
+            [toPetrinautId("place__recovered")]: 0,
           },
           metrics: { metric__infected_fraction: 0.1 },
         },

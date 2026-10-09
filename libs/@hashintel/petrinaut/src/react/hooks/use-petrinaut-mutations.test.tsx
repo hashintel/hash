@@ -9,6 +9,7 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   createJsonDocHandle,
   createPetrinaut,
+  toPetrinautId,
   type Petrinaut,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
@@ -187,7 +188,7 @@ describe("usePetrinautMutations", () => {
 
       const places = instance.definition.get().places;
       expect(places).toHaveLength(1);
-      expect(places[0]!.id).toBe("p1");
+      expect(places[0]!.id).toBe(toPetrinautId("p1"));
     });
 
     test("commitNodePositions updates positions", () => {
@@ -375,7 +376,7 @@ describe("usePetrinautMutations", () => {
 
       const updated = instance.definition.get();
       expect(updated.places).toHaveLength(1);
-      expect(updated.places[0]!.id).toBe("p2");
+      expect(updated.places[0]!.id).toBe(toPetrinautId("p2"));
       expect(updated.transitions[0]!.inputArcs).toHaveLength(0);
     });
   });

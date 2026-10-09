@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { petrinautExperimentRequestSchema } from "@hashintel/petrinaut-core";
+import {
+  petrinautExperimentRequestSchema,
+  petrinautIdSchema,
+} from "@hashintel/petrinaut-core";
 
 const nonempty = z.string().min(1);
 
@@ -34,7 +37,7 @@ const unsupportedConditionSchema = z.strictObject({
     .describe(
       "True for a hard or load-bearing restriction: Run stays unavailable. False only when the person explicitly accepts a reporting-only exploration without enforcing this condition. Omission blocks Run.",
     ),
-  reportedByMetricId: nonempty
+  reportedByMetricId: petrinautIdSchema
     .optional()
     .describe(
       "A saved metric in `experiment.metricIds` that observes this condition. It is reported beside the result, never enforced.",

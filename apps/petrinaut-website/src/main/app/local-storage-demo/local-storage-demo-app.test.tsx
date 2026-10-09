@@ -603,7 +603,7 @@ describe("local document revision persistence", () => {
     act(() => {
       firstHandle.change((draft) => {
         draft.places.push({
-          id: "direct-place",
+          id: toPetrinautId("direct-place"),
           name: "Direct place",
           colorId: null,
           dynamicsEnabled: false,
@@ -623,7 +623,7 @@ describe("local document revision persistence", () => {
       expect(stored[netOneId]?.revisionId).toBeTypeOf("string");
       expect(stored[netOneId]?.revisionId).not.toBe("local-revision-1");
       expect(stored[netOneId]?.sdcpn.places.map((place) => place.id)).toEqual([
-        "direct-place",
+        toPetrinautId("direct-place"),
       ]);
     });
 
@@ -632,14 +632,14 @@ describe("local document revision persistence", () => {
     const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
     expect(reopenedHandle).not.toBe(firstHandle);
     expect(reopenedHandle.doc()?.places.map((place) => place.id)).toEqual([
-      "direct-place",
+      toPetrinautId("direct-place"),
     ]);
 
     // The reopened handle chains from the record revision it opened at.
     act(() => {
       reopenedHandle.change((draft) => {
         draft.places.push({
-          id: "reopened-place",
+          id: toPetrinautId("reopened-place"),
           name: "Reopened place",
           colorId: null,
           dynamicsEnabled: false,
@@ -654,8 +654,8 @@ describe("local document revision persistence", () => {
         localStorage.getItem("petrinaut-sdcpn") ?? "{}",
       ) as Record<string, { sdcpn: { places: { id: string }[] } }>;
       expect(stored[netOneId]?.sdcpn.places.map((place) => place.id)).toEqual([
-        "direct-place",
-        "reopened-place",
+        toPetrinautId("direct-place"),
+        toPetrinautId("reopened-place"),
       ]);
     });
     expect(screen.queryByRole("alert")).toBeNull();
@@ -727,7 +727,7 @@ describe("local document revision persistence", () => {
     const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
 
     const otherTabPlace = {
-      id: "other-tab-place",
+      id: toPetrinautId("other-tab-place"),
       name: "Other tab place",
       colorId: null,
       dynamicsEnabled: false,
@@ -759,12 +759,15 @@ describe("local document revision persistence", () => {
     );
     const adoptedHandle = editorProps.current?.handle as PetrinautDocHandle;
     expect(adoptedHandle.doc()?.places.map((place) => place.id)).toEqual([
-      "other-tab-place",
+      toPetrinautId("other-tab-place"),
     ]);
 
     act(() => {
       adoptedHandle.change((draft) => {
-        draft.places.push({ ...otherTabPlace, id: "this-tab-place" });
+        draft.places.push({
+          ...otherTabPlace,
+          id: toPetrinautId("this-tab-place"),
+        });
       });
     });
     await waitFor(() => {
@@ -778,7 +781,10 @@ describe("local document revision persistence", () => {
       expect(persisted[netOneId]?.revisionId).not.toBe("other-tab-revision");
       expect(
         persisted[netOneId]?.sdcpn.places.map((place) => place.id),
-      ).toEqual(["other-tab-place", "this-tab-place"]);
+      ).toEqual([
+        toPetrinautId("other-tab-place"),
+        toPetrinautId("this-tab-place"),
+      ]);
     });
     expect(editorProps.current?.handle).toBe(adoptedHandle);
     expect(screen.queryByRole("alert")).toBeNull();
@@ -875,7 +881,7 @@ describe("local document revision persistence", () => {
     // Another tab moves net-1 on; its storage event has not reached this tab.
     // (Its place also keeps net-1 from being pruned as empty when net-2 opens.)
     const otherTabPlace = {
-      id: "other-tab-place",
+      id: toPetrinautId("other-tab-place"),
       name: "Other tab place",
       colorId: null,
       dynamicsEnabled: false,
@@ -1086,7 +1092,7 @@ describe("local storage demo Brunch controls", () => {
           capability: "capability",
           binding: target.searchParams.get("binding"),
           toolName: "removePlace",
-          input: { placeId: "queue" },
+          input: { placeId: toPetrinautId("queue") },
         });
       }),
     );
@@ -1106,7 +1112,7 @@ describe("local storage demo Brunch controls", () => {
         {
           toolCallId: "remove-1",
           toolName: "removePlace",
-          input: { placeId: "queue" },
+          input: { placeId: toPetrinautId("queue") },
           signal: new AbortController().signal,
         },
         execute,

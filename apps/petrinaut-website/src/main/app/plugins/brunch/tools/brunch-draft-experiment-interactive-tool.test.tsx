@@ -12,9 +12,11 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  canonicalizePetrinautIds,
   createJsonDocHandle,
   createPetrinaut,
   createReadableStore,
+  toPetrinautId,
 } from "@hashintel/petrinaut-core";
 import {
   ExperimentHostContext,
@@ -92,37 +94,38 @@ const submitted: WidgetState = {
   submittedOutput: { status: "drafted", summary: "", diagnostics: [] },
 };
 
-const makeDefinition = (): SDCPN => ({
-  places: [],
-  transitions: [],
-  types: [],
-  parameters: [],
-  differentialEquations: [],
-  scenarios: [
-    {
-      id: "scenario__peak_demand",
-      name: "Peak demand",
-      scenarioParameters: [
-        { identifier: "agents", type: "integer", default: 4 },
-        { identifier: "arrival_rate", type: "real", default: 1.5 },
-      ],
-      parameterOverrides: {},
-      initialState: { type: "per_place", content: {} },
-    },
-  ],
-  metrics: [
-    {
-      id: "metric__average_waiting_time",
-      name: "Average waiting time",
-      code: "return 1;",
-    },
-    {
-      id: "metric__abandonment_rate",
-      name: "Abandonment rate",
-      code: "return 0;",
-    },
-  ],
-});
+const makeDefinition = (): SDCPN =>
+  canonicalizePetrinautIds({
+    places: [],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+    scenarios: [
+      {
+        id: "scenario__peak_demand",
+        name: "Peak demand",
+        scenarioParameters: [
+          { identifier: "agents", type: "integer", default: 4 },
+          { identifier: "arrival_rate", type: "real", default: 1.5 },
+        ],
+        parameterOverrides: {},
+        initialState: { type: "per_place", content: {} },
+      },
+    ],
+    metrics: [
+      {
+        id: "metric__average_waiting_time",
+        name: "Average waiting time",
+        code: "return 1;",
+      },
+      {
+        id: "metric__abandonment_rate",
+        name: "Abandonment rate",
+        code: "return 0;",
+      },
+    ],
+  });
 
 const makeRequest = (
   overrides: Partial<PetrinautExperimentRequest> = {},
@@ -317,7 +320,7 @@ describe("BrunchDraftExperimentWidget", () => {
           condition: "No more than 5% of callers abandon.",
           reason: "The request carries no constraints.",
           blocksRun: false,
-          reportedByMetricId: "metric__abandonment_rate",
+          reportedByMetricId: toPetrinautId("metric__abandonment_rate"),
         },
       ]),
       toolCallId: "call_draft_1",
@@ -347,7 +350,7 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(screen.getByText("objective")).toBeTruthy();
     expect(screen.getByText("reported, not enforced")).toBeTruthy();
     expect(
-      screen.getByText("reported by metric__abandonment_rate, not enforced"),
+      screen.getByText("reported by Abandonment rate, not enforced"),
     ).toBeTruthy();
     expect(
       screen.getByRole<HTMLButtonElement>("button", { name: "Run" }).disabled,
@@ -515,7 +518,9 @@ describe("BrunchDraftExperimentWidget", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(submit.mock.calls[0]![0]).toMatchObject({
       status: "invalid",
-      diagnostics: ['Metric "metric__missing" does not exist'],
+      diagnostics: [
+        `Metric "${toPetrinautId("metric__missing")}" does not exist`,
+      ],
     });
     expect(heading()).toEqual(["Could not be prepared"]);
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
@@ -790,7 +795,7 @@ describe("BrunchDraftExperimentWidget", () => {
 
     await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(1));
     expect(runExperiment.mock.calls[0]![0]).toMatchObject({
-      scenarioId: "scenario__peak_demand",
+      scenarioId: toPetrinautId("scenario__peak_demand"),
       execution: { mode: "optimize", direction: "minimize" },
     });
     expect(seenSignal?.aborted).toBe(false);
@@ -1439,7 +1444,7 @@ describe("BrunchDraftExperimentWidget", () => {
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
 
     expect(screen.getByRole("alert").textContent).toBe(
-      'Scenario "scenario__peak_demand" does not exist',
+      `Scenario "${toPetrinautId("scenario__peak_demand")}" does not exist`,
     );
     expect(runExperiment).not.toHaveBeenCalled();
   });

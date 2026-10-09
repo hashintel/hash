@@ -2,6 +2,7 @@ import { generateId, type UIMessageChunk } from "ai";
 
 import {
   createExperimentToolName,
+  toPetrinautId,
   type PetrinautExperimentRequest,
   type PetrinautExperimentResult,
 } from "@hashintel/petrinaut-core";
@@ -18,7 +19,7 @@ const describeResult = (result: PetrinautExperimentResult): string => {
     return `The experiment ${status} after ${result.runsCompleted} completed runs. ${result.message ?? "Send another request to try again."}`;
   }
   const infectedShare = result.metrics.find(
-    (metric) => metric.id === "metric__infected_fraction",
+    (metric) => metric.id === toPetrinautId("metric__infected_fraction"),
   )?.value;
   const selectedShare = result.optimization?.parameters.infected_ratio;
   const selection =

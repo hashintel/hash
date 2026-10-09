@@ -31,6 +31,7 @@ import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import { LanguageClientContext } from "../lsp/context";
 import { usePetrinautNavigation } from "../navigation";
+import { resolveNavigatedId } from "../navigation/resolve-navigated-ids";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
@@ -131,6 +132,7 @@ export function shouldNormalizeScenarioSelection({
   );
 }
 
+/** The requested scenario resolved through `toPetrinautId`, else the first scenario unless none is allowed. */
 export function getEffectiveSelectedScenarioId(
   scenarios: readonly Scenario[] | undefined,
   selectedScenarioId: string | null | undefined,
@@ -140,14 +142,11 @@ export function getEffectiveSelectedScenarioId(
     return null;
   }
 
-  if (
-    selectedScenarioId &&
-    scenarios?.some((scenario) => scenario.id === selectedScenarioId)
-  ) {
-    return selectedScenarioId;
-  }
+  const resolvedScenarioId = selectedScenarioId
+    ? resolveNavigatedId(scenarios, selectedScenarioId)
+    : null;
 
-  return scenarios?.[0]?.id ?? null;
+  return resolvedScenarioId ?? scenarios?.[0]?.id ?? null;
 }
 
 const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {

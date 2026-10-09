@@ -4,6 +4,7 @@
  */
 
 import {
+  canonicalizePetrinautIds,
   parseSDCPNFile,
   type HirArtifacts,
   type ScenarioHir,
@@ -91,7 +92,11 @@ const loadDefinition = async (entry: ExampleCatalogEntry): Promise<SDCPN> => {
       return loadModelFile(entry.slug as ModelFileExampleSlug);
     case "core-example": {
       const examples = await import("@hashintel/petrinaut-core/examples");
-      return examples[entry.source.exportName].petriNetDefinition;
+      // Converted as model files are by the parser, so the precompiled
+      // scenarios and the document agree on ids.
+      return canonicalizePetrinautIds(
+        examples[entry.source.exportName].petriNetDefinition,
+      );
     }
   }
 };
