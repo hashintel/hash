@@ -1,6 +1,6 @@
 import { Context } from "@temporalio/activity";
 
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { logProgress } from "../shared/log-progress.js";
@@ -15,7 +15,7 @@ export const getFileFromUrlAction: AiFlowActionActivity<
     description,
     displayName,
     url: originalUrl,
-  } = getSimplifiedAiFlowActionInputs({
+  } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "getFileFromUrl",
   });

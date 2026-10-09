@@ -9,7 +9,7 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getScheduledArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
-import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
@@ -71,7 +71,7 @@ export const getScheduledFlightsAction: IntegrationFlowActionActivity<
   "getScheduledFlights"
 > = async ({ inputs }) => {
   try {
-    const { airportIcao, date } = getSimplifiedIntegrationFlowActionInputs({
+    const { airportIcao, date } = getSimplifiedFlowActionInputs({
       inputs,
       actionType: "getScheduledFlights",
     });

@@ -25,7 +25,7 @@ import {
   patchesFromPropertyObjects,
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
@@ -682,7 +682,7 @@ export const createPersistIntegrationEntitiesAction = ({
       } = await getFlowContext({ graphApiClient });
 
       const { proposedEntities: proposedEntitiesInput } =
-        getSimplifiedIntegrationFlowActionInputs({
+        getSimplifiedFlowActionInputs({
           inputs,
           actionType: "persistIntegrationEntities",
         });
