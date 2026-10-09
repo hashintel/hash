@@ -8,9 +8,7 @@ It lets you build, configure, and simulate Petri nets. It has support for variou
 
 Petrinaut is available at [demo.petrinaut.org](https://demo.petrinaut.org).
 
-Net data will be stored in local browser storage. Each saved net opens at its own address, such as `/local/550e8400-e29b-41d4-a716-446655440000`, so you can bookmark it or return with the browser's Back button. The link works only in the browser that saved the net. To move a net between devices and browsers, export it as a YAML or JSON file and import it there.
-
-Published examples open read-only. Choose **Make a local copy** in the top bar to save an editable copy in your browser.
+The live site saves nets in your browser's local storage. Export and import nets as YAML or JSON files to move them between devices and browsers.
 
 ## Concepts
 
