@@ -32,4 +32,4 @@ Live-provider runs incur cost and require an explicit model and spend authorizat
 
 The detailed operator guide is [`apps/brunch-agent/src/evaluations/persona/README.md`](../../../apps/brunch-agent/src/evaluations/persona/README.md).
 
-There are no maintained answer keys, graders, campaign protocols, or headless case fixtures. A persona run is an observation, not an automatic quality grade or acceptance decision.
+Each maintained case also keeps a `key.md` for scoring a run by hand: what the person believes, where the pack puts that under pressure, and what Brunch must tell apart, respect or keep conditional. The launcher never loads it. There are no graders, campaign protocols, or headless case fixtures. A persona run is an observation, not an automatic quality grade or acceptance decision.
