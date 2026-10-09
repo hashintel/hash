@@ -10,7 +10,7 @@ import logging
 from collections.abc import Callable
 from contextlib import ExitStack, suppress
 from dataclasses import dataclass
-from typing import Literal, assert_never
+from typing import Literal, assert_never, override
 
 from fastapi import FastAPI
 from opentelemetry import metrics, trace
@@ -183,6 +183,7 @@ class TelemetrySettings(BaseSettings):
     raw_protocol: str = Field(alias="OTEL_EXPORTER_OTLP_PROTOCOL", default="grpc")
     service_name: str = Field(alias="OTEL_SERVICE_NAME", default=_DEFAULT_SERVICE_NAME)
 
+    @override
     def model_post_init(self, _context: object, /) -> None:
         # Validate eagerly so misconfiguration surfaces at settings load time.
         _ = self.protocol
