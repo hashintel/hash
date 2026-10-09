@@ -1,4 +1,7 @@
-import { browserInferenceFlowOutput } from "./browser-plugin-flow-types.js";
+import {
+  browserInferenceFlowFailuresOutput,
+  browserInferenceFlowOutput,
+} from "./browser-plugin-flow-types.js";
 
 import type {
   AiFlowActionDefinitionId,
@@ -125,6 +128,12 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition<AiFlowActionDe
           "persistedEntities" as const satisfies OutputNameForFlowAction<"persistEntities">,
         ...browserInferenceFlowOutput,
       },
+      {
+        stepId: "1",
+        stepOutputName:
+          "failedEntityProposals" as const satisfies OutputNameForFlowAction<"persistEntities">,
+        ...browserInferenceFlowFailuresOutput,
+      },
     ],
   };
 
@@ -231,6 +240,12 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition<AiFlowActio
         stepOutputName:
           "persistedEntities" as const satisfies OutputNameForFlowAction<"persistEntities">,
         ...browserInferenceFlowOutput,
+      },
+      {
+        stepId: "2",
+        stepOutputName:
+          "failedEntityProposals" as const satisfies OutputNameForFlowAction<"persistEntities">,
+        ...browserInferenceFlowFailuresOutput,
       },
     ],
   };
