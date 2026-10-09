@@ -1,12 +1,16 @@
-import { use, useState } from "react";
+import { useState } from "react";
 
 import { Button, ButtonGroup, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import {
-  WalkthroughContext,
-  willShowWalkthroughDialog,
-} from "./walkthrough-context";
+/** One step of the guide: a title, a short body and a looping video. */
+export type WalkthroughStep = {
+  id: string;
+  title: React.ReactNode;
+  body: React.ReactNode;
+  videoHref: string;
+  videoAlt: string;
+};
 
 const docsUrl =
   "https://github.com/hashintel/hash/tree/main/libs/%40hashintel/petrinaut/docs";
@@ -130,35 +134,20 @@ const dividerStyle = css({
   flexShrink: "[0]",
 });
 
-export type WalkthroughDialogProps = {
-  open: boolean;
+type WalkthroughDialogProps = {
+  steps: readonly WalkthroughStep[];
   onClose: () => void;
 };
 
+/** The guide, one step at a time; Skip tour, Get started and the close button call `onClose`. */
 export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
-  open,
+  steps,
   onClose,
 }) => {
-  const walkthrough = use(WalkthroughContext);
   const [currentStep, setCurrentStep] = useState(0);
 
-  // Reset to the first step every time the dialog opens. Using the
-  // prev-prop comparison pattern recommended by React's "you might not need
-  // an effect" guide, since calling setState inside useEffect would cause a
-  // cascading render and is flagged by react-hooks-js.
-  const [wasOpen, setWasOpen] = useState(open);
-  if (open !== wasOpen) {
-    setWasOpen(open);
-    if (open) {
-      setCurrentStep(0);
-    }
-  }
-
-  if (!willShowWalkthroughDialog(walkthrough, open)) return null;
-
-  const { steps } = walkthrough;
   const lastIndex = steps.length - 1;
-  const step = steps[currentStep] ?? steps[0];
+  const step = steps[currentStep];
 
   if (!step) {
     return null;

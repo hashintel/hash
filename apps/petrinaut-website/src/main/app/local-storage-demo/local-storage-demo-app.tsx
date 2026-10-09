@@ -28,7 +28,6 @@ import {
   Petrinaut,
   type PetrinautAiComposerControlContext,
   type PetrinautAiMessage,
-  WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
 import {
@@ -86,7 +85,6 @@ import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
 } from "../plugins/voice/session/voice-interview-control";
-import { walkthroughSteps } from "../plugins/walkthrough/walkthrough-steps";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
@@ -761,37 +759,35 @@ export const LocalStorageDemoApp = ({
         <UnsavedChangeNotice message={unsavedChangeMessage} />
       ) : null}
       <CommandRegistryProvider>
-        <WalkthroughProvider steps={walkthroughSteps}>
-          <Petrinaut
-            aiAssistant={aiAssistant}
-            handle={activeHandle.handle}
-            existingNets={existingNets}
-            createNewNet={createNewNet}
-            loadPetriNet={loadPetriNet}
-            navigation={navigation}
-            plugins={demoPlugins}
-            readonly={false}
-            setTitle={setTitle}
-            slots={{
-              settingsLabs: (
-                <AssistantLabsSettings
-                  assistantReady={assistantSelectionReady}
-                  brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
-                  brunchSelected={brunchSelected}
-                  openAIVoiceConfig={openAIVoiceConfig}
-                  realtimeEnabled={realtimeEnabled}
-                  realtimePreferenceReady={realtimePreferenceReady}
-                  selectAssistant={selectAssistant}
-                  setRealtimeEnabled={setRealtimeEnabled}
-                  setVoiceEnabled={setVoiceEnabled}
-                  voiceEnabled={brunchSelected && voiceEnabled}
-                  voicePreferenceReady={voicePreferenceReady}
-                />
-              ),
-            }}
-            title={currentDocument.title}
-          />
-        </WalkthroughProvider>
+        <Petrinaut
+          aiAssistant={aiAssistant}
+          handle={activeHandle.handle}
+          existingNets={existingNets}
+          createNewNet={createNewNet}
+          loadPetriNet={loadPetriNet}
+          navigation={navigation}
+          plugins={demoPlugins}
+          readonly={false}
+          setTitle={setTitle}
+          slots={{
+            settingsLabs: (
+              <AssistantLabsSettings
+                assistantReady={assistantSelectionReady}
+                brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
+                brunchSelected={brunchSelected}
+                openAIVoiceConfig={openAIVoiceConfig}
+                realtimeEnabled={realtimeEnabled}
+                realtimePreferenceReady={realtimePreferenceReady}
+                selectAssistant={selectAssistant}
+                setRealtimeEnabled={setRealtimeEnabled}
+                setVoiceEnabled={setVoiceEnabled}
+                voiceEnabled={brunchSelected && voiceEnabled}
+                voicePreferenceReady={voicePreferenceReady}
+              />
+            ),
+          }}
+          title={currentDocument.title}
+        />
         <DemoCommands
           brunchSelected={brunchSelected}
           selectAssistant={selectAssistant}
