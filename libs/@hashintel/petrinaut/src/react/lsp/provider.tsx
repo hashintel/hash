@@ -17,7 +17,10 @@ import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/ls
 import { createValueStore } from "../create-value-store";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
-import { LanguageClientContext } from "./context";
+import {
+  DEFAULT_LANGUAGE_CLIENT_CONTEXT,
+  LanguageClientContext,
+} from "./context";
 
 const EMPTY_DIAGNOSTICS_SNAPSHOT: DiagnosticsSnapshot = {
   byUri: new Map(),
@@ -94,11 +97,16 @@ export const LanguageClientProvider: React.FC<{
   } = useStore(client?.diagnostics ?? EMPTY_DIAGNOSTICS_STORE);
 
   // Before the client lands (StrictMode's first effect cycle gets cleaned
-  // up before the worker is wired), fall through to LanguageClientContext's
-  // built-in no-op default so children don't have to gate on a separate
-  // "loading" branch.
+  // up before the worker is wired), provide LanguageClientContext's no-op
+  // default so children don't have to gate on a separate "loading" branch.
+  // Both branches render the provider, so the subtree stays mounted when the
+  // client lands.
   if (!client) {
-    return <>{children}</>;
+    return (
+      <LanguageClientContext value={DEFAULT_LANGUAGE_CLIENT_CONTEXT}>
+        {children}
+      </LanguageClientContext>
+    );
   }
 
   const value = {

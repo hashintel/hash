@@ -11,6 +11,48 @@
 
 export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
+
+// Plugins — what `<Petrinaut plugins>` takes, and what plugin code imports.
+export {
+  definePetrinautPlugin,
+  pluginService,
+} from "./plugins/define-petrinaut-plugin";
+export type {
+  PetrinautPlugin,
+  PetrinautPluginDefinition,
+  PetrinautPluginManifest,
+  PetrinautSettingSpec,
+  PluginApi,
+  PluginButton,
+  PluginContributions,
+  PluginHook,
+  PluginService,
+} from "./plugins/define-petrinaut-plugin";
+export { describeRefusal } from "./plugins/plugin-access";
+export type {
+  AccessApi,
+  EditRefusal,
+  EditResult,
+  PluginAccess,
+  PluginDocument,
+  PluginDocumentReader,
+  PluginEdits,
+  PluginErrors,
+  PluginExperiments,
+  PluginExperimentsReader,
+  PluginNotifications,
+} from "./plugins/plugin-access";
+export { usePluginService } from "./plugins/plugins-provider";
+export {
+  useCommand,
+  useCommandRegistry,
+  useCommands,
+} from "../react/commands/command-registry";
+export { useStore, useStoreSelector } from "../react/use-store";
+export type { PetrinautRevealTarget } from "../react/hooks/use-reveal-in-editor";
+export type { AddNotificationInput } from "../react/notifications/context";
+export type { ReadOnlyReason } from "../react/state/use-read-only-reason";
+export type { ReadableStore } from "@hashintel/petrinaut-core";
 export {
   ExperimentExecutionCard,
   type ExperimentExecutionCardProps,
