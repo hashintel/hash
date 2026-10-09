@@ -1,6 +1,6 @@
 ---
 title: The demo site's plugins
-description: The plugins the demo website passes to the Petrinaut editor, how the list is assembled, and how a plugin folder is laid out.
+description: The plugins the demo website passes to the Petrinaut editor, how the list is assembled, how a plugin folder is laid out, and how to test a plugin.
 attachTo: website.plugins
 sidebar_order: 10
 ---
@@ -40,3 +40,10 @@ One folder per plugin, named after it:
 
 `_shared/` holds code two plugins share. A folder without `plugin.tsx` holds
 code the demo shell wires in itself.
+
+## Testing a plugin
+
+`_shared/testing/` holds what plugin tests are built on.
+`renderEditorWith(plugin, props?)` renders a real `<Petrinaut>` on an empty
+net with that plugin. To start a plugin with stored settings, seed its
+[settings key](doc:plugins/runtime#settings-storage) in `localStorage`.
