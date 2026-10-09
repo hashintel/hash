@@ -6,7 +6,14 @@ import {
   createRouter,
   RouterProvider,
 } from "@tanstack/react-router";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
@@ -17,9 +24,29 @@ import { routeTree } from "../routeTree.gen";
 
 import type { ReactNode } from "react";
 
+await vi.hoisted(async () => {
+  const { installPetrinautDomShims } =
+    await import("../main/app/shared/petrinaut-jsdom");
+  installPetrinautDomShims();
+});
+
+/** The net the stand-in's Open button asks the route to open. */
+const opening = vi.hoisted(() => ({ netId: "" }));
+
 vi.mock("../main/app/local-storage-demo/local-storage-demo-app", () => ({
-  LocalStorageDemoApp: ({ netId }: { netId: string }) => (
-    <div data-testid="document">{netId}</div>
+  LocalStorageDemoApp: ({
+    netId,
+    onOpenNet,
+  }: {
+    netId: string;
+    onOpenNet: (netId: string) => void;
+  }) => (
+    <>
+      <div data-testid="document">{netId}</div>
+      <button type="button" onClick={() => onOpenNet(opening.netId)}>
+        Open
+      </button>
+    </>
   ),
 }));
 vi.mock("../main/app/optimization-demo/browser-optimization-provider", () => ({
@@ -78,21 +105,20 @@ test("opens the net the URL names, not the most recently edited one", async () =
   expect((await screen.findByTestId("document")).textContent).toBe(first.id);
 });
 
-test("Back and Forward reopen the net each URL names", async () => {
+test("opening another net pushes its URL without the old search, and Back and Forward reopen the net each URL names", async () => {
   const first = save("First");
   const second = save("Second");
-  const router = await open(`/local/${first.id}`);
+  const router = await open(`/local/${first.id}?subnet=subnet-1`);
+  opening.netId = second.id;
 
-  await act(async () => {
-    await router.navigate({
-      to: "/local/$netId",
-      params: { netId: second.id },
-    });
-  });
-  expect(openDocument()).toBe(second.id);
+  fireEvent.click(await screen.findByRole("button", { name: "Open" }));
+  await waitFor(() => expect(openDocument()).toBe(second.id));
+  expect(router.state.location.pathname).toBe(`/local/${second.id}`);
+  expect(router.state.location.search).toEqual({});
 
   act(() => router.history.back());
   await waitFor(() => expect(openDocument()).toBe(first.id));
+  expect(router.state.location.search).toEqual({ subnet: "subnet-1" });
 
   act(() => router.history.forward());
   await waitFor(() => expect(openDocument()).toBe(second.id));
