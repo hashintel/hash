@@ -17,6 +17,7 @@ import { TriangleExclamationRegularIcon } from "../../../../shared/icons/triangl
 import { MenuItem } from "../../../../shared/ui/menu-item";
 import { NumberInput } from "../data-type-constraints/shared/number-input";
 import { ItemLabel } from "../shared/item-label";
+import { applyConversionDefinition } from "./apply-conversion-definition";
 
 import type { DataTypeFormData } from "../data-type-form";
 import type {
@@ -44,19 +45,6 @@ const operatorToOpCharacterMap: Record<Operator, OperatorCharacter> = {
   "*": "×",
   "/": "÷",
 };
-
-export const applyConversionDefinition = ({
-  conversions,
-  definition,
-  direction,
-}: {
-  conversions: Conversions;
-  definition: ConversionDefinition;
-  direction: "from" | "to";
-}): Conversions => ({
-  from: direction === "from" ? definition : conversions.from,
-  to: direction === "to" ? definition : conversions.to,
-});
 
 const ReadOnlyCalculation = ({
   definition,

@@ -14,8 +14,8 @@ import { LinearHeader } from "./linear/linear-header";
 import {
   mapLinearOrganizationToLinearOrganizationTeamsWithWebs,
   mapLinearOrganizationToSyncWithWebsInputVariable,
-  SelectLinearTeamsTable,
-} from "./linear/select-linear-teams-table";
+} from "./linear/linear-organization-teams-with-webs";
+import { SelectLinearTeamsTable } from "./linear/select-linear-teams-table";
 import { useLinearIntegrations } from "./linear/use-linear-integrations";
 
 import type {
@@ -24,7 +24,7 @@ import type {
   SyncLinearIntegrationWithWebsMutationVariables,
 } from "../../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../../shared/layout";
-import type { LinearOrganizationTeamsWithWebs } from "./linear/select-linear-teams-table";
+import type { LinearOrganizationTeamsWithWebs } from "./linear/linear-organization-teams-with-webs";
 import type { LinearIntegration } from "./linear/use-linear-integrations";
 import type { FunctionComponent } from "react";
 

@@ -3,10 +3,10 @@ import { Box } from "@mui/material";
 
 import { FontAwesomeIcon } from "@hashintel/design-system";
 
-import { iconVariantSizes } from "../shared/edit-emoji-icon-button";
+import { iconVariantSizes } from "../shared/icon-variant-sizes";
 import { CanvasIcon } from "../shared/icons/canvas-icon";
 
-import type { SizeVariant } from "../shared/edit-emoji-icon-button";
+import type { SizeVariant } from "../shared/icon-variant-sizes";
 import type { BoxProps } from "@mui/material";
 
 interface PageIconProps {

@@ -1,9 +1,7 @@
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 
-import {
-  createDraftLinkEntity,
-  LinkedEntityListEditor,
-} from "./linked-entity-list-editor";
+import { createDraftLinkEntity } from "./create-draft-link-entity";
+import { LinkedEntityListEditor } from "./linked-entity-list-editor";
 import { LinkedEntitySelector } from "./linked-entity-selector";
 
 import type { LinkedWithCell } from "../linked-with-cell";

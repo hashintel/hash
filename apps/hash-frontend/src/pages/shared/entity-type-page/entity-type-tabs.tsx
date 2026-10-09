@@ -1,32 +1,24 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { TabLink } from "../../../shared/ui/tab-link";
 import { Tabs } from "../../../shared/ui/tabs";
 import { useSlideStack } from "../slide-stack";
+import {
+  defaultTab,
+  EntityTypeTabContext,
+  getTabUrl,
+  useEntityTypeTab,
+} from "./entity-type-tab-context";
 import { useEntityType } from "./shared/entity-type-context";
 
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityTypeTab } from "./entity-type-tab-context";
 import type { PropsWithChildren } from "react";
-
-const defaultTab = "definition";
-
-type EntityTypeTab = "definition" | "entities" | "upload" | "create";
-
-interface EntityTypeTabContextValue {
-  tab: EntityTypeTab;
-  setTab: (tab: EntityTypeTab) => void;
-}
-
-const EntityTypeTabContext = createContext<EntityTypeTabContextValue | null>(
-  null,
-);
 
 export const EntityTypeTabProvider = ({
   children,
@@ -57,24 +49,6 @@ export const EntityTypeTabProvider = ({
       {children}
     </EntityTypeTabContext.Provider>
   );
-};
-
-export const useEntityTypeTab = () => {
-  const context = useContext(EntityTypeTabContext);
-  if (!context) {
-    throw new Error(
-      "useEntityTypeTab must be used within an EntityTypeTabProvider",
-    );
-  }
-  return context;
-};
-
-export const getTabUrl = (tab: string, entityTypeId: VersionedUrl) => {
-  const pathWithoutParams = generateLinkParameters(entityTypeId).href;
-
-  return tab === defaultTab
-    ? pathWithoutParams
-    : `${pathWithoutParams}?tab=${encodeURIComponent(tab)}`;
 };
 
 export const EntityTypeTabs = ({

@@ -1,10 +1,5 @@
 import { toDomPrecision } from "@tldraw/primitives";
-import {
-  defineShape,
-  HTMLContainer,
-  TLBoxTool,
-  TLBoxUtil,
-} from "@tldraw/tldraw";
+import { HTMLContainer, TLBoxUtil } from "@tldraw/tldraw";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
@@ -14,7 +9,7 @@ import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowled
 import { apolloClient } from "../../../../../lib/apollo-client";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../../shared/block-collection-contents";
 import { BlockCollectionContext } from "../../../../shared/block-collection-context";
-import { BlockContextProvider } from "../../../../shared/block-collection/block-context";
+import { BlockContextProvider } from "../../../../shared/block-collection/block-context-provider";
 import { defaultBlockHeight, defaultBlockWidth } from "./shared";
 
 import type { JsonSerializableBlockLoaderProps } from "./shared";
@@ -181,18 +176,4 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
       </HTMLContainer>
     );
   }
-}
-
-// Defines our custom shape, using its type definition and class
-export const BlockShapeDef = defineShape<BlockShape, BlockUtil>({
-  type: "bpBlock",
-  getShapeUtil: () => BlockUtil,
-});
-
-// Defines a custom tool used to draw our shape
-export class BlockTool extends TLBoxTool {
-  static id = "bpBlock";
-  static initial = "idle";
-
-  shapeType = "bpBlock";
 }

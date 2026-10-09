@@ -1,16 +1,10 @@
 import { Box } from "@mui/material";
-import { createContext, useContext, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
+import { EditBarContext } from "./edit-bar-context";
 import { HEADER_HEIGHT } from "./layout/layout-with-header/page-header";
 
 import type { ReactNode } from "react";
-
-const EditBarContext = createContext<{
-  page: HTMLElement;
-  scrollingNode: HTMLElement;
-} | null>(null);
-
-export const useEditBarContext = () => useContext(EditBarContext);
 
 export const EditBarScroller = ({
   children,

@@ -2,7 +2,7 @@ import { Box, Container, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { Button } from "../../../shared/ui/button";
-import { GoogleAuthProvider } from "../../shared/integrations/google/google-auth-context";
+import { GoogleAuthProvider } from "../../shared/integrations/google/google-auth-provider";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { CreateOrEditSheetsSync } from "./google-sheets/create-or-edit-sheets-sync";
 import { useSheetsFlows } from "./google-sheets/use-sheet-integrations";
