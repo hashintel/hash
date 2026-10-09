@@ -21,6 +21,7 @@ import {
   initializeForEachStep,
 } from "./process-flow-workflow/initialize-flow.js";
 import {
+  collectSkippedBranchStep,
   completeForEachStep,
   passOutputsToUnprocessedSteps,
 } from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
@@ -577,6 +578,20 @@ export const processFlowWorkflow = async <
             skippedAt: new Date().toISOString(),
           });
           skippedAny = true;
+
+          const status = collectSkippedBranchStep({
+            flow,
+            flowDefinition,
+            stepId: step.stepId,
+            processedStepIds,
+          });
+
+          if (status.code !== StatusCode.Ok) {
+            processStepErrors[step.stepId] = {
+              code: status.code,
+              message: status.message,
+            };
+          }
         }
       }
     }

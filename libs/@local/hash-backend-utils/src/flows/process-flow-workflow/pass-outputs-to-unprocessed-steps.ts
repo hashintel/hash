@@ -221,7 +221,11 @@ export const completeForEachStep = (params: {
   let collectedValue: Parameters<typeof appendCollectedValue>[0];
 
   for (let index = 0; index < itemCount; index++) {
-    collectedValue = appendCollectedValue(collectedValue, branchValues[index]);
+    const branchValue = branchValues[index];
+
+    if (branchValue !== null) {
+      collectedValue = appendCollectedValue(collectedValue, branchValue);
+    }
   }
 
   forEachStep.collected = {
@@ -234,6 +238,47 @@ export const completeForEachStep = (params: {
     flowDefinition,
     stepId: forEachStep.stepId,
     outputs: [forEachStep.collected],
+    processedStepIds,
+  });
+};
+
+/**
+ * Records that a step in a for-each branch was skipped. If it's the step the for-each step collects from, the
+ * branch contributes nothing, but counts as finished, so that the for-each step can complete.
+ */
+export const collectSkippedBranchStep = (params: {
+  flow: LocalFlowRun;
+  flowDefinition: FlowDefinition;
+  stepId: string;
+  processedStepIds: string[];
+}): Omit<Status<never>, "contents"> => {
+  const { flow, flowDefinition, stepId, processedStepIds } = params;
+
+  const [stepIdWithoutIndex, branchIndex] = stepId.split("~");
+
+  const forEachStep = getAllStepsInFlow(flow).find(
+    (step): step is ForEachStep =>
+      step.kind === "for-each" &&
+      (step.steps?.some((branchStep) => branchStep.stepId === stepId) ?? false),
+  );
+
+  if (
+    !forEachStep ||
+    getStepDefinitionFromFlowDefinition({ step: forEachStep, flowDefinition })
+      .collect.stepId !== stepIdWithoutIndex
+  ) {
+    return { code: StatusCode.Ok };
+  }
+
+  forEachStep.branchValues = {
+    ...forEachStep.branchValues,
+    [Number(branchIndex)]: null,
+  };
+
+  return completeForEachStep({
+    flow,
+    flowDefinition,
+    forEachStep,
     processedStepIds,
   });
 };

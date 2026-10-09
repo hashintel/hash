@@ -535,7 +535,10 @@ export type ForEachStep<
   /** The array the step runs its nested steps for, once it is available. */
   over?: ArrayPayload;
   steps?: FlowStep<ActionDefinitionId>[];
-  /** The value each branch has contributed so far, keyed by its item's index. */
+  /**
+   * The value each branch has contributed so far, keyed by its item's index: `null` for a branch whose collected
+   * step was skipped, which contributes nothing.
+   */
   branchValues?: Record<number, unknown>;
   /** The values collected from every branch, in item order. Set once every branch has contributed. */
   collected?: StepOutput<ArrayPayload>;
