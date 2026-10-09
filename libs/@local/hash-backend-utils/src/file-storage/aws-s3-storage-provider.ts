@@ -14,7 +14,6 @@ import { getSafeContentType } from "../file-storage.js";
 import type {
   FileStorageProvider,
   GetFileEntityStorageKeyParams,
-  GetFlowOutputStorageKeyParams,
   PresignedDownloadByKeyRequest,
   PresignedDownloadRequest,
   PresignedStorageRequest,
@@ -226,19 +225,6 @@ export class AwsS3StorageProvider implements FileStorageProvider {
     filename,
   }: GetFileEntityStorageKeyParams) {
     return `files/${entityId}/${editionIdentifier}/${filename}` as const;
-  }
-
-  /**
-   * Generate a storage key for flow output payloads.
-   * Format: flows/{workflowId}/{runId}/{stepId}/{outputName}.json
-   */
-  getFlowOutputStorageKey({
-    workflowId,
-    runId,
-    stepId,
-    outputName,
-  }: GetFlowOutputStorageKeyParams) {
-    return `flows/${workflowId}/${runId}/${stepId}/${outputName}.json` as const;
   }
 
   /**
