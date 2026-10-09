@@ -1,6 +1,6 @@
 ---
 title: How the editor runs plugins
-description: Plugin hosts, publishing contributions, remounts, statuses, failures, settings storage, and the React Compiler directives.
+description: Plugin hosts, publishing contributions, remounts, statuses, the shown assistant, failures, settings storage, and the React Compiler directives.
 attachTo: ui.plugins
 sidebar_order: 50
 ---
@@ -47,32 +47,46 @@ effect therefore already sees the read-only reason of the same commit.
 
 ## Remounts and re-runs
 
-| Event                                                                  | What happens                                                                 |
-| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| The document changes                                                   | `<Petrinaut>` creates a new core instance, and the whole editor remounts.    |
-| The host toggles `readonly`                                            | A new core instance and plugin editor: the hosts remount, the view does not. |
-| A plugin is re-created by a new definition call, as hot reloading does | That plugin remounts. The same plugin object keeps its host.                 |
-| A setting changes                                                      | The plugin's hook runs again, with a new `api`.                              |
-| Another plugin switches on, off or fails                               | Every hook runs again.                                                       |
-| The host passes a new `plugins` array                                  | Every hook runs again, without remounting.                                   |
-| An edit, a mode switch, or a simulation                                | No hook runs. Plugins see the change through stores and actions.             |
+| Event                                                                  | What happens                                                                         |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| The document changes                                                   | `<Petrinaut>` creates a new core instance, and the whole editor remounts.            |
+| The host toggles `readonly`                                            | A new core instance and plugin editor: the hosts remount, the view does not.         |
+| A plugin is re-created by a new definition call, as hot reloading does | That plugin remounts. The same plugin object keeps its host.                         |
+| A setting changes                                                      | The plugin's hook runs again, with a new `api`.                                      |
+| Another plugin switches on, off or fails                               | Every hook runs again.                                                               |
+| The shown assistant changes                                            | Every hook runs again; `api.assistant.isActive` changes for the plugins it concerns. |
+| The host passes a new `plugins` array                                  | Every hook runs again, without remounting.                                           |
+| An edit, a mode switch, or a simulation                                | No hook runs. Plugins see the change through stores and actions.                     |
 
 ## Statuses
 
-Each plugin passed to the editor is `on`, `off` or `failed`. User settings →
-Plugins lists them in the host's order, each with its switch, and marks a
-failed one **Not running**. Opening a row shows the plugin's description and
-what its manifest declares.
+Each plugin passed to the editor is `on`, `off`, `needs-parent` or `failed`.
+A `needs-parent` plugin
+[extends an assistant](doc:plugins/assistants#extending-an-assistant) whose
+plugin is not running. User settings → Plugins lists the plugins in the host's
+order, each with its switch, and marks a failed one **Not running**. Opening a
+row shows the plugin's description and what its manifest declares.
 
 Switching a plugin off unmounts its host; its contributions and settings rows
 go. Every plugin has a switch. A host cannot yet mark a plugin as required, so
 the user can switch off a plugin the host depends on.
 
+## The shown assistant
+
+`PetrinautPluginsProvider` resolves the shown assistant once per render, from
+the running assistants and the user's stored choice, `aiAssistantId`, by the
+rules in [Choosing the assistant](doc:plugins/assistants#choosing-the-assistant).
+Each host derives `api.assistant.isActive` from it. `PluginAssistantWindow`
+renders the shown assistant's view with its tabs and the tabs of the running
+plugins that extend it. The view's boundary is keyed by the plugin id and the
+net id, so the view remounts for each document.
+
 ## Boundaries and failures
 
 One `PluginBoundary`, Suspense plus an error boundary, wraps each host and
 each contribution. A contribution that suspends renders nothing until it is
-ready. A thrown error renders nothing, is
+ready. A thrown error renders the boundary's fallback, which is nothing except
+for an assistant's view, is
 [reported](doc:plugins/reference#failure-reports) to the host's error tracker,
 and stops only that host or contribution.
 
@@ -97,4 +111,4 @@ plugin's `api.settings`. The rows of a plugin that is off or failed are hidden.
   `hostKey`, so it calls one hook for life.
 - `usePluginApi` opts in with `"use memo"`, because it calls no hook and
   `infer` mode would skip it. Compiled, it returns a new `api` only when the
-  settings snapshot changes.
+  settings snapshot or `assistant.isActive` changes.

@@ -1,14 +1,24 @@
 ---
 title: Assistant plugins
-description: Providing the editor's AI assistant from a plugin, extending another plugin's assistant, and the window an assistant draws.
+description: Providing the editor's AI assistant from a plugin, the window its view draws, tabs and start actions, choosing among assistants, and extending another plugin's assistant.
 attachTo: ui.plugins
-sidebar_order: 20
+sidebar_order: 30
 ---
 
-The editor's AI assistant comes from a plugin. A plugin whose manifest
-declares `assistant: { label }` returns, under `assistant`, a **view**: one
-React component that renders the whole assistant UI and draws the assistant
-window around its transcript. The editor shows one assistant at a time.
+The editor's AI assistant comes from a plugin. This page is for authors of an
+assistant plugin, or of a plugin that adds to another plugin's assistant. It
+builds on [Writing a plugin](doc:plugins/writing-a-plugin); the
+[reference](doc:plugins/reference) lists the manifest key, the contribution and
+the error messages.
+
+![How the editor shows an assistant](@diagrams/assistant-window.svg)
+
+## Providing an assistant
+
+A manifest that declares `assistant: { label }` makes the plugin an assistant.
+Its hook returns, under `assistant`, a **view**: one React component that
+renders the whole assistant UI and draws the assistant window around its
+transcript. The editor shows one assistant at a time.
 
 ```tsx
 import {
@@ -31,27 +41,17 @@ export const echoPlugin = definePetrinautPlugin({
 });
 ```
 
-The demo site's Petrinaut AI and the AI experiments demo render the website's
-[assistant chat](layer:website.plugins.chat) as their view.
-
-![How the editor shows an assistant](@diagrams/assistant-window.svg)
-
-## Providing an assistant
-
-| Manifest                      | `api` gains          | The hook returns under `assistant` |
-| ----------------------------- | -------------------- | ---------------------------------- |
-| `assistant: { label }`        | `assistant.isActive` | `{ view, tabs?, startActions? }`   |
-| `assistant: { extends: def }` | `assistant.isActive` | `{ tabs?, startActions? }`         |
-
 | Member         | Type                                    | Notes                                                                                                                                    |
 | -------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `view`         | `ReactNode \| null`                     | Rendered once per document while this assistant is shown. `null` until ready: the editor then hides the window and every AI entry point. |
 | `tabs`         | `readonly PluginAssistantTab[]`         | Tabs after the chat tab, before the tabs of the plugins extending this assistant.                                                        |
-| `startActions` | `readonly PluginAssistantStartAction[]` | Ways to start besides typing. The empty-net prompt offers the first one.                                                                 |
+| `startActions` | `readonly PluginAssistantStartAction[]` | Ways to start besides typing.                                                                                                            |
 
-`api.assistant.isActive` is `true` while the editor shows this plugin's
-assistant, or the one it extends. A change of `isActive` runs the hook again,
-so a plugin can skip work while its assistant is not shown.
+Read `api.assistant.isActive` to skip work while the assistant is not shown.
+The hook runs again when it changes.
+
+The demo site's Petrinaut AI and the AI experiments demo render the website's
+[assistant chat](layer:website.plugins.chat) as their view.
 
 ## The window
 
@@ -72,7 +72,7 @@ The view draws the window and puts its transcript inside:
 | `busy`           | A turn that ends while another tab is shown marks the chat tab until the chat is shown again.                             |
 | `appearance`     | `"default"` or `"pill"`: the tab strip's look.                                                                            |
 | `headerActions`  | Buttons in the header, after Float or Dock and before Close.                                                              |
-| `footer`         | Shown under every tab, e.g. the composer.                                                                                 |
+| `footer`         | Shown under every tab, such as the composer.                                                                              |
 | `compact`        | `true` shrinks the window to its footer at the editor's bottom right; `"overflow"` lets the footer draw above it.         |
 | `focusTargetRef` | Receives focus when the window opens, unless it is disabled or the window is compact.                                     |
 | `focusRequest`   | Grows to move focus into the window again.                                                                                |
@@ -80,14 +80,14 @@ The view draws the window and puts its transcript inside:
 
 `usePetrinautAssistantWindow()`, called in the view or a tab, returns
 `isOpen`, `isChatTabShown`, `compact`, `setCompact`, `close`, `startRequest`
-and `consumeStartRequest`. The editor keeps the window's placement, width,
-shown tab and start request above the view, so they survive the view
-remounting for another document.
+and `consumeStartRequest`. Outside an editor or a preview it describes an open
+window without tabs whose controls do nothing. The editor keeps the window's
+placement, width, shown tab and start request above the view, so they survive
+the view remounting for another document.
 
-The view draws the window, rather than the editor drawing it around the view,
-because per-turn state (busy, compact, focus, footer, header actions) then
-flows down as props. A window drawn around the view would need those values
-passed up and synced through effects.
+The view draws the window so that per-turn state (busy, compact, focus,
+footer, header actions) flows down as props. A window the editor drew around
+the view would need those values passed up and synced through effects.
 
 `PetrinautAssistantWindowPreview` hosts a view outside an editor, with tabs,
 for stories and tests. Its `state` prop replaces the open state, compact state
@@ -122,7 +122,7 @@ prompt there gives `{ text }`. The view reads the request from
 
 ## Choosing the assistant
 
-- The default is the first running assistant in the list.
+- The default is the first running assistant in the `plugins` array.
 - With two or more running, the user picks one under User settings → General →
   AI assistant (stored as `aiAssistantId`), or with the palette commands
   `petrinaut.ai-assistant.use:<id>` ("Use the `<label>` assistant"), one for
@@ -138,7 +138,7 @@ assistant: { extends: createBrunchPlugin }
 
 - The plugin runs only while the plugin it extends runs. When that plugin is
   off, failed or not passed, the extension stays off and User settings shows
-  "Needs Brunch".
+  "Needs" and that plugin's name, as in "Needs Brunch".
 - It returns `assistant: { tabs?, startActions? }`, added after the extended
   assistant's own while that assistant is shown.
 - Matching is by `manifest.id`, so a hot-reloaded definition still matches.
@@ -147,14 +147,12 @@ assistant: { extends: createBrunchPlugin }
 
 ## Failures
 
-A view that throws is replaced by a window saying the assistant stopped
-working, and is reported under the plugin's id with place `assistant`. A tab
-that throws renders nothing and is reported with place `assistant-tab`. A
-plugin whose hook throws leaves the assistant resolution: the plugins that
-extend it stop, and the editor shows the next running assistant.
-
-A tab whose id is `"chat"` or another tab's is left out, and reported with
-place `assistant-tab` under the id of the plugin that returned it:
-
-- `Petrinaut plugin "<id>" returned an assistant tab with id "<tab>", which is the chat tab's id. Choose another id.`
-- `Petrinaut plugin "<id>" returned an assistant tab with id "<tab>", which another tab already has. Choose another id.`
+- A view that throws is replaced by a window saying the assistant stopped
+  working, and is reported under the plugin's id with place `assistant`.
+- A tab that throws renders nothing and is reported with place
+  `assistant-tab`.
+- A tab whose id is `"chat"` or another tab's is left out, and reported with
+  place `assistant-tab` under the id of the plugin that returned it. The
+  reference lists [both messages](doc:plugins/reference#error-messages).
+- A plugin whose hook throws leaves the assistant resolution: the plugins that
+  extend it stop, and the editor shows the next running assistant.
