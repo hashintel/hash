@@ -1,9 +1,8 @@
-import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import {
   appendCollectedValue,
   getArrayPayloadLength,
 } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
-import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { StatusCode } from "@local/status";
 
 import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
@@ -161,23 +160,17 @@ export const passOutputsToUnprocessedSteps = (params: {
 };
 
 /**
- * The kind of the values a for-each step collects: the declared kind of the output it collects.
+ * The kind of the values a for-each step collects. An output that takes its kind from an input (`kindFrom`) has the
+ * kind connected to that input.
  */
 const getCollectedPayloadKind = (
+  flowDefinition: FlowDefinition,
   forEachStepDefinition: ForEachStepDefinition,
-): PayloadKind | undefined => {
-  const collectedStepDefinition = getAllStepDefinitionsInFlowDefinition(
-    forEachStepDefinition,
-  ).find(({ stepId }) => stepId === forEachStepDefinition.collect.stepId);
-
-  return collectedStepDefinition?.kind === "action"
-    ? actionDefinitions[
-        collectedStepDefinition.actionDefinitionId
-      ].outputs.find(
-        ({ name }) => name === forEachStepDefinition.collect.outputName,
-      )?.payloadKind
-    : undefined;
-};
+): PayloadKind | undefined =>
+  createStepShapeResolver(flowDefinition).getStepOutputShape(
+    forEachStepDefinition.collect.stepId,
+    forEachStepDefinition.collect.outputName,
+  )?.payloadKind;
 
 /**
  * Once every branch of a for-each step has contributed its value, sets the step's collected output and passes
@@ -209,7 +202,10 @@ export const completeForEachStep = (params: {
     flowDefinition,
   });
 
-  const payloadKind = getCollectedPayloadKind(forEachStepDefinition);
+  const payloadKind = getCollectedPayloadKind(
+    flowDefinition,
+    forEachStepDefinition,
+  );
 
   if (!payloadKind) {
     return {

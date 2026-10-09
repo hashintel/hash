@@ -1,12 +1,17 @@
 import {
-  actionDefinitions,
+  actionDefinitions as defaultActionDefinitions,
   aiActionDefinitions,
+  getKindSources,
 } from "./action-definitions.js";
 import { type ConnectionSource, canConnect } from "./can-connect.js";
 import {
   flowDefinitionSchema,
   payloadKindJsonTypes,
 } from "./flow-definition-schema.js";
+import {
+  type ActionDefinitions,
+  createStepShapeResolver,
+} from "./step-shapes.js";
 
 import type {
   ActionDefinition,
@@ -41,7 +46,11 @@ export type FlowDefinitionDiagnosticCode =
   | "nestedForEach"
   | "invalidCollect"
   | "cycle"
-  | "unusedFlowInput";
+  | "unusedFlowInput"
+  /** An input or output that takes its kind from another input (`kindFrom`), when that input isn't connected. */
+  | "unresolvedKind"
+  /** An input that takes its kind from another input, given a value of a different kind. */
+  | "kindMismatch";
 
 export type FlowDefinitionDiagnostic = {
   severity: "error" | "warning";
@@ -120,7 +129,14 @@ const isOfJsonType = {
  */
 export const validateFlowDefinition = (
   input: unknown,
+  options: {
+    /** The actions steps can run. Defaults to every action; tests pass their own. */
+    actionDefinitions?: ActionDefinitions;
+  } = {},
 ): FlowDefinitionValidationResult => {
+  const actionDefinitions: ActionDefinitions =
+    options.actionDefinitions ?? defaultActionDefinitions;
+
   const parsed = flowDefinitionSchema.safeParse(input);
 
   if (!parsed.success) {
@@ -221,8 +237,10 @@ export const validateFlowDefinition = (
     actionDefinitionId: string,
   ): ActionDefinition<FlowActionDefinitionId> | undefined =>
     Object.hasOwn(actionDefinitions, actionDefinitionId)
-      ? actionDefinitions[actionDefinitionId as FlowActionDefinitionId]
+      ? actionDefinitions[actionDefinitionId]
       : undefined;
+
+  const shapes = createStepShapeResolver(flowDefinition, actionDefinitions);
 
   const isInScope = (producerScope: string[], consumerScope: string[]) =>
     producerScope.length <= consumerScope.length &&
@@ -230,44 +248,13 @@ export const validateFlowDefinition = (
       (forEachStepId, index) => consumerScope[index] === forEachStepId,
     );
 
-  const itemShapes = new Map<string, ConnectionSource | null>();
-
-  /**
-   * The shape of the value produced by a step output, if it exists. Reports nothing: callers report
-   * `unknownStepOutput` in context.
-   */
-  const getStepOutputShape = (
-    step: StepDefinition<string>,
-    outputName: string,
-  ): ConnectionSource | null => {
-    if (step.kind === "action") {
-      const output = getActionDefinition(step.actionDefinitionId)?.outputs.find(
-        ({ name }) => name === outputName,
-      );
-
-      return output
-        ? {
-            payloadKind: output.payloadKind,
-            array: output.array,
-            required: output.required,
-          }
-        : null;
-    }
-
-    if (outputName !== step.collect.as) {
-      return null;
-    }
-
-    const collected = stepsById.get(step.collect.stepId);
-
-    const collectedShape = collected
-      ? getStepOutputShape(collected.step, step.collect.outputName)
-      : null;
-
-    return collectedShape
-      ? { payloadKind: collectedShape.payloadKind, array: true, required: true }
-      : null;
-  };
+  /** Whether a step has an output of this name, whatever its shape. */
+  const hasStepOutput = (step: StepDefinition<string>, outputName: string) =>
+    step.kind === "action"
+      ? (getActionDefinition(step.actionDefinitionId)?.outputs.some(
+          ({ name }) => name === outputName,
+        ) ?? false)
+      : outputName === step.collect.as;
 
   const resolveStepOutput = ({
     stepId,
@@ -305,9 +292,7 @@ export const validateFlowDefinition = (
       return null;
     }
 
-    const shape = getStepOutputShape(producer.step, outputName);
-
-    if (!shape) {
+    if (!hasStepOutput(producer.step, outputName)) {
       report(
         "unknownStepOutput",
         `Step "${stepId}" has no output "${outputName}"`,
@@ -320,7 +305,8 @@ export const validateFlowDefinition = (
       addDependency(consumer.stepId, stepId);
     }
 
-    return shape;
+    /* `null` when the output's kind can't be resolved, which the producing step reports. */
+    return shapes.getStepOutputShape(stepId, outputName);
   };
 
   /**
@@ -380,7 +366,7 @@ export const validateFlowDefinition = (
           return null;
         }
 
-        return itemShapes.get(forEachStepId) ?? null;
+        return shapes.getSourceShape(source, consumer.scope);
       }
 
       case "constant": {
@@ -457,13 +443,6 @@ export const validateFlowDefinition = (
       );
     }
 
-    itemShapes.set(
-      step.stepId,
-      parallelizeOnShape
-        ? { ...parallelizeOnShape, array: false, required: true }
-        : null,
-    );
-
     for (const child of step.steps) {
       addDependency(step.stepId, child.stepId);
     }
@@ -480,18 +459,21 @@ export const validateFlowDefinition = (
       return;
     }
 
-    const collectedShape = getStepOutputShape(
-      collected.step,
-      step.collect.outputName,
-    );
-
-    if (!collectedShape) {
+    if (!hasStepOutput(collected.step, step.collect.outputName)) {
       report(
         "unknownStepOutput",
         `Step "${step.collect.stepId}" has no output "${step.collect.outputName}"`,
         [...collectPath, "outputName"],
       );
-    } else if (!collectedShape.required) {
+      return;
+    }
+
+    const collectedShape = shapes.getStepOutputShape(
+      step.collect.stepId,
+      step.collect.outputName,
+    );
+
+    if (collectedShape && !collectedShape.required) {
       report(
         "invalidCollect",
         "A for-each step can only collect an output that is always present",
@@ -560,15 +542,61 @@ export const validateFlowDefinition = (
         continue;
       }
 
+      let acceptedKinds: readonly PayloadKind[];
+
+      if ("oneOfPayloadKinds" in target) {
+        acceptedKinds = target.oneOfPayloadKinds;
+      } else {
+        /* It takes its kind from another input: with that kind unknown, the problem is reported below. */
+        const kind = shapes.getInputKind(step.stepId, target.kindFrom);
+
+        if (!kind) {
+          continue;
+        }
+
+        if (sourceShape.payloadKind !== kind) {
+          report(
+            "kindMismatch",
+            `Input "${inputName}" takes the kind of input "${target.kindFrom}" (${kind}), but is given ${sourceShape.payloadKind}`,
+            path,
+          );
+          continue;
+        }
+
+        acceptedKinds = [kind];
+      }
+
       const check = canConnect({
         source: sourceShape,
-        target,
+        target: {
+          oneOfPayloadKinds: acceptedKinds,
+          array: target.array,
+          required: target.required,
+        },
         wrap: wrapOf(source),
         skipWhenMissing: skipsWhenMissing(source),
       });
 
       if (!check.ok) {
         report("incompatibleConnection", check.message, path);
+      }
+    }
+
+    /*
+     * Inputs and outputs that take their kind from an input the step doesn't connect. An unconnected required input
+     * is already reported as missing.
+     */
+    for (const [sourceName, { input: sourceInput, derived }] of getKindSources(
+      actionDefinition,
+    )) {
+      if (!(sourceName in step.inputs) && !isMandatoryInput(sourceInput)) {
+        report(
+          "unresolvedKind",
+          `The ${derived.map(({ name, of }) => `${of} "${name}"`).join(" and ")} of action "${step.actionDefinitionId}" ${
+            derived.length === 1 ? "takes" : "take"
+          } the kind of input "${sourceName}", which isn't connected`,
+          [...entry.path, "inputs"],
+        );
       }
     }
 

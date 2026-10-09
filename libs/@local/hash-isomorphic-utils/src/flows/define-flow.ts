@@ -1,6 +1,7 @@
 import { assertValidFlowDefinition } from "./validate-flow-definition.js";
 
 import type {
+  AcceptedKinds,
   FlowDefinitionWithId,
   FlowInputDefinition,
   FlowOutputDefinition,
@@ -18,22 +19,37 @@ import type { EntityUuid } from "@blockprotocol/type-system";
  */
 type ActionDefinitionShape = {
   readonly actionDefinitionId: string;
-  readonly inputs: readonly {
+  readonly inputs: readonly ({
     readonly name: string;
-    readonly oneOfPayloadKinds: readonly PayloadKind[];
     readonly array: boolean;
     readonly required: boolean;
     readonly default?: unknown;
-  }[];
-  readonly outputs: readonly {
+  } & (
+    | { readonly oneOfPayloadKinds: readonly PayloadKind[] }
+    /** Its kind is the kind connected to another input (see `KindFrom`). */
+    | { readonly kindFrom: string }
+  ))[];
+  readonly outputs: readonly ({
     readonly name: string;
-    readonly payloadKind: PayloadKind;
     readonly array: boolean;
     readonly required: boolean;
-  }[];
+  } & (
+    | { readonly payloadKind: PayloadKind }
+    /** Its kind is the kind connected to an input (see `KindFrom`). */
+    | { readonly kindFrom: string }
+  ))[];
 };
 
-type InputDefinitionShape = ActionDefinitionShape["inputs"][number];
+/** An input that lists the kinds it accepts. */
+type InputDefinitionShape = {
+  readonly name: string;
+  readonly oneOfPayloadKinds: readonly PayloadKind[];
+  readonly array: boolean;
+  readonly required: boolean;
+  readonly default?: unknown;
+};
+
+type ActionInputShape = ActionDefinitionShape["inputs"][number];
 
 declare const refShape: unique symbol;
 
@@ -79,44 +95,91 @@ export type InputAccepts<I extends InputDefinitionShape> = Ref<
   I["required"] extends true ? true : boolean
 >;
 
-type IsMandatory<I extends InputDefinitionShape> = I["required"] extends true
+type IsMandatory<I extends ActionInputShape> = I["required"] extends true
   ? I extends { readonly default: unknown }
     ? false
     : true
   : false;
 
+type InputAcceptsInAction<
+  D extends ActionDefinitionShape,
+  I extends ActionInputShape,
+> = Ref<
+  AcceptedKinds<D["inputs"][number], I>,
+  I["array"],
+  I["required"] extends true ? true : boolean
+>;
+
 export type StepInputs<D extends ActionDefinitionShape> = {
   [I in D["inputs"][number] as IsMandatory<I> extends true
     ? I["name"]
-    : never]: InputAccepts<I>;
+    : never]: InputAcceptsInAction<D, I>;
 } & {
   [I in D["inputs"][number] as IsMandatory<I> extends true
     ? never
-    : I["name"]]?: InputAccepts<I>;
+    : I["name"]]?: InputAcceptsInAction<D, I>;
 };
 
-export type StepOutputs<D extends ActionDefinitionShape> = {
-  [O in D["outputs"][number] as O["name"]]: Ref<
-    O["payloadKind"],
-    O["array"],
-    O["required"]
-  >;
+/** The kind of a ref, or `never` if there's no ref. */
+type RefKind<R> = R extends Ref<infer K, boolean, boolean> ? K : never;
+
+/**
+ * Narrows each input that takes its kind from another (`kindFrom`) to the kind connected to that input.
+ */
+type DerivedKindInputs<D extends ActionDefinitionShape, In> = {
+  [I in D["inputs"][number] as I extends { readonly kindFrom: infer S }
+    ? S extends keyof In
+      ? I["name"]
+      : never
+    : never]?: I extends { readonly kindFrom: infer S extends keyof In }
+    ? Ref<
+        RefKind<In[S]>,
+        I["array"],
+        I["required"] extends true ? true : boolean
+      >
+    : never;
 };
 
-type StepOptions<D extends ActionDefinitionShape> = {
-  description: string;
-  inputs: StepInputs<D>;
-  retryCount?: number;
+/** Rejects inputs the action doesn't have. */
+type NoUnknownInputs<D extends ActionDefinitionShape, In> = {
+  [N in Exclude<keyof In, D["inputs"][number]["name"]>]: never;
+};
+
+/**
+ * Refs to a step's outputs. An output that takes its kind from an input (`kindFrom`) has the kind connected to it.
+ */
+export type StepOutputs<D extends ActionDefinitionShape, In = unknown> = {
+  [O in D["outputs"][number] as O["name"]]: O extends {
+    readonly payloadKind: infer K extends PayloadKind;
+  }
+    ? Ref<K, O["array"], O["required"]>
+    : O extends { readonly kindFrom: infer S }
+      ? Ref<
+          S extends keyof In ? RefKind<In[S]> : never,
+          O["array"],
+          O["required"]
+        >
+      : never;
 };
 
 /**
  * Adds an action step, returning refs to its outputs.
+ *
+ * `In` is the refs given as inputs: an action whose output (or input) takes its kind from an input (`kindFrom`) takes its
+ * kind from the ref connected to that input.
  */
-export type AddStep = <D extends ActionDefinitionShape>(
+export type AddStep = <D extends ActionDefinitionShape, In>(
   id: string,
   action: D,
-  options: StepOptions<D>,
-) => { outputs: StepOutputs<D> };
+  options: {
+    description: string;
+    inputs: In &
+      StepInputs<D> &
+      DerivedKindInputs<D, In> &
+      NoUnknownInputs<D, In>;
+    retryCount?: number;
+  },
+) => { outputs: StepOutputs<D, In> };
 
 type AddForEach = <K extends PayloadKind, CollectedKind extends PayloadKind>(
   id: string,

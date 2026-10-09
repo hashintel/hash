@@ -113,6 +113,31 @@ export type PayloadKindValues = {
 
 export type PayloadKind = keyof PayloadKindValues;
 
+const payloadKindsRecord: Record<PayloadKind, true> = {
+  ActorType: true,
+  Boolean: true,
+  Date: true,
+  EntityId: true,
+  FailedEntityProposal: true,
+  FormattedText: true,
+  GoogleAccountId: true,
+  GoogleSheet: true,
+  Number: true,
+  PersistedEntityMetadata: true,
+  ProposedEntity: true,
+  ProposedEntityWithResolvedLinks: true,
+  Text: true,
+  VersionedUrl: true,
+  WebPage: true,
+  WebSearchResult: true,
+};
+
+/**
+ * Every payload kind, for an action input that accepts any of them (e.g. the items of a `filter` action).
+ * Payload kinds are a known union: a new kind is added to `PayloadKindValues`, and so joins this list.
+ */
+export const allPayloadKinds = Object.keys(payloadKindsRecord) as PayloadKind[];
+
 /**
  * Payload kinds whose values are always stored in S3, whether singular or an array, due to their potential size.
  */
@@ -310,28 +335,77 @@ export type ResolvedArrayPayload = {
 export type ResolvedPayload = ResolvedSingularPayload | ResolvedArrayPayload;
 
 /**
+ * A payload of one of the given kinds, keeping its kind: e.g. the items given to a `filter` action.
+ */
+export type PayloadOfKind<K extends PayloadKind, A extends boolean> = Extract<
+  A extends true ? ArrayPayload : SingularPayload,
+  { kind: K }
+>;
+
+/**
+ * A resolved payload of one of the given kinds, keeping its kind.
+ */
+export type ResolvedPayloadOfKind<
+  K extends PayloadKind,
+  A extends boolean,
+> = Extract<
+  A extends true ? ResolvedArrayPayload : ResolvedSingularPayload,
+  { kind: K }
+>;
+
+/**
  * Step Definition
  */
 
+/**
+ * An action input or output with a derived kind: the kind connected to another of the action's inputs, so that e.g. a
+ * `filter` action returns an array of whatever kind it is given. It names an input of the same action that lists
+ * the kinds it accepts. `array` and `required` are its own: kinds don't nest.
+ */
+export type KindFrom = {
+  kindFrom: string;
+};
+
+/**
+ * The kinds an action input accepts: its own, or those of the input it takes its kind from. `Inputs` is the union
+ * of the action's input definitions.
+ */
+export type AcceptedKinds<Inputs, Input> = Input extends {
+  readonly oneOfPayloadKinds: readonly (infer K extends PayloadKind)[];
+}
+  ? K
+  : Input extends { readonly kindFrom: infer S }
+    ? Extract<Inputs, { readonly name: S }> extends {
+        readonly oneOfPayloadKinds: readonly (infer K extends PayloadKind)[];
+      }
+      ? K
+      : never
+    : never;
+
+/**
+ * An action's input: the kinds it accepts, or the kind connected to another input (see `KindFrom`).
+ */
 export type InputDefinition = {
   name: string;
   description?: string;
-  oneOfPayloadKinds: PayloadKind[];
   array: boolean;
   required: boolean;
   default?: Payload;
-};
+} & ({ oneOfPayloadKinds: PayloadKind[] } | KindFrom);
 
+/**
+ * An action's output: a fixed kind, or the kind connected to one of its inputs (see `KindFrom`). A flow's outputs
+ * are `FlowOutputDefinition`s.
+ */
 export type OutputDefinition<
   A extends boolean = boolean,
   K extends PayloadKind = PayloadKind,
 > = {
   name: string;
   description?: string;
-  payloadKind: K;
   array: A;
   required: boolean;
-};
+} & ({ payloadKind: K } | KindFrom);
 
 export type ActionDefinition<
   ActionDefinitionId extends FlowActionDefinitionId,

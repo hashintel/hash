@@ -1,9 +1,12 @@
 import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
+  AcceptedKinds,
   ActionDefinition,
   DeepReadOnly,
   FlowActionDefinitionId,
+  InputDefinition,
   PayloadKind,
+  PayloadOfKind,
   PayloadValue,
   StepInput,
 } from "./types.js";
@@ -1008,13 +1011,33 @@ export type InputNameForFlowAction<T extends FlowActionDefinitionId> =
 export type OutputNameForFlowAction<T extends FlowActionDefinitionId> =
   OutputDefinitionForFlowAction<T>["name"];
 
+/**
+ * The definitions of an action's inputs and outputs that take their kind from one of its inputs (`kindFrom`).
+ */
+type DerivedKindDefinitionForFlowAction<T extends FlowActionDefinitionId> =
+  Extract<
+    InputDefinitionForFlowAction<T> | OutputDefinitionForFlowAction<T>,
+    { kindFrom: string }
+  >;
+
+/**
+ * The inputs an action reads as payloads, which keep their kind, rather than as bare values: inputs that
+ * another input or output takes its kind from, and inputs that take their kind from another. The action only learns their kind when it runs.
+ */
+type PayloadInputNameForFlowAction<T extends FlowActionDefinitionId> =
+  | DerivedKindDefinitionForFlowAction<T>["kindFrom"]
+  | Extract<InputDefinitionForFlowAction<T>, { kindFrom: string }>["name"];
+
+/**
+ * The kinds an input accepts: its own, or those of the input it takes its kind from.
+ */
 type InputPayloadKindForFlowAction<
   T extends FlowActionDefinitionId,
-  N extends InputNameForFlowAction<T>,
-> = Extract<
+  N extends string,
+> = AcceptedKinds<
   InputDefinitionForFlowAction<T>,
-  { name: N }
->["oneOfPayloadKinds"][number];
+  Extract<InputDefinitionForFlowAction<T>, { name: N }>
+>;
 
 type FlowActionInputPayloadType<
   T extends FlowActionDefinitionId,
@@ -1025,29 +1048,106 @@ type FlowActionInputPayloadType<
     required: infer R extends boolean;
   }
     ?
-        | PayloadValue<InputPayloadKindForFlowAction<T, N>, A>
+        | (N extends PayloadInputNameForFlowAction<T>
+            ? PayloadOfKind<InputPayloadKindForFlowAction<T, N>, A>
+            : PayloadValue<InputPayloadKindForFlowAction<T, N>, A>)
         | (R extends true ? never : undefined)
     : never;
+
+/**
+ * An input of an action that other inputs or outputs take their kind from (`kindFrom`), with those inputs and
+ * outputs.
+ */
+export type KindSource = {
+  input: Extract<InputDefinition, { oneOfPayloadKinds: PayloadKind[] }>;
+  derived: { name: string; of: "input" | "output" }[];
+};
+
+/**
+ * The inputs of an action that other inputs or outputs take their kind from, by name. Throws if a `kindFrom` names
+ * an input the action doesn't have, or one that takes its own kind from another.
+ */
+export const getKindSources = (
+  actionDefinition: Pick<
+    ActionDefinition<FlowActionDefinitionId>,
+    "actionDefinitionId" | "inputs" | "outputs"
+  >,
+): Map<string, KindSource> => {
+  const kindSources = new Map<string, KindSource>();
+
+  for (const { definition, of } of [
+    ...actionDefinition.inputs.map((input) => ({
+      definition: input,
+      of: "input" as const,
+    })),
+    ...actionDefinition.outputs.map((output) => ({
+      definition: output,
+      of: "output" as const,
+    })),
+  ]) {
+    if (!("kindFrom" in definition)) {
+      continue;
+    }
+
+    const input = actionDefinition.inputs.find(
+      ({ name }) => name === definition.kindFrom,
+    );
+
+    if (!input || !("oneOfPayloadKinds" in input)) {
+      throw new Error(
+        `The ${of} "${definition.name}" of action "${actionDefinition.actionDefinitionId}" takes its kind from input "${definition.kindFrom}", which the action doesn't have, or which takes its own kind from another`,
+      );
+    }
+
+    const kindSource = kindSources.get(input.name) ?? { input, derived: [] };
+
+    kindSource.derived.push({ name: definition.name, of });
+    kindSources.set(input.name, kindSource);
+  }
+
+  return kindSources;
+};
+
+/**
+ * The inputs an action reads as payloads, which keep their kind, rather than as bare values: inputs that another
+ * input or output takes its kind from (`kindFrom`), and inputs that take their kind from another.
+ */
+export const getPayloadInputNames = (
+  actionDefinition: Parameters<typeof getKindSources>[0],
+): Set<string> =>
+  new Set(
+    [...getKindSources(actionDefinition)].flatMap(
+      ([sourceName, { derived }]) => [
+        sourceName,
+        ...derived.flatMap(({ name, of }) => (of === "input" ? [name] : [])),
+      ],
+    ),
+  );
 
 type SimplifiedFlowActionInputsObject<T extends FlowActionDefinitionId> = {
   [N in InputNameForFlowAction<T>]: FlowActionInputPayloadType<T, N>;
 };
 
+/**
+ * An action's inputs by name. An input is its bare value, except where another input or output takes its kind from it (`kindFrom`),
+ * or it takes its kind from another: then it is the payload, which keeps its kind.
+ */
 export const getSimplifiedFlowActionInputs = <
   T extends FlowActionDefinitionId,
 >(params: {
   inputs: StepInput[];
   actionType: T;
 }): SimplifiedFlowActionInputsObject<T> => {
-  const { inputs } = params;
+  const { inputs, actionType } = params;
+
+  const payloadInputNames = getPayloadInputNames(actionDefinitions[actionType]);
 
   return inputs.reduce((acc, input) => {
     const inputName = input.inputName as InputNameForFlowAction<T>;
 
-    acc[inputName] = input.payload.value as FlowActionInputPayloadType<
-      T,
-      typeof inputName
-    >;
+    acc[inputName] = (
+      payloadInputNames.has(inputName) ? input.payload : input.payload.value
+    ) as FlowActionInputPayloadType<T, typeof inputName>;
 
     return acc;
   }, {} as SimplifiedFlowActionInputsObject<T>);
@@ -1064,26 +1164,32 @@ export const getSimplifiedFlowActionInputs = <
  * Uses a distributive conditional type to ensure that when OutputDef is a union,
  * each member is processed individually, creating a proper discriminated union
  * where outputName and payload are correctly paired.
+ *
+ * An output that takes its kind from an input (`kindFrom`) is a payload of any kind that input accepts: which one is
+ * only known when the action runs, and the engine checks it matches the input's.
  */
 type ActionStepOutput<
-  OutputDef extends {
-    name: string;
-    payloadKind: PayloadKind;
-    array: boolean;
-  },
+  T extends FlowActionDefinitionId,
+  OutputDef extends OutputDefinitionForFlowAction<T>,
 > = OutputDef extends {
   name: infer N extends string;
-  payloadKind: infer K extends PayloadKind;
   array: infer A extends boolean;
 }
-  ? {
-      outputName: N;
-      payload: { kind: K; value: PayloadValue<K, A> };
-    }
+  ? OutputDef extends { payloadKind: infer K extends PayloadKind }
+    ? {
+        outputName: N;
+        payload: { kind: K; value: PayloadValue<K, A> };
+      }
+    : OutputDef extends { kindFrom: infer S extends string }
+      ? {
+          outputName: N;
+          payload: PayloadOfKind<InputPayloadKindForFlowAction<T, S>, A>;
+        }
+      : never
   : never;
 
 /**
  * Get the union of all typed StepOutput types for a given flow action.
  */
 export type FlowActionStepOutput<T extends FlowActionDefinitionId> =
-  ActionStepOutput<OutputDefinitionForFlowAction<T>>;
+  ActionStepOutput<T, OutputDefinitionForFlowAction<T>>;

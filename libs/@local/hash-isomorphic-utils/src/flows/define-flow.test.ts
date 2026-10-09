@@ -8,12 +8,14 @@ import {
   canConnect,
 } from "./can-connect.js";
 import {
+  type AddStep,
   constant,
   defineFlow,
   flowInput,
   type InputAccepts,
   type Ref,
 } from "./define-flow.js";
+import { allPayloadKinds } from "./types.js";
 
 /**
  * One table of connections, checked against both halves of the connection rule: `canConnect` at runtime,
@@ -500,5 +502,93 @@ describe("defineFlow", () => {
         },
       ),
     ).toThrow(/uses the item of a forEach step it is not directly inside/);
+  });
+});
+
+describe("steps of actions with derived kinds", () => {
+  /*
+   * `defineFlow` validates a flow against the codebase's action definitions, so steps of these test actions are
+   * checked by the compiler rather than run.
+   */
+  const filterAction = {
+    actionDefinitionId: "filter",
+    inputs: [
+      {
+        name: "items",
+        oneOfPayloadKinds: allPayloadKinds,
+        array: true,
+        required: true,
+      },
+    ],
+    outputs: [
+      { name: "matches", kindFrom: "items", array: true, required: true },
+    ],
+  } as const;
+
+  const findAction = {
+    actionDefinitionId: "find",
+    inputs: [
+      {
+        name: "items",
+        oneOfPayloadKinds: allPayloadKinds,
+        array: true,
+        required: true,
+      },
+      { name: "fallback", kindFrom: "items", array: false, required: false },
+    ],
+    outputs: [
+      { name: "match", kindFrom: "items", array: false, required: false },
+    ],
+  } as const;
+
+  const typeChecks = (
+    step: AddStep,
+    entities: Ref<"PersistedEntityMetadata", true, true>,
+    entity: Ref<"PersistedEntityMetadata", false, true>,
+    text: Ref<"Text", false, true>,
+  ) => {
+    const filtered = step("filter", filterAction, {
+      description: "",
+      inputs: { items: entities },
+    });
+
+    const matchesHasItemsKind: Equals<
+      typeof filtered.outputs.matches,
+      Ref<"PersistedEntityMetadata", true, true>
+    > = true;
+
+    const found = step("find", findAction, {
+      description: "",
+      inputs: { items: filtered.outputs.matches, fallback: entity },
+    });
+
+    const matchHasItemsKind: Equals<
+      typeof found.outputs.match,
+      Ref<"PersistedEntityMetadata", false, false>
+    > = true;
+
+    step("mismatchedFallback", findAction, {
+      description: "",
+      // @ts-expect-error -- `fallback` must have the kind of `items`
+      inputs: { items: entities, fallback: text },
+    });
+
+    step("unknownInput", filterAction, {
+      description: "",
+      // @ts-expect-error -- `item` is not an input of filter
+      inputs: { items: entities, item: entity },
+    });
+
+    step("missingItems", filterAction, {
+      description: "",
+      // @ts-expect-error -- missing the required `items` input
+      inputs: {},
+    });
+
+    return [matchesHasItemsKind, matchHasItemsKind, found];
+  };
+
+  it("type outputs and inputs with derived kinds by the kind connected", () => {
+    expect(typeChecks).toBeDefined();
   });
 });

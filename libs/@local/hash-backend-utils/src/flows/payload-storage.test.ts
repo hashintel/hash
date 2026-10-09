@@ -6,7 +6,11 @@ import {
   getArrayPayloadLength,
 } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 
-import { resolvePayloadValue, storePayload } from "./payload-storage.js";
+import {
+  resolvePayloadValue,
+  prepareOutputPayload,
+  storePayload,
+} from "./payload-storage.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
 import type { EntityId } from "@blockprotocol/type-system";
@@ -367,5 +371,60 @@ describe("stored arrays", () => {
     ).rejects.toThrow("is not an output of workflow another-workflow");
 
     expect(getDownloadCount()).toBe(0);
+  });
+});
+
+describe("payloads whose kind is only known when an action runs", () => {
+  const output = (
+    storageProvider: FileStorageProvider,
+    outputName: string,
+  ) => ({
+    storageProvider,
+    workflowId,
+    runId: `run-${Math.random()}`,
+    stepId: "generic",
+    outputName,
+  });
+
+  it("stores an output only if its kind requires it", async () => {
+    const { storageProvider } = createMemoryStorageProvider();
+
+    const persisted = {
+      entityId: "web~entity-0" as EntityId,
+      operation: "create",
+    } as const;
+
+    const [proposed, persistedArray, persistedSingle, texts] =
+      await Promise.all([
+        prepareOutputPayload({
+          ...output(storageProvider, "proposed"),
+          payload: { kind: "ProposedEntity", value: entity(0) },
+        }),
+        prepareOutputPayload({
+          ...output(storageProvider, "persistedArray"),
+          payload: { kind: "PersistedEntityMetadata", value: [persisted] },
+        }),
+        prepareOutputPayload({
+          ...output(storageProvider, "persistedSingle"),
+          payload: { kind: "PersistedEntityMetadata", value: persisted },
+        }),
+        prepareOutputPayload({
+          ...output(storageProvider, "texts"),
+          payload: { kind: "Text", value: ["a", "b"] },
+        }),
+      ]);
+
+    /* A stored kind is always stored, and a stored-array kind only as an array. */
+    expect(proposed.value).toMatchObject({ __stored: true, array: false });
+    expect(persistedArray.value).toMatchObject({
+      __stored: true,
+      array: true,
+      length: 1,
+    });
+    expect(persistedSingle).toEqual({
+      kind: "PersistedEntityMetadata",
+      value: persisted,
+    });
+    expect(texts).toEqual({ kind: "Text", value: ["a", "b"] });
   });
 });
