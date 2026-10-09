@@ -12,7 +12,10 @@ import {
   type FlueChatResponseMessageStartedEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { validateWords, type VoiceWord } from "../../../../../shared/voice-words";
+import {
+  validateWords,
+  type VoiceWord,
+} from "../../../../../shared/voice-words";
 import { reportVoiceDiagnostic } from "../../../../../voice-diagnostics";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { LiveConversationControl } from "../live/live-conversation-control";
