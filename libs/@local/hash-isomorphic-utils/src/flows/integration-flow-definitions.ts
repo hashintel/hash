@@ -34,7 +34,10 @@ export const historicalFlightsFlow = defineFlow(
     });
 
     return {
-      outputs: { persistedEntities: persist.outputs.persistedEntities },
+      outputs: {
+        persistedEntities: persist.outputs.persistedEntities,
+        failedEntityProposals: persist.outputs.failedEntityProposals,
+      },
     };
   },
 );
@@ -79,6 +82,7 @@ export const scheduledFlightsFlow = defineFlow(
     return {
       outputs: {
         persistedEntities: persistPositions.outputs.persistedEntities,
+        failedEntityProposals: persistPositions.outputs.failedEntityProposals,
       },
     };
   },

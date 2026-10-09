@@ -4,6 +4,9 @@ import { defineFlow, flowInput } from "./define-flow.js";
 const persistedEntitiesOutputDescription =
   "The entities created or updated by the flow run";
 
+const failedEntityProposalsOutputDescription =
+  "The proposed entities that could not be saved";
+
 /**
  * The plugin starts this flow with the inputs typed as `ManualInferenceInputs`.
  */
@@ -52,6 +55,10 @@ export const manualBrowserInferenceFlow = defineFlow(
         persistedEntities: {
           ref: persist.outputs.persistedEntities,
           description: persistedEntitiesOutputDescription,
+        },
+        failedEntityProposals: {
+          ref: persist.outputs.failedEntityProposals,
+          description: failedEntityProposalsOutputDescription,
         },
       },
     };
@@ -103,6 +110,10 @@ export const automaticBrowserInferenceFlow = defineFlow(
         persistedEntities: {
           ref: persist.outputs.persistedEntities,
           description: persistedEntitiesOutputDescription,
+        },
+        failedEntityProposals: {
+          ref: persist.outputs.failedEntityProposals,
+          description: failedEntityProposalsOutputDescription,
         },
       },
     };
