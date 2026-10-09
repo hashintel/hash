@@ -56,11 +56,9 @@ hook under the same key. A button's label, tooltip and place come from the
 manifest. The hook gives its `icon` and what it does: `onClick`, a `command`,
 or both. A top-bar item is any `ReactNode`.
 
-`command` runs a command by id through the editor's command registry, so the
-button and its palette entry are one action and the palette shows its
-shortcut. Register the command with `useCommand`; see
-[Commands and the palette](doc:commands/usage-manual). When the host provides
-no registry, `<Petrinaut>` provides its own.
+`command` runs a command from the editor's command registry by id.
+[Commands and the palette](doc:commands/usage-manual#from-a-plugin) shows how
+a plugin registers one.
 
 ## Render UI inside the editor
 
