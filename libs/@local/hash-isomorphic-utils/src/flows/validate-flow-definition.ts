@@ -445,10 +445,14 @@ export const validateFlowDefinition = (
         ...entry.path,
         "over",
       ]);
-    } else if (parallelizeOnShape && !parallelizeOnShape.required) {
+    } else if (
+      parallelizeOnShape &&
+      !parallelizeOnShape.required &&
+      !skipsWhenMissing(step.over)
+    ) {
       report(
         "overNotRequired",
-        "A for-each step cannot iterate over a value that may be missing",
+        "A for-each step can only iterate over a value that may be missing if it is skipped when the value is missing",
         [...entry.path, "over"],
       );
     }

@@ -272,6 +272,43 @@ describe("validateFlowDefinition", () => {
       });
     });
 
+    it("iterates over a value that may be missing only if it's skipped when the value is missing", () => {
+      const overOptionalInput = (over: Record<string, unknown>) => ({
+        ...forEachDefinition({ over }),
+        inputs: [
+          ...baseDefinition.inputs,
+          {
+            name: "questions",
+            payloadKind: "Text",
+            array: true,
+            required: false,
+          },
+        ],
+      });
+
+      expect(
+        diagnosticsOf(
+          overOptionalInput({ kind: "flow-input", inputName: "questions" }),
+        ),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "overNotRequired",
+          path: ["steps", 1, "over"],
+        },
+      ]);
+
+      expect(
+        diagnosticsOf(
+          overOptionalInput({
+            kind: "flow-input",
+            inputName: "questions",
+            whenMissing: "skip",
+          }),
+        ),
+      ).toEqual([]);
+    });
+
     it("rejects a for-each step inside another", () => {
       const queriesOutput = {
         kind: "step-output",
