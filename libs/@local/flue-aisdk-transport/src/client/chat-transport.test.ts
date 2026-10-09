@@ -602,7 +602,7 @@ test("does not re-attach after its own projection fails", async () => {
   const transport = createFlueChatTransport({
     client,
     clientToolNames: new Set(),
-    onResponseMessage: () => {
+    projectMetadata: () => {
       throw new Error("The host rejected the response message.");
     },
   });
@@ -622,6 +622,81 @@ test("does not re-attach after its own projection fails", async () => {
     errorText: "The host rejected the response message.",
   });
   expect(wait).toHaveBeenCalledOnce();
+});
+
+test("does not re-attach once the turn has settled", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    for (const event of completedEvents) {
+      // eslint-disable-next-line no-await-in-loop
+      await options?.onEvent?.(event);
+    }
+    throw refusedReconnect(410);
+  });
+  const onReattach =
+    vi.fn<NonNullable<FlueChatTransportOptions["onReattach"]>>();
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+    onReattach,
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "Settle." }],
+      },
+    ]),
+  );
+
+  expect((await readChunks(stream)).map((chunk) => chunk.type)).toEqual([
+    "start",
+    "start-step",
+    "text-start",
+    "text-delta",
+    "text-end",
+    "finish-step",
+    "finish",
+  ]);
+  expect(wait).toHaveBeenCalledOnce();
+  expect(onReattach).not.toHaveBeenCalled();
+});
+
+test("a re-attach observer that throws cannot fail the turn", async () => {
+  const raised = captureRaisedErrors();
+  const observerFailure = new Error("Observer failure.");
+  vi.useFakeTimers();
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    const replayed = wait.mock.calls.length === 1 ? 2 : completedEvents.length;
+    for (const event of completedEvents.slice(0, replayed)) {
+      // eslint-disable-next-line no-await-in-loop
+      await options?.onEvent?.(event);
+    }
+    if (replayed < completedEvents.length) throw refusedReconnect(410);
+  });
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+    onReattach: () => {
+      throw observerFailure;
+    },
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions([
+      { id: "user-1", role: "user", parts: [{ type: "text", text: "Retry." }] },
+    ]),
+  );
+  const reading = readChunks(stream);
+  await vi.runAllTimersAsync();
+  vi.useRealTimers();
+
+  expect((await reading).at(-1)?.type).toBe("finish");
+  expect(wait).toHaveBeenCalledTimes(2);
+  expect(raised).toEqual([observerFailure]);
 });
 
 test("keeps caller cancellation distinct from durable abort", async () => {

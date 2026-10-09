@@ -417,7 +417,13 @@ const streamSubmission = (
             await options.client.wait(admission, { signal, onEvent });
             return;
           } catch (error) {
-            if (projectionFailed || endsTheTurn(error, signal)) throw error;
+            if (
+              projectionFailed ||
+              terminalEmitted ||
+              endsTheTurn(error, signal)
+            ) {
+              throw error;
+            }
             if (watermark !== watermarkBefore) fruitlessReattaches = 0;
             const delay = reattachDelaysMs[fruitlessReattaches];
             if (delay === undefined || isSpentAuthRetry(error)) {
@@ -426,7 +432,7 @@ const streamSubmission = (
               });
             }
             fruitlessReattaches += 1;
-            options.onReattach?.({
+            notifyObserver(options.onReattach, {
               submissionId: admission.submissionId,
               attempt: fruitlessReattaches,
               delayMs: delay,
