@@ -182,6 +182,8 @@ describe("evaluateFilter", () => {
     { value: { kind: "Boolean", value: false }, empty: false },
     { value: { kind: "Date", value: "" }, empty: true },
     { value: { kind: "Date", value: "2026-10-07" }, empty: false },
+    { value: { kind: "EntityId", value: "" as EntityId }, empty: true },
+    { value: { kind: "EntityId", value: entityId }, empty: false },
   ])("emptiness for $value", ({ value, empty }) => {
     it.each(["isEmpty", "isNotEmpty"] as const)("%s", (operator) => {
       expect(evaluateFilter({ value, condition: { operator } })).toEqual({
@@ -221,8 +223,6 @@ describe("evaluateFilter", () => {
         "lessThan",
         "greaterThanOrEqual",
         "lessThanOrEqual",
-        "isEmpty",
-        "isNotEmpty",
       ],
     };
 

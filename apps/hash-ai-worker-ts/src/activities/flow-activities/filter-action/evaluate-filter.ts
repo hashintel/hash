@@ -6,19 +6,26 @@ export type FilterValue = {
   [Kind in FilterPayloadKind]: { kind: Kind; value: PayloadKindValues[Kind] };
 }[FilterPayloadKind];
 
+/** Operators that compare the value with an operand. */
+export const binaryFilterOperators = [
+  "equals",
+  "notEquals",
+  "contains",
+  "startsWith",
+  "endsWith",
+  "greaterThan",
+  "greaterThanOrEqual",
+  "lessThan",
+  "lessThanOrEqual",
+] as const;
+
+/** Operators that take no operand. */
+export const unaryFilterOperators = ["isEmpty", "isNotEmpty"] as const;
+
 export type ScalarFilterCondition = {
   operator:
-    | "equals"
-    | "notEquals"
-    | "contains"
-    | "startsWith"
-    | "endsWith"
-    | "greaterThan"
-    | "greaterThanOrEqual"
-    | "lessThan"
-    | "lessThanOrEqual"
-    | "isEmpty"
-    | "isNotEmpty";
+    | (typeof binaryFilterOperators)[number]
+    | (typeof unaryFilterOperators)[number];
   operand?: PayloadKindValues[FilterPayloadKind];
 };
 
@@ -49,7 +56,7 @@ const isIsoDate = (value: string): boolean => {
  * for missing-value semantics, subject resolution and groups. This helper treats
  * empty text literally (for example, equals("", "") matches).
  * Text comparisons are case-sensitive. Only an empty string is empty: whitespace,
- * zero and false are values. Entity IDs support equality and inequality only.
+ * zero and false are values. Entity IDs support equality, inequality and presence only.
  * Dates are ISO calendar dates (YYYY-MM-DD), not timestamps. An empty Date is
  * accepted only for emptiness checks. Numbers must be finite.
  * Operands must have the input's scalar type; unary operators ignore the operand.
@@ -77,10 +84,12 @@ export const evaluateFilter = ({
     };
   }
 
+  const isUnary = operator === "isEmpty" || operator === "isNotEmpty";
   if (
     (value.kind === "EntityId" &&
       operator !== "equals" &&
-      operator !== "notEquals") ||
+      operator !== "notEquals" &&
+      !isUnary) ||
     ((operator === "contains" ||
       operator === "startsWith" ||
       operator === "endsWith") &&
@@ -99,7 +108,6 @@ export const evaluateFilter = ({
     };
   }
 
-  const isUnary = operator === "isEmpty" || operator === "isNotEmpty";
   if (
     (value.kind === "Date" &&
       !(isUnary && value.value === "") &&

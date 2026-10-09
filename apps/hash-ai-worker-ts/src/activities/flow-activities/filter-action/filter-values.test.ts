@@ -2,13 +2,16 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { evaluateIf, filterList } from "./filter-values.js";
 
-import type { FilterCondition, FilterLeaf } from "./evaluate-condition.js";
+import type {
+  ConditionNode,
+  FilterCondition,
+  FilterLeaf,
+} from "./evaluate-condition.js";
 import type { FilterListResult, IfResult } from "./filter-values.js";
 import type { Url } from "@blockprotocol/type-system";
 
-const and = (...conditions: FilterLeaf[]): FilterCondition => ({
-  kind: "group",
-  combinator: "and",
+const all = (...conditions: ConditionNode[]): FilterCondition => ({
+  kind: "all",
   conditions,
 });
 
@@ -18,7 +21,7 @@ const leaf: FilterLeaf = {
   operator: "greaterThan",
   value: { kind: "Number", value: 5 },
 };
-const condition = and(leaf);
+const condition = all(leaf);
 
 describe("evaluateIf", () => {
   it.each([
@@ -46,7 +49,7 @@ describe("evaluateIf", () => {
     };
     const result = evaluateIf(
       input,
-      and({
+      all({
         kind: "condition",
         subject: { kind: "field", path: ["title"], payloadKind: "Text" },
         operator: "equals",
@@ -67,7 +70,7 @@ describe("evaluateIf", () => {
   it("does not emit either branch for invalid conditions", () => {
     const result = evaluateIf(
       { kind: "Number", value: 6 },
-      and({ ...leaf, operator: "contains" }),
+      all({ ...leaf, operator: "contains" }),
     );
     expect(result).toMatchObject({ status: "error", code: "invalidCondition" });
     expect(result).not.toHaveProperty("payload");
@@ -94,11 +97,38 @@ describe("filterList", () => {
     },
   );
 
+  it("keeps a stable split for nested conditions", () => {
+    const below = (value: number): FilterLeaf => ({
+      ...leaf,
+      operator: "lessThan",
+      value: { kind: "Number", value },
+    });
+    // Matches values in (5, 9) or exactly 0.
+    const nested: FilterCondition = {
+      kind: "any",
+      conditions: [
+        all(leaf, below(9)),
+        all({
+          ...leaf,
+          operator: "equals",
+          value: { kind: "Number", value: 0 },
+        }),
+      ],
+    };
+    expect(
+      filterList({ kind: "Number", value: [8, 0, 9, 6, 1, 8, 0] }, nested),
+    ).toEqual({
+      status: "success",
+      matching: { kind: "Number", value: [8, 0, 6, 8, 0] },
+      nonMatching: { kind: "Number", value: [9, 1] },
+    });
+  });
+
   it("validates the condition even when there are no items", () => {
     expect(
       filterList(
         { kind: "Number", value: [] },
-        and({ ...leaf, operator: "contains" }),
+        all({ ...leaf, operator: "contains" }),
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });
   });
