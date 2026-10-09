@@ -1,0 +1,6 @@
+# An unknown field stops parsing at the field.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id
+    primaryKeys: [id]

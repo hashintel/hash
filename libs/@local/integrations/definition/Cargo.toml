@@ -22,5 +22,8 @@ serde          = { workspace = true, features = ["alloc", "derive"] }
 serde-saphyr   = { workspace = true }
 simple-mermaid = { workspace = true }
 
+[dev-dependencies]
+insta = { workspace = true, features = ["glob"] }
+
 [lints]
 workspace = true
