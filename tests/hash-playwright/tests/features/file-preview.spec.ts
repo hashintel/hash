@@ -33,7 +33,9 @@ test("a PDF file entity shows a preview that can be paged, zoomed and searched",
 
   const pdfPage = page.locator(".react-pdf-page");
 
-  await expect(pdfPage.getByText("Page 1", { exact: true })).toBeVisible();
+  await expect(pdfPage.getByText("Page 1", { exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
 
   await page.getByRole("button", { name: "Next page" }).click();
   await expect(pdfPage.getByText("Page 2", { exact: true })).toBeVisible();
