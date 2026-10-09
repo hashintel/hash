@@ -58,6 +58,7 @@ const stageTitles: Record<EntityStage, string> = {
   input: "Inputs",
   system: "The system",
   output: "Outputs",
+  case: "Cases",
 };
 
 /** User-facing plural labels; the canonical kind stays agent-facing. */
@@ -83,6 +84,7 @@ const kindLabels: Record<EntityKind, string> = {
   target: "Targets",
   threshold: "Thresholds",
   externality: "External effects",
+  case: "Occurrences to reproduce",
 };
 
 const kindsInOrder = Object.keys(entityKindStages) as EntityKind[];

@@ -31,7 +31,8 @@ The stage each kind opens with tells you which layer of the net it usually reach
 - **scope** sets where the net stops, in time and in what it includes;
 - **input** becomes something set before a run: parameters, initial state, experiment ranges;
 - **system** becomes structure: types, places, transitions, arcs, guards, kernels and dynamics;
-- **output** becomes something a run produces or is judged by: metrics and experiment objectives.
+- **output** becomes something a run produces or is judged by: metrics and experiment objectives;
+- **case** becomes no structure of its own: a scenario or fixed scenario values, and what a run under them should show. It is how the net is tested against what happened.
 
 ## Kind hints
 
@@ -58,6 +59,7 @@ The stage each kind opens with tells you which layer of the net it usually reach
 | output  | `target`      | A metric reported against its value                                                                | Reported, not enforced                                                                    |
 | output  | `threshold`   | A metric reported against its bound                                                                | Never an objective penalty; an operation that acts at the level is a rule                 |
 | output  | `externality` | A metric when the net can measure it; otherwise a recorded loss                                    | Who or what it affects                                                                    |
+| case    | `case`        | A scenario or fixed scenario values, and the metric values a run under them should show            | The run must reproduce it before options are compared                                     |
 
 Waiting, availability and occupied state are places derived from the activities and conditions on either side, not separately elicited queue nodes. A simulation scenario is assembled from initial state, boundary conditions, parameters and candidate policies rather than represented as one process node; when the USER names such a regime, save it as a scenario so later runs and experiments can name it. Data bindings and validation criteria stay in the Ledger until a separate integration represents them.
 
