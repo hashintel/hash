@@ -528,6 +528,41 @@ test("local references check target kind, bounds and supersession order", () => 
   expect(v.parse(vLedgerAppend, updateTarget)).toEqual(updateTarget);
 });
 
+test("a misdirected local reference names the entry, field and target", () => {
+  const entity = {
+    name: "Booster PLC",
+    kind: "actor",
+    origin: "stated",
+    status: "confirmed",
+  };
+  const claim = {
+    text: "The PLC acts on the last reading it received.",
+    entities: ["$0"],
+    origin: "stated",
+    status: "confirmed",
+  };
+  // Run p7ZTaN: `$2` meant the third entity but named the claim between them.
+  const issue = v.safeParse(vLedgerAppend, {
+    entries: [
+      ["entity/create", entity],
+      ["entity/create", { ...entity, name: "Level reading", kind: "signal" }],
+      ["claim/create", claim],
+      ["entity/create", { ...entity, name: "Radio failure", kind: "event" }],
+      ["claim/create", { ...claim, entities: ["$2", "$3"] }],
+    ],
+  }).issues?.[0]?.message;
+  expect(issue).toBe(
+    "entries[4] (claim/create) entities references $2, which is entries[2] (claim/create); expected an entity. $index counts every entry in this queue, whatever its route.",
+  );
+  expect(
+    v.safeParse(vLedgerAppend, {
+      entries: [["claim/create", { ...claim, entities: ["$9"] }]],
+    }).issues?.[0]?.message,
+  ).toBe(
+    "entries[0] (claim/create) entities references $9, but the queue has 1 entries ($0 to $0); expected an entity.",
+  );
+});
+
 /** What Flue sends as a tool's parameters (`toolInputToJsonSchema`). */
 const flueParameters = (schema: v.GenericSchema) => {
   const { $schema: _schema, ...parameters } = toJsonSchema(schema, {
