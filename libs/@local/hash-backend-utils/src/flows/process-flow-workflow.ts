@@ -20,7 +20,10 @@ import {
   initializeFlow,
   initializeForEachStep,
 } from "./process-flow-workflow/initialize-flow.js";
-import { passOutputsToUnprocessedSteps } from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
+import {
+  completeForEachStep,
+  passOutputsToUnprocessedSteps,
+} from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
 
 import type {
   ActionName,
@@ -33,7 +36,6 @@ import type {
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
-  ArrayPayload,
   FlowActionDefinitionId,
   FlowDefinition,
   FlowInputValues,
@@ -510,43 +512,19 @@ export const processFlowWorkflow = async <
        */
       processedStepIds.push(currentStep.stepId);
 
-      if (items.length === 0) {
-        /* With no items, nothing is collected: the collected output is complete, and empty. */
-        const collectedStepDefinition = getAllStepDefinitionsInFlowDefinition(
-          forEachStepDefinition,
-        ).find(({ stepId }) => stepId === forEachStepDefinition.collect.stepId);
+      /* With no items, the step is complete now, with an empty collected output. Otherwise its last branch completes it. */
+      const status = completeForEachStep({
+        flow,
+        flowDefinition,
+        forEachStep: currentStep,
+        processedStepIds,
+      });
 
-        const collectedPayloadKind =
-          collectedStepDefinition?.kind === "action"
-            ? actionDefinitions[
-                collectedStepDefinition.actionDefinitionId
-              ].outputs.find(
-                ({ name }) => name === forEachStepDefinition.collect.outputName,
-              )?.payloadKind
-            : undefined;
-
-        if (!collectedPayloadKind) {
-          processStepErrors[currentStepId] = {
-            code: StatusCode.Internal,
-            message: `Could not determine the kind of output step ${currentStepId} collects`,
-          };
-
-          return;
-        }
-
-        currentStep.collected = {
-          outputName: forEachStepDefinition.collect.as,
-          payload: { kind: collectedPayloadKind, value: [] } as ArrayPayload,
+      if (status.code !== StatusCode.Ok) {
+        processStepErrors[currentStepId] = {
+          code: status.code,
+          message: status.message,
         };
-        currentStep.collectedBranchCount = 0;
-
-        passOutputsToUnprocessedSteps({
-          flow,
-          flowDefinition,
-          stepId: currentStepId,
-          outputs: [currentStep.collected],
-          processedStepIds,
-        });
       }
     }
   };

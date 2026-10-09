@@ -1,7 +1,9 @@
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   appendCollectedValue,
   getArrayPayloadLength,
 } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { StatusCode } from "@local/status";
 
 import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
@@ -11,7 +13,10 @@ import { wrapPayload } from "./initialize-flow.js";
 import type {
   ArrayPayload,
   FlowDefinition,
+  ForEachStep,
+  ForEachStepDefinition,
   LocalFlowRun,
+  PayloadKind,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
@@ -138,43 +143,97 @@ export const passOutputsToUnprocessedSteps = (params: {
       };
     }
 
-    /*
-     * Array outputs are concatenated, stored arrays by reference, so that no stored payload is fetched here.
-     */
-    processedStep.collected = {
-      outputName: collect.as,
-      payload: {
-        kind: collectedOutput.payload.kind,
-        value: appendCollectedValue(
-          processedStep.collected?.payload.value as
-            | Parameters<typeof appendCollectedValue>[0]
-            | undefined,
-          collectedOutput.payload.value,
-        ),
-      } as ArrayPayload,
+    processedStep.branchValues = {
+      ...processedStep.branchValues,
+      [Number(currentStepIdIndex)]: collectedOutput.payload.value,
     };
 
-    processedStep.collectedBranchCount =
-      (processedStep.collectedBranchCount ?? 0) + 1;
-
-    const itemCount = processedStep.over
-      ? getArrayPayloadLength(processedStep.over.value)
-      : undefined;
-
-    if (processedStep.collectedBranchCount === itemCount) {
-      /**
-       * Every branch has contributed its output, so the for-each step's collected output is complete: pass it
-       * to the steps that consume it.
-       */
-      return passOutputsToUnprocessedSteps({
-        flow,
-        flowDefinition,
-        stepId: processedStep.stepId,
-        outputs: [processedStep.collected],
-        processedStepIds,
-      });
-    }
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define -- the two pass each other's outputs on
+    return completeForEachStep({
+      flow,
+      flowDefinition,
+      forEachStep: processedStep,
+      processedStepIds,
+    });
   }
 
   return { code: StatusCode.Ok };
+};
+
+/**
+ * The kind of the values a for-each step collects: the declared kind of the output it collects.
+ */
+const getCollectedPayloadKind = (
+  forEachStepDefinition: ForEachStepDefinition,
+): PayloadKind | undefined => {
+  const collectedStepDefinition = getAllStepDefinitionsInFlowDefinition(
+    forEachStepDefinition,
+  ).find(({ stepId }) => stepId === forEachStepDefinition.collect.stepId);
+
+  return collectedStepDefinition?.kind === "action"
+    ? actionDefinitions[
+        collectedStepDefinition.actionDefinitionId
+      ].outputs.find(
+        ({ name }) => name === forEachStepDefinition.collect.outputName,
+      )?.payloadKind
+    : undefined;
+};
+
+/**
+ * Once every branch of a for-each step has contributed its value, sets the step's collected output and passes
+ * it to the steps that consume it. Values are collected in item order, whatever order the branches finish in:
+ * array values are concatenated (stored arrays by reference, so that no stored payload is fetched here), and
+ * singular values gathered.
+ */
+export const completeForEachStep = (params: {
+  flow: LocalFlowRun;
+  flowDefinition: FlowDefinition;
+  forEachStep: ForEachStep;
+  processedStepIds: string[];
+}): Omit<Status<never>, "contents"> => {
+  const { flow, flowDefinition, forEachStep, processedStepIds } = params;
+
+  if (!forEachStep.over || forEachStep.collected) {
+    return { code: StatusCode.Ok };
+  }
+
+  const itemCount = getArrayPayloadLength(forEachStep.over.value);
+  const branchValues = forEachStep.branchValues ?? {};
+
+  if (Object.keys(branchValues).length < itemCount) {
+    return { code: StatusCode.Ok };
+  }
+
+  const forEachStepDefinition = getStepDefinitionFromFlowDefinition({
+    step: forEachStep,
+    flowDefinition,
+  });
+
+  const payloadKind = getCollectedPayloadKind(forEachStepDefinition);
+
+  if (!payloadKind) {
+    return {
+      code: StatusCode.Internal,
+      message: `Could not determine the kind of output step ${forEachStep.stepId} collects`,
+    };
+  }
+
+  let collectedValue: Parameters<typeof appendCollectedValue>[0];
+
+  for (let index = 0; index < itemCount; index++) {
+    collectedValue = appendCollectedValue(collectedValue, branchValues[index]);
+  }
+
+  forEachStep.collected = {
+    outputName: forEachStepDefinition.collect.as,
+    payload: { kind: payloadKind, value: collectedValue ?? [] } as ArrayPayload,
+  };
+
+  return passOutputsToUnprocessedSteps({
+    flow,
+    flowDefinition,
+    stepId: forEachStep.stepId,
+    outputs: [forEachStep.collected],
+    processedStepIds,
+  });
 };
