@@ -99,7 +99,7 @@ This needs `extensions.colors` and `extensions.dynamics`, and `extensions.stocha
 
 Validate every code-writing change. After the step that writes code — lambda, transition kernel, dynamics, visualizer, metric, or scenario code-mode initial state — call getNetCompilationErrors once for the whole step, and send every repair it calls for in one further step before relying on the new code. Mutations validate only the schema, not the runtime contract. Saved scenario and metric code is compiled separately, when an experiment is created, so a clean diagnostic does not prove it.
 
-Place names are part of the code surface: lambdas/kernels read `input.PlaceName`, metrics read `state.places.PlaceName.count`, and scenario code-mode initial state keys are place names. Renaming a place via `updatePlace` requires updating every dependent lambda, kernel, dynamics, metric, visualizer, and scenario in the same batch — otherwise you will silently break references.
+Place names are part of the code surface, so they must be identifiers matching `^[A-Z][a-zA-Z]*\d*$`: letters only, starting uppercase, digits only at the end (`TankLevel`, `Bay2`; never `Tank_Level`, `Level5m` or `Last reading`). Lambdas/kernels read `input.PlaceName`, metrics read `state.places.PlaceName.count`, and scenario code-mode initial state keys are place names. Renaming a place via `updatePlace` requires updating every dependent lambda, kernel, dynamics, metric, visualizer, and scenario in the same batch — otherwise you will silently break references.
 
 ## Finishing a change
 
