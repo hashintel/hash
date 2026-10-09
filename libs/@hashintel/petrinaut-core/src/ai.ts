@@ -98,7 +98,6 @@ export const createExperimentToolName = "createExperiment";
 
 export const petrinautDocNames = [
   "drawing-a-net",
-  "sharing",
   "petri-net-extensions",
   "useful-patterns",
   "simulation",
@@ -118,8 +117,6 @@ export const petrinautDocNames = [
 export type PetrinautDocName = (typeof petrinautDocNames)[number];
 
 export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
-  sharing:
-    "Demo website snapshot links: share a copy of a net by link with or without the current view, open one read-only, save a local copy, or download a file when the link is too large.",
   "drawing-a-net":
     "Top bar (mode selector, menu, version history, active experiments), canvas, sidebars, adding nodes, arcs, selection, keyboard shortcuts, import/export, auto-layout.",
   "petri-net-extensions":

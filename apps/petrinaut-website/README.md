@@ -79,6 +79,11 @@ finishes, is cancelled, or runs 30 seconds. Both directions cap the net at 2 MiB
 and the fragment at 16,000 characters; a larger net can be downloaded as a file
 from the same dialog.
 
+A snapshot holds the net as it was when shared: title, layout, code,
+parameters, types, subnets, scenarios and metrics. Running simulations,
+results, assistant conversations and preferences stay behind, and later edits
+do not change a link already shared.
+
 `/share` opens the snapshot read-only and saves nothing. **Make a local copy**
 saves it at its own `/local/<net id>` URL with the current view. Sentry events,
 transactions, spans and breadcrumbs have the fragment stripped before sending.
