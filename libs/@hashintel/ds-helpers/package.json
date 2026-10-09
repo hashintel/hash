@@ -47,6 +47,6 @@
     "access": "public"
   },
   "scripts": {
-    "prepack": "turbo run codegen --filter @hashintel/ds-components && node ../../../scripts/check-package-payload.mjs"
+    "prepack": "turbo run build --filter @hashintel/ds-helpers && node ../../../scripts/check-package-payload.mjs"
   }
 }
