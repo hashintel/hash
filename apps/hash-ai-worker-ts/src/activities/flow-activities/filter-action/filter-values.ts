@@ -1,4 +1,8 @@
-import { evaluateCondition, validateCondition } from "./evaluate-condition.js";
+import {
+  evaluateCondition,
+  evaluateValidatedCondition,
+  validateCondition,
+} from "./evaluate-condition.js";
 
 import type {
   ConditionContext,
@@ -61,7 +65,7 @@ export const filterList = <Kind extends PayloadKind>(
   const matching: PayloadKindValues[Kind][] = [];
   const nonMatching: PayloadKindValues[Kind][] = [];
   for (const value of input.value) {
-    const result = evaluateCondition(
+    const result = evaluateValidatedCondition(
       condition,
       { kind: input.kind, value },
       context,

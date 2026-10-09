@@ -5,7 +5,7 @@ import { evaluateCondition, validateCondition } from "./evaluate-condition.js";
 import type {
   ConditionInput,
   FilterCondition,
-  SingleFilterCondition,
+  FilterLeaf,
 } from "./evaluate-condition.js";
 import type {
   BaseUrl,
@@ -21,7 +21,13 @@ const otherType =
 const entityId =
   "00000000-0000-4000-8000-000000000001~00000000-0000-4000-8000-000000000002" as EntityId;
 
-const scoreCondition: SingleFilterCondition = {
+const and = (...conditions: FilterLeaf[]): FilterCondition => ({
+  kind: "group",
+  combinator: "and",
+  conditions,
+});
+
+const scoreCondition: FilterLeaf = {
   kind: "condition",
   subject: { kind: "field", path: ["score"], payloadKind: "Number" },
   operator: "greaterThan",
@@ -31,8 +37,8 @@ const scoreCondition: SingleFilterCondition = {
 describe("evaluateCondition", () => {
   it.each<{
     input: ConditionInput;
-    operator: SingleFilterCondition["operator"];
-    operand: SingleFilterCondition["value"];
+    operator: FilterLeaf["operator"];
+    operand: FilterLeaf["value"];
     matches: boolean;
   }>([
     {
@@ -74,12 +80,12 @@ describe("evaluateCondition", () => {
   ])("$operator for $input", ({ input, operator, operand, matches }) => {
     expect(
       evaluateCondition(
-        {
+        and({
           kind: "condition",
           subject: { kind: "input", payloadKind: input.kind },
           operator,
           value: operand,
-        },
+        }),
         input,
       ),
     ).toEqual({ status: "success", matches });
@@ -94,28 +100,32 @@ describe("evaluateCondition", () => {
     "treats $value as empty with explicit presence exceptions",
     ({ value }) => {
       const subject = { kind: "input", payloadKind: "Text" } as const;
-      for (const operator of ["equals", "notEquals", "contains"] as const) {
+      for (const [operator, matches] of [
+        ["equals", false],
+        ["notEquals", true],
+        ["contains", false],
+      ] as const) {
         expect(
           evaluateCondition(
-            {
+            and({
               kind: "condition",
               subject,
               operator,
               value: { kind: "Text", value: "x" },
-            },
+            }),
             { kind: "Text", value },
           ),
-        ).toEqual({ status: "success", matches: false });
+        ).toEqual({ status: "success", matches });
       }
       expect(
         evaluateCondition(
-          { kind: "condition", subject, operator: "isEmpty" },
+          and({ kind: "condition", subject, operator: "isEmpty" }),
           { kind: "Text", value },
         ),
       ).toEqual({ status: "success", matches: true });
       expect(
         evaluateCondition(
-          { kind: "condition", subject, operator: "isNotEmpty" },
+          and({ kind: "condition", subject, operator: "isNotEmpty" }),
           { kind: "Text", value },
         ),
       ).toEqual({ status: "success", matches: false });
@@ -130,11 +140,11 @@ describe("evaluateCondition", () => {
   ])("keeps $value present", (input) => {
     expect(
       evaluateCondition(
-        {
+        and({
           kind: "condition",
           subject: { kind: "input", payloadKind: input.kind },
           operator: "isNotEmpty",
-        },
+        }),
         input,
       ),
     ).toEqual({ status: "success", matches: true });
@@ -143,11 +153,11 @@ describe("evaluateCondition", () => {
   it("supports presence checks on non-scalar kinds", () => {
     expect(
       evaluateCondition(
-        {
+        and({
           kind: "condition",
           subject: { kind: "input", payloadKind: "WebPage" },
           operator: "isEmpty",
-        },
+        }),
         { kind: "WebPage", value: {} },
       ),
     ).toEqual({ status: "success", matches: false });
@@ -161,11 +171,11 @@ describe("evaluateCondition", () => {
     for (const operator of ["isEmpty", "isNotEmpty"] as const) {
       expect(
         evaluateCondition(
-          {
+          and({
             kind: "condition",
             subject: { kind: "input", payloadKind: input.kind },
             operator,
-          },
+          }),
           input,
         ),
       ).toMatchObject({ status: "error", code: "invalidValue" });
@@ -180,7 +190,7 @@ describe("evaluateCondition", () => {
     "checks every multi-valued subject element in $score",
     ({ score, expected }) => {
       expect(
-        evaluateCondition(scoreCondition, {
+        evaluateCondition(and(scoreCondition), {
           kind: "WebPage",
           value: { score },
         }),
@@ -188,15 +198,33 @@ describe("evaluateCondition", () => {
     },
   );
 
+  it.each([
+    { tags: ["a", "b"], expected: { status: "success", matches: false } },
+    { tags: ["b", "c"], expected: { status: "success", matches: true } },
+    { tags: ["b", 1], expected: { status: "error", code: "invalidValue" } },
+  ])("negates equals for notEquals over $tags", ({ tags, expected }) => {
+    expect(
+      evaluateCondition(
+        and({
+          kind: "condition",
+          subject: { kind: "field", path: ["tags"], payloadKind: "Text" },
+          operator: "notEquals",
+          value: { kind: "Text", value: "a" },
+        }),
+        { kind: "WebPage", value: { tags } },
+      ),
+    ).toMatchObject(expected);
+  });
+
   it("does not treat different versions of an entity type as equal", () => {
     expect(
       evaluateCondition(
-        {
+        and({
           kind: "condition",
           subject: { kind: "entityType" },
           operator: "isOfType",
           value: { kind: "VersionedUrl", value: companyType },
-        },
+        }),
         {
           kind: "ProposedEntity",
           value: {
@@ -266,7 +294,7 @@ describe("evaluateCondition", () => {
   });
 
   it("reads nested own fields, not inherited properties", () => {
-    const condition: SingleFilterCondition = {
+    const condition: FilterLeaf = {
       ...scoreCondition,
       subject: {
         kind: "field",
@@ -275,13 +303,13 @@ describe("evaluateCondition", () => {
       },
     };
     expect(
-      evaluateCondition(condition, {
+      evaluateCondition(and(condition), {
         kind: "WebPage",
         value: { details: { score: 9 } },
       }),
     ).toEqual({ status: "success", matches: true });
     expect(
-      evaluateCondition(condition, {
+      evaluateCondition(and(condition), {
         kind: "WebPage",
         value: { details: Object.create({ score: 9 }) as unknown },
       }),
@@ -295,7 +323,7 @@ describe("evaluateCondition", () => {
     };
     const input = { kind: "EntityId", value: entityId } as const;
     const context = { entities: new Map([[entityId, entity]]) };
-    const propertyCondition: SingleFilterCondition = {
+    const propertyCondition: FilterLeaf = {
       ...scoreCondition,
       subject: {
         kind: "entityProperty",
@@ -303,33 +331,33 @@ describe("evaluateCondition", () => {
         payloadKind: "Number",
       },
     };
-    expect(evaluateCondition(propertyCondition, input, context)).toEqual({
+    expect(evaluateCondition(and(propertyCondition), input, context)).toEqual({
       status: "success",
       matches: true,
     });
-    expect(evaluateCondition(propertyCondition, input)).toMatchObject({
+    expect(evaluateCondition(and(propertyCondition), input)).toMatchObject({
       status: "error",
       code: "entityRequired",
     });
     expect(
-      evaluateCondition(propertyCondition, input, {
+      evaluateCondition(and(propertyCondition), input, {
         entities: new Map([[entityId, { ...entity, properties: {} }]]),
       }),
     ).toEqual({ status: "success", matches: false });
     expect(
       evaluateCondition(
-        {
+        and({
           kind: "condition",
           subject: { kind: "entityType" },
           operator: "isOfType",
           value: { kind: "VersionedUrl", value: companyType },
-        },
+        }),
         input,
         context,
       ),
     ).toEqual({ status: "success", matches: true });
     expect(
-      evaluateCondition(propertyCondition, {
+      evaluateCondition(and(propertyCondition), {
         kind: "ProposedEntity",
         value: entity,
       }),
@@ -338,7 +366,7 @@ describe("evaluateCondition", () => {
 
   it("rejects invalid property data instead of treating it as a non-match", () => {
     expect(
-      evaluateCondition(scoreCondition, {
+      evaluateCondition(and(scoreCondition), {
         kind: "WebPage",
         value: { score: "9" },
       }),
@@ -354,12 +382,12 @@ describe("validateCondition", () => {
   ] as const)(
     "rejects a constant tagged $kind with the wrong runtime type",
     (value) => {
-      const condition = {
+      const condition = and({
         kind: "condition",
         subject: { kind: "input", payloadKind: value.kind },
         operator: "equals",
         value,
-      } as unknown as FilterCondition;
+      } as unknown as FilterLeaf);
       expect(validateCondition(condition, value.kind)).toMatchObject({
         status: "error",
         code: "invalidCondition",
@@ -368,7 +396,7 @@ describe("validateCondition", () => {
   );
 
   it("rejects field subjects on primitive input kinds", () => {
-    expect(validateCondition(scoreCondition, "Number")).toMatchObject({
+    expect(validateCondition(and(scoreCondition), "Number")).toMatchObject({
       status: "error",
       code: "invalidCondition",
     });
@@ -377,12 +405,12 @@ describe("validateCondition", () => {
   it("validates the operand's kind, not just its JS type", () => {
     expect(
       validateCondition(
-        {
+        and({
           kind: "condition",
           subject: { kind: "input", payloadKind: "Date" },
           operator: "equals",
           value: { kind: "Text", value: "2026-10-08" },
-        },
+        }),
         "Date",
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });
@@ -391,11 +419,11 @@ describe("validateCondition", () => {
   it("validates unsupported operators even when the subject is missing", () => {
     expect(
       evaluateCondition(
-        {
+        and({
           ...scoreCondition,
           operator: "contains",
           value: { kind: "Number", value: 1 },
-        },
+        }),
         { kind: "WebPage", value: {} },
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });
@@ -406,14 +434,14 @@ describe("validateCondition", () => {
     (segment) => {
       expect(
         validateCondition(
-          {
+          and({
             ...scoreCondition,
             subject: {
               kind: "field",
               path: [segment, "score"],
               payloadKind: "Number",
             },
-          },
+          }),
           "WebPage",
         ),
       ).toMatchObject({ status: "error", code: "invalidCondition" });
@@ -427,34 +455,47 @@ describe("validateCondition", () => {
         "Number",
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });
-    const nested = {
+    const nested: FilterCondition = {
       kind: "group",
       combinator: "or",
-      conditions: [
-        { kind: "group", combinator: "and", conditions: [scoreCondition] },
-      ],
-    } as unknown as FilterCondition;
+      conditions: [and(scoreCondition)],
+    };
     expect(validateCondition(nested, "WebPage")).toMatchObject({
       status: "error",
       code: "invalidCondition",
     });
   });
 
+  it("rejects a bare leaf as the top-level condition", () => {
+    expect(
+      validateCondition(
+        scoreCondition as unknown as FilterCondition,
+        "WebPage",
+      ),
+    ).toMatchObject({ status: "error", code: "invalidCondition" });
+  });
+
   it("rejects a missing operand, wrong input kind, and an operand on presence checks", () => {
     expect(
-      validateCondition({ ...scoreCondition, value: undefined }, "WebPage"),
+      validateCondition(
+        and({ ...scoreCondition, value: undefined }),
+        "WebPage",
+      ),
     ).toMatchObject({ status: "error" });
     expect(
       validateCondition(
-        {
+        and({
           ...scoreCondition,
           subject: { kind: "input", payloadKind: "Number" },
-        },
+        }),
         "Text",
       ),
     ).toMatchObject({ status: "error" });
     expect(
-      validateCondition({ ...scoreCondition, operator: "isEmpty" }, "WebPage"),
+      validateCondition(
+        and({ ...scoreCondition, operator: "isEmpty" }),
+        "WebPage",
+      ),
     ).toMatchObject({ status: "error" });
   });
 });

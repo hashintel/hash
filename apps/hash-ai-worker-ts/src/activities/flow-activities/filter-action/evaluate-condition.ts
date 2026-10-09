@@ -26,21 +26,21 @@ export type ConstantPayload =
   | FilterValue
   | { kind: "VersionedUrl"; value: VersionedUrl };
 
-export type SingleFilterCondition = {
+export type FilterLeaf = {
   kind: "condition";
   subject: ConditionSubject;
   operator: ScalarFilterCondition["operator"] | "isOfType";
   value?: ConstantPayload;
 };
 
-/** Only one level of AND/OR is supported; groups contain leaves, not groups. */
-export type FilterCondition =
-  | SingleFilterCondition
-  | {
-      kind: "group";
-      combinator: "and" | "or";
-      conditions: readonly SingleFilterCondition[];
-    };
+export type FilterGroup = {
+  kind: "group";
+  combinator: "and" | "or";
+  conditions: readonly (FilterLeaf | FilterGroup)[];
+};
+
+/** The top level is always a group. Nested groups evaluate but are rejected by validation for now. */
+export type FilterCondition = FilterGroup;
 
 /** The caller resolves entities with the requesting actor's permissions. */
 export type ConditionEntity = {
@@ -114,20 +114,20 @@ export const validateCondition = (
   condition: FilterCondition,
   inputKind: PayloadKind,
 ): ConditionError | undefined => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may contain a bare leaf.
+  if (condition.kind !== "group") {
+    return invalidCondition("The top-level condition must be a group.");
+  }
   if (
-    condition.kind === "group" &&
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Reject unsupported combinators from persisted definitions.
-    ((condition.combinator !== "and" && condition.combinator !== "or") ||
-      condition.conditions.length === 0)
+    (condition.combinator !== "and" && condition.combinator !== "or") ||
+    condition.conditions.length === 0
   ) {
     return invalidCondition(
       "A group requires AND or OR and at least one condition.",
     );
   }
-  const conditions =
-    condition.kind === "group" ? condition.conditions : [condition];
-  for (const leaf of conditions) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may contain nested groups, which this MVP rejects.
+  for (const leaf of condition.conditions) {
     if (leaf.kind !== "condition") {
       return invalidCondition("Nested condition groups are not supported.");
     }
@@ -288,90 +288,121 @@ const asScalarValue = (
   }
 };
 
+const evaluateLeaf = (
+  leaf: FilterLeaf,
+  input: ConditionInput,
+  context: ConditionContext,
+): ConditionResult => {
+  if (leaf.operator === "notEquals") {
+    const result = evaluateLeaf(
+      { ...leaf, operator: "equals" },
+      input,
+      context,
+    );
+    return result.status === "error"
+      ? result
+      : { status: "success", matches: !result.matches };
+  }
+  const resolved = resolveSubject(leaf.subject, input, context);
+  if (resolved.status === "error") {
+    return resolved;
+  }
+  const value = resolved.value;
+  const empty =
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0);
+  const isPresence =
+    leaf.operator === "isEmpty" || leaf.operator === "isNotEmpty";
+  if (empty) {
+    return { status: "success", matches: leaf.operator === "isEmpty" };
+  }
+  if (leaf.subject.kind === "entityType") {
+    return {
+      status: "success",
+      matches: isPresence
+        ? leaf.operator === "isNotEmpty"
+        : Array.isArray(value) && value.includes(leaf.value?.value),
+    };
+  }
+  if (isPresence && !scalarKinds.includes(leaf.subject.payloadKind)) {
+    return { status: "success", matches: leaf.operator === "isNotEmpty" };
+  }
+  const values: unknown[] = Array.isArray(value) ? value : [value];
+  let matches = false;
+  for (const item of values) {
+    if (item === undefined || item === null || item === "") {
+      continue;
+    }
+    const scalar = asScalarValue(leaf.subject.payloadKind, item);
+    if (!scalar) {
+      return {
+        status: "error",
+        code: "invalidValue",
+        message: `Subject value does not have kind ${leaf.subject.payloadKind}.`,
+      };
+    }
+    if (leaf.operator === "isOfType") {
+      return invalidCondition("isOfType requires an entity type subject.");
+    }
+    const result = evaluateFilter({
+      value: scalar,
+      // Presence still validates nonempty scalar data, including dates and finite numbers.
+      condition: isPresence
+        ? { operator: "equals", operand: scalar.value }
+        : { operator: leaf.operator, operand: leaf.value?.value },
+    });
+    if (result.status === "error") {
+      return result;
+    }
+    matches = matches || result.branch === "matched";
+  }
+  return {
+    status: "success",
+    matches: isPresence ? leaf.operator === "isNotEmpty" : matches,
+  };
+};
+
+/** Callers must run validateCondition first; exported only for filterList. */
+export const evaluateValidatedCondition = (
+  condition: FilterLeaf | FilterGroup,
+  input: ConditionInput,
+  context: ConditionContext = {},
+): ConditionResult => {
+  if (condition.kind === "condition") {
+    return evaluateLeaf(condition, input, context);
+  }
+  const results: boolean[] = [];
+  for (const child of condition.conditions) {
+    const result = evaluateValidatedCondition(child, input, context);
+    if (result.status === "error") {
+      return result;
+    }
+    results.push(result.matches);
+  }
+  return {
+    status: "success",
+    matches:
+      condition.combinator === "or"
+        ? results.some(Boolean)
+        : results.every(Boolean),
+  };
+};
+
 /**
  * Pure evaluation over resolved values. Errors stay distinct from false.
- * Missing, null, empty text and empty arrays match only isEmpty; zero, false,
+ * Missing, null, empty text and empty arrays are empty; zero, false,
  * whitespace and empty objects are present. A multi-valued subject matches if
- * any element matches. Every leaf/element is checked so OR cannot hide bad data.
+ * any element matches. notEquals is the negation of equals, so it matches empty
+ * values and fails if any element is equal. Every child/element is checked so
+ * OR cannot hide bad data, and errors are never negated into a match.
  * Entity type membership is exact (including version), not an ancestry lookup.
  */
 export const evaluateCondition = (
   condition: FilterCondition,
   input: ConditionInput,
   context: ConditionContext = {},
-): ConditionResult => {
-  const error = validateCondition(condition, input.kind);
-  if (error) {
-    return error;
-  }
-  const conditions =
-    condition.kind === "group" ? condition.conditions : [condition];
-  const results: boolean[] = [];
-  for (const leaf of conditions) {
-    const resolved = resolveSubject(leaf.subject, input, context);
-    if (resolved.status === "error") {
-      return resolved;
-    }
-    const value = resolved.value;
-    const empty =
-      value === undefined ||
-      value === null ||
-      value === "" ||
-      (Array.isArray(value) && value.length === 0);
-    const isPresence =
-      leaf.operator === "isEmpty" || leaf.operator === "isNotEmpty";
-    if (empty) {
-      results.push(leaf.operator === "isEmpty");
-      continue;
-    }
-    if (leaf.subject.kind === "entityType") {
-      results.push(
-        isPresence
-          ? leaf.operator === "isNotEmpty"
-          : Array.isArray(value) && value.includes(leaf.value?.value),
-      );
-      continue;
-    }
-    if (isPresence && !scalarKinds.includes(leaf.subject.payloadKind)) {
-      results.push(leaf.operator === "isNotEmpty");
-      continue;
-    }
-    const values: unknown[] = Array.isArray(value) ? value : [value];
-    let matches = false;
-    for (const item of values) {
-      if (item === undefined || item === null || item === "") {
-        continue;
-      }
-      const scalar = asScalarValue(leaf.subject.payloadKind, item);
-      if (!scalar) {
-        return {
-          status: "error",
-          code: "invalidValue",
-          message: `Subject value does not have kind ${leaf.subject.payloadKind}.`,
-        };
-      }
-      if (leaf.operator === "isOfType") {
-        return invalidCondition("isOfType requires an entity type subject.");
-      }
-      const result = evaluateFilter({
-        value: scalar,
-        // Presence still validates nonempty scalar data, including dates and finite numbers.
-        condition: isPresence
-          ? { operator: "equals", operand: scalar.value }
-          : { operator: leaf.operator, operand: leaf.value?.value },
-      });
-      if (result.status === "error") {
-        return result;
-      }
-      matches = matches || result.branch === "matched";
-    }
-    results.push(isPresence ? leaf.operator === "isNotEmpty" : matches);
-  }
-  return {
-    status: "success",
-    matches:
-      condition.kind === "group" && condition.combinator === "or"
-        ? results.some(Boolean)
-        : results.every(Boolean),
-  };
-};
+): ConditionResult =>
+  validateCondition(condition, input.kind) ??
+  evaluateValidatedCondition(condition, input, context);
