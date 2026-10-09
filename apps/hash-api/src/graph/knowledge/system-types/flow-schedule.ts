@@ -1,4 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
 import {
   defaultScheduleCatchupWindowMs,
   defaultScheduleOverlapPolicy,
@@ -50,10 +51,11 @@ export const createFlowSchedule: ImpureGraphFunction<
     catchupWindowMs = defaultScheduleCatchupWindowMs,
     pauseOnFailure = defaultSchedulePauseOnFailure,
     dataSources,
-    flowTrigger,
+    flowDefinitionId,
+    flowInputs,
   } = params;
 
-  const { flowDefinitionId, type: flowType } = flowDefinition;
+  const flowType = getFlowType(flowDefinition);
 
   const properties: FlowSchedulePropertiesWithMetadata = {
     value: {
@@ -97,28 +99,29 @@ export const createFlowSchedule: ImpureGraphFunction<
           dataTypeId: "https://hash.ai/@h/types/data-type/schedule-status/v/1",
         },
       },
+      /**
+       * The `Flow Schedule` entity type still requires a `Trigger`, from when flows had trigger definitions. Flows
+       * now declare inputs instead, so the values the schedule gives them are recorded as the trigger's outputs.
+       * Nothing reads this property back: FE-1894 replaces it with an `Inputs` property.
+       */
       "https://hash.ai/@h/types/property-type/trigger/": {
         value: {
           "https://hash.ai/@h/types/property-type/trigger-definition-id/": {
-            value: flowTrigger.triggerDefinitionId,
+            value: "scheduledTrigger",
             metadata: {
               dataTypeId:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
-          ...(flowTrigger.outputs
-            ? {
-                "https://hash.ai/@h/types/property-type/outputs/": {
-                  value: flowTrigger.outputs.map((output) => ({
-                    value: output,
-                    metadata: {
-                      dataTypeId:
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-                    },
-                  })),
-                },
-              }
-            : {}),
+          "https://hash.ai/@h/types/property-type/outputs/": {
+            value: Object.entries(flowInputs).map(([inputName, payload]) => ({
+              value: { outputName: inputName, payload },
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+              },
+            })),
+          },
         },
       },
       "https://hash.ai/@h/types/property-type/schedule-catchup-window/": {

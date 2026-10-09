@@ -2,8 +2,8 @@ import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";
 
 import {
-  automaticBrowserInferenceFlowDefinition,
-  manualBrowserInferenceFlowDefinition,
+  automaticBrowserInferenceFlow,
+  manualBrowserInferenceFlow,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
@@ -372,8 +372,8 @@ export const inferEntities = async (
 
   const flowDefinition =
     trigger === "automatic"
-      ? automaticBrowserInferenceFlowDefinition
-      : manualBrowserInferenceFlowDefinition;
+      ? automaticBrowserInferenceFlow
+      : manualBrowserInferenceFlow;
 
   /**
    * Optimistically add the run to local storage so that it appears in the history tab immediately.
@@ -389,29 +389,7 @@ export const inferEntities = async (
       persistedEntities: [],
       webId,
       inputRequests: [],
-      inputs: [
-        {
-          dataSources: {
-            internetAccess: {
-              browserPlugin: {
-                enabled: false,
-                domains: [],
-              },
-              enabled: false,
-            },
-            files: {
-              fileEntityIds: [],
-            },
-          },
-          flowDefinition,
-          flowType: "ai",
-          flowTrigger: {
-            triggerDefinitionId: flowDefinition.trigger.triggerDefinitionId,
-            outputs: [],
-          },
-          webId,
-        },
-      ],
+      flowInputs: {},
       webPage: basePayload.visitedWebPage.value,
       status: FlowRunStatus.Running,
     },

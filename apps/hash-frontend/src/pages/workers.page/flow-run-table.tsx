@@ -15,11 +15,10 @@ import {
   Skeleton,
 } from "@hashintel/design-system";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 import { Link } from "../../shared/ui/link";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
-import { useFlowDefinitionsContext } from "../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../shared/flow-runs-context";
 import {
   flowRunStatusToStatusText,
@@ -281,8 +280,6 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
     direction: "desc",
   });
 
-  const { flowDefinitions } = useFlowDefinitionsContext();
-
   const {
     flowRuns: unfilteredFlowRuns,
     totalCount,
@@ -313,21 +310,11 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
 
     const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map(
       (flowRun) => {
-        const type = goalFlowDefinitionIds.includes(
+        const type = isGoalFlowDefinitionId(
           flowRun.flowDefinitionId as EntityUuid,
         )
           ? "goal"
           : "flow";
-
-        const flowDefinition = flowDefinitions.find(
-          (def) => def.flowDefinitionId === flowRun.flowDefinitionId,
-        );
-
-        if (!flowDefinition) {
-          throw new Error(
-            `Could not find flow definition with id ${flowRun.flowDefinitionId}`,
-          );
-        }
 
         const { webId, flowRunId, executedAt, closedAt, status } = flowRun;
 
@@ -405,7 +392,6 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
     });
   }, [
     authenticatedUser,
-    flowDefinitions,
     filteredFlowRuns,
     sort,
     usageByFlowRun,

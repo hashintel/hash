@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { useMemo } from "react";
 
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useFlowRunsContext } from "../shared/flow-runs-context";
@@ -26,7 +26,7 @@ export const GoalsList = () => {
     const webByWebId: Record<string, GoalSummary["web"]> = {};
 
     for (const run of flowRuns) {
-      if (!goalFlowDefinitionIds.includes(run.flowDefinitionId as EntityUuid)) {
+      if (!isGoalFlowDefinitionId(run.flowDefinitionId as EntityUuid)) {
         continue;
       }
 

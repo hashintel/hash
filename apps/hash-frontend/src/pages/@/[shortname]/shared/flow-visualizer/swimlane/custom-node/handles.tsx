@@ -38,12 +38,12 @@ const CustomHandle = ({
   source,
   type,
 }: HandleProps & { offset: number; onClick: () => void } & InputOrOutput) => {
-  const hardcodedValue =
-    source?.kind === "hardcoded" ? source.payload.value : null;
+  const constantValue =
+    source?.kind === "constant" ? source.payload.value : null;
 
   return (
     <Box className="nodrag" sx={{ cursor: "pointer" }}>
-      {!hardcodedValue && (
+      {!constantValue && (
         <BaseHandle
           id={name}
           type={type}
@@ -133,9 +133,9 @@ export const Handles = ({
     });
   }
 
-  if (kind === "parallel-group") {
+  if (kind === "for-each") {
     /**
-     * A parallel group has no action definition, but does have inputSources
+     * A for-each step has no action definition, but does have an input source: the array it iterates over
      */
     for (const source of inputSources) {
       inputs.push({

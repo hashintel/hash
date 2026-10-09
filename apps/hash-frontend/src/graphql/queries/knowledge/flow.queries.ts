@@ -4,15 +4,15 @@ export const startFlowMutation = gql`
   mutation startFlow(
     $dataSources: FlowDataSources
     $flowDefinition: FlowDefinition!
-    $flowTrigger: FlowTrigger!
-    $flowType: FlowTypeDataType!
+    $flowDefinitionId: EntityUuid!
+    $flowInputs: FlowInputValues!
     $webId: WebId!
   ) {
     startFlow(
       dataSources: $dataSources
       flowDefinition: $flowDefinition
-      flowTrigger: $flowTrigger
-      flowType: $flowType
+      flowDefinitionId: $flowDefinitionId
+      flowInputs: $flowInputs
       webId: $webId
     )
   }

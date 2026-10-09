@@ -14,9 +14,7 @@ import type {
   EntityUuid,
   WebId,
 } from "@blockprotocol/type-system";
-import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowRun } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Context } from "@temporalio/activity";
 
@@ -35,9 +33,7 @@ const createDummyFlow = async (params: { actorId: ActorEntityUuid }) => {
 
   const dummyFlowRunProperties = mapFlowRunToEntityProperties({
     name: "dummy-name",
-    trigger: {
-      triggerDefinitionId: "userTrigger",
-    },
+    flowInputs: {},
     flowDefinitionId: generateUuid() as EntityUuid,
     steps: [],
     temporalWorkflowId: generateUuid(),
@@ -136,10 +132,15 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
                   },
                 },
               },
-              flowDefinition: {} as FlowDefinition<AiFlowActionDefinitionId>,
-              flowTrigger: {
-                triggerDefinitionId: "userTrigger",
+              flowDefinition: {
+                name: "dummy-name",
+                description: "A flow with no steps",
+                inputs: [],
+                steps: [],
+                outputs: [],
               },
+              flowDefinitionId: generateUuid() as EntityUuid,
+              flowInputs: {},
               webId: aliceUserAccountId,
               userAuthentication: {
                 actorId: aliceUserAccountId,

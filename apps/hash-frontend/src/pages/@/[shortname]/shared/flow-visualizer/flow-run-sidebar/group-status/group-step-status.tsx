@@ -5,6 +5,7 @@ import {
   CheckRegularIcon,
   CircleEllipsisRegularIcon,
   CloseIcon,
+  ForwardStepSolidIcon,
 } from "@hashintel/design-system";
 
 import { EllipsisRegularIcon } from "../../../../../../../shared/icons/ellipsis-regular-icon";
@@ -54,6 +55,12 @@ export const ErrorIcon = ({ statusFor }: IconProps) => (
   />
 );
 
+export const SkippedIcon = ({ statusFor }: IconProps) => (
+  <ForwardStepSolidIcon
+    sx={{ fill: ({ palette }) => palette.gray[50], ...iconSx[statusFor] }}
+  />
+);
+
 export const InProgressIcon = ({ statusFor }: IconProps) =>
   statusFor === "group" ? (
     <CircularProgress
@@ -79,7 +86,7 @@ export const GroupStepStatus = ({
 }) => {
   const statusForStep = useStatusForStep(stepId);
 
-  if (kind === "parallel-group") {
+  if (kind === "for-each") {
     return null;
   }
 
@@ -98,6 +105,8 @@ export const GroupStepStatus = ({
           <InProgressIcon statusFor="step" />
         ) : simpleStatus === "Complete" ? (
           <SuccessIcon statusFor="step" />
+        ) : simpleStatus === "Skipped" ? (
+          <SkippedIcon statusFor="step" />
         ) : (
           <ErrorIcon statusFor="step" />
         )}

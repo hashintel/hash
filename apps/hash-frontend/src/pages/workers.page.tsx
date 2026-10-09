@@ -7,7 +7,6 @@ import { workerFlowFilterParam } from "@local/hash-isomorphic-utils/flows/fronte
 
 import { getLayoutWithSidebar } from "../shared/layout";
 import { WorkersHeader } from "../shared/workers-header";
-import { FlowDefinitionsContextProvider } from "./shared/flow-definitions-context";
 import { FlowRunsContextProvider } from "./shared/flow-runs-context";
 import { FlowRunTable } from "./workers.page/flow-run-table";
 import { FlowSchedulesTable } from "./workers.page/flow-schedules-table";
@@ -97,11 +96,9 @@ const WorkersPage: NextPageWithLayout = () => {
   );
 
   return (
-    <FlowDefinitionsContextProvider selectedFlowDefinitionId={null}>
-      <FlowRunsContextProvider pagination={pagination} selectedFlowRunId={null}>
-        <WorkersPageContent />
-      </FlowRunsContextProvider>
-    </FlowDefinitionsContextProvider>
+    <FlowRunsContextProvider pagination={pagination} selectedFlowRunId={null}>
+      <WorkersPageContent />
+    </FlowRunsContextProvider>
   );
 };
 

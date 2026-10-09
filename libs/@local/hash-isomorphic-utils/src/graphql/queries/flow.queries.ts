@@ -47,7 +47,8 @@ export const getFlowRunById = gql`
       executedAt
       closedAt
       inputRequests
-      inputs
+      flowInputs
+      dataSources
       outputs
       steps {
         stepId

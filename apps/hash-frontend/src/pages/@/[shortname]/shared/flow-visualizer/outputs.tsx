@@ -9,7 +9,7 @@ import {
 } from "@blockprotocol/type-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
@@ -321,9 +321,7 @@ export const Outputs = ({
 
   const hasClaims =
     !!selectedFlowRun &&
-    goalFlowDefinitionIds.includes(
-      selectedFlowRun.flowDefinitionId as EntityUuid,
-    );
+    isGoalFlowDefinitionId(selectedFlowRun.flowDefinitionId as EntityUuid);
 
   const hasEntities =
     persistedEntitiesMetadata.length > 0 || proposedEntities.length > 0;

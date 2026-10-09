@@ -17,8 +17,8 @@ import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { graphApiClient } from "./graph-api-client.js";
 
 import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
-import type { ManualInferenceTriggerInputName } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import type { ManualInferenceInputName } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
+import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -95,15 +95,12 @@ const getAiWorkflowParams = async (params: {
     );
   }
 
-  const draftTriggerInputNames: (
-    | GoalFlowTriggerInput
-    | ManualInferenceTriggerInputName
-  )[] = ["Create as draft", "draft"];
+  /* Every flow that can create entities as drafts takes the choice as an input named `draft`. */
+  const draftInputName = "draft" satisfies GoalFlowInputName &
+    ManualInferenceInputName;
 
   const createEntitiesAsDraft =
-    !!runFlowWorkflowParams.flowTrigger.outputs?.find((output) =>
-      draftTriggerInputNames.includes(output.outputName as "draft"),
-    )?.payload.value;
+    !!runFlowWorkflowParams.flowInputs[draftInputName]?.value;
 
   const aiParams: AiWorkflowParams = {
     createEntitiesAsDraft,

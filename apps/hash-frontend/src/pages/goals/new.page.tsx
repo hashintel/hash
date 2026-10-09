@@ -20,11 +20,8 @@ import {
 } from "@hashintel/design-system";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import {
-  goalFlowDefinition,
-  goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
-  goalFlowDefinitionWithReportDeliverable,
-  goalFlowDefinitionWithSpreadsheetDeliverable,
-  type GoalFlowTriggerInput,
+  goalFlow,
+  type GoalFlowInputName,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
@@ -53,13 +50,9 @@ import type { NextPageWithLayout } from "../../shared/layout";
 import type { DeliverableSettingsState } from "./new.page/deliverable-settings";
 import type { FileSettingsState } from "./new.page/file-settings";
 import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
-import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { GoogleSheetTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions/google-sheets";
-import type { ReportTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions/markdown-report";
 import type {
   FlowDataSources,
-  FlowDefinition,
-  StepOutput,
+  Payload,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import type { FormEvent, FunctionComponent, PropsWithChildren } from "react";
@@ -244,100 +237,45 @@ const NewGoalPageContent = () => {
       return;
     }
 
-    const triggerOutputs: StepOutput[] = [
-      {
-        outputName: "Create as draft" satisfies GoalFlowTriggerInput,
-        payload: {
-          kind: "Boolean",
-          value: createAsDraft,
-        },
+    const flowInputs: Partial<Record<GoalFlowInputName, Payload>> = {
+      draft: { kind: "Boolean", value: createAsDraft },
+      researchGuidance: { kind: "Text", value: goal },
+      entityTypes: {
+        kind: "VersionedUrl",
+        value: entityTypes.map((entityType) => entityType.schema.$id),
       },
-      {
-        outputName: "Research guidance" satisfies GoalFlowTriggerInput,
-        payload: {
-          kind: "Text",
-          value: goal,
-        },
-      },
-      {
-        outputName: "Entity Types" satisfies GoalFlowTriggerInput,
-        payload: {
-          kind: "VersionedUrl",
-          value: entityTypes.map((entityType) => entityType.schema.$id),
-        },
-      },
-    ];
+    };
 
-    let flowDefinition: FlowDefinition<AiFlowActionDefinitionId> =
-      goalFlowDefinition;
-    if (deliverablesSettings.document && deliverablesSettings.spreadsheet) {
-      if (
-        !deliverablesSettings.document.brief ||
-        !deliverablesSettings.spreadsheet.googleSheet ||
-        !deliverablesSettings.spreadsheet.googleAccountId
-      ) {
-        return;
-      }
-      triggerOutputs.push(
-        {
-          outputName: "Report specification" satisfies ReportTriggerInput,
-          payload: {
-            kind: "Text",
-            value: `Produce a Markdown-formatted report on the following: ${deliverablesSettings.document.brief}`,
-          },
-        },
-        {
-          outputName: "Google Sheet" satisfies GoogleSheetTriggerInput,
-          payload: {
-            kind: "GoogleSheet",
-            value: deliverablesSettings.spreadsheet.googleSheet,
-          },
-        },
-        {
-          outputName: "Google Account" satisfies GoogleSheetTriggerInput,
-          payload: {
-            kind: "GoogleAccountId",
-            value: deliverablesSettings.spreadsheet.googleAccountId,
-          },
-        },
-      );
-      flowDefinition = goalFlowDefinitionWithReportAndSpreadsheetDeliverable;
-    } else if (deliverablesSettings.document) {
+    /*
+     * The goal flow writes each deliverable only when given the inputs it needs.
+     */
+    if (deliverablesSettings.document) {
       if (!deliverablesSettings.document.brief) {
         return;
       }
-      triggerOutputs.push({
-        outputName: "Report specification" satisfies ReportTriggerInput,
-        payload: {
-          kind: "Text",
-          value: `Produce a Markdown-formatted report on the following: ${deliverablesSettings.document.brief}`,
-        },
-      });
-      flowDefinition = goalFlowDefinitionWithReportDeliverable;
-    } else if (deliverablesSettings.spreadsheet) {
+
+      flowInputs.reportSpecification = {
+        kind: "Text",
+        value: `Produce a Markdown-formatted report on the following: ${deliverablesSettings.document.brief}`,
+      };
+    }
+
+    if (deliverablesSettings.spreadsheet) {
       if (
         !deliverablesSettings.spreadsheet.googleSheet ||
         !deliverablesSettings.spreadsheet.googleAccountId
       ) {
         return;
       }
-      triggerOutputs.push(
-        {
-          outputName: "Google Sheet" satisfies GoogleSheetTriggerInput,
-          payload: {
-            kind: "GoogleSheet",
-            value: deliverablesSettings.spreadsheet.googleSheet,
-          },
-        },
-        {
-          outputName: "Google Account" satisfies GoogleSheetTriggerInput,
-          payload: {
-            kind: "GoogleAccountId",
-            value: deliverablesSettings.spreadsheet.googleAccountId,
-          },
-        },
-      );
-      flowDefinition = goalFlowDefinitionWithSpreadsheetDeliverable;
+
+      flowInputs.googleSheet = {
+        kind: "GoogleSheet",
+        value: deliverablesSettings.spreadsheet.googleSheet,
+      };
+      flowInputs.googleAccount = {
+        kind: "GoogleAccountId",
+        value: deliverablesSettings.spreadsheet.googleAccountId,
+      };
     }
 
     const { data } = await startFlow({
@@ -350,12 +288,9 @@ const NewGoalPageContent = () => {
           },
           internetAccess: internetSettings,
         },
-        flowDefinition,
-        flowType: "ai",
-        flowTrigger: {
-          outputs: triggerOutputs,
-          triggerDefinitionId: "userTrigger",
-        },
+        flowDefinition: goalFlow.flowDefinition,
+        flowDefinitionId: goalFlow.flowDefinitionId,
+        flowInputs,
         webId,
       },
     });

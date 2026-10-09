@@ -1,78 +1,58 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useMemo } from "react";
 
 import {
-  automaticBrowserInferenceFlowDefinition,
-  manualBrowserInferenceFlowDefinition,
+  automaticBrowserInferenceFlow,
+  manualBrowserInferenceFlow,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import { inferMetadataFromDocumentFlow } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
 import {
-  answerQuestionFlow,
-  ftseInvestorsFlowDefinition,
-  inferUserEntitiesFromWebPageFlowDefinition,
-  researchEntitiesFlowDefinition,
-  researchTaskFlowDefinition,
-  saveFileFromUrl,
-} from "@local/hash-isomorphic-utils/flows/example-flow-definitions";
-import { inferMetadataFromDocumentFlowDefinition } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
-import { configureDashboardItemFlowDefinition } from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
+  configureDashboardItemFlow,
+  refineDashboardItemFlow,
+} from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
+import { ftseInvestorsFlow } from "@local/hash-isomorphic-utils/flows/ftse-investors-flow-definition";
+import { goalFlow } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import {
-  goalFlowDefinition,
-  goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
-  goalFlowDefinitionWithReportDeliverable,
-  goalFlowDefinitionWithSpreadsheetDeliverable,
-} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import {
-  historicalFlightsFlowDefinition,
-  scheduledFlightsFlowDefinition,
+  historicalFlightsFlow,
+  scheduledFlightsFlow,
 } from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
 
 import type { EntityUuid } from "@blockprotocol/type-system";
-import type {
-  FlowActionDefinitionId,
-  FlowDefinition,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
 
 export type FlowDefinitionsContextType = {
-  flowDefinitions: FlowDefinition<FlowActionDefinitionId>[];
+  /** Every flow defined in code. */
+  flowDefinitions: FlowDefinitionWithId[];
+  loading: boolean;
   selectedFlowDefinitionId: EntityUuid | null;
 };
 
 export const FlowDefinitionsContext =
   createContext<FlowDefinitionsContextType | null>(null);
 
-const exampleFlows: FlowDefinition<FlowActionDefinitionId>[] = [
-  researchTaskFlowDefinition,
-  researchEntitiesFlowDefinition,
-  ftseInvestorsFlowDefinition,
-  inferMetadataFromDocumentFlowDefinition,
-  inferUserEntitiesFromWebPageFlowDefinition,
-  answerQuestionFlow,
-  saveFileFromUrl,
-  manualBrowserInferenceFlowDefinition,
-  automaticBrowserInferenceFlowDefinition,
-  goalFlowDefinition,
-  goalFlowDefinitionWithReportDeliverable,
-  goalFlowDefinitionWithSpreadsheetDeliverable,
-  goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
-  scheduledFlightsFlowDefinition,
-  historicalFlightsFlowDefinition,
-  configureDashboardItemFlowDefinition,
+const flowsDefinedInCode: FlowDefinitionWithId[] = [
+  goalFlow,
+  manualBrowserInferenceFlow,
+  automaticBrowserInferenceFlow,
+  inferMetadataFromDocumentFlow,
+  configureDashboardItemFlow,
+  refineDashboardItemFlow,
+  historicalFlightsFlow,
+  scheduledFlightsFlow,
+  ftseInvestorsFlow,
 ];
 
 export const FlowDefinitionsContextProvider = ({
   children,
   selectedFlowDefinitionId,
 }: PropsWithChildren<{ selectedFlowDefinitionId: EntityUuid | null }>) => {
-  const [flowDefinitions, setFlowDefinitions] =
-    useState<FlowDefinition<FlowActionDefinitionId>[]>(exampleFlows);
-
   const context = useMemo<FlowDefinitionsContextType>(
     () => ({
-      flowDefinitions,
-      setFlowDefinitions,
+      flowDefinitions: flowsDefinedInCode,
+      loading: false,
       selectedFlowDefinitionId,
     }),
-    [flowDefinitions, selectedFlowDefinitionId],
+    [selectedFlowDefinitionId],
   );
 
   return (

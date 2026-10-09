@@ -33,6 +33,13 @@ export const statusSx = {
     lightestBackground: ({ palette }) => palette.gray[10],
     text: ({ palette }) => palette.common.black,
   },
+  Skipped: {
+    borderColor: ({ palette }) => palette.gray[30],
+    darkBackground: ({ palette }) => palette.gray[50],
+    lightBackground: ({ palette }) => palette.gray[20],
+    lightestBackground: ({ palette }) => palette.gray[10],
+    text: ({ palette }) => palette.gray[70],
+  },
   "Information Required": {
     borderColor: ({ palette }) => palette.yellow[40],
     darkBackground: ({ palette }) => palette.yellow[80],
