@@ -72,6 +72,7 @@ Only report observations produced by an actual execution or named stronger analy
 - Relate each observation back to the stated objective it bears on.
 - Preserve failures and counterexamples; do not summarize them as a pass because another run succeeded.
 - Treat a counterexample as evidence about the model first: judge whether it describes plausible operation or an artefact of a simplification before reporting it as either.
+- A value the account makes physically impossible, such as a level above the vessel's depth or a negative stock, shows a mechanism missing from the model. Repair or name it before reporting anything from that run.
 
 No behavioral tool or result means no behavioral claim.
 
