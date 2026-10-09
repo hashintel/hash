@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { toPetrinautId } from "@hashintel/petrinaut-core";
+
 import { loadSdcpnModel } from "./load-model";
 
 const temporaryDirectories: string[] = [];
@@ -62,7 +64,7 @@ describe("loadSdcpnModel", () => {
     await writeFile(path, JSON.stringify(minimalModel));
 
     const sdcpn = await loadSdcpnModel(path);
-    expect(sdcpn.places[0]?.id).toBe("p1");
+    expect(sdcpn.places[0]?.id).toBe(toPetrinautId("p1"));
     expect(sdcpn.transitions[0]?.lambdaCode).toBe("true");
   });
 
@@ -96,7 +98,7 @@ describe("loadSdcpnModel", () => {
     );
 
     const sdcpn = await loadSdcpnModel(path);
-    expect(sdcpn.places[0]?.id).toBe("p1");
+    expect(sdcpn.places[0]?.id).toBe(toPetrinautId("p1"));
     expect(sdcpn.transitions[0]?.lambdaCode).toBe("true");
   });
 });

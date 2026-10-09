@@ -1,8 +1,15 @@
 import { expect, it } from "vitest";
 
+import {
+  canonicalizePetrinautIds,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import { prepareExperiment } from "./prepare-experiment";
+
+/** The SIR example as a document holds it, with its ids converted. */
+const sirDefinition = canonicalizePetrinautIds(sirModel.petriNetDefinition);
 
 it.each(["simulate", "optimize"] as const)(
   "retains selected metric distributions for %s requests",
@@ -31,16 +38,16 @@ it.each(["simulate", "optimize"] as const)(
               }
             : { mode },
       },
-      sirModel.petriNetDefinition,
+      sirDefinition,
       sirModel.title,
     );
     expect(input.runCount).toBe(100_000);
     expect(input.metricSpecs).toEqual([
       {
-        id: "metric__infected_fraction",
-        label: sirModel.petriNetDefinition.metrics![0]!.name,
+        id: toPetrinautId("metric__infected_fraction"),
+        label: sirDefinition.metrics![0]!.name,
         kind: "expression",
-        code: sirModel.petriNetDefinition.metrics![0]!.code,
+        code: sirDefinition.metrics![0]!.code,
         sampleRuns: "all",
         runOutput: { type: "distribution" },
       },
@@ -49,11 +56,11 @@ it.each(["simulate", "optimize"] as const)(
 );
 
 it("selects one scenario and objective from a model with several scenarios and metrics", () => {
-  const definition = structuredClone(sirModel.petriNetDefinition);
+  const definition = structuredClone(sirDefinition);
   definition.metrics = [
     ...(definition.metrics ?? []),
     {
-      id: "population",
+      id: toPetrinautId("population"),
       name: "Population",
       code: "return state.places.Susceptible.count;",
     },
@@ -84,15 +91,15 @@ it("selects one scenario and objective from a model with several scenarios and m
   );
 
   expect(input.metricSpecs.map((metric) => metric.id)).toEqual([
-    "metric__infected_fraction",
-    "population",
+    toPetrinautId("metric__infected_fraction"),
+    toPetrinautId("population"),
   ]);
   expect(
     optimization?.model.definition.scenarios?.map((scenario) => scenario.id),
-  ).toEqual(["scenario__seasonal_flu"]);
+  ).toEqual([toPetrinautId("scenario__seasonal_flu")]);
   expect(
     optimization?.model.definition.metrics?.map((metric) => metric.id),
-  ).toEqual(["metric__infected_fraction"]);
+  ).toEqual([toPetrinautId("metric__infected_fraction")]);
   expect(definition.scenarios).toHaveLength(4);
   expect(definition.metrics).toHaveLength(2);
 });

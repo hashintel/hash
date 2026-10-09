@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   arcEndpointSchema,
   arcDirectionSchema,
+  arcIdSchema,
   colorElementSchema,
   colorSchema,
   componentInstanceSchema,
@@ -14,7 +15,6 @@ import {
   parameterSchema,
   placeSchema,
   positionSchema,
-  subnetIdSchema,
   subnetSchema,
   transitionSchema,
 } from "./schemas/entity-schemas";
@@ -140,7 +140,7 @@ export const subnetUpdateSchema = subnetSchema
       "Fields to assign to an existing subnet. Omitted fields are left unchanged.",
   });
 
-const targetSubnetIdSchema = subnetIdSchema.nullable().optional().meta({
+const targetSubnetIdSchema = idSchema.nullable().optional().meta({
   description:
     "Optional ID of the subnet to mutate. Omit or pass null to mutate the root net.",
 });
@@ -221,7 +221,7 @@ export const itemTypeAndIdSchema = z
   .discriminatedUnion("type", [
     z.strictObject({ type: z.literal("place"), id: idSchema }),
     z.strictObject({ type: z.literal("transition"), id: idSchema }),
-    z.strictObject({ type: z.literal("arc"), id: idSchema }),
+    z.strictObject({ type: z.literal("arc"), id: arcIdSchema }),
     z.strictObject({ type: z.literal("componentInstance"), id: idSchema }),
     z.strictObject({ type: z.literal("type"), id: idSchema }),
     z.strictObject({ type: z.literal("differentialEquation"), id: idSchema }),
@@ -487,11 +487,11 @@ export const mutationActionInputSchemas = {
   }),
   updateSubnet: z
     .strictObject({
-      subnetId: subnetIdSchema,
+      subnetId: idSchema,
       update: subnetUpdateSchema,
     })
     .meta({ description: "Update fields on an existing subnet." }),
-  removeSubnet: z.strictObject({ subnetId: subnetIdSchema }).meta({
+  removeSubnet: z.strictObject({ subnetId: idSchema }).meta({
     description:
       "Remove a subnet definition and component instances that reference it.",
   }),

@@ -109,8 +109,15 @@ proper.
 - **`id` is a lowercase UUID.** Derive one from a legacy key with
   `toPetrinautId`, which maps the same key to the same UUID every time, or
   mint one with `generatePetrinautId`. `createJsonDocHandle` converts any other
-  id it is given, so its `handle.id` may differ from `opts.id`. Subnet ids
-  follow the same rule and are converted when a document loads.
+  id it is given, so its `handle.id` may differ from `opts.id`.
+- **Entity ids are lowercase UUIDs too.** This covers places, transitions,
+  types, type elements, parameters, equations, scenarios, metrics, component
+  instances and subnets, and every reference to them. `normalizeSDCPN` and
+  `createJsonDocHandle` convert other ids with `canonicalizePetrinautIds`,
+  which returns the same object when every id is already a UUID. A custom
+  handle converts its document the same way before `doc()` returns it.
+  Mutations, commands and assistant tools convert the ids they receive, so a
+  document that keeps older ids misses those lookups.
 - **`subscribe` returns an unsubscribe function** and tolerates it being
   called after disposal.
 
@@ -175,13 +182,15 @@ for a plain place. `endpoint` is the explicit form and is required for
 component ports: `{ kind: "place", placeId }` or
 `{ kind: "componentPort", componentInstanceId, portPlaceId }`.
 
-`normalizeSDCPN()` fills defaults and checks nothing: an arc naming a missing
+`normalizeSDCPN()` fills defaults and converts ids, and checks nothing else: an arc naming a missing
 place, a duplicate id, or a non-finite weight passes through and fails later,
 inside the simulation engine. The file-import path
 (`parseSDCPNFile`) validates; the handle path does not. See
 [Contract gaps](doc:handle/contract-gaps#validation-and-versioning).
 
-The reverse mapping is host-specific:
+The reverse mapping is host-specific. It receives converted ids: store them
+as the host's keys, as below, or translate them back through a lookup from
+`toPetrinautId(hostKey)` to `hostKey`:
 
 ```ts
 import type { SDCPN } from "@hashintel/petrinaut-core";

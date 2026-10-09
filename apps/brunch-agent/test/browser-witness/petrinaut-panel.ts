@@ -12,7 +12,11 @@ import {
 } from "@earendil-works/pi-ai";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
-import { toPetrinautId, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  canonicalizePetrinautIds,
+  toPetrinautId,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
 import {
   isAppliedChange,
@@ -183,7 +187,7 @@ const canonicalConstruction = async () => {
     (after.output as { definition: SDCPN }).definition.places.map(
       ({ id }) => id,
     ),
-    ["store"],
+    [toPetrinautId("store")],
   );
   const stored = await fixture.storedDocument<{ sdcpn: SDCPN }>(
     page,
@@ -192,7 +196,7 @@ const canonicalConstruction = async () => {
   assert(stored);
   assert.deepEqual(
     stored.sdcpn.differentialEquations.map(({ id, code }) => ({ id, code })),
-    [{ id: "decay", code: repairedCode }],
+    [{ id: toPetrinautId("decay"), code: repairedCode }],
   );
 };
 
@@ -243,7 +247,8 @@ const directExperiment = async () => {
     sdcpn: SDCPN;
   }>(page, binding.documentId);
   assert.equal(stored?.revisionId, `${experimentNetId}-revision`);
-  assert.deepEqual(stored.sdcpn, experimentNet);
+  // The website stores the net with its ids converted.
+  assert.deepEqual(stored.sdcpn, canonicalizePetrinautIds(experimentNet));
 };
 
 /** A drafted experiment reaches the real card, and Dismiss stays in the browser. */

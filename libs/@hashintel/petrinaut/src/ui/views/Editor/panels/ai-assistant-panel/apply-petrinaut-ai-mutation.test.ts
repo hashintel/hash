@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   createJsonDocHandle,
   createPetrinaut,
+  toPetrinautId,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
@@ -68,7 +69,10 @@ describe("executePetrinautAiMutation", () => {
     ).toEqual({
       applied: true,
       title: "Added place Queue",
-      target: { kind: "selection", item: { type: "place", id: "queue" } },
+      target: {
+        kind: "selection",
+        item: { type: "place", id: toPetrinautId("queue") },
+      },
     });
     const addArcCall = {
       toolName: "addArc" as const,
@@ -309,7 +313,7 @@ describe("applyPetrinautAiMutation", () => {
       reason: "Added input arc left the document unchanged.",
     });
     expect(instance.definition.get().transitions[0]?.inputArcs).toEqual([
-      expect.objectContaining({ placeId: "crew", weight: 1 }),
+      expect.objectContaining({ placeId: toPetrinautId("crew"), weight: 1 }),
     ]);
 
     instance.dispose();
@@ -338,7 +342,7 @@ describe("applyPetrinautAiMutation", () => {
         },
         instance,
       }),
-    ).toThrow(/missing-place/u);
+    ).toThrow("`missing-place`");
     expect(instance.definition.get().transitions[0]?.inputArcs).toEqual([]);
 
     instance.dispose();

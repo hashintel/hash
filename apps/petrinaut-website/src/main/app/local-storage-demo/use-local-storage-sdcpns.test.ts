@@ -5,6 +5,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 
 import {
+  canonicalizePetrinautIds,
   isPetrinautId,
   toPetrinautId,
   type SDCPN,
@@ -307,6 +308,8 @@ describe("legacy net ids", () => {
 
     renderHook(() => useLocalStorageSDCPNs());
 
-    expect(readNets(localStorage)[netId]?.sdcpn).toStrictEqual(drawnNet);
+    expect(readNets(localStorage)[netId]?.sdcpn).toStrictEqual(
+      canonicalizePetrinautIds(drawnNet),
+    );
   });
 });

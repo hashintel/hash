@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { canonicalizePetrinautIds } from "../petrinaut-id";
 import {
   colorElementSchema as currentColorElementSchema,
   colorSchema as currentColorSchema,
@@ -71,18 +72,29 @@ const parameterSchema = z.object({
   name: z.string(),
 });
 
-export const clipboardPayloadSchema = z.object({
-  format: z.literal("petrinaut-sdcpn"),
-  version: z.number().int().min(1).max(CLIPBOARD_FORMAT_VERSION),
-  documentId: z.string().nullable(),
-  data: z.object({
-    places: z.array(placeSchema),
-    transitions: z.array(transitionSchema),
-    types: z.array(colorSchema),
-    differentialEquations: z.array(differentialEquationSchema),
-    parameters: z.array(parameterSchema),
-  }),
-});
+/*
+ * The entity schemas above keep their ids as written, while the reference
+ * fields they inherit convert. The payload-level overwrite then converts every
+ * id and reference together, so paste resolves references against the same
+ * ids as a document would.
+ */
+export const clipboardPayloadSchema = z
+  .object({
+    format: z.literal("petrinaut-sdcpn"),
+    version: z.number().int().min(1).max(CLIPBOARD_FORMAT_VERSION),
+    documentId: z.string().nullable(),
+    data: z.object({
+      places: z.array(placeSchema),
+      transitions: z.array(transitionSchema),
+      types: z.array(colorSchema),
+      differentialEquations: z.array(differentialEquationSchema),
+      parameters: z.array(parameterSchema),
+    }),
+  })
+  .overwrite((payload) => ({
+    ...payload,
+    data: canonicalizePetrinautIds(payload.data),
+  }));
 
 /**
  * The clipboard payload format for petrinaut copy/paste.

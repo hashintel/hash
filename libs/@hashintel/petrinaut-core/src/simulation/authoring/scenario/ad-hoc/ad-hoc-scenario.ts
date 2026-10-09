@@ -43,6 +43,7 @@
  * values don't use `i`/`count` are legal there.
  */
 
+import { toPetrinautId } from "../../../../petrinaut-id";
 import { isDangerousRecordKey } from "../../../../validation/record-keys";
 import { runSandboxed, SHADOWED_GLOBALS } from "../../sandbox";
 import { range } from "../helpers";
@@ -2102,7 +2103,7 @@ function synthesize(
   }
 
   const scenario: Scenario = {
-    id: "adhoc-scenario",
+    id: toPetrinautId("adhoc-scenario"),
     name: "Ad-hoc scenario",
     scenarioParameters,
     parameterOverrides,

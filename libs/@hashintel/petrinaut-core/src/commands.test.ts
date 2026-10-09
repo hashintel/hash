@@ -6,6 +6,7 @@ import {
 } from "./clipboard/types";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
+import { toPetrinautId } from "./petrinaut-id";
 
 import type { SDCPN } from "./types/sdcpn";
 
@@ -64,6 +65,45 @@ describe("applyClipboardPaste", () => {
     expect(pastedPlace).toBeDefined();
     expect(instance.definition.get().places).toHaveLength(1);
     expect(instance.definition.get().places[0]!.id).toBe(pastedPlace!.id);
+  });
+
+  test("pastes a payload written with legacy ids with its arcs intact", () => {
+    const instance = createInstance();
+
+    const payload = buildClipboardPayload({
+      places: [
+        {
+          id: "place__queue",
+          name: "Queue",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "transition__serve",
+          name: "Serve",
+          inputArcs: [{ placeId: "place__queue", weight: 2, type: "standard" }],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "",
+          transitionKernelCode: "",
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+
+    instance.commands.applyClipboardPaste({ payload });
+
+    const [place] = instance.definition.get().places;
+    const [transition] = instance.definition.get().transitions;
+    expect(transition?.inputArcs).toEqual([
+      { placeId: place?.id, weight: 2, type: "standard" },
+    ]);
   });
 
   test("strips pasted items for disabled extensions", () => {
@@ -250,10 +290,9 @@ describe("applyAutoLayout", () => {
 
     expect(commitCount).toBeGreaterThan(0);
     const places = instance.definition.get().places;
-    expect(places.map((place) => place.id).sort()).toEqual([
-      "place-1",
-      "place-2",
-    ]);
+    expect(places.map((place) => place.id).sort()).toEqual(
+      [toPetrinautId("place-1"), toPetrinautId("place-2")].sort(),
+    );
     expect(places.some((place) => place.x !== 0 || place.y !== 0)).toBe(true);
   });
 
