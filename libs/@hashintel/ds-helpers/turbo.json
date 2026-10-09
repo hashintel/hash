@@ -30,6 +30,11 @@
       // `styled-system/**` is the only publishable artifact this package needs
       // to regenerate before `yarn pack`/`yarn npm publish`.
       "outputs": ["styled-system/**"]
+    },
+    // The package has no build, so the payload check waits on the generated
+    // artifact instead.
+    "build:pack": {
+      "dependsOn": ["codegen"]
     }
   }
 }

@@ -89,10 +89,11 @@
   },
   "scripts": {
     "build": "vite build && node scripts/check-browser-safe-entries.mjs",
+    "build:pack": "node ../../../scripts/check-package-payload.mjs",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
-    "prepack": "turbo run build && node ../../../scripts/check-package-payload.mjs",
+    "prepack": "turbo run build:pack",
     "test:unit": "vitest"
   },
   "dependencies": {

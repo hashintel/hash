@@ -16,6 +16,12 @@
         "@local/petrinaut-optimizer-client#build"
       ]
     },
+    "build:pack": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
     "dev": {
       "dependsOn": [
         "@hashintel/ds-components#build",

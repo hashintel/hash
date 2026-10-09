@@ -40,13 +40,14 @@
   },
   "scripts": {
     "build": "yarn clean && rollup -c --bundleConfigAsCjs",
+    "build:pack": "node ../../../../scripts/check-package-payload.mjs",
     "clean": "rimraf ./dist/",
     "codegen": "node scripts/copy-generated.ts",
     "compressed-size": "yarn build && find dist -iname '*.js' -exec npx terser@latest --compress --mangle --output {} -- {} \\;",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit && tsc --noEmit --project tsconfig.generated.json",
-    "prepack": "turbo run build && node ../../../../scripts/check-package-payload.mjs",
+    "prepack": "turbo run build:pack",
     "test:unit": "vitest --run"
   },
   "dependencies": {
