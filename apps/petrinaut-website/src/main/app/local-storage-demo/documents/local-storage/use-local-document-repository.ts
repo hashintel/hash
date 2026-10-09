@@ -1,12 +1,8 @@
 import { castDraft, produce } from "immer";
-import { useCallback, useEffect, useMemo, useState } from "react";
-
-import { generatePetrinautId } from "@hashintel/petrinaut-core";
+import { useCallback, useMemo } from "react";
 
 import {
   createLocalStorageNetRecord,
-  emptySDCPN,
-  isEmptySDCPN,
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "../../use-local-storage-sdcpns";
@@ -26,13 +22,6 @@ export interface LocalDocumentRepositoryAdapter {
   ) => void;
 }
 
-const mostRecentDocumentId = (documents: StoredDocuments): string | undefined =>
-  Object.values(documents).toSorted(
-    (leftDocument, rightDocument) =>
-      new Date(rightDocument.lastUpdated).getTime() -
-      new Date(leftDocument.lastUpdated).getTime(),
-  )[0]?.id;
-
 const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
   return {
     documentId: stored.id,
@@ -43,63 +32,25 @@ const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
   };
 };
 
-const createDefaultDocument = (): SDCPNInLocalStorage => ({
-  id: generatePetrinautId(),
-  title: "New Process",
-  sdcpn: emptySDCPN,
-  lastUpdated: new Date(0).toISOString(),
-  revisionId: crypto.randomUUID(),
-});
-
 export const useLocalDocumentRepository = (input: {
-  readonly onOpen: () => void;
+  /** The open document. The host owns the choice, usually through the URL. */
+  readonly documentId: string;
+  /** Asks the host to open another document, by passing it back as `documentId`. */
+  readonly onOpen: (documentId: string) => void;
 }): LocalDocumentRepositoryAdapter => {
-  const { onOpen } = input;
+  const { documentId: currentDocumentId, onOpen } = input;
   const {
     ready: storageReady,
     storedSDCPNs,
     setStoredSDCPNs,
   } = useLocalStorageSDCPNs();
-  const [defaultDocument] = useState(createDefaultDocument);
-  const documents = useMemo(
-    () =>
-      storageReady && Object.keys(storedSDCPNs).length === 0
-        ? { [defaultDocument.id]: defaultDocument }
-        : storedSDCPNs,
-    [defaultDocument, storageReady, storedSDCPNs],
-  );
-  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
-    null,
-  );
-  if (storageReady && currentDocumentId === null) {
-    const initialDocumentId = mostRecentDocumentId(documents);
-    if (initialDocumentId !== undefined)
-      setCurrentDocumentId(initialDocumentId);
-  }
 
   const records = useMemo(
-    () => Object.values(documents).map((stored) => toDocumentRecord(stored)),
-    [documents],
+    () => Object.values(storedSDCPNs).map((stored) => toDocumentRecord(stored)),
+    [storedSDCPNs],
   );
   const current =
-    records.find(({ documentId }) => documentId === currentDocumentId) ??
-    records[0] ??
-    null;
-
-  useEffect(() => {
-    if (current === null) return;
-    const stored = storedSDCPNs[current.documentId];
-    if (stored?.revisionId === current.revisionId) {
-      return;
-    }
-    setStoredSDCPNs((previous) => ({
-      ...previous,
-      [current.documentId]: {
-        ...(previous[current.documentId] ?? defaultDocument),
-        revisionId: current.revisionId,
-      },
-    }));
-  }, [current, defaultDocument, setStoredSDCPNs, storedSDCPNs]);
+    records.find(({ documentId }) => documentId === currentDocumentId) ?? null;
 
   const updateStoredDocuments = useCallback(
     (update: (previous: StoredDocuments) => StoredDocuments) => {
@@ -108,41 +59,11 @@ export const useLocalDocumentRepository = (input: {
     [setStoredSDCPNs],
   );
 
-  const removeEmptyCurrentDocument = useCallback(
-    (nextDocumentId: string) => {
-      if (
-        current === null ||
-        current.documentId === nextDocumentId ||
-        !isEmptySDCPN(current.definition)
-      ) {
-        return;
-      }
-      setStoredSDCPNs((previous) => {
-        const stored = previous[current.documentId];
-        if (stored === undefined || !isEmptySDCPN(stored.sdcpn))
-          return previous;
-        const next = { ...previous };
-        delete next[current.documentId];
-        return next;
-      });
-    },
-    [current, setStoredSDCPNs],
-  );
-
   const open = useCallback(
     (documentId: string) => {
-      if (!documents[documentId]) return;
-      removeEmptyCurrentDocument(documentId);
-      if (documentId !== currentDocumentId) onOpen();
-      setCurrentDocumentId(documentId);
+      if (documentId !== currentDocumentId) onOpen(documentId);
     },
-    [
-      currentDocumentId,
-      documents,
-      onOpen,
-      removeEmptyCurrentDocument,
-      setCurrentDocumentId,
-    ],
+    [currentDocumentId, onOpen],
   );
 
   const create = useCallback(
@@ -157,13 +78,10 @@ export const useLocalDocumentRepository = (input: {
         petriNetDefinition: definition,
         title,
       });
-      removeEmptyCurrentDocument(stored.id);
       setStoredSDCPNs((previous) => ({ ...previous, [stored.id]: stored }));
-      setCurrentDocumentId(stored.id);
-      onOpen();
       return toDocumentRecord(stored);
     },
-    [onOpen, removeEmptyCurrentDocument, setCurrentDocumentId, setStoredSDCPNs],
+    [setStoredSDCPNs],
   );
 
   const rename = useCallback(
@@ -197,8 +115,7 @@ export const useLocalDocumentRepository = (input: {
       // overwrite the other tab's work.
       const refusal: { error: Error | null } = { error: null };
       setStoredSDCPNs((previous) => {
-        const stored =
-          previous[change.documentId] ?? documents[change.documentId];
+        const stored = previous[change.documentId];
         if (stored === undefined) {
           refusal.error = new Error(
             `Local document ${change.documentId} is not available.`,
@@ -206,7 +123,7 @@ export const useLocalDocumentRepository = (input: {
           return previous;
         }
         // A stored entry without a revision takes the one its record was
-        // given until the mirroring effect stamps it.
+        // given.
         const record = records.find(
           ({ documentId }) => documentId === change.documentId,
         );
@@ -229,7 +146,7 @@ export const useLocalDocumentRepository = (input: {
       });
       if (refusal.error !== null) throw refusal.error;
     },
-    [documents, records, setStoredSDCPNs],
+    [records, setStoredSDCPNs],
   );
 
   const repository = useMemo<DocumentRepository>(

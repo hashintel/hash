@@ -55,14 +55,30 @@ const storedNets = (): SDCPNInLocalStorage[] =>
 describe("/new", () => {
   beforeEach(stubStorage);
 
-  test("redirects to the editor without adding a history entry", () => {
+  test("redirects to the new net's URL without adding a history entry", () => {
     const thrown = visit();
 
     expect(isRedirect(thrown)).toBe(true);
-    expect(thrown).toMatchObject({ options: { to: "/", replace: true } });
+    expect(thrown).toMatchObject({
+      options: {
+        to: "/local/$netId",
+        params: { netId: storedNets()[0]?.id },
+        replace: true,
+      },
+    });
   });
 
-  test("leaves one empty net for the editor to open", () => {
+  test("throws the storage failure instead of redirecting to an unsaved net", () => {
+    const failure = new DOMException("Storage full", "QuotaExceededError");
+    localStorage.setItem = () => {
+      throw failure;
+    };
+
+    expect(visit()).toBe(failure);
+    expect(storedNets()).toEqual([]);
+  });
+
+  test("saves one empty net for the editor to open", () => {
     visit();
 
     const nets = storedNets();
@@ -71,10 +87,10 @@ describe("/new", () => {
     expect(nets[0]?.sdcpn.places).toStrictEqual([]);
   });
 
-  test("adds no second empty net when visited again", () => {
+  test("starts a separate net on each visit", () => {
     visit();
     visit();
 
-    expect(storedNets()).toHaveLength(1);
+    expect(storedNets()).toHaveLength(2);
   });
 });

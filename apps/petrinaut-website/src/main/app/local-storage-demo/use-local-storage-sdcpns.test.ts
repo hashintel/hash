@@ -13,6 +13,8 @@ import {
 import {
   createLocalStorageNetRecord,
   emptySDCPN,
+  latestOrNewNetInStorage,
+  saveNetInStorage,
   type SDCPNInLocalStorage,
   startEmptyNetInStorage,
   useLocalStorageSDCPNs,
@@ -110,11 +112,12 @@ describe("startEmptyNetInStorage", () => {
     );
   });
 
-  test("drops the empty nets an earlier visit left behind", () => {
+  test("keeps the empty nets an earlier visit left behind, so their links still open", () => {
+    const emptyId = toPetrinautId("net-empty");
     const storage = createStorage(
       JSON.stringify(
         Object.fromEntries([
-          storedNet("net-empty", emptySDCPN),
+          storedNet(emptyId, emptySDCPN),
           storedNet(drawnNetId, drawnNet),
         ]),
       ),
@@ -123,8 +126,18 @@ describe("startEmptyNetInStorage", () => {
     const net = startEmptyNetInStorage(storage);
 
     expect(Object.keys(readNets(storage)).sort()).toStrictEqual(
-      [drawnNetId, net.id].sort(),
+      [drawnNetId, emptyId, net.id].sort(),
     );
+  });
+
+  test("gives each new net its own id", () => {
+    const storage = createStorage();
+
+    const first = startEmptyNetInStorage(storage);
+    const second = startEmptyNetInStorage(storage);
+
+    expect(first.id).not.toBe(second.id);
+    expect(Object.keys(readNets(storage))).toHaveLength(2);
   });
 
   test("opens the new net, which is the most recently modified one", () => {
@@ -185,6 +198,50 @@ describe("startEmptyNetInStorage", () => {
     const net = startEmptyNetInStorage(storage);
 
     expect(readNets(storage)).toStrictEqual({ [net.id]: net });
+  });
+});
+
+describe("saveNetInStorage", () => {
+  test("throws when the browser refuses the write, leaving storage as it was", () => {
+    const storage = createStorage();
+    const failure = new DOMException("Storage full", "QuotaExceededError");
+    storage.setItem = () => {
+      throw failure;
+    };
+
+    expect(() =>
+      saveNetInStorage(storage, {
+        petriNetDefinition: drawnNet,
+        title: "Copy",
+      }),
+    ).toThrow(failure);
+    expect(storage.getItem(rootLocalStorageKey)).toBeNull();
+  });
+});
+
+describe("latestOrNewNetInStorage", () => {
+  test("returns the most recently edited net without writing another", () => {
+    const olderId = toPetrinautId("net-older");
+    const storage = createStorage(
+      JSON.stringify(
+        Object.fromEntries([
+          storedNet(olderId, drawnNet, new Date(0).toISOString()),
+          storedNet(drawnNetId, drawnNet, new Date(1_000).toISOString()),
+        ]),
+      ),
+    );
+
+    expect(latestOrNewNetInStorage(storage).id).toBe(drawnNetId);
+    expect(Object.keys(readNets(storage))).toHaveLength(2);
+  });
+
+  test("starts an empty net when the browser holds none", () => {
+    const storage = createStorage();
+
+    const net = latestOrNewNetInStorage(storage);
+
+    expect(readNets(storage)).toStrictEqual({ [net.id]: net });
+    expect(net.sdcpn).toStrictEqual(emptySDCPN);
   });
 });
 

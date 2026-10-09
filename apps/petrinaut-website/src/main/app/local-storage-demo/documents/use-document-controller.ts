@@ -5,11 +5,13 @@ import { useLocalDocumentRepository } from "./local-storage/use-local-document-r
 import type { DocumentController } from "./document-repository";
 
 export const useDocumentController = (input: {
-  readonly onOpenDocument: () => void;
+  readonly documentId: string;
+  readonly onOpenDocument: (documentId: string) => void;
 }): {
   readonly controller: DocumentController;
 } => {
   const { repository } = useLocalDocumentRepository({
+    documentId: input.documentId,
     onOpen: input.onOpenDocument,
   });
   const createAndOpen = useCallback<DocumentController["createAndOpen"]>(

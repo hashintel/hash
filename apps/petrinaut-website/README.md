@@ -36,17 +36,25 @@ drawing order and manual progress. Math, code, and AI studies offer paired
 alternatives. The page uses the same Petricon
 renderer as the editor.
 
-## Starting a new net
+## Local document URLs
 
-`/new` creates an empty net in local storage and redirects to the editable demo,
-which opens the most recently modified net. The redirect replaces, so a reload
-cannot make a second net and Back skips the route. Empty nets earlier visits
-left behind are dropped, matching the editor's own rule when a visitor switches
-away from an untouched net.
+`/local/<net id>` opens a net saved in this browser's local storage. The net id
+is the document's Petrinaut id, so the URL needs no separate key. Opening another
+net pushes its URL, and Back and Forward reopen the net each entry names. A net
+the browser does not hold shows "Local document not found".
 
-The editor chooses the initial document after saved nets load. Open tabs refresh
-their saved nets and stock-assistant messages when local storage changes, and
-updates start from the latest persisted value so another tab's documents survive.
+`/` redirects to the most recently edited net, saving an empty one for a new
+visitor. `/new` saves an empty net and redirects to its URL. Both redirects
+replace, so Back skips them, and both show an error page instead of redirecting
+when the browser refuses the write. Empty nets stay saved when the visitor
+switches away, so their URLs keep working.
+
+Published `/examples/<slug>` pages offer **Make a local copy**, which saves an
+editable copy and opens its local URL with the current view.
+
+Open tabs refresh their saved nets and stock-assistant messages when local
+storage changes, and updates start from the latest persisted value so another
+tab's documents survive.
 
 ## Choosing the assistant
 
