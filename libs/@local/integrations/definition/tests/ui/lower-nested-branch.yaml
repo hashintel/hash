@@ -1,0 +1,14 @@
+# A branch cannot contain another branch.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: fan-out
+          branches:
+            - - id: inner
+                branches: []

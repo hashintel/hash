@@ -1,0 +1,12 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/syntax-unquoted-number.yaml
+---
+16:15: error: line 16 column 15: invalid type: integer `2024`, expected a column name or an accessor mapping
+  --> <input>:16:15
+   |
+14 |             entityId: id
+15 |             properties:
+16 |               https://example.com/@demo/types/property-type/year/v/1: 2024
+   |               ^ invalid type: integer `2024`, expected a column name or an accessor mapping

@@ -1,0 +1,18 @@
+# An issue with a property is reported at its key, even when the URL prints differently.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id, 3 AS amount, 'KG' AS unit
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: sink-orders
+          sink:
+            entityType: https://example.com/@demo/types/entity-type/order/v/1
+            entityId: id
+            properties:
+              https://example.com/@demo/types/property-type/id/v/1: id
+              https://example.com/@demo/types/property-type/amount/v/01:
+                { amount: amount, unit: unit, unitMap: masses }

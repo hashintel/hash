@@ -1,0 +1,24 @@
+# Two versions of one property type are reported at the key written later, in either order.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id, 'Ada' AS name
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: sink-orders
+          sink:
+            entityType: https://example.com/@demo/types/entity-type/order/v/1
+            entityId: id
+            properties:
+              https://example.com/@demo/types/property-type/name/v/2: name
+              https://example.com/@demo/types/property-type/name/v/01: name
+        - id: sink-labels
+          sink:
+            entityType: https://example.com/@demo/types/entity-type/order/v/1
+            entityId: id
+            properties:
+              https://example.com/@demo/types/property-type/label/v/1: name
+              https://example.com/@demo/types/property-type/label/v/2: name
