@@ -137,9 +137,15 @@ export const vEntityKind = v.pipe(
         "Output: an effect on something outside the model, e.g. 'downstream congestion', 'neighbourhood noise'. Claims describe the effect and who or what it affects.",
       ),
     ),
+    v.pipe(
+      v.literal("case"),
+      v.description(
+        "Case: one particular occurrence a run of the model should be able to reproduce, such as an incident behind the purpose or a typical day, e.g. 'the 2 July overflow', 'last Monday's backlog'. Claims describe when it happened, the conditions it started from, what was observed in order and when, how it ended, and the source (a log, a trend, memory). A kind of happening that recurs is an event.",
+      ),
+    ),
   ]),
   v.description(
-    "What the entity is, not the role a claim gives it. Each kind opens with its stage relative to a run: framing (why the model exists, and the session's appetite), scope (its time span and edges), input (set before a run), system (how the operation behaves during a run) or output (what a run produces and how it is judged). Any kind can occur more than once.",
+    "What the entity is, not the role a claim gives it. Each kind opens with its stage relative to a run: framing (why the model exists, and the session's appetite), scope (its time span and edges), input (set before a run), system (how the operation behaves during a run), output (what a run produces and how it is judged) or case (an occurrence a run should reproduce). Any kind can occur more than once.",
   ),
 );
 
@@ -164,6 +170,7 @@ export const entityStages = [
   "input",
   "system",
   "output",
+  "case",
 ] as const;
 
 export type EntityStage = (typeof entityStages)[number];
@@ -191,6 +198,7 @@ export const entityKindStages = {
   target: "output",
   threshold: "output",
   externality: "output",
+  case: "case",
 } as const satisfies Record<EntityKind, EntityStage>;
 
 export const EntityKindSchema = toJsonSchema(vEntityKind);

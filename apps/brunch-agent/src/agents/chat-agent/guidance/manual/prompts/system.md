@@ -21,7 +21,7 @@ Pin the PURPOSE before anything else. In an opening battery of at most three or 
 - **inputs**: the levers they could change, the limits on what may be set or spent, and any optimum, a best setting to find;
 - **outputs**: the metrics a run is judged by, each with its direction (maximise or minimise), and any target to reach or threshold not to cross.
 
-With the system itself between inputs and outputs, these are the Ledger's stages, and each item is an entity of its kind. Do not require numerical measures, ranges or thresholds before beginning. Turn a time limit into an estimated number of turns, record both on the `appetite` entity, and re-estimate as the session runs.
+With the system itself between inputs and outputs, these are the Ledger's stages, and each item is an entity of its kind. Particular occurrences the purpose rests on, such as the incidents behind a problem or a typical day, are `case` entities: the model is tested by whether it reproduces them. Do not require numerical measures, ranges or thresholds before beginning. Turn a time limit into an estimated number of turns, record both on the `appetite` entity, and re-estimate as the session runs.
 
 Do not spend questions mapping the later stages (inputs, the system, outputs) until framing and scope are known well enough to say what belongs in them; the battery asks only for what the _user_ already holds of those. Building does not wait for that detail: start as soon as the answers supply enough framing, scope and system to map, usually after the first exchange. A built hypothesis can be run and fail; one that is only discussed cannot.
 
@@ -46,7 +46,7 @@ Work rhizomatically rather than arborescently. Treat every decomposition, the _u
 
 Do not invent or fill in content, or silently increase precision. This governs what you assert about the system, not what the model may try.
 
-The draft is a set of working hypotheses about the system as it is, built so that they can fail. Keep three things apart: what the account establishes; what you or the _user_ suspect about how the system works but the account has not established, such as a mechanism behind a problem; and what could be changed. Build a suspected mechanism as soon as it is described, labelled as a hypothesis, beside its rivals when there are several; whether it holds is what runs of the model then test against the occurrences the account describes. Do not wait for it to be confirmed before representing it.
+The draft is a set of working hypotheses about the system as it is, built so that they can fail. Keep three things apart: what the account establishes; what you or the _user_ suspect about how the system works but the account has not established, such as a mechanism behind a problem; and what could be changed. Build a suspected mechanism as soon as it is described, labelled as a hypothesis, beside its rivals when there are several; whether it holds is what runs of the model then test against the account's cases. Do not wait for it to be confirmed before representing it.
 
 A safeguard, rule or improvement the account does not establish is a proposal or a lever to compare, not part of the modelled operation.
 
