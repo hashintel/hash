@@ -55,7 +55,10 @@ export const NotificationsProvider = ({
 
   useEffect(() => {
     return () => {
-      notificationsToaster.dismiss();
+      // Removed rather than dismissed: a dismissal animates out through each
+      // toast's own machine, which unmounts with this editor, so the shared
+      // store would hand the toast to the next editor on the page.
+      notificationsToaster.remove();
     };
   }, []);
 
