@@ -2,6 +2,7 @@ import {
   createFlueChatTransport,
   type FlueChatTransportOptions,
 } from "./chat-transport";
+import { notifyObserver } from "./notify-observer";
 import { snapshotToUiMessages, type FlueHistory } from "./transcript";
 
 import type { MetadataProjection } from "./metadata-projection";
@@ -42,7 +43,8 @@ export type FlueAiSdkAdapterConfig<UiMessage extends UIMessage> =
       /**
        * Reports a stored message `reopen` kept without its metadata, because
        * the schema refused it. Each adapter reports a message once, however
-       * often its history is reopened.
+       * often its history is reopened, after `reopen` has returned, so a
+       * render that reopens history never reports from inside itself.
        */
       readonly onInvalidReopenedMetadata?: (
         invalid: InvalidReopenedMetadata,
@@ -137,10 +139,10 @@ export const createFlueAiSdkAdapter = <UiMessage extends UIMessage = UIMessage>(
         if ("value" in checked) return { ...message, metadata: checked.value };
         if (!reportedInvalidMessageIds.has(message.id)) {
           reportedInvalidMessageIds.add(message.id);
-          onInvalidReopenedMetadata?.({
-            messageId: message.id,
-            error: checked.error,
-          });
+          const invalid = { messageId: message.id, error: checked.error };
+          queueMicrotask(() =>
+            notifyObserver(onInvalidReopenedMetadata, invalid),
+          );
         }
         return { ...message, metadata: undefined };
       }) as UiMessage[],

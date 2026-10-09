@@ -4,6 +4,7 @@ import {
   type MetadataProjection,
   type MetadataProjectionInput,
 } from "./metadata-projection";
+import { notifyObserver } from "./notify-observer";
 
 import type { LiveToolEvent } from "../shared/live-tool-event";
 import type {
@@ -431,7 +432,7 @@ export const createFlueUiStream = (
         }
         case "tool-output-error": {
           if (!accepting || messageId === undefined) return;
-          options.onToolOutputError?.({
+          notifyObserver(options.onToolOutputError, {
             submissionId: options.submissionId,
             toolCallId: chunk.toolCallId,
             toolName: toolNamesByCallId.get(chunk.toolCallId),
