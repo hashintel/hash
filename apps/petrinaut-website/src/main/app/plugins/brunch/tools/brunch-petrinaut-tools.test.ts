@@ -5,6 +5,7 @@ import {
   createJsonDocHandle,
   createPetrinaut,
   type SDCPN,
+  toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
 import {
@@ -113,7 +114,7 @@ describe("canonical browser revision attribution", () => {
         ...emptyNet,
         places: [
           {
-            id: "queue",
+            id: toPetrinautId("queue"),
             name: "Queue",
             colorId: null,
             dynamicsEnabled: false,

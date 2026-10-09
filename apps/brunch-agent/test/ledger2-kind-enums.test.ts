@@ -1182,8 +1182,6 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     expect(
       recorded.obligations.some(({ text }) => /40|placeholder/i.test(text)),
     ).toBe(true);
-    expect(recorded.receipt).toMatchObject({
-      owed: expect.arrayContaining([expect.objectContaining({ id: "o1" })]),
-    });
+    expect(recorded.receipt.owed?.map(({ id }) => id)).toContain("o1");
   }, 120_000);
 });
