@@ -459,6 +459,8 @@ export const selectRecipe = sva({
           position: "static",
         },
         clear: {
+          // Overrides fitContent's in-flow clear, which would reserve space
+          position: "absolute",
           right: "[calc(var(--base-input-padding-x) + 0.25em)]",
           transform: "[translateX(50%)]",
         },
