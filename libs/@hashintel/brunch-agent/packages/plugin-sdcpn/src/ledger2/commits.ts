@@ -90,6 +90,8 @@ export const ledgerAppendOutputSchema = v.variant("status", [
     ids: v.array(v.string()),
     /** Obligations no reflection has discharged yet; absent when none are owed. */
     owed: v.optional(v.array(v.object({ id: v.string(), text: v.string() }))),
+    /** Consequences of this commit the model should weigh; absent when there are none. */
+    notes: v.optional(v.array(v.string())),
   }),
   v.object({
     status: v.literal("refused"),
@@ -393,11 +395,37 @@ export const prepareAppend = (call: {
     id: address,
     text,
   }));
+  const notes = accountDisplacements(derived.state, derived.ids);
   return {
     status: "recorded",
     commitId: call.toolCallId,
     revision: revision + 1,
     ids: derived.ids,
     ...(owed.length > 0 ? { owed } : {}),
+    ...(notes.length > 0 ? { notes } : {}),
   };
+};
+
+const accountOrigins = new Set(["stated", "evidenced"]);
+
+/** A claim of the agent's own superseding the account: the account leaves the map. */
+const accountDisplacements = (
+  state: LedgerState,
+  createdIds: readonly string[],
+): string[] => {
+  const byAddress = new Map(
+    state.claims.map((claim) => [claim.address, claim]),
+  );
+  return createdIds.flatMap((address) => {
+    const claim = byAddress.get(address);
+    if (claim === undefined || accountOrigins.has(claim.origin)) return [];
+    return (claim.supersedes ?? []).flatMap((target) => {
+      const earlier = byAddress.get(target);
+      return earlier !== undefined && accountOrigins.has(earlier.origin)
+        ? [
+            `${address} (${claim.origin}) supersedes ${target} (${earlier.origin}), so the account's claim leaves the current map. Supersede it only for a correction the USER made; if both hold, record them as separate claims, each with its selecting condition.`,
+          ]
+        : [];
+    });
+  });
 };

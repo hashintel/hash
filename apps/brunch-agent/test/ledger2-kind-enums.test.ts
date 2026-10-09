@@ -565,6 +565,67 @@ test("a misdirected local reference names the entry, field and target", () => {
   );
 });
 
+test("the receipt notes an agent claim superseding the account", async () => {
+  // Run p7ZTaN: a claim describing the draft superseded Gwen's stated range.
+  const account = toBatch([
+    [
+      "entity/create",
+      {
+        name: "Night demand",
+        kind: "thing",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "claim/create",
+      {
+        text: "Summer night demand is 15 to 25 L/s.",
+        entities: ["$0"],
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ]);
+  const receipt = await runCommit(
+    [account],
+    toBatch([
+      [
+        "claim/create",
+        {
+          text: "The draft scenario uses 20 L/s overnight and 80 L/s from 06:30.",
+          entities: ["e1"],
+          origin: "inferred",
+          status: "tentative",
+          supersedes: ["c1"],
+        },
+      ],
+    ]),
+  );
+  expect(receipt).toMatchObject({
+    status: "recorded",
+    notes: [
+      "c2 (inferred) supersedes c1 (stated), so the account's claim leaves the current map. Supersede it only for a correction the USER made; if both hold, record them as separate claims, each with its selecting condition.",
+    ],
+  });
+  const correction = await runCommit(
+    [account],
+    toBatch([
+      [
+        "claim/create",
+        {
+          text: "Summer night demand is 18 to 22 L/s.",
+          entities: ["e1"],
+          origin: "stated",
+          status: "confirmed",
+          supersedes: ["c1"],
+        },
+      ],
+    ]),
+  );
+  expect(correction).not.toHaveProperty("notes");
+});
+
 test("an obligation stays owed until a reflection discharges it", async () => {
   const owing = toBatch([
     [
