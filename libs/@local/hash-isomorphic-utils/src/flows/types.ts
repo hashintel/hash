@@ -134,6 +134,7 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
 
 /**
  * Every payload kind, for an action input that accepts any of them (e.g. the items of a `filter` action).
+ *
  * Payload kinds are a known union: a new kind is added to `PayloadKindValues`, and so joins this list.
  */
 export const allPayloadKinds = Object.keys(payloadKindsRecord) as PayloadKind[];
@@ -164,18 +165,15 @@ export type StorablePayloadKind = StoredPayloadKind | StoredArrayPayloadKind;
 
 /**
  * A payload written to S3 as one object.
- *
- * @template K - The payload kind being stored
- * @template IsArray - Whether the stored value is an array of K values
  */
 export type StoredObjectRef<
-  K extends StorablePayloadKind = StorablePayloadKind,
+  Kind extends StorablePayloadKind = StorablePayloadKind,
   IsArray extends boolean = boolean,
 > = {
   /** Discriminator to identify this as a stored reference */
   __stored: true;
   /** The payload kind being stored - for type checking */
-  kind: K;
+  kind: Kind;
   /** S3 storage key */
   storageKey: string;
   /** Whether the stored value is an array */
@@ -193,25 +191,26 @@ export type StoredObjectRef<
  * It points at the stored object that holds the item, never at a concatenation, so that it stays small and
  * resolving it downloads one object.
  */
-export type StoredItemRef<K extends StorablePayloadKind = StorablePayloadKind> =
-  {
-    __stored: true;
-    kind: K;
-    array: false;
-    of: StoredObjectRef<K, true>;
-    index: number;
-  };
+export type StoredItemRef<
+  Kind extends StorablePayloadKind = StorablePayloadKind,
+> = {
+  __stored: true;
+  kind: Kind;
+  array: false;
+  of: StoredObjectRef<Kind, true>;
+  index: number;
+};
 
 /**
  * Several stored arrays concatenated, e.g. the arrays collected from each branch of a for-each step.
  */
 export type StoredConcatRef<
-  K extends StorablePayloadKind = StorablePayloadKind,
+  Kind extends StorablePayloadKind = StorablePayloadKind,
 > = {
   __stored: true;
-  kind: K;
+  kind: Kind;
   array: true;
-  parts: StoredArrayRef<K>[];
+  parts: StoredArrayRef<Kind>[];
   length: number;
 };
 
@@ -219,17 +218,18 @@ export type StoredConcatRef<
  * A stored payload reference to a singular value.
  */
 export type SingularStoredPayloadRef<
-  K extends StorablePayloadKind = StorablePayloadKind,
-> = StoredObjectRef<K, false> | StoredItemRef<K>;
+  Kind extends StorablePayloadKind = StorablePayloadKind,
+> = StoredObjectRef<Kind, false> | StoredItemRef<Kind>;
 
 /**
  * A stored payload reference to an array of values.
  */
 export type ArrayStoredPayloadRef<
-  K extends StorablePayloadKind = StorablePayloadKind,
-> = StoredObjectRef<K, true> | StoredConcatRef<K>;
+  Kind extends StorablePayloadKind = StorablePayloadKind,
+> = StoredObjectRef<Kind, true> | StoredConcatRef<Kind>;
 
-type StoredArrayRef<K extends StorablePayloadKind> = ArrayStoredPayloadRef<K>;
+type StoredArrayRef<Kind extends StorablePayloadKind> =
+  ArrayStoredPayloadRef<Kind>;
 
 /**
  * A reference to a payload that has been stored in S3, used to avoid passing large payloads through Temporal.
@@ -238,11 +238,11 @@ type StoredArrayRef<K extends StorablePayloadKind> = ArrayStoredPayloadRef<K>;
  * handles them using their metadata alone, e.g. an array's `length`, or an item's index.
  */
 export type StoredPayloadRef<
-  K extends StorablePayloadKind = StorablePayloadKind,
+  Kind extends StorablePayloadKind = StorablePayloadKind,
   IsArray extends boolean = boolean,
 > = IsArray extends true
-  ? ArrayStoredPayloadRef<K>
-  : SingularStoredPayloadRef<K>;
+  ? ArrayStoredPayloadRef<Kind>
+  : SingularStoredPayloadRef<Kind>;
 
 /** Type guard to check if a value is a stored payload reference */
 export const isStoredPayloadRef = (
@@ -257,14 +257,14 @@ export const isStoredPayloadRef = (
 };
 
 /** Type guard to check if a stored payload ref is for an array */
-export const isArrayStoredPayloadRef = <K extends StorablePayloadKind>(
-  ref: StoredPayloadRef<K>,
-): ref is ArrayStoredPayloadRef<K> => ref.array;
+export const isArrayStoredPayloadRef = <Kind extends StorablePayloadKind>(
+  ref: StoredPayloadRef<Kind>,
+): ref is ArrayStoredPayloadRef<Kind> => ref.array;
 
 /** Type guard to check if a stored payload ref is for a singular value */
-export const isSingularStoredPayloadRef = <K extends StorablePayloadKind>(
-  ref: StoredPayloadRef<K>,
-): ref is SingularStoredPayloadRef<K> => !ref.array;
+export const isSingularStoredPayloadRef = <Kind extends StorablePayloadKind>(
+  ref: StoredPayloadRef<Kind>,
+): ref is SingularStoredPayloadRef<Kind> => !ref.array;
 
 /**
  * Payload value type used in activity outputs and inputs.
@@ -278,30 +278,38 @@ export const isSingularStoredPayloadRef = <K extends StorablePayloadKind>(
  * an item reference.
  */
 export type PayloadValue<
-  K extends PayloadKind,
+  Kind extends PayloadKind,
   IsArray extends boolean,
-> = K extends StoredPayloadKind
-  ? StoredPayloadRef<K, IsArray>
-  : K extends StoredArrayPayloadKind
+> = Kind extends StoredPayloadKind
+  ? StoredPayloadRef<Kind, IsArray>
+  : Kind extends StoredArrayPayloadKind
     ? IsArray extends true
-      ? ArrayStoredPayloadRef<K> | (PayloadKindValues[K] | StoredItemRef<K>)[]
-      : PayloadKindValues[K] | StoredItemRef<K>
+      ?
+          | ArrayStoredPayloadRef<Kind>
+          | (PayloadKindValues[Kind] | StoredItemRef<Kind>)[]
+      : PayloadKindValues[Kind] | StoredItemRef<Kind>
     : IsArray extends true
-      ? PayloadKindValues[K][]
-      : PayloadKindValues[K];
+      ? PayloadKindValues[Kind][]
+      : PayloadKindValues[Kind];
 
 /**
  * Singular payload types for all payload kinds.
  */
 export type SingularPayload = {
-  [K in keyof PayloadKindValues]: { kind: K; value: PayloadValue<K, false> };
+  [Kind in keyof PayloadKindValues]: {
+    kind: Kind;
+    value: PayloadValue<Kind, false>;
+  };
 }[keyof PayloadKindValues];
 
 /**
  * Array payload types for all payload kinds.
  */
 export type ArrayPayload = {
-  [K in keyof PayloadKindValues]: { kind: K; value: PayloadValue<K, true> };
+  [Kind in keyof PayloadKindValues]: {
+    kind: Kind;
+    value: PayloadValue<Kind, true>;
+  };
 }[keyof PayloadKindValues];
 
 /**
@@ -315,16 +323,16 @@ export type Payload = SingularPayload | ArrayPayload;
  * These contain actual values instead of StoredPayloadRef for stored payload kinds.
  */
 export type ResolvedSingularPayload = {
-  [K in keyof PayloadKindValues]: {
-    kind: K;
-    value: PayloadKindValues[K];
+  [Kind in keyof PayloadKindValues]: {
+    kind: Kind;
+    value: PayloadKindValues[Kind];
   };
 }[keyof PayloadKindValues];
 
 export type ResolvedArrayPayload = {
-  [K in keyof PayloadKindValues]: {
-    kind: K;
-    value: PayloadKindValues[K][];
+  [Kind in keyof PayloadKindValues]: {
+    kind: Kind;
+    value: PayloadKindValues[Kind][];
   };
 }[keyof PayloadKindValues];
 
@@ -335,22 +343,25 @@ export type ResolvedArrayPayload = {
 export type ResolvedPayload = ResolvedSingularPayload | ResolvedArrayPayload;
 
 /**
- * A payload of one of the given kinds, keeping its kind: e.g. the items given to a `filter` action.
+ * A payload whose kind is one of `Kind`. Unlike `Payload`, the type keeps which kinds are possible.
  */
-export type PayloadOfKind<K extends PayloadKind, A extends boolean> = Extract<
-  A extends true ? ArrayPayload : SingularPayload,
-  { kind: K }
+export type PayloadOfKind<
+  Kind extends PayloadKind,
+  IsArray extends boolean,
+> = Extract<
+  IsArray extends true ? ArrayPayload : SingularPayload,
+  { kind: Kind }
 >;
 
 /**
- * A resolved payload of one of the given kinds, keeping its kind.
+ * A resolved payload whose kind is one of `Kind`. Unlike `ResolvedPayload`, the type keeps which kinds are possible.
  */
 export type ResolvedPayloadOfKind<
-  K extends PayloadKind,
-  A extends boolean,
+  Kind extends PayloadKind,
+  IsArray extends boolean,
 > = Extract<
-  A extends true ? ResolvedArrayPayload : ResolvedSingularPayload,
-  { kind: K }
+  IsArray extends true ? ResolvedArrayPayload : ResolvedSingularPayload,
+  { kind: Kind }
 >;
 
 /**
@@ -358,27 +369,28 @@ export type ResolvedPayloadOfKind<
  */
 
 /**
- * An action input or output with a derived kind: the kind connected to another of the action's inputs, so that e.g. a
- * `filter` action returns an array of whatever kind it is given. It names an input of the same action that lists
- * the kinds it accepts. `array` and `required` are its own: kinds don't nest.
+ * An action input or output with a derived kind: its kind is whatever kind is connected to another input of the
+ * same action, its kind source. E.g. `filter`'s `matches` output takes its kind from its `items` input.
+ *
+ * The kind source must list the kinds it accepts. `array` and `required` belong to the input or output itself:
+ * kinds don't nest.
  */
 export type KindFrom = {
   kindFrom: string;
 };
 
 /**
- * The kinds an action input accepts: its own, or those of the input it takes its kind from. `Inputs` is the union
- * of the action's input definitions.
+ * The kinds an action input accepts: its own list, or, for a derived kind, its kind source's.
  */
-export type AcceptedKinds<Inputs, Input> = Input extends {
-  readonly oneOfPayloadKinds: readonly (infer K extends PayloadKind)[];
+export type AcceptedKinds<ActionInputs, Input> = Input extends {
+  readonly oneOfPayloadKinds: readonly (infer Kind extends PayloadKind)[];
 }
-  ? K
-  : Input extends { readonly kindFrom: infer S }
-    ? Extract<Inputs, { readonly name: S }> extends {
-        readonly oneOfPayloadKinds: readonly (infer K extends PayloadKind)[];
+  ? Kind
+  : Input extends { readonly kindFrom: infer KindSourceName }
+    ? Extract<ActionInputs, { readonly name: KindSourceName }> extends {
+        readonly oneOfPayloadKinds: readonly (infer Kind extends PayloadKind)[];
       }
-      ? K
+      ? Kind
       : never
     : never;
 
@@ -398,14 +410,14 @@ export type InputDefinition = {
  * are `FlowOutputDefinition`s.
  */
 export type OutputDefinition<
-  A extends boolean = boolean,
-  K extends PayloadKind = PayloadKind,
+  IsArray extends boolean = boolean,
+  Kind extends PayloadKind = PayloadKind,
 > = {
   name: string;
   description?: string;
-  array: A;
+  array: IsArray;
   required: boolean;
-} & ({ payloadKind: K } | KindFrom);
+} & ({ payloadKind: Kind } | KindFrom);
 
 export type ActionDefinition<
   ActionDefinitionId extends FlowActionDefinitionId,

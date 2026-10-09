@@ -26,7 +26,7 @@ type ActionDefinitionShape = {
     readonly default?: unknown;
   } & (
     | { readonly oneOfPayloadKinds: readonly PayloadKind[] }
-    /** Its kind is the kind connected to another input (see `KindFrom`). */
+    /** A derived kind (see `KindFrom`). */
     | { readonly kindFrom: string }
   ))[];
   readonly outputs: readonly ({
@@ -35,7 +35,7 @@ type ActionDefinitionShape = {
     readonly required: boolean;
   } & (
     | { readonly payloadKind: PayloadKind }
-    /** Its kind is the kind connected to an input (see `KindFrom`). */
+    /** A derived kind (see `KindFrom`). */
     | { readonly kindFrom: string }
   ))[];
 };
@@ -58,29 +58,35 @@ declare const refShape: unique symbol;
  * by passing refs, and the type parameters make an incompatible connection a compile error (see `canConnect`
  * for the rule they mirror).
  *
- * @template K the value's payload kind
- * @template A whether the value is an array
- * @template R whether the value is always present when its producer has run
+ * `IsRequired` means the value is always present once its producer has run.
  */
-export type Ref<K extends PayloadKind, A extends boolean, R extends boolean> = {
+export type Ref<
+  Kind extends PayloadKind,
+  IsArray extends boolean,
+  IsRequired extends boolean,
+> = {
   /** Type-level only: carries the value's shape for assignability checks. */
-  readonly [refShape]?: { payloadKind: K; array: A; required: R };
+  readonly [refShape]?: {
+    payloadKind: Kind;
+    array: IsArray;
+    required: IsRequired;
+  };
   readonly source: StepInputSource;
   /*
    * Method syntax, so that parameters are compared bivariantly and `Ref` stays covariant in its type
    * parameters. `wrap`'s `this` parameter still stops it being called on an array ref.
    */
   /** Leave the value available to other consumers. */
-  read(): Ref<K, A, R>;
+  read(): Ref<Kind, IsArray, IsRequired>;
   /** Take the value, so no other consumer can. */
-  consume(): Ref<K, A, R>;
+  consume(): Ref<Kind, IsArray, IsRequired>;
   /** Wrap a singular value into a one-item array, to feed an array input. */
-  wrap(this: Ref<K, false, R>): Ref<K, true, R>;
+  wrap(this: Ref<Kind, false, IsRequired>): Ref<Kind, true, IsRequired>;
   /**
    * Allow a value that may be missing to feed a required input, by skipping the consuming step (and
    * everything that depends on it) when the value is missing.
    */
-  orSkip(): Ref<K, A, true>;
+  orSkip(): Ref<Kind, IsArray, true>;
 };
 
 type AnyRef = Ref<PayloadKind, boolean, boolean>;
@@ -89,101 +95,117 @@ type AnyRef = Ref<PayloadKind, boolean, boolean>;
  * The refs an input accepts. A required input needs a value that is always present, even when it has a
  * default: the default only applies when nothing is connected.
  */
-export type InputAccepts<I extends InputDefinitionShape> = Ref<
-  I["oneOfPayloadKinds"][number],
-  I["array"],
-  I["required"] extends true ? true : boolean
+export type InputAccepts<Input extends InputDefinitionShape> = Ref<
+  Input["oneOfPayloadKinds"][number],
+  Input["array"],
+  Input["required"] extends true ? true : boolean
 >;
 
-type IsMandatory<I extends ActionInputShape> = I["required"] extends true
-  ? I extends { readonly default: unknown }
-    ? false
-    : true
-  : false;
+type IsMandatory<Input extends ActionInputShape> =
+  Input["required"] extends true
+    ? Input extends { readonly default: unknown }
+      ? false
+      : true
+    : false;
 
 type InputAcceptsInAction<
-  D extends ActionDefinitionShape,
-  I extends ActionInputShape,
+  Action extends ActionDefinitionShape,
+  Input extends ActionInputShape,
 > = Ref<
-  AcceptedKinds<D["inputs"][number], I>,
-  I["array"],
-  I["required"] extends true ? true : boolean
+  AcceptedKinds<Action["inputs"][number], Input>,
+  Input["array"],
+  Input["required"] extends true ? true : boolean
 >;
 
-export type StepInputs<D extends ActionDefinitionShape> = {
-  [I in D["inputs"][number] as IsMandatory<I> extends true
-    ? I["name"]
-    : never]: InputAcceptsInAction<D, I>;
+export type StepInputs<Action extends ActionDefinitionShape> = {
+  [Input in Action["inputs"][number] as IsMandatory<Input> extends true
+    ? Input["name"]
+    : never]: InputAcceptsInAction<Action, Input>;
 } & {
-  [I in D["inputs"][number] as IsMandatory<I> extends true
+  [Input in Action["inputs"][number] as IsMandatory<Input> extends true
     ? never
-    : I["name"]]?: InputAcceptsInAction<D, I>;
+    : Input["name"]]?: InputAcceptsInAction<Action, Input>;
 };
 
 /** The kind of a ref, or `never` if there's no ref. */
-type RefKind<R> = R extends Ref<infer K, boolean, boolean> ? K : never;
+type RefKind<MaybeRef> =
+  MaybeRef extends Ref<infer Kind, boolean, boolean> ? Kind : never;
 
 /**
- * Narrows each input that takes its kind from another (`kindFrom`) to the kind connected to that input.
+ * Narrows each input with a derived kind to accept only the kind of the ref given to its kind source.
  */
-type DerivedKindInputs<D extends ActionDefinitionShape, In> = {
-  [I in D["inputs"][number] as I extends { readonly kindFrom: infer S }
-    ? S extends keyof In
-      ? I["name"]
+type DerivedKindInputs<Action extends ActionDefinitionShape, InputRefs> = {
+  [Input in Action["inputs"][number] as Input extends {
+    readonly kindFrom: infer KindSourceName;
+  }
+    ? KindSourceName extends keyof InputRefs
+      ? Input["name"]
       : never
-    : never]?: I extends { readonly kindFrom: infer S extends keyof In }
+    : never]?: Input extends {
+    readonly kindFrom: infer KindSourceName extends keyof InputRefs;
+  }
     ? Ref<
-        RefKind<In[S]>,
-        I["array"],
-        I["required"] extends true ? true : boolean
+        RefKind<InputRefs[KindSourceName]>,
+        Input["array"],
+        Input["required"] extends true ? true : boolean
       >
     : never;
 };
 
 /** Rejects inputs the action doesn't have. */
-type NoUnknownInputs<D extends ActionDefinitionShape, In> = {
-  [N in Exclude<keyof In, D["inputs"][number]["name"]>]: never;
+type NoUnknownInputs<Action extends ActionDefinitionShape, InputRefs> = {
+  [InputName in Exclude<
+    keyof InputRefs,
+    Action["inputs"][number]["name"]
+  >]: never;
 };
 
 /**
- * Refs to a step's outputs. An output that takes its kind from an input (`kindFrom`) has the kind connected to it.
+ * The refs `step()` returns for a step's outputs.
+ *
+ * An output with a derived kind gets the kind of the ref given to its kind source.
  */
-export type StepOutputs<D extends ActionDefinitionShape, In = unknown> = {
-  [O in D["outputs"][number] as O["name"]]: O extends {
-    readonly payloadKind: infer K extends PayloadKind;
+export type StepOutputs<
+  Action extends ActionDefinitionShape,
+  InputRefs = unknown,
+> = {
+  [Output in Action["outputs"][number] as Output["name"]]: Output extends {
+    readonly payloadKind: infer Kind extends PayloadKind;
   }
-    ? Ref<K, O["array"], O["required"]>
-    : O extends { readonly kindFrom: infer S }
+    ? Ref<Kind, Output["array"], Output["required"]>
+    : Output extends { readonly kindFrom: infer KindSourceName }
       ? Ref<
-          S extends keyof In ? RefKind<In[S]> : never,
-          O["array"],
-          O["required"]
+          KindSourceName extends keyof InputRefs
+            ? RefKind<InputRefs[KindSourceName]>
+            : never,
+          Output["array"],
+          Output["required"]
         >
       : never;
 };
 
 /**
- * Adds an action step, returning refs to its outputs.
+ * The type of `step()`: adds an action step, and returns refs to its outputs.
  *
- * `In` is the refs given as inputs: an action whose output (or input) takes its kind from an input (`kindFrom`) takes its
- * kind from the ref connected to that input.
+ * `InputRefs` is inferred from the refs given as inputs, so that a derived kind can be typed by the ref given to its
+ * kind source.
  */
-export type AddStep = <D extends ActionDefinitionShape, In>(
+export type AddStep = <Action extends ActionDefinitionShape, InputRefs>(
   id: string,
-  action: D,
+  action: Action,
   options: {
     description: string;
-    inputs: In &
-      StepInputs<D> &
-      DerivedKindInputs<D, In> &
-      NoUnknownInputs<D, In>;
+    inputs: InputRefs &
+      StepInputs<Action> &
+      DerivedKindInputs<Action, InputRefs> &
+      NoUnknownInputs<Action, InputRefs>;
     retryCount?: number;
   },
-) => { outputs: StepOutputs<D, In> };
+) => { outputs: StepOutputs<Action, InputRefs> };
 
-type AddForEach = <K extends PayloadKind, CollectedKind extends PayloadKind>(
+type AddForEach = <Kind extends PayloadKind, CollectedKind extends PayloadKind>(
   id: string,
-  over: Ref<K, true, true>,
+  over: Ref<Kind, true, true>,
   options: {
     description: string;
     /** The name of the collected output. */
@@ -193,7 +215,7 @@ type AddForEach = <K extends PayloadKind, CollectedKind extends PayloadKind>(
      * singular outputs are gathered, and array outputs concatenated. It must always be present.
      */
     steps: (
-      item: Ref<K, false, true>,
+      item: Ref<Kind, false, true>,
       scope: ForEachScope,
     ) => Ref<CollectedKind, boolean, true>;
   },
@@ -211,12 +233,16 @@ type ForEachScope = Pick<StepScope, "step">;
  * A flow input declared with `flowInput`, before it is named by its key in `defineFlow`.
  */
 export type FlowInputDeclaration<
-  K extends PayloadKind,
-  A extends boolean,
-  R extends boolean,
+  Kind extends PayloadKind,
+  IsArray extends boolean,
+  IsRequired extends boolean,
 > = {
   readonly definition: Omit<FlowInputDefinition, "name">;
-  readonly [refShape]?: { payloadKind: K; array: A; required: R };
+  readonly [refShape]?: {
+    payloadKind: Kind;
+    array: IsArray;
+    required: IsRequired;
+  };
 };
 
 type FlowInputRefs<
@@ -225,12 +251,12 @@ type FlowInputRefs<
     FlowInputDeclaration<PayloadKind, boolean, boolean>
   >,
 > = {
-  [N in keyof Inputs]: Inputs[N] extends FlowInputDeclaration<
-    infer K,
-    infer A,
-    infer R
+  [InputName in keyof Inputs]: Inputs[InputName] extends FlowInputDeclaration<
+    infer Kind,
+    infer IsArray,
+    infer IsRequired
   >
-    ? Ref<K, A, R>
+    ? Ref<Kind, IsArray, IsRequired>
     : never;
 };
 
@@ -238,7 +264,7 @@ type FlowInputRefs<
  * Declares a flow input. Inputs are required and singular unless the options say otherwise.
  */
 export const flowInput = <
-  K extends PayloadKind,
+  Kind extends PayloadKind,
   const Options extends {
     array?: boolean;
     required?: boolean;
@@ -246,10 +272,10 @@ export const flowInput = <
     description?: string;
   } = Record<never, never>,
 >(
-  payloadKind: K,
+  payloadKind: Kind,
   options?: Options,
 ): FlowInputDeclaration<
-  K,
+  Kind,
   Options["array"] extends true ? true : false,
   Options["required"] extends false ? false : true
 > => ({
@@ -270,10 +296,14 @@ export const flowInput = <
  */
 const itemScopes = new WeakMap<object, string>();
 
-const createRef = <K extends PayloadKind, A extends boolean, R extends boolean>(
+const createRef = <
+  Kind extends PayloadKind,
+  IsArray extends boolean,
+  IsRequired extends boolean,
+>(
   source: StepInputSource,
   itemOf?: string,
-): Ref<K, A, R> => {
+): Ref<Kind, IsArray, IsRequired> => {
   const withOptions = (options: {
     access?: "read" | "consume";
     wrap?: true;
@@ -300,7 +330,7 @@ const createRef = <K extends PayloadKind, A extends boolean, R extends boolean>(
     consume: () => withOptions({ access: "consume" }),
     wrap: () => withOptions({ wrap: true }),
     orSkip: () => withOptions({ whenMissing: "skip" }),
-  } as Ref<K, A, R>;
+  } as Ref<Kind, IsArray, IsRequired>;
 
   if (itemOf !== undefined) {
     itemScopes.set(ref, itemOf);
@@ -310,14 +340,14 @@ const createRef = <K extends PayloadKind, A extends boolean, R extends boolean>(
 };
 
 type Constant = {
-  <K extends PayloadKind>(
-    payloadKind: K,
-    value: readonly PayloadKindValues[K][],
-  ): Ref<K, true, true>;
-  <K extends PayloadKind>(
-    payloadKind: K,
-    value: PayloadKindValues[K],
-  ): Ref<K, false, true>;
+  <Kind extends PayloadKind>(
+    payloadKind: Kind,
+    value: readonly PayloadKindValues[Kind][],
+  ): Ref<Kind, true, true>;
+  <Kind extends PayloadKind>(
+    payloadKind: Kind,
+    value: PayloadKindValues[Kind],
+  ): Ref<Kind, false, true>;
 };
 
 /**

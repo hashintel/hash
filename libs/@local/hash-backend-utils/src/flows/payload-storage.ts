@@ -44,7 +44,7 @@ export const getStorageProvider = (): FileStorageProvider => {
 };
 
 export type StorePayloadParams<
-  K extends StorablePayloadKind,
+  Kind extends StorablePayloadKind,
   IsArray extends boolean,
 > = {
   storageProvider: FileStorageProvider;
@@ -52,8 +52,10 @@ export type StorePayloadParams<
   runId: string;
   stepId: string;
   outputName: string;
-  kind: K;
-  value: IsArray extends true ? PayloadKindValues[K][] : PayloadKindValues[K];
+  kind: Kind;
+  value: IsArray extends true
+    ? PayloadKindValues[Kind][]
+    : PayloadKindValues[Kind];
 };
 
 /**
@@ -63,17 +65,17 @@ export type StorePayloadParams<
  * Used to avoid passing large payloads through Temporal activities.
  */
 export const storePayload = async <
-  K extends StorablePayloadKind,
-  V extends PayloadKindValues[K] | PayloadKindValues[K][],
+  Kind extends StorablePayloadKind,
+  Value extends PayloadKindValues[Kind] | PayloadKindValues[Kind][],
 >(params: {
   storageProvider: FileStorageProvider;
   workflowId: string;
   runId: string;
   stepId: string;
   outputName: string;
-  kind: K;
-  value: V;
-}): Promise<StoredObjectRef<K, V extends unknown[] ? true : false>> => {
+  kind: Kind;
+  value: Value;
+}): Promise<StoredObjectRef<Kind, Value extends unknown[] ? true : false>> => {
   const {
     storageProvider,
     workflowId,
@@ -103,7 +105,7 @@ export const storePayload = async <
     Array.isArray(value)
       ? { __stored: true, kind, storageKey, array: true, length: value.length }
       : { __stored: true, kind, storageKey, array: false }
-  ) as StoredObjectRef<K, V extends unknown[] ? true : false>;
+  ) as StoredObjectRef<Kind, Value extends unknown[] ? true : false>;
 };
 
 /**
@@ -207,24 +209,24 @@ const retrieveStoredValue = async (
 /**
  * The value a stored reference or payload value resolves to.
  */
-type ResolvedValue<K extends PayloadKind, V> = V extends
+type ResolvedValue<Kind extends PayloadKind, Value> = Value extends
   | { array: true }
   | readonly unknown[]
-  ? PayloadKindValues[K][]
-  : PayloadKindValues[K];
+  ? PayloadKindValues[Kind][]
+  : PayloadKindValues[Kind];
 
 /**
  * Retrieve a payload from S3 using a stored reference: a stored object, one item of a stored array, or a
  * concatenation of stored arrays.
  */
 export const retrievePayload = async <
-  K extends StorablePayloadKind,
-  R extends StoredPayloadRef<K>,
+  Kind extends StorablePayloadKind,
+  StoredRef extends StoredPayloadRef<Kind>,
 >(
   context: ResolvePayloadContext,
-  ref: R,
-): Promise<ResolvedValue<K, R>> =>
-  retrieveStoredValue(context, ref) as Promise<ResolvedValue<K, R>>;
+  ref: StoredRef,
+): Promise<ResolvedValue<Kind, StoredRef>> =>
+  retrieveStoredValue(context, ref) as Promise<ResolvedValue<Kind, StoredRef>>;
 
 /**
  * Resolve a payload value to the actual value, retrieving anything stored: a stored reference, or the item
@@ -234,13 +236,13 @@ export const retrievePayload = async <
  * @param _kind - The payload kind, used for type inference at call sites
  */
 export const resolvePayloadValue = async <
-  K extends PayloadKind,
-  V extends PayloadValue<K, boolean>,
+  Kind extends PayloadKind,
+  Value extends PayloadValue<Kind, boolean>,
 >(
   context: ResolvePayloadContext,
-  _kind: K,
-  value: V,
-): Promise<ResolvedValue<K, V>> => {
+  _kind: Kind,
+  value: Value,
+): Promise<ResolvedValue<Kind, Value>> => {
   const resolved = isStoredPayloadRef(value)
     ? await retrieveStoredValue(context, value)
     : Array.isArray(value)
@@ -253,24 +255,31 @@ export const resolvePayloadValue = async <
         )
       : value;
 
-  return resolved as ResolvedValue<K, V>;
+  return resolved as ResolvedValue<Kind, Value>;
 };
 
 /**
- * Resolves a payload whatever its kind, downloading anything stored, and keeps its kind with the value. For an
- * action that only learns an input's kind when it runs, e.g. one whose output takes its kind from the input
- * (`kindFrom`).
+ * Resolves an input payload of any kind, downloading it if it's stored, and returns its value with its kind.
+ *
+ * For an action that only learns an input's kind when it runs: a kind source, or an input with a derived kind (see
+ * `KindFrom`). An action that knows its inputs' kinds uses `resolvePayloadValue`.
  */
-export const resolveInputPayload = async <P extends Payload>(
+export const resolveInputPayload = async <InputPayload extends Payload>(
   context: ResolvePayloadContext,
-  payload: P,
+  payload: InputPayload,
 ): Promise<
-  ResolvedPayloadOfKind<P["kind"], P extends ArrayPayload ? true : false>
+  ResolvedPayloadOfKind<
+    InputPayload["kind"],
+    InputPayload extends ArrayPayload ? true : false
+  >
 > =>
   ({
     kind: payload.kind,
     value: await resolvePayloadValue(context, payload.kind, payload.value),
-  }) as ResolvedPayloadOfKind<P["kind"], P extends ArrayPayload ? true : false>;
+  }) as ResolvedPayloadOfKind<
+    InputPayload["kind"],
+    InputPayload extends ArrayPayload ? true : false
+  >;
 
 /**
  * Whether a value of this kind is stored in S3 rather than passed inline: a value of a stored kind, or an array
@@ -282,29 +291,32 @@ const requiresStorage = (kind: PayloadKind, value: unknown) =>
     storedArrayPayloadKinds.includes(kind as StoredArrayPayloadKind));
 
 /** A resolved payload as an action outputs it: stored, or inline, as its kind requires. */
-type OutputPayload<R extends ResolvedPayload> = PayloadOfKind<
-  R["kind"],
-  R extends ResolvedArrayPayload ? true : false
+type OutputPayload<ResolvedOutput extends ResolvedPayload> = PayloadOfKind<
+  ResolvedOutput["kind"],
+  ResolvedOutput extends ResolvedArrayPayload ? true : false
 >;
 
 /**
- * Prepares an output payload whatever its kind: stores it in S3 if its kind requires it (a stored kind, or an
- * array of a stored-array kind), and otherwise returns it inline. For an action that only learns an output's kind
- * when it runs, e.g. one whose output takes its kind from an input (`kindFrom`).
+ * Prepares an output payload of any kind for an action to return: stores it in S3 if its kind requires it, and
+ * otherwise returns it inline.
+ *
+ * The counterpart of `resolveInputPayload`, for an output whose kind the action only learns when it runs.
  */
-export const prepareOutputPayload = async <R extends ResolvedPayload>(params: {
+export const prepareOutputPayload = async <
+  ResolvedOutput extends ResolvedPayload,
+>(params: {
   storageProvider: FileStorageProvider;
   workflowId: string;
   runId: string;
   stepId: string;
   outputName: string;
-  payload: R;
-}): Promise<OutputPayload<R>> => {
+  payload: ResolvedOutput;
+}): Promise<OutputPayload<ResolvedOutput>> => {
   const { payload, ...storeParams } = params;
   const { kind, value } = payload;
 
   if (!requiresStorage(kind, value)) {
-    return payload as unknown as OutputPayload<R>;
+    return payload as unknown as OutputPayload<ResolvedOutput>;
   }
 
   return {
@@ -316,5 +328,5 @@ export const prepareOutputPayload = async <R extends ResolvedPayload>(params: {
         | PayloadKindValues[StorablePayloadKind]
         | PayloadKindValues[StorablePayloadKind][],
     }),
-  } as OutputPayload<R>;
+  } as OutputPayload<ResolvedOutput>;
 };

@@ -160,8 +160,8 @@ export const passOutputsToUnprocessedSteps = (params: {
 };
 
 /**
- * The kind of the values a for-each step collects. An output that takes its kind from an input (`kindFrom`) has the
- * kind connected to that input.
+ * The kind of the array a `forEach` step collects, worked out from the flow definition rather than from the
+ * collected values, so that a `forEach` over no items still has one.
  */
 const getCollectedPayloadKind = (
   flowDefinition: FlowDefinition,

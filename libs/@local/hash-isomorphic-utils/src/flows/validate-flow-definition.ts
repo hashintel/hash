@@ -47,9 +47,9 @@ export type FlowDefinitionDiagnosticCode =
   | "invalidCollect"
   | "cycle"
   | "unusedFlowInput"
-  /** An input or output that takes its kind from another input (`kindFrom`), when that input isn't connected. */
+  /** An input or output with a derived kind (see `KindFrom`), whose kind source isn't connected. */
   | "unresolvedKind"
-  /** An input that takes its kind from another input, given a value of a different kind. */
+  /** An input with a derived kind, given a value of a different kind from its kind source's. */
   | "kindMismatch";
 
 export type FlowDefinitionDiagnostic = {

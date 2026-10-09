@@ -16,12 +16,15 @@ export type ActionDefinitions = Record<
 >;
 
 /**
- * Works out the shape of each value in a flow definition: its kind, whether it's an array, and whether it's always
- * present. A step output usually has the shape its action declares, but one that takes its kind from an input
- * (`kindFrom`) has the kind of whatever is connected to that input.
+ * Works out the shape of any value in a flow definition: its kind, whether it's an array, and whether it's always
+ * present.
  *
- * Anything it can't resolve is `null`. `validateFlowDefinition` uses it to check connections, and the engine where
- * it needs a kind it has no value to read from.
+ * Most step outputs have the shape their action declares. An output with a derived kind (see `KindFrom`) gets the
+ * kind connected to its kind source, following `forEach` items, collected outputs and other derived kinds to find
+ * it.
+ *
+ * Returns `null` for anything it can't resolve. The validator uses it to check connections, and the engine to find a
+ * kind where it has no value to read the kind from.
  */
 export const createStepShapeResolver = (
   flowDefinition: FlowDefinition<string>,
@@ -105,9 +108,7 @@ export const createStepShapeResolver = (
     }
   };
 
-  /**
-   * The kind connected to an action step's input, if it's connected and resolves.
-   */
+  /** The kind of the value connected to a step's input, or `null` if it isn't connected or doesn't resolve. */
   const getInputKind = (
     stepId: string,
     inputName: string,
