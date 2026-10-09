@@ -1,5 +1,6 @@
 use core::time::Duration;
 
+use error_stack::Report;
 use hash_graph_store::api_token::{
     ApiTokenCredential, ApiTokenName, ApiTokenType, ApiTokenVerificationError, CreateApiTokenParams,
 };
@@ -205,11 +206,13 @@ mod tests {
     /// Issues a token and returns it as a [`HashedApiToken`], with the credential a store records
     /// for it.
     fn issued(issuer: &ApiTokenIssuer) -> (HashedApiToken, ApiTokenCredential) {
-        let IssuedApiToken { token, params } = issuer.issue(
-            UserId::new(Uuid::new_v4()),
-            ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
-            None,
-        );
+        let IssuedApiToken { token, params } = issuer
+            .issue(
+                UserId::new(Uuid::new_v4()),
+                ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
+                None,
+            )
+            .expect("the random number generator should provide bytes");
         let credential = ApiTokenCredential {
             token_type: params.token_type,
             version: params.version,
