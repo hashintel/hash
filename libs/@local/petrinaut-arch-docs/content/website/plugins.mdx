@@ -9,18 +9,22 @@ Each plugin here is written against the [plugin API](doc:plugins/overview).
 
 ## The plugins
 
-| Folder             | Plugin id                 | Contributes                                                                                               |
-| ------------------ | ------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's commands, as a `root`, and a top-bar button that toggles it.             |
-| `sentry-feedback/` | `website.sentry-feedback` | A button under the viewport controls that opens Sentry's feedback form.                                   |
-| `share/`           | `website.share`           | **Share** in the top bar: a dropdown with a `/share` snapshot link of the net, Copy, and a file download. |
-| `walkthrough/`     | `website.walkthrough`     | The welcome guide as a `root` marked `overlay` while open, and its "Show welcome guide" row.              |
+| Folder             | Plugin id                 | Contributes                                                                                                       |
+| ------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's commands, as a `root`, and a top-bar button that toggles it.                     |
+| `petrinaut-ai/`    | `website.petrinaut-ai`    | Petrinaut's own assistant: the shared chat as its `view`, with the transcript saved per document in this browser. |
+| `sentry-feedback/` | `website.sentry-feedback` | A button under the viewport controls that opens Sentry's feedback form.                                           |
+| `share/`           | `website.share`           | **Share** in the top bar: a dropdown with a `/share` snapshot link of the net, Copy, and a file download.         |
+| `walkthrough/`     | `website.walkthrough`     | The welcome guide as a `root` marked `overlay` while open, and its "Show welcome guide" row.                      |
 
 ## The list the editor receives
 
-The demo shell passes one list, `demoPlugins` from `plugins/demo-plugins.ts`,
-to `<Petrinaut plugins>`. The Brunch Actual Mode route passes
-`[sentryFeedbackPlugin]` alone.
+The demo shell passes `demoPlugins` from `plugins/demo-plugins.ts` to
+`<Petrinaut plugins>`. While Brunch is the selected assistant it passes
+`brunchDemoPlugins` instead, from
+`local-storage-demo/brunch-bridge-plugin.tsx`, which swaps Petrinaut AI for a
+Brunch plugin that renders the chat the shell still builds. The Brunch Actual
+Mode route passes `[sentryFeedbackPlugin]` alone.
 
 Both lists start with `editorPlugins`, every plugin in the table but Petrinaut
 AI, so only the assistant changes.
@@ -33,6 +37,12 @@ contributes **Make a local copy** as a top-bar item and as its
 [Router integration](doc:website/router-integration#which-routes-speak-the-contract)
 says what it saves and where the copy opens. It imports the local net storage
 from `local-storage-demo/`.
+
+The `/ai-experiments` route passes one plugin of its own,
+`website.ai-experiments-demo` in
+`src/main/app/ai-experiments-demo/ai-experiments-demo.tsx`: an assistant whose
+chat follows a scripted conversation over a module-scope transport and runs
+real experiments.
 
 The shell provides the command registry and registers its own commands in it.
 The editor reuses that registry, so the palette lists the editor's commands and
@@ -48,15 +58,25 @@ One folder per plugin, named after it:
   `plugin/use-<name>-plugin.tsx`.
 - `server/` holds code an `api/` route imports.
 
-`_shared/` holds code two plugins share. A folder without `plugin.tsx` holds
-code the demo shell wires in itself.
+`_shared/` holds code two plugins share; `_shared/chat/` holds the
+[assistant chat](layer:website.plugins.chat) the assistant plugins render. A
+folder without `plugin.tsx` holds code the demo shell wires in itself.
 
 ## Testing a plugin
 
-`_shared/testing/` holds what plugin tests are built on.
-`renderEditorWith(plugin, props?)` renders a real `<Petrinaut>` on an empty
-net with that plugin. The test file runs in jsdom and calls
-`installPetrinautDomShims()` from `vi.hoisted`, because Petrinaut's modules
-read those globals while they load. To start a plugin with stored settings,
-seed its [settings key](doc:plugins/runtime#settings-storage) in
-`localStorage`.
+`_shared/testing/` holds what plugin tests are built on:
+
+- `createTestPluginApi(instance, options?)` builds an `AccessApi` over a core
+  instance, which `createEmptyTestInstance()` makes. Edits run its mutations,
+  the net is its definition, and `document.diagnostics` holds an empty
+  snapshot. The options set `title`, `setTitle`, `refusal`,
+  `requestDiagnostics` (what `diagnose()` calls), `reveal`, `runExperiment`,
+  `records`, `notify` and `capture`. A test renders the plugin's hook, or a
+  component that takes `api`, with it.
+- `renderEditorWith(plugins, props?)` renders a real `<Petrinaut>` on an empty
+  net with those plugins. Its test file runs in jsdom and calls
+  `installPetrinautDomShims()` from `vi.hoisted`, because Petrinaut's modules
+  read those globals while they load.
+
+To start a plugin with stored settings, seed its
+[settings key](doc:plugins/runtime#settings-storage) in `localStorage`.

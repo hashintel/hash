@@ -21,7 +21,8 @@ the current net, checks it through the
 [React language provider](layer:react.lsp), and returns the diagnostics with
 the net it checked. The website chat's `getNetCompilationErrors` tool formats
 them for the model; when the net changed during the check, it asks the model to
-check again. The editor continues to receive its own diagnostic updates. See
+check again. The editor continues to receive its own diagnostic updates, and
+plugins read them from the `api.document.diagnostics` store. See
 [compiling user code](doc:simulation/user-code) for the distinction between
 TypeScript diagnostics and simulation compilation.
 

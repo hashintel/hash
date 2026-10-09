@@ -7,6 +7,8 @@ sidebar_order: 20
 
 The parts are named in [Plugins](doc:plugins/overview); exact keys, members
 and messages are in the [Plugin API reference](doc:plugins/reference).
+Providing the AI assistant has its own page,
+[Assistant plugins](doc:plugins/assistants).
 
 ## Choose a form
 
@@ -56,9 +58,9 @@ export const helpPlugin = definePetrinautPlugin(
   module constant, or a literal the React Compiler memoizes): a new array runs
   every plugin's hook again.
 - Export plugins as named exports.
-- Put the definition in its own `definition.ts` when another plugin imports it
-  for `usePluginService`, so importing it loads no implementation. Such a
-  plugin uses the curried form.
+- Put the definition in its own `definition.ts` when another plugin imports it,
+  for `assistant: { extends }` or `usePluginService`, so importing it loads no
+  implementation. Such a plugin uses the curried form.
 
 ## Add buttons and top-bar items
 
@@ -192,8 +194,8 @@ as `navigate({ overlay: { type: "user-settings", section: "general" } })`.
 
 ### Values, stores and actions
 
-- **Values**: `document.id`, `document.extensions`, `settings.get()`. Read
-  them anywhere in the hook or its components.
+- **Values**: `document.id`, `document.extensions`, `settings.get()`,
+  `assistant.isActive`. Read them anywhere in the hook or its components.
 - **Stores**: `document.net`, `document.title`, `document.diagnostics`,
   `experiments.records`, `experiments.optimizationUnavailableReason`,
   `editor.navigation`. In render, read them with `useStore` or
@@ -214,7 +216,7 @@ Rules:
 - Give code that lives as long as the plugin the family objects
   (`api.document`, `api.experiments`, `api.editor`, `api.errors`,
   `api.notifications`). They never change while the plugin is mounted, and
-  `api` changes with every setting change.
+  `api` changes with every change of a setting or of `assistant.isActive`.
 - Write hooks that tolerate extra runs. Editor changes never run a hook again,
   but other events do; see [when hooks run](doc:plugins/runtime#remounts-and-re-runs).
 
