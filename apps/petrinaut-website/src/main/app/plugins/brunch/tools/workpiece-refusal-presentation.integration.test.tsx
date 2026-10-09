@@ -26,6 +26,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent/conversation-identity";
+
 import { AiAssistantContents } from "../../../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
 import { loadBuiltBrunchApplication } from "../../../../../../../brunch-agent/test/load-built-application";
 import { createBrunchFlueAdapter } from "../brunch-flue-adapter";

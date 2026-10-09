@@ -18,7 +18,6 @@ import {
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
-import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import { BrunchPanelConversationTracker } from "../plugins/brunch/brunch-panel-transport";
 import {
@@ -135,7 +134,9 @@ vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
 }));
 vi.mock("../plugins/brunch/brunch-flue-adapter", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("../plugins/brunch/brunch-flue-adapter")>();
+    await importOriginal<
+      typeof import("../plugins/brunch/brunch-flue-adapter")
+    >();
   return {
     ...actual,
     createBrunchFlueAdapter: (
