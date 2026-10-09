@@ -121,6 +121,8 @@ Carry a changing quantity in state with the supported evolution law. Fire conseq
 
 When the account lets a physical condition and what the system knows of it diverge, represent them apart: the condition, the latest reading with its age, and the decision taken on that reading. Likewise separate issuing a command from its delivery, acceptance and physical effect where any of these can fail or lag. Collapse them only as a labelled simplification when no objective depends on the gap.
 
+A stated mechanism is enough to build it. Whether it caused a particular incident is what runs of the model then test, not a precondition for representing it. When it arrives, replace any stand-in that was carrying its effect, such as a fixed overshoot, rather than keeping both.
+
 Sensors, controllers and actuators are actors; readings and commands are signals. A link's delay and loss are claims on the signals it carries: when delay matters, transmission is an activity with that duration and a loss outcome. A link is an entity of its own only when it has state: a `resource` whose token transmission acquires and returns when its capacity is contended or it can go down, with outages as events that take and restore that token.
 
 ### Spatial transfer
