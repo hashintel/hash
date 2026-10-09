@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { Button, Checkbox, Dialog } from "@hashintel/ds-components";
+import { Button, Checkbox, Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { serializeSDCPN } from "@hashintel/petrinaut-core";
 
@@ -32,11 +32,22 @@ const downloadSnapshot = ({ definition, title }: Snapshot) => {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 
+const panelStyle = css({
+  width: "[340px]",
+});
+
 const bodyStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "3",
+  gap: "2.5",
+  paddingBottom: "1",
   fontSize: "sm",
+});
+
+const hintStyle = css({
+  color: "neutral.s90",
+  fontSize: "xs",
+  lineHeight: "[16px]",
 });
 
 const rowStyle = css({
@@ -49,14 +60,17 @@ const rowStyle = css({
 const linkStyle = css({
   flex: "1",
   minWidth: "0",
-  height: "[32px]",
+  height: "[28px]",
   borderWidth: "thin",
   borderColor: "neutral.s20",
   borderRadius: "md",
-  paddingX: "2.5",
-  fontSize: "sm",
+  paddingX: "2",
+  fontSize: "xs",
+  color: "neutral.s100",
   textOverflow: "ellipsis",
-  background: "neutral.s05",
+  background: "neutral.s00",
+  transition: "[border-color 150ms ease]",
+  _focusVisible: { borderColor: "blue.s60", outline: "none" },
 });
 
 const alertStyle = css({
@@ -64,13 +78,25 @@ const alertStyle = css({
   fontSize: "xs",
 });
 
-const ShareSnapshotDialog = ({
-  captured,
-  onClose,
-}: {
-  captured: CapturedSnapshot;
-  onClose: () => void;
-}) => {
+/** The share glyph: a tray with an arrow leaving it. */
+const ShareIcon = () => (
+  <svg
+    aria-hidden
+    fill="none"
+    height="16"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    strokeWidth="1.5"
+    viewBox="0 0 16 16"
+    width="16"
+  >
+    <path d="M8 10.25V2.5M5.25 5.25 8 2.5l2.75 2.75" />
+    <path d="M3.5 8.5v3.75c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25V8.5" />
+  </svg>
+);
+
+const SharePanel = ({ captured }: { captured: CapturedSnapshot }) => {
   const [includeView, setIncludeView] = useState(true);
   const [prepared, setPrepared] = useState<PreparedLink>({ kind: "loading" });
   const [copyState, setCopyState] = useState<
@@ -122,13 +148,13 @@ const ShareSnapshotDialog = ({
         : null;
 
   return (
-    <Dialog size="sm" variant="plain" onClose={onClose}>
-      <Dialog.Header
-        title="Share snapshot"
-        description="Anyone with the link can open a read-only copy of this net as it is now."
-      />
-      <Dialog.Body>
+    <Popover.Container className={panelStyle}>
+      <Popover.Header title="Share snapshot" hideCloseButton />
+      <Popover.Body>
         <div className={bodyStyle}>
+          <p className={hintStyle}>
+            Anyone with the link gets a read-only copy of this net as it is now.
+          </p>
           <div className={rowStyle}>
             <input
               aria-label="Snapshot link"
@@ -141,20 +167,30 @@ const ShareSnapshotDialog = ({
               onFocus={(event) => event.currentTarget.select()}
             />
             <Button
+              aria-label={
+                copyState === "copying"
+                  ? "Copying…"
+                  : copyState === "copied"
+                    ? "Copied"
+                    : "Copy link"
+              }
               disabled={url === null || copyState === "copying"}
-              size="sm"
+              prefix={
+                <Icon
+                  name={copyState === "copied" ? "check" : "copy"}
+                  size="xs"
+                />
+              }
+              size="xs"
               onClick={() => void copy()}
             >
-              {copyState === "copying"
-                ? "Copying…"
-                : copyState === "copied"
-                  ? "Copied"
-                  : "Copy link"}
+              {copyState === "copied" ? "Copied" : "Copy"}
             </Button>
           </div>
           <div className={rowStyle}>
             <Checkbox
               label="Include current view"
+              size="sm"
               value={includeView}
               disabled={copyState === "copying"}
               onChange={(value) => {
@@ -163,11 +199,13 @@ const ShareSnapshotDialog = ({
               }}
             />
             <Button
-              size="sm"
+              aria-label="Download file"
+              prefix={<Icon name="download" size="xs" />}
+              size="xs"
               variant="ghost"
               onClick={() => downloadSnapshot(captured.snapshot)}
             >
-              Download file
+              Download
             </Button>
           </div>
           {problem === null ? null : (
@@ -176,11 +214,15 @@ const ShareSnapshotDialog = ({
             </p>
           )}
         </div>
-      </Dialog.Body>
-    </Dialog>
+      </Popover.Body>
+    </Popover.Container>
   );
 };
 
+/**
+ * A ghost icon button that opens the share dropdown. The snapshot is captured
+ * when the dropdown opens, so later edits do not change the link it shows.
+ */
 export const ShareSnapshotButton = ({
   getSnapshot,
   search,
@@ -188,26 +230,37 @@ export const ShareSnapshotButton = ({
   getSnapshot: () => Snapshot;
   search: SharedExampleSearch;
 }) => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [captured, setCaptured] = useState<CapturedSnapshot | null>(null);
   return (
     <>
       <Button
+        ref={triggerRef}
+        aria-expanded={captured !== null}
+        aria-label="Share"
+        prefix={<ShareIcon />}
         size="sm"
-        variant="subtle"
-        onClick={() => {
-          setCaptured({
-            snapshot: structuredClone(getSnapshot()),
-            search: { ...search },
-          });
-        }}
-      >
-        Share
-      </Button>
+        tooltip="Share"
+        variant="ghost"
+        onClick={() =>
+          setCaptured(
+            captured === null
+              ? {
+                  snapshot: structuredClone(getSnapshot()),
+                  search: { ...search },
+                }
+              : null,
+          )
+        }
+      />
       {captured !== null && (
-        <ShareSnapshotDialog
-          captured={captured}
+        <Popover
+          position="bottom-end"
+          triggerRef={triggerRef}
           onClose={() => setCaptured(null)}
-        />
+        >
+          <SharePanel captured={captured} />
+        </Popover>
       )}
     </>
   );

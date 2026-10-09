@@ -68,7 +68,7 @@ Voice is available only when Brunch is selected, the browser-local Voice prefere
 
 ## Snapshot links
 
-**Share** in a local document's top bar builds a self-contained
+**Share**, an icon in a local document's top bar, opens a dropdown with a self-contained
 `/share#v1.br.<payload>` link. The payload is the net as compact canonical JSON,
 Brotli-compressed (quality 11) and base64url-encoded, so nothing is uploaded. The
 optional current view travels in the same query parameters as the other routes.
@@ -77,7 +77,7 @@ Example pages and snapshots offer no **Share**: their own URL is the link.
 A worker does the compression and decompression and is terminated when it
 finishes, is cancelled, or runs 30 seconds. Both directions cap the net at 2 MiB
 and the fragment at 16,000 characters; a larger net can be downloaded as a file
-from the same dialog.
+from the same dropdown.
 
 A snapshot holds the net as it was when shared: title, layout, code,
 parameters, types, subnets, scenarios and metrics. Running simulations,

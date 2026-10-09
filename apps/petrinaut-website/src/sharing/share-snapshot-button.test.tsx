@@ -148,7 +148,7 @@ test("retains a selectable link when clipboard access fails", async () => {
   );
 });
 
-test("cancels preparation when the dialog unmounts", async () => {
+test("cancels preparation when the dropdown unmounts", async () => {
   vi.mocked(prepareSnapshot).mockImplementation(() => new Promise(() => {}));
   open();
   await screen.findByPlaceholderText("Preparing link…");
