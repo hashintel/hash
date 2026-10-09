@@ -612,10 +612,18 @@ export const processFlowWorkflow = async <
       skippedStepIds,
     }) === "ready";
 
-  const stepWithSatisfiedDependencies =
-    getAllStepsInFlow(flow).filter(isReadyToProcess);
+  /*
+   * Skip the steps that can't run first: a flow whose first steps are all skipped, or that has no steps, has
+   * nothing to run, but hasn't failed.
+   */
+  skipUnrunnableSteps();
 
-  if (stepWithSatisfiedDependencies.length === 0) {
+  const allSteps = getAllStepsInFlow(flow);
+
+  if (
+    !allSteps.some(isReadyToProcess) &&
+    allSteps.some(({ stepId }) => !processedStepIds.includes(stepId))
+  ) {
     const errorMessage =
       "No steps have satisfied dependencies when initializing the flow.";
     throw ApplicationFailure.create({
