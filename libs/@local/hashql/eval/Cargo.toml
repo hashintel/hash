@@ -8,6 +8,7 @@ version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+hash-graph-authorization  = { workspace = true, public = true }
 hash-graph-postgres-store = { workspace = true, public = true }
 hashql-diagnostics        = { workspace = true, public = true }
 hashql-hir                = { workspace = true, public = true }
@@ -17,6 +18,7 @@ hashql-mir                = { workspace = true, public = true }
 
 # Private workspace dependencies
 hashql-core = { workspace = true }
+type-system = { workspace = true }
 
 # Private third-party dependencies
 bytes             = { workspace = true }
@@ -31,22 +33,20 @@ url               = { workspace = true }
 uuid              = { workspace = true }
 
 [dev-dependencies]
-error-stack              = { workspace = true }
-hash-graph-authorization = { workspace = true }
-hash-graph-store         = { workspace = true }
-hash-graph-test-data     = { workspace = true }
-hashql-compiletest       = { workspace = true }
-hashql-diagnostics       = { workspace = true, features = ["render"] }
-insta                    = { workspace = true }
-libtest-mimic            = { workspace = true }
-regex                    = { workspace = true }
-similar-asserts          = { workspace = true }
-sqruff-lib               = { workspace = true }
-sqruff-lib-core          = { workspace = true }
-testcontainers           = { workspace = true, features = ["reusable-containers"] }
-testcontainers-modules   = { workspace = true, features = ["postgres"] }
-tokio                    = { workspace = true }
-type-system              = { workspace = true }
+error-stack            = { workspace = true }
+hash-graph-store       = { workspace = true }
+hash-graph-test-data   = { workspace = true }
+hashql-compiletest     = { workspace = true }
+hashql-diagnostics     = { workspace = true, features = ["render"] }
+insta                  = { workspace = true }
+libtest-mimic          = { workspace = true }
+regex                  = { workspace = true }
+similar-asserts        = { workspace = true }
+sqruff-lib             = { workspace = true }
+sqruff-lib-core        = { workspace = true }
+testcontainers         = { workspace = true, features = ["reusable-containers"] }
+testcontainers-modules = { workspace = true, features = ["postgres"] }
+tokio                  = { workspace = true }
 
 [lints]
 workspace = true

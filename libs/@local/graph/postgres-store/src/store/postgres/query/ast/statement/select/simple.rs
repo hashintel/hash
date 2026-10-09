@@ -29,6 +29,19 @@ pub struct SimpleSelect {
     pub having: Option<Expression>,
 }
 
+impl SimpleSelect {
+    pub fn add_condition(
+        &mut self,
+        condition: Expression,
+        combine: impl FnOnce(Expression, Expression) -> Expression,
+    ) {
+        self.where_clause = match self.where_clause.take() {
+            Some(expr) => Some(combine(condition, expr)),
+            None => Some(condition),
+        };
+    }
+}
+
 impl<S> From<SimpleSelectBuilder<S>> for SelectClause
 where
     S: IsComplete,
