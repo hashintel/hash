@@ -21,6 +21,7 @@ export {
   type ProjectedClaim,
   type ProjectedEntity,
   type ProjectedKindGroup,
+  type ProjectedMetObligation,
   type ProjectedObligation,
   type ProjectedQuestion,
   type ProjectedSection,

@@ -10,6 +10,7 @@ import type {
   EntityRecord,
   LedgerState,
   ObligationRecord,
+  ReflectionRecord,
 } from "./records";
 
 /** Obligations no reflection has discharged, in recording order. */
@@ -65,12 +66,18 @@ export interface ProjectedObligation {
   concerns: string[];
 }
 
+export interface ProjectedMetObligation extends ProjectedObligation {
+  /** The reflections that discharged it, in recording order. */
+  dischargedBy: ReflectionRecord[];
+}
+
 export interface LedgerProjection {
   title: string;
   sections: ProjectedSection[];
   excluded: ProjectedEntity[];
   questions: ProjectedQuestion[];
   owed: ProjectedObligation[];
+  met: ProjectedMetObligation[];
   addressEntries: AddressEntry[];
 }
 
@@ -192,6 +199,20 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     record,
     concerns: (record.entities ?? []).map(nameOf),
   }));
+  const met = ledger.obligations.flatMap((record) => {
+    const dischargedBy = ledger.reflections.filter((reflection) =>
+      reflection.discharges?.includes(record.address),
+    );
+    return dischargedBy.length === 0
+      ? []
+      : [
+          {
+            record,
+            concerns: (record.entities ?? []).map(nameOf),
+            dischargedBy,
+          },
+        ];
+  });
 
   const addressEntries: AddressEntry[] = [
     ...ledger.entities.map((entity) => ({
@@ -212,6 +233,7 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     excluded,
     questions,
     owed,
+    met,
     addressEntries,
   };
 };

@@ -103,6 +103,11 @@ It matters and nobody knows yet. Concerns: Weekday morning peak, Callers. Record
 
 - A run with today's six agents shows the hold times past eight minutes that callers hang up after. — Weekday morning peak, Caller abandonment · tests \`c3\`, \`c9\` \`o1\`
 
+## Checks met
+
+- The ten-minute promise is reported by a metric a run can breach, not prevented by the net. — The ten-minute promise · tests \`c8\` \`o2\`
+  - The ten-minute promise is tracked as a maximum-wait metric, not enforced by the net: a run reports breaches, it cannot prevent them. \`r2\`
+
 ## Excluded from the model
 
 - **Cost of an agent-hour** — metric · stated · out-of-scope \`e13\`
@@ -211,6 +216,11 @@ It matters and nobody knows yet. Concerns: Weekday morning peak, Callers.
 ## Checks still owed
 
 - A run with today's six agents shows the hold times past eight minutes that callers hang up after. — Weekday morning peak, Caller abandonment
+
+## Checks met
+
+- The ten-minute promise is reported by a metric a run can breach, not prevented by the net. — The ten-minute promise
+  - The ten-minute promise is tracked as a maximum-wait metric, not enforced by the net: a run reports breaches, it cannot prevent them.
 
 ## Excluded from the model
 

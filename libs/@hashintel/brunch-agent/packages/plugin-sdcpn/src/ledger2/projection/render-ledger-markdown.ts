@@ -4,6 +4,7 @@ import type {
   LedgerProjection,
   ProjectedClaim,
   ProjectedEntity,
+  ProjectedObligation,
   ProjectedQuestion,
 } from "./project-ledger";
 
@@ -57,6 +58,18 @@ const questionBlock = (skin: Skin, question: ProjectedQuestion) =>
     ":::",
   ].join("\n");
 
+const obligationLine = (
+  skin: Skin,
+  { record, concerns }: ProjectedObligation,
+) => {
+  const about = concerns.length > 0 ? ` \u2014 ${concerns.join(", ")}` : "";
+  const tests =
+    skin === "agent" && (record.claims?.length ?? 0) > 0
+      ? ` \u00b7 tests ${(record.claims ?? []).map((claim) => code(claim)).join(", ")}`
+      : "";
+  return `${record.text}${about}${tests}${tag(skin, record.address)}`;
+};
+
 export const renderLedgerMarkdown = (
   projection: LedgerProjection,
   skin: Skin,
@@ -81,16 +94,20 @@ export const renderLedgerMarkdown = (
   if (projection.owed.length > 0) {
     blocks.push(h2("Checks still owed"));
     blocks.push(
+      ul(projection.owed.map((obligation) => obligationLine(skin, obligation))),
+    );
+  }
+  if (projection.met.length > 0) {
+    blocks.push(h2("Checks met"));
+    blocks.push(
       ul(
-        projection.owed.map(({ record, concerns }) => {
-          const about =
-            concerns.length > 0 ? ` \u2014 ${concerns.join(", ")}` : "";
-          const tests =
-            skin === "agent" && (record.claims?.length ?? 0) > 0
-              ? ` \u00b7 tests ${(record.claims ?? []).map((claim) => code(claim)).join(", ")}`
-              : "";
-          return `${record.text}${about}${tests}${tag(skin, record.address)}`;
-        }),
+        projection.met.flatMap((obligation) => [
+          obligationLine(skin, obligation),
+          obligation.dischargedBy.map(
+            (reflection) =>
+              `${reflection.text}${tag(skin, reflection.address)}`,
+          ),
+        ]),
       ),
     );
   }
