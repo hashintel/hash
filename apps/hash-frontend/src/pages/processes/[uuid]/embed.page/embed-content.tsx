@@ -31,12 +31,8 @@ import {
   type SavedSnapshot,
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
-import {
-  EmbedActions,
-  EmbedBreadcrumbs,
-  type EmbedChrome,
-  EmbedChromeContext,
-} from "./embed-chrome";
+import { EmbedActions, EmbedBreadcrumbs } from "./embed-chrome";
+import { type EmbedChrome, EmbedChromeContext } from "./embed-chrome-context";
 import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
 
 /**

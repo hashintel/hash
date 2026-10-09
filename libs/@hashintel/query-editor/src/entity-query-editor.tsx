@@ -6,7 +6,7 @@ import { Button } from "@hashintel/design-system";
 
 import { QueryForm } from "./entity-query-editor/query-form";
 import { QueryPreview } from "./entity-query-editor/query-preview";
-import { ReadonlyContextProvider } from "./entity-query-editor/readonly-context";
+import { ReadonlyContextProvider } from "./entity-query-editor/readonly-context-provider";
 import {
   mapFormValuesToMultiFilter,
   mapMultiFilterToFormValues,

@@ -7,7 +7,7 @@ import { getLayoutWithSidebar } from "../shared/layout";
 import { Button } from "../shared/ui/button";
 import { WorkersHeader } from "../shared/workers-header";
 import { GoalsList } from "./goals.page/goals-list";
-import { FlowRunsContextProvider } from "./shared/flow-runs-context";
+import { FlowRunsContextProvider } from "./shared/flow-runs-context-provider";
 
 import type { NextPageWithLayout } from "../shared/layout";
 

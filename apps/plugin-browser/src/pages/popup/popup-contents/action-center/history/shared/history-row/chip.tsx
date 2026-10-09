@@ -3,7 +3,7 @@ import { Stack } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import type { PropsWithChildren } from "react";
 
-export const chipSx: SxProps<Theme> = ({ palette }) => ({
+const chipSx: SxProps<Theme> = ({ palette }) => ({
   borderRadius: 4,
   border: `1px solid ${palette.gray[30]}`,
   display: "inline-flex",

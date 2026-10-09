@@ -6,16 +6,18 @@ import { useIsomorphicLayoutEffect } from "../../util/use-isomorphic-layout-effe
 import { Icon } from "../Icon/icon";
 import { Menu } from "../Menu/menu";
 import {
-  chevronIcons,
   type Classes,
+  Item,
+  ItemContent,
+  VisibleItem,
+} from "./breadcrumbs-item";
+import {
+  chevronIcons,
   collectEntries,
   crumbStyle,
   isCollapsible,
-  Item,
-  ItemContent,
   toMenuItem,
-  VisibleItem,
-} from "./breadcrumbs-item";
+} from "./breadcrumbs-item-util";
 import {
   computeCollapse,
   hiddenIndicesFor,
@@ -29,7 +31,7 @@ export type {
   BreadcrumbEntry,
   BreadcrumbItem,
   BreadcrumbSubItem,
-} from "./breadcrumbs-item";
+} from "./breadcrumbs-item-util";
 
 const Separator = ({
   size,
@@ -72,7 +74,7 @@ const BreadCrumbsRoot = ({
 }) => {
   const classes = styles({ size });
 
-  const entries = useMemo(() => collectEntries(children), [children]);
+  const entries = useMemo(() => collectEntries(children, Item), [children]);
   const count = entries.length;
   // Encoded as a string so `measure` gets a stable, value-equal dependency.
   const collapsibleKey = useMemo(

@@ -1,12 +1,11 @@
 import { Box } from "@mui/material";
-import { createContext, use } from "react";
+import { use } from "react";
 
 import { Button, Icon, TextInput } from "@hashintel/ds-components";
 
 import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
+import { EmbedChromeContext } from "./embed-chrome-context";
 import { VersionPicker } from "./version-picker";
-
-import type { RevisionSummary } from "../../shared/messages";
 
 /**
  * The grays HASH's breadcrumbs use elsewhere in the app: crumb text (and
@@ -23,23 +22,6 @@ const titleStyle = {
   fontWeight: 500,
   margin: "0 8px",
 };
-
-/** The page state the embed's top-bar items read. */
-export type EmbedChrome = {
-  title: string;
-  onTitleChange: (title: string) => void;
-  readonly: boolean;
-  isDirty: boolean;
-  persistPending: boolean;
-  saveLabel: string;
-  revisions: RevisionSummary[];
-  loadedRevisionTime: string | null;
-  onNavigateBack: () => void;
-  onSave: () => void;
-  onLoadRevision: (revision: RevisionSummary) => void;
-};
-
-export const EmbedChromeContext = createContext<EmbedChrome | null>(null);
 
 /**
  * HASH-style breadcrumbs at the start of Petrinaut's top bar, so the embed
