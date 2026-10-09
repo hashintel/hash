@@ -180,8 +180,26 @@ class _Providers:
 
 class TelemetrySettings(BaseSettings):
     endpoint: AnyUrl | None = Field(alias="OTEL_EXPORTER_OTLP_ENDPOINT", default=None)
-    protocol: TelemetryProtocol = Field(alias="OTEL_EXPORTER_OTLP_PROTOCOL", default="grpc")
+    raw_protocol: str = Field(alias="OTEL_EXPORTER_OTLP_PROTOCOL", default="grpc")
     service_name: str = Field(alias="OTEL_SERVICE_NAME", default=_DEFAULT_SERVICE_NAME)
+
+    def model_post_init(self, _context: object, /) -> None:
+        # Validate eagerly so misconfiguration surfaces at settings load time.
+        _ = self.protocol
+
+    @property
+    def protocol(self) -> TelemetryProtocol:
+        match self.raw_protocol.strip().lower():
+            case "grpc":
+                return "grpc"
+            case "http/protobuf":
+                return "http/protobuf"
+            case other:
+                msg = (
+                    f"Unsupported OTEL_EXPORTER_OTLP_PROTOCOL {other!r}; "
+                    "expected 'grpc' or 'http/protobuf'"
+                )
+                raise ValueError(msg)
 
 
 class Telemetry:
