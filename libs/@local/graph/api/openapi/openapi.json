@@ -1486,6 +1486,64 @@
             "description": "Store error occurred"
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "patch_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PatchEntityParams"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The updated entities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Entity"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity ID or Entity Type URL was not found"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "423": {
+            "description": "The entity that should be updated was unexpectedly updated at the same time"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
       }
     },
     "/entities/diff": {

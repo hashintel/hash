@@ -2,12 +2,14 @@ use core::{iter::once, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
 use hash_codec::numeric::Real;
+use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::{
     entity::{
-        CreateEntityParams, EntityQuerySorting, EntityStore as _, PatchEntityParams,
-        QueryEntitiesParams,
+        CreateEntityParams, EntityQuerySorting, EntityStore as _, EntityValidationReport,
+        PatchEntityParams, QueryEntitiesParams,
     },
     filter::Filter,
+    query::Read,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
@@ -15,9 +17,9 @@ use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::{
         PropertyValue,
-        entity::provenance::ProvidedEntityEditionProvenance,
+        entity::{Entity, EntityId, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{
-            PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
+            Property, PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
             PropertyPathElement, PropertyValueWithMetadata, PropertyWithMetadata,
         },
         value::{ValueMetadata, metadata::ValueProvenance},
@@ -26,6 +28,7 @@ use type_system::{
     principal::{actor::ActorType, actor_group::WebId},
     provenance::{OriginProvenance, OriginType},
 };
+use uuid::Uuid;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
@@ -544,5 +547,346 @@ async fn type_ids() {
             .metadata
             .entity_type_ids
             .contains(&person_entity_type_id())
+    );
+}
+
+async fn create_person(api: &mut DatabaseApi<'_>) -> Entity {
+    api.create_entity(
+        api.account_id,
+        CreateEntityParams {
+            web_id: WebId::new(api.account_id),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([person_entity_type_id()]),
+            properties: PropertyObjectWithMetadata::from_parts(alice(), None)
+                .expect("should construct person properties"),
+            confidence: None,
+            link_data: None,
+            draft: false,
+            policies: Vec::new(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::User,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
+            read_only: false,
+        },
+    )
+    .await
+    .expect("should create a person")
+}
+
+fn patch_params(entity_id: EntityId, properties: Vec<PropertyPatchOperation>) -> PatchEntityParams {
+    PatchEntityParams {
+        entity_id,
+        decision_time: None,
+        entity_type_ids: HashSet::new(),
+        properties,
+        draft: None,
+        archived: None,
+        confidence: None,
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::User,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
+    }
+}
+
+fn add_property(property_type_id: BaseUrl, value: PropertyValue) -> PropertyPatchOperation {
+    PropertyPatchOperation::Add {
+        path: once(PropertyPathElement::from(property_type_id)).collect(),
+        property: PropertyWithMetadata::Value(PropertyValueWithMetadata {
+            value,
+            metadata: ValueMetadata::default(),
+        }),
+    }
+}
+
+#[tokio::test]
+async fn patch_entities_input_order() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let first = create_person(&mut api).await;
+    let second = create_person(&mut api).await;
+
+    let patched = api
+        .patch_entities(
+            api.account_id,
+            vec![
+                patch_params(
+                    second.metadata.record_id.entity_id,
+                    vec![add_property(
+                        age_property_type_id(),
+                        PropertyValue::Number(Real::from(20)),
+                    )],
+                ),
+                patch_params(
+                    first.metadata.record_id.entity_id,
+                    vec![add_property(
+                        age_property_type_id(),
+                        PropertyValue::Number(Real::from(30)),
+                    )],
+                ),
+            ],
+        )
+        .await
+        .expect("should patch both entities");
+
+    let [patched_second, patched_first]: [Entity; 2] = patched
+        .try_into()
+        .expect("should return one entity per patch");
+    for (original, patched, age) in [(second, patched_second, 20), (first, patched_first, 30)] {
+        assert_eq!(
+            patched.metadata.record_id.entity_id, original.metadata.record_id.entity_id,
+            "should return entities in input order"
+        );
+        assert_ne!(
+            patched.metadata.record_id.edition_id, original.metadata.record_id.edition_id,
+            "should create a new edition"
+        );
+        let stored = api
+            .get_entity_by_id(
+                Some(api.account_id),
+                original.metadata.record_id.entity_id,
+                None,
+                None,
+            )
+            .await
+            .expect("should read the patched entity");
+        assert_eq!(
+            stored.metadata.record_id.edition_id, patched.metadata.record_id.edition_id,
+            "should persist the returned edition"
+        );
+        assert_eq!(
+            stored.properties.properties().get(&age_property_type_id()),
+            Some(&Property::Value(PropertyValue::Number(Real::from(age)))),
+            "should persist the patched age"
+        );
+    }
+}
+
+#[tokio::test]
+async fn patch_entities_missing_entity() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let original = create_person(&mut api).await;
+    let entity_id = original.metadata.record_id.entity_id;
+    let missing_id = EntityId {
+        entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        ..entity_id
+    };
+
+    let error = api
+        .patch_entities(
+            api.account_id,
+            vec![
+                patch_params(
+                    entity_id,
+                    vec![add_property(
+                        age_property_type_id(),
+                        PropertyValue::Number(Real::from(30)),
+                    )],
+                ),
+                patch_params(missing_id, Vec::new()),
+            ],
+        )
+        .await
+        .expect_err("should reject a batch containing a missing entity");
+    assert_eq!(
+        error.downcast_ref::<hash_status::StatusCode>(),
+        Some(&hash_status::StatusCode::NotFound),
+        "should report the missing entity"
+    );
+    let stored = api
+        .get_entity_by_id(Some(api.account_id), entity_id, None, None)
+        .await
+        .expect("should read the original entity after rollback");
+    assert_eq!(stored, original, "should roll back the earlier patch");
+}
+
+#[tokio::test]
+async fn patch_entities_duplicate_ids() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let original = create_person(&mut api).await;
+    let entity_id = original.metadata.record_id.entity_id;
+
+    let patched = api
+        .patch_entities(
+            api.account_id,
+            vec![
+                patch_params(
+                    entity_id,
+                    vec![add_property(
+                        name_property_type_id(),
+                        PropertyValue::String("Bob".to_owned()),
+                    )],
+                ),
+                patch_params(
+                    entity_id,
+                    vec![add_property(
+                        age_property_type_id(),
+                        PropertyValue::Number(Real::from(30)),
+                    )],
+                ),
+            ],
+        )
+        .await
+        .expect("should apply duplicate-ID patches sequentially");
+    let [first, second]: [Entity; 2] = patched
+        .try_into()
+        .expect("should return both patch results");
+    assert_eq!(
+        first.properties.properties().get(&name_property_type_id()),
+        Some(&Property::Value(PropertyValue::String("Bob".to_owned()))),
+        "should apply the first patch"
+    );
+    assert_eq!(
+        second.properties.properties().get(&name_property_type_id()),
+        first.properties.properties().get(&name_property_type_id()),
+        "should preserve the first patch in the second result"
+    );
+    assert_eq!(
+        second.properties.properties().get(&age_property_type_id()),
+        Some(&Property::Value(PropertyValue::Number(Real::from(30)))),
+        "should apply the second patch"
+    );
+    assert_ne!(
+        first.metadata.record_id.edition_id, second.metadata.record_id.edition_id,
+        "should create an edition for each patch"
+    );
+    let invalid_intervals: i64 = api
+        .store
+        .as_client()
+        .query_one(
+            "SELECT count(*) FROM entity_temporal_metadata
+             WHERE web_id = $1 AND entity_uuid = $2
+               AND (isempty(transaction_time) OR isempty(decision_time))",
+            &[&entity_id.web_id, &entity_id.entity_uuid],
+        )
+        .await
+        .expect("should inspect duplicate patch history")
+        .get(0);
+    assert_eq!(
+        invalid_intervals, 0,
+        "should not create empty temporal intervals"
+    );
+    let history = Read::<Entity>::read_vec(&api.store, &[], None, true)
+        .await
+        .expect("should decode entity history after duplicate patches");
+    assert!(
+        history.iter().any(|entity| {
+            entity.metadata.record_id.edition_id == original.metadata.record_id.edition_id
+        }),
+        "should preserve the original edition in history"
+    );
+    let stored = api
+        .get_entity_by_id(Some(api.account_id), entity_id, None, None)
+        .await
+        .expect("should read the final entity");
+    assert_eq!(stored, second, "should persist the combined patch result");
+}
+
+#[tokio::test]
+async fn patch_entities_validation_index() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let first = create_person(&mut api).await;
+    let second = create_person(&mut api).await;
+
+    let error = api
+        .patch_entities(
+            api.account_id,
+            vec![
+                patch_params(
+                    first.metadata.record_id.entity_id,
+                    vec![add_property(
+                        age_property_type_id(),
+                        PropertyValue::Number(Real::from(30)),
+                    )],
+                ),
+                patch_params(
+                    second.metadata.record_id.entity_id,
+                    vec![add_property(
+                        age_property_type_id(),
+                        PropertyValue::String("invalid age".to_owned()),
+                    )],
+                ),
+            ],
+        )
+        .await
+        .expect_err("should reject an invalid age");
+    let reports = error
+        .downcast_ref::<HashMap<usize, EntityValidationReport>>()
+        .expect("should attach indexed validation reports");
+    assert_eq!(reports.len(), 1, "should report the failing patch");
+    assert!(
+        !reports
+            .get(&1)
+            .expect("should identify patch index one")
+            .is_valid(),
+        "should report invalid properties"
+    );
+    for original in [first, second] {
+        let stored = api
+            .get_entity_by_id(
+                Some(api.account_id),
+                original.metadata.record_id.entity_id,
+                None,
+                None,
+            )
+            .await
+            .expect("should read the original entity after rollback");
+        assert_eq!(stored, original, "should roll back the whole invalid batch");
+    }
+}
+
+#[tokio::test]
+async fn patch_entities_unchanged_then_changed() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let unchanged = create_person(&mut api).await;
+    let changed = create_person(&mut api).await;
+
+    let patched = api
+        .patch_entities(
+            api.account_id,
+            vec![
+                patch_params(unchanged.metadata.record_id.entity_id, Vec::new()),
+                patch_params(
+                    changed.metadata.record_id.entity_id,
+                    vec![add_property(
+                        age_property_type_id(),
+                        PropertyValue::Number(Real::from(30)),
+                    )],
+                ),
+            ],
+        )
+        .await
+        .expect("should continue after an unchanged entity");
+    let [patched_unchanged, patched_changed]: [Entity; 2] = patched
+        .try_into()
+        .expect("should return unchanged and changed entities");
+    assert_eq!(
+        patched_unchanged, unchanged,
+        "should retain the unchanged edition"
+    );
+    assert_ne!(
+        patched_changed.metadata.record_id.edition_id, changed.metadata.record_id.edition_id,
+        "should create an edition for the changed entity"
+    );
+    let stored = api
+        .get_entity_by_id(
+            Some(api.account_id),
+            changed.metadata.record_id.entity_id,
+            None,
+            None,
+        )
+        .await
+        .expect("should read the changed entity");
+    assert_eq!(
+        stored, patched_changed,
+        "should persist the patch after the unchanged entity"
     );
 }

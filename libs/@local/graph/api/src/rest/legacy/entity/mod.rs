@@ -103,6 +103,7 @@ use crate::rest::legacy::{
         self::query::query_entities_table,
         search_entities,
         patch_entity,
+        patch_entities,
         update_entity_embeddings,
         cluster_entities,
         diff_entity,
@@ -245,7 +246,10 @@ impl EntityResource {
             "/entities",
             Router::new()
                 .route("/", post(create_entity::<S>).patch(patch_entity::<S>))
-                .route("/bulk", post(create_entities::<S>))
+                .route(
+                    "/bulk",
+                    post(create_entities::<S>).patch(patch_entities::<S>),
+                )
                 .route("/diff", post(diff_entity::<S>))
                 .route("/validate", post(validate_entity::<S>))
                 .nest(
@@ -570,6 +574,53 @@ where
 
     store
         .patch_entity(actor_id, params)
+        .await
+        .map_err(|report| {
+            if report.contains::<EntityDoesNotExist>() {
+                report.attach_opaque(hash_status::StatusCode::NotFound)
+            } else if report.contains::<RaceConditionOnUpdate>() {
+                report.attach_opaque(hash_status::StatusCode::Cancelled)
+            } else {
+                report
+            }
+        })
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[utoipa::path(
+    patch,
+    path = "/entities/bulk",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The updated entities", body = [Entity]),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 423, content_type = "text/plain", description = "The entity that should be updated was unexpectedly updated at the same time"),
+
+        (status = 404, description = "Entity ID or Entity Type URL was not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = [PatchEntityParams],
+)]
+async fn patch_entities<S>(
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
+    store_pool: Extension<Arc<S>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(params): Json<Vec<PatchEntityParams>>,
+) -> Result<Json<Vec<Entity>>, BoxedResponse>
+where
+    S: StorePool + Send + Sync,
+{
+    let mut store = store_pool
+        .acquire(temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .patch_entities(actor_id, params)
         .await
         .map_err(|report| {
             if report.contains::<EntityDoesNotExist>() {
