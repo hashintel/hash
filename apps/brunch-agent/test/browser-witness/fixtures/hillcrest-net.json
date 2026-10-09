@@ -1,0 +1,518 @@
+{
+  "places": [
+    {
+      "id": "reservoir",
+      "name": "Reservoir",
+      "description": "Hillcrest reservoir state: level, clock, pump mode and overflow counter arming.",
+      "colorId": "reservoir_state_type",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "reservoir_level_dynamics",
+      "showAsInitialState": true,
+      "x": 400,
+      "y": 95.06666666666666
+    },
+    {
+      "id": "overflow_events",
+      "name": "OverflowEvents",
+      "description": "One token is added each time the model first reaches overflow depth after being re-armed below the overflow level.",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1000,
+      "y": 220
+    },
+    {
+      "id": "fire_reserve_breaches",
+      "name": "FireReserveBreaches",
+      "description": "One token is added when the model first falls to or below the fire reserve floor in an excursion.",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1000,
+      "y": 380
+    },
+    {
+      "id": "low_morning_events",
+      "name": "LowMorningEvents",
+      "description": "One token is added for each morning check window where the reservoir is below the practical 06:30 floor.",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1000,
+      "y": 504
+    }
+  ],
+  "transitions": [
+    {
+      "id": "switch_pump_on",
+      "name": "Switch pump on",
+      "description": "Pump starts when the reservoir level is at or below cut-in.",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "const token = input.Reservoir[0];\nreturn !token.pump_on && token.level_m <= parameters.cut_in_level_m;",
+      "transitionKernelCode": "const token = input.Reservoir[0];\nreturn { Reservoir: [{ level_m: token.level_m, time_hours: token.time_hours, overflow_armed: token.overflow_armed, pump_on: true, reserve_armed: token.reserve_armed, morning_check_armed: token.morning_check_armed }] };",
+      "x": 720,
+      "y": 60
+    },
+    {
+      "id": "switch_pump_off",
+      "name": "Switch pump off",
+      "description": "Pump stops when the reservoir level is at or above cut-out.",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "const token = input.Reservoir[0];\nreturn token.pump_on && token.level_m >= parameters.cut_out_level_m;",
+      "transitionKernelCode": "const token = input.Reservoir[0];\nreturn { Reservoir: [{ level_m: token.level_m, time_hours: token.time_hours, overflow_armed: token.overflow_armed, pump_on: false, reserve_armed: token.reserve_armed, morning_check_armed: token.morning_check_armed }] };",
+      "x": 720,
+      "y": 140
+    },
+    {
+      "id": "count_overflow",
+      "name": "Count overflow",
+      "description": "Adds one overflow event when level first reaches reservoir depth after being re-armed.",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1
+        },
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "overflow_events"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "const token = input.Reservoir[0];\nreturn token.overflow_armed && token.level_m >= parameters.reservoir_depth_m;",
+      "transitionKernelCode": "const token = input.Reservoir[0];\nreturn { Reservoir: [{ level_m: Math.min(token.level_m, parameters.reservoir_depth_m), time_hours: token.time_hours, overflow_armed: false, pump_on: token.pump_on, reserve_armed: token.reserve_armed, morning_check_armed: token.morning_check_armed }] };",
+      "x": 720,
+      "y": 220
+    },
+    {
+      "id": "rearm_overflow_counter",
+      "name": "Re-arm overflow counter",
+      "description": "Allows a later spill to be counted after the level has fallen below overflow depth.",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "const token = input.Reservoir[0];\nreturn !token.overflow_armed && token.level_m < (parameters.reservoir_depth_m - 0.05);",
+      "transitionKernelCode": "const token = input.Reservoir[0];\nreturn { Reservoir: [{ level_m: token.level_m, time_hours: token.time_hours, overflow_armed: true, pump_on: token.pump_on, reserve_armed: token.reserve_armed, morning_check_armed: token.morning_check_armed }] };",
+      "x": 720,
+      "y": 300
+    },
+    {
+      "id": "count_fire_reserve_breach",
+      "name": "Count fire reserve breach",
+      "description": "Adds one breach token when reservoir level first falls to or below the fire reserve floor in an excursion.",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1
+        },
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "fire_reserve_breaches"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "const token = input.Reservoir[0];\nreturn token.reserve_armed && token.level_m <= parameters.fire_reserve_floor_m;",
+      "transitionKernelCode": "const token = input.Reservoir[0];\nreturn { Reservoir: [{ level_m: token.level_m, time_hours: token.time_hours, overflow_armed: token.overflow_armed, pump_on: token.pump_on, reserve_armed: false, morning_check_armed: token.morning_check_armed }] };",
+      "x": 720,
+      "y": 380
+    },
+    {
+      "id": "rearm_fire_reserve_counter",
+      "name": "Re-arm fire reserve counter",
+      "description": "Allows a later fire-reserve breach to be counted after level recovers above the floor.",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "const token = input.Reservoir[0];\nreturn !token.reserve_armed && token.level_m > (parameters.fire_reserve_floor_m + 0.05);",
+      "transitionKernelCode": "const token = input.Reservoir[0];\nreturn { Reservoir: [{ level_m: token.level_m, time_hours: token.time_hours, overflow_armed: token.overflow_armed, pump_on: token.pump_on, reserve_armed: true, morning_check_armed: token.morning_check_armed }] };",
+      "x": 120,
+      "y": 87.73333333333333
+    },
+    {
+      "id": "count_low_morning_level",
+      "name": "Count low 06:30 level",
+      "description": "Adds one token during the 06:30 check window when level is below the practical morning floor.",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1
+        },
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "low_morning_events"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "const token = input.Reservoir[0];\nconst hour = ((token.time_hours % 24) + 24) % 24;\nreturn token.morning_check_armed && hour >= 6.5 && hour < 6.75 && token.level_m < parameters.morning_level_floor_m;",
+      "transitionKernelCode": "const token = input.Reservoir[0];\nreturn { Reservoir: [{ level_m: token.level_m, time_hours: token.time_hours, overflow_armed: token.overflow_armed, pump_on: token.pump_on, reserve_armed: token.reserve_armed, morning_check_armed: false }] };",
+      "x": 720,
+      "y": 504
+    },
+    {
+      "id": "rearm_morning_check",
+      "name": "Re-arm morning check",
+      "description": "Re-arms the practical 06:30 level check after the morning check window has passed.",
+      "inputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "endpoint": {
+            "kind": "place",
+            "placeId": "reservoir"
+          },
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "const token = input.Reservoir[0];\nconst hour = ((token.time_hours % 24) + 24) % 24;\nreturn !token.morning_check_armed && hour >= 7;",
+      "transitionKernelCode": "const token = input.Reservoir[0];\nreturn { Reservoir: [{ level_m: token.level_m, time_hours: token.time_hours, overflow_armed: token.overflow_armed, pump_on: token.pump_on, reserve_armed: token.reserve_armed, morning_check_armed: true }] };",
+      "x": 720,
+      "y": 584
+    }
+  ],
+  "types": [
+    {
+      "id": "reservoir_state_type",
+      "name": "Reservoir state",
+      "description": "One token carries Hillcrest's water level, simulation clock, and whether a new overflow can be counted.",
+      "iconSlug": "circle",
+      "displayColor": "#1f77b4",
+      "elements": [
+        {
+          "elementId": "level_m_el",
+          "name": "level_m",
+          "type": "real"
+        },
+        {
+          "elementId": "time_hours_el",
+          "name": "time_hours",
+          "type": "real"
+        },
+        {
+          "elementId": "overflow_armed_el",
+          "name": "overflow_armed",
+          "type": "boolean"
+        },
+        {
+          "elementId": "pump_on_el",
+          "name": "pump_on",
+          "type": "boolean"
+        },
+        {
+          "elementId": "reserve_armed_el",
+          "name": "reserve_armed",
+          "type": "boolean"
+        },
+        {
+          "elementId": "morning_check_armed_el",
+          "name": "morning_check_armed",
+          "type": "boolean"
+        }
+      ]
+    }
+  ],
+  "differentialEquations": [
+    {
+      "id": "reservoir_level_dynamics",
+      "name": "Reservoir level and clock dynamics",
+      "colorId": "reservoir_state_type",
+      "code": "return tokens.map((token) => {\n  const hour = ((token.time_hours % 24) + 24) % 24;\n  const demand = (hour >= 6.5 && hour < 9)\n    ? parameters.morning_peak_demand_lps\n    : parameters.night_demand_lps;\n  const unrestrictedInflow = token.pump_on ? parameters.pump_rate_lps : 0;\n  const inflow = token.pump_on && parameters.vsd_enabled\n    ? Math.min(parameters.pump_rate_lps, demand + parameters.vsd_margin_lps)\n    : unrestrictedInflow;\n  const rawDLevel = ((inflow - demand) / 1000) * 3600 / parameters.storage_m3_per_m;\n  const dLevel = (token.level_m >= parameters.reservoir_depth_m && rawDLevel > 0)\n    ? 0\n    : ((token.level_m <= 0 && rawDLevel < 0) ? 0 : rawDLevel);\n  return { level_m: dLevel, time_hours: 1 };\n});"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "cut_in_level_m",
+      "name": "Pump cut-in level",
+      "variableName": "cut_in_level_m",
+      "type": "real",
+      "defaultValue": "3.5"
+    },
+    {
+      "id": "cut_out_level_m",
+      "name": "Pump cut-out level",
+      "variableName": "cut_out_level_m",
+      "type": "real",
+      "defaultValue": "5.4"
+    },
+    {
+      "id": "reservoir_depth_m",
+      "name": "Reservoir depth",
+      "variableName": "reservoir_depth_m",
+      "type": "real",
+      "defaultValue": "6"
+    },
+    {
+      "id": "storage_m3_per_m",
+      "name": "Storage per metre of level",
+      "variableName": "storage_m3_per_m",
+      "type": "real",
+      "defaultValue": "250"
+    },
+    {
+      "id": "pump_rate_lps",
+      "name": "Pump rate",
+      "variableName": "pump_rate_lps",
+      "type": "real",
+      "defaultValue": "90"
+    },
+    {
+      "id": "night_demand_lps",
+      "name": "Night demand",
+      "variableName": "night_demand_lps",
+      "type": "real",
+      "defaultValue": "20"
+    },
+    {
+      "id": "morning_peak_demand_lps",
+      "name": "Morning peak demand",
+      "variableName": "morning_peak_demand_lps",
+      "type": "real",
+      "defaultValue": "80"
+    },
+    {
+      "id": "vsd_enabled",
+      "name": "Variable speed drive enabled",
+      "variableName": "vsd_enabled",
+      "type": "boolean",
+      "defaultValue": "false"
+    },
+    {
+      "id": "vsd_margin_lps",
+      "name": "VSD excess over demand stand-in",
+      "variableName": "vsd_margin_lps",
+      "type": "real",
+      "defaultValue": "0"
+    },
+    {
+      "id": "fire_reserve_floor_m",
+      "name": "Fire reserve floor",
+      "variableName": "fire_reserve_floor_m",
+      "type": "real",
+      "defaultValue": "1.5"
+    },
+    {
+      "id": "morning_level_floor_m",
+      "name": "06:30 practical level floor",
+      "variableName": "morning_level_floor_m",
+      "type": "real",
+      "defaultValue": "3"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "summer_nights_levers",
+      "name": "Summer nights with cut-out and VSD levers",
+      "description": "Starts Hillcrest at an editable level and runs through repeated summer night/morning demand cycles. Upstream supply is represented only by pump inflow.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "initial_level_m",
+          "default": 5
+        },
+        {
+          "type": "real",
+          "identifier": "start_hour",
+          "default": 0
+        },
+        {
+          "type": "real",
+          "identifier": "cut_out_level_m",
+          "default": 5.4
+        },
+        {
+          "type": "real",
+          "identifier": "night_demand_lps",
+          "default": 20
+        },
+        {
+          "type": "real",
+          "identifier": "morning_peak_demand_lps",
+          "default": 80
+        },
+        {
+          "type": "integer",
+          "identifier": "enable_vsd",
+          "default": 0
+        },
+        {
+          "type": "real",
+          "identifier": "vsd_margin_lps",
+          "default": 0
+        }
+      ],
+      "parameterOverrides": {
+        "cut_out_level_m": "scenario.cut_out_level_m",
+        "night_demand_lps": "scenario.night_demand_lps",
+        "morning_peak_demand_lps": "scenario.morning_peak_demand_lps",
+        "vsd_enabled": "scenario.enable_vsd >= 1",
+        "vsd_margin_lps": "scenario.vsd_margin_lps"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  Reservoir: [{\n    level_m: scenario.initial_level_m,\n    time_hours: scenario.start_hour,\n    overflow_armed: true,\n    pump_on: false,\n    reserve_armed: true,\n    morning_check_armed: true\n  }],\n  OverflowEvents: 0,\n  FireReserveBreaches: 0,\n  LowMorningEvents: 0\n};"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "overflow_event_count",
+      "name": "Overflow event count",
+      "description": "Number of overflow events counted so far in the run.",
+      "code": "return state.places.OverflowEvents.count;"
+    },
+    {
+      "id": "reservoir_level_m",
+      "name": "Reservoir level",
+      "description": "Current modelled Hillcrest reservoir level in metres.",
+      "code": "const tokens = state.places.Reservoir.tokens;\nreturn tokens.length === 0 ? 0 : tokens[0].level_m;"
+    },
+    {
+      "id": "pump_running",
+      "name": "Pump running",
+      "description": "1 when the pump is on, 0 when it is off.",
+      "code": "const tokens = state.places.Reservoir.tokens;\nreturn tokens.length > 0 && tokens[0].pump_on ? 1 : 0;"
+    },
+    {
+      "id": "fire_reserve_breach_count",
+      "name": "Fire reserve breach count",
+      "description": "Number of excursions at or below the 1.5 m fire reserve floor.",
+      "code": "return state.places.FireReserveBreaches.count;"
+    },
+    {
+      "id": "low_morning_event_count",
+      "name": "Low 06:30 event count",
+      "description": "Number of morning check windows where the reservoir is below the practical 3.0 m floor.",
+      "code": "return state.places.LowMorningEvents.count;"
+    }
+  ]
+}
