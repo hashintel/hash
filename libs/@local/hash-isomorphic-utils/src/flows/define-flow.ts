@@ -131,12 +131,18 @@ type AddForEach = <K extends PayloadKind, CollectedKind extends PayloadKind>(
      */
     steps: (
       item: Ref<K, false, true>,
-      scope: StepScope,
+      scope: ForEachScope,
     ) => Ref<CollectedKind, boolean, true>;
   },
 ) => Ref<CollectedKind, true, true>;
 
 export type StepScope = { step: AddStep; forEach: AddForEach };
+
+/**
+ * What a for-each step's nested steps can add. A for-each step can't contain another one until the Petri net
+ * executor (FE-1904) runs flows.
+ */
+type ForEachScope = Pick<StepScope, "step">;
 
 /**
  * A flow input declared with `flowInput`, before it is named by its key in `defineFlow`.
@@ -341,10 +347,9 @@ export const defineFlow = <
     const forEach: AddForEach = (stepId, over, options) => {
       const nestedSteps: StepDefinition<string>[] = [];
 
-      const collected = options.steps(
-        createRef({ kind: "item" }, stepId),
-        createScope(nestedSteps, stepId),
-      );
+      const collected = options.steps(createRef({ kind: "item" }, stepId), {
+        step: createScope(nestedSteps, stepId).step,
+      });
 
       if (collected.source.kind !== "step-output") {
         throw new Error(

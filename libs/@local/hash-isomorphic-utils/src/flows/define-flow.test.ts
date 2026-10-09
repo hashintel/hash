@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { typedActionDefinitions as actions } from "./action-definitions.js";
 import {
@@ -464,7 +464,7 @@ describe("defineFlow", () => {
         {
           flowDefinitionId: "leaked-item",
           name: "Leaked item",
-          description: "Uses an outer item in an inner forEach",
+          description: "Uses an item outside its forEach",
           inputs: { prompt: flowInput("Text") },
         },
         ({ inputs, step, forEach }) => {
@@ -473,36 +473,27 @@ describe("defineFlow", () => {
             inputs: { prompt: inputs.prompt },
           });
 
-          forEach("outer", queries.outputs.queries, {
+          const leakedItems: Ref<"Text", false, true>[] = [];
+
+          forEach("each", queries.outputs.queries, {
             description: "",
             collectAs: "answers",
-            steps: (outerQuery, outer) => {
-              const innerQueries = outer.step(
-                "innerQueries",
-                actions.generateWebQueries,
-                {
-                  description: "",
-                  inputs: { prompt: outerQuery },
-                },
-              );
+            steps: (query, scope) => {
+              /* A for-each step can't contain another yet (FE-1904). */
+              expectTypeOf(scope).not.toHaveProperty("forEach");
 
-              const { forEach: innerForEach } = outer;
+              leakedItems.push(query);
 
-              innerForEach("inner", innerQueries.outputs.queries, {
+              return scope.step("answer", actions.answerQuestion, {
                 description: "",
-                collectAs: "answers",
-                steps: (_innerQuery, inner) =>
-                  inner.step("innerAnswer", actions.answerQuestion, {
-                    description: "",
-                    inputs: { question: outerQuery },
-                  }).outputs.explanation,
-              });
-
-              return outer.step("answer", actions.answerQuestion, {
-                description: "",
-                inputs: { question: outerQuery },
+                inputs: { question: query },
               }).outputs.explanation;
             },
+          });
+
+          step("leaked", actions.answerQuestion, {
+            description: "",
+            inputs: { question: leakedItems[0]! },
           });
 
           return { outputs: {} };

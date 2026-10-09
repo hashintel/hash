@@ -38,6 +38,7 @@ export type FlowDefinitionDiagnosticCode =
   | "incompatibleConnection"
   | "overNotArray"
   | "overNotRequired"
+  | "nestedForEach"
   | "invalidCollect"
   | "cycle"
   | "unusedFlowInput";
@@ -422,6 +423,14 @@ export const validateFlowDefinition = (
     entry: StepEntry,
     step: ForEachStepDefinition<string>,
   ) => {
+    if (entry.scope.length > 0) {
+      report(
+        "nestedForEach",
+        "A for-each step can't be inside another for-each step yet",
+        entry.path,
+      );
+    }
+
     const parallelizeOnShape = resolveSource({
       source: step.over,
       consumer: { stepId: step.stepId, scope: entry.scope },

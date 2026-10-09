@@ -272,6 +272,54 @@ describe("validateFlowDefinition", () => {
       });
     });
 
+    it("rejects a for-each step inside another", () => {
+      const queriesOutput = {
+        kind: "step-output",
+        stepId: "queries",
+        outputName: "queries",
+      };
+
+      expect(
+        diagnosticsOf({
+          ...baseDefinition,
+          steps: [
+            forEachDefinition({}).steps[0],
+            {
+              kind: "for-each",
+              stepId: "outer",
+              description: "",
+              over: queriesOutput,
+              steps: [
+                {
+                  kind: "for-each",
+                  stepId: "inner",
+                  description: "",
+                  over: queriesOutput,
+                  steps: [answerStep("answer", { question: { kind: "item" } })],
+                  collect: {
+                    stepId: "answer",
+                    outputName: "explanation",
+                    as: "explanations",
+                  },
+                },
+              ],
+              collect: {
+                stepId: "inner",
+                outputName: "explanations",
+                as: "explanations",
+              },
+            },
+          ],
+        }),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "nestedForEach",
+          path: ["steps", 1, "steps", 0],
+        },
+      ]);
+    });
+
     it("rejects using a nested step's output outside the for-each step", () => {
       expect(
         diagnosticsOf(
