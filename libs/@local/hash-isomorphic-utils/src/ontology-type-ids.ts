@@ -1,4 +1,5 @@
-import type { VersionedUrl, BaseUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 export const systemEntityTypes = {
   academicPaper: {
@@ -79,16 +80,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/comment-notification/" as BaseUrl,
   },
-  dashboard: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/dashboard/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/dashboard/" as BaseUrl,
-  },
-  dashboardItem: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/dashboard-item/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/dashboard-item/" as BaseUrl,
-  },
   company: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/company/v/1",
     entityTypeBaseUrl:
@@ -98,6 +89,16 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@h/types/entity-type/customer/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/customer/" as BaseUrl,
+  },
+  dashboard: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/dashboard/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/dashboard/" as BaseUrl,
+  },
+  dashboardItem: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/dashboard-item/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/dashboard-item/" as BaseUrl,
   },
   delivery: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/delivery/v/1",
@@ -143,19 +144,24 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/flight/" as BaseUrl,
   },
   flowDefinition: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-definition/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-definition/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/flow-definition/" as BaseUrl,
   },
   flowRun: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-run/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-run/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/flow-run/" as BaseUrl,
   },
   flowSchedule: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-schedule/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-schedule/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/flow-schedule/" as BaseUrl,
+  },
+  flowTrigger: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-trigger/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/flow-trigger/" as BaseUrl,
   },
   githubAccount: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/github-account/v/1",
@@ -409,7 +415,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/twitter-account/" as BaseUrl,
   },
   usageRecord: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/usage-record/v/2",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/usage-record/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/usage-record/" as BaseUrl,
   },
@@ -682,6 +688,11 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/sponsored-by/" as BaseUrl,
   },
+  storedAt: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/stored-at/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/stored-at/" as BaseUrl,
+  },
   subProcessOf: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/sub-process-of/v/1",
     linkEntityTypeBaseUrl:
@@ -702,6 +713,11 @@ export const systemLinkEntityTypes = {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/transports/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/transports/" as BaseUrl,
+  },
+  triggeredBy: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/triggered-by/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/triggered-by/" as BaseUrl,
   },
   triggeredByComment: {
     linkEntityTypeId:
@@ -878,6 +894,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/batch-number/" as BaseUrl,
   },
+  blockedStock: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/blocked-stock/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/blocked-stock/" as BaseUrl,
+  },
   bomCategory: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/bom-category/v/1",
     propertyTypeBaseUrl:
@@ -930,17 +951,17 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/component-id/" as BaseUrl,
   },
-  configurationStatus: {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/configuration-status/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/configuration-status/" as BaseUrl,
-  },
   componentQuantity: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/component-quantity/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/component-quantity/" as BaseUrl,
+  },
+  configurationStatus: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/configuration-status/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/configuration-status/" as BaseUrl,
   },
   connectionSourceName: {
     propertyTypeId:
@@ -996,12 +1017,6 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/data-sources/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/data-sources/" as BaseUrl,
-  },
-  "debit/creditIndicator": {
-    propertyTypeId:
-      "https://hash.ai/@h/types/property-type/debit-credit-indicator/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/debit-credit-indicator/" as BaseUrl,
   },
   definitionObject: {
     propertyTypeId:
@@ -1383,6 +1398,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/industry/" as BaseUrl,
   },
+  inputDefinition: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/input-definition/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/input-definition/" as BaseUrl,
+  },
   inputPlaceId: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/input-place-id/v/1",
     propertyTypeBaseUrl:
@@ -1399,6 +1420,11 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/input-unit-count/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/input-unit-count/" as BaseUrl,
+  },
+  inputs: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/inputs/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/inputs/" as BaseUrl,
   },
   intendedUse: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/intended-use/v/1",
@@ -1679,6 +1705,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/outcome-measure/" as BaseUrl,
   },
+  outputDefinition: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/output-definition/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/output-definition/" as BaseUrl,
+  },
   outputDefinitions: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/output-definitions/v/1",
@@ -1838,11 +1870,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/publication-year/" as BaseUrl,
   },
-  pythonScript: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/python-script/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/python-script/" as BaseUrl,
-  },
   purchaseOrderItemNumber: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/purchase-order-item-number/v/1",
@@ -1872,6 +1899,17 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/purchasing-organization/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/purchasing-organization/" as BaseUrl,
+  },
+  pythonScript: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/python-script/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/python-script/" as BaseUrl,
+  },
+  qualityInspectionStock: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/quality-inspection-stock/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/quality-inspection-stock/" as BaseUrl,
   },
   readAt: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/read-at/v/1",
@@ -1932,6 +1970,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/resolved-at/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/resolved-at/" as BaseUrl,
+  },
+  "restricted-useStock": {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/restricted-use-stock/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/restricted-use-stock/" as BaseUrl,
   },
   role: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/role/v/1",
@@ -2144,17 +2188,23 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/step/" as BaseUrl,
   },
+  stepDefinition: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/step-definition/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/step-definition/" as BaseUrl,
+  },
   stepDefinitions: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/step-definitions/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/step-definitions/" as BaseUrl,
   },
-  structuralQuery: {
+  stockDirection: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/structural-query/v/1",
+      "https://hash.ai/@h/types/property-type/stock-direction/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/structural-query/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/stock-direction/" as BaseUrl,
   },
   stockQuantity: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/stock-quantity/v/1",
@@ -2186,6 +2236,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/street-address/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/street-address/" as BaseUrl,
+  },
+  structuralQuery: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/structural-query/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/structural-query/" as BaseUrl,
   },
   studyArm: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/study-arm/v/1",
@@ -3344,6 +3400,13 @@ export const systemDataTypes = {
     title: "MOP",
     description: "An amount denominated in Pataca (ISO 4217 MOP).",
   },
+  movementCategory: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/movement-category/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/movement-category/" as BaseUrl,
+    title: "Movement Category",
+    description: "A broad category of goods movement.",
+  },
   mru: {
     dataTypeId: "https://hash.ai/@h/types/data-type/mru/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/mru/" as BaseUrl,
@@ -3663,6 +3726,13 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/stn/" as BaseUrl,
     title: "STN",
     description: "An amount denominated in Dobra (ISO 4217 STN).",
+  },
+  stockDirection: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/stock-direction/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/stock-direction/" as BaseUrl,
+    title: "Stock Direction",
+    description: "Whether stock is increased or decreased.",
   },
   svc: {
     dataTypeId: "https://hash.ai/@h/types/data-type/svc/v/1",

@@ -1,0 +1,171 @@
+[
+  {
+    "flowDefinitionId": "113ce2ec-6a12-56b6-b495-072475889b37",
+    "flowDefinition": {
+      "name": "Get Historical Flights",
+      "description": "Fetch and save historical flight arrivals for an airport over a date range.",
+      "inputs": [
+        {
+          "name": "airportIcao",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true,
+          "label": "Airport ICAO"
+        },
+        {
+          "name": "startDate",
+          "payloadKind": "Date",
+          "array": false,
+          "required": true,
+          "label": "Start Date"
+        },
+        {
+          "name": "endDate",
+          "payloadKind": "Date",
+          "array": false,
+          "required": true,
+          "label": "End Date"
+        }
+      ],
+      "steps": [
+        {
+          "kind": "action",
+          "stepId": "1",
+          "actionDefinitionId": "getHistoricalFlightArrivals",
+          "description": "Fetch historical flight arrivals for the specified airport and date range",
+          "inputs": {
+            "airportIcao": {
+              "kind": "flow-input",
+              "inputName": "airportIcao"
+            },
+            "startDate": {
+              "kind": "flow-input",
+              "inputName": "startDate"
+            },
+            "endDate": {
+              "kind": "flow-input",
+              "inputName": "endDate"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "2",
+          "actionDefinitionId": "persistIntegrationEntities",
+          "description": "Save discovered entities and relationships to HASH graph",
+          "inputs": {
+            "proposedEntities": {
+              "kind": "step-output",
+              "stepId": "1",
+              "outputName": "proposedEntities"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "persistedEntities",
+          "stepId": "2",
+          "outputName": "persistedEntities"
+        },
+        {
+          "name": "failedEntityProposals",
+          "stepId": "2",
+          "outputName": "failedEntityProposals"
+        }
+      ]
+    }
+  },
+  {
+    "flowDefinitionId": "96a80402-c41b-5978-a018-b30f7e09bfe0",
+    "flowDefinition": {
+      "name": "Get Scheduled Flights",
+      "description": "Fetch and save scheduled flight arrivals for an airport on a given date, with position updates for live flights.",
+      "inputs": [
+        {
+          "name": "airportIcao",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true,
+          "label": "Airport ICAO"
+        },
+        {
+          "name": "date",
+          "payloadKind": "Date",
+          "array": false,
+          "required": true,
+          "label": "Date"
+        }
+      ],
+      "steps": [
+        {
+          "kind": "action",
+          "stepId": "1",
+          "actionDefinitionId": "getScheduledFlights",
+          "description": "Fetch scheduled flight arrivals from for the specified airport and date",
+          "inputs": {
+            "airportIcao": {
+              "kind": "flow-input",
+              "inputName": "airportIcao"
+            },
+            "date": {
+              "kind": "flow-input",
+              "inputName": "date"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "2",
+          "actionDefinitionId": "persistIntegrationEntities",
+          "description": "Save discovered entities and relationships to HASH graph",
+          "inputs": {
+            "proposedEntities": {
+              "kind": "step-output",
+              "stepId": "1",
+              "outputName": "proposedEntities"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "3",
+          "actionDefinitionId": "getLiveFlightPositions",
+          "description": "Fetch current position of active flights",
+          "inputs": {
+            "persistedEntities": {
+              "kind": "step-output",
+              "stepId": "2",
+              "outputName": "persistedEntities"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "4",
+          "actionDefinitionId": "persistIntegrationEntities",
+          "description": "Save live flight position updates to HASH graph",
+          "inputs": {
+            "proposedEntities": {
+              "kind": "step-output",
+              "stepId": "3",
+              "outputName": "proposedEntities"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "persistedEntities",
+          "stepId": "4",
+          "outputName": "persistedEntities"
+        },
+        {
+          "name": "failedEntityProposals",
+          "stepId": "4",
+          "outputName": "failedEntityProposals"
+        }
+      ]
+    }
+  }
+]

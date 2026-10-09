@@ -13,6 +13,7 @@
     "dev:seed-crm-data": "NODE_ENV=development tsx ./src/seed-data/seed-crm-data.ts",
     "dev:seed-dashboard-demo": "NODE_ENV=development tsx ./src/seed-data/seed-dashboard-demo.ts",
     "fix:eslint": "eslint --fix .",
+    "generate-flow-definition-migration": "tsx ./src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/generate-flow-definition-migration.ts",
     "generate-hash-gpt-schema": "tsx ./src/ai/gpt/generate-hashgpt-schema.ts",
     "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; cd ../../libs/@local/hash-isomorphic-utils && oxfmt --write --ignore-path /dev/null src/ontology-type-ids.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",

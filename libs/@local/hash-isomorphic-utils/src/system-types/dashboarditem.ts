@@ -30,6 +30,8 @@ import type {
   StructuralQueryPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 } from "./shared.js";
 
 export type {
@@ -60,4 +62,6 @@ export type {
   StructuralQueryPropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  ValueDataType,
+  ValueDataTypeWithMetadata,
 };

@@ -316,7 +316,28 @@ export type BOMStatusPropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type BaseQuantityPropertyValue = KilogramsDataType;
 
 export type BaseQuantityPropertyValueWithMetadata =
-  KilogramsDataTypeWithMetadata;
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;
 
 /**
  * A structured list of the components required to produce a material.
@@ -353,7 +374,7 @@ export type BillOfMaterialsProperties = {
   "https://hash.ai/@h/types/property-type/alternative-bom/"?: AlternativeBOMPropertyValue;
   "https://hash.ai/@h/types/property-type/base-quantity/"?: BaseQuantityPropertyValue;
   "https://hash.ai/@h/types/property-type/bom-category/"?: BOMCategoryPropertyValue;
-  "https://hash.ai/@h/types/property-type/bom-number/"?: BOMNumberPropertyValue;
+  "https://hash.ai/@h/types/property-type/bom-number/": BOMNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/bom-status/"?: BOMStatusPropertyValue;
   "https://hash.ai/@h/types/property-type/creation-date/"?: CreationDatePropertyValue;
   "https://hash.ai/@h/types/property-type/deletion-indicator/"?: DeletionIndicatorPropertyValue;
@@ -368,7 +389,7 @@ export type BillOfMaterialsPropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/alternative-bom/"?: AlternativeBOMPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/base-quantity/"?: BaseQuantityPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/bom-category/"?: BOMCategoryPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/bom-number/"?: BOMNumberPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/bom-number/": BOMNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/bom-status/"?: BOMStatusPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/creation-date/"?: CreationDatePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/deletion-indicator/"?: DeletionIndicatorPropertyValueWithMetadata;

@@ -1,7 +1,3 @@
-import {
-  defineSearchAttributeKey,
-  SearchAttributeType,
-} from "@temporalio/common";
 import proto from "@temporalio/proto";
 
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
@@ -738,11 +734,7 @@ const getFlowRunDetailedFields = async ({
 
   return {
     failureMessage: workflowFailureMessage,
-    /**
-     * A run started before flows declared inputs was given a trigger instead, so it has no input values to show.
-     */
-    flowInputs:
-      (workflowParams as Partial<RunFlowWorkflowParams>).flowInputs ?? {},
+    flowInputs: workflowParams.flowInputs,
     dataSources:
       "dataSources" in workflowParams ? workflowParams.dataSources : undefined,
     outputs: resolvedWorkflowOutputs ?? workflowOutputs,
@@ -753,14 +745,20 @@ const getFlowRunDetailedFields = async ({
 };
 
 export const getSparseFlowRunFromTemporalWorkflowId = async ({
+  flowDefinitionId,
   flowRunId,
+  flowScheduleId,
   name,
   temporalClient,
   temporalWorkflowId,
   webId,
 }: {
+  /** The flow definition the run `Uses`, from its link */
+  flowDefinitionId: EntityUuid;
   /** The entity UUID of the flow run */
   flowRunId: EntityUuid;
+  /** The schedule the run was `Triggered By`, if any, from its link */
+  flowScheduleId?: EntityUuid;
   name: string;
   temporalClient: TemporalClient;
   /** the identifier for the Temporal workflow */
@@ -769,28 +767,12 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
 }): Promise<SparseFlowRun> => {
   const handle = temporalClient.workflow.getHandle(temporalWorkflowId);
 
-  const {
-    startTime,
-    executionTime,
-    closeTime,
-    memo,
-    typedSearchAttributes,
-    status,
-  } = await handle.describe();
-
-  const temporalScheduledByIdKey = defineSearchAttributeKey(
-    "TemporalScheduledById",
-    SearchAttributeType.KEYWORD,
-  );
-
-  const flowScheduleId = typedSearchAttributes.get(temporalScheduledByIdKey) as
-    | EntityUuid
-    | undefined;
+  const { startTime, executionTime, closeTime, status } =
+    await handle.describe();
 
   return {
     name,
-    flowDefinitionId:
-      (memo?.flowDefinitionId as string | undefined) ?? "unknown",
+    flowDefinitionId,
     flowRunId,
     flowScheduleId,
     status: status.name as FlowRunStatus,
@@ -802,8 +784,12 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
 };
 
 export const getFlowRunFromTemporalWorkflowId = async (args: {
+  /** The flow definition the run `Uses`, from its link */
+  flowDefinitionId: EntityUuid;
   /** The entity UUID of the flow run */
   flowRunId: EntityUuid;
+  /** The schedule the run was `Triggered By`, if any, from its link */
+  flowScheduleId?: EntityUuid;
   name: string;
   temporalClient: TemporalClient;
   /** the identifier for the Temporal workflow */

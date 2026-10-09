@@ -575,7 +575,6 @@ export const FlowVisualizer = () => {
 
         variables = {
           dataSources: selectedFlowRun.dataSources,
-          flowDefinition: selectedFlow.flowDefinition,
           flowDefinitionId: selectedFlow.flowDefinitionId,
           flowInputs: selectedFlowRun.flowInputs,
           webId: selectedFlowRun.webId,
@@ -593,7 +592,6 @@ export const FlowVisualizer = () => {
               enabled: true,
             },
           },
-          flowDefinition: selectedFlow.flowDefinition,
           flowDefinitionId: selectedFlow.flowDefinitionId,
           flowInputs,
           webId,

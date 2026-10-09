@@ -4,11 +4,14 @@ import {
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { readFlowDefinitionSnapshot } from "../flow-definition-snapshots";
+import { seedFlowDefinitions } from "../seed-flow-definitions";
 import {
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashDataTypeId,
+  getCurrentHashSystemEntityTypeId,
 } from "../util";
 
 import type { MigrationFunction } from "../types";
@@ -1015,6 +1018,17 @@ const migrate: MigrationFunction = async ({
       webShortname: "h",
     },
   );
+
+  /**
+   * Seed the flows that use the aviation types, which only exist where dev migrations run.
+   */
+  await seedFlowDefinitions(context, authentication, {
+    flows: await readFlowDefinitionSnapshot("090"),
+    flowDefinitionEntityTypeId: getCurrentHashSystemEntityTypeId({
+      entityTypeKey: "flowDefinition",
+      migrationState,
+    }),
+  });
 
   return migrationState;
 };
