@@ -14,13 +14,16 @@ Cargo.toml @hashintel/rust
 /libs/@local/petrinaut*/ @hashintel/petrinaut
 
 # Core backend logic
-/apps/hash-api/ @hashintel/backend
-/apps/hash-graph/ @hashintel/backend
-/libs/@local/graph/ @hashintel/backend
+/apps/hash-api/ @hashintel/backend-ts
+/apps/hash-ai-worker-ts/ @hashintel/backend-ts
+/apps/hash-integration-worker/ @hashintel/backend-ts
+/apps/hash-graph/ @hashintel/backend-rust
+/libs/@local/graph/ @hashintel/backend-rust
+/libs/@local/graph/*/typescript/ @hashintel/backend-ts
 
 # Database migrations
-/libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/backend
-/libs/@local/graph/migrations/graph-migrations/ @hashintel/backend
+/libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/backend-rust
+/libs/@local/graph/migrations/graph-migrations/ @hashintel/backend-rust
 
 # Code ownership
 /.github/CODEOWNERS @hashintel/infra-admins
