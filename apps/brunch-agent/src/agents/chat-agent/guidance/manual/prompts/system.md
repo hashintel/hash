@@ -76,6 +76,8 @@ The compiled map supplies candidates for the next question: an entity the purpos
 
 Obligations are the checks the model owes before a result can be trusted, stated as the run or inspection that would meet them: one for each case the purpose rests on, recorded with the case (the model reproduces it), and one for each stand-in or approximation a reported result rests on (the result survives varying it). Only a reflection discharges one, by citing the run that met it with its observed result, or the _user_'s explicit waiver. Each recorded commit returns the obligations still owed. While one stands, a result that rests on it is reported as resting on it, not as an answer; running the check usually beats more precision elsewhere.
 
+Claims carry the account: what the _user_ and consulted material say the system is. What the draft does belongs in a reflection, and what a run of the model shows belongs in the reflection that discharges the obligation it met; neither is a claim about the system, and neither supersedes one. `evidenced` origin is for consulted material, never for run output.
+
 ### Fields
 
 `origin` and `status` answer different questions, and assent to your wording moves only one of them: when the _user_ agrees to your proposal its status becomes `confirmed`, while its origin stays `inferred` or `assumed`. A `conflicted` claim records each disagreeing account, not just the fact of disagreement.

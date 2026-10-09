@@ -17,10 +17,10 @@ Parked (design-only, nothing mounts it):
 ## File map
 
 - [records.ts](./records.ts) — `LedgerState` and the committed record shapes (`EntityRecord`, `ClaimRecord`, `ReflectionRecord`, `ObligationRecord`, `Turn`), typed against the real payload schemas in [../elicitation/](../elicitation/), [../construction/](../construction/) and [../shared/](../shared/). This is also the state the fold in [../commits.ts](../commits.ts) produces, so the projection consumes fold output directly.
-- [project-ledger.ts](./project-ledger.ts) — the fold from `LedgerState` to `LedgerProjection`: sections → kind groups → entities → claims, plus `excluded` (out-of-scope entities), `questions` (open and conflicted claims), `owed` (obligations no reflection has discharged, from `owedObligations`, which also feeds the commit receipt) and `addressEntries` (the snippet index used to find candidate records for a selection).
+- [project-ledger.ts](./project-ledger.ts) — the fold from `LedgerState` to `LedgerProjection`: sections → kind groups → entities → claims, plus `excluded` (out-of-scope entities), `questions` (open and conflicted claims), `owed` (obligations no reflection has discharged, from `owedObligations`, which also feeds the commit receipt), `met` (discharged obligations with the reflections that discharged them) and `addressEntries` (the snippet index used to find candidate records for a selection).
 - [render-ledger-markdown.ts](./render-ledger-markdown.ts) — `renderLedgerMarkdown(projection, skin)` via md-pen; superseded claims struck through; questions as `:::question` directive blocks.
 - [resolve-selection.ts](./resolve-selection.ts) — parked: `resolveSelection` (snippet-overlap matching), `opForFeedback` and `opForAnswer` (feedback → route-encoded ops).
-- [worked-example.ts](./worked-example.ts) — the Brightwater support-desk fixture: 13 entities, 12 claims (a `c4`→`c5` supersession, `c10` conflicted, `c11` open, `e13` out-of-scope) and 2 reflections, and 1 owed obligation. Covers the main rendering branches, not every schema-valid ledger shape or feedback outcome.
+- [worked-example.ts](./worked-example.ts) — the Brightwater support-desk fixture: 13 entities, 12 claims (a `c4`→`c5` supersession, `c10` conflicted, `c11` open, `e13` out-of-scope) and 2 reflections, 1 owed obligation and 1 met. Covers the main rendering branches, not every schema-valid ledger shape or feedback outcome.
 
 Tests: `test/ledger2-projection.test.ts` with snapshots pinning both skins under `test/__snapshots__/`.
 
@@ -30,8 +30,8 @@ Tests: `test/ledger2-projection.test.ts` with snapshots pinning both skins under
 - Canonical kind tokens appear in agent-skin headings only, never in the user skin.
 - A claim referencing several entities repeats under each one — accepted, no see-also form ("it reflects something about the way that the projection really works").
 - Question choices are generic: conflicted claims offer "It holds" / "It does not hold" / "Leave it unresolved"; open claims are free-text with no choices.
-- Reflections are construction-mode records and deliberately stay out of this account view.
-- Obligations still owed render as a "Checks still owed" section after the questions; a discharged obligation disappears from the view, and the reflection that discharged it stays out like any other.
+- Reflections are construction-mode records and stay out of this account view, except a reflection that discharged an obligation: it renders under that check in "Checks met", so run results have a visible home outside the account's claims.
+- Obligations still owed render as a "Checks still owed" section after the questions.
 
 ## The parked commenting flow
 
