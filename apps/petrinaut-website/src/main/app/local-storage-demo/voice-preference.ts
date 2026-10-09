@@ -1,5 +1,8 @@
-import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
-import { usePersistedState } from "./use-persisted-state";
+import {
+  readBrowserStorage,
+  writeBrowserStorage,
+} from "../shared/browser-storage";
+import { usePersistedState } from "../shared/use-persisted-state";
 
 export const voicePreferenceStorageKey = "petrinaut-website:voice-enabled";
 

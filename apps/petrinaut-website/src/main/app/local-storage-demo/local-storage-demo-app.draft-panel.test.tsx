@@ -226,11 +226,8 @@ test.each(["Dismiss", "Run"] as const)(
     const readOutput = read.execute({
       input: {},
       toolCallId: "read-1",
-      handle,
-      mutations: {} as never,
-      commands: {} as never,
+      edit: {} as never,
       readDiagnosticsContext: async () => "",
-      viewport: { frameSceneAfterRender: async () => "framed" },
       signal: new AbortController().signal,
     });
     const readMetadata = host.clientToolResultMetadataFor("read-1", readOutput);

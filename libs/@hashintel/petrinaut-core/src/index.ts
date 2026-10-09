@@ -191,7 +191,6 @@ export {
 export {
   colorSchema,
   componentInstanceSchema,
-  createPetrinautAiWritableCallbacks,
   createExperimentToolName,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
@@ -217,7 +216,6 @@ export type {
   PetrinautAiCommandToolInput,
   PetrinautAiCommandToolName,
   PetrinautAiTool,
-  PetrinautAiWritableCallbacks,
   PetrinautAiToolInput,
   PetrinautAiMutationToolInput,
   PetrinautAiMutationToolName,

@@ -30,11 +30,11 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { PetrinautAiVoiceModeContext } from "../../_shared/chat/composer-control";
 import type { VoiceMediationHistory } from "../history/voice-mediation-history";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { ToolApprovalState } from "../live/live-brunch-bridge";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 type ResolveSubmission = (
   messageId: string,

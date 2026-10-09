@@ -11,23 +11,24 @@ import {
 import { useEffect, useState } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import {
-  definePetrinautAiInteractiveTool,
-  Petrinaut,
-} from "@hashintel/petrinaut/ui";
+  createJsonDocHandle,
+  createPetrinaut,
+} from "@hashintel/petrinaut-core";
+import { PetrinautAssistantWindowPreview } from "@hashintel/petrinaut/ui";
 
+import { AssistantChat } from "../../_shared/chat/assistant-chat";
+import { definePetrinautAiInteractiveTool } from "../../_shared/chat/interactive-tool";
+import { createTestPluginApi } from "../../_shared/testing/create-test-plugin-api";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 
+import type { PetrinautAiTransport } from "../../_shared/chat/ai-message";
+import type { PetrinautAiVoiceModeContext } from "../../_shared/chat/composer-control";
 import type {
   AgentConversationObservation,
   AgentConversationObservationSnapshot,
   FlueClient,
 } from "@flue/sdk";
-import type {
-  PetrinautAiChatTransport,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
 
 vi.hoisted(() => {
   window.matchMedia = (media) => ({
@@ -105,12 +106,6 @@ const emptyDefinition = {
   parameters: [],
   differentialEquations: [],
 };
-const inertWorker = () => ({
-  addEventListener() {},
-  postMessage() {},
-  removeEventListener() {},
-  terminate() {},
-});
 
 const createObservationHarness = (
   initialSnapshot: AgentConversationObservationSnapshot,
@@ -192,13 +187,17 @@ const ContinuityPanel = ({
   endVoice: () => Promise<void>;
   handleId: string;
   requestStop: () => Promise<"already-settled" | "stop-requested">;
-  transport: PetrinautAiChatTransport;
+  transport: PetrinautAiTransport;
 }) => {
-  const [handle] = useState(() =>
-    createJsonDocHandle({
-      id: handleId,
-      initial: emptyDefinition,
-    }),
+  const [api] = useState(() =>
+    createTestPluginApi(
+      createPetrinaut({
+        document: createJsonDocHandle({
+          id: handleId,
+          initial: emptyDefinition,
+        }),
+      }),
+    ),
   );
   const history = useFlueChatHistory(
     clientPromise,
@@ -207,20 +206,19 @@ const ContinuityPanel = ({
   );
   if (!history.ready || history.messages === undefined) return null;
   return (
-    <Petrinaut
-      aiAssistant={{
-        conversationId,
-        interactiveTools: [voiceAnswerTool],
-        messages: history.messages,
-        requestStop,
-        renderVoiceMode: (context) => (
+    <PetrinautAssistantWindowPreview>
+      <AssistantChat
+        api={api}
+        conversationId={conversationId}
+        interactiveTools={[voiceAnswerTool]}
+        messages={history.messages}
+        requestStop={requestStop}
+        renderVoiceMode={(context) => (
           <VoiceMode context={context} endVoice={endVoice} />
-        ),
-        transport,
-      }}
-      handle={handle}
-      lspWorkerFactory={inertWorker}
-    />
+        )}
+        transport={transport}
+      />
+    </PetrinautAssistantWindowPreview>
   );
 };
 
@@ -333,7 +331,7 @@ test("projects typed, in-band tool, and stopped fixture history after remount", 
   };
   const observation = createObservationHarness(initialSnapshot);
   const endVoice = vi.fn(async () => undefined);
-  const transport: PetrinautAiChatTransport = {
+  const transport: PetrinautAiTransport = {
     reconnectToStream: () => Promise.resolve(null),
     sendMessages: vi.fn(() =>
       Promise.resolve(
@@ -366,10 +364,6 @@ test("projects typed, in-band tool, and stopped fixture history after remount", 
       transport={transport}
     />,
   );
-  const showFirstPanel = await screen.findByRole("button", {
-    name: "Show AI assistant",
-  });
-  await act(async () => fireEvent.click(showFirstPanel));
   const composer = await screen.findByRole<HTMLTextAreaElement>("textbox", {
     name: "Message AI assistant",
   });
@@ -393,10 +387,6 @@ test("projects typed, in-band tool, and stopped fixture history after remount", 
       transport={transport}
     />,
   );
-  const showSecondPanel = await screen.findByRole("button", {
-    name: "Show AI assistant",
-  });
-  await act(async () => fireEvent.click(showSecondPanel));
   await screen.findByText("Typed planning note");
   expect(observation.observe).toHaveBeenCalledTimes(2);
   expect(screen.getByText("voice-tool-1: The supervisor")).not.toBeNull();

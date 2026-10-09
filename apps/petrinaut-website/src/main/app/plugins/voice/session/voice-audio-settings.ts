@@ -8,7 +8,7 @@ import { previewVoice } from "./voice-audio-settings/preview";
 import type {
   PetrinautAiVoiceModeControls,
   PetrinautAiVoiceSessionState,
-} from "@hashintel/petrinaut/ui";
+} from "../../_shared/chat/composer-control";
 
 type SettingsState = NonNullable<PetrinautAiVoiceSessionState["audioSettings"]>;
 type SettingsActions = NonNullable<

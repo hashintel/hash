@@ -3,15 +3,34 @@ import { toPetrinautId } from "@hashintel/petrinaut-core";
 import {
   readBrowserStorage,
   writeBrowserStorage,
-} from "../../../local-storage-demo/browser-storage";
-import { usePersistedState } from "../../../local-storage-demo/use-persisted-state";
+} from "../../../shared/browser-storage";
+import { usePersistedState } from "../../../shared/use-persisted-state";
 
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiMessage } from "../../_shared/chat/ai-message";
 
 const rootLocalStorageKey = "petrinaut-ai-messages";
 
 type AiMessagesByNetId = Record<string, PetrinautAiMessage[]>;
 const noAiMessages: AiMessagesByNetId = {};
+
+const isAiMessage = (message: unknown): message is PetrinautAiMessage =>
+  typeof message === "object" &&
+  message !== null &&
+  "id" in message &&
+  typeof message.id === "string" &&
+  "role" in message &&
+  (message.role === "user" ||
+    message.role === "assistant" ||
+    message.role === "system") &&
+  "parts" in message &&
+  Array.isArray(message.parts) &&
+  message.parts.every(
+    (part: unknown) =>
+      typeof part === "object" &&
+      part !== null &&
+      "type" in part &&
+      typeof part.type === "string",
+  );
 
 /**
  * Keys every conversation by net id, so history saved under a legacy id
@@ -48,26 +67,7 @@ const readMessages = (): AiMessagesByNetId => {
         ([netId, messages]) =>
           netId.length > 0 &&
           Array.isArray(messages) &&
-          messages.every(
-            (message: unknown) =>
-              typeof message === "object" &&
-              message !== null &&
-              "id" in message &&
-              typeof message.id === "string" &&
-              "role" in message &&
-              (message.role === "user" ||
-                message.role === "assistant" ||
-                message.role === "system") &&
-              "parts" in message &&
-              Array.isArray(message.parts) &&
-              message.parts.every(
-                (part: unknown) =>
-                  typeof part === "object" &&
-                  part !== null &&
-                  "type" in part &&
-                  typeof part.type === "string",
-              ),
-          ),
+          messages.every(isAiMessage),
       )
     ) {
       return {};
@@ -85,12 +85,31 @@ const writeMessages = (messages: AiMessagesByNetId): void =>
     JSON.stringify(messages),
   );
 
-export const useLocalStorageAiMessages = () => {
+/**
+ * The saved transcript of one document and how to replace or clear it. Every
+ * document's transcript lives under one storage key, so a write keeps the
+ * other documents' transcripts.
+ */
+export const useLocalStorageAiMessages = (
+  documentId: string,
+): readonly [
+  PetrinautAiMessage[] | undefined,
+  (messages: PetrinautAiMessage[] | undefined) => void,
+] => {
   const [aiMessagesByNetId, setAiMessagesByNetId] = usePersistedState({
     fallback: noAiMessages,
     read: readMessages,
     storageKey: rootLocalStorageKey,
     write: writeMessages,
   });
-  return { aiMessagesByNetId, setAiMessagesByNetId };
+  const setMessages = (messages: PetrinautAiMessage[] | undefined) =>
+    setAiMessagesByNetId((previous) => {
+      const next = { ...previous };
+      if (messages === undefined) delete next[documentId];
+      else next[documentId] = messages;
+
+      return next;
+    });
+
+  return [aiMessagesByNetId[documentId], setMessages];
 };

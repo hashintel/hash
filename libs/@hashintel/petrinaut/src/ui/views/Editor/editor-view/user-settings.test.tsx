@@ -29,6 +29,7 @@ import type {
   PetrinautSettingsSection,
 } from "../../../../react/navigation";
 import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
+import type { PetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import type { ReactNode } from "react";
 
 beforeEach(() => {
@@ -91,7 +92,7 @@ const voicePlugin = definePetrinautPlugin({
 
 const renderPluginSettings = (
   section: PetrinautSettingsSection,
-  plugins = [voicePlugin],
+  plugins: readonly PetrinautPlugin[] = [voicePlugin],
 ) =>
   renderPlugins(
     plugins,
@@ -607,6 +608,63 @@ describe("Plugins settings", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Labs" }));
     await screen.findByRole("heading", { name: "Labs" });
     expect(screen.queryByRole("region", { name: "Voice" })).toBeNull();
+  });
+
+  it("shows an assistant extension whose parent is not passed as needing it", async () => {
+    const createBase = definePetrinautPlugin({
+      id: "test.base",
+      name: "Base",
+      assistant: { label: "Base" },
+    });
+    const extension = definePetrinautPlugin({
+      id: "test.extension",
+      name: "Extension",
+      assistant: { extends: createBase },
+    })({ assistant: {} });
+    renderPluginSettings("plugins", [extension]);
+    await screen.findByRole("heading", { name: "Plugins" });
+    const row = screen.getByRole("group", { name: "Extension" });
+
+    expect(row.textContent).toContain("Needs Base");
+    expect(
+      (
+        within(row).getByRole("checkbox", {
+          name: "Extension",
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+  });
+
+  it("chooses the assistant under General once two run, and stores the choice", async () => {
+    const assistantPlugin = (id: string, label: string) =>
+      definePetrinautPlugin({ id, name: label, assistant: { label } })({
+        assistant: { view: null },
+      });
+    renderPluginSettings("general", [
+      assistantPlugin("test.first", "First"),
+      assistantPlugin("test.second", "Second"),
+    ]);
+    const select = await screen.findByRole("combobox", { name: "Assistant" });
+    expect(select.textContent).toContain("First");
+
+    act(() => select.focus());
+    fireEvent.keyDown(select, { key: "Enter" });
+    await waitFor(() =>
+      expect(select.getAttribute("aria-expanded")).toBe("true"),
+    );
+    // A role query over the whole dialog is too slow while the suite runs.
+    const second = await waitFor(() => {
+      const item = document.querySelector(
+        '[data-part="item"][data-value="test.second"]',
+      );
+      expect(item).not.toBeNull();
+      return item!;
+    });
+    fireEvent.click(second);
+    await waitFor(() => expect(select.textContent).toContain("Second"));
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({ aiAssistantId: "test.second" });
   });
 
   it("explains that no plugins were passed", async () => {

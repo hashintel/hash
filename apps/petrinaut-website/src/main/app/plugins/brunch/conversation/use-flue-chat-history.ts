@@ -4,6 +4,7 @@ import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { canonicalPetrinautClientToolNames } from "../tools/brunch-client-tools";
 
+import type { PetrinautAiMessage } from "../../_shared/chat/ai-message";
 import type {
   AgentConversationObservation,
   AgentConversationObservationPhase,
@@ -12,7 +13,6 @@ import type {
   FlueConversationSettlement,
   FlueConversationState,
 } from "@flue/sdk";
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const noSettlements: readonly FlueConversationSettlement[] = [];
 

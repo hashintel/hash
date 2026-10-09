@@ -91,9 +91,9 @@ docs:
 
 ## Plugins
 
-A plugin adds buttons, top-bar items, settings and UI to the editor. Its
-manifest declares what it adds and which editor state it reads or changes;
-its hook receives `api` and returns the contributions:
+A plugin adds buttons, top-bar items, settings, the AI assistant and UI to
+the editor. Its manifest declares what it adds and which editor state it reads
+or changes; its hook receives `api` and returns the contributions:
 
 ```tsx
 import { useState } from "react";
@@ -334,62 +334,11 @@ optimizer)** story creates a parameter sweep with its study, as the Create
 Experiment drawer's Optimize does, and drives it with an internal fake
 optimizer, so it does not require the Python service or Docker.
 
-## Host-owned interactive AI tools
+## AI assistant
 
-Hosts can render their own dynamic AI tools inline in Petrinaut's chat panel.
-Define each tool with runtime input and output schemas, then pass the resulting
-registration through `aiAssistant.interactiveTools`:
-
-```tsx
-import {
-  definePetrinautAiInteractiveTool,
-  Petrinaut,
-} from "@hashintel/petrinaut";
-import { z } from "zod";
-
-const confirmationTool = definePetrinautAiInteractiveTool({
-  toolName: "confirmOperation",
-  inputSchema: z.object({ question: z.string() }),
-  outputSchema: z.object({ approved: z.boolean() }),
-  component: ({ input, state, submit, submittedOutput, toolCallId }) =>
-    state === "awaiting" ? (
-      <section data-tool-call-id={toolCallId}>
-        <p>{input.question}</p>
-        <button onClick={() => submit({ approved: true })}>Approve</button>
-        <button onClick={() => submit({ approved: false })}>Decline</button>
-      </section>
-    ) : (
-      <p>{submittedOutput.approved ? "Approved" : "Declined"}</p>
-    ),
-});
-
-<Petrinaut
-  aiAssistant={{
-    transport,
-    interactiveTools: [confirmationTool],
-  }}
-  handle={handle}
-/>;
-```
-
-Any object with a `parse(unknown)` method can be used as a schema; Zod is only
-an example and is not required by Petrinaut. The input schema is checked when
-the dynamic call arrives and again before rendering. The output schema is
-checked before Petrinaut calls the AI SDK's `addToolOutput`.
-
-A host can instead register a non-interactive dynamic tool in `aiAssistant.automaticTools`. Each registration names the tool, supplies input and output parsers, and implements `execute({ input, mutations, commands, handle, readDiagnosticsContext, toolCallId, signal })`. Petrinaut validates the input, passes the mounted mutation and command surfaces, the document handle, a `readDiagnosticsContext()` that reports the editor's current TypeScript diagnostics as the built-in compilation read does, and an `AbortSignal` (aborted on Stop or conversation switch), validates the returned output, inserts that one outer result, and continues the turn automatically. When a host tool changes the document, Petrinaut treats diagnostics as pending until they catch up with that change; a host tool that leaves the document unchanged does not. `petrinautDocsContent` (from `/ui`) exposes the user-guide pages the built-in documentation read serves, so a host tool under its own name can answer with the same text.
-
-The component receives a stable `toolCallId` plus a discriminated lifecycle:
-`state: "awaiting"` has no submitted output, while `state: "submitted"`
-includes the validated `submittedOutput`. While a submission is in flight,
-duplicate `submit` calls are ignored. An accepted submission stays one-shot;
-if the AI SDK rejects it, the awaiting component can submit again. Once every
-pending tool call has output, the existing AI SDK automatic follow-up runs as
-usual.
-
-Tool names must be unique within the host registry and must not collide with a
-built-in Petrinaut tool such as `applyAutoLayout`. A dynamic tool call with no
-matching registration throws `Unknown AI tool: <name>`.
-
-Run the **Petrinaut / With Host Interactive Ai Tool** Storybook story for a
-complete synthetic awaiting → submitted → AI follow-up lifecycle.
+The editor's AI assistant comes from a plugin: its view draws the assistant
+window around its own transcript. The guide lives in the architecture docs:
+[Assistant plugins](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/plugins/assistants.mdx).
+The demo website builds its chat as an assistant plugin, outside this package;
+[Host tools in the assistant chat](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/ai/host-tools.mdx)
+describes it as an example, not a package export.

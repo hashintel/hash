@@ -1,0 +1,95 @@
+---
+title: Host tools in the assistant chat
+description: Dynamic AI tools an assistant plugin adds to the website's chat, interactive or automatic.
+attachTo: website.plugins.chat
+sidebar_order: 30
+---
+
+An assistant plugin that renders the website's `AssistantChat` can add its own
+dynamic AI tools. Define each tool with runtime input and output schemas, then
+pass it in the chat's `interactiveTools`:
+
+```tsx
+import {
+  definePetrinautPlugin,
+  type PluginHook,
+} from "@hashintel/petrinaut/ui";
+import { DefaultChatTransport } from "ai";
+import { z } from "zod";
+
+import { AssistantChat } from "../_shared/chat/assistant-chat";
+import { definePetrinautAiInteractiveTool } from "../_shared/chat/interactive-tool";
+
+import type { PetrinautAiMessage } from "../_shared/chat/ai-message";
+
+const confirmationTool = definePetrinautAiInteractiveTool({
+  toolName: "confirmOperation",
+  inputSchema: z.object({ question: z.string() }),
+  outputSchema: z.object({ approved: z.boolean() }),
+  component: ({ input, state, submit, submittedOutput, toolCallId }) =>
+    state === "awaiting" ? (
+      <section data-tool-call-id={toolCallId}>
+        <p>{input.question}</p>
+        <button onClick={() => submit({ approved: true })}>Approve</button>
+        <button onClick={() => submit({ approved: false })}>Decline</button>
+      </section>
+    ) : (
+      <p>{submittedOutput.approved ? "Approved" : "Declined"}</p>
+    ),
+});
+
+const createReviewPlugin = definePetrinautPlugin({
+  id: "example.review",
+  name: "Review",
+  access: { document: "write", experiments: "write" },
+  assistant: { label: "Review" },
+});
+
+const transport = new DefaultChatTransport<PetrinautAiMessage>({
+  api: "/api/chat",
+});
+
+const useReviewPlugin: PluginHook<typeof createReviewPlugin> = (api) => ({
+  assistant: {
+    view: (
+      <AssistantChat
+        api={api}
+        transport={transport}
+        interactiveTools={[confirmationTool]}
+      />
+    ),
+  },
+});
+
+export const reviewPlugin = createReviewPlugin(useReviewPlugin);
+```
+
+Any object with a `parse(unknown)` method can be used as a schema; Zod is only
+an example. The input schema is checked when the dynamic call arrives and again
+before rendering. The output schema is checked before the chat calls the AI
+SDK's `addToolOutput`.
+
+A plugin can instead register a non-interactive dynamic tool in
+`automaticTools`. Each registration names the tool, supplies input and output
+parsers, and implements
+`execute({ input, edit, readDiagnosticsContext, toolCallId, signal })`. The
+chat validates the input and passes the document's edits from `api`, a
+`readDiagnosticsContext()` that reports the editor's current TypeScript
+diagnostics as the built-in compilation read does, and an `AbortSignal`
+(aborted on Stop or a conversation switch). It validates the returned output,
+inserts that one outer result, and continues the turn. Each edit returns an
+`EditResult` and is refused while the editor is read-only, as the built-in
+tools' edits are. `petrinautDocsContent` (from `/ui`) holds the user-guide
+pages the built-in documentation read serves, so a host tool under its own
+name can answer with the same text.
+
+The component receives a stable `toolCallId` plus a discriminated lifecycle:
+`state: "awaiting"` has no submitted output, while `state: "submitted"`
+includes the validated `submittedOutput`. While a submission is in flight,
+duplicate `submit` calls are ignored. An accepted submission stays one-shot;
+if the AI SDK rejects it, the awaiting component can submit again. Once every
+pending tool call has output, the AI SDK's automatic follow-up runs.
+
+Tool names must be unique within the chat and must not collide with a
+built-in tool such as `applyAutoLayout`. A dynamic tool call with no matching
+registration throws `Unknown AI tool: <name>`.

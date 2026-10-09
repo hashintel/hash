@@ -22,7 +22,7 @@ afterEach(cleanup);
 test.each(["metaKey", "ctrlKey"])(
   "%s + K opens the palette inside the editor, over the editor's commands; with Shift it does not",
   async (modifier) => {
-    renderEditorWith(commandPalettePlugin);
+    renderEditorWith([commandPalettePlugin]);
     await screen.findByRole("button", { name: "Command palette" });
 
     fireEvent.keyDown(document.body, {
@@ -44,7 +44,7 @@ test.each(["metaKey", "ctrlKey"])(
 );
 
 test("the top-bar button opens the palette and its own toggle row closes it", async () => {
-  renderEditorWith(commandPalettePlugin);
+  renderEditorWith([commandPalettePlugin]);
 
   fireEvent.click(
     await screen.findByRole("button", { name: "Command palette" }),

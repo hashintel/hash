@@ -27,12 +27,6 @@ export { PetrinautOptimizationContext } from "./react/optimization-context";
 
 export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
 export type {
-  PetrinautAiComposerControl,
-  PetrinautAiComposerControlContext,
-  PetrinautAiComposerStatus,
-  PetrinautAiComposerSubmitTextResult,
-} from "./ui/types/ai-assistant-composer-control";
-export type {
   PetrinautNavigationAction,
   PetrinautNavigationController,
   PetrinautNavigationHistory,
@@ -44,13 +38,6 @@ export type {
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
 } from "./react/navigation";
-export { definePetrinautAiInteractiveTool } from "./ui/types/ai-interactive-tool";
-export type {
-  PetrinautAiInteractiveTool,
-  PetrinautAiInteractiveToolDefinition,
-  PetrinautAiInteractiveToolSchema,
-  PetrinautAiInteractiveToolWidgetProps,
-} from "./ui/types/ai-interactive-tool";
 
 export {
   canonicalizePetrinautIds,
@@ -115,6 +102,10 @@ export type {
   PetrinautPluginManifest,
   PetrinautSettingSpec,
   PluginApi,
+  PluginAssistant,
+  PluginAssistantExtension,
+  PluginAssistantStartAction,
+  PluginAssistantTab,
   PluginButton,
   PluginContributions,
   PluginHook,
@@ -133,14 +124,4 @@ export type {
   PluginExperimentsReader,
   PluginNotifications,
 } from "./ui/plugins/plugin-access";
-export type {
-  PetrinautAiAssistant,
-  PetrinautAiChatTransport,
-  PetrinautAiStopResult,
-  PetrinautAiToolPresentation,
-  PetrinautAiToolPresentationContext,
-  PetrinautAiToolPresentationResolver,
-  PetrinautAiToolPresentationState,
-  PetrinautAiToolPresentationTone,
-  PetrinautProps,
-} from "./ui/petrinaut";
+export type { PetrinautProps } from "./ui/petrinaut";

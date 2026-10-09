@@ -1,0 +1,6277 @@
+/**
+ * @vitest-environment jsdom
+ */
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+  waitFor,
+} from "@testing-library/react";
+import { StrictMode, useEffect, useState } from "react";
+import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  canonicalizePetrinautIds,
+  createJsonDocHandle,
+  type PetrinautExperimentHost,
+  type PetrinautExperimentRequest,
+  type PetrinautExperimentResult,
+  createPetrinaut,
+  getLatestNetDefinitionToolName,
+  type LanguageClient,
+  type Petrinaut,
+  setNetTitleToolName,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+import { PetrinautAssistantWindowPreview } from "@hashintel/petrinaut/ui";
+
+import { createTestPluginApi } from "../testing/create-test-plugin-api";
+import {
+  addMappedToolOutput,
+  AssistantChat,
+  type AssistantChatProps,
+  getVoiceToolCallIds,
+  safelyAddToolOutput,
+} from "./assistant-chat";
+import {
+  definePetrinautAiInteractiveTool,
+  type PetrinautAiInteractiveToolWidgetProps,
+} from "./interactive-tool";
+
+import type { PetrinautAiMessage, PetrinautAiTransport } from "./ai-message";
+import type {
+  PetrinautAiComposerControlContext,
+  PetrinautAiInputMode,
+  PetrinautAiVoiceModeContext,
+} from "./composer-control";
+import type { PetrinautAiAssistant } from "./petrinaut-ai-assistant";
+import type {
+  AddNotificationInput,
+  EditRefusal,
+  PetrinautAssistantStartRequest,
+  PluginAssistantTab,
+} from "@hashintel/petrinaut/ui";
+import type { UIMessageChunk } from "ai";
+
+let voiceModeMounts = 0;
+let voiceModeUnmounts = 0;
+
+beforeAll(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      public disconnect() {}
+      public observe() {}
+      public unobserve() {}
+    },
+  );
+});
+
+const emptySDCPN: SDCPN = {
+  places: [],
+  transitions: [],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+  subnets: [],
+  componentInstances: [],
+};
+
+const nonEmptySDCPN: SDCPN = {
+  ...emptySDCPN,
+  places: [
+    {
+      id: "place-1",
+      name: "PlaceOne",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    },
+  ],
+};
+
+/** The window state a test controls, as the editor would report it. */
+type TestEditorState = {
+  isAiAssistantOpen: boolean;
+  isAiAssistantCollapsed?: boolean;
+  /** Called when the chat closes the window itself, e.g. ending a compact Voice session. */
+  setAiAssistantOpen?: (open: boolean) => void;
+};
+
+const editorContextValue: TestEditorState = { isAiAssistantOpen: true };
+
+const streamChunks = (
+  chunks: UIMessageChunk[],
+): ReadableStream<UIMessageChunk> =>
+  new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) {
+        controller.enqueue(chunk);
+      }
+      controller.close();
+    },
+  });
+
+const textChunks = (id: string, text: string): UIMessageChunk[] => [
+  { type: "start-step" },
+  { type: "text-start", id },
+  { type: "text-delta", id, delta: text },
+  { type: "text-end", id },
+];
+
+const createPendingVoiceQuestionMessage = ({
+  id = "assistant-voice-questions",
+  metadata,
+  toolCallIds,
+}: {
+  id?: string;
+  metadata?: PetrinautAiMessage["metadata"];
+  toolCallIds: string[];
+}): PetrinautAiMessage =>
+  ({
+    id,
+    ...(metadata ? { metadata } : {}),
+    parts: toolCallIds.map((toolCallId) => ({
+      input: { question: `Question for ${toolCallId}` },
+      state: "input-available",
+      toolCallId,
+      toolName: "answerQuestion",
+      type: "dynamic-tool",
+    })),
+    role: "assistant",
+  }) as unknown as PetrinautAiMessage;
+
+const createTestMessageStore = (initialMessage: PetrinautAiMessage) => {
+  let messages = [initialMessage];
+
+  return {
+    getMessages: () => messages,
+    setMessages: (nextMessages: PetrinautAiMessage[]) => {
+      messages = nextMessages;
+    },
+    updateMessages: (
+      updater: (currentMessages: PetrinautAiMessage[]) => PetrinautAiMessage[],
+    ) => {
+      messages = updater(messages);
+    },
+  };
+};
+
+const SubmitForSecondConversation = ({
+  conversationId,
+  submitText,
+}: Pick<
+  PetrinautAiComposerControlContext,
+  "conversationId" | "submitText"
+>) => {
+  useEffect(() => {
+    if (conversationId === "conversation-2") {
+      void submitText({ id: "second-turn", text: "Second conversation" });
+    }
+  }, [conversationId, submitText]);
+
+  return null;
+};
+
+const testInstances: ReturnType<typeof createPetrinaut>[] = [];
+
+/**
+ * The chat under test in the window the test controls, with a start request
+ * built from the initial mode and message. A new mode or message is a new
+ * request. The window's tabs come from `tabs`.
+ */
+const TestChat = ({
+  api,
+  state,
+  tabs,
+  initialInteractionMode,
+  initialMessage,
+  onStartRequestConsumed,
+  ...aiAssistant
+}: AssistantChatProps & {
+  state: TestEditorState;
+  tabs?: readonly PluginAssistantTab[];
+  initialInteractionMode?: PetrinautAiInputMode;
+  initialMessage?: string;
+  onStartRequestConsumed?: () => void;
+}) => {
+  const [compact, setCompact] = useState(state.isAiAssistantCollapsed ?? false);
+  // Open as the test says, until the window closes itself.
+  const [open, setOpen] = useState(state.isAiAssistantOpen);
+  const [requestedOpen, setRequestedOpen] = useState(state.isAiAssistantOpen);
+  if (state.isAiAssistantOpen !== requestedOpen) {
+    setRequestedOpen(state.isAiAssistantOpen);
+    setOpen(state.isAiAssistantOpen);
+  }
+  const requestKey = `${initialInteractionMode ?? ""}:${initialMessage ?? ""}`;
+  const toRequest = (): PetrinautAssistantStartRequest | null =>
+    initialMessage !== undefined
+      ? { text: initialMessage }
+      : initialInteractionMode === "voice"
+        ? { action: "voice" }
+        : initialInteractionMode === "text"
+          ? { text: "" }
+          : null;
+  const [request, setRequest] = useState(toRequest);
+  const [handledKey, setHandledKey] = useState(requestKey);
+  if (requestKey !== handledKey) {
+    setHandledKey(requestKey);
+    setRequest(toRequest());
+  }
+
+  return (
+    <PetrinautAssistantWindowPreview
+      tabs={tabs}
+      state={{
+        isOpen: open,
+        close: () => {
+          setOpen(false);
+          state.setAiAssistantOpen?.(false);
+        },
+        compact,
+        setCompact,
+        startRequest: request,
+        consumeStartRequest: () => {
+          setRequest(null);
+          onStartRequestConsumed?.();
+        },
+      }}
+    >
+      <AssistantChat api={api} {...aiAssistant} />
+      <output data-testid="window-compact">{String(compact)}</output>
+    </PetrinautAssistantWindowPreview>
+  );
+};
+
+/** What the chat notified, in order; cleared after each test. */
+const notifications: AddNotificationInput[] = [];
+const recordNotification = (notification: AddNotificationInput) => {
+  notifications.push(notification);
+
+  return String(notifications.length);
+};
+const matchesNotification =
+  (text: string | RegExp) =>
+  ({ message, detail }: AddNotificationInput) =>
+    [message, detail].some(
+      (value) =>
+        value !== undefined &&
+        (typeof text === "string" ? value === text : text.test(value)),
+    );
+/** Waits until the chat notifies a message or detail matching `text`. */
+const findNotification = (text: string | RegExp) =>
+  waitFor(() => {
+    const found = notifications.find(matchesNotification(text));
+    expect(found).toBeDefined();
+
+    return found;
+  });
+
+/** The chat's `api` over `instance`, recording notifications. */
+const chatApiFor = (
+  instance: Petrinaut,
+  options: Parameters<typeof createTestPluginApi>[1] = {},
+) =>
+  createTestPluginApi(instance, {
+    title: "AI assistant panel test",
+    notify: recordNotification,
+    ...options,
+  });
+
+/** Whether the preview window around the chat has closed. */
+const isWindowClosed = () =>
+  document
+    .querySelector('aside[aria-label="AI assistant"]')
+    ?.getAttribute("aria-hidden") === "true";
+
+const renderTestPanel = ({
+  aiAssistant,
+  tabs,
+  activeTabId,
+  editorContext = editorContextValue,
+  errorTracker,
+  initialInteractionMode,
+  initialMessage,
+  onInitialInteractionModeConsumed,
+  petriNetDefinition = emptySDCPN,
+  strictMode = false,
+  titleEditable,
+  requestDiagnostics,
+  experimentHost,
+  refusal = null,
+}: {
+  aiAssistant: PetrinautAiAssistant;
+  /** Tabs the assistant plugin adds beside the chat. */
+  tabs?: readonly PluginAssistantTab[];
+  /** A tab to show first, by clicking it once the window renders. */
+  activeTabId?: string;
+  editorContext?: TestEditorState;
+  errorTracker?: {
+    captureException: (error: unknown, context?: object) => void;
+  };
+  initialInteractionMode?: PetrinautAiInputMode;
+  initialMessage?: string;
+  onInitialInteractionModeConsumed?: () => void;
+  petriNetDefinition?: SDCPN;
+  strictMode?: boolean;
+  titleEditable?: boolean;
+  requestDiagnostics?: LanguageClient["requestDiagnostics"];
+  experimentHost?: PetrinautExperimentHost;
+  /** Why the editor refuses every edit, as a read-only editor does. */
+  refusal?: EditRefusal | null;
+}) => {
+  const handle = createJsonDocHandle({
+    id: "ai-assistant-panel-test",
+    initial: petriNetDefinition,
+  });
+  const instance = createPetrinaut({ document: handle });
+  testInstances.push(instance);
+  const api = chatApiFor(instance, {
+    refusal: () => refusal,
+    ...(titleEditable === true && { setTitle: () => {} }),
+    ...(requestDiagnostics && { requestDiagnostics }),
+    ...(experimentHost && { runExperiment: experimentHost.runExperiment }),
+    ...(errorTracker && { capture: errorTracker.captureException }),
+  });
+  const renderPanel = (
+    nextAiAssistant: PetrinautAiAssistant,
+    nextEditorContext: TestEditorState,
+    nextInitialInteractionMode = initialInteractionMode,
+    nextInitialMessage = initialMessage,
+  ) => (
+    <TestChat
+      api={api}
+      state={nextEditorContext}
+      tabs={tabs}
+      initialInteractionMode={nextInitialInteractionMode}
+      initialMessage={nextInitialMessage}
+      onStartRequestConsumed={onInitialInteractionModeConsumed}
+      {...nextAiAssistant}
+    />
+  );
+  const rendered = render(renderPanel(aiAssistant, editorContext), {
+    wrapper: ({ children }) =>
+      strictMode ? <StrictMode>{children}</StrictMode> : children,
+  });
+  const initialTab = tabs?.find((tab) => tab.id === activeTabId);
+  if (initialTab) {
+    fireEvent.click(screen.getByRole("tab", { name: initialTab.label }));
+  }
+
+  return {
+    ...rendered,
+    instance,
+    rerenderPanel: (
+      nextAiAssistant: PetrinautAiAssistant,
+      nextEditorContext = editorContext,
+    ) => rendered.rerender(renderPanel(nextAiAssistant, nextEditorContext)),
+    rerenderPanelWithInitialRequest: (
+      nextInitialInteractionMode: PetrinautAiInputMode,
+      nextInitialMessage: string,
+    ) =>
+      rendered.rerender(
+        renderPanel(
+          aiAssistant,
+          editorContext,
+          nextInitialInteractionMode,
+          nextInitialMessage,
+        ),
+      ),
+  };
+};
+
+const ledgerTab: PluginAssistantTab = {
+  id: "ledger",
+  label: "Ledger",
+  content: <p>Ledger body</p>,
+};
+
+afterEach(() => {
+  cleanup();
+  notifications.length = 0;
+  for (const instance of testInstances.splice(0)) {
+    instance.dispose();
+  }
+});
+
+describe("AssistantChat composer submissions", () => {
+  test("uses the latest host transport without replacing the conversation", async () => {
+    const firstSend = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(streamChunks([...textChunks("first", "First reply")])),
+    );
+    const secondSend = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(streamChunks([...textChunks("second", "Second reply")])),
+    );
+    const transport = (
+      sendMessages: PetrinautAiTransport["sendMessages"],
+    ): PetrinautAiTransport => ({
+      sendMessages,
+      reconnectToStream: async () => null,
+    });
+    const mounted = renderTestPanel({
+      aiAssistant: {
+        conversationId: "stable-host-transport",
+        transport: transport(firstSend),
+      },
+    });
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "First" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(firstSend).toHaveBeenCalledOnce());
+    await screen.findByText("First reply");
+
+    mounted.rerenderPanel({
+      conversationId: "stable-host-transport",
+      transport: transport(secondSend),
+    });
+    fireEvent.change(textarea, { target: { value: "Second" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(secondSend).toHaveBeenCalledOnce());
+    expect(firstSend).toHaveBeenCalledOnce();
+  });
+
+  test("host display projection never changes canonical composer history", async () => {
+    const canonical: PetrinautAiMessage = {
+      id: "voice-brief",
+      role: "user",
+      parts: [{ type: "text", text: "Prepared brief: compare staffing" }],
+    };
+    let context: PetrinautAiComposerControlContext | undefined;
+    const onMessages = vi.fn();
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    renderTestPanel({
+      aiAssistant: {
+        messages: [canonical],
+        transport: { reconnectToStream: async () => null, sendMessages },
+        onMessages,
+        mapMessagesForDisplay: (messages) =>
+          messages.map((message) => ({
+            ...message,
+            parts: [
+              { type: "text", text: "Could we compare two to eight agents?" },
+            ],
+          })),
+        renderComposerControl: (next) => {
+          context = next;
+          return null;
+        },
+      },
+    });
+    expect(
+      await screen.findByText("Could we compare two to eight agents?"),
+    ).toBeTruthy();
+    expect(context?.messages).toEqual([canonical]);
+    expect(onMessages).not.toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          parts: [
+            { type: "text", text: "Could we compare two to eight agents?" },
+          ],
+        }),
+      ]),
+    );
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("declines setNetTitle when the host omits title editing", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    toolCallId: "set-title-1",
+                    toolName: setNetTitleToolName,
+                    input: { title: "Renamed" },
+                  },
+                ]
+              : [...textChunks("done", "Title was not changed.")],
+          ),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Rename the net",
+    });
+
+    await waitFor(() =>
+      expect(transport.sendMessages).toHaveBeenCalledTimes(2),
+    );
+    expect(
+      requestMessages[1]?.flatMap((message) => message.parts),
+    ).toContainEqual(
+      expect.objectContaining({
+        toolCallId: "set-title-1",
+        output: {
+          applied: false,
+          blocked: "no-title-setter",
+          reason: "The host application does not provide title editing.",
+        },
+      }),
+    );
+  });
+  test("normalizes current and legacy voice tool origins", () => {
+    expect(
+      getVoiceToolCallIds({
+        source: "voice",
+        toolCallId: "legacy-question",
+        voiceToolCallIds: [
+          "current-question",
+          "legacy-question",
+          "current-question",
+        ],
+      }),
+    ).toEqual(["current-question", "legacy-question"]);
+    expect(getVoiceToolCallIds({ toolCallId: "legacy-question" })).toEqual([]);
+  });
+
+  test("forwards a host tab through the production panel without submitting a turn", () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    renderTestPanel({
+      aiAssistant: {
+        conversationId: "host-tab",
+        transport: { sendMessages, reconnectToStream: async () => null },
+      },
+      tabs: [
+        {
+          id: "workpiece",
+          label: "Workpiece",
+          content: <p>Saved workpiece</p>,
+        },
+      ],
+    });
+    const hostTab = screen.getByRole("tab", { name: "Workpiece" });
+    screen.getByRole("tab", { name: "AI" }).focus();
+    fireEvent.keyDown(screen.getByRole("tab", { name: "AI" }), {
+      key: "ArrowRight",
+    });
+    expect(document.activeElement).toBe(hostTab);
+    expect(hostTab.getAttribute("aria-selected")).toBe("true");
+    expect(
+      screen.getByRole("tabpanel", { name: "Workpiece" }).textContent,
+    ).toContain("Saved workpiece");
+    fireEvent.keyDown(hostTab, { key: "Home" });
+    expect(
+      screen.getByRole("tab", { name: "AI" }).getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("marks the labelled chat when a response terminates behind the host tab", async () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: async () => null,
+      sendMessages: async () =>
+        streamChunks([
+          { type: "start-step" },
+          { type: "text-start", id: "reply" },
+          { type: "text-delta", id: "reply", delta: "Finished" },
+          { type: "text-end", id: "reply" },
+          { type: "finish-step" },
+        ]),
+    };
+    renderTestPanel({
+      aiAssistant: { primaryLabel: "Chat", transport },
+      tabs: [ledgerTab],
+      activeTabId: "ledger",
+    });
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Continue" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    const chatTab = await screen.findByRole("tab", { name: "Chat" });
+    await waitFor(() =>
+      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
+    );
+    fireEvent.click(chatTab);
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("tab", { name: "Chat" })
+          .querySelector('[aria-hidden="true"]'),
+      ).toBeNull(),
+    );
+  });
+
+  test("marks the labelled chat when a response errors behind the host tab", async () => {
+    renderTestPanel({
+      aiAssistant: {
+        primaryLabel: "Chat",
+        transport: {
+          reconnectToStream: async () => null,
+          sendMessages: async () => {
+            throw new Error("Response failed");
+          },
+        },
+      },
+      tabs: [ledgerTab],
+      activeTabId: "ledger",
+    });
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Continue" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    const chatTab = await screen.findByRole("tab", { name: "Chat" });
+    await waitFor(() =>
+      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
+    );
+  });
+
+  test("reports a failed submission stream to the host error tracker at its source", async () => {
+    const captureException =
+      vi.fn<(error: unknown, context?: object) => void>();
+    const failure = new Error("Brunch rejected the message before admission.");
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: async () => null,
+          sendMessages: async () => {
+            throw failure;
+          },
+        },
+      },
+      errorTracker: { captureException },
+    });
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(
+      await findNotification("Brunch rejected the message before admission."),
+    ).not.toBeNull();
+    await waitFor(() => expect(captureException).toHaveBeenCalledOnce());
+    expect(captureException).toHaveBeenCalledWith(failure, {
+      source: "ai-assistant.stream",
+    });
+  });
+
+  test("keeps an expected composer refusal as UI state without capturing it", async () => {
+    const captureException =
+      vi.fn<(error: unknown, context?: object) => void>();
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    let latest: PetrinautAiComposerControlContext | undefined;
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        renderComposerControl: (context) => {
+          latest = context;
+          return null;
+        },
+      },
+      errorTracker: { captureException },
+    });
+
+    await expect(
+      act(async () => {
+        await latest?.submitText({ text: "   " });
+      }),
+    ).rejects.toThrow("AI assistant text must not be empty.");
+
+    expect(sendMessages).not.toHaveBeenCalled();
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  test("applies a canonical mutation once before matching output insertion and continuation in StrictMode", async () => {
+    let boundInstance: ReturnType<typeof createPetrinaut> | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async ({ messages }) => {
+        expect(boundInstance?.definition.get().places[0]?.name).toBe(
+          "ObservedPlace",
+        );
+        expect(messages.flatMap((message) => message.parts)).toContainEqual(
+          expect.objectContaining({
+            toolCallId: "a3-panel-call",
+            state: "output-available",
+            output: expect.objectContaining({ applied: true }) as unknown,
+          }),
+        );
+        return streamChunks([
+          ...textChunks("a3-reply", "Continued after observation."),
+          { type: "finish", finishReason: "stop" },
+        ]);
+      },
+    );
+    const { instance } = renderTestPanel({
+      strictMode: true,
+      petriNetDefinition: nonEmptySDCPN,
+      aiAssistant: {
+        conversationId: "a3-panel-conversation",
+        messages: [
+          {
+            id: "a3-panel-message",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-updatePlace",
+                toolCallId: "a3-panel-call",
+                state: "input-available",
+                input: {
+                  placeId: "place-1",
+                  update: { name: "ObservedPlace" },
+                },
+              },
+            ],
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+    });
+    boundInstance = instance;
+    // The production diagnostics wrapper can wait one second before sending.
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce(), {
+      timeout: 5_000,
+    });
+    expect(
+      await screen.findByText("Continued after observation."),
+    ).not.toBeNull();
+  });
+
+  test("disables Clear when the host owns canonical conversation history", () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        canClearMessages: false,
+        messages: [
+          {
+            id: "assistant-canonical",
+            role: "assistant",
+            parts: [{ type: "text", text: "Canonical history" }],
+          },
+        ],
+        transport,
+      },
+    });
+
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", {
+        name: "Clear AI chat",
+      }).disabled,
+    ).toBe(true);
+  });
+
+  test("follows external messages in place only when the exact host snapshot is eligible", async () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: async () => null,
+      sendMessages: vi.fn(async () =>
+        streamChunks([
+          { type: "start", messageId: "local-answer" },
+          ...textChunks("local", "Complete local answer"),
+          { type: "finish", finishReason: "stop" },
+        ]),
+      ),
+    };
+    let eligible = false;
+    const followMessages = { canReplace: () => eligible };
+    let control: PetrinautAiComposerControlContext | undefined;
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: {
+        conversationId: "follow-one",
+        transport,
+        followMessages,
+        renderComposerControl: (context) => {
+          control = context;
+          return null;
+        },
+      },
+    });
+    await act(async () => {
+      await control?.submitText({
+        id: "local-question",
+        text: "Local question",
+      });
+    });
+    await screen.findByText("Complete local answer");
+    const partial: PetrinautAiMessage[] = [
+      {
+        id: "local-answer",
+        role: "assistant",
+        parts: [{ type: "text", text: "Same ID but incomplete" }],
+      },
+    ];
+    rerenderPanel({
+      conversationId: "follow-one",
+      transport,
+      followMessages,
+      messages: partial,
+    });
+    await act(async () => {});
+    expect(screen.getByText("Complete local answer")).not.toBeNull();
+    expect(screen.queryByText("Same ID but incomplete")).toBeNull();
+    const caughtUp: PetrinautAiMessage[] = [
+      {
+        id: "local-answer",
+        role: "assistant",
+        parts: [{ type: "text", text: "Complete local answer" }],
+      },
+      {
+        id: "external-user",
+        role: "user",
+        parts: [{ type: "text", text: "External qualification" }],
+      },
+      {
+        id: "external-answer",
+        role: "assistant",
+        parts: [{ type: "text", text: "Canonical external reply" }],
+      },
+    ];
+    rerenderPanel({
+      conversationId: "follow-one",
+      transport,
+      followMessages,
+      messages: caughtUp,
+    });
+    await act(async () => {});
+    expect(screen.queryByText("Canonical external reply")).toBeNull();
+    eligible = true;
+    // Same array, newly eligible. A rejected candidate must not be latched.
+    rerenderPanel({
+      conversationId: "follow-one",
+      transport,
+      followMessages: { canReplace: () => eligible },
+      messages: caughtUp,
+    });
+    await screen.findByText("Canonical external reply");
+    expect(screen.getAllByText("Complete local answer")).toHaveLength(1);
+    expect(screen.getByText("External qualification")).not.toBeNull();
+    rerenderPanel({
+      conversationId: "follow-two",
+      transport,
+      followMessages,
+      messages: [
+        {
+          id: "other",
+          role: "assistant",
+          parts: [{ type: "text", text: "Other conversation" }],
+        },
+      ],
+    });
+    await screen.findByText("Other conversation");
+    expect(screen.queryByText("Canonical external reply")).toBeNull();
+    expect(transport.sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("following does not replace a locally streaming response even when the host offers a snapshot", async () => {
+    let controller: ReadableStreamDefaultController<UIMessageChunk> | undefined;
+    let eligible = true;
+    const followMessages = { canReplace: () => eligible };
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: async () => null,
+      sendMessages: vi.fn(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start: (stream) => {
+              controller = stream;
+              stream.enqueue({ type: "start", messageId: "streamed-answer" });
+              stream.enqueue({ type: "text-start", id: "streamed-text" });
+              stream.enqueue({
+                type: "text-delta",
+                id: "streamed-text",
+                delta: "Local stream in progress",
+              });
+            },
+          }),
+      ),
+    };
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: {
+        conversationId: "following-stream",
+        transport,
+        followMessages,
+      },
+      initialMessage: "Start local response",
+    });
+    await screen.findByText("Local stream in progress");
+    rerenderPanel({
+      conversationId: "following-stream",
+      transport,
+      followMessages,
+      messages: [
+        {
+          id: "external",
+          role: "assistant",
+          parts: [{ type: "text", text: "Offered host snapshot" }],
+        },
+      ],
+    });
+    await act(async () => {});
+    expect(screen.getByText("Local stream in progress")).not.toBeNull();
+    expect(screen.queryByText("Offered host snapshot")).toBeNull();
+    eligible = false;
+    await act(async () => {
+      controller?.enqueue({ type: "text-end", id: "streamed-text" });
+      controller?.enqueue({ type: "finish", finishReason: "stop" });
+      controller?.close();
+    });
+    expect(screen.getByText("Local stream in progress")).not.toBeNull();
+    expect(screen.queryByText("Offered host snapshot")).toBeNull();
+  });
+
+  test("following never executes observed pending tools, on arrival, rerender, local idle or reload", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([
+        { type: "start", messageId: "local-finished" },
+        ...textChunks("local", "Local idle again"),
+        { type: "finish", finishReason: "stop" },
+      ]),
+    );
+    const transport = { reconnectToStream: async () => null, sendMessages };
+    const observed: PetrinautAiMessage[] = [
+      {
+        id: "observed",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-updatePlace",
+            toolCallId: "observed-mutation",
+            state: "input-available",
+            input: { placeId: "place-1", update: { name: "MustNotApply" } },
+          },
+        ],
+      },
+    ];
+    let canReplace = true;
+    let control: PetrinautAiComposerControlContext | undefined;
+    const config: PetrinautAiAssistant = {
+      conversationId: "observed-only",
+      transport,
+      followMessages: { canReplace: () => canReplace },
+      renderComposerControl: (context) => {
+        control = context;
+        return null;
+      },
+    };
+    const mounted = renderTestPanel({
+      aiAssistant: config,
+      petriNetDefinition: nonEmptySDCPN,
+      strictMode: true,
+    });
+    mounted.rerenderPanel({ ...config, messages: observed });
+    await act(async () => {});
+    mounted.rerenderPanel({ ...config, messages: [...observed] });
+    await act(async () => {});
+    expect(sendMessages).not.toHaveBeenCalled();
+    canReplace = false;
+    await act(async () => {
+      await control?.submitText({ id: "local-user", text: "Continue locally" });
+    });
+    await screen.findByText("Local idle again");
+    expect(sendMessages).toHaveBeenCalledOnce();
+    expect(mounted.instance.definition.get().places[0]?.name).toBe("PlaceOne");
+    mounted.unmount();
+    canReplace = true;
+    const reopened = renderTestPanel({
+      aiAssistant: { ...config, messages: observed },
+      petriNetDefinition: nonEmptySDCPN,
+      strictMode: true,
+    });
+    await act(async () => {});
+    expect(sendMessages).toHaveBeenCalledOnce();
+    expect(reopened.instance.definition.get().places[0]?.name).toBe("PlaceOne");
+  });
+
+  test("following still executes locally streamed static tools and continues exactly once", async () => {
+    const sendMessages = vi
+      .fn<PetrinautAiTransport["sendMessages"]>()
+      .mockResolvedValueOnce(
+        streamChunks([
+          { type: "start", messageId: "local-tool-message" },
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            toolName: "updatePlace",
+            toolCallId: "local-mutation",
+            input: { placeId: "place-1", update: { name: "LocallyApplied" } },
+          },
+          { type: "finish-step" },
+          { type: "finish", finishReason: "tool-calls" },
+        ]),
+      )
+      .mockResolvedValueOnce(
+        streamChunks([
+          ...textChunks("continued", "Local mutation continued"),
+          { type: "finish", finishReason: "stop" },
+        ]),
+      );
+    const mounted = renderTestPanel({
+      aiAssistant: {
+        conversationId: "local-tools-follow",
+        transport: { reconnectToStream: async () => null, sendMessages },
+        followMessages: { canReplace: () => false },
+      },
+      petriNetDefinition: nonEmptySDCPN,
+      initialMessage: "Change the name",
+    });
+    await screen.findByText("Local mutation continued", {}, { timeout: 5_000 });
+    expect(sendMessages).toHaveBeenCalledTimes(2);
+    expect(mounted.instance.definition.get().places[0]?.name).toBe(
+      "LocallyApplied",
+    );
+  });
+
+  test("following keeps observed interactive tools display-only during ordinary composer continuation", async () => {
+    const requests: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: async () => null,
+      sendMessages: vi.fn(async ({ messages }) => {
+        requests.push(structuredClone(messages));
+        return streamChunks(textChunks("reply", "Synthetic continuation"));
+      }),
+    };
+    const mapText = vi.fn(({ text }: { text: string }) => ({ answer: text }));
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
+      outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
+      fromComposerText: mapText,
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+    let control: PetrinautAiComposerControlContext | undefined;
+    renderTestPanel({
+      aiAssistant: {
+        conversationId: "external-interactive",
+        transport,
+        interactiveTools: [hostTool],
+        followMessages: { canReplace: () => true },
+        messages: [
+          {
+            id: "external",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "answerQuestion",
+                toolCallId: "external-question",
+                state: "input-available",
+                input: { question: "External question" },
+              },
+            ],
+          },
+        ],
+        renderComposerControl: (context) => {
+          control = context;
+          return null;
+        },
+      },
+    });
+    await screen.findByText("External question");
+    await act(async () => {
+      await control?.submitText({ text: "An ordinary local continuation" });
+    });
+    expect(mapText).not.toHaveBeenCalled();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.at(-1)).toMatchObject({
+      role: "user",
+      parts: [{ type: "text", text: "An ordinary local continuation" }],
+    });
+    expect(requests[0]?.[0]?.parts[0]).toMatchObject({
+      state: "input-available",
+    });
+  });
+
+  test("following refuses external interactive widget completion on arrival and reload", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    const ExternalQuestion = ({
+      submitAndWait,
+    }: PetrinautAiInteractiveToolWidgetProps<
+      { question: string },
+      { answer: string }
+    >) => {
+      const [completion, setCompletion] = useState("pending");
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              if (!submitAndWait) {
+                setCompletion("unavailable");
+                return;
+              }
+              void submitAndWait({ answer: "Must not submit" }).then(
+                () => setCompletion("authorized"),
+                () => setCompletion("rejected"),
+              );
+            }}
+          >
+            Complete external question
+          </button>
+          <span>{completion}</span>
+        </>
+      );
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: { parse: (raw: unknown) => raw as { question: string } },
+      outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
+      component: ExternalQuestion,
+    });
+    const config: PetrinautAiAssistant = {
+      conversationId: "external-widget",
+      transport: { reconnectToStream: async () => null, sendMessages },
+      interactiveTools: [hostTool],
+      followMessages: { canReplace: () => true },
+      messages: [
+        {
+          id: "external",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "answerQuestion",
+              toolCallId: "external-question",
+              state: "input-available",
+              input: { question: "External question" },
+            },
+          ],
+        },
+      ],
+    };
+    const mounted = renderTestPanel({
+      aiAssistant: { ...config, messages: [] },
+    });
+    mounted.rerenderPanel(config);
+    await screen.findByRole("button", { name: "Complete external question" });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Complete external question" }),
+      );
+    });
+    expect(screen.getByText("rejected")).not.toBeNull();
+    expect(sendMessages).not.toHaveBeenCalled();
+    mounted.unmount();
+    renderTestPanel({ aiAssistant: config });
+    await screen.findByRole("button", { name: "Complete external question" });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Complete external question" }),
+      );
+    });
+    expect(screen.getByText("rejected")).not.toBeNull();
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("following refuses observed built-in layout completion before executing a command", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    const { instance } = renderTestPanel({
+      aiAssistant: {
+        conversationId: "observed-layout-consent",
+        transport: { reconnectToStream: async () => null, sendMessages },
+        followMessages: { canReplace: () => true },
+        messages: [
+          {
+            id: "external-layout",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-applyAutoLayout",
+                toolCallId: "external-layout",
+                state: "input-available",
+                input: { askUserFirst: true },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const applyLayout = vi.spyOn(instance.commands, "applyAutoLayout");
+    await screen.findByRole("button", { name: "Yes, auto-layout" });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Yes, auto-layout" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "No, keep current layout" }),
+      );
+    });
+    expect(applyLayout).not.toHaveBeenCalled();
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    { following: false, completion: "composer" },
+    { following: true, completion: "composer" },
+    { following: false, completion: "widget" },
+    { following: true, completion: "widget" },
+  ])(
+    "local interactive tools remain usable: $following / $completion",
+    async ({ following, completion }) => {
+      const sendMessages = vi
+        .fn<PetrinautAiTransport["sendMessages"]>()
+        .mockResolvedValueOnce(
+          streamChunks([
+            { type: "start", messageId: "local-question" },
+            { type: "start-step" },
+            {
+              type: "tool-input-available",
+              dynamic: true,
+              toolName: "answerQuestion",
+              toolCallId: "local-question-tool",
+              input: { question: "Local question" },
+            },
+            { type: "finish-step" },
+            { type: "finish", finishReason: "tool-calls" },
+          ]),
+        )
+        .mockResolvedValueOnce(
+          streamChunks(textChunks("reply", "Local question continued")),
+        );
+      const mapText = vi.fn(({ text }: { text: string }) => ({ answer: text }));
+      const hostTool = definePetrinautAiInteractiveTool({
+        toolName: "answerQuestion",
+        inputSchema: { parse: (raw: unknown) => raw as { question: string } },
+        outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
+        fromComposerText: mapText,
+        component: ({ input, submit }) => (
+          <button
+            type="button"
+            onClick={() => submit({ answer: "Local answer" })}
+          >
+            {input.question}
+          </button>
+        ),
+      });
+      let control: PetrinautAiComposerControlContext | undefined;
+      renderTestPanel({
+        aiAssistant: {
+          conversationId: "local-interactive",
+          transport: { reconnectToStream: async () => null, sendMessages },
+          interactiveTools: [hostTool],
+          ...(following ? { followMessages: { canReplace: () => false } } : {}),
+          renderComposerControl: (context) => {
+            control = context;
+            return null;
+          },
+        },
+        initialMessage: "Start local question",
+      });
+      await screen.findByRole("button", { name: "Local question" });
+      await act(async () => {
+        if (completion === "composer")
+          await control?.submitText({ text: "Local answer" });
+        else
+          fireEvent.click(
+            screen.getByRole("button", { name: "Local question" }),
+          );
+      });
+      await screen.findByText("Local question continued");
+      expect(sendMessages).toHaveBeenCalledTimes(2);
+      expect(mapText).toHaveBeenCalledTimes(completion === "composer" ? 1 : 0);
+      expect(sendMessages.mock.calls[1]?.[0].messages.at(-1)?.parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            toolCallId: "local-question-tool",
+            state: "output-available",
+            output: { answer: "Local answer" },
+          }),
+        ]),
+      );
+    },
+  );
+
+  test("hydrates asynchronous host messages once for each conversation", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async () => new ReadableStream<UIMessageChunk>(),
+    );
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages,
+    };
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: {
+        conversationId: "conversation-1",
+        transport,
+      },
+    });
+
+    expect(screen.queryByText("Rehydrated first conversation")).toBeNull();
+
+    rerenderPanel({
+      conversationId: "conversation-1",
+      messages: [
+        {
+          id: "assistant-history-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Rehydrated first conversation" }],
+        },
+      ],
+      transport,
+    });
+
+    expect(
+      await screen.findByText("Rehydrated first conversation"),
+    ).not.toBeNull();
+    expect(sendMessages).not.toHaveBeenCalled();
+
+    rerenderPanel({
+      conversationId: "conversation-2",
+      messages: [
+        {
+          id: "assistant-history-2",
+          role: "assistant",
+          parts: [{ type: "text", text: "Rehydrated second conversation" }],
+        },
+      ],
+      transport,
+    });
+
+    expect(
+      await screen.findByText("Rehydrated second conversation"),
+    ).not.toBeNull();
+    expect(screen.queryByText("Rehydrated first conversation")).toBeNull();
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("replays StrictMode effects without stranding an initially recovered tool", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([
+        ...textChunks("reply", "Done."),
+        { type: "finish", finishReason: "stop" },
+      ]),
+    );
+    renderTestPanel({
+      strictMode: true,
+      aiAssistant: {
+        conversationId: "strict-history",
+        messages: [
+          {
+            id: "strict-call",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-readPetrinautDoc",
+                toolCallId: "strict-read",
+                state: "input-available",
+                input: { doc: "ai-assistant" },
+              },
+            ],
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+    });
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+  });
+
+  test("does not carry a stopped browser generation into a different conversation", async () => {
+    let latest: PetrinautAiComposerControlContext | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([
+        ...textChunks("reply", "Done."),
+        { type: "finish", finishReason: "stop" },
+      ]),
+    );
+    const config = (conversationId: string): PetrinautAiAssistant => ({
+      conversationId,
+      messages: [
+        {
+          id: `${conversationId}-call`,
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-readPetrinautDoc",
+              toolCallId: `${conversationId}-read`,
+              state: "input-available",
+              input: { doc: "ai-assistant" },
+            },
+          ],
+        },
+      ],
+      transport: { reconnectToStream: async () => null, sendMessages },
+      requestStop: async () => "already-settled",
+      renderComposerControl: (context) => {
+        latest = context;
+        return null;
+      },
+    });
+    const { rerenderPanel } = renderTestPanel({ aiAssistant: config("first") });
+    await act(async () => {
+      await latest?.stop();
+    });
+    await waitFor(() => expect(latest?.stopped).toBe(true));
+    expect(sendMessages).not.toHaveBeenCalled();
+    rerenderPanel(config("second"));
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+    expect(sendMessages.mock.calls[0]?.[0].chatId).toBe("second");
+  });
+
+  test("does not deliver a previous conversation's asynchronous browser result into its replacement", async () => {
+    let releaseLayout: (() => void) | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([
+        ...textChunks("reply", "Done."),
+        { type: "finish", finishReason: "stop" },
+      ]),
+    );
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: async () => null,
+      sendMessages,
+    };
+    const { instance, rerenderPanel } = renderTestPanel({
+      aiAssistant: {
+        conversationId: "old-layout",
+        messages: [
+          {
+            id: "layout-call",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-applyAutoLayout",
+                toolCallId: "old-layout",
+                state: "input-available",
+                input: { askUserFirst: false },
+              },
+            ],
+          },
+        ],
+        transport,
+      },
+    });
+    const applyAutoLayout = instance.commands.applyAutoLayout.bind(
+      instance.commands,
+    );
+    const layout = vi
+      .spyOn(instance.commands, "applyAutoLayout")
+      .mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseLayout = resolve;
+        });
+        return applyAutoLayout();
+      });
+    await waitFor(() => expect(releaseLayout).toBeDefined());
+    rerenderPanel({
+      conversationId: "replacement",
+      messages: [
+        {
+          id: "replacement-history",
+          role: "assistant",
+          parts: [{ type: "text", text: "Settled replacement" }],
+        },
+      ],
+      transport,
+    });
+    await act(async () => {
+      releaseLayout?.();
+      await layout.mock.results[0]?.value;
+      // Drain the explicit continuation timer following the awaited command.
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 20);
+      });
+    });
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("executes a canonical built-in with an empty host tool catalogue", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks([
+            { type: "start-step" },
+            { type: "text-start", id: "resumed" },
+            {
+              type: "text-delta",
+              id: "resumed",
+              delta: "Live net received.",
+            },
+            { type: "text-end", id: "resumed" },
+          ]),
+        );
+      },
+    );
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages,
+    };
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: {
+        automaticTools: [],
+        conversationId: "conversation-with-pending-tool",
+        messages: [],
+        transport,
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    const pendingMessages: PetrinautAiMessage[] = [
+      {
+        id: "assistant-pending-net-read",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-getLatestNetDefinition",
+            state: "input-available",
+            toolCallId: "pending-net-read",
+            input: {},
+          },
+        ],
+      },
+    ];
+
+    rerenderPanel({
+      automaticTools: [],
+      conversationId: "conversation-with-pending-tool",
+      messages: pendingMessages,
+      transport,
+    });
+
+    expect(await screen.findByText("Live net received.")).not.toBeNull();
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+    const submittedTool = requestMessages[0]?.[0]?.parts[0];
+    expect(submittedTool).toMatchObject({
+      type: "tool-getLatestNetDefinition",
+      state: "output-available",
+      toolCallId: "pending-net-read",
+      output: {
+        title: "AI assistant panel test",
+        definition: canonicalizePetrinautIds(nonEmptySDCPN),
+        extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+      },
+    });
+
+    rerenderPanel({
+      automaticTools: [],
+      conversationId: "conversation-with-pending-tool",
+      messages: pendingMessages,
+      transport,
+    });
+    expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("continues through consecutive automatic client tools", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        if (requestMessages.length <= 2) {
+          const toolCallId = `automatic-net-read-${requestMessages.length}`;
+          return Promise.resolve(
+            streamChunks([
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                toolCallId,
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              },
+              { type: "finish-step" },
+              { type: "finish", finishReason: "tool-calls" },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          streamChunks(
+            textChunks("automatic-complete", "Construction complete"),
+          ),
+        );
+      },
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      initialMessage: "Construct the net",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledTimes(3));
+    expect(await screen.findByText("Construction complete")).not.toBeNull();
+    expect(
+      requestMessages[1]?.flatMap((message) => message.parts),
+    ).toContainEqual(
+      expect.objectContaining({
+        state: "output-available",
+        toolCallId: "automatic-net-read-1",
+      }),
+    );
+    expect(
+      requestMessages[2]?.flatMap((message) => message.parts),
+    ).toContainEqual(
+      expect.objectContaining({
+        state: "output-available",
+        toolCallId: "automatic-net-read-2",
+      }),
+    );
+  });
+
+  test("submits multiple automatic tool outputs in one continuation", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      ({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        if (requestMessages.length === 1) {
+          return Promise.resolve(
+            streamChunks([
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                toolCallId: "batched-net-read-1",
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              },
+              {
+                type: "tool-input-available",
+                toolCallId: "batched-net-read-2",
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              },
+              { type: "finish-step" },
+              { type: "finish", finishReason: "tool-calls" },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          streamChunks(textChunks("batch-complete", "Both reads received")),
+        );
+      },
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      initialMessage: "Read the net twice",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Both reads received")).not.toBeNull();
+    const continuationParts = requestMessages[1]?.flatMap(
+      (message) => message.parts,
+    );
+    expect(continuationParts).toContainEqual(
+      expect.objectContaining({
+        state: "output-available",
+        toolCallId: "batched-net-read-1",
+      }),
+    );
+    expect(continuationParts).toContainEqual(
+      expect.objectContaining({
+        state: "output-available",
+        toolCallId: "batched-net-read-2",
+      }),
+    );
+  });
+
+  test("does not continue while a sibling automatic tool is pending", async () => {
+    let releaseLayout: (() => void) | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(
+        streamChunks([
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            toolCallId: "staggered-net-read",
+            toolName: getLatestNetDefinitionToolName,
+            input: {},
+          },
+          {
+            type: "tool-input-available",
+            toolCallId: "staggered-layout",
+            toolName: "applyAutoLayout",
+            input: { askUserFirst: false },
+          },
+          { type: "finish-step" },
+          { type: "finish", finishReason: "tool-calls" },
+        ]),
+      ),
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      initialMessage: "Read and lay out the net",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    const instance = testInstances.at(-1);
+    if (instance === undefined) {
+      throw new Error("Expected the panel to create a Petrinaut instance.");
+    }
+    const layout = vi
+      .spyOn(instance.commands, "applyAutoLayout")
+      .mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseLayout = resolve;
+        });
+        return { commitCount: 0 };
+      });
+
+    await waitFor(() => expect(releaseLayout).toBeDefined());
+    await act(
+      () =>
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, 20);
+        }),
+    );
+    expect(sendMessages).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      releaseLayout?.();
+      await layout.mock.results[0]?.value;
+    });
+  });
+
+  test("invalidates registered Voice controls before typed submit while active publication is pending", async () => {
+    const events: string[] = [];
+    let finishVoiceEnd: (() => void) | undefined;
+    const endVoice = vi.fn(() => {
+      events.push("end");
+      return new Promise<void>((resolve) => {
+        finishVoiceEnd = resolve;
+      });
+    });
+    const sendMessages = vi.fn(() => {
+      events.push("submit");
+      return Promise.resolve(
+        streamChunks(
+          textChunks("pending-active-handoff", "Pending handoff accepted"),
+        ),
+      );
+    });
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const { registerVoiceModeControls } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+
+      return (
+        <button type="button" onClick={() => context.setInputMode("voice")}>
+          Select voice before active publication
+        </button>
+      );
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => <VoiceMode context={context} />,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Select voice before active publication",
+      }),
+    );
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, {
+      target: { value: "Typed during activation" },
+    });
+    const sendButton = screen.getByRole("button", { name: "Send message" });
+    fireEvent.click(sendButton);
+    fireEvent.click(sendButton);
+    fireEvent.keyDown(textarea, { key: "Enter" });
+
+    expect(events).toEqual(["end"]);
+    expect(sendMessages).not.toHaveBeenCalled();
+
+    await act(async () => finishVoiceEnd?.());
+    await screen.findByText("Pending handoff accepted");
+
+    expect(events).toEqual(["end", "submit"]);
+    expect(endVoice).toHaveBeenCalledOnce();
+    expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("invalidates active Voice mode before submitting initial CTA text", async () => {
+    const events: string[] = [];
+    let finishVoiceEnd: (() => void) | undefined;
+    const endVoice = vi.fn(() => {
+      events.push("end");
+      return new Promise<void>((resolve) => {
+        finishVoiceEnd = resolve;
+      });
+    });
+    const sendMessages = vi.fn(() => {
+      events.push("submit");
+      return Promise.resolve(
+        streamChunks(textChunks("cta-handoff", "CTA handoff accepted")),
+      );
+    });
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const {
+        inputMode,
+        registerVoiceModeControls,
+        setVoiceActive: publishVoiceActive,
+      } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+      useEffect(() => {
+        if (inputMode === "voice") {
+          publishVoiceActive(true);
+        }
+      }, [inputMode, publishVoiceActive]);
+
+      return <div>{`Voice mode ${inputMode}`}</div>;
+    };
+    const aiAssistant: PetrinautAiAssistant = {
+      renderVoiceMode: (context) => <VoiceMode context={context} />,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages,
+      },
+    };
+    const rendered = renderTestPanel({
+      aiAssistant,
+      initialInteractionMode: "voice",
+      strictMode: true,
+    });
+    await screen.findByText("Voice mode voice");
+    expect(screen.getByTestId("window-compact").textContent).toBe("true");
+
+    rendered.rerenderPanelWithInitialRequest(
+      "text",
+      "Create the support workflow",
+    );
+
+    expect(events).toEqual(["end"]);
+    expect(sendMessages).not.toHaveBeenCalled();
+
+    await act(async () => finishVoiceEnd?.());
+    await screen.findByText("CTA handoff accepted");
+
+    expect(events).toEqual(["end", "submit"]);
+    expect(endVoice).toHaveBeenCalledOnce();
+    expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("invalidates active Voice mode before submitting typed text exactly once", async () => {
+    const events: string[] = [];
+    let finishVoiceEnd: (() => void) | undefined;
+    let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
+    const endVoice = vi.fn(() => {
+      events.push("end");
+      return new Promise<void>((resolve) => {
+        finishVoiceEnd = resolve;
+      });
+    });
+    const sendMessages = vi.fn(() => {
+      events.push("submit");
+      return Promise.resolve(
+        streamChunks(textChunks("typed-handoff", "Typed handoff accepted")),
+      );
+    });
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const { registerVoiceModeControls } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            context.setVoiceActive(true);
+            context.setInputMode("voice");
+          }}
+        >
+          Activate voice session
+        </button>
+      );
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => {
+          latestVoiceContext = context;
+          return <VoiceMode context={context} />;
+        },
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Activate voice session" }),
+    );
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Typed takeover" } });
+    const sendButton = screen.getByRole("button", { name: "Send message" });
+    fireEvent.click(sendButton);
+    fireEvent.click(sendButton);
+    fireEvent.keyDown(textarea, { key: "Enter" });
+
+    expect(events).toEqual(["end"]);
+    expect(sendMessages).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("Typed takeover");
+    expect(textarea.disabled).toBe(true);
+    expect(latestVoiceContext?.inputMode).toBe("text");
+
+    await act(async () => finishVoiceEnd?.());
+    await screen.findByText("Typed handoff accepted");
+
+    expect(events).toEqual(["end", "submit"]);
+    expect(sendMessages).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(textarea);
+  });
+
+  test("preserves typed text when Voice invalidation throws synchronously", async () => {
+    let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
+    const endVoice = vi.fn(() => {
+      throw new Error("Voice invalidation failed.");
+    });
+    const sendMessages = vi.fn(() =>
+      Promise.resolve(
+        streamChunks(textChunks("unexpected-handoff", "Unexpected submit")),
+      ),
+    );
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const { registerVoiceModeControls } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            context.setVoiceActive(true);
+            context.setInputMode("voice");
+          }}
+        >
+          Activate failing voice session
+        </button>
+      );
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => {
+          latestVoiceContext = context;
+          return <VoiceMode context={context} />;
+        },
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Activate failing voice session" }),
+    );
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Keep this draft" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await act(async () => {});
+
+    expect(endVoice).toHaveBeenCalledOnce();
+    expect(sendMessages).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("Keep this draft");
+    expect(textarea.disabled).toBe(false);
+    expect(latestVoiceContext?.inputMode).toBe("voice");
+    expect(await findNotification("Voice invalidation failed.")).not.toBeNull();
+  });
+
+  test("restores a typed draft when its post-Voice message submission rejects", async () => {
+    let finishVoiceEnd: (() => void) | undefined;
+    let rejectSubmission: ((reason: Error) => void) | undefined;
+    const endVoice = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishVoiceEnd = resolve;
+        }),
+    );
+    const sendMessages = vi.fn(
+      () =>
+        new Promise<ReadableStream<UIMessageChunk>>((_resolve, reject) => {
+          rejectSubmission = reject;
+        }),
+    );
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      useEffect(
+        () =>
+          context.registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [context],
+      );
+
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            context.setVoiceActive(true);
+            context.setInputMode("voice");
+          }}
+        >
+          Activate Voice for rejected message
+        </button>
+      );
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => <VoiceMode context={context} />,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Activate Voice for rejected message",
+      }),
+    );
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Recover this draft" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await act(async () => finishVoiceEnd?.());
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+
+    await act(async () => {
+      rejectSubmission?.(new Error("Typed handoff rejected."));
+    });
+
+    expect(await findNotification("Typed handoff rejected.")).not.toBeNull();
+    expect(textarea.value).toBe("Recover this draft");
+    expect(textarea.disabled).toBe(false);
+    expect(endVoice).toHaveBeenCalledOnce();
+  });
+
+  test("does not replace newer composer input when a Voice handoff rejects", async () => {
+    let finishVoiceEnd: (() => void) | undefined;
+    let rejectSubmission: ((reason: Error) => void) | undefined;
+    const endVoice = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishVoiceEnd = resolve;
+        }),
+    );
+    const sendMessages = vi.fn(
+      () =>
+        new Promise<ReadableStream<UIMessageChunk>>((_resolve, reject) => {
+          rejectSubmission = reject;
+        }),
+    );
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      useEffect(
+        () =>
+          context.registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [context],
+      );
+
+      return (
+        <button type="button" onClick={() => context.setInputMode("voice")}>
+          Select Voice for newer draft
+        </button>
+      );
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => <VoiceMode context={context} />,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select Voice for newer draft" }),
+    );
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Original draft" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await act(async () => finishVoiceEnd?.());
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+    fireEvent.change(textarea, { target: { value: "Unrelated newer input" } });
+
+    await act(async () => {
+      rejectSubmission?.(new Error("Late handoff rejection."));
+    });
+
+    expect(textarea.value).toBe("Unrelated newer input");
+    expect(textarea.disabled).toBe(false);
+  });
+
+  test("restores a typed draft when its post-Voice tool submission rejects", async () => {
+    let finishVoiceEnd: (() => void) | undefined;
+    const endVoice = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishVoiceEnd = resolve;
+        }),
+    );
+    const sendMessages = vi.fn(() =>
+      Promise.reject(new Error("Mapped handoff rejected.")),
+    );
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      useEffect(
+        () =>
+          context.registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [context],
+      );
+
+      return (
+        <button type="button" onClick={() => context.setInputMode("voice")}>
+          Select Voice for mapped handoff
+        </button>
+      );
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        messages: [
+          {
+            id: "assistant-pending-question",
+            parts: [
+              {
+                input: { question: "Which environment?" },
+                state: "input-available",
+                toolCallId: "pending-question",
+                toolName: "answerQuestion",
+                type: "dynamic-tool",
+              },
+            ],
+            role: "assistant",
+          } as unknown as PetrinautAiMessage,
+        ],
+        renderVoiceMode: (context) => <VoiceMode context={context} />,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select Voice for mapped handoff" }),
+    );
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Production" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    await act(async () => finishVoiceEnd?.());
+
+    expect(await findNotification("Mapped handoff rejected.")).not.toBeNull();
+    expect(textarea.value).toBe("Production");
+    expect(textarea.disabled).toBe(false);
+    expect(endVoice).toHaveBeenCalledOnce();
+  });
+
+  test("orders prompt-chip submission after Voice invalidation exactly once", async () => {
+    const events: string[] = [];
+    let finishVoiceEnd: (() => void) | undefined;
+    const endVoice = vi.fn(() => {
+      events.push("end");
+      return new Promise<void>((resolve) => {
+        finishVoiceEnd = resolve;
+      });
+    });
+    const sendMessages = vi.fn(() => {
+      events.push("submit");
+      return Promise.resolve(
+        streamChunks(textChunks("prompt-response", "Prompt accepted")),
+      );
+    });
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      useEffect(
+        () =>
+          context.registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [context],
+      );
+
+      return (
+        <button type="button" onClick={() => context.setInputMode("voice")}>
+          Select Voice before prompt
+        </button>
+      );
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => <VoiceMode context={context} />,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      petriNetDefinition: {
+        ...emptySDCPN,
+        places: [
+          {
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            id: "place__review",
+            name: "Review",
+            x: 0,
+            y: 0,
+          },
+        ],
+      },
+    });
+
+    const promptChip = screen.getByRole("button", {
+      name: /Suggest improvements/u,
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select Voice before prompt" }),
+    );
+    fireEvent.click(promptChip);
+    fireEvent.click(promptChip);
+
+    expect(events).toEqual(["end"]);
+    expect(sendMessages).not.toHaveBeenCalled();
+
+    await act(async () => finishVoiceEnd?.());
+    await screen.findByText("Prompt accepted");
+
+    expect(events).toEqual(["end", "submit"]);
+    expect(endVoice).toHaveBeenCalledOnce();
+    expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("pauses active Voice mode before closing and does not resume on reopen", () => {
+    const events: string[] = [];
+    const pauseVoice = vi.fn(() =>
+      events.push(isWindowClosed() ? "pause after close" : "pause"),
+    );
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const { registerVoiceModeControls } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: async () => undefined,
+            pause: pauseVoice,
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+
+      return (
+        <button type="button" onClick={() => context.setVoiceActive(true)}>
+          Activate voice session
+        </button>
+      );
+    };
+    const openEditorContext = editorContextValue;
+    const aiAssistant: PetrinautAiAssistant = {
+      renderVoiceMode: (context) => <VoiceMode context={context} />,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+    const rendered = renderTestPanel({
+      aiAssistant,
+      editorContext: openEditorContext,
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Activate voice session" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
+    if (isWindowClosed()) events.push("close");
+
+    expect(events).toEqual(["pause", "close"]);
+    expect(pauseVoice).toHaveBeenCalledOnce();
+
+    rendered.rerenderPanel(aiAssistant, {
+      ...openEditorContext,
+      isAiAssistantOpen: false,
+    });
+    rendered.rerenderPanel(aiAssistant, openEditorContext);
+
+    expect(pauseVoice).toHaveBeenCalledOnce();
+  });
+
+  test("pauses registered Voice controls before close while active publication is pending", () => {
+    const events: string[] = [];
+    const pauseVoice = vi.fn(() =>
+      events.push(isWindowClosed() ? "pause after close" : "pause"),
+    );
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const { registerVoiceModeControls } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: async () => undefined,
+            pause: pauseVoice,
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+
+      return (
+        <button type="button" onClick={() => context.setInputMode("voice")}>
+          Select pending voice session
+        </button>
+      );
+    };
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => <VoiceMode context={context} />,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages: vi.fn(),
+        },
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select pending voice session" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
+    if (isWindowClosed()) events.push("close");
+
+    expect(events).toEqual(["pause", "close"]);
+    expect(pauseVoice).toHaveBeenCalledOnce();
+  });
+
+  test("exposes provider-neutral voice mode state and stable controls", () => {
+    const inputModes: PetrinautAiInputMode[] = [];
+    const setInputModeReferences = new Set<unknown>();
+    const setVoiceActiveReferences = new Set<unknown>();
+    const submitVoiceInputReferences = new Set<unknown>();
+    const aiAssistant: PetrinautAiAssistant = {
+      renderVoiceMode: (context) => {
+        inputModes.push(context.inputMode);
+        setInputModeReferences.add(context.setInputMode);
+        setVoiceActiveReferences.add(context.setVoiceActive);
+        submitVoiceInputReferences.add(context.submitVoiceInput);
+
+        return (
+          <button type="button" onClick={() => context.setInputMode("voice")}>
+            {context.isAiAssistantOpen
+              ? "Open voice mode"
+              : "Closed voice mode"}
+          </button>
+        );
+      },
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+    const rendered = renderTestPanel({ aiAssistant });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open voice mode" }));
+    expect(inputModes.at(-1)).toBe("voice");
+
+    rendered.rerenderPanel(aiAssistant, {
+      ...editorContextValue,
+      isAiAssistantOpen: false,
+    });
+
+    expect(screen.getByText("Closed voice mode")).not.toBeNull();
+    expect(setInputModeReferences.size).toBe(1);
+    expect(setVoiceActiveReferences.size).toBe(1);
+    expect(submitVoiceInputReferences.size).toBe(1);
+  });
+
+  test("keeps one mounted voice mode when the panel closes and reopens", () => {
+    voiceModeMounts = 0;
+    voiceModeUnmounts = 0;
+    const VoiceMode = ({ isOpen }: { isOpen: boolean }) => {
+      useEffect(() => {
+        voiceModeMounts += 1;
+        return () => {
+          voiceModeUnmounts += 1;
+        };
+      }, []);
+      return <div>{`Voice mode ${isOpen ? "open" : "closed"}`}</div>;
+    };
+    const aiAssistant: PetrinautAiAssistant = {
+      renderVoiceMode: ({ isAiAssistantOpen }) => (
+        <VoiceMode isOpen={isAiAssistantOpen} />
+      ),
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+    const rendered = renderTestPanel({ aiAssistant });
+
+    expect(screen.getByText("Voice mode open")).not.toBeNull();
+    rendered.rerenderPanel(aiAssistant, {
+      ...editorContextValue,
+      isAiAssistantOpen: false,
+    });
+    expect(screen.getByText("Voice mode closed")).not.toBeNull();
+    rendered.rerenderPanel(aiAssistant, editorContextValue);
+
+    expect(screen.getByText("Voice mode open")).not.toBeNull();
+    expect(voiceModeMounts).toBe(1);
+    expect(voiceModeUnmounts).toBe(0);
+  });
+
+  test("forwards optional host Voice actions to the production dock", async () => {
+    const takeTurn = vi.fn();
+    const repeatQuestion = vi.fn();
+    const readFullResponse = vi.fn();
+    const setSpeakerMuted = vi.fn();
+    const setSpeakerVolume = vi.fn();
+    const VoiceMode = ({
+      context,
+      replayAllowed,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+      replayAllowed: boolean;
+    }) => {
+      const { registerVoiceModeControls, reportVoiceSessionState } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: async () => undefined,
+            pause: vi.fn(),
+            readFullResponse,
+            reconnect: vi.fn(),
+            repeatQuestion,
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+            setSpeakerMuted,
+            setSpeakerVolume,
+            takeTurn,
+          }),
+        [registerVoiceModeControls],
+      );
+      useEffect(() => {
+        reportVoiceSessionState({
+          canReadFullResponse: replayAllowed,
+          canRepeatQuestion: replayAllowed,
+          canTakeTurn: true,
+          errorMessage: null,
+          microphoneLevel: 0,
+          microphoneMuted: false,
+          phase: "speaking",
+          speakerMuted: false,
+          speakerVolume: 0.25,
+        });
+        return () => reportVoiceSessionState(null);
+      }, [replayAllowed, reportVoiceSessionState]);
+
+      return null;
+    };
+    const aiAssistant = (replayAllowed: boolean): PetrinautAiAssistant => ({
+      renderVoiceMode: (context) => (
+        <VoiceMode context={context} replayAllowed={replayAllowed} />
+      ),
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    });
+
+    const rendered = renderTestPanel({ aiAssistant: aiAssistant(true) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Your turn" }));
+    expect(takeTurn).toHaveBeenCalledOnce();
+
+    const audioOptions = screen.getByRole("button", {
+      name: "Audio options",
+    });
+    expect(audioOptions.getAttribute("aria-haspopup")).toBe("dialog");
+    fireEvent.click(audioOptions);
+    await waitFor(() =>
+      expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(
+        true,
+      ),
+    );
+    const repeatQuestionItem = screen.getByRole("button", {
+      name: "Repeat question",
+    });
+    expect((repeatQuestionItem as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(repeatQuestionItem);
+    expect(repeatQuestion).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "Mute speaker" }));
+    expect(setSpeakerMuted).toHaveBeenCalledWith(true);
+    const volume = screen.getByRole("slider", { name: "Speaker volume" });
+    volume.focus();
+    fireEvent.keyDown(volume, { key: "ArrowRight" });
+    await waitFor(() => expect(setSpeakerVolume).toHaveBeenCalledWith(0.3));
+
+    const readFullResponseItem = screen.getByRole("button", {
+      name: "Read full reply",
+    });
+    expect((readFullResponseItem as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(readFullResponseItem);
+    expect(readFullResponse).toHaveBeenCalledOnce();
+
+    fireEvent.keyDown(document.activeElement ?? document, { key: "Escape" });
+    await waitFor(() => {
+      expect(audioOptions.getAttribute("aria-expanded")).toBe("false");
+      expect(document.activeElement).toBe(audioOptions);
+    });
+    rendered.rerenderPanel(aiAssistant(false), editorContextValue);
+    fireEvent.click(audioOptions);
+    expect(
+      (
+        await screen.findByRole("button", { name: "Repeat question" })
+      ).hasAttribute("disabled"),
+    ).toBe(true);
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Read full reply",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+  });
+
+  test("retires missing and unmounted optional host Voice actions", async () => {
+    const setSpeakerMuted = vi.fn();
+    const setSpeakerVolume = vi.fn();
+    const VoiceMode = ({
+      context,
+      speakerControls,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+      speakerControls: boolean;
+    }) => {
+      const { registerVoiceModeSessionControls, reportVoiceSessionState } =
+        context;
+
+      useEffect(() => {
+        if (!registerVoiceModeSessionControls) return;
+        return registerVoiceModeSessionControls({
+          end: async () => undefined,
+          pause: vi.fn(),
+          ...(speakerControls ? { setSpeakerMuted, setSpeakerVolume } : {}),
+        });
+      }, [registerVoiceModeSessionControls, speakerControls]);
+      useEffect(() => {
+        reportVoiceSessionState({
+          canReadFullResponse: true,
+          canRepeatQuestion: true,
+          canTakeTurn: true,
+          errorMessage: null,
+          microphoneLevel: 0,
+          microphoneMuted: false,
+          phase: "speaking",
+          speakerMuted: false,
+          speakerVolume: 0.5,
+        });
+        return () => reportVoiceSessionState(null);
+      }, [reportVoiceSessionState]);
+
+      return null;
+    };
+    const aiAssistant = (
+      mounted: boolean,
+      speakerControls: boolean,
+    ): PetrinautAiAssistant => ({
+      renderVoiceMode: (context) =>
+        mounted ? (
+          <VoiceMode context={context} speakerControls={speakerControls} />
+        ) : null,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    });
+    const rendered = renderTestPanel({
+      aiAssistant: aiAssistant(true, true),
+    });
+
+    expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
+    await screen.findByRole("region", { name: "Voice session" });
+    fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Mute speaker" }),
+    );
+    expect(setSpeakerMuted).toHaveBeenCalledWith(true);
+    fireEvent.keyDown(document.activeElement ?? document, { key: "Escape" });
+
+    rendered.rerenderPanel(aiAssistant(true, false), editorContextValue);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Audio options" }),
+      ).toBeNull(),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Mute microphone" }),
+    ).toBeNull();
+
+    rendered.rerenderPanel(aiAssistant(false, false), editorContextValue);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("region", { name: "Voice session" }),
+      ).toBeNull(),
+    );
+  });
+
+  test("ends active Voice mode when the unified composer returns to text", () => {
+    voiceModeMounts = 0;
+    voiceModeUnmounts = 0;
+    const endVoice = vi.fn(async () => undefined);
+    const VoiceMode = (context: PetrinautAiVoiceModeContext) => {
+      const { inputMode, registerVoiceModeControls, setVoiceActive } = context;
+      useEffect(() => {
+        voiceModeMounts += 1;
+        return () => {
+          voiceModeUnmounts += 1;
+        };
+      }, []);
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+      useEffect(() => {
+        if (inputMode === "voice") {
+          setVoiceActive(true);
+        }
+      }, [inputMode, setVoiceActive]);
+      return (
+        <button type="button" onClick={() => context.setInputMode("text")}>
+          {`Voice mode ${inputMode}`}
+        </button>
+      );
+    };
+    const sendMessages = vi.fn();
+    const aiAssistant: PetrinautAiAssistant = {
+      renderVoiceMode: (context) => <VoiceMode {...context} />,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages,
+      },
+    };
+
+    renderTestPanel({ aiAssistant });
+
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    expect(screen.getByText("Voice mode voice")).not.toBeNull();
+    expect(screen.queryByRole("region", { name: "Voice setup" })).toBeNull();
+    expect(
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+    ).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Voice mode voice" }));
+
+    expect(
+      screen.getByPlaceholderText("Describe the process you want to create"),
+    ).not.toBeNull();
+    expect(endVoice).toHaveBeenCalledOnce();
+    expect(voiceModeMounts).toBe(1);
+    expect(voiceModeUnmounts).toBe(0);
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("opens initial Voice setup compact once, then falls back to text", () => {
+    let latestInputMode = "text";
+    const onInitialInteractionModeConsumed = vi.fn();
+    const aiAssistant: PetrinautAiAssistant = {
+      renderVoiceMode: (context) => {
+        latestInputMode = context.inputMode;
+        return <div>Voice mode</div>;
+      },
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+    const closedEditorContext = {
+      ...editorContextValue,
+      isAiAssistantOpen: false,
+    };
+    const rendered = renderTestPanel({
+      aiAssistant,
+      editorContext: closedEditorContext,
+      initialInteractionMode: "voice",
+      onInitialInteractionModeConsumed,
+    });
+
+    expect(latestInputMode).toBe("text");
+    expect(onInitialInteractionModeConsumed).not.toHaveBeenCalled();
+
+    rendered.rerenderPanel(aiAssistant, editorContextValue);
+
+    expect(latestInputMode).toBe("voice");
+    expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
+    expect(screen.getByText("Voice mode")).not.toBeNull();
+    const composer = screen.getByRole("textbox", {
+      hidden: true,
+      name: "Message AI assistant",
+    });
+    const composerWrap = composer.closest("form")?.parentElement;
+    expect(composerWrap?.className).toContain("d_none");
+
+    const setupDock = screen.getByRole("region", { name: "Voice setup" });
+    expect(screen.getByTestId("window-compact").textContent).toBe("true");
+    fireEvent.click(
+      within(setupDock).getByRole("button", { name: "Expand voice setup" }),
+    );
+
+    expect(screen.queryByRole("region", { name: "Voice setup" })).toBeNull();
+    expect(screen.getByTestId("window-compact").textContent).toBe("false");
+    expect(composerWrap?.className).not.toContain("d_none");
+    expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
+      composer,
+    );
+    expect(
+      screen.getByRole("button", { name: "Close AI assistant" }),
+    ).not.toBeNull();
+
+    const unavailableAssistant: PetrinautAiAssistant = {
+      transport: aiAssistant.transport,
+    };
+    rendered.rerenderPanel(unavailableAssistant, editorContextValue);
+
+    expect(screen.queryByText("Voice mode")).toBeNull();
+    expect(
+      screen.getByPlaceholderText("Describe the process you want to create"),
+    ).not.toBeNull();
+    expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
+  });
+
+  test("ends collapsed Voice and closes the panel without pausing", async () => {
+    const events: string[] = [];
+    const endVoice = vi.fn(async () => {
+      events.push("end");
+    });
+    const pauseVoice = vi.fn(() => events.push("pause"));
+    const setAiAssistantOpen = vi.fn(() => events.push("close"));
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const {
+        inputMode,
+        registerVoiceModeControls,
+        reportVoiceSessionState,
+        setVoiceActive,
+      } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: endVoice,
+            pause: pauseVoice,
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+      useEffect(() => {
+        if (inputMode !== "voice") {
+          return;
+        }
+        setVoiceActive(true);
+        reportVoiceSessionState({
+          errorMessage: null,
+          microphoneLevel: 0,
+          microphoneMuted: false,
+          phase: "listening",
+        });
+      }, [inputMode, reportVoiceSessionState, setVoiceActive]);
+
+      return null;
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => <VoiceMode context={context} />,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages: vi.fn(),
+        },
+      },
+      editorContext: {
+        ...editorContextValue,
+        setAiAssistantOpen,
+      },
+      initialInteractionMode: "voice",
+    });
+
+    const dock = await screen.findByRole("region", { name: "Voice session" });
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "End voice mode" }),
+    );
+
+    expect(events).toEqual(["end", "close"]);
+    expect(endVoice).toHaveBeenCalledOnce();
+    expect(pauseVoice).not.toHaveBeenCalled();
+    expect(setAiAssistantOpen).toHaveBeenCalledWith(false);
+  });
+
+  test("accepts one voice input while generic chat is streaming and submits it after settlement", async () => {
+    let firstStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    let secondStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const requests: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requests.push(structuredClone(messages));
+        if (requests.length === 1) {
+          return Promise.resolve(
+            new ReadableStream({
+              start(controller) {
+                firstStreamController = controller;
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({
+                  type: "tool-input-available",
+                  dynamic: true,
+                  toolCallId: "queued-question",
+                  toolName: "answerQuestion",
+                  input: { question: "Who approves it?" },
+                });
+              },
+            }),
+          );
+        }
+        if (requests.length === 2) {
+          return Promise.resolve(
+            new ReadableStream({
+              start(controller) {
+                secondStreamController = controller;
+                for (const chunk of textChunks(
+                  "acknowledgement",
+                  "Answer accepted",
+                )) {
+                  controller.enqueue(chunk);
+                }
+              },
+            }),
+          );
+        }
+        return Promise.resolve(
+          streamChunks(textChunks("next-answer", "Next answer accepted")),
+        );
+      }),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+    let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        renderVoiceMode: (context) => {
+          latestVoiceContext = context;
+          return (
+            <button
+              type="button"
+              onClick={() => {
+                void (context.status === "ready"
+                  ? context.submitText({ text: "Begin" })
+                  : context.submitVoiceInput({
+                      text: "Queued voice input",
+                    }));
+              }}
+            >
+              {context.status === "ready" ? "Begin" : "Answer now"}
+            </button>
+          );
+        },
+        transport,
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Begin" }));
+    await screen.findByRole("button", { name: "Answer now" });
+    expect(latestVoiceContext?.canAcceptVoiceInput).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Answer now" }));
+    await waitFor(() =>
+      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(false),
+    );
+    expect(requests).toHaveLength(1);
+
+    await act(async () => firstStreamController?.close());
+    await screen.findByText("Answer accepted");
+
+    expect(requests).toHaveLength(2);
+    expect(latestVoiceContext?.status).toBe("streaming");
+    expect(latestVoiceContext?.canAcceptVoiceInput).toBe(true);
+    expect(requests[1]?.at(-1)).toMatchObject({
+      metadata: {
+        source: "voice",
+        voiceToolCallIds: ["queued-question"],
+      },
+      role: "assistant",
+    });
+    expect(
+      requests[1]?.some(
+        (message) =>
+          message.role === "user" &&
+          message.parts.some(
+            (part) =>
+              part.type === "text" && part.text === "Queued voice input",
+          ),
+      ),
+    ).toBe(false);
+
+    void latestVoiceContext?.submitVoiceInput({
+      text: "Next voice input",
+    });
+    await waitFor(() =>
+      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(false),
+    );
+    expect(requests).toHaveLength(2);
+
+    await act(async () => secondStreamController?.close());
+    await screen.findByText("Next answer accepted");
+    expect(requests).toHaveLength(3);
+    expect(requests[2]?.at(-1)).toMatchObject({
+      metadata: { source: "voice" },
+      role: "user",
+      parts: [{ type: "text", text: "Next voice input" }],
+    });
+  });
+
+  test("reopens the voice input buffer when the conversation changes", async () => {
+    let streamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          new ReadableStream({
+            start(controller) {
+              streamController = controller;
+              for (const chunk of textChunks("question", "Question ready")) {
+                controller.enqueue(chunk);
+              }
+            },
+          }),
+        ),
+      ),
+    };
+    let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
+    const createAiAssistant = (
+      conversationId: string,
+    ): PetrinautAiAssistant => ({
+      conversationId,
+      renderVoiceMode: (context) => {
+        latestVoiceContext = context;
+        return null;
+      },
+      transport,
+    });
+    const rendered = renderTestPanel({
+      aiAssistant: createAiAssistant("conversation-1"),
+    });
+    let initialSubmission: Promise<unknown> | undefined;
+    act(() => {
+      initialSubmission = latestVoiceContext?.submitText({ text: "Begin" });
+    });
+    void initialSubmission?.catch(() => undefined);
+    await waitFor(() => expect(latestVoiceContext?.status).toBe("streaming"));
+    let queuedAnswer: Promise<unknown> | undefined;
+    act(() => {
+      queuedAnswer = latestVoiceContext?.submitVoiceInput({
+        target: "message",
+        text: "Queued voice input",
+      });
+    });
+    const queuedAnswerRejection = expect(queuedAnswer).rejects.toThrow(
+      "The voice conversation changed.",
+    );
+    await waitFor(() =>
+      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(false),
+    );
+
+    rendered.rerenderPanel(createAiAssistant("conversation-2"));
+
+    await queuedAnswerRejection;
+    await waitFor(() =>
+      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(true),
+    );
+    await act(async () => streamController?.close());
+  });
+
+  test("releases experiment activity when the host control unmounts", async () => {
+    const RunningExperiment = ({
+      reportExperimentRunning,
+    }: PetrinautAiComposerControlContext) => {
+      useEffect(
+        () => reportExperimentRunning?.(true),
+        [reportExperimentRunning],
+      );
+      return null;
+    };
+    const assistant: PetrinautAiAssistant = {
+      presentation: "brunch",
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+      renderComposerControl: (context) => <RunningExperiment {...context} />,
+    };
+    const rendered = renderTestPanel({ aiAssistant: assistant });
+    await screen.findByText("Experiment running");
+    rendered.rerenderPanel({ ...assistant, renderComposerControl: () => null });
+    await waitFor(() =>
+      expect(screen.queryByText("Experiment running")).toBeNull(),
+    );
+  });
+
+  test("an older activity cleanup cannot clear a newer host report", async () => {
+    let controls: PetrinautAiComposerControlContext | undefined;
+    renderTestPanel({
+      aiAssistant: {
+        presentation: "brunch",
+        transport: {
+          reconnectToStream: async () => null,
+          sendMessages: vi.fn(),
+        },
+        renderComposerControl: (context) => {
+          controls = context;
+          return null;
+        },
+      },
+    });
+    let clearFirst: (() => void) | undefined;
+    let clearSecond: (() => void) | undefined;
+    act(() => {
+      clearFirst = controls?.reportExperimentRunning?.(true);
+    });
+    act(() => {
+      clearSecond = controls?.reportExperimentRunning?.(true);
+    });
+    act(() => clearFirst?.());
+    expect(screen.queryByText("Experiment running")).not.toBeNull();
+    act(() => clearSecond?.());
+    expect(screen.queryByText("Experiment running")).toBeNull();
+  });
+
+  test("exposes the generated useChat conversation identity to host controls", async () => {
+    const chatIds: string[] = [];
+    const observedConversationIds = new Set<string>();
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ chatId }) => {
+        chatIds.push(chatId);
+        return Promise.resolve(
+          streamChunks(
+            textChunks("generated-id-response", "Generated ID used"),
+          ),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: (context) => {
+          observedConversationIds.add(context.conversationId);
+          return (
+            <button
+              type="button"
+              onClick={() => {
+                void context.submitText({ text: "Use generated identity" });
+              }}
+            >
+              Submit with generated identity
+            </button>
+          );
+        },
+        transport,
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit with generated identity" }),
+    );
+    await screen.findByText("Generated ID used");
+
+    expect(chatIds).toHaveLength(1);
+    expect(chatIds[0]).toBeTruthy();
+    expect(observedConversationIds).toEqual(new Set(chatIds));
+  });
+
+  test("submits to the current chat when the conversation identity changes", async () => {
+    const chatIds: string[] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ chatId }) => {
+        chatIds.push(chatId);
+        return Promise.resolve(
+          streamChunks(textChunks("second-response", "Second chat used")),
+        );
+      }),
+    };
+    const createAiAssistant = (
+      conversationId: string,
+    ): PetrinautAiAssistant => ({
+      conversationId,
+      renderComposerControl: (context) => (
+        <SubmitForSecondConversation {...context} />
+      ),
+      transport,
+    });
+    const rendered = renderTestPanel({
+      aiAssistant: createAiAssistant("conversation-1"),
+    });
+
+    rendered.rerenderPanel(createAiAssistant("conversation-2"));
+    await waitFor(() => expect(chatIds).toHaveLength(1));
+
+    expect(chatIds).toEqual(["conversation-2"]);
+  });
+
+  test("shares one stable submission path between alternate and keyboard text", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const chatIds: string[] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ chatId, messages }) => {
+        chatIds.push(chatId);
+        requestMessages.push(structuredClone(messages));
+        const responseId = `response-${requestMessages.length}`;
+        return Promise.resolve(
+          streamChunks([
+            { type: "start-step" },
+            { type: "text-start", id: responseId },
+            {
+              type: "text-delta",
+              id: responseId,
+              delta: `Response ${requestMessages.length}`,
+            },
+            { type: "text-end", id: responseId },
+          ]),
+        );
+      }),
+    };
+    const submitTextReferences = new Set<unknown>();
+    const stopReferences = new Set<unknown>();
+    const observedConversationIds = new Set<string | undefined>();
+    const aiAssistant: PetrinautAiAssistant = {
+      conversationId: "voice-conversation-1",
+      renderComposerControl: (context) => {
+        submitTextReferences.add(context.submitText);
+        stopReferences.add(context.stop);
+        observedConversationIds.add(context.conversationId);
+
+        return (
+          <button
+            type="button"
+            onClick={() => {
+              void context.submitText({
+                id: "voice-turn-1",
+                text: "  Alternate turn  ",
+              });
+            }}
+          >
+            Submit alternate text
+          </button>
+        );
+      },
+      transport,
+    };
+
+    renderTestPanel({ aiAssistant });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit alternate text" }),
+    );
+    await screen.findByText("Response 1");
+
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Keyboard turn" } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    await screen.findByText("Response 2");
+
+    expect(chatIds).toEqual(["voice-conversation-1", "voice-conversation-1"]);
+    expect(requestMessages[0]?.[0]).toMatchObject({
+      id: "voice-turn-1",
+      parts: [{ text: "Alternate turn", type: "text" }],
+      role: "user",
+    });
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      parts: [{ text: "Keyboard turn", type: "text" }],
+      role: "user",
+    });
+    expect(requestMessages[1]?.at(-1)?.id).not.toBe("voice-turn-1");
+    expect(submitTextReferences.size).toBe(1);
+    expect(stopReferences.size).toBe(1);
+    expect(observedConversationIds).toEqual(new Set(["voice-conversation-1"]));
+  });
+
+  test("stops the current response through the host composer control", async () => {
+    const aborted = vi.fn();
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(
+        ({
+          abortSignal,
+        }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) =>
+          Promise.resolve(
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({ type: "text-start", id: "partial" });
+                controller.enqueue({
+                  type: "text-delta",
+                  id: "partial",
+                  delta: "Partial response",
+                });
+                abortSignal?.addEventListener("abort", () => {
+                  aborted();
+                  controller.error(new DOMException("Aborted", "AbortError"));
+                });
+              },
+            }),
+          ),
+      ),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        primaryLabel: "Chat",
+        presentation: "brunch",
+        renderComposerControl: ({ stop }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void stop();
+            }}
+          >
+            Stop from host control
+          </button>
+        ),
+        transport,
+      },
+      tabs: [ledgerTab],
+      initialMessage: "Start a long response",
+    });
+    await screen.findByText("Partial response");
+    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Stop from host control" }),
+    );
+
+    await waitFor(() => expect(aborted).toHaveBeenCalledOnce());
+    expect(await screen.findByText("Stopped")).not.toBeNull();
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("tab", { name: "Chat" })
+          .querySelector("[data-attention]"),
+      ).not.toBeNull(),
+    );
+  });
+
+  test("records a durable Stop before cancelling the local stream", async () => {
+    const localCancellation = vi.fn();
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(
+        ({
+          abortSignal,
+        }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) =>
+          Promise.resolve(
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({ type: "text-start", id: "partial" });
+                controller.enqueue({
+                  type: "text-delta",
+                  id: "partial",
+                  delta: "Durably stopping",
+                });
+                abortSignal?.addEventListener("abort", () => {
+                  localCancellation();
+                  controller.error(new DOMException("Aborted", "AbortError"));
+                });
+              },
+            }),
+          ),
+      ),
+    };
+    const requestStop = vi.fn(async () => "stop-requested" as const);
+
+    renderTestPanel({
+      aiAssistant: { requestStop, transport },
+      initialMessage: "Start durable work",
+    });
+    await screen.findByText("Durably stopping");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+
+    await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
+    await waitFor(() => expect(localCancellation).toHaveBeenCalledOnce());
+    expect(requestStop.mock.invocationCallOrder[0]).toBeLessThan(
+      localCancellation.mock.invocationCallOrder[0]!,
+    );
+    expect(await screen.findByText("Response stopped")).not.toBeNull();
+  });
+
+  test("keeps a response completed before the durable Stop race", async () => {
+    const localCancellation = vi.fn();
+    let streamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(
+        ({
+          abortSignal,
+        }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) =>
+          Promise.resolve(
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                streamController = controller;
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({ type: "text-start", id: "answer" });
+                controller.enqueue({
+                  type: "text-delta",
+                  id: "answer",
+                  delta: "Completed response",
+                });
+                abortSignal?.addEventListener("abort", localCancellation);
+              },
+            }),
+          ),
+      ),
+    };
+    const requestStop = vi.fn(async () => {
+      streamController?.enqueue({ type: "text-end", id: "answer" });
+      streamController?.enqueue({ type: "finish-step" });
+      streamController?.enqueue({ type: "finish", finishReason: "stop" });
+      streamController?.close();
+      return "already-settled" as const;
+    });
+
+    renderTestPanel({
+      aiAssistant: { requestStop, transport },
+      initialMessage: "Race a completed response",
+    });
+    await screen.findByText("Completed response");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+
+    await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Send message" }),
+      ).toHaveProperty("disabled", true),
+    );
+    expect(localCancellation).not.toHaveBeenCalled();
+    expect(screen.queryByText("Response stopped")).toBeNull();
+  });
+
+  test("withholds the client-tool follow-up when a durable Stop lands after a tool-calls step", async () => {
+    let streamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() =>
+      Promise.resolve(
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            streamController = controller;
+            controller.enqueue({ type: "start-step" });
+            controller.enqueue({ type: "text-start", id: "preamble" });
+            controller.enqueue({
+              type: "text-delta",
+              id: "preamble",
+              delta: "Checking the net",
+            });
+          },
+        }),
+      ),
+    );
+    const requestStop = vi.fn(async () => {
+      // The step settles as a tool-calls step while the durable Stop is in
+      // flight, so Flue has nothing left to abort and reports already-settled.
+      streamController?.enqueue({ type: "text-end", id: "preamble" });
+      streamController?.enqueue({
+        type: "tool-input-available",
+        toolCallId: "stopped-mutation",
+        toolName: "updatePlace",
+        input: { placeId: "place-1", update: { name: "MustNotApply" } },
+      });
+      streamController?.enqueue({ type: "finish-step" });
+      streamController?.enqueue({ type: "finish", finishReason: "tool-calls" });
+      streamController?.close();
+      return "already-settled" as const;
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        requestStop,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages,
+        },
+      },
+      initialMessage: "Stop me mid-tool",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await screen.findByText("Checking the net");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+
+    await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
+    expect(await screen.findByText("Response stopped")).not.toBeNull();
+    // Let both deferred execution and any follow-up drain: withholding only
+    // the send is insufficient if the mutation already ran after Stop.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(testInstances.at(-1)?.definition.get().places[0]?.name).toBe(
+      "PlaceOne",
+    );
+    expect(sendMessages).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Send message" })).toHaveProperty(
+      "disabled",
+      true,
+    );
+  });
+
+  test.each([false, true])(
+    "preserves a failed durable Stop after completion (pending tool: %s)",
+    async (withTool) => {
+      let streamController:
+        | ReadableStreamDefaultController<UIMessageChunk>
+        | undefined;
+      let latest: PetrinautAiComposerControlContext | undefined;
+      const failure = new Error("Durable stop failed");
+      const requestStop = vi.fn(async () => {
+        throw failure;
+      });
+      const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              streamController = controller;
+              controller.enqueue({ type: "start-step" });
+              controller.enqueue({ type: "text-start", id: "preamble" });
+              controller.enqueue({
+                type: "text-delta",
+                id: "preamble",
+                delta: "Work in progress",
+              });
+            },
+          }),
+      );
+      renderTestPanel({
+        aiAssistant: {
+          requestStop,
+          transport: { reconnectToStream: async () => null, sendMessages },
+          renderComposerControl: (context) => {
+            latest = context;
+            return null;
+          },
+        },
+        initialMessage: "Start work",
+        petriNetDefinition: nonEmptySDCPN,
+      });
+      await screen.findByText("Work in progress");
+      await act(async () => latest?.stop());
+      expect(requestStop).toHaveBeenCalledOnce();
+      await findNotification(/Durable stop failed/u);
+
+      await act(async () => {
+        streamController?.enqueue({ type: "text-end", id: "preamble" });
+        if (withTool) {
+          streamController?.enqueue({
+            type: "tool-input-available",
+            toolCallId: "withheld-mutation",
+            toolName: "updatePlace",
+            input: { placeId: "place-1", update: { name: "MustNotApply" } },
+          });
+        }
+        streamController?.enqueue({ type: "finish-step" });
+        streamController?.enqueue({
+          type: "finish",
+          finishReason: withTool ? "tool-calls" : "stop",
+        });
+        streamController?.close();
+      });
+      await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+
+      expect(latest?.status).toBe("error");
+      expect(latest?.stopped).toBe(false);
+      expect(screen.queryByText("Response stopped")).toBeNull();
+      expect(
+        notifications.some(matchesNotification(/Durable stop failed/u)),
+      ).toBe(true);
+      expect(testInstances.at(-1)?.definition.get().places[0]?.name).toBe(
+        "PlaceOne",
+      );
+      expect(sendMessages).toHaveBeenCalledOnce();
+    },
+  );
+
+  test("reports a textless automatic browser failure to hosts and its matching tool", async () => {
+    let latest: PetrinautAiComposerControlContext | undefined;
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([
+        { type: "start-step" },
+        {
+          type: "tool-input-available",
+          toolCallId: "invalid-doc",
+          toolName: "readPetrinautDoc",
+          input: { doc: "not-a-guide-page" },
+        },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "tool-calls" },
+      ]),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        renderComposerControl: (context) => {
+          latest = context;
+          return null;
+        },
+      },
+      initialMessage: "Read the guide",
+    });
+    await waitFor(() => expect(latest?.status).toBe("error"));
+    await waitFor(() =>
+      expect(latest?.messages.at(-1)?.parts).toContainEqual(
+        expect.objectContaining({
+          toolCallId: "invalid-doc",
+          state: "output-error",
+          errorText: expect.any(String) as unknown,
+        }),
+      ),
+    );
+    expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("runs an in-band browser call only at its document-lane turn, so Stop aborts a queued call before it starts", async () => {
+    const abortedAtRun = new Map<string, boolean>();
+    const run = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
+    >(
+      ({ toolCallId, signal }) =>
+        new Promise((_resolve, reject) => {
+          abortedAtRun.set(toolCallId, signal.aborted);
+          signal.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        }),
+    );
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async ({ abortSignal }) =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: "start-step" });
+            for (const toolCallId of ["running-read", "queued-read"]) {
+              controller.enqueue({
+                type: "tool-input-available",
+                toolCallId,
+                toolName: getLatestNetDefinitionToolName,
+                input: {},
+              });
+            }
+            abortSignal?.addEventListener("abort", () =>
+              controller.error(new DOMException("Aborted", "AbortError")),
+            );
+          },
+        }),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        inBandBrowserTools: {
+          has: (toolName) => toolName === getLatestNetDefinitionToolName,
+          run,
+        },
+      },
+      initialMessage: "Read the net twice",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    await waitFor(() => expect(run).toHaveBeenCalledOnce());
+    expect(run.mock.calls[0]?.[0].toolCallId).toBe("running-read");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+
+    expect(await screen.findByText("Response stopped")).not.toBeNull();
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(2));
+    expect(abortedAtRun.get("queued-read")).toBe(true);
+  });
+
+  test("does not execute tools from a durably stopped reopened response", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks([]),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        messages: [
+          {
+            id: "stopped",
+            role: "assistant",
+            metadata: { stopped: true },
+            parts: [
+              {
+                type: "tool-updatePlace",
+                toolCallId: "stopped-mutation",
+                state: "input-available",
+                input: { placeId: "place-1", update: { name: "MustNotApply" } },
+              },
+            ],
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
+    expect(testInstances.at(-1)?.definition.get().places[0]?.name).toBe(
+      "PlaceOne",
+    );
+    expect(sendMessages).not.toHaveBeenCalled();
+    expect(screen.getByText("Response stopped")).not.toBeNull();
+  });
+
+  test("keeps hosts seeing a busy conversation between a tool-calls step and its follow-up", async () => {
+    const observedStatuses: PetrinautAiComposerControlContext["status"][] = [];
+    let requestCount = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() => {
+        requestCount += 1;
+        return Promise.resolve(
+          streamChunks(
+            requestCount === 1
+              ? [
+                  ...textChunks("preamble", "Checking the net"),
+                  {
+                    type: "tool-input-available",
+                    toolCallId: "net-read-1",
+                    toolName: "getLatestNetDefinition",
+                    input: {},
+                  },
+                  { type: "finish-step" },
+                  { type: "finish", finishReason: "tool-calls" },
+                ]
+              : [
+                  ...textChunks("reply", "The net has one place"),
+                  { type: "finish-step" },
+                  { type: "finish", finishReason: "stop" },
+                ],
+          ),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: (context) => {
+          observedStatuses.push(context.status);
+          return null;
+        },
+        transport,
+      },
+      initialMessage: "Read the net",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await screen.findByText("The net has one place");
+
+    // The SDK reports `ready` between the tool-calls step and the follow-up it
+    // sends automatically; a host must not read that gap as the turn's end.
+    const firstBusy = observedStatuses.findIndex(
+      (status) => status === "submitted" || status === "streaming",
+    );
+    const lastBusy = observedStatuses.findLastIndex(
+      (status) => status === "submitted" || status === "streaming",
+    );
+    expect(firstBusy).toBeGreaterThanOrEqual(0);
+    expect(
+      observedStatuses
+        .slice(firstBusy, lastBusy + 1)
+        .filter((status) => status === "ready"),
+    ).toEqual([]);
+    expect(observedStatuses.at(-1)).toBe("ready");
+  });
+
+  test("replaces conversation-owned busy state when the identity changes", async () => {
+    let requestCount = 0;
+    const statuses: string[] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() => {
+        requestCount += 1;
+        if (requestCount > 1) {
+          return new Promise<ReadableStream<UIMessageChunk>>(() => {});
+        }
+        return Promise.resolve(
+          streamChunks([
+            ...textChunks("preamble", "Checking the net"),
+            {
+              type: "tool-input-available",
+              toolCallId: "net-read-1",
+              toolName: "getLatestNetDefinition",
+              input: {},
+            },
+            { type: "finish-step" },
+            { type: "finish", finishReason: "tool-calls" },
+          ]),
+        );
+      }),
+    };
+    const createAiAssistant = (
+      conversationId: string,
+    ): PetrinautAiAssistant => ({
+      conversationId,
+      renderComposerControl: (context) => {
+        statuses.push(`${context.conversationId}:${context.status}`);
+        return (
+          <button
+            type="button"
+            onClick={() => void context.submitText({ text: "Read the net" })}
+          >
+            Read net
+          </button>
+        );
+      },
+      transport,
+    });
+    const rendered = renderTestPanel({
+      aiAssistant: createAiAssistant("conversation-1"),
+      petriNetDefinition: nonEmptySDCPN,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Read net" }));
+    await waitFor(() => expect(statuses).toContain("conversation-1:submitted"));
+
+    rendered.rerenderPanel(createAiAssistant("conversation-2"));
+
+    await waitFor(() => expect(statuses.at(-1)).toBe("conversation-2:ready"));
+  });
+
+  test("does not carry an idle host stop into a later incidental abort", async () => {
+    let requestCount = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() => {
+        requestCount += 1;
+        if (requestCount === 1) {
+          return Promise.resolve(
+            streamChunks([
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                dynamic: true,
+                toolCallId: "confirmation-1",
+                toolName: "confirmAction",
+                input: { question: "Continue?" },
+              },
+            ]),
+          );
+        }
+
+        return Promise.resolve(
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: "start-step" });
+              controller.enqueue({
+                type: "text-start",
+                id: "interrupted-follow-up",
+              });
+              controller.enqueue({
+                type: "text-delta",
+                id: "interrupted-follow-up",
+                delta: "Partial follow-up",
+              });
+              setTimeout(() => {
+                controller.error(new DOMException("Aborted", "AbortError"));
+              }, 0);
+            },
+          }),
+        );
+      }),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmAction",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { confirmed: boolean },
+      },
+      component: ({ input, submit }) => (
+        <button
+          type="button"
+          onClick={() => {
+            submit({ confirmed: true });
+          }}
+        >
+          {input.question}
+        </button>
+      ),
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        renderComposerControl: ({ status, stop }) => (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                void stop();
+              }}
+            >
+              Stop while idle
+            </button>
+            <span data-testid="host-status">{status}</span>
+          </>
+        ),
+        transport,
+      },
+      initialMessage: "Ask for confirmation",
+    });
+
+    await screen.findByRole("button", { name: "Continue?" });
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop while idle" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue?" }));
+
+    await waitFor(() =>
+      expect(transport.sendMessages).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+    expect(screen.queryByText("Response stopped")).toBeNull();
+  });
+
+  test("does not let a late durable Stop cancel a newer turn", async () => {
+    let firstStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    let secondStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const secondCancellation = vi.fn();
+    let requestCount = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(
+        ({
+          abortSignal,
+        }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) => {
+          requestCount += 1;
+          if (requestCount === 1) {
+            return Promise.resolve(
+              new ReadableStream<UIMessageChunk>({
+                start(controller) {
+                  firstStreamController = controller;
+                  controller.enqueue({ type: "start-step" });
+                  controller.enqueue({ type: "text-start", id: "first" });
+                  controller.enqueue({
+                    type: "text-delta",
+                    id: "first",
+                    delta: "First partial",
+                  });
+                },
+              }),
+            );
+          }
+          return Promise.resolve(
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                secondStreamController = controller;
+                abortSignal?.addEventListener("abort", secondCancellation);
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({ type: "text-start", id: "second" });
+                controller.enqueue({
+                  type: "text-delta",
+                  id: "second",
+                  delta: "Second turn",
+                });
+              },
+            }),
+          );
+        },
+      ),
+    };
+    let resolveStop: ((result: "stop-requested") => void) | undefined;
+    const requestStop = vi.fn(
+      () =>
+        new Promise<"stop-requested">((resolve) => {
+          resolveStop = resolve;
+        }),
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: ({ status: hostStatus, submitText }) => (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                void submitText({ text: "Second" });
+              }}
+            >
+              Send second
+            </button>
+            <span data-testid="host-status">{hostStatus}</span>
+          </>
+        ),
+        requestStop,
+        transport,
+      },
+      initialMessage: "First",
+    });
+    await screen.findByText("First partial");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
+
+    // The first response completes on its own while the durable stop is
+    // still in flight, and the user starts another turn.
+    await act(async () => {
+      firstStreamController?.enqueue({ type: "text-end", id: "first" });
+      firstStreamController?.enqueue({ type: "finish-step" });
+      firstStreamController?.enqueue({ type: "finish", finishReason: "stop" });
+      firstStreamController?.close();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send second" }));
+    await screen.findByText("Second turn");
+
+    // The stale Stop result lands while the second turn is still streaming.
+    await act(async () => {
+      resolveStop?.("stop-requested");
+    });
+    expect(screen.getByTestId("host-status").textContent).toBe("streaming");
+    expect(secondCancellation).not.toHaveBeenCalled();
+
+    await act(async () => {
+      secondStreamController?.enqueue({ type: "text-end", id: "second" });
+      secondStreamController?.close();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+    expect(screen.queryByText("Response stopped")).toBeNull();
+  });
+
+  test("does not surface a late durable Stop failure on a newer turn", async () => {
+    let firstStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    let secondStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const secondCancellation = vi.fn();
+    let requestCount = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(
+        ({
+          abortSignal,
+        }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) => {
+          requestCount += 1;
+          const isFirst = requestCount === 1;
+          return Promise.resolve(
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                if (isFirst) {
+                  firstStreamController = controller;
+                } else {
+                  secondStreamController = controller;
+                  abortSignal?.addEventListener("abort", secondCancellation);
+                }
+                const id = isFirst ? "first" : "second";
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({ type: "text-start", id });
+                controller.enqueue({
+                  type: "text-delta",
+                  id,
+                  delta: isFirst ? "First partial" : "Second turn",
+                });
+              },
+            }),
+          );
+        },
+      ),
+    };
+    let rejectStop: ((reason: Error) => void) | undefined;
+    const requestStop = vi.fn(
+      () =>
+        new Promise<"stop-requested">((_resolve, reject) => {
+          rejectStop = reject;
+        }),
+    );
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: ({ status: hostStatus, submitText }) => (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                void submitText({ text: "Second" });
+              }}
+            >
+              Send second
+            </button>
+            <span data-testid="host-status">{hostStatus}</span>
+          </>
+        ),
+        requestStop,
+        transport,
+      },
+      initialMessage: "First",
+    });
+    await screen.findByText("First partial");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
+    await act(async () => {
+      firstStreamController?.enqueue({ type: "text-end", id: "first" });
+      firstStreamController?.close();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Send second" }));
+    await screen.findByText("Second turn");
+
+    await act(async () => {
+      rejectStop?.(new Error("Durable stop failed"));
+    });
+    expect(screen.getByTestId("host-status").textContent).toBe("streaming");
+    expect(secondCancellation).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Durable stop failed/u)).toBeNull();
+
+    await act(async () => {
+      secondStreamController?.enqueue({ type: "text-end", id: "second" });
+      secondStreamController?.close();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+    expect(screen.queryByText(/Durable stop failed/u)).toBeNull();
+  });
+
+  test("withdraws a retained voice input when its signal aborts", async () => {
+    let streamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              streamController = controller;
+              controller.enqueue({ type: "start-step" });
+              controller.enqueue({ type: "text-start", id: "busy" });
+              controller.enqueue({
+                type: "text-delta",
+                id: "busy",
+                delta: "Still answering",
+              });
+            },
+          }),
+        ),
+      ),
+    };
+    let latestVoiceContext: PetrinautAiVoiceModeContext | undefined;
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => {
+          latestVoiceContext = context;
+          return null;
+        },
+        transport,
+      },
+      initialMessage: "Begin",
+    });
+    await screen.findByText("Still answering");
+    await waitFor(() => expect(latestVoiceContext?.status).toBe("streaming"));
+
+    const withdrawal = new AbortController();
+    const retained = latestVoiceContext!.submitVoiceInput({
+      signal: withdrawal.signal,
+      text: "Stale voice input",
+    });
+    await waitFor(() =>
+      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(false),
+    );
+
+    withdrawal.abort();
+
+    await expect(retained).rejects.toMatchObject({ name: "AbortError" });
+    await waitFor(() =>
+      expect(latestVoiceContext?.canAcceptVoiceInput).toBe(true),
+    );
+
+    await act(async () => {
+      streamController?.enqueue({ type: "text-end", id: "busy" });
+      streamController?.close();
+    });
+    await waitFor(() => expect(latestVoiceContext?.status).toBe("ready"));
+    expect(transport.sendMessages).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Stale voice input")).toBeNull();
+  });
+
+  test("waits to hydrate until the host snapshot carries a turn submitted first", async () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          streamChunks([
+            { type: "start", messageId: "assistant-live-1" },
+            ...textChunks("live", "Live answer"),
+            { type: "finish-step" },
+            { type: "finish", finishReason: "stop" },
+          ]),
+        ),
+      ),
+    };
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: { conversationId: "conversation-1", transport },
+      initialMessage: "Ask before history loads",
+    });
+    await screen.findByText("Live answer");
+
+    // The observation publishes a snapshot that predates the live turn.
+    rerenderPanel({
+      conversationId: "conversation-1",
+      messages: [
+        {
+          id: "assistant-history-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Older history" }],
+        },
+      ],
+      transport,
+    });
+    await act(async () => {});
+    expect(screen.getByText("Live answer")).not.toBeNull();
+    expect(screen.queryByText("Older history")).toBeNull();
+
+    // Once the snapshot carries the live reply too, canonical history wins.
+    rerenderPanel({
+      conversationId: "conversation-1",
+      messages: [
+        {
+          id: "assistant-history-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Older history" }],
+        },
+        {
+          id: "user-live-1",
+          role: "user",
+          parts: [{ type: "text", text: "Ask before history loads" }],
+        },
+        {
+          id: "assistant-live-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Live answer" }],
+        },
+      ],
+      transport,
+    });
+    expect(await screen.findByText("Older history")).not.toBeNull();
+    expect(screen.getByText("Live answer")).not.toBeNull();
+    expect(transport.sendMessages).toHaveBeenCalledTimes(1);
+  });
+
+  test("maps keyboard text to one unresolved host tool before sending another message", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+
+        if (requestMessages.length === 1) {
+          return Promise.resolve(
+            streamChunks([
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                dynamic: true,
+                toolCallId: "question-1",
+                toolName: "answerQuestion",
+                input: { question: "Which environment?" },
+              },
+            ]),
+          );
+        }
+
+        return Promise.resolve(
+          streamChunks(
+            textChunks(
+              `response-${requestMessages.length}`,
+              requestMessages.length === 2
+                ? "Tool answer accepted"
+                : "Ordinary text accepted",
+            ),
+          ),
+        );
+      }),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+    const aiAssistant: PetrinautAiAssistant = {
+      interactiveTools: [hostTool],
+      transport,
+    };
+
+    renderTestPanel({ aiAssistant, initialMessage: "Start questions" });
+    await screen.findByText("Which environment?");
+
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Production" } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    await screen.findByText("Tool answer accepted");
+
+    const followUpParts = requestMessages[1]?.at(-1)?.parts ?? [];
+    expect(
+      followUpParts.filter(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          part.toolCallId === "question-1" &&
+          part.state === "output-available",
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        output: { answer: "Production" },
+        toolCallId: "question-1",
+      }),
+    ]);
+    expect(
+      requestMessages[1]?.some(
+        (message) =>
+          message.role === "user" &&
+          message.parts.some(
+            (part) => part.type === "text" && part.text === "Production",
+          ),
+      ),
+    ).toBe(false);
+    fireEvent.change(textarea, { target: { value: "Production" } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    await screen.findByText("Ordinary text accepted");
+
+    expect(requestMessages[2]?.at(-1)).toMatchObject({
+      parts: [{ text: "Production", type: "text" }],
+      role: "user",
+    });
+  });
+
+  test("persists voice provenance without clearing an ordinary message draft", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const onMessages = vi.fn();
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(textChunks("voice-response", "Voice message accepted")),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        onMessages,
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({
+                id: "voice-realtime:3:call-1",
+                source: "voice",
+                text: "Spoken workflow",
+              });
+            }}
+          >
+            Submit voice message
+          </button>
+        ),
+        transport,
+      },
+    });
+
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Typed follow-up draft" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit voice message" }),
+    );
+    await screen.findByText("Voice message accepted");
+
+    expect(textarea.value).toBe("Typed follow-up draft");
+    expect(requestMessages).toHaveLength(1);
+    expect(requestMessages[0]?.filter(({ role }) => role === "user")).toEqual([
+      expect.objectContaining({
+        id: "voice-realtime:3:call-1",
+        metadata: { source: "voice" },
+        parts: [{ text: "Spoken workflow", type: "text" }],
+      }),
+    ]);
+    expect(onMessages.mock.lastCall?.[0]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "voice-realtime:3:call-1",
+          metadata: { source: "voice" },
+        }),
+      ]),
+    );
+  });
+
+  test("preserves the already-normalized Voice payload at the panel boundary", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(textChunks("voice-response", "Voice message accepted")),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({
+                id: "voice-realtime:3:item-1:0",
+                source: "voice",
+                text: " Already normalized upstream ",
+              });
+            }}
+          >
+            Submit normalized Voice payload
+          </button>
+        ),
+        transport,
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit normalized Voice payload" }),
+    );
+    await screen.findByText("Voice message accepted");
+
+    expect(requestMessages[0]?.at(-1)).toMatchObject({
+      id: "voice-realtime:3:item-1:0",
+      metadata: { source: "voice" },
+      parts: [{ text: " Already normalized upstream ", type: "text" }],
+      role: "user",
+    });
+  });
+
+  test("marks the exact pending tool as voice-origin without a user message", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const onMessages = vi.fn();
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "question-voice",
+                    toolName: "answerQuestion",
+                    input: { question: "Who approves it?" },
+                  },
+                ]
+              : textChunks("tool-response", "Voice answer accepted"),
+          ),
+        );
+      }),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        onMessages,
+        renderVoiceMode: ({ submitVoiceInput }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitVoiceInput({
+                id: "voice-realtime:3:call-2",
+                text: "The shift lead",
+              });
+            }}
+          >
+            Submit voice answer
+          </button>
+        ),
+        transport,
+      },
+      initialMessage: "Start questions",
+    });
+    await screen.findByText("Who approves it?");
+
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Typed correction draft" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit voice answer" }),
+    );
+    await screen.findByText("Voice answer accepted");
+
+    expect(textarea.value).toBe("Typed correction draft");
+    expect(requestMessages).toHaveLength(2);
+    const containingMessage = requestMessages[1]?.find((message) =>
+      message.parts.some(
+        (part) =>
+          part.type === "dynamic-tool" && part.toolCallId === "question-voice",
+      ),
+    );
+    expect(containingMessage).toMatchObject({
+      metadata: {
+        source: "voice",
+        voiceToolCallIds: ["question-voice"],
+      },
+    });
+    expect(
+      containingMessage?.parts.find(
+        (part) =>
+          part.type === "dynamic-tool" && part.toolCallId === "question-voice",
+      ),
+    ).toMatchObject({
+      output: { answer: "The shift lead" },
+      state: "output-available",
+      toolCallId: "question-voice",
+    });
+    expect(
+      requestMessages[1]?.some(
+        (message) =>
+          message.role === "user" &&
+          message.parts.some(
+            (part) => part.type === "text" && part.text === "The shift lead",
+          ),
+      ),
+    ).toBe(false);
+    expect(onMessages.mock.lastCall?.[0]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          metadata: {
+            source: "voice",
+            voiceToolCallIds: ["question-voice"],
+          },
+        }),
+      ]),
+    );
+  });
+
+  test("retains every voice tool origin on one assistant message", async () => {
+    const messageStore = createTestMessageStore(
+      createPendingVoiceQuestionMessage({
+        toolCallIds: ["voice-question-1", "voice-question-2"],
+      }),
+    );
+    const addToolOutput = vi.fn().mockResolvedValue(undefined);
+
+    for (const toolCallId of ["voice-question-1", "voice-question-2"]) {
+      await addMappedToolOutput({
+        addToolOutput,
+        currentMessages: messageStore.getMessages(),
+        params: {
+          output: { answer: toolCallId },
+          tool: "answerQuestion",
+          toolCallId,
+        },
+        source: "voice",
+        updateMessages: messageStore.updateMessages,
+      });
+    }
+
+    expect(messageStore.getMessages()[0]?.metadata).toEqual({
+      source: "voice",
+      voiceToolCallIds: ["voice-question-1", "voice-question-2"],
+    });
+  });
+
+  test("preserves sibling voice provenance when another tool output rejects", async () => {
+    const messageStore = createTestMessageStore(
+      createPendingVoiceQuestionMessage({
+        toolCallIds: ["voice-question-1", "voice-question-2"],
+      }),
+    );
+    let rejectFirstSubmission: ((reason?: unknown) => void) | undefined;
+    const addToolOutput = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            rejectFirstSubmission = reject;
+          }),
+      )
+      .mockResolvedValueOnce(undefined);
+
+    const firstSubmission = addMappedToolOutput({
+      addToolOutput,
+      currentMessages: messageStore.getMessages(),
+      params: {
+        output: { answer: "The shift lead" },
+        tool: "answerQuestion",
+        toolCallId: "voice-question-1",
+      },
+      source: "voice",
+      updateMessages: messageStore.updateMessages,
+    });
+    const firstSubmissionRejection = expect(firstSubmission).rejects.toThrow(
+      "First voice tool output rejected.",
+    );
+
+    await addMappedToolOutput({
+      addToolOutput,
+      currentMessages: messageStore.getMessages(),
+      params: {
+        output: { answer: "The release manager" },
+        tool: "answerQuestion",
+        toolCallId: "voice-question-2",
+      },
+      source: "voice",
+      updateMessages: messageStore.updateMessages,
+    });
+    rejectFirstSubmission?.(new Error("First voice tool output rejected."));
+    await firstSubmissionRejection;
+
+    expect(messageStore.getMessages()[0]?.metadata).toEqual({
+      source: "voice",
+      voiceToolCallIds: ["voice-question-2"],
+    });
+  });
+
+  test.each(["first-then-second", "second-then-first"] as const)(
+    "removes both failed voice origins when overlapping outputs reject %s",
+    async (rejectionOrder) => {
+      const messageStore = createTestMessageStore(
+        createPendingVoiceQuestionMessage({
+          toolCallIds: ["voice-question-1", "voice-question-2"],
+        }),
+      );
+      let rejectFirstSubmission: ((reason?: unknown) => void) | undefined;
+      let rejectSecondSubmission: ((reason?: unknown) => void) | undefined;
+      const addToolOutput = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((_resolve, reject) => {
+              rejectFirstSubmission = reject;
+            }),
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((_resolve, reject) => {
+              rejectSecondSubmission = reject;
+            }),
+        );
+
+      const firstSubmission = addMappedToolOutput({
+        addToolOutput,
+        currentMessages: messageStore.getMessages(),
+        params: {
+          output: { answer: "The shift lead" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question-1",
+        },
+        source: "voice",
+        updateMessages: messageStore.updateMessages,
+      });
+      const firstSubmissionRejection = expect(firstSubmission).rejects.toThrow(
+        "First voice tool output rejected.",
+      );
+      const secondSubmission = addMappedToolOutput({
+        addToolOutput,
+        currentMessages: messageStore.getMessages(),
+        params: {
+          output: { answer: "The release manager" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question-2",
+        },
+        source: "voice",
+        updateMessages: messageStore.updateMessages,
+      });
+      const secondSubmissionRejection = expect(
+        secondSubmission,
+      ).rejects.toThrow("Second voice tool output rejected.");
+
+      if (rejectionOrder === "first-then-second") {
+        rejectFirstSubmission?.(new Error("First voice tool output rejected."));
+        await firstSubmissionRejection;
+        rejectSecondSubmission?.(
+          new Error("Second voice tool output rejected."),
+        );
+        await secondSubmissionRejection;
+      } else {
+        rejectSecondSubmission?.(
+          new Error("Second voice tool output rejected."),
+        );
+        await secondSubmissionRejection;
+        rejectFirstSubmission?.(new Error("First voice tool output rejected."));
+        await firstSubmissionRejection;
+      }
+
+      expect(messageStore.getMessages()[0]?.metadata).toBeUndefined();
+    },
+  );
+
+  test("preserves independent voice provenance and concurrent message updates on rejection", async () => {
+    const messageStore = createTestMessageStore(
+      createPendingVoiceQuestionMessage({
+        id: "assistant-voice-question",
+        metadata: { source: "voice" },
+        toolCallIds: ["voice-question"],
+      }),
+    );
+    const addToolOutput = vi.fn().mockImplementationOnce(async () => {
+      messageStore.setMessages(
+        messageStore.getMessages().map((message) => ({
+          ...message,
+          metadata: { ...message.metadata, stopped: true },
+          parts: [
+            ...message.parts,
+            { text: "Unrelated concurrent update", type: "text" },
+          ],
+        })) as PetrinautAiMessage[],
+      );
+      throw new Error("Voice tool output rejected.");
+    });
+
+    await expect(
+      addMappedToolOutput({
+        addToolOutput,
+        currentMessages: messageStore.getMessages(),
+        params: {
+          output: { answer: "The shift lead" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question",
+        },
+        source: "voice",
+        updateMessages: messageStore.updateMessages,
+      }),
+    ).rejects.toThrow("Voice tool output rejected.");
+
+    expect(messageStore.getMessages()[0]?.metadata).toEqual({
+      source: "voice",
+      stopped: true,
+    });
+    expect(messageStore.getMessages()[0]?.parts).toContainEqual({
+      text: "Unrelated concurrent update",
+      type: "text",
+    });
+  });
+
+  test("preserves pre-existing voice attribution for a rejected tool", async () => {
+    const messageStore = createTestMessageStore(
+      createPendingVoiceQuestionMessage({
+        id: "assistant-voice-question",
+        metadata: {
+          source: "voice",
+          voiceToolCallIds: ["voice-question"],
+        },
+        toolCallIds: ["voice-question"],
+      }),
+    );
+    const addToolOutput = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Voice tool output rejected."));
+
+    await expect(
+      addMappedToolOutput({
+        addToolOutput,
+        currentMessages: messageStore.getMessages(),
+        params: {
+          output: { answer: "The shift lead" },
+          tool: "answerQuestion",
+          toolCallId: "voice-question",
+        },
+        source: "voice",
+        updateMessages: messageStore.updateMessages,
+      }),
+    ).rejects.toThrow("Voice tool output rejected.");
+
+    expect(messageStore.getMessages()[0]?.metadata).toEqual({
+      source: "voice",
+      voiceToolCallIds: ["voice-question"],
+    });
+  });
+
+  test("rolls back failed tool provenance before a typed retry", async () => {
+    const messageStore = createTestMessageStore(
+      createPendingVoiceQuestionMessage({
+        id: "assistant-pending-voice-question",
+        toolCallIds: ["voice-question"],
+      }),
+    );
+    const addToolOutput = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        messageStore.setMessages(
+          messageStore.getMessages().map((message) => ({
+            ...message,
+            parts: [
+              ...message.parts,
+              { text: "Unrelated concurrent update", type: "text" },
+            ],
+          })) as PetrinautAiMessage[],
+        );
+        throw new Error("Voice tool output rejected.");
+      })
+      .mockResolvedValueOnce(undefined);
+    const params = {
+      output: { answer: "The shift lead" },
+      tool: "answerQuestion",
+      toolCallId: "voice-question",
+    };
+
+    await expect(
+      addMappedToolOutput({
+        addToolOutput,
+        currentMessages: messageStore.getMessages(),
+        params,
+        source: "voice",
+        updateMessages: messageStore.updateMessages,
+      }),
+    ).rejects.toThrow("Voice tool output rejected.");
+
+    expect(messageStore.getMessages()[0]?.metadata).toBeUndefined();
+    expect(messageStore.getMessages()[0]?.parts).toContainEqual({
+      text: "Unrelated concurrent update",
+      type: "text",
+    });
+
+    await addMappedToolOutput({
+      addToolOutput,
+      currentMessages: messageStore.getMessages(),
+      params: {
+        ...params,
+        output: { answer: "Typed retry" },
+      },
+      updateMessages: messageStore.updateMessages,
+    });
+
+    expect(addToolOutput).toHaveBeenLastCalledWith({
+      output: { answer: "Typed retry" },
+      tool: "answerQuestion",
+      toolCallId: "voice-question",
+    });
+    expect(messageStore.getMessages()[0]?.metadata).toBeUndefined();
+  });
+
+  test("reports browser tool-output rejections through the AI SDK error state", async () => {
+    const addToolOutput = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("The browser tool rejected its output."))
+      .mockResolvedValueOnce(undefined);
+
+    safelyAddToolOutput(
+      addToolOutput as Parameters<typeof safelyAddToolOutput>[0],
+      {
+        tool: getLatestNetDefinitionToolName,
+        toolCallId: "tool-browser-failure",
+        output: {
+          definition: emptySDCPN,
+          extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+          title: "Failure fixture",
+        },
+      },
+    );
+
+    await waitFor(() => expect(addToolOutput).toHaveBeenCalledTimes(2));
+    expect(addToolOutput).toHaveBeenLastCalledWith({
+      errorText: "The browser tool rejected its output.",
+      state: "output-error",
+      tool: getLatestNetDefinitionToolName,
+      toolCallId: "tool-browser-failure",
+    });
+  });
+
+  test("sends review chips as messages while an interactive tool is pending", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "question-1",
+                    toolName: "answerQuestion",
+                    input: { question: "Which environment?" },
+                  },
+                ]
+              : textChunks("review-response", "Review prompt accepted"),
+          ),
+        );
+      }),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        transport,
+      },
+      initialMessage: "Start questions",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await screen.findByText("Which environment?");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Suggest improvements/ }),
+    );
+    await screen.findByText("Review prompt accepted");
+
+    const reviewMessage = requestMessages[1]?.at(-1);
+    const reviewTextPart = reviewMessage?.parts.find(
+      (part) => part.type === "text",
+    );
+    expect(reviewMessage?.role).toBe("user");
+    expect(reviewTextPart?.text).toContain("suggest a few improvements");
+    expect(
+      requestMessages[1]?.some((message) =>
+        message.parts.some(
+          (part) =>
+            part.type === "dynamic-tool" &&
+            part.toolCallId === "question-1" &&
+            part.state === "input-available",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  test("retries an answer as a new turn while preserving history and the unsent draft", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            textChunks(
+              `answer-${requestMessages.length}`,
+              `Answer ${requestMessages.length}`,
+            ),
+          ),
+        );
+      }),
+    };
+    renderTestPanel({
+      aiAssistant: { presentation: "brunch", transport },
+      initialMessage: "Explain the queue",
+    });
+    await screen.findByText("Answer 1");
+    const retry = await screen.findByRole("button", { name: "Retry answer" });
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Unsent draft" } });
+    fireEvent.click(retry);
+    await screen.findByText("Answer 2");
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent draft");
+    expect(screen.getByText("Answer 1")).toBeTruthy();
+    expect(requestMessages).toHaveLength(2);
+    expect(requestMessages[1]?.map((message) => message.role)).toEqual([
+      "user",
+      "assistant",
+      "user",
+    ]);
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      role: "user",
+      parts: [{ type: "text", text: "Explain the queue" }],
+    });
+    expect(requestMessages[1]?.at(-1)?.id).not.toBe(
+      requestMessages[0]?.[0]?.id,
+    );
+  });
+
+  test("can force a separate message while an interactive tool is pending", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "question-1",
+                    toolName: "answerQuestion",
+                    input: { question: "Which environment?" },
+                  },
+                ]
+              : textChunks("correction-response", "Correction accepted"),
+          ),
+        );
+      }),
+    };
+    const results: unknown[] = [];
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({
+                id: "correction-1",
+                target: "message",
+                preserveDraft: true,
+                text: "Correction: staging, not production.",
+              }).then((result) => results.push(result));
+            }}
+          >
+            Submit correction
+          </button>
+        ),
+        transport,
+      },
+      initialMessage: "Start questions",
+    });
+    await screen.findByText("Which environment?");
+
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Unsent draft" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit correction" }));
+    await screen.findByText("Correction accepted");
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent draft");
+
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      id: "correction-1",
+      parts: [{ text: "Correction: staging, not production.", type: "text" }],
+      role: "user",
+    });
+    expect(
+      requestMessages[1]?.some((message) =>
+        message.parts.some(
+          (part) =>
+            part.type === "dynamic-tool" &&
+            part.toolCallId === "question-1" &&
+            part.state === "output-available",
+        ),
+      ),
+    ).toBe(false);
+    expect(results).toEqual([{ kind: "message", messageId: "correction-1" }]);
+  });
+
+  test("keeps the composer draft when preserved text answers a pending interactive tool", async () => {
+    let requests = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() => {
+        requests += 1;
+        return Promise.resolve(
+          streamChunks(
+            requests === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "question-1",
+                    toolName: "answerQuestion",
+                    input: { question: "Which environment?" },
+                  },
+                ]
+              : textChunks("answer-response", "Answer received"),
+          ),
+        );
+      }),
+    };
+    const results: unknown[] = [];
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({ preserveDraft: true, text: "Staging" }).then(
+                (result) => results.push(result),
+              );
+            }}
+          >
+            Answer from host
+          </button>
+        ),
+        transport,
+      },
+      initialMessage: "Start questions",
+    });
+    await screen.findByText("Which environment?");
+
+    const composer = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(composer, { target: { value: "Unsent draft" } });
+    fireEvent.click(screen.getByRole("button", { name: "Answer from host" }));
+    await waitFor(() =>
+      expect(results).toEqual([
+        { kind: "interactive-tool", toolCallId: "question-1" },
+      ]),
+    );
+    expect((composer as HTMLTextAreaElement).value).toBe("Unsent draft");
+  });
+
+  test("falls back to a normal message when a pending tool has no text mapper", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "confirmation-1",
+                    toolName: "confirmRelease",
+                    input: { question: "Ship this change?" },
+                  },
+                ]
+              : textChunks("ordinary-response", "Ordinary message received"),
+          ),
+        );
+      }),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { approved: boolean },
+      },
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({ id: "ordinary-1", text: "Not an answer" });
+            }}
+          >
+            Submit unmapped text
+          </button>
+        ),
+        transport,
+      },
+      initialMessage: "Start confirmation",
+    });
+    await screen.findByText("Ship this change?");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit unmapped text" }),
+    );
+    await screen.findByText("Ordinary message received");
+
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      id: "ordinary-1",
+      parts: [{ text: "Not an answer", type: "text" }],
+      role: "user",
+    });
+  });
+
+  test("falls back to a normal message for an unknown pending tool", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(textChunks("ordinary-response", "Message received")),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        messages: [
+          {
+            id: "assistant-with-unknown-tool",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                state: "input-available",
+                toolCallId: "unknown-1",
+                toolName: "unknownTool",
+                input: {},
+              },
+            ],
+          },
+        ],
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({ id: "ordinary-2", text: "Ordinary text" });
+            }}
+          >
+            Submit unknown-tool text
+          </button>
+        ),
+        transport,
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit unknown-tool text" }),
+    );
+    await screen.findByText("Message received");
+
+    expect(requestMessages[0]?.at(-1)).toMatchObject({
+      id: "ordinary-2",
+      parts: [{ text: "Ordinary text", type: "text" }],
+      role: "user",
+    });
+  });
+
+  test("rejects ambiguous pending text mappings without submitting", async () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          streamChunks([
+            { type: "start-step" },
+            {
+              type: "tool-input-available",
+              dynamic: true,
+              toolCallId: "question-1",
+              toolName: "answerQuestion",
+              input: { question: "First question?" },
+            },
+            {
+              type: "tool-input-available",
+              dynamic: true,
+              toolCallId: "question-2",
+              toolName: "answerQuestion",
+              input: { question: "Second question?" },
+            },
+          ]),
+        ),
+      ),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({ text: "Ambiguous answer" }).catch(() => {});
+            }}
+          >
+            Submit ambiguous text
+          </button>
+        ),
+        transport,
+      },
+      initialMessage: "Start ambiguous questions",
+    });
+    await screen.findByText("First question?");
+    await screen.findByText("Second question?");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit ambiguous text" }),
+    );
+
+    expect(
+      await findNotification(
+        "Text matches more than one pending interactive AI tool.",
+      ),
+    ).not.toBeNull();
+    expect(transport.sendMessages).toHaveBeenCalledOnce();
+  });
+});
+
+describe("AssistantChat host interactive tools", () => {
+  test("adds one dynamic output and sends one automatic follow-up", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "host-tool-call-1",
+                    toolName: "confirmRelease",
+                    input: { question: "Ship this change?" },
+                  },
+                ]
+              : [
+                  { type: "start-step" },
+                  { type: "text-start", id: "follow-up" },
+                  {
+                    type: "text-delta",
+                    id: "follow-up",
+                    delta: "Release decision received.",
+                  },
+                  { type: "text-end", id: "follow-up" },
+                ],
+          ),
+        );
+      }),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmRelease",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { approved: boolean },
+      },
+      component: ({ input, submit, toolCallId }) => (
+        <button
+          type="button"
+          onClick={() => {
+            submit({ approved: true });
+            submit({ approved: true });
+          }}
+        >
+          {`${toolCallId}: ${input.question}`}
+        </button>
+      ),
+    });
+    const handle = createJsonDocHandle({
+      id: "interactive-tool-test",
+      initial: emptySDCPN,
+    });
+    const instance = createPetrinaut({ document: handle });
+
+    try {
+      render(
+        <TestChat
+          api={chatApiFor(instance)}
+          state={editorContextValue}
+          initialMessage="Start the review"
+          interactiveTools={[hostTool]}
+          transport={transport}
+        />,
+      );
+
+      fireEvent.click(
+        await screen.findByRole("button", {
+          name: "host-tool-call-1: Ship this change?",
+        }),
+      );
+
+      await screen.findByText("Release decision received.");
+      await waitFor(() =>
+        expect(transport.sendMessages).toHaveBeenCalledTimes(2),
+      );
+
+      const followUpParts = requestMessages[1]?.at(-1)?.parts ?? [];
+      const submittedToolParts = followUpParts.filter(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          part.toolCallId === "host-tool-call-1" &&
+          part.state === "output-available",
+      );
+      expect(submittedToolParts).toHaveLength(1);
+      expect(submittedToolParts[0]).toMatchObject({
+        output: { approved: true },
+        toolCallId: "host-tool-call-1",
+        toolName: "confirmRelease",
+      });
+    } finally {
+      instance.dispose();
+    }
+  });
+
+  test("executes a host automatic dynamic tool and resumes once", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "automatic-call-1",
+                    toolName: "hostAutomatic",
+                    input: { value: 2 },
+                  },
+                ]
+              : [
+                  { type: "start-step" },
+                  { type: "text-start", id: "automatic-follow-up" },
+                  {
+                    type: "text-delta",
+                    id: "automatic-follow-up",
+                    delta: "Automatic result received.",
+                  },
+                  { type: "text-end", id: "automatic-follow-up" },
+                ],
+          ),
+        );
+      }),
+    };
+    const execute = vi.fn(({ input }: { input: unknown }) => ({
+      doubled: (input as { value: number }).value * 2,
+    }));
+    const handle = createJsonDocHandle({
+      id: "automatic-tool-test",
+      initial: emptySDCPN,
+    });
+    const instance = createPetrinaut({ document: handle });
+
+    try {
+      render(
+        <TestChat
+          api={chatApiFor(instance)}
+          state={editorContextValue}
+          initialMessage="Run the automatic tool"
+          automaticTools={[
+            {
+              toolName: "hostAutomatic",
+              inputSchema: {
+                parse: (raw: unknown) => raw as { value: number },
+              },
+              outputSchema: {
+                parse: (raw: unknown) => raw as { doubled: number },
+              },
+              execute,
+            },
+          ]}
+          transport={transport}
+        />,
+      );
+
+      await waitFor(() => expect(execute).toHaveBeenCalledOnce());
+      await waitFor(() =>
+        expect(transport.sendMessages).toHaveBeenCalledTimes(2),
+      );
+      await screen.findByText("Automatic result received.");
+      expect(execute).toHaveBeenCalledWith({
+        input: { value: 2 },
+        edit: expect.objectContaining({
+          addPlace: expect.any(Function) as unknown,
+          applyAutoLayout: expect.any(Function) as unknown,
+        }) as unknown,
+        readDiagnosticsContext: expect.any(Function) as () => Promise<string>,
+        toolCallId: "automatic-call-1",
+        signal: expect.any(AbortSignal) as AbortSignal,
+      });
+      expect(requestMessages[1]?.at(-1)?.parts).toContainEqual(
+        expect.objectContaining({
+          type: "dynamic-tool",
+          toolCallId: "automatic-call-1",
+          toolName: "hostAutomatic",
+          state: "output-available",
+          output: { doubled: 4 },
+        }),
+      );
+    } finally {
+      instance.dispose();
+    }
+  });
+
+  test("checks the actual definition after a host mutation even when pushed diagnostics stay empty", async () => {
+    const diagnosticsOutputs: string[] = [];
+    const requestDiagnostics = vi
+      .fn<LanguageClient["requestDiagnostics"]>()
+      .mockResolvedValue({ byUri: new Map(), total: 0, errorCount: 0 });
+    const turn = {
+      current: 0,
+      calls: [
+        { toolName: "hostReadDiagnostics", toolCallId: "host-read-1" },
+        { toolName: "hostAddPlace", toolCallId: "host-mutate-1" },
+        { toolName: "hostReadDiagnostics", toolCallId: "host-read-2" },
+      ],
+    };
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() => {
+      const call = turn.calls[turn.current];
+      turn.current += 1;
+      return Promise.resolve(
+        streamChunks(
+          call === undefined
+            ? [...textChunks("host-done", "Host tools finished.")]
+            : [
+                { type: "start-step" },
+                {
+                  type: "tool-input-available",
+                  dynamic: true,
+                  toolCallId: call.toolCallId,
+                  toolName: call.toolName,
+                  input: {},
+                },
+              ],
+        ),
+      );
+    });
+    const passthrough = { parse: (raw: unknown) => raw };
+    renderTestPanel({
+      requestDiagnostics,
+      aiAssistant: {
+        automaticTools: [
+          {
+            toolName: "hostReadDiagnostics",
+            inputSchema: passthrough,
+            outputSchema: passthrough,
+            execute: async ({ readDiagnosticsContext }) => {
+              const context = await readDiagnosticsContext();
+              diagnosticsOutputs.push(context);
+              return { context };
+            },
+          },
+          {
+            toolName: "hostAddPlace",
+            inputSchema: passthrough,
+            outputSchema: passthrough,
+            execute: ({ edit }) => {
+              edit.addPlace({
+                id: "host-place",
+                name: "HostPlace",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                x: 0,
+                y: 0,
+              });
+              return { applied: true };
+            },
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      initialMessage: "Run the host tools",
+    });
+
+    // No pushed diagnostics change; each explicit request still completes.
+    await screen.findByText("Host tools finished.", {}, { timeout: 5_000 });
+    expect(diagnosticsOutputs).toHaveLength(2);
+    expect(
+      diagnosticsOutputs.every((output) =>
+        output.includes("No errors or warnings found in net function code."),
+      ),
+    ).toBe(true);
+    expect(
+      requestDiagnostics.mock.calls.map(
+        ([definition]) => definition.places.length,
+      ),
+    ).toEqual([0, 1]);
+  });
+
+  test("aborts an in-flight automatic tool when the panel unmounts", async () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          streamChunks([
+            { type: "start-step" },
+            {
+              type: "tool-input-available",
+              dynamic: true,
+              toolCallId: "automatic-call-unmount",
+              toolName: "hostAutomatic",
+              input: { value: 2 },
+            },
+          ]),
+        ),
+      ),
+    };
+    let executeSignal: AbortSignal | undefined;
+    const execute = vi.fn(
+      ({ signal }: { signal: AbortSignal }) =>
+        new Promise<{ doubled: number }>((_resolve, reject) => {
+          executeSignal = signal;
+          signal.addEventListener("abort", () => {
+            reject(
+              new DOMException("The automatic tool was aborted.", "AbortError"),
+            );
+          });
+        }),
+    );
+    const handle = createJsonDocHandle({
+      id: "automatic-tool-unmount-test",
+      initial: emptySDCPN,
+    });
+    const instance = createPetrinaut({ document: handle });
+
+    try {
+      const mounted = render(
+        <TestChat
+          api={chatApiFor(instance)}
+          state={editorContextValue}
+          initialMessage="Run the automatic tool"
+          automaticTools={[
+            {
+              toolName: "hostAutomatic",
+              inputSchema: {
+                parse: (raw: unknown) => raw as { value: number },
+              },
+              outputSchema: {
+                parse: (raw: unknown) => raw as { doubled: number },
+              },
+              execute,
+            },
+          ]}
+          transport={transport}
+        />,
+      );
+
+      await waitFor(() => expect(execute).toHaveBeenCalledOnce());
+      expect(executeSignal?.aborted).toBe(false);
+      mounted.unmount();
+      expect(executeSignal?.aborted).toBe(true);
+    } finally {
+      instance.dispose();
+    }
+  });
+});
+
+describe("AI experiment requests", () => {
+  const request: PetrinautExperimentRequest = {
+    name: "Chat experiment",
+    scenarioId: "scenario-1",
+    scenarioParameterValues: {},
+    runCount: 8,
+    seed: 42,
+    dt: 0.1,
+    maxTime: 10,
+    metricIds: ["metric-1"],
+    execution: { mode: "simulate" },
+  };
+  const result: PetrinautExperimentResult = {
+    status: "complete",
+    experimentId: "experiment-1",
+    name: request.name,
+    runsCompleted: 8,
+    metrics: [{ id: "metric-1", label: "Count", value: 12 }],
+  };
+  const createTransport = () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    sendMessages.mockImplementationOnce(async () =>
+      streamChunks([
+        { type: "start-step" },
+        {
+          type: "tool-input-available",
+          toolCallId: "experiment-call",
+          toolName: "createExperiment",
+          input: request,
+        },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "tool-calls" },
+      ]),
+    );
+    sendMessages.mockImplementation(async () =>
+      streamChunks(textChunks("done", "Result received")),
+    );
+    return {
+      transport: { reconnectToStream: async () => null, sendMessages },
+      sendMessages,
+    };
+  };
+
+  test("shows progress and sends exactly one captured result after completion", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const createExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      (input, options) => {
+        options?.onProgress?.({
+          experimentId: "experiment-1",
+          name: input.name,
+          phase: "running",
+          runsCompleted: 3,
+          runsTarget: 8,
+        });
+        return completion.promise;
+      },
+    );
+    const { transport, sendMessages } = createTransport();
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Run an experiment",
+      experimentHost: { runExperiment: createExperiment },
+    });
+
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Chat experiment",
+    });
+    await waitFor(() =>
+      expect(within(card).getByText("3 of 8 runs")).not.toBeNull(),
+    );
+    expect(sendMessages).toHaveBeenCalledTimes(1);
+    await act(async () => completion.resolve(result));
+    await screen.findByText("Result received");
+    expect(within(card).getByText("Finished")).not.toBeNull();
+    expect(within(card).getByText("Count")).not.toBeNull();
+    expect(within(card).getByText("12")).not.toBeNull();
+    expect(sendMessages).toHaveBeenCalledTimes(2);
+    expect(
+      sendMessages.mock.calls[1]?.[0].messages.flatMap(
+        (message) => message.parts,
+      ),
+    ).toContainEqual(
+      expect.objectContaining({
+        type: "tool-createExperiment",
+        output: result,
+      }),
+    );
+  });
+
+  test("an in-band experiment yields the document lane once started and resolves its result to the host", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      () => completion.promise,
+    );
+    const outputs = new Map<string, unknown>();
+    const run = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
+    >(async ({ toolCallId, input }, execute) => {
+      outputs.set(toolCallId, await execute(input));
+    });
+    // The response stays open, as it does while the server awaits browser calls.
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: "start-step" });
+            controller.enqueue({
+              type: "tool-input-available",
+              toolCallId: "experiment-call",
+              toolName: "createExperiment",
+              input: request,
+            });
+            controller.enqueue({
+              type: "tool-input-available",
+              toolCallId: "read-call",
+              toolName: getLatestNetDefinitionToolName,
+              input: {},
+            });
+          },
+        }),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        inBandBrowserTools: {
+          has: (toolName) =>
+            toolName === "createExperiment" ||
+            toolName === getLatestNetDefinitionToolName,
+          run,
+        },
+      },
+      initialMessage: "Run an experiment, then read the net",
+      experimentHost: { runExperiment },
+    });
+
+    await waitFor(() => expect(outputs.has("read-call")).toBe(true));
+    expect(runExperiment).toHaveBeenCalledOnce();
+    expect(outputs.has("experiment-call")).toBe(false);
+
+    await act(async () => completion.resolve(result));
+    await waitFor(() => expect(outputs.get("experiment-call")).toEqual(result));
+  });
+
+  test("cancels browser computation through the experiment card", async () => {
+    const createExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      (input, options) =>
+        new Promise((resolve) => {
+          options?.onProgress?.({
+            experimentId: "experiment-1",
+            name: input.name,
+            phase: "running",
+            runsCompleted: 0,
+            runsTarget: 8,
+          });
+          options?.signal?.addEventListener("abort", () =>
+            resolve({
+              ...result,
+              status: "cancelled",
+              runsCompleted: 0,
+              metrics: [],
+            }),
+          );
+        }),
+    );
+    const { transport } = createTransport();
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Run an experiment",
+      experimentHost: { runExperiment: createExperiment },
+    });
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Chat experiment",
+    });
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+    fireEvent.click(within(card).getByRole("button", { name: "Cancel" }));
+    await waitFor(() =>
+      expect(within(card).getByText("Cancelled")).not.toBeNull(),
+    );
+    expect(createExperiment.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+  });
+
+  test("shows observed experiment requests without claiming local execution", async () => {
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>();
+    const { transport, sendMessages } = createTransport();
+    renderTestPanel({
+      aiAssistant: {
+        transport,
+        followMessages: { canReplace: () => true },
+        messages: [
+          {
+            id: "observed-experiment",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-createExperiment",
+                toolCallId: "observed-call",
+                state: "input-available",
+                input: request,
+              },
+            ],
+          },
+        ],
+      },
+      experimentHost: { runExperiment },
+    });
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Chat experiment",
+    });
+    await act(async () => {});
+    expect(within(card).getByText("Not running")).not.toBeNull();
+    expect(within(card).queryByRole("button", { name: "Cancel" })).toBeNull();
+    expect(card.getAttribute("aria-busy")).toBe("false");
+    expect(runExperiment).not.toHaveBeenCalled();
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("allows cancellation during validation before the host reports progress", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      (_input, options) => {
+        options?.signal?.addEventListener("abort", () =>
+          completion.resolve({
+            ...result,
+            status: "cancelled",
+            experimentId: null,
+            runsCompleted: 0,
+            metrics: [],
+          }),
+        );
+        return completion.promise;
+      },
+    );
+    const { transport } = createTransport();
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Run",
+      experimentHost: { runExperiment },
+    });
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Chat experiment",
+    });
+    await waitFor(() =>
+      expect(within(card).getByText("Validating")).not.toBeNull(),
+    );
+    fireEvent.click(within(card).getByRole("button", { name: "Cancel" }));
+    await waitFor(() =>
+      expect(within(card).getByText("Cancelled")).not.toBeNull(),
+    );
+    expect(runExperiment.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+  });
+
+  test("clears active experiment indicators if the host rejects", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      () => completion.promise,
+    );
+    const { transport } = createTransport();
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Run",
+      experimentHost: { runExperiment },
+    });
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Chat experiment",
+    });
+    await waitFor(() =>
+      expect(within(card).getByText("Validating")).not.toBeNull(),
+    );
+    await act(async () => completion.reject(new Error("Host failed")));
+    await waitFor(() => expect(card.getAttribute("aria-busy")).toBe("false"));
+    expect(within(card).queryByRole("button", { name: "Cancel" })).toBeNull();
+  });
+
+  test("ignores a late experiment from a replaced conversation with the same tool ID", async () => {
+    const previous = Promise.withResolvers<PetrinautExperimentResult>();
+    const current = Promise.withResolvers<PetrinautExperimentResult>();
+    const createExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>();
+    createExperiment.mockImplementationOnce(() => previous.promise);
+    createExperiment.mockImplementationOnce((input, options) => {
+      options?.onProgress?.({
+        experimentId: "experiment-2",
+        name: input.name,
+        phase: "running",
+        runsCompleted: 3,
+        runsTarget: 8,
+      });
+      options?.signal?.addEventListener("abort", () =>
+        current.resolve({
+          ...result,
+          experimentId: "experiment-2",
+          name: input.name,
+          status: "cancelled",
+          runsCompleted: 3,
+          metrics: [],
+        }),
+      );
+      return current.promise;
+    });
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks(textChunks("result", "Result received")),
+    );
+    const config = (conversationId: string): PetrinautAiAssistant => ({
+      conversationId,
+      transport: { reconnectToStream: async () => null, sendMessages },
+      messages: [
+        {
+          id: `${conversationId}-request`,
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-createExperiment",
+              toolCallId: "reused-experiment-call",
+              state: "input-available",
+              input: { ...request, name: conversationId },
+            },
+          ],
+        },
+      ],
+    });
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: config("Previous experiment"),
+      experimentHost: { runExperiment: createExperiment },
+    });
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+    rerenderPanel(config("Current experiment"));
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledTimes(2));
+    expect(createExperiment.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Current experiment",
+    });
+
+    await act(async () => {
+      createExperiment.mock.calls[0]?.[1]?.onProgress?.({
+        experimentId: "experiment-1",
+        name: "Previous experiment",
+        phase: "running",
+        runsCompleted: 7,
+        runsTarget: 8,
+      });
+      previous.resolve({ ...result, name: "Previous experiment" });
+      await previous.promise;
+    });
+    expect(within(card).getByText("3 of 8 runs")).not.toBeNull();
+    expect(within(card).queryByText("Finished")).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Experiment: Previous experiment" }),
+    ).toBeNull();
+    expect(sendMessages).not.toHaveBeenCalled();
+
+    fireEvent.click(within(card).getByRole("button", { name: "Cancel" }));
+    expect(createExperiment.mock.calls[1]?.[1]?.signal?.aborted).toBe(true);
+    await waitFor(() =>
+      expect(within(card).getByText("Cancelled")).not.toBeNull(),
+    );
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
+  });
+});
+
+describe("AssistantChat and the editor", () => {
+  test("reports a refused edit as the blocked output and leaves the net unchanged", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async ({ messages }) => {
+        expect(messages.flatMap((message) => message.parts)).toContainEqual(
+          expect.objectContaining({
+            toolCallId: "refused-call",
+            state: "output-available",
+            output: {
+              applied: false,
+              blocked: "simulate-mode",
+              reason: expect.stringContaining("simulate mode") as string,
+            },
+          }),
+        );
+
+        return streamChunks([
+          ...textChunks("refused-reply", "Switch to edit mode first."),
+          { type: "finish", finishReason: "stop" },
+        ]);
+      },
+    );
+    const { instance } = renderTestPanel({
+      petriNetDefinition: nonEmptySDCPN,
+      refusal: { kind: "simulate-mode" },
+      aiAssistant: {
+        conversationId: "refused-conversation",
+        messages: [
+          {
+            id: "refused-message",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-updatePlace",
+                toolCallId: "refused-call",
+                state: "input-available",
+                input: { placeId: "place-1", update: { name: "Refused" } },
+              },
+            ],
+          },
+        ],
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+    });
+
+    await screen.findByText(
+      "Switch to edit mode first.",
+      {},
+      { timeout: 5_000 },
+    );
+    expect(instance.definition.get().places[0]?.name).toBe("PlaceOne");
+  });
+
+  test("gives each chat its own Voice session", async () => {
+    const LiveVoice = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const { reportVoiceSessionState } = context;
+      useEffect(() => {
+        reportVoiceSessionState({
+          errorMessage: null,
+          microphoneLevel: 0,
+          microphoneMuted: false,
+          phase: "listening",
+        });
+
+        return () => reportVoiceSessionState(null);
+      }, [reportVoiceSessionState]);
+
+      return null;
+    };
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(),
+    };
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({ initial: emptySDCPN }),
+    });
+    testInstances.push(instance);
+    const api = chatApiFor(instance);
+
+    render(
+      <>
+        <TestChat
+          api={api}
+          state={editorContextValue}
+          conversationId="speaking"
+          renderVoiceMode={(context) => <LiveVoice context={context} />}
+          transport={transport}
+        />
+        <TestChat
+          api={api}
+          state={editorContextValue}
+          conversationId="typing"
+          transport={transport}
+        />
+      </>,
+    );
+
+    await screen.findByRole("region", { name: "Voice session" });
+    expect(
+      screen.getAllByRole("region", { name: "Voice session" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole("textbox", { name: "Message AI assistant" }),
+    ).toHaveLength(1);
+  });
+});

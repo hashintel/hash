@@ -13,20 +13,20 @@ import {
   NoopResizeObserver,
 } from "../../../shared/petrinaut-jsdom";
 
-/** Renders the real editor on an empty net with `plugin` installed. */
+/** Renders the real editor on an empty net with `plugins` installed, and returns its handle too. */
 export const renderEditorWith = (
-  plugin: PetrinautPlugin,
+  plugins: readonly PetrinautPlugin[],
   props?: Omit<PetrinautProps, "handle" | "plugins">,
 ) => {
   // Kept until the environment is disposed: the language server starts lazily.
   vi.stubGlobal("ResizeObserver", NoopResizeObserver);
   vi.stubGlobal("Worker", InProcessLspWorker);
+  const handle = createJsonDocHandle({
+    initial: { places: [], transitions: [] },
+  });
 
-  return render(
-    <Petrinaut
-      {...props}
-      handle={createJsonDocHandle({ initial: { places: [], transitions: [] } })}
-      plugins={[plugin]}
-    />,
-  );
+  return {
+    ...render(<Petrinaut {...props} handle={handle} plugins={plugins} />),
+    handle,
+  };
 };

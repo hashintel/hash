@@ -11,17 +11,27 @@ lives, for developers working on the website. Each one is written against the
 
 ## The plugins
 
-| Folder             | Plugin id                 | Contributes                                                                                   |
-| ------------------ | ------------------------- | --------------------------------------------------------------------------------------------- |
-| `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's commands, as a `root`, and a top-bar button that toggles it. |
-| `sentry-feedback/` | `website.sentry-feedback` | A button under the viewport controls that opens Sentry's feedback form.                       |
-| `walkthrough/`     | `website.walkthrough`     | The welcome guide as a `root` marked `overlay` while open, and its "Show welcome guide" row.  |
+| Folder             | Plugin id                 | Contributes                                                                                                       |
+| ------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's commands, as a `root`, and a top-bar button that toggles it.                     |
+| `petrinaut-ai/`    | `website.petrinaut-ai`    | Petrinaut's own assistant: the shared chat as its `view`, with the transcript saved per document in this browser. |
+| `sentry-feedback/` | `website.sentry-feedback` | A button under the viewport controls that opens Sentry's feedback form.                                           |
+| `walkthrough/`     | `website.walkthrough`     | The welcome guide as a `root` marked `overlay` while open, and its "Show welcome guide" row.                      |
 
 ## The list the editor receives
 
-The demo shell passes one list, `demoPlugins` from `plugins/demo-plugins.ts`,
-to `<Petrinaut plugins>`. The Brunch Actual Mode route passes
-`[sentryFeedbackPlugin]` alone.
+The demo shell passes `demoPlugins` from `plugins/demo-plugins.ts` to
+`<Petrinaut plugins>`. While Brunch is the selected assistant it passes
+`brunchDemoPlugins` instead, from
+`local-storage-demo/brunch-bridge-plugin.tsx`, which swaps Petrinaut AI for a
+Brunch plugin that renders the chat the shell still builds. The Brunch Actual
+Mode route passes `[sentryFeedbackPlugin]` alone.
+
+The `/ai-experiments` route passes one plugin of its own,
+`website.ai-experiments-demo` in
+`src/main/app/ai-experiments-demo/ai-experiments-demo.tsx`: an assistant whose
+chat follows a scripted conversation over a module-scope transport and runs
+real experiments.
 
 The shell provides the command registry and registers its own commands in it.
 The editor reuses that registry, so the palette lists the editor's commands and
@@ -38,12 +48,21 @@ One folder per plugin, named after it:
 - `definition.ts` holds the definition when another plugin imports it.
 - `server/` holds code an `api/` route imports.
 
-`_shared/` holds code two plugins share. A folder without `plugin.tsx` holds
-code the demo shell wires in itself.
+`_shared/` holds code two plugins share; `_shared/chat/` holds the
+[assistant chat](layer:website.plugins.chat) the assistant plugins render. A
+folder without `plugin.tsx` holds code the demo shell wires in itself.
 
 ## Testing a plugin
 
-`_shared/testing/` holds what plugin tests are built on.
-`renderEditorWith(plugin, props?)` renders a real `<Petrinaut>` on an empty
-net with that plugin. To start a plugin with stored settings, seed its
+`_shared/testing/` holds what plugin tests are built on:
+
+- `createTestPluginApi(instance, options?)` builds an `AccessApi` over a core
+  instance, which `createEmptyTestInstance()` makes. Edits run its mutations,
+  the net is its definition, and the options set a refusal, a title setter,
+  diagnostics, `reveal`, `run`, records, notifications and error capture. A
+  test renders the plugin's hook, or a component that takes `api`, with it.
+- `renderEditorWith(plugins, props?)` renders a real `<Petrinaut>` on an empty
+  net with those plugins.
+
+To start a plugin with stored settings, seed its
 [settings key](doc:plugins/runtime#settings-storage) in `localStorage`.

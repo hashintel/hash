@@ -7,6 +7,7 @@ import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 import { sweepOutputSchema } from "./tools/brunch-sweep-output";
 
+import type { PetrinautAiTransport } from "../_shared/chat/ai-message";
 import type {
   SweepCapture,
   SweepCompletionFailure,
@@ -22,7 +23,6 @@ import type {
   FlueChatResponseMessageStartedEvent,
   FlueChatTransportOptions,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
 
 export type BrunchPanelAdmission = Parameters<
@@ -336,7 +336,7 @@ export const createBrunchPanelTransport = (
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
   },
-): PetrinautAiChatTransport => ({
+): PetrinautAiTransport => ({
   reconnectToStream: async () => null,
   sendMessages: (sendOptions) =>
     tracker.trackSubmission(
@@ -388,7 +388,7 @@ export const createBrunchPanelTransport = (
 
 export const createUnavailableBrunchPanelTransport = (
   reason: string,
-): PetrinautAiChatTransport => ({
+): PetrinautAiTransport => ({
   reconnectToStream: async () => null,
   sendMessages: async () => {
     throw new Error(reason);

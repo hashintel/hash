@@ -7,7 +7,8 @@ sidebar_order: 20
 
 How to write a plugin, task by task, for plugin authors. It uses the parts
 named in [Plugins](doc:plugins/overview). Exact keys, members and messages are
-in the [Plugin API reference](doc:plugins/reference).
+in the [Plugin API reference](doc:plugins/reference), and providing the AI
+assistant has its own page, [Assistant plugins](doc:plugins/assistants).
 
 ## Choose a form
 
@@ -46,8 +47,9 @@ export const tidyPlugin = createTidyPlugin(useTidyPlugin);
   keeps the array's identity (a module constant, or a literal the React
   Compiler memoizes): a new array runs every plugin's hook again.
 - Export plugins by name, not as default exports.
-- Put the definition in its own `definition.ts` when another plugin imports it
-  for `usePluginService`, so importing it loads no implementation.
+- Put the definition in its own `definition.ts` when another plugin imports it,
+  for `assistant: { extends }` or `usePluginService`, so importing it loads no
+  implementation.
 
 ## Add buttons and top-bar items
 
@@ -109,7 +111,7 @@ Declare in `access` the families the plugin needs, `document` and
 
 | Kind    | Members                                                                                                  | Read them                                                                                                                          |
 | ------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Values  | `document.id`, `document.extensions`, `settings.get()`                                                   | Anywhere in the hook or its components.                                                                                            |
+| Values  | `document.id`, `document.extensions`, `settings.get()`, `assistant.isActive`                             | Anywhere in the hook or its components.                                                                                            |
 | Stores  | `document.net`, `document.title`, `experiments.records`, `experiments.optimizationUnavailableReason`     | In render: `useStore` or `useStoreSelector`, in the component that shows the value. In handlers, effects and async code: `.get()`. |
 | Actions | `edit.*`, `setTitle`, `diagnose`, `reveal`, `run`, `notifications.add`, `errors.capture`, `settings.set` | Call them; they act on the editor as it is when called.                                                                            |
 
@@ -122,7 +124,7 @@ Declare in `access` the families the plugin needs, `document` and
 - Pass the family objects (`api.document`, `api.experiments`, `api.errors`,
   `api.notifications`) to code that lives as long as the plugin, not `api`.
   They never change while the plugin is mounted; `api` changes with every
-  setting change.
+  change of a setting or of `assistant.isActive`.
 - Write hooks that tolerate extra runs. Editor changes never run a hook again,
   but other events do; see [when hooks run](doc:plugins/runtime#remounts-and-re-runs).
 

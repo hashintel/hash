@@ -1,5 +1,5 @@
+import type { PetrinautAiVoiceSessionState } from "../../_shared/chat/composer-control";
 import type { VoiceTurnSnapshot } from "./voice-turn-controller";
-import type { PetrinautAiVoiceSessionState } from "@hashintel/petrinaut/ui";
 
 type RecoveryErrorFamily = "connection" | "microphone" | "voice";
 

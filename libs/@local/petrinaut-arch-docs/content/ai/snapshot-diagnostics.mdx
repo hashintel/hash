@@ -16,11 +16,14 @@ from temporary editor sessions. Its response carries the request ID, so an
 editor diagnostic update cannot complete another caller's check. Worker
 errors and language-client disposal reject pending requests.
 
-The [React language provider](layer:react.lsp) exposes this method to the AI's
-`getNetCompilationErrors` tool. The tool captures the current net and formats
-the returned diagnostics. The editor continues to receive its own diagnostic
-updates. See [compiling user code](doc:simulation/user-code) for the distinction
-between TypeScript diagnostics and simulation compilation.
+Plugins reach this method through `api.document.diagnose()`, which captures
+the current net, checks it through the
+[React language provider](layer:react.lsp), and returns the diagnostics with
+the net it checked. The website chat's `getNetCompilationErrors` tool formats
+them for the model; when the net changed during the check, it asks the model to
+check again. The editor continues to receive its own diagnostic updates. See
+[compiling user code](doc:simulation/user-code) for the distinction between
+TypeScript diagnostics and simulation compilation.
 
 :::danger[Important: worker timeout]
 Requests have no timeout. An unresponsive worker can leave a check pending

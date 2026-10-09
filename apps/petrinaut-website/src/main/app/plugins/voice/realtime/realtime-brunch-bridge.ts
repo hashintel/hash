@@ -8,6 +8,10 @@ import {
 } from "../../../../../voice-diagnostics";
 import { classifyInterruption } from "../shared/classify-interruption";
 
+import type {
+  PetrinautAiComposerSubmitTextResult,
+  PetrinautAiVoiceModeContext,
+} from "../../_shared/chat/composer-control";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type {
   OpenAIRealtimeSessionEvent,
@@ -20,10 +24,6 @@ import type {
   FlueChatResponseMessageStartedEvent,
   FlueChatTransportOptions,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import type {
-  PetrinautAiComposerSubmitTextResult,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
 
 export type VoiceSubmissionSettlement = Pick<
   FlueConversationSettlement,

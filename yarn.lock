@@ -913,6 +913,8 @@ __metadata:
   resolution: "@apps/petrinaut-website@workspace:apps/petrinaut-website"
   dependencies:
     "@ai-sdk/openai": "npm:3.0.114"
+    "@ai-sdk/react": "npm:3.0.289"
+    "@ark-ui/react": "npm:5.38.1"
     "@earendil-works/pi-ai": "npm:0.83.0"
     "@fast-check/vitest": "npm:0.4.1"
     "@flue/runtime": "npm:2.0.3"
@@ -939,6 +941,7 @@ __metadata:
     "@whatwg-node/server": "npm:0.10.18"
     ai: "npm:6.0.286"
     immer: "npm:10.1.3"
+    jsdom: "npm:24.1.3"
     monaco-editor: "npm:0.55.1"
     oxc-transform-react: "npm:0.145.0"
     oxlint: "npm:1.63.0"
@@ -951,6 +954,7 @@ __metadata:
     sharp: "npm:0.35.4"
     vite: "npm:8.2.2"
     vitest: "npm:4.1.11"
+    vscode-languageserver-types: "npm:3.17.5"
     zod: "npm:4.4.3"
   languageName: unknown
   linkType: soft
@@ -7821,7 +7825,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
   dependencies:
-    "@ai-sdk/react": "npm:3.0.289"
     "@ark-ui/react": "npm:5.38.1"
     "@babel/standalone": "npm:7.28.5"
     "@fontsource-variable/inter": "npm:5.2.8"
@@ -7846,7 +7849,6 @@ __metadata:
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     "@vitejs/plugin-react": "npm:6.1.0"
     "@xyflow/react": "npm:12.10.1"
-    ai: "npm:6.0.286"
     fuzzysort: "npm:3.1.0"
     jsdom: "npm:24.1.3"
     lodash-es: "npm:4.18.1"
@@ -7856,7 +7858,6 @@ __metadata:
     oxlint-tsgolint: "npm:0.22.1"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
-    react-markdown: "npm:10.1.0"
     react-resizable-panels: "npm:4.6.5"
     rolldown: "npm:1.2.6"
     rolldown-plugin-dts: "npm:0.28.3"

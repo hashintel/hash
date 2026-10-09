@@ -7,6 +7,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import { createTestPluginApi } from "../../_shared/testing/create-test-plugin-api";
 import {
   createCanonicalPetrinautHostTools,
   issuedCanonicalCallsFromHistory,
@@ -14,7 +15,7 @@ import {
 } from "./brunch-petrinaut-tools";
 import { documentRevisionOf } from "./shared/document-revision";
 
-import type { PetrinautAiAutomaticToolExecuteParams } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiAutomaticToolExecuteParams } from "../../_shared/chat/automatic-tool";
 
 vi.hoisted(() => {
   window.matchMedia = (media) => ({
@@ -71,11 +72,8 @@ const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
   ): PetrinautAiAutomaticToolExecuteParams => ({
     input: rawInput,
     toolCallId,
-    handle: instance.handle,
-    mutations: instance.mutations,
-    commands: instance.commands,
+    edit: createTestPluginApi(instance).document.edit,
     readDiagnosticsContext: async () => "No diagnostics",
-    viewport: { frameSceneAfterRender: async () => "framed" },
     signal: new AbortController().signal,
   });
   const revision = () => {
@@ -96,7 +94,7 @@ describe("canonical browser revision attribution", () => {
     });
   });
   test("stamps an applied mutation with its new revision and leaves a no-op at its prior revision", () => {
-    const { adapter, instance, tool, params, revision } = setup();
+    const { adapter, tool, params, revision } = setup();
     const before = revision();
     adapter.mapClientToolInput({
       toolName: "addPlace",
@@ -115,9 +113,13 @@ describe("canonical browser revision attribution", () => {
       toolCallId: "noop",
       input: place,
     });
+    const { edit } = params(place, "noop");
     const noop = tool("addPlace").execute({
       ...params(place, "noop"),
-      mutations: { ...instance.mutations, addPlace: () => undefined },
+      edit: {
+        ...edit,
+        addPlace: () => ({ applied: true, value: undefined }),
+      },
     });
     expect(noop).toMatchObject({ applied: false });
     expect(adapter.clientToolResultMetadataFor("noop", noop)).toEqual({

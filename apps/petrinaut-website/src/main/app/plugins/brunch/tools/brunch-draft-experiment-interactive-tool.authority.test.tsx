@@ -79,11 +79,8 @@ const history = () => {
   const output = read.execute({
     input: {},
     toolCallId: "read-1",
-    handle: instance.handle,
-    mutations: instance.mutations,
-    commands: instance.commands,
+    edit: {} as never,
     readDiagnosticsContext: async () => "",
-    viewport: { frameSceneAfterRender: async () => "framed" },
     signal: new AbortController().signal,
   });
   const metadata = host.clientToolResultMetadataFor("read-1", output);

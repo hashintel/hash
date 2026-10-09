@@ -4,8 +4,11 @@ import {
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
-import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
-import { usePersistedState } from "./use-persisted-state";
+import {
+  readBrowserStorage,
+  writeBrowserStorage,
+} from "../shared/browser-storage";
+import { usePersistedState } from "../shared/use-persisted-state";
 
 import type { RecordRevisionId } from "./documents/document-repository";
 import type { SDCPN } from "@hashintel/petrinaut-core";

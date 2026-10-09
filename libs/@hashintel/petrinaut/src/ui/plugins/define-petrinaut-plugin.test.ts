@@ -22,6 +22,18 @@ const createEditorPlugin = definePetrinautPlugin({
   provides: pluginService<{ ready: boolean }>(),
 });
 
+const createAssistantPlugin = definePetrinautPlugin({
+  id: "test.assistant",
+  name: "Assistant",
+  assistant: { label: "Assistant" },
+});
+
+const createExtensionPlugin = definePetrinautPlugin({
+  id: "test.extension",
+  name: "Extension",
+  assistant: { extends: createAssistantPlugin },
+});
+
 describe("definePetrinautPlugin", () => {
   it("exposes the manifest and gives each plugin a new host key", () => {
     const contributions = { buttons: { toggle: { icon: null } } };
@@ -42,6 +54,8 @@ describe("definePetrinautPlugin", () => {
       void api.document.edit;
       // @ts-expect-error An undeclared family is absent.
       void api.experiments;
+      // @ts-expect-error A plugin without `assistant` has no assistant state.
+      void api.assistant.isActive;
 
       return { provides: { ready: mode === "a" } };
     };
@@ -52,6 +66,16 @@ describe("definePetrinautPlugin", () => {
     createPalettePlugin({ buttons: { toggle: { icon: null } }, provides: 1 });
     // @ts-expect-error The service has the declared type.
     createEditorPlugin({ provides: { ready: "yes" } });
+    // @ts-expect-error An assistant returns its view.
+    createAssistantPlugin({});
+    // @ts-expect-error An extension adds tabs and start actions, not a view.
+    createExtensionPlugin({ assistant: { view: null } });
+    definePetrinautPlugin({
+      id: "test.both",
+      name: "Both",
+      // @ts-expect-error An assistant or an extension, not both.
+      assistant: { label: "Both", extends: createAssistantPlugin },
+    });
 
     expect(createEditorPlugin(useEditorPlugin).manifest.access).toEqual({
       document: "read",

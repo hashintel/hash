@@ -11,17 +11,18 @@ pieces fit together.
 
 ## Manifest
 
-| Key           | Value                                                                                                                               | Adds to `api`             | The hook returns |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ---------------- |
-| `id`          | Namespaced, stable and unique among the editor's plugins (`website.brunch`). Stored settings and the user's switch are keyed by it. |                           |                  |
-| `name`        | Titles the plugin's row in User settings → Plugins and its group of setting rows.                                                   |                           |                  |
-| `description` | Shown when the plugin's row opens.                                                                                                  |                           |                  |
-| `author`      | Shown beside the name, as in "by HASH".                                                                                             |                           |                  |
-| `access`      | A level per family; see [`access`](#access).                                                                                        | `document`, `experiments` |                  |
-| `settings`    | A spec per key; see [Settings](#settings).                                                                                          | `settings`                |                  |
-| `buttons`     | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                    |                           | `buttons`        |
-| `topBarItems` | Per key: `{ place }`.                                                                                                               |                           | `topBarItems`    |
-| `provides`    | `pluginService<T>()`, the type of the service the hook provides.                                                                    |                           | `provides`       |
+| Key           | Value                                                                                                                                                                                                 | Adds to `api`             | The hook returns |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ---------------- |
+| `id`          | Namespaced, stable and unique among the editor's plugins (`website.brunch`). Stored settings, the user's switch and the user's assistant choice are keyed by it.                                      |                           |                  |
+| `name`        | Titles the plugin's row in User settings → Plugins and its group of setting rows, and names it in the "Needs" status of the plugins extending its assistant.                                          |                           |                  |
+| `description` | Shown when the plugin's row opens.                                                                                                                                                                    |                           |                  |
+| `author`      | Shown beside the name, as in "by HASH".                                                                                                                                                               |                           |                  |
+| `access`      | A level per family; see [`access`](#access).                                                                                                                                                          | `document`, `experiments` |                  |
+| `settings`    | A spec per key; see [Settings](#settings).                                                                                                                                                            | `settings`                |                  |
+| `buttons`     | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                                                                                      |                           | `buttons`        |
+| `topBarItems` | Per key: `{ place }`.                                                                                                                                                                                 |                           | `topBarItems`    |
+| `assistant`   | `{ label }` makes the plugin an AI assistant, named `label` in the assistant selector. `{ extends: createXPlugin }` adds to that plugin's assistant. See [Assistant plugins](doc:plugins/assistants). | `assistant`               | `assistant`      |
+| `provides`    | `pluginService<T>()`, the type of the service the hook provides.                                                                                                                                      |                           | `provides`       |
 
 Every key but `id` and `name` is optional.
 
@@ -75,6 +76,7 @@ access: { document?: "read" | "write"; experiments?: "read" | "write" }
 | `errors.capture(error, context?)`               | Always               | Sends to the host's error tracker. `context` is `{ source?, tags? }` with string, number or boolean tags. `source` defaults to `plugin.<id>`; `tags.pluginId` is always set. |
 | `notifications.add(input)`                      | Always               | Shows a toast and returns its id.                                                                                                                                            |
 | `settings.get(key)`, `settings.set(key, value)` | `settings`           | Typed by the spec. `get` reads the latest stored value. `set` validates, stores and persists, then the hook runs again.                                                      |
+| `assistant.isActive`                            | `assistant`          | Whether the editor shows this plugin's assistant, or the one it extends.                                                                                                     |
 | `document`                                      | `access.document`    | See [`api.document`](#apidocument).                                                                                                                                          |
 | `experiments`                                   | `access.experiments` | `records` and `optimizationUnavailableReason` are stores. `run(request, options?)` is not refused while the editor is read-only.                                             |
 
@@ -115,18 +117,20 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 
 ## Contributions
 
-| Key           | Allowed when | Type                                                                                                                               |
-| ------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `root`        | Always       | `ReactNode`, rendered inside the editor behind the plugin's error boundary: dialogs, overlays, tours.                              |
-| `overlay`     | Always       | `boolean`: `true` while `root` covers the editor. Holds back the empty-canvas assistant prompt.                                    |
-| `buttons`     | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, which runs a registered command by id. |
-| `topBarItems` | Declared     | Per key: a `ReactNode`.                                                                                                            |
-| `provides`    | Declared     | The service type `T` of `pluginService<T>()`.                                                                                      |
+| Key           | Allowed when | Type                                                                                                                                                                                                                                             |
+| ------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `root`        | Always       | `ReactNode`, rendered inside the editor behind the plugin's error boundary: dialogs, overlays, tours.                                                                                                                                            |
+| `overlay`     | Always       | `boolean`: `true` while `root` covers the editor. Holds back the empty-canvas assistant prompt.                                                                                                                                                  |
+| `buttons`     | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, which runs a registered command by id.                                                                                                               |
+| `topBarItems` | Declared     | Per key: a `ReactNode`.                                                                                                                                                                                                                          |
+| `assistant`   | Declared     | `PluginAssistant`, `{ view, tabs?, startActions? }`, for `assistant: { label }`; `PluginAssistantExtension`, `{ tabs?, startActions? }`, for `assistant: { extends }`. Members and tab types are in [Assistant plugins](doc:plugins/assistants). |
+| `provides`    | Declared     | The service type `T` of `pluginService<T>()`.                                                                                                                                                                                                    |
 
 Every declared key is required and every undeclared one is a type error.
 TypeScript also catches a setting value outside an enum's `options`, a service
-of the wrong type, and a read of `api.document` or `api.experiments` without
-declaring the family.
+of the wrong type, a read of `api.document` or `api.experiments` without
+declaring the family, an extension returning a `view`, and a manifest
+declaring both `assistant.label` and `assistant.extends`.
 
 ## Exports
 
@@ -134,8 +138,10 @@ declaring the family.
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Definition | `definePetrinautPlugin`, `pluginService`                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Types      | `PetrinautPlugin`, `PetrinautPluginDefinition`, `PetrinautPluginManifest`, `PetrinautSettingSpec`, `PluginHook`, `PluginApi`, `PluginContributions`, `PluginButton`, `PluginService`, `PluginAccess`, `AccessApi`, `PluginDocumentReader`, `PluginDocument`, `PluginEdits`, `PluginExperimentsReader`, `PluginExperiments`, `PluginErrors`, `PluginNotifications`, `EditResult`, `EditRefusal`, `ReadOnlyReason`, `PetrinautRevealTarget`, `AddNotificationInput`, `ReadableStore` |
-| Hooks      | `usePluginService`, `useStore`, `useStoreSelector`, `useCommand`, `useCommands`, `useCommandRegistry`                                                                                                                                                                                                                                                                                                                                                                              |
-| Helpers    | `describeRefusal(reason)`: a sentence for a refusal. `petrinautDocsContent`: the user guide's pages, by name.                                                                                                                                                                                                                                                                                                                                                                      |
+| Assistant  | Types: `PluginAssistant`, `PluginAssistantExtension`, `PluginAssistantTab`, `PluginAssistantStartAction`, `PetrinautAssistantStartRequest`, and `ExperimentRecord` for experiment cards                                                                                                                                                                                                                                                                                            |
+| Hooks      | `usePluginService`, `useStore`, `useStoreSelector`, `useCommand`, `useCommands`, `useCommandRegistry`, `usePetrinautAssistantWindow`                                                                                                                                                                                                                                                                                                                                               |
+| Components | `PetrinautAssistantWindow`, `PetrinautAssistantWindowPreview`                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Helpers    | `describeRefusal(reason)`: a sentence for a refusal. `petrinautDocsContent`: the user guide's pages, by name. `AiAssistantIcon`: the editor's AI mark, for an assistant's own UI.                                                                                                                                                                                                                                                                                                  |
 
 `@hashintel/petrinaut` re-exports `definePetrinautPlugin`, `pluginService` and
 the definition and access types, for hosts that define plugins beside their
@@ -143,19 +149,23 @@ the definition and access types, for hosts that define plugins beside their
 
 ## Error messages
 
-| Message                                                           | When                                                                                |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `Petrinaut plugin "<id>" is passed twice. Pass each plugin once.` | Two plugins in `plugins` share an id. Thrown during render.                         |
-| `Plugin "<id>" setting "<key>" rejects <value>.`                  | `settings.set` with an undeclared key or a value its spec rejects. Thrown by `set`. |
+| Message                                                                                                                | When                                                                                                   |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `Petrinaut plugin "<id>" is passed twice. Pass each plugin once.`                                                      | Two plugins in `plugins` share an id. Thrown during render.                                            |
+| `Plugin "<id>" setting "<key>" rejects <value>.`                                                                       | `settings.set` with an undeclared key or a value its spec rejects. Thrown by `set`.                    |
+| `Petrinaut plugin "<id>" returned an assistant tab with id "<tab>", which is the chat tab's id. Choose another id.`    | A tab of the shown assistant or its extensions uses the id `"chat"`. Reported; the tab is left out.    |
+| `Petrinaut plugin "<id>" returned an assistant tab with id "<tab>", which another tab already has. Choose another id.` | A tab of the shown assistant or its extensions reuses another tab's id. Reported; the tab is left out. |
 
 ## Failure reports
 
 A plugin boundary reports what it catches to the host's error tracker with
 source `plugin` and tags `{ pluginId, place, contributionId }`:
 
-| `place`                                             | What threw                             | `contributionId` |
-| --------------------------------------------------- | -------------------------------------- | ---------------- |
-| `hook`                                              | The plugin's hook                      | Not set          |
-| `root`                                              | Its `root`                             | Not set          |
-| `settings`                                          | Its setting rows                       | Not set          |
-| `top-bar-start`, `top-bar-end`, `viewport-controls` | A button or top-bar item at that place | Its key          |
+| `place`                                             | What threw                                                | `contributionId` |
+| --------------------------------------------------- | --------------------------------------------------------- | ---------------- |
+| `hook`                                              | The plugin's hook                                         | Not set          |
+| `root`                                              | Its `root`                                                | Not set          |
+| `settings`                                          | Its setting rows                                          | Not set          |
+| `top-bar-start`, `top-bar-end`, `viewport-controls` | A button or top-bar item at that place                    | Its key          |
+| `assistant`                                         | Its assistant's view                                      | Not set          |
+| `assistant-tab`                                     | One of its assistant tabs, or a tab id the window refused | The tab's id     |

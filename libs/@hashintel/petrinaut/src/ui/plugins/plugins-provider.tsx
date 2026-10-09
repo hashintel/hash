@@ -22,7 +22,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
-import { useStore, useStoreSelector } from "../../react/use-store";
+import { useStoreSelector } from "../../react/use-store";
 import { accessApi } from "./plugin-access";
 import { PluginBoundary } from "./plugin-boundary";
 import {
@@ -32,6 +32,8 @@ import {
 } from "./plugin-editor";
 import { type PluginSettings, usePluginSettings } from "./plugin-settings";
 import {
+  isAssistantActiveFor,
+  resolveActiveAssistantId,
   type PluginStatusEntry,
   resolvePluginStatuses,
 } from "./plugin-statuses";
@@ -45,7 +47,7 @@ import type {
 } from "./define-petrinaut-plugin";
 
 /** A running plugin as the editor reads it. */
-interface RunningPlugin {
+export interface RunningPlugin {
   readonly manifest: PetrinautPluginManifest;
   /** What the hook returned in its latest committed render. */
   readonly contributions: AnyPluginContributions;
@@ -75,21 +77,41 @@ type ContributionsStore = ReturnType<typeof createContributionsStore>;
 const PluginsContext = createContext<{
   readonly statuses: readonly PluginStatusEntry[];
   readonly published: ReadableStore<Published>;
-}>({ statuses: [], published: createReadableStore<Published>(new Map()) });
+  /** The plugin id of the assistant the editor shows, resolved once per render. */
+  readonly activeAssistantId: string | undefined;
+}>({
+  statuses: [],
+  published: createReadableStore<Published>(new Map()),
+  activeAssistantId: undefined,
+});
 
 /** Every plugin passed to the editor with its status, in the host's order. */
 export const usePluginStatuses = (): readonly PluginStatusEntry[] =>
   use(PluginsContext).statuses;
 
-/** The running plugins with their latest contributions, in the host's order. */
-export const useRunningPlugins = (): readonly RunningPlugin[] => {
-  const { statuses, published } = use(PluginsContext);
-  const running = useStore(published);
+/** The plugin id of the assistant the editor shows, or `undefined` while none runs. */
+export const useActiveAssistantId = (): string | undefined =>
+  use(PluginsContext).activeAssistantId;
 
-  return statuses.flatMap(
-    ({ plugin }) => running.get(plugin.manifest.id) ?? [],
+/**
+ * A value selected from the running plugins, in the host's order; the caller
+ * re-renders only when the selected value changes.
+ */
+export const useRunningPluginsSelector = <T,>(
+  selector: (running: readonly RunningPlugin[]) => T,
+): T => {
+  const { statuses, published } = use(PluginsContext);
+
+  return useStoreSelector(published, (map) =>
+    selector(
+      statuses.flatMap(({ plugin }) => map.get(plugin.manifest.id) ?? []),
+    ),
   );
 };
+
+/** The running plugins with their latest contributions, in the host's order. */
+export const useRunningPlugins = (): readonly RunningPlugin[] =>
+  useRunningPluginsSelector((running) => running);
 
 /** Whether a running plugin's root covers the editor, as a modal or a tour does. */
 export const usePluginOverlay = (): boolean =>
@@ -113,15 +135,16 @@ export const usePluginService = <D extends PluginDefinitionRef>(
   ) as ServiceOf<D["manifest"]> | undefined;
 
 /**
- * One plugin's `api`: a new object only when its settings snapshot changes.
- * Its family objects come from the host's editor, so they never change while
- * the host is mounted. The cast erases the type the manifest gives it, for the
- * hook's erased parameter.
+ * One plugin's `api`: a new object only when its settings snapshot or
+ * `isActive` changes. Its family objects come from the host's editor, so
+ * they never change while the host is mounted. The cast erases the type the
+ * manifest gives it, for the hook's erased parameter.
  */
 const usePluginApi = (
   manifest: PetrinautPluginManifest,
   editor: PluginEditor,
   settings: PluginSettings | undefined,
+  isActive: boolean,
 ): never => {
   // It calls no hook, which `infer` mode would skip.
   "use memo";
@@ -133,6 +156,7 @@ const usePluginApi = (
     notifications: editor.notifications,
     ...access,
     ...(settings && { settings }),
+    ...(manifest.assistant && { assistant: { isActive } }),
   } as never;
 };
 
@@ -150,7 +174,13 @@ const PluginHost = ({
   "use no memo";
   const { manifest } = plugin;
   const settings = usePluginSettings(manifest);
-  const api = usePluginApi(manifest, editor, manifest.settings && settings);
+  const isActive = isAssistantActiveFor(manifest, useActiveAssistantId());
+  const api = usePluginApi(
+    manifest,
+    editor,
+    manifest.settings && settings,
+    isActive,
+  );
   const useHook = plugin.hook;
   const contributions = useHook(api);
 
@@ -224,7 +254,7 @@ export const PetrinautPluginsProvider = ({
   plugins: readonly PetrinautPlugin[];
   children: ReactNode;
 }) => {
-  const { disabledPluginIds } = use(UserSettingsContext);
+  const { aiAssistantId, disabledPluginIds } = use(UserSettingsContext);
   const [failedHostKeys, setFailedHostKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -234,9 +264,12 @@ export const PetrinautPluginsProvider = ({
     disabledPluginIds,
     failedHostKeys,
   );
+  const activeAssistantId = resolveActiveAssistantId(statuses, aiAssistantId);
 
   return (
-    <PluginsContext value={{ statuses, published: store.published }}>
+    <PluginsContext
+      value={{ statuses, published: store.published, activeAssistantId }}
+    >
       <PluginEditorProvider>
         <PluginHosts
           statuses={statuses}
