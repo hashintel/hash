@@ -38,9 +38,23 @@ Monday's 06:00 snapshot:
 | CR-68 | 22 | 28 | 26 | Recently serviced; available |
 | CR-72 | 65 | 34 | 39 | At the depot after an urban night run; driver hours nearly used |
 
-Scores usually move gradually but can jump after a fault code or a severe trip. Dispatch sees the latest score, but the workshop doesn't reserve a slot automatically. You make a day-ahead plan around 16:00 and revise it whenever a load or breakdown disrupts it. There's no worked-out weekly schedule yet.
+Scores usually move gradually but can jump after a fault code or a severe trip. CR-19's engine score rose faster over its last two fully loaded motorway runs than during its mountain week before them. CR-27's biggest recent jump was in tyre risk, after urban roadworks. Dispatch sees the latest score, but the workshop doesn't reserve a slot automatically. You make a day-ahead plan around 16:00 and revise it whenever a load or breakdown disrupts it.
 
-You call 80 "the pull-it-now line". In practice you have occasionally sent a red-scored truck, like CR-12, on a short flat run when the workshop could take it straight afterwards; the red is a strong warning, not a written no-dispatch rule.
+You call 80 "the pull-it-now line". In practice you have occasionally sent a red-scored truck, like CR-12, on a short flat run when the workshop could take it straight afterwards. Nothing written says a red truck can't go out.
+
+## This week's whiteboard
+
+After the 06:00 snapshot on Monday you drafted this week's workshop plan on the whiteboard the way you usually would: highest score first, two trucks at a time because there are two bays.
+
+| Day | Bay 1 | Bay 2 |
+| --- | --- | --- |
+| Monday | CR-12 brakes | CR-19 engine |
+| Tuesday | CR-27 tyres | CR-72 brakes |
+| Wednesday | CR-34 brakes | Open for whatever comes up |
+
+Next to it you've written: "Harrowell Tue: CR-12 (after Monday's brakes)", "Motorway Wed: CR-19" and "Urban round Mon, leaves late morning: CR-72, it's at the depot". The driver column is still blank; dispatch fills it in later in the morning.
+
+You think the plan is basically fine: it follows the scores and keeps both bays busy. You'd like to see it compared with alternatives rather than start from nothing.
 
 ## Runs, wear and road conditions
 
@@ -50,9 +64,9 @@ The pilot uses three recurring kinds of run:
 - Urban: about 180 km of stop-start work. Repeated braking wears brakes, and kerbs and rough streets are hard on tyres.
 - Mountain: about 260 km with steep gradients. Brakes wear roughly 2.5 times as fast on the descents as on the flat; a heavy load also works the engine, and bad weather makes both travel and tyre wear less predictable.
 
-How hard a trip is and how fast it can go vary from trip to trip. Rain, roadworks, rough surfaces and load weight all matter; the route name alone doesn't explain every change in score. The telematics history should hold enough detail for an analyst, but you've never pulled it out.
+How hard a trip is and how fast it can go vary from trip to trip. Rain, roadworks, rough surfaces and load weight all play a part. The telematics history should hold enough detail for an analyst, but you've never pulled it out.
 
-You'd say "the mountain is always the brake killer". Thinking about exceptions, though, CR-19's engine score rose faster on two fully loaded motorway runs than in its previous mountain week, and CR-27's worst recent jump was tyre risk after urban roadworks.
+You'd say "the mountain is always the brake killer".
 
 ## Loads and delivery commitments
 
@@ -64,14 +78,14 @@ This week the pilot has to cover a mountain contract early Tuesday, a loaded mot
 
 For the pilot, dispatch blocks a truck-and-driver pairing once the driver reaches 9 hours of driving. The driver then needs 11 hours of rest at the depot before that pairing goes out again. The dispatch screen shows accumulated hours and rest status.
 
-CR-72's night driver hits the limit on returning Monday morning, so the truck may be free while that pairing isn't. A rested driver can be put on it later, but driver cover isn't unlimited.
+CR-72's night driver hit the limit on that run and got back to the depot at about 05:30 on Monday. Another rested driver can be put on CR-72, but driver cover isn't unlimited.
 
 ## Workshop, parts and recovery
 
 The depot workshop has:
 
 - two service bays;
-- two technicians on the pilot shift: Priya does most engine and electrical work, and Milo does most brake and tyre work and is also the certified recovery operator;
+- two technicians on the pilot shift: Priya does most engine and electrical work, and Milo does most brake and tyre work and is also the certified recovery operator. Now and then a job needs both of them on the same truck;
 - one recovery vehicle;
 - limited parts. On Monday morning there's one brake kit, one matched steer-tyre set and one engine sensor/actuator pack set aside for the pilot. Routine fluids and filters aren't a problem.
 
@@ -79,7 +93,7 @@ A straightforward planned service takes about 5 hours when the truck, the right 
 
 Planned and roadside work compete for the same bays, technicians and parts. If Milo is out with the recovery vehicle, brake and tyre work waits even if a bay is empty. A breakdown can also use up a part that was set aside for tomorrow's planned job. Parts deliveries are usually next-day, but specialised items can take several days.
 
-You'd say "with two bays, we can do two planned trucks together". On real days that only holds when Priya and Milo can work independently and both parts are in; a recovery, or a job needing both of them, can leave a bay standing empty.
+You'd say "with two bays, we can do two planned trucks together".
 
 ## Last month's roadside failure
 
