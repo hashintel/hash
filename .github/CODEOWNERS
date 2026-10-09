@@ -1,8 +1,8 @@
 # Rust
 *.rs @hashintel/rust
 Cargo.toml @hashintel/rust
-/libs/@local/hashql/ @hashintel/rust
-/libs/@local/harpc/ @hashintel/rust
+/libs/@local/hashql/ @hashintel/backend-rust
+/libs/@local/harpc/ @hashintel/backend-rust
 
 # Design system
 /apps/hashdotdesign/ @hashintel/design-system
@@ -25,7 +25,6 @@ Cargo.toml @hashintel/rust
 /libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/backend-rust
 /libs/@local/graph/migrations/graph-migrations/ @hashintel/backend-rust
 
-# Code ownership
 /.github/CODEOWNERS @hashintel/infra-admins
 
 # Legal
