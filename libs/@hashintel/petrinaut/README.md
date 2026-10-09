@@ -125,7 +125,7 @@ export const counterPlugin = createCounterPlugin(useCounterPlugin);
 
 User settings lists the plugins and lets the user switch each one off. The
 guide lives in the architecture docs:
-[Plugin API](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/plugins/usage-manual.mdx).
+[Plugins](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/plugins/overview.mdx).
 
 ## Petricon
 
