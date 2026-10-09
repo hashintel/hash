@@ -14,6 +14,7 @@ use hash_graph_store::{
 use hash_middleware::authentication::{
     provider::{AuthenticationProvider, Caller},
     request::AuthenticationError,
+    service_secret::service_credential,
 };
 use http::{HeaderMap, header::AUTHORIZATION};
 use type_system::principal::actor::{ActorId, UserId};
@@ -34,9 +35,13 @@ enum PresentedApiToken<'h> {
 
 /// Returns how the first `Authorization` header presents an API token.
 ///
-/// Returns [`None`] when the header is absent, not visible ASCII, or carries no credential that
-/// starts with `hsh_`. The scheme is matched case-insensitively.
+/// Returns [`None`] when the header is absent, not visible ASCII, carries the service credential,
+/// or carries no credential that starts with `hsh_`. The scheme is matched case-insensitively.
 fn presented_api_token(headers: &HeaderMap) -> Option<PresentedApiToken<'_>> {
+    if service_credential(headers).is_some() {
+        return None;
+    }
+
     let credentials = headers.get(AUTHORIZATION)?.to_str().ok()?.trim_ascii();
     if credentials.starts_with(PREFIX) {
         return Some(PresentedApiToken::NonBearer);
@@ -338,6 +343,7 @@ mod tests {
     #[case::other_bearer("Bearer eyJhbGciOiJIUzI1NiJ9", None)]
     #[case::other_credentials("Basic dXNlcjpwYXNz", None)]
     #[case::service_credential("HASH-Service secret", None)]
+    #[case::service_credential_prefixed("HASH-Service hsh_secret", None)]
     fn presented(#[case] credentials: &str, #[case] expected: Option<PresentedApiToken<'_>>) {
         assert_eq!(
             presented_api_token(&authorization(credentials)),
