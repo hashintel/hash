@@ -2,6 +2,8 @@
 
 For whoever scores a run. The launcher loads only `situation-pack.md` and `opening-message.md`, so the persona never sees this file. Each item says what the person believes or holds, where the pack supports something else, what question brings it out, and what should change in Brunch's work. Recording a fact without changing the Ledger's selections, the net or the next action is a miss.
 
+Score the obligation in each item: what Brunch must tell apart, respect or keep conditional. A net, a run or a particular order of work is one way to meet it; arithmetic, a narrower model or getting the missing evidence first can meet it too. Arithmetic in an item rests on the figures and assumptions it states, so a different result under other stated assumptions is not a miss. The session at the end is one example, not an acceptance condition.
+
 The trap in this case is a disputed counterfactual that must stay disputed, and event times and clocks that must not be merged: Mara's account is something to investigate, not a specification to encode.
 
 ## 1. An earlier cooler request would have saved the shipment
@@ -15,7 +17,7 @@ The trap in this case is a disputed counterfactual that must stay disputed, and 
 ## 2. "The start of the hold"
 
 - **Situation:** three different events are each sometimes called the start of the hold: RheinGate's handler receipt at 16:52 Tuesday, the customs hold Kestrel dates to 17:10 Tuesday (commodity code mismatch), and customs acknowledging the query at 18:05 Tuesday. Mara keeps them apart and will correct a merge when it touches her.
-- **Arithmetic:** the hold to release at 19:20 Thursday runs 50 h 10 min from 17:10, 50 h 28 min from 16:52, or 49 h 15 min from 18:05. All three are past the 48 hours the pack gives for an unresolved conflict, so the case sits in the tail of the clearance distribution, not the 3–8 hour norm.
+- **Arithmetic:** the hold to release at 19:20 Thursday runs 50 h 10 min from 17:10, 50 h 28 min from 16:52, or 49 h 15 min from 18:05. All three, each on its own record's clock, are more than an hour past the 48 hours the pack gives for an unresolved conflict, so the case sits in the tail of the clearance distribution, not the 3–8 hour norm.
 - **What brings it out:** walking the Frankfurt part of the incident in order, and asking whose record each time comes from.
 - **Caught when:** the Ledger keeps the three as separate events with their sources; the net separates handler custody from the customs state (receipt, hold, acknowledged query, release are distinct transitions or markers); any duration or trigger that starts "from the hold" names which event it starts from.
 - **Missed when:** one hold start is recorded, or the three are averaged or picked silently.
@@ -32,7 +34,7 @@ The trap in this case is a disputed counterfactual that must stay disputed, and 
 ## 4. "Validated for 72 hours" is not a countdown
 
 - **Situation:** the pack-out is qualified for 72 hours under a summer profile, sealed and correctly conditioned. Mara rejects reading that as a guarantee; the control tower tends to treat it as one.
-- **Arithmetic:** lid closure 05:28 Tuesday; the trace crossed 8 °C at 03:42 Thursday, 46 h 14 min after closure, with 25 h 46 min of nominal qualification left. The written "below 12 hours remaining" trigger would fall at 17:28 Thursday, 13 h 46 min after the crossing.
+- **Arithmetic:** lid closure 05:28 Tuesday; the trace crossed 8 °C at 03:42 Thursday, about 46 hours after closure, with about 26 hours of nominal qualification left. The pack doesn't say whose clock records closure, and the trace may run 17 minutes behind RheinGate's scan system (item 3), so the exact 46 h 14 min holds only if both times are on one clock. The written "below 12 hours remaining" trigger falls at 17:28 Thursday on the closure record's clock, about 14 hours after the crossing.
 - **What brings it out:** asking how long product stays in range once it leaves validated storage, or what the 72 hours means.
 - **Caught when:** the net's temperature state depends on where the shipment waits (validated storage versus handling bay or apron), not on a single time-since-closure countdown; the 72 hours is recorded as a qualification under stated conditions; bay ambient is recorded as unknown.
 - **Missed when:** the model declares product safe while under 72 hours since closure, or uses the qualification as the excursion clock.
@@ -40,7 +42,7 @@ The trap in this case is a disputed counterfactual that must stay disputed, and 
 ## 5. Mara's earlier escalation trigger
 
 - **Belief:** call the QA duty manager at 6.5 °C and rising, or after 4 hours of customs uncertainty, not at the written trigger (confirmed excursion, or less than 12 hours of qualified duration left), because night cooler space is gone before the written trigger helps. Plausible; may survive. She takes it for granted and will raise it only when escalation comes up.
-- **Arithmetic:** for VRB-240618-03 the written trigger fires only at the excursion, 03:42 Thursday (the 12-hour clause comes later, see item 4). Her 4-hour clause fires at 20:52, 21:10 or 22:05 Tuesday depending on which "start" (item 2) it counts from, more than a day before the 22:00 Wednesday request she believes would have helped. The pack gives no time for the trace crossing 6.5 °C; it began rising from 5.9 °C at 01:50 Thursday.
+- **Arithmetic:** for VRB-240618-03 the written trigger fires only at the excursion, 03:42 Thursday on the trace (03:59 on RheinGate's clock if the trace runs on the logger's; item 3), and the 12-hour clause comes later (item 4). Her 4-hour clause fires at 20:52, 21:10 or 22:05 Tuesday, each on its own record's clock, depending on which "start" (item 2) it counts from, more than a day before the 22:00 Wednesday request she believes would have helped. The pack gives no time for the trace crossing 6.5 °C; it began rising from 5.9 °C at 01:50 Thursday.
 - **What brings it out:** asking when she escalates in practice and what the work instruction says.
 - **Caught when:** both triggers are recorded with sources (written instruction versus her practice) and tested against each other, as alternative decision rules in the net or as a scenario comparison, with the costs of early action (cooler days at €420, false alarms, the Kestrel night supervisor being a relationship, not a contracted response) in view; the result is reported as conditional on cooler availability, which item 1 leaves open.
 - **Missed when:** her trigger is adopted as the rule without testing; or dismissed because it isn't the written one; or the comparison credits it with saving this shipment, which needs item 1 settled.
@@ -61,7 +63,7 @@ The trap in this case is a disputed counterfactual that must stay disputed, and 
 
 ## 8. Early replacement across disruption kinds
 
-- **Situation:** Mara wants to know whether early replacement is the best money. Only one replacement's worth of inventory exists; €38,000 against a €620,000 rejection value and a week's first-dose slip. The pack says she doesn't know whether it is best across disruption kinds, and there are no defensible probabilities for customs queries, flight disruption, bonded transfer or Leipzig cooler space.
+- **Situation:** Mara wants to know whether early replacement is the best money. Only one replacement's worth of inventory exists; €38,000 against a €620,000 rejection value and a possible week's first-dose slip. The pack says she doesn't know whether it is best across disruption kinds, and there are no defensible probabilities for customs queries, flight disruption, bonded transfer or Leipzig cooler space.
 - **Caught when:** replacement timing is in the model as an option with its single-inventory limit; any comparison runs under a stated range of disruption assumptions and is reported as such; the general answer stays owed, with the records to pull (Kestrel's medians split by product and lane, the stability group's guidance).
 - **Missed when:** a replacement policy is recommended as best across disruptions on invented rates.
 
@@ -69,7 +71,7 @@ The trap in this case is a disputed counterfactual that must stay disputed, and 
 
 2–8 °C, no freezing, on every logger; the 54-hour SLA from signed pickup to accepted proof of delivery; QA disposition of any quarantined shipment. A run reports each beside the result; the model does not decide disposition, and the delivery says so.
 
-For the incident: the SLA fell due at 12:10 Thursday, before customs release at 19:20 Thursday. Proof of delivery at 05:14 Friday came 71 h 4 min after pickup, 17 h 4 min past the SLA, beyond the 12 hours that pushes the first dose back a week. The delivery was late enough to move the dose date whatever QA decided.
+For the incident: the SLA fell due at 12:10 Thursday, before customs release at 19:20 Thursday. Proof of delivery at 05:14 Friday came 71 h 4 min after pickup, 17 h 4 min past the SLA, beyond the 12 hours past which, the pack says, the first dose can slip a week. The delay alone put the dose date at risk whatever QA decided; whether the dose moved is not in the pack.
 
 ## Must stay unknown
 
@@ -81,6 +83,6 @@ For the incident: the SLA fell due at 12:10 Thursday, before customs release at 
 - The base rate of document errors like the code mismatch.
 - Whether early replacement is economically best across disruption kinds.
 
-## A right-sized session
+## One right-sized session
 
 Ask about the incident in order before building; keep the three Frankfurt events and the two clocks apart in the Ledger; record the cooler counterfactual as contested; build custody, customs state, storage location and temperature as separate parts of the net, with QA disposition and Omar's approval as decisions outside operations; reproduce VRB-240618-03 as recorded (no early cooler) before comparing hold, reroute, expedite and trigger options under stated disruption ranges; deliver with the owed checks and the records to pull (RheinGate's cooler occupancy for Wednesday night, Kestrel's split medians, stability guidance, the drift's origin).

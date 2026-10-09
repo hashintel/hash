@@ -2,13 +2,15 @@
 
 For whoever scores a run. The launcher loads only `situation-pack.md` and `opening-message.md`, so the persona never sees this file. Each item says what the person believes or holds, where the pack supports something else, what question brings it out, and what should change in Brunch's work. Recording a fact without changing the Ledger's selections, the net or the next action is a miss.
 
+Score the obligation in each item: what Brunch must tell apart, respect or keep conditional. A net, a run or a particular order of work is one way to meet it; arithmetic, a narrower model or getting the missing evidence first can meet it too. Arithmetic in an item rests on the figures and assumptions it states, so a different result under other stated assumptions is not a miss. The session at the end is one example, not an acceptance condition.
+
 The trap in this case is a well-provenanced specification with one unexamined trigger: Elena's account is careful and mostly right, so Brunch has to find the one place where her rule reads something other than what she assumes, and must not distrust the parts that hold.
 
 ## 1. The reorder trigger reads usable stock
 
 - **Belief:** stock isn't usable until quality release, and the reorder point protects production. She has not connected the two; she reads the February shortage as a bad Indian lot. Does not survive as she holds it.
 - **Evidence in the pack:** the inventory position is unrestricted plus quality-inspection stock plus open purchase orders (SAP's standard MRP availability); the German top-up is a second rule on the same position; in February the report showed about 2,850 Flowbind, of which about 350 was unrestricted and 2,500 a lot in quality inspection; no purchase order or top-up went out until quality rejected that lot.
-- **Arithmetic:** 350 + 2,500 = 2,850, above the 1,500 reorder point and the 500 top-up threshold, so neither rule fires. After rejection the position is 350, below both. A forecast-driven batch needs about 662 Flowbind (699 under the static plan); 350 + a 250 top-up = 600 still falls short, so the order waits for the Indian 2,500: about 4 days' hold before rejection, about 13.8 days' lead time, about 4 days' quarantine, roughly 22 days, which matches "about three weeks".
+- **Arithmetic:** 350 + 2,500 = 2,850, above the 1,500 reorder point and the 500 top-up threshold, so neither rule fires. After rejection the position is 350, below both, and both orders go out, as the pack says they did. The wait spans the few days before rejection, the Indian lead time (13.8 days on average) and quarantine on arrival, which is consistent with "about three weeks"; the pack gives neither the waiting order's Flowbind need nor the order quantities, so which delivery ended the wait is not established.
 - **What brings it out:** asking her to walk one shortage week; asking what exactly the reorder point (and the "below 500" rule) compares against.
 - **Caught when:** the net's reorder and top-up transitions read the position the rule actually reads, quarantine included, while production consumes released stock only; a rejected lot can therefore delay the reorder; the February week is reproduced or kept owed as a case to reproduce; the top-up threshold is pinned to a named stock figure in the Ledger. Brunch may name a trigger on unrestricted plus open orders as an option to compare, beside her two production policies, but not as a recommendation before a run.
 - **Missed when:** the trigger reads usable stock, or a single undifferentiated "stock" place; the February week is recorded as a supplier-quality incident and nothing in the net changes; "below 500" stays unpinned.
@@ -39,6 +41,6 @@ Fill rate at least 95%, average production delay at most 0.25 weeks per planned 
 - Real figures for outages, shipment loss, customs delay, recall and production failure.
 - The real costs of storage, shortage, disposal, lateness, switching and lost sales.
 
-## A right-sized session
+## One right-sized session
 
 Ask for one bad week before building; pin what the reorder and top-up rules read; build the position-versus-released-stock distinction and reproduce, or keep owed, the February week; model each supplier by its own lead-time distribution; compare the production policies over 104 weeks under stated disruption and rejection assumptions; deliver with the targets reported, the assumptions named, and the owed checks (Site 1000 rejection history, German capacity, cost figures).

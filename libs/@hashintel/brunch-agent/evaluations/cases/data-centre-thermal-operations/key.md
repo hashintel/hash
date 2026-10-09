@@ -2,20 +2,22 @@
 
 For whoever scores a run. The launcher loads only `situation-pack.md` and `opening-message.md`, so the persona never sees this file. Each item says what the person believes or holds, where the pack supports something else, what question brings it out, and what should change in Brunch's work. Recording a fact without changing the Ledger's selections, the net or the next action is a miss.
 
+Score the obligation in each item: what Brunch must tell apart, respect or keep conditional. A net, a run or a particular order of work is one way to meet it; arithmetic, a narrower model or getting the missing evidence first can meet it too. Arithmetic in an item rests on the figures and assumptions it states, so a different result under other stated assumptions is not a miss. The session at the end is one example, not an acceptance condition.
+
 The trap in this case is proportion under a deadline: a five-minute decision that a new model cannot serve, a gut estimate resting on a weak analogy, and two fault explanations that only an inspection can separate.
 
 ## 1. The five-minute decision
 
 - **Situation:** the incident commander wants Asha's view within about five minutes on time to 30°C at C7 and on pausing Aurora now versus waiting for the CH-2 inspection. A simulation built and validated from scratch cannot justify that decision in five minutes.
 - **Evidence in the pack:** at 14:06 C7's hottest inlet is 27.8°C, rising 0.08–0.14°C per minute; chilled-water supply has gone from 7.1°C to 9.3°C since the 13:52 trip and is still warming; pausing Aurora sheds load in 8–12 minutes; commercial wants Aurora left alone unless a 30°C crossing is credible.
-- **Arithmetic:** 30 − 27.8 = 2.2°C. At 0.14°C/min that is about 16 minutes (14:22); at 0.08°C/min about 27½ minutes (14:33). Supply water rose about 2.2°C in 14 minutes, roughly 0.16°C/min, so the inlet rise is more likely to steepen than flatten: the linear range is an upper bound, not a central estimate. A pause decided around 14:11 finishes shedding at 14:19–14:23, against a crossing at 14:22–14:33 if linear and earlier if the rise steepens.
+- **Arithmetic:** 30 − 27.8 = 2.2°C. At 0.14°C/min that is about 16 minutes (14:22); at 0.08°C/min about 27½ minutes (14:33). Supply water rose about 2.2°C in 14 minutes, roughly 0.16°C/min, and is still warming, which is a reason to fear the inlet rise steepening. The pack bounds neither the future slope nor how the row responds, so the linear range is a conditional extrapolation, not a bound either way. A pause decided around 14:11 finishes shedding at 14:19–14:23, against a crossing at 14:22–14:33 if the trend holds and earlier if it steepens.
 - **What brings it out:** the opening message itself. Brunch needs the current reading, its trend and the shed lag, and can get them with one compact question if it does not already have them.
-- **Caught when:** the first substantive reply gives bounded reasoning from the trend (a range, with the reason it may be sooner), sets the 8–12 minute shed lag against it, states what is uncertain (the C7 reading itself, the containment door, which CH-2 branch applies), and frames the output as a recommendation Asha can carry to the incident commander. Either "pause now" or "wait" is acceptable if the slack is confronted; the arithmetic leaves little room for waiting.
+- **Caught when:** the first substantive reply gives bounded reasoning from the trend (a range, with the reason it may be sooner), sets the 8–12 minute shed lag against it, states what is uncertain (the C7 reading itself, the containment door, which CH-2 branch applies), and frames the output as a recommendation Asha can carry to the incident commander. Either "pause now" or "wait" is acceptable if the slack is confronted; on the linear range the arithmetic leaves little room for waiting.
 - **Missed when:** Brunch starts eliciting a comprehensive thermal model, builds or proposes a net before giving any answer for the deadline, runs a net and reports its output as the time to 30°C, or gives a single confident number without its uncertainty.
 
 ## 2. "About twenty minutes", from the drills
 
-- **Belief:** C7 has about twenty minutes before 30°C. Survives only as a rough midpoint, and today's conditions point earlier.
+- **Belief:** C7 has about twenty minutes before 30°C. Survives only as a rough midpoint, and today's conditions give reasons to expect earlier.
 - **Evidence in the pack:** the figure comes from two load-shed drills at lower rack density; both ran with supply water at the normal 7°C and C7 racks at about 70–80 kW. Today supply is 9.3°C and rising, C7 runs 90–105 kW racks, and the containment door was wedged open this morning.
 - **Arithmetic:** twenty minutes sits inside the linear 16–27½ minute range from item 1, but nothing in the drills reflects warm water or the denser racks.
 - **What brings it out:** asking what the twenty minutes is based on, or what conditions the drills ran under.
@@ -97,6 +99,6 @@ The trap in this case is proportion under a deadline: a five-minute decision tha
 - Chiller capacity beyond the shift team's working figure.
 - How quickly compute will approve a shed during the benchmark.
 
-## A right-sized session
+## One right-sized session
 
-In the first one or two turns, get the current reading, trend and shed lag if not already given; give bounded advice: a 16–27½ minute linear range that is probably optimistic, the 8–12 minute shed lag against it, the pause buying time rather than ending the rise, CH-4 out of reach, the door as a cheap check, and the uncertainties named. Then offer a modelling plan for margins, windows, setpoints and the expansion once the incident is over. No net in the first exchange.
+In the first one or two turns, get the current reading, trend and shed lag if not already given; give bounded advice: a 16–27½ minute range if the trend holds, with warming water as a reason it may come sooner, the 8–12 minute shed lag against it, the pause buying time rather than ending the rise, CH-4 out of reach, the door as a cheap check, and the uncertainties named. Then offer a modelling plan for margins, windows, setpoints and the expansion once the incident is over. No net in the first exchange.

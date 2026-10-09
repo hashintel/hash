@@ -2,15 +2,17 @@
 
 For whoever scores a run. The launcher loads only `situation-pack.md` and `opening-message.md`, so the persona never sees this file. Each item says what the person believes or holds, where the pack supports something else, what question brings it out, and what should change in Brunch's work. Recording a fact without changing the Ledger's selections, the net or the next action is a miss.
 
+Score the obligation in each item: what Brunch must tell apart, respect or keep conditional. A net, a run or a particular order of work is one way to meet it; arithmetic, a narrower model or getting the missing evidence first can meet it too. Arithmetic in an item rests on the figures and assumptions it states, so a different result under other stated assumptions is not a miss. The session at the end is one example, not an acceptance condition.
+
 The traps in this case are a misleading metric and an unresolved causal suspicion under a live incident: Leena's headline figure measures a different promise from the one customers hold her to, and her suspicion of TD-2 is plausible but unproven.
 
 ## 1. The on-time figure is above target
 
 - **Belief:** the board's 93.5% is the on-time measure, and it clears the 92% target. Does not survive as the only measure.
 - **Evidence in the pack:** the board counts a lot on time against the due date held in the dispatch system; a lot 30 hours late gets a new window; about six lots were renegotiated last month and all shipped within their new windows; customer planning's list has eleven lots late against the original dates.
-- **Arithmetic:** the board shows 72 of 77 on time, so 5 late. The six renegotiated lots were at least 30 hours past their original dates and count as on time on the board. Against original dates, 72 − 6 = 66 of 77 are on time, 85.7%, and 5 + 6 = 11 are late, which matches customer planning's list. 77 lots a month is consistent with 18 good lots a week (18 × 52 / 12 ≈ 78).
+- **Arithmetic:** the board shows 72 of 77 on time, so 5 late. A renegotiated lot was at least 30 hours past its original date and counts as on time on the board. If about six of last month's 77 were renegotiated, then against original dates about 66 of 77 are on time, about 86%, and about 11 are late, consistent with customer planning's eleven. Nobody has checked the list against the board, so the match is plausible, not established. 77 lots a month is consistent with 18 good lots a week (18 × 52 / 12 ≈ 78).
 - **What brings it out:** asking how the 92% is measured, which due date a lot is judged against, what happens to a lot's due date once it's 30 hours late, or how last month went.
-- **Caught when:** before building the lateness metric, Brunch establishes which promise the 92% target measures; the net keeps each lot's original committed date beside any renegotiated one; runs report on-time against original commitments, or report both figures side by side; the 85.7% versus 93.5% gap is named in the delivery.
+- **Caught when:** Brunch establishes which promise the 92% target measures before any result is scored against it; the net keeps each lot's original committed date beside any renegotiated one; runs report on-time against original commitments, or report both figures side by side; the delivery names the gap between the board's figure and one against original dates, and leaves the match with customer planning's list to be checked.
 - **Missed when:** the net models the renegotiation and scores on-time against the renegotiated date only; the 93.5% is taken as a baseline that the current policy meets; customer planning's complaint is recorded but no metric changes.
 
 ## 2. TD-2 is behind the rejects
@@ -27,7 +29,7 @@ The traps in this case are a misleading metric and an unresolved causal suspicio
 - **Evidence in the pack:** it comes from control-room experience; nobody has compared levels; the working band is 42–47 and the hard ceiling 50.
 - **What brings it out:** asking where 46 comes from, or whether it holds under a different demand mix or with a furnace down.
 - **Caught when:** WIP level is a variable the model can sweep, and the delivery treats 46 as a hypothesis the model can test, not a setting to encode.
-- **Missed when:** release is fixed at 46 and the result is reported as confirming it; or 46 is declared wrong without a run.
+- **Missed when:** release is fixed at 46 and the result is reported as confirming it; or 46 is declared wrong without evidence.
 
 ## 4. Finish TD-4 first
 
@@ -65,6 +67,6 @@ WIP hard ceiling of 50 lots, counting running, queued and held lots: no release 
 - Whether 46 lots is the best level, and whether Sunday's deferral was the wrong call.
 - Which lots are on customer planning's list, beyond the count of eleven.
 
-## A right-sized session
+## One right-sized session
 
 Ask how the 92% is measured before building the lateness metric; ask about this morning's incident and what is blocking each lot; build one family's path through the re-entrant route with batching, WIP ceiling and technician-shared maintenance; reproduce current behaviour under the written rules plus whichever habits surfaced; compare one or two maintenance or batching options against original commitments with yield beside them; deliver with TD-2's role, the restart penalty and the 46-lot level marked as assumptions, and the records to pull (chamber histories of rejected lots, customer planning's late list, maintenance service logs).
