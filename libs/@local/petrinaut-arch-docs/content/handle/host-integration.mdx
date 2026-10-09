@@ -404,7 +404,7 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `plugins`                                                                | Plugins that add buttons, top-bar items, settings and UI. Define each at module scope.                                                   |
 
 A plugin declares what it adds in a manifest and returns it from a hook the
-editor runs per document; see the [Plugin API](doc:plugins/usage-manual).
+editor runs per document; see [Plugins](doc:plugins/overview).
 Wrap `<Petrinaut>` in `ErrorTrackerContext` (exported from
 `@hashintel/petrinaut`) to receive plugin failures and `api.errors.capture`
 calls; without it they are dropped.
