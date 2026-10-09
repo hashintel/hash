@@ -32,6 +32,7 @@ import {
   describeBudget,
   describeExperiment,
   metricRoles,
+  nameOfMetric,
   preparationDiffers,
   summarizeForAgent,
 } from "./brunch-draft-experiment-interactive-tool/describe-draft";
@@ -633,7 +634,9 @@ export const BrunchDraftExperimentWidget = ({
               {condition.condition} — {condition.reason}
               {condition.reportedByMetricId ? (
                 <span className={tagStyle}>
-                  reported by {condition.reportedByMetricId}, not enforced
+                  reported by{" "}
+                  {nameOfMetric(definition, condition.reportedByMetricId)}, not
+                  enforced
                 </span>
               ) : null}
             </li>

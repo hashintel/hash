@@ -180,7 +180,6 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
         binding: {
           conversationId: identity.conversationId,
           documentId: "TEST-document",
-          incarnationId: "TEST-incarnation",
         },
       },
     },

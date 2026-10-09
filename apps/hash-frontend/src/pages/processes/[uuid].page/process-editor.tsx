@@ -12,17 +12,11 @@ import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   type HostNetMode,
   type HostToIframeMessage,
-  type PetrinautAiMessage,
   type PetrinautHostCapabilities,
   type RevisionSummary,
   type SavedSnapshot,
 } from "../shared/messages";
 import { useHostBridge } from "../shared/use-host-bridge";
-import {
-  clearAiMessages,
-  readAiMessages,
-  writeAiMessages,
-} from "./process-editor/ai-messages-storage";
 import { getPetrinautHostCapabilities } from "./process-editor/get-petrinaut-host-capabilities";
 import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
@@ -49,14 +43,6 @@ const emptySDCPN: SDCPN = {
  * tab tidy.
  */
 const PETRINAUT_EMBED_SRC = "/processes/draft/embed";
-
-/**
- * Server route that proxies the Petrinaut AI assistant to the LLM provider.
- * Hardcoded here rather than taken from the iframe's request: the iframe runs
- * untrusted user code, so the host must never fetch an arbitrary URL on its
- * behalf — it only forwards the (still server-validated) request body.
- */
-const PETRINAUT_AI_CHAT_API = "/api/petrinaut-ai-chat";
 
 /**
  * Authenticated NodeAPI endpoint for detached optimization runs, proxying
@@ -246,21 +232,6 @@ const pathForLoadedView = (loadedView: LoadedView): string => {
   return `/processes/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
 };
 
-/**
- * Storage key under which a net's AI-assistant conversation is persisted.
- *
- * - Saved nets key by their entity UUID, so the conversation follows the net
- *   across reloads and navigations.
- * - Drafts key by their seed (or `"blank"`). These are written so a draft
- *   conversation can be migrated onto the saved net on first save, but they're
- *   intentionally never *restored* (a fresh draft starts with a blank
- *   conversation, mirroring that draft net contents aren't persisted either).
- */
-const aiMessagesKeyForLoadedView = (loadedView: LoadedView): string =>
-  loadedView.kind === "saved"
-    ? extractEntityUuidFromEntityId(loadedView.entityId)
-    : `draft:${loadedView.seedKey ?? "blank"}`;
-
 const viewMatchesLoaded = (
   view: ProcessEditorView,
   loadedView: LoadedView,
@@ -287,11 +258,6 @@ type ResolvedView = {
   title: string;
   mode: HostNetMode;
   savedSnapshot: SavedSnapshot;
-  /**
-   * Persisted AI conversation to seed the iframe's assistant with. Only
-   * populated for saved nets — see {@link aiMessagesKeyForLoadedView}.
-   */
-  aiMessages: PetrinautAiMessage[];
 };
 
 const buildRevisionSummaries = (
@@ -385,12 +351,6 @@ export const ProcessEditor = ({
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  /**
-   * In-flight AI chat proxy requests, keyed by the `requestId` the iframe
-   * generated. Lets `aiChatAbort` cancel the matching fetch.
-   */
-  const aiChatAbortControllersRef = useRef(new Map<string, AbortController>());
-
   /** In-flight optimizer streams, keyed by the iframe request id. */
   const optimizationAbortControllersRef = useRef(
     new Map<string, AbortController>(),
@@ -415,10 +375,6 @@ export const ProcessEditor = ({
 
   useEffect(
     () => () => {
-      for (const controller of aiChatAbortControllersRef.current.values()) {
-        controller.abort();
-      }
-      aiChatAbortControllersRef.current.clear();
       for (const controller of optimizationAbortControllersRef.current.values()) {
         controller.abort();
       }
@@ -492,8 +448,6 @@ export const ProcessEditor = ({
           title: seedTitle,
           mode: { kind: "draft", seedKey: target.seedKey },
           savedSnapshot: null,
-          // Drafts always start with a blank conversation.
-          aiMessages: [],
         };
       }
 
@@ -518,9 +472,6 @@ export const ProcessEditor = ({
           title: targetNet.title,
           decisionTime: targetNet.lastUpdated,
         },
-        aiMessages: readAiMessages(
-          extractEntityUuidFromEntityId(targetNet.entityId),
-        ),
       };
     },
     [persistedNets],
@@ -555,9 +506,6 @@ export const ProcessEditor = ({
             decisionTime: revision.decisionTime,
           },
           revisions: buildRevisionSummaries(revisions),
-          aiMessages: readAiMessages(
-            extractEntityUuidFromEntityId(loadedView.entityId),
-          ),
         });
       },
       onReportError: ({ source, name, message, stack, mode }) => {
@@ -581,69 +529,6 @@ export const ProcessEditor = ({
             petrinaut: { mode },
           },
         });
-      },
-      onAiChatRequest: ({ requestId, body }) => {
-        const controller = new AbortController();
-        aiChatAbortControllersRef.current.set(requestId, controller);
-
-        /**
-         * Proxy the iframe's chat request through HASH's authenticated API
-         * (the iframe's opaque origin can't send our session cookie) and
-         * relay the streamed response back over the bridge byte-for-byte.
-         */
-        void (async () => {
-          try {
-            const response = await fetch(PETRINAUT_AI_CHAT_API, {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body,
-              signal: controller.signal,
-            });
-
-            bridge.send({
-              kind: "aiChatResponseStart",
-              requestId,
-              ok: response.ok,
-              status: response.status,
-              statusText: response.statusText,
-            });
-
-            if (response.body) {
-              const reader = response.body.getReader();
-              let done = false;
-              while (!done) {
-                const result = await reader.read();
-                done = result.done;
-                if (result.value) {
-                  bridge.send({
-                    kind: "aiChatChunk",
-                    requestId,
-                    bytes: result.value,
-                  });
-                }
-              }
-            }
-
-            bridge.send({ kind: "aiChatEnd", requestId });
-          } catch (error) {
-            // An abort is a normal control-flow signal, not a failure — the
-            // iframe already tore down its stream when it asked us to abort.
-            if (!controller.signal.aborted) {
-              bridge.send({
-                kind: "aiChatError",
-                requestId,
-                message: error instanceof Error ? error.message : String(error),
-              });
-            }
-          } finally {
-            aiChatAbortControllersRef.current.delete(requestId);
-          }
-        })();
-      },
-      onAiChatAbort: ({ requestId }) => {
-        const controller = aiChatAbortControllersRef.current.get(requestId);
-        controller?.abort();
-        aiChatAbortControllersRef.current.delete(requestId);
       },
       onOptimizationCreate: ({ requestId, input }) => {
         const parsedInput = petrinautOptimizationInputSchema.safeParse(input);
@@ -789,40 +674,12 @@ export const ProcessEditor = ({
       onOptimizationCancel: ({ runId }) => {
         cancelOptimizationRun(runId);
       },
-      onAiMessagesChanged: ({ messages }) => {
-        if (!loadedView) {
-          return;
-        }
-        writeAiMessages(aiMessagesKeyForLoadedView(loadedView), messages);
-      },
-      onAiMessagesCleared: () => {
-        if (!loadedView) {
-          return;
-        }
-        clearAiMessages(aiMessagesKeyForLoadedView(loadedView));
-      },
       onRequestSave: ({ requestId, definition, title }) => {
         const wasCreate = selectedNetId === null;
         void persistDefinition(definition, title)
           .then((result) => {
             if (wasCreate) {
               const savedUuid = extractEntityUuidFromEntityId(result.entityId);
-
-              /**
-               * Carry any conversation the user had while drafting onto the
-               * newly-saved net's key, so saving doesn't appear to discard it.
-               * (`loadedView` is still the draft here — the closure captures
-               * the value at the time the save was requested.)
-               */
-              if (loadedView?.kind === "draft") {
-                const draftKey = aiMessagesKeyForLoadedView(loadedView);
-                const draftMessages = readAiMessages(draftKey);
-                if (draftMessages.length > 0) {
-                  writeAiMessages(savedUuid, draftMessages);
-                }
-                clearAiMessages(draftKey);
-              }
-
               expectedSavedUuidRef.current = savedUuid;
               setLoadedView({ kind: "saved", entityId: result.entityId });
               void router.replace(`/processes/${savedUuid}`);
@@ -919,7 +776,6 @@ export const ProcessEditor = ({
       mode: resolved.mode,
       savedSnapshot: resolved.savedSnapshot,
       revisions: buildRevisionSummaries(revisions),
-      aiMessages: resolved.aiMessages,
     });
   }, [adoptResolvedView, bridge, loadedView, resolveView, revisions, view]);
 
@@ -991,7 +847,6 @@ export const ProcessEditor = ({
       mode: resolved.mode,
       savedSnapshot: resolved.savedSnapshot,
       revisions: buildRevisionSummaries(revisions),
-      aiMessages: resolved.aiMessages,
     });
   }, [
     adoptResolvedView,
@@ -1074,7 +929,6 @@ export const ProcessEditor = ({
         mode: resolved.mode,
         savedSnapshot: resolved.savedSnapshot,
         revisions: buildRevisionSummaries(revisions),
-        aiMessages: resolved.aiMessages,
       });
     },
     [adoptResolvedView, bridge, resolveView, revisions],
@@ -1130,14 +984,8 @@ export const ProcessEditor = ({
            * additionally restricts what the iframe can do with the
            * `'unsafe-eval'` we grant it (no `connect-src` to anywhere
            * outside `'self'`, which is itself unreachable cross-origin).
-           *
-           * `allow-forms` is required for the AI assistant's `<form>`: its
-           * submit handler is JS-driven (`preventDefault` + `sendMessage`),
-           * but the browser blocks the `submit` event entirely without this
-           * flag. It doesn't widen exfiltration risk — the embed CSP's
-           * `form-action 'none'` still prevents any actual form navigation.
            */
-          sandbox="allow-scripts allow-forms"
+          sandbox="allow-scripts"
           allow="clipboard-read *; clipboard-write *"
           referrerPolicy="no-referrer"
           title="Process editor"

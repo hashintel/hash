@@ -3,6 +3,7 @@
  * @role Reads and writes the on-disk SDCPN document format, plus export converters
  */
 
+import { canonicalizePetrinautIds } from "../petrinaut-id";
 import {
   describeDangerousSdcpnKeys,
   findDangerousSdcpnKeys,
@@ -137,12 +138,12 @@ const checkRecordKeys = (sdcpn: SDCPN): ImportResult | null => {
       };
 };
 
-/** Successful parse of either format: fill visual info, then apply the
- * record-key boundary check. */
+/** Successful parse of either format: fill visual info, convert entity ids
+ * to Petrinaut ids, then apply the record-key boundary check. */
 const toImportResult = (
   sdcpnData: Parameters<typeof fillMissingVisualInfo>[0],
 ): ImportResult => {
-  const sdcpn = fillMissingVisualInfo(sdcpnData);
+  const sdcpn = canonicalizePetrinautIds(fillMissingVisualInfo(sdcpnData));
   return (
     checkRecordKeys(sdcpn) ?? {
       ok: true,

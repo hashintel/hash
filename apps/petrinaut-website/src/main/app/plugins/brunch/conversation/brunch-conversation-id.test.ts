@@ -26,13 +26,15 @@ test("reuses one conversation id per net across reloads", () => {
   expect(createId).toHaveBeenCalledTimes(2);
 });
 
-test("scopes ordinary construction conversations to the net incarnation", () => {
-  expect(ordinaryConstructionConversationIdFrom("incarnation-1")).toBe(
-    "brunch-construction-v1:incarnation-1",
-  );
+test("scopes ordinary construction conversations to the net", () => {
+  expect(
+    ordinaryConstructionConversationIdFrom(
+      "56c16f29-0b95-5de8-992d-54db5288e8c4",
+    ),
+  ).toBe("brunch-construction-v1:56c16f29-0b95-5de8-992d-54db5288e8c4");
 });
 
 test("preserves the evaluation-I conversation namespace", () => {
-  const base = ordinaryConstructionConversationIdFrom("incarnation-1");
+  const base = ordinaryConstructionConversationIdFrom("net-1");
   expect(brunchEvaluationConversationIdFrom(base)).toBe(`${base}:evaluation-I`);
 });

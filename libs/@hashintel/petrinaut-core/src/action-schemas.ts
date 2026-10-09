@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   arcEndpointSchema,
   arcDirectionSchema,
+  arcIdSchema,
   colorElementSchema,
   colorSchema,
   componentInstanceSchema,
@@ -220,7 +221,7 @@ export const itemTypeAndIdSchema = z
   .discriminatedUnion("type", [
     z.strictObject({ type: z.literal("place"), id: idSchema }),
     z.strictObject({ type: z.literal("transition"), id: idSchema }),
-    z.strictObject({ type: z.literal("arc"), id: idSchema }),
+    z.strictObject({ type: z.literal("arc"), id: arcIdSchema }),
     z.strictObject({ type: z.literal("componentInstance"), id: idSchema }),
     z.strictObject({ type: z.literal("type"), id: idSchema }),
     z.strictObject({ type: z.literal("differentialEquation"), id: idSchema }),

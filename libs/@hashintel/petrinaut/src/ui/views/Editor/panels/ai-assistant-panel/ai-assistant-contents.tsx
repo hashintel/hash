@@ -832,7 +832,7 @@ export const AiAssistantContents = ({
                   ]}
                   activeTabId={showingHostTab ? hostTabId : aiTabId}
                   announcement={attentionAnnouncement}
-                  styleVariant={presentation}
+                  styleVariant={isBrunchChat ? "pill" : "default"}
                   onTabChange={(tabId) => {
                     const selected = tabId === hostTabId;
                     setInternalHostTabSelected(selected);

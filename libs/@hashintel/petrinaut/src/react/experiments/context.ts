@@ -192,8 +192,8 @@ export type ExperimentRecord = {
   constraintPolicy: PetrinautOptimizationConstraintPolicy | null;
   /**
    * The scenario the runs compile from, as it was at creation: the saved
-   * scenario's snapshot, or the generated ad-hoc scenario (id
-   * "adhoc-scenario", one parameter per interval toggle). A study of this
+   * scenario's snapshot, or the generated ad-hoc scenario (one parameter per
+   * interval toggle). A study of this
    * sweep binds its parameters. Null when the experiment runs the net's own
    * marking.
    */

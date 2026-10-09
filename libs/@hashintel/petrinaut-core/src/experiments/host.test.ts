@@ -5,16 +5,17 @@ import {
   petrinautExperimentRequestSchema,
   petrinautExperimentResultSchema,
 } from "../experiments";
+import { toPetrinautId } from "../petrinaut-id";
 
 const simulation = {
   name: "Baseline",
-  scenarioId: "baseline",
+  scenarioId: toPetrinautId("baseline"),
   scenarioParameterValues: { enabled: { mode: "fixed", value: true } },
   runCount: 10,
   seed: 42,
   dt: 0.1,
   maxTime: 10,
-  metricIds: ["cost"],
+  metricIds: [toPetrinautId("cost")],
   execution: { mode: "simulate" },
 };
 
@@ -23,7 +24,7 @@ const optimization = {
   scenarioParameterValues: { capacity: { mode: "range", min: 1, max: 10 } },
   execution: {
     mode: "optimize",
-    objectiveMetricId: "cost",
+    objectiveMetricId: toPetrinautId("cost"),
     direction: "minimize",
     steps: 5,
     runsPerStep: 5,
@@ -31,6 +32,17 @@ const optimization = {
 };
 
 describe("experiment host schemas", () => {
+  it("converts legacy scenario and metric ids", () => {
+    expect(
+      petrinautExperimentRequestSchema.parse({
+        ...optimization,
+        scenarioId: "baseline",
+        metricIds: ["cost"],
+        execution: { ...optimization.execution, objectiveMetricId: "cost" },
+      }),
+    ).toEqual(optimization);
+  });
+
   it("accepts typed fixed values and bounded optimization", () => {
     expect(petrinautExperimentRequestSchema.parse(simulation)).toEqual(
       simulation,

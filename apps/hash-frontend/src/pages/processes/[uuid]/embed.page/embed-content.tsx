@@ -10,10 +10,10 @@
  */
 import "@hashintel/petrinaut/dist/main.css";
 import { Box } from "@mui/material";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
 import {
+  canonicalizePetrinautIds,
   createJsonDocHandle,
   isSDCPNEqual,
   Petrinaut,
@@ -22,38 +22,31 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut";
 
-import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
 import { setIframeErrorReporterMode } from "../../shared/iframe-error-reporter";
 import {
   type HostNetMode,
   nextRequestId,
-  type PetrinautAiMessage,
   type PetrinautHostCapabilities,
   type RevisionSummary,
   type SavedSnapshot,
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
-import { createBridgeAiChatTransport } from "./create-bridge-ai-transport";
+import {
+  EmbedActions,
+  EmbedBreadcrumbs,
+  type EmbedChrome,
+  EmbedChromeContext,
+} from "./embed-chrome";
 import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
-import { VersionPicker } from "./version-picker";
 
 /**
- * Chat transport for the AI assistant. Created once at module scope: it's
- * stateless beyond the per-request bookkeeping it owns internally, so a single
- * instance is shared across renders (and is safe even though the editor never
- * remounts when switching nets).
+ * The embed's top-bar chrome. The items read the page's state from
+ * `EmbedChromeContext`, so this object stays a stable module constant.
  */
-const aiChatTransport = createBridgeAiChatTransport();
-
-/**
- * The grays HASH's breadcrumbs use elsewhere in the app: crumb text (and
- * the crumb's icon / the process title) in the darker grey-blue, the
- * chevron separators lighter. Neither the MUI theme (closest:
- * `palette.gray[70]` #64778C / `palette.gray[50]` #91A5BA) nor the
- * ds-components palette has exact tokens for these, so they're pinned here.
- */
-const BREADCRUMB_TEXT_COLOR = "#677789";
-const BREADCRUMB_CHEVRON_COLOR = "#95a5b8";
+const embedSlots: PetrinautSlots = {
+  topBarStart: <EmbedBreadcrumbs />,
+  topBarEnd: <EmbedActions />,
+};
 
 const noNetSwitchingError = () => {
   throw new Error(
@@ -68,14 +61,20 @@ type EditorState = {
   readonly: boolean;
   mode: HostNetMode;
   savedSnapshot: SavedSnapshot;
-  /**
-   * Conversation the host restored for this net (empty for drafts / nets
-   * with no saved conversation). Seeds the assistant panel's initial
-   * messages; the panel is keyed by the doc handle id (replaced on every
-   * `init`/`load`), so it remounts and re-reads these on each net change.
-   */
-  aiMessages: PetrinautAiMessage[];
 };
+
+/**
+ * The snapshot with its ids converted, as the handle holds the open net, so
+ * dirty tracking compares like with like. Saved nets with legacy ids persist
+ * the converted ids on their next save.
+ */
+const withPetrinautIds = (snapshot: SavedSnapshot): SavedSnapshot =>
+  snapshot === null
+    ? null
+    : {
+        ...snapshot,
+        definition: canonicalizePetrinautIds(snapshot.definition),
+      };
 
 const computeIsDirty = (
   definition: SDCPN,
@@ -127,20 +126,20 @@ export const EmbedContent = () => {
       const handle = createJsonDocHandle({
         initial: payload.initialDefinition,
       });
+      const savedSnapshot = withPetrinautIds(payload.savedSnapshot);
       setState({
         handle,
         title: payload.initialTitle,
         readonly: payload.readonly,
         mode: payload.mode,
-        savedSnapshot: payload.savedSnapshot,
-        aiMessages: payload.aiMessages,
+        savedSnapshot,
       });
       setRevisions(payload.revisions);
       setIsDirty(
         computeIsDirty(
-          payload.initialDefinition,
+          handle.doc() ?? payload.initialDefinition,
           payload.initialTitle,
-          payload.savedSnapshot,
+          savedSnapshot,
         ),
       );
       setIframeErrorReporterMode(payload.mode);
@@ -153,21 +152,21 @@ export const EmbedContent = () => {
     },
     onLoad: (payload) => {
       const handle = createJsonDocHandle({ initial: payload.definition });
+      const savedSnapshot = withPetrinautIds(payload.savedSnapshot);
       setState({
         handle,
         title: payload.title,
         readonly:
           payload.mode.kind === "saved" ? !payload.mode.userEditable : false,
         mode: payload.mode,
-        savedSnapshot: payload.savedSnapshot,
-        aiMessages: payload.aiMessages,
+        savedSnapshot,
       });
       setRevisions(payload.revisions);
       setIsDirty(
         computeIsDirty(
-          payload.definition,
+          handle.doc() ?? payload.definition,
           payload.title,
-          payload.savedSnapshot,
+          savedSnapshot,
         ),
       );
       setIframeErrorReporterMode(payload.mode);
@@ -204,7 +203,7 @@ export const EmbedContent = () => {
             ? {
                 ...prev,
                 mode,
-                savedSnapshot,
+                savedSnapshot: withPetrinautIds(savedSnapshot),
               }
             : prev,
         );
@@ -277,22 +276,6 @@ export const EmbedContent = () => {
     setState((prev) => (prev ? { ...prev, title } : prev));
   }, []);
 
-  /**
-   * Relay conversation changes up to the host, which owns persistence — the
-   * sandboxed iframe's opaque origin has no usable `localStorage`. Fired by
-   * the assistant whenever a turn finishes or the conversation is cleared.
-   */
-  const handleAiMessages = useCallback(
-    (messages: PetrinautAiMessage[]) => {
-      bridge.send({ kind: "aiMessagesChanged", messages });
-    },
-    [bridge],
-  );
-
-  const handleClearAiMessages = useCallback(() => {
-    bridge.send({ kind: "aiMessagesCleared" });
-  }, [bridge]);
-
   const handleSaveClick = useCallback(() => {
     if (!state || pendingSaveRequestId) {
       return;
@@ -327,90 +310,6 @@ export const EmbedContent = () => {
 
   const persistPending = pendingSaveRequestId !== null;
 
-  const slots = useMemo<PetrinautSlots>(() => {
-    /**
-     * HASH-style breadcrumbs, integrated into Petrinaut's top bar via the
-     * `topBarStart` slot so the embed shows a single bar. The editor's own
-     * editable title renders directly after this slot and acts as the final
-     * crumb, keeping rename-in-place — `titleStyle` tints it to match.
-     */
-    const breadcrumbs = (
-      <Box
-        sx={{
-          alignItems: "center",
-          /** Inherited by the chevron separator's `currentColor` fill. */
-          color: BREADCRUMB_CHEVRON_COLOR,
-          display: "flex",
-          gap: 0.5,
-        }}
-      >
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleNavigateBack}
-          prefix={
-            <ChartNetworkRegularIcon
-              style={{ color: BREADCRUMB_TEXT_COLOR, fontSize: 14 }}
-            />
-          }
-        >
-          {/*
-           * The ds Button recipe sets its own text color, and the editor's
-           * layer-polyfilled Panda bundle compiles that rule to a
-           * specificity that beats host emotion classes (FE-1228) — inline
-           * styles are the only reliable channel, hence the styled span
-           * and the inline-styled icon above.
-           */}
-          <span style={{ color: BREADCRUMB_TEXT_COLOR }}>Processes</span>
-        </Button>
-        <Icon name="chevronRight" size="xs" />
-      </Box>
-    );
-
-    const titleStyle = { color: BREADCRUMB_TEXT_COLOR };
-
-    if (!state || state.readonly) {
-      return { topBarStart: breadcrumbs, titleStyle };
-    }
-
-    const isSaved = state.mode.kind === "saved";
-    const saveLabel = isSaved ? (isDirty ? "Save" : "Saved") : "Create";
-
-    return {
-      topBarStart: breadcrumbs,
-      titleStyle,
-      topBarEnd: (
-        <>
-          <VersionPicker
-            revisions={revisions}
-            loadedRevisionTime={state.savedSnapshot?.decisionTime ?? null}
-            isDirty={isDirty && !persistPending}
-            onLoadRevision={handleLoadRevision}
-          />
-          <Button
-            size="sm"
-            onClick={handleSaveClick}
-            disabled={!isDirty || persistPending}
-            loading={persistPending}
-            tooltip={
-              !isDirty && !persistPending ? "No changes to save" : undefined
-            }
-          >
-            {saveLabel}
-          </Button>
-        </>
-      ),
-    };
-  }, [
-    handleLoadRevision,
-    handleNavigateBack,
-    handleSaveClick,
-    isDirty,
-    persistPending,
-    revisions,
-    state,
-  ]);
-
   if (!state) {
     /**
      * Host is expected to send `init` immediately after the iframe's
@@ -420,28 +319,41 @@ export const EmbedContent = () => {
     return <Box sx={{ height: "100vh" }} />;
   }
 
+  const chrome: EmbedChrome = {
+    title: state.title,
+    onTitleChange: handleSetTitle,
+    readonly: state.readonly,
+    isDirty,
+    persistPending,
+    saveLabel:
+      state.mode.kind === "saved" ? (isDirty ? "Save" : "Saved") : "Create",
+    revisions,
+    loadedRevisionTime: state.savedSnapshot?.decisionTime ?? null,
+    onNavigateBack: handleNavigateBack,
+    onSave: handleSaveClick,
+    onLoadRevision: handleLoadRevision,
+  };
+
   return (
     <Box sx={{ height: "100vh", overflow: "hidden" }}>
       <HASHPetrinautOptimizationProvider
         enabled={hostCapabilities?.optimization === true}
       >
-        <Petrinaut
-          aiAssistant={{
-            transport: aiChatTransport,
-            messages: state.aiMessages,
-            onMessages: handleAiMessages,
-            onClearMessages: handleClearAiMessages,
-          }}
-          handle={state.handle}
-          createNewNet={noNetSwitchingError}
-          existingNets={[]}
-          hideNetManagementControls="except-title"
-          loadPetriNet={noNetSwitchingError}
-          readonly={state.readonly}
-          setTitle={handleSetTitle}
-          slots={slots}
-          title={state.title}
-        />
+        <EmbedChromeContext value={chrome}>
+          {/* The title is the breadcrumbs' final crumb, so the editor's
+              own title field stays hidden. */}
+          <Petrinaut
+            handle={state.handle}
+            createNewNet={noNetSwitchingError}
+            existingNets={[]}
+            hideNetManagementControls="all"
+            loadPetriNet={noNetSwitchingError}
+            readonly={state.readonly}
+            setTitle={handleSetTitle}
+            slots={embedSlots}
+            title={state.title}
+          />
+        </EmbedChromeContext>
       </HASHPetrinautOptimizationProvider>
     </Box>
   );

@@ -8,13 +8,16 @@ attachTo: core.simulation.engine
 import { Lanes } from "@diagrams/lanes";
 import { Sequence } from "@diagrams/sequence";
 
-Every identity string in a net is user-authored: place, transition, colour,
-differential-equation, metric and scenario ids, parameter variable names, and
-colour element names. They arrive from imported `.petrinaut` files, whose
-schema accepts any string as an id. The engine, the HIR compiler and the UI
-all key records by these strings, so a name chosen to collide with
-`Object.prototype` corrupts whichever record it touches. CodeQL reports this
-class as `js/remote-property-injection`.
+Every identity string in a net is user-authored: parameter variable names,
+colour element names, scenario parameter identifiers, and entity ids.
+Imported `.petrinaut` files, hosts and assistants can supply any string as an
+id. Loading converts each id to a UUID with `canonicalizePetrinautIds`, so an
+id such as `__proto__` is replaced before any record is keyed by it. Names are
+not converted, and nets passed straight to `buildSimulation` skip the
+conversion. The engine, the HIR compiler and the UI all key records by these
+strings, so a name chosen to collide with `Object.prototype` corrupts
+whichever record it touches. CodeQL reports this class as
+`js/remote-property-injection`.
 
 ## What a hostile name does to a plain object
 
@@ -50,7 +53,7 @@ Two concrete failures this caused before the guards existed:
       boxes: [
         {
           label: "`parseSDCPNFile`",
-          note: "Imports fail with the offending id named (`file-format`)",
+          note: "Converts ids, then rejects a reserved name and reports it (`file-format`)",
         },
         {
           label: "`buildSimulation`",
@@ -124,14 +127,14 @@ side broken: a `__proto__` write on a plain object still replaces the
 prototype instead of storing the entry.
 
 <Sequence
-  title="One hostile transition id, three entry paths"
+  title="One hostile identity string, three entry paths"
   actors={["Untrusted input", "Engine"]}
   rows={[
     { phase: "Imported file" },
     {
       direction: "right",
       label: "`.petrinaut` with transition id `constructor`",
-      note: "`parseSDCPNFile` returns an error naming the id",
+      note: "`parseSDCPNFile` converts the id to a UUID and the import succeeds",
     },
     { phase: "Programmatic net (embedding application)" },
     {

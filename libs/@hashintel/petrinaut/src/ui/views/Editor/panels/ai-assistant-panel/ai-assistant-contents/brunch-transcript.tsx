@@ -325,6 +325,9 @@ const BrunchMessage = memo(
               part={item.part}
               state={experimentStates?.[item.part.toolCallId]}
               onCancel={onCancelExperiment}
+              onSelectToolTarget={(target) =>
+                handlersRef.current.onSelectToolTarget?.(target)
+              }
             />
           ) : (
             <AiAssistantToolList

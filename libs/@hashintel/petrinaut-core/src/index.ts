@@ -198,9 +198,9 @@ export {
   getNetCompilationErrorsToolName,
   metricSchema,
   parameterSchema,
+  petrinautAiCapabilitySections,
   petrinautAiCommandTools,
   petrinautAiMutationTools,
-  petrinautAiPrompt,
   petrinautAiTools,
   petrinautDocNames,
   petrinautDocSummaries,
@@ -398,6 +398,14 @@ export {
   generateArcId,
   type ArcIdPrefix,
 } from "./arc-id";
+export {
+  canonicalizeArcId,
+  canonicalizePetrinautIds,
+  generatePetrinautId,
+  isPetrinautId,
+  petrinautIdSchema,
+  toPetrinautId,
+} from "./petrinaut-id";
 export {
   arcEndpointsEqual,
   arcMatchesEndpoint,

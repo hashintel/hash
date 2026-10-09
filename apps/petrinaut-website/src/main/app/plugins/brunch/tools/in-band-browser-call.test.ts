@@ -9,7 +9,6 @@ import type { FlueClient } from "@flue/sdk";
 const binding = {
   conversationId: "conversation",
   documentId: "document",
-  incarnationId: "incarnation",
 };
 const input = {
   id: "place",
@@ -89,7 +88,6 @@ test("the binding matches the issued call whatever its key order", async () => {
     }),
   );
   const reordered = {
-    incarnationId: binding.incarnationId,
     documentId: binding.documentId,
     conversationId: binding.conversationId,
   };

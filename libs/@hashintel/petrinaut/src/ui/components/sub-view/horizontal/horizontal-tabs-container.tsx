@@ -26,8 +26,8 @@ const tabButtonStyle = cva({
   },
   variants: {
     styleVariant: {
-      stock: {},
-      brunch: {
+      default: {},
+      pill: {
         display: "inline-flex",
         alignItems: "center",
         gap: "1.5",
@@ -52,7 +52,7 @@ const tabButtonStyle = cva({
   },
   compoundVariants: [
     {
-      styleVariant: "stock",
+      styleVariant: "default",
       active: true,
       css: {
         opacity: "[1]",
@@ -61,7 +61,7 @@ const tabButtonStyle = cva({
       },
     },
     {
-      styleVariant: "stock",
+      styleVariant: "default",
       active: false,
       css: {
         opacity: "[0.6]",
@@ -155,7 +155,7 @@ interface TabButtonProps {
   subView: HorizontalTabView;
   isActive: boolean;
   onClick: () => void;
-  styleVariant: "stock" | "brunch";
+  styleVariant: "default" | "pill";
 }
 
 const TabButton: React.FC<TabButtonProps> = ({
@@ -216,13 +216,13 @@ export const HorizontalTabsHeader: React.FC<{
   activeTabId: string;
   onTabChange: (tabId: string) => void;
   announcement?: string;
-  styleVariant?: "stock" | "brunch";
+  styleVariant?: "default" | "pill";
 }> = ({
   subViews,
   activeTabId,
   onTabChange,
   announcement,
-  styleVariant = "stock",
+  styleVariant = "default",
 }) => {
   return (
     <>
