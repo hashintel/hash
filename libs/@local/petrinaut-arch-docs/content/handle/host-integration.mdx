@@ -429,12 +429,12 @@ enabled.
 
 ## Reference implementations in this repo
 
-| Pattern                                                               | Where                                                                               |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual` | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`        |
-| Persist on every change event to localStorage                         | `apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.tsx` |
-| Read-only mirror of a streamed definition                             | `apps/petrinaut-website/src/main/app/brunch-demo/brunch-petrinaut.tsx`              |
-| One live handle per net, history survives switching                   | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                     |
+| Pattern                                                               | Where                                                                                   |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual` | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`            |
+| Persist on every change event to localStorage                         | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts` |
+| Read-only mirror of a streamed definition                             | `apps/petrinaut-website/src/main/app/brunch-demo/brunch-petrinaut.tsx`                  |
+| One live handle per net, history survives switching                   | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                         |
 
 All of them wrap `createJsonDocHandle`; no adapter over an external store has
 shipped yet, which is part of why the contract still has the gaps the
