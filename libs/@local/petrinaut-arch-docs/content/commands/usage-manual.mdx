@@ -43,9 +43,7 @@ interface CommandRegistry extends CommandRegistryView {
   disposer does nothing, so a stale cleanup cannot remove a newer entry.
 - `list()` returns the same array until the set changes, which is what
   `useSyncExternalStore` requires of a snapshot.
-- `shortcut` is metadata for keycaps. The registry binds no keys: whoever
-  registers a command binds its chord (the editor's keyboard handler for its
-  own commands, the palette for ⌘K).
+- `shortcut` is metadata for keycaps. The registry binds no keys.
 
 ## Create and provide a registry
 
@@ -126,25 +124,10 @@ gated on edit mode, so a host embedding the full editor needs none of this.
 
 ## From a plugin
 
-A [plugin](doc:plugins/usage-manual) registers commands with `useCommand`,
-from `@hashintel/petrinaut/ui`, in a component its `root` renders. A plugin
-button runs one by id through `command`, so the button and the palette entry
-are one action and the palette shows its shortcut. The demo website's palette
-is such a plugin:
-
-```tsx
-export const commandPalettePlugin = definePetrinautPlugin({
-  id: "website.command-palette",
-  name: "Command palette",
-  buttons: { toggle: { label: "Command palette", place: "top-bar-end" } },
-})({
-  // Registers toggleCommandId with shortcut "mod+k", and binds the chord.
-  root: <CommandPalette />,
-  buttons: {
-    toggle: { icon: <MdKeyboardCommandKey />, command: toggleCommandId },
-  },
-});
-```
+The demo website's ⌘K palette is a [plugin](doc:plugins/overview), in
+`apps/petrinaut-website/src/main/app/plugins/command-palette/plugin.tsx`. A
+plugin registers commands it only knows at run time, one per record for
+instance, with `useCommand` from `@hashintel/petrinaut/ui`.
 
 ## Merge registries
 
