@@ -61,17 +61,14 @@ pub trait AuthenticateApiToken: Send + Sync {
     ///
     /// # Errors
     ///
-    /// - [`NotFound`] if no user has a token `token_id`
-    /// - [`Verification`] if `verify` fails
-    /// - [`Revoked`] if the token is revoked
-    /// - [`Expired`] if the token is expired
+    /// - [`Invalid`] if no user has a token `token_id` that is neither revoked nor expired
+    /// - [`Invalid`] or [`Unverifiable`] if `verify` fails, converted [`From`] its
+    ///   [`ApiTokenVerificationError`], which stays in the report
     /// - [`Store`] if no store can be acquired, the token cannot be read, or its use cannot be
     ///   recorded
     ///
-    /// [`NotFound`]: ApiTokenAuthenticationError::NotFound
-    /// [`Verification`]: ApiTokenAuthenticationError::Verification
-    /// [`Revoked`]: ApiTokenAuthenticationError::Revoked
-    /// [`Expired`]: ApiTokenAuthenticationError::Expired
+    /// [`Invalid`]: ApiTokenAuthenticationError::Invalid
+    /// [`Unverifiable`]: ApiTokenAuthenticationError::Unverifiable
     /// [`Store`]: ApiTokenAuthenticationError::Store
     fn authenticate_api_token<F>(
         &self,
@@ -79,7 +76,7 @@ pub trait AuthenticateApiToken: Send + Sync {
         verify: F,
     ) -> impl Future<Output = Result<UserId, Report<ApiTokenAuthenticationError>>> + Send
     where
-        F: FnOnce(&ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> + Send;
+        F: FnOnce(&ApiTokenCredential) -> Result<(), ApiTokenVerificationError> + Send;
 }
 
 /// [`AuthenticateApiToken`] implementation backed by a [`StorePool`].
@@ -105,7 +102,7 @@ where
         verify: F,
     ) -> Result<UserId, Report<ApiTokenAuthenticationError>>
     where
-        F: FnOnce(&ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> + Send,
+        F: FnOnce(&ApiTokenCredential) -> Result<(), ApiTokenVerificationError> + Send,
     {
         self.pool
             .acquire(None)
@@ -119,17 +116,8 @@ where
 /// The error a request fails with when the store does not authenticate its API token.
 const fn authentication_error(error: &ApiTokenAuthenticationError) -> AuthenticationError {
     match error {
-        ApiTokenAuthenticationError::NotFound
-        | ApiTokenAuthenticationError::Revoked
-        | ApiTokenAuthenticationError::Expired
-        | ApiTokenAuthenticationError::Verification {
-            reason:
-                ApiTokenVerificationError::TokenMismatch | ApiTokenVerificationError::SecretMismatch,
-        } => AuthenticationError::invalid_api_token(),
-        ApiTokenAuthenticationError::Verification {
-            reason:
-                ApiTokenVerificationError::UnknownKey { .. } | ApiTokenVerificationError::Undecryptable,
-        } => AuthenticationError::unverifiable_api_token(),
+        ApiTokenAuthenticationError::Invalid => AuthenticationError::invalid_api_token(),
+        ApiTokenAuthenticationError::Unverifiable => AuthenticationError::unverifiable_api_token(),
         ApiTokenAuthenticationError::Store => AuthenticationError::store_error(),
     }
 }
@@ -265,9 +253,9 @@ mod tests {
     use super::{ApiTokenProvider, AuthenticateApiToken, PresentedApiToken, presented_api_token};
     use crate::api_token::{ApiTokenEncryptionKey, ApiTokenIssuer, Environment, HashedApiToken};
 
-    /// Answers every lookup with [`NotFound`] and counts the lookups.
+    /// Answers every lookup with [`Invalid`] and counts the lookups.
     ///
-    /// [`NotFound`]: ApiTokenAuthenticationError::NotFound
+    /// [`Invalid`]: ApiTokenAuthenticationError::Invalid
     #[derive(Default)]
     struct NoTokens {
         lookups: AtomicUsize,
@@ -280,10 +268,10 @@ mod tests {
             _verify: F,
         ) -> impl Future<Output = Result<UserId, Report<ApiTokenAuthenticationError>>> + Send
         where
-            F: FnOnce(&ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> + Send,
+            F: FnOnce(&ApiTokenCredential) -> Result<(), ApiTokenVerificationError> + Send,
         {
             self.lookups.fetch_add(1, Ordering::Relaxed);
-            core::future::ready(Err(Report::new(ApiTokenAuthenticationError::NotFound)))
+            core::future::ready(Err(Report::new(ApiTokenAuthenticationError::Invalid)))
         }
     }
 

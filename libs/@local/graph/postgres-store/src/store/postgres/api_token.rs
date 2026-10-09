@@ -187,7 +187,7 @@ impl<C: AsClient, S: TransactionState> ApiTokenStore for PostgresStore<C, S> {
         verify: F,
     ) -> Result<UserId, Report<ApiTokenAuthenticationError>>
     where
-        F: FnOnce(&ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> + Send,
+        F: FnOnce(&ApiTokenCredential) -> Result<(), ApiTokenVerificationError> + Send,
     {
         let row = self
             .as_client()
@@ -200,13 +200,13 @@ impl<C: AsClient, S: TransactionState> ApiTokenStore for PostgresStore<C, S> {
                     api_token.web_id,
                     api_token.encryption_key_id,
                     api_token.encrypted_secret_hash,
-                    api_token.revoked_at IS NOT NULL,
-                    api_token.expires_at IS NOT NULL AND api_token.expires_at <= now(),
                     api_token.last_used_at IS NULL
                         OR api_token.last_used_at <= now() - INTERVAL '1 minute'
                 FROM api_token
                 JOIN user_actor ON user_actor.id = api_token.actor_id
                 WHERE api_token.token_id = $1
+                    AND api_token.revoked_at IS NULL
+                    AND (api_token.expires_at IS NULL OR api_token.expires_at > now())
                 ",
                 &[&token_id],
             )
@@ -218,7 +218,7 @@ impl<C: AsClient, S: TransactionState> ApiTokenStore for PostgresStore<C, S> {
             ))
             .await
             .change_context(ApiTokenAuthenticationError::Store)?
-            .ok_or(ApiTokenAuthenticationError::NotFound)?;
+            .ok_or(ApiTokenAuthenticationError::Invalid)?;
 
         let credential = ApiTokenCredential {
             token_type: column(&row, 0)?,
@@ -228,22 +228,11 @@ impl<C: AsClient, S: TransactionState> ApiTokenStore for PostgresStore<C, S> {
             encryption_key_id: column(&row, 4)?,
             encrypted_secret_hash: column(&row, 5)?,
         };
-        verify(&credential).map_err(|report| {
-            let reason = *report.current_context();
-            report.change_context(ApiTokenAuthenticationError::Verification { reason })
+        verify(&credential).map_err(|reason| {
+            Report::new(reason).change_context(ApiTokenAuthenticationError::from(reason))
         })?;
 
-        let revoked: bool = column(&row, 6)?;
-        let expired: bool = column(&row, 7)?;
-        let last_used_update_due: bool = column(&row, 8)?;
-
-        if revoked {
-            return Err(Report::new(ApiTokenAuthenticationError::Revoked));
-        }
-        if expired {
-            return Err(Report::new(ApiTokenAuthenticationError::Expired));
-        }
-
+        let last_used_update_due: bool = column(&row, 6)?;
         if last_used_update_due {
             self.as_mut_client()
                 .execute(

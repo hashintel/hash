@@ -1,6 +1,5 @@
 use core::time::Duration;
 
-use error_stack::{Report, ResultExt as _};
 use hash_graph_store::api_token::{
     ApiTokenCredential, ApiTokenName, ApiTokenType, ApiTokenVerificationError, CreateApiTokenParams,
 };
@@ -86,14 +85,14 @@ impl ApiTokenIssuer {
         &self,
         token: &HashedApiToken,
         credential: &ApiTokenCredential,
-    ) -> Result<(), Report<ApiTokenVerificationError>> {
+    ) -> Result<(), ApiTokenVerificationError> {
         if (credential.token_type, credential.version) != (token.token_type(), token.version()) {
-            return Err(Report::new(ApiTokenVerificationError::TokenMismatch));
+            return Err(ApiTokenVerificationError::TokenMismatch);
         }
         if credential.encryption_key_id != self.key.id() {
-            return Err(Report::new(ApiTokenVerificationError::UnknownKey {
+            return Err(ApiTokenVerificationError::UnknownKey {
                 key_id: credential.encryption_key_id,
-            }));
+            });
         }
 
         let associated_data =
@@ -101,12 +100,12 @@ impl ApiTokenIssuer {
         let secret_hash = self
             .key
             .decrypt(credential.encrypted_secret_hash, &associated_data)
-            .change_context(ApiTokenVerificationError::Undecryptable)?;
+            .map_err(|_error| ApiTokenVerificationError::Undecryptable)?;
 
         if secret_hash == token.secret_hash() {
             Ok(())
         } else {
-            Err(Report::new(ApiTokenVerificationError::SecretMismatch))
+            Err(ApiTokenVerificationError::SecretMismatch)
         }
     }
 }
@@ -241,12 +240,12 @@ mod tests {
             &token.associated_data(ActorEntityUuid::from(credential.user_id), credential.web_id),
         );
 
-        let report = issuer
+        let error = issuer
             .verify(&token, &credential)
             .expect_err("a token with another secret should not verify");
 
         assert_matches!(
-            report.current_context(),
+            error,
             ApiTokenVerificationError::SecretMismatch,
             "the failure should be a secret mismatch"
         );
@@ -258,14 +257,14 @@ mod tests {
         let (token, mut credential) = issued(&issuer);
         credential.encryption_key_id = ApiTokenEncryptionKeyId::new(Uuid::new_v4());
 
-        let report = issuer
+        let error = issuer
             .verify(&token, &credential)
             .expect_err("a credential naming another key should not verify");
 
         assert_matches!(
-            report.current_context(),
+            error,
             ApiTokenVerificationError::UnknownKey { key_id }
-                if *key_id == credential.encryption_key_id,
+                if key_id == credential.encryption_key_id,
             "the failure should name the unknown key"
         );
     }
@@ -282,12 +281,12 @@ mod tests {
         let (token, mut credential) = issued(&issuer);
         move_row(&mut credential);
 
-        let report = issuer
+        let error = issuer
             .verify(&token, &credential)
             .expect_err("a token whose row was moved should not verify");
 
         assert_matches!(
-            report.current_context(),
+            error,
             ApiTokenVerificationError::Undecryptable,
             "the failure should be an undecryptable secret hash"
         );

@@ -1002,7 +1002,7 @@ where
         verify: F,
     ) -> Result<UserId, Report<ApiTokenAuthenticationError>>
     where
-        F: FnOnce(&ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> + Send,
+        F: FnOnce(&ApiTokenCredential) -> Result<(), ApiTokenVerificationError> + Send,
     {
         self.store.authenticate_api_token(token_id, verify).await
     }

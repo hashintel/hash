@@ -78,7 +78,7 @@ impl AuthenticateApiToken for UnreadableTokens {
         _verify: F,
     ) -> impl Future<Output = Result<UserId, Report<ApiTokenAuthenticationError>>> + Send
     where
-        F: FnOnce(&ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> + Send,
+        F: FnOnce(&ApiTokenCredential) -> Result<(), ApiTokenVerificationError> + Send,
     {
         core::future::ready(Err(Report::new(ApiTokenAuthenticationError::Store)))
     }
