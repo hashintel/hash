@@ -31,6 +31,7 @@ Apply these checks after each construction change, to the fragment added or chan
 - Physical conditions are not collapsed into the readings or commands that concern them where the account lets them diverge in age, delivery or effect.
 - Resource availability and release are represented, or carried by a stand-in.
 - Consequential quantities retain their context and supported precision; placeholder values are named as placeholders.
+- Each change over the horizon the account states in a rate, demand or condition (a peak, a shift, a season) appears in the dynamics or scenario, or in a named stand-in; a time or check recorded for it is not enough.
 - Practiced and prescribed rules, corrections, conflicts, and contextual variants are not silently collapsed.
 - A rule that did not fit the previous representation changed the representation, rather than being left out of the net.
 
