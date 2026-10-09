@@ -82,7 +82,10 @@ Recipe time depends on both the route position and the family. A furnace run is 
 - Total WIP counts running, queued and quality-held lots. At 50 lots, no new customer lot is released until one ships or is formally scrapped.
 - Dispatch priorities refresh every 2 hours from the time remaining to the committed due date. Among qualified choices, the lot with the least time remaining normally goes first.
 - Once a lot is 30 hours late, customer planning negotiates a new window of one normal cycle time and its urgency drops back into the ordinary range. You dislike the cosmetic improvement this gives the board, but it's current practice.
-- You believe a working level of about 46 lots gives the best throughput. That comes from control-room experience, not from any comparison that separates demand mix, downtime and technician availability.
+- The on-time figure on the control-meeting board counts a lot as on time if it ships by the due date held in the dispatch system. Last month the board showed 93.5% on time, 72 of 77 lots shipped, above the 92% target, and you reported it that way at the control meeting.
+- You remember about six lots being renegotiated last month. As far as you know, all of them shipped within their new windows.
+- Customer planning keeps telling you customers are unhappy about late lots. Their list for last month has eleven lots late against the dates originally committed to the customer.
+- You believe a working level of about 46 lots gives the best throughput. That comes from control-room experience; nobody has run a comparison of different levels.
 
 ## Chamber condition, maintenance and quality
 
@@ -91,7 +94,7 @@ Recipe time depends on both the route position and the family. A furnace run is 
 - Preventive work cleans and recalibrates a chamber, but calibration after maintenance is never perfectly centred. Process engineering signs the chamber back in after a qualification check.
 - Defects can be added at any route position and travel invisibly with the lot. Final inspection sees the accumulated result, so a bad chamber may have processed several more lots before the first affected lot reaches inspection.
 - Three technicians are shared across planned service, breakdown diagnosis, chamber cleans and recalibration. A normal TD preventive service takes two technicians; initial fault diagnosis usually takes one. Maintenance, not production control, assigns named people.
-- You believe TD-2 is the dirtiest furnace and is behind more rejects than the other three. Final inspection comes late, though, and every rejected lot has been through many other chambers, so the current reports can't isolate TD-2's contribution.
+- You believe TD-2 is the dirtiest furnace and is behind more rejects than the other three. Every rejected lot has also been through many other chambers, and the reject reports don't attribute a defect to a chamber.
 
 ## Today's incident
 
@@ -106,9 +109,11 @@ Recipe time depends on both the route position and the family. A furnace run is 
 
 ## What you take for granted
 
+- The board's on-time figure is the on-time measure. It's the number you quote at the control meeting and the one you'd hold against the 92% target.
+
 - INSP-2 is analog's only qualified inspection path. The written priority rule treats it like any other chamber, but you keep comfortable-due-date logic work off it when analog lots are within a day of finishing.
 - When two lots have similar urgency, you favour the one further along the route, because getting a lot out frees WIP headroom. That "finish one" tie-break isn't in the dispatch screen.
-- You sometimes hold an upstream release back a few hours when you can see it would become the fifth incompatible lot in a furnace queue. To you that's avoiding queue clutter, not throttling starts.
+- You sometimes hold an upstream release back a few hours when you can see it would become the fifth incompatible lot in a furnace queue. To you that's avoiding queue clutter.
 - On quiet weeks, the team lines preventive work up with a furnace batch timeout, so the queue builds while the chamber is down. Nobody schedules that; the day-shift controller just knows to do it.
 
 ## What you don't know
@@ -118,5 +123,6 @@ Recipe time depends on both the route position and the family. A furnace run is 
 - Failure frequencies, repair times by fault, or how particle level and calibration drift combine into lost yield. Maintenance and process engineering each own different pieces of that data.
 - How much each chamber visit contributes to defects before final inspection.
 - Whether the two final-inspection failures were caused by TD-2, how many of the seven held lots are actually defective, whether more affected lots are still upstream of final inspection, and what the eventual disposition will be.
+- Which lots are on customer planning's late list; you haven't gone through it against the board.
 - Whether 46 lots really is the best operating level.
 - Whether deferring TD-2's maintenance on Sunday was the wrong call, given only what was known then.
