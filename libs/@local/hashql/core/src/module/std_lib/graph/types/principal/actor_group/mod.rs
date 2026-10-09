@@ -1,7 +1,9 @@
+use core::alloc::Allocator;
+
 use crate::{
-    module::{
-        StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
+    module::std_lib::{
+        self, CacheId, ItemDef, ModuleCache, ModuleDef, StandardLibraryContext,
+        StandardLibraryModule,
     },
     symbol::{Symbol, sym},
 };
@@ -40,28 +42,33 @@ pub(in crate::module::std_lib) struct ActorGroup {
 impl<'heap> StandardLibraryModule<'heap> for ActorGroup {
     type Children = (self::web::Web,);
 
+    const CACHE_ID: CacheId = CacheId::GraphTypesPrincipalActorGroup;
+
     fn name() -> Symbol<'heap> {
         sym::actor_group
     }
 
-    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
-        let mut def = ModuleDef::new();
+    fn define<S: Allocator + Clone>(
+        context: &mut StandardLibraryContext<'_, 'heap, S>,
+        cache: &mut ModuleCache<'heap, S>,
+    ) -> ModuleDef<'heap, S> {
+        let mut def = ModuleDef::new_in(context.alloc.clone());
 
         // newtype ActorGroupEntityUuid = EntityUuid;
         // (we just set it to Uuid to avoid any cycles)
         // see: https://linear.app/hash/issue/H-4616/hashql-use-expression-hoisting
         // see: https://linear.app/hash/issue/H-4735/hashql-convert-rust-types-into-hashql-types
-        let uuid_ty = lib
-            .manifest::<std_lib::core::uuid::Uuid>()
+        let uuid_ty = cache
+            .request::<std_lib::core::uuid::Uuid>(context)
             .expect_newtype(sym::Uuid)
             .id;
         let actor_group_entity_uuid_ty = types::actor_group_entity_uuid(
-            &lib.ty,
+            &context.ty,
             Some(types::ActorGroupEntityUuidDependencies { uuid: uuid_ty }),
         );
         def.push(
             sym::ActorGroupEntityUuid,
-            ItemDef::newtype(lib.ty.env, actor_group_entity_uuid_ty, &[]),
+            ItemDef::newtype(context.ty.env, actor_group_entity_uuid_ty, &[]),
         );
 
         def
