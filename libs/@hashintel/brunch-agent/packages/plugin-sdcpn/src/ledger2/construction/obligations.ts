@@ -35,7 +35,7 @@ export const vObligation = v.pipe(
     "An obligation must reference at least one claim or entity.",
   ),
   v.description(
-    "A check the model owes before a result that depends on it can be trusted. Create one for each case the purpose rests on (the model reproduces it), each stand-in a reported result rests on (the result survives varying it), and each confirmed claim the net or an experiment does not yet carry. Only a reflection discharges it, by citing the run or inspection that met it or the USER's explicit waiver; until then it stays owed.",
+    "A check the model owes before a result that depends on it can be trusted. Create one for each case the purpose rests on (the model reproduces it), each stand-in a reported result rests on (the result survives varying it), and each confirmed claim the net or an experiment does not yet carry. Only a reflection discharges it, by citing the run, calculation or inspection that met it, the USER's explicit waiver, or the model change that left no result resting on it; until then it stays owed.",
   ),
 );
 
