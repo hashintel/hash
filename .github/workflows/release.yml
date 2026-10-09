@@ -176,6 +176,14 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
 
+      # Yarn writes each lifecycle script's output to `<tmpdir>/xfs-*/<script>.log` and keeps
+      # the file only when the script fails; the publish error names the path.
+      - name: Print Yarn lifecycle script logs on failure
+        if: failure()
+        run: |
+          echo "🪵 Dumping Yarn lifecycle script logs..."
+          find /tmp -maxdepth 2 -path '/tmp/xfs-*' -name '*.log' -type f -exec echo "--- {} ---" \; -exec cat {} \; || echo "No Yarn lifecycle script logs found."
+
       - name: Print Turbo logs on failure
         if: failure()
         run: |
@@ -191,6 +199,7 @@ jobs:
         with:
           name: release-debug-logs
           path: |
+            /tmp/xfs-*/*.log
             **/.turbo/*.log
 
   publish-rust:
