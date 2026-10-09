@@ -1,11 +1,11 @@
 import { IconProvider, type IconPack } from "@hashintel/ds-components";
 import {
-  ExperimentalIconProvider as IconSetProvider,
-  experimentalIconPack,
-  useExperimentalIconPackEnabled,
+  HashIconProvider as IconSetProvider,
+  hashIconPack,
+  useHashIconPackEnabled,
 } from "@hashintel/ds-icons";
 
-import type { ExperimentalIconDefaults } from "@hashintel/ds-icons";
+import type { HashIconDefaults } from "@hashintel/ds-icons";
 import type { PropsWithChildren } from "react";
 
 export {
@@ -60,7 +60,7 @@ export {
   EllipsisVerticalIcon,
   EmptySetIcon,
   ErrorIcon,
-  ExperimentalIcon,
+  HashIcon as ExperimentalIcon,
   ExternalLinkIcon,
   EyeIcon,
   EyeSlashIcon,
@@ -99,7 +99,7 @@ export {
   PauseIcon,
   PencilIcon,
   PersonRunningIcon,
-  Petricon,
+  HashIcon as Petricon,
   PlaceIcon,
   PlayIcon,
   PlaybackIcon,
@@ -142,55 +142,53 @@ export {
   WarningIcon,
   ZoomInIcon,
   ZoomOutIcon,
-  experimentalIconEffects,
-  experimentalIconNames,
-  experimentalIconPack,
-  getExperimentalIconEffects,
-  getPetriconEffects,
-  petriconCatalog,
-  petriconEffects,
-  petriconHints,
-  petriconNames,
-  petriconPack,
-  petriconStudies,
-  useExperimentalIconMotionAllowed,
-  useExperimentalIconPackEnabled,
-  usePetriconMotionAllowed,
+  hashIconEffects as experimentalIconEffects,
+  hashIconNames as experimentalIconNames,
+  hashIconPack as experimentalIconPack,
+  getHashIconEffects as getExperimentalIconEffects,
+  getHashIconEffects as getPetriconEffects,
+  hashIconCatalog as petriconCatalog,
+  hashIconEffects as petriconEffects,
+  hashIconHints as petriconHints,
+  hashIconNames as petriconNames,
+  hashIconPack as petriconPack,
+  hashIconStudies as petriconStudies,
+  useHashIconMotionAllowed as useExperimentalIconMotionAllowed,
+  useHashIconPackEnabled as useExperimentalIconPackEnabled,
+  useHashIconMotionAllowed as usePetriconMotionAllowed,
 } from "@hashintel/ds-icons";
 export type {
-  ExperimentalIconBadgeVisibility,
-  ExperimentalIconChoreography,
-  ExperimentalIconComponentProps,
-  ExperimentalIconDefaults,
-  ExperimentalIconEffect,
-  ExperimentalIconMotion,
-  ExperimentalIconName,
-  ExperimentalIconProps,
-  ExperimentalIconStatus,
-  ExperimentalIconTransition,
-  ExperimentalIconVariant,
-  PetriconBadgeVisibility,
-  PetriconChoreography,
-  PetriconDefaults,
-  PetriconEffect,
-  PetriconMotion,
-  PetriconName,
-  PetriconProps,
-  PetriconStatus,
-  PetriconTransition,
-  PetriconVariant,
+  HashIconBadgeVisibility as ExperimentalIconBadgeVisibility,
+  HashIconChoreography as ExperimentalIconChoreography,
+  HashIconComponentProps as ExperimentalIconComponentProps,
+  HashIconDefaults as ExperimentalIconDefaults,
+  HashIconEffect as ExperimentalIconEffect,
+  HashIconMotion as ExperimentalIconMotion,
+  HashIconName as ExperimentalIconName,
+  HashIconProps as ExperimentalIconProps,
+  HashIconStatus as ExperimentalIconStatus,
+  HashIconTransition as ExperimentalIconTransition,
+  HashIconVariant as ExperimentalIconVariant,
+  HashIconBadgeVisibility as PetriconBadgeVisibility,
+  HashIconChoreography as PetriconChoreography,
+  HashIconDefaults as PetriconDefaults,
+  HashIconEffect as PetriconEffect,
+  HashIconMotion as PetriconMotion,
+  HashIconName as PetriconName,
+  HashIconProps as PetriconProps,
+  HashIconStatus as PetriconStatus,
+  HashIconTransition as PetriconTransition,
+  HashIconVariant as PetriconVariant,
 } from "@hashintel/ds-icons";
 
 const defaultIconPack: IconPack = {};
 
 const ExperimentalIconPackProvider = ({ children }: PropsWithChildren) => {
-  const enabled = useExperimentalIconPackEnabled();
+  const enabled = useHashIconPackEnabled();
   return (
     <IconProvider
       icons={
-        enabled
-          ? (experimentalIconPack satisfies Required<IconPack>)
-          : defaultIconPack
+        enabled ? (hashIconPack satisfies Required<IconPack>) : defaultIconPack
       }
     >
       {children}
@@ -201,7 +199,7 @@ const ExperimentalIconPackProvider = ({ children }: PropsWithChildren) => {
 export const ExperimentalIconProvider = ({
   children,
   ...props
-}: PropsWithChildren<ExperimentalIconDefaults & { enabled?: boolean }>) => (
+}: PropsWithChildren<HashIconDefaults & { enabled?: boolean }>) => (
   <IconSetProvider {...props}>
     <ExperimentalIconPackProvider>{children}</ExperimentalIconPackProvider>
   </IconSetProvider>

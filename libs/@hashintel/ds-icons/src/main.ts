@@ -1,2 +1,2 @@
-export * from "./experimental-icons";
-export * from "./petricon";
+export * from "./hash-icon";
+export * from "./catalog";

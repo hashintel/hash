@@ -13,18 +13,18 @@ Peer dependencies: `react` and `react-dom` (19+).
 ## Usage
 
 ```tsx
-import { ExperimentalIconProvider, PlayIcon } from "@hashintel/ds-icons";
+import { HashIconProvider, PlayIcon } from "@hashintel/ds-icons";
 
-<ExperimentalIconProvider size={20} weight={500}>
+<HashIconProvider size={20} weight={500}>
   <PlayIcon aria-label="Play" />
-</ExperimentalIconProvider>;
+</HashIconProvider>;
 ```
 
-`ExperimentalIcon` renders any icon by `name`; the `*Icon` components are fixed-name shortcuts. `experimentalIconNames` lists every name. The `Petricon*` exports are aliases of the same API.
+`HashIcon` renders any icon by `name`; the `*Icon` components are fixed-name shortcuts. `hashIconNames` lists every name.
 
-The provider's `enabled` prop only sets the value `useExperimentalIconPackEnabled` returns. Icons render either way; a host uses it to decide whether to swap its own icons for these.
+The provider's `enabled` prop only sets the value `useHashIconPackEnabled` returns. Icons render either way; a host uses it to decide whether to swap its own icons for these.
 
-`experimentalIconPack` maps every `@hashintel/ds-components` icon name to an icon from this set. Pass it to that package's `IconProvider` to swap the design-system icons for these.
+`hashIconPack` maps every `@hashintel/ds-components` icon name to an icon from this set. Pass it to that package's `IconProvider` to swap the design-system icons for these.
 
 ## Styles
 

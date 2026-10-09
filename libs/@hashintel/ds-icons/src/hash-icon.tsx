@@ -1,76 +1,73 @@
 import { createContext, use } from "react";
 
-import { AddNodeGeometry } from "./experimental-icons/add-node-geometry";
-import { additionalGeometry } from "./experimental-icons/additional-geometry";
-import { explorationGeometry } from "./experimental-icons/exploration-geometry";
-import { IconInteraction } from "./experimental-icons/interaction";
-import { modelingGeometry } from "./experimental-icons/modeling-geometry";
+import { AddNodeGeometry } from "./hash-icon/add-node-geometry";
+import { additionalGeometry } from "./hash-icon/additional-geometry";
+import { explorationGeometry } from "./hash-icon/exploration-geometry";
+import { IconInteraction } from "./hash-icon/interaction";
+import { modelingGeometry } from "./hash-icon/modeling-geometry";
 import {
-  experimentalIconEffects,
+  hashIconEffects,
   getIconTransition,
   resolveIconDuration,
   useIconEffects,
   useIconMotionAllowed,
-} from "./experimental-icons/motion";
-import { ParameterGeometry } from "./experimental-icons/parameter-geometry";
-import { SettingsGeometry } from "./experimental-icons/settings-geometry";
-import { ShapesGeometry } from "./experimental-icons/shapes-geometry";
-import { IconMotionLayer } from "./experimental-icons/shared/icon-motion-layer";
-import { SidebarGeometry } from "./experimental-icons/sidebar-geometry";
-import {
-  FlaskGeometry,
-  LayerGeometry,
-} from "./experimental-icons/simulation-geometry";
+} from "./hash-icon/motion";
+import { ParameterGeometry } from "./hash-icon/parameter-geometry";
+import { SettingsGeometry } from "./hash-icon/settings-geometry";
+import { ShapesGeometry } from "./hash-icon/shapes-geometry";
+import { IconMotionLayer } from "./hash-icon/shared/icon-motion-layer";
+import { SidebarGeometry } from "./hash-icon/sidebar-geometry";
+import { FlaskGeometry, LayerGeometry } from "./hash-icon/simulation-geometry";
 import {
   DiagnosticsGeometry,
   MenuGeometry,
   MicrophoneGeometry,
   PauseGeometry,
   PlaybackGeometry,
-} from "./experimental-icons/state-geometry";
-import { utilityGeometry } from "./experimental-icons/utility-geometry";
+} from "./hash-icon/state-geometry";
+import { utilityGeometry } from "./hash-icon/utility-geometry";
 
-import type { ExperimentalIconBadgeVisibility } from "./experimental-icons/add-node-geometry";
+import type { HashIconBadgeVisibility } from "./hash-icon/add-node-geometry";
 import type {
-  ExperimentalIconMotion,
-  ExperimentalIconTransition,
+  HashIconMotion,
+  HashIconTransition,
   IconMotionProps,
-} from "./experimental-icons/motion";
-import type { ExperimentalIconStatus } from "./experimental-icons/state-geometry";
+} from "./hash-icon/motion";
+import type { HashIconStatus } from "./hash-icon/state-geometry";
 import type { ComponentType, PropsWithChildren, SVGProps } from "react";
 
-export { petriconHints } from "./experimental-icons/shared/petricon-hints";
+export { hashIconHints } from "./hash-icon/shared/hints";
 
-export { experimentalIconEffects } from "./experimental-icons/motion";
-export type { ExperimentalIconStatus } from "./experimental-icons/state-geometry";
-export type { ExperimentalIconBadgeVisibility } from "./experimental-icons/add-node-geometry";
+export { hashIconEffects } from "./hash-icon/motion";
+export type { HashIconStatus } from "./hash-icon/state-geometry";
+export type { HashIconBadgeVisibility } from "./hash-icon/add-node-geometry";
 export type {
-  ExperimentalIconEffect,
-  ExperimentalIconMotion,
-  ExperimentalIconTransition,
-  ExperimentalIconChoreography,
-} from "./experimental-icons/motion";
+  HashIconEffect,
+  HashIconMotion,
+  HashIconTransition,
+  HashIconChoreography,
+} from "./hash-icon/motion";
 
-export type ExperimentalIconVariant = "outline" | "filled";
+export type HashIconVariant = "outline" | "filled";
 
-export type ExperimentalIconDefaults = {
+export type HashIconDefaults = {
   size?: number;
   /** Stroke weight from 100 to 700, with 400 as the default. */
   weight?: number;
   color?: string;
-  motion?: ExperimentalIconMotion;
+  motion?: HashIconMotion;
   duration?: number;
 };
 
-const ExperimentalIconContext = createContext<
-  ExperimentalIconDefaults & { enabled?: boolean }
->({});
+const HashIconContext = createContext<HashIconDefaults & { enabled?: boolean }>(
+  {},
+);
 
-export const useExperimentalIconPackEnabled = () =>
-  use(ExperimentalIconContext).enabled ?? false;
+export const useHashIconPackEnabled = () =>
+  use(HashIconContext).enabled ?? false;
 
-export const useExperimentalIconMotionAllowed = () =>
-  useIconMotionAllowed(use(ExperimentalIconContext).motion ?? "auto");
+export const useHashIconMotionAllowed = () =>
+  useIconMotionAllowed(use(HashIconContext).motion ?? "auto");
 
 const searchGeometry = (
   <g fill="none">
@@ -144,9 +141,9 @@ const geometry = {
   ...modelingGeometry,
 } as const;
 
-export type ExperimentalIconName = keyof typeof geometry;
+export type HashIconName = keyof typeof geometry;
 
-const stateTransitionIcons: readonly ExperimentalIconName[] = [
+const stateTransitionIcons: readonly HashIconName[] = [
   "addPlace",
   "addTransition",
   "sidebar",
@@ -157,8 +154,8 @@ const stateTransitionIcons: readonly ExperimentalIconName[] = [
   "diagnostics",
 ];
 
-export const getExperimentalIconEffects = (name: ExperimentalIconName) =>
-  experimentalIconEffects.filter((effect) => {
+export const getHashIconEffects = (name: HashIconName) =>
+  hashIconEffects.filter((effect) => {
     if (effect === "action") return !stateTransitionIcons.includes(name);
     if (effect === "draw")
       return (
@@ -170,28 +167,26 @@ export const getExperimentalIconEffects = (name: ExperimentalIconName) =>
     return true;
   });
 
-export const experimentalIconNames = Object.keys(
-  geometry,
-) as ExperimentalIconName[];
+export const hashIconNames = Object.keys(geometry) as HashIconName[];
 
-export type ExperimentalIconProps = ExperimentalIconDefaults &
+export type HashIconProps = HashIconDefaults &
   IconMotionProps &
   Omit<SVGProps<SVGSVGElement>, "children" | "name"> & {
-    name: ExperimentalIconName;
-    variant?: ExperimentalIconVariant;
+    name: HashIconName;
+    variant?: HashIconVariant;
     selected?: boolean;
     collapsed?: boolean;
     open?: boolean;
     playing?: boolean;
     muted?: boolean;
-    status?: ExperimentalIconStatus;
+    status?: HashIconStatus;
     hover?: "auto" | "none";
     interaction?: "auto" | "none";
-    badge?: ExperimentalIconBadgeVisibility;
-    transition?: ExperimentalIconTransition;
+    badge?: HashIconBadgeVisibility;
+    transition?: HashIconTransition;
   };
 
-export const ExperimentalIcon = ({
+export const HashIcon = ({
   name,
   size,
   weight,
@@ -216,8 +211,8 @@ export const ExperimentalIcon = ({
   badge = "hover",
   transition = "smooth",
   ...props
-}: ExperimentalIconProps) => {
-  const defaults = use(ExperimentalIconContext);
+}: HashIconProps) => {
+  const defaults = use(HashIconContext);
   const motionAllowed = useIconMotionAllowed(
     motion ?? defaults.motion ?? "auto",
   );
@@ -386,17 +381,14 @@ export const ExperimentalIcon = ({
   );
 };
 
-export type ExperimentalIconComponentProps = Omit<
-  ExperimentalIconProps,
-  "name"
->;
+export type HashIconComponentProps = Omit<HashIconProps, "name">;
 
 const createIcon = (
-  name: ExperimentalIconName,
-  variant: ExperimentalIconVariant = "outline",
+  name: HashIconName,
+  variant: HashIconVariant = "outline",
 ) => {
-  const IconComponent = (props: ExperimentalIconComponentProps) => (
-    <ExperimentalIcon variant={variant} {...props} name={name} />
+  const IconComponent = (props: HashIconComponentProps) => (
+    <HashIcon variant={variant} {...props} name={name} />
   );
   return IconComponent;
 };
@@ -489,8 +481,8 @@ export const AssistantIcon = createIcon("assistant");
 export const MicrophoneIcon = createIcon("microphone");
 export const PlaybackIcon = createIcon("playback");
 export const DiagnosticsIcon = createIcon("diagnostics");
-export const LoadingIcon = (props: ExperimentalIconComponentProps) => (
-  <ExperimentalIcon
+export const LoadingIcon = (props: HashIconComponentProps) => (
+  <HashIcon
     name="loading"
     effect="rotate"
     active
@@ -543,7 +535,7 @@ export const ThoughtBubbleIcon = createIcon("thoughtBubble");
 export const TruckIcon = createIcon("truck");
 export const UserPlusIcon = createIcon("userPlus");
 
-export const experimentalIconPack = {
+export const hashIconPack = {
   loadingSpinner: LoadingIcon,
   arrowTrendDown: ArrowTrendDownIcon,
   arrowTrendUp: ArrowTrendUpIcon,
@@ -685,20 +677,20 @@ export const experimentalIconPack = {
   chevronDown: ChevronDownIcon,
   chevronLeft: ChevronLeftIcon,
   chevronRight: ChevronRightIcon,
-} satisfies Record<string, ComponentType<ExperimentalIconComponentProps>>;
+} satisfies Record<string, ComponentType<HashIconComponentProps>>;
 
-export const ExperimentalIconProvider = ({
+export const HashIconProvider = ({
   enabled,
   children,
   ...defaults
-}: PropsWithChildren<ExperimentalIconDefaults & { enabled?: boolean }>) => {
-  const parentDefaults = use(ExperimentalIconContext);
+}: PropsWithChildren<HashIconDefaults & { enabled?: boolean }>) => {
+  const parentDefaults = use(HashIconContext);
   const resolvedEnabled = enabled ?? parentDefaults.enabled ?? true;
   return (
-    <ExperimentalIconContext
+    <HashIconContext
       value={{ ...parentDefaults, ...defaults, enabled: resolvedEnabled }}
     >
       {children}
-    </ExperimentalIconContext>
+    </HashIconContext>
   );
 };

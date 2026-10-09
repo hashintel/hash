@@ -17,27 +17,27 @@ import {
   type IconPack,
 } from "@hashintel/ds-components";
 
+import { hashIconStudies } from "./catalog";
 import {
-  ExperimentalIcon,
-  ExperimentalIconProvider,
-  experimentalIconNames,
-  experimentalIconPack,
+  HashIcon,
+  HashIconProvider,
+  hashIconNames,
+  hashIconPack,
   PlaceIcon,
   AddPlaceIcon,
   AddTransitionIcon,
-  getExperimentalIconEffects,
-  useExperimentalIconPackEnabled,
-} from "./experimental-icons";
-import { petriconStudies } from "./petricon";
+  getHashIconEffects,
+  useHashIconPackEnabled,
+} from "./hash-icon";
 
 afterEach(cleanup);
 
-describe("experimental SVG API", () => {
+describe("HashIcon SVG API", () => {
   it("keeps each flask's liquid clipped to its own stable outline", () => {
     const Flasks = ({ selected }: { selected: boolean }) => (
       <>
-        <ExperimentalIcon name="flask" selected={selected} />
-        <ExperimentalIcon name="flask" />
+        <HashIcon name="flask" selected={selected} />
+        <HashIcon name="flask" />
       </>
     );
     const { container, rerender } = render(<Flasks selected={false} />);
@@ -59,11 +59,11 @@ describe("experimental SVG API", () => {
   });
 
   it("renders every icon as a single 24 by 24 SVG", () => {
-    for (const name of experimentalIconNames) {
+    for (const name of hashIconNames) {
       const { container, unmount } = render(
-        <ExperimentalIconProvider motion="none">
-          <ExperimentalIcon name={name} />
-        </ExperimentalIconProvider>,
+        <HashIconProvider motion="none">
+          <HashIcon name={name} />
+        </HashIconProvider>,
       );
       const svgs = container.querySelectorAll("svg");
       expect(svgs, name).toHaveLength(1);
@@ -74,13 +74,13 @@ describe("experimental SVG API", () => {
 
   it("replaces every icon available to shared app controls", () => {
     render(
-      <ExperimentalIconProvider motion="none">
-        <IconProvider icons={experimentalIconPack satisfies Required<IconPack>}>
+      <HashIconProvider motion="none">
+        <IconProvider icons={hashIconPack satisfies Required<IconPack>}>
           {iconNames.map((name) => (
             <Icon key={name} name={name} alt={name} />
           ))}
         </IconProvider>
-      </ExperimentalIconProvider>,
+      </HashIconProvider>,
     );
     for (const name of iconNames) {
       expect(
@@ -91,10 +91,10 @@ describe("experimental SVG API", () => {
 
   it("inherits defaults and lets individual icons override them", () => {
     const { container } = render(
-      <ExperimentalIconProvider size={20} weight={700} color="red">
+      <HashIconProvider size={20} weight={700} color="red">
         <PlaceIcon aria-label="Place" />
         <PlaceIcon size={16} weight={100} color="blue" variant="filled" />
-      </ExperimentalIconProvider>,
+      </HashIconProvider>,
     );
     const labelled = screen.getByRole("img", { name: "Place" });
     expect(labelled.getAttribute("width")).toBe("20");
@@ -117,15 +117,13 @@ describe("experimental SVG API", () => {
   ])(
     "resolves nested enabled=$enabled with parent enabled=$parentEnabled to $expected",
     ({ parentEnabled, enabled, expected }) => {
-      const Probe = () => (
-        <output>{String(useExperimentalIconPackEnabled())}</output>
-      );
+      const Probe = () => <output>{String(useHashIconPackEnabled())}</output>;
       const Sample = ({ parent }: { parent?: boolean }) => (
-        <ExperimentalIconProvider enabled={parent} weight={700}>
-          <ExperimentalIconProvider enabled={enabled} size={16}>
+        <HashIconProvider enabled={parent} weight={700}>
+          <HashIconProvider enabled={enabled} size={16}>
             <Probe />
-          </ExperimentalIconProvider>
-        </ExperimentalIconProvider>
+          </HashIconProvider>
+        </HashIconProvider>
       );
       const { rerender } = render(<Sample parent={parentEnabled} />);
       expect(screen.getByRole("status").textContent).toBe(String(expected));
@@ -145,14 +143,14 @@ describe("experimental SVG API", () => {
     "keeps weight %s within the supported stroke range",
     (weight, strokeWidth) => {
       const markup = renderToStaticMarkup(
-        <ExperimentalIcon name="place" weight={weight} />,
+        <HashIcon name="place" weight={weight} />,
       );
       expect(markup).toContain(`stroke-width="${strokeWidth}"`);
     },
   );
 });
 
-describe("experimental icon motion", () => {
+describe("HashIcon motion", () => {
   const originalAnimate = Object.getOwnPropertyDescriptor(
     Element.prototype,
     "animate",
@@ -255,7 +253,7 @@ describe("experimental icon motion", () => {
       vi.stubGlobal("cancelAnimationFrame", cancelFrame);
       const { rerender } = render(
         <button type="button">
-          <ExperimentalIcon name={name} effect="action" active />
+          <HashIcon name={name} effect="action" active />
         </button>,
       );
       const animationCount = animate.mock.calls.length;
@@ -273,7 +271,7 @@ describe("experimental icon motion", () => {
 
       rerender(
         <button type="button">
-          <ExperimentalIcon name={name} effect="action" active={false} />
+          <HashIcon name={name} effect="action" active={false} />
         </button>,
       );
       expect(
@@ -362,7 +360,7 @@ describe("experimental icon motion", () => {
   });
 
   it("starts the flask surface wave together and removes it when motion is disabled", () => {
-    const { container, rerender } = render(<ExperimentalIcon name="flask" />);
+    const { container, rerender } = render(<HashIcon name="flask" />);
     const beginWave = vi.fn();
     const surfaces = container.querySelectorAll("animate");
     expect(surfaces.length).toBeGreaterThan(0);
@@ -378,7 +376,7 @@ describe("experimental icon motion", () => {
     fireEvent(bubbles!, hoverAnimation);
     expect(beginWave).toHaveBeenCalledTimes(surfaces.length);
 
-    rerender(<ExperimentalIcon name="flask" motion="none" selected />);
+    rerender(<HashIcon name="flask" motion="none" selected />);
     expect(container.querySelector("animate")).toBeNull();
     expect(container.querySelector('[data-selected="true"]')).not.toBeNull();
   });
@@ -386,12 +384,12 @@ describe("experimental icon motion", () => {
   it("inherits motion defaults, preserves refs and uses unique masks", () => {
     const ref = createRef<SVGSVGElement>();
     const { container } = render(
-      <ExperimentalIconProvider motion="none" weight={700}>
-        <ExperimentalIconProvider size={32}>
+      <HashIconProvider motion="none" weight={700}>
+        <HashIconProvider size={32}>
           <AddPlaceIcon ref={ref} effect="bounce" aria-label="Add place" />
           <AddPlaceIcon variant="filled" />
-        </ExperimentalIconProvider>
-      </ExperimentalIconProvider>,
+        </HashIconProvider>
+      </HashIconProvider>,
     );
     expect(animate).not.toHaveBeenCalled();
     expect(ref.current).toBe(screen.getByRole("img", { name: "Add place" }));
@@ -426,21 +424,19 @@ describe("experimental icon motion", () => {
   );
 
   it("keeps the same SVG frame for the place-to-transition morph", () => {
-    const { container, rerender } = render(
-      <ExperimentalIcon name="addPlace" />,
-    );
+    const { container, rerender } = render(<HashIcon name="addPlace" />);
     const frame = container.querySelector('[data-icon-draw="frame"]');
-    rerender(<ExperimentalIcon name="addTransition" selected />);
+    rerender(<HashIcon name="addTransition" selected />);
     expect(container.querySelector('[data-icon-draw="frame"]')).toBe(frame);
     expect(frame?.getAttribute("rx")).toBe("2");
-    expect(getExperimentalIconEffects("addPlace")).toContain("draw");
-    expect(getExperimentalIconEffects("settings")).not.toContain("draw");
+    expect(getHashIconEffects("addPlace")).toContain("draw");
+    expect(getHashIconEffects("settings")).not.toContain("draw");
   });
 
   it("rewinds the history details on hover and click without rotating the entire icon", () => {
     const { container, unmount } = render(
       <button type="button">
-        <ExperimentalIcon name="clockRotateLeft" />
+        <HashIcon name="clockRotateLeft" />
       </button>,
     );
     const button = screen.getByRole("button");
@@ -464,7 +460,7 @@ describe("experimental icon motion", () => {
   it("jumps on click without replacing the runner's independent gait", () => {
     const { container, unmount } = render(
       <button type="button">
-        <ExperimentalIcon name="personRunning" />
+        <HashIcon name="personRunning" />
       </button>,
     );
     const button = screen.getByRole("button");
@@ -502,7 +498,7 @@ describe("experimental icon motion", () => {
     (optOut) => {
       const { container } = render(
         <button type="button" disabled={optOut === "disabled"}>
-          <ExperimentalIcon
+          <HashIcon
             name="personRunning"
             motion={optOut === "motion" ? "none" : "auto"}
             interaction={optOut === "interaction" ? "none" : "auto"}
@@ -524,7 +520,7 @@ describe("experimental icon motion", () => {
   it("stops the runner's jump and gait when reduced motion is requested", () => {
     const { container } = render(
       <button type="button">
-        <ExperimentalIcon name="personRunning" />
+        <HashIcon name="personRunning" />
       </button>,
     );
     fireEvent.click(screen.getByRole("button"));
@@ -543,7 +539,7 @@ describe("experimental icon motion", () => {
   it("suppresses automatic interaction for disabled controls and motion opt-outs", () => {
     const { rerender } = render(
       <button type="button" aria-disabled="true">
-        <ExperimentalIcon name="clockRotateLeft" />
+        <HashIcon name="clockRotateLeft" />
       </button>,
     );
     fireEvent.pointerEnter(screen.getByRole("button"));
@@ -551,7 +547,7 @@ describe("experimental icon motion", () => {
     expect(animate).not.toHaveBeenCalled();
     rerender(
       <button type="button">
-        <ExperimentalIcon name="clockRotateLeft" motion="none" />
+        <HashIcon name="clockRotateLeft" motion="none" />
       </button>,
     );
     fireEvent.pointerEnter(screen.getByRole("button"));
@@ -559,11 +555,7 @@ describe("experimental icon motion", () => {
     expect(animate).not.toHaveBeenCalled();
     rerender(
       <button type="button">
-        <ExperimentalIcon
-          name="clockRotateLeft"
-          interaction="none"
-          hover="none"
-        />
+        <HashIcon name="clockRotateLeft" interaction="none" hover="none" />
       </button>,
     );
     fireEvent.click(screen.getByRole("button"));
@@ -573,7 +565,7 @@ describe("experimental icon motion", () => {
   it("scrubs both visible parameter knobs and their track masks together on click", () => {
     render(
       <button type="button">
-        <ExperimentalIcon name="parameter" />
+        <HashIcon name="parameter" />
       </button>,
     );
     fireEvent.click(screen.getByRole("button"));
@@ -588,16 +580,16 @@ describe("experimental icon motion", () => {
   });
 
   it("offers matching labels and drawable paths for every modeling alternative", () => {
-    for (const study of petriconStudies.filter(
+    for (const study of hashIconStudies.filter(
       (candidate) => candidate.category === "Modeling",
     )) {
       expect(study.names).toHaveLength(3);
       expect(study.variants).toHaveLength(study.names.length);
       for (const name of study.names) {
         const { container, unmount } = render(
-          <ExperimentalIcon name={name} effect="draw" />,
+          <HashIcon name={name} effect="draw" />,
         );
-        expect(getExperimentalIconEffects(name)).toContain("draw");
+        expect(getHashIconEffects(name)).toContain("draw");
         const paths = container.querySelectorAll("[data-icon-draw]");
         expect(paths.length).toBeGreaterThan(1);
         for (const path of paths)
@@ -629,7 +621,7 @@ describe("experimental icon motion", () => {
       motion?: "auto" | "none";
     }) => (
       <button type="button">
-        <ExperimentalIcon
+        <HashIcon
           name="cube"
           effect="action"
           trigger={trigger}
@@ -684,7 +676,7 @@ describe("experimental icon motion", () => {
         });
       const Sample = ({ trigger = 0 }: { trigger?: number }) => (
         <button type="button">
-          <ExperimentalIcon
+          <HashIcon
             name="cube"
             effect={triggered ? "action" : undefined}
             trigger={triggered ? trigger : undefined}
@@ -728,21 +720,15 @@ describe("experimental icon motion", () => {
 
   it("clamps drawing progress, preserves it with motion disabled, and releases the override", () => {
     const { container, rerender } = render(
-      <ExperimentalIcon
-        name="differentialEquation"
-        drawProgress={0.4}
-        motion="none"
-      />,
+      <HashIcon name="differentialEquation" drawProgress={0.4} motion="none" />,
     );
     const path = container.querySelector<SVGPathElement>("[data-icon-draw]");
     expect(path?.style.strokeDashoffset).toBe("0.6");
-    rerender(
-      <ExperimentalIcon name="differentialEquation" drawProgress={-1} />,
-    );
+    rerender(<HashIcon name="differentialEquation" drawProgress={-1} />);
     expect(path?.style.opacity).toBe("0");
-    rerender(<ExperimentalIcon name="differentialEquation" drawProgress={2} />);
+    rerender(<HashIcon name="differentialEquation" drawProgress={2} />);
     expect(path?.style.strokeDashoffset).toBe("0");
-    rerender(<ExperimentalIcon name="differentialEquation" />);
+    rerender(<HashIcon name="differentialEquation" />);
     expect(path?.style.strokeDasharray).toBe("");
     expect(path?.style.fillOpacity).toBe("");
   });

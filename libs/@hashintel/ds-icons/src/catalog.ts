@@ -1,30 +1,8 @@
-import { experimentalIconNames, petriconHints } from "./experimental-icons";
+import { hashIconNames, hashIconHints } from "./hash-icon";
 
-import type { ExperimentalIconName } from "./experimental-icons";
+import type { HashIconName } from "./hash-icon";
 
-export {
-  ExperimentalIcon as Petricon,
-  ExperimentalIconProvider as PetriconProvider,
-  experimentalIconNames as petriconNames,
-  experimentalIconPack as petriconPack,
-  experimentalIconEffects as petriconEffects,
-  getExperimentalIconEffects as getPetriconEffects,
-  useExperimentalIconMotionAllowed as usePetriconMotionAllowed,
-} from "./experimental-icons";
-export type {
-  ExperimentalIconName as PetriconName,
-  ExperimentalIconProps as PetriconProps,
-  ExperimentalIconDefaults as PetriconDefaults,
-  ExperimentalIconStatus as PetriconStatus,
-  ExperimentalIconEffect as PetriconEffect,
-  ExperimentalIconMotion as PetriconMotion,
-  ExperimentalIconChoreography as PetriconChoreography,
-  ExperimentalIconBadgeVisibility as PetriconBadgeVisibility,
-  ExperimentalIconTransition as PetriconTransition,
-  ExperimentalIconVariant as PetriconVariant,
-} from "./experimental-icons";
-
-export const petriconStudies = [
+export const hashIconStudies = [
   {
     concept: "Differential equations",
     category: "Modeling",
@@ -152,7 +130,7 @@ export const petriconStudies = [
 ] as const satisfies readonly {
   concept: string;
   category: string;
-  names: readonly ExperimentalIconName[];
+  names: readonly HashIconName[];
   variants: readonly string[];
   motion: string;
 }[];
@@ -255,10 +233,10 @@ const categories = {
     "voice",
     "transcription",
   ],
-} satisfies Record<string, readonly ExperimentalIconName[]>;
+} satisfies Record<string, readonly HashIconName[]>;
 
-export const petriconCatalog = experimentalIconNames.map((name) => {
-  const study = petriconStudies.find((candidate) =>
+export const hashIconCatalog = hashIconNames.map((name) => {
+  const study = hashIconStudies.find((candidate) =>
     candidate.names.some((variant) => variant === name),
   );
   const category =
@@ -272,7 +250,7 @@ export const petriconCatalog = experimentalIconNames.map((name) => {
     name,
     label: words.charAt(0).toUpperCase() + words.slice(1),
     category,
-    motion: petriconHints[name],
+    motion: hashIconHints[name],
     study: study?.concept,
   };
 });
