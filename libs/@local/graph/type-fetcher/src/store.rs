@@ -27,8 +27,9 @@ use hash_graph_store::{
         WebRetrievalError, WebUpdateError,
     },
     api_token::{
-        ApiTokenId, ApiTokenInsertionError, ApiTokenMetadata, ApiTokenRetrievalError,
-        ApiTokenRevocationError, ApiTokenStore, CreateApiTokenParams,
+        ApiTokenAuthenticationError, ApiTokenCredential, ApiTokenId, ApiTokenInsertionError,
+        ApiTokenMetadata, ApiTokenRetrievalError, ApiTokenRevocationError, ApiTokenStore,
+        ApiTokenVerificationError, CreateApiTokenParams, UserApiTokenRevocationError,
     },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
@@ -986,6 +987,24 @@ where
         token_id: ApiTokenId,
     ) -> Result<(), Report<ApiTokenRevocationError>> {
         self.store.revoke_api_token(web_id, token_id).await
+    }
+
+    async fn revoke_user_api_tokens(
+        &mut self,
+        user_id: UserId,
+    ) -> Result<u64, Report<UserApiTokenRevocationError>> {
+        self.store.revoke_user_api_tokens(user_id).await
+    }
+
+    async fn authenticate_api_token<F>(
+        &mut self,
+        token_id: ApiTokenId,
+        verify: F,
+    ) -> Result<UserId, Report<ApiTokenAuthenticationError>>
+    where
+        F: FnOnce(&ApiTokenCredential) -> Result<(), Report<ApiTokenVerificationError>> + Send,
+    {
+        self.store.authenticate_api_token(token_id, verify).await
     }
 }
 

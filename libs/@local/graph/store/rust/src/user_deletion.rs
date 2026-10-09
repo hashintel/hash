@@ -7,6 +7,7 @@ use type_system::principal::{
 
 use crate::{
     account::AccountStore,
+    api_token::ApiTokenStore,
     email_subscription::EmailSubscriptionProvider,
     entity::{
         DeleteEntitiesParams, DeletionScope, EntityQueryPath, EntityStore, LinkDeletionBehavior,
@@ -19,11 +20,17 @@ use crate::{
 
 /// Errors that can occur during user deletion.
 ///
-/// Fatal variants (`UserLookup`, `MissingKratosIdentityId`, `EntityDeletion`) prevent the
-/// operation from completing and cause an `Err` return from [`delete_user`].
+/// Fatal variants ([`UserLookup`], [`MissingKratosIdentityId`], [`ApiTokenRevocation`],
+/// [`EntityDeletion`]) prevent the operation from completing and cause an `Err` return from
+/// [`delete_user`].
 ///
 /// Every other variant is non-fatal: collected into [`UserDeletionOutcome::errors`] without
 /// preventing the entity deletion from succeeding.
+///
+/// [`UserLookup`]: Self::UserLookup
+/// [`MissingKratosIdentityId`]: Self::MissingKratosIdentityId
+/// [`ApiTokenRevocation`]: Self::ApiTokenRevocation
+/// [`EntityDeletion`]: Self::EntityDeletion
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum UserDeletionError {
     // Fatal
@@ -31,6 +38,8 @@ pub enum UserDeletionError {
     UserLookup,
     #[display("user entity is missing a Kratos identity ID")]
     MissingKratosIdentityId,
+    #[display("failed to revoke the user's API tokens")]
+    ApiTokenRevocation,
     #[display("failed to delete user entities")]
     EntityDeletion,
     // Non-fatal (collected via ReportSink)
@@ -60,6 +69,7 @@ pub struct UserDeletionReport {
     /// The addresses the identity held, or [`None`] where they could not be learned.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub emails: Option<Vec<String>>,
+    pub api_tokens_revoked: u64,
     pub entities_deleted: usize,
     pub drafts_deleted: usize,
     pub links_archived: u64,
@@ -89,7 +99,7 @@ pub struct UserDeletionOutcome {
 /// Orchestrates the following operations in order:
 /// 1. Look up the user's Kratos identity ID, then its email addresses through the identity provider
 ///    (a missing identity leaves the addresses unknown rather than failing)
-/// 2. Purge all entities owned by the user's personal web
+/// 2. Revoke the user's API tokens, then purge all entities owned by the user's personal web
 /// 3. Delete the Kratos identity (removes PII such as email)
 /// 4. Revoke Hydra login and consent sessions
 /// 5. Delete email subscription entries
@@ -98,7 +108,8 @@ pub struct UserDeletionOutcome {
 /// deleted user deletable: the graph entity carrying the identity ID may already be purged while
 /// the identity still exists.
 ///
-/// Steps 1–2 are fatal: failure causes an `Err` return and no entities are deleted.
+/// Steps 1–2 are fatal: failure causes an `Err` return and no entities are deleted; tokens revoked
+/// before a failed purge stay revoked.
 /// Steps 3–5 are non-fatal: failures are collected into [`UserDeletionOutcome::errors`]
 /// with full error-stack context, but entity deletion is not rolled back.
 ///
@@ -121,7 +132,7 @@ pub async fn delete_user<S, I, O, E>(
     kratos_identity_id: Option<String>,
 ) -> Result<UserDeletionOutcome, Report<UserDeletionError>>
 where
-    S: AccountStore + EntityStore,
+    S: AccountStore + ApiTokenStore + EntityStore,
     I: IdentityProvider,
     O: OAuthProvider,
     E: EmailSubscriptionProvider,
@@ -149,7 +160,13 @@ where
         tracing::warn!(%user_id, "the user's addresses are unknown");
     }
 
-    // Step 2: Purge all entities owned by the user's personal web
+    // Step 2: Revoke the user's API tokens, then purge the entities of the user's personal web
+    let api_tokens_revoked = store
+        .revoke_user_api_tokens(user_id)
+        .await
+        .change_context(UserDeletionError::ApiTokenRevocation)?;
+    tracing::info!(%user_id, api_tokens_revoked, "revoked API tokens");
+
     // User ID == Web ID for personal webs
     let web_id = WebId::from(user_id);
     let web_filter = Filter::Equal(
@@ -238,6 +255,7 @@ where
         report: UserDeletionReport {
             kratos_identity_id,
             emails,
+            api_tokens_revoked,
             entities_deleted: deletion_summary.full_entities,
             drafts_deleted: deletion_summary.draft_deletions,
             links_archived: deletion_summary.links_archived,

@@ -4,7 +4,10 @@ use core::{net::SocketAddr, pin::Pin, time::Duration};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::{
-    authentication::{EnvironmentProviders, build_explicit_providers, build_session_providers},
+    authentication::{
+        EnvironmentProviders, api_token::ApiTokenRejection, build_explicit_providers,
+        build_session_providers,
+    },
     rate_limit::RateLimitConfig,
 };
 use hash_graph_atlas::cli::{self, Storage};
@@ -189,10 +192,13 @@ async fn run_atlas(
             });
 
     let provider = Arc::new((
-        build_explicit_providers(Pin::clone(&service_secret), &pool),
+        ApiTokenRejection,
         (
-            build_session_providers(session_auth, &pool, &telemetry.meter),
-            EnvironmentProviders::<PostgresStorePool>::None,
+            build_explicit_providers(Pin::clone(&service_secret), &pool),
+            (
+                build_session_providers(session_auth, &pool, &telemetry.meter),
+                EnvironmentProviders::<PostgresStorePool>::None,
+            ),
         ),
     ));
 
