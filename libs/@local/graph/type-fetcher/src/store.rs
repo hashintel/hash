@@ -29,7 +29,7 @@ use hash_graph_store::{
     api_token::{
         ApiTokenAuthenticationError, ApiTokenCredential, ApiTokenId, ApiTokenInsertionError,
         ApiTokenMetadata, ApiTokenRetrievalError, ApiTokenRevocationError, ApiTokenStore,
-        ApiTokenVerificationError, CreateApiTokenParams, UserApiTokenRevocationError,
+        ApiTokenVerificationError, CreateApiTokenParams, WebApiTokenRevocationError,
     },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
@@ -989,11 +989,11 @@ where
         self.store.revoke_api_token(web_id, token_id).await
     }
 
-    async fn revoke_user_api_tokens(
+    async fn revoke_web_api_tokens(
         &mut self,
-        user_id: UserId,
-    ) -> Result<u64, Report<UserApiTokenRevocationError>> {
-        self.store.revoke_user_api_tokens(user_id).await
+        web_id: WebId,
+    ) -> Result<u64, Report<WebApiTokenRevocationError>> {
+        self.store.revoke_web_api_tokens(web_id).await
     }
 
     async fn authenticate_api_token<F>(

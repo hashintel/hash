@@ -764,7 +764,7 @@ async fn authenticate_no_lifetime() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn revoke_user_revoked() -> Result<(), Box<dyn Error>> {
+async fn revoke_web_revoked() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut store = db.connection.transaction().await?;
     let (user_id, web_id) = user_with_web(&mut store).await?;
@@ -773,7 +773,7 @@ async fn revoke_user_revoked() -> Result<(), Box<dyn Error>> {
     store.revoke_api_token(web_id, revoked.token_id).await?;
     let first_revoked_at = move_revocation_back(&store, revoked.token_id).await?;
 
-    let count = store.revoke_user_api_tokens(user_id).await?;
+    let count = store.revoke_web_api_tokens(web_id).await?;
 
     let tokens = store.list_api_tokens(web_id).await?;
     let revoked_at = |token_id| {
@@ -799,16 +799,16 @@ async fn revoke_user_revoked() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn revoke_user_other_user() -> Result<(), Box<dyn Error>> {
+async fn revoke_web_other_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut store = db.connection.transaction().await?;
     let (user_id, web_id) = user_with_web(&mut store).await?;
-    let (other_user_id, _) = user_with_web(&mut store).await?;
+    let (_, other_web_id) = user_with_web(&mut store).await?;
     create_token(&mut store, user_id, Some(LIFETIME)).await?;
 
-    let count = store.revoke_user_api_tokens(other_user_id).await?;
+    let count = store.revoke_web_api_tokens(other_web_id).await?;
 
-    assert_eq!(count, 0, "another user should revoke no tokens");
+    assert_eq!(count, 0, "another web should revoke no tokens");
     assert_eq!(
         listed_token(&store, web_id).await?.revoked_at,
         None,
@@ -819,45 +819,43 @@ async fn revoke_user_other_user() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn revoke_user_token_in_other_web() -> Result<(), Box<dyn Error>> {
+async fn revoke_web_token_in_other_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut store = db.connection.transaction().await?;
-    let (user_id, _) = user_with_web(&mut store).await?;
+    let (user_id, web_id) = user_with_web(&mut store).await?;
     let (_, other_web_id) = user_with_web(&mut store).await?;
     let token = create_token(&mut store, user_id, Some(LIFETIME)).await?;
     move_to_web(&store, token.token_id, other_web_id).await?;
 
-    let count = store.revoke_user_api_tokens(user_id).await?;
+    let count = store.revoke_web_api_tokens(web_id).await?;
 
     assert_eq!(
-        count, 1,
-        "a token acting as the user in another web should be revoked"
+        count, 0,
+        "a token acting as the user in another web should not be revoked"
     );
-    assert!(
-        listed_token(&store, other_web_id)
-            .await?
-            .revoked_at
-            .is_some(),
-        "the token should be revoked"
+    assert_eq!(
+        listed_token(&store, other_web_id).await?.revoked_at,
+        None,
+        "the token should stay active"
     );
 
     Ok(())
 }
 
 #[tokio::test]
-async fn revoke_user_other_actor_in_web() -> Result<(), Box<dyn Error>> {
+async fn revoke_web_other_actor() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let mut store = db.connection.transaction().await?;
-    let (user_id, web_id) = user_with_web(&mut store).await?;
+    let (_, web_id) = user_with_web(&mut store).await?;
     let (other_user_id, _) = user_with_web(&mut store).await?;
     let token = create_token(&mut store, other_user_id, Some(LIFETIME)).await?;
     move_to_web(&store, token.token_id, web_id).await?;
 
-    let count = store.revoke_user_api_tokens(user_id).await?;
+    let count = store.revoke_web_api_tokens(web_id).await?;
 
     assert_eq!(
         count, 1,
-        "a token of another actor in the user's web should be revoked"
+        "a token of another actor in the web should be revoked"
     );
     assert!(
         listed_token(&store, web_id).await?.revoked_at.is_some(),

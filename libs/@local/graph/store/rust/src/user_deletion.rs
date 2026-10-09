@@ -99,7 +99,7 @@ pub struct UserDeletionOutcome {
 /// Orchestrates the following operations in order:
 /// 1. Look up the user's Kratos identity ID, then its email addresses through the identity provider
 ///    (a missing identity leaves the addresses unknown rather than failing)
-/// 2. Revoke the user's API tokens, then purge all entities owned by the user's personal web
+/// 2. Revoke the API tokens of the user's personal web, then purge all entities it owns
 /// 3. Delete the Kratos identity (removes PII such as email)
 /// 4. Revoke Hydra login and consent sessions
 /// 5. Delete email subscription entries
@@ -160,15 +160,15 @@ where
         tracing::warn!(%user_id, "the user's addresses are unknown");
     }
 
-    // Step 2: Revoke the user's API tokens, then purge the entities of the user's personal web
+    // Step 2: Revoke the API tokens of the user's personal web, then purge its entities
+    // User ID == Web ID for personal webs
+    let web_id = WebId::from(user_id);
     let api_tokens_revoked = store
-        .revoke_user_api_tokens(user_id)
+        .revoke_web_api_tokens(web_id)
         .await
         .change_context(UserDeletionError::ApiTokenRevocation)?;
     tracing::info!(%user_id, api_tokens_revoked, "revoked API tokens");
 
-    // User ID == Web ID for personal webs
-    let web_id = WebId::from(user_id);
     let web_filter = Filter::Equal(
         FilterExpression::Path {
             path: EntityQueryPath::WebId,
