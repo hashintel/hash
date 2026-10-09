@@ -1071,8 +1071,9 @@ export type KindSource = {
  * The validator uses it to report a kind source that isn't connected. `getPayloadInputNames` uses it to decide which
  * inputs an implementation receives as payloads.
  *
- * @throws if a `kindFrom` names an input the action doesn't have, or one that has a derived kind itself; or if a
- *   required output takes its kind from an optional input, which may not be given.
+ * @throws if a `kindFrom` names an input the action doesn't have, or one that has a derived kind itself; if a
+ *   required output takes its kind from an optional input, which may not be given; or if a kind source or a derived
+ *   input has a default, whose kind is fixed.
  */
 export const getKindSources = (
   actionDefinition: Pick<
@@ -1111,6 +1112,15 @@ export const getKindSources = (
     if (of === "output" && definition.required && !input.required) {
       throw new Error(
         `${subject} is required, but takes its kind from input "${input.name}", which is optional: when it isn't given, the output has no kind`,
+      );
+    }
+
+    if (
+      ("default" in definition && definition.default !== undefined) ||
+      input.default !== undefined
+    ) {
+      throw new Error(
+        `${subject} takes its kind from input "${input.name}", so neither can have a default: a default has a fixed kind`,
       );
     }
 

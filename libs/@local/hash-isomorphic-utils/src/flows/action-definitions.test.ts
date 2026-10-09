@@ -71,6 +71,24 @@ describe("getKindSources", () => {
       }),
     ).toThrow(/is required, but takes its kind from input "items"/);
   });
+
+  it("rejects a default on an input a kind is taken from, or on an input that takes its kind from another", () => {
+    const withDefault = (inputName: string) => ({
+      ...findAction,
+      inputs: findAction.inputs.map((input) =>
+        input.name === inputName
+          ? { ...input, default: { kind: "Text" as const, value: "" } }
+          : input,
+      ),
+    });
+
+    expect(() => getKindSources(withDefault("items"))).toThrow(
+      /neither can have a default/,
+    );
+    expect(() => getKindSources(withDefault("fallback"))).toThrow(
+      /neither can have a default/,
+    );
+  });
 });
 
 describe("getPayloadInputNames", () => {
