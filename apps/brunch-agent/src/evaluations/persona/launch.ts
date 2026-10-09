@@ -37,7 +37,10 @@ import {
 } from "../../http/local-origins.ts";
 import { selectLedgerNoteShape } from "../../ledger-note-shape.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
-import { submitPersonaBrowserTurn } from "./browser-turn.ts";
+import {
+  PersonaBrowserTurnError,
+  submitPersonaBrowserTurn,
+} from "./browser-turn.ts";
 import { guidanceManifest, verifyGuidanceResume } from "./guidance-manifest.ts";
 import {
   agentSettingsFromRun,
@@ -661,6 +664,14 @@ const launchPersona = async ({
             text: result.reply.text,
             submissionIds: result.submissionIds,
           };
+        } catch (error) {
+          if (error instanceof PersonaBrowserTurnError)
+            await writeProofArtifacts(
+              join(run, "evidence"),
+              error.snapshot,
+              manifest.variant,
+            );
+          throw error;
         } finally {
           if (!stop.signal.aborted) activeAdmission = undefined;
         }

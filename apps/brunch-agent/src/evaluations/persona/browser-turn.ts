@@ -14,7 +14,7 @@ import { agentOwnershipHeaders } from "../../conversation/identity.ts";
 import type { Page, Response as BrowserResponse } from "@playwright/test";
 
 /** A failed persona turn that still carries the admitted conversation's history. */
-class PersonaBrowserTurnError extends Error {
+export class PersonaBrowserTurnError extends Error {
   readonly snapshot: FlueConversationSnapshot;
   constructor(
     message: string,
