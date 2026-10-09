@@ -30,7 +30,6 @@ import type {
 } from "../../../../react/navigation";
 import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
 import type { PetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
-import type { ReactNode } from "react";
 
 beforeEach(() => {
   localStorage.clear();
@@ -57,7 +56,6 @@ afterEach(() => {
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
   optimization: PetrinautOptimizationSource | null = null,
-  settingsLabs?: ReactNode,
 ) => {
   const registry = createCommandRegistry();
   const result = render(
@@ -65,7 +63,7 @@ const renderSettings = (
       <UserSettingsProvider>
         <PetrinautNavigationProvider initialState={initialState}>
           <PetrinautOptimizationContext value={optimization}>
-            <UserSettings settingsLabs={settingsLabs} />
+            <UserSettings />
           </PetrinautOptimizationContext>
         </PetrinautNavigationProvider>
       </UserSettingsProvider>
@@ -500,72 +498,6 @@ describe("Labs settings", () => {
     expect(document.activeElement).toBe(voice);
     fireEvent.keyDown(voice, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(labs);
-  });
-
-  it("renders host Labs content after the built-in groups", async () => {
-    const withoutHost = renderSettings({
-      overlay: { type: "user-settings", section: "labs" },
-    });
-    await screen.findByRole("heading", { name: "Labs" });
-    expect(
-      screen.queryByRole("region", { name: "Host AI settings" }),
-    ).toBeNull();
-    withoutHost.unmount();
-
-    renderSettings(
-      { overlay: { type: "user-settings", section: "labs" } },
-      null,
-      <section aria-label="Host AI settings">
-        <button type="button">Use Brunch</button>
-      </section>,
-    );
-    await screen.findByRole("heading", { name: "Labs" });
-    expect(
-      screen.getByRole("region", { name: "Host AI settings" }),
-    ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Use Brunch" })).toBeTruthy();
-  });
-
-  it("walks enabled host Labs controls and crosses the existing focus flow", async () => {
-    renderSettings(
-      { overlay: { type: "user-settings", section: "labs" } },
-      null,
-      <section aria-label="Host AI settings">
-        <button type="button" disabled>
-          Unavailable first
-        </button>
-        <button type="button">First host control</button>
-        <button type="button" aria-disabled="true">
-          Unavailable middle
-        </button>
-        <button type="button">Last host control</button>
-      </section>,
-    );
-    await screen.findByRole("heading", { name: "Labs" });
-    const labs = screen.getByRole("tab", { name: "Labs" });
-    const compilation = screen.getByRole("checkbox", {
-      name: "Compilation output",
-    });
-    const first = screen.getByRole("button", {
-      name: "First host control",
-    });
-    const last = screen.getByRole("button", { name: "Last host control" });
-
-    act(() => compilation.focus());
-    fireEvent.keyDown(compilation, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(first);
-    fireEvent.keyDown(first, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(last);
-    fireEvent.keyDown(last, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(first);
-    fireEvent.keyDown(first, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(compilation);
-
-    act(() => last.focus());
-    fireEvent.keyDown(last, { key: "ArrowLeft" });
-    expect(document.activeElement).toBe(labs);
-    fireEvent.keyDown(labs, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(last);
   });
 });
 

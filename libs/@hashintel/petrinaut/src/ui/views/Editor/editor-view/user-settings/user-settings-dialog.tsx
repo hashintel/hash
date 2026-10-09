@@ -18,7 +18,6 @@ import {
   PluginSettingsRows,
   settingSelectStyle,
 } from "../../../../plugins/plugin-settings-rows";
-import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
@@ -368,12 +367,10 @@ const SettingsTabs = () => {
 
 export const UserSettingsDialog = ({
   section,
-  settingsLabs,
   onSectionChange,
   onClose,
 }: {
   section: PetrinautSettingsSection;
-  settingsLabs?: ReactNode;
   onSectionChange: (section: PetrinautSettingsSection) => void;
   onClose: () => void;
 }) => {
@@ -626,9 +623,6 @@ export const UserSettingsDialog = ({
                         section="labs"
                         components={pluginRowComponents}
                       />
-                      {settingsLabs !== undefined && settingsLabs !== null && (
-                        <FocusControls>{settingsLabs}</FocusControls>
-                      )}
                     </>
                   )}
                 </FocusStack>

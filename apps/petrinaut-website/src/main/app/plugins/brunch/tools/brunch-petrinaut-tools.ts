@@ -4,11 +4,10 @@ import {
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas,
   petrinautAiTools,
-  resolvePetrinautHandleCapabilities,
-  type PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
 
 import { executePetrinautAiMutation } from "../../_shared/chat/execute-petrinaut-ai-mutation";
+import { readDiagnosticsForAi } from "../../_shared/chat/read-diagnostics-for-ai";
 import {
   type DocumentRevision,
   documentRevisionOf,
@@ -16,6 +15,7 @@ import {
 
 import type { PetrinautAiAutomaticTool } from "../../_shared/chat/automatic-tool";
 import type { FlueConversationState } from "@flue/sdk";
+import type { PluginDocument } from "@hashintel/petrinaut/ui";
 
 interface DocumentRevisionMetadata {
   readonly documentRevision: {
@@ -30,7 +30,7 @@ type RetainedCall = {
   readonly output?: unknown;
   readonly metadata?: DocumentRevisionMetadata;
 };
-export interface CanonicalPetrinautReplay {
+interface CanonicalPetrinautReplay {
   readonly calls: ReadonlyMap<string, RetainedCall>;
 }
 export type CanonicalPetrinautReplayReadiness =
@@ -80,29 +80,20 @@ export const issuedCanonicalCallsFromHistory = async ({
   return { calls };
 };
 
-export interface CanonicalPetrinautHostToolsInput {
-  readonly handle: PetrinautDocHandle;
-  readonly readTitle: () => string;
+interface CanonicalPetrinautHostToolsInput {
+  readonly document: PluginDocument;
   readonly replayReadiness: CanonicalPetrinautReplayReadiness;
 }
-
-const currentRevision = (
-  handle: PetrinautDocHandle,
-): DocumentRevision | undefined => {
-  const definition = handle.doc();
-  return definition === undefined ? undefined : documentRevisionOf(definition);
-};
 
 /** Petrinaut executes canonical actions; the host records the content revision before each call, and after it when the call changed the document. */
 export const createCanonicalPetrinautHostTools = (
   input: CanonicalPetrinautHostToolsInput,
 ) => {
-  const { handle } = input;
+  const { document } = input;
+  const currentRevision = () => documentRevisionOf(document.net.get());
   const before = new Map<string, DocumentRevision>();
   const stampBefore = (toolCallId: string) => {
-    const revision = currentRevision(handle);
-    if (revision === undefined) before.delete(toolCallId);
-    else before.set(toolCallId, revision);
+    before.set(toolCallId, currentRevision());
   };
   const toolNames = new Map<string, string>();
   const prepared = new Set<string>();
@@ -144,15 +135,11 @@ export const createCanonicalPetrinautHostTools = (
       if (prior.found) return prior.output;
       if (input.replayReadiness.status === "pending")
         throw new Error("Conversation history is not ready.");
-      const definition = handle.doc();
-      if (!definition)
-        throw new Error("The bound browser document is unavailable.");
-      const output = {
-        title: input.readTitle(),
-        definition: structuredClone(definition),
-        extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
-          .extensions,
-      };
+      const output = structuredClone({
+        title: document.title.get(),
+        definition: document.net.get(),
+        extensions: document.extensions,
+      });
       stampBefore(toolCallId);
       toolNames.set(toolCallId, getLatestNetDefinitionToolName);
       started.set(toolCallId, {
@@ -167,10 +154,10 @@ export const createCanonicalPetrinautHostTools = (
     toolName: getNetCompilationErrorsToolName,
     inputSchema: petrinautAiTools[getNetCompilationErrorsToolName].inputSchema,
     outputSchema: passthrough,
-    execute: async ({ toolCallId, readDiagnosticsContext }) => {
+    execute: async ({ toolCallId }) => {
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;
-      const output = await readDiagnosticsContext();
+      const output = await readDiagnosticsForAi(document);
       started.set(toolCallId, {
         toolName: getNetCompilationErrorsToolName,
         input: {},
@@ -185,18 +172,12 @@ export const createCanonicalPetrinautHostTools = (
     toolName,
     inputSchema: mutationActionInputSchemas[toolName],
     outputSchema: passthrough,
-    execute: ({ toolCallId, input: rawInput, edit }) => {
+    execute: ({ toolCallId, input: rawInput }) => {
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;
       if (input.replayReadiness.status === "pending")
         throw new Error("Conversation history is not ready.");
       const parsed = mutationActionInputSchemas[toolName].parse(rawInput);
-      const definition = () => {
-        const current = handle.doc();
-        if (!current)
-          throw new Error("The bound browser document is unavailable.");
-        return current;
-      };
       stampBefore(toolCallId);
       toolNames.set(toolCallId, toolName);
       const aiToolCall =
@@ -216,8 +197,8 @@ export const createCanonicalPetrinautHostTools = (
               };
       const output = executePetrinautAiMutation({
         aiToolCall,
-        getDefinition: definition,
-        edit,
+        getDefinition: () => document.net.get(),
+        edit: document.edit,
       });
       started.set(toolCallId, { toolName, input: parsed, output });
       return output;
@@ -263,11 +244,10 @@ export const createCanonicalPetrinautHostTools = (
       const existing = metadata.get(toolCallId);
       if (existing) return existing;
       const revisionBefore = before.get(toolCallId);
-      const revisionAfter = currentRevision(handle);
+      const revisionAfter = currentRevision();
       const toolName = toolNames.get(toolCallId);
       const changed =
         revisionBefore !== undefined &&
-        revisionAfter !== undefined &&
         revisionBefore !== revisionAfter &&
         (toolName === undefined || browserToolMutatesDocument(toolName));
       const result: DocumentRevisionMetadata = {

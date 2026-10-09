@@ -11,6 +11,9 @@ export type { PetrinautAiVoiceSessionPhase, PetrinautAiVoiceSessionState };
 /** The active way a user is providing input to the AI assistant. */
 export type PetrinautAiInputMode = "text" | "voice";
 
+/** The start action that opens the chat in voice mode, when it has one. */
+export const voiceStartActionId = "voice";
+
 /**
  * Current lifecycle state of the chat's conversation. Stays busy across the
  * automatic follow-up to a step that ended in client tool calls, so hosts

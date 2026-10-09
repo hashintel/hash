@@ -398,6 +398,7 @@ export const LiveConversationControl = ({
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- input mode starts and resets this Live session state machine
       setStartAwaitingStop(false);
       return;
     }

@@ -62,7 +62,6 @@ import {
   getInteractiveTool,
   resolveDynamicInteractiveTool,
 } from "./assistant-chat/interactive-tools/registry";
-import { readCurrentDiagnostics } from "./assistant-chat/read-current-diagnostics";
 import {
   type AiToolOutput,
   type AiToolCall,
@@ -75,7 +74,9 @@ import {
   VoiceSessionContext,
   VoiceSessionProvider,
 } from "./assistant-chat/voice-session";
+import { voiceStartActionId } from "./composer-control";
 import { executePetrinautAiMutation } from "./execute-petrinaut-ai-mutation";
+import { readDiagnosticsForAi } from "./read-diagnostics-for-ai";
 
 import type { PetrinautAiMessage, PetrinautAiTransport } from "./ai-message";
 import type {
@@ -586,7 +587,7 @@ const ConversationAssistantChat = ({
   );
 
   const readDiagnosticsContext = useCallback(
-    () => readCurrentDiagnostics(document),
+    () => readDiagnosticsForAi(document),
     [document],
   );
 
@@ -897,8 +898,6 @@ const ConversationAssistantChat = ({
           output = automaticTool.outputSchema.parse(
             await automaticTool.execute({
               input: toolInput,
-              edit: document.edit,
-              readDiagnosticsContext,
               toolCallId: toolCall.toolCallId,
               signal: abortController.signal,
             }),
@@ -2018,7 +2017,7 @@ const ConversationAssistantChat = ({
 
     if ("action" in startRequest) {
       const nextMode =
-        startRequest.action === "voice" &&
+        startRequest.action === voiceStartActionId &&
         aiAssistant.renderVoiceMode !== undefined
           ? "voice"
           : "text";

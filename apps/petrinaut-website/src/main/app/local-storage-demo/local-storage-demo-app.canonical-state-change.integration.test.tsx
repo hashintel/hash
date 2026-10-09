@@ -25,7 +25,6 @@ import {
   NoopResizeObserver,
   preloadMonaco,
 } from "../shared/petrinaut-jsdom";
-import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
 import type { FlueClient } from "@flue/sdk";
@@ -69,10 +68,10 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
   };
 });
 vi.mock("../plugins/brunch/brunch-preview-config", () => ({
-  resolveBrunchPreviewConfig: () => ({
+  brunchPreviewConfig: {
     chatEndpoint: "/agents/chat",
     isBrunchConfigured: true,
-  }),
+  },
 }));
 vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
@@ -191,7 +190,10 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
   const initialRevisionId = "initial-revision";
   let unmount = () => {};
   try {
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    localStorage.setItem(
+      "petrinaut:user-settings",
+      JSON.stringify({ aiAssistantId: "website.brunch" }),
+    );
     localStorage.setItem(
       "petrinaut:plugin:website.walkthrough",
       JSON.stringify({ showOnInit: false }),

@@ -204,7 +204,10 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
     const page = await openPage();
     await page.addInitScript(
       (documentsJson: string | null) => {
-        localStorage.setItem("petrinaut-website:assistant", "brunch");
+        localStorage.setItem(
+          "petrinaut:user-settings",
+          JSON.stringify({ aiAssistantId: "website.brunch" }),
+        );
         if (documentsJson !== null)
           localStorage.setItem("petrinaut-sdcpn", documentsJson);
       },

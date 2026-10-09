@@ -11,6 +11,11 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { PetrinautExperimentRequest } from "@hashintel/petrinaut-core/experiments";
 import type { PetrinautOptimizationInput } from "@hashintel/petrinaut-core/optimization";
 
+/**
+ * Checks an experiment request against the net and resolves what a run of it
+ * needs. Throws when the request names a scenario, parameter or metric the
+ * net lacks, or a value its parameter rejects.
+ */
 export const prepareExperiment = (
   rawRequest: PetrinautExperimentRequest,
   definition: SDCPN,

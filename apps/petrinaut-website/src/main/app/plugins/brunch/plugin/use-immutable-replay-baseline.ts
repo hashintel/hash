@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 
 type ReplayReadiness<Replay> =
   | { readonly status: "pending" }
@@ -57,7 +57,9 @@ export const useImmutableReplayBaseline = <Snapshot, Replay>(input: {
     setStoredBaseline(baseline);
   }
 
-  const derive = input.derive;
+  // The verification runs once per captured baseline, with whatever `derive`
+  // the caller passes at that time; a new `derive` alone restarts nothing.
+  const derive = useEffectEvent((snapshot: Snapshot) => input.derive(snapshot));
   useEffect(() => {
     const capturedSnapshot = baseline?.snapshot;
     if (
@@ -83,7 +85,7 @@ export const useImmutableReplayBaseline = <Snapshot, Replay>(input: {
     return () => {
       cancelled = true;
     };
-  }, [baseline, derive]);
+  }, [baseline]);
 
   return baseline?.readiness ?? { status: "pending" };
 };

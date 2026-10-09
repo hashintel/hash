@@ -5631,11 +5631,6 @@ describe("AssistantChat host interactive tools", () => {
       await screen.findByText("Automatic result received.");
       expect(execute).toHaveBeenCalledWith({
         input: { value: 2 },
-        edit: expect.objectContaining({
-          addPlace: expect.any(Function) as unknown,
-          applyAutoLayout: expect.any(Function) as unknown,
-        }) as unknown,
-        readDiagnosticsContext: expect.any(Function) as () => Promise<string>,
         toolCallId: "automatic-call-1",
         signal: expect.any(AbortSignal) as AbortSignal,
       });
@@ -5651,92 +5646,6 @@ describe("AssistantChat host interactive tools", () => {
     } finally {
       instance.dispose();
     }
-  });
-
-  test("checks the actual definition after a host mutation even when pushed diagnostics stay empty", async () => {
-    const diagnosticsOutputs: string[] = [];
-    const requestDiagnostics = vi
-      .fn<LanguageClient["requestDiagnostics"]>()
-      .mockResolvedValue({ byUri: new Map(), total: 0, errorCount: 0 });
-    const turn = {
-      current: 0,
-      calls: [
-        { toolName: "hostReadDiagnostics", toolCallId: "host-read-1" },
-        { toolName: "hostAddPlace", toolCallId: "host-mutate-1" },
-        { toolName: "hostReadDiagnostics", toolCallId: "host-read-2" },
-      ],
-    };
-    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(() => {
-      const call = turn.calls[turn.current];
-      turn.current += 1;
-      return Promise.resolve(
-        streamChunks(
-          call === undefined
-            ? [...textChunks("host-done", "Host tools finished.")]
-            : [
-                { type: "start-step" },
-                {
-                  type: "tool-input-available",
-                  dynamic: true,
-                  toolCallId: call.toolCallId,
-                  toolName: call.toolName,
-                  input: {},
-                },
-              ],
-        ),
-      );
-    });
-    const passthrough = { parse: (raw: unknown) => raw };
-    renderTestPanel({
-      requestDiagnostics,
-      aiAssistant: {
-        automaticTools: [
-          {
-            toolName: "hostReadDiagnostics",
-            inputSchema: passthrough,
-            outputSchema: passthrough,
-            execute: async ({ readDiagnosticsContext }) => {
-              const context = await readDiagnosticsContext();
-              diagnosticsOutputs.push(context);
-              return { context };
-            },
-          },
-          {
-            toolName: "hostAddPlace",
-            inputSchema: passthrough,
-            outputSchema: passthrough,
-            execute: ({ edit }) => {
-              edit.addPlace({
-                id: "host-place",
-                name: "HostPlace",
-                colorId: null,
-                dynamicsEnabled: false,
-                differentialEquationId: null,
-                x: 0,
-                y: 0,
-              });
-              return { applied: true };
-            },
-          },
-        ],
-        transport: { reconnectToStream: async () => null, sendMessages },
-      },
-      initialMessage: "Run the host tools",
-    });
-
-    // No pushed diagnostics change; each explicit request still completes.
-    await screen.findByText("Host tools finished.", {}, { timeout: 5_000 });
-    expect(diagnosticsOutputs).toHaveLength(2);
-    expect(
-      diagnosticsOutputs.every((output) =>
-        output.includes("No errors or warnings found in net function code."),
-      ),
-    ).toBe(true);
-    expect(
-      requestDiagnostics.mock.calls.map(
-        ([definition]) => definition.places.length,
-      ),
-    ).toEqual([0, 1]);
   });
 
   test("aborts an in-flight automatic tool when the panel unmounts", async () => {

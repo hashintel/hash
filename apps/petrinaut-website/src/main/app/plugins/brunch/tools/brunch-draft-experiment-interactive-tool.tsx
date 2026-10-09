@@ -1,4 +1,4 @@
-import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   browserToolMutatesDocument,
@@ -13,14 +13,11 @@ import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  ExperimentHostContext,
-  ExperimentsContext,
-  openPetrinautSimulationResource,
-  OptimizationsContext,
   prepareExperiment,
-  usePetrinautInstance,
-  usePetrinautNavigation,
-} from "@hashintel/petrinaut/react";
+  useStore,
+  type PluginDocumentReader,
+  type PluginExperiments,
+} from "@hashintel/petrinaut/ui";
 
 import { ExperimentExecutionCard } from "../../_shared/chat/experiment-execution-card";
 import {
@@ -36,13 +33,12 @@ import {
   preparationDiffers,
   summarizeForAgent,
 } from "./brunch-draft-experiment-interactive-tool/describe-draft";
-import {
-  editorDraftsFor,
-  type PreparedExperiment,
-  resetEditorDrafts,
-} from "./shared/brunch-draft-experiment-drafts";
 import { documentRevisionOf } from "./shared/document-revision";
 
+import type {
+  EditorDrafts,
+  PreparedExperiment,
+} from "../shared/brunch-draft-experiment-drafts";
 import type { createInBandBrowserCalls } from "./in-band-browser-call";
 import type { FlueConversationState } from "@flue/sdk";
 import type {
@@ -136,9 +132,6 @@ const actionsStyle = css({
   marginTop: "1",
 });
 
-/** Forget every draft, as a reload would. For tests that share the module. */
-export const resetBrunchEditorDrafts = resetEditorDrafts;
-
 /** Resolve only the history before the exact issued call, never a model-supplied citation. */
 export const resolveDraftAuthorityFromHistory = async (
   snapshot: FlueConversationState,
@@ -200,10 +193,18 @@ export const resolveDraftAuthorityFromHistory = async (
   return revision;
 };
 
+/** What the card reads and runs: the plugin's document, its experiments and its drafts. */
+interface DraftExperimentPorts {
+  readonly document: Pick<PluginDocumentReader, "net" | "title" | "reveal">;
+  readonly experiments: PluginExperiments;
+  readonly editorDrafts: EditorDrafts;
+}
+
 type WidgetProps = PetrinautAiInteractiveToolWidgetProps<
   DraftPetrinautExperimentInput,
   DraftPetrinautExperimentOutput
->;
+> &
+  DraftExperimentPorts;
 
 // `false` is a disclosed reporting-only semantic judgment, not host-verified consent.
 // Hard restrictions and omitted blocksRun fail closed; no request constraints are enforced.
@@ -213,10 +214,7 @@ const conditionBlocksRun = (
 
 // Two stable snapshots rather than one fresh object: useSyncExternalStore
 // compares snapshots by identity and would re-render without end otherwise.
-const useEditorDraft = (
-  editorDrafts: ReturnType<typeof editorDraftsFor>,
-  toolCallId: string,
-) => {
+const useEditorDraft = (editorDrafts: EditorDrafts, toolCallId: string) => {
   const draft = useSyncExternalStore(editorDrafts.subscribe, () =>
     editorDrafts.get().drafts.get(toolCallId),
   );
@@ -248,36 +246,35 @@ const prepareOrExplain = (
 };
 
 /**
- * The card itself, rendered inside Petrinaut's tree so it can read the live
- * definition and the stock experiment host. Exported for direct rendering in
- * tests; the app mounts it through the interactive-tool definition below.
+ * The card itself: it reads the live net and runs through the plugin's
+ * experiments. Exported for direct rendering in tests; the app mounts it
+ * through the interactive-tool definition below.
  */
 export const BrunchDraftExperimentWidget = ({
   input,
-  readTitle,
+  document,
+  experiments,
+  editorDrafts,
   readDraftAuthority,
   state,
   claimAndSubmit,
   toolCallId,
 }: WidgetProps & {
-  readTitle: () => string;
   readDraftAuthority: (toolCallId: string) => Promise<string>;
   /** Claim the issued call, then submit what `prepareOutput` resolves to, so the lease covers preparation. */
   claimAndSubmit: (
     prepareOutput: () => Promise<DraftPetrinautExperimentOutput>,
   ) => Promise<void>;
 }) => {
-  const instance = usePetrinautInstance();
-  const experimentHost = use(ExperimentHostContext);
-  const { experiments } = use(ExperimentsContext);
-  const { navigate } = usePetrinautNavigation();
-  const optimizationUnavailableReason =
-    use(OptimizationsContext).optimizationUnavailableReason ?? null;
+  const liveDefinition = useStore(document.net);
+  const records = useStore(experiments.records);
+  const optimizationUnavailableReason = useStore(
+    experiments.optimizationUnavailableReason,
+  );
   const executionUnavailable =
     input.experiment.execution.mode === "optimize"
       ? optimizationUnavailableReason
       : null;
-  const editorDrafts = editorDraftsFor(instance.definition);
   const { draft, isCurrent } = useEditorDraft(editorDrafts, toolCallId);
   const preparedOnceRef = useRef(false);
   const [reviewed, setReviewed] = useState<{
@@ -286,10 +283,7 @@ export const BrunchDraftExperimentWidget = ({
   } | null>(null);
   const [reviewAccepted, setReviewAccepted] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
-  const [preparationFailure, setPreparationFailure] = useState<{
-    kind: "prepare" | "submit";
-    message: string;
-  } | null>(null);
+  const [submitFailure, setSubmitFailure] = useState<string | null>(null);
   const [submissionPending, setSubmissionPending] = useState(
     state === "awaiting",
   );
@@ -300,28 +294,20 @@ export const BrunchDraftExperimentWidget = ({
   useEffect(() => {
     if (state !== "awaiting" || preparedOnceRef.current) return;
     preparedOnceRef.current = true;
-    const initialDefinition = instance.handle.doc();
-    if (!initialDefinition) {
-      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- this effect's one live-model preparation found no document to prepare against
-      setPreparationFailure({
-        kind: "prepare",
-        message: "The bound browser document is unavailable.",
-      });
-      setSubmissionPending(false);
-      return;
-    }
     let candidate: Parameters<typeof editorDrafts.register>[0] | undefined;
     const prepareOutput = async (): Promise<DraftPetrinautExperimentOutput> => {
-      let definition: SDCPN = initialDefinition;
+      let definition = document.net.get();
       let outcome: ReturnType<typeof prepareOrExplain>;
       try {
         const readRevision = await readDraftAuthority(toolCallId);
-        const latestDefinition = instance.handle.doc();
-        if (latestDefinition) definition = latestDefinition;
+        definition = document.net.get();
         outcome =
-          latestDefinition &&
-          documentRevisionOf(latestDefinition) === readRevision
-            ? prepareOrExplain(input.experiment, definition, readTitle())
+          documentRevisionOf(definition) === readRevision
+            ? prepareOrExplain(
+                input.experiment,
+                definition,
+                document.title.get(),
+              )
             : {
                 prepared: null,
                 error:
@@ -344,6 +330,10 @@ export const BrunchDraftExperimentWidget = ({
       };
       const submissionDraft =
         editorDrafts.get().drafts.get(toolCallId) ?? candidate;
+      const unavailable =
+        input.experiment.execution.mode === "optimize"
+          ? experiments.optimizationUnavailableReason.get()
+          : null;
       return submissionDraft.prepared
         ? {
             status: "drafted",
@@ -352,9 +342,9 @@ export const BrunchDraftExperimentWidget = ({
               submissionDraft.definition,
               submissionDraft.input.unsupported.length,
             )}${
-              executionUnavailable === null
+              unavailable === null
                 ? ""
-                : ` Execution unavailable: ${executionUnavailable}.`
+                : ` Execution unavailable: ${unavailable}.`
             }`,
             diagnostics: [
               "No constraints or constraint policy are carried; nothing is enforced.",
@@ -362,9 +352,9 @@ export const BrunchDraftExperimentWidget = ({
                 (condition) =>
                   `${conditionBlocksRun(condition) ? "Run blocked" : "Not carried"}: ${condition.condition}`,
               ),
-              ...(executionUnavailable === null
+              ...(unavailable === null
                 ? []
-                : [`Execution unavailable: ${executionUnavailable}`]),
+                : [`Execution unavailable: ${unavailable}`]),
             ],
           }
         : {
@@ -377,10 +367,9 @@ export const BrunchDraftExperimentWidget = ({
       try {
         await claimAndSubmit(prepareOutput);
       } catch (caught) {
-        setPreparationFailure({
-          kind: "submit",
-          message: caught instanceof Error ? caught.message : String(caught),
-        });
+        setSubmitFailure(
+          caught instanceof Error ? caught.message : String(caught),
+        );
         setSubmissionPending(false);
         return;
       }
@@ -389,10 +378,9 @@ export const BrunchDraftExperimentWidget = ({
     };
     void submitAndRegister();
   }, [
-    executionUnavailable,
     input,
-    instance,
-    readTitle,
+    document,
+    experiments,
     readDraftAuthority,
     editorDrafts,
     state,
@@ -401,7 +389,7 @@ export const BrunchDraftExperimentWidget = ({
   ]);
 
   const definition =
-    reviewed?.definition ?? draft?.definition ?? instance.definition.get();
+    reviewed?.definition ?? draft?.definition ?? liveDefinition;
   const displayedPrepared = reviewed?.prepared ?? draft?.prepared ?? null;
   const request = displayedPrepared?.request ?? null;
   const blocksRun = input.unsupported.some(conditionBlocksRun);
@@ -424,11 +412,11 @@ export const BrunchDraftExperimentWidget = ({
       return;
     // Prepare again against the model as it is now: Run must start what the
     // person sees, and a changed metric or parameter is shown before any call.
-    const currentDefinition = structuredClone(instance.definition.get());
+    const currentDefinition = structuredClone(document.net.get());
     const current = prepareOrExplain(
       pending.prepared.request,
       currentDefinition,
-      readTitle(),
+      document.title.get(),
     );
     if (!current.prepared) {
       setRunError(current.error);
@@ -463,16 +451,13 @@ export const BrunchDraftExperimentWidget = ({
       run: { phase: "running", controller, progress: null },
     });
     try {
-      const result = await experimentHost.runExperiment(
-        current.prepared.request,
-        {
-          signal: controller.signal,
-          onProgress: (progress) =>
-            editorDrafts.update(toolCallId, {
-              run: { phase: "running", controller, progress },
-            }),
-        },
-      );
+      const result = await experiments.run(current.prepared.request, {
+        signal: controller.signal,
+        onProgress: (progress) =>
+          editorDrafts.update(toolCallId, {
+            run: { phase: "running", controller, progress },
+          }),
+      });
       editorDrafts.update(toolCallId, {
         run:
           result.status === "error"
@@ -496,10 +481,8 @@ export const BrunchDraftExperimentWidget = ({
   const heading = !draft
     ? submissionPending
       ? "Preparing draft"
-      : preparationFailure
-        ? preparationFailure.kind === "prepare"
-          ? "Draft could not be prepared"
-          : "Draft could not be submitted"
+      : submitFailure !== null
+        ? "Draft could not be submitted"
         : "Not retained in this editor"
     : draft.invalid !== null
       ? "Could not be prepared"
@@ -528,8 +511,7 @@ export const BrunchDraftExperimentWidget = ({
       ? run.progress?.experimentId
       : runResult?.experimentId;
   const canViewExperiment =
-    experimentId &&
-    experiments.some((experiment) => experiment.id === experimentId);
+    experimentId && records.some((record) => record.id === experimentId);
 
   if (
     run &&
@@ -555,15 +537,12 @@ export const BrunchDraftExperimentWidget = ({
         }
         onViewExperiment={
           canViewExperiment
-            ? () => {
-                navigate(
-                  openPetrinautSimulationResource({
-                    type: "experiment",
-                    id: experimentId,
-                  }),
-                  { cause: "user", action: "simulation-resource" },
-                );
-              }
+            ? () =>
+                document.reveal({
+                  kind: "simulateView",
+                  mode: "experiments",
+                  itemId: experimentId,
+                })
             : undefined
         }
       />
@@ -607,10 +586,8 @@ export const BrunchDraftExperimentWidget = ({
           {draft?.invalid ??
             (submissionPending
               ? "This experiment proposal is being prepared."
-              : preparationFailure
-                ? preparationFailure.kind === "prepare"
-                  ? `The experiment proposal could not be prepared: ${preparationFailure.message}`
-                  : `The prepared proposal could not be submitted: ${preparationFailure.message}`
+              : submitFailure !== null
+                ? `The prepared proposal could not be submitted: ${submitFailure}`
                 : "This draft is from an earlier session. Ask the AI assistant to draft it again to run it.")}
         </p>
       )}
@@ -764,17 +741,17 @@ const settleIssuedDraft = async (
 /**
  * The website-owned card for a Brunch-drafted experiment. It prepares the
  * proposal against the live model, tells Brunch it is drafted (not run), and
- * lets the person Run or Dismiss it. Run reuses the stock experiment host, so
- * records, the active indicator and the Experiments view behave as shipped.
- * Only View experiment navigates; drafts stay in this editor's memory.
+ * lets the person Run or Dismiss it. Run goes through the plugin's
+ * experiments, so records, the active indicator and the Experiments view
+ * behave as shipped. Only View experiment navigates; drafts stay in the
+ * plugin's memory.
  */
 export const createBrunchDraftExperimentInteractiveTool = ({
   browserCalls,
-  readTitle,
   readDraftAuthority,
-}: {
+  ...ports
+}: DraftExperimentPorts & {
   browserCalls: ReturnType<typeof createInBandBrowserCalls>;
-  readTitle: () => string;
   readDraftAuthority: (toolCallId: string) => Promise<string>;
 }) =>
   definePetrinautAiInteractiveTool<
@@ -788,6 +765,7 @@ export const createBrunchDraftExperimentInteractiveTool = ({
     component: (props) => (
       <BrunchDraftExperimentWidget
         {...props}
+        {...ports}
         claimAndSubmit={(prepareOutput) =>
           settleIssuedDraft(
             browserCalls,
@@ -795,7 +773,6 @@ export const createBrunchDraftExperimentInteractiveTool = ({
             prepareOutput,
           )
         }
-        readTitle={readTitle}
         readDraftAuthority={readDraftAuthority}
       />
     ),

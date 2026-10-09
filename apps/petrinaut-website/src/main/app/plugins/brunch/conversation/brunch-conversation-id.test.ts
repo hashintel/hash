@@ -1,29 +1,23 @@
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 
 import {
   brunchEvaluationConversationIdFrom,
-  getOrCreateBrunchConversationId,
   ordinaryConstructionConversationIdFrom,
+  replaceBrunchConversationId,
+  storedBrunchConversationId,
 } from "./brunch-conversation-id";
 
-test("reuses one conversation id per net across reloads", () => {
+test("reads back only the conversation a net was moved to", () => {
   const storedByKey = new Map<string, string>();
   const storage = {
     getItem: (key: string) => storedByKey.get(key) ?? null,
     setItem: (key: string, value: string) => storedByKey.set(key, value),
   };
-  const createId = vi.fn(() => "conversation-created-once");
 
-  expect(getOrCreateBrunchConversationId("net-1", storage, createId)).toBe(
-    "conversation-created-once",
-  );
-  expect(getOrCreateBrunchConversationId("net-1", storage, createId)).toBe(
-    "conversation-created-once",
-  );
-  expect(getOrCreateBrunchConversationId("net-2", storage, createId)).toBe(
-    "conversation-created-once",
-  );
-  expect(createId).toHaveBeenCalledTimes(2);
+  expect(storedBrunchConversationId("net-1", storage)).toBeUndefined();
+  replaceBrunchConversationId("net-1", "conversation-2", storage);
+  expect(storedBrunchConversationId("net-1", storage)).toBe("conversation-2");
+  expect(storedBrunchConversationId("net-2", storage)).toBeUndefined();
 });
 
 test("scopes ordinary construction conversations to the net", () => {
