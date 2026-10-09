@@ -24,7 +24,7 @@ The net supplies candidate executable inputs, judged from a current read:
 
 **Readiness is the conjunction** of both lists. It is proposal readiness, not proof that saved scenario or metric code compiles. Structure alone never triggers a proposal. The net alone never supplies the objective. If parameters and metrics exist but no `purpose` and `direction` or `optimum` is confirmed, there is nothing to propose.
 
-**The current settings come first.** The first run for a decision is a `simulate` request at the current settings over the stated horizon, and it must show the problem the purpose names. If it does not, the model cannot yet rank options: say so, and repair the model or record the gap before any range search or option comparison.
+**The current settings come first.** The first run for a decision is a `simulate` request at the current settings over the stated horizon, and it must show the problem the purpose names; a run that reproduces a case discharges that case's obligation. If it does not, the model cannot yet rank options: say so, and repair the model or record the gap before any range search or option comparison.
 
 When a Ledger record is confirmed and its net counterpart is missing, that is ordinary construction, not experiment work: add the scenario, scenario parameter or metric, run the checks, then reassess. When a fact is missing (no range, no unit, no direction, no regime), ask the smallest resolving question. Never invent a range, unit, threshold, horizon or default to reach readiness.
 

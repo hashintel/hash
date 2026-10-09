@@ -15,7 +15,7 @@ Start when an activity and what it changes are available, normally in the first 
 
 After meaning-bearing input, extend or reshape the net to carry it, or make no mutation when it already does. Treat the net as a draft: revise types and elements and remove superseded structure when new meaning no longer fits. Preserve unrelated structure at the level actually inspected.
 
-Every accepted step of net changes gets a reflection in the exchange's commit, made after its net steps, anchored to the net elements the step created or changed and to the claims and entities they carry: what those elements represent, and any stand-in, inference, default, approximation, revision or target loss, with what it affects and how it could be checked. Reflections are the Ledger's only link to the net; they are neither operational facts nor a mandatory queue of questions.
+Every accepted step of net changes gets a reflection in the exchange's commit, made after its net steps, anchored to the net elements the step created or changed and to the claims and entities they carry: what those elements represent, and any stand-in, inference, default, approximation, revision or target loss, with what it affects. Where a result will rest on one of these, the same commit records an obligation naming the run that would test it; a reflection that cites a run's observed result discharges the obligations that run met. Reflections are the Ledger's only link to the net; they are neither operational facts nor a mandatory queue of questions.
 
 ## Check correspondence
 
