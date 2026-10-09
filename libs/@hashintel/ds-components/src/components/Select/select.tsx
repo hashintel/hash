@@ -894,7 +894,7 @@ export const Select = <TValue extends string>({
         overflowMode !== undefined) &&
       (connectsLeft || connectsRight),
     willClear: showClear && canClear && !hasSelection,
-    replaceArrow: showClear && !loading && !hideArrow && width !== "fitContent",
+    replaceArrow: showClear && !hideArrow && width !== "fitContent",
   });
 
   if (readonly) {

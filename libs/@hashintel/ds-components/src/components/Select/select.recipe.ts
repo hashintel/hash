@@ -446,18 +446,21 @@ export const selectRecipe = sva({
     willClear: { true: {} },
     // The clear button takes the arrow's place whenever it shows: on hover,
     // keyboard focus, and while the dropdown is open (the only reveal touch
-    // devices get). While loading, the spinner already sits between them, so
-    // both keep their own place.
+    // devices get). It is positioned against the select rather than the
+    // trigger, so a loading spinner keeps its own place beside it. The arrow
+    // is 0.5em wide after a right margin of the padding.
     replaceArrow: {
       true: {
         select: {
           "&[data-can-clear]:not(.layer-style_disabled):hover::after, &[data-can-clear]:has(:focus-visible)::after, &[data-can-clear]:has([data-part='trigger'][data-state='open'])::after":
             { visibility: "hidden" },
         },
+        triggerWrapper: {
+          position: "static",
+        },
         clear: {
-          right: "0",
-          transform:
-            "[translateX(calc(50% + var(--base-input-padding-x) + 0.25em))]",
+          right: "[calc(var(--base-input-padding-x) + 0.25em)]",
+          transform: "[translateX(50%)]",
         },
       },
     },
@@ -627,6 +630,16 @@ export const selectRecipe = sva({
         },
         list: {
           "--base-input-padding-x": "spacing.2",
+        },
+      },
+    },
+    // Subtle and naked arrows sit after half the padding
+    {
+      variant: ["subtle", "naked"],
+      replaceArrow: true,
+      css: {
+        clear: {
+          right: "[calc(var(--base-input-padding-x) / 2 + 0.25em)]",
         },
       },
     },
