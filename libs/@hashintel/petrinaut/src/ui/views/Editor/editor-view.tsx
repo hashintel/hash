@@ -541,7 +541,6 @@ const EditorViewContent = ({
         onRunningExperimentClick={(experiment) =>
           handleRunningExperimentClick(experiment.id)
         }
-        slots={slots}
       />
 
       {/* Voice session state is shared between the assistant panel that owns

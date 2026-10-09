@@ -15,14 +15,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   canonicalizePetrinautIds,
   createJsonDocHandle,
+  type ErrorTracker,
+  ErrorTrackerContext,
   isSDCPNEqual,
   Petrinaut,
   type PetrinautDocHandle,
-  type PetrinautSlots,
   type SDCPN,
 } from "@hashintel/petrinaut";
 
-import { setIframeErrorReporterMode } from "../../shared/iframe-error-reporter";
+import {
+  reportIframePetrinautError,
+  setIframeErrorReporterMode,
+} from "../../shared/iframe-error-reporter";
 import {
   type HostNetMode,
   nextRequestId,
@@ -31,21 +35,18 @@ import {
   type SavedSnapshot,
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
-import {
-  EmbedActions,
-  EmbedBreadcrumbs,
-  type EmbedChrome,
-  EmbedChromeContext,
-} from "./embed-chrome";
+import { type EmbedChrome, EmbedChromeContext } from "./embed-chrome";
+import { embedChromePlugin } from "./embed-chrome-plugin";
 import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
 
+const embedPlugins = [embedChromePlugin];
+
 /**
- * The embed's top-bar chrome. The items read the page's state from
- * `EmbedChromeContext`, so this object stays a stable module constant.
+ * Errors Petrinaut catches itself, such as a failing plugin's, never reach the
+ * app's error boundary, so they go to the host's Sentry from here.
  */
-const embedSlots: PetrinautSlots = {
-  topBarStart: <EmbedBreadcrumbs />,
-  topBarEnd: <EmbedActions />,
+const embedErrorTracker: ErrorTracker = {
+  captureException: reportIframePetrinautError,
 };
 
 const noNetSwitchingError = () => {
@@ -340,19 +341,21 @@ export const EmbedContent = () => {
         enabled={hostCapabilities?.optimization === true}
       >
         <EmbedChromeContext value={chrome}>
-          {/* The title is the breadcrumbs' final crumb, so the editor's
-              own title field stays hidden. */}
-          <Petrinaut
-            handle={state.handle}
-            createNewNet={noNetSwitchingError}
-            existingNets={[]}
-            hideNetManagementControls="all"
-            loadPetriNet={noNetSwitchingError}
-            readonly={state.readonly}
-            setTitle={handleSetTitle}
-            slots={embedSlots}
-            title={state.title}
-          />
+          <ErrorTrackerContext value={embedErrorTracker}>
+            {/* The title is the breadcrumbs' final crumb, so the editor's
+                own title field stays hidden. */}
+            <Petrinaut
+              handle={state.handle}
+              createNewNet={noNetSwitchingError}
+              existingNets={[]}
+              hideNetManagementControls="all"
+              loadPetriNet={noNetSwitchingError}
+              plugins={embedPlugins}
+              readonly={state.readonly}
+              setTitle={handleSetTitle}
+              title={state.title}
+            />
+          </ErrorTrackerContext>
         </EmbedChromeContext>
       </HASHPetrinautOptimizationProvider>
     </Box>
