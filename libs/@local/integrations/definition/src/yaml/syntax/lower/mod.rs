@@ -3,6 +3,8 @@
 //! Each part lowers to its value or to every issue found in it. Parts are lowered independently
 //! and their issues combined, so one issue does not hide issues elsewhere in the definition.
 
+mod pipelines;
+
 use alloc::{
     collections::{BTreeMap, BTreeSet},
     string::String,
@@ -132,6 +134,13 @@ impl Lowering {
         path: &DefinitionPath,
     ) -> LoweredResult<T> {
         let text = self.text(value, path)?;
+        self.parse_name(text, path)
+    }
+
+    /// Returns the column name in `text`, which has no location of its own. Issues use the
+    /// location of `path`.
+    fn column(&self, text: &str, path: &DefinitionPath) -> LoweredResult<ColumnName> {
+        let text = self.resolve(text, path)?;
         self.parse_name(text, path)
     }
 
@@ -418,16 +427,26 @@ impl Document {
             &DefinitionPath::default().field("sources"),
             |lowering, source, path| source.lower(lowering, path),
         );
-        let ((), connector, unit_maps, sources) =
-            (variables, connector, unit_maps, sources).try_collect()?;
+        let entity_pipelines = self.pipelines.lower_entities(&mut lowering);
+        let link_pipelines = self.pipelines.lower_links(&mut lowering);
+
+        let ((), connector, unit_maps, sources, entity_pipelines, link_pipelines) = (
+            variables,
+            connector,
+            unit_maps,
+            sources,
+            entity_pipelines,
+            link_pipelines,
+        )
+            .try_collect()?;
 
         Ok((
             DefinitionParts {
                 connector,
                 sources,
                 unit_maps,
-                entity_pipelines: Vec::new(),
-                link_pipelines: Vec::new(),
+                entity_pipelines,
+                link_pipelines,
             },
             lowering.locations,
         ))
