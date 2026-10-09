@@ -99,6 +99,10 @@ Is there a pattern inside the two-hour block beyond “it builds after ten”?
 It matters and nobody knows yet. Concerns: Weekday morning peak, Callers. Record: c11.
 :::
 
+## Checks still owed
+
+- A run with today's six agents shows the hold times past eight minutes that callers hang up after. — Weekday morning peak, Caller abandonment · tests \`c3\`, \`c9\` \`o1\`
+
 ## Excluded from the model
 
 - **Cost of an agent-hour** — metric · stated · out-of-scope \`e13\`
@@ -203,6 +207,10 @@ Is there a pattern inside the two-hour block beyond “it builds after ten”?
 
 It matters and nobody knows yet. Concerns: Weekday morning peak, Callers.
 :::
+
+## Checks still owed
+
+- A run with today's six agents shows the hold times past eight minutes that callers hang up after. — Weekday morning peak, Caller abandonment
 
 ## Excluded from the model
 

@@ -1,6 +1,7 @@
 import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
+import { vObligation } from "./construction/obligations";
 import { vReflection } from "./construction/reflections";
 import { vClaim } from "./elicitation/claims";
 import { vEntity } from "./elicitation/entities";
@@ -22,6 +23,7 @@ export const vLedgerEntry = v.pipe(
     v.strictTuple([vEntityUpdateRoute, vEntity]),
     v.strictTuple([v.literal("claim/create"), vClaim]),
     v.strictTuple([v.literal("reflection/create"), vReflection]),
+    v.strictTuple([v.literal("obligation/create"), vObligation]),
   ]),
   v.description(
     "Exactly two members: [route, payload]. The route names the record type, the operation and, for updates, the target address. Do not add an ID, index or turn member.",
@@ -30,11 +32,19 @@ export const vLedgerEntry = v.pipe(
 
 export type LedgerEntry = v.InferOutput<typeof vLedgerEntry>;
 
+type RecordType = "entity" | "claim" | "obligation";
+
+const article: Record<RecordType, string> = {
+  entity: "an entity",
+  claim: "a claim",
+  obligation: "an obligation",
+};
+
 /** The first misdirected `$index` reference, described so the model can correct it. */
 const localReferenceProblem = (entries: LedgerEntry[]): string | undefined => {
   const problem = (
     reference: string,
-    recordType: "entity" | "claim",
+    recordType: RecordType,
     at: string,
     before?: number,
   ) => {
@@ -42,11 +52,7 @@ const localReferenceProblem = (entries: LedgerEntry[]): string | undefined => {
     const index = Number(reference.slice(1));
     const target = entries[index]?.[0];
     const expected =
-      before !== undefined
-        ? "an earlier claim"
-        : recordType === "entity"
-          ? "an entity"
-          : "a claim";
+      before !== undefined ? "an earlier claim" : article[recordType];
     if (target === undefined)
       return `${at} references ${reference}, but the queue has ${entries.length} entries ($0 to $${entries.length - 1}); expected ${expected}.`;
     if (
@@ -59,7 +65,7 @@ const localReferenceProblem = (entries: LedgerEntry[]): string | undefined => {
 
   for (const [index, [route, payload]] of entries.entries()) {
     const at = (field: string) => `entries[${index}] (${route}) ${field}`;
-    const references: [string[] | undefined, "entity" | "claim", string][] =
+    const references: [string[] | undefined, RecordType, string][] =
       route === "claim/create"
         ? [
             [payload.entities, "entity", "entities"],
@@ -69,8 +75,14 @@ const localReferenceProblem = (entries: LedgerEntry[]): string | undefined => {
           ? [
               [payload.claims, "claim", "claims"],
               [payload.entities, "entity", "entities"],
+              [payload.discharges, "obligation", "discharges"],
             ]
-          : [];
+          : route === "obligation/create"
+            ? [
+                [payload.claims, "claim", "claims"],
+                [payload.entities, "entity", "entities"],
+              ]
+            : [];
     for (const [list, recordType, field] of references)
       for (const reference of list ?? []) {
         const found = problem(

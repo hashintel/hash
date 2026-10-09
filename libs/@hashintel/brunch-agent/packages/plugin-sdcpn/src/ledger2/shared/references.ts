@@ -38,3 +38,17 @@ export const vClaimReference = v.pipe(
     "An existing claim ID (c45), or a same-call queue reference ($1) whose target is a claim entry.",
   ),
 );
+
+export const vObligationId = v.pipe(
+  v.string(),
+  v.regex(/^o(?:0|[1-9]\d*)$/),
+  v.brand("ObligationId"),
+  v.description("An existing obligation ID issued by the system, such as o7."),
+);
+
+export const vObligationReference = v.pipe(
+  v.union([vObligationId, vLocalReference]),
+  v.description(
+    "An existing obligation ID (o7), or a same-call queue reference ($2) whose target is an obligation entry.",
+  ),
+);
