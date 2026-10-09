@@ -134,8 +134,20 @@ const getStepReadiness = (params: {
       return required ? "skip" : "ready";
     }
 
-    if (!processedStepIds.includes(producerStepId)) {
-      /* Wait for the producer to run, even for an optional input, so that it's provided if produced. */
+    const producer = getAllStepsInFlow(flow).find(
+      ({ stepId }) => stepId === producerStepId,
+    );
+
+    /*
+     * A for-each step is processed once it starts its branches, but its collected output only exists once every
+     * branch has finished.
+     */
+    const producerHasFinished =
+      processedStepIds.includes(producerStepId) &&
+      (producer?.kind !== "for-each" || producer.collected !== undefined);
+
+    if (!producerHasFinished) {
+      /* Wait for the producer to finish, even for an optional input, so that it's provided if produced. */
       return "waiting";
     }
 
