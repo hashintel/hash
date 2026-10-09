@@ -886,7 +886,17 @@ const live = process.env.BRUNCH_LIVE_MODEL_TESTS === "1";
 
 describe.skipIf(!live).concurrent("kind enums with a live model", () => {
   /** Sends one message with the commit tool; fails unless the call parses. */
-  const append = async (message: string, constructionObservation = "") => {
+  const append = async (
+    message: string,
+    {
+      observation = "",
+      prior = [],
+    }: { observation?: string; prior?: readonly Batch[] } = {},
+  ) => {
+    const ledger =
+      prior.length === 0
+        ? "There are no existing entities or claims, so use only create routes."
+        : `The ledger already holds the records below; reference them by their IDs and use create routes for new records.\n\n${renderLedgerMarkdown(projectLedger(foldCommits(settledHistory(prior)).state), "agent")}\n\n`;
     const models = createModels();
     models.setProvider(anthropicProvider());
     models.setProvider(openaiProviderWithAddedModels());
@@ -899,7 +909,7 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     if (!model) throw new Error(`Unknown model ${specifier}`);
     const thinking = selectChatThinking();
     const context: Context = {
-      systemPrompt: `You keep the record of a modelling conversation. USER means the interviewee whose account is being elicited. There are no existing entities or claims, so use only create routes. Record the USER's latest message by calling ${brunchTools.ledgerCommit} exactly once. Each entry is exactly [route, payload]. Do not assign IDs or submit turns; relationships use $index references to positions in this call's entire entries queue. Do not reply in text. ${constructionObservation}`,
+      systemPrompt: `You keep the record of a modelling conversation. USER means the interviewee whose account is being elicited. ${ledger} Record the USER's latest message by calling ${brunchTools.ledgerCommit} exactly once. Each entry is exactly [route, payload]. Do not assign IDs or submit turns; relationships use $index references to positions in this call's entire entries queue. Do not reply in text. ${observation}`,
       messages: [{ role: "user", content: message, timestamp: Date.now() }],
       tools: [
         {
@@ -923,8 +933,9 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
       );
     expect(call.name).toBe(brunchTools.ledgerCommit);
     const recorded = v.parse(vLedgerAppend, call.arguments);
-    for (const [route] of recorded.entries)
-      expect(route).not.toMatch(/\/update\//);
+    if (prior.length === 0)
+      for (const [route] of recorded.entries)
+        expect(route).not.toMatch(/\/update\//);
     const entities = recorded.entries.flatMap(([route, payload]) =>
       route === "entity/create" ? [payload] : [],
     );
@@ -934,8 +945,13 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     const reflections = recorded.entries.flatMap(([route, payload]) =>
       route === "reflection/create" ? [payload] : [],
     );
-    expect(entities.length).toBeGreaterThan(0);
-    expect(claims.length).toBeGreaterThan(0);
+    const obligations = recorded.entries.flatMap(([route, payload]) =>
+      route === "obligation/create" ? [payload] : [],
+    );
+    if (prior.length === 0) {
+      expect(entities.length).toBeGreaterThan(0);
+      expect(claims.length).toBeGreaterThan(0);
+    }
     for (const entity of entities) {
       expect(entity).not.toHaveProperty("id");
     }
@@ -943,7 +959,7 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
       expect(claim).not.toHaveProperty("id");
       expect(claim).not.toHaveProperty("turn");
       for (const reference of claim.entities)
-        expect(reference).toMatch(/^\$\d+$/);
+        expect(reference).toMatch(/^(\$\d+|e\d+)$/);
     }
     for (const reflection of reflections) {
       expect(reflection).not.toHaveProperty("revision");
@@ -952,9 +968,9 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
         ...(reflection.claims ?? []),
         ...(reflection.entities ?? []),
       ])
-        expect(reference).toMatch(/^\$\d+$/);
+        expect(reference).toMatch(/^(\$\d+|[ec]\d+)$/);
     }
-    const receipt = await runCommit([], recorded.entries);
+    const receipt = await runCommit(prior, recorded.entries);
     expect(receipt.status).toBe("recorded");
     if (receipt.status !== "recorded")
       throw new Error("Receipt expected to be recorded");
@@ -964,10 +980,19 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
         ? "e"
         : route === "claim/create"
           ? "c"
-          : "r";
+          : route === "obligation/create"
+            ? "o"
+            : "r";
       expect(receipt.ids[index]).toMatch(new RegExp(`^${prefix}\\d+$`));
     });
-    return { entries: recorded.entries, entities, claims, reflections };
+    return {
+      entries: recorded.entries,
+      entities,
+      claims,
+      reflections,
+      obligations,
+      receipt,
+    };
   };
 
   test("names objectives and constraints as entities from their descriptions", async () => {
@@ -1042,15 +1067,18 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     const placeId = "73bb8e88-a8d7-4a81-99e1-8398b928d6d3";
     const recorded = await append(
       "We have one dryer. Each batch holds it for the whole drying operation.",
-      `For this isolated demo, the construction observation is a fixture: ` +
-        `a net tool successfully created a place with ID ${placeId}, ` +
-        `name Available dryer, and one capacity token. ` +
-        `This change addresses the USER's dryer-capacity assertion. ` +
-        `In the same ledger_commit call, record at least one reflection that ` +
-        `references the created place in netElements by kind and ID, ` +
-        `links the addressed claims and the dryer entity with $index references, ` +
-        `and explains the representation. ` +
-        `Batch hold/release wiring has not been added; note that consequential omission in reflection text.`,
+      {
+        observation:
+          `For this isolated demo, the construction observation is a fixture: ` +
+          `a net tool successfully created a place with ID ${placeId}, ` +
+          `name Available dryer, and one capacity token. ` +
+          `This change addresses the USER's dryer-capacity assertion. ` +
+          `In the same ledger_commit call, record at least one reflection that ` +
+          `references the created place in netElements by kind and ID, ` +
+          `links the addressed claims and the dryer entity with $index references, ` +
+          `and explains the representation. ` +
+          `Batch hold/release wiring has not been added; note that consequential omission in reflection text.`,
+      },
     );
 
     const dryerReference = recorded.entries.findIndex(
@@ -1079,5 +1107,83 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     expect(
       recorded.reflections.some(({ text }) => /hold|release/i.test(text)),
     ).toBe(true);
+  }, 120_000);
+
+  test("records an incident as a case the model owes a check to reproduce", async () => {
+    const recorded = await append(
+      "It overflowed on the night of 2 July, after the storm. The 02:00 reading said 5.1 m, the pump came on at 02:10, and by the 02:20 reading it was at 5.8 m and spilling. That's the kind of night we want the model to help us stop.",
+    );
+    const caseReferences = recorded.entries.flatMap(([route, payload], index) =>
+      route === "entity/create" && payload.kind === "case" ? [`$${index}`] : [],
+    );
+    expect(caseReferences).not.toHaveLength(0);
+    expect(
+      recorded.obligations.flatMap((obligation) => obligation.entities ?? []),
+    ).toEqual(expect.arrayContaining([caseReferences[0]]));
+  }, 120_000);
+
+  const overflowCase = toBatch([
+    [
+      "entity/create",
+      {
+        name: "The 2 July overflow",
+        kind: "case",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "claim/create",
+      {
+        text: "On 2 July the level read 5.1 m at 02:00 and 5.8 m at 02:20, and the tank spilled.",
+        entities: ["$0"],
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "obligation/create",
+      {
+        text: "A run at the current settings reproduces the 2 July overflow.",
+        entities: ["$0"],
+        claims: ["$1"],
+      },
+    ],
+  ]);
+
+  test("discharges a case's obligation with the run that reproduced it", async () => {
+    const recorded = await append("So, does the model reproduce 2 July?", {
+      prior: [overflowCase],
+      observation:
+        `For this isolated demo, the construction observation is a fixture: ` +
+        `an experiment tool ran the net at the current settings with the 2 July storm inflow. ` +
+        `The simulated level read 5.1 m at 02:00, the pump started at 02:10, and the level reached 5.8 m at 02:20 and spilled.`,
+    });
+    expect(
+      recorded.reflections.flatMap((reflection) => reflection.discharges ?? []),
+    ).toContain("o1");
+    expect(recorded.claims.map(({ origin }) => origin)).not.toContain(
+      "evidenced",
+    );
+    expect(recorded.receipt).not.toHaveProperty("owed");
+  }, 120_000);
+
+  test("owes a sensitivity check on a stand-in a result rests on", async () => {
+    const recorded = await append("Fine, what did it find?", {
+      prior: [overflowCase],
+      observation:
+        `For this isolated demo, the construction observation is a fixture: ` +
+        `the USER never gave the pump's flow rate, so a net tool built the pump transition with a placeholder of 40 l/s. ` +
+        `An optimization over the pump's switch-on level then found 4.9 m best: no overflow on the 2 July inflow.`,
+    });
+    expect(recorded.claims.map(({ origin }) => origin)).not.toContain(
+      "evidenced",
+    );
+    expect(
+      recorded.obligations.some(({ text }) => /40|placeholder/i.test(text)),
+    ).toBe(true);
+    expect(recorded.receipt).toMatchObject({
+      owed: expect.arrayContaining([expect.objectContaining({ id: "o1" })]),
+    });
   }, 120_000);
 });
