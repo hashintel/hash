@@ -16,6 +16,7 @@ export {
   type LedgerHistory,
   type LedgerHistoryMessage,
 } from "./ledger2/commits";
+export { vObligation } from "./ledger2/construction/obligations";
 export { vReflection } from "./ledger2/construction/reflections";
 export { vClaim } from "./ledger2/elicitation/claims";
 export {

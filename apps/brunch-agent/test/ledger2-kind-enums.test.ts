@@ -12,6 +12,8 @@ import {
   entityKindStages,
   foldCommits,
   prepareAppend,
+  projectLedger,
+  renderLedgerMarkdown,
   vClaim,
   vEntity,
   vEntityKind,
@@ -563,6 +565,83 @@ test("a misdirected local reference names the entry, field and target", () => {
   );
 });
 
+test("an obligation stays owed until a reflection discharges it", async () => {
+  const owing = toBatch([
+    [
+      "entity/create",
+      {
+        name: "The 2 July overflow",
+        kind: "case",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+    [
+      "obligation/create",
+      {
+        text: "A run at the current settings reproduces the 2 July overflow.",
+        entities: ["$0"],
+      },
+    ],
+  ]);
+  expect(await runCommit([], owing)).toEqual({
+    status: "recorded",
+    commitId: "commit-1",
+    revision: 1,
+    ids: ["e1", "o1"],
+    owed: [
+      {
+        id: "o1",
+        text: "A run at the current settings reproduces the 2 July overflow.",
+      },
+    ],
+  });
+  expect(
+    renderLedgerMarkdown(
+      projectLedger(foldCommits(settledHistory([owing])).state),
+      "agent",
+    ),
+  ).toContain(
+    "## Checks still owed\n\n- A run at the current settings reproduces the 2 July overflow. \u2014 The 2 July overflow `o1`",
+  );
+
+  expect(
+    await runCommit(
+      [owing],
+      toBatch([
+        [
+          "reflection/create",
+          { text: "Discharged without a run.", discharges: ["o9"] },
+        ],
+      ]),
+    ),
+  ).toMatchObject({ status: "refused", message: "Unknown obligation o9." });
+
+  const discharging = toBatch([
+    [
+      "reflection/create",
+      {
+        text: "The current-settings run overflowed at 04:46, as on 2 July.",
+        entities: ["e1"],
+        discharges: ["o1"],
+      },
+    ],
+  ]);
+  const receipt = await runCommit([owing], discharging);
+  expect(receipt).toEqual({
+    status: "recorded",
+    commitId: "commit-2",
+    revision: 2,
+    ids: ["r1"],
+  });
+  expect(
+    renderLedgerMarkdown(
+      projectLedger(foldCommits(settledHistory([owing, discharging])).state),
+      "agent",
+    ),
+  ).not.toContain("Checks still owed");
+});
+
 /** What Flue sends as a tool's parameters (`toolInputToJsonSchema`). */
 const flueParameters = (schema: v.GenericSchema) => {
   const { $schema: _schema, ...parameters } = toJsonSchema(schema, {
@@ -658,6 +737,28 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                         properties: { kind: { enum: netElementKinds } },
                       },
                     },
+                    claims: { type: "array" },
+                    entities: { type: "array" },
+                    discharges: {
+                      type: "array",
+                      items: {
+                        anyOf: [
+                          { pattern: "^o(?:0|[1-9]\\d*)$" },
+                          { pattern: "^\\$(?:0|[1-9]\\d*)$" },
+                        ],
+                      },
+                    },
+                  },
+                  required: ["text"],
+                },
+              ],
+            },
+            {
+              items: [
+                { const: "obligation/create" },
+                {
+                  properties: {
+                    text: { type: "string" },
                     claims: { type: "array" },
                     entities: { type: "array" },
                   },

@@ -78,6 +78,22 @@ export const renderLedgerMarkdown = (
     for (const question of projection.questions)
       blocks.push(questionBlock(skin, question));
   }
+  if (projection.owed.length > 0) {
+    blocks.push(h2("Checks still owed"));
+    blocks.push(
+      ul(
+        projection.owed.map(({ record, concerns }) => {
+          const about =
+            concerns.length > 0 ? ` \u2014 ${concerns.join(", ")}` : "";
+          const tests =
+            skin === "agent" && (record.claims?.length ?? 0) > 0
+              ? ` \u00b7 tests ${(record.claims ?? []).map((claim) => code(claim)).join(", ")}`
+              : "";
+          return `${record.text}${about}${tests}${tag(skin, record.address)}`;
+        }),
+      ),
+    );
+  }
   if (projection.excluded.length > 0) {
     blocks.push(h2("Excluded from the model"));
     blocks.push(

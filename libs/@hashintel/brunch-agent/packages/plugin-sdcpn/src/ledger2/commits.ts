@@ -3,11 +3,13 @@ import * as v from "valibot";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 
 import { vLedgerAppend, type LedgerAppend } from "./append";
+import { owedObligations } from "./projection";
 
 import type {
   ClaimRecord,
   EntityRecord,
   LedgerState,
+  ObligationRecord,
   ReflectionRecord,
 } from "./projection";
 
@@ -86,6 +88,8 @@ export const ledgerAppendOutputSchema = v.variant("status", [
     revision: v.number(),
     /** System-assigned record IDs, aligned with the submitted entries queue. */
     ids: v.array(v.string()),
+    /** Obligations no reflection has discharged yet; absent when none are owed. */
+    owed: v.optional(v.array(v.object({ id: v.string(), text: v.string() }))),
   }),
   v.object({
     status: v.literal("refused"),
@@ -112,6 +116,7 @@ const emptyState = (): LedgerState => ({
   entities: [],
   claims: [],
   reflections: [],
+  obligations: [],
 });
 
 const highestAddress = (records: readonly { address: string }[]) =>
@@ -139,6 +144,7 @@ const deriveBatch = (
     entity: highestAddress(state.entities),
     claim: highestAddress(state.claims),
     reflection: highestAddress(state.reflections),
+    obligation: highestAddress(state.obligations),
   };
   const addressed = entries.map((entry) => {
     const [route] = entry;
@@ -152,6 +158,9 @@ const deriveBatch = (
     } else if (route === "reflection/create") {
       counters.reflection += 1;
       address = `r${counters.reflection}`;
+    } else if (route === "obligation/create") {
+      counters.obligation += 1;
+      address = `o${counters.obligation}`;
     } else {
       address = route.slice("entity/update/".length);
     }
@@ -162,16 +171,23 @@ const deriveBatch = (
     state.entities.map((record) => [record.address, record]),
   );
   const priorClaims = new Set(state.claims.map((record) => record.address));
+  const priorObligations = new Set(
+    state.obligations.map((record) => record.address),
+  );
   const createdEntities = new Set<string>();
   const createdClaims = new Set<string>();
+  const createdObligations = new Set<string>();
   for (const { entry, address } of addressed) {
     if (entry[0] === "entity/create") createdEntities.add(address);
     if (entry[0] === "claim/create") createdClaims.add(address);
+    if (entry[0] === "obligation/create") createdObligations.add(address);
   }
   const entityKnown = (address: string) =>
     priorEntities.has(address) || createdEntities.has(address);
   const claimKnown = (address: string) =>
     priorClaims.has(address) || createdClaims.has(address);
+  const obligationKnown = (address: string) =>
+    priorObligations.has(address) || createdObligations.has(address);
   const resolveReference = (reference: string) =>
     reference.startsWith("$")
       ? (addressed[Number(reference.slice(1))]?.address ?? reference)
@@ -185,6 +201,7 @@ const deriveBatch = (
   const newEntities: EntityRecord[] = [];
   const newClaims: ClaimRecord[] = [];
   const newReflections: ReflectionRecord[] = [];
+  const newObligations: ObligationRecord[] = [];
 
   for (const { entry, address } of addressed) {
     const [route, payload] = entry;
@@ -215,12 +232,33 @@ const deriveBatch = (
       for (const reference of entities)
         if (!entityKnown(reference))
           return refusal(`Unknown entity ${reference}.`);
+      const discharges = (payload.discharges ?? []).map(resolveReference);
+      for (const reference of discharges)
+        if (!obligationKnown(reference))
+          return refusal(`Unknown obligation ${reference}.`);
       newReflections.push({
         address,
         text: payload.text,
         ...(payload.netElements === undefined
           ? {}
           : { netElements: payload.netElements }),
+        ...(claims.length > 0 ? { claims } : {}),
+        ...(entities.length > 0 ? { entities } : {}),
+        ...(discharges.length > 0 ? { discharges } : {}),
+        turn,
+      });
+    } else if (route === "obligation/create") {
+      const claims = (payload.claims ?? []).map(resolveReference);
+      for (const reference of claims)
+        if (!claimKnown(reference))
+          return refusal(`Unknown claim ${reference}.`);
+      const entities = (payload.entities ?? []).map(resolveReference);
+      for (const reference of entities)
+        if (!entityKnown(reference))
+          return refusal(`Unknown entity ${reference}.`);
+      newObligations.push({
+        address,
+        text: payload.text,
         ...(claims.length > 0 ? { claims } : {}),
         ...(entities.length > 0 ? { entities } : {}),
         turn,
@@ -264,6 +302,7 @@ const deriveBatch = (
       ],
       claims: [...state.claims, ...newClaims],
       reflections: [...state.reflections, ...newReflections],
+      obligations: [...state.obligations, ...newObligations],
     },
   };
 };
@@ -350,10 +389,15 @@ export const prepareAppend = (call: {
       message: derived.refusal.message,
       revision,
     };
+  const owed = owedObligations(derived.state).map(({ address, text }) => ({
+    id: address,
+    text,
+  }));
   return {
     status: "recorded",
     commitId: call.toolCallId,
     revision: revision + 1,
     ids: derived.ids,
+    ...(owed.length > 0 ? { owed } : {}),
   };
 };

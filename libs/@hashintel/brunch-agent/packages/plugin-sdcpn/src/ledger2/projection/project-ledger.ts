@@ -5,7 +5,22 @@ import {
   type EntityStage,
 } from "../elicitation/entities";
 
-import type { ClaimRecord, EntityRecord, LedgerState } from "./records";
+import type {
+  ClaimRecord,
+  EntityRecord,
+  LedgerState,
+  ObligationRecord,
+} from "./records";
+
+/** Obligations no reflection has discharged, in recording order. */
+export const owedObligations = (ledger: LedgerState): ObligationRecord[] => {
+  const discharged = new Set(
+    ledger.reflections.flatMap((reflection) => reflection.discharges ?? []),
+  );
+  return ledger.obligations.filter(
+    (obligation) => !discharged.has(obligation.address),
+  );
+};
 
 export interface ProjectedClaim {
   record: ClaimRecord;
@@ -44,11 +59,18 @@ export interface AddressEntry {
   snippets: string[];
 }
 
+export interface ProjectedObligation {
+  record: ObligationRecord;
+  /** Names of the entities it concerns. */
+  concerns: string[];
+}
+
 export interface LedgerProjection {
   title: string;
   sections: ProjectedSection[];
   excluded: ProjectedEntity[];
   questions: ProjectedQuestion[];
+  owed: ProjectedObligation[];
   addressEntries: AddressEntry[];
 }
 
@@ -163,6 +185,14 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     .filter((claim) => claim.status === "open" || claim.status === "conflicted")
     .map((claim) => projectQuestion(claim, ledger));
 
+  const nameOf = (address: string) =>
+    ledger.entities.find((entity) => entity.address === address)?.name ??
+    address;
+  const owed = owedObligations(ledger).map((record) => ({
+    record,
+    concerns: (record.entities ?? []).map(nameOf),
+  }));
+
   const addressEntries: AddressEntry[] = [
     ...ledger.entities.map((entity) => ({
       address: entity.address,
@@ -176,7 +206,14 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     })),
   ];
 
-  return { title: ledger.title, sections, excluded, questions, addressEntries };
+  return {
+    title: ledger.title,
+    sections,
+    excluded,
+    questions,
+    owed,
+    addressEntries,
+  };
 };
 
 const projectQuestion = (

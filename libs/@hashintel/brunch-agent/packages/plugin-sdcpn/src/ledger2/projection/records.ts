@@ -33,6 +33,15 @@ export interface ReflectionRecord {
   netElements?: NetElementAddress[];
   claims?: string[];
   entities?: string[];
+  discharges?: string[];
+  turn: string;
+}
+
+export interface ObligationRecord {
+  address: string;
+  text: string;
+  claims?: string[];
+  entities?: string[];
   turn: string;
 }
 
@@ -46,4 +55,5 @@ export interface LedgerState {
   entities: EntityRecord[];
   claims: ClaimRecord[];
   reflections: ReflectionRecord[];
+  obligations: ObligationRecord[];
 }

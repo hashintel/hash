@@ -2,7 +2,11 @@ import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 import { netElementKinds } from "../../petrinaut-tool-effects";
-import { vClaimReference, vEntityReference } from "../shared/references";
+import {
+  vClaimReference,
+  vEntityReference,
+  vObligationReference,
+} from "../shared/references";
 
 export const vNetElementAddress = v.pipe(
   v.strictObject({
@@ -27,7 +31,7 @@ export const vReflection = v.pipe(
       v.string(),
       v.minLength(1),
       v.description(
-        "The reflection itself: the modeling choice behind an accepted change, what referenced net elements represent, and any consequential approximation or omission. Do not repeat mechanical tool receipts or revision IDs.",
+        "The reflection itself: the modeling choice behind an accepted change, what referenced net elements represent, and any consequential approximation or omission. A stand-in or approximation a reported result rests on also gets an obligation entry in the same call, naming the run that would test it. Do not repeat mechanical tool receipts or revision IDs.",
       ),
     ),
     netElements: v.optional(
@@ -54,14 +58,23 @@ export const vReflection = v.pipe(
         ),
       ),
     ),
+    discharges: v.optional(
+      v.pipe(
+        v.array(vObligationReference),
+        v.description(
+          "Obligations this reflection discharges: existing obligation IDs or $index references to obligation entries in this call. The text names the run or inspection that met each one, with its observed result, or the USER's explicit waiver.",
+        ),
+      ),
+    ),
   }),
   v.check(
     (reflection) =>
       (reflection.netElements?.length ?? 0) +
         (reflection.claims?.length ?? 0) +
-        (reflection.entities?.length ?? 0) >
+        (reflection.entities?.length ?? 0) +
+        (reflection.discharges?.length ?? 0) >
       0,
-    "A reflection must reference at least one net element, claim or entity.",
+    "A reflection must reference at least one net element, claim, entity or obligation.",
   ),
   v.description(
     "Reflect on the constructed net: an accepted change, what net elements represent, or a consequential approximation or omission. Anchor it with at least one net element, claim or entity reference. The system supplies the reflection ID, conversation turn and change provenance. This neither executes a net change nor confirms any claim; epistemic status lives on the referenced claims and entities.",

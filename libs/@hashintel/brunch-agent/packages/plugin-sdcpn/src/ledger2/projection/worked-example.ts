@@ -267,4 +267,13 @@ export const supportDeskLedger: LedgerState = {
       turn: "msg-05",
     },
   ],
+  obligations: [
+    {
+      address: "o1",
+      text: "A run with today's six agents shows the hold times past eight minutes that callers hang up after.",
+      claims: ["c3", "c9"],
+      entities: ["e7", "e12"],
+      turn: "msg-05",
+    },
+  ],
 };

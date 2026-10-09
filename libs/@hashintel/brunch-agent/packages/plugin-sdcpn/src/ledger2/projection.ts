@@ -9,16 +9,19 @@ export type {
   ClaimRecord,
   EntityRecord,
   LedgerState,
+  ObligationRecord,
   ReflectionRecord,
   Turn,
 } from "./projection/records";
 export {
+  owedObligations,
   projectLedger,
   type AddressEntry,
   type LedgerProjection,
   type ProjectedClaim,
   type ProjectedEntity,
   type ProjectedKindGroup,
+  type ProjectedObligation,
   type ProjectedQuestion,
   type ProjectedSection,
 } from "./projection/project-ledger";
