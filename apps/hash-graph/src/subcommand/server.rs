@@ -41,7 +41,7 @@ use opentelemetry::metrics::Meter;
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, signal, time::timeout};
-use tokio_postgres::NoTls;
+use tokio_postgres::{Client as PostgresClient, NoTls};
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
 
@@ -562,7 +562,6 @@ where
     Ok(())
 }
 
-/// Starts the main graph API server (REST + optional RPC).
 /// Resolved authentication configuration for the REST and admin routers.
 pub(crate) struct AuthenticationSetup {
     pub session_auth: KratosSessionConfig,
@@ -570,23 +569,35 @@ pub(crate) struct AuthenticationSetup {
     pub service_secret: String,
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "Every parameter is a distinct resource the one caller assembles."
-)]
-async fn start_server<S>(
+/// Resources assembled for graph API startup.
+struct ServerResources<S> {
     pool: S,
-    postgres: PostgresStorePool,
     compiler: Arc<CompilerContext>,
-    config: ServerConfig,
-    authentication: AuthenticationSetup,
     query_logger: Option<QueryLogger>,
     meter: Meter,
+    filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
+}
+
+/// Starts the main graph API server (REST + optional RPC).
+///
+/// # Errors
+///
+/// Returns an error if a configured client or the RPC server cannot be initialized.
+async fn start_server<S>(
+    ServerResources {
+        pool,
+        compiler,
+        query_logger,
+        meter,
+        filter_protection,
+    }: ServerResources<S>,
+    config: ServerConfig,
+    authentication: AuthenticationSetup,
     lifecycle: &ServerLifecycle,
 ) -> Result<(), Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + AsRef<PostgresClient>,
 {
     let store = Arc::new(pool);
     let temporal_client = create_temporal_client(&config.temporal)
@@ -610,7 +621,6 @@ where
 
     let router = rest::router(rest::Dependencies {
         store,
-        postgres,
         temporal_client,
         embedding_client,
         domain_regex: DomainValidator::new(config.allowed_url_domain),
@@ -623,6 +633,7 @@ where
         meter,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
+        filter_protection,
     });
     start_rest_server(router, config.http_address, lifecycle);
 
@@ -665,9 +676,9 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
             validate_links: !args.config.skip_link_validation,
             skip_embedding_creation: args.config.skip_embedding_creation,
             filter_protection: if args.config.skip_filter_protection {
-                PropertyProtectionFilterConfig::new()
+                Arc::new(PropertyProtectionFilterConfig::new())
             } else {
-                PropertyProtectionFilterConfig::hash_default()
+                Arc::new(PropertyProtectionFilterConfig::hash_default())
             },
             semantic_search: SemanticSearchSettings {
                 candidate_overfetch: args.config.semantic_search_candidate_overfetch,
@@ -689,8 +700,6 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
         .attach("Connection to database failed")?;
 
     let lifecycle = ServerLifecycle::new();
-
-    let postgres = pool.clone();
 
     if args.embed_admin {
         // The admin surface gets its own meter scope, as running it standalone would, so its
@@ -721,6 +730,8 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
             return Err(report.change_context(GraphError));
         }
     }
+
+    let filter_protection = Arc::clone(&pool.settings.filter_protection);
 
     let pool = FetchingPool::new(
         pool,
@@ -756,17 +767,19 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
     ));
 
     if let Err(error) = start_server(
-        pool,
-        postgres,
-        compiler,
+        ServerResources {
+            pool,
+            compiler,
+            query_logger,
+            meter: telemetry.meter("Graph API"),
+            filter_protection,
+        },
         args.config,
         AuthenticationSetup {
             session_auth,
             cloudflare_access,
             service_secret,
         },
-        query_logger,
-        telemetry.meter("Graph API"),
         &lifecycle,
     )
     .await

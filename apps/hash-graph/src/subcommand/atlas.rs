@@ -149,11 +149,11 @@ async fn run_atlas(
     // Before running anything, make sure that the configuration is valid.
     let session_auth = args.session_auth.into_provider_config()?;
 
-    let filter_protection = if args.skip_filter_protection {
+    let filter_protection = Arc::new(if args.skip_filter_protection {
         PropertyProtectionFilterConfig::new()
     } else {
         PropertyProtectionFilterConfig::hash_default()
-    };
+    });
     let exclusions = filter_protection.embedding_exclusions().clone();
 
     let service_secret = cli::SecretString::from(args.service_secret);

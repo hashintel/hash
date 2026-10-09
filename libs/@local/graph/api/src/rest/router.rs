@@ -5,8 +5,8 @@ use alloc::sync::Arc;
 use axum::{Extension, Router};
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::OpenAiEmbeddingClient;
-use hash_graph_postgres_store::store::PostgresStorePool;
-use hash_graph_store::pool::StorePool;
+use hash_graph_postgres_store::store::postgres::PostgresClient;
+use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_middleware::{authentication::AuthenticationMetrics, rate_limit::RateLimiters};
 use hash_temporal_client::TemporalClient;
 use opentelemetry::metrics::Meter;
@@ -23,7 +23,6 @@ use super::{
 
 pub struct Dependencies<S> {
     pub store: Arc<S>,
-    pub postgres: PostgresStorePool,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub embedding_client: Option<Arc<OpenAiEmbeddingClient>>,
     pub domain_regex: DomainValidator,
@@ -35,6 +34,7 @@ pub struct Dependencies<S> {
     pub rate_limit: rate_limit::RateLimitConfig,
     pub meter: Meter,
     pub compiler: Arc<hashql::CompilerContext>,
+    pub filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
     pub clustering: Arc<ClusteringContext>,
 }
 
@@ -48,7 +48,7 @@ pub struct Dependencies<S> {
 pub fn router<S>(dependencies: Dependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'pool> S::Store<'pool>: RestApiStore + PrincipalStore + PolicyStore + AsRef<PostgresClient>,
 {
     let environment = Arc::new(
         dependencies
@@ -96,12 +96,12 @@ where
                 .layer(SentryHttpLayer::default().enable_transaction()),
         )
         .layer(Extension(dependencies.store))
-        .layer(Extension(Arc::new(dependencies.postgres)))
         .layer(Extension(dependencies.temporal_client))
         .layer(Extension(dependencies.embedding_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
         .layer(Extension(dependencies.compiler))
+        .layer(Extension(dependencies.filter_protection))
         .layer(Extension(dependencies.clustering));
 
     if let Some(query_logger) = dependencies.query_logger {
