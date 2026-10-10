@@ -1,0 +1,9 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-source-fields.yaml
+---
+4:3: sources.orders: `primaryKey` is required
+8:17: sources.copies.primaryKey: `primaryKey` does not apply here
+11:17: sources.lines.primaryKey: primary key lists `id` more than once
+13:10: sources.empty.sql: SQL query is empty

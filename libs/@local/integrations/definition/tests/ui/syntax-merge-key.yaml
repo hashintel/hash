@@ -1,0 +1,9 @@
+# A merge key stops parsing at the key.
+connector: demo
+sources:
+  orders: &orders
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+  customers:
+    <<: *orders
+    sql: SELECT 2 AS id

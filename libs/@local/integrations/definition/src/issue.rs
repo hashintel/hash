@@ -1,18 +1,25 @@
-use alloc::{
-    string::{String, ToString as _},
-    vec::Vec,
+use alloc::{boxed::Box, string::ToString as _, vec::Vec};
+use core::{
+    borrow::Borrow,
+    fmt::{self, Display, Formatter, Write as _},
+    num::NonZeroU64,
 };
-use core::fmt::{self, Display, Formatter, Write as _};
 
-use crate::name::{CheckpointName, LinkId, SourceName, StepId, UnitMapName, is_name};
+use type_system::ontology::id::ParseVersionedUrlError;
+
+use crate::{
+    name::{CheckpointName, InvalidName, LinkId, SourceName, StepId, UnitMapName, is_name},
+    source::InvalidPrimaryKey,
+    step::{ConflictingPropertyVersions, InvalidBranches},
+};
 
 /// One step of a [`DefinitionPath`].
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PathSegment {
-    /// A field of an object in the definition format, such as `steps`.
+    /// A field of a mapping in the definition format, such as `steps`.
     Field(&'static str),
-    /// A key of a map, such as a source name.
-    Key(String),
+    /// A key of a mapping, such as a source name.
+    Key(Box<str>),
     /// A position in a list.
     Index(usize),
 }
@@ -21,28 +28,29 @@ pub enum PathSegment {
 ///
 /// Paths use the names of the definition format and print as `pipelines.entities[0].source`.
 /// Keys that are not plain names print quoted, as in `properties["https://…/v/1"]`.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DefinitionPath(Vec<PathSegment>);
 
 impl DefinitionPath {
     /// Returns this path extended by the field `name`.
     #[must_use]
-    pub fn field(self, name: &'static str) -> Self {
+    pub(crate) fn field(self, name: &'static str) -> Self {
         self.join(PathSegment::Field(name))
     }
 
     /// Returns this path extended by the map key `key`, as it prints.
     #[must_use]
-    pub fn key(self, key: impl Display) -> Self {
-        self.join(PathSegment::Key(key.to_string()))
+    pub(crate) fn key(self, key: impl Display) -> Self {
+        self.join(PathSegment::Key(key.to_string().into_boxed_str()))
     }
 
     /// Returns this path extended by the list position `index`.
     #[must_use]
-    pub fn index(self, index: usize) -> Self {
+    pub(crate) fn index(self, index: usize) -> Self {
         self.join(PathSegment::Index(index))
     }
 
+    /// Returns the fields, keys and positions of this path, from the definition's root.
     #[must_use]
     pub fn segments(&self) -> &[PathSegment] {
         &self.0
@@ -51,6 +59,12 @@ impl DefinitionPath {
     fn join(mut self, segment: PathSegment) -> Self {
         self.0.push(segment);
         self
+    }
+}
+
+impl Borrow<[PathSegment]> for DefinitionPath {
+    fn borrow(&self) -> &[PathSegment] {
+        &self.0
     }
 }
 
@@ -92,9 +106,61 @@ impl<T: Display> Display for DisplayList<'_, T> {
     }
 }
 
-/// Explains what is wrong at the location of a [`DefinitionIssue`].
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+/// A line and column in a definition's source text.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, derive_more::Display)]
+#[display("{line}:{column}")]
+pub struct SourceLocation {
+    /// The line, counted from 1.
+    pub line: NonZeroU64,
+    /// The column, counted in characters from 1.
+    pub column: NonZeroU64,
+}
+
+/// Explains what is wrong at the path of a [`DefinitionIssue`].
+#[derive(Debug, PartialEq, Eq, derive_more::Display)]
 pub enum IssueKind {
+    #[display("`${{{name}}}` is not declared in `vars`")]
+    UnknownVariable { name: Box<str> },
+    #[display("`${{` has no closing `}}`")]
+    UnterminatedPlaceholder,
+    #[display("`{value}` is not a valid name: {reason}")]
+    InvalidName {
+        value: Box<str>,
+        reason: InvalidName,
+    },
+    #[display("`{key}` repeats an earlier key")]
+    DuplicateKey { key: Box<str> },
+    #[display("`{value}` is not a versioned type URL: {reason}")]
+    InvalidTypeUrl {
+        value: Box<str>,
+        reason: ParseVersionedUrlError,
+    },
+    #[display("SQL query is empty")]
+    EmptySql,
+    #[display("{reason}")]
+    InvalidPrimaryKey { reason: InvalidPrimaryKey },
+    #[display("unit map has no units and no fallback")]
+    EmptyUnitMap,
+    #[display("{reason}")]
+    InvalidBranches { reason: InvalidBranches },
+    #[display("link reads no checkpoints")]
+    EmptyInputs,
+    #[display("{reason}")]
+    ConflictingPropertyVersions { reason: ConflictingPropertyVersions },
+    #[display("needs one of {}", DisplayList(expected))]
+    MissingKind { expected: &'static [&'static str] },
+    #[display("{} cannot be used together", DisplayList(found))]
+    ConflictingKinds { found: Box<[&'static str]> },
+    #[display("a branch cannot contain another branch")]
+    NestedBranch,
+    #[display("`{field}` is required")]
+    MissingField { field: &'static str },
+    #[display("`{field}` does not apply here")]
+    UnexpectedField { field: &'static str },
+    #[display(
+        "an accessor needs `column`, `column` with `coerce`, or `amount` with `unit` and `unitMap`"
+    )]
+    InvalidAccessor,
     #[display("source `{source}` is not declared")]
     UndeclaredSource { source: SourceName },
     #[display("source `{source}` is not used by any pipeline")]
@@ -126,12 +192,68 @@ pub enum IssueKind {
     UncombinedInputs,
 }
 
-/// A problem in a definition, with its location.
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-#[display("{path}: {kind}")]
+/// Prints a [`DefinitionIssue`]'s source location followed by `: `, or nothing if it is unknown.
+#[derive(derive_more::Display)]
+enum LocationPrefix {
+    #[display("{_0}: ")]
+    Known(SourceLocation),
+    #[display("")]
+    Unknown,
+}
+
+impl From<Option<SourceLocation>> for LocationPrefix {
+    fn from(location: Option<SourceLocation>) -> Self {
+        location.map_or(Self::Unknown, Self::Known)
+    }
+}
+
+/// An issue in a definition, with its path and, where it is known, its source location.
+#[derive(Debug, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[display("{}{path}: {kind}", LocationPrefix::from(*location))]
 pub struct DefinitionIssue {
-    pub path: DefinitionPath,
-    pub kind: IssueKind,
+    path: DefinitionPath,
+    kind: IssueKind,
+    location: Option<SourceLocation>,
+}
+
+impl DefinitionIssue {
+    /// Creates an issue of `kind` at `path`, without a source location.
+    pub(crate) const fn new(path: DefinitionPath, kind: IssueKind) -> Self {
+        Self {
+            path,
+            kind,
+            location: None,
+        }
+    }
+
+    /// Returns this issue at `location`.
+    #[must_use]
+    pub(crate) const fn with_location(mut self, location: Option<SourceLocation>) -> Self {
+        self.location = location;
+        self
+    }
+
+    pub(crate) const fn set_location(&mut self, location: Option<SourceLocation>) {
+        self.location = location;
+    }
+
+    /// Returns the path of the part the issue concerns.
+    #[must_use]
+    pub const fn path(&self) -> &DefinitionPath {
+        &self.path
+    }
+
+    /// Returns what is wrong.
+    #[must_use]
+    pub const fn kind(&self) -> &IssueKind {
+        &self.kind
+    }
+
+    /// Returns where the issue is in a parsed definition's text, if that is known.
+    #[must_use]
+    pub const fn location(&self) -> Option<SourceLocation> {
+        self.location
+    }
 }
 
 #[cfg(test)]
@@ -147,10 +269,10 @@ mod tests {
             .field("inputs")
             .key("airfields")
             .field("properties")
-            .key("https://example.test/@demo/types/property-type/name/v/1");
+            .key("https://example.com/@demo/types/property-type/name/v/1");
         assert_eq!(
             path.to_string(),
-            r#"pipelines.entities[0].inputs.airfields.properties["https://example.test/@demo/types/property-type/name/v/1"]"#,
+            r#"pipelines.entities[0].inputs.airfields.properties["https://example.com/@demo/types/property-type/name/v/1"]"#,
             "fields and name keys should join with dots, positions and URL keys with brackets"
         );
     }

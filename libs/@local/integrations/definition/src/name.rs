@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
-use core::{ascii::Char, str::FromStr};
+use core::{ascii::Char, borrow::Borrow, str::FromStr};
 
-/// The longest name, [`InputAlias`] or [`UnitCode`], in bytes.
+/// The longest name, [`InputAlias`], [`VariableName`] or [`UnitCode`], in bytes.
 const MAX_NAME_BYTES: usize = 64;
 
 /// The longest [`CheckpointName`], in bytes.
@@ -21,7 +21,7 @@ pub enum InvalidName {
     InvalidCharacters,
     #[display("each `/`-separated segment of a checkpoint name must be a name")]
     InvalidSegment,
-    #[display("alias must be an ASCII letter or `_`, followed by letters, digits and `_`")]
+    #[display("name must be an ASCII letter or `_`, followed by letters, digits and `_`")]
     NotSqlIdentifier,
     #[display("`{name}` is reserved")]
     Reserved { name: &'static str },
@@ -200,6 +200,31 @@ impl FromStr for InputAlias {
             return Err(InvalidName::Reserved {
                 name: Self::RESERVED,
             });
+        }
+        Ok(Self(value.into()))
+    }
+}
+
+/// Names a variable in a definition's `vars`, which `${NAME}` placeholders refer to.
+///
+/// A variable name is an ASCII letter or `_`, followed by letters, digits and `_`, in at most 64
+/// bytes.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, derive_more::Display)]
+pub(crate) struct VariableName(Box<str>);
+
+impl Borrow<str> for VariableName {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl FromStr for VariableName {
+    type Err = InvalidName;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        check_length(value, MAX_NAME_BYTES)?;
+        if !is_sql_identifier(value) {
+            return Err(InvalidName::NotSqlIdentifier);
         }
         Ok(Self(value.into()))
     }

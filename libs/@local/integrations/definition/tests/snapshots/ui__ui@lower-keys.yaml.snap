@@ -1,0 +1,14 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-keys.yaml
+---
+8:3: vars.bad-name: `bad-name` is not a valid name: name must be an ASCII letter or `_`, followed by letters, digits and `_`
+12:11: unitMaps.masses.units.KG: `not-a-url` is not a versioned type URL: incorrect formatting
+15:10: sources.orders.sql: `${FIRST}` is not declared in `vars`
+15:10: sources.orders.sql: `${SECOND}` is not declared in `vars`
+17:3: sources.orders: `orders` repeats an earlier key
+18:10: sources.orders.sql: SQL query is empty
+20:3: sources["${MISSING}"]: `${MISSING}` is not declared in `vars`
+20:3: sources["${MISSING}"]: `primaryKey` is required
+21:10: sources["${MISSING}"].sql: SQL query is empty

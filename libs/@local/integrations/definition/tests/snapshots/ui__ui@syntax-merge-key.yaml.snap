@@ -1,0 +1,14 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/syntax-merge-key.yaml
+---
+8:5: error: line 8 column 5: YAML merge keys are not allowed by configured policy
+ --> <input>:8:5
+  |
+6 |     primaryKey: [id]
+7 |   customers:
+8 |     <<: *orders
+  |     ^ YAML merge keys are not allowed by configured policy
+9 |     sql: SELECT 2 AS id
+  |

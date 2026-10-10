@@ -1,0 +1,8 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-primary-keys.yaml
+---
+6:17: sources.empty.primaryKey: primary key has no columns
+9:17: sources.repeated.primaryKey: primary key lists `id` more than once
+12:22: sources.invalid.primaryKey[1]: `` is not a valid name: name is empty
