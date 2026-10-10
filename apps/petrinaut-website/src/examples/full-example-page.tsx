@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
@@ -28,8 +29,16 @@ const titleStyle = css({
   whiteSpace: "nowrap",
 });
 
+const copyFailedStyle = css({
+  color: "red.s100",
+  fontSize: "xs",
+  whiteSpace: "nowrap",
+});
+
 export type FullExamplePageProps = {
   example: LoadedExample;
+  /** Saves an editable copy and opens it. Throws when the browser refuses to save it. */
+  onMakeLocalCopy: () => void;
   /** Writes the shared search subset back to the page URL. */
   onSearchChange: (
     search: SharedExampleSearch,
@@ -40,11 +49,20 @@ export type FullExamplePageProps = {
 
 export const FullExamplePage = ({
   example,
+  onMakeLocalCopy,
   onSearchChange,
   search,
 }: FullExamplePageProps) => {
   const handle = getReadonlyExampleHandle(example);
   const navigation = useSharedSearchNavigation(search, onSearchChange);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const makeLocalCopy = () => {
+    try {
+      onMakeLocalCopy();
+    } catch {
+      setCopyFailed(true);
+    }
+  };
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -75,6 +93,18 @@ export const FullExamplePage = ({
         presentationProfile="review"
         readonly
         slots={{
+          topBarEnd: (
+            <>
+              {copyFailed ? (
+                <span className={copyFailedStyle} role="alert">
+                  Couldn't save: browser storage is full or blocked
+                </span>
+              ) : null}
+              <Button size="sm" variant="subtle" onClick={makeLocalCopy}>
+                Make a local copy
+              </Button>
+            </>
+          ),
           topBarStart: (
             <span className={titleStyle}>{example.catalog.title}</span>
           ),

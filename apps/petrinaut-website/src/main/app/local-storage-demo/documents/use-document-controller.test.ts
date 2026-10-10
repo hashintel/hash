@@ -46,7 +46,10 @@ beforeEach(() => {
 
 test("creates through the local repository before opening", () => {
   const { result } = renderHook(() =>
-    useDocumentController({ onOpenDocument: vi.fn() }),
+    useDocumentController({
+      documentId: record.documentId,
+      onOpenDocument: vi.fn(),
+    }),
   );
 
   act(() => {

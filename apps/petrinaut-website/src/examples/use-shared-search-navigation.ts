@@ -46,28 +46,6 @@ const mergeSharedSearch = (
 };
 
 /**
- * The URL-owned fields, cleared, for a host whose document is being replaced.
- *
- * Writing an empty search is not enough on its own: the shared projection is
- * lossy, so a location the URL already renders as empty — a multi-item
- * selection, for one — leaves the `search` prop unchanged, the merge below
- * never runs, and the in-memory selection survives into the next document.
- * Passing this to `onNavigate` clears the location itself and lets the write
- * to the URL fall out of the usual path.
- */
-export const withClearedSharedLocation = (
-  current: PetrinautNavigationState,
-): PetrinautNavigationState => ({
-  ...current,
-  scenarioId: undefined,
-  subnetId: null,
-  selection: [],
-  expandedSubView: null,
-  simulateResource: null,
-  simulatePresentation: undefined,
-});
-
-/**
  * Navigation controller for pages whose URL carries the shared location: the
  * selected scenario, subnet, focused item, expanded properties section,
  * mode, Simulate section, open record, overlay and panel presentation.
@@ -88,6 +66,13 @@ export const useSharedSearchNavigation = (
   options?: {
     historyPolicy?: PetrinautNavigationHistoryPolicy;
     initialState?: Partial<PetrinautNavigationState>;
+    /**
+     * Names the document the location belongs to. A new key starts the
+     * location over from the baseline and the URL, as a fresh page would, so
+     * nothing the URL cannot carry — a multi-item selection, for one — leaks
+     * from one document into the next.
+     */
+    resetKey?: string;
   },
 ): PetrinautNavigationController => {
   // Snapshotted once: the caller passes a fresh object literal every render,
@@ -112,7 +97,13 @@ export const useSharedSearchNavigation = (
   const [previousSearch, setPreviousSearch] = useState(search);
   const [writtenSearch, setWrittenSearch] =
     useState<SharedExampleSearch | null>(null);
-  if (!sharedSearchesMatch(search, previousSearch)) {
+  const [previousResetKey, setPreviousResetKey] = useState(options?.resetKey);
+  if (options?.resetKey !== previousResetKey) {
+    setPreviousResetKey(options?.resetKey);
+    setPreviousSearch(search);
+    setWrittenSearch(null);
+    setNavigationState(mergeSharedSearch(baseline, search, baseline));
+  } else if (!sharedSearchesMatch(search, previousSearch)) {
     const isOwnWrite =
       writtenSearch !== null && sharedSearchesMatch(search, writtenSearch);
     setPreviousSearch(search);

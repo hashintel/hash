@@ -62,17 +62,6 @@ export const emptySDCPN: SDCPN = {
   differentialEquations: [],
 };
 
-export const isEmptySDCPN = (sdcpn: SDCPN) =>
-  sdcpn.places.length === 0 &&
-  sdcpn.transitions.length === 0 &&
-  sdcpn.types.length === 0 &&
-  sdcpn.parameters.length === 0 &&
-  sdcpn.differentialEquations.length === 0 &&
-  (sdcpn.subnets ?? []).length === 0 &&
-  (sdcpn.componentInstances ?? []).length === 0 &&
-  (sdcpn.scenarios ?? []).length === 0 &&
-  (sdcpn.metrics ?? []).length === 0;
-
 /**
  * Creates the localStorage record for a newly created net, keeping the generated
  * id and last-updated timestamp in sync.
@@ -128,6 +117,11 @@ const unrecognizedEntries = (
     ),
   );
 
+const serializeStore = (
+  documents: LocalStorageSDCPNsStore,
+  raw: Record<string, unknown>,
+): string => JSON.stringify({ ...unrecognizedEntries(raw), ...documents });
+
 const writeStore = (
   storage: Storage,
   documents: LocalStorageSDCPNsStore,
@@ -136,7 +130,7 @@ const writeStore = (
   writeBrowserStorage(
     storage,
     rootLocalStorageKey,
-    JSON.stringify({ ...unrecognizedEntries(raw), ...documents }),
+    serializeStore(documents, raw),
   );
 
 /**
@@ -197,26 +191,42 @@ const writeStoredSDCPNs = (documents: LocalStorageSDCPNsStore): void =>
   writeStore(localStorage, documents);
 
 /**
- * Adds an empty net to `storage` and returns it, dropping the empty nets earlier
- * visits left behind. The editor prunes an empty net when the visitor switches
- * away from it, so a URL that starts nets holds to the same rule.
+ * Adds a new net to `storage` and returns it. Unlike the editor's own writes,
+ * this one throws when the browser refuses it, so a caller never links to a
+ * net that was not kept.
  */
-export const startEmptyNetInStorage = (
+export const saveNetInStorage = (
   storage: Storage,
+  params: { petriNetDefinition: SDCPN; title: string },
 ): SDCPNInLocalStorage => {
-  const net = createLocalStorageNetRecord({
+  const net = createLocalStorageNetRecord(params);
+  const raw = readRawStore(storage);
+  storage.setItem(
+    rootLocalStorageKey,
+    serializeStore({ ...readStore(storage), [net.id]: net }, raw),
+  );
+  return net;
+};
+
+/** Adds an empty net to `storage` and returns it. */
+export const startEmptyNetInStorage = (storage: Storage): SDCPNInLocalStorage =>
+  saveNetInStorage(storage, {
     petriNetDefinition: emptySDCPN,
     title: "New Process",
   });
 
-  const kept = Object.entries(readStore(storage)).filter(
-    ([, stored]) => !isEmptySDCPN(stored.sdcpn),
-  );
-
-  writeStore(storage, { ...Object.fromEntries(kept), [net.id]: net });
-
-  return net;
-};
+/**
+ * The most recently edited net in `storage`, or a new empty one when it holds
+ * none.
+ */
+export const latestOrNewNetInStorage = (
+  storage: Storage,
+): SDCPNInLocalStorage =>
+  Object.values(readStore(storage)).toSorted(
+    (left, right) =>
+      new Date(right.lastUpdated).getTime() -
+      new Date(left.lastUpdated).getTime(),
+  )[0] ?? startEmptyNetInStorage(storage);
 
 export const useLocalStorageSDCPNs = () => {
   const [storedSDCPNs, setStoredSDCPNs, ready] = usePersistedState({

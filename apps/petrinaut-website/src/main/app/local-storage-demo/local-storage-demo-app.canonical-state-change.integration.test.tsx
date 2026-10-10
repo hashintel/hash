@@ -206,7 +206,12 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       }),
     );
     ({ unmount } = render(
-      <LocalStorageDemoApp search={{}} onSearchChange={() => {}} />,
+      <LocalStorageDemoApp
+        netId={documentId}
+        onOpenNet={() => {}}
+        search={{}}
+        onSearchChange={() => {}}
+      />,
     ));
     const showPanel = await screen.findByRole("button", {
       name: "Show AI assistant",

@@ -9,6 +9,7 @@ import {
 import { isExampleSlug, loadExample } from "../examples/catalog";
 import { validateSharedExampleSearch } from "../examples/example-search";
 import { FullExamplePage } from "../examples/full-example-page";
+import { saveNetInStorage } from "../main/app/local-storage-demo/use-local-storage-sdcpns";
 
 function ExampleRoute() {
   const navigate = useNavigate({ from: "/examples/$slug" });
@@ -22,6 +23,17 @@ function ExampleRoute() {
       // the next on a client-side transition.
       key={example.catalog.slug}
       example={example}
+      onMakeLocalCopy={() => {
+        const net = saveNetInStorage(window.localStorage, {
+          petriNetDefinition: structuredClone(example.definition),
+          title: `${example.catalog.title} (copy)`,
+        });
+        void navigate({
+          to: "/local/$netId",
+          params: { netId: net.id },
+          search,
+        });
+      }}
       onSearchChange={(nextSearch, history) => {
         void navigate({ replace: history === "replace", search: nextSearch });
       }}

@@ -31,10 +31,8 @@ import {
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
-import {
-  useSharedSearchNavigation,
-  withClearedSharedLocation,
-} from "../../../examples/use-shared-search-navigation";
+import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
+import { StatusPage } from "../../../shared/status-page";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import {
   BrunchPanelConversationTracker,
@@ -190,9 +188,15 @@ const DemoCommands = ({
  * for background nets.
  */
 export const LocalStorageDemoApp = ({
+  netId,
+  onOpenNet,
   onSearchChange,
   search,
 }: {
+  /** The open net, named by the URL. */
+  netId: string;
+  /** Opens another net, by passing it back as `netId`. */
+  onOpenNet: (netId: string) => void;
   onSearchChange: (
     search: SharedExampleSearch,
     history: "push" | "replace",
@@ -237,28 +241,16 @@ export const LocalStorageDemoApp = ({
    * removed every entry this page can produce, which left the first Back press
    * leaving the site instead of retracing the net.
    */
-  const navigation = useSharedSearchNavigation(search, onSearchChange);
-
-  /**
-   * The location belongs to the net that was open. Petrinaut resets its own
-   * location per document by keying on the handle id, but that only resets an
-   * uncontrolled location, so the host clears this one.
-   *
-   * Cleared through the controller rather than by writing an empty search: the
-   * shared projection is lossy, so a location the URL already renders as empty
-   * leaves the search prop unchanged and the in-memory selection would survive
-   * into the next net.
-   */
-  const clearSharedLocation = useCallback(() => {
-    navigation.onNavigate(withClearedSharedLocation, {
-      history: "replace",
-      intent: { cause: "normalization", action: "selection" },
-    });
-  }, [navigation]);
+  const navigation = useSharedSearchNavigation(search, onSearchChange, {
+    // The location belongs to the open net. Petrinaut resets its own location
+    // per document, but not a controlled one, so the host resets this one.
+    resetKey: netId,
+  });
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { controller } = useDocumentController({
-    onOpenDocument: clearSharedLocation,
+    documentId: netId,
+    onOpenDocument: onOpenNet,
   });
   const { repository } = controller;
   const currentDocument = repository.current;
@@ -741,6 +733,15 @@ export const LocalStorageDemoApp = ({
     petrinautAiChatTransport,
     setAiMessagesByNetId,
   ]);
+
+  if (repository.status.state === "ready" && currentDocument === null) {
+    return (
+      <StatusPage
+        title="Local document not found"
+        body="Documents are saved in the browser that created them. Open this link in that browser, or go back to your documents."
+      />
+    );
+  }
 
   if (
     repository.status.state === "loading" ||
