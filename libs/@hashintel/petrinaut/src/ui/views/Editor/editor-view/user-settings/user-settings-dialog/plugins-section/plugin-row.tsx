@@ -206,6 +206,7 @@ const contributionKinds: Record<
   access: { label: "Access", icon: "lockOpen", code: true },
   button: { label: "Button", icon: "cursor" },
   "top-bar-item": { label: "Top bar", icon: "sidebar", code: true },
+  command: { label: "Command", icon: "lightning" },
   setting: { label: "Setting", icon: "sliders" },
   provides: { label: "Provides", icon: "plug", code: true },
   root: { label: "Renders", icon: "layer" },

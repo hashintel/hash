@@ -88,7 +88,6 @@ vi.mock("./views/Editor/editor-view", async () => {
 
 import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
 
-import { useCommand } from "../react/commands/command-registry";
 import { defaultPetrinautNavigationState } from "../react/navigation";
 import { Petrinaut } from "./petrinaut";
 import {
@@ -232,31 +231,21 @@ test.each([false, true])(
 /** What the run plugin's button did, in order. */
 const runCalls: string[] = [];
 
-const createRunPlugin = definePetrinautPlugin({
+const runPlugin = definePetrinautPlugin({
   id: "test.run",
   name: "Run",
+  commands: { run: { label: "Run" } },
   buttons: { run: { label: "Run", place: "top-bar-end" } },
-});
-
-const useRunPlugin: PluginHook<typeof createRunPlugin> = () => {
-  useCommand({
-    id: "test.command",
-    label: "Run",
-    run: () => runCalls.push("command"),
-  });
-
-  return {
-    buttons: {
-      run: {
-        icon: null,
-        onClick: () => runCalls.push("onClick"),
-        command: "test.command",
-      },
+})({
+  commands: { run: { run: () => runCalls.push("command") } },
+  buttons: {
+    run: {
+      icon: null,
+      onClick: () => runCalls.push("onClick"),
+      command: "run",
     },
-  };
-};
-
-const runPlugin = createRunPlugin(useRunPlugin);
+  },
+});
 
 test("runs a plugin button's onClick, then its command, through the registry Petrinaut provides", () => {
   render(<Petrinaut handle={createHandle()} plugins={[runPlugin]} />);

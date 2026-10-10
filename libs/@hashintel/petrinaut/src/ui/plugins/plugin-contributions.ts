@@ -3,6 +3,8 @@
  * from the manifest, plus whether the running plugin renders a root.
  */
 
+import { formatShortcutKeys } from "../../react/commands/format-shortcut";
+
 import type {
   PetrinautPluginManifest,
   PluginButtonPlace,
@@ -13,6 +15,7 @@ export type PluginContributionKind =
   | "access"
   | "button"
   | "top-bar-item"
+  | "command"
   | "setting"
   | "provides"
   | "root";
@@ -55,6 +58,13 @@ export const describePluginContributions = (
     kind: "top-bar-item" as const,
     subject: key,
     detail: placeText[spec.place],
+  })),
+  ...Object.values(manifest.commands ?? {}).map((spec) => ({
+    kind: "command" as const,
+    subject: spec.label,
+    ...(spec.shortcut !== undefined && {
+      detail: formatShortcutKeys(spec.shortcut).join(" "),
+    }),
   })),
   ...Object.values(manifest.settings ?? {}).map((spec) => ({
     kind: "setting" as const,

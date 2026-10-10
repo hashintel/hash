@@ -19,6 +19,7 @@ pieces fit together.
 | `author`      | Shown beside the name, as in "by HASH".                                                                                             |                           |                  |
 | `access`      | A level per family; see [`access`](#access).                                                                                        | `document`, `experiments` |                  |
 | `settings`    | A spec per key; see [Settings](#settings).                                                                                          | `settings`                |                  |
+| `commands`    | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands).                                                   |                           | `commands`       |
 | `buttons`     | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                    |                           | `buttons`        |
 | `topBarItems` | Per key: `{ place }`.                                                                                                               |                           | `topBarItems`    |
 | `provides`    | `pluginService<T>()`, the type of the service the hook provides.                                                                    |                           | `provides`       |
@@ -47,6 +48,19 @@ match the built-in buttons.
 | `label`       | The row's title.                                                                               |
 | `description` | Optional. A sentence under the label.                                                          |
 | `section`     | `"general"` (the default), `"viewport"` or `"labs"`, whose rows carry the Experimental marker. |
+
+### Commands
+
+| Field      | Notes                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------- |
+| `label`    | What the palette shows.                                                                 |
+| `category` | Optional. The palette's grouping; the plugin's `name` by default.                       |
+| `keywords` | Optional. Extra search terms beyond the label.                                          |
+| `shortcut` | Optional. The chord to display, e.g. `mod+k`. Display only: the registry binds no keys. |
+
+A command registers under `pluginCommandId(id, key)`, which is
+`<plugin id>.<key>`, while the plugin runs and its `when` holds. Its
+`category`, `keywords` and `shortcut` are shown as declared.
 
 ## `access`
 
@@ -115,27 +129,29 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 
 ## Contributions
 
-| Key           | Allowed when | Type                                                                                                                               |
-| ------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `root`        | Always       | `ReactNode`, rendered inside the editor behind the plugin's error boundary: dialogs, overlays, tours.                              |
-| `overlay`     | Always       | `boolean`: `true` while `root` covers the editor. Holds back the empty-canvas assistant prompt.                                    |
-| `buttons`     | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, which runs a registered command by id. |
-| `topBarItems` | Declared     | Per key: a `ReactNode`.                                                                                                            |
-| `provides`    | Declared     | The service type `T` of `pluginService<T>()`.                                                                                      |
+| Key           | Allowed when | Type                                                                                                                          |
+| ------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `root`        | Always       | `ReactNode`, rendered inside the editor behind the plugin's error boundary: dialogs, overlays, tours.                         |
+| `overlay`     | Always       | `boolean`: `true` while `root` covers the editor. Holds back the empty-canvas assistant prompt.                               |
+| `commands`    | Declared     | Per key: `{ run, when? }`. `when` defaults to `true`; while `false`, the command is not registered.                           |
+| `buttons`     | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. |
+| `topBarItems` | Declared     | Per key: a `ReactNode`.                                                                                                       |
+| `provides`    | Declared     | The service type `T` of `pluginService<T>()`.                                                                                 |
 
 Every declared key is required and every undeclared one is a type error.
-TypeScript also catches a setting value outside an enum's `options`, a service
-of the wrong type, and a read of `api.document` or `api.experiments` without
+TypeScript also catches a setting value outside an enum's `options`, a button
+`command` that is not one of the manifest's command keys, a service of the
+wrong type, and a read of `api.document` or `api.experiments` without
 declaring the family.
 
 ## Exports
 
-| Kind       | From `@hashintel/petrinaut/ui`                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Definition | `definePetrinautPlugin`, `pluginService`                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Types      | `PetrinautPlugin`, `PetrinautPluginDefinition`, `PetrinautPluginManifest`, `PetrinautSettingSpec`, `PluginHook`, `PluginApi`, `PluginContributions`, `PluginButton`, `PluginService`, `PluginAccess`, `AccessApi`, `PluginDocumentReader`, `PluginDocument`, `PluginEdits`, `PluginExperimentsReader`, `PluginExperiments`, `PluginErrors`, `PluginNotifications`, `EditResult`, `EditRefusal`, `ReadOnlyReason`, `PetrinautRevealTarget`, `AddNotificationInput`, `ReadableStore` |
-| Hooks      | `usePluginService`, `useStore`, `useStoreSelector`, `useCommand`, `useCommands`, `useCommandRegistry`                                                                                                                                                                                                                                                                                                                                                                              |
-| Helpers    | `describeRefusal(reason)`: a sentence for a refusal. `petrinautDocsContent`: the user guide's pages, by name.                                                                                                                                                                                                                                                                                                                                                                      |
+| Kind       | From `@hashintel/petrinaut/ui`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Definition | `definePetrinautPlugin`, `pluginService`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Types      | `PetrinautPlugin`, `PetrinautPluginDefinition`, `PetrinautPluginManifest`, `PetrinautSettingSpec`, `PluginCommandSpec`, `PluginHook`, `PluginApi`, `PluginContributions`, `PluginButton`, `PluginCommand`, `PluginService`, `PluginAccess`, `AccessApi`, `PluginDocumentReader`, `PluginDocument`, `PluginEdits`, `PluginExperimentsReader`, `PluginExperiments`, `PluginErrors`, `PluginNotifications`, `EditResult`, `EditRefusal`, `ReadOnlyReason`, `PetrinautRevealTarget`, `AddNotificationInput`, `ReadableStore` |
+| Hooks      | `usePluginService`, `useStore`, `useStoreSelector`, `useCommands` and `useCommandRegistry` for a palette, `useCommand` for commands unknown at definition time, one per record for instance; declared commands need no hook                                                                                                                                                                                                                                                                                              |
+| Helpers    | `describeRefusal(reason)`: a sentence for a refusal. `pluginCommandId(id, key)`: the id a declared command registers under. `petrinautDocsContent`: the user guide's pages, by name.                                                                                                                                                                                                                                                                                                                                     |
 
 `@hashintel/petrinaut` re-exports `definePetrinautPlugin`, `pluginService` and
 the definition and access types, for hosts that define plugins beside their

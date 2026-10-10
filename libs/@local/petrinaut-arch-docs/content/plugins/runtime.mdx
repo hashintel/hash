@@ -33,6 +33,15 @@ therefore never remounts the view. `usePluginService` reads the same store, so
 a plugin's service is readable a layout pass after the plugin mounts, before
 paint.
 
+## Commands
+
+A host also renders one `useCommand` registration per command its manifest
+declares, into the ambient command registry, with the id
+`pluginCommandId(manifest.id, key)`. The registration is replaced only when
+the manifest's spec changes; `run` always calls the hook's latest handler,
+and a `when` of `false` disposes the registration until it holds again.
+Unmounting the host, as switching the plugin off does, disposes them all.
+
 ## First paint
 
 `ViewAfterHosts` mounts the view in its first layout effect, which runs after

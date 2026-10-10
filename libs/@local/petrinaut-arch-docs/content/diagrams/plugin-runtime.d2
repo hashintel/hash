@@ -11,14 +11,18 @@ provider: "PetrinautPluginsProvider\nstatuses, failed hosts" {
     style.stroke: "#7051b5"
     sync: "PluginEditorSync\nfirst layout effect of each commit" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
     hosts: "One host per running plugin\nkeyed by plugin editor and hostKey,\nin a PluginBoundary" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+    commands: "PluginCommandRegistrations\none useCommand per declared command" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
     view: "ViewAfterHosts\nEditorView and its outlets" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
   }
 }
 
 stores: "Plugin editor stores\nlatest, title, records, optimization reason" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 contributions: "Contributions store\nmanifest, contributions, settings per plugin" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+registry: "Command registry\nthe host's, or the editor's own" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 
 provider.editor.sync -> stores: "copies editor state"
 provider.editor.hosts -> stores: "actions read when called"
 provider.editor.hosts -> contributions: "publish after each commit"
 contributions -> provider.editor.view: "outlets read"
+provider.editor.hosts -> provider.editor.commands: "latest commands"
+provider.editor.commands -> registry: "register while when holds"

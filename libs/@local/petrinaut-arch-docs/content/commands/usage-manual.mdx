@@ -105,7 +105,9 @@ useCommand(
 
 The editor declares its own commands this way in `use-editor-commands.ts`,
 from a null-rendering leaf so their context subscriptions re-render nothing
-else.
+else. A plugin declares its commands in its manifest instead, and the editor
+registers them under `<plugin id>.<key>`; see
+[Add commands](doc:plugins/writing-a-plugin#add-commands).
 
 ## Register without React
 

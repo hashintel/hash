@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   definePetrinautPlugin,
+  pluginCommandId,
   pluginService,
   type PluginHook,
 } from "./define-petrinaut-plugin";
@@ -10,6 +11,13 @@ const createPalettePlugin = definePetrinautPlugin({
   id: "test.palette",
   name: "Palette",
   buttons: { toggle: { label: "Toggle", place: "top-bar-end" } },
+});
+
+const createCommandsPlugin = definePetrinautPlugin({
+  id: "test.commands",
+  name: "Commands",
+  commands: { open: { label: "Open" } },
+  buttons: { open: { label: "Open", place: "top-bar-end" } },
 });
 
 const createEditorPlugin = definePetrinautPlugin({
@@ -56,5 +64,26 @@ describe("definePetrinautPlugin", () => {
     expect(createEditorPlugin(useEditorPlugin).manifest.access).toEqual({
       document: "read",
     });
+  });
+
+  it("types a button's command by the manifest's command keys", () => {
+    const open = () => {};
+    const plugin = createCommandsPlugin({
+      commands: { open: { run: open } },
+      buttons: { open: { icon: null, command: "open" } },
+    });
+    // @ts-expect-error A declared command the contributions leave out.
+    createCommandsPlugin({ buttons: { open: { icon: null } } });
+    createCommandsPlugin({
+      commands: { open: { run: open } },
+      // @ts-expect-error A command the manifest does not declare.
+      buttons: { open: { icon: null, command: "close" } },
+    });
+    // @ts-expect-error A plugin without commands has no button commands.
+    createPalettePlugin({ buttons: { toggle: { icon: null, command: "x" } } });
+
+    expect(pluginCommandId(plugin.manifest.id, "open")).toBe(
+      "test.commands.open",
+    );
   });
 });

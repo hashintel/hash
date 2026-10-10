@@ -108,6 +108,7 @@ export {
 export { Petrinaut } from "./ui/petrinaut";
 export {
   definePetrinautPlugin,
+  pluginCommandId,
   pluginService,
 } from "./ui/plugins/define-petrinaut-plugin";
 export type {
@@ -117,6 +118,8 @@ export type {
   PetrinautSettingSpec,
   PluginApi,
   PluginButton,
+  PluginCommand,
+  PluginCommandSpec,
   PluginContributions,
   PluginHook,
   PluginService,

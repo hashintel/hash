@@ -5,7 +5,8 @@ attachTo: ui.plugins
 sidebar_order: 10
 ---
 
-A plugin adds buttons, top-bar items, settings and UI to the Petrinaut editor.
+A plugin adds buttons, top-bar items, commands, settings and UI to the
+Petrinaut editor.
 This page names the parts of a plugin and where the editor shows what it adds.
 The pages under [Read next](#read-next) cover writing a plugin, the API
 tables, and how the editor runs plugins.
@@ -61,6 +62,8 @@ under the same key.
 
 - **The top bar**: buttons and top-bar items, at its start or its end.
 - **The viewport controls**: buttons, below the canvas's built-in buttons.
+- **The command registry**: commands, which a palette the host or another
+  plugin renders lists beside the editor's own.
 - **Inside the editor**: `root`, for dialogs, overlays and tours.
 - **User settings**: the plugin's setting rows, and its row under Plugins,
   where the user switches it off.
