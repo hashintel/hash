@@ -3,44 +3,34 @@ name = "petrinaut-optimizer-core"
 version = "0.1.0"
 description = "Optuna study construction, suggestion and ask/tell loop for the Petrinaut optimizer service, written to load under Pyodide"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = "<3.15,>=3.14"
+license = "MIT or Apache-2.0"
 dependencies = [
     "optuna>=4.9,<5",
 ]
-
-[dependency-groups]
-dev = ["pytest>=9.1.1,<10"]
-
-[build-system]
-requires      = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/petrinaut_optimizer_core"]
-
-[tool.ruff]
-target-version = "py310"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "TRY", "DTZ", "PTH"]
-ignore = [
-    # Error messages name the value that failed: the metric, the seed, the limit.
-    # This rule asks for that detail to move into exception subclasses instead.
-    "TRY003",
-    # Protocol responses are data, and data that does not conform raises
-    # ValueError. This rule reads every isinstance check as an argument-type
-    # check and asks for TypeError.
-    "TRY004",
-    # `ruff format` owns line width. What it cannot split is a long string or an
-    # `@role` annotation, which the architecture-docs extractor reads as one line.
-    "E501",
+authors = [
+    { name = "HASH" },
 ]
 
-[tool.basedpyright]
-# Production code only. The suites lean on duck-typed doubles, which a checker
-# cannot see; typing those is tracked separately.
-include          = ["src"]
-typeCheckingMode = "strict"
-pythonVersion    = "3.10"
-venvPath         = "../../../.."
-venv             = ".venv"
+
+[build-system]
+requires      = ["uv_build<0.13.0,>=0.12.16"]
+build-backend = "uv_build"
+[dependency-groups]
+dev = ["deptry<0.26,>=0.25.1", "pytest>=9.1.1,<10", "pytest-asyncio>=1.4,<2", "ruff<0.17,>=0.16.8", "tach<0.36,>=0.35", "ty<0.0.83,>=0.0.82"]
+
+[tool.tach]
+source_roots                 = ["src"]
+exclude                      = []
+exact                        = true
+forbid_circular_dependencies = true
+ignore_type_checking_imports = false
+root_module                  = "forbid"
+
+[[tool.tach.modules]]
+path       = "petrinaut_optimizer_core"
+depends_on = []
+
+[tool.tach.rules]
+require_ignore_directive_reasons = "error"
+unused_ignore_directives         = "error"

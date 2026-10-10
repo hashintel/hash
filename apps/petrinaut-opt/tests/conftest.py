@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import pytest
 
 
 @pytest.fixture
-def optimization_manifest() -> dict:
-    """The Python service deliberately treats this document as opaque JSON."""
+def optimization_manifest() -> dict[str, object]:
+    """Return a manifest the Python service deliberately treats as opaque JSON."""
     return {
         "kind": "petrinaut-optimization",
         "version": 1,
@@ -33,7 +31,7 @@ def optimization_manifest() -> dict:
 
 
 @pytest.fixture
-def optimization_description() -> dict:
+def optimization_description() -> dict[str, object]:
     return {
         "direction": "maximize",
         "study": {"trials": 3, "sampler": "random", "seed": 42},
