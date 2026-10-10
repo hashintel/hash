@@ -3,7 +3,6 @@
 import { Button } from "@hashintel/ds-components";
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { useCommandRegistry } from "../../react/commands/command-registry";
 import { PluginBoundary } from "./plugin-boundary";
 import { useRunningPlugins } from "./plugins-provider";
 
@@ -42,10 +41,7 @@ export const PluginToolbarItems = ({
   /** Added to every plugin button, e.g. the viewport controls' chrome. */
   buttonClassName?: string;
 }) => {
-  const plugins = useRunningPlugins();
-  const registry = useCommandRegistry();
-
-  return plugins.flatMap(({ manifest, contributions }) => [
+  return useRunningPlugins().flatMap(({ manifest, contributions }) => [
     ...atPlace(manifest.buttons, place).map(([key, spec]) => {
       const button = contributions.buttons?.[key];
 
@@ -65,8 +61,15 @@ export const PluginToolbarItems = ({
             className={cx(button?.className, buttonClassName)}
             onClick={() => {
               button?.onClick?.();
-              if (button?.command !== undefined) {
-                registry?.execute(button.command);
+              // The plugin's own command, not the registry: the button works
+              // with no registry around, and a withheld command (`when:
+              // false`) is skipped as the palette skips it.
+              const command =
+                button?.command === undefined
+                  ? undefined
+                  : contributions.commands?.[button.command];
+              if (command !== undefined && command.when !== false) {
+                command.run();
               }
             }}
           />

@@ -4,8 +4,12 @@ import { type ReactNode, use, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createPetrinaut } from "@hashintel/petrinaut-core";
+import {
+  createCommandRegistry,
+  createPetrinaut,
+} from "@hashintel/petrinaut-core";
 
+import { CommandRegistryProvider } from "../../react/commands/command-registry";
 import {
   type ErrorTracker,
   ErrorTrackerContext,
@@ -55,6 +59,13 @@ const createCounterPlugin = definePetrinautPlugin({
 });
 
 const seenApis: unknown[] = [];
+
+/**
+ * What the palette plugin's commands did, in order. Module scope: the React
+ * Compiler hoists a handler that captures nothing local, so a test-scoped
+ * array would be out of its reach.
+ */
+const commandRuns: string[] = [];
 
 const useCounterPlugin: PluginHook<typeof createCounterPlugin> = (api) => {
   const [count, setCount] = useState(0);
@@ -441,5 +452,89 @@ describe("PetrinautPluginsProvider", () => {
 
     act(() => button.click());
     expect(button.textContent).toBe(`view ${mount} sees ready`);
+  });
+
+  it("registers declared commands under prefixed ids while `when` holds, runs the latest handler, and withdraws them with the plugin", () => {
+    const registry = createCommandRegistry();
+    const createPalettePlugin = definePetrinautPlugin({
+      id: "test.palette",
+      name: "Palette",
+      commands: {
+        toggle: { label: "Toggle the palette", shortcut: "mod+k" },
+        clear: { label: "Clear the history", category: "History" },
+      },
+      buttons: { toggle: { label: "Palette", place: "top-bar-end" } },
+    });
+    const usePalettePlugin: PluginHook<typeof createPalettePlugin> = () => {
+      const [toggles, setToggles] = useState(0);
+
+      return {
+        commands: {
+          toggle: {
+            run: () => {
+              commandRuns.push(`toggle ${toggles}`);
+              setToggles(toggles + 1);
+            },
+          },
+          clear: {
+            run: () => commandRuns.push("clear"),
+            when: toggles > 0,
+          },
+        },
+        buttons: { toggle: { icon: null, command: "toggle" } },
+      };
+    };
+    const Around = ({ children }: { children: ReactNode }) => (
+      <CommandRegistryProvider registry={registry}>
+        {children}
+      </CommandRegistryProvider>
+    );
+    const View = () => {
+      const { setPluginEnabled } = use(UserSettingsContext);
+
+      return (
+        <>
+          <TopBarEnd />
+          <button
+            type="button"
+            onClick={() => setPluginEnabled("test.palette", false)}
+          >
+            switch off
+          </button>
+        </>
+      );
+    };
+    const registered = () =>
+      registry
+        .list()
+        .map(({ id, label, category, shortcut }) => [
+          id,
+          label,
+          category,
+          shortcut,
+        ]);
+
+    renderPlugins([createPalettePlugin(usePalettePlugin)], <View />, {
+      Around,
+    });
+    expect(registered()).toEqual([
+      ["test.palette.toggle", "Toggle the palette", "Palette", "mod+k"],
+    ]);
+
+    act(() => screen.getByRole("button", { name: "Palette" }).click());
+    expect(commandRuns).toEqual(["toggle 0"]);
+    expect(registered()).toEqual([
+      ["test.palette.toggle", "Toggle the palette", "Palette", "mod+k"],
+      ["test.palette.clear", "Clear the history", "History", undefined],
+    ]);
+
+    act(() => {
+      registry.execute("test.palette.toggle");
+      registry.execute("test.palette.clear");
+    });
+    expect(commandRuns).toEqual(["toggle 0", "toggle 1", "clear"]);
+
+    act(() => screen.getByRole("button", { name: "switch off" }).click());
+    expect(registered()).toEqual([]);
   });
 });

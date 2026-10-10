@@ -56,11 +56,55 @@ hook under the same key. A button's label, tooltip and place come from the
 manifest. The hook gives its `icon` and what it does: `onClick`, a `command`,
 or both. A top-bar item is any `ReactNode`.
 
-`command` runs a command by id through the editor's command registry, so the
+`command` names one of the plugin's own [commands](#add-commands), so the
 button and its palette entry are one action and the palette shows its
-shortcut. Register the command with `useCommand`; see
-[Commands and the palette](doc:commands/usage-manual). When the host provides
-no registry, `<Petrinaut>` provides its own.
+shortcut. `onClick` runs first.
+
+## Add commands
+
+Declare each command under `commands` with what the palette shows: its
+`label`, and optionally a `category` (the plugin's name by default),
+`keywords` and a `shortcut` to display. Return what it does from the hook
+under the same key: `run`, and `when` to withhold it while a condition does
+not hold.
+
+```tsx
+const createHistoryPlugin = definePetrinautPlugin({
+  id: "example.history",
+  name: "History",
+  commands: {
+    show: { label: "Show the edit history", shortcut: "mod+h" },
+    clear: { label: "Clear the edit history", keywords: ["reset"] },
+  },
+  buttons: { show: { label: "Edit history", place: "top-bar-end" } },
+});
+
+const useHistoryPlugin: PluginHook<typeof createHistoryPlugin> = () => {
+  const [entries, setEntries] = useState<readonly Entry[]>([]);
+  const [open, setOpen] = useState(false);
+
+  return {
+    commands: {
+      show: { run: () => setOpen(true) },
+      clear: { run: () => setEntries([]), when: entries.length > 0 },
+    },
+    buttons: { show: { icon: <HistoryIcon />, command: "show" } },
+    root: open ? (
+      <HistoryDialog entries={entries} onClose={() => setOpen(false)} />
+    ) : null,
+  };
+};
+```
+
+The editor registers each command in its command registry under
+`<plugin id>.<key>` (`example.history.show`), while the plugin runs and
+`when` holds, and keeps the registration pointed at the latest `run`. A
+palette, from the host or from another plugin, lists it with the editor's own
+commands; see [Commands and the palette](doc:commands/usage-manual). When the
+host provides no registry, `<Petrinaut>` provides its own. `shortcut` is
+display only: a plugin that wants the keys bound listens for them itself and
+runs the same handler. `pluginCommandId(id, key)` gives the registered id, for
+a key handler that goes through the registry.
 
 ## Render UI inside the editor
 

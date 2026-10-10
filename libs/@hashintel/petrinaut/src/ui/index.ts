@@ -15,6 +15,7 @@ export { Petrinaut } from "./petrinaut";
 // Plugins — what `<Petrinaut plugins>` takes, and what plugin code imports.
 export {
   definePetrinautPlugin,
+  pluginCommandId,
   pluginService,
 } from "./plugins/define-petrinaut-plugin";
 export type {
@@ -24,6 +25,8 @@ export type {
   PetrinautSettingSpec,
   PluginApi,
   PluginButton,
+  PluginCommand,
+  PluginCommandSpec,
   PluginContributions,
   PluginHook,
   PluginService,

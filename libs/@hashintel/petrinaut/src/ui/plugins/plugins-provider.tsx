@@ -5,7 +5,8 @@
  * `hostKey`, that calls its hook. The hosts render beside the editor view, not
  * around it: after each commit a host publishes its contributions to a store
  * the view reads, so a plugin switched on, off, failing or remounting never
- * remounts the view.
+ * remounts the view. A host also registers the plugin's declared commands in
+ * the ambient command registry.
  */
 
 import {
@@ -25,6 +26,7 @@ import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { useStore, useStoreSelector } from "../../react/use-store";
 import { accessApi } from "./plugin-access";
 import { PluginBoundary } from "./plugin-boundary";
+import { PluginCommandRegistrations } from "./plugin-commands";
 import {
   type PluginEditor,
   PluginEditorProvider,
@@ -163,7 +165,12 @@ const PluginHost = ({
     [store, manifest.id],
   );
 
-  return null;
+  return (
+    <PluginCommandRegistrations
+      manifest={manifest}
+      commands={contributions.commands}
+    />
+  );
 };
 
 /**

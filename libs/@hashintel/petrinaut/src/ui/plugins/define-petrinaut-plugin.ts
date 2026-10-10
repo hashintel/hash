@@ -59,6 +59,37 @@ type PetrinautSettingValue<Spec> = Spec extends {
   ? Option
   : boolean;
 
+/**
+ * A command the plugin declares, as the palette shows it; what the command
+ * does comes from the hook under the same key. Its registry id is
+ * `<plugin id>.<key>`, see {@link pluginCommandId}.
+ */
+export interface PluginCommandSpec {
+  /** What the palette shows, e.g. "Toggle the command palette". */
+  readonly label: string;
+  /** Palette grouping. Defaults to the plugin's `name`. */
+  readonly category?: string;
+  /** Extra search terms beyond the label. */
+  readonly keywords?: readonly string[];
+  /** The chord to display, e.g. `mod+k`. Display only: the plugin binds the keys. */
+  readonly shortcut?: string;
+}
+
+/** The id a declared command registers under: the plugin's id, a dot, the key. */
+export const pluginCommandId = (pluginId: string, key: string): string =>
+  `${pluginId}.${key}`;
+
+/**
+ * The keys of the commands a manifest declares, or `never`. A conditional
+ * type rather than `keyof NonNullable<M["commands"]>`: `keyof never` is every
+ * key, which would let a plugin without commands name any `command`.
+ */
+type CommandKeyOf<M> = M extends {
+  readonly commands: infer Specs extends object;
+}
+  ? keyof Specs & string
+  : never;
+
 declare const serviceType: unique symbol;
 
 /** A service a plugin offers other plugins, as a type: see {@link pluginService}. */
@@ -90,6 +121,11 @@ export interface PetrinautPluginManifest {
   readonly access?: PluginAccess;
   /** Rows in User settings, keyed by the name `api.settings` reads. */
   readonly settings?: Readonly<Record<string, PetrinautSettingSpec>>;
+  /**
+   * Palette commands; the hook returns what each one does under the same
+   * key. A button runs one with `command: key`.
+   */
+  readonly commands?: Readonly<Record<string, PluginCommandSpec>>;
   /** Icon buttons; the hook returns each one's icon and action under the same key. */
   readonly buttons?: Readonly<
     Record<
@@ -143,14 +179,24 @@ export type PluginApi<
     ? { readonly settings: PluginSettingsApi<Specs> }
     : unknown);
 
-/** What a declared button shows and does; its label, tooltip and place come from the manifest. */
-export interface PluginButton {
+/** What a declared command does; its label, category, keywords and shortcut come from the manifest. */
+export interface PluginCommand {
+  readonly run: () => void;
+  /** Registered while `true`, so the palette lists it; defaults to `true`. */
+  readonly when?: boolean;
+}
+
+/**
+ * What a declared button shows and does; its label, tooltip and place come
+ * from the manifest. `CommandKey` is the keys of the plugin's commands.
+ */
+export interface PluginButton<CommandKey extends string = string> {
   /** The icon; the toolbar sets the button's size and variant. */
   readonly icon: ReactNode;
   /** Runs on click, before `command`. */
   readonly onClick?: () => void;
-  /** Runs a registered command on click, so the palette lists the button's action with its shortcut. */
-  readonly command?: string;
+  /** Runs one of the plugin's commands on click, so the button and its palette entry are one action. */
+  readonly command?: CommandKey;
   /** Class names added to the button element. */
   readonly className?: string;
   /** The button element, e.g. to attach a third-party widget. */
@@ -158,7 +204,14 @@ export interface PluginButton {
 }
 
 interface ContributionTable<M extends PetrinautPluginManifest> {
-  buttons: { readonly [K in keyof NonNullable<M["buttons"]>]: PluginButton };
+  commands: {
+    readonly [K in keyof NonNullable<M["commands"]>]: PluginCommand;
+  };
+  buttons: {
+    readonly [K in keyof NonNullable<M["buttons"]>]: PluginButton<
+      CommandKeyOf<M>
+    >;
+  };
   topBarItems: {
     readonly [K in keyof NonNullable<M["topBarItems"]>]: ReactNode;
   };
@@ -207,6 +260,7 @@ export type PluginHook<D extends PluginDefinitionRef> = (
 export interface AnyPluginContributions {
   readonly root?: ReactNode;
   readonly overlay?: boolean;
+  readonly commands?: Readonly<Record<string, PluginCommand>>;
   readonly buttons?: Readonly<Record<string, PluginButton>>;
   readonly topBarItems?: Readonly<Record<string, ReactNode>>;
   readonly provides?: unknown;
