@@ -57,6 +57,7 @@ describe("OpenAI voice config handler", () => {
       available: true,
       connectionTimeoutMs: 15_000,
       provider: "live",
+      utteranceJudgment: "off",
     });
   });
 
@@ -68,6 +69,45 @@ describe("OpenAI voice config handler", () => {
     });
 
     expect(body).toMatchObject({ available: true, provider: "live" });
+  });
+
+  test.each([
+    [undefined, "off"],
+    ["log", "log"],
+    ["enforce", "off"],
+    ["yes", "off"],
+  ])("exposes experiment mode %s as %s", async (value, mode) => {
+    const { body } = await readConfig({
+      OPENAI_VOICE_API_KEY: "voice-secret",
+      PETRINAUT_OPENAI_VOICE_ENABLED: "true",
+      PETRINAUT_VOICE_PROVIDER: "live",
+      TYPESAFE_API_KEY: "judge-secret",
+      PETRINAUT_LIVE_UTTERANCE_JUDGMENT: value,
+      NODE_ENV: "development",
+    });
+    expect(body).toMatchObject({ utteranceJudgment: mode });
+    expect(JSON.stringify(body)).not.toContain("secret");
+  });
+
+  test.each([
+    { TYPESAFE_API_KEY: " " },
+    { PETRINAUT_VOICE_PROVIDER: "realtime" },
+    { PETRINAUT_VOICE_PROVIDER: "invalid" },
+    { NODE_ENV: "production" },
+    { VERCEL_ENV: "preview" },
+    { PETRINAUT_OPENAI_VOICE_ENABLED: undefined },
+    { OPENAI_VOICE_API_KEY: undefined },
+  ])("disables judgment when unavailable: %j", async (override) => {
+    const { body } = await readConfig({
+      OPENAI_VOICE_API_KEY: "voice-secret",
+      PETRINAUT_OPENAI_VOICE_ENABLED: "true",
+      PETRINAUT_VOICE_PROVIDER: "live",
+      TYPESAFE_API_KEY: "judge-secret",
+      PETRINAUT_LIVE_UTTERANCE_JUDGMENT: "log",
+      NODE_ENV: "development",
+      ...override,
+    });
+    expect(body).toMatchObject({ utteranceJudgment: "off" });
   });
 
   test.each([
