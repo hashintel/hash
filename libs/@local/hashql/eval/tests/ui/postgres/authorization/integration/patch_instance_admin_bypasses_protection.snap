@@ -24,44 +24,14 @@ SELECT
     ("continuation_0_0"."row")."locals" AS "continuation_0_0_locals",
     ("continuation_0_0"."row")."values" AS "continuation_0_0_values"
 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_0_2"
-    ON
-        "entity_edition_cache_0_0_2"."entity_edition_id"
-        = "entity_temporal_metadata_0_0_0"."entity_edition_id"
 CROSS JOIN LATERAL (
     SELECT
         "ee"."entity_edition_id" AS "entity_edition_id",
-        (
-            "ee"."properties"
-            - (
-                CASE
-                    WHEN
-                        ($5 = ANY("entity_edition_cache_0_0_2"."base_urls"))
-                        AND (
-                            "entity_temporal_metadata_0_0_0"."entity_uuid" != $6
-                        )
-                        THEN ARRAY[$7]::text []
-                    ELSE ARRAY[]::text []
-                END
-            )
-        ) AS "properties",
+        "ee"."properties" AS "properties",
         "ee"."archived" AS "archived",
         "ee"."confidence" AS "confidence",
         "ee"."provenance" AS "provenance",
-        (
-            "ee"."property_metadata"
-            - (
-                CASE
-                    WHEN
-                        ($5 = ANY("entity_edition_cache_0_0_2"."base_urls"))
-                        AND (
-                            "entity_temporal_metadata_0_0_0"."entity_uuid" != $6
-                        )
-                        THEN ARRAY[$7]::text []
-                    ELSE ARRAY[]::text []
-                END
-            )
-        ) AS "property_metadata",
+        "ee"."property_metadata" AS "property_metadata",
         "ee"."created_by_id" AS "created_by_id"
     FROM "entity_editions" AS "ee"
     WHERE
@@ -86,7 +56,7 @@ CROSS JOIN LATERAL
             ) AS "row"
     ) AS "continuation_0_0"
 WHERE
-    (FALSE)
+    (TRUE)
     AND (
         ("entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange))
         AND (
@@ -103,4 +73,4 @@ $3: Symbol(name)
 $4: Input(expected)
 ============================= Auxiliary Parameters =============================
 
-AuxiliaryParameters { initial_offset: 4, parameters: ["https://hash.ai/@h/types/entity-type/user/", User(UserId(ActorEntityUuid(EntityUuid(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)))), "https://hash.ai/@h/types/property-type/email/"] }
+AuxiliaryParameters { initial_offset: 4, parameters: [] }
