@@ -20,13 +20,13 @@ import type { SkipReason } from "./live-brunch-bridge/utterance-pipeline";
 import type { FinalizedInput } from "./live-conversation";
 import type { FlueConversationState } from "@flue/sdk";
 import type {
-  FlueChatResponseMessageCompletedEvent,
-  FlueChatResponseMessageStartedEvent,
-} from "@hashintel/brunch-agent-transport-aisdk";
-import type {
   PetrinautAiMessage,
   PetrinautAiVoiceModeContext,
 } from "@hashintel/petrinaut/ui";
+import type {
+  FlueChatResponseMessageCompletedEvent,
+  FlueChatResponseMessageStartedEvent,
+} from "@local/flue-aisdk-transport";
 
 interface Chat {
   readonly canAcceptVoiceInput: boolean;

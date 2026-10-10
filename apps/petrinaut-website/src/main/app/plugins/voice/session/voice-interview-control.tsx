@@ -10,7 +10,7 @@ import {
   FlueChatAdmissionError,
   type FlueChatResponseMessageCompletedEvent,
   type FlueChatResponseMessageStartedEvent,
-} from "@hashintel/brunch-agent-transport-aisdk";
+} from "@local/flue-aisdk-transport";
 
 import { reportVoiceDiagnostic } from "../../../../../voice-diagnostics";
 import { selectCanonicalSpeech } from "../live/canonical-speech";

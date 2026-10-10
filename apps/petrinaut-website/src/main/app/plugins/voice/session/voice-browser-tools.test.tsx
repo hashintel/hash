@@ -14,7 +14,6 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../../brunch/brunch-panel-transport";
-import { canonicalPetrinautClientToolNames } from "../../brunch/tools/brunch-client-tools";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
@@ -235,7 +234,6 @@ test.each([
           transport: createBrunchPanelTransport(
             Promise.resolve(client),
             tracker,
-            { clientToolNames: canonicalPetrinautClientToolNames },
           ),
           renderVoiceMode: (current) => (
             <VoiceObserver current={current} onUpdate={updateVoice} />

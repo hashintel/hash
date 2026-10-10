@@ -9,7 +9,6 @@ import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
 import { selectCanonicalSpeech } from "./canonical-speech";
 
 import type { AdmissionVoiceEvidence } from "../../../../../../../brunch-agent/test/admission-voice-evidence";
-import type { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
 
 const testDirectory = dirname(fileURLToPath(import.meta.url));
 let result: AdmissionVoiceEvidence;
@@ -32,7 +31,9 @@ beforeAll(async () => {
   };
   result = parsed.voice;
 });
-const speechFrom = (messages: ReturnType<typeof snapshotToUiMessages>) =>
+const speechFrom = (
+  messages: AdmissionVoiceEvidence["buffering"][number]["projectedAfter"],
+) =>
   // The mounted runtime also emits core server tools absent from the editor's
   // static tool type. Retain every actual part in this controlled fixture: the
   // oracle must prove speech ignores payloads, not filter them away itself.

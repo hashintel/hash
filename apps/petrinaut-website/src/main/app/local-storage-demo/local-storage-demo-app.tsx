@@ -17,7 +17,7 @@ import {
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
-} from "@hashintel/brunch-agent-transport-aisdk";
+} from "@hashintel/brunch-agent/conversation-identity";
 import {
   CommandRegistryProvider,
   ErrorTrackerContext,
@@ -36,6 +36,7 @@ import {
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
+import { createBrunchFlueAdapter } from "../plugins/brunch/brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -58,7 +59,10 @@ import { foldBrunchWorkpieceHistory } from "../plugins/brunch/ledger/brunch-work
 import { BrunchWorkpiecePane } from "../plugins/brunch/ledger/brunch-workpiece-pane";
 import { requestFlueStop } from "../plugins/brunch/plugin/request-flue-stop";
 import { useImmutableReplayBaseline } from "../plugins/brunch/plugin/use-immutable-replay-baseline";
-import { brunchPetrinautClientToolNames } from "../plugins/brunch/tools/brunch-client-tools";
+import {
+  brunchPetrinautClientToolNames,
+  canonicalPetrinautClientToolNames,
+} from "../plugins/brunch/tools/brunch-client-tools";
 import {
   createBrunchDraftExperimentInteractiveTool,
   resolveDraftAuthorityFromHistory,
@@ -430,11 +434,25 @@ export const LocalStorageDemoApp = ({
   const constructionClientTools = brunchSelected
     ? brunchPetrinautClientToolNames
     : undefined;
+  const flueAdapter = useMemo(
+    () =>
+      createBrunchFlueAdapter(
+        {
+          clientToolNames:
+            constructionClientTools ?? canonicalPetrinautClientToolNames,
+          dynamicClientToolNames,
+        },
+        {
+          onInvalidReopenedMetadata: ({ messageId, error }) =>
+            reportBrunchFailure("reopened-metadata", error, { messageId }),
+        },
+      ),
+    [constructionClientTools, dynamicClientToolNames, reportBrunchFailure],
+  );
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
-    constructionClientTools,
-    dynamicClientToolNames,
+    flueAdapter,
   );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
@@ -534,17 +552,7 @@ export const LocalStorageDemoApp = ({
                 },
               }
             : {}),
-          ...(constructionClientTools === undefined
-            ? {}
-            : {
-                clientToolNames: constructionClientTools,
-                dynamicClientToolNames,
-                ...(canonicalHostTools === undefined
-                  ? {}
-                  : {
-                      mapClientToolInput: (call) => call.input,
-                    }),
-              }),
+          adapter: flueAdapter,
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
             reportBrunchFailure("server-tool", new Error(event.errorText), {
@@ -559,10 +567,8 @@ export const LocalStorageDemoApp = ({
   }, [
     conversationTracker,
     conversationId,
-    constructionClientTools,
     constructionBrowser,
-    canonicalHostTools,
-    dynamicClientToolNames,
+    flueAdapter,
     flueClientPromise,
     flueHistory.refresh,
     reportBrunchFailure,

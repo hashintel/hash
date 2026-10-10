@@ -77,6 +77,7 @@ test("hydrates through the public Flue observation projection", async () => {
       id: "assistant-1",
       role: "assistant",
       parts: [{ type: "text", text: "Canonical reply.", state: "done" }],
+      metadata: undefined,
     },
   ]);
   expect(result.current.phase).toBe("live");
@@ -286,4 +287,40 @@ test("keeps the server's current-net freshness marker out of the rendered histor
   expect(JSON.stringify(result.current.messages)).not.toContain(
     "brunch.net-stale",
   );
+});
+
+test("keeps a message whose metadata the host schema refuses, without that metadata", async () => {
+  const harness = createObservationHarness({
+    conversation: {
+      conversationId: "conversation-1",
+      settlements: [],
+      messages: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          metadata: { source: "not-voice" },
+          parts: [{ type: "text", text: "Canonical reply.", state: "done" }],
+        },
+      ],
+    },
+    offset: "offset-1",
+    phase: "live",
+    error: undefined,
+  });
+  const { result } = renderHook(() =>
+    useFlueChatHistory(harness.clientPromise, "conversation-1"),
+  );
+
+  await waitFor(() => expect(result.current.ready).toBe(true));
+  expect(result.current.error).toBeUndefined();
+  expect(result.current.messages).toEqual([
+    {
+      id: "assistant-1",
+      role: "assistant",
+      parts: [{ type: "text", text: "Canonical reply.", state: "done" }],
+      metadata: undefined,
+    },
+  ]);
 });

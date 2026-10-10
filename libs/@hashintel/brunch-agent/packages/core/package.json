@@ -16,6 +16,11 @@
       "@dev/source": "./src/constants.ts",
       "import": "./dist/constants.js"
     },
+    "./conversation-identity": {
+      "types": "./src/conversation-identity.ts",
+      "@dev/source": "./src/conversation-identity.ts",
+      "import": "./dist/conversation-identity.js"
+    },
     "./client-tools": {
       "types": "./src/client-tools.ts",
       "@dev/source": "./src/client-tools.ts",
@@ -42,6 +47,7 @@
   },
   "dependencies": {
     "@flue/runtime": "2.0.3",
+    "@flue/sdk": "2.0.3",
     "valibot": "1.4.2"
   },
   "devDependencies": {
