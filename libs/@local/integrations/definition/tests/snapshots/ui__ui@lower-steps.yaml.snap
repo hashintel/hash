@@ -1,0 +1,7 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-steps.yaml
+---
+13:21: pipelines.entities[0].steps[0].branches: branch step has no branches
+20:15: pipelines.entities[0].steps[1].sink.properties["https://example.com/@demo/types/property-type/name/v/1"]: `https://example.com/@demo/types/property-type/name/v/1` and `https://example.com/@demo/types/property-type/name/v/2` are versions of the same property type

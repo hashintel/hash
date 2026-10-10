@@ -1,0 +1,289 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/examples/aviation.yaml
+---
+Definition {
+    connector: ConnectorId(
+        "aviation",
+    ),
+    sources: {
+        SourceName(
+            "aircraft",
+        ): Source {
+            kind: Sql {
+                query: SqlQuery(
+                    "SELECT * FROM (VALUES\n  ('SE-XXX', 'DC-3', '1946-04-02', '8030', 'KG', 'ESSA'),\n  ('N100', 'L-1049', '1957-07-15', '69000', 'LB', 'ESSA')\n) t(TAIL, MODEL, FIRST_FLIGHT, EMPTY_MASS, MASS_UNIT, HOME_BASE)\n",
+                ),
+                primary_key: PrimaryKey(
+                    [
+                        ColumnName(
+                            "TAIL",
+                        ),
+                    ],
+                ),
+            },
+            coverage: Complete,
+        },
+        SourceName(
+            "airfields",
+        ): Source {
+            kind: Sql {
+                query: SqlQuery(
+                    "SELECT * FROM (VALUES\n  ('ESSA', 'Arlanda'),\n  ('ESSB', 'Bromma')\n) t(ICAO, FIELD_NAME)\n",
+                ),
+                primary_key: PrimaryKey(
+                    [
+                        ColumnName(
+                            "ICAO",
+                        ),
+                    ],
+                ),
+            },
+            coverage: Complete,
+        },
+    },
+    unit_maps: {
+        UnitMapName(
+            "masses",
+        ): UnitMap {
+            units: {
+                UnitCode(
+                    "KG",
+                ): VersionedUrl {
+                    base_url: "https://example.com/@demo/types/data-type/kilogram/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                UnitCode(
+                    "LB",
+                ): VersionedUrl {
+                    base_url: "https://example.com/@demo/types/data-type/pound/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+            },
+            fallback: Some(
+                VersionedUrl {
+                    base_url: "https://example.com/@demo/types/data-type/mass/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+            ),
+        },
+    },
+    entity_pipelines: [
+        EntityPipeline {
+            source: SourceName(
+                "airfields",
+            ),
+            depends_on: [],
+            inputs: {},
+            steps: [
+                Step {
+                    id: StepId(
+                        "sink-airfields",
+                    ),
+                    kind: Action(
+                        Sink(
+                            EntitySink {
+                                entity_type: VersionedUrl {
+                                    base_url: "https://example.com/@demo/types/entity-type/airfield/",
+                                    version: OntologyTypeVersion {
+                                        major: OntologyTypeMajorVersion(
+                                            1,
+                                        ),
+                                        pre_release: None,
+                                    },
+                                },
+                                entity_id: ColumnName(
+                                    "ICAO",
+                                ),
+                                properties: Properties(
+                                    {
+                                        VersionedUrl {
+                                            base_url: "https://example.com/@demo/types/property-type/name/",
+                                            version: OntologyTypeVersion {
+                                                major: OntologyTypeMajorVersion(
+                                                    1,
+                                                ),
+                                                pre_release: None,
+                                            },
+                                        }: Column(
+                                            ColumnName(
+                                                "FIELD_NAME",
+                                            ),
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                    ),
+                },
+            ],
+        },
+        EntityPipeline {
+            source: SourceName(
+                "aircraft",
+            ),
+            depends_on: [
+                SourceName(
+                    "airfields",
+                ),
+            ],
+            inputs: {},
+            steps: [
+                Step {
+                    id: StepId(
+                        "sink-aircraft",
+                    ),
+                    kind: Action(
+                        Sink(
+                            EntitySink {
+                                entity_type: VersionedUrl {
+                                    base_url: "https://example.com/@demo/types/entity-type/aircraft/",
+                                    version: OntologyTypeVersion {
+                                        major: OntologyTypeMajorVersion(
+                                            1,
+                                        ),
+                                        pre_release: None,
+                                    },
+                                },
+                                entity_id: ColumnName(
+                                    "TAIL",
+                                ),
+                                properties: Properties(
+                                    {
+                                        VersionedUrl {
+                                            base_url: "https://example.com/@demo/types/property-type/empty-mass/",
+                                            version: OntologyTypeVersion {
+                                                major: OntologyTypeMajorVersion(
+                                                    1,
+                                                ),
+                                                pre_release: None,
+                                            },
+                                        }: Measure {
+                                            amount: ColumnName(
+                                                "EMPTY_MASS",
+                                            ),
+                                            unit: ColumnName(
+                                                "MASS_UNIT",
+                                            ),
+                                            unit_map: UnitMapName(
+                                                "masses",
+                                            ),
+                                        },
+                                        VersionedUrl {
+                                            base_url: "https://example.com/@demo/types/property-type/first-flight/",
+                                            version: OntologyTypeVersion {
+                                                major: OntologyTypeMajorVersion(
+                                                    1,
+                                                ),
+                                                pre_release: None,
+                                            },
+                                        }: Coerce {
+                                            column: ColumnName(
+                                                "FIRST_FLIGHT",
+                                            ),
+                                            coercion: Date,
+                                        },
+                                        VersionedUrl {
+                                            base_url: "https://example.com/@demo/types/property-type/model/",
+                                            version: OntologyTypeVersion {
+                                                major: OntologyTypeMajorVersion(
+                                                    1,
+                                                ),
+                                                pre_release: None,
+                                            },
+                                        }: Column(
+                                            ColumnName(
+                                                "MODEL",
+                                            ),
+                                        ),
+                                    },
+                                ),
+                            },
+                        ),
+                    ),
+                },
+                Step {
+                    id: StepId(
+                        "cp-aircraft",
+                    ),
+                    kind: Action(
+                        Checkpoint(
+                            CheckpointName(
+                                "aviation/aircraft",
+                            ),
+                        ),
+                    ),
+                },
+            ],
+        },
+    ],
+    link_pipelines: [
+        LinkPipeline {
+            id: LinkId(
+                "aircraft-based-at",
+            ),
+            input: Checkpoint(
+                CheckpointName(
+                    "aviation/aircraft",
+                ),
+            ),
+            steps: [],
+            from: LinkEndpoint {
+                entity_type: VersionedUrl {
+                    base_url: "https://example.com/@demo/types/entity-type/aircraft/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                column: ColumnName(
+                    "TAIL",
+                ),
+            },
+            to: LinkEndpoint {
+                entity_type: VersionedUrl {
+                    base_url: "https://example.com/@demo/types/entity-type/airfield/",
+                    version: OntologyTypeVersion {
+                        major: OntologyTypeMajorVersion(
+                            1,
+                        ),
+                        pre_release: None,
+                    },
+                },
+                column: ColumnName(
+                    "HOME_BASE",
+                ),
+            },
+            link_type: VersionedUrl {
+                base_url: "https://example.com/@demo/types/entity-type/based-at/",
+                version: OntologyTypeVersion {
+                    major: OntologyTypeMajorVersion(
+                        1,
+                    ),
+                    pre_release: None,
+                },
+            },
+            properties: Properties(
+                {},
+            ),
+        },
+    ],
+}

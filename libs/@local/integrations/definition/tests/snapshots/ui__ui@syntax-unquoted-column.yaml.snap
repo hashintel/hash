@@ -1,0 +1,12 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/syntax-unquoted-column.yaml
+---
+16:81: error: line 16 column 81: The string value [2024] must be quoted
+  --> <input>:16:66
+   |
+14 | …tyId: id
+15 | …erties:
+16 | …tps://example.com/@demo/types/property-type/year/v/1: { column: 2024 }
+   |                                                                  ^ The string value [2024] must be quoted

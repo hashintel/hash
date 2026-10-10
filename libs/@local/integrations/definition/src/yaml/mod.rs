@@ -65,8 +65,8 @@ impl Definition {
     /// ```
     /// use hash_integrations_definition::Definition;
     ///
-    /// let definition =
-    ///     Definition::from_yaml("connector: aviation\n").expect("the text should be a definition");
+    /// let definition = Definition::from_yaml(include_str!("../../examples/aviation.yaml"))
+    ///     .expect("the example should be a valid definition");
     /// assert_eq!(definition.connector().to_string(), "aviation");
     /// ```
     ///

@@ -1,0 +1,20 @@
+# A branch step needs at least one branch. Two versions of one property type are reported at
+# the version written later.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id, 'a' AS name
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: no-branches
+          branches: []
+        - id: sink-orders
+          sink:
+            entityType: https://example.com/@demo/types/entity-type/order/v/1
+            entityId: id
+            properties:
+              https://example.com/@demo/types/property-type/name/v/2: name
+              https://example.com/@demo/types/property-type/name/v/1: name

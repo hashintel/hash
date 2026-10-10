@@ -1,5 +1,5 @@
-//! Parses each file in `tests/ui`, and snapshots the definition, the syntax error, or the issues it
-//! produces.
+//! Parses each file in `tests/ui` and `examples`, and snapshots the definition, the syntax error,
+//! or the issues it produces.
 
 use core::fmt::Write as _;
 use std::fs;
@@ -37,6 +37,14 @@ fn render(text: &str) -> String {
 fn ui() {
     insta::glob!("ui/*.yaml", |path| {
         let text = fs::read_to_string(path).expect("the test file should be readable");
+        insta::assert_snapshot!(render(&text));
+    });
+}
+
+#[test]
+fn examples() {
+    insta::glob!("../examples", "*.yaml", |path| {
+        let text = fs::read_to_string(path).expect("the example should be readable");
         insta::assert_snapshot!(render(&text));
     });
 }

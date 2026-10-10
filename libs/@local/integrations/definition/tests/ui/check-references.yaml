@@ -1,0 +1,30 @@
+# References to undeclared sources, checkpoints and unit maps are reported where they are made.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id, 3 AS amount, 'KG' AS unit
+    primaryKey: [id]
+  unused:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      dependsOn: [customers]
+      inputs:
+        prices: demo/prices
+      steps:
+        - id: sink-orders
+          sink:
+            entityType: https://example.com/@demo/types/entity-type/order/v/1
+            entityId: id
+            properties:
+              https://example.com/@demo/types/property-type/amount/v/1:
+                { amount: amount, unit: unit, unitMap: masses }
+    - source: shipments
+  links:
+    - id: order-to-customer
+      checkpoint: demo/orders
+      from: { entityType: "https://example.com/@demo/types/entity-type/order/v/1", column: id }
+      to: { entityType: "https://example.com/@demo/types/entity-type/customer/v/1", column: id }
+      linkType: https://example.com/@demo/types/entity-type/placed-by/v/1

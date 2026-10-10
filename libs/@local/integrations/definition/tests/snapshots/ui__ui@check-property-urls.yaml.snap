@@ -1,0 +1,6 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/check-property-urls.yaml
+---
+17:15: pipelines.entities[0].steps[0].sink.properties["https://example.com/@demo/types/property-type/amount/v/1"]: unit map `masses` is not declared

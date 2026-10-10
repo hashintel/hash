@@ -1,0 +1,7 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/check-cycle.yaml
+---
+15:15: pipelines.entities: pipelines `orders`, `customers`, `invoices` are in or depend on a dependency cycle
+24:19: pipelines.entities[2].dependsOn[0]: pipeline depends on itself

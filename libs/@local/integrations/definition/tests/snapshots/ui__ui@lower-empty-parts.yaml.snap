@@ -1,0 +1,9 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-empty-parts.yaml
+---
+5:3: unitMaps.lengths: unit map has no units and no fallback
+19:15: pipelines.entities[0].steps[0].branches[1]: branch 1 has no steps
+26:15: pipelines.entities[0].steps[1].sink.properties["https://example.com/@demo/types/property-type/name/v/2"]: `https://example.com/@demo/types/property-type/name/v/1` and `https://example.com/@demo/types/property-type/name/v/2` are versions of the same property type
+29:15: pipelines.links[0].inputs: link reads no checkpoints

@@ -1,0 +1,12 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/syntax-unknown-coercion.yaml
+---
+17:43: error: line 17 column 43: unknown variant `datetime`, expected one of date, time, boolean, number, integer, year, trim
+  --> <input>:17:43
+   |
+15 |             properties:
+16 |               https://example.com/@demo/types/property-type/placed/v/1:
+17 |                 { column: placed, coerce: datetime }
+   |                                           ^ unknown variant `datetime`, expected one of date, time, boolean, number, integer, year, trim
