@@ -48,15 +48,14 @@ export const createPetrinautOptimizationRunCancelHandler = ({
     });
 
     try {
-      const cancelled = await client.DELETE("/optimize/runs/{run_id}", {
-        params: { path: { run_id: runId } },
+      const cancelled = await client.deleteOptimizeRun(runId, {
         headers: {
           "x-hash-account-id": userId,
           ...(requestId ? { "x-hash-request-id": requestId } : {}),
         },
         signal: cancelTimeout,
       });
-      if (cancelled.response.status === 404) {
+      if (cancelled.status === 404) {
         requestLogger.warn("Petrinaut optimization run cancel rejected", {
           optimizationRunId: loggedRunId,
           reason: "unknown-or-foreign-run",
@@ -65,12 +64,12 @@ export const createPetrinautOptimizationRunCancelHandler = ({
         response.status(404).json(RUN_NOT_FOUND);
         return;
       }
-      if (!cancelled.response.ok) {
+      if (cancelled.status !== 204) {
         requestLogger.warn("Petrinaut optimization run cancellation failed", {
           durationMs: Date.now() - startedAt,
           optimizationRunId: loggedRunId,
           outcome: "upstream-error",
-          upstreamStatus: cancelled.response.status,
+          upstreamStatus: cancelled.status,
           userId,
         });
         respondUpstreamFailure(response, false);
