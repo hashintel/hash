@@ -12,10 +12,12 @@
 //!
 //! [`ApiToken`] holds the secret, [`HashedApiToken`] only its SHA-256 hash. Parsing a token yields
 //! a [`HashedApiToken`]. An [`ApiTokenEncryptionKey`] encrypts that hash for a store, bound to the
-//! [`AssociatedData`] of the token and its row.
+//! [`AssociatedData`] of the token and its row. An [`ApiTokenIssuer`] generates a token together
+//! with the parameters a store records it with, and [`ApiTokenHint`] shows a recorded token.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 mod encryption;
+mod issuer;
 
 use core::{
     fmt::{self, Write as _},
@@ -24,13 +26,16 @@ use core::{
 
 use aws_lc_rs::error::Unspecified;
 use error_stack::Report;
-use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
+use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash, ApiTokenType, ApiTokenVersion};
 use sha2::{Digest as _, Sha256};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 
-pub use self::encryption::{ApiTokenDecryptionError, ApiTokenEncryptionKey, AssociatedData};
+pub use self::{
+    encryption::{ApiTokenDecryptionError, ApiTokenEncryptionKey, AssociatedData},
+    issuer::{ApiTokenIssuer, IssuedApiToken},
+};
 
 const PREFIX: &str = "hsh_";
 const PREFIX_BYTES: [u8; PREFIX.len()] = match PREFIX.as_bytes().first_chunk() {
@@ -76,28 +81,6 @@ enum Separator {
     Underscore = SEPARATOR as u8,
 }
 
-/// What an API token acts as.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ApiTokenType {
-    /// A token that acts as the user it belongs to.
-    User,
-}
-
-impl ApiTokenType {
-    const fn code(self) -> &'static [u8; TYPE_LENGTH] {
-        match self {
-            Self::User => b"pat",
-        }
-    }
-
-    const fn from_code(code: [u8; TYPE_LENGTH]) -> Option<Self> {
-        match &code {
-            b"pat" => Some(Self::User),
-            _ => None,
-        }
-    }
-}
-
 /// The environment an API token belongs to.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Environment {
@@ -123,28 +106,6 @@ impl Environment {
             b"pd" => Some(Self::Production),
             b"sg" => Some(Self::Staging),
             b"lc" => Some(Self::Local),
-            _ => None,
-        }
-    }
-}
-
-/// The version of the format an API token is written in.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ApiTokenVersion {
-    /// The initial version.
-    V0,
-}
-
-impl ApiTokenVersion {
-    const fn number(self) -> u8 {
-        match self {
-            Self::V0 => 0,
-        }
-    }
-
-    const fn from_number(number: u8) -> Option<Self> {
-        match number {
-            0 => Some(Self::V0),
             _ => None,
         }
     }
@@ -303,8 +264,8 @@ impl HashedApiToken {
     }
 }
 
-impl From<ApiToken> for HashedApiToken {
-    fn from(token: ApiToken) -> Self {
+impl From<&ApiToken> for HashedApiToken {
+    fn from(token: &ApiToken) -> Self {
         Self {
             token_type: token.token_type,
             environment: token.environment,
@@ -315,7 +276,54 @@ impl From<ApiToken> for HashedApiToken {
     }
 }
 
+impl From<ApiToken> for HashedApiToken {
+    fn from(token: ApiToken) -> Self {
+        Self::from(&token)
+    }
+}
+
 impl fmt::Display for HashedApiToken {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt_display(
+            self.token_type,
+            self.environment,
+            self.version,
+            self.token_id,
+            fmt,
+        )
+    }
+}
+
+/// The start of an API token, as [`ApiToken`] shows it with `Display`, such as
+/// `hsh_pat_pd_0296…`.
+///
+/// It leaves out the secret and the checksum.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ApiTokenHint {
+    token_type: ApiTokenType,
+    environment: Environment,
+    version: ApiTokenVersion,
+    token_id: ApiTokenId,
+}
+
+impl ApiTokenHint {
+    #[must_use]
+    pub const fn new(
+        token_type: ApiTokenType,
+        environment: Environment,
+        version: ApiTokenVersion,
+        token_id: ApiTokenId,
+    ) -> Self {
+        Self {
+            token_type,
+            environment,
+            version,
+            token_id,
+        }
+    }
+}
+
+impl fmt::Display for ApiTokenHint {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt_display(
             self.token_type,
@@ -519,9 +527,9 @@ mod tests {
     use uuid::Uuid;
 
     use super::{
-        ApiToken, ApiTokenParseError, ApiTokenType, ApiTokenVersion, CHECKSUM_LENGTH, Environment,
-        HashedApiToken, PREFIX, SECRET_LENGTH, SECRET_POOL_LENGTH, TOKEN_ID_LENGTH, TOKEN_LENGTH,
-        decode_token_id, draw_secret, encode_base62, encode_token_id,
+        ApiToken, ApiTokenHint, ApiTokenParseError, ApiTokenType, ApiTokenVersion, CHECKSUM_LENGTH,
+        Environment, HashedApiToken, PREFIX, SECRET_LENGTH, SECRET_POOL_LENGTH, TOKEN_ID_LENGTH,
+        TOKEN_LENGTH, decode_token_id, draw_secret, encode_base62, encode_token_id,
     };
 
     const FIXED_TOKEN_ID: u128 = 0x01234567_89AB_CDEF_0123_456789ABCDEF;
@@ -623,6 +631,17 @@ mod tests {
             HashedApiToken::from(fixed_token()).to_string(),
             "hsh_pat_pd_0296\u{2026}",
             "the hashed token should show only the start of its token ID"
+        );
+        assert_eq!(
+            ApiTokenHint::new(
+                ApiTokenType::User,
+                Environment::Production,
+                ApiTokenVersion::V0,
+                ApiTokenId::new(Uuid::from_u128(FIXED_TOKEN_ID)),
+            )
+            .to_string(),
+            "hsh_pat_pd_0296\u{2026}",
+            "the hint should show the token as the token does"
         );
     }
 

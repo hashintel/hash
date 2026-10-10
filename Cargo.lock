@@ -6190,6 +6190,7 @@ name = "hash-graph"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "base16ct",
  "clap",
  "clap_complete",
  "derive_more",
@@ -6214,6 +6215,7 @@ dependencies = [
  "rayon",
  "regex",
  "reqwest 0.13.4",
+ "rstest",
  "simple-mermaid",
  "time",
  "tokio",
@@ -6221,6 +6223,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "type-system",
+ "uuid",
 ]
 
 [[package]]
@@ -6278,6 +6281,7 @@ dependencies = [
  "opentelemetry",
  "problematic",
  "reqwest 0.13.4",
+ "rstest",
  "scalar_api_reference",
  "schemars 1.2.2",
  "sentry",
@@ -6627,11 +6631,13 @@ dependencies = [
  "hash-temporal-client",
  "insta",
  "postgres-types",
+ "rstest",
  "serde",
  "serde_json",
  "simple-mermaid",
  "specta",
  "thiserror 2.0.18",
+ "time",
  "tokio",
  "tokio-postgres",
  "tracing",

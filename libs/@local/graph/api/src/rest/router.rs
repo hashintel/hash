@@ -6,7 +6,7 @@ use axum::{Extension, Router};
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::PostgresStorePool;
-use hash_graph_store::pool::StorePool;
+use hash_graph_store::{api_token::ApiTokenStore, pool::StorePool};
 use hash_middleware::{authentication::AuthenticationMetrics, rate_limit::RateLimiters};
 use hash_temporal_client::TemporalClient;
 use opentelemetry::metrics::Meter;
@@ -32,6 +32,7 @@ pub struct Dependencies<S> {
     pub session_auth: authentication::KratosSessionConfig,
     pub cloudflare_access: Option<authentication::CloudflareAccessConfig>,
     pub service_secret: String,
+    pub api_tokens: Option<Arc<authentication::api_token::ApiTokenIssuer>>,
     pub rate_limit: rate_limit::RateLimitConfig,
     pub meter: Meter,
     pub compiler: Arc<hashql::CompilerContext>,
@@ -48,7 +49,7 @@ pub struct Dependencies<S> {
 pub fn router<S>(dependencies: Dependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
 {
     let environment = Arc::new(
         dependencies
@@ -101,6 +102,7 @@ where
         .layer(Extension(dependencies.embedding_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
+        .layer(Extension(dependencies.api_tokens))
         .layer(Extension(dependencies.compiler))
         .layer(Extension(dependencies.clustering));
 

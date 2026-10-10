@@ -12,6 +12,7 @@ use hash_graph_authentication::{
     kratos::{KratosEmailActorResolver, KratosSessionProvider},
 };
 pub use hash_graph_authentication::{
+    api_token,
     cloudflare::CloudflareAccessProvider,
     jwt::{JwtValidator, JwtValidatorConfig},
     kratos::{KratosAdminConfig, KratosSessionConfig, SessionCacheConfig},

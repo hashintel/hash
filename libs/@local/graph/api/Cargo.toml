@@ -41,7 +41,7 @@ harpc-codec                    = { workspace = true }
 harpc-system                   = { workspace = true }
 harpc-tower                    = { workspace = true }
 harpc-types                    = { workspace = true }
-hash-codec                     = { workspace = true, features = ["numeric", "utoipa"] }
+hash-codec                     = { workspace = true, features = ["numeric", "serde", "utoipa"] }
 hash-graph-store               = { workspace = true, features = ["utoipa"] }
 hash-graph-temporal-versioning = { workspace = true }
 hash-graph-validation          = { workspace = true }
@@ -62,7 +62,7 @@ bytes                = { workspace = true }
 clap                 = { workspace = true, optional = true, features = ["derive", "env"] }
 convert_case         = { workspace = true }
 derive-where         = { workspace = true }
-derive_more          = { workspace = true, features = ["display", "error"] }
+derive_more          = { workspace = true, features = ["debug", "display", "error"] }
 error-stack          = { workspace = true, features = ["futures", "spantrace", "unstable"] }
 frunk                = { workspace = true }
 futures              = { workspace = true }
@@ -89,6 +89,7 @@ uuid                 = { workspace = true }
 hash-graph-authentication = { workspace = true, features = ["test-utils"] }
 hash-middleware           = { workspace = true, features = ["test-utils"] }
 insta                     = { workspace = true }
+rstest                    = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tower                     = { workspace = true, features = ["util"] }
 uuid                      = { workspace = true, features = ["v4"] }
