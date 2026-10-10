@@ -9,6 +9,7 @@
         "generatorName": "typescript-axios",
         "output": "#{cwd}",
         "inputSpec": "openapi.bundle.json",
+        "templateDir": "#{cwd}/templates",
         "additionalProperties": {
           "npmName": "@local/hash-graph-client",
           "npmVersion": "0.0.0-private",

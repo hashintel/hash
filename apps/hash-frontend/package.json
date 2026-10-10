@@ -79,7 +79,7 @@
     "@uiw/react-codemirror": "4.25.10",
     "@vercel/edge-config": "0.4.1",
     "@xyflow/react": "12.10.1",
-    "axios": "1.18.0",
+    "axios": "1.20.0",
     "buffer": "6.0.3",
     "clsx": "2.1.1",
     "date-fns": "4.1.0",
