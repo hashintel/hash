@@ -436,9 +436,36 @@ export const selectRecipe = sva({
         select: {
           "&::after": { display: "none" },
         },
+        // The default offset tucks the clear button into the arrow's margin;
+        // without the arrow it would overflow the border
+        clear: {
+          right: "1",
+        },
       },
     },
     willClear: { true: {} },
+    // The clear button takes the arrow's place whenever it shows: on hover,
+    // keyboard focus, and while the dropdown is open (the only reveal touch
+    // devices get). It is positioned against the select rather than the
+    // trigger, so a loading spinner keeps its own place beside it. The arrow
+    // is 0.5em wide after a right margin of the padding.
+    replaceArrow: {
+      true: {
+        select: {
+          "&[data-can-clear]:not(.layer-style_disabled):hover::after, &[data-can-clear]:has(:focus-visible)::after, &[data-can-clear]:has([data-part='trigger'][data-state='open'])::after":
+            { visibility: "hidden" },
+        },
+        triggerWrapper: {
+          position: "static",
+        },
+        clear: {
+          // Overrides fitContent's in-flow clear, which would reserve space
+          position: "absolute",
+          right: "[calc(var(--base-input-padding-x) + 0.25em)]",
+          transform: "[translateX(50%)]",
+        },
+      },
+    },
     hasPrefix: { true: {} },
     overflowRow: {
       true: {
@@ -605,6 +632,16 @@ export const selectRecipe = sva({
         },
         list: {
           "--base-input-padding-x": "spacing.2",
+        },
+      },
+    },
+    // Subtle and naked arrows sit after half the padding
+    {
+      variant: ["subtle", "naked"],
+      replaceArrow: true,
+      css: {
+        clear: {
+          right: "[calc(var(--base-input-padding-x) / 2 + 0.25em)]",
         },
       },
     },
