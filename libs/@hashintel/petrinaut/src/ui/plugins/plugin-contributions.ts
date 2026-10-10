@@ -1,7 +1,4 @@
-/**
- * What a plugin declares, as tags for its row in the Plugins section: read
- * from the manifest, plus whether the running plugin renders a root.
- */
+/** What a plugin declares, as tags for its row in the Plugins section. */
 
 import { formatShortcutKeys } from "../../react/commands/format-shortcut";
 
@@ -42,7 +39,6 @@ const sectionText: Record<PluginSettingSection, string> = {
 
 export const describePluginContributions = (
   manifest: PetrinautPluginManifest,
-  rendersRoot: boolean,
 ): readonly PluginContributionItem[] => [
   ...Object.entries(manifest.access ?? {}).map(([family, level]) => ({
     kind: "access" as const,
@@ -74,7 +70,7 @@ export const describePluginContributions = (
   ...(manifest.provides === undefined
     ? []
     : [{ kind: "provides" as const, subject: manifest.id }]),
-  ...(rendersRoot
+  ...(manifest.root === true
     ? [{ kind: "root" as const, subject: "Inside the editor" }]
     : []),
 ];

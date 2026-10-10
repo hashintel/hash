@@ -312,6 +312,7 @@ describe("PetrinautPluginsProvider", () => {
       id: "test.steady",
       name: "Steady",
       settings: { beta: { type: "boolean", default: false, label: "Beta" } },
+      root: true,
     });
     const useSteadyPlugin: PluginHook<typeof createSteadyPlugin> = (api) => {
       const [, setTick] = useState(0);
@@ -388,6 +389,7 @@ describe("PetrinautPluginsProvider", () => {
       id: "test.root",
       name: "Root",
       topBarItems: { ok: { place: "top-bar-end" } },
+      root: true,
     })({ root: <Throws />, topBarItems: { ok: <span>still here</span> } });
     const itemPlugin = definePetrinautPlugin({
       id: "test.item",

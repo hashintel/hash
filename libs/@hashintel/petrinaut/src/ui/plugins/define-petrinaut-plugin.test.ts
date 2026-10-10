@@ -20,6 +20,12 @@ const createCommandsPlugin = definePetrinautPlugin({
   buttons: { open: { label: "Open", place: "top-bar-end" } },
 });
 
+const createRootPlugin = definePetrinautPlugin({
+  id: "test.root",
+  name: "Root",
+  root: true,
+});
+
 const createEditorPlugin = definePetrinautPlugin({
   id: "test.editor",
   name: "Editor",
@@ -60,6 +66,13 @@ describe("definePetrinautPlugin", () => {
     createPalettePlugin({ buttons: { toggle: { icon: null } }, provides: 1 });
     // @ts-expect-error The service has the declared type.
     createEditorPlugin({ provides: { ready: "yes" } });
+    // @ts-expect-error A root the manifest does not declare.
+    createPalettePlugin({ buttons: { toggle: { icon: null } }, root: null });
+    // @ts-expect-error An overlay without a declared root.
+    createPalettePlugin({ buttons: { toggle: { icon: null } }, overlay: true });
+    // @ts-expect-error A declared root the contributions leave out.
+    createRootPlugin({});
+    createRootPlugin({ root: null, overlay: false });
 
     expect(createEditorPlugin(useEditorPlugin).manifest.access).toEqual({
       document: "read",

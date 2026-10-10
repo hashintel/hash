@@ -5,7 +5,7 @@ direction: right
 module: "Plugin module, at module scope" {
   style.fill: "#f2f2f2"
   style.stroke: "#777777"
-  manifest: "manifest\nid, name, description, author,\naccess, settings, commands,\nbuttons, topBarItems, provides" {style.fill: "#ffffff"; style.stroke: "#777777"}
+  manifest: "manifest\nid, name, description, author,\naccess, settings, commands,\nbuttons, topBarItems, root, provides" {style.fill: "#ffffff"; style.stroke: "#777777"}
   definition: "createXPlugin\ndefinePetrinautPlugin(manifest)" {style.fill: "#ffffff"; style.stroke: "#777777"}
   hook: "useXPlugin(api)\nreturns the contributions" {style.fill: "#ffffff"; style.stroke: "#777777"}
   plugin: "xPlugin\ncreateXPlugin(useXPlugin)" {style.fill: "#ffffff"; style.stroke: "#777777"}

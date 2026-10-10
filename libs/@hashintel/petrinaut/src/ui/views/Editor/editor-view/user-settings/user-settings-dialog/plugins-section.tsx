@@ -3,10 +3,7 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import {
-  usePluginStatuses,
-  useRunningPlugins,
-} from "../../../../../plugins/plugins-provider";
+import { usePluginStatuses } from "../../../../../plugins/plugins-provider";
 import { PluginRow, type PluginRowProps } from "./plugins-section/plugin-row";
 
 const tableStyle = css({
@@ -70,17 +67,12 @@ export const PluginsTable = ({ rows }: { rows: readonly PluginRowProps[] }) => {
 /** The Plugins section of User settings. */
 export const PluginsSection = () => {
   const statuses = usePluginStatuses();
-  const running = useRunningPlugins();
 
   return (
     <PluginsTable
       rows={statuses.map(({ plugin, status }) => ({
         manifest: plugin.manifest,
         status,
-        rendersRoot: running.some(
-          ({ manifest, contributions }) =>
-            manifest === plugin.manifest && contributions.root !== undefined,
-        ),
       }))}
     />
   );

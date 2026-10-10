@@ -22,6 +22,7 @@ pieces fit together.
 | `commands`    | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands).                                                   |                           | `commands`       |
 | `buttons`     | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                    |                           | `buttons`        |
 | `topBarItems` | Per key: `{ place }`.                                                                                                               |                           | `topBarItems`    |
+| `root`        | `true`: the plugin renders UI inside the editor.                                                                                    |                           | `root`           |
 | `provides`    | `pluginService<T>()`, the type of the service the hook provides.                                                                    |                           | `provides`       |
 
 Every key but `id` and `name` is optional.
@@ -131,8 +132,8 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 
 | Key           | Allowed when | Type                                                                                                                          |
 | ------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `root`        | Always       | `ReactNode`, rendered inside the editor behind the plugin's error boundary: dialogs, overlays, tours.                         |
-| `overlay`     | Always       | `boolean`: `true` while `root` covers the editor. Holds back the empty-canvas assistant prompt.                               |
+| `root`        | Declared     | `ReactNode`, rendered inside the editor behind the plugin's error boundary: dialogs, overlays, tours. `null` shows nothing.   |
+| `overlay`     | `root`       | Optional `boolean`: `true` while `root` covers the editor. Holds back the empty-canvas assistant prompt.                      |
 | `commands`    | Declared     | Per key: `{ run, when? }`. `when` defaults to `true`; while `false`, the command is not registered.                           |
 | `buttons`     | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. |
 | `topBarItems` | Declared     | Per key: a `ReactNode`.                                                                                                       |

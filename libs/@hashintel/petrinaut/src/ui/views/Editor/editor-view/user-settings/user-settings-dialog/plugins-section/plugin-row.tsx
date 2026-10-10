@@ -233,19 +233,13 @@ const ContributionTag = ({ item }: { item: PluginContributionItem }) => {
 export interface PluginRowProps {
   readonly manifest: PetrinautPluginManifest;
   readonly status: PluginStatus;
-  /** Whether the running plugin renders a root inside the editor. */
-  readonly rendersRoot: boolean;
 }
 
-export const PluginRow = ({
-  manifest,
-  status,
-  rendersRoot,
-}: PluginRowProps) => {
+export const PluginRow = ({ manifest, status }: PluginRowProps) => {
   const { setPluginEnabled } = use(UserSettingsContext);
   const [open, setOpen] = useState(false);
   const id = useId();
-  const contributions = describePluginContributions(manifest, rendersRoot);
+  const contributions = describePluginContributions(manifest);
   const nameId = `${id}-name`;
   const descriptionId = `${id}-description`;
   const detailsId = `${id}-details`;
