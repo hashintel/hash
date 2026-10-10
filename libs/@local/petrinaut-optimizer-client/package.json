@@ -27,10 +27,11 @@
   "devDependencies": {
     "@apps/petrinaut-opt": "workspace:*",
     "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
     "openapi-typescript": "7.13.0",
     "oxfmt": "0.50.0",
     "rimraf": "6.1.3",
-    "typescript": "5.9.3",
-    "vitest": "4.1.11"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

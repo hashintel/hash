@@ -9,7 +9,8 @@
     "@local/eslint",
     "@local/hash-graph-client",
     "@local/hash-graph-sdk",
-    "@local/hash-isomorphic-utils"
+    "@local/hash-isomorphic-utils",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {

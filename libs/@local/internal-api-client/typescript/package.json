@@ -15,9 +15,11 @@
     "axios": "1.18.0"
   },
   "devDependencies": {
+    "@local/tsconfig": "workspace:*",
     "@openapitools/openapi-generator-cli": "2.38.0",
-    "@types/node": "22.18.13",
+    "@tsconfig/bases": "catalog:",
+    "@types/node": "catalog:",
     "rimraf": "6.1.3",
-    "typescript": "5.9.3"
+    "typescript": "catalog:"
   }
 }

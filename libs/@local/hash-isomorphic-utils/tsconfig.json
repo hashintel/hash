@@ -1,5 +1,5 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
   "include": [
     "src",
     "codegen.config.ts",
@@ -7,12 +7,12 @@
     "vitest.config.ts"
   ],
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "checkJs": true,
     /**
      * @todo ideally we wouldn't specify 'dom' as this library is supposed to be usable across environments,
      *   but we have some functions which reference DOM APIs – these should be moved out
      */
-    "lib": ["dom", "ES2024"]
+    "lib": ["dom", "ES2024"],
+    "module": "NodeNext"
   }
 }

@@ -1,5 +1,5 @@
 import "react-pdf/dist/Page/TextLayer.css";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Box, Stack, Typography } from "@mui/material";
 import { debounce } from "lodash";
 import { useCallback, useEffect, useState } from "react";
@@ -34,7 +34,7 @@ import type {
   CustomTextRenderer,
   DocumentCallback,
   OnDocumentLoadSuccess,
-} from "react-pdf/dist/cjs/shared/types";
+} from "react-pdf/dist/cjs/shared/types.js";
 
 /**
  * Highlights search hits within the text representing a row/line on the page.

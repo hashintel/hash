@@ -29,7 +29,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { config } from "dotenv-flow";
-import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
@@ -61,34 +60,6 @@ const workflowSource: WorkflowSource =
     : {
         kind: "path",
         workflowsPath: require.resolve("./workflows"),
-        bundlerOptions: {
-          webpackConfigHook: (webpackConfig) => {
-            type ResolvePlugin = NonNullable<
-              NonNullable<typeof webpackConfig.resolve>["plugins"]
-            >[number];
-
-            return {
-              ...webpackConfig,
-              resolve: {
-                ...webpackConfig.resolve,
-                plugins: [
-                  ...(webpackConfig.resolve?.plugins ?? []),
-                  /**
-                   * We run TypeScript directly in development, so the 'paths' in
-                   * the base tsconfig.json need to be honoured to override the
-                   * 'exports' in local dependencies' package.jsons (which point
-                   * at transpiled JavaScript). This plugin converts the 'paths'
-                   * to webpack 'alias'.
-                   */
-                  new TsconfigPathsPlugin({
-                    configFile:
-                      "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-                  }) as ResolvePlugin,
-                ],
-              },
-            };
-          },
-        },
       };
 
 async function run() {

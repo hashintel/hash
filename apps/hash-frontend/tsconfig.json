@@ -1,28 +1,20 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/next", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "incremental": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "noEmit": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "target": "ES2021"
+    "checkJs": true,
+    "target": "ES2021",
+    "types": ["gapi", "google.accounts", "google.picker"]
   },
   "include": [
+    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     "assets.d.ts",
     "codegen.config.ts",
     "instrumentation-client.ts",
-    "next-env.d.ts",
     "next.config.js",
     "theme-override.d.ts",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next", "panda.config.ts"]
+  "exclude": ["node_modules", "panda.config.ts"]
 }

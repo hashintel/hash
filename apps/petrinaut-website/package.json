@@ -43,14 +43,17 @@
     "@earendil-works/pi-ai": "0.83.0",
     "@fast-check/vitest": "0.4.1",
     "@flue/runtime": "2.0.3",
+    "@local/tsconfig": "workspace:*",
     "@tanstack/router-generator": "1.167.32",
     "@tanstack/router-plugin": "1.168.34",
     "@testing-library/dom": "10.4.1",
     "@testing-library/react": "16.3.2",
-    "@types/node": "22.18.13",
+    "@tsconfig/bases": "catalog:",
+    "@types/node": "catalog:",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "@typescript/typescript6": "catalog:",
     "@vitejs/plugin-react": "6.1.0",
     "@whatwg-node/server": "0.10.18",
     "monaco-editor": "0.55.1",
@@ -58,7 +61,7 @@
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "sharp": "0.35.4",
-    "vite": "8.2.2",
-    "vitest": "4.1.11"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

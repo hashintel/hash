@@ -45,9 +45,9 @@ import type {
   EntityRootType,
   EntityVertex,
   GraphEmbedderMessageCallbacks,
+  KnowledgeGraphEditionMap,
   Subgraph,
 } from "@blockprotocol/graph";
-import type { KnowledgeGraphEditionMap } from "@blockprotocol/graph/types";
 import type {
   EntityId,
   EntityRecordId,

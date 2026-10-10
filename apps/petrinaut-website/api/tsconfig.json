@@ -1,9 +1,11 @@
 {
-  "extends": "../tsconfig.json",
+  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "module": "NodeNext",
+    "jsx": "react-jsx",
+    // The API imports server modules from ../src that name DOM types (HeadersInit).
+    "lib": ["DOM", "ESNext"],
     "moduleResolution": "NodeNext",
-    "types": ["node"],
+    "noEmit": true,
     "verbatimModuleSyntax": true
   },
   "include": ["./**/*.ts"]

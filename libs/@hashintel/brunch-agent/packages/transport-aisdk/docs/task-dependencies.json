@@ -1,7 +1,8 @@
 {
   "package": "@hashintel/brunch-agent-transport-aisdk",
   "dependencies": [
-    "@hashintel/brunch-agent"
+    "@hashintel/brunch-agent",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {

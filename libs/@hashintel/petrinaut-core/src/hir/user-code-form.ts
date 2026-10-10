@@ -18,7 +18,7 @@
  * attempts with stray statements still route to the module path's clearer
  * "only `export default <Ctor>(...)`" diagnostics.
  */
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 
 import type { HirSurfaceKind } from "./hir";
 

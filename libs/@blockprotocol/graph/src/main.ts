@@ -52,6 +52,7 @@ export type {
   IsOfTypeEdge,
   IsTypeOfEdge,
   KnowledgeGraphEdgeKind,
+  KnowledgeGraphEditionMap,
   KnowledgeGraphOutwardEdge,
   KnowledgeGraphRootedEdges,
   KnowledgeGraphVertex,
