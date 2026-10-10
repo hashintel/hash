@@ -23,12 +23,12 @@ reqwest       = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
+aws-lc-rs      = { workspace = true, features = ["non-fips"] }
 cookie         = { workspace = true }
 crc32fast      = { workspace = true }
 derive_more    = { workspace = true, features = ["debug", "display", "error"] }
 hmac           = { workspace = true }
 moka           = { workspace = true, features = ["future"] }
-rand           = { workspace = true, features = ["sys_rng", "thread_rng"] }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 sha2           = { workspace = true }

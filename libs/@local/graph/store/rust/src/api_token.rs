@@ -1,6 +1,6 @@
 //! API tokens a user authenticates with on the public Graph API.
 //!
-//! A store records a token's SHA-256 secret hash, never its secret.
+//! A store records a token's SHA-256 secret hash only in encrypted form, never its secret.
 
 use uuid::Uuid;
 
@@ -42,5 +42,46 @@ impl ApiTokenSecretHash {
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.0
+    }
+}
+
+/// The SHA-256 hash of an API token's secret, encrypted with AES-256-GCM.
+///
+/// The first 12 bytes are the nonce, followed by the 32 bytes of ciphertext and the 16-byte tag.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ApiTokenEncryptedSecretHash([u8; 60]);
+
+impl ApiTokenEncryptedSecretHash {
+    #[must_use]
+    pub const fn new(encrypted_hash: [u8; 60]) -> Self {
+        Self(encrypted_hash)
+    }
+
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; 60] {
+        &self.0
+    }
+}
+
+/// The identifier of the key that encrypts an API token's secret hash.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
+#[cfg_attr(
+    feature = "postgres",
+    derive(postgres_types::ToSql, postgres_types::FromSql),
+    postgres(transparent)
+)]
+#[repr(transparent)]
+pub struct ApiTokenEncryptionKeyId(Uuid);
+
+impl ApiTokenEncryptionKeyId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+impl From<ApiTokenEncryptionKeyId> for Uuid {
+    fn from(key_id: ApiTokenEncryptionKeyId) -> Self {
+        key_id.0
     }
 }

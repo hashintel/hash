@@ -6382,6 +6382,7 @@ dependencies = [
 name = "hash-graph-authentication"
 version = "0.0.0"
 dependencies = [
+ "aws-lc-rs",
  "axum",
  "cookie",
  "crc32fast",
@@ -6397,7 +6398,6 @@ dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
  "problematic",
- "rand 0.10.1",
  "reqwest 0.13.4",
  "rstest",
  "serde",

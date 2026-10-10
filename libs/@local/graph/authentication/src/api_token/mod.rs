@@ -11,20 +11,26 @@
 //!   the checksum, so it is rejected without a lookup.
 //!
 //! [`ApiToken`] holds the secret, [`HashedApiToken`] only its SHA-256 hash. Parsing a token yields
-//! a [`HashedApiToken`].
+//! a [`HashedApiToken`]. An [`ApiTokenEncryptionKey`] encrypts that hash for a store, bound to the
+//! [`AssociatedData`] of the token and its row.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
+
+mod encryption;
 
 use core::{
     fmt::{self, Write as _},
     str::FromStr,
 };
 
-use error_stack::{Report, ResultExt as _};
+use aws_lc_rs::error::Unspecified;
+use error_stack::Report;
 use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
-use rand::{TryRng as _, rngs::SysRng};
 use sha2::{Digest as _, Sha256};
+use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
+
+pub use self::encryption::{ApiTokenDecryptionError, ApiTokenEncryptionKey, AssociatedData};
 
 const PREFIX: &str = "hsh_";
 const PREFIX_BYTES: [u8; PREFIX.len()] = match PREFIX.as_bytes().first_chunk() {
@@ -165,13 +171,13 @@ pub enum ApiTokenParseError {
 
 /// Why no API token could be generated.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-#[display("the operating system provided no random bytes for the API token")]
+#[display("the random number generator provided no bytes for the API token")]
 pub struct ApiTokenGenerationError;
 
 /// An API token, made of its type, environment, version, token ID and secret.
 ///
-/// Neither the `Debug` nor the `Display` output contains the secret. `Display` shows the token up
-/// to the first four digits of the token ID and `…`, such as `hsh_pat_pd_0296…`.
+/// `Display` shows the token up to the first four digits of the token ID and `…`, such as
+/// `hsh_pat_pd_0296…`.
 #[derive(derive_more::Debug)]
 pub struct ApiToken {
     token_type: ApiTokenType,
@@ -185,29 +191,24 @@ pub struct ApiToken {
 
 impl ApiToken {
     /// Generates a token of `token_type` for `environment`, with a random token ID and secret from
-    /// the operating system's random number generator.
+    /// AWS-LC's random number generator.
     ///
     /// # Errors
     ///
-    /// Returns [`ApiTokenGenerationError`] if the operating system provides no random bytes.
+    /// Returns [`ApiTokenGenerationError`] if the random number generator fails.
     pub fn generate(
         token_type: ApiTokenType,
         environment: Environment,
     ) -> Result<Self, Report<ApiTokenGenerationError>> {
         let mut token_id = [0_u8; 16];
-        SysRng
-            .try_fill_bytes(&mut token_id)
-            .change_context(ApiTokenGenerationError)?;
-
-        let secret = draw_secret(|pool| SysRng.try_fill_bytes(pool))
-            .change_context(ApiTokenGenerationError)?;
+        fill_random(&mut token_id)?;
 
         Ok(Self {
             token_type,
             environment,
             version: ApiTokenVersion::V0,
             token_id: ApiTokenId::new(uuid::Builder::from_random_bytes(token_id).into_uuid()),
-            secret,
+            secret: draw_secret(fill_random)?,
         })
     }
 
@@ -246,8 +247,7 @@ impl fmt::Display for ApiToken {
 
 /// An API token with the SHA-256 hash of its secret in place of the secret.
 ///
-/// Neither the `Debug` nor the `Display` output contains the hash. `Display` shows the token as
-/// [`ApiToken`] does.
+/// `Display` shows the token as [`ApiToken`] does.
 #[derive(derive_more::Debug)]
 pub struct HashedApiToken {
     token_type: ApiTokenType,
@@ -282,6 +282,24 @@ impl HashedApiToken {
     #[must_use]
     pub const fn secret_hash(&self) -> ApiTokenSecretHash {
         self.secret_hash
+    }
+
+    /// The associated data that binds the secret hash of this token to the row of `actor_id` and
+    /// `web_id`.
+    #[must_use]
+    pub const fn associated_data(
+        &self,
+        actor_id: ActorEntityUuid,
+        web_id: WebId,
+    ) -> AssociatedData {
+        AssociatedData {
+            token_type: self.token_type,
+            environment: self.environment,
+            version: self.version,
+            token_id: self.token_id,
+            actor_id,
+            web_id,
+        }
     }
 }
 
@@ -420,6 +438,14 @@ fn decode_token_id(
         .ok_or(ApiTokenParseError::Encoding)?;
 
     Ok((version, ApiTokenId::new(Uuid::from_u128(token_id))))
+}
+
+/// Fills `bytes` from AWS-LC's random number generator.
+fn fill_random(bytes: &mut [u8]) -> Result<(), Report<ApiTokenGenerationError>> {
+    match aws_lc_rs::rand::fill(bytes) {
+        Ok(()) => Ok(()),
+        Err(Unspecified) => Err(Report::new(ApiTokenGenerationError)),
+    }
 }
 
 /// Draws a secret of [`SECRET_LENGTH`] Base62 digits from the random bytes `fill` writes.
@@ -632,7 +658,7 @@ mod tests {
     #[case::local(Environment::Local)]
     fn parse_exposed(#[case] environment: Environment) {
         let token = ApiToken::generate(ApiTokenType::User, environment)
-            .expect("the operating system should provide random bytes");
+            .expect("the random number generator should provide bytes");
         let exposed = token.expose();
         let hashed = HashedApiToken::from(token);
         let parsed = exposed
