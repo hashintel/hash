@@ -6848,6 +6848,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-secret"
+version = "0.0.0"
+dependencies = [
+ "simple-mermaid",
+]
+
+[[package]]
 name = "hash-status"
 version = "0.0.0"
 dependencies = [
