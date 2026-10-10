@@ -33,6 +33,7 @@ import {
 
 import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
 import { StatusPage } from "../../../shared/status-page";
+import { ShareSnapshotButton } from "../../../sharing/share-snapshot-button";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import {
   BrunchPanelConversationTracker,
@@ -775,6 +776,16 @@ export const LocalStorageDemoApp = ({
             readonly={false}
             setTitle={setTitle}
             slots={{
+              topBarEnd: (
+                <ShareSnapshotButton
+                  getSnapshot={() => ({
+                    title: currentDocument.title,
+                    definition:
+                      activeHandle.handle.doc() ?? currentDocument.definition,
+                  })}
+                  search={search}
+                />
+              ),
               settingsLabs: (
                 <AssistantLabsSettings
                   assistantReady={assistantSelectionReady}
