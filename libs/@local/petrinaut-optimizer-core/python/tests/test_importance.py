@@ -1,4 +1,5 @@
 import math
+from typing import Literal
 
 import optuna
 import pytest
@@ -18,7 +19,7 @@ def weighted_sum(trial: optuna.Trial) -> float:
 
 @pytest.mark.parametrize("direction", ["minimize", "maximize"])
 def test_importance_direction(
-    direction: str,
+    direction: Literal["minimize", "maximize"],
 ) -> None:
     study = optuna.create_study(direction=direction, sampler=RandomSampler(seed=0))
     study.optimize(weighted_sum, n_trials=40)

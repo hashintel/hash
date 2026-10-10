@@ -19,7 +19,7 @@ dev = [
     "pytest>=9.1.1,<10",
     "ruff>=0.16.8,<0.17",
     "tach>=0.35,<0.36",
-    "ty<0.0.83,>=0.0.82",
+    "ty<0.0.85,>=0.0.84",
 ]
 
 [tool.uv]
@@ -28,27 +28,27 @@ add-bounds = "major" # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
 exclude-newer = "7 days" # mirrors npm release age
 package = false
 constraint-dependencies = [
-    "datamodel-code-generator<0.83.0,>=0.82.0",
+    "datamodel-code-generator<0.84.0,>=0.83.0",
     "deptry<0.26,>=0.25.1",
-    "fastapi<0.129.0,>=0.128.8",
+    "fastapi<0.142.0,>=0.141.1",
     "httpx<0.29.0,>=0.28",
     "opentelemetry-exporter-otlp-proto-grpc<2.0.0,>=1.44.0",
     "opentelemetry-exporter-otlp-proto-http<2.0.0,>=1.44.0",
     "opentelemetry-instrumentation-fastapi<0.66.0,>=0.65b0",
     "opentelemetry-sdk<2.0.0,>=1.44.0",
-    "optuna<5,>=4.9",
+    "optuna<6.0.0,>=5.0.0",
     "pydantic<3.0.0,>=2.13.4",
     "pydantic-settings<3.0.0,>=2.15.0",
     "pytest<10,>=9.1.1",
     "pytest-asyncio<2,>=1.4",
     "python-dotenv<2.0.0,>=1.0.0",
     "ruff<0.17,>=0.16.8",
-    "starlette<0.53.0,>=0.52.1",
+    "starlette<2.0.0,>=1.7.0",
     "sympy<2.0.0,>=1.13",
     "tach<0.36,>=0.35",
-    "ty<0.0.83,>=0.0.82",
+    "ty<0.0.85,>=0.0.84",
     "uv-build<0.13.0,>=0.12.16",
-    "uvicorn<0.40.0,>=0.39.0",
+    "uvicorn<0.54.0,>=0.53.0",
 ]
 
 [tool.uv.workspace]
