@@ -1,7 +1,7 @@
 import dedent from "dedent";
 
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { getWebPageActivity } from "../get-web-page-activity.js";
@@ -33,7 +33,7 @@ const generateSummarizeWebPageSystemPrompt = (params: {
 export const getWebPageSummaryAction: AiFlowActionActivity<
   "getWebPageSummary"
 > = async ({ inputs }) => {
-  const { url, model, numberOfSentences } = getSimplifiedAiFlowActionInputs({
+  const { url, model, numberOfSentences } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "getWebPageSummary",
   });

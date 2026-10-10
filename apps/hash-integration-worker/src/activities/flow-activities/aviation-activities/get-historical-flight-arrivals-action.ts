@@ -9,7 +9,7 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getHistoricalArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
-import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
@@ -64,11 +64,10 @@ export const getHistoricalFlightArrivalsAction: IntegrationFlowActionActivity<
   }, secondsBetweenHeartbeats * 1000);
 
   try {
-    const { airportIcao, startDate, endDate } =
-      getSimplifiedIntegrationFlowActionInputs({
-        inputs,
-        actionType: "getHistoricalFlightArrivals",
-      });
+    const { airportIcao, startDate, endDate } = getSimplifiedFlowActionInputs({
+      inputs,
+      actionType: "getHistoricalFlightArrivals",
+    });
 
     // Validate inputs
     validateEndDate(endDate);

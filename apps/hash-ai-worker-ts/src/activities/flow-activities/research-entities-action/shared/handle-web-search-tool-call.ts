@@ -10,8 +10,8 @@ import { webSearchAction } from "../../web-search-action.js";
 import type { CoordinatorToolCallArguments } from "./coordinator-tools.js";
 import type { Url } from "@blockprotocol/type-system";
 import type {
-  InputNameForAiFlowAction,
-  OutputNameForAiFlowAction,
+  InputNameForFlowAction,
+  OutputNameForFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   StepInput,
@@ -36,12 +36,12 @@ export const handleWebSearchToolCall = async (params: {
   const response = await webSearchAction({
     inputs: [
       {
-        inputName: "query" satisfies InputNameForAiFlowAction<"webSearch">,
+        inputName: "query" satisfies InputNameForFlowAction<"webSearch">,
         payload: { kind: "Text", value: query },
       },
       {
         inputName:
-          "numberOfSearchResults" satisfies InputNameForAiFlowAction<"webSearch">,
+          "numberOfSearchResults" satisfies InputNameForFlowAction<"webSearch">,
         payload: { kind: "Number", value: 5 },
       },
     ],
@@ -83,7 +83,7 @@ export const handleWebSearchToolCall = async (params: {
           inputs: [
             {
               inputName:
-                "url" satisfies InputNameForAiFlowAction<"getWebPageSummary">,
+                "url" satisfies InputNameForFlowAction<"getWebPageSummary">,
               payload: { kind: "Text", value: url },
             },
             ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
@@ -108,7 +108,7 @@ export const handleWebSearchToolCall = async (params: {
         const summaryOutput = webPageSummaryOutputs?.find(
           ({ outputName }) =>
             outputName ===
-            ("summary" satisfies OutputNameForAiFlowAction<"getWebPageSummary">),
+            ("summary" satisfies OutputNameForFlowAction<"getWebPageSummary">),
         );
 
         if (!summaryOutput) {

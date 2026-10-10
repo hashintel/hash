@@ -1,7 +1,6 @@
 import type {
-  AiActionStepOutput,
   AiFlowActionDefinitionId,
-  IntegrationActionStepOutput,
+  FlowActionStepOutput,
   IntegrationFlowActionDefinitionId,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
@@ -33,7 +32,7 @@ export type AiFlowActionActivity<
   } & AdditionalParams,
 ) => Promise<
   Status<{
-    outputs: AiActionStepOutput<T>[];
+    outputs: FlowActionStepOutput<T>[];
   }>
 >;
 
@@ -50,7 +49,7 @@ export type IntegrationFlowActionActivity<
   } & AdditionalParams,
 ) => Promise<
   Status<{
-    outputs: IntegrationActionStepOutput<T>[];
+    outputs: FlowActionStepOutput<T>[];
   }>
 >;
 

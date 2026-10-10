@@ -21,7 +21,7 @@ import {
   type StructuralQueryDefinition,
   toApiTraversalPaths,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
@@ -40,8 +40,8 @@ import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthrop
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import type {
-  AiActionStepOutput,
-  InputNameForAiFlowAction,
+  FlowActionStepOutput,
+  InputNameForFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
 const model: PermittedAnthropicModel = "claude-opus-4-8";
@@ -224,7 +224,7 @@ const runPythonCodeForCurrentActivity = async (
 
 const maximumIterations = 8;
 
-type ActionOutputs = AiActionStepOutput<"analyzeEntityData">[];
+type ActionOutputs = FlowActionStepOutput<"analyzeEntityData">[];
 
 export const analyzeEntityDataAction: AiFlowActionActivity<
   "analyzeEntityData"
@@ -236,11 +236,11 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
     refinementInstruction,
     existingPythonScript,
     refinementScope,
-  } = getSimplifiedAiFlowActionInputs({
+  } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "analyzeEntityData",
   }) as {
-    [K in InputNameForAiFlowAction<"analyzeEntityData">]: string | undefined;
+    [K in InputNameForFlowAction<"analyzeEntityData">]: string | undefined;
   };
 
   const { userAuthentication, stepId, flowEntityId, webId } =

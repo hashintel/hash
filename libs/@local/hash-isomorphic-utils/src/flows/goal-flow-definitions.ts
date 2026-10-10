@@ -12,8 +12,8 @@ import {
 
 import type {
   AiFlowActionDefinitionId,
-  InputNameForAiFlowAction,
-  OutputNameForAiFlowAction,
+  InputNameForFlowAction,
+  OutputNameForFlowAction,
 } from "./action-definitions.js";
 import type { FlowDefinition } from "./types.js";
 import type { EntityUuid } from "@blockprotocol/type-system";
@@ -72,7 +72,7 @@ export const goalFlowDefinition = {
       inputSources: [
         {
           inputName:
-            "prompt" satisfies InputNameForAiFlowAction<"researchEntities">,
+            "prompt" satisfies InputNameForFlowAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:
@@ -80,7 +80,7 @@ export const goalFlowDefinition = {
         },
         {
           inputName:
-            "entityTypeIds" satisfies InputNameForAiFlowAction<"researchEntities">,
+            "entityTypeIds" satisfies InputNameForFlowAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "Entity Types" satisfies GoalFlowTriggerInput,
@@ -96,15 +96,15 @@ export const goalFlowDefinition = {
       inputSources: [
         {
           inputName:
-            "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
+            "proposedEntities" satisfies InputNameForFlowAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "1",
           sourceStepOutputName:
-            "proposedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
+            "proposedEntities" satisfies OutputNameForFlowAction<"researchEntities">,
         },
         {
           inputName:
-            "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
+            "draft" satisfies InputNameForFlowAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:

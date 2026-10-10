@@ -1,7 +1,7 @@
 import type {
   AiFlowActionDefinitionId,
-  InputNameForAiFlowAction,
-  OutputNameForAiFlowAction,
+  InputNameForFlowAction,
+  OutputNameForFlowAction,
 } from "../action-definitions.js";
 import type { ActionStepDefinition, FlowDefinition } from "../types.js";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
@@ -19,7 +19,7 @@ export const markdownReportTriggerInputs = [
 
 export const markdownReportResearchEntitiesStepInput = {
   inputName:
-    "reportSpecification" satisfies InputNameForAiFlowAction<"researchEntities">,
+    "reportSpecification" satisfies InputNameForFlowAction<"researchEntities">,
   kind: "step-output",
   sourceStepId: "trigger",
   sourceStepOutputName: "Report specification" satisfies ReportTriggerInput,
@@ -31,19 +31,17 @@ export const markdownReportStep = {
   description: "Write report based on the research specification",
   inputSources: [
     {
-      inputName:
-        "question" satisfies InputNameForAiFlowAction<"answerQuestion">,
+      inputName: "question" satisfies InputNameForFlowAction<"answerQuestion">,
       kind: "step-output",
       sourceStepId: "trigger",
       sourceStepOutputName: "Report specification",
     },
     {
-      inputName:
-        "entities" satisfies InputNameForAiFlowAction<"answerQuestion">,
+      inputName: "entities" satisfies InputNameForFlowAction<"answerQuestion">,
       kind: "step-output",
       sourceStepId: "2",
       sourceStepOutputName:
-        "persistedEntities" satisfies OutputNameForAiFlowAction<"persistEntities">,
+        "persistedEntities" satisfies OutputNameForFlowAction<"persistEntities">,
     },
   ],
 } satisfies DistributiveOmit<
@@ -52,8 +50,7 @@ export const markdownReportStep = {
 >;
 
 export const markdownReportDeliverable = {
-  stepOutputName:
-    "answer" satisfies OutputNameForAiFlowAction<"answerQuestion">,
+  stepOutputName: "answer" satisfies OutputNameForFlowAction<"answerQuestion">,
   payloadKind: "Text",
   name: "report" as const,
   array: false,

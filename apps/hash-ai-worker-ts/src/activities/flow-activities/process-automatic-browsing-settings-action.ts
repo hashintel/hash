@@ -1,4 +1,4 @@
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
@@ -14,7 +14,7 @@ import type { BrowserPluginSettings } from "@local/hash-isomorphic-utils/system-
 export const processAutomaticBrowsingSettingsAction: AiFlowActionActivity<
   "processAutomaticBrowsingSettings"
 > = async ({ inputs }) => {
-  const { webPage } = getSimplifiedAiFlowActionInputs({
+  const { webPage } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "processAutomaticBrowsingSettings",
   });

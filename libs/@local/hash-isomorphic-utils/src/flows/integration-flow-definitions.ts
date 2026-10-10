@@ -1,7 +1,7 @@
 import type {
-  InputNameForIntegrationFlowAction,
+  InputNameForFlowAction,
   IntegrationFlowActionDefinitionId,
-  OutputNameForIntegrationFlowAction,
+  OutputNameForFlowAction,
 } from "./action-definitions.js";
 import type { FlowDefinition } from "./types.js";
 import type { EntityUuid } from "@blockprotocol/type-system";
@@ -59,21 +59,21 @@ export const historicalFlightsFlowDefinition: FlowDefinition<IntegrationFlowActi
         inputSources: [
           {
             inputName:
-              "airportIcao" satisfies InputNameForIntegrationFlowAction<"getHistoricalFlightArrivals">,
+              "airportIcao" satisfies InputNameForFlowAction<"getHistoricalFlightArrivals">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Airport ICAO",
           },
           {
             inputName:
-              "startDate" satisfies InputNameForIntegrationFlowAction<"getHistoricalFlightArrivals">,
+              "startDate" satisfies InputNameForFlowAction<"getHistoricalFlightArrivals">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Start Date",
           },
           {
             inputName:
-              "endDate" satisfies InputNameForIntegrationFlowAction<"getHistoricalFlightArrivals">,
+              "endDate" satisfies InputNameForFlowAction<"getHistoricalFlightArrivals">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "End Date",
@@ -89,11 +89,11 @@ export const historicalFlightsFlowDefinition: FlowDefinition<IntegrationFlowActi
         inputSources: [
           {
             inputName:
-              "proposedEntities" satisfies InputNameForIntegrationFlowAction<"persistIntegrationEntities">,
+              "proposedEntities" satisfies InputNameForFlowAction<"persistIntegrationEntities">,
             kind: "step-output",
             sourceStepId: "1",
             sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForIntegrationFlowAction<"getHistoricalFlightArrivals">,
+              "proposedEntities" satisfies OutputNameForFlowAction<"getHistoricalFlightArrivals">,
           },
         ],
       },
@@ -102,7 +102,7 @@ export const historicalFlightsFlowDefinition: FlowDefinition<IntegrationFlowActi
       {
         stepId: "2",
         stepOutputName:
-          "persistedEntities" satisfies OutputNameForIntegrationFlowAction<"persistIntegrationEntities">,
+          "persistedEntities" satisfies OutputNameForFlowAction<"persistIntegrationEntities">,
         payloadKind: "PersistedEntitiesMetadata",
         name: "persistedEntities" as const,
         array: false,
@@ -162,14 +162,14 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
         inputSources: [
           {
             inputName:
-              "airportIcao" satisfies InputNameForIntegrationFlowAction<"getScheduledFlights">,
+              "airportIcao" satisfies InputNameForFlowAction<"getScheduledFlights">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Airport ICAO",
           },
           {
             inputName:
-              "date" satisfies InputNameForIntegrationFlowAction<"getScheduledFlights">,
+              "date" satisfies InputNameForFlowAction<"getScheduledFlights">,
             kind: "step-output",
             sourceStepId: "trigger",
             sourceStepOutputName: "Date",
@@ -185,11 +185,11 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
         inputSources: [
           {
             inputName:
-              "proposedEntities" satisfies InputNameForIntegrationFlowAction<"persistIntegrationEntities">,
+              "proposedEntities" satisfies InputNameForFlowAction<"persistIntegrationEntities">,
             kind: "step-output",
             sourceStepId: "1",
             sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForIntegrationFlowAction<"getScheduledFlights">,
+              "proposedEntities" satisfies OutputNameForFlowAction<"getScheduledFlights">,
           },
         ],
       },
@@ -202,11 +202,11 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
         inputSources: [
           {
             inputName:
-              "persistedEntities" satisfies InputNameForIntegrationFlowAction<"getLiveFlightPositions">,
+              "persistedEntities" satisfies InputNameForFlowAction<"getLiveFlightPositions">,
             kind: "step-output",
             sourceStepId: "2",
             sourceStepOutputName:
-              "persistedEntities" satisfies OutputNameForIntegrationFlowAction<"persistIntegrationEntities">,
+              "persistedEntities" satisfies OutputNameForFlowAction<"persistIntegrationEntities">,
           },
         ],
       },
@@ -219,11 +219,11 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
         inputSources: [
           {
             inputName:
-              "proposedEntities" satisfies InputNameForIntegrationFlowAction<"persistIntegrationEntities">,
+              "proposedEntities" satisfies InputNameForFlowAction<"persistIntegrationEntities">,
             kind: "step-output",
             sourceStepId: "3",
             sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForIntegrationFlowAction<"getLiveFlightPositions">,
+              "proposedEntities" satisfies OutputNameForFlowAction<"getLiveFlightPositions">,
           },
         ],
       },
@@ -232,7 +232,7 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
       {
         stepId: "4",
         stepOutputName:
-          "persistedEntities" satisfies OutputNameForIntegrationFlowAction<"persistIntegrationEntities">,
+          "persistedEntities" satisfies OutputNameForFlowAction<"persistIntegrationEntities">,
         payloadKind: "PersistedEntitiesMetadata",
         name: "persistedEntities" as const,
         array: false,

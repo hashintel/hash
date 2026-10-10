@@ -12,7 +12,7 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityIdFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -91,7 +91,7 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
     await getFlowContext();
 
   const { audience, dataToWrite, googleAccountId, googleSheet } =
-    getSimplifiedAiFlowActionInputs({
+    getSimplifiedFlowActionInputs({
       inputs,
       actionType: "writeGoogleSheet",
     });
