@@ -42,7 +42,9 @@ export const PageThumbnail = memo(
           height={height}
           width={thumbnailWidth}
           onItemClick={(args) => setSelectedPageNumber(args.pageNumber)}
-        />
+        >
+          <Box component="span" role="img" aria-label={`Page ${pageNumber}`} />
+        </Thumbnail>
       </Box>
     );
   },

@@ -4,6 +4,7 @@ import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { createEntityMutation } from "../graphql/queries/entity.queries";
+import { requestFileUploadMutation } from "../graphql/queries/file.queries";
 import { meQuery } from "../graphql/queries/user.queries";
 
 import type {
@@ -12,6 +13,8 @@ import type {
   LinkedEntityDefinition,
   MeQuery,
   MeQueryVariables,
+  RequestFileUploadMutation,
+  RequestFileUploadMutationVariables,
 } from "../graphql/api-types.gen";
 import type { EntityRootType } from "@blockprotocol/graph";
 import type {
@@ -20,7 +23,10 @@ import type {
   TypeIdsAndPropertiesForEntity,
   WebId,
 } from "@blockprotocol/type-system";
-import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  File,
+  User,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";
 
@@ -97,4 +103,47 @@ export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
     }
     return new HashEntity<T>(data.createEntity);
   });
+};
+
+/**
+ * Creates a file entity in the given web and uploads the file's contents to
+ * the storage URL the API returns.
+ */
+export const uploadFile = async (
+  requestContext: APIRequestContext,
+  params: {
+    contents: Buffer;
+    mimeType: string;
+    name: string;
+    webId: WebId;
+  },
+): Promise<HashEntity<File>> => {
+  const { data } = await callGraphQlApi<
+    RequestFileUploadMutation,
+    RequestFileUploadMutationVariables
+  >(requestContext, {
+    query: requestFileUploadMutation,
+    variables: {
+      name: params.name,
+      size: params.contents.byteLength,
+      fileEntityCreationInput: { webId: params.webId },
+    },
+  });
+  if (!data) {
+    throw new Error("requestFileUpload returned no data");
+  }
+
+  const { entity, presignedPut } = data.requestFileUpload;
+
+  const resp = await requestContext.put(presignedPut.url, {
+    data: params.contents,
+    headers: { "content-type": params.mimeType },
+  });
+  if (!resp.ok()) {
+    throw new Error(
+      `File upload failed: ${resp.status()} ${resp.statusText()}`,
+    );
+  }
+
+  return new HashEntity<File>(entity);
 };

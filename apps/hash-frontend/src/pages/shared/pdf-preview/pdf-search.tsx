@@ -308,6 +308,7 @@ export const PdfSearch = ({
         />
         <Stack direction="row" gap={2} mt={0.8} justifyContent="flex-start">
           <GrayToBlueIconButton
+            aria-label={ignoreCase ? "Match case" : "Ignore case"}
             onClick={() => {
               getSearchHits(searchText, !ignoreCase);
               setIgnoreCase(!ignoreCase);
@@ -331,6 +332,7 @@ export const PdfSearch = ({
               sx={{ height: 22 }}
             >
               <GrayToBlueIconButton
+                aria-label="Previous result"
                 disabled={
                   !selectedSearchHit || selectedSearchHit.indexInAllHits === 0
                 }
@@ -359,6 +361,7 @@ export const PdfSearch = ({
                 {`${(selectedSearchHit?.indexInAllHits ?? -1) + 1} of ${total}`}
               </Typography>
               <GrayToBlueIconButton
+                aria-label="Next result"
                 disabled={
                   !selectedSearchHit ||
                   selectedSearchHit.indexInAllHits === total - 1
