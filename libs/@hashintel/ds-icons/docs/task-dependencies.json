@@ -1,0 +1,47 @@
+{
+  "package": "@hashintel/ds-icons",
+  "dependencies": [
+    "@hashintel/ds-components",
+    "@hashintel/ds-helpers"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-helpers#codegen"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-helpers#codegen",
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-helpers#codegen",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-helpers#codegen"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-helpers#codegen"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}

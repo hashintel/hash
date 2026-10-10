@@ -1,7 +1,7 @@
 import { animateCube } from "../shared/cube-projection";
-import { petriconHints } from "../shared/petricon-hints";
+import { hashIconHints } from "../shared/hints";
 
-import type { ExperimentalIconName } from "../../experimental-icons";
+import type { HashIconName } from "../../hash-icon";
 
 export const iconControlSelector =
   'button, a[href], [role="button"], [role="tab"], [role="menuitem"], [data-scope="segment-group"][data-part="item"], label[data-scope="checkbox"]';
@@ -85,7 +85,7 @@ const detailTransforms: Record<string, string> = {
 
 export const playIconAction = (
   root: SVGGElement,
-  name: ExperimentalIconName,
+  name: HashIconName,
   duration: number,
   loop = false,
   cancelPrevious: () => void = () => {},
@@ -203,13 +203,13 @@ export const playIconAction = (
       ]);
     }
   }
-  if (animations.length === 0 && petriconHints[name] !== "state") {
+  if (animations.length === 0 && hashIconHints[name] !== "state") {
     const target = root.querySelector<SVGElement>("[data-icon-feedback]");
     if (target)
       animate(target, [
         { transform: "none" },
         {
-          transform: translations[petriconHints[name]] ?? "scale(.92)",
+          transform: translations[hashIconHints[name]] ?? "scale(.92)",
           offset: 0.35,
         },
         { transform: "none" },

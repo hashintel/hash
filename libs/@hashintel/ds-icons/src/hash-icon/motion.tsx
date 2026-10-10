@@ -1,6 +1,6 @@
 /**
  * @layerRoot ui.petricon
- * @role Petricon SVG geometry, configurable effects, and state transitions
+ * @role HashIcon SVG geometry, configurable effects, and state transitions
  */
 import {
   useEffect,
@@ -16,29 +16,26 @@ import {
 } from "./motion/action-motion";
 import { animateCube, paintCube } from "./shared/cube-projection";
 
-import type { ExperimentalIconName } from "../experimental-icons";
+import type { HashIconName } from "../hash-icon";
 
-export const experimentalIconEffects = [
+export const hashIconEffects = [
   "action",
   "bounce",
   "pulse",
   "rotate",
   "draw",
 ] as const;
-export type ExperimentalIconEffect = (typeof experimentalIconEffects)[number];
-export type ExperimentalIconTransition = "none" | "smooth" | "spring";
-export type ExperimentalIconMotion = "auto" | "none";
-export type ExperimentalIconChoreography =
-  | "together"
-  | "stagger"
-  | "sequential";
+export type HashIconEffect = (typeof hashIconEffects)[number];
+export type HashIconTransition = "none" | "smooth" | "spring";
+export type HashIconMotion = "auto" | "none";
+export type HashIconChoreography = "together" | "stagger" | "sequential";
 
 export type IconMotionProps = {
-  effect?: ExperimentalIconEffect | readonly ExperimentalIconEffect[];
+  effect?: HashIconEffect | readonly HashIconEffect[];
   trigger?: string | number;
   active?: boolean;
   duration?: number;
-  choreography?: ExperimentalIconChoreography;
+  choreography?: HashIconChoreography;
   drawProgress?: number;
 };
 
@@ -55,7 +52,7 @@ const subscribeToReducedMotion = (onChange: () => void) => {
 const getReducedMotion = () => getMotionMedia()?.matches ?? false;
 const getServerReducedMotion = () => true;
 
-export const useIconMotionAllowed = (motion: ExperimentalIconMotion) => {
+export const useIconMotionAllowed = (motion: HashIconMotion) => {
   const reducedMotion = useSyncExternalStore(
     subscribeToReducedMotion,
     getReducedMotion,
@@ -69,7 +66,7 @@ export const resolveIconDuration = (duration: number) =>
 
 export const getIconTransition = (
   allowed: boolean,
-  transition: ExperimentalIconTransition,
+  transition: HashIconTransition,
   duration: number,
 ) => {
   if (!allowed || transition === "none") {
@@ -92,7 +89,7 @@ export const getIconTransition = (
 };
 
 const effectKeyframes: Record<
-  Exclude<ExperimentalIconEffect, "draw" | "action">,
+  Exclude<HashIconEffect, "draw" | "action">,
   Keyframe[]
 > = {
   bounce: [
@@ -120,7 +117,7 @@ export const useIconEffects = ({
 }: IconMotionProps & {
   allowed: boolean;
   identity: string;
-  name: ExperimentalIconName;
+  name: HashIconName;
   interactive: boolean;
   authoredHover: boolean;
 }) => {
@@ -245,7 +242,7 @@ export const useIconEffects = ({
     const animations: Animation[] = [];
     let cancelAction = () => {};
     const totalDuration = resolveIconDuration(duration);
-    const effects = experimentalIconEffects.filter((candidate) =>
+    const effects = hashIconEffects.filter((candidate) =>
       effectKey.split(",").includes(candidate),
     );
     for (const currentEffect of effects) {

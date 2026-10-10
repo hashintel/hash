@@ -1,0 +1,15 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["codegen", "^build"],
+      "outputs": ["./dist/**"]
+    },
+    "codegen": {
+      "dependsOn": ["@hashintel/ds-helpers#codegen"]
+    },
+    "test:unit": {
+      "dependsOn": ["codegen", "^build"]
+    }
+  }
+}
