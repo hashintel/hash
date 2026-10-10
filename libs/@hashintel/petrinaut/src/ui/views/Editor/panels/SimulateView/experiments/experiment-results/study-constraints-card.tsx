@@ -71,7 +71,6 @@ const breakdownStyle = css({
   flexDirection: "column",
   gap: "2",
   overflowY: "auto",
-  scrollbarWidth: "[thin]",
   minHeight: "[0]",
 });
 
