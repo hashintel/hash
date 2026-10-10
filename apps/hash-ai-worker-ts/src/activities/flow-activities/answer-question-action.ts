@@ -411,12 +411,12 @@ export const answerQuestionAction: AiFlowActionActivity<
     actionType: "answerQuestion",
   });
 
-  const { userAuthentication } = await getFlowContext();
+  const { userAuthentication, workflowId } = await getFlowContext();
 
   // Resolve the stored ref to get the array of PersistedEntitiesMetadata
   const inputEntities = entitiesInput
     ? await resolvePayloadValue(
-        getStorageProvider(),
+        { storageProvider: getStorageProvider(), workflowId },
         "PersistedEntitiesMetadata",
         entitiesInput,
       )
