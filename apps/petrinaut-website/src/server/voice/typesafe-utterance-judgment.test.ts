@@ -114,12 +114,11 @@ describe("utterance judgment handler", () => {
 
   test.each([
     { PETRINAUT_LIVE_UTTERANCE_JUDGMENT: undefined },
-    { PETRINAUT_LIVE_UTTERANCE_JUDGMENT: "enforce" },
     { TYPESAFE_API_KEY: " " },
     { PETRINAUT_VOICE_PROVIDER: "realtime" },
     { PETRINAUT_OPENAI_VOICE_ENABLED: "false" },
     { NODE_ENV: "production" },
-    { VERCEL_ENV: "preview" },
+    { VERCEL_ENV: "production" },
   ])("is unavailable outside the log experiment: %j", async (override) => {
     const fetch = vi.fn<typeof globalThis.fetch>();
     const response = await createUtteranceJudgmentHandler({
@@ -128,6 +127,126 @@ describe("utterance judgment handler", () => {
     })(request());
     expect(response.status).toBe(404);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  describe("on a preview deployment", () => {
+    const previewEnvironment = {
+      ...environment,
+      NODE_ENV: "production",
+      VERCEL_ENV: "preview",
+    };
+    const previewRequest = (clientIp?: string) =>
+      request({
+        headers: {
+          origin: "https://petrinaut.test",
+          "content-type": "application/json",
+          ...(clientIp === undefined ? {} : { "x-forwarded-for": clientIp }),
+        },
+      });
+    const judgedFetch = () =>
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ answers: { contribution: answer } }),
+      );
+
+    test("judges requests from an identified client", async () => {
+      const fetch = judgedFetch();
+      const response = await createUtteranceJudgmentHandler({
+        environment: previewEnvironment,
+        fetch,
+      })(previewRequest("203.0.113.7"));
+      expect(response.status).toBe(200);
+      expect(fetch).toHaveBeenCalledOnce();
+    });
+
+    test("rejects requests without a client IP before calling upstream", async () => {
+      const fetch = judgedFetch();
+      const report = vi.fn();
+      const response = await createUtteranceJudgmentHandler({
+        environment: previewEnvironment,
+        fetch,
+        report,
+      })(previewRequest());
+      expect(response.status).toBe(400);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(report).toHaveBeenCalledWith(
+        expect.objectContaining({
+          outcome: "unidentified-client",
+          status: 400,
+        }),
+      );
+    });
+
+    test("limits each client to 30 judgments a minute", async () => {
+      const fetch = judgedFetch();
+      const report = vi.fn();
+      const handler = createUtteranceJudgmentHandler({
+        environment: previewEnvironment,
+        fetch,
+        report,
+      });
+      for (let i = 0; i < 30; i++) {
+        expect((await handler(previewRequest("203.0.113.7"))).status).toBe(200);
+      }
+      expect((await handler(previewRequest("203.0.113.7"))).status).toBe(429);
+      expect(fetch).toHaveBeenCalledTimes(30);
+      expect(report).toHaveBeenLastCalledWith(
+        expect.objectContaining({ outcome: "rate-limited", status: 429 }),
+      );
+      expect((await handler(previewRequest("203.0.113.8"))).status).toBe(200);
+    });
+  });
+
+  test("reports judged requests as metadata only", async () => {
+    const report = vi.fn();
+    let time = 100;
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+      time += 42;
+      return Response.json({ answers: { contribution: answer } });
+    });
+    await createUtteranceJudgmentHandler({
+      environment,
+      fetch,
+      report,
+      now: () => time,
+    })(request());
+    expect(report).toHaveBeenCalledExactlyOnceWith({
+      operation: "utterance-judgment",
+      mode: "log",
+      outcome: "judged",
+      status: 200,
+      durationMs: 42,
+      contribution: "social_or_backchannel",
+      confidence: 0.86,
+      upstreamStatus: 200,
+    });
+  });
+
+  test("reports upstream failures with their status and without provider text", async () => {
+    const report = vi.fn();
+    await createUtteranceJudgmentHandler({
+      environment,
+      fetch: async () => new Response("PRIVATE PROVIDER TEXT", { status: 429 }),
+      report,
+    })(request());
+    expect(report).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        mode: "log",
+        outcome: "upstream-error",
+        status: 502,
+        upstreamStatus: 429,
+      }),
+    );
+    expect(JSON.stringify(report.mock.calls)).not.toContain("PRIVATE");
+  });
+
+  test("does not report requests rejected before the mode check", async () => {
+    const report = vi.fn();
+    await createUtteranceJudgmentHandler({
+      environment: { ...environment, PETRINAUT_LIVE_UTTERANCE_JUDGMENT: "off" },
+      fetch: vi.fn<typeof globalThis.fetch>(),
+      report,
+    })(request());
+    expect(report).not.toHaveBeenCalled();
   });
 
   test("judges the longest eligible text even when every character is escaped", async () => {

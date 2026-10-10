@@ -96,8 +96,8 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 | `OPENAI_VOICE_API_KEY`              | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
 | `PETRINAUT_OPENAI_VOICE_ENABLED`    | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
 | `PETRINAUT_VOICE_PROVIDER`          | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
-| `TYPESAFE_API_KEY`                  | for judgment     | voice API        | Server-only TypeSafe key for the log-only Live experiment.                                                       |
-| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` judges eligible Live transcripts alongside submission, in local development only. Others are off.          |
+| `TYPESAFE_API_KEY`                  | for judgment     | voice API        | Server-only TypeSafe key for Live utterance experiments.                                                         |
+| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` judges eligible Live transcripts alongside submission, in local development and previews. Others are off.  |
 | `PETRINAUT_AI_MODEL`                | no               | `api/chat.ts`    | Overrides the model id; the default is `stockAssistantModel` in `src/shared/stock-assistant-model.ts`.           |
 | `PETRINAUT_AI_REASONING_EFFORT`     | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `stockAssistantModel.reasoningEffort`.                            |
 | `VITE_BRUNCH_CHAT_ENDPOINT`         | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
@@ -203,8 +203,8 @@ the website's generic Turbo `dev` task does not forward arbitrary shell variable
 5. End Voice mode and confirm microphone capture and speaker playback stop.
 
 Use headphones while the known phantom-input risk is investigated. Server VAD can
-split hesitation into multiple finalized items, and the existing one-waiting-input
-policy may not retain all of them. See [MISSION.md](MISSION.md) for the current
+split hesitation into multiple finalized items; items that arrive while Brunch is
+busy are merged into one turn, as described below. See [MISSION.md](MISSION.md) for the current
 acceptance limits and manual proof obligations.
 The existing unauthenticated Voice endpoint risk below also applies to Live;
 do not expose this local experiment publicly without addressing that boundary.
@@ -228,6 +228,20 @@ end of Voice mode. A delegation observed while transcription speech is pending
 is closed if that speech is later filtered, instead of shifting to the next
 answer. `delegation.deferred` and `delegation.closed` record these outcomes
 with only the delegation ID and a fixed reason.
+
+The composer holds one voice input until Brunch admits it. Speech that finalizes
+in the meantime waits in a queue instead of being dropped; once the composer is
+free, everything queued goes to Brunch as one turn, joined by blank lines in
+spoken order, up to the 32,000-character limit; whatever does not fit goes in
+the next turn. The newest delegation in the turn gets the answer, and Live is
+told the older ones were merged into it. If speech starts before an input is
+submitted, its words join the next finalized input in the same conversation;
+queued words also wait for that input. A single utterance over the limit, and
+withdrawn words that would not fit with the next input, stay in the
+conversation as an unsent message to send from the composer, as do queued words
+when Stop or a Brunch error ends the turn. `input.queued` and `input.merged` record these outcomes with input and
+delegation IDs only; `input.merged` gives `reason: "composer-busy"` or
+`reason: "speech-started"`.
 
 #### Speaker echo check — 10 minutes
 
@@ -277,6 +291,13 @@ gets through, open DevTools, enable the **Verbose** console level and filter by
   decides. An `input.ignored` line with `reason: "short-during-output"` and no
   `filter.shadow` line from this stage is speech the narrower rule would have
   sent to Brunch.
+- `filter.shadow` with `reason: "filler"` marks a transcript made only of
+  hesitation sounds, backchannels such as "mm-hmm", or thanks. Answer words such
+  as "okay", "yes" and "right" are not filler. `reason: "control"` marks one that
+  only asks Live to wait, hold on or stop. Both run in shadow, so the transcript
+  is still sent to Brunch; see
+  [log mode on previews](#log-mode-on-previews-fe-1779) for comparing them with
+  the model's judgments.
 
 On laptop speakers, on a speaker chosen in the audio settings, and on
 headphones, answer three Brunch questions and stay silent while Live speaks
@@ -323,19 +344,50 @@ safety bound. This longer window measures results missed by the initial
 one-second cutoff; it is not an enforcement deadline and never delays submission.
 Report the successful-judgment p50 and counts completing within 500 ms, 1 second,
 and 2 seconds separately from failures/timeouts, which are not successful latency
-samples. Log mode runs only in local development (`NODE_ENV=development`,
-no `VERCEL_ENV`), where its diagnostics are recorded.
-This endpoint inherits the unauthenticated Voice boundary; origin checks are
-not authentication. Do not enable it on a public deployment.
+samples. Log mode runs in local development (`NODE_ENV=development`, no
+`VERCEL_ENV`) and on Vercel preview deployments; production keeps it off.
+Browser traces are recorded only in local development; previews rely on the
+server log described under [log mode on previews](#log-mode-on-previews-fe-1779).
+Origin checks and the per-client rate limit are not authentication.
 
 Acceptance requires a real log-only support-desk run: opening modelling request,
 "okay", a staffing range, Brunch's question repeated back, and "hang on". Retain
 the five metadata-only triples and latency p50, verify one unchanged submission
 per eligible utterance, and check `JSON.stringify(trace)` contains none of the
 spoken or offered text. Synthetic fixtures and a working endpoint do not prove
-classification quality or real latency. Enforcement is not implemented in this
-milestone; threshold, timeout and any later delegation override remain subject
-to a separate owner decision after reviewing those traces.
+classification quality or real latency. Log mode never enforces its decisions.
+
+#### Log mode on previews (FE-1779)
+
+Log mode also runs on Vercel preview deployments (`VERCEL_ENV=preview`), with
+the same server-side keys and Live enablement as above. Production keeps it off
+whatever the variable says. Judgments stay out of the submission path: every
+eligible transcript is submitted exactly as it would be with the mode off.
+
+The endpoint has no caller authentication. Its same-origin check stops other
+websites, not scripts, so each client IP is limited to 30 judgments a minute;
+on Vercel, requests without a resolvable client IP are rejected. The limit
+lives in function memory, resets on cold start and is not shared between
+instances, so it slows misuse of `TYPESAFE_API_KEY` rather than preventing it.
+Give previews a dedicated TypeSafe key with low usage limits and alerts, keep
+local dev servers private, and unset the variable and redeploy to end the trial.
+
+Each request that passes the mode check writes one `[Petrinaut voice]` line
+with `operation: "utterance-judgment"` to the server log (the Vite terminal
+locally, Vercel runtime logs on previews): `mode`, `outcome`, `status`,
+`durationMs`, and when known `contribution`, `confidence` and `upstreamStatus`.
+It never includes text, client IPs or provider bodies. On a preview, filter
+Vercel runtime logs by `utterance-judgment` and compare `contribution` and
+`outcome` counts with what was said.
+
+The deterministic `filler` and `control` stages run in shadow next to these
+judgments. In a local run, pair each `filter.shadow` line from those stages
+with the `judgment.result` line for the same `inputId`: filler should match
+`social_or_backchannel` or `no_content`, and control should match `control`.
+Also note judgments that withhold an input neither stage traces. If the word
+lists agree with the model on the inputs that matter, they can be switched on
+and the TypeSafe call and its rate limiter removed; if not, the disagreements
+show which phrases the lists miss.
 
 ### Brunch Voice mode
 
