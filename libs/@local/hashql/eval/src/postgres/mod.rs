@@ -1,7 +1,7 @@
 //! HashQL MIR → PostgreSQL `SELECT` compiler.
 //!
 //! This module compiles a [`GraphRead`] (a graph query with one or more filter bodies) into a
-//! [`PreparedQuery`]: a [`SelectStatement`] plus a deduplicated parameter list ([`Parameters`]).
+//! [`PreparedQuery`]: a [`SelectStatement`](hash_graph_postgres_store::store::postgres::query::SelectStatement) plus a deduplicated parameter list ([`Parameters`]).
 //!
 //! ## Execution model: islands and continuations
 //!
@@ -30,8 +30,8 @@
 use core::{alloc::Allocator, fmt::Display};
 
 use hash_graph_postgres_store::store::postgres::query::{
-    self, Column, Expression, Identifier, SelectExpression, SelectStatement, SimpleSelect,
-    Transpile as _, table::EntityTemporalMetadata,
+    self, Column, Expression, Identifier, SelectExpression, SimpleSelect,
+    table::EntityTemporalMetadata,
 };
 use hashql_core::{
     debug_panic,
@@ -42,7 +42,6 @@ use hashql_core::{
 use hashql_mir::{
     body::{
         Body,
-        basic_block::BasicBlockId,
         local::Local,
         terminator::{GraphRead, GraphReadBody, GraphReadHead, TerminatorKind},
     },
@@ -63,6 +62,7 @@ use self::{
 pub use self::{
     continuation::ContinuationField,
     parameters::{Parameter, ParameterIndex, ParameterValue, Parameters, TemporalAxis},
+    prepared::{PreparedQueries, PreparedQuery},
 };
 use crate::context::CodeGenerationContext;
 
@@ -70,7 +70,10 @@ mod continuation;
 pub(crate) mod error;
 mod filter;
 mod parameters;
+mod prepared;
 mod projections;
+#[cfg(test)]
+pub(crate) mod tests;
 mod traverse;
 mod types;
 
@@ -185,50 +188,6 @@ impl Display for ColumnDescriptor {
                 )
             }
         }
-    }
-}
-
-/// A fully-compiled SQL query ready for execution.
-///
-/// Contains the typed query AST ([`SelectStatement`]), the parameter catalog ([`Parameters`])
-/// for binding runtime values, and a column manifest ([`ColumnDescriptor`]s) that tells the
-/// bridge how to decode each result column.
-pub struct PreparedQuery<'heap, A: Allocator> {
-    pub vertex_type: VertexType,
-    pub parameters: Parameters<'heap, A>,
-    pub statement: SelectStatement,
-    pub columns: Vec<ColumnDescriptor, A>,
-}
-
-impl<A: Allocator> PreparedQuery<'_, A> {
-    pub fn transpile(&self) -> impl Display {
-        core::fmt::from_fn(|fmt| self.statement.transpile(fmt))
-    }
-}
-
-/// Registry of compiled SQL queries, indexed by definition and basic block.
-///
-/// The SQL lowering pass produces one [`PreparedQuery`] per [`GraphRead`]
-/// terminator in the MIR. This struct stores them contiguously in `queries`
-/// with `offsets` providing per-definition starting positions, so
-/// [`find`](Self::find) can locate the correct query for a given `(DefId,
-/// BasicBlockId)` pair.
-///
-/// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
-pub struct PreparedQueries<'heap, A: Allocator> {
-    offsets: Box<DefIdSlice<usize>, A>,
-    queries: Vec<(BasicBlockId, PreparedQuery<'heap, A>), A>,
-}
-
-impl<'heap, A: Allocator> PreparedQueries<'heap, A> {
-    pub fn find(&self, body: DefId, block: BasicBlockId) -> Option<&PreparedQuery<'heap, A>> {
-        let start = self.offsets[body];
-        let end = self.offsets[body.plus(1)];
-
-        self.queries[start..end]
-            .iter()
-            .find(|(id, _)| *id == block)
-            .map(|(_, query)| query)
     }
 }
 
@@ -396,7 +355,10 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         }
     }
 
-    fn compile_graph_read_entity(&mut self, read: &GraphRead<'heap>) -> PreparedQuery<'heap, A>
+    fn compile_graph_read_entity(
+        &mut self,
+        read: &GraphRead<'heap>,
+    ) -> prepared::PreparedQuery<'heap, A>
     where
         A: Clone,
     {
@@ -494,7 +456,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             .maybe_where_clause(Expression::conjunction(db.conditions))
             .build();
 
-        PreparedQuery {
+        prepared::PreparedQuery {
             vertex_type: VertexType::Entity,
             parameters: db.parameters,
             statement: query.into(),
@@ -505,7 +467,10 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
     /// Compiles a [`GraphRead`] into a [`PreparedQuery`].
     ///
     /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
-    pub fn compile_graph_read(&mut self, read: &'ctx GraphRead<'heap>) -> PreparedQuery<'heap, A>
+    pub fn compile_graph_read(
+        &mut self,
+        read: &'ctx GraphRead<'heap>,
+    ) -> prepared::PreparedQuery<'heap, A>
     where
         A: Clone,
     {
@@ -515,7 +480,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
     }
 
     #[expect(unsafe_code)]
-    pub fn compile(&mut self) -> PreparedQueries<'heap, A>
+    pub fn compile(&mut self) -> prepared::PreparedQueries<'heap, A>
     where
         A: Clone,
     {
@@ -546,6 +511,6 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             offsets[body_id.plus(1)] = queries.len();
         }
 
-        PreparedQueries { offsets, queries }
+        prepared::PreparedQueries { offsets, queries }
     }
 }

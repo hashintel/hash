@@ -152,7 +152,7 @@ pub(crate) fn eval_entity_path<A: Allocator>(
 
             eval_tstzrange_as_left_closed_interval(db, range)
         }
-        EntityPath::EntityTypeIds => Expression::ColumnReference(db.projections.entity_type_ids()),
+        EntityPath::EntityTypeIds => db.projections.entity_type_ids(),
         EntityPath::Archived => Expression::ColumnReference(ColumnReference {
             correlation: Some(db.projections.entity_editions()),
             name: Column::EntityEditions(table::EntityEditions::Archived).into(),

@@ -1274,6 +1274,7 @@ impl FilterColumn<'_> for EntityEmbeddings {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum EntityEditions {
     EditionId,
     Properties,
@@ -1282,6 +1283,17 @@ pub enum EntityEditions {
     Provenance,
     PropertyMetadata,
     CreatedById,
+}
+
+impl EntityEditions {
+    #[expect(unsafe_code, clippy::cast_possible_truncation)]
+    // SAFETY: `Self` is `repr(u8)` with contiguous discriminants starting at 0 (no explicit
+    // discriminant values). `index` ranges over `0..variant_count`, so every value is a
+    // valid discriminant. Additionally: this will panic under CTFE.
+    pub const ALL: [Self; core::mem::variant_count::<Self>()] =
+        core::array::from_fn(const |index| unsafe {
+            core::mem::transmute::<u8, Self>(index as u8)
+        });
 }
 
 impl DatabaseColumn<'_> for EntityEditions {
