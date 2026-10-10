@@ -1,12 +1,16 @@
 {
   "extends": ["//"],
   "tasks": {
+    "manifest": {
+      "dependsOn": ["^manifest", "petrinaut-optimization#manifest"]
+    },
     "build": {
       "dependsOn": ["@hashintel/petrinaut-core#build", "codegen"],
       "outputs": ["dist/**"]
     },
     "codegen": {
-      "dependsOn": [],
+      // The client reads the checked-in schema without running the Python service.
+      "dependsOn": ["petrinaut-optimization#manifest"],
       "inputs": ["../../../apps/petrinaut-opt/openapi/openapi.json"],
       "outputs": ["src/openapi.gen.ts"]
     },

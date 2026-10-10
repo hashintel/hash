@@ -25,7 +25,6 @@
     "openapi-fetch": "0.17.0"
   },
   "devDependencies": {
-    "@apps/petrinaut-opt": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "openapi-typescript": "7.13.0",
     "oxfmt": "0.50.0",

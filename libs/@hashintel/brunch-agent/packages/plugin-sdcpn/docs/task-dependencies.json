@@ -9,6 +9,9 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "fix:eslint": {
@@ -16,6 +19,9 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
@@ -26,12 +32,18 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "test:unit": {
@@ -41,6 +53,9 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     }
   }

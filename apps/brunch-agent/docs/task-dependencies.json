@@ -29,6 +29,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -76,6 +77,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-optimizer-core",
         "problematic",
         "type-system"
       ]
@@ -103,6 +105,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -128,6 +131,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -156,6 +160,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -180,6 +185,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -206,6 +212,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -228,6 +235,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -281,6 +289,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-optimizer-core",
         "problematic",
         "type-system"
       ]
@@ -310,6 +319,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -325,14 +335,12 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@apps/petrinaut-opt",
         "@hashintel/ds-components",
         "@hashintel/ds-helpers",
         "@hashintel/petrinaut",
         "@hashintel/petrinaut-cli",
         "@hashintel/refractive",
         "@local/petrinaut-optimizer-client",
-        "@local/petrinaut-python",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -345,6 +353,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     }

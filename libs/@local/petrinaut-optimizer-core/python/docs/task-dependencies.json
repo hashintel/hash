@@ -1,18 +1,7 @@
 {
-  "package": "petrinaut-python",
+  "package": "petrinaut-optimizer-core",
   "dependencies": [],
   "tasks": {
-    "codegen": {
-      "dependsOn": [
-        "@hashintel/petrinaut-cli#codegen"
-      ],
-      "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core",
-        "petrinaut-optimizer-core"
-      ]
-    },
     "format:ruff": {
       "dependsOn": [],
       "cache": false,
@@ -95,21 +84,10 @@
       ]
     },
     "lint:types": {
-      "dependsOn": [
-        "codegen"
-      ],
-      "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core",
-        "petrinaut-optimizer-core"
-      ]
+      "dependsOn": []
     },
     "test:unit": {
-      "dependsOn": [
-        "@hashintel/petrinaut-cli#build",
-        "codegen"
-      ],
+      "dependsOn": [],
       "env": [
         "PYTHONHOME",
         "PYTHONPATH",
@@ -147,12 +125,6 @@
         "UV_PROJECT_ENVIRONMENT",
         "UV_WORKING_DIR",
         "VIRTUAL_ENV"
-      ],
-      "affectedBy": [
-        "@hashintel/petrinaut-cli",
-        "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core",
-        "petrinaut-optimizer-core"
       ]
     }
   }
