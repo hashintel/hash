@@ -55,17 +55,22 @@ use hashql_mir::{
     },
 };
 
-use self::{
-    continuation::ContinuationColumn, filter::GraphReadFilterCompiler, projections::Projections,
-    types::traverse_struct,
-};
 pub use self::{
+    authorization::AuthorizationPatch,
     continuation::ContinuationField,
     parameters::{Parameter, ParameterIndex, ParameterValue, Parameters, TemporalAxis},
-    prepared::{PreparedQueries, PreparedQuery},
+    prepared::{
+        PatchPreparedQuery, PatchPreparedQueryLayer, PreparedQueries, PreparedQuery,
+        PreparedQueryPatch,
+    },
+};
+use self::{
+    continuation::ContinuationColumn, filter::GraphReadFilterCompiler,
+    parameters::AuxiliaryParameters, projections::Projections, types::traverse_struct,
 };
 use crate::context::CodeGenerationContext;
 
+mod authorization;
 mod continuation;
 pub(crate) mod error;
 mod filter;
@@ -456,10 +461,13 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
             .maybe_where_clause(Expression::conjunction(db.conditions))
             .build();
 
+        let auxiliary_parameters = AuxiliaryParameters::new(&db.parameters, self.alloc.clone());
         prepared::PreparedQuery {
             vertex_type: VertexType::Entity,
             parameters: db.parameters,
             statement: query.into(),
+            projections: db.projections,
+            auxiliary_parameters,
             columns,
         }
     }

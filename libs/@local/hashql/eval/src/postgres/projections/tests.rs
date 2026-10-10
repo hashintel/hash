@@ -6,7 +6,7 @@ use hash_graph_postgres_store::store::postgres::query::{
 };
 use insta::{Settings, assert_snapshot};
 
-use super::Projections;
+use super::{AuxiliaryProjections, Projections};
 use crate::postgres::Parameters;
 
 fn snapshot_settings() -> Settings {
@@ -99,5 +99,69 @@ fn build_from_editions_before_continuations() {
     assert_snapshot!(
         "build_from_editions_before_continuations",
         from.transpile_to_string(),
+    );
+}
+
+#[test]
+fn build_joins_no_laterals_no_auth() {
+    let base = Projections::new();
+    let aux = AuxiliaryProjections::new(&base);
+
+    let from = FromItem::table(Table::EntityTemporalMetadata)
+        .alias(Table::EntityTemporalMetadata.aliased_name(base.base_alias))
+        .build();
+
+    let result = aux.build_joins(from.clone());
+    assert_eq!(
+        result.transpile_to_string(),
+        from.transpile_to_string(),
+        "no auth joins requested means FROM is unchanged",
+    );
+}
+
+#[test]
+fn build_joins_inserts_before_laterals() {
+    let base = Projections::new();
+    let mut aux = AuxiliaryProjections::new(&base);
+    aux.entity_edition_cache();
+
+    let core = FromItem::table(Table::EntityTemporalMetadata)
+        .alias(Table::EntityTemporalMetadata.aliased_name(base.base_alias))
+        .build();
+
+    let lateral_1 = make_lateral("continuation_1");
+    let lateral_2 = make_lateral("continuation_2");
+    let from = core.cross_join(lateral_1).cross_join(lateral_2);
+
+    let result = aux.build_joins(from);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{aux:?}, 2 continuation laterals"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "build_joins_inserts_before_laterals",
+        result.transpile_to_string(),
+    );
+}
+
+#[test]
+fn build_joins_no_laterals_with_auth() {
+    let base = Projections::new();
+    let mut aux = AuxiliaryProjections::new(&base);
+    aux.entity_ids();
+    aux.entity_edition_cache();
+
+    let from = FromItem::table(Table::EntityTemporalMetadata)
+        .alias(Table::EntityTemporalMetadata.aliased_name(base.base_alias))
+        .build();
+
+    let result = aux.build_joins(from);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{aux:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "build_joins_no_laterals_with_auth",
+        result.transpile_to_string(),
     );
 }
