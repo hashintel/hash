@@ -31,10 +31,10 @@
       "@dev/source": "./src/flue.ts",
       "import": "./dist/flue.js"
     },
-    "./workpiece": {
-      "types": "./src/workpiece.ts",
-      "@dev/source": "./src/workpiece.ts",
-      "import": "./dist/workpiece.js"
+    "./ledger": {
+      "types": "./src/ledger.ts",
+      "@dev/source": "./src/ledger.ts",
+      "import": "./dist/ledger.js"
     },
     "./skills/elicitation/SKILL.md": "./src/skills/elicitation/SKILL.md"
   },

@@ -1,5 +1,6 @@
+import { netReaderToolNames } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
-import { isWorkpieceRefusedOutput } from "@hashintel/brunch-agent/workpiece";
+import { isRefusedLedgerCommit } from "@hashintel/brunch-agent/ledger";
 
 import type {
   PetrinautAiToolPresentation,
@@ -8,17 +9,17 @@ import type {
   PetrinautAiToolPresentationState,
 } from "@hashintel/petrinaut/ui";
 
-/**
- * Visible ordinary tools mirrored from the Brunch browser catalogue. The
- */
+/** Visible Brunch tools whose cards this host titles. */
 export const visibleOrdinaryBrunchToolNames = [
   "task",
   brunchTools.activateSkill,
   brunchTools.readSkillResource,
-  brunchTools.mutateWorkpiece,
-  brunchTools.readWorkpiece,
-  brunchTools.queryWorkpiece,
+  brunchTools.ledgerCommit,
+  brunchTools.ledgerCompile,
+  brunchTools.queryBasis,
   brunchTools.ping,
+  netReaderToolNames.outline,
+  netReaderToolNames.structure,
 ] as const;
 
 type VisibleOrdinaryBrunchToolName =
@@ -44,17 +45,27 @@ const lifecycleTitles = {
     success: "Reviewed modelling guidance",
     error: "Could not review modelling guidance",
   },
-  [brunchTools.mutateWorkpiece]: {
-    pending: "Updating ledger",
-    success: "Updated ledger",
-    error: "Could not update ledger",
+  [brunchTools.ledgerCommit]: {
+    pending: "Recording in the Ledger",
+    success: "Recorded in the Ledger",
+    error: "Could not record in the Ledger",
   },
-  [brunchTools.readWorkpiece]: {
-    pending: "Reading ledger",
-    success: "Read ledger",
-    error: "Could not read ledger",
+  [brunchTools.ledgerCompile]: {
+    pending: "Reading the Ledger",
+    success: "Read the Ledger",
+    error: "Could not read the Ledger",
   },
-  [brunchTools.queryWorkpiece]: {
+  [netReaderToolNames.outline]: {
+    pending: "Reading the net outline",
+    success: "Read the net outline",
+    error: "Could not read the net outline",
+  },
+  [netReaderToolNames.structure]: {
+    pending: "Reading the net structure",
+    success: "Read the net structure",
+    error: "Could not read the net structure",
+  },
+  [brunchTools.queryBasis]: {
     pending: "Checking recorded basis",
     success: "Checked recorded basis",
     error: "Could not check recorded basis",
@@ -104,58 +115,12 @@ const resourceName = (path: string | undefined): string | undefined => {
     : decoded.split("/").at(-1);
 };
 
-/**
- * Arguments may be a partial object while they stream; only a present,
- * non-empty `sourceIds` earns the sources label, and an unreadable input
- * keeps the neutral Ledger label.
- */
-const readWorkpiecePurpose = (input: unknown): LifecycleTitles => {
-  const record = asRecord(input) ?? {};
-  const hasPassages = Array.isArray(record.locateTexts);
-  const hasSources =
-    Array.isArray(record.sourceIds) && record.sourceIds.length > 0;
-
-  if (hasPassages && hasSources) {
-    return {
-      pending: "Reading confirmed passages and conversation sources",
-      success: "Read confirmed passages and conversation sources",
-      error: "Could not read confirmed passages and conversation sources",
-    };
-  }
-  if (hasPassages) {
-    return {
-      pending: "Reading confirmed passages",
-      success: "Read confirmed passages",
-      error: "Could not read confirmed passages",
-    };
-  }
-  if (hasSources) {
-    return {
-      pending: "Reading conversation sources",
-      success: "Read conversation sources",
-      error: "Could not read conversation sources",
-    };
-  }
-  if (record.includeContent === false) {
-    return {
-      pending: "Checking for Ledger updates",
-      success: "Checked for Ledger updates",
-      error: "Could not check for Ledger updates",
-    };
-  }
-  return {
-    pending: "Reading ledger",
-    success: "Read ledger",
-    error: "Could not read ledger",
-  };
-};
-
 export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver =
   (context): PetrinautAiToolPresentation | undefined => {
     if (!(context.toolName in lifecycleTitles)) return undefined;
 
     const toolName = context.toolName as VisibleOrdinaryBrunchToolName;
-    let titles = lifecycleTitles[toolName];
+    const titles = lifecycleTitles[toolName];
     let detail: string | undefined;
 
     if (toolName === brunchTools.activateSkill) {
@@ -175,18 +140,26 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
     }
 
     if (
-      toolName === brunchTools.mutateWorkpiece &&
-      isWorkpieceRefusedOutput(context.output)
+      toolName === brunchTools.ledgerCommit &&
+      isRefusedLedgerCommit(context.output)
     ) {
       return {
-        title: "Ledger update needs correction",
+        title: "Ledger commit needs correction",
         tone: "neutral",
         items: [context.output.message],
       };
     }
 
-    if (toolName === brunchTools.readWorkpiece) {
-      titles = readWorkpiecePurpose(context.input);
+    if (toolName === brunchTools.ledgerCompile) {
+      return withPendingTone(
+        {
+          title: withSuffix(
+            titles[context.state],
+            stringProperty(context.input, "address"),
+          ),
+        },
+        context.state,
+      );
     }
 
     if (toolName === "task") {

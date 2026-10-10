@@ -1,21 +1,21 @@
 ---
 name: elicitation
-description: Acquire and improve an epistemically responsible source-side account through conversation and consulted material. Use before substantive interviewing, source consultation, consequential correction or conflict resolution, and when recording workpiece evidence.
+description: Acquire and improve an epistemically responsible source-side account through conversation and consulted material. Use before substantive interviewing, source consultation, consequential correction or conflict resolution, and when recording to the Ledger.
 ---
 
 # Adaptive elicitation
 
-This capability owns source-side acquisition and epistemic correction: recognizing cues, selecting the next probe or consultation, handling contradiction and contextual variation, preserving authorship and uncertainty, checking consequential interpretations, and judging when evidence is sufficient. It teaches core's shared workpiece settlement and evidence protocol. The job skill owns the domain-specific workpiece shape, target transformation, target tools, and checks of that projection.
+This capability owns source-side acquisition and epistemic correction: recognizing cues, selecting the next probe or consultation, handling contradiction and contextual variation, preserving authorship and uncertainty, checking consequential interpretations, and judging when evidence is sufficient. It teaches core's Ledger recording discipline. The job skill owns the domain-specific filing categories, target transformation, target tools, and checks of that projection.
 
 ## Procedure
 
 Follow the person's thread and the purpose they stated rather than any schema, template, or register order.
 
-Deepen one answerable thread at a time. After each useful answer, re-evaluate the active gap and change operation when yield drops. Establish whether differing accounts are a correction, a conflict, or contextual coexistence before reconciling them.
+Map the account broadly first, then deepen one answerable thread at a time where the purpose depends on it. After each useful answer, re-evaluate the active gap and change operation when yield drops. Establish whether differing accounts are a correction, a conflict, or contextual coexistence before reconciling them.
 
-Record what was learned using the shared workpiece protocol below and the job skill's domain-specific recording guidance. Return to the job skill for target transformation and checks.
+Record what was learned using the Ledger discipline below and the job skill's filing guidance. Return to the job skill for target transformation and checks.
 
-The registers are addresses, not a procedure. **Directives** bind. **Recognition** changes what you notice or suspect. **Operations** are selectable moves. **Coverage** names information a useful account may need. **Verification** checks and repairs the interview and workpiece.
+The registers are addresses, not a procedure. **Directives** bind. **Recognition** changes what you notice or suspect. **Operations** are selectable moves. **Coverage** names information a useful account may need. **Verification** checks and repairs the interview and the Ledger.
 
 ## Directives
 
@@ -29,7 +29,7 @@ Learn who the result is for, what it must and must not support, the relevant bou
 
 ### Follow the person's account
 
-Use the person's vocabulary and follow the active thread rather than traversing workpiece headings or target concepts. For practice-based sources, prefer concrete remembered cases to an abstract tour; the Operations menu supplies those moves. A destination representation may shape your attention; it must not replace the person's account.
+Use the person's vocabulary and follow the active thread rather than traversing Ledger categories or target concepts. For practice-based sources, prefer concrete remembered cases to an abstract tour; the Operations menu supplies those moves. A destination representation may shape your attention; it must not replace the person's account.
 
 ### Protect interaction bandwidth
 
@@ -45,15 +45,15 @@ Preserve unknown, not-yet-asked, declined, deferred, ambiguous, conflicting, cor
 
 Do not average, silently choose, or treat recency as universal truth when accounts differ. Establish whether a later statement corrects an earlier one, whether the sources conflict, or whether both apply under different people, times, conditions, or purposes.
 
-### Maintain a recoverable workpiece
+### Keep the Ledger
 
-Create a first partial workpiece as soon as one consequential distinction exists. Settlement cadence is bounded: after meaning-bearing input, ask at most one focused follow-up on the same thread before settling, and none when the answer corrects a recorded claim, resolves a gap, authorizes an assumption, or supplies a rule, quantity, exception, threshold, or provenance distinction. A correction, a completed thread, or a change of topic is a hard checkpoint: settle before it, and a failed, stale, or unknown settlement blocks the move. Settlement is one direct `mutate_workpiece` call with the full next Markdown account and the current `baseRevisionId` (`null` for the first revision), without a preceding read. Carry the complete settled account forward and edit only the passages that changed. Never drop a heading or more than 25% of the prior body unless the user explicitly retracts the named material; include its name, unique prior-Ledger excerpts the replacement removes and that cover any large net reduction, an exact authorization quote and the containing true-user message ids in that settlement. Keep one cold-readable current account rather than relying on the transcript or repeated summaries. Preserve unrelated meaning, evidence and unresolved material, then inspect the returned prior/next hashes and changed window instead of assuming the full replacement did so. Inspect `disposition`. After `refused`, correct the named problem and resubmit a separate call; do not treat that result as a tool error. Wait for the returned `revisionId`, `sha256` and evidence locators; together with the Markdown submitted in that applied call, they are the authoritative body and identity for that exact settlement. Reuse them instead of requesting content again. Request full content only when it changed outside the current reasoning, is unknown, or is missing. A `refused` result, thrown failure, pointer-only result, confirmation, or body under another revision is not reusable authority. Say the workpiece records a claim only after the applied result; before it, propose. This tool does not end the response.
+The Ledger is the recoverable account: append-only Notes filed under the job skill's categories. Commit the first Notes as soon as one consequential distinction exists. Cadence is bounded: after meaning-bearing input, ask at most one focused follow-up on the same thread before committing, and none when the answer corrects a recorded Note, resolves a gap, authorizes an assumption, or supplies a rule, quantity, exception, threshold, or provenance distinction. A correction, a completed thread, or a change of topic is a checkpoint: commit before it, and a refused commit blocks the move until it is corrected. Put everything one exchange yields in one `ledger_commit` call. Say the Ledger records a claim only after the commit is recorded; before it, propose.
 
-Declare new evidence inside the same settlement. Each `evidence[]` entry cites the literal text of the passage in the submitted Markdown it supports, the supporting user message ids, and a kind; the tool resolves the text to a UTF-16 span. The text must occur exactly once in the submitted Markdown, or carry a zero-based `occurrence` selecting one of several matches; an absent or ambiguous text refuses the whole settlement and writes nothing, naming each failing entry and its match count, so fix every named entry and resubmit the same complete relation set rather than dropping valid relations. Matching is literal: no trimming, whitespace or case normalization. User message ids are already in context: each true-user message is prefixed with a `[message <id>]` line, and that id is the one to cite. That line is citation metadata, never workpiece text. Read a message by id with `read_workpiece` `sourceIds` only to check a correction or conflict. Use `locateTexts` against the settled revision only for a span the settlement output did not return.
+A Note is one contribution, filed under the most specific suitable category. When an answer yields a settled fact and an open gap, commit two Notes. Write each Note to be read cold, in the person's vocabulary, with its qualifications and the conditions that select it beside the claim. Quote the person's wording where later interpretation depends on it. Refer to another Note by its id rather than repeating it, and do not copy a Note under a second category to make it visible there.
 
-An evidence relation is persisted as an immutable UTF-16 `locator: { start, end }`, `messageIds`, and `kind` (`elicited`, `inference`, `default`, `formalism-constraint`, `external`, or `correction`). Elicited relations need actual user sources; a prepared dispatch, assistant proposal, or unrelated context is not elicited support. Every supplied message ID must resolve to an authorized true-user source in this conversation, including for `external` relations: an external URL or tool-result ID is not a user message ID. An `external` relation may use an empty `messageIds` list when no user source supports it. Keep external source attribution and the person's standing in Markdown beside the claim; the `external` kind alone does not express that standing. Valid IDs and spans do not establish relevance. Keep epistemic treatment beside the authoritative claim; these relations do not make headings or labels mandatory.
+Supersede a Note to correct, refine or resolve it. The earlier Note stays visible, so say what changed in the new Note when that matters. When accounts conflict, record each and say that they conflict rather than superseding one with the other; supersede once the person establishes which holds or how both apply. A withdrawn claim gets a superseding Note saying that it was withdrawn and by whom.
 
-Only unique unchanged text at the same revision-local span automatically carries its relation into the next revision. Moves, renames, paraphrases, split/merge, deletion, reintroduction, duplicate text, and text displaced by an insertion above it do not earn inferred continuity; re-declare the evidence by text in that settlement or leave support absent. No relation means temporal context, not implied support. This fallback makes no introduced-by or passage-identity claim.
+Your commits stay in your context, so do not compile routinely. Compile the Ledger, or the category you need, when its Notes are no longer in your context, before a read-back or delivery, and when you need the id of a Note you cannot see.
 
 ### Stop honestly
 
@@ -81,7 +81,7 @@ Local terms, forms, diagrams, policies, spreadsheets, and other artifacts may ca
 
 ### Burden, impatience, or limited availability
 
-These are evidence about the interaction, not evidence that the workpiece is complete. Shift to the smallest consequential gap, offer an explicit choice to continue or stop, and preserve the remaining work honestly.
+These are evidence about the interaction, not evidence that the Ledger is complete. Shift to the smallest consequential gap, offer an explicit choice to continue or stop, and preserve the remaining work honestly.
 
 ### Diminishing yield
 
@@ -101,7 +101,7 @@ Choose an operation for the active gap, apply it to one thread, inspect what cha
 
 ### Select the smallest consequential absence
 
-Compare the current account with what its stated purpose depends on. Choose the smallest missing or ambiguous distinction whose answer could materially change the result. Ask for that rather than everything adjacent to it.
+Compare the current account with what its stated purpose depends on. Until the account has been mapped end to end, the largest unmapped part outranks refining a mapped one. Otherwise choose the smallest missing or ambiguous distinction whose answer could materially change the result. Ask for that rather than everything adjacent to it, and do not let the most recently recorded gap choose the question by default.
 
 ### Slice a concrete case
 
@@ -109,7 +109,7 @@ Walk one remembered instance from its meaningful beginning to end. Let the case 
 
 ### Sweep one property
 
-After a slice exposes structure, examine one property across one relevant class of things. A sweep finds variation and absences that one case cannot. It is not permission to enumerate every workpiece heading or target category.
+After a slice exposes structure, examine one property across one relevant class of things. A sweep finds variation and absences that one case cannot. It is not permission to enumerate every Ledger category or target category.
 
 ### Ask for the last occurrence
 
@@ -157,7 +157,7 @@ When low-risk structure is faster to correct than to elicit from nothing, offer 
 
 ### Deposit and defer
 
-When an answer is unavailable or not worth pursuing now, record what is missing, why it matters, where an answer could come from, and what would re-enter the topic. A promise to return later is not a deposit.
+When an answer is unavailable or not worth pursuing now, record an open Note saying what is missing, why it matters, where an answer could come from, and what would re-enter the topic. A promise to return later is not a deposit.
 
 ### Press without trapping
 
@@ -183,7 +183,7 @@ Before a voluntary close, summarize the consequential current account, assumptio
 
 Coverage is a universal information contract for a recoverable account. It does not prescribe headings, semantic types, or question order. A plugin adds the subject and target distinctions needed for a particular model.
 
-A workpiece may need to preserve:
+The Ledger may need to preserve:
 
 - the purpose, audience, decision or question, boundary, horizon, and accuracy expectation;
 - a cold-readable account in the person's vocabulary, including consequential local terms;
@@ -202,7 +202,7 @@ Coverage depth follows the purpose. A category being available does not make it 
 
 ## Verification
 
-Verification applies near the action it checks. Repair locally where possible; return to the smallest useful operation when the workpiece lacks evidence.
+Verification applies near the action it checks. Repair locally where possible; return to the smallest useful operation when the Ledger lacks evidence.
 
 ### Before asking
 
@@ -227,11 +227,11 @@ Verification applies near the action it checks. Repair locally where possible; r
 
 ### Failure signals and repairs
 
-- **Fluent and empty:** the conversation reads well but the workpiece has not gained a consequential distinction. Change operation or state the blocker.
+- **Fluent and empty:** the conversation reads well but the Ledger has not gained a consequential distinction. Change operation or state the blocker.
 - **Schema-shaped questioning:** questions follow headings or fields. Return to a concrete case or active uncertainty.
 - **Silent hardening:** precision increased without evidence. Restore the hedge, ask, or mark an assumption.
 - **Invented content:** a load-bearing claim has no person-supplied basis, attributed consulted source, or agent-authorship mark. Remove or relabel it.
 - **Never-asked blindness:** a consequential dependency remains unsupported because no question reached it. Use Coverage as a gap check, not a questionnaire.
 - **Premature accommodation:** burden ends questioning while gaps disappear from the deliverable. Honour the stop and restore the gaps.
 - **Deferral without deposit:** future work is promised but not recoverably described. Record the missing information, consequence, source, and return condition.
-- **Restatement as progress:** repeated whole-workpiece summaries replace investigation. Return to the smallest unresolved distinction; reserve one full read-back for close.
+- **Restatement as progress:** repeated whole-account summaries replace investigation. Return to the smallest unresolved distinction; reserve one full read-back for close.

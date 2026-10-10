@@ -20,13 +20,14 @@
         "src/db.ts!",
         "src/agents/*/agent.ts!",
         "src/{deployment-smoke,rds-iam-probe}.ts!",
-        "src/diagnostics/{context-replay-measurement,transcript-cli}.ts!",
+        "src/diagnostics/transcript-cli.ts!",
         "src/evaluations/persona/{launch,refresh-proof-manifest}.ts!",
         ".pi/extensions/*.ts!",
         "test/history-retention-crash.integration.ts",
         "test/history-retention-runtime-hook.ts",
         "test/integration/petrinaut-chat.integration.ts",
-        "test/integration/workpiece-evidence.integration.ts",
+        "test/integration/compaction.integration.ts",
+        "test/integration/ledger-history.integration.ts",
         "vite.config.ts!",
         "vite.client.config.ts!",
         "petrinaut-local.vite.config.ts!",
@@ -53,7 +54,7 @@
     },
     "libs/@hashintel/brunch-agent/packages/*": {
       "includeEntryExports": true,
-      "entry": ["src/{index,flue,client-tools,workpiece,constants}.ts!"]
+      "entry": ["src/{index,flue,client-tools,ledger,constants}.ts!"]
     }
   }
 }

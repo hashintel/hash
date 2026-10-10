@@ -309,6 +309,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
       metadataFor: () => undefined,
       prepareInput,
       admit: createBrunchMutationAdmission(coordinator),
+      acceptsRevision: () => true,
     });
     return { calls, coordinator, posted, prepareInput };
   };

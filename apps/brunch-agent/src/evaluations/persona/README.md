@@ -1,6 +1,6 @@
 # Browser-visible persona testing
 
-A coding agent plays a simulated person who talks with Brunch through the real browser composer. Brunch chooses tools; the panel executes them and shows the growing net and workpiece. The agent never touches the browser: it runs a small command, the launcher types the message into the panel, waits for Brunch to finish, and prints the reply. You watch the whole conversation in Chrome.
+A coding agent plays a simulated person who talks with Brunch through the real browser composer. Brunch chooses tools; the panel executes them and shows the growing net and Ledger. The agent never touches the browser: it runs a small command, the launcher types the message into the panel, waits for Brunch to finish, and prints the reply. You watch the whole conversation in Chrome.
 
 From the HASH root on macOS:
 
@@ -52,6 +52,37 @@ The persona stops by its own rule: when the person has what they came for, when 
 
 **Persona runs have no automatic accounting cutoff.** The launcher disables the campaign accounting wrapper for Brunch even if `BRUNCH_STEP_A_ACCOUNTING` was inherited. There is no built-in turn-count limit. A live-provider run requires explicit model and spend authorization; the existence of this command grants none.
 
+## Compare guidance
+
+`--guidance baseline|replacement|feedback|identity|manual|receipt` selects one guidance owner for the whole run; the default is `baseline`. It sets `BRUNCH_GUIDANCE_VARIANT` on the owned backend, not a persona instruction.
+
+| Arm               | Model-facing guidance                                                                                                                                                                                                                                                                                           |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A — `baseline`    | Existing package prompts and skills, including build-first corrections                                                                                                                                                                                                                                          |
+| B — `replacement` | App-owned always-on guidance, `eliciting` and `constructing` skills, and typed epistemic guidance on the Ledger commit tool                                                                                                                                                                                     |
+| C — `feedback`    | Exactly B plus the always-on account–draft feedback policy: choose asking, repairing, checking or deferring by consequence for the purpose and wider account                                                                                                                                                    |
+| D — `identity`    | Exactly C with the identity-addressed Ledger (Notes filed against the model's identities and relationships, always typed, each naming the coverage dimensions it serves, with coverage returned on every commit) and its low-resolution instruction                                                             |
+| E — `manual`      | A hand-edited arm, copied from D as of round 4c: its own system prompt, instructions, skills and Ledger under `chat-agent/guidance/manual/`, the Ledger including its tools, schema, commit rules and readers                                                                                                   |
+| F — `receipt`     | D as of round 4c, self-contained like E, except that every turn ends with one question chosen from the commit receipt's coverage, the receipt lists the five missing needs nearest a goal through the relationships, and a goal's measure and an activity's capacity replace the needs round 4c showed as noise |
+
+E and F each mount only their own copies under `chat-agent/guidance/<arm>/`, so editing one changes no other arm, and the other arms' source hashes leave them out. The copies cover everything the model reads: the system prompt, skills and instructions, and the Ledger itself. Where the other arms take the browser-tool, `query_basis`, Petrinaut capability and experiment-drafting instructions from `agent.ts` and the SDCPN plugin, a self-contained arm mounts its own copy or nothing: F copies all four, while E mounts none and carries them in its `petrinaut` and `modelling` skills and its tool descriptions. Each arm defines its own `ledger_commit` and `ledger_compile` tools over its own Ledger — the receipt arm's under `receipt/ledger-tools.ts` and `receipt/ledger/` (the Note and change schemas, which needs count as met, and how the coverage receipt and the map render), the manual arm's in the SDCPN plugin's `ledger2` slice (`packages/plugin-sdcpn/src/ledger2/`: route-encoded record entries, the fold that assigns queue-aligned record IDs on commit, and the sectioned projection its map renders), which lives there so the website can render it and which the manual arm's source hash includes, with its tools under `manual/tools/ledger.ts` — each defining what a commit stores or refuses and how history is read back. It also defines its own `query_basis` (`receipt/query-basis-tool.ts`, `manual/tools/query-basis.ts`), which reads the arm's Ledger; only the net-change history it reads alongside stays shared. The persona evidence reads an arm's Ledger with that arm's reader (`ledger-evidence.ts`), so an arm can change its Ledger's shape without breaking it; F's `ledger.md` is therefore the arm's own full map with its coverage terms, E's is its agent-skin projection, and A–D's omits coverage. Their tests check wiring, not wording. What stays shared is the tool names, which the host's policy keys on; the Petrinaut, draft and `ping` tools; and the website panel, which reads a conversation's Ledger with the package's reader, or with `ledger2`'s when it holds no Notes, and may misrender the receipt arm, whose Ledger has diverged. The panel is not evidence.
+
+A, B and C keep the same tool implementations and schemas; D keeps the same tool names but changes the Ledger's schema, so C versus D compares a Ledger design together with its guidance. `BRUNCH_LEDGER_NOTES` does not apply to D. C isolates the feedback addition; A versus B compares a bundle of placement and content changes, not heading words alone. Legacy package guidance remains solely as the control; it is not mounted alongside B or C. Native Flue skill references package and load the candidate resources.
+
+Use the existing persona launcher for each arm. From the repository root:
+
+```sh
+# Run only after live inference is authorised; repeat with replacement and feedback.
+BRUNCH_LEDGER_NOTES=typed yarn brunch:persona --case inventory-purchasing \
+  --guidance baseline \
+  --brunch-model openai/gpt-5.5-2026-04-23 --brunch-thinking medium \
+  --agent pi --persona-model anthropic/claude-sonnet-4-6 --persona-thinking medium
+```
+
+For a matched comparison keep the case, objective, initial net, Ledger shape, Brunch model/thinking and persona model/thinking identical; vary only `--guidance`. Every run gets a fresh database, browser profile and conversation. Do not edit guidance between arms. `run.json` records selected source hashes, the case hash and model settings; guidance drift is checked before subsequent persona turns. These are source fingerprints, not a complete environment snapshot. Resumes restore the saved arm and refuse changed guidance.
+
+Inspect the retained dialogue, Ledger and net together. The observation cases are early purpose/breadth versus local fixation, connected resource/calendar/release meaning, and correction versus contextual coexistence. They are situations to look for across arms, not extra prompt variants or a questionnaire for the persona. Check when building begins, whether new meaning reshapes the draft, and whether a construction-led question should instead have been a repair, check or deferral. Include the countercase where a local clarification is the right next move. Tool/skill tests establish wiring only; the live comparison must establish any behavioural improvement.
+
 ## Supply a context pack
 
 `--case` accepts a name under `libs/@hashintel/brunch-agent/evaluations/cases/` or an absolute or caller-relative directory. That directory supplies exactly two launcher inputs:
@@ -59,7 +90,7 @@ The persona stops by its own rule: when the person has what they came for, when 
 - `situation-pack.md`: the person's background: who they are, what they know about their work, what they want and how they talk.
 - `opening-message.md`: the person's first message, sent as the whole file, trimmed.
 
-Other files in the directory are not loaded. An optional `--objective "…"` gives the person a private aim for this run without editing the pack. Phrase it as the person would think of it (for example "find out whether a second night shift would clear the backlog"), not as interview steps. Without it, the person's goal comes from the pack. The objective is written into the run's private brief but not into `run.json`, and the launcher does not reapply it on resume.
+Other files in the directory are not loaded. A case may keep a `key.md` beside them for scoring a run: what the person believes, where the pack puts that under pressure, what should change in Brunch's work when it is caught, and what must stay unknown. A key grades what Brunch tells apart, respects or keeps conditional, not the order in which it builds. The persona never sees it. An optional `--objective "…"` gives the person a private aim for this run without editing the pack. Phrase it as the person would think of it (for example "find out whether a second night shift would clear the backlog"), not as interview steps. Without it, the person's goal comes from the pack. The objective is written into the run's private brief but not into `run.json`, and the launcher does not reapply it on resume.
 
 ## One operation
 
@@ -109,11 +140,11 @@ Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-
 
 - `run.json`: case and configuration paths, effective Brunch model settings, the selected persona agent, the bridge socket path and owned process/pane identifiers; no credentials.
 - `configuration-preflight.json`: request-free Brunch configuration checks.
-- `conversation.db`: this run's local Flue database, including conversation history, persistent workpiece state and provider usage records.
+- `conversation.db`: this run's local Flue database, including conversation history, including the Ledger's commits, and provider usage records.
 - `session.json`: private native browser attachment, not a reusable template or public artifact.
 - `persona-brief.md`, `resume-brief.md` and `bin/persona`: the agent's private brief, latest resume notice and bridge helper.
 - `bridge-log.jsonl`: every utterance Brunch admitted, with the persona agent settings that wrote each persona utterance (empty when you started the agent yourself), used to reconcile resume.
-- `evidence/`: canonical snapshot and derived transcript, tool trace, workpiece and bound `net.json`; refreshed after completed turns and on shutdown.
+- `evidence/`: canonical snapshot and derived transcript, tool trace, compiled `ledger.md` with its `ledger.json` commits, and bound `net.json`; refreshed after completed turns and on shutdown.
 - Service logs, only for services this launch started.
 
 The persistent Chrome profile lives outside the checkout; its path is in `run.json`. Older runs may also contain `pi/`, `persona-input.md`, `usage-ledger.json` or `attempt-ledger.md`; leave them untouched as historical evidence.

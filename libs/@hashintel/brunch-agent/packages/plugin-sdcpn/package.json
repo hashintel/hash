@@ -16,6 +16,11 @@
       "@dev/source": "./src/flue.ts",
       "import": "./dist/flue.js"
     },
+    "./ledger2": {
+      "types": "./src/ledger2.ts",
+      "@dev/source": "./src/ledger2.ts",
+      "import": "./dist/ledger2.js"
+    },
     "./skills/sdcpn-modelling/SKILL.md": "./src/skills/sdcpn-modelling/SKILL.md"
   },
   "scripts": {
@@ -29,6 +34,8 @@
     "@flue/runtime": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
+    "@valibot/to-json-schema": "1.7.1",
+    "md-pen": "1.2.0",
     "valibot": "1.4.2",
     "zod": "4.4.3"
   },

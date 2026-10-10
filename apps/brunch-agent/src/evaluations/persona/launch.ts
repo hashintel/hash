@@ -23,14 +23,25 @@ import { loadEnv } from "vite";
 import { brunchEnv } from "@hashintel/brunch-agent";
 import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
+import {
+  guidanceVariantEnvironment,
+  guidanceVariants,
+  selectGuidanceVariant,
+  type GuidanceVariant,
+} from "../../agents/chat-agent/guidance-variant.ts";
 import { DEFAULT_CHAT_MODEL, DEFAULT_CHAT_THINKING } from "../../chat-model.ts";
 import { agentOwnershipHeaders } from "../../conversation/identity.ts";
 import {
   defaultChatOrigin,
   localPanelListen,
 } from "../../http/local-origins.ts";
+import { selectLedgerNoteShape } from "../../ledger-note-shape.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
-import { submitPersonaBrowserTurn } from "./browser-turn.ts";
+import {
+  PersonaBrowserTurnError,
+  submitPersonaBrowserTurn,
+} from "./browser-turn.ts";
+import { guidanceManifest, verifyGuidanceResume } from "./guidance-manifest.ts";
 import {
   agentSettingsFromRun,
   personaAgentLabel,
@@ -123,6 +134,7 @@ export const personaEnvironment = (
   // An explicit empty value also overrides Vite env files on backend startup.
   // Historical campaign ledgers must not gate persona requests or resumed runs.
   loaded[brunchEnv.stepAAccounting] = "";
+  loaded[guidanceVariantEnvironment] = "baseline";
   return loaded;
 };
 
@@ -267,6 +279,7 @@ export const responds = async (
 
 type PersonaLaunchOptions = {
   readonly caseDirectory: string;
+  readonly guidance?: GuidanceVariant;
   readonly objective?: string;
   readonly route?: string;
   readonly initialNetPath?: string;
@@ -284,6 +297,7 @@ type PersonaLaunchOptions = {
  */
 const launchPersona = async ({
   caseDirectory,
+  guidance = "baseline",
   objective,
   route = "/",
   initialNetPath,
@@ -292,6 +306,9 @@ const launchPersona = async ({
   agent,
   recordingPause: pauseForRecording = true,
 }: PersonaLaunchOptions) => {
+  const manifest = resume
+    ? await verifyGuidanceResume(resume.config.guidance)
+    : await guidanceManifest(guidance);
   const { pack, opening } = resume
     ? { pack: "", opening: "" }
     : await readPersonaCase(caseDirectory);
@@ -312,6 +329,11 @@ const launchPersona = async ({
       `Resume requires the original panel origin ${resume.config.panelOrigin}; set ${brunchEnv.panelPort} accordingly`,
     );
   const env = personaEnvironment(settings);
+  env[guidanceVariantEnvironment] = manifest.variant;
+  env[brunchEnv.ledgerNotes] =
+    resume && typeof resume.config.ledgerNoteShape === "string"
+      ? resume.config.ledgerNoteShape
+      : selectLedgerNoteShape(env);
   const initialNet =
     initialNetPath === undefined
       ? undefined
@@ -339,6 +361,15 @@ const launchPersona = async ({
     (await mkdtemp(join(tmpdir(), "brunch-persona-browser-")));
   const record = {
     caseDirectory,
+    guidance: manifest,
+    ledgerNoteShape: selectLedgerNoteShape(env),
+    ...(!resume
+      ? {
+          caseSha256: createHash("sha256")
+            .update(JSON.stringify({ pack, opening, objective }))
+            .digest("hex"),
+        }
+      : {}),
     ...personaSettingsRecord(settings, agentSettings),
     databasePath: env[brunchEnv.devDbPath],
     browserProfile,
@@ -580,13 +611,18 @@ const launchPersona = async ({
         message: opening,
       });
     documentId = documentIdFromInitialData(opened.session.initialData);
-    await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
+    await writeProofArtifacts(
+      join(run, "evidence"),
+      opened.snapshot,
+      manifest.variant,
+    );
     const flue = createFlueClient({
       url: opened.session.url,
       headers: agentOwnershipHeaders(opened.session),
     });
     bridge = await openPersonaBrowserBridge({
       prompt: async (message, turn) => {
+        await verifyGuidanceResume(manifest);
         let logged = false;
         try {
           const result = await submitPersonaBrowserTurn(personaPage, message, {
@@ -613,7 +649,11 @@ const launchPersona = async ({
               });
             },
           });
-          await writeProofArtifacts(join(run, "evidence"), result.snapshot);
+          await writeProofArtifacts(
+            join(run, "evidence"),
+            result.snapshot,
+            manifest.variant,
+          );
           if (documentId !== undefined)
             await retainPersonaDocument(
               personaPage,
@@ -624,6 +664,14 @@ const launchPersona = async ({
             text: result.reply.text,
             submissionIds: result.submissionIds,
           };
+        } catch (error) {
+          if (error instanceof PersonaBrowserTurnError)
+            await writeProofArtifacts(
+              join(run, "evidence"),
+              error.snapshot,
+              manifest.variant,
+            );
+          throw error;
         } finally {
           if (!stop.signal.aborted) activeAdmission = undefined;
         }
@@ -774,6 +822,7 @@ if (
       route: { type: "string" },
       "brunch-model": { type: "string" },
       "brunch-thinking": { type: "string" },
+      guidance: { type: "string" },
       agent: { type: "string" },
       "agent-command": { type: "string" },
       "persona-model": { type: "string" },
@@ -785,7 +834,10 @@ if (
   });
   if (values.help) {
     report(
-      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
+      `Guidance comparison: --guidance ${guidanceVariants.join("|")} (default baseline). Each run retains its selected guidance and source hashes.`,
+    );
+    report(
+      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
     );
     report(
       `Agent options:\n  --agent ${personaAgentPresets.join("|")}   Start that agent with the persona brief.\n  --agent-command '<shell command with {prompt}>'   Start any other agent; {prompt} becomes the quoted launch prompt.\n  --persona-model <model>   Passed to the --agent preset's own model flag.\n  --persona-thinking <level>   Passed to pi's --thinking (only with --agent pi).\nThe agent runs in a Herdr pane when HERDR_ENV=1, otherwise in this terminal. Without an agent option the launcher prints the launch prompt for you to give any agent. The agent talks to Brunch through <run>/bin/persona (say, transcript, state, end, rpc).`,
@@ -828,7 +880,8 @@ if (
         values.route ||
         values["initial-net"] ||
         values["brunch-model"] ||
-        values["brunch-thinking"]
+        values["brunch-thinking"] ||
+        values.guidance
       )
         throw new Error("--resume cannot be combined with fresh-run options");
       const selectedAgent = agent();
@@ -846,6 +899,7 @@ if (
     const freshRun = async (caseDirectory: string) =>
       launchPersona({
         caseDirectory,
+        guidance: selectGuidanceVariant(values.guidance ?? "baseline"),
         objective: values.objective,
         route: values.route,
         initialNetPath: values["initial-net"]

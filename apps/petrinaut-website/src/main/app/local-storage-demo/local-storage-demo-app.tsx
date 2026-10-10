@@ -55,8 +55,8 @@ import {
   type FixtureProcessAgentConfiguration,
   type ProcessAgentBinding,
 } from "../plugins/brunch/conversation/use-process-agent-binding";
-import { foldBrunchWorkpieceHistory } from "../plugins/brunch/ledger/brunch-workpiece-history";
-import { BrunchWorkpiecePane } from "../plugins/brunch/ledger/brunch-workpiece-pane";
+import { foldBrunchLedgerHistory } from "../plugins/brunch/ledger/brunch-ledger-history";
+import { BrunchLedgerPane } from "../plugins/brunch/ledger/brunch-ledger-pane";
 import { requestFlueStop } from "../plugins/brunch/plugin/request-flue-stop";
 import { useImmutableReplayBaseline } from "../plugins/brunch/plugin/use-immutable-replay-baseline";
 import {
@@ -598,6 +598,8 @@ export const LocalStorageDemoApp = ({
               canonicalHostTools?.mapClientToolInput(call);
             },
             admit: createBrunchMutationAdmission(mutationApproval.coordinator),
+            acceptsRevision: (expected) =>
+              canonicalHostTools?.acceptsRevision(expected) ?? false,
           })
         : undefined,
     [
@@ -635,10 +637,8 @@ export const LocalStorageDemoApp = ({
           ? []
           : flueHistory.snapshot === undefined
             ? undefined
-            : foldBrunchWorkpieceHistory(
-                flueHistory.snapshot.messages,
-                constructionBrowser.binding,
-              ).activityIdentities
+            : foldBrunchLedgerHistory(flueHistory.snapshot.messages)
+                .activityIdentities
         : undefined;
     return {
       additionalTab: constructionBrowser
@@ -646,9 +646,8 @@ export const LocalStorageDemoApp = ({
             label: "Ledger",
             activityIdentities,
             content: (
-              <BrunchWorkpiecePane
+              <BrunchLedgerPane
                 messages={flueHistory.snapshot?.messages ?? []}
-                binding={constructionBrowser.binding}
               />
             ),
           }

@@ -132,6 +132,11 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
     models: [{ id: "faux-model", reasoning: true }],
   });
   faux.setResponses([
+    // A change starts only from a view of the net in the model's context.
+    fauxAssistantMessage(
+      [fauxToolCall("readNetOutline", {}, { id: "outline-call" })],
+      { stopReason: "toolUse" },
+    ),
     fauxAssistantMessage(
       [fauxToolCall("addScenario", scenario, { id: "scenario-call" })],
       { stopReason: "toolUse" },
@@ -278,7 +283,7 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       })),
     );
     await waitFor(() => expect(changes).toHaveLength(6));
-    expect(deliveries.map(({ metadata }) => metadata)).toEqual(
+    expect(deliveries.map(({ metadata }) => metadata)).toMatchObject(
       changes.map((change, index) => ({
         documentRevision: {
           before: index === 0 ? initialRevision : changes[index - 1]?.revision,
@@ -286,6 +291,21 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
         },
       })),
     );
+    expect(
+      deliveries.every(
+        ({ metadata }) =>
+          typeof metadata === "object" &&
+          metadata !== null &&
+          "readBack" in metadata,
+      ),
+    ).toBe(true);
+    const outline = clientToolHistoryFrom(history.messages).results.find(
+      ({ toolCallId }) => toolCallId === "outline-call",
+    );
+    expect(outline?.metadata).toEqual({
+      documentRevision: { before: initialRevision },
+    });
+    expect(JSON.stringify(outline?.output)).not.toMatch(/"x":|"y":/u);
     // The model invents legacy ids; the stored document holds them converted.
     const originalScenario = {
       id: toPetrinautId(scenario.id),

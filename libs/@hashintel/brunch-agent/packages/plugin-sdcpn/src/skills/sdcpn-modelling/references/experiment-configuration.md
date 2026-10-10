@@ -1,12 +1,12 @@
 # Experiment Configuration
 
-Read this during the Construct disposition whenever the person states a decision the model should answer, and again whenever the decision, its measure, a tunable quantity or its range changes. Do not read it merely because the net has parameters or metrics.
+Read this while constructing, whenever the person states a decision the model should answer, and again whenever the decision, its measure, a tunable quantity or its range changes. Do not read it merely because the net has parameters or metrics.
 
 An experiment is an ordinary thing a model has, like a scenario or a metric: the person's account supplies what it means, the net supplies what makes it executable, and you propose it when both are present. The person does not need to ask for one or know the word.
 
 ## Two sources, one readiness judgment
 
-The person's account supplies meaning, under the concerns these workpiece sections name; nothing else decides readiness:
+The person's account supplies meaning, under the concerns these Ledger categories name; nothing else decides readiness:
 
 - **What the model must answer, compare, or support** — the decision or question.
 - **Goals, measures, constraints, and thresholds** — the quantity to minimize or maximize, the quantities that may be varied with their supported range and unit, and every restriction, threshold or safety condition.
@@ -29,7 +29,7 @@ When a stated condition is present and its net counterpart is missing, that is o
 
 Each stated condition class maps to one destination in `PetrinautExperimentRequest`, or to `unsupported`.
 
-| Stated condition (workpiece section) | Request destination | Fidelity and mandatory disclosure |
+| Stated condition (Ledger category) | Request destination | Fidelity and mandatory disclosure |
 | --- | --- | --- |
 | Tunable quantity with a stated range ("vary the tunable count from 3 to 9 units") — Goals/constraints; Activities | `scenarioParameterValues[identifier] = { mode: "range", min, max }` on a saved scenario parameter | Exact for an integer or real quantity; the sweep domain derives from the parameter's declared `type`, so a count needs an `integer` parameter, never rounding in code. A `boolean` parameter rejects ranges: unsupported. A `ratio` range must stay within 0–1. Units are carried nowhere: declare the unit and any conversion. |
 | Quantity to minimize or maximize ("minimize the last-frame delay measure") — Goals/measures; Objective dependencies | `execution = { mode: "optimize", objectiveMetricId, direction, steps, runsPerStep }`; the metric must also appear in `metricIds` | The optimizer reads the metric's last-frame mean over the runs in a step. A total over the horizon or a peak needs an accumulating place or attribute in the net; declare whether the metric is last-frame, accumulated or peak. |
@@ -76,7 +76,7 @@ The tool result reports preparation only. Run and Dismiss happen later in the ca
 ## Refusals
 
 - Never propose from structure alone or infer the objective from the net.
-- Never invent a scenario, metric, parameter, range, unit, threshold, horizon or default; construct prerequisites first, ask for facts.
+- Never propose on a range, unit, threshold, horizon or objective the person has not stated or confirmed; a stand-in parameter's placeholder value is not a stated range. Construct missing prerequisites first and ask for missing facts.
 - Never encode a hard restriction as an objective penalty.
 - Never claim a restriction is enforced; the request carries none.
 - Never call `draft_petrinaut_experiment` as a way to run, or describe a drafted proposal as saved, running or applied.

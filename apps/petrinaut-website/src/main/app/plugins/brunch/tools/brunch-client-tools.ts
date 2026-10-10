@@ -1,3 +1,4 @@
+import { netReaderToolNames } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
 import { petrinautAiTools } from "@hashintel/petrinaut-core";
 
@@ -6,8 +7,9 @@ export const canonicalPetrinautClientToolNames: ReadonlySet<string> = new Set(
   Object.keys(petrinautAiTools),
 );
 
-/** Brunch adds a distinct reviewed draft without replacing stock tools. */
+/** Brunch adds filtered net readers and a reviewed draft without replacing stock tools. */
 export const brunchPetrinautClientToolNames: ReadonlySet<string> = new Set([
   ...canonicalPetrinautClientToolNames,
+  ...Object.values(netReaderToolNames),
   brunchTools.draftPetrinautExperiment,
 ]);

@@ -2,14 +2,15 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
-import { brunchTools, runbookIrFence } from "@hashintel/brunch-agent";
+import { brunchTools } from "@hashintel/brunch-agent";
 
 import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 
 type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
-import { recoverRunbookWorkpiece } from "../../conversation/workpiece.ts";
+import { ledgerEvidence } from "./ledger-evidence.ts";
 
+import type { GuidanceVariant } from "../../agents/chat-agent/guidance-variant.ts";
 import type { ToolExecution } from "@hashintel/brunch-agent";
 
 interface ProofEventBase {
@@ -45,16 +46,11 @@ type ProofTraceEvent =
   | (ProofEventBase & {
       readonly type: "text";
       readonly text: string;
-      readonly hasWorkpiece: boolean;
     });
 
 export interface ProofTrace {
   readonly conversationId: string;
   readonly events: readonly ProofTraceEvent[];
-  readonly firstWorkpiece?: {
-    readonly messageId: string;
-    readonly sequence: number;
-  };
 }
 
 type UnsequencedProofTraceEvent = ProofTraceEvent extends infer Event
@@ -86,13 +82,6 @@ const traceResourcePath = (path: string): string => {
     : path;
 };
 
-const openingRunbookIrFence = new RegExp(
-  `\`\`\`${runbookIrFence}(?:\\s|$)`,
-  "u",
-);
-const hasRunbookWorkpiece = (text: string): boolean =>
-  openingRunbookIrFence.test(text);
-
 const toolOutcome = (part: DynamicToolPart): "ok" | "error" =>
   part.state === "output-available" ? "ok" : "error";
 
@@ -101,7 +90,6 @@ export const deriveProofTrace = (
 ): ProofTrace => {
   const events: ProofTraceEvent[] = [];
   let turn = 0;
-  let firstWorkpiece: ProofTrace["firstWorkpiece"];
 
   const append = (event: UnsequencedProofTraceEvent): ProofTraceEvent => {
     const sequenced = {
@@ -131,19 +119,7 @@ export const deriveProofTrace = (
 
     for (const part of message.parts) {
       if (part.type === "text") {
-        const event = append({
-          type: "text",
-          turn,
-          messageId: message.id,
-          text: part.text,
-          hasWorkpiece: hasRunbookWorkpiece(part.text),
-        });
-        if (event.type === "text" && event.hasWorkpiece && !firstWorkpiece) {
-          firstWorkpiece = {
-            messageId: message.id,
-            sequence: event.sequence,
-          };
-        }
+        append({ type: "text", turn, messageId: message.id, text: part.text });
         continue;
       }
       if (part.type !== "dynamic-tool") continue;
@@ -191,11 +167,7 @@ export const deriveProofTrace = (
     }
   }
 
-  return {
-    conversationId: snapshot.conversationId,
-    events,
-    ...(firstWorkpiece === undefined ? {} : { firstWorkpiece }),
-  };
+  return { conversationId: snapshot.conversationId, events };
 };
 
 const traceEventMarkdown = (event: ProofTraceEvent): string => {
@@ -210,7 +182,7 @@ const traceEventMarkdown = (event: ProofTraceEvent): string => {
     case "tool":
       return `${prefix}\`tool(${event.name}, ${event.executor}, ${event.outcome})\` — call \`${event.toolCallId}\``;
     case "text":
-      return `${prefix}\`text(hasWorkpiece=${String(event.hasWorkpiece)})\` — message \`${event.messageId}\``;
+      return `${prefix}\`text\` — message \`${event.messageId}\``;
   }
 };
 
@@ -272,10 +244,11 @@ export const refreshProofManifest = async (
 export const writeProofArtifacts = async (
   directory: string,
   snapshot: FlueConversationSnapshot,
+  variant?: GuidanceVariant,
 ): Promise<void> => {
   await mkdir(directory, { recursive: true });
   const trace = deriveProofTrace(snapshot);
-  const workpiece = recoverRunbookWorkpiece(snapshot);
+  const ledger = ledgerEvidence(snapshot, variant);
   await Promise.all([
     atomicWrite(
       join(directory, "snapshot.json"),
@@ -290,16 +263,13 @@ export const writeProofArtifacts = async (
       `${JSON.stringify(trace, null, 2)}\n`,
     ),
     atomicWrite(join(directory, "trace.md"), formatProofTrace(trace)),
-    ...(workpiece === undefined
+    ...(ledger.commits.length === 0 || ledger.markdown === undefined
       ? []
       : [
+          atomicWrite(join(directory, "ledger.md"), ledger.markdown),
           atomicWrite(
-            join(directory, "workpiece.md"),
-            `${workpiece.content}\n`,
-          ),
-          atomicWrite(
-            join(directory, "workpiece-source.json"),
-            `${JSON.stringify(workpiece, null, 2)}\n`,
+            join(directory, "ledger.json"),
+            `${JSON.stringify(ledger.commits, null, 2)}\n`,
           ),
         ]),
   ]);

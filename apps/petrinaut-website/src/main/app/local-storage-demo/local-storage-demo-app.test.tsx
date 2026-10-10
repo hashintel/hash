@@ -308,6 +308,8 @@ describe("local storage demo Brunch voice integration", () => {
     expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
       [
         "getLatestNetDefinition",
+        "readNetOutline",
+        "readNetStructure",
         "getNetCompilationErrors",
         "addPlace",
         "addTransition",
@@ -1215,6 +1217,8 @@ describe("local storage demo Brunch controls", () => {
     expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
       [
         "getLatestNetDefinition",
+        "readNetOutline",
+        "readNetStructure",
         "getNetCompilationErrors",
         "addPlace",
         "addTransition",
@@ -1259,9 +1263,12 @@ describe("local storage demo Brunch controls", () => {
     expect([...(adapterTools.dynamicClientToolNames ?? [])].toSorted()).toEqual(
       [
         ...canonicalPetrinautClientToolNames,
+        "readNetOutline",
+        "readNetStructure",
         brunchTools.draftPetrinautExperiment,
       ].toSorted(),
     );
+    expect(aiAssistant.inBandBrowserTools?.has("readNetOutline")).toBe(true);
   });
 });
 
@@ -1750,7 +1757,7 @@ describe("assistant selection", () => {
             parts: [
               {
                 type: "dynamic-tool",
-                toolName: "query_workpiece",
+                toolName: "query_basis",
                 toolCallId: "ledger-query",
                 state: "output-available",
                 input: {},
@@ -1760,13 +1767,8 @@ describe("assistant selection", () => {
                     documentId: netOneId,
                     incarnationId: netOneId,
                   },
-                  currentWorkpiece: {
-                    revisionId: "ledger-revision",
-                    sha256:
-                      "8c954ded63ba039cfdeb901d054e300ceb9314e4a16cd1d7a5e413c0d59c1e87",
-                    ordinal: 1,
-                    markdown: "# Ledger",
-                  },
+                  disposition: "not-found",
+                  changes: [],
                 },
               },
               {
