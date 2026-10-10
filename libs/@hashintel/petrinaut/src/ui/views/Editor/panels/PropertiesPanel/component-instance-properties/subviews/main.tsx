@@ -1,3 +1,5 @@
+import { use } from "react";
+
 import {
   Button,
   Form,
@@ -9,6 +11,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
+import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { PropertyValue } from "../../../../../../components/property-value";
@@ -50,6 +53,7 @@ const hintTextStyle = css({
 });
 
 const ComponentInstanceMainContent: React.FC = () => {
+  const { setActiveSubnetId } = use(ActiveNetContext);
   const { instance, subnet, subnetParameters, updateComponentInstance } =
     useComponentInstancePropertiesContext();
   const isDisabled = useIsReadOnly();
@@ -122,6 +126,15 @@ const ComponentInstanceMainContent: React.FC = () => {
           <div className={hintTextStyle}>
             {subnet?.name ?? "The referenced subnet no longer exists."}
           </div>
+          {subnet && (
+            <Button
+              size="xs"
+              variant="subtle"
+              onClick={() => setActiveSubnetId(subnet.id)}
+            >
+              Open subnet
+            </Button>
+          )}
         </Form.Field>
       </Form.Section>
 
