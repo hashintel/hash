@@ -871,12 +871,12 @@ impl EntityStore for DatabaseApi<'_> {
             .await
     }
 
-    async fn patch_entity(
+    async fn patch_entities(
         &mut self,
         actor_id: ActorId,
-        params: PatchEntityParams,
-    ) -> Result<Entity, Report<UpdateError>> {
-        self.store.patch_entity(actor_id, params).await
+        params: Vec<PatchEntityParams>,
+    ) -> Result<Vec<Entity>, Report<UpdateError>> {
+        self.store.patch_entities(actor_id, params).await
     }
 
     async fn delete_entities(
