@@ -14,12 +14,17 @@ import { createFlueClient } from "@flue/sdk";
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { afterAll, describe, expect, test, vi } from "vitest";
 
-import { createFlueAiSdkAdapter, createFlueUiStream } from "../src/client";
+import {
+  createFlueAiSdkAdapter,
+  createFlueUiStream,
+  FlueChatDisconnectError,
+} from "../src/client";
 import { reduceUiMessageChunks, useUiChunkRecorder } from "./ai-sdk-oracle";
 import {
   harnessAdapterConfig,
   harnessTools,
   startFlueHarness,
+  withoutLiveOnlyDetails,
 } from "./flue-harness";
 import { TestChat } from "./test-chat";
 
@@ -161,7 +166,8 @@ describe("upstream: 'should handle error parts'", () => {
 
 describe("upstream: 'send handle a disconnected response stream'", () => {
   // Upstream's disconnect errors the HTTP stream. Flue's SDK retries a dropped
-  // update stream instead, so the transport never reports a disconnect.
+  // update stream and the transport re-attaches when the SDK gives up, so only
+  // a transport that gives up as well reports a disconnect.
   test("observed: a dropped Flue update stream is retried, and the turn still completes", async () => {
     harness.script([fauxAssistantMessage([fauxText("Recovered.")])]);
     let admitted = false;
@@ -190,6 +196,68 @@ describe("upstream: 'send handle a disconnected response stream'", () => {
     );
     expect(onFinish).toHaveBeenCalledWith(
       expect.objectContaining({ isDisconnect: false, isError: false }),
+    );
+  });
+
+  // Flue's SDK gives up on a reconnect refused with a 4xx other than 401, 403
+  // or 416, which would leave the submission running with nobody reading it.
+  test("decision: a refused reconnect re-attaches, and the turn completes with each part once", async () => {
+    const { client, cut, refused } = harness.cuttableClient();
+    harness.script([
+      fauxAssistantMessage(
+        [fauxToolCall(harnessTools.lookup, { q: "before" })],
+        { stopReason: "toolUse" },
+      ),
+      () => {
+        cut(410, 1);
+        return fauxAssistantMessage([fauxText("Recovered.")]);
+      },
+    ]);
+    const { chat, onFinish } = createChat({ client });
+
+    await chat.sendMessage({ text: "Look it up" });
+
+    expect(refused()).toBe(1);
+    expect(chat.error).toBeUndefined();
+    expect(chat.status).toBe("ready");
+    expect(onFinish).toHaveBeenCalledWith(
+      expect.objectContaining({ isDisconnect: false, isError: false }),
+    );
+    const reopened = createFlueAiSdkAdapter(harnessAdapterConfig).reopen(
+      await client.history(),
+    );
+    expect(withoutLiveOnlyDetails(chat.messages.at(-1))).toEqual(
+      reopened.at(-1),
+    );
+  });
+
+  test("decision: when re-attaching gives up, the chat reports the AI SDK's disconnect", async () => {
+    const { client, cut, refused } = harness.cuttableClient();
+    harness.script([
+      () => {
+        cut(410, 10);
+        return fauxAssistantMessage([fauxText("Unseen.")]);
+      },
+    ]);
+    const onReattach =
+      vi.fn<NonNullable<FlueChatTransportOptions["onReattach"]>>();
+    const { admissions, chat, onError, onFinish } = createChat({
+      client,
+      transport: { onReattach },
+    });
+
+    await chat.sendMessage({ text: "Hi" });
+
+    expect(refused()).toBe(4);
+    expect(onReattach).toHaveBeenCalledTimes(3);
+    expect(chat.status).toBe("error");
+    expect(chat.error).toBeInstanceOf(FlueChatDisconnectError);
+    expect(chat.error).toMatchObject({
+      submissionId: admissions.at(0)?.submissionId,
+    });
+    expect(onError).toHaveBeenCalledExactlyOnceWith(chat.error);
+    expect(onFinish).toHaveBeenCalledWith(
+      expect.objectContaining({ isDisconnect: true, isError: true }),
     );
   });
 });

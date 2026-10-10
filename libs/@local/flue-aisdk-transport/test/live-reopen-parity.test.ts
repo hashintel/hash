@@ -66,6 +66,31 @@ describe("with the live tool-input channel", () => {
     expect(liveParts).toHaveLength(reopenedParts.length);
     expect(liveParts).toEqual(expect.arrayContaining(reopenedParts));
   });
+
+  // The live channel is not reopened on a re-attach; later tool inputs arrive
+  // through the update stream instead.
+  test("decision: a re-attach after a live client tool reopens as it streamed", async () => {
+    const { client, cut, refused } = harness.cuttableClient();
+    harness.script([
+      fauxAssistantMessage(
+        [fauxToolCall(harnessTools.widget, { title: "before" })],
+        { stopReason: "toolUse" },
+      ),
+      () => {
+        cut(410, 1);
+        return fauxAssistantMessage(
+          [fauxToolCall(harnessTools.widget, { title: "after" })],
+          { stopReason: "toolUse" },
+        );
+      },
+      fauxAssistantMessage([fauxText("Shown.")]),
+    ]);
+    const turn = await runTurn("Show both", { client, transport });
+
+    expect(refused()).toBe(1);
+    expect(turn.live.streamErrors).toEqual([]);
+    expectLiveReopenParity(turn);
+  });
 });
 
 test("decision: an aborted response ends with an abort chunk and carries the host's abort marker, live and after reopen", async () => {

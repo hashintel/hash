@@ -1,4 +1,4 @@
-import { FlueApiError, FlueExecutionError } from "@flue/sdk";
+import { FetchError, FlueApiError, FlueExecutionError } from "@flue/sdk";
 
 import { serializeErrorText } from "./error-text";
 import {
@@ -46,6 +46,16 @@ export interface FlueChatResponseMessageCompletedEvent extends FlueChatResponseM
   >["position"];
 }
 
+/** A re-attach to the update stream after Flue's SDK gave up on it. */
+export interface FlueChatReattachEvent {
+  readonly submissionId: AgentSendResult["submissionId"];
+  /** Consecutive re-attaches that projected nothing new, this one included. */
+  readonly attempt: number;
+  readonly delayMs: number;
+  /** The failure Flue's SDK gave up on. */
+  readonly error: unknown;
+}
+
 /**
  * Host settings for one chat transport; projection comes from the adapter.
  * The `on*` callbacks are observers: one that throws cannot change the turn.
@@ -74,6 +84,11 @@ export interface FlueChatTransportOptions {
   readonly onResponseMessageCompleted?: (
     event: FlueChatResponseMessageCompletedEvent,
   ) => void;
+  /**
+   * Each re-attach the turn survives. When re-attaching gives up, the stream
+   * fails with {@link FlueChatDisconnectError}, which only `onError` reports.
+   */
+  readonly onReattach?: (event: FlueChatReattachEvent) => void;
   /**
    * Server tool failures never reach `useChat.onError`; this is the only seam
    * that sees them. Admission, stream and settlement
@@ -115,6 +130,27 @@ export class FlueChatAdmissionError extends Error {
     super(admissionFailureMessage(failure), options);
     this.name = "FlueChatAdmissionError";
     this.failure = failure;
+  }
+}
+
+/**
+ * The transport stopped following a submission that had not settled, so the
+ * turn may still be running; reopened history recovers it. A `TypeError` whose
+ * message names the network is what the AI SDK reports as `isDisconnect`.
+ */
+export class FlueChatDisconnectError extends TypeError {
+  public readonly submissionId: AgentSendResult["submissionId"];
+
+  public constructor(
+    submissionId: AgentSendResult["submissionId"],
+    options?: { readonly cause?: unknown },
+  ) {
+    super(
+      "The network connection to the agent was lost before the chat turn settled; the turn may still be running. Reopen the conversation to recover.",
+      options,
+    );
+    this.name = "FlueChatDisconnectError";
+    this.submissionId = submissionId;
   }
 }
 
@@ -206,15 +242,46 @@ const streamFailureChunk = (
           : "The local chat stream was cancelled.",
     };
   }
-  return {
-    type: "error",
-    errorText:
-      error instanceof FlueExecutionError &&
-      error.failure === "terminal_event_missing"
-        ? "The chat stream ended before the turn settled."
-        : serializeErrorText(error),
-  };
+  return { type: "error", errorText: serializeErrorText(error) };
 };
+
+type ChunkPosition = Exclude<
+  ConversationStreamChunk,
+  { type: "stream-checkpoint" }
+>["position"];
+
+const isAfter = (
+  position: ChunkPosition,
+  watermark: ChunkPosition | undefined,
+): boolean =>
+  watermark === undefined ||
+  position.batch > watermark.batch ||
+  (position.batch === watermark.batch && position.index > watermark.index);
+
+/** One pause per consecutive re-attach that projects nothing new. */
+const reattachDelaysMs = [250, 500, 1000];
+
+const pause = (milliseconds: number, signal: AbortSignal): Promise<void> =>
+  new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", finish);
+      resolve();
+    };
+    const timer = setTimeout(finish, milliseconds);
+    signal.addEventListener("abort", finish, { once: true });
+  });
+
+/** A settled turn or a local cancellation; anything else may be the update stream itself. */
+const endsTheTurn = (error: unknown, signal: AbortSignal): boolean =>
+  signal.aborted ||
+  isAbortError(error) ||
+  (error instanceof FlueExecutionError &&
+    error.failure !== "terminal_event_missing");
+
+/** Flue's SDK has already spent its own retry budget on 401 and 403. */
+const isSpentAuthRetry = (error: unknown): boolean =>
+  error instanceof FetchError && (error.status === 401 || error.status === 403);
 
 const streamSubmission = (
   options: FlueChatTransportOptions & FlueUiProjectionOptions,
@@ -247,6 +314,13 @@ const streamSubmission = (
         disconnectLive?.();
         localAbort.abort();
         controller.close();
+      };
+      const fail = (error: FlueChatDisconnectError): void => {
+        if (closed) return;
+        closed = true;
+        disconnectLive?.();
+        localAbort.abort();
+        controller.error(error);
       };
       const write = (chunk: UIMessageChunk): void => {
         if (closed) return;
@@ -289,41 +363,95 @@ const streamSubmission = (
           });
       }
 
-      void options.client
-        .wait(admission, {
-          signal,
-          onEvent: (event) => {
-            projector.accept(event);
+      // Each `wait()` skips chunks it already delivered, but a re-attach is a
+      // new `wait()` that replays from the admission offset. Positions only
+      // restart when a stream is recreated under a new incarnation, which
+      // Flue's durable stores never do to a stream with a live submission.
+      let watermark: ChunkPosition | undefined;
+      let projectionFailed = false;
+      const onEvent = (event: ConversationStreamChunk): void => {
+        if (event.type === "stream-checkpoint") return;
+        if (!isAfter(event.position, watermark)) return;
+        watermark = event.position;
+        try {
+          projector.accept(event);
+          if (
+            event.type === "message-started" &&
+            event.submissionId === admission.submissionId
+          ) {
+            responseMessage = {
+              effectiveId:
+                projector.effectiveMessageId(event.messageId) ??
+                event.messageId,
+              flueId: event.messageId,
+            };
+            notifyObserver(options.onResponseMessage, {
+              messageId: responseMessage.effectiveId,
+              position: event.position,
+              submissionId: admission.submissionId,
+            });
+          }
+          if (
+            event.type === "message-completed" &&
+            event.messageId === responseMessage?.flueId
+          ) {
+            notifyObserver(options.onResponseMessageCompleted, {
+              messageId: responseMessage.effectiveId,
+              position: event.position,
+              submissionId: admission.submissionId,
+            });
+          }
+        } catch (error) {
+          projectionFailed = true;
+          throw error;
+        }
+      };
+
+      const follow = async (): Promise<void> => {
+        let fruitlessReattaches = 0;
+        for (;;) {
+          const watermarkBefore = watermark;
+          try {
+            // Each re-attach depends on the failure of the one before.
+            // eslint-disable-next-line no-await-in-loop
+            await options.client.wait(admission, { signal, onEvent });
+            return;
+          } catch (error) {
             if (
-              event.type === "message-started" &&
-              event.submissionId === admission.submissionId
+              projectionFailed ||
+              terminalEmitted ||
+              endsTheTurn(error, signal)
             ) {
-              responseMessage = {
-                effectiveId:
-                  projector.effectiveMessageId(event.messageId) ??
-                  event.messageId,
-                flueId: event.messageId,
-              };
-              notifyObserver(options.onResponseMessage, {
-                messageId: responseMessage.effectiveId,
-                position: event.position,
-                submissionId: admission.submissionId,
+              throw error;
+            }
+            if (watermark !== watermarkBefore) fruitlessReattaches = 0;
+            const delay = reattachDelaysMs[fruitlessReattaches];
+            if (delay === undefined || isSpentAuthRetry(error)) {
+              throw new FlueChatDisconnectError(admission.submissionId, {
+                cause: error,
               });
             }
-            if (
-              event.type === "message-completed" &&
-              event.messageId === responseMessage?.flueId
-            ) {
-              notifyObserver(options.onResponseMessageCompleted, {
-                messageId: responseMessage.effectiveId,
-                position: event.position,
-                submissionId: admission.submissionId,
-              });
-            }
-          },
-        })
+            fruitlessReattaches += 1;
+            notifyObserver(options.onReattach, {
+              submissionId: admission.submissionId,
+              attempt: fruitlessReattaches,
+              delayMs: delay,
+              error,
+            });
+            // eslint-disable-next-line no-await-in-loop
+            await pause(delay, signal);
+            signal.throwIfAborted();
+          }
+        }
+      };
+
+      void follow()
         .then(close)
         .catch((error: unknown) => {
+          if (error instanceof FlueChatDisconnectError && !terminalEmitted) {
+            fail(error);
+            return;
+          }
           if (!terminalEmitted) {
             write(streamFailureChunk(error, signal));
           }

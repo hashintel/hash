@@ -624,9 +624,16 @@ const ConversationAiAssistantPanel = ({
   // discarding that conversation. Timing stays outside diagnostics so it tags
   // receipt of the response chunks.
   const hostTransportRef = useLatest(aiAssistant.transport);
+  const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
   const liveHostTransport = useMemo<PetrinautAiTransport>(
     () => ({
-      sendMessages: (options) => hostTransportRef.current.sendMessages(options),
+      sendMessages: async (options) => {
+        const stream = await hostTransportRef.current.sendMessages(options);
+        // The host accepted the message, so a failure of its stream must not
+        // offer the message for sending again.
+        pendingSubmissionRecoveryRef.current = null;
+        return stream;
+      },
       reconnectToStream: (options) =>
         hostTransportRef.current.reconnectToStream(options),
     }),
@@ -773,7 +780,6 @@ const ConversationAiAssistantPanel = ({
   // cannot settle, stop, or continue a replacement turn.
   const submissionGenerationRef = useRef(0);
   const toolHostIdentityRef = useRef<string | null>(null);
-  const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
   const hydratedConversationIdRef = useRef<string | null>(null);
   const followedMessagesRef = useRef<PetrinautAiMessage[] | undefined>(
     undefined,

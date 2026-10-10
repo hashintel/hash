@@ -1,9 +1,11 @@
 export {
   finalUserMessage,
   FlueChatAdmissionError,
+  FlueChatDisconnectError,
 } from "./client/chat-transport";
 export type {
   FlueChatAdmissionFailure,
+  FlueChatReattachEvent,
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
   FlueChatTransportOptions,
