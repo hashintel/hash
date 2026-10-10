@@ -29,6 +29,12 @@
         "codegen"
       ]
     },
+    "build:pack": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
     "codegen": {
       "dependsOn": []
     },

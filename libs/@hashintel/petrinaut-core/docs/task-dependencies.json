@@ -7,6 +7,12 @@
     "build": {
       "dependsOn": []
     },
+    "build:pack": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
     "fix:eslint": {
       "dependsOn": [
         "@local/eslint#build"

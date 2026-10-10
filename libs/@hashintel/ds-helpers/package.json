@@ -47,7 +47,8 @@
     "access": "public"
   },
   "scripts": {
+    "build:pack": "node ../../../scripts/check-package-payload.mjs",
     "codegen": "true",
-    "prepack": "turbo run codegen --filter @hashintel/ds-helpers && node ../../../scripts/check-package-payload.mjs"
+    "prepack": "turbo run build:pack"
   }
 }

@@ -2,6 +2,15 @@
   "package": "@hashintel/ds-helpers",
   "dependencies": [],
   "tasks": {
+    "build:pack": {
+      "dependsOn": [
+        "codegen"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@hashintel/ds-components"
+      ]
+    },
     "codegen": {
       "dependsOn": [
         "@hashintel/ds-components#codegen"

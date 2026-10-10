@@ -15,7 +15,7 @@
     "LICENSE",
     "LICENSE-APACHE.md",
     "LICENSE-MIT.md",
-    "README.md",
+    "/README.md",
     "package.json"
   ],
   "type": "module",
@@ -54,12 +54,12 @@
     "build": "yarn build:lib && yarn build:buildinfo",
     "build:buildinfo": "panda ship --config panda.ship.config.ts --outfile dist/panda.buildinfo.json",
     "build:lib": "vite build",
+    "build:pack": "node ../../../scripts/check-package-payload.mjs",
     "dev": "bash scripts/dev.sh",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
-    "prepack": "node ../../../scripts/check-package-payload.mjs",
-    "prepublishOnly": "turbo run build",
+    "prepack": "turbo run build:pack",
     "test:unit": "vitest"
   },
   "dependencies": {

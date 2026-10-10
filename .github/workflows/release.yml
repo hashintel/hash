@@ -87,22 +87,18 @@ jobs:
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
 
-      # `changeset publish` shells out to `npm publish`, which performs the OIDC trusted-publishing
-      # exchange only from npm 11.5.1 onwards. No Node 22 release bundles a version that new.
-      - name: Install npm with trusted publishing support
-        run: |
-          npm install -g --ignore-scripts npm@11.19.0
-          npm --version
-
+      # `changeset publish` publishes with `yarn npm publish`, which performs the OIDC
+      # trusted-publishing exchange itself. Yarn generates provenance only when asked to,
+      # and publishes to `registry.yarnpkg.com` unless told otherwise.
       - name: Create Release Pull Request or Publish to npm
-        uses: changesets/action@63a615b9cd06ba9a3e6d13796c7fbcb080a60a0b # v1.8.0
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
-          publish: yarn changeset:publish
-          version: yarn changeset:version
-          commitMode: github-api
+          github-token: ${{ steps.app-token.outputs.value }}
+          publish-script: yarn changeset:publish
+          version-script: yarn changeset:version
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.value }}
-          NPM_CONFIG_LOGLEVEL: verbose
+          YARN_NPM_PUBLISH_PROVENANCE: "true"
+          YARN_NPM_PUBLISH_REGISTRY: https://registry.npmjs.org
           TURBO_LOG_LEVEL: debug
           TURBO_TELEMETRY_DISABLED: 1
           # Ensure turbo outputs full build logs (not just summaries) so
@@ -111,7 +107,7 @@ jobs:
           TURBO_LOG_ORDER: stream
           TURBO_LOG_VERBOSITY: 1
 
-      # `commitMode: github-api` resets `changeset-release/main` to `main` before
+      # Pushing through the GitHub API resets `changeset-release/main` to `main` before
       # writing the version commit, and GitHub closes the pull request as empty
       # in the window between the two ref writes.
       - name: Recreate the Version Packages pull request
@@ -180,11 +176,13 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
 
-      - name: Print npm logs on failure
+      # Yarn writes each lifecycle script's output to `<tmpdir>/xfs-*/<script>.log` and keeps
+      # the file only when the script fails; the publish error names the path.
+      - name: Print Yarn lifecycle script logs on failure
         if: failure()
         run: |
-          echo "🪵 Dumping npm debug logs..."
-          find /home/runner/.npm/_logs -type f -exec echo "--- {} ---" \; -exec cat {} \; || echo "No npm logs found."
+          echo "🪵 Dumping Yarn lifecycle script logs..."
+          find /tmp -maxdepth 2 -path '/tmp/xfs-*' -name '*.log' -type f -exec echo "--- {} ---" \; -exec cat {} \; || echo "No Yarn lifecycle script logs found."
 
       - name: Print Turbo logs on failure
         if: failure()
@@ -201,7 +199,7 @@ jobs:
         with:
           name: release-debug-logs
           path: |
-            /home/runner/.npm/_logs/
+            /tmp/xfs-*/*.log
             **/.turbo/*.log
 
   publish-rust:

@@ -5,6 +5,12 @@
     "build": {
       "dependsOn": []
     },
+    "build:pack": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
     "dev": {
       "dependsOn": [],
       "cache": false,
