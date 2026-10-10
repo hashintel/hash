@@ -158,6 +158,8 @@
     "RUSTC_WRAPPER",
     "CARGO_INCREMENTAL"
   ],
+  // The root `AGENTS.md` is maintained by hand, so turbo must not write guidance into it.
+  "agentGuidance": false,
   "futureFlags": {
     "affectedUsingTaskInputs": true,
     "experimentalCargoWorkspaces": true,
