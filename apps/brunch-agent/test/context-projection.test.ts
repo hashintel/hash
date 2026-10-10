@@ -10,6 +10,21 @@ import {
 
 import type { ContextProjection, ContextProjectionEntry } from "@flue/runtime";
 
+test("removes historical vocabulary envelopes before model context and compaction", () => {
+  const body =
+    'petrinaut-contextual-user-message:v2\n{"userText":"Use it.","words":["OldTerm"]}';
+  const entries: ContextProjectionEntry[] = [
+    { id: "user-words", message: { role: "user", content: body } },
+  ];
+  expect(projectBrunchContext(entries)).toEqual([
+    {
+      id: "user-words",
+      message: { role: "user", content: "[message user-words]\nUse it." },
+    },
+  ]);
+  expect(entries[0]?.message.content).toBe(body);
+});
+
 test("projects in-band canonical output without exposing host sidecars or altering Flue history", () => {
   const sidecar = {
     observation: { binding: "private-binding", sha256: "private-hash" },

@@ -3,6 +3,7 @@ import {
   type OpenAIVoiceConfig,
 } from "./session/voice-interview-control";
 
+import type { VoiceWord } from "../../../../shared/voice-words";
 import type {
   BrunchPanelAdmissionTarget,
   BrunchPanelConversationTracker,
@@ -30,6 +31,7 @@ export const getBrunchVoiceMode = (
   snapshot?: FlueConversationState,
   mediationHistory?: VoiceMediationHistory,
   toolApprovalState?: (toolCallId: string) => ToolApprovalState | null,
+  readWords?: () => readonly VoiceWord[],
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -56,6 +58,7 @@ export const getBrunchVoiceMode = (
     <VoiceInterviewControl
       {...context}
       config={config}
+      readWords={readWords}
       mediationHistory={mediationHistory}
       toolApprovalState={toolApprovalState}
       settlements={settlements}

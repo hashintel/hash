@@ -1,4 +1,10 @@
 import { voicePreferenceHeader } from "../../../../../shared/voice-settings";
+import { buildVoiceTranscriptionPrompt } from "../../../../../shared/voice-transcription";
+import {
+  encodeVoiceWords,
+  voiceWordsHeader,
+  type VoiceWord,
+} from "../../../../../shared/voice-words";
 import {
   createVoiceRequestId,
   VoiceError,
@@ -96,6 +102,7 @@ interface RemoteAudio {
 }
 
 interface OpenAIRealtimeSessionDependencies {
+  readonly readWords?: () => readonly VoiceWord[];
   readonly audioSettings?: VoiceAudioSettings;
   readonly cancelAnimationFrame: (handle: number) => void;
   readonly connectionTimeoutMs: number;
@@ -264,6 +271,8 @@ export class OpenAIRealtimeSession {
   #speakerMuted = false;
   #speakerVolume = 1;
   #voice = "marin";
+  #wordsHeader: string | undefined;
+  #transcriptionPrompt = buildVoiceTranscriptionPrompt([]);
   #speed = 1;
   #responseCreateEventId: string | null = null;
   #responseTerminalSequence = 0;
@@ -284,6 +293,9 @@ export class OpenAIRealtimeSession {
 
   public async connect(): Promise<number> {
     this.#releaseResources();
+    const words = this.#dependencies.readWords?.() ?? [];
+    this.#wordsHeader = encodeVoiceWords(words);
+    this.#transcriptionPrompt = buildVoiceTranscriptionPrompt(words);
     this.#voice = this.#dependencies.audioSettings?.startSession() ?? "marin";
     this.#speed = 1;
     const requestId =
@@ -1412,6 +1424,10 @@ export class OpenAIRealtimeSession {
     }
   }
 
+  public getTranscriptionPrompt(): string {
+    return this.#transcriptionPrompt;
+  }
+
   async #requestRealtimeCall(
     offerSdp: string,
     signal: AbortSignal,
@@ -1423,6 +1439,9 @@ export class OpenAIRealtimeSession {
         body: offerSdp,
         headers: {
           "content-type": "application/sdp",
+          ...(this.#wordsHeader === undefined
+            ? {}
+            : { [voiceWordsHeader]: this.#wordsHeader }),
           [voicePreferenceHeader]: this.#voice,
           [VOICE_REQUEST_ID_HEADER]: requestId,
         },

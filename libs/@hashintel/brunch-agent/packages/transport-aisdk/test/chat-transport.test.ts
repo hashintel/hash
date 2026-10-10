@@ -101,6 +101,53 @@ const sendOptions = (
   abortSignal: undefined,
 });
 
+test("submits an already captured words snapshot without changing user identity", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+    words: ["RelayDesk"],
+  });
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions([
+        {
+          id: "words-turn",
+          role: "user",
+          parts: [{ type: "text", text: "Use it." }],
+        },
+      ]),
+    ),
+  );
+  expect(send.mock.calls[0]?.[0]).toMatchObject({
+    idempotencyKey: "ai-sdk:user:words-turn",
+    message: {
+      kind: "user",
+      body: 'petrinaut-contextual-user-message:v2\n{"userText":"Use it.","words":["RelayDesk"]}',
+    },
+  });
+});
+
+test("an empty words snapshot sends an ordinary message without the contextual length limit", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+    words: [],
+  });
+  const text = "x".repeat(PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH + 1);
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions([
+        { id: "long-turn", role: "user", parts: [{ type: "text", text }] },
+      ]),
+    ),
+  );
+  expect(send.mock.calls[0]?.[0]).toMatchObject({
+    message: { kind: "user", body: text },
+  });
+});
+
 test("round trips contextual user evidence and diagnostics through explicit framing", () => {
   const markerLikeText = [
     "Human-authored request containing marker-like content:",

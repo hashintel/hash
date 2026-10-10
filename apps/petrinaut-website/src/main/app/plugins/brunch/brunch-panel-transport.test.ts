@@ -10,6 +10,45 @@ import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
 
+test("captures words before waiting for the client and retains them for the same admission identity", async () => {
+  let words = ["RelayDesk"];
+  let resolveClient!: (client: FlueClient) => void;
+  const clientPromise = new Promise<FlueClient>((resolve) => {
+    resolveClient = resolve;
+  });
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(400, "Rejected");
+  });
+  const tracker = new BrunchPanelConversationTracker();
+  const transport = createBrunchPanelTransport(clientPromise, tracker, {
+    readWords: () => words,
+  });
+  const options = {
+    trigger: "submit-message" as const,
+    chatId: "one",
+    messageId: "user-one",
+    messages: [
+      {
+        id: "user-one",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Use it." }],
+      },
+    ],
+    abortSignal: undefined,
+  };
+  const first = transport.sendMessages(options);
+  words = ["Bay Three"];
+  resolveClient({ send } as unknown as FlueClient);
+  await expect(first).rejects.toThrow();
+  await expect(transport.sendMessages(options)).rejects.toThrow();
+  expect(
+    send.mock.calls.map(([submission]) => submission.message.body),
+  ).toEqual([
+    'petrinaut-contextual-user-message:v2\n{"userText":"Use it.","words":["RelayDesk"]}',
+    'petrinaut-contextual-user-message:v2\n{"userText":"Use it.","words":["RelayDesk"]}',
+  ]);
+});
+
 test("publishes Stop immediately and supports unsubscribe", () => {
   const tracker = new BrunchPanelConversationTracker();
   const listener = vi.fn();

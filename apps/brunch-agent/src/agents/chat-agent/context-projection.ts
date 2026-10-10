@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { brunchTools } from "@hashintel/brunch-agent";
+import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 
@@ -310,14 +311,29 @@ const prefixUserMessageId = (
   const message = entry.message;
   if (message.role !== "user") return entry;
   const idLine = `[message ${entry.id}]`;
+  const projectText = (text: string): string => {
+    const parsed = parsePetrinautUserMessageBody(text);
+    if (parsed.kind === "invalid-contextual")
+      return "[Invalid contextual user message]";
+    return parsed.kind !== "ordinary" && parsed.diagnosticsContext !== undefined
+      ? `${parsed.userText}\n\nHost diagnostics (not human evidence):\n${parsed.diagnosticsContext}`
+      : parsed.userText;
+  };
   return {
     ...entry,
     message:
       typeof message.content === "string"
-        ? { ...message, content: `${idLine}\n${message.content}` }
+        ? { ...message, content: `${idLine}\n${projectText(message.content)}` }
         : {
             ...message,
-            content: [{ type: "text", text: idLine }, ...message.content],
+            content: [
+              { type: "text", text: idLine },
+              ...message.content.map((part) =>
+                part.type === "text"
+                  ? { ...part, text: projectText(part.text) }
+                  : part,
+              ),
+            ],
           },
   };
 };

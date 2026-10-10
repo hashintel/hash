@@ -24,6 +24,8 @@ const mounted = vi.hoisted(() => ({
 }));
 vi.mock("@flue/runtime", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/runtime")>()),
+  useDelivery: () => ({ kind: "user", body: "Hello" }),
+  useAgentStart: () => {},
   useContextProjection: () => {
     mounted.contextProjections += 1;
   },

@@ -95,12 +95,16 @@ import {
   type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
+import { useConversationWords } from "./conversation-words";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
 import { UnsavedChangeNotice } from "./unsaved-change-notice";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
+import { WordsHeaderAction } from "./words-configurer";
+import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
+import type { VoiceWord } from "../../../shared/voice-words";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
 
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
@@ -210,6 +214,7 @@ export const LocalStorageDemoApp = ({
     ready: voicePreferenceReady,
     setEnabled: setVoiceEnabled,
   } = useVoicePreference();
+  const wordsPreference = useWordsPreference();
   const {
     enabled: realtimeEnabled,
     ready: realtimePreferenceReady,
@@ -358,6 +363,25 @@ export const LocalStorageDemoApp = ({
     [baseProcessAgentBinding],
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
+  const words = useConversationWords(brunchPrincipal, conversationId);
+  // Words are edited from Voice mode, so they apply only while Voice is on.
+  const wordsActive =
+    brunchSelected &&
+    voicePreferenceReady &&
+    voiceEnabled &&
+    wordsPreference.ready &&
+    wordsPreference.enabled &&
+    conversationId !== null;
+  const readWords = useCallback(
+    (): readonly VoiceWord[] =>
+      wordsActive
+        ? words.entries.map(({ spelling, pronunciation }) => ({
+            spelling,
+            ...(pronunciation === undefined ? {} : { pronunciation }),
+          }))
+        : [],
+    [wordsActive, words.entries],
+  );
   // Each binding gets its own non-persisted approval authority.
   const mutationApproval = useMemo(
     () => ({
@@ -498,6 +522,7 @@ export const LocalStorageDemoApp = ({
         flueHistory.snapshot,
         mediationHistory,
         (toolCallId) => mutationApproval.coordinator.approvalState(toolCallId),
+        readWords,
       ),
     [
       brunchSelected,
@@ -511,6 +536,7 @@ export const LocalStorageDemoApp = ({
       realtimePreferenceReady,
       voiceEnabled,
       voicePreferenceReady,
+      readWords,
     ],
   );
   const transportClientPromise = flueClientPromise;
@@ -520,6 +546,7 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
+          readWords: () => readWords().map((word) => word.spelling),
           ...(constructionBrowser
             ? { initialData: { binding: constructionBrowser.binding } }
             : {}),
@@ -567,6 +594,7 @@ export const LocalStorageDemoApp = ({
     flueHistory.refresh,
     reportBrunchFailure,
     transportClientPromise,
+    readWords,
   ]);
 
   const inBandBrowserTools = useMemo(
@@ -628,6 +656,16 @@ export const LocalStorageDemoApp = ({
               ).activityIdentities
         : undefined;
     return {
+      actionsInputMode: "voice" as const,
+      headerActions:
+        wordsActive && words.key ? (
+          <WordsHeaderAction
+            key={words.key}
+            entries={words.entries}
+            notice={words.notice}
+            save={words.save}
+          />
+        ) : undefined,
       additionalTab: constructionBrowser
         ? {
             label: "Ledger",
@@ -694,6 +732,7 @@ export const LocalStorageDemoApp = ({
       },
       onClearMessages: () => {
         if (flueClientPromise !== null && currentNetId !== null) {
+          words.clear();
           const initialId =
             ordinaryConstructionConversationIdFrom(currentNetId);
           const nextId = `${initialId}:${crypto.randomUUID()}`;
@@ -740,6 +779,8 @@ export const LocalStorageDemoApp = ({
     flueHistory.snapshot,
     petrinautAiChatTransport,
     setAiMessagesByNetId,
+    words,
+    wordsActive,
   ]);
 
   if (
@@ -787,6 +828,9 @@ export const LocalStorageDemoApp = ({
                   setVoiceEnabled={setVoiceEnabled}
                   voiceEnabled={brunchSelected && voiceEnabled}
                   voicePreferenceReady={voicePreferenceReady}
+                  wordsEnabled={wordsPreference.enabled}
+                  wordsPreferenceReady={wordsPreference.ready}
+                  setWordsEnabled={wordsPreference.setEnabled}
                 />
               ),
             }}

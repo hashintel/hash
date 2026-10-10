@@ -1,3 +1,5 @@
+import { petrinautUserMessageText } from "./contextual-user-message";
+
 import type { ClientToolProjectionOptions } from "./ui-stream";
 import type {
   FlueConversationMessage,
@@ -92,7 +94,14 @@ const partsFrom = (
   const parts: UiMessagePart[] = [];
   for (const part of message.parts) {
     if (part.type === "text") {
-      parts.push({ type: "text", text: part.text, state: "done" });
+      parts.push({
+        type: "text",
+        text:
+          message.role === "user"
+            ? petrinautUserMessageText(part.text)
+            : part.text,
+        state: "done",
+      });
       continue;
     }
     if (part.type === "reasoning") {

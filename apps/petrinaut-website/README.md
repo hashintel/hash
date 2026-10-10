@@ -58,6 +58,8 @@ A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSIS
 
 Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 
+With Brunch selected, Labs also shows **Custom words**, off by default, for preferred spellings and pronunciation hints in Voice. See [Custom words](docs/custom-words.md).
+
 ## Example embeds and oEmbed
 
 Canonical example pages live below `/examples`. The JSON oEmbed endpoint at

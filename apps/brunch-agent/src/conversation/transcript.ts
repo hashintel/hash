@@ -1,5 +1,7 @@
 /** Human-readable projection of Flue's public conversation snapshot. */
 
+import { petrinautUserMessageText } from "@hashintel/brunch-agent-transport-aisdk";
+
 import type {
   FlueConversationMessage,
   FlueConversationPart,
@@ -47,7 +49,9 @@ export const formatFlueTranscript = (
     if (message.purpose !== "user" && message.purpose !== "assistant") continue;
     const speaker = message.purpose === "user" ? "User" : "Assistant";
     const lines: string[] = [];
-    const text = textOf(message);
+    const rawText = textOf(message);
+    const text =
+      message.purpose === "user" ? petrinautUserMessageText(rawText) : rawText;
     if (text.length > 0) lines.push(text);
     for (const part of message.parts) {
       if (part.type === "text" || part.type === "reasoning") continue;

@@ -1,15 +1,18 @@
+import { classifyInterruption } from "../../shared/classify-interruption";
 import { logLiveDiagnostic } from "../../shared/live-diagnostic";
 import { repeatsLiveOutput } from "./utterance-pipeline/repeats-live-output";
 
 import type { FinalizedInput } from "../live-conversation";
 
 export type SkipReason =
+  | "prompt-regurgitation"
   | "echo"
   | "doubtful-short-during-output"
   | "short-during-output"
   | "empty";
 
 export interface Utterance {
+  readonly transcriptionPrompt?: string;
   readonly inputId: string;
   readonly text: string;
   /** Contractions such as "I'll" count as one word. */
@@ -38,6 +41,14 @@ const isShortDuringOutput = ({ startedDuringOutput, words }: Utterance) =>
 
 /** Shadow stages come before active ones: a stage after a skip never runs. */
 export const liveUtteranceStages: readonly UtteranceStage[] = [
+  {
+    reason: "prompt-regurgitation",
+    mode: "shadow",
+    skips: ({ text, transcriptionPrompt }) =>
+      transcriptionPrompt !== undefined &&
+      classifyInterruption(text, [], transcriptionPrompt) ===
+        "prompt-regurgitation",
+  },
   // Leaked Live audio can finalize as a longer repeat of Live's own words.
   {
     reason: "echo",
@@ -80,6 +91,9 @@ export const routeUtterance = (
   stages: readonly UtteranceStage[],
 ): SkipReason | null => {
   const utterance: Utterance = {
+    ...(input.transcriptionPrompt === undefined
+      ? {}
+      : { transcriptionPrompt: input.transcriptionPrompt }),
     inputId: input.id,
     text: input.text,
     words: wordCount(input.text),
