@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/brunch-agent-plugin-sdcpn",
-  "version": "0.0.0-private",
+  "version": "0.0.0",
   "private": true,
   "description": "The operational-process domain typology and SDCPN target formalism: Flue-native prompt, job skill, and Petrinaut construction tools.",
   "license": "AGPL-3.0",

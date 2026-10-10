@@ -1,5 +1,11 @@
 # @blockprotocol/type-system
 
+## 0.2.3
+
+### Patch Changes
+
+- Reject zero major versions in versioned URLs. Require ontology version constructors to receive integers between 1 and 4294967295. ([@montekki](https://github.com/montekki), [#9891](https://github.com/hashintel/hash/pull/9891))
+
 ## 0.2.2
 
 ### Patch Changes
