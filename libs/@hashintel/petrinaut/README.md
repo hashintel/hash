@@ -62,6 +62,18 @@ passes `readonly` as well, which is what disables the fields themselves:
 />
 ```
 
+A blocked node drag or editing shortcut shows a brief notice saying why. On a
+document the host made read-only, `readOnlyAction` adds a button to that notice,
+for example one that saves an editable copy:
+
+```tsx
+<Petrinaut
+  handle={handle}
+  readonly
+  readOnlyAction={{ label: "Make a copy", onClick: createEditableCopy }}
+/>
+```
+
 ## Commands and the palette
 
 Petrinaut registers its user-invocable actions (undo, tools, search, panel

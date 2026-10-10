@@ -92,6 +92,7 @@ export const FullExamplePage = ({
         navigation={navigation}
         presentationProfile="review"
         readonly
+        readOnlyAction={{ label: "Make a local copy", onClick: makeLocalCopy }}
         slots={{
           topBarEnd: (
             <>

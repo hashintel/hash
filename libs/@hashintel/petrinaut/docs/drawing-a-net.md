@@ -77,6 +77,8 @@ In Simulate mode the net structure becomes read-only -- you can still manage sce
 
 In Actual mode the net is also read-only. It shows the Petri net supplied by the live source, with an Actual timeline and Events tab in the bottom panel when execution data is available.
 
+Dragging a node or using an editing shortcut on a read-only net shows a brief notice saying why: Simulate and Actual mode point you back to Edit, and a running, paused or finished simulation asks you to reset it first. Selecting, panning and zooming stay available. Where the host offers one, the notice carries an action, such as **Make a local copy** on a published example.
+
 Switching modes does not stop background experiments. The active-experiments indicator remains visible in the top bar from any mode.
 
 ## Canvas and Definitions

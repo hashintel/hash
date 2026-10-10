@@ -6,6 +6,7 @@ import {
   mutationBlockedBy,
   useReadOnlyReason,
 } from "../state/use-read-only-reason";
+import { useReadOnlyFeedback } from "./use-read-only-feedback";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
 
@@ -35,6 +36,7 @@ export function usePetrinautMutations(): PetrinautMutations {
   }
   const { activeSubnetId } = use(ActiveNetContext);
   const readOnlyReason = useReadOnlyReason();
+  const notifyReadOnly = useReadOnlyFeedback();
   const { mutations } = instance;
 
   const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
@@ -46,6 +48,7 @@ export function usePetrinautMutations(): PetrinautMutations {
     ) => void;
     const wrapped = ((input: PetrinautMutationInput<Name>) => {
       if (mutationBlockedBy(name, readOnlyReason) !== null) {
+        notifyReadOnly();
         return;
       }
       const nextInput =
