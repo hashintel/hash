@@ -521,17 +521,6 @@ export const FlowVisualizer = () => {
               persisted.push(output.payload.value);
             }
             break;
-          case "PersistedEntitiesMetadata":
-            if (Array.isArray(output.payload.value)) {
-              persisted.push(
-                ...output.payload.value.flatMap(
-                  (innerMap) => innerMap.persistedEntities,
-                ),
-              );
-            } else {
-              persisted.push(...output.payload.value.persistedEntities);
-            }
-            break;
           case "EntityId":
             if (
               output.outputName ===

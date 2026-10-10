@@ -44,10 +44,12 @@ const mapFlowRunToMinimalFlowRun = (
          * The type system includes StoredPayloadRef as a possible value type, but by the time
          * the response reaches the browser, these have been resolved.
          * @see libs/@local/hash-backend-utils/src/flows/get-flow-run-details.ts
+         *
+         * Runs from before the output became an array have a single object here instead, and show no entities.
          */
-        const resolvedValue =
-          payload.value as PayloadKindValues[(typeof browserInferenceFlowOutput)["payloadKind"]];
-        return resolvedValue.persistedEntities;
+        return Array.isArray(payload.value)
+          ? (payload.value as PayloadKindValues[(typeof browserInferenceFlowOutput)["payloadKind"]][])
+          : [];
       }
       return [];
     }),
