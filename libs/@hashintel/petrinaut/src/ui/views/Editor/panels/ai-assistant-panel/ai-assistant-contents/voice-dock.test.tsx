@@ -79,6 +79,7 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
       canRepeatQuestion={false}
       canTakeTurn={false}
       collapsed={false}
+      composerControl={<button type="button">Host setting</button>}
       indicator={<span />}
       microphoneMuted={false}
       onStop={noop}
@@ -89,6 +90,11 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
     />,
   );
   expect(screen.getByText("Connected")).toBeTruthy();
+  expect(
+    screen
+      .getByRole("button", { name: "Host setting" })
+      .closest('[data-part="left-actions"]'),
+  ).not.toBeNull();
   const microphone = screen.getByRole("button", { name: "Mute microphone" });
   expect(microphone).not.toBeNull();
   expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();

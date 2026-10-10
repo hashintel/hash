@@ -3,6 +3,7 @@ import {
   type OpenAIVoiceConfig,
 } from "./session/voice-interview-control";
 
+import type { InterviewBudgetLevel } from "../../../../shared/interview-budget";
 import type {
   BrunchPanelAdmissionTarget,
   BrunchPanelConversationTracker,
@@ -29,6 +30,7 @@ export const getBrunchVoiceMode = (
   settlements?: readonly FlueConversationSettlement[],
   snapshot?: FlueConversationState,
   mediationHistory?: VoiceMediationHistory,
+  interviewBudgetLevel?: InterviewBudgetLevel,
   toolApprovalState?: (toolCallId: string) => ToolApprovalState | null,
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
@@ -51,12 +53,15 @@ export const getBrunchVoiceMode = (
           );
   const subscribeToAdmissionFailure =
     tracker?.subscribeToAdmissionFailure.bind(tracker);
+  const recordInputMode = tracker?.recordInputMode.bind(tracker);
 
   return (context: PetrinautAiVoiceModeContext) => (
     <VoiceInterviewControl
       {...context}
       config={config}
+      interviewBudgetLevel={interviewBudgetLevel}
       mediationHistory={mediationHistory}
+      onInputModeChange={recordInputMode}
       toolApprovalState={toolApprovalState}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated

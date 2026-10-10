@@ -40,7 +40,11 @@ let registeredVoiceModeControls:
   | PetrinautAiVoiceModeSessionControls
   | undefined;
 
-const VoiceInterviewHarness = () => {
+const VoiceInterviewHarness = ({
+  onInputModeChange,
+}: {
+  onInputModeChange?: (mode: PetrinautAiVoiceModeContext["inputMode"]) => void;
+}) => {
   "use no memo";
 
   const [active, setActive] = useState(false);
@@ -114,7 +118,11 @@ const VoiceInterviewHarness = () => {
       <output>{active ? "Voice active" : "Voice inactive"}</output>
       <output>{inputMode === "voice" ? "Voice mode" : "Text mode"}</output>
       <output>{isAiAssistantOpen ? "Panel open" : "Panel closed"}</output>
-      <VoiceInterviewControl {...context} config={config} />
+      <VoiceInterviewControl
+        {...context}
+        config={config}
+        onInputModeChange={onInputModeChange}
+      />
     </>
   );
 };
@@ -577,6 +585,27 @@ describe("voice interview control", () => {
 
     unmount();
     expect(registeredVoiceModeControls).toBeUndefined();
+  });
+
+  test("reports the panel's input mode until Voice unmounts", async () => {
+    const onInputModeChange = vi.fn();
+    const { unmount } = render(
+      <VoiceInterviewHarness onInputModeChange={onInputModeChange} />,
+    );
+    expect(onInputModeChange).toHaveBeenLastCalledWith("text");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+    await screen.findByText("Voice mode");
+    expect(onInputModeChange).toHaveBeenLastCalledWith("voice");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Text" }));
+    await screen.findByText("Text mode");
+    expect(onInputModeChange).toHaveBeenLastCalledWith("text");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+    await screen.findByText("Voice mode");
+    unmount();
+    expect(onInputModeChange).toHaveBeenLastCalledWith("text");
   });
 
   test("restarts when Voice is reselected before teardown completes", async () => {

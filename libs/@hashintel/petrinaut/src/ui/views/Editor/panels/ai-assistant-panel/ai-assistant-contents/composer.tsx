@@ -248,6 +248,7 @@ export const AiAssistantComposer = ({
       }}
     >
       <div className={composerStyle} data-brunch={isBrunch || undefined}>
+        {isBrunch && control}
         <textarea
           ref={inputRef}
           className={composerTextareaStyle}
@@ -293,7 +294,6 @@ export const AiAssistantComposer = ({
                 {hint}
               </span>
             )}
-            {control}
             {actionButton}
           </div>
         ) : (

@@ -23,6 +23,7 @@ import {
 } from "./live-conversation";
 import { LiveSpeechCaptions } from "./live-speech-captions";
 
+import type { InterviewBudgetLevel } from "../../../../../shared/interview-budget";
 import type { VoiceInterviewControl } from "../session/voice-interview-control";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
@@ -40,6 +41,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToStopRequested"
     | "toolApprovalState"
   > & {
+    readonly interviewBudgetLevel?: InterviewBudgetLevel;
     readonly mediationHistory?: VoiceMediationHistory;
     readonly acknowledgeDisclosure: () => void;
     readonly submit: ConstructorParameters<
@@ -87,6 +89,7 @@ const createLiveMediation = (
 });
 
 export const LiveConversationControl = ({
+  interviewBudgetLevel = "off",
   mediationHistory,
   acknowledgeDisclosure,
   inputMode,
@@ -140,7 +143,8 @@ export const LiveConversationControl = ({
     phase: "idle",
     message: null,
   });
-  const { phase, activity, message, playbackBlocked } = state;
+  const { phase, activity, message, playbackBlocked, interviewBudgetUpdate } =
+    state;
   const session = useRef<ReturnType<typeof createLiveConversation> | null>(
     null,
   );
@@ -368,6 +372,7 @@ export const LiveConversationControl = ({
         },
         closed: () => captions.close(),
       },
+      interviewBudgetLevel,
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);
@@ -394,7 +399,16 @@ export const LiveConversationControl = ({
     setVoiceActive(true);
     void next.start();
     return true;
-  }, [audioSettingsStore, connectionTimeoutMs, phase, setVoiceActive]);
+  }, [
+    audioSettingsStore,
+    connectionTimeoutMs,
+    phase,
+    setVoiceActive,
+    interviewBudgetLevel,
+  ]);
+  useEffect(() => {
+    session.current?.setInterviewBudgetLevel(interviewBudgetLevel);
+  }, [interviewBudgetLevel, state.phase]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;
@@ -504,10 +518,18 @@ export const LiveConversationControl = ({
                 : (activity?.microphoneLevel ?? 0),
             microphoneMuted: phase === "error" || microphoneMuted,
             errorMessage: phase === "error" ? message : null,
-            notice: playbackBlocked ? message : null,
+            notice: playbackBlocked
+              ? message
+              : interviewBudgetUpdate === "pending"
+                ? "Updating Live pacing…"
+                : null,
             speakerMuted,
             speakerVolume,
-            warningMessage,
+            warningMessage:
+              warningMessage ??
+              (interviewBudgetUpdate === "failed"
+                ? "Live pacing wasn’t updated. Choose another interview length to retry; Brunch’s question limit still applies."
+                : null),
             ...(playbackBlocked ? { canRetryPlayback: true } : {}),
           }
         : null,
@@ -520,6 +542,7 @@ export const LiveConversationControl = ({
     sessionPhase,
     message,
     playbackBlocked,
+    interviewBudgetUpdate,
     activity,
     status,
     stopped,

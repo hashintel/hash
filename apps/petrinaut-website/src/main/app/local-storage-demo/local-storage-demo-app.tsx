@@ -35,6 +35,10 @@ import {
   useSharedSearchNavigation,
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
+import {
+  interviewBudgetLevelsConfig,
+  type InterviewBudgetLevel,
+} from "../../../shared/interview-budget";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import {
   BrunchPanelConversationTracker,
@@ -95,8 +99,18 @@ import {
   type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
+import {
+  countInterviewReplies,
+  isInterviewClosing,
+} from "./brunch-interview-budget";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
+import {
+  InterviewBudgetControl,
+  InterviewBudgetNote,
+  InterviewBudgetPill,
+} from "./interview-budget-control";
+import { useInterviewBudgetPreference } from "./interview-budget-preference";
 import { UnsavedChangeNotice } from "./unsaved-change-notice";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 
@@ -159,6 +173,16 @@ const useProcessAgentSession = (input: {
  * The demo's own palette commands, registered beside Petrinaut's.
  * Brunch and Stock are selected through the product UI.
  */
+/** Each message's 1-based position among messages of the same role. */
+const ordinalsByRole = (messages: readonly PetrinautAiMessage[]): number[] => {
+  const counts = new Map<PetrinautAiMessage["role"], number>();
+  return messages.map((message) => {
+    const ordinal = (counts.get(message.role) ?? 0) + 1;
+    counts.set(message.role, ordinal);
+    return ordinal;
+  });
+};
+
 const DemoCommands = ({
   brunchSelected,
   selectAssistant,
@@ -210,6 +234,25 @@ export const LocalStorageDemoApp = ({
     ready: voicePreferenceReady,
     setEnabled: setVoiceEnabled,
   } = useVoicePreference();
+  const {
+    level: selectedInterviewBudgetLevel,
+    setLevel: setInterviewBudgetLevel,
+    enabled: interviewBudgetEnabled,
+    setEnabled: setInterviewBudgetEnabled,
+    ready: interviewBudgetPreferenceReady,
+  } = useInterviewBudgetPreference();
+  const interviewBudgetLevel =
+    interviewBudgetEnabled && interviewBudgetPreferenceReady
+      ? selectedInterviewBudgetLevel
+      : "off";
+  const [budgetNotes, setBudgetNotes] = useState<
+    {
+      conversationId: string;
+      after: { id: string; role: PetrinautAiMessage["role"]; ordinal: number };
+      level: InterviewBudgetLevel;
+      message: PetrinautAiMessage;
+    }[]
+  >([]);
   const {
     enabled: realtimeEnabled,
     ready: realtimePreferenceReady,
@@ -436,6 +479,12 @@ export const LocalStorageDemoApp = ({
     constructionClientTools,
     dynamicClientToolNames,
   );
+  const interviewRepliesAsked = countInterviewReplies(
+    flueHistory.snapshot ?? { messages: [] },
+  );
+  const interviewClosing = isInterviewClosing(
+    flueHistory.snapshot ?? { messages: [] },
+  );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
     : undefined;
@@ -497,6 +546,7 @@ export const LocalStorageDemoApp = ({
         flueHistory.settlements,
         flueHistory.snapshot,
         mediationHistory,
+        interviewBudgetLevel,
         (toolCallId) => mutationApproval.coordinator.approvalState(toolCallId),
       ),
     [
@@ -505,6 +555,7 @@ export const LocalStorageDemoApp = ({
       flueHistory.settlements,
       flueHistory.snapshot,
       mediationHistory,
+      interviewBudgetLevel,
       mutationApproval,
       openAIVoiceConfig,
       realtimeEnabled,
@@ -520,6 +571,8 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
+          interviewBudgetLevel,
+          interviewRepliesAsked,
           ...(constructionBrowser
             ? { initialData: { binding: constructionBrowser.binding } }
             : {}),
@@ -567,6 +620,8 @@ export const LocalStorageDemoApp = ({
     flueHistory.refresh,
     reportBrunchFailure,
     transportClientPromise,
+    interviewBudgetLevel,
+    interviewRepliesAsked,
   ]);
 
   const inBandBrowserTools = useMemo(
@@ -644,12 +699,93 @@ export const LocalStorageDemoApp = ({
         ? {
             primaryLabel: "Chat",
             presentation: "brunch" as const,
-            mapMessagesForDisplay: mapVoiceMessages,
+            mapMessagesForDisplay: (messages: PetrinautAiMessage[]) => {
+              // Canonical history re-identifies an optimistic user message
+              // once its turn settles, so an anchor whose id is gone falls
+              // back to its position among messages of the same role.
+              const ids = new Set(messages.map((message) => message.id));
+              const ordinals = ordinalsByRole(messages);
+              const withNotes = messages.flatMap((message, index) => [
+                message,
+                ...budgetNotes
+                  .filter(
+                    (note) =>
+                      note.conversationId === conversationId &&
+                      (ids.has(note.after.id)
+                        ? note.after.id === message.id
+                        : note.after.role === message.role &&
+                          note.after.ordinal === ordinals[index]),
+                  )
+                  .map((note) => note.message),
+              ]);
+              return mapVoiceMessages?.(withNotes) ?? withNotes;
+            },
+            renderSystemMessage: (message: PetrinautAiMessage) => {
+              const note = budgetNotes.find(
+                (entry) => entry.message.id === message.id,
+              );
+              return note ? (
+                <InterviewBudgetNote level={note.level} />
+              ) : undefined;
+            },
             resolveToolPresentation: resolveBrunchToolPresentation,
             workingLabel: "Working…",
             renderComposerControl: (
               context: PetrinautAiComposerControlContext,
-            ) => <BrunchExperimentFollowUp context={context} />,
+            ) => (
+              <>
+                <BrunchExperimentFollowUp context={context} />
+                {interviewBudgetEnabled && (
+                  <InterviewBudgetControl
+                    level={interviewBudgetLevel}
+                    onChange={(level) => {
+                      if (level === interviewBudgetLevel) return;
+                      const last = context.messages.at(-1);
+                      const lastOrdinal = ordinalsByRole(context.messages).at(
+                        -1,
+                      );
+                      if (last && lastOrdinal !== undefined) {
+                        const config = interviewBudgetLevelsConfig[level];
+                        setBudgetNotes((notes) => [
+                          ...notes,
+                          {
+                            conversationId: context.conversationId,
+                            level,
+                            after: {
+                              id: last.id,
+                              role: last.role,
+                              ordinal: lastOrdinal,
+                            },
+                            message: {
+                              id: `interview-budget:${crypto.randomUUID()}`,
+                              role: "system",
+                              parts: [
+                                {
+                                  type: "text",
+                                  text: `${config.name} · ${config.guide}`,
+                                },
+                              ],
+                            },
+                          },
+                        ]);
+                      }
+                      setInterviewBudgetLevel(level);
+                    }}
+                  />
+                )}
+              </>
+            ),
+            renderComposerStatus: (
+              context: PetrinautAiComposerControlContext,
+            ) =>
+              interviewBudgetEnabled ? (
+                <InterviewBudgetPill
+                  level={interviewBudgetLevel}
+                  context={context}
+                  asked={interviewRepliesAsked}
+                  closing={interviewClosing}
+                />
+              ) : null,
           }
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
@@ -722,6 +858,12 @@ export const LocalStorageDemoApp = ({
     };
   }, [
     aiMessagesByNetId,
+    budgetNotes,
+    interviewBudgetEnabled,
+    interviewBudgetLevel,
+    interviewRepliesAsked,
+    interviewClosing,
+    setInterviewBudgetLevel,
     mapVoiceMessages,
     brunchSelected,
     brunchVoiceMode,
@@ -779,10 +921,15 @@ export const LocalStorageDemoApp = ({
                   assistantReady={assistantSelectionReady}
                   brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
                   brunchSelected={brunchSelected}
+                  interviewBudgetEnabled={interviewBudgetEnabled}
+                  interviewBudgetPreferenceReady={
+                    interviewBudgetPreferenceReady
+                  }
                   openAIVoiceConfig={openAIVoiceConfig}
                   realtimeEnabled={realtimeEnabled}
                   realtimePreferenceReady={realtimePreferenceReady}
                   selectAssistant={selectAssistant}
+                  setInterviewBudgetEnabled={setInterviewBudgetEnabled}
                   setRealtimeEnabled={setRealtimeEnabled}
                   setVoiceEnabled={setVoiceEnabled}
                   voiceEnabled={brunchSelected && voiceEnabled}

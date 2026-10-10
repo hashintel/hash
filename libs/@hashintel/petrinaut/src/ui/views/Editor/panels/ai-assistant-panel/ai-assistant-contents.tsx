@@ -66,10 +66,12 @@ export type AiAssistantContentsProps = {
   primaryLabel?: string;
   presentation?: PetrinautAiAssistant["presentation"];
   resolveToolPresentation?: PetrinautAiAssistant["resolveToolPresentation"];
+  renderSystemMessage?: PetrinautAiAssistant["renderSystemMessage"];
   hiddenToolNames?: ReadonlySet<string>;
   workingLabel?: string;
   clearMessagesDisabled?: boolean;
   composerControl?: ReactNode;
+  composerStatus?: ReactNode;
   composerFocusRequest?: number;
   error?: Error;
   experimentStates?: Record<string, AiExperimentState>;
@@ -400,14 +402,17 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
   if (messages.length === 0) {
     return "0";
   }
-  const last = messages[messages.length - 1]!;
+  const trailing = messages[messages.length - 1]!;
+  // Host system notes can trail the turn they annotate while it streams.
+  const last =
+    messages.findLast((message) => message.role !== "system") ?? trailing;
   const lastPart = last.parts[last.parts.length - 1];
   const partSignature = lastPart ? getPartScrollSignature(lastPart) : "";
   const dataSignature = last.parts
     .filter((part) => part !== lastPart && part.type.startsWith("data-"))
     .map(getPartScrollSignature)
     .join(",");
-  return `${messages.length}:${last.id}:${last.parts.length}:${partSignature}:${dataSignature}`;
+  return `${messages.length}:${trailing.id}:${last.id}:${last.parts.length}:${partSignature}:${dataSignature}`;
 };
 
 export const getTranscriptLabel = (
@@ -427,6 +432,7 @@ export const AiAssistantContents = ({
   onCancelExperiment,
   clearMessagesDisabled = false,
   composerControl,
+  composerStatus,
   composerFocusRequest = 0,
   error,
   input,
@@ -461,6 +467,7 @@ export const AiAssistantContents = ({
   voiceMode,
   voiceModeAvailable = false,
   resolveToolPresentation,
+  renderSystemMessage,
   workingLabel,
 }: AiAssistantContentsProps) => {
   const panelId = useId();
@@ -916,6 +923,7 @@ export const AiAssistantContents = ({
                 canRetry={
                   onRetryPrompt !== undefined && !isBusy && !voiceHandoffPending
                 }
+                renderSystemMessage={renderSystemMessage}
                 voice={inputMode === "voice"}
               />
             ) : (
@@ -978,11 +986,13 @@ export const AiAssistantContents = ({
             </div>
           )}
 
+          {!isVoiceDockCollapsed && composerStatus}
           {isVoiceSessionLive ? (
             <div ref={voiceDockRef}>
               <LiveVoiceDock
                 assistantBusy={isBusy}
                 collapsed={isVoiceDockCollapsed}
+                composerControl={composerControl}
                 errorIndicator={voiceAlertIndicator}
                 onCollapsedEnd={onCollapsedVoiceEnd}
                 onStop={onStop}

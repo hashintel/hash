@@ -15,6 +15,10 @@ import sdcpnModellingSkill from "@hashintel/brunch-agent-plugin-sdcpn/skills/sdc
 import { petrinautAiCapabilityGuidance } from "@hashintel/petrinaut-core/ai";
 
 import { type SdcpnInitialData } from "./initial-data";
+import {
+  interviewBudgetInstruction,
+  type InterviewBudget,
+} from "./interview-budget";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import { createDraftExperimentTool } from "./tools/draft-experiment";
 import {
@@ -23,12 +27,16 @@ import {
 } from "./tools/petrinaut-construction";
 
 export const useSdcpnPlugin = (options?: {
+  /** The current submission's allowance; omitted means Off. */
+  readonly interviewBudget?: InterviewBudget;
   readonly executeBrowserTool?: BrowserToolExecutor;
   readonly authorizeDraft?: Parameters<
     typeof createDraftExperimentTool
   >[0]["authorizeDraft"];
 }): void => {
   const initialData = useInitialData<SdcpnInitialData>();
+  const instruction = interviewBudgetInstruction(options?.interviewBudget);
+  if (instruction) useInstruction(instruction);
   if (initialData) {
     useInstruction(sdcpnAppend.trim());
     useInstruction(petrinautAiCapabilityGuidance);

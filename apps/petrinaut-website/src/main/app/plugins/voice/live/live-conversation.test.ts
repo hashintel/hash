@@ -200,7 +200,7 @@ const setup = ({
   );
   const getUserMedia = vi.fn(async () => stream);
   vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
-  const fetch = vi.fn(async (url: string) =>
+  const fetch = vi.fn(async (url: string, _init?: RequestInit) =>
     Response.json(
       url.endsWith("transcription-session")
         ? { sdp: "v=0\r\no=transcription-answer" }
@@ -1514,6 +1514,122 @@ test("telemetry shows activity but silence and late samples never settle or revi
   release(new Map());
   await vi.advanceTimersByTimeAsync(500);
   expect(fixture.onState).toHaveBeenCalledTimes(calls);
+});
+
+test("sends the startup budget once and coalesces quiet session-wide changes", async () => {
+  const fixture = setup();
+  fixture.conversation.setInterviewBudgetLevel("standard");
+  await connect(fixture);
+  const startup = fixture.fetch.mock.calls.find(
+    ([url]) => url === "/api/voice/live-session",
+  );
+  expect(
+    new Headers(startup?.[1]?.headers).get("x-petrinaut-interview-budget"),
+  ).toBe("standard");
+  fixture.conversation.setInterviewBudgetLevel("standard");
+  await Promise.resolve();
+  expect(fixture.sent[0]).toHaveLength(0);
+  fixture.conversation.setInterviewBudgetLevel("quick");
+  fixture.conversation.setInterviewBudgetLevel("deep");
+  await Promise.resolve();
+  expect(fixture.sent[0]).toHaveLength(1);
+  expect(JSON.parse(fixture.sent[0][0]!)).toMatchObject({
+    type: "session.thinking.append",
+    delegation_id: null,
+  });
+  expect(fixture.sent[0][0]).toContain("Deep (No limit)");
+  fixture.conversation.setInterviewBudgetLevel("off");
+  await Promise.resolve();
+  expect(fixture.sent[0]).toHaveLength(1);
+  fixture.emit(0, {
+    type: "session.thinking.appended",
+    client_event_id: fixture.onAppendResult.mock.lastCall![0].eventId,
+  });
+  await Promise.resolve();
+  expect(JSON.parse(fixture.sent[0][1]!)).toMatchObject({
+    type: "session.thinking.append",
+    delegation_id: null,
+  });
+  expect(fixture.sent[0][1]).toContain("now Off");
+});
+
+test.each(["rejected", "local-failure"] as const)(
+  "a %s pacing update stays retryable without interrupting or replaying speech",
+  async (failure) => {
+    const fixture = setup();
+    await connect(fixture);
+    if (failure === "local-failure") {
+      vi.spyOn(fixture.channels[0], "send").mockImplementationOnce(() => {
+        throw new Error("send unavailable");
+      });
+    }
+    fixture.conversation.setInterviewBudgetLevel("deep");
+    await Promise.resolve();
+    const pending = fixture.onAppendResult.mock.lastCall![0];
+    if (failure === "rejected") {
+      expect(fixture.onState.mock.lastCall![0]).toMatchObject({
+        phase: "connected",
+        interviewBudgetUpdate: "pending",
+      });
+      // An unacknowledged append must not be replayed by a rerender.
+      fixture.conversation.setInterviewBudgetLevel("deep");
+      await Promise.resolve();
+      expect(fixture.sent[0]).toHaveLength(1);
+      fixture.emit(0, { type: "error", client_event_id: pending.eventId });
+    }
+    await Promise.resolve();
+    expect(fixture.onState.mock.lastCall![0]).toMatchObject({
+      phase: "connected",
+      interviewBudgetUpdate: "failed",
+    });
+    const sends = fixture.sent[0].length;
+    await Promise.resolve();
+    expect(fixture.sent[0]).toHaveLength(sends);
+    // Explicit retry of the same desired level is allowed after known failure.
+    fixture.conversation.setInterviewBudgetLevel("deep");
+    await Promise.resolve();
+    expect(fixture.sent[0]).toHaveLength(sends + 1);
+    const retry = fixture.onAppendResult.mock.lastCall![0];
+    fixture.emit(0, {
+      type: "session.thinking.appended",
+      client_event_id: pending.eventId,
+    });
+    expect(fixture.onState.mock.lastCall![0].interviewBudgetUpdate).toBe(
+      "pending",
+    );
+    fixture.emit(0, {
+      type: "session.thinking.appended",
+      client_event_id: retry.eventId,
+    });
+    expect(
+      fixture.onState.mock.lastCall![0].interviewBudgetUpdate,
+    ).toBeUndefined();
+    fixture.conversation.setInterviewBudgetLevel("deep");
+    await Promise.resolve();
+    expect(fixture.sent[0]).toHaveLength(sends + 1);
+    expect(
+      fixture.sent[0].every((event) =>
+        event.includes("session.thinking.append"),
+      ),
+    ).toBe(true);
+    expect(fixture.audio.pause).not.toHaveBeenCalled();
+  },
+);
+
+test("coalesces changes behind an acknowledgement and keeps the latest selection after rejection", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  fixture.conversation.setInterviewBudgetLevel("quick");
+  await Promise.resolve();
+  const first = fixture.onAppendResult.mock.lastCall![0];
+  fixture.conversation.setInterviewBudgetLevel("standard");
+  fixture.conversation.setInterviewBudgetLevel("thorough");
+  await Promise.resolve();
+  expect(fixture.sent[0]).toHaveLength(1);
+  fixture.emit(0, { type: "error", client_event_id: first.eventId });
+  await Promise.resolve();
+  expect(fixture.sent[0]).toHaveLength(2);
+  expect(fixture.sent[0][1]).toContain("Thorough");
 });
 
 test("progress commentary has a null delegation and only the later wrap-up closes the local delegation", async () => {

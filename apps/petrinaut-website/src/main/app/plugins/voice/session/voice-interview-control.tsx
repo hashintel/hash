@@ -30,11 +30,15 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { InterviewBudgetLevel } from "../../../../../shared/interview-budget";
 import type { VoiceMediationHistory } from "../history/voice-mediation-history";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { ToolApprovalState } from "../live/live-brunch-bridge";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiInputMode,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
 
 type ResolveSubmission = (
   messageId: string,
@@ -632,7 +636,9 @@ const AvailableVoiceInterviewControl = ({
 
 const PinnedVoiceInterviewControl = ({
   config,
+  interviewBudgetLevel,
   mediationHistory,
+  onInputModeChange,
   toolApprovalState,
   resolveInputSubmission,
   resolveResponseSubmission,
@@ -646,7 +652,10 @@ const PinnedVoiceInterviewControl = ({
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
+  readonly interviewBudgetLevel?: InterviewBudgetLevel;
   readonly mediationHistory?: VoiceMediationHistory;
+  /** Mirrors the panel's input surface; reports `text` once Voice unmounts. */
+  readonly onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   readonly toolApprovalState?: (toolCallId: string) => ToolApprovalState | null;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
@@ -661,6 +670,11 @@ const PinnedVoiceInterviewControl = ({
   // Labs changes apply between Voice sessions, never during an active turn.
   // The host ends the current session before returning to text mode.
   const [sessionConfig, setSessionConfig] = useState(config);
+  useLayoutEffect(() => {
+    if (!onInputModeChange) return;
+    onInputModeChange(context.inputMode);
+    return () => onInputModeChange("text");
+  }, [context.inputMode, onInputModeChange]);
   if (
     context.inputMode === "text" &&
     (sessionConfig.provider !== config.provider ||
@@ -673,6 +687,7 @@ const PinnedVoiceInterviewControl = ({
     return (
       <LiveConversationControl
         {...context}
+        interviewBudgetLevel={interviewBudgetLevel}
         mediationHistory={mediationHistory}
         toolApprovalState={toolApprovalState}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}

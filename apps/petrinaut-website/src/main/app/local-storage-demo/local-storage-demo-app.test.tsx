@@ -9,7 +9,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { isValidElement, type ReactNode } from "react";
+import { Children, isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent/constants";
@@ -35,6 +35,7 @@ import {
   parseAssistantSelection,
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
+import { InterviewBudgetControl } from "./interview-budget-control";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import { voicePreferenceStorageKey } from "./voice-preference";
 
@@ -1488,6 +1489,117 @@ describe("assistant selection", () => {
     ).toHaveProperty("checked", false);
     await waitFor(() => expect(currentVoiceProvider()).toBe("live"));
   });
+
+  test.each([
+    [undefined, "standard"],
+    ["thorough", "thorough"],
+    ["off", "off"],
+  ] as const)(
+    "gates interview length separately from saved level %s",
+    async (savedLevel, expectedLevel) => {
+      seedStoredNet();
+      localStorage.setItem(assistantSelectionStorageKey, "brunch");
+      if (savedLevel)
+        localStorage.setItem("petrinaut-website:interview-budget", savedLevel);
+      flueClientMock.current = flueHistoryClient();
+      vi.stubGlobal("PointerEvent", MouseEvent);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () =>
+          Response.json({
+            available: true,
+            provider: "live",
+            connectionTimeoutMs: 10_000,
+          }),
+        ),
+      );
+      const context = {
+        conversationId: "labs-test",
+        messages: [],
+        status: "ready" as const,
+        stop: vi.fn(async () => {}),
+        submitText: vi.fn(),
+      };
+      const expectBudget = (enabled: boolean) => {
+        const level = enabled ? expectedLevel : "off";
+        expect(brunchPanelTransportOptions.current).toEqual(
+          expect.objectContaining({ interviewBudgetLevel: level }),
+        );
+        const assistant = currentAssistant();
+        const composer = assistant.renderComposerControl?.(context);
+        if (!isValidElement<{ children: ReactNode }>(composer))
+          throw new Error("Missing composer controls");
+        expect(
+          Children.toArray(composer.props.children).some(
+            (child) =>
+              isValidElement(child) && child.type === InterviewBudgetControl,
+          ),
+        ).toBe(enabled);
+        expect(Boolean(assistant.renderComposerStatus?.(context))).toBe(
+          enabled,
+        );
+        const voice = assistant.renderVoiceMode?.({
+          ...context,
+          inputMode: "voice",
+          isAiAssistantOpen: true,
+          canAcceptVoiceInput: true,
+          registerVoiceModeControls: vi.fn(() => () => {}),
+          reportVoiceSessionState: vi.fn(),
+          setInputMode: vi.fn(),
+          setVoiceActive: vi.fn(),
+          submitVoiceInput: vi.fn(),
+        });
+        if (
+          !isValidElement<{
+            interviewBudgetLevel: string;
+            onInputModeChange?: (mode: "text" | "voice") => void;
+          }>(voice)
+        )
+          throw new Error("Missing Voice control");
+        expect(voice.props.interviewBudgetLevel).toBe(level);
+        voice.props.onInputModeChange?.("voice");
+        expect(brunchPanelTransportTracker.current?.inputMode).toBe("voice");
+        voice.props.onInputModeChange?.("text");
+        expect(brunchPanelTransportTracker.current?.inputMode).toBe("text");
+      };
+      const firstView = render(
+        <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+      );
+      const toggle = await screen.findByRole("checkbox", {
+        name: "Interview length",
+      });
+      await waitFor(() =>
+        expect(currentAssistant().renderVoiceMode).toBeDefined(),
+      );
+      expect(toggle).toHaveProperty("checked", false);
+      expectBudget(false);
+      fireEvent.click(toggle);
+      await waitFor(() => expectBudget(true));
+      expect(
+        localStorage.getItem("petrinaut-website:interview-budget-enabled"),
+      ).toBe("true");
+      firstView.unmount();
+      const restoredView = render(
+        <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+      );
+      await waitFor(() => expectBudget(true));
+      const restoredToggle = screen.getByRole("checkbox", {
+        name: "Interview length",
+      });
+      expect(restoredToggle).toHaveProperty("checked", true);
+      fireEvent.click(restoredToggle);
+      await waitFor(() => expectBudget(false));
+      expect(
+        localStorage.getItem("petrinaut-website:interview-budget-enabled"),
+      ).toBe("false");
+      expect(localStorage.getItem("petrinaut-website:interview-budget")).toBe(
+        savedLevel ?? null,
+      );
+      restoredView.unmount();
+      render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+      await waitFor(() => expectBudget(false));
+    },
+  );
 
   test("a stored Brunch choice remains selectable and switching to Stock mounts nothing of Brunch", async () => {
     seedStoredNet();
