@@ -102,7 +102,8 @@ describe("UserSettingsProvider", () => {
             enableParameterSweeps: enabled,
             enableInBrowserOptimization: enabled,
             computeBackend: "webgpu",
-            showWalkthroughOnInit: false,
+            showWalkthroughOnInit: enabled,
+            showAnimations: false,
           }),
         ],
       ]);
@@ -127,10 +128,11 @@ describe("UserSettingsProvider", () => {
           "enableParameterSweeps",
           "enableInBrowserOptimization",
           "computeBackend",
+          "showWalkthroughOnInit",
         ]) {
           expect(key in persisted).toBe(false);
         }
-        expect(persisted.showWalkthroughOnInit).toBe(false);
+        expect(persisted.showAnimations).toBe(false);
       } finally {
         vi.unstubAllGlobals();
       }

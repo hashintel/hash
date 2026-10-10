@@ -1,6 +1,6 @@
 ---
 title: The demo site's plugins
-description: The plugins the demo website passes to the Petrinaut editor, how the list is assembled, and how a plugin folder is laid out.
+description: The plugins the demo website passes to the Petrinaut editor, how the list is assembled, how a plugin folder is laid out, and how to test a plugin.
 attachTo: website.plugins
 sidebar_order: 10
 ---
@@ -15,6 +15,7 @@ lives, for developers working on the website. Each one is written against the
 | ------------------ | ------------------------- | --------------------------------------------------------------------------------------------- |
 | `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's commands, as a `root`, and a top-bar button that toggles it. |
 | `sentry-feedback/` | `website.sentry-feedback` | A button under the viewport controls that opens Sentry's feedback form.                       |
+| `walkthrough/`     | `website.walkthrough`     | The welcome guide as a `root` marked `overlay` while open, and its "Show welcome guide" row.  |
 
 ## The list the editor receives
 
@@ -39,3 +40,10 @@ One folder per plugin, named after it:
 
 `_shared/` holds code two plugins share. A folder without `plugin.tsx` holds
 code the demo shell wires in itself.
+
+## Testing a plugin
+
+`_shared/testing/` holds what plugin tests are built on.
+`renderEditorWith(plugin, props?)` renders a real `<Petrinaut>` on an empty
+net with that plugin. To start a plugin with stored settings, seed its
+[settings key](doc:plugins/runtime#settings-storage) in `localStorage`.

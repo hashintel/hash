@@ -8,7 +8,7 @@ import introVideo from "./videos/01-intro-example.mp4";
 import experimentsVideo from "./videos/02-experiments-example.mp4";
 import aiVideo from "./videos/03-ai-example.mp4";
 
-import type { WalkthroughStep } from "@hashintel/petrinaut/ui";
+import type { WalkthroughStep } from "./walkthrough-dialog";
 
 export const walkthroughSteps: WalkthroughStep[] = [
   {

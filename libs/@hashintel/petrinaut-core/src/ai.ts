@@ -142,7 +142,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "code-editor":
     "Code editing in the Properties Panel: expand a section to fill the panel, return to the item’s other properties, direct function navigation, automatic edits and read-only behavior.",
   "visual-settings":
-    "General, Viewport, Plugins and Labs preferences: animations, keep-panels-mounted, welcome guide, minimap, snap-to-grid, compact nodes, partial selection, arc rendering style, switching plugins on or off, plugin settings, net components, and compilation output.",
+    "General, Viewport, Plugins and Labs preferences: animations, keep-panels-mounted, minimap, snap-to-grid, compact nodes, partial selection, arc rendering style, switching plugins on or off, plugin settings, net components, and compilation output.",
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:

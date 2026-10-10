@@ -2,20 +2,13 @@
 import {
   cleanup,
   fireEvent,
-  render,
   screen,
   waitForElementToBeRemoved,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
-
-import {
-  InProcessLspWorker,
-  NoopResizeObserver,
-} from "../../shared/petrinaut-jsdom";
+import { renderEditorWith } from "../_shared/testing/render-editor-with";
 import { commandPalettePlugin } from "./plugin";
 
 await vi.hoisted(async () => {
@@ -24,34 +17,12 @@ await vi.hoisted(async () => {
   installPetrinautDomShims();
 });
 
-// Kept until the environment is disposed: the language server starts lazily.
-beforeAll(() => {
-  vi.stubGlobal("ResizeObserver", NoopResizeObserver);
-  vi.stubGlobal("Worker", InProcessLspWorker);
-});
 afterEach(cleanup);
-
-const renderEditor = () =>
-  render(
-    <Petrinaut
-      handle={createJsonDocHandle({
-        id: "command-palette-test",
-        initial: {
-          places: [],
-          transitions: [],
-          types: [],
-          parameters: [],
-          differentialEquations: [],
-        },
-      })}
-      plugins={[commandPalettePlugin]}
-    />,
-  );
 
 test.each(["metaKey", "ctrlKey"])(
   "%s + K opens the palette inside the editor, over the editor's commands; with Shift it does not",
   async (modifier) => {
-    renderEditor();
+    renderEditorWith(commandPalettePlugin);
     await screen.findByRole("button", { name: "Command palette" });
 
     fireEvent.keyDown(document.body, {
@@ -73,7 +44,7 @@ test.each(["metaKey", "ctrlKey"])(
 );
 
 test("the top-bar button opens the palette and its own toggle row closes it", async () => {
-  renderEditor();
+  renderEditorWith(commandPalettePlugin);
 
   fireEvent.click(
     await screen.findByRole("button", { name: "Command palette" }),

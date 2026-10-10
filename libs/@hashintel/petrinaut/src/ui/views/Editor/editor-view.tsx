@@ -36,11 +36,6 @@ import { UserSettingsContext } from "../../../react/state/user-settings-context"
 import { VoiceSessionProvider } from "../../../react/voice-session/provider";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
-import {
-  WalkthroughContext,
-  willShowWalkthroughDialog,
-} from "../../components/walkthrough/walkthrough-context";
-import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dialog";
 import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
@@ -224,13 +219,8 @@ const EditorViewContent = ({
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
   const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
-  const {
-    enableExperimentalIconPack,
-    showAnimations,
-    showWalkthroughOnInit,
-    setShowWalkthroughOnInit,
-  } = use(UserSettingsContext);
-  const walkthrough = use(WalkthroughContext);
+  const { enableExperimentalIconPack, showAnimations } =
+    use(UserSettingsContext);
   // A plugin covering the canvas, such as a tour, holds back the prompt.
   const pluginOverlay = usePluginOverlay();
 
@@ -242,21 +232,6 @@ const EditorViewContent = ({
     setAiAssistantCollapsed(false);
     setAiAssistantOpen(true);
     setAiAssistantFocusRequest((request) => request + 1);
-  };
-
-  // Live open state for the walkthrough. Seeded once from the persisted
-  // "show on init" preference, so toggling that preference only takes effect
-  // on the next init rather than reopening the walkthrough mid-session.
-  const [isWalkthroughOpen, setIsWalkthroughOpen] = useState(
-    showWalkthroughOnInit,
-  );
-
-  // Dismissing the walkthrough closes it for this session and clears the
-  // "show on init" preference, so it doesn't reappear next init unless the
-  // user re-enables it from the settings dialog.
-  const closeWalkthrough = () => {
-    setIsWalkthroughOpen(false);
-    setShowWalkthroughOnInit(false);
   };
 
   const [importError, setImportError] = useState<string | null>(null);
@@ -527,7 +502,6 @@ const EditorViewContent = ({
     aiAssistant !== undefined &&
     !isAiAssistantOpen &&
     !isAiCtaDismissed &&
-    !willShowWalkthroughDialog(walkthrough, isWalkthroughOpen) &&
     !pluginOverlay &&
     isEmptySDCPN(petriNetDefinition);
 
@@ -553,8 +527,6 @@ const EditorViewContent = ({
         errorMessage={importError ?? ""}
         onCreateEmpty={handleCreateEmpty}
       />
-
-      <WalkthroughDialog open={isWalkthroughOpen} onClose={closeWalkthrough} />
 
       {/* Top Bar - always visible */}
       <TopBar
