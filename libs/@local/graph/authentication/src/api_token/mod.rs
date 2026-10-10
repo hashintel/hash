@@ -13,11 +13,15 @@
 //! [`ApiToken`] holds the secret, [`HashedApiToken`] only its SHA-256 hash. Parsing a token yields
 //! a [`HashedApiToken`]. An [`ApiTokenEncryptionKey`] encrypts that hash for a store, bound to the
 //! [`AssociatedData`] of the token and its row. An [`ApiTokenIssuer`] generates a token together
-//! with the parameters a store records it with, and [`ApiTokenHint`] shows a recorded token.
+//! with the parameters a store records it with, and verifies a presented token against that
+//! record. [`ApiTokenHint`] shows a recorded token. [`ApiTokenProvider`] authenticates requests
+//! with a token in the `Authorization` header, and [`ApiTokenRejection`] rejects every token
+//! without verifying it.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 mod encryption;
 mod issuer;
+mod provider;
 
 use core::{
     fmt::{self, Write as _},
@@ -35,6 +39,9 @@ use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 pub use self::{
     encryption::{ApiTokenDecryptionError, ApiTokenEncryptionKey, AssociatedData},
     issuer::{ApiTokenIssuer, IssuedApiToken},
+    provider::{
+        ApiTokenProvider, ApiTokenRejection, AuthenticateApiToken, StorePoolApiTokenAuthenticator,
+    },
 };
 
 const PREFIX: &str = "hsh_";

@@ -391,7 +391,8 @@ async fn delete_user(
         let code = match report.current_context() {
             UserDeletionError::UserLookup => StatusCode::Unavailable,
             UserDeletionError::MissingKratosIdentityId => StatusCode::FailedPrecondition,
-            UserDeletionError::EntityDeletion
+            UserDeletionError::ApiTokenRevocation
+            | UserDeletionError::EntityDeletion
             | UserDeletionError::KratosDeletion
             | UserDeletionError::UnknownIdentity
             | UserDeletionError::HydraLoginRevocation

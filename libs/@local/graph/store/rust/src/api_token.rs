@@ -147,7 +147,10 @@ impl FromSql<'_> for ApiTokenVersion {
 }
 
 /// The SHA-256 hash of an API token's secret.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+///
+/// `Debug` leaves out the hash.
+#[derive(Copy, Clone, PartialEq, Eq, derive_more::Debug)]
+#[debug("ApiTokenSecretHash(..)")]
 pub struct ApiTokenSecretHash([u8; 32]);
 
 impl ApiTokenSecretHash {
@@ -165,7 +168,10 @@ impl ApiTokenSecretHash {
 /// The SHA-256 hash of an API token's secret, encrypted with AES-256-GCM.
 ///
 /// The first 12 bytes are the nonce, followed by the 32 bytes of ciphertext and the 16-byte tag.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+///
+/// `Debug` leaves out the bytes.
+#[derive(Copy, Clone, PartialEq, Eq, derive_more::Debug)]
+#[debug("ApiTokenEncryptedSecretHash(..)")]
 pub struct ApiTokenEncryptedSecretHash([u8; 60]);
 
 impl ApiTokenEncryptedSecretHash {
@@ -177,6 +183,32 @@ impl ApiTokenEncryptedSecretHash {
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 60] {
         &self.0
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for ApiTokenEncryptedSecretHash {
+    postgres_types::accepts!(BYTEA);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        self.0.as_slice().to_sql(ty, out)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl FromSql<'_> for ApiTokenEncryptedSecretHash {
+    postgres_types::accepts!(BYTEA);
+
+    fn from_sql(ty: &Type, raw: &[u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        let bytes = <&[u8]>::from_sql(ty, raw)?;
+        <[u8; 60]>::try_from(bytes).map(Self).map_err(|_error| {
+            format!("an encrypted secret hash has 60 bytes, not {}", bytes.len()).into()
+        })
     }
 }
 
@@ -298,7 +330,66 @@ pub enum ApiTokenRevocationError {
     Store,
 }
 
-/// Records, lists and revokes the API tokens of webs.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("the API tokens of the web could not be revoked")]
+pub struct WebApiTokenRevocationError;
+
+/// What a store records about an API token, which a presented token is verified against.
+#[derive(Debug)]
+pub struct ApiTokenCredential {
+    pub token_type: ApiTokenType,
+    pub version: ApiTokenVersion,
+    /// The user the token acts as.
+    pub user_id: UserId,
+    /// The web that owns the token.
+    pub web_id: WebId,
+    pub encryption_key_id: ApiTokenEncryptionKeyId,
+    pub encrypted_secret_hash: ApiTokenEncryptedSecretHash,
+}
+
+/// Why a presented secret does not verify against an [`ApiTokenCredential`].
+#[derive(Debug, Copy, Clone, derive_more::Display, derive_more::Error)]
+pub enum ApiTokenVerificationError {
+    /// The type or version of the presented token differs from the recorded one.
+    #[display("the type or version of the API token does not match its record")]
+    TokenMismatch,
+    /// The hash of the presented secret differs from the recorded one.
+    #[display("the secret does not match the API token")]
+    SecretMismatch,
+    /// No configured key has the ID the credential names.
+    #[display("the key `{key_id}` that encrypted the API token is not configured")]
+    UnknownKey { key_id: ApiTokenEncryptionKeyId },
+    /// The encrypted secret hash does not decrypt with the configured key for the token and its
+    /// row.
+    #[display("the encrypted secret hash does not decrypt for its token")]
+    Undecryptable,
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum ApiTokenAuthenticationError {
+    /// No user has a valid API token with the requested ID, or the presented token does not match
+    /// its record.
+    #[display("the API token is invalid")]
+    Invalid,
+    /// The record of the API token cannot be checked against the presented token.
+    #[display("the API token cannot be verified")]
+    Unverifiable,
+    #[display("the API token could not be read or its use could not be recorded")]
+    Store,
+}
+
+impl From<ApiTokenVerificationError> for ApiTokenAuthenticationError {
+    fn from(reason: ApiTokenVerificationError) -> Self {
+        match reason {
+            ApiTokenVerificationError::TokenMismatch
+            | ApiTokenVerificationError::SecretMismatch => Self::Invalid,
+            ApiTokenVerificationError::UnknownKey { .. }
+            | ApiTokenVerificationError::Undecryptable => Self::Unverifiable,
+        }
+    }
+}
+
+/// Records, lists, authenticates and revokes API tokens.
 pub trait ApiTokenStore {
     /// Records the API token `params` describes.
     ///
@@ -337,13 +428,66 @@ pub trait ApiTokenStore {
         web_id: WebId,
         token_id: ApiTokenId,
     ) -> impl Future<Output = Result<(), Report<ApiTokenRevocationError>>> + Send;
+
+    /// Revokes the API tokens of `web_id` that are not revoked yet, and returns how many it
+    /// revoked.
+    ///
+    /// A revoked token keeps the time it was first revoked at.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WebApiTokenRevocationError`] if the tokens cannot be revoked.
+    fn revoke_web_api_tokens(
+        &mut self,
+        web_id: WebId,
+    ) -> impl Future<Output = Result<u64, Report<WebApiTokenRevocationError>>> + Send;
+
+    /// Authenticates the API token `token_id` and returns the user it acts as.
+    ///
+    /// Reads the [`ApiTokenCredential`] of `token_id` if the token is neither revoked nor expired,
+    /// and passes it to `verify`. Only a token that authenticates has its use recorded, at most
+    /// once a minute.
+    ///
+    /// # Errors
+    ///
+    /// - [`Invalid`] if no user has a token `token_id` that is neither revoked nor expired
+    /// - [`Invalid`] or [`Unverifiable`] if `verify` fails, converted [`From`] its
+    ///   [`ApiTokenVerificationError`], which stays in the report
+    /// - [`Store`] if the token cannot be read or its use cannot be recorded
+    ///
+    /// [`Invalid`]: ApiTokenAuthenticationError::Invalid
+    /// [`Unverifiable`]: ApiTokenAuthenticationError::Unverifiable
+    /// [`Store`]: ApiTokenAuthenticationError::Store
+    fn authenticate_api_token<F>(
+        &mut self,
+        token_id: ApiTokenId,
+        verify: F,
+    ) -> impl Future<Output = Result<UserId, Report<ApiTokenAuthenticationError>>> + Send
+    where
+        F: FnOnce(&ApiTokenCredential) -> Result<(), ApiTokenVerificationError> + Send;
 }
 
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
 
-    use super::ApiTokenName;
+    use super::{ApiTokenEncryptedSecretHash, ApiTokenName, ApiTokenSecretHash};
+
+    #[test]
+    fn secret_hash_debug() {
+        assert!(
+            !format!("{:?}", ApiTokenSecretHash::new([0xAB; 32])).contains("171"),
+            "the debug output should leave out the hash"
+        );
+    }
+
+    #[test]
+    fn encrypted_secret_hash_debug() {
+        assert!(
+            !format!("{:?}", ApiTokenEncryptedSecretHash::new([0xAB; 60])).contains("171"),
+            "the debug output should leave out the bytes"
+        );
+    }
 
     #[rstest]
     #[case::one_character("a".to_owned())]

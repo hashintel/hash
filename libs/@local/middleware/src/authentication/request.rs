@@ -79,6 +79,22 @@ pub enum AuthenticationErrorKind {
     /// The access token is invalid, expired, or not issued for this API.
     #[display("access token is invalid or expired")]
     InvalidAccessToken,
+    /// The API token does not exist, is expired or revoked, or carries the wrong secret.
+    #[display("API token is invalid, expired or revoked")]
+    InvalidApiToken,
+    /// The API token belongs to another environment.
+    #[display("API token belongs to another environment")]
+    ApiTokenOtherEnvironment,
+    /// The API token is sent without the `Bearer` scheme.
+    #[display("API token is not sent with the `Bearer` scheme")]
+    NonBearerApiToken,
+    /// The API token cannot be verified: API tokens are not configured, the key its record names
+    /// is not configured, or its record does not decrypt with that key.
+    #[display("the API token cannot be verified")]
+    UnverifiableApiToken,
+    /// The API does not accept API tokens.
+    #[display("this API does not accept API tokens")]
+    ApiTokenNotAccepted,
     /// The verified identity has no matching user actor.
     #[display("the authenticated identity has no matching user actor")]
     IdentityWithoutActor,
@@ -120,6 +136,11 @@ impl AuthenticationErrorKind {
             Self::InvalidProviderResponse => "invalid_provider_response",
             Self::InvalidSession => "invalid_session",
             Self::InvalidAccessToken => "invalid_access_token",
+            Self::InvalidApiToken => "invalid_api_token",
+            Self::ApiTokenOtherEnvironment => "api_token_other_environment",
+            Self::NonBearerApiToken => "non_bearer_api_token",
+            Self::UnverifiableApiToken => "unverifiable_api_token",
+            Self::ApiTokenNotAccepted => "api_token_not_accepted",
             Self::IdentityWithoutActor => "identity_without_actor",
             Self::NotProvisioned { .. } => "not_provisioned",
             Self::ActorNotFound { .. } => "actor_not_found",
@@ -128,8 +149,8 @@ impl AuthenticationErrorKind {
         }
     }
 
-    /// Whether the provider verified the credential and rejected it, as opposed to failing to
-    /// verify it.
+    /// Whether the provider verified a session or access token and rejected it, as opposed to
+    /// failing to verify it.
     #[must_use]
     pub const fn is_verified_rejection(&self) -> bool {
         matches!(self, Self::InvalidSession | Self::InvalidAccessToken)
@@ -144,12 +165,14 @@ impl AuthenticationErrorKind {
             | Self::InvalidProviderResponse
             | Self::StoreError => FaultDomain::Service,
             // A verified credential pointing at a missing or non-user actor is broken
-            // provisioning, and legitimate senders of the service credential are internal
-            // services, so a mismatch points at deployment configuration.
+            // provisioning. Legitimate senders of the service credential are internal services, so
+            // a mismatch points at deployment configuration, as does an API token the service
+            // cannot verify.
             Self::IdentityWithoutActor
             | Self::NotProvisioned { .. }
             | Self::ActorNotFound { .. }
             | Self::NotAUser { .. }
+            | Self::UnverifiableApiToken
             | Self::InvalidServiceSecret => FaultDomain::Operator,
             // A request arriving without the service secret says nothing about the deployment:
             // anyone can send one.
@@ -159,7 +182,11 @@ impl AuthenticationErrorKind {
             | Self::MissingServiceSecret
             | Self::MissingDelegatedActor
             | Self::InvalidSession
-            | Self::InvalidAccessToken => FaultDomain::Caller,
+            | Self::InvalidAccessToken
+            | Self::InvalidApiToken
+            | Self::ApiTokenOtherEnvironment
+            | Self::NonBearerApiToken
+            | Self::ApiTokenNotAccepted => FaultDomain::Caller,
         }
     }
 }
@@ -261,6 +288,36 @@ impl AuthenticationError {
         Self::new(AuthenticationErrorKind::InvalidAccessToken)
     }
 
+    /// Creates an error for [`AuthenticationErrorKind::InvalidApiToken`].
+    #[must_use]
+    pub const fn invalid_api_token() -> Self {
+        Self::new(AuthenticationErrorKind::InvalidApiToken)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::ApiTokenOtherEnvironment`].
+    #[must_use]
+    pub const fn api_token_other_environment() -> Self {
+        Self::new(AuthenticationErrorKind::ApiTokenOtherEnvironment)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::NonBearerApiToken`].
+    #[must_use]
+    pub const fn non_bearer_api_token() -> Self {
+        Self::new(AuthenticationErrorKind::NonBearerApiToken)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::UnverifiableApiToken`].
+    #[must_use]
+    pub const fn unverifiable_api_token() -> Self {
+        Self::new(AuthenticationErrorKind::UnverifiableApiToken)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::ApiTokenNotAccepted`].
+    #[must_use]
+    pub const fn api_token_not_accepted() -> Self {
+        Self::new(AuthenticationErrorKind::ApiTokenNotAccepted)
+    }
+
     /// Creates an error for [`AuthenticationErrorKind::IdentityWithoutActor`].
     #[must_use]
     pub const fn identity_without_actor() -> Self {
@@ -305,16 +362,16 @@ impl core::error::Error for AuthenticationError {}
 /// Resolves the caller from the request headers.
 ///
 /// The provider is the only credential path: a request without a recognized credential resolves
-/// through [`Caller::anonymous`], and so does one whose credential the provider verified and
-/// rejected — an expired session reads public data like a request without one. A failure to
-/// verify keeps failing the request. A degrade to anonymous is counted on `metrics` and added to
-/// the current span. Chain providers as pairs, nested for more than two, to accept several
-/// credential kinds.
+/// through [`Caller::anonymous`], and so does one whose session or access token the provider
+/// verified and rejected — an expired session reads public data like a request without one. Any
+/// other rejection, a rejected API token among them, and a failure to verify keep failing the
+/// request. A degrade to anonymous is counted on `metrics` and added to the current span. Chain
+/// providers as pairs, nested for more than two, to accept several credential kinds.
 ///
 /// # Errors
 ///
-/// - the rejection reason of the provider that recognized the credential, where the caller type
-///   requires an actor or the credential could not be verified
+/// - the rejection reason of the provider that recognized the credential, unless the provider
+///   verified and rejected a session or access token and the caller type serves anonymous callers
 /// - [`MissingCredentials`] if no provider recognized a credential and the caller type requires an
 ///   actor
 ///
@@ -380,6 +437,11 @@ pub(crate) fn every_error(
         AuthenticationErrorKind::InvalidProviderResponse,
         AuthenticationErrorKind::InvalidSession,
         AuthenticationErrorKind::InvalidAccessToken,
+        AuthenticationErrorKind::InvalidApiToken,
+        AuthenticationErrorKind::ApiTokenOtherEnvironment,
+        AuthenticationErrorKind::NonBearerApiToken,
+        AuthenticationErrorKind::UnverifiableApiToken,
+        AuthenticationErrorKind::ApiTokenNotAccepted,
         AuthenticationErrorKind::IdentityWithoutActor,
         AuthenticationErrorKind::NotProvisioned {
             identity_id: identity_id.to_owned(),

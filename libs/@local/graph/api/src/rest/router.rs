@@ -62,17 +62,22 @@ where
             &dependencies.store,
         )
     };
-    let public_provider = Arc::new((explicit(), Arc::clone(&environment)));
-    let internal_provider = Arc::new((
-        explicit(),
-        (
-            authentication::build_session_providers(
-                dependencies.session_auth,
-                &dependencies.store,
-                &dependencies.meter,
-            ),
-            environment,
+    let public_provider = Arc::new(authentication::public_chain(
+        authentication::build_api_token_provider(
+            dependencies.api_tokens.clone(),
+            &dependencies.store,
         ),
+        explicit(),
+        Arc::clone(&environment),
+    ));
+    let internal_provider = Arc::new(authentication::internal_chain(
+        explicit(),
+        authentication::build_session_providers(
+            dependencies.session_auth,
+            &dependencies.store,
+            &dependencies.meter,
+        ),
+        environment,
     ));
     let rate_limit_config =
         hash_middleware::rate_limit::RateLimitConfig::from(&dependencies.rate_limit);

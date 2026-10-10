@@ -26,13 +26,18 @@ impl Expose<AuthenticationProblem> for Report<AuthenticationError> {
         let kind = self.current_context().kind();
         match kind {
             AuthenticationErrorKind::MalformedCredential
-            | AuthenticationErrorKind::InvalidActorIdHeader => Answer::new(BadRequest { kind }),
+            | AuthenticationErrorKind::InvalidActorIdHeader
+            | AuthenticationErrorKind::NonBearerApiToken => Answer::new(BadRequest { kind }),
             AuthenticationErrorKind::MissingCredentials
             | AuthenticationErrorKind::MissingServiceSecret
             | AuthenticationErrorKind::InvalidServiceSecret
             | AuthenticationErrorKind::MissingDelegatedActor
             | AuthenticationErrorKind::InvalidSession
             | AuthenticationErrorKind::InvalidAccessToken
+            | AuthenticationErrorKind::InvalidApiToken
+            | AuthenticationErrorKind::ApiTokenOtherEnvironment
+            | AuthenticationErrorKind::UnverifiableApiToken
+            | AuthenticationErrorKind::ApiTokenNotAccepted
             | AuthenticationErrorKind::IdentityWithoutActor
             | AuthenticationErrorKind::NotProvisioned { .. }
             | AuthenticationErrorKind::ActorNotFound { .. }
@@ -66,12 +71,19 @@ const fn detail(kind: &AuthenticationErrorKind) -> &'static str {
         }
         AuthenticationErrorKind::InvalidSession => "session is invalid or expired",
         AuthenticationErrorKind::InvalidAccessToken => "access token is invalid or expired",
+        AuthenticationErrorKind::InvalidApiToken => "API token is invalid, expired or revoked",
+        AuthenticationErrorKind::ApiTokenOtherEnvironment => {
+            "API token belongs to another environment"
+        }
+        AuthenticationErrorKind::NonBearerApiToken => "API tokens use the `Bearer` scheme",
+        AuthenticationErrorKind::ApiTokenNotAccepted => "this API does not accept API tokens",
         AuthenticationErrorKind::MissingServiceSecret
         | AuthenticationErrorKind::InvalidServiceSecret
         | AuthenticationErrorKind::IdentityWithoutActor
         | AuthenticationErrorKind::NotProvisioned { .. }
         | AuthenticationErrorKind::ActorNotFound { .. }
-        | AuthenticationErrorKind::NotAUser { .. } => "credentials are not accepted",
+        | AuthenticationErrorKind::NotAUser { .. }
+        | AuthenticationErrorKind::UnverifiableApiToken => "credentials are not accepted",
         AuthenticationErrorKind::ProviderUnreachable
         | AuthenticationErrorKind::ProviderRejection
         | AuthenticationErrorKind::InvalidProviderResponse

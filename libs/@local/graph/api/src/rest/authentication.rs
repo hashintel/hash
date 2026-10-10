@@ -1,13 +1,17 @@
 //! Authentication providers shared by the Graph HTTP APIs.
 //!
-//! A router composes them as a chain that consults the explicit credential first, then a session,
-//! then what the environment stamps onto the request: `(ExplicitProviders, (SessionProviders,
-//! EnvironmentProviders))`, or without sessions `(ExplicitProviders, EnvironmentProviders)`.
+//! Only the first credential found in a request is checked. The providers look for an API token
+//! first, then for a service delegation, then for a Kratos session, and last for a Cloudflare
+//! Access JWT. The public APIs accept API tokens and no sessions. Every other API rejects a request
+//! that carries an API token.
 
 use alloc::sync::Arc;
 
 use hash_graph_authentication::{
     actor::StorePoolActorResolver,
+    api_token::{
+        ApiTokenIssuer, ApiTokenProvider, ApiTokenRejection, StorePoolApiTokenAuthenticator,
+    },
     delegation::ServiceDelegationProvider,
     kratos::{KratosEmailActorResolver, KratosSessionProvider},
 };
@@ -18,7 +22,7 @@ pub use hash_graph_authentication::{
     kratos::{KratosAdminConfig, KratosSessionConfig, SessionCacheConfig},
 };
 use hash_graph_authorization::policies::store::PrincipalStore;
-use hash_graph_store::pool::StorePool;
+use hash_graph_store::{api_token::ApiTokenStore, pool::StorePool};
 pub use hash_middleware::authentication::{AuthenticatedActorId, AuthenticationMetrics};
 
 /// Configuration for Cloudflare Access authentication.
@@ -40,6 +44,41 @@ pub type SessionProviders<S> = KratosSessionProvider<StorePoolActorResolver<S>>;
 /// configured.
 pub type EnvironmentProviders<S> =
     Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>;
+
+/// Chains `api_token`, `explicit` and `environment`, consulted in that order.
+pub(super) const fn public_chain<A, E, V>(
+    api_token: ApiTokenProvider<A>,
+    explicit: E,
+    environment: V,
+) -> (ApiTokenProvider<A>, (E, V)) {
+    (api_token, (explicit, environment))
+}
+
+/// Chains [`ApiTokenRejection`], `explicit`, `session` and `environment`, consulted in that order.
+pub(super) const fn internal_chain<E, P, V>(
+    explicit: E,
+    session: P,
+    environment: V,
+) -> (ApiTokenRejection, (E, (P, V))) {
+    (ApiTokenRejection, (explicit, (session, environment)))
+}
+
+/// Builds the [`ApiTokenProvider`], which verifies tokens with `issuer`.
+///
+/// Without an issuer, every bearer token that parses is rejected as unverifiable.
+pub fn build_api_token_provider<S>(
+    issuer: Option<Arc<ApiTokenIssuer>>,
+    store: &Arc<S>,
+) -> ApiTokenProvider<StorePoolApiTokenAuthenticator<S>>
+where
+    S: StorePool + Send + Sync,
+    for<'p> S::Store<'p>: ApiTokenStore,
+{
+    ApiTokenProvider::new(
+        StorePoolApiTokenAuthenticator::new(Arc::clone(store)),
+        issuer,
+    )
+}
 
 /// Builds the [`ExplicitProviders`].
 pub fn build_explicit_providers<S>(service_secret: String, store: &Arc<S>) -> ExplicitProviders<S>
