@@ -6,29 +6,27 @@ import { describePluginContributions } from "./plugin-contributions";
 describe("describePluginContributions", () => {
   it("lists what the manifest declares, in a fixed order, with where each part appears", () => {
     expect(
-      describePluginContributions(
-        {
-          id: "test.everything",
-          name: "Everything",
-          access: { document: "write", experiments: "read" },
-          buttons: { mute: { label: "Mute", place: "viewport-controls" } },
-          topBarItems: { status: { place: "top-bar-end" } },
-          commands: {
-            mute: { label: "Mute the assistant", shortcut: "f2" },
-            unmute: { label: "Unmute the assistant" },
-          },
-          settings: {
-            captions: {
-              type: "boolean",
-              default: true,
-              label: "Captions",
-              section: "labs",
-            },
-          },
-          provides: pluginService<string>(),
+      describePluginContributions({
+        id: "test.everything",
+        name: "Everything",
+        access: { document: "write", experiments: "read" },
+        buttons: { mute: { label: "Mute", place: "viewport-controls" } },
+        topBarItems: { status: { place: "top-bar-end" } },
+        commands: {
+          mute: { label: "Mute the assistant", shortcut: "f2" },
+          unmute: { label: "Unmute the assistant" },
         },
-        true,
-      ),
+        settings: {
+          captions: {
+            type: "boolean",
+            default: true,
+            label: "Captions",
+            section: "labs",
+          },
+        },
+        provides: pluginService<string>(),
+        root: true,
+      }),
     ).toEqual([
       { kind: "access", subject: "document", detail: "Read and change" },
       { kind: "access", subject: "experiments", detail: "Read" },
@@ -44,7 +42,7 @@ describe("describePluginContributions", () => {
 
   it("lists nothing for a manifest that declares nothing", () => {
     expect(
-      describePluginContributions({ id: "test.none", name: "None" }, false),
+      describePluginContributions({ id: "test.none", name: "None" }),
     ).toEqual([]);
   });
 });

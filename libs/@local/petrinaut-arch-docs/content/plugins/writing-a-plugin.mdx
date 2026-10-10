@@ -77,6 +77,7 @@ const createHistoryPlugin = definePetrinautPlugin({
     clear: { label: "Clear the edit history", keywords: ["reset"] },
   },
   buttons: { show: { label: "Edit history", place: "top-bar-end" } },
+  root: true,
 });
 
 const useHistoryPlugin: PluginHook<typeof createHistoryPlugin> = () => {
@@ -108,9 +109,10 @@ a key handler that goes through the registry.
 
 ## Render UI inside the editor
 
-Return a `root` for dialogs, overlays and tours. The editor renders it inside
-itself, behind the plugin's error boundary. Return `overlay: true` while the
-root covers the editor: it holds back the empty-canvas assistant prompt.
+Declare `root: true` and return a `root` for dialogs, overlays and tours,
+`null` while there is nothing to show. The editor renders it inside itself,
+behind the plugin's error boundary. Return `overlay: true` while the root
+covers the editor: it holds back the empty-canvas assistant prompt.
 
 ## Add settings
 

@@ -17,9 +17,9 @@ const rows: readonly PluginRowProps[] = [
         "Press ⌘K or Ctrl+K, or the top-bar button, to search and run commands.",
       author: "HASH",
       buttons: { toggle: { label: "Command palette", place: "top-bar-end" } },
+      root: true,
     },
     status: "on",
-    rendersRoot: true,
   },
   {
     manifest: {
@@ -32,7 +32,6 @@ const rows: readonly PluginRowProps[] = [
       },
     },
     status: "off",
-    rendersRoot: false,
   },
   {
     manifest: {
@@ -45,7 +44,6 @@ const rows: readonly PluginRowProps[] = [
       provides: pluginService<number>(),
     },
     status: "on",
-    rendersRoot: false,
   },
   {
     manifest: {
@@ -55,7 +53,6 @@ const rows: readonly PluginRowProps[] = [
       author: "Example",
     },
     status: "failed",
-    rendersRoot: false,
   },
 ];
 

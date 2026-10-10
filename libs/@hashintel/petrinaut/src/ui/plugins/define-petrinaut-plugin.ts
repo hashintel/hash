@@ -142,6 +142,11 @@ export interface PetrinautPluginManifest {
   readonly topBarItems?: Readonly<
     Record<string, { readonly place: PluginTopBarPlace }>
   >;
+  /**
+   * UI inside the editor: dialogs, overlays, tours. The hook returns it under
+   * `root`, and may return `overlay` while it covers the editor.
+   */
+  readonly root?: true;
   /** The service the hook returns under `provides`, declared with `pluginService<T>()`. */
   readonly provides?: PluginService<unknown>;
 }
@@ -204,6 +209,8 @@ export interface PluginButton<CommandKey extends string = string> {
 }
 
 interface ContributionTable<M extends PetrinautPluginManifest> {
+  /** Rendered inside the editor behind the plugin's error boundary; `null` while there is nothing to show. */
+  root: ReactNode;
   commands: {
     readonly [K in keyof NonNullable<M["commands"]>]: PluginCommand;
   };
@@ -228,24 +235,24 @@ type DeclaredKeys<M> = {
 }[keyof M];
 
 /**
- * What the hook returns. `root` and `overlay` are always allowed; every
- * contribution the manifest declares is required, and every other one is a
- * type error.
+ * What the hook returns. Every contribution the manifest declares is
+ * required, every other one is a type error, and `overlay` goes with a
+ * declared `root`.
  */
 export type PluginContributions<
   D extends PluginDefinitionRef,
   M extends PetrinautPluginManifest = D["manifest"],
 > = {
-  /** UI the editor renders inside itself, behind the plugin's error boundary: dialogs, overlays, tours. */
-  readonly root?: ReactNode;
-  /** `true` while `root` covers the editor; holds back the empty-canvas assistant prompt. */
-  readonly overlay?: boolean;
-} & {
   readonly [K in DeclaredKeys<M> &
     keyof ContributionTable<M>]: ContributionTable<M>[K];
 } & {
   readonly [K in Exclude<keyof ContributionTable<M>, DeclaredKeys<M>>]?: never;
-};
+} & (M extends { readonly root: true }
+    ? {
+        /** `true` while `root` covers the editor; holds back the empty-canvas assistant prompt. */
+        readonly overlay?: boolean;
+      }
+    : { readonly overlay?: never });
 
 /**
  * The hook: receives `api` and returns the contributions. Name it
