@@ -206,7 +206,9 @@ describe("PetrinautPluginsProvider", () => {
       members[id] = Object.entries(api).flatMap(([key, value]) =>
         key === "errors" || key === "notifications"
           ? []
-          : [`${key}:${"edit" in value || "run" in value ? "write" : "read"}`],
+          : [
+              `${key}:${"edit" in value || "run" in value || "navigate" in value ? "write" : "read"}`,
+            ],
       );
     };
     const createNone = definePetrinautPlugin({ id: "test.none", name: "None" });
@@ -228,7 +230,7 @@ describe("PetrinautPluginsProvider", () => {
     const createWriter = definePetrinautPlugin({
       id: "test.writer",
       name: "Writer",
-      access: { document: "write", experiments: "read" },
+      access: { document: "write", experiments: "read", editor: "write" },
     });
     const useWriter: PluginHook<typeof createWriter> = (api) => {
       useLayoutEffect(() => record("writer", api));
@@ -244,7 +246,7 @@ describe("PetrinautPluginsProvider", () => {
     expect(members).toEqual({
       none: [],
       reader: ["document:read"],
-      writer: ["document:write", "experiments:read"],
+      writer: ["document:write", "experiments:read", "editor:write"],
     });
   });
 

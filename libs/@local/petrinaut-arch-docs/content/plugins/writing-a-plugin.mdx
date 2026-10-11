@@ -149,17 +149,21 @@ const usePlaceCountPlugin: PluginHook<typeof createPlaceCountPlugin> = ({
 
 ## Read and edit the document
 
-Declare in `access` the families the plugin needs, `document` and
-`experiments`, each at `"read"` or `"write"`. Only declared families appear on
+Declare in `access` the families the plugin needs, `document`, `experiments`
+and `editor`, each at `"read"` or `"write"`. Only declared families appear on
 `api`; the reference lists [what each level gives](doc:plugins/reference#access).
+`editor` is where the editor is, not what it holds: its `navigation` store
+carries the mode, the views, the selection and the open overlay, and
+`navigate` moves them, so a plugin can open its own settings rows with
+`navigate({ overlay: { type: "user-settings", section: "plugins" } })`.
 
 ### Values, stores and actions
 
-| Kind    | Members                                                                                                  | Read them                                                                                                                          |
-| ------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Values  | `document.id`, `document.extensions`, `settings.get()`                                                   | Anywhere in the hook or its components.                                                                                            |
-| Stores  | `document.net`, `document.title`, `experiments.records`, `experiments.optimizationUnavailableReason`     | In render: `useStore` or `useStoreSelector`, in the component that shows the value. In handlers, effects and async code: `.get()`. |
-| Actions | `edit.*`, `setTitle`, `diagnose`, `reveal`, `run`, `notifications.add`, `errors.capture`, `settings.set` | Call them; they act on the editor as it is when called.                                                                            |
+| Kind    | Members                                                                                                                   | Read them                                                                                                                          |
+| ------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Values  | `document.id`, `document.extensions`, `settings.get()`                                                                    | Anywhere in the hook or its components.                                                                                            |
+| Stores  | `document.net`, `document.title`, `experiments.records`, `experiments.optimizationUnavailableReason`, `editor.navigation` | In render: `useStore` or `useStoreSelector`, in the component that shows the value. In handlers, effects and async code: `.get()`. |
+| Actions | `edit.*`, `setTitle`, `diagnose`, `run`, `navigate`, `reveal`, `notifications.add`, `errors.capture`, `settings.set`      | Call them; they act on the editor as it is when called.                                                                            |
 
 - Read stores in components, not in the hook: a subscription in the hook
   republishes the contributions, and re-renders the editor's outlets, on
@@ -167,8 +171,9 @@ Declare in `access` the families the plugin needs, `document` and
 - Never call `.get()` during render: the React Compiler caches the result.
 - After an `await`, read stores with `.get()` and change things through
   actions, never through values captured at render.
-- Pass the family objects (`api.document`, `api.experiments`, `api.errors`,
-  `api.notifications`) to code that lives as long as the plugin, not `api`.
+- Pass the family objects (`api.document`, `api.experiments`, `api.editor`,
+  `api.errors`, `api.notifications`) to code that lives as long as the plugin,
+  not `api`.
   They never change while the plugin is mounted; `api` changes with every
   setting change.
 - Write hooks that tolerate extra runs. Editor changes never run a hook again,

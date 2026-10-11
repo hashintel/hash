@@ -29,7 +29,7 @@ const createRootPlugin = definePetrinautPlugin({
 const createEditorPlugin = definePetrinautPlugin({
   id: "test.editor",
   name: "Editor",
-  access: { document: "read" },
+  access: { document: "read", editor: "read" },
   settings: {
     mode: { type: "enum", options: ["a", "b"], default: "a", label: "Mode" },
   },
@@ -56,6 +56,11 @@ describe("definePetrinautPlugin", () => {
       void api.document.edit;
       // @ts-expect-error An undeclared family is absent.
       void api.experiments;
+      const editorMode: "edit" | "simulate" | "actual" =
+        api.editor.navigation.get().mode;
+      // @ts-expect-error A reader cannot navigate.
+      void api.editor.navigate;
+      void editorMode;
 
       return { provides: { ready: mode === "a" } };
     };
@@ -76,6 +81,7 @@ describe("definePetrinautPlugin", () => {
 
     expect(createEditorPlugin(useEditorPlugin).manifest.access).toEqual({
       document: "read",
+      editor: "read",
     });
   });
 

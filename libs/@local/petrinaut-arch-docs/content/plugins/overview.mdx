@@ -15,14 +15,14 @@ tables, and how the editor runs plugins.
 
 ## The parts
 
-| Part          | What it is                                                                                                                                                            |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Manifest      | Plain data: what the plugin adds and which editor state it reads or changes.                                                                                          |
-| Definition    | What `definePetrinautPlugin(manifest)` returns, named `createXPlugin`. It is callable and carries `.manifest`, which User settings reads without running plugin code. |
-| Hook          | `useXPlugin(api)`: receives `api` and returns the contributions. A plugin whose contributions need no `api` passes them as an object instead.                         |
-| `api`         | What the manifest grants: `errors` and `notifications` always, `settings` when the manifest declares settings, `document` and `experiments` when `access` names them. |
-| Contributions | What the hook returns: an entry for each key the manifest declares, `root` included.                                                                                  |
-| Plugin        | What calling the definition returns. `<Petrinaut plugins>` takes an array of them.                                                                                    |
+| Part          | What it is                                                                                                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manifest      | Plain data: what the plugin adds and which editor state it reads or changes.                                                                                                    |
+| Definition    | What `definePetrinautPlugin(manifest)` returns, named `createXPlugin`. It is callable and carries `.manifest`, which User settings reads without running plugin code.           |
+| Hook          | `useXPlugin(api)`: receives `api` and returns the contributions. A plugin whose contributions need no `api` passes them as an object instead.                                   |
+| `api`         | What the manifest grants: `errors` and `notifications` always, `settings` when the manifest declares settings, `document`, `experiments` and `editor` when `access` names them. |
+| Contributions | What the hook returns: an entry for each key the manifest declares, `root` included.                                                                                            |
+| Plugin        | What calling the definition returns. `<Petrinaut plugins>` takes an array of them.                                                                                              |
 
 ## Example
 

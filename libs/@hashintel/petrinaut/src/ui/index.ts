@@ -39,6 +39,8 @@ export type {
   PluginAccess,
   PluginDocument,
   PluginDocumentReader,
+  PluginEditor,
+  PluginEditorReader,
   PluginEdits,
   PluginErrors,
   PluginExperiments,

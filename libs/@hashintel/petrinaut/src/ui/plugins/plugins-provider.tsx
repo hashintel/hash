@@ -28,7 +28,7 @@ import { accessApi } from "./plugin-access";
 import { PluginBoundary } from "./plugin-boundary";
 import { PluginCommandRegistrations } from "./plugin-commands";
 import {
-  type PluginEditor,
+  type PluginEditorRuntime,
   PluginEditorProvider,
   usePluginEditor,
 } from "./plugin-editor";
@@ -122,7 +122,7 @@ export const usePluginService = <D extends PluginDefinitionRef>(
  */
 const usePluginApi = (
   manifest: PetrinautPluginManifest,
-  editor: PluginEditor,
+  editor: PluginEditorRuntime,
   settings: PluginSettings | undefined,
 ): never => {
   // It calls no hook, which `infer` mode would skip.
@@ -144,7 +144,7 @@ const PluginHost = ({
   store,
 }: {
   plugin: PetrinautPlugin;
-  editor: PluginEditor;
+  editor: PluginEditorRuntime;
   store: ContributionsStore;
 }) => {
   // The hook differs per host, which the React Compiler cannot compile; a

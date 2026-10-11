@@ -10,6 +10,7 @@ import {
 import { PetrinautProvider } from "../../react/petrinaut-provider";
 import { PetrinautPluginsProvider } from "./plugins-provider";
 
+import type { PetrinautNavigationController } from "../../react/navigation";
 import type { NetManagement } from "../../react/net-management-context";
 import type { PetrinautPlugin } from "./define-petrinaut-plugin";
 import type { ComponentType, ReactNode } from "react";
@@ -40,17 +41,20 @@ const Passthrough = ({ children }: { children: ReactNode }) => children;
 /**
  * Renders `view` as the editor view beside `plugins`, under the editor's
  * providers over a new document; `Around` wraps the plugins provider inside
- * them. `rerender` keeps the core instance unless given another.
+ * them, and `navigation` makes the host own navigation. `rerender` keeps the
+ * core instance unless given another.
  */
 export const renderPlugins = (
   plugins: readonly PetrinautPlugin[],
   view: ReactNode,
   {
     netManagement,
+    navigation,
     Around = Passthrough,
     ...options
   }: RenderOptions & {
     netManagement?: Partial<NetManagement>;
+    navigation?: PetrinautNavigationController;
     Around?: ComponentType<{ children: ReactNode }>;
   } = {},
 ) => {
@@ -64,6 +68,7 @@ export const renderPlugins = (
   ) => (
     <PetrinautProvider
       instance={nextInstance}
+      navigation={navigation}
       netManagement={{
         title: "Net",
         existingNets: [],

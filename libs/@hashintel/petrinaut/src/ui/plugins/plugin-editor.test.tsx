@@ -4,6 +4,10 @@ import { type ReactNode, use, useLayoutEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LanguageClientContext } from "../../react/lsp/context";
+import {
+  defaultPetrinautNavigationState,
+  type PetrinautNavigationIntent,
+} from "../../react/navigation";
 import { EditorContext } from "../../react/state/editor-context";
 import {
   definePetrinautPlugin,
@@ -15,7 +19,7 @@ import { usePluginService } from "./plugins-provider";
 import { renderPlugins } from "./plugins-test-harness";
 
 import type { CanvasController } from "../views/SDCPN/canvas-renderer";
-import type { PluginDocument } from "./plugin-access";
+import type { PluginDocument, PluginEditor } from "./plugin-access";
 import type { DiagnosticsSnapshot } from "@hashintel/petrinaut-core";
 
 const place = {
@@ -41,21 +45,45 @@ const useDocumentPlugin: PluginHook<typeof createDocumentPlugin> = (api) => ({
 
 const documentPlugin = createDocumentPlugin(useDocumentPlugin);
 
-/** What the view's probe last saw: the plugin's document and the editor's mode setter. */
+const createEditorPlugin = definePetrinautPlugin({
+  id: "test.editor",
+  name: "Editor",
+  access: { editor: "write" },
+  provides: pluginService<PluginEditor>(),
+});
+
+const useEditorPlugin: PluginHook<typeof createEditorPlugin> = (api) => ({
+  provides: api.editor,
+});
+
+const editorPlugin = createEditorPlugin(useEditorPlugin);
+
+/** What the view's probe last saw: the plugins' services and the editor's mode setter. */
 const probe: {
   document?: PluginDocument;
+  editor?: PluginEditor;
   setGlobalMode?: (mode: "edit" | "simulate") => void;
 } = {};
 
 const Probe = () => {
   const document = usePluginService(createDocumentPlugin);
+  const editor = usePluginService(createEditorPlugin);
   const { setGlobalMode } = use(EditorContext);
   useLayoutEffect(() => {
     probe.document = document;
+    probe.editor = editor;
     probe.setGlobalMode = setGlobalMode;
   });
 
   return null;
+};
+
+const editorOf = () => {
+  if (!probe.editor) {
+    throw new Error("The editor plugin has not published yet.");
+  }
+
+  return probe.editor;
 };
 
 const documentOf = () => {
@@ -187,6 +215,69 @@ describe("plugin editor", () => {
     );
     expect(net).toBe(checked);
     expect(net).not.toBe(documentOf().net.get());
+  });
+
+  it("reads where the editor is, wakes a subscriber only when it moves, and moves it", () => {
+    const { instance } = renderPlugins([editorPlugin], <Probe />);
+    const seen: string[] = [];
+    editorOf().navigation.subscribe((state) => seen.push(state.mode));
+    expect(editorOf().navigation.get().mode).toBe("edit");
+
+    act(() => probe.setGlobalMode?.("simulate"));
+    act(() => probe.setGlobalMode?.("simulate"));
+    expect(seen).toEqual(["simulate"]);
+
+    act(() => editorOf().navigate({ mode: "edit" }));
+    expect(editorOf().navigation.get().mode).toBe("edit");
+    act(() =>
+      editorOf().navigate((current) => ({
+        ...current,
+        overlay: { type: "user-settings", section: "plugins" },
+      })),
+    );
+    expect(editorOf().navigation.get().overlay).toEqual({
+      type: "user-settings",
+      section: "plugins",
+    });
+
+    act(() => instance.mutations.addPlace(place));
+    const placeId = instance.definition.get().places[0]!.id;
+    act(() =>
+      editorOf().reveal({
+        kind: "selection",
+        item: { type: "place", id: placeId },
+      }),
+    );
+    expect(editorOf().navigation.get().selection).toEqual([
+      { type: "place", id: placeId },
+    ]);
+    expect(seen).toEqual(["simulate", "edit", "edit", "edit"]);
+  });
+
+  it("names the first field a navigation changes by value, so an equal new selection is no change", () => {
+    const intents: PetrinautNavigationIntent[] = [];
+    renderPlugins([editorPlugin], <Probe />, {
+      navigation: {
+        state: defaultPetrinautNavigationState,
+        onNavigate: (_update, { intent }) => {
+          intents.push(intent);
+        },
+      },
+    });
+
+    act(() => editorOf().navigate({ simulateView: "metrics", selection: [] }));
+    act(() =>
+      editorOf().navigate((current) => ({
+        ...current,
+        selection: [...current.selection],
+        simulateView: "scenarios",
+      })),
+    );
+
+    expect(intents).toEqual([
+      { cause: "user", action: "simulation-view" },
+      { cause: "user", action: "simulation-view" },
+    ]);
   });
 
   it("gives a host's layout effect the read-only reason of the same commit", () => {
