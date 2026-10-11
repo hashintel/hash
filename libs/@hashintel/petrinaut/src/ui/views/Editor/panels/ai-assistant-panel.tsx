@@ -1540,12 +1540,23 @@ const ConversationAiAssistantPanel = ({
     isAiAssistantOpen,
   ]);
 
-  // Viewing a tab clears its attention marker, adjusted during render.
-  if (isAiAssistantOpen && hostTabSelected && hostAttentionCount !== 0) {
-    setHostAttentionCount(0);
-  }
-  if (isAiAssistantOpen && !hostTabSelected && primaryAttention) {
-    setPrimaryAttention(false);
+  // The tab in view, or null while the panel is closed.
+  const viewedTab = !isAiAssistantOpen
+    ? null
+    : hostTabSelected
+      ? "host"
+      : "primary";
+  // Bringing a tab into view clears its attention marker, once per change of
+  // view. React documents this shape for state that follows a changed value:
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [lastViewedTab, setLastViewedTab] = useState(viewedTab);
+  if (viewedTab !== lastViewedTab) {
+    setLastViewedTab(viewedTab);
+    if (viewedTab === "host") {
+      setHostAttentionCount(0);
+    } else if (viewedTab === "primary") {
+      setPrimaryAttention(false);
+    }
   }
 
   useEffect(() => {
