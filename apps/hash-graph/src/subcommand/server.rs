@@ -3,6 +3,7 @@ use core::{
     fmt,
     net::{AddrParseError, SocketAddr},
     num::NonZero,
+    pin::Pin,
     str::FromStr,
     time::Duration,
 };
@@ -41,6 +42,7 @@ use hash_graph_store::{
     pool::StorePool,
 };
 use hash_graph_type_fetcher::FetchingPool;
+use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
@@ -300,8 +302,7 @@ pub struct ApiTokenConfig {
         env = "HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY",
         hide_env_values = true
     )]
-    #[debug("***")]
-    pub api_token_encryption_key: Option<String>,
+    pub api_token_encryption_key: Option<Pin<Box<Secret<[u8; 32]>>>>,
 
     /// The ID recorded with every secret hash the key encrypts. A new key needs a new ID.
     #[clap(long, env = "HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY_ID")]
@@ -318,13 +319,8 @@ impl ApiTokenConfig {
     ///
     /// # Errors
     ///
-    /// Returns [`GraphError`] if only some API token options are set or the key is not 64
-    /// hexadecimal characters.
+    /// Returns [`GraphError`] if only some API token options are set.
     pub(crate) fn into_issuer(self) -> Result<Option<ApiTokenIssuer>, Report<GraphError>> {
-        const KEY_FORMAT: &str = "--api-token-encryption-key \
-                                  (HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY) must be 64 hexadecimal \
-                                  characters";
-
         let (key, key_id, environment) = match (
             self.api_token_encryption_key,
             self.api_token_encryption_key_id,
@@ -343,20 +339,9 @@ impl ApiTokenConfig {
             }
         };
 
-        // TODO(BE-791): zeroize the raw key in `key`, `key_bytes` and the copy left in
-        // `ServerConfig`
-        let mut key_bytes = [0; 32];
-        let decoded_length = base16ct::mixed::decode(key.trim(), &mut key_bytes)
-            .map(<[u8]>::len)
-            .change_context(GraphError)
-            .attach(KEY_FORMAT)?;
-        if decoded_length != key_bytes.len() {
-            return Err(Report::new(GraphError).attach(KEY_FORMAT));
-        }
-
         tracing::info!(%key_id, ?environment, "API tokens enabled");
         Ok(Some(ApiTokenIssuer::new(
-            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(key_id), &key_bytes),
+            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(key_id), &key),
             api_token::Environment::from(environment),
         )))
     }
@@ -949,12 +934,13 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
 
 #[cfg(test)]
 mod tests {
-    use core::num::NonZero;
+    use core::{num::NonZero, pin::Pin};
 
     use hash_graph_api::rest::authentication::api_token::{
         ApiTokenEncryptionKey, Environment, HashedApiToken, IssuedApiToken,
     };
     use hash_graph_store::api_token::{ApiTokenEncryptionKeyId, ApiTokenName};
+    use hash_secret::Secret;
     use reqwest::Url;
     use rstest::rstest;
     use type_system::principal::{
@@ -968,16 +954,8 @@ mod tests {
     /// A key in mixed case, `00 11 … ff` twice.
     const MIXED_CASE_KEY: &str = "00112233445566778899AaBbCcDdEeFf00112233445566778899aAbBcCdDeEfF";
 
-    /// The bytes [`MIXED_CASE_KEY`] encodes.
-    const MIXED_CASE_KEY_BYTES: [u8; 32] = [
-        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE,
-        0xFF, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD,
-        0xEE, 0xFF,
-    ];
-
-    /// A key of `length` hexadecimal characters.
-    fn hex_key(length: usize) -> String {
-        "0123456789abcdef".chars().cycle().take(length).collect()
+    fn key() -> Pin<Box<Secret<[u8; 32]>>> {
+        Secret::<[u8; 32]>::from_hex(MIXED_CASE_KEY.to_owned()).expect("the key should decode")
     }
 
     #[test]
@@ -998,10 +976,10 @@ mod tests {
 
     #[rstest]
     #[case::key_missing(None, Some(Uuid::nil()), Some(ApiTokenEnvironment::Local))]
-    #[case::key_id_missing(Some(hex_key(64)), None, Some(ApiTokenEnvironment::Local))]
-    #[case::environment_missing(Some(hex_key(64)), Some(Uuid::nil()), None)]
+    #[case::key_id_missing(Some(key()), None, Some(ApiTokenEnvironment::Local))]
+    #[case::environment_missing(Some(key()), Some(Uuid::nil()), None)]
     fn api_tokens_partial(
-        #[case] api_token_encryption_key: Option<String>,
+        #[case] api_token_encryption_key: Option<Pin<Box<Secret<[u8; 32]>>>>,
         #[case] api_token_encryption_key_id: Option<Uuid>,
         #[case] api_token_environment: Option<ApiTokenEnvironment>,
     ) {
@@ -1019,24 +997,6 @@ mod tests {
         );
     }
 
-    #[rstest]
-    #[case::short(hex_key(62))]
-    #[case::not_hexadecimal(format!("{}g", hex_key(63)))]
-    fn api_tokens_invalid_key(#[case] key: String) {
-        let report = ApiTokenConfig {
-            api_token_encryption_key: Some(key),
-            api_token_encryption_key_id: Some(Uuid::nil()),
-            api_token_environment: Some(ApiTokenEnvironment::Local),
-        }
-        .into_issuer()
-        .expect_err("a key that is not 32 bytes of hexadecimal should not convert");
-
-        assert!(
-            format!("{report:?}").contains("64 hexadecimal characters"),
-            "the error should name the expected key format"
-        );
-    }
-
     /// The issuer encrypts with the configured key bytes and records the configured key ID.
     #[test]
     fn api_tokens_configured_key() {
@@ -1044,7 +1004,7 @@ mod tests {
             0x4444_4444_4444_4444_4444_4444_4444_4444,
         ));
         let issuer = ApiTokenConfig {
-            api_token_encryption_key: Some(format!(" {MIXED_CASE_KEY}\n")),
+            api_token_encryption_key: Some(key()),
             api_token_encryption_key_id: Some(Uuid::from(key_id)),
             api_token_environment: Some(ApiTokenEnvironment::Staging),
         }
@@ -1072,7 +1032,7 @@ mod tests {
             "the token should record the configured key ID"
         );
         assert_eq!(
-            ApiTokenEncryptionKey::new(key_id, &MIXED_CASE_KEY_BYTES)
+            ApiTokenEncryptionKey::new(key_id, &key())
                 .decrypt(
                     params.encrypted_secret_hash,
                     &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),

@@ -73,9 +73,10 @@ pub struct IssuedApiToken {
 
 #[cfg(test)]
 mod tests {
-    use core::time::Duration;
+    use core::{pin::pin, time::Duration};
 
     use hash_graph_store::api_token::{ApiTokenEncryptionKeyId, ApiTokenName};
+    use hash_secret::Secret;
     use type_system::principal::{
         actor::{ActorEntityUuid, UserId},
         actor_group::WebId,
@@ -85,18 +86,19 @@ mod tests {
     use super::{ApiTokenIssuer, IssuedApiToken};
     use crate::api_token::{ApiTokenEncryptionKey, Environment, HashedApiToken};
 
-    const KEY: [u8; 32] = [7; 32];
-
     fn key_id() -> ApiTokenEncryptionKeyId {
         ApiTokenEncryptionKeyId::new(Uuid::from_u128(0x3333_3333_3333_3333_3333_3333_3333_3333))
     }
 
+    fn encryption_key() -> ApiTokenEncryptionKey {
+        let mut key = pin!(Secret::<[u8; 32]>::zeroed());
+        key.as_mut().expose_mut().fill(7);
+        ApiTokenEncryptionKey::new(key_id(), &key)
+    }
+
     #[test]
     fn issue_matches_token() {
-        let issuer = ApiTokenIssuer::new(
-            ApiTokenEncryptionKey::new(key_id(), &KEY),
-            Environment::Staging,
-        );
+        let issuer = ApiTokenIssuer::new(encryption_key(), Environment::Staging);
         let user_id = UserId::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
         let lifetime = Duration::from_hours(24);
 
@@ -133,7 +135,7 @@ mod tests {
             "the parameters should name the issuer's key"
         );
         assert_eq!(
-            ApiTokenEncryptionKey::new(key_id(), &KEY)
+            encryption_key()
                 .decrypt(
                     params.encrypted_secret_hash,
                     &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),

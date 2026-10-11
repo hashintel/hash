@@ -12,6 +12,7 @@
     "hash-graph-postgres-store",
     "hash-graph-store",
     "hash-graph-type-fetcher",
+    "hash-secret",
     "hash-telemetry",
     "hash-temporal-client",
     "type-system"

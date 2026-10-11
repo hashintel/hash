@@ -6190,7 +6190,6 @@ name = "hash-graph"
 version = "0.0.0"
 dependencies = [
  "axum",
- "base16ct",
  "clap",
  "clap_complete",
  "derive_more",
@@ -6206,6 +6205,7 @@ dependencies = [
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-type-fetcher",
+ "hash-secret",
  "hash-telemetry",
  "hash-temporal-client",
  "jsonwebtoken",
@@ -6395,6 +6395,7 @@ dependencies = [
  "hash-graph-authorization",
  "hash-graph-store",
  "hash-middleware",
+ "hash-secret",
  "hmac 0.13.0",
  "http 1.4.2",
  "jsonwebtoken",

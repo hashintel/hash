@@ -3,6 +3,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_store::api_token::{
     ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId, ApiTokenSecretHash,
 };
+use hash_secret::Secret;
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
@@ -30,10 +31,10 @@ pub struct ApiTokenEncryptionKey {
 
 impl ApiTokenEncryptionKey {
     #[must_use]
-    pub fn new(id: ApiTokenEncryptionKeyId, key: &[u8; 32]) -> Self {
+    pub fn new(id: ApiTokenEncryptionKeyId, key: &Secret<[u8; 32]>) -> Self {
         Self {
             id,
-            key: RandomizedNonceKey::new(&AES_256_GCM, key).unwrap_or_else(|error| {
+            key: RandomizedNonceKey::new(&AES_256_GCM, key.expose()).unwrap_or_else(|error| {
                 unreachable!("AES-256-GCM should accept a 32-byte key: {error}")
             }),
         }
@@ -152,11 +153,12 @@ pub struct ApiTokenDecryptionError;
 
 #[cfg(test)]
 mod tests {
-    use core::assert_matches;
+    use core::{assert_matches, pin::pin};
 
     use hash_graph_store::api_token::{
         ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId,
     };
+    use hash_secret::Secret;
     use rstest::rstest;
     use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
     use uuid::Uuid;
@@ -180,13 +182,15 @@ mod tests {
 
     /// The key with the bytes 0 to 31.
     fn fixed_key() -> ApiTokenEncryptionKey {
+        let mut key = pin!(Secret::<[u8; 32]>::zeroed());
+        for (byte, value) in key.as_mut().expose_mut().iter_mut().zip(0..) {
+            *byte = value;
+        }
         ApiTokenEncryptionKey::new(
             ApiTokenEncryptionKeyId::new(Uuid::from_u128(
                 0x3333_3333_3333_3333_3333_3333_3333_3333,
             )),
-            &core::array::from_fn(|index| {
-                u8::try_from(index).expect("the index should fit a byte")
-            }),
+            &key,
         )
     }
 
