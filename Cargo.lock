@@ -6853,6 +6853,8 @@ version = "0.0.0"
 dependencies = [
  "aws-lc-rs",
  "base16ct",
+ "clap",
+ "clap_builder",
  "derive_more",
  "error-stack",
  "rstest",
