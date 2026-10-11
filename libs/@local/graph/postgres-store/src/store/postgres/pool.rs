@@ -63,12 +63,10 @@ impl<Tls: PostgresTls> PostgresStorePool<Tls> {
     ) -> Result<Self, Report<StoreError>> {
         tracing::debug!(url=%db_info, "Creating connection pool to Postgres");
 
-        let config = db_info.config();
-
         Ok(Self {
             // TODO(BE-703): The default timeouts are all unbounded, so a saturated pool waits
             //   forever rather than reporting that it has nothing to give.
-            pool: Pool::builder(ConnectionManager::new(config, tls))
+            pool: Pool::builder(ConnectionManager::new(db_info.config(), tls))
                 .max_size(pool_config.max_connections.get())
                 .build()
                 .change_context(StoreError)
