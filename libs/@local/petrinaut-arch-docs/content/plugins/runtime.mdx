@@ -52,7 +52,9 @@ the hosts', so the view's first paint shows every contribution.
 `PluginEditorSync` copies the editor state that actions read, such as the
 read-only reason, the viewed subnet and the host's `setTitle`, into the plugin
 editor's stores in the first layout effect of each commit. A host's layout
-effect therefore already sees the read-only reason of the same commit.
+effect therefore already sees the read-only reason of the same commit. The
+navigation state is copied the same way, but set only when a field differs, so
+a controlled host's new state object on every render wakes no subscriber.
 
 ## Remounts and re-runs
 

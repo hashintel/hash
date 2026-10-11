@@ -22,6 +22,10 @@ import { ExperimentsContext } from "../../react/experiments/context";
 import { useRevealInEditor } from "../../react/hooks/use-reveal-in-editor";
 import { PetrinautInstanceContext } from "../../react/instance-context";
 import { LanguageClientContext } from "../../react/lsp/context";
+import {
+  petrinautNavigationStatesMatch,
+  usePetrinautNavigation,
+} from "../../react/navigation";
 import { NetManagementContext } from "../../react/net-management-context";
 import { NotificationsContext } from "../../react/notifications/context";
 import { OptimizationsContext } from "../../react/optimizations/context";
@@ -31,6 +35,7 @@ import { createAccessFamilies } from "./plugin-access";
 import { useCanvasControllerRegistration } from "./plugin-editor/use-canvas-controller-registration";
 
 import type { ExperimentRecord } from "../../react/experiments/context";
+import type { PetrinautNavigationState } from "../../react/navigation";
 import type {
   AccessFamilies,
   PluginEditorState,
@@ -46,9 +51,11 @@ interface PluginEditorSnapshot {
   readonly title: string;
   readonly records: readonly ExperimentRecord[];
   readonly optimizationUnavailableReason: string | null;
+  readonly navigation: PetrinautNavigationState;
 }
 
-export interface PluginEditor {
+/** The editor as plugins see it, one per core instance. */
+export interface PluginEditorRuntime {
   /** Counts the editors a provider has built; hosts key by it, so they remount with a new one. */
   readonly generation: number;
   readonly instance: Petrinaut;
@@ -65,13 +72,14 @@ const createPluginEditor = (
   instance: Petrinaut,
   canvas: CanvasRegistration,
   snapshot: PluginEditorSnapshot,
-): PluginEditor => {
+): PluginEditorRuntime => {
   const latest = createReadableStore(snapshot.state);
   const title = createReadableStore(snapshot.title);
   const records = createReadableStore(snapshot.records);
   const optimizationUnavailableReason = createReadableStore(
     snapshot.optimizationUnavailableReason,
   );
+  const navigation = createReadableStore(snapshot.navigation);
 
   return {
     generation,
@@ -83,6 +91,7 @@ const createPluginEditor = (
       title,
       records,
       optimizationUnavailableReason,
+      navigation,
       frameSceneAfterRender: canvas.frameSceneAfterRender,
     }),
     notifications: { add: (input) => latest.get().addNotification(input) },
@@ -98,6 +107,11 @@ const createPluginEditor = (
       title.set(next.title);
       records.set(next.records);
       optimizationUnavailableReason.set(next.optimizationUnavailableReason);
+      // The provider's state object is new on every render in a controlled
+      // host; subscribers wake only when the location changed.
+      if (!petrinautNavigationStatesMatch(navigation.get(), next.navigation)) {
+        navigation.set(next.navigation);
+      }
     },
   };
 };
@@ -113,12 +127,14 @@ const usePluginEditorSnapshot = (): PluginEditorSnapshot => {
   const { captureException } = use(ErrorTrackerContext);
   const readOnlyReason = useReadOnlyReason();
   const reveal = useRevealInEditor();
+  const navigation = usePetrinautNavigation();
 
   return {
     state: {
       readOnlyReason,
       activeSubnetId,
       setTitle,
+      navigate: navigation.navigate,
       reveal,
       requestDiagnostics,
       runExperiment,
@@ -128,6 +144,7 @@ const usePluginEditorSnapshot = (): PluginEditorSnapshot => {
     title,
     records: experiments,
     optimizationUnavailableReason,
+    navigation: navigation.state,
   };
 };
 
@@ -142,10 +159,10 @@ const useCoreInstance = (): Petrinaut => {
   return instance;
 };
 
-const PluginEditorContext = createContext<PluginEditor | null>(null);
+const PluginEditorContext = createContext<PluginEditorRuntime | null>(null);
 
 /** The current plugin editor; only the plugin hosts read it. */
-export const usePluginEditor = (): PluginEditor => {
+export const usePluginEditor = (): PluginEditorRuntime => {
   const editor = use(PluginEditorContext);
   if (!editor) {
     throw new Error("Plugin hosts must run inside PluginEditorProvider.");
@@ -169,7 +186,7 @@ const PluginEditorSync = ({
   editor,
   snapshot,
 }: {
-  editor: PluginEditor;
+  editor: PluginEditorRuntime;
   snapshot: PluginEditorSnapshot;
 }) => {
   useLayoutEffect(() => editor.sync(snapshot), [editor, snapshot]);

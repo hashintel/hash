@@ -11,7 +11,7 @@ describes the code.
 | File                                                  | Holds                                                                                                                    |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `define-petrinaut-plugin.ts`                          | The public types (manifest, `api`, contributions, hook) and `definePetrinautPlugin`, `pluginService`, `pluginCommandId`. |
-| `plugin-access.ts`                                    | The `document` and `experiments` families of `api`, at `read` and `write` levels, and `EditResult` refusals.             |
+| `plugin-access.ts`                                    | The `document`, `experiments` and `editor` families of `api`, at `read` and `write` levels, and `EditResult` refusals.   |
 | `plugin-editor.tsx`                                   | One plugin editor per core instance: the access families, `errors`, `notifications`, and the stores the actions read.    |
 | `plugin-editor/use-canvas-controller-registration.ts` | Where the canvas registers its controller, so `applyAutoLayout` can frame the net once drawn.                            |
 | `plugins-provider.tsx`                                | `PetrinautPluginsProvider`: one host per running plugin, the contributions store, and the hooks the view reads it with.  |

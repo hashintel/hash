@@ -18,6 +18,12 @@ import type {
 } from "../../react/error-tracker-context";
 import type { ExperimentRecord } from "../../react/experiments/context";
 import type { PetrinautRevealTarget } from "../../react/hooks/use-reveal-in-editor";
+import type {
+  PetrinautNavigationAction,
+  PetrinautNavigationIntent,
+  PetrinautNavigationState,
+  PetrinautNavigationUpdate,
+} from "../../react/navigation";
 import type { AddNotificationInput } from "../../react/notifications/context";
 import type {
   ApplyAutoLayoutResult,
@@ -82,8 +88,6 @@ export interface PluginDocumentReader {
    * after the editor mounts.
    */
   diagnose(): Promise<PluginDiagnostics>;
-  /** Selects an item, or opens Simulate's scenarios, metrics or experiments with one record open. */
-  reveal(target: PetrinautRevealTarget): void;
 }
 
 /**
@@ -121,11 +125,37 @@ export interface PluginExperiments extends PluginExperimentsReader {
   readonly run: PetrinautExperimentHost["runExperiment"];
 }
 
+/** Where the editor is, read: `access: { editor: "read" }`. */
+export interface PluginEditorReader {
+  /**
+   * The editor's location, as the host's navigation state: mode, views, the
+   * open Simulate record, scenario, subnet, selection and overlay. Changes
+   * only when one of them does.
+   */
+  readonly navigation: ReadableStore<PetrinautNavigationState>;
+}
+
+/** Where the editor is, read and changed: `access: { editor: "write" }`. */
+export interface PluginEditor extends PluginEditorReader {
+  /**
+   * Moves the editor: a partial state, or an updater of the current one.
+   * Normalized as the host's own navigation is, and never refused: the
+   * location is not part of the document.
+   */
+  navigate(update: PetrinautNavigationUpdate<PetrinautNavigationState>): void;
+  /** Selects an item, or opens Simulate's scenarios, metrics or experiments with one record open. */
+  reveal(target: PetrinautRevealTarget): void;
+}
+
 /** Editor state the actions read when called, copied after every commit. */
 export interface PluginEditorState {
   readonly readOnlyReason: ReadOnlyReason | null;
   readonly activeSubnetId: string | null;
   readonly setTitle: ((title: string) => void) | undefined;
+  readonly navigate: (
+    update: PetrinautNavigationUpdate<PetrinautNavigationState>,
+    intent: PetrinautNavigationIntent,
+  ) => boolean;
   readonly reveal: (target: PetrinautRevealTarget) => void;
   readonly requestDiagnostics: LanguageClient["requestDiagnostics"];
   readonly runExperiment: PetrinautExperimentHost["runExperiment"];
@@ -140,6 +170,7 @@ interface PluginEditorPorts {
   readonly title: ReadableStore<string>;
   readonly records: ReadableStore<readonly ExperimentRecord[]>;
   readonly optimizationUnavailableReason: ReadableStore<string | null>;
+  readonly navigation: ReadableStore<PetrinautNavigationState>;
   readonly frameSceneAfterRender: () => Promise<unknown>;
 }
 
@@ -160,7 +191,6 @@ const readDocument = ({
 
     return { ...diagnostics, net };
   },
-  reveal: (target) => latest.get().reveal(target),
 });
 
 type MutationEdits = Omit<PluginEdits, "applyAutoLayout">;
@@ -240,10 +270,62 @@ const writeExperiments = (
   run: (request, options) => latest.get().runExperiment(request, options),
 });
 
+/**
+ * The action a plugin's update stands for, in the host's navigation intent:
+ * the first field it changes, in this order. A host's history policy reads it.
+ */
+const navigationActions: readonly (readonly [
+  keyof PetrinautNavigationState,
+  PetrinautNavigationAction,
+])[] = [
+  ["selection", "selection"],
+  ["overlay", "overlay"],
+  ["simulateResource", "simulation-resource"],
+  ["simulatePresentation", "simulation-presentation"],
+  ["scenarioId", "scenario"],
+  ["subnetId", "subnet"],
+  ["expandedSubView", "subview"],
+  ["simulateView", "simulation-view"],
+  ["editView", "edit-view"],
+  ["mode", "mode"],
+];
+
+const navigationActionFor = (
+  current: PetrinautNavigationState,
+  update: PetrinautNavigationUpdate<PetrinautNavigationState>,
+): PetrinautNavigationAction => {
+  const next =
+    typeof update === "function" ? update(current) : { ...current, ...update };
+  const changed = navigationActions.find(
+    ([field]) => next[field] !== current[field],
+  );
+
+  return changed?.[1] ?? "mode";
+};
+
+const readEditor = ({ navigation }: PluginEditorPorts): PluginEditorReader => ({
+  navigation,
+});
+
+const writeEditor = (
+  { latest, navigation }: PluginEditorPorts,
+  reader: PluginEditorReader,
+): PluginEditor => ({
+  ...reader,
+  navigate: (update) => {
+    latest.get().navigate(update, {
+      cause: "user",
+      action: navigationActionFor(navigation.get(), update),
+    });
+  },
+  reveal: (target) => latest.get().reveal(target),
+});
+
 /** One object per family and level for one document; each writer spreads its reader. */
 export const createAccessFamilies = (ports: PluginEditorPorts) => {
   const document = readDocument(ports);
   const experiments = readExperiments(ports);
+  const editor = readEditor(ports);
 
   return {
     document: { read: document, write: writeDocument(ports, document) },
@@ -251,6 +333,7 @@ export const createAccessFamilies = (ports: PluginEditorPorts) => {
       read: experiments,
       write: writeExperiments(ports, experiments),
     },
+    editor: { read: editor, write: writeEditor(ports, editor) },
   };
 };
 
@@ -283,4 +366,5 @@ export const accessApi = (families: AccessFamilies, access: PluginAccess) => ({
   ...(access.experiments && {
     experiments: families.experiments[access.experiments],
   }),
+  ...(access.editor && { editor: families.editor[access.editor] }),
 });
