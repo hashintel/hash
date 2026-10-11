@@ -67,22 +67,22 @@ pub struct Secret<T: ?Sized + SecretBuffer> {
     reason = "retypes boxed, shared and counted contents as the transparent secret"
 )]
 impl<T: ?Sized + SecretBuffer> Secret<T> {
-    fn boxed(contents: Box<T>) -> Box<Self> {
+    fn from_boxed(contents: Box<T>) -> Box<Self> {
         // SAFETY: `Secret<T>` is `repr(transparent)` over `Zeroizing<T>`, which is
         //         `repr(transparent)` over `T`, so the allocation has the layout of a `Secret<T>`
         //         and the pointer keeps its metadata.
         unsafe { Box::from_raw(Box::into_raw(contents) as *mut Self) }
     }
 
-    fn arc(contents: Arc<T>) -> Arc<Self> {
+    fn from_arc(contents: Arc<T>) -> Arc<Self> {
         // SAFETY: `Arc::from_raw` accepts a pointer to a type with the same layout, which
-        //         `Secret<T>` has for the reason given in `boxed`.
+        //         `Secret<T>` has for the reason given in `from_boxed`.
         unsafe { Arc::from_raw(Arc::into_raw(contents) as *const Self) }
     }
 
-    fn rc(contents: Rc<T>) -> Rc<Self> {
+    fn from_rc(contents: Rc<T>) -> Rc<Self> {
         // SAFETY: `Rc::from_raw` accepts a pointer to a type with the same layout, which
-        //         `Secret<T>` has for the reason given in `boxed`.
+        //         `Secret<T>` has for the reason given in `from_boxed`.
         unsafe { Rc::from_raw(Rc::into_raw(contents) as *const Self) }
     }
 }
@@ -105,7 +105,7 @@ impl Secret<[u8]> {
     /// ```
     #[must_use]
     pub fn zeroed_slice(len: usize) -> Pin<Box<Self>> {
-        Box::into_pin(Self::boxed(vec![0; len].into_boxed_slice()))
+        Box::into_pin(Self::from_boxed(vec![0; len].into_boxed_slice()))
     }
 
     /// Decodes the bytes that the hexadecimal `hex` encodes into a new secret.
@@ -129,6 +129,7 @@ impl Secret<[u8]> {
     /// # Ok::<(), error_stack::Report<hash_secret::HexError>>(())
     /// ```
     pub fn from_hex(hex: String) -> Result<Pin<Box<Self>>, Report<HexError>> {
+        // `decode_hex` zeroes only the characters, this also zeroes the spare capacity.
         let mut hex = Zeroizing::new(hex);
         let mut secret = Self::zeroed_slice(decoded_len(&mut hex)?);
         secret.as_mut().decode_hex(&mut hex)?;
@@ -137,8 +138,8 @@ impl Secret<[u8]> {
 
     /// Turns `value` into a new secret.
     ///
-    /// A buffer without spare capacity becomes the secret's. Otherwise the bytes are copied, and
-    /// the buffer of `value`, spare capacity included, is zeroed and freed.
+    /// The bytes are copied, and the buffer of `value`, spare capacity included, is zeroed and
+    /// freed.
     ///
     /// # Examples
     ///
@@ -151,15 +152,8 @@ impl Secret<[u8]> {
     /// ```
     #[must_use]
     pub fn from_vec(value: Vec<u8>) -> Pin<Box<Self>> {
-        let contents = if value.len() == value.capacity() {
-            // `into_boxed_slice` keeps the buffer when there is no spare capacity, so no copy is
-            // left behind. std does not promise this, so `from_vec_reuses_buffer` checks it.
-            value.into_boxed_slice()
-        } else {
-            let value = Zeroizing::new(value);
-            Box::from(value.as_slice())
-        };
-        Box::into_pin(Self::boxed(contents))
+        let value = Zeroizing::new(value);
+        Box::into_pin(Self::from_boxed(Box::from(value.as_slice())))
     }
 }
 
@@ -217,6 +211,7 @@ impl<const N: usize> Secret<[u8; N]> {
     /// # Ok::<(), error_stack::Report<hash_secret::HexError>>(())
     /// ```
     pub fn from_hex(hex: String) -> Result<Pin<Box<Self>>, Report<HexError>> {
+        // `decode_hex` zeroes only the characters, this also zeroes the spare capacity.
         let mut hex = Zeroizing::new(hex);
         let mut secret = Box::pin(Self::zeroed());
         secret.as_mut().decode_hex(&mut hex)?;
@@ -227,8 +222,7 @@ impl<const N: usize> Secret<[u8; N]> {
 impl Secret<str> {
     /// Turns `value` into a new secret.
     ///
-    /// A buffer without spare capacity becomes the secret's. Otherwise the text is copied, and the
-    /// buffer of `value`, spare capacity included, is zeroed and freed.
+    /// The text is copied, and the buffer of `value`, spare capacity included, is zeroed and freed.
     ///
     /// # Examples
     ///
@@ -261,15 +255,8 @@ impl Secret<str> {
     /// ```
     #[must_use]
     pub fn from_string(value: String) -> Pin<Box<Self>> {
-        let contents = if value.len() == value.capacity() {
-            // `into_boxed_str` keeps the buffer when there is no spare capacity, so no copy is left
-            // behind. std does not promise this, so `from_string_reuses_buffer` checks it.
-            value.into_boxed_str()
-        } else {
-            let value = Zeroizing::new(value);
-            Box::from(value.as_str())
-        };
-        Box::into_pin(Self::boxed(contents))
+        let value = Zeroizing::new(value);
+        Box::into_pin(Self::from_boxed(Box::from(value.as_str())))
     }
 }
 
@@ -338,7 +325,7 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
     /// Copies the contents into a new secret in a [`Box`].
     #[must_use]
     pub fn to_boxed(&self) -> Pin<Box<Self>> {
-        Box::into_pin(Self::boxed(Box::clone_from_ref(&self.contents)))
+        Box::into_pin(Self::from_boxed(Box::clone_from_ref(&self.contents)))
     }
 
     /// Copies the contents into a new secret in an [`Arc`].
@@ -364,7 +351,7 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
     #[must_use]
     #[expect(unsafe_code, reason = "pins the new shared secret")]
     pub fn to_arc(&self) -> Pin<Arc<Self>> {
-        let shared = Self::arc(Arc::clone_from_ref(&self.contents));
+        let shared = Self::from_arc(Arc::clone_from_ref(&self.contents));
         // SAFETY: `shared` was just created, so the returned `Pin` holds the only `Arc` to the
         //         secret and nothing can move it out.
         unsafe { Pin::new_unchecked(shared) }
@@ -374,7 +361,7 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
     #[must_use]
     #[expect(unsafe_code, reason = "pins the new counted secret")]
     pub fn to_rc(&self) -> Pin<Rc<Self>> {
-        let counted = Self::rc(Rc::clone_from_ref(&self.contents));
+        let counted = Self::from_rc(Rc::clone_from_ref(&self.contents));
         // SAFETY: `counted` was just created, so the returned `Pin` holds the only `Rc` to the
         //         secret and nothing can move it out.
         unsafe { Pin::new_unchecked(counted) }
@@ -423,7 +410,7 @@ impl<T: ?Sized + SecretBuffer<View = [u8]>> Secret<T> {
 // see the type documentation, so cloning one copies no secret bytes.
 impl<T: ?Sized + SecretBuffer> Clone for Box<Secret<T>> {
     fn clone(&self) -> Self {
-        Secret::boxed(Box::clone_from_ref(&self.contents))
+        Secret::from_boxed(Box::clone_from_ref(&self.contents))
     }
 }
 

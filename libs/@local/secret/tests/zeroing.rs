@@ -144,31 +144,6 @@ fn from_string_source_zeroed() {
     drop(secret);
 }
 
-#[test]
-fn from_string_reuses_buffer() {
-    let value = "hunter2".to_owned();
-    assert_eq!(
-        value.len(),
-        value.capacity(),
-        "the test should start from a string without spare capacity"
-    );
-    let buffer = value.as_ptr();
-
-    let secret = Secret::from_string(value);
-
-    assert_eq!(
-        secret.expose().as_ptr(),
-        buffer,
-        "the secret should take over the buffer"
-    );
-    let _guard = watch(buffer, secret.len());
-    drop(secret);
-    assert!(
-        freed_zeroed(),
-        "the buffer should be zeroed before it is freed"
-    );
-}
-
 #[rstest]
 #[case::slice(|hex| drop(Secret::<[u8]>::from_hex(hex)), "deadbeef")]
 #[case::slice_odd_length(|hex| drop(Secret::<[u8]>::from_hex(hex)), "deadbee")]
@@ -207,25 +182,6 @@ fn from_vec_source_zeroed() {
         "the source should be zeroed, spare capacity included, before it is freed"
     );
     drop(secret);
-}
-
-#[test]
-fn from_vec_reuses_buffer() {
-    let value = vec![POISON; 32];
-    assert_eq!(
-        value.len(),
-        value.capacity(),
-        "the test should start from a vector without spare capacity"
-    );
-    let buffer = value.as_ptr();
-
-    let secret = Secret::from_vec(value);
-
-    assert_eq!(
-        secret.expose().as_ptr(),
-        buffer,
-        "the secret should take over the buffer"
-    );
 }
 
 #[test]

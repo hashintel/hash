@@ -35,7 +35,10 @@ pub(crate) fn decoded_len(src: &mut str) -> Result<usize, Report<HexError>> {
 /// On failure `dst` is zeroed as well.
 pub(crate) fn decode_hex_into(dst: &mut [u8], src: &mut str) -> Result<(), Report<HexError>> {
     // `base16ct` fills only a prefix of a longer `dst`, so the length has to match exactly.
-    let expected = dst.len().saturating_mul(2);
+    let expected = dst
+        .len()
+        .checked_mul(2)
+        .unwrap_or_else(|| unreachable!("a slice is at most `isize::MAX` bytes long"));
     let result = if src.len() == expected {
         base16ct::mixed::decode(src.as_bytes(), dst).map(|_| ())
     } else {
