@@ -27,6 +27,9 @@ type StoredNet = {
 
 type HandlesByNetId = Record<string, PetrinautDocHandle>;
 
+/** Every story net reports the time the story loaded as its last update. */
+const storyLoadedAt = new Date().toISOString();
+
 /**
  * Self-contained wrapper around {@link Petrinaut} that manages a small
  * in-memory net registry, mirroring the shape of the demo-site's `DevApp`.
@@ -100,7 +103,7 @@ export const PetrinautStoryProvider = ({
   const existingNets: MinimalNetMetadata[] = Object.values(nets).map((net) => ({
     netId: net.id,
     title: net.title,
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: storyLoadedAt,
   }));
 
   const createNewNet = (params: {
