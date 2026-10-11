@@ -270,7 +270,7 @@ export const LocalStorageDemoApp = ({
     }
 
     const abortController = new AbortController();
-    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- reset stale capability before a newly selected Brunch session checks Voice
+    // eslint-disable-next-line react-compiler/set-state-in-effect -- reset stale capability before a newly selected Brunch session checks Voice
     setOpenAIVoiceConfig(undefined);
     void loadOpenAIVoiceConfig(
       globalThis.fetch.bind(globalThis),

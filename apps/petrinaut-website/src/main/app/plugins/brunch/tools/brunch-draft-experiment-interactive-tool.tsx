@@ -302,7 +302,7 @@ export const BrunchDraftExperimentWidget = ({
     preparedOnceRef.current = true;
     const initialDefinition = instance.handle.doc();
     if (!initialDefinition) {
-      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- this effect's one live-model preparation found no document to prepare against
+      // eslint-disable-next-line react-compiler/set-state-in-effect -- this effect's one live-model preparation found no document to prepare against
       setPreparationFailure({
         kind: "prepare",
         message: "The bound browser document is unavailable.",

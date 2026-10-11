@@ -26,7 +26,7 @@ function useMyHook() {
 }
 ```
 
-Compiler errors fail the build unless the function opts out. The options are in [`vite.config.ts`](./vite.config.ts).
+Compiler errors fail the build unless the function opts out. The options are in [`vite.config.ts`](./vite.config.ts). `yarn lint:eslint` runs the same compiler through [`react-compiler-plugin.mjs`](../../../.config/oxlint/react-compiler-plugin.mjs) and reports these errors as `react-compiler/*` rules, without a build.
 
 ## Commands
 

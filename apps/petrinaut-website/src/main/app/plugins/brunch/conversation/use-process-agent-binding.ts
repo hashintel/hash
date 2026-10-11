@@ -33,7 +33,7 @@ export const useProcessAgentBinding = (input: {
       return;
     }
     const conversationId = getOrCreateBrunchConversationId(documentId);
-    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- browser persistence is read only after this binding commits
+    // eslint-disable-next-line react-compiler/set-state-in-effect -- browser persistence is read only after this binding commits
     setFallbackConversationIds((current) =>
       current[documentId] === conversationId
         ? current
