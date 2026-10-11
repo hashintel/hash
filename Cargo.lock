@@ -1468,6 +1468,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2f6c7dbe95a6ed67ad9f18e57daf93a2f034c524b99fd2b76d18fdfeb6660aa"
 dependencies = [
  "hybrid-array",
+ "zeroize",
 ]
 
 [[package]]
@@ -4152,6 +4153,7 @@ dependencies = [
  "const-oid 0.10.2",
  "crypto-common 0.2.2",
  "ctutils",
+ "zeroize",
 ]
 
 [[package]]
@@ -6192,7 +6194,6 @@ dependencies = [
  "axum",
  "clap",
  "clap_complete",
- "derive_more",
  "error-stack",
  "futures",
  "harpc-codec",
@@ -6493,6 +6494,7 @@ dependencies = [
  "derive_more",
  "error-stack",
  "hash-graph-types",
+ "hash-secret",
  "rand 0.10.1",
  "rand_xoshiro 0.8.1",
  "rayon",

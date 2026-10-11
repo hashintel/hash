@@ -54,12 +54,13 @@ pub struct PostgresArgs {
 impl PostgresArgs {
     /// Dials the store the flags name and drives the connection on a background task.
     ///
-    /// The flags configure the connection field by field. The password never rides a rendered
-    /// connection string and one containing URL-reserved characters needs no escaping.
+    /// The flags configure the connection field by field, so a password containing URL-reserved
+    /// characters needs no escaping.
     ///
     /// # Errors
     ///
-    /// Returns a [`ConnectError`] when the store refuses the connection or handshake.
+    /// Returns a [`ConnectError`] when the host flag names no TCP host, or when the store refuses
+    /// the connection or handshake.
     pub async fn connect(self) -> Result<Client, ConnectError> {
         // The guard owns the password buffer and zeroizes it when this scope ends. The store
         // config copies the bytes it receives, and that copy is the library's own.
@@ -123,8 +124,7 @@ pub async fn connect(config: Config) -> Result<Client, ConnectError> {
             Host::Unix(_) => None,
         })
         .ok_or(ConnectError::NoTcpHost)?;
-    // 5432 is the protocol's registered port, the same default the
-    // connection-string parser applies.
+    // 5432 is the protocol's registered port, which tokio-postgres also dials when no port is set.
     let port = config.get_ports().first().copied().unwrap_or(5432);
 
     let stream = tokio::net::TcpStream::connect((host.as_str(), port))

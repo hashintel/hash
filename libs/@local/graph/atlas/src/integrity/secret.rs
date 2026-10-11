@@ -11,18 +11,20 @@
 //! constant time. It also redacts its own display forms and zeroizes its buffer on drop. None of
 //! these types implements `Serialize`. Their exposure methods reveal the secret bytes.
 
-use alloc::sync::Arc;
+use alloc::{string::String, sync::Arc};
 use core::{
     alloc::{Allocator, AllocatorClone},
     error::Error,
     fmt,
     marker::PhantomData,
     mem::MaybeUninit,
+    pin::Pin,
     str::FromStr,
 };
 use std::alloc::Global;
 
 use clap::builder::TypedValueParser;
+use hash_secret::Secret;
 use zerocopy::IntoBytes as _;
 use zeroize::{Zeroize as _, Zeroizing};
 
@@ -50,6 +52,13 @@ impl<A: Allocator> SecretString<A> {
     #[must_use]
     pub(crate) fn expose(self) -> Arc<Zeroizing<str>, A> {
         self.0
+    }
+
+    /// Copies the value from the guarded allocation into a [`Secret`], which zeroes its own
+    /// storage when its last holder drops.
+    #[must_use]
+    pub fn to_secret(&self) -> Pin<Arc<Secret<str>>> {
+        Secret::from_string(String::from(&**self.0)).to_arc()
     }
 
     /// Consumes the secret, moving the held value out of zeroizing custody.

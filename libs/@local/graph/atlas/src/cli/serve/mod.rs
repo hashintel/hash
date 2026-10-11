@@ -13,7 +13,6 @@ use hash_middleware::{
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimitConfig, RateLimiters},
     telemetry::HttpTracingLayer,
 };
-use hash_secret::Secret;
 use rand::rngs::SysRng;
 use tower::ServiceBuilder;
 use type_system::principal::actor::ActorId;
@@ -240,7 +239,7 @@ impl ServeCommand {
 
         let meter = opentelemetry::global::meter("hash-graph-atlas");
         let limiters = RateLimiters::start(&rate_limit, &meter);
-        let service_secret = Secret::from_string(String::from(&**service_secret.expose())).to_arc();
+        let service_secret = service_secret.to_secret();
 
         let router = api::router(
             Arc::clone(manager.registry()),

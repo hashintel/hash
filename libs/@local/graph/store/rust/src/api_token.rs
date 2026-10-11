@@ -4,7 +4,7 @@
 
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::time::Duration;
+use core::{fmt, time::Duration};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
@@ -147,8 +147,17 @@ impl FromSql<'_> for ApiTokenVersion {
 }
 
 /// The SHA-256 hash of an API token's secret.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+///
+/// `Debug` leaves out the hash.
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct ApiTokenSecretHash([u8; 32]);
+
+impl fmt::Debug for ApiTokenSecretHash {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_tuple("ApiTokenSecretHash")
+            .finish_non_exhaustive()
+    }
+}
 
 impl ApiTokenSecretHash {
     #[must_use]

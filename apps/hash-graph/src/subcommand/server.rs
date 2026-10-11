@@ -291,7 +291,7 @@ impl From<ApiTokenEnvironment> for api_token::Environment {
 ///
 /// API tokens are unavailable when none of the three options is set. Setting only some of them is
 /// an error.
-#[derive(derive_more::Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser)]
 #[expect(
     clippy::struct_field_names,
     reason = "the field names are the command-line options, which share the `api-token` prefix"
@@ -316,15 +316,15 @@ pub struct ApiTokenConfig {
 }
 
 impl ApiTokenConfig {
-    /// Converts the CLI configuration into an API token issuer, or `None` if no API token option
+    /// Builds the API token issuer from the CLI configuration, or `None` if no API token option
     /// is set.
     ///
     /// # Errors
     ///
     /// Returns [`GraphError`] if only some API token options are set.
-    pub(crate) fn into_issuer(self) -> Result<Option<ApiTokenIssuer>, Report<GraphError>> {
+    pub(crate) fn issuer(&self) -> Result<Option<ApiTokenIssuer>, Report<GraphError>> {
         let (key, key_id, environment) = match (
-            self.api_token_encryption_key,
+            &self.api_token_encryption_key,
             self.api_token_encryption_key_id,
             self.api_token_environment,
         ) {
@@ -343,7 +343,7 @@ impl ApiTokenConfig {
 
         tracing::info!(%key_id, ?environment, "API tokens enabled");
         Ok(Some(ApiTokenIssuer::new(
-            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(key_id), &key),
+            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(key_id), key),
             api_token::Environment::from(environment),
         )))
     }
@@ -357,7 +357,7 @@ impl ApiTokenConfig {
     clippy::struct_excessive_bools,
     reason = "CLI arguments are boolean flags."
 )]
-#[derive(derive_more::Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser)]
 pub struct ServerConfig {
     #[clap(flatten)]
     pub http_address: HttpAddress,
@@ -451,7 +451,8 @@ pub struct ServerConfig {
     /// Shared secret internal services present to act on behalf of an actor.
     ///
     /// Sent as the `Authorization: HASH-Service <secret>` credential, either next to
-    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes.
+    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes. The value is used as given:
+    /// an empty value, or one that starts or ends with whitespace, stops the server.
     //
     // Optional at parse time so `--healthcheck` does not require the environment variable. The
     // server refuses to start without it.
@@ -586,7 +587,7 @@ fn create_embedding_client(
     };
 
     let client = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
-        api_key: api_key.to_owned(),
+        api_key: Secret::from_string(api_key.to_owned()).to_arc(),
         base_url: None,
     })
     .change_context(GraphError)?;
@@ -659,7 +660,6 @@ where
     Ok(())
 }
 
-/// Starts the main graph API server (REST + optional RPC).
 /// Resolved authentication configuration for the REST and admin routers.
 pub(crate) struct AuthenticationSetup {
     pub session_auth: KratosSessionConfig,
@@ -742,7 +742,7 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
     let session_auth = args.config.session_auth.clone().into_provider_config()?;
     let cloudflare_access = cloudflare_access_config(&args.admin)?;
     let service_secret = require_service_secret(args.config.service_secret.take())?;
-    let api_tokens = args.config.api_tokens.clone().into_issuer()?.map(Arc::new);
+    let api_tokens = args.config.api_tokens.issuer()?.map(Arc::new);
 
     let pool = PostgresStorePool::new(
         &args.db_info,
@@ -953,7 +953,7 @@ mod tests {
             api_token_encryption_key_id: None,
             api_token_environment: None,
         }
-        .into_issuer()
+        .issuer()
         .expect("a configuration without API token options should convert");
 
         assert!(
@@ -976,7 +976,7 @@ mod tests {
             api_token_encryption_key_id,
             api_token_environment,
         }
-        .into_issuer()
+        .issuer()
         .expect_err("a partial configuration should not convert");
 
         assert!(
@@ -996,7 +996,7 @@ mod tests {
             api_token_encryption_key_id: Some(Uuid::from(key_id)),
             api_token_environment: Some(ApiTokenEnvironment::Staging),
         }
-        .into_issuer()
+        .issuer()
         .expect("a complete configuration should convert")
         .expect("a complete configuration should make API tokens available");
         let user_id = UserId::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));

@@ -31,7 +31,7 @@ hash-telemetry = { workspace = true, optional = true, features = ["clap"] }
 # Private third-party dependencies
 clap           = { workspace = true, optional = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete  = { workspace = true, optional = true }
-derive_more    = { workspace = true, features = ["debug", "display", "error"] }
+derive_more    = { workspace = true, features = ["display", "error"] }
 futures        = { workspace = true }
 sha2           = { workspace = true }
 simple-mermaid = { workspace = true }

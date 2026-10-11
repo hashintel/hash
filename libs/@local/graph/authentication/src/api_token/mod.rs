@@ -142,7 +142,7 @@ pub struct ApiTokenGenerationError;
 ///
 /// `Display` shows the token up to the first four digits of the token ID and `…`, such as
 /// `hsh_pat_pd_0296…`.
-#[derive(derive_more::Debug)]
+#[derive(Debug)]
 pub struct ApiToken {
     token_type: ApiTokenType,
     environment: Environment,
@@ -190,13 +190,20 @@ impl ApiToken {
         };
         let (public, _) = layout.as_bytes().split_at(offset_of!(TokenLayout, secret));
 
-        // The token is ASCII, so it fills the capacity exactly and the buffer is never reallocated.
+        // The token is ASCII, so it fills the capacity exactly. A reallocation would free a copy of
+        // the secret without zeroing it.
         let mut token = String::with_capacity(TOKEN_LENGTH);
+        let buffer = token.as_ptr();
         token.extend(public.iter().copied().map(char::from));
         token.extend(self.secret.expose().iter().copied().map(char::from));
         let checksum =
             encode_base62::<CHECKSUM_LENGTH>(u128::from(crc32fast::hash(token.as_bytes())));
         token.extend(checksum.iter().copied().map(char::from));
+        debug_assert_eq!(
+            token.as_ptr(),
+            buffer,
+            "the token buffer should not have been reallocated"
+        );
         Secret::from_string(token)
     }
 }
@@ -216,13 +223,12 @@ impl fmt::Display for ApiToken {
 /// An API token with the SHA-256 hash of its secret in place of the secret.
 ///
 /// `Display` shows the token as [`ApiToken`] does.
-#[derive(derive_more::Debug)]
+#[derive(Debug)]
 pub struct HashedApiToken {
     token_type: ApiTokenType,
     environment: Environment,
     version: ApiTokenVersion,
     token_id: ApiTokenId,
-    #[debug(skip)]
     secret_hash: ApiTokenSecretHash,
 }
 
@@ -604,7 +610,7 @@ mod tests {
     }
 
     #[test]
-    fn expose_fixed_token() {
+    fn to_secret_fixed_token() {
         assert_eq!(
             fixed_token().to_secret().expose(),
             "hsh_pat_pd_0296tiiBb3U904RIpygpjj_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg39B9Yp",
@@ -686,7 +692,7 @@ mod tests {
             format!("{:?}", HashedApiToken::from(fixed_token())),
             format!(
                 "HashedApiToken {{ token_type: User, environment: Production, version: V0, \
-                 token_id: {:?}, .. }}",
+                 token_id: {:?}, secret_hash: ApiTokenSecretHash(..) }}",
                 ApiTokenId::new(Uuid::from_u128(FIXED_TOKEN_ID))
             ),
             "the debug output should show everything but the secret hash"

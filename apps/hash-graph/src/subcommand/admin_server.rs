@@ -264,7 +264,7 @@ pub(crate) fn cloudflare_access_config(
 }
 
 /// CLI arguments for the standalone `admin-server` subcommand.
-#[derive(derive_more::Debug, Parser)]
+#[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
 pub struct AdminServerArgs {
     #[clap(flatten)]
@@ -279,7 +279,8 @@ pub struct AdminServerArgs {
     /// Shared secret internal services present to act on behalf of an actor.
     ///
     /// Sent as the `Authorization: HASH-Service <secret>` credential, either next to
-    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes.
+    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes. The value is used as given:
+    /// an empty value, or one that starts or ends with whitespace, stops the server.
     //
     // Optional at parse time so `--healthcheck` does not require the environment variable. The
     // server refuses to start without it.
@@ -290,12 +291,11 @@ pub struct AdminServerArgs {
     pub healthcheck: HealthcheckArgs,
 }
 
-/// The service secret for sharing, or an error if it is unset, empty, or starts or ends with
-/// whitespace.
+/// Checks the service secret and moves it into an [`Arc`] the servers share.
 ///
 /// # Errors
 ///
-/// Returns [`GraphError`] if `secret` is [`None`], empty, or starts or ends with whitespace.
+/// Returns [`GraphError`] if `secret` is [`None`], empty, or starts or ends with ASCII whitespace.
 pub(crate) fn require_service_secret(
     secret: Option<Pin<Box<Secret<str>>>>,
 ) -> Result<Pin<Arc<Secret<str>>>, Report<GraphError>> {
@@ -308,7 +308,8 @@ pub(crate) fn require_service_secret(
         return Err(Report::new(GraphError)
             .attach("--service-secret (HASH_GRAPH_SERVICE_SECRET) must not be empty"));
     }
-    // HTTP strips surrounding whitespace from header values, so a secret with it never matches.
+    // Header parsing and `service_credential` trim the presented token, so a secret with
+    // surrounding whitespace never matches.
     if secret.expose().trim_ascii().len() != secret.len() {
         return Err(Report::new(GraphError).attach(
             "--service-secret (HASH_GRAPH_SERVICE_SECRET) must not start or end with whitespace",

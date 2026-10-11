@@ -22,10 +22,9 @@ struct EncryptedSecretHashLayout {
 }
 
 /// An AES-256-GCM key for the secret hashes of API tokens, and its ID.
-#[derive(derive_more::Debug)]
+#[derive(Debug)]
 pub struct ApiTokenEncryptionKey {
     id: ApiTokenEncryptionKeyId,
-    #[debug(skip)]
     key: RandomizedNonceKey,
 }
 
@@ -282,7 +281,11 @@ mod tests {
 
         assert_eq!(
             format!("{key:?}"),
-            format!("ApiTokenEncryptionKey {{ id: {:?}, .. }}", key.id()),
+            format!(
+                "ApiTokenEncryptionKey {{ id: {:?}, key: RandomizedNonceKey {{ algorithm: \
+                 AES_256_GCM }} }}",
+                key.id()
+            ),
             "the debug output should leave out the key"
         );
     }

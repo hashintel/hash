@@ -91,7 +91,7 @@ pub(crate) async fn openai<P>(
     progress: P,
 ) -> Result<ExternalEmbeddingProvider<OpenAiEmbeddingClient, P>, EmbedderError> {
     let generator = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
-        api_key: api_key.into_unguarded().as_ref().to_owned(),
+        api_key: api_key.to_secret(),
         base_url: Some(EMBEDDING_ENDPOINT.to_owned()),
     })
     .map_err(EmbedderError::Construct)?;

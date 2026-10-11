@@ -1,11 +1,6 @@
 //! Secrets as clap arguments.
 
-use alloc::{
-    borrow::ToOwned as _,
-    boxed::Box,
-    format,
-    string::{String, ToString},
-};
+use alloc::{borrow::ToOwned as _, boxed::Box, format, string::String};
 use core::{fmt, pin::Pin};
 use std::ffi::OsStr;
 
@@ -37,7 +32,8 @@ impl TypedValueParser for TextValueParser {
 
 /// Reads a text secret from a clap argument or its environment variable.
 ///
-/// A value that is not valid UTF-8 is rejected, and the error leaves the value out.
+/// A value that is not valid UTF-8 is rejected. The error names the argument and its environment
+/// variable and leaves out the value.
 ///
 /// # Examples
 ///
@@ -91,9 +87,10 @@ impl<const N: usize> TypedValueParser for HexValueParser<N> {
 }
 
 /// Reads `N` secret bytes from `2 * N` hexadecimal digits in a clap argument or its environment
-/// variable, as [`Secret::from_hex`] does.
+/// variable.
 ///
-/// A rejected value is left out of the error, which names the [`HexError`](crate::HexError).
+/// The error names the argument, its environment variable and the reason, a
+/// [`HexError`](crate::HexError) or invalid UTF-8, and leaves out the value.
 ///
 /// # Examples
 ///
@@ -152,9 +149,10 @@ impl TypedValueParser for HexSliceValueParser {
 }
 
 /// Reads secret bytes from an even number of hexadecimal digits in a clap argument or its
-/// environment variable, as [`Secret::from_hex`] does.
+/// environment variable.
 ///
-/// A rejected value is left out of the error, which names the [`HexError`](crate::HexError).
+/// The error names the argument, its environment variable and the reason, a
+/// [`HexError`](crate::HexError) or invalid UTF-8, and leaves out the value.
 ///
 /// # Examples
 ///
@@ -193,15 +191,24 @@ fn utf8<'value>(
         .ok_or_else(|| rejection(cmd, arg, ErrorKind::InvalidUtf8, "it is not valid UTF-8"))
 }
 
-/// An error that names the argument and the `reason`, but not the value.
+/// An error that names the argument, its environment variable and the `reason`, but not the
+/// value.
 fn rejection(
     cmd: &Command,
     arg: Option<&Arg>,
     kind: ErrorKind,
     reason: impl fmt::Display,
 ) -> Error {
-    let argument = arg.map_or_else(|| "...".to_owned(), ToString::to_string);
-    Error::raw(kind, format!("invalid value for '{argument}': {reason}\n")).with_cmd(cmd)
+    let argument = arg.map_or_else(
+        || "'...'".to_owned(),
+        |arg| {
+            arg.get_env().map_or_else(
+                || format!("'{arg}'"),
+                |variable| format!("'{arg}' ({})", variable.display()),
+            )
+        },
+    );
+    Error::raw(kind, format!("invalid value for {argument}: {reason}\n")).with_cmd(cmd)
 }
 
 #[cfg(test)]
@@ -227,6 +234,7 @@ mod tests {
             .arg(
                 Arg::new("key")
                     .long("key")
+                    .env("HASH_SECRET_TEST_KEY")
                     .value_parser(clap::value_parser!(Pin<Box<Secret<[u8; 4]>>>)),
             )
             .arg(
@@ -307,6 +315,20 @@ mod tests {
         );
     }
 
+    #[test]
+    fn rejection_names_variable() {
+        let error = command()
+            .try_get_matches_from(["server", "--key", "deadbee"])
+            .expect_err("the value should be rejected");
+
+        assert!(
+            error
+                .to_string()
+                .contains("'--key <key>' (HASH_SECRET_TEST_KEY)"),
+            "the error should name the argument and its environment variable: {error}"
+        );
+    }
+
     #[cfg(unix)]
     #[rstest]
     #[case::text("--password")]
@@ -322,7 +344,7 @@ mod tests {
         assert_eq!(
             error.kind(),
             ErrorKind::InvalidUtf8,
-            "the error should name the invalid UTF-8"
+            "the error kind should be InvalidUtf8"
         );
         assert!(
             !message.contains("hunter"),

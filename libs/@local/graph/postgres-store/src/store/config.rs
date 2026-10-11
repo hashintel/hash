@@ -103,6 +103,8 @@ impl DatabaseConnectionInfo {
     }
 
     /// The connection configuration, password included.
+    ///
+    /// The copy of the password in the returned [`Config`] is not zeroed when it is dropped.
     #[must_use]
     pub fn config(&self) -> Config {
         let mut config = Config::new();
@@ -181,5 +183,45 @@ impl Default for DatabasePoolConfig {
         Self {
             max_connections: NonZero::new(10).unwrap(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use hash_secret::Secret;
+    use tokio_postgres::config::Host;
+
+    use super::{DatabaseConnectionInfo, DatabaseType};
+
+    #[test]
+    fn config_reserved_characters() {
+        let info = DatabaseConnectionInfo::new(
+            DatabaseType::Postgres,
+            "graph".to_owned(),
+            Secret::from_string("p@ss/w:rd".to_owned()),
+            "db.example.com".to_owned(),
+            5433,
+            "hash".to_owned(),
+        );
+
+        let config = info.config();
+
+        assert_eq!(config.get_user(), Some("graph"), "the user should be set");
+        assert_eq!(
+            config.get_password(),
+            Some(b"p@ss/w:rd".as_slice()),
+            "the password should be set without escaping"
+        );
+        assert_eq!(
+            config.get_hosts(),
+            [Host::Tcp("db.example.com".to_owned())],
+            "the host should be set"
+        );
+        assert_eq!(config.get_ports(), [5433], "the port should be set");
+        assert_eq!(
+            config.get_dbname(),
+            Some("hash"),
+            "the database should be set"
+        );
     }
 }
