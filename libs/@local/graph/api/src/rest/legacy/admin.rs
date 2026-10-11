@@ -32,6 +32,7 @@
 //! [Graph Admin API]: https://www.notion.so/hashintel/Graph-Admin-API-31a3c81fe02480f792c9d7bedfdc49db
 
 use alloc::sync::Arc;
+use core::pin::Pin;
 
 use axum::{Extension, Json, Router, routing::post};
 #[cfg(feature = "unsafe-dev-endpoints")]
@@ -52,6 +53,7 @@ use hash_graph_store::{
 #[cfg(feature = "unsafe-dev-endpoints")]
 use hash_middleware::authentication::ServiceSecretLayer;
 use hash_middleware::authentication::{AuthenticationLayer, provider::AuthenticationProvider};
+use hash_secret::Secret;
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
 #[cfg(feature = "unsafe-dev-endpoints")]
@@ -80,7 +82,7 @@ const KRATOS_HTTP_TIMEOUT: core::time::Duration = core::time::Duration::from_sec
 pub struct ExternalServicesConfig {
     pub kratos_admin_url: reqwest::Url,
     pub hydra_admin_url: reqwest::Url,
-    pub mailchimp_api_key: Option<String>,
+    pub mailchimp_api_key: Option<Pin<Arc<Secret<str>>>>,
     pub mailchimp_list_id: Option<String>,
 }
 
@@ -367,7 +369,7 @@ async fn delete_user(
         (Some(api_key), Some(list_id)) => Some(
             MailchimpSubscriptionProvider::new(
                 Arc::clone(&http_client),
-                api_key.clone(),
+                Pin::clone(api_key),
                 list_id.clone(),
             )
             .map_err(report_to_response)?,

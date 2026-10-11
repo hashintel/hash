@@ -375,8 +375,7 @@ pub struct ServerConfig {
     /// If not set, the entity and entity-type search endpoints cannot resolve a `semanticString`;
     /// callers must provide a precomputed `embedding` instead.
     #[clap(long, env = "HASH_GRAPH_OPENAI_API_KEY", hide_env_values = true)]
-    #[debug("***")]
-    pub openai_api_key: Option<String>,
+    pub openai_api_key: Option<Pin<Box<Secret<str>>>>,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
     /// a domain that doesn't satisfy the pattern will error.
@@ -575,7 +574,8 @@ fn create_embedding_client(
     let Some(api_key) = config
         .openai_api_key
         .as_ref()
-        .filter(|api_key| !api_key.trim().is_empty())
+        .map(|api_key| api_key.expose().trim())
+        .filter(|api_key| !api_key.is_empty())
     else {
         tracing::warn!(
             "`HASH_GRAPH_OPENAI_API_KEY` is not set; semantic-string search is disabled. Search \
@@ -585,7 +585,7 @@ fn create_embedding_client(
     };
 
     let client = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
-        api_key: api_key.trim().to_owned(),
+        api_key: api_key.to_owned(),
         base_url: None,
     })
     .change_context(GraphError)?;

@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{fmt, net::SocketAddr, num::NonZero, str::FromStr as _, time::Duration};
+use core::{fmt, net::SocketAddr, num::NonZero, pin::Pin, str::FromStr as _, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
@@ -11,6 +11,7 @@ use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings},
 };
+use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use jsonwebtoken::Algorithm;
 use opentelemetry::metrics::Meter;
@@ -171,7 +172,7 @@ pub struct ExternalServicesConfig {
         hide_env_values = true,
         requires = "mailchimp_list_id"
     )]
-    pub mailchimp_api_key: Option<String>,
+    pub mailchimp_api_key: Option<Pin<Box<Secret<str>>>>,
 
     /// Mailchimp audience list ID.
     #[clap(long, env = "MAILCHIMP_LIST_ID", requires = "mailchimp_api_key")]
@@ -328,7 +329,10 @@ pub(crate) async fn run_admin_server(
         hash_graph_api::rest::legacy::admin::ExternalServicesConfig {
             kratos_admin_url,
             hydra_admin_url,
-            mailchimp_api_key: config.external_services.mailchimp_api_key,
+            mailchimp_api_key: config
+                .external_services
+                .mailchimp_api_key
+                .map(|api_key| api_key.to_arc()),
             mailchimp_list_id: config.external_services.mailchimp_list_id,
         },
     );
