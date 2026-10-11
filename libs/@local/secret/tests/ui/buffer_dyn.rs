@@ -10,16 +10,10 @@ impl<const N: usize> Leak for [u8; N] {}
 
 impl SecretBuffer for dyn Leak {
     type View = [u8];
+}
 
-    fn as_view(&self) -> &[u8] {
-        self.as_ref()
-    }
-
-    fn as_view_mut(&mut self) -> &mut [u8] {
-        self.as_mut()
-    }
-
-    fn zeroize(_contents: &mut Self) {}
+impl zeroize::Zeroize for dyn Leak {
+    fn zeroize(&mut self) {}
 }
 
 fn main() {

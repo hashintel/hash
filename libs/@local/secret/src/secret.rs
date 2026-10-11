@@ -59,49 +59,31 @@ use crate::{
 #[repr(transparent)]
 pub struct Secret<T: ?Sized + SecretBuffer> {
     _pinned: PhantomPinned,
-    contents: T,
+    contents: Zeroizing<T>,
 }
 
+#[expect(
+    unsafe_code,
+    reason = "retypes boxed, shared and counted contents as the transparent secret"
+)]
 impl<T: ?Sized + SecretBuffer> Secret<T> {
-    #[expect(
-        unsafe_code,
-        reason = "retypes the boxed contents as the transparent secret"
-    )]
     fn boxed(contents: Box<T>) -> Box<Self> {
-        // SAFETY: `Secret<T>` is `repr(transparent)` over `T`, its only field that is not
-        //         zero-sized, so the allocation has the layout of a `Secret<T>` and the pointer
-        //         keeps its metadata.
+        // SAFETY: `Secret<T>` is `repr(transparent)` over `Zeroizing<T>`, which is
+        //         `repr(transparent)` over `T`, so the allocation has the layout of a `Secret<T>`
+        //         and the pointer keeps its metadata.
         unsafe { Box::from_raw(Box::into_raw(contents) as *mut Self) }
     }
 
-    #[expect(
-        unsafe_code,
-        reason = "retypes the shared contents as the transparent secret"
-    )]
     fn arc(contents: Arc<T>) -> Arc<Self> {
         // SAFETY: `Arc::from_raw` accepts a pointer to a type with the same layout, which
         //         `Secret<T>` has for the reason given in `boxed`.
         unsafe { Arc::from_raw(Arc::into_raw(contents) as *const Self) }
     }
 
-    #[expect(
-        unsafe_code,
-        reason = "retypes the counted contents as the transparent secret"
-    )]
     fn rc(contents: Rc<T>) -> Rc<Self> {
         // SAFETY: `Rc::from_raw` accepts a pointer to a type with the same layout, which
         //         `Secret<T>` has for the reason given in `boxed`.
         unsafe { Rc::from_raw(Rc::into_raw(contents) as *const Self) }
-    }
-
-    fn pin_boxed(contents: Box<T>) -> Pin<Box<Self>> {
-        Box::into_pin(Self::boxed(contents))
-    }
-}
-
-impl<T: ?Sized + SecretBuffer> Drop for Secret<T> {
-    fn drop(&mut self) {
-        T::zeroize(&mut self.contents);
     }
 }
 
@@ -123,7 +105,7 @@ impl Secret<[u8]> {
     /// ```
     #[must_use]
     pub fn zeroed_slice(len: usize) -> Pin<Box<Self>> {
-        Self::pin_boxed(vec![0; len].into_boxed_slice())
+        Box::into_pin(Self::boxed(vec![0; len].into_boxed_slice()))
     }
 
     /// Decodes the bytes that the hexadecimal `hex` encodes into a new secret.
@@ -177,7 +159,7 @@ impl Secret<[u8]> {
             let value = Zeroizing::new(value);
             Box::from(value.as_slice())
         };
-        Self::pin_boxed(contents)
+        Box::into_pin(Self::boxed(contents))
     }
 }
 
@@ -207,10 +189,10 @@ impl<const N: usize> Secret<[u8; N]> {
     // Any other constructor that returns `Self` must return zeros as well, see the type
     // documentation.
     #[must_use]
-    pub const fn zeroed() -> Self {
+    pub fn zeroed() -> Self {
         Self {
             _pinned: PhantomPinned,
-            contents: [0; N],
+            contents: Zeroizing::new([0; N]),
         }
     }
 
@@ -287,7 +269,7 @@ impl Secret<str> {
             let value = Zeroizing::new(value);
             Box::from(value.as_str())
         };
-        Self::pin_boxed(contents)
+        Box::into_pin(Self::boxed(contents))
     }
 }
 
@@ -309,7 +291,7 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
     /// ```
     #[must_use]
     pub fn expose(&self) -> &T::View {
-        self.contents.as_view()
+        self.contents.as_ref()
     }
 
     /// The contents as their mutable view.
@@ -332,7 +314,7 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
     pub fn expose_mut(self: Pin<&mut Self>) -> &mut T::View {
         // SAFETY: The `Secret` is not moved: only its contents are borrowed, and pinning is not
         //         structural for them.
-        unsafe { self.get_unchecked_mut() }.contents.as_view_mut()
+        unsafe { self.get_unchecked_mut() }.contents.as_mut()
     }
 
     /// Whether the contents equal `other`, in time that depends on the two lengths, not on the
@@ -356,7 +338,7 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
     /// Copies the contents into a new secret in a [`Box`].
     #[must_use]
     pub fn to_boxed(&self) -> Pin<Box<Self>> {
-        Self::pin_boxed(Box::clone_from_ref(&self.contents))
+        Box::into_pin(Self::boxed(Box::clone_from_ref(&self.contents)))
     }
 
     /// Copies the contents into a new secret in an [`Arc`].
