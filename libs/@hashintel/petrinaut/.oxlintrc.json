@@ -143,6 +143,7 @@
     "react-hooks-js/unsupported-syntax": "error",
     "react-hooks-js/config": "error",
     "react-hooks-js/gating": "error",
+    "react-hooks-js/todo": "error",
     "jsx-a11y/prefer-tag-over-role": "off",
     "jsx-a11y/aria-role": [
       "error",
