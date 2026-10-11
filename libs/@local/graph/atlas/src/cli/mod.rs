@@ -64,7 +64,6 @@ pub use self::{
 };
 pub use crate::{
     file::storage::Storage,
-    integrity::{EmptyPasswordError, PasswordString, SecretString},
     salt::runner::operator::{ClassifierSource, Options, Placement, RunError},
     serve::{delta::placement::EmbeddingWorkflow, visibility::cache::VisibilityLimits},
 };

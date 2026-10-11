@@ -35,7 +35,6 @@ use crate::{
     cli::{ServeCommand, ServeOptions},
     file::{generation::GenerationRoot, storage::Storage},
     identity::NodeRowId,
-    integrity::SecretString,
     serve::{
         tests::fixture::{TamperFixture, secret},
         visibility::cache::VisibilityLimits,
@@ -245,7 +244,8 @@ impl RouteFixture {
                 let serving = ServeCommand::for_integration(root, secret())
                     .run(ServeOptions {
                         provider: Arc::new(HeaderDelegation),
-                        service_secret: SecretString::from("route-test-service-secret"),
+                        service_secret: Secret::from_string("route-test-service-secret".to_owned())
+                            .to_arc(),
                         rate_limit: RateLimitConfig {
                             rate_limit_mode: RateLimitMode::Observe,
                             client_ip_source: ClientIpSource::ConnectInfo,

@@ -280,7 +280,8 @@ pub struct AdminServerArgs {
     ///
     /// Sent as the `Authorization: HASH-Service <secret>` credential, either next to
     /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes. The value is used as given:
-    /// an empty value, or one that starts or ends with whitespace, stops the server.
+    /// an empty value, one that starts or ends with whitespace, or one with characters other
+    /// than printable ASCII stops the server.
     //
     // Optional at parse time so `--healthcheck` does not require the environment variable. The
     // server refuses to start without it.
@@ -295,7 +296,8 @@ pub struct AdminServerArgs {
 ///
 /// # Errors
 ///
-/// Returns [`GraphError`] if `secret` is [`None`], empty, or starts or ends with ASCII whitespace.
+/// Returns [`GraphError`] if `secret` is [`None`], empty, starts or ends with ASCII whitespace, or
+/// contains a character other than printable ASCII and tabs.
 pub(crate) fn require_service_secret(
     secret: Option<Pin<Box<Secret<str>>>>,
 ) -> Result<Pin<Arc<Secret<str>>>, Report<GraphError>> {
@@ -308,11 +310,21 @@ pub(crate) fn require_service_secret(
         return Err(Report::new(GraphError)
             .attach("--service-secret (HASH_GRAPH_SERVICE_SECRET) must not be empty"));
     }
-    // Header parsing and `service_credential` trim the presented token, so a secret with
-    // surrounding whitespace never matches.
+    // A header value carries only printable ASCII and tabs, and header parsing and
+    // `service_credential` trim the presented token, so any other secret never matches.
     if secret.expose().trim_ascii().len() != secret.len() {
         return Err(Report::new(GraphError).attach(
             "--service-secret (HASH_GRAPH_SERVICE_SECRET) must not start or end with whitespace",
+        ));
+    }
+    if !secret
+        .expose()
+        .bytes()
+        .all(|byte| matches!(byte, b'\t' | b' '..=b'~'))
+    {
+        return Err(Report::new(GraphError).attach(
+            "--service-secret (HASH_GRAPH_SERVICE_SECRET) must consist of printable ASCII \
+             characters",
         ));
     }
     Ok(secret.to_arc())
@@ -494,6 +506,7 @@ mod tests {
     #[case::empty(Some(""), "must not be empty")]
     #[case::leading_space(Some(" hash-svc"), "must not start or end with whitespace")]
     #[case::trailing_newline(Some("hash-svc\n"), "must not start or end with whitespace")]
+    #[case::trailing_no_break_space(Some("hash-svc\u{a0}"), "printable ASCII")]
     fn require_service_secret_rejected(#[case] secret: Option<&str>, #[case] reason: &str) {
         let report =
             require_service_secret(secret.map(|secret| Secret::from_string(secret.to_owned())))

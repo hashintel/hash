@@ -1,12 +1,11 @@
 //! The store connection: flags and dialing.
 
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, pin::Pin};
 use std::io;
 
 use clap::Args;
+use hash_secret::Secret;
 use tokio_postgres::{Client, Config, NoTls, config::Host};
-
-use crate::integrity::SecretString;
 
 /// The store connection flags, mirroring the graph binary's `HASH_GRAPH_PG_*` environment.
 ///
@@ -30,7 +29,7 @@ pub struct PostgresArgs {
         env = "HASH_GRAPH_PG_PASSWORD",
         hide_env_values = true
     )]
-    password: SecretString,
+    password: Pin<Box<Secret<str>>>,
 
     /// The store host.
     ///
@@ -62,13 +61,11 @@ impl PostgresArgs {
     /// Returns a [`ConnectError`] when the host flag names no TCP host, or when the store refuses
     /// the connection or handshake.
     pub async fn connect(self) -> Result<Client, ConnectError> {
-        // The guard owns the password buffer and zeroizes it when this scope ends. The store
-        // config copies the bytes it receives, and that copy is the library's own.
-        let password = self.password.expose();
+        // The store config copies the password, and that copy is the library's own.
         let mut config = Config::new();
         config
             .user(self.user)
-            .password(&*password)
+            .password(self.password.expose())
             .host(self.host)
             .port(self.port)
             .dbname(self.database);

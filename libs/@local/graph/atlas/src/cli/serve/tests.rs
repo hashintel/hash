@@ -42,7 +42,6 @@ use crate::{
         generation::{GenerationRoot, ScratchDirectory},
         storage::error::StorageError,
     },
-    integrity::SecretString,
     math::nz,
     serve::visibility::cache::VisibilityLimits,
 };
@@ -116,7 +115,7 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
     )
     .run(ServeOptions {
         provider: Arc::new(HeaderActor),
-        service_secret: SecretString::from("atlas-layer-test-service-secret"),
+        service_secret: Secret::from_string("atlas-layer-test-service-secret".to_owned()).to_arc(),
         rate_limit: RateLimitConfig {
             rate_limit_mode: RateLimitMode::Enforce,
             client_ip_source: ClientIpSource::ConnectInfo,

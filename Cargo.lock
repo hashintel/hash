@@ -6368,7 +6368,6 @@ dependencies = [
  "smallvec 2.0.0-alpha.12",
  "sprs",
  "steppe",
- "subtle",
  "tiktoken-rs",
  "time",
  "tokio",

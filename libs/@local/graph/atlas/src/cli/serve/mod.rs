@@ -13,6 +13,7 @@ use hash_middleware::{
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimitConfig, RateLimiters},
     telemetry::HttpTracingLayer,
 };
+use hash_secret::Secret;
 use rand::rngs::SysRng;
 use tower::ServiceBuilder;
 use type_system::principal::actor::ActorId;
@@ -26,7 +27,6 @@ use crate::{
         generation::{Download, DownloadOptions, DownloadTask, GenerationRoot},
         storage::{Storage, path::FilePath},
     },
-    integrity::SecretString,
     serve::{
         authorization::authority::Authority,
         delta::EmbeddingWorkflow,
@@ -76,7 +76,7 @@ pub struct ServeOptions<P> {
     /// The credential verifier chain resolving request headers to actors.
     pub provider: Arc<P>,
     /// The delegation secret internal services use to bypass request budgets.
-    pub service_secret: SecretString,
+    pub service_secret: Pin<Arc<Secret<str>>>,
     /// Address and caller request budgets.
     pub rate_limit: RateLimitConfig,
     /// Shared connections for feeds, visibility resolution and document hydration.
@@ -210,7 +210,7 @@ impl ServeCommand {
                 .change_context(ServeError::Download)?;
         }
 
-        let authority = Authority::new(self.secret.as_ref(), visibility.hard, SysRng)
+        let authority = Authority::new(self.secret.expose(), visibility.hard, SysRng)
             .change_context(ServeError::Authority)?;
         let feed = (!self.delta.no_delta).then(|| FeedOptions {
             task: self.delta.into(),
@@ -239,7 +239,6 @@ impl ServeCommand {
 
         let meter = opentelemetry::global::meter("hash-graph-atlas");
         let limiters = RateLimiters::start(&rate_limit, &meter);
-        let service_secret = service_secret.to_secret();
 
         let router = api::router(
             Arc::clone(manager.registry()),

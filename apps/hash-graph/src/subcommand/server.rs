@@ -452,7 +452,8 @@ pub struct ServerConfig {
     ///
     /// Sent as the `Authorization: HASH-Service <secret>` credential, either next to
     /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes. The value is used as given:
-    /// an empty value, or one that starts or ends with whitespace, stops the server.
+    /// an empty value, one that starts or ends with whitespace, or one with characters other
+    /// than printable ASCII stops the server.
     //
     // Optional at parse time so `--healthcheck` does not require the environment variable. The
     // server refuses to start without it.
