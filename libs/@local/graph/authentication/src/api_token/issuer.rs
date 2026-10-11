@@ -111,6 +111,7 @@ mod tests {
             .expect("the random number generator should provide bytes");
 
         let hashed: HashedApiToken = token
+            .to_secret()
             .expose()
             .parse()
             .expect("the issued token should parse");
