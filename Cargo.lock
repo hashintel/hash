@@ -6851,7 +6851,14 @@ dependencies = [
 name = "hash-secret"
 version = "0.0.0"
 dependencies = [
+ "aws-lc-rs",
+ "base16ct",
+ "derive_more",
+ "error-stack",
+ "rstest",
  "simple-mermaid",
+ "trybuild",
+ "zeroize",
 ]
 
 [[package]]
