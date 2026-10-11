@@ -20,6 +20,7 @@ use hash_middleware::{
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
+use hash_secret::Secret;
 use http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE};
 use serde_json::json;
 use tower::ServiceExt as _;
@@ -64,7 +65,7 @@ impl<C: Caller> AuthenticationProvider<C> for HeaderProvider {
 fn caller_router<C: Credentials>(operator: ActorId, session_actor: ActorId) -> (Router, bool) {
     let explicit = || {
         ServiceDelegationProvider::new(
-            SERVICE_SECRET.to_owned(),
+            Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             FixedActorResolver::new(HashMap::from([(operator.into(), operator)])),
         )
     };
@@ -118,7 +119,7 @@ fn caller_router<C: Credentials>(operator: ActorId, session_actor: ActorId) -> (
     let middleware = Middleware {
         public_provider,
         internal_provider,
-        service_secret: Arc::from(SERVICE_SECRET),
+        service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&meter)),
         rate_limiters: RateLimiters::start(&config, &meter),
     };

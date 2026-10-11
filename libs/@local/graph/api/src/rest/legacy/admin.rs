@@ -99,7 +99,7 @@ pub struct ExternalServicesConfig {
 pub fn routes<P>(
     store_pool: Arc<PostgresStorePool>,
     authentication_provider: Arc<P>,
-    service_secret: Arc<str>,
+    service_secret: Pin<Arc<Secret<str>>>,
     authentication_metrics: Arc<authentication::AuthenticationMetrics>,
     external_services: ExternalServicesConfig,
 ) -> Router
@@ -117,7 +117,7 @@ where
 
     #[cfg(feature = "unsafe-dev-endpoints")]
     let secret_layer = ServiceSecretLayer {
-        service_secret: Arc::clone(&service_secret),
+        service_secret: Pin::clone(&service_secret),
         metrics: Arc::clone(&authentication_metrics),
     };
 

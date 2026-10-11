@@ -4,8 +4,8 @@
 //! middlewares that gate on it read the header through these functions, so what counts as a
 //! service credential is defined once.
 
+use hash_secret::Secret;
 use http::{HeaderMap, header};
-use subtle::ConstantTimeEq as _;
 
 /// The `Authorization` scheme carrying the service secret.
 pub const SERVICE_AUTH_SCHEME: &str = "HASH-Service";
@@ -26,11 +26,8 @@ pub fn service_credential(headers: &HeaderMap) -> Option<&str> {
 
 /// Returns whether the request carries the expected service secret.
 ///
-/// Compares the value in constant time, the length is not hidden. An empty secret never
-/// matches, since an empty credential is legal HTTP.
+/// Compares the value in constant time, the length is not hidden.
 #[must_use]
-pub fn presents_service_secret(headers: &HeaderMap, secret: &str) -> bool {
-    !secret.is_empty()
-        && service_credential(headers)
-            .is_some_and(|token| token.as_bytes().ct_eq(secret.as_bytes()).into())
+pub fn presents_service_secret(headers: &HeaderMap, secret: &Secret<str>) -> bool {
+    service_credential(headers).is_some_and(|token| *secret == *token)
 }

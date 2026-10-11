@@ -32,6 +32,7 @@ use core::{
     error::Error,
     future,
     marker::PhantomData,
+    pin::Pin,
     sync::atomic::{AtomicBool, Ordering},
     task,
 };
@@ -43,6 +44,7 @@ use axum::{
 };
 use error_stack::Report;
 use futures::{TryFutureExt as _, future::Either};
+use hash_secret::Secret;
 use opentelemetry::{
     KeyValue,
     metrics::{Counter, Meter},
@@ -258,7 +260,7 @@ impl ResolvedAuthentication {
 /// does.
 fn service_secret_rejection(
     headers: &http::HeaderMap,
-    service_secret: &str,
+    service_secret: &Secret<str>,
     metrics: &Arc<AuthenticationMetrics>,
 ) -> Option<AuthenticationRejection> {
     if presents_service_secret(headers, service_secret) {
@@ -291,18 +293,19 @@ fn service_secret_rejection(
 /// # use axum::{Router, routing::get};
 /// use hash_middleware::authentication::{AuthenticationMetrics, ServiceSecretLayer};
 ///
+/// # use hash_secret::Secret;
 /// # let meter = opentelemetry::global::meter("doc");
 /// let router: Router = Router::new()
 ///     .route("/snapshot", get(async || "gated"))
 ///     .route_layer(ServiceSecretLayer {
-///         service_secret: Arc::from("service-secret"),
+///         service_secret: Secret::from_string("service-secret".to_owned()).to_arc(),
 ///         metrics: Arc::new(AuthenticationMetrics::new(&meter)),
 ///     });
 /// ```
 #[derive(Clone)]
 pub struct ServiceSecretLayer {
     /// The secret a request must present.
-    pub service_secret: Arc<str>,
+    pub service_secret: Pin<Arc<Secret<str>>>,
     /// The instruments rejections are counted on.
     pub metrics: Arc<AuthenticationMetrics>,
 }
@@ -312,7 +315,7 @@ impl<S> tower::Layer<S> for ServiceSecretLayer {
 
     fn layer(&self, inner: S) -> Self::Service {
         ServiceSecretService {
-            service_secret: Arc::clone(&self.service_secret),
+            service_secret: Pin::clone(&self.service_secret),
             metrics: Arc::clone(&self.metrics),
             inner,
         }
@@ -322,7 +325,7 @@ impl<S> tower::Layer<S> for ServiceSecretLayer {
 /// The service [`ServiceSecretLayer`] wraps its inner service into.
 #[derive(Clone)]
 pub struct ServiceSecretService<S> {
-    service_secret: Arc<str>,
+    service_secret: Pin<Arc<Secret<str>>>,
     metrics: Arc<AuthenticationMetrics>,
     inner: S,
 }
@@ -416,11 +419,12 @@ fn store_outcome<B>(
 ///     actor.to_string()
 /// }
 ///
+/// # use hash_secret::Secret;
 /// # let meter = opentelemetry::global::meter("doc");
 /// let router: Router = Router::new().route("/whoami", get(whoami)).route_layer(
 ///     AuthenticationLayer::<_, ActorId> {
 ///         provider: Arc::new(Verifier),
-///         service_secret: Arc::from("service-secret"),
+///         service_secret: Secret::from_string("service-secret".to_owned()).to_arc(),
 ///         metrics: Arc::new(AuthenticationMetrics::new(&meter)),
 ///         bootstrap_route: |_path| false,
 ///         caller: PhantomData,
@@ -431,7 +435,7 @@ pub struct AuthenticationLayer<P, C> {
     /// The provider chain requests resolve against.
     pub provider: Arc<P>,
     /// The secret bootstrap routes require.
-    pub service_secret: Arc<str>,
+    pub service_secret: Pin<Arc<Secret<str>>>,
     /// The instruments rejections are counted on.
     pub metrics: Arc<AuthenticationMetrics>,
     /// Names the bootstrap routes by path.
@@ -446,7 +450,7 @@ impl<P, C> Clone for AuthenticationLayer<P, C> {
     fn clone(&self) -> Self {
         Self {
             provider: Arc::clone(&self.provider),
-            service_secret: Arc::clone(&self.service_secret),
+            service_secret: Pin::clone(&self.service_secret),
             metrics: Arc::clone(&self.metrics),
             bootstrap_route: self.bootstrap_route,
             caller: PhantomData,
@@ -462,7 +466,7 @@ impl<P, C, S> tower::Layer<S> for AuthenticationLayer<P, C> {
             inner,
             _caller: PhantomData,
             provider: Arc::clone(&self.provider),
-            service_secret: Arc::clone(&self.service_secret),
+            service_secret: Pin::clone(&self.service_secret),
             metrics: Arc::clone(&self.metrics),
             bootstrap_route: self.bootstrap_route,
         }
@@ -475,7 +479,7 @@ pub struct AuthenticationService<P, C, S> {
     _caller: PhantomData<fn() -> C>,
 
     provider: Arc<P>,
-    service_secret: Arc<str>,
+    service_secret: Pin<Arc<Secret<str>>>,
     metrics: Arc<AuthenticationMetrics>,
     bootstrap_route: fn(&str) -> bool,
 }
@@ -486,7 +490,7 @@ impl<P, C, S: Clone> Clone for AuthenticationService<P, C, S> {
             inner: self.inner.clone(),
             _caller: PhantomData,
             provider: Arc::clone(&self.provider),
-            service_secret: Arc::clone(&self.service_secret),
+            service_secret: Pin::clone(&self.service_secret),
             metrics: Arc::clone(&self.metrics),
             bootstrap_route: self.bootstrap_route,
         }
@@ -648,6 +652,7 @@ mod tests {
 
     use axum::{Router, body::Body, response::IntoResponse as _, routing::get};
     use error_stack::Report;
+    use hash_secret::Secret;
     use http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE};
     use problematic::{Answer, Rejected};
     use serde_json::{Value, json};
@@ -710,7 +715,7 @@ mod tests {
     ) -> Router {
         routes().layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider: Arc::new(provider),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             metrics,
             bootstrap_route: is_bootstrap_route,
             caller: PhantomData,
@@ -919,7 +924,7 @@ mod tests {
     fn actor_required_router(provider: StaticAuthenticationProvider) -> Router {
         routes().layer(AuthenticationLayer::<_, ActorId> {
             provider: Arc::new(provider),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
             bootstrap_route: is_bootstrap_route,
             caller: PhantomData,
@@ -980,7 +985,7 @@ mod tests {
     /// A router gated by the service secret alone, as bulk-destructive admin routes are.
     fn secret_gated_router() -> Router {
         routes().layer(ServiceSecretLayer {
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
         })
     }
@@ -1000,7 +1005,7 @@ mod tests {
         let recorded = RecordedMetrics::new();
         let response = routes()
             .layer(ServiceSecretLayer {
-                service_secret: Arc::from(SERVICE_SECRET),
+                service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
                 metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
             })
             .oneshot(request_with_secret("/protected", "hash-svc-wrong"))
@@ -1204,7 +1209,7 @@ mod tests {
         let recorded = RecordedMetrics::new();
         let router = routes().layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider: Arc::new(MissingDelegation),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
             bootstrap_route: is_bootstrap_route,
             caller: PhantomData,
@@ -1345,7 +1350,7 @@ mod tests {
         let response = routes()
             .layer(AuthenticationLayer::<_, ActorId> {
                 provider: Arc::new(SharedRejectionProvider(Arc::new(report))),
-                service_secret: Arc::from(SERVICE_SECRET),
+                service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
                 metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
                 bootstrap_route: is_bootstrap_route,
                 caller: PhantomData,
@@ -1412,7 +1417,7 @@ mod tests {
             provider: Arc::new(SharedRejectionProvider(Arc::new(Report::new(
                 AuthenticationError::new(AuthenticationErrorKind::ProviderUnreachable),
             )))),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
             bootstrap_route: is_bootstrap_route,
             caller: PhantomData,

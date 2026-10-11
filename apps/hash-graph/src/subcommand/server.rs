@@ -59,7 +59,9 @@ use crate::{
     error::{GraphError, HealthcheckError},
     subcommand::{
         HealthcheckArgs, ServerLifecycle,
-        admin_server::{AdminConfig, cloudflare_access_config, start_admin_server},
+        admin_server::{
+            AdminConfig, cloudflare_access_config, require_service_secret, start_admin_server,
+        },
         type_fetcher::{
             REACHABILITY_WINDOW, TypeFetcherConfig, start_type_fetcher, wait_for_type_fetcher,
         },
@@ -454,8 +456,7 @@ pub struct ServerConfig {
     // Optional at parse time so `--healthcheck` does not require the environment variable. The
     // server refuses to start without it.
     #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
-    #[debug("***")]
-    pub service_secret: Option<String>,
+    pub service_secret: Option<Pin<Box<Secret<str>>>>,
 
     #[clap(flatten)]
     pub api_tokens: ApiTokenConfig,
@@ -663,7 +664,7 @@ where
 pub(crate) struct AuthenticationSetup {
     pub session_auth: KratosSessionConfig,
     pub cloudflare_access: Option<CloudflareAccessConfig>,
-    pub service_secret: String,
+    pub service_secret: Pin<Arc<Secret<str>>>,
     pub api_tokens: Option<Arc<ApiTokenIssuer>>,
 }
 
@@ -740,20 +741,7 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
     // without tearing down established connections.
     let session_auth = args.config.session_auth.clone().into_provider_config()?;
     let cloudflare_access = cloudflare_access_config(&args.admin)?;
-    // HTTP strips surrounding whitespace from header values, so the senders' secret arrives
-    // trimmed. Trimming here keeps both sides comparing the same bytes.
-    let service_secret = args
-        .config
-        .service_secret
-        .clone()
-        .map(|secret| secret.trim().to_owned())
-        .filter(|secret| !secret.is_empty())
-        .ok_or_else(|| {
-            Report::new(GraphError).attach(
-                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
-                 running the server",
-            )
-        })?;
+    let service_secret = require_service_secret(args.config.service_secret.take())?;
     let api_tokens = args.config.api_tokens.clone().into_issuer()?.map(Arc::new);
 
     let pool = PostgresStorePool::new(
@@ -797,7 +785,7 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
         start_admin_server(
             pool.clone(),
             args.admin,
-            service_secret.clone(),
+            Pin::clone(&service_secret),
             telemetry.meter("Graph Admin API"),
             &lifecycle,
         );

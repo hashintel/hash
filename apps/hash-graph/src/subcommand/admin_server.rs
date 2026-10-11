@@ -284,18 +284,44 @@ pub struct AdminServerArgs {
     // Optional at parse time so `--healthcheck` does not require the environment variable. The
     // server refuses to start without it.
     #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
-    #[debug("***")]
-    pub service_secret: Option<String>,
+    pub service_secret: Option<Pin<Box<Secret<str>>>>,
 
     #[clap(flatten)]
     pub healthcheck: HealthcheckArgs,
+}
+
+/// The service secret for sharing, or an error if it is unset, empty, or starts or ends with
+/// whitespace.
+///
+/// # Errors
+///
+/// Returns [`GraphError`] if `secret` is [`None`], empty, or starts or ends with whitespace.
+pub(crate) fn require_service_secret(
+    secret: Option<Pin<Box<Secret<str>>>>,
+) -> Result<Pin<Arc<Secret<str>>>, Report<GraphError>> {
+    let secret = secret.ok_or_else(|| {
+        Report::new(GraphError).attach(
+            "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set when running the server",
+        )
+    })?;
+    if secret.is_empty() {
+        return Err(Report::new(GraphError)
+            .attach("--service-secret (HASH_GRAPH_SERVICE_SECRET) must not be empty"));
+    }
+    // HTTP strips surrounding whitespace from header values, so a secret with it never matches.
+    if secret.expose().trim_ascii().len() != secret.len() {
+        return Err(Report::new(GraphError).attach(
+            "--service-secret (HASH_GRAPH_SERVICE_SECRET) must not start or end with whitespace",
+        ));
+    }
+    Ok(secret.to_arc())
 }
 
 /// Runs the admin server until `shutdown` is cancelled.
 pub(crate) async fn run_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
-    service_secret: String,
+    service_secret: Pin<Arc<Secret<str>>>,
     meter: Meter,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
@@ -317,14 +343,14 @@ pub(crate) async fn run_admin_server(
 
     let pool = Arc::new(pool);
     let authentication_provider = Arc::new((
-        build_explicit_providers(service_secret.clone(), &pool),
+        build_explicit_providers(Pin::clone(&service_secret), &pool),
         cloudflare_access.map(|config| build_environment_provider(config, &pool)),
     ));
 
     let router = hash_graph_api::rest::legacy::admin::routes(
         pool,
         authentication_provider,
-        Arc::from(service_secret),
+        service_secret,
         Arc::new(AuthenticationMetrics::new(&meter)),
         hash_graph_api::rest::legacy::admin::ExternalServicesConfig {
             kratos_admin_url,
@@ -357,7 +383,7 @@ pub(crate) async fn run_admin_server(
 pub(crate) fn start_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
-    service_secret: String,
+    service_secret: Pin<Arc<Secret<str>>>,
     meter: Meter,
     lifecycle: &ServerLifecycle,
 ) {
@@ -390,18 +416,7 @@ pub async fn admin_server(
         report
     })?;
 
-    // HTTP strips surrounding whitespace from header values, so the senders' secret arrives
-    // trimmed. Trimming here keeps both sides comparing the same bytes.
-    let service_secret = args
-        .service_secret
-        .map(|secret| secret.trim().to_owned())
-        .filter(|secret| !secret.is_empty())
-        .ok_or_else(|| {
-            Report::new(GraphError).attach(
-                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
-                 running the server",
-            )
-        })?;
+    let service_secret = require_service_secret(args.service_secret)?;
 
     let lifecycle = ServerLifecycle::new();
     start_admin_server(
@@ -464,4 +479,39 @@ pub async fn healthcheck(address: AdminAddress) -> Result<(), Report<Healthcheck
     .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use hash_secret::Secret;
+    use rstest::rstest;
+
+    use super::require_service_secret;
+
+    #[rstest]
+    #[case::unset(None, "must be set")]
+    #[case::empty(Some(""), "must not be empty")]
+    #[case::leading_space(Some(" hash-svc"), "must not start or end with whitespace")]
+    #[case::trailing_newline(Some("hash-svc\n"), "must not start or end with whitespace")]
+    fn require_service_secret_rejected(#[case] secret: Option<&str>, #[case] reason: &str) {
+        let report =
+            require_service_secret(secret.map(|secret| Secret::from_string(secret.to_owned())))
+                .expect_err("the secret should be rejected");
+
+        assert!(
+            format!("{report:?}").contains(reason),
+            "the error should say the secret {reason}"
+        );
+    }
+
+    #[test]
+    fn require_service_secret_shared() {
+        let secret = require_service_secret(Some(Secret::from_string("hash-svc".to_owned())))
+            .expect("the secret should be accepted");
+
+        assert_eq!(
+            &*secret, "hash-svc",
+            "the shared secret should hold the text"
+        );
+    }
 }

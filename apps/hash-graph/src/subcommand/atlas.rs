@@ -12,6 +12,7 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
 use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
+use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use opentelemetry::metrics::Meter;
 use reqwest::Client;
@@ -187,7 +188,8 @@ async fn run_atlas(
 
     let provider = Arc::new((
         build_explicit_providers(
-            service_secret.clone().into_unguarded().as_ref().to_owned(),
+            Secret::from_string(service_secret.clone().into_unguarded().as_ref().to_owned())
+                .to_arc(),
             &pool,
         ),
         (

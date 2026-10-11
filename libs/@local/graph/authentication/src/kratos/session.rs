@@ -425,6 +425,7 @@ mod tests {
         request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
     };
+    use hash_secret::Secret;
     use http::{HeaderMap, HeaderValue, StatusCode};
     use opentelemetry::metrics::MeterProvider as _;
     use opentelemetry_sdk::metrics::{
@@ -1048,7 +1049,7 @@ mod tests {
         let chain = (
             provider_with_static_response(StatusCode::UNAUTHORIZED, "{}").await,
             ServiceDelegationProvider::new(
-                CHAIN_SERVICE_SECRET.to_owned(),
+                Secret::from_string(CHAIN_SERVICE_SECRET.to_owned()).to_arc(),
                 FixedActorResolver::new(HashMap::new()),
             ),
         );
@@ -1074,7 +1075,7 @@ mod tests {
             )
             .await,
             ServiceDelegationProvider::new(
-                CHAIN_SERVICE_SECRET.to_owned(),
+                Secret::from_string(CHAIN_SERVICE_SECRET.to_owned()).to_arc(),
                 FixedActorResolver::new(HashMap::new()),
             ),
         );
