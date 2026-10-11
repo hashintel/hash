@@ -16,9 +16,10 @@ const twoRows = (
 ): HeatmapDensityGrid => {
   const cols = columns.length;
   const densities = new Float32Array(2 * cols);
+  const cell = (row: number, column: number) => row * cols + column;
   for (const [column, [low, high]] of columns.entries()) {
-    densities[0 * cols + column] = low!;
-    densities[1 * cols + column] = high!;
+    densities[cell(0, column)] = low!;
+    densities[cell(1, column)] = high!;
   }
   return { columns: cols, rows: 2, densities, valueMin, valueMax };
 };

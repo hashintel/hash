@@ -399,6 +399,7 @@ const WidgetPart: React.FC<{
   const [element, setElement] = useState<HTMLDivElement | null>(null);
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- each cell part is a roving focus stop.
     <div
       ref={setElement}
       data-cell-part={stopId}

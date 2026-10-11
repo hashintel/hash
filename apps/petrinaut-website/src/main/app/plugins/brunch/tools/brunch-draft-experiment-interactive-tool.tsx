@@ -551,7 +551,11 @@ export const BrunchDraftExperimentWidget = ({
           run.phase === "running" ? () => run.controller.abort() : undefined
         }
         onRetry={
-          run.phase === "failed" && canRun ? () => void onRun() : undefined
+          run.phase === "failed" && canRun
+            ? () => {
+                void onRun();
+              }
+            : undefined
         }
         onViewExperiment={
           canViewExperiment
@@ -718,7 +722,9 @@ export const BrunchDraftExperimentWidget = ({
                 size="sm"
                 tone="brand"
                 disabled={blocksRun}
-                onClick={() => void onRun()}
+                onClick={() => {
+                  void onRun();
+                }}
                 type="button"
               >
                 {draft.run.phase === "failed"

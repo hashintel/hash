@@ -55,8 +55,8 @@
     "@whatwg-node/server": "0.10.18",
     "monaco-editor": "0.55.1",
     "oxc-transform-react": "0.152.0",
-    "oxlint": "1.63.0",
-    "oxlint-tsgolint": "0.22.1",
+    "oxlint": "1.86.0",
+    "oxlint-tsgolint": "7.0.2003",
     "sharp": "0.35.4",
     "vite": "8.2.2",
     "vitest": "4.1.11"

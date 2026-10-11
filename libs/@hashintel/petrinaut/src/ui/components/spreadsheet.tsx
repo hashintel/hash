@@ -498,6 +498,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
       <div ref={attach} className={tableContainerStyle}>
         <table
           className={tableStyle}
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role -- the table is an editable ARIA grid.
           role="grid"
           aria-readonly={isReadOnly || undefined}
         >
@@ -526,7 +527,6 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                 <tr
                   // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful; cell contents must stay out of the key (string cells are arbitrary-length, and value changes should update the row, not remount it)
                   key={`row-${rowIndex}`}
-                  role="row"
                   aria-selected={selectedRow === rowIndex}
                   className={rowStyle({
                     isSelected: selectedRow === rowIndex,
@@ -562,7 +562,6 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                       <td
                         // eslint-disable-next-line react/no-array-index-key -- Column position is stable and meaningful
                         key={`cell-${rowIndex}-${colIndex}`}
-                        role="gridcell"
                         className={cellContainerStyle({
                           isSticky: isPhantomRow,
                         })}
