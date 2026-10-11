@@ -105,7 +105,7 @@ export const PlaceStateVisualization: React.FC<
     }
 
     return (
-      // eslint-disable-next-line react-compiler/static-components -- Runtime visualizer code intentionally creates a component from user input.
+      // eslint-disable-next-line react/static-components -- Runtime visualizer code intentionally creates a component from user input.
       <VisualizerComponent
         tokens={tokens}
         parameters={mergeParameterValues(

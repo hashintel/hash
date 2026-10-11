@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
  * current render's value with the value committed by the previous effect run.
  * That requires opting out of two things:
  *   - the React Compiler, via `"use no memo"` (or it would memoize past the read)
- *   - the `react-compiler/refs` lint rule (which forbids ref reads in render)
+ *   - the `react/refs` lint rule (which forbids ref reads in render)
  * Both are intentional and load-bearing — do not remove either.
  */
 export function useFiringDelta(firingCount: number | null): number | null {
@@ -24,7 +24,7 @@ export function useFiringDelta(firingCount: number | null): number | null {
     return null;
   }
 
-  /* eslint-disable react-compiler/refs -- see the function-level comment. */
+  /* eslint-disable react/refs -- see the function-level comment. */
   const previousFiringCount = prevFiringCountRef.current;
 
   // On first render (ref not yet initialized) or no change, return null
@@ -35,7 +35,7 @@ export function useFiringDelta(firingCount: number | null): number | null {
   }
 
   const delta = firingCount - previousFiringCount;
-  /* eslint-enable react-compiler/refs */
+  /* eslint-enable react/refs */
 
   // Ignore negative deltas (e.g., when scrubbing backwards)
   return delta > 0 ? delta : null;

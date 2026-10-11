@@ -635,7 +635,7 @@ const ConversationAiAssistantPanel = ({
   const diagnosticsTransport = useMemo(
     () =>
       createReasoningTimingAwareAiTransport(
-        // eslint-disable-next-line react-compiler/refs -- the transport reads refs when it sends, not while rendering; see the "use no memo" comment above.
+        // eslint-disable-next-line react/refs -- the transport reads refs when it sends, not while rendering; see the "use no memo" comment above.
         createDiagnosticsAwareAiTransport({
           readDiagnosticsContext,
           transport: liveHostTransport,
@@ -986,6 +986,7 @@ const ConversationAiAssistantPanel = ({
         executionConversationId === toolHostIdentityRef.current &&
         experimentControllersRef.current.get(toolCall.toolCallId) ===
           controller;
+      // eslint-disable-next-line react/todo -- the build skips this panel, which opts out with "use no memo"; oxlint reports bailouts in opted-out functions anyway.
       try {
         const result = await experimentHost.runExperiment(request, {
           signal: controller.signal,
@@ -2027,7 +2028,7 @@ const ConversationAiAssistantPanel = ({
     }
     if (status === "error") {
       queuedVoiceInputRef.current = null;
-      // eslint-disable-next-line react-compiler/set-state-in-effect -- settling the queued input's promise is the effect; the flag follows it.
+      // eslint-disable-next-line react/set-state-in-effect -- settling the queued input's promise is the effect; the flag follows it.
       setVoiceInputQueued(false);
       queued.release();
       queued.reject(new Error("Voice mode could not accept that input."));
@@ -2227,7 +2228,7 @@ const ConversationAiAssistantPanel = ({
       interactionMode === "voice" &&
       aiAssistant.renderVoiceMode === undefined
     ) {
-      // eslint-disable-next-line react-compiler/set-state-in-effect -- the mode setter also moves a ref and the voice dock, so it cannot run during render.
+      // eslint-disable-next-line react/set-state-in-effect -- the mode setter also moves a ref and the voice dock, so it cannot run during render.
       selectInteractionMode("text");
     }
   }, [aiAssistant.renderVoiceMode, interactionMode, selectInteractionMode]);
@@ -2287,10 +2288,10 @@ const ConversationAiAssistantPanel = ({
     reportExperimentRunning,
   };
   const composerControl = aiAssistant.renderComposerControl?.(
-    // eslint-disable-next-line react-compiler/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
+    // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
     composerControlContext,
   );
-  // eslint-disable-next-line react-compiler/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
+  // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
   const voiceMode = aiAssistant.renderVoiceMode?.({
     ...composerControlContext,
     canAcceptVoiceInput: !voiceInputQueued,

@@ -61,7 +61,7 @@ const isSameContent = (left: unknown, right: unknown): boolean => {
  * the read cannot move to an effect. It opts out of two things, and both are
  * load-bearing:
  *   - the React Compiler, via `"use no memo"`, which cannot model the cache
- *   - the `react-compiler/refs` lint rule, which forbids ref reads in render
+ *   - the `react/refs` lint rule, which forbids ref reads in render
  *
  * It is idempotent: every object it returns is content-equal to the one it
  * replaces, so a discarded or repeated render changes nothing a consumer can
@@ -75,7 +75,7 @@ export const useStableItems = <Item extends { id: string }>(
   const previous = useRef(new Map<string, Item>());
   const next = new Map<string, Item>();
 
-  /* eslint-disable react-compiler/refs -- see the function-level comment. */
+  /* eslint-disable react/refs -- see the function-level comment. */
   const stable = items.map((item) => {
     const before = previous.current.get(item.id);
     const kept =
@@ -85,7 +85,7 @@ export const useStableItems = <Item extends { id: string }>(
   });
 
   previous.current = next;
-  /* eslint-enable react-compiler/refs */
+  /* eslint-enable react/refs */
 
   return stable;
 };
