@@ -22,6 +22,7 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
+use hash_secret::Secret;
 use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, rngs::StdRng};
 use tokio::sync::oneshot;
@@ -265,7 +266,7 @@ fn pool() -> Arc<PostgresStorePool> {
             &DatabaseConnectionInfo::new(
                 DatabaseType::Postgres,
                 "manager-test".to_owned(),
-                String::new(),
+                Secret::from_string(String::new()),
                 "/no-manager-test-postgres".to_owned(),
                 5432,
                 "manager-test".to_owned(),

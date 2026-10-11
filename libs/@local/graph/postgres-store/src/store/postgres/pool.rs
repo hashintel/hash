@@ -10,7 +10,7 @@ use futures::TryStreamExt as _;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use postgres_types::BorrowToSql;
-use tokio_postgres::{Client, Config, GenericClient, NoTls, Row, ToStatement, Transaction};
+use tokio_postgres::{Client, GenericClient, NoTls, Row, ToStatement, Transaction};
 
 use crate::store::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig},
@@ -63,13 +63,7 @@ impl<Tls: PostgresTls> PostgresStorePool<Tls> {
     ) -> Result<Self, Report<StoreError>> {
         tracing::debug!(url=%db_info, "Creating connection pool to Postgres");
 
-        let mut config = Config::new();
-        config
-            .user(db_info.user())
-            .password(db_info.password())
-            .host(db_info.host())
-            .port(db_info.port())
-            .dbname(db_info.database());
+        let config = db_info.config();
 
         Ok(Self {
             // TODO(BE-703): The default timeouts are all unbounded, so a saturated pool waits

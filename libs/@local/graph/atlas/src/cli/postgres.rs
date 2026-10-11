@@ -72,16 +72,14 @@ impl PostgresArgs {
             .port(self.port)
             .dbname(self.database);
 
-        dial(config).await
+        connect(config).await
     }
 }
 
 /// Dialing the store failed.
 #[derive(Debug)]
 pub enum ConnectError {
-    /// The connection string did not parse.
-    Parse(tokio_postgres::Error),
-    /// The connection string names no TCP host.
+    /// The configuration names no TCP host.
     NoTcpHost,
     /// The store refused the TCP connection.
     Connect(io::Error),
@@ -92,8 +90,7 @@ pub enum ConnectError {
 impl fmt::Display for ConnectError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Parse(_) => fmt.write_str("the connection string did not parse"),
-            Self::NoTcpHost => fmt.write_str("the connection string names no TCP host"),
+            Self::NoTcpHost => fmt.write_str("the configuration names no TCP host"),
             Self::Connect(_) => fmt.write_str("the store refused the TCP connection"),
             Self::Handshake(_) => fmt.write_str("the store handshake failed"),
         }
@@ -103,23 +100,11 @@ impl fmt::Display for ConnectError {
 impl Error for ConnectError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Parse(error) | Self::Handshake(error) => Some(error),
+            Self::Handshake(error) => Some(error),
             Self::NoTcpHost => None,
             Self::Connect(error) => Some(error),
         }
     }
-}
-
-/// Dials the store named by the connection string and drives the connection on a background task.
-///
-/// # Errors
-///
-/// Returns a [`ConnectError`] when the connection string does not parse or names no TCP host, or
-/// when the store refuses the connection or handshake.
-pub async fn connect(dsn: &str) -> Result<Client, ConnectError> {
-    let config: Config = dsn.parse().map_err(ConnectError::Parse)?;
-
-    dial(config).await
 }
 
 /// Dials the store the configuration names and drives the connection on a background task.
@@ -128,7 +113,7 @@ pub async fn connect(dsn: &str) -> Result<Client, ConnectError> {
 ///
 /// Returns a [`ConnectError`] when the configuration names no TCP host, when the socket refuses
 /// the connection, or when the store rejects the handshake.
-async fn dial(config: Config) -> Result<Client, ConnectError> {
+pub async fn connect(config: Config) -> Result<Client, ConnectError> {
     let host = config
         .get_hosts()
         .iter()

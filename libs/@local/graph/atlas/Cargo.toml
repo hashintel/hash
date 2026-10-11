@@ -34,6 +34,7 @@ hash-graph-embeddings          = { workspace = true, public = true }
 hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true }
 hash-middleware                = { workspace = true, public = true }
+hash-secret                    = { workspace = true, optional = true }
 problematic                    = { workspace = true }
 
 # Private third-party dependencies
@@ -91,6 +92,7 @@ zeroize                   = { workspace = true, features = ["alloc"] }
 codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 darwin-kperf-events       = { workspace = true }
+hash-secret               = { workspace = true }
 insta                     = { workspace = true }
 proptest                  = { workspace = true, features = ["attr-macro"] }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
@@ -101,7 +103,7 @@ uuid                      = { workspace = true, features = ["v5"] }
 [features]
 bench      = []
 cli        = ["dep:ratatui", "dep:tracing-subscriber"]
-test-utils = ["dep:tracing-subscriber"]
+test-utils = ["dep:hash-secret", "dep:tracing-subscriber"]
 
 [[test]]
 name              = "generation_transfer"

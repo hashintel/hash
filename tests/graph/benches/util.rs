@@ -19,6 +19,7 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_repo_chores::benches::generate_path;
+use hash_secret::Secret;
 use hash_telemetry::TelemetryRegistry;
 use regex::Regex;
 use time::OffsetDateTime;
@@ -76,12 +77,14 @@ impl StoreWrapper {
         load_env(Environment::Test);
 
         let super_user = std::env::var("POSTGRES_USER").unwrap_or_else(|_| "postgres".to_owned());
-        let super_password =
-            std::env::var("POSTGRES_PASSWORD").unwrap_or_else(|_| "postgres".to_owned());
+        let super_password = Secret::from_string(
+            std::env::var("POSTGRES_PASSWORD").unwrap_or_else(|_| "postgres".to_owned()),
+        );
 
         let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());
-        let password =
-            std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned());
+        let password = Secret::from_string(
+            std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned()),
+        );
         let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned());
         let port = std::env::var("HASH_GRAPH_PG_PORT").map_or(5432, |port| {
             port.parse::<u16>()

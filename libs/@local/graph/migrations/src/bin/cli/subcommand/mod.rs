@@ -1,9 +1,10 @@
 mod completions;
 mod run;
 
-use core::error::Error;
+use core::{error::Error, pin::Pin};
 
 use error_stack::Report;
+use hash_secret::Secret;
 use tokio_postgres::{Client, Config, Connection, NoTls, Socket, tls::NoTlsStream};
 
 use self::{completions::CompletionsCommand, run::RunCommand};
@@ -39,8 +40,7 @@ pub struct DatabaseConnectionInfo {
         env = "HASH_GRAPH_PG_PASSWORD",
         hide_env_values = true
     )]
-    #[debug("***")]
-    password: String,
+    password: Pin<Box<Secret<str>>>,
 
     /// The host to connect to.
     #[clap(long, default_value = "localhost", env = "HASH_GRAPH_PG_HOST")]
@@ -61,7 +61,7 @@ impl DatabaseConnectionInfo {
     ) -> Result<(Client, Connection<Socket, NoTlsStream>), Report<tokio_postgres::Error>> {
         Config::default()
             .user(self.user)
-            .password(self.password)
+            .password(self.password.expose())
             .host(self.host)
             .port(self.port)
             .dbname(self.database)

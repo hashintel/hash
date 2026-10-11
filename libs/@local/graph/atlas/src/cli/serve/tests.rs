@@ -28,6 +28,7 @@ use hash_middleware::{
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
+use hash_secret::Secret;
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
@@ -94,7 +95,7 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
         &DatabaseConnectionInfo::new(
             DatabaseType::Postgres,
             "atlas-layer-test".to_owned(),
-            String::new(),
+            Secret::from_string(String::new()),
             "/no-atlas-layer-test-postgres".to_owned(),
             5432,
             "atlas-layer-test".to_owned(),

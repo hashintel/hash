@@ -25,6 +25,7 @@ use hash_middleware::{
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
+use hash_secret::Secret;
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 use type_system::principal::actor::{ActorId, UserId};
@@ -86,7 +87,7 @@ async fn pool(database: &str) -> Arc<PostgresStorePool> {
             &DatabaseConnectionInfo::new(
                 DatabaseType::Postgres,
                 "postgres".to_owned(),
-                "postgres".to_owned(),
+                Secret::from_string("postgres".to_owned()),
                 "localhost".to_owned(),
                 5432,
                 database.to_owned(),
