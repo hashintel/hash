@@ -1,0 +1,192 @@
+---
+title: Plugin API reference
+description: Tables of the plugin manifest, access levels, api members, contributions, exports, error messages and refusals.
+attachTo: ui.plugins
+sidebar_order: 40
+---
+
+Lookup tables for the plugin API, for plugin authors who know what they are
+looking for. [Writing a plugin](doc:plugins/writing-a-plugin) shows how the
+pieces fit together.
+
+## Manifest
+
+| Key           | Value                                                                                                                               | Adds to `api`                       | The hook returns |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------- |
+| `id`          | Namespaced, stable and unique among the editor's plugins (`website.brunch`). Stored settings and the user's switch are keyed by it. |                                     |                  |
+| `name`        | Titles the plugin's row in User settings → Plugins and its group of setting rows.                                                   |                                     |                  |
+| `description` | Shown when the plugin's row opens.                                                                                                  |                                     |                  |
+| `author`      | Shown beside the name, as in "by HASH".                                                                                             |                                     |                  |
+| `access`      | A level per family; see [`access`](#access).                                                                                        | `document`, `experiments`, `editor` |                  |
+| `settings`    | A spec per key; see [Settings](#settings).                                                                                          | `settings`                          |                  |
+| `commands`    | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands).                                                   |                                     | `commands`       |
+| `buttons`     | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                    |                                     | `buttons`        |
+| `topBarItems` | Per key: `{ place }`.                                                                                                               |                                     | `topBarItems`    |
+| `root`        | `true`: the plugin renders UI inside the editor.                                                                                    |                                     | `root`           |
+| `provides`    | `pluginService<T>()`, the type of the service the hook provides.                                                                    |                                     | `provides`       |
+
+Every key but `id` and `name` is optional.
+
+### Places
+
+| `place`             | Takes                     | Where                                                                           |
+| ------------------- | ------------------------- | ------------------------------------------------------------------------------- |
+| `top-bar-start`     | Buttons and top-bar items | The top bar's left part, after the menu button and before the title.            |
+| `top-bar-end`       | Buttons and top-bar items | The top bar's right end, after the built-in buttons.                            |
+| `viewport-controls` | Buttons                   | The viewport controls at the canvas's bottom right, below the built-in buttons. |
+
+At each place, each plugin's buttons render before its top-bar items, in the
+order of the `plugins` array. The toolbar sets a button's size and variant to
+match the built-in buttons.
+
+### Settings
+
+| Field         | Notes                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------- |
+| `type`        | `"boolean"`, shown as a switch, or `"enum"`, shown as a choice.                                |
+| `options`     | `"enum"` only: the choices, shown as written.                                                  |
+| `default`     | A `boolean`, or one of `options`.                                                              |
+| `label`       | The row's title.                                                                               |
+| `description` | Optional. A sentence under the label.                                                          |
+| `section`     | `"general"` (the default), `"viewport"` or `"labs"`, whose rows carry the Experimental marker. |
+
+### Commands
+
+| Field      | Notes                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------- |
+| `label`    | What the palette shows.                                                                 |
+| `category` | Optional. The palette's grouping; the plugin's `name` by default.                       |
+| `keywords` | Optional. Extra search terms beyond the label.                                          |
+| `shortcut` | Optional. The chord to display, e.g. `mod+k`. Display only: the registry binds no keys. |
+
+A command registers under `pluginCommandId(id, key)`, which is
+`<plugin id>.<key>`, while the plugin runs and its `when` holds. Its
+`category`, `keywords` and `shortcut` are shown as declared.
+
+## `access`
+
+```ts
+access: {
+  document?: "read" | "write";
+  experiments?: "read" | "write";
+  editor?: "read" | "write";
+}
+```
+
+| Family        | `"read"` gives                                                                       | `"write"` also gives                                                   |
+| ------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `document`    | `PluginDocumentReader`: `id`, `net` and `title` (stores), `extensions`, `diagnose()` | `PluginDocument`: `edit.*` (including `applyAutoLayout`), `setTitle()` |
+| `experiments` | `PluginExperimentsReader`: `records`, `optimizationUnavailableReason` (stores)       | `PluginExperiments`: `run()`                                           |
+| `editor`      | `PluginEditorReader`: `navigation` (store)                                           | `PluginEditor`: `navigate()`, `reveal()`                               |
+
+- **Undeclared means absent.** A family left out of `access` is missing from
+  the `api` type and from the object, as is a writer member at `"read"`.
+- **Declared does not mean allowed.** Edits are checked when called. Scenario
+  and metric edits are refused only on a read-only host. Every other edit,
+  `applyAutoLayout` and `setTitle` need Edit mode, no simulation and a
+  writable host. Canvas edits follow the same rule in the editor; `setTitle`
+  is stricter than the title field, which stays editable in every mode.
+  `editor` writes are never refused: the location is not part of the document.
+- **Not a security boundary.** Plugins run in the editor's JavaScript realm.
+
+## `api`
+
+| Member                                          | Present              | Notes                                                                                                                                                                        |
+| ----------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `errors.capture(error, context?)`               | Always               | Sends to the host's error tracker. `context` is `{ source?, tags? }` with string, number or boolean tags. `source` defaults to `plugin.<id>`; `tags.pluginId` is always set. |
+| `notifications.add(input)`                      | Always               | Shows a toast and returns its id.                                                                                                                                            |
+| `settings.get(key)`, `settings.set(key, value)` | `settings`           | Typed by the spec. `get` reads the latest stored value. `set` validates, stores and persists, then the hook runs again.                                                      |
+| `document`                                      | `access.document`    | See [`api.document`](#apidocument).                                                                                                                                          |
+| `experiments`                                   | `access.experiments` | `records` and `optimizationUnavailableReason` are stores. `run(request, options?)` is not refused while the editor is read-only.                                             |
+| `editor`                                        | `access.editor`      | See [`api.editor`](#apieditor).                                                                                                                                              |
+
+`run` is the experiment host's `runExperiment(request, { signal, onProgress })`,
+described in [AI-created experiments](doc:experiments/ai-created-experiments).
+
+### `api.document`
+
+| Member                   | Level | Notes                                                                                                                                                                                                                                                                    |
+| ------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                     | read  | The handle's id. Plugins remount for each document.                                                                                                                                                                                                                      |
+| `net`                    | read  | `ReadableStore<SDCPN>`: the net without the data of disabled extensions; an empty net until the handle is ready.                                                                                                                                                         |
+| `title`                  | read  | `ReadableStore<string>`: the title the host passed, or "Untitled" when it passes none.                                                                                                                                                                                   |
+| `extensions`             | read  | The document's `PetrinautExtensionSettings`.                                                                                                                                                                                                                             |
+| `diagnose()`             | read  | Checks the current net with the language service. Resolves to its diagnostics and `net`, the net it checked: `net !== document.net.get()` afterwards means the document changed meanwhile. Rejects while the language service is starting, just after the editor mounts. |
+| `edit.<mutation>(input)` | write | One method per core mutation. Edits the root net unless `input.targetSubnetId` is set. Returns an `EditResult`.                                                                                                                                                          |
+| `edit.applyAutoLayout()` | write | Lays out the viewed subnet in one undo entry, then frames it once drawn. Resolves to `EditResult<ApplyAutoLayoutResult>`.                                                                                                                                                |
+| `setTitle(title)`        | write | Calls the host's `setTitle`. Refused with `no-title-setter` when the host passed none, and with the read-only reason while the editor is read-only.                                                                                                                      |
+
+### `api.editor`
+
+| Member             | Level | Notes                                                                                                                                                                                                       |
+| ------------------ | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `navigation`       | read  | `ReadableStore<PetrinautNavigationState>`: mode, edit and Simulate views, the open Simulate record, scenario, subnet, selection and overlay, as the host's navigation sees them. Set only when one changes. |
+| `navigate(update)` | write | A partial state, or an updater of the current one. Normalized as the host's navigation is, so an unknown id or a resource of another section is resolved, never refused.                                    |
+| `reveal(target)`   | write | Selects an item, or opens Simulate's scenarios, metrics or experiments with one record open: `navigate` for the two targets AI tools pass.                                                                  |
+
+## `EditResult` and refusals
+
+```ts
+type EditResult<Value = undefined> =
+  | { applied: true; value: Value }
+  | { applied: false; reason: EditRefusal };
+
+type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
+```
+
+| `reason.kind`       | `describeRefusal(reason)` returns                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| `host-readonly`     | This document is read-only; mutations are disabled.                                        |
+| `simulate-mode`     | The editor is in simulate mode. Ask the user to switch to edit mode before mutating.       |
+| `actual-mode`       | The editor is in actual mode. Ask the user to switch to edit mode before mutating.         |
+| `simulation-active` | A simulation is currently `<state>`. Ask the user to reset the simulation before mutating. |
+| `no-title-setter`   | The host application does not provide title editing.                                       |
+
+## Contributions
+
+| Key           | Allowed when | Type                                                                                                                          |
+| ------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `root`        | Declared     | `ReactNode`, rendered inside the editor behind the plugin's error boundary: dialogs, overlays, tours. `null` shows nothing.   |
+| `overlay`     | `root`       | Optional `boolean`: `true` while `root` covers the editor. Holds back the empty-canvas assistant prompt.                      |
+| `commands`    | Declared     | Per key: `{ run, when? }`. `when` defaults to `true`; while `false`, the command is not registered.                           |
+| `buttons`     | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. |
+| `topBarItems` | Declared     | Per key: a `ReactNode`.                                                                                                       |
+| `provides`    | Declared     | The service type `T` of `pluginService<T>()`.                                                                                 |
+
+Every declared key is required and every undeclared one is a type error.
+TypeScript also catches a setting value outside an enum's `options`, a button
+`command` that is not one of the manifest's command keys, a service of the
+wrong type, and a read of `api.document` or `api.experiments` without
+declaring the family.
+
+## Exports
+
+| Kind       | From `@hashintel/petrinaut/ui`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Definition | `definePetrinautPlugin`, `pluginService`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Types      | `PetrinautPlugin`, `PetrinautPluginDefinition`, `PetrinautPluginManifest`, `PetrinautSettingSpec`, `PluginCommandSpec`, `PluginHook`, `PluginApi`, `PluginContributions`, `PluginButton`, `PluginCommand`, `PluginService`, `PluginAccess`, `AccessApi`, `PluginDocumentReader`, `PluginDocument`, `PluginEdits`, `PluginExperimentsReader`, `PluginExperiments`, `PluginEditorReader`, `PluginEditor`, `PetrinautNavigationState`, `PluginErrors`, `PluginNotifications`, `EditResult`, `EditRefusal`, `ReadOnlyReason`, `PetrinautRevealTarget`, `AddNotificationInput`, `ReadableStore` |
+| Hooks      | `usePluginService`, `useStore`, `useStoreSelector`, `useCommands` and `useCommandRegistry` for a palette, `useCommand` for commands unknown at definition time, one per record for instance; declared commands need no hook                                                                                                                                                                                                                                                                                                                                                                |
+| Helpers    | `describeRefusal(reason)`: a sentence for a refusal. `pluginCommandId(id, key)`: the id a declared command registers under. `petrinautDocsContent`: the user guide's pages, by name.                                                                                                                                                                                                                                                                                                                                                                                                       |
+
+`@hashintel/petrinaut` re-exports `definePetrinautPlugin`, `pluginService` and
+the definition and access types, for hosts that define plugins beside their
+`<Petrinaut>`.
+
+## Error messages
+
+| Message                                                           | When                                                                                |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `Petrinaut plugin "<id>" is passed twice. Pass each plugin once.` | Two plugins in `plugins` share an id. Thrown during render.                         |
+| `Plugin "<id>" setting "<key>" rejects <value>.`                  | `settings.set` with an undeclared key or a value its spec rejects. Thrown by `set`. |
+
+## Failure reports
+
+A plugin boundary reports what it catches to the host's error tracker with
+source `plugin` and tags `{ pluginId, place, contributionId }`:
+
+| `place`                                             | What threw                             | `contributionId` |
+| --------------------------------------------------- | -------------------------------------- | ---------------- |
+| `hook`                                              | The plugin's hook                      | Not set          |
+| `root`                                              | Its `root`                             | Not set          |
+| `settings`                                          | Its setting rows                       | Not set          |
+| `top-bar-start`, `top-bar-end`, `viewport-controls` | A button or top-bar item at that place | Its key          |

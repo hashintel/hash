@@ -398,8 +398,16 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `aiAssistant`                                                            | Transport, message store, and interactive tools for the AI assistant panel. Omitting it hides the panel.                                 |
 | `viewportActions`                                                        | Extra buttons appended to the canvas zoom/fit controls.                                                                                  |
 | `navigation`                                                             | Host-controlled, router-neutral app location. Omitted: Petrinaut keeps its location internally. See Router integration.                  |
+| `presentationProfile`                                                    | `"editor"` (default) or `"review"`, which keeps the full editor but suppresses authoring actions, for read-only example routes.          |
 | `slots`                                                                  | Host components injected into the top bar (`topBarStart`, `topBarEnd`) plus `titleStyle`.                                                |
 | `simulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
+| `plugins`                                                                | Plugins that add buttons, top-bar items, settings and UI. Define each at module scope.                                                   |
+
+A plugin declares what it adds in a manifest and returns it from a hook the
+editor runs per document; see [Plugins](doc:plugins/overview).
+Wrap `<Petrinaut>` in `ErrorTrackerContext` (exported from
+`@hashintel/petrinaut`) to receive plugin failures and `api.errors.capture`
+calls; without it they are dropped.
 
 ## Capabilities
 

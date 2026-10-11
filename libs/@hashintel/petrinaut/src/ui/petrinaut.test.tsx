@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("./views/Editor/editor-view", async () => {
@@ -90,6 +90,10 @@ import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
 
 import { defaultPetrinautNavigationState } from "../react/navigation";
 import { Petrinaut } from "./petrinaut";
+import {
+  definePetrinautPlugin,
+  type PluginHook,
+} from "./plugins/define-petrinaut-plugin";
 
 class ObserverStub {
   observe() {}
@@ -223,3 +227,53 @@ test.each([false, true])(
     await waitFor(() => expect(location()).toBe("none/panel"));
   },
 );
+
+/** What the run plugin's button did, in order. */
+const runCalls: string[] = [];
+
+const runPlugin = definePetrinautPlugin({
+  id: "test.run",
+  name: "Run",
+  commands: { run: { label: "Run" } },
+  buttons: { run: { label: "Run", place: "top-bar-end" } },
+})({
+  commands: { run: { run: () => runCalls.push("command") } },
+  buttons: {
+    run: {
+      icon: null,
+      onClick: () => runCalls.push("onClick"),
+      command: "run",
+    },
+  },
+});
+
+test("runs a plugin button's onClick, then its command, through the registry Petrinaut provides", () => {
+  render(<Petrinaut handle={createHandle()} plugins={[runPlugin]} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Run" }));
+  expect(runCalls).toEqual(["onClick", "command"]);
+});
+
+/** One entry per mount of the mount plugin's hook. */
+const hookMounts: string[] = [];
+
+const createMountPlugin = definePetrinautPlugin({
+  id: "test.mount",
+  name: "Mount",
+});
+
+const useMountPlugin: PluginHook<typeof createMountPlugin> = () => {
+  useEffect(() => {
+    hookMounts.push("mount");
+  }, []);
+
+  return {};
+};
+
+const mountPlugin = createMountPlugin(useMountPlugin);
+
+test("mounts a plugin's hook once when the editor opens", () => {
+  render(<Petrinaut handle={createHandle()} plugins={[mountPlugin]} />);
+
+  expect(hookMounts).toEqual(["mount"]);
+});

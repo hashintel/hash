@@ -1,0 +1,111 @@
+---
+title: How the editor runs plugins
+description: Plugin hosts, publishing contributions, remounts, statuses, failures, settings storage, and the React Compiler directives.
+attachTo: ui.plugins
+sidebar_order: 50
+---
+
+How `<Petrinaut>` runs its plugins: when hooks run, when plugins remount, what
+a failure stops, and where settings live. For Petrinaut maintainers, and for
+host developers who need to know when plugin code runs. The code is in
+`petrinaut/src/ui/plugins/`.
+
+![How the editor runs plugins](@diagrams/plugin-runtime.svg)
+
+## Hosts
+
+`<Petrinaut>` mounts `PetrinautPluginsProvider` inside `<PetrinautProvider>`.
+It renders one host per running plugin, beside the editor view. A host calls
+its plugin's hook with `api`, and is keyed by the plugin editor and the
+plugin's `hostKey`.
+
+`PluginEditorProvider` builds one plugin editor per core instance. The
+editor holds the access families, `errors` and `notifications`, built once
+from that instance, so the family objects on `api` never change while a host
+is mounted.
+
+## Publishing contributions
+
+After each commit, a host publishes its contributions, in a layout effect, to
+a store the view's outlets read. Identical contributions publish nothing, and
+a host that unmounts withdraws them. A plugin switched on, off or failing
+therefore never remounts the view. `usePluginService` reads the same store, so
+a plugin's service is readable a layout pass after the plugin mounts, before
+paint.
+
+## Commands
+
+A host also renders one `useCommand` registration per command its manifest
+declares, into the ambient command registry, with the id
+`pluginCommandId(manifest.id, key)`. The registration is replaced only when
+the manifest's spec changes; `run` always calls the hook's latest handler,
+and a `when` of `false` disposes the registration until it holds again.
+Unmounting the host, as switching the plugin off does, disposes them all.
+
+## First paint
+
+`ViewAfterHosts` mounts the view in its first layout effect, which runs after
+the hosts', so the view's first paint shows every contribution.
+
+## Editor state the actions read
+
+`PluginEditorSync` copies the editor state that actions read, such as the
+read-only reason, the viewed subnet and the host's `setTitle`, into the plugin
+editor's stores in the first layout effect of each commit. A host's layout
+effect therefore already sees the read-only reason of the same commit. The
+navigation state is copied the same way, but set only when a field differs, so
+a controlled host's new state object on every render wakes no subscriber.
+
+## Remounts and re-runs
+
+| Event                                                                  | What happens                                                                 |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| The document changes                                                   | `<Petrinaut>` creates a new core instance, and the whole editor remounts.    |
+| The host toggles `readonly`                                            | A new core instance and plugin editor: the hosts remount, the view does not. |
+| A plugin is re-created by a new definition call, as hot reloading does | That plugin remounts. The same plugin object keeps its host.                 |
+| A setting changes                                                      | The plugin's hook runs again, with a new `api`.                              |
+| Another plugin switches on, off or fails                               | Every hook runs again.                                                       |
+| The host passes a new `plugins` array                                  | Every hook runs again, without remounting.                                   |
+| An edit, a mode switch, or a simulation                                | No hook runs. Plugins see the change through stores and actions.             |
+
+## Statuses
+
+Each plugin passed to the editor is `on`, `off` or `failed`. User settings →
+Plugins lists them in the host's order, each with its switch, and marks a
+failed one **Not running**. Opening a row shows the plugin's description and
+what its manifest declares.
+
+Switching a plugin off unmounts its host; its contributions and settings rows
+go. Every plugin has a switch. A host cannot yet mark a plugin as required, so
+the user can switch off a plugin the host depends on.
+
+## Boundaries and failures
+
+One `PluginBoundary`, Suspense plus an error boundary, wraps each host and
+each contribution. A contribution that suspends renders nothing until it is
+ready. A thrown error renders nothing, is
+[reported](doc:plugins/reference#failure-reports) to the host's error tracker,
+and stops only that host or contribution.
+
+A hook that throws marks its plugin `failed` until its module is replaced (a
+new `hostKey`) or another document opens. Switching it off and on, or a
+`readonly` toggle, keeps it failed.
+
+## Settings storage
+
+A host loads its plugin's values once, from `localStorage` under
+`petrinaut:plugin:<id>`. A stored value the spec rejects reads as the default,
+unknown keys are dropped, and unreadable storage gives every default.
+`settings.set` validates the value, stores it, then persists it; when storage
+is full or unavailable, the value applies until reload. Two `set` calls in one
+tick both apply. Each change gives a new settings snapshot, which becomes the
+plugin's `api.settings`. The rows of a plugin that is off or failed are hidden.
+
+## React Compiler
+
+- `PluginHost` opts out with `"use no memo"`: the hook it calls differs per
+  host, which the compiler cannot compile. A host is keyed by its plugin's
+  `hostKey`, so it calls one hook for life.
+- `usePluginApi` opts in with `"use memo"`, because it calls no hook and
+  `infer` mode would skip it. Compiled, it returns a new `api` only when the
+  settings snapshot changes.

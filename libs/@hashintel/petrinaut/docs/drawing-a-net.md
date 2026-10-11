@@ -7,6 +7,7 @@ The editor is organized around a central canvas where you build your net:
 - **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
 - **Canvas / Definitions** -- a compact selector floating over Canvas, or beside search in the Definitions toolbar.
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
+- **Viewport controls** (bottom right of the canvas) -- zoom, fit and viewport settings buttons. The host application, or its plugins, may add buttons below them.
 - **Left sidebar** -- the Entities tree: every node, token type, differential equation and parameter in the net, in one hierarchy. See [Left sidebar](#left-sidebar).
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
@@ -51,6 +52,7 @@ Spans the full editor width and has three sections.
 
 - **Sidebar toggle** -- collapses or expands the left sidebar.
 - **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
+- The host application, or its plugins, may add buttons or items before the title.
 - **Net title** -- inline title for the current net. The host application decides whether the title is editable or read-only, and may hide it entirely.
 
 **Center**
@@ -61,7 +63,7 @@ Spans the full editor width and has three sections.
 
 - **Active experiments** -- a flask icon with a count (e.g. "2 active") that appears only when [Monte Carlo experiments](experiments.md) are initializing or running. Clicking it opens a popover; clicking a row jumps to that experiment in Simulate mode.
 - **Recent changes** (clock icon) -- a dropdown listing your recent undo/redo checkpoints with timestamps. Click any entry to jump to that state. This is the same history you walk via Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z.
-- The host application may add additional buttons here (login, share, ...).
+- The host application, or its plugins, may add buttons or items here (login, share, ...).
 
 ## Global modes
 

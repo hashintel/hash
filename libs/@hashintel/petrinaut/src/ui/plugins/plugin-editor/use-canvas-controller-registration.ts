@@ -3,7 +3,7 @@ import { useCallback, useRef } from "react";
 import type {
   CanvasController,
   FrameSceneResult,
-} from "../../SDCPN/canvas-renderer";
+} from "../../views/SDCPN/canvas-renderer";
 
 /**
  * Keeps the editor-facing controller seam stable and lets import framing wait

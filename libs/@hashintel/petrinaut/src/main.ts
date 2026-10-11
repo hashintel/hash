@@ -1,10 +1,10 @@
 /**
  * Public surface for `@hashintel/petrinaut` — the host-facing entry point.
  *
- * Re-exports the handful of contexts and types a host needs to embed the editor
- * and inject its own capabilities (error tracking, optimization, slots). The
- * editor itself is reached through `/ui`, and the React bindings through
- * `/react`.
+ * Re-exports the editor, the contexts and types a host needs to embed it and
+ * inject its own capabilities (error tracking, optimization, slots), and the
+ * plugin API's definition and types. Plugin code imports from `/ui`, and the
+ * React bindings live in `/react`.
  *
  * @layerRoot petrinaut
  * @role The host-facing entry point: the contexts and types an embedder wires up
@@ -106,6 +106,39 @@ export {
   type WorkerFactory,
 } from "@hashintel/petrinaut-core";
 export { Petrinaut } from "./ui/petrinaut";
+export {
+  definePetrinautPlugin,
+  pluginCommandId,
+  pluginService,
+} from "./ui/plugins/define-petrinaut-plugin";
+export type {
+  PetrinautPlugin,
+  PetrinautPluginDefinition,
+  PetrinautPluginManifest,
+  PetrinautSettingSpec,
+  PluginApi,
+  PluginButton,
+  PluginCommand,
+  PluginCommandSpec,
+  PluginContributions,
+  PluginHook,
+  PluginService,
+} from "./ui/plugins/define-petrinaut-plugin";
+export type {
+  AccessApi,
+  EditRefusal,
+  EditResult,
+  PluginAccess,
+  PluginDocument,
+  PluginDocumentReader,
+  PluginEditor,
+  PluginEditorReader,
+  PluginEdits,
+  PluginErrors,
+  PluginExperiments,
+  PluginExperimentsReader,
+  PluginNotifications,
+} from "./ui/plugins/plugin-access";
 export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,

@@ -1,0 +1,30 @@
+# Hand-written; rendered by the arch-docs build. Plugin code uses the grey
+# `other` palette, Petrinaut the purple one.
+direction: right
+
+module: "Plugin module, at module scope" {
+  style.fill: "#f2f2f2"
+  style.stroke: "#777777"
+  manifest: "manifest\nid, name, description, author,\naccess, settings, commands,\nbuttons, topBarItems, root, provides" {style.fill: "#ffffff"; style.stroke: "#777777"}
+  definition: "createXPlugin\ndefinePetrinautPlugin(manifest)" {style.fill: "#ffffff"; style.stroke: "#777777"}
+  hook: "useXPlugin(api)\nreturns the contributions" {style.fill: "#ffffff"; style.stroke: "#777777"}
+  plugin: "xPlugin\ncreateXPlugin(useXPlugin)" {style.fill: "#ffffff"; style.stroke: "#777777"}
+}
+
+editor: "Petrinaut" {
+  style.fill: "#e8e0ff"
+  style.stroke: "#7051b5"
+  props: "<Petrinaut plugins>" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  api: "api\nwhat the manifest declares" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  outlets: "Outlets\ntop bar, viewport controls,\nroots, User settings" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  registry: "Command registry\n<plugin id>.<key>" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+}
+
+module.manifest -> module.definition
+module.definition -> module.plugin
+module.hook -> module.plugin: "or the contributions, inline"
+module.plugin -> editor.props
+editor.props -> editor.api: "built from the manifest"
+editor.api -> module.hook: "on each host render"
+module.hook -> editor.outlets: contributions
+module.hook -> editor.registry: commands

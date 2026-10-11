@@ -303,6 +303,7 @@ const TestProviders = ({
     setShowWalkthroughOnInit: () => {},
     setShowCompilationOutput: () => {},
     setCanvasViewport: () => {},
+    setPluginEnabled: () => {},
     updateSubViewSection: () => {},
   };
 
