@@ -475,27 +475,38 @@ const labelCanvasStyles = css({
 /**
  * Eases a scalar toward `target` with an ease-out cubic over `durationMs`, so a
  * stepped input drifts rather than pops. Snaps on the first value (and where rAF is
- * unavailable), and `null` clears straight to `null`. The live value is kept in a ref
- * so each new target tweens from where the animation currently is without the effect
- * re-running every frame; the returned state drives re-renders.
+ * unavailable), and `null` clears straight to `null`; snaps happen during render. The
+ * live value is kept in a ref so each new target tweens from where the animation
+ * currently is without the effect re-running every frame; the returned state drives
+ * re-renders.
  */
 const useEasedValue = (
   target: number | null,
   durationMs: number,
 ): number | null => {
   const currentRef = useRef<number | null>(null);
-  const [eased, setEased] = useState<number | null>(null);
+  const [eased, setEased] = useState<number | null>(target);
   const rafRef = useRef<number | undefined>(undefined);
-  useEffect(() => {
-    if (target === null) {
-      currentRef.current = null;
-      setEased(null);
-      return undefined;
-    }
-    const from = currentRef.current;
-    if (from === null || typeof requestAnimationFrame === "undefined") {
-      currentRef.current = target;
+  const [previousTarget, setPreviousTarget] = useState(target);
+  if (target !== previousTarget) {
+    setPreviousTarget(target);
+    if (
+      target === null ||
+      previousTarget === null ||
+      typeof requestAnimationFrame === "undefined"
+    ) {
       setEased(target);
+    }
+  }
+  useEffect(() => {
+    const from = currentRef.current;
+    if (
+      target === null ||
+      from === null ||
+      typeof requestAnimationFrame === "undefined"
+    ) {
+      // A snap, already rendered: the next tween starts from here.
+      currentRef.current = target;
       return undefined;
     }
     if (from === target) {
@@ -503,8 +514,9 @@ const useEasedValue = (
     }
     let start: number | null = null;
     const step = (now: number) => {
-      start ??= now;
-      const progress = Math.min(1, (now - start) / durationMs);
+      const startedAt = start ?? now;
+      start = startedAt;
+      const progress = Math.min(1, (now - startedAt) / durationMs);
       // Ease-out cubic.
       const amount = 1 - (1 - progress) ** 3;
       const value = from + (target - from) * amount;
@@ -670,8 +682,8 @@ const useNodeRadiusTransitions = (
       for (const [id, transition] of active) {
         // Stamp the start on the first frame so progress begins at 0, avoiding a
         // clock mismatch between this effect and the rAF timeline.
-        transition.start ??= now;
-        const start = transition.start;
+        const start = transition.start ?? now;
+        transition.start = start;
         const duration =
           transition.dir === "enter" ? NODE_ENTRANCE_MS : NODE_EXIT_MS;
         const progress = Math.min(1, (now - start) / duration);
