@@ -37,24 +37,6 @@ await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
     await import("../shared/petrinaut-jsdom");
   installPetrinautDomShims();
-  class ClipboardItem {
-    constructor(readonly items: Record<string, Blob | Promise<Blob>>) {}
-  }
-  Object.defineProperty(navigator, "clipboard", {
-    configurable: true,
-    value: {
-      write: (items: ClipboardItem[]) =>
-        Promise.all(
-          items.flatMap((item) =>
-            Object.values(item.items).map((value) => Promise.resolve(value)),
-          ),
-        ).then(() => undefined),
-    },
-  });
-  Object.defineProperty(window, "ClipboardItem", {
-    configurable: true,
-    value: ClipboardItem,
-  });
 });
 
 const fixture = vi.hoisted(() => ({
