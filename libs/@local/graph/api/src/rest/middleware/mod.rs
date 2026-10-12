@@ -103,6 +103,14 @@ fn document_cache_control(operation: &mut Operation) {
     }
 }
 
+/// Sets [`DEFAULT_CACHE_CONTROL`] on every response that carries no `Cache-Control` of its own.
+pub(super) fn default_cache_control() -> SetResponseHeaderLayer<HeaderValue> {
+    SetResponseHeaderLayer::if_not_present(
+        CACHE_CONTROL,
+        HeaderValue::from_static(DEFAULT_CACHE_CONTROL),
+    )
+}
+
 /// Answers a request with a method its path does not serve.
 ///
 /// Axum adds the `Allow` header.
@@ -195,10 +203,7 @@ where
                 service_secret: Some(Pin::clone(&self.service_secret)),
             })
             .layer(CatchPanicLayer::custom(panicked))
-            .layer(SetResponseHeaderLayer::if_not_present(
-                CACHE_CONTROL,
-                HeaderValue::from_static(DEFAULT_CACHE_CONTROL),
-            ))
+            .layer(default_cache_control())
     }
 
     /// Attaches authentication and the caller budget to `routes`.
