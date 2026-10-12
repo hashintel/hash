@@ -6,8 +6,11 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { carryOverWalkthroughDismissal } from "./main/app/plugins/walkthrough/plugin/carry-over-dismissal";
 import { router } from "./router";
 import { SentryErrorTrackerProvider } from "./sentry/sentry-error-tracker-provider";
+
+carryOverWalkthroughDismissal();
 
 const root = createRoot(document.getElementById("root")!, {
   // Callback called when an error is thrown and not caught by an ErrorBoundary.
