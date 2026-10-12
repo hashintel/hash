@@ -97,9 +97,17 @@ const getStepReadiness = (params: {
   flowDefinition: FlowDefinition;
   processedStepIds: string[];
   skippedStepIds: string[];
+  /** Steps that ran and failed. */
+  failedStepIds: string[];
 }): StepReadiness => {
-  const { step, flow, flowDefinition, processedStepIds, skippedStepIds } =
-    params;
+  const {
+    step,
+    flow,
+    flowDefinition,
+    processedStepIds,
+    skippedStepIds,
+    failedStepIds,
+  } = params;
 
   /**
    * The readiness of one missing value, from the source that would provide it.
@@ -157,10 +165,13 @@ const getStepReadiness = (params: {
     }
 
     /*
-     * The producer ran but didn't produce the value. Unless the connection skips this step when the value is
-     * missing, the step never becomes ready, and the run fails.
+     * The producer finished without producing the value. If it failed, or the connection doesn't skip this step when
+     * the value is missing, the step never becomes ready, and the run fails.
      */
-    return source.whenMissing === "skip" ? "skip" : "waiting";
+    return source.whenMissing === "skip" &&
+      !failedStepIds.includes(producerStepId)
+      ? "skip"
+      : "waiting";
   };
 
   if (step.kind === "for-each") {
@@ -563,6 +574,7 @@ export const processFlowWorkflow = async <
             flowDefinition,
             processedStepIds,
             skippedStepIds,
+            failedStepIds: Object.keys(processStepErrors),
           }) === "skip"
         ) {
           log(
@@ -610,6 +622,7 @@ export const processFlowWorkflow = async <
       flowDefinition,
       processedStepIds,
       skippedStepIds,
+      failedStepIds: Object.keys(processStepErrors),
     }) === "ready";
 
   /*
