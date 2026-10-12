@@ -8,7 +8,10 @@ import {
   type PetrinautAiMutationToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import { type PluginDocumentReader, useStore } from "@hashintel/petrinaut/ui";
+import {
+  type PluginDocumentReader,
+  useStore,
+} from "@hashintel/petrinaut/ui/plugin";
 
 import {
   definePetrinautAiInteractiveTool,

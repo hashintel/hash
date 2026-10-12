@@ -1,4 +1,4 @@
-import { usePluginService } from "@hashintel/petrinaut/ui";
+import { usePluginService } from "@hashintel/petrinaut/ui/plugin";
 
 import {
   AssistantChat,

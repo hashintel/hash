@@ -1,4 +1,7 @@
-import { definePetrinautPlugin, pluginService } from "@hashintel/petrinaut/ui";
+import {
+  definePetrinautPlugin,
+  pluginService,
+} from "@hashintel/petrinaut/ui/plugin";
 
 import { createBrunchPlugin } from "../brunch/definition";
 

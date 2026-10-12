@@ -18,7 +18,7 @@ import {
   type PluginDocumentReader,
   type PluginEditor,
   type PluginExperiments,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 import { ExperimentExecutionCard } from "../../_shared/chat/experiment-execution-card";
 import {

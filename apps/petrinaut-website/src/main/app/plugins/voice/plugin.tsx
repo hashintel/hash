@@ -1,4 +1,7 @@
-import { type PluginHook, usePluginService } from "@hashintel/petrinaut/ui";
+import {
+  type PluginHook,
+  usePluginService,
+} from "@hashintel/petrinaut/ui/plugin";
 
 import { voiceStartAction } from "../_shared/chat/voice-start-action";
 import { createBrunchPlugin } from "../brunch/definition";

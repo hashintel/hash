@@ -18,7 +18,10 @@ import {
   createReadableStore,
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
-import { prepareExperiment } from "@hashintel/petrinaut/ui";
+import {
+  prepareExperiment,
+  type ExperimentRecord,
+} from "@hashintel/petrinaut/ui/plugin";
 
 import {
   createEditorDrafts,
@@ -66,7 +69,6 @@ import type {
   PetrinautExperimentResult,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-import type { ExperimentRecord } from "@hashintel/petrinaut/ui";
 
 // Distributive so the awaiting/submitted discriminant survives the Pick.
 type DistributivePick<T, K extends keyof T> = T extends unknown

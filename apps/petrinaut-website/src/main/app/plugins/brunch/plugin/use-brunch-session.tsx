@@ -62,7 +62,7 @@ import { useInstanceFor } from "./use-instance-for";
 import type { AssistantChatProps } from "../../_shared/chat/assistant-chat";
 import type { BrunchConversation, createBrunchPlugin } from "../definition";
 import type { BrunchWorkpieceHistoryMessage } from "../ledger/brunch-workpiece-history";
-import type { PluginApi } from "@hashintel/petrinaut/ui";
+import type { PluginApi } from "@hashintel/petrinaut/ui/plugin";
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 

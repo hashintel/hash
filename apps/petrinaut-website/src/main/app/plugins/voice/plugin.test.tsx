@@ -23,7 +23,7 @@ import { voicePlugin } from "./plugin";
 import type { AssistantChatProps } from "../_shared/chat/assistant-chat";
 import type { PetrinautAiVoiceModeContext } from "../_shared/chat/composer-control";
 import type { createVoicePlugin, VoiceService } from "./definition";
-import type { PluginApi, PluginHook } from "@hashintel/petrinaut/ui";
+import type { PluginApi, PluginHook } from "@hashintel/petrinaut/ui/plugin";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =

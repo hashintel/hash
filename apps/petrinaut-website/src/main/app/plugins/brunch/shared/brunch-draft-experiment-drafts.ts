@@ -6,7 +6,7 @@ import type {
   PetrinautExperimentResult,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-import type { prepareExperiment } from "@hashintel/petrinaut/ui";
+import type { prepareExperiment } from "@hashintel/petrinaut/ui/plugin";
 
 export type PreparedExperiment = ReturnType<typeof prepareExperiment>;
 

@@ -15,7 +15,7 @@ import {
 
 import type { PetrinautAiAutomaticTool } from "../../_shared/chat/automatic-tool";
 import type { FlueConversationState } from "@flue/sdk";
-import type { PluginDocument } from "@hashintel/petrinaut/ui";
+import type { PluginDocument } from "@hashintel/petrinaut/ui/plugin";
 
 interface DocumentRevisionMetadata {
   readonly documentRevision: {

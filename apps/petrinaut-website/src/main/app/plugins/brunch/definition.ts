@@ -1,4 +1,7 @@
-import { definePetrinautPlugin, pluginService } from "@hashintel/petrinaut/ui";
+import {
+  definePetrinautPlugin,
+  pluginService,
+} from "@hashintel/petrinaut/ui/plugin";
 
 import type { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import type { BrunchMutationApprovalCoordinator } from "./tools/brunch-mutation-approval";

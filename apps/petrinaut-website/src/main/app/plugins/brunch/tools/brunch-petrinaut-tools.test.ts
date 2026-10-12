@@ -16,7 +16,7 @@ import {
 import { documentRevisionOf } from "./shared/document-revision";
 
 import type { PetrinautAiAutomaticToolExecuteParams } from "../../_shared/chat/automatic-tool";
-import type { EditRefusal } from "@hashintel/petrinaut/ui";
+import type { EditRefusal } from "@hashintel/petrinaut/ui/plugin";
 
 vi.hoisted(() => {
   window.matchMedia = (media) => ({

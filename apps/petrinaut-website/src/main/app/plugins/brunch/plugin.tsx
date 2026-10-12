@@ -5,7 +5,7 @@ import { BrunchWorkpiecePane } from "./ledger/brunch-workpiece-pane";
 import { BrunchChat } from "./plugin/brunch-chat";
 import { useBrunchSession } from "./plugin/use-brunch-session";
 
-import type { PluginHook } from "@hashintel/petrinaut/ui";
+import type { PluginHook } from "@hashintel/petrinaut/ui/plugin";
 
 const useBrunchPlugin: PluginHook<typeof createBrunchPlugin> = (api) => {
   const { chat, ledger, conversation } = useBrunchSession(api);

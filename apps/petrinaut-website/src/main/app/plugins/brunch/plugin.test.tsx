@@ -33,7 +33,7 @@ import type {
   PluginApi,
   PluginAssistantTab,
   PluginHook,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
