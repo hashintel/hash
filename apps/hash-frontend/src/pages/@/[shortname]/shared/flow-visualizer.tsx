@@ -66,7 +66,7 @@ import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
-import type { OutputNameForAiFlowAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { OutputNameForFlowAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FlowActionDefinitionId,
   FlowDefinition as FlowDefinitionType,
@@ -535,7 +535,7 @@ export const FlowVisualizer = () => {
           case "EntityId":
             if (
               output.outputName ===
-              ("highlightedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">)
+              ("highlightedEntities" satisfies OutputNameForFlowAction<"researchEntities">)
             ) {
               if (Array.isArray(output.payload.value)) {
                 highlightedEntityIds.push(...output.payload.value);

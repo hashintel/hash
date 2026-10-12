@@ -12,7 +12,7 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityIdFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -35,7 +35,7 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type {
   PersistedEntitiesMetadata,
@@ -81,7 +81,7 @@ type ActivityHeartbeatDetails = {
   spreadsheetId?: string;
 };
 
-export const writeGoogleSheetAction: AiFlowActionActivity<
+export const writeGoogleSheetAction: FlowActionActivity<
   "writeGoogleSheet",
   {
     vaultClient: VaultClient;
@@ -91,7 +91,7 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
     await getFlowContext();
 
   const { audience, dataToWrite, googleAccountId, googleSheet } =
-    getSimplifiedAiFlowActionInputs({
+    getSimplifiedFlowActionInputs({
       inputs,
       actionType: "writeGoogleSheet",
     });

@@ -7,7 +7,7 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -51,7 +51,7 @@ import type {
   OriginProvenance,
   Url,
 } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type {
   ProposedEntity,
   StepInput,
@@ -76,7 +76,7 @@ const parseAndResolveCoordinatorInputs = async (params: {
     entityTypeIds,
     existingEntities: existingEntitiesInput,
     reportSpecification,
-  } = getSimplifiedAiFlowActionInputs({
+  } = getSimplifiedFlowActionInputs({
     inputs: stepInputs,
     actionType: "researchEntities",
   });
@@ -157,7 +157,7 @@ const parseAndResolveCoordinatorInputs = async (params: {
  * 1. Any claims inferred during the process will be saved to the graph, in the web chosen for the overall flow run
  * 2. Any metered API usage incurred will be recorded
  */
-export const runCoordinatingAgent: AiFlowActionActivity<
+export const runCoordinatingAgent: FlowActionActivity<
   "researchEntities",
   {
     state: CoordinatingAgentState;
