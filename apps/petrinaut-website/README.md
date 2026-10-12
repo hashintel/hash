@@ -49,6 +49,12 @@ replace, so Back skips them, and both show an error page instead of redirecting
 when the browser refuses the write. Empty nets stay saved when the visitor
 switches away, so their URLs keep working.
 
+Published `/examples/<slug>` pages offer **Make a local copy**, which saves an
+editable copy and opens its local URL with the current view. The button comes
+from the `website.local-copy` plugin in `src/examples/local-copy-plugin.tsx`.
+When the browser refuses the write, the top bar shows "Couldn't save" next to
+the button.
+
 Open tabs refresh their saved nets and stock-assistant messages when local
 storage changes, and updates start from the latest persisted value so another
 tab's documents survive.

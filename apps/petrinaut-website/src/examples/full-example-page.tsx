@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
+import { Petrinaut, type PetrinautPlugin } from "@hashintel/petrinaut/ui";
 
+import { localCopyPlugin } from "./local-copy-plugin";
 import { getOEmbedDiscoveryUrl } from "./oembed-discovery";
 import { getReadonlyExampleHandle } from "./readonly-example-handle";
 import { useSharedSearchNavigation } from "./use-shared-search-navigation";
@@ -17,6 +18,8 @@ const pageStyle = css({
   minHeight: "0",
   overflow: "hidden",
 });
+
+const examplePlugins: readonly PetrinautPlugin[] = [localCopyPlugin];
 
 export type FullExamplePageProps = {
   example: LoadedExample;
@@ -62,6 +65,7 @@ export const FullExamplePage = ({
         handle={handle}
         hideNetManagementControls="except-title"
         navigation={navigation}
+        plugins={examplePlugins}
         presentationProfile="review"
         readonly
         title={example.catalog.title}
