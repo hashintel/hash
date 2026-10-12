@@ -2,11 +2,8 @@ import { render } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
-import {
-  Petrinaut,
-  type PetrinautPlugin,
-  type PetrinautProps,
-} from "@hashintel/petrinaut/ui";
+import { Petrinaut, type PetrinautProps } from "@hashintel/petrinaut/ui";
+import { type PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 import {
   InProcessLspWorker,
