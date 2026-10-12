@@ -361,8 +361,10 @@ export const persistEntityAction: FlowActionActivity<"persistEntity"> = async ({
       actionType: "persistEntity",
     });
 
+  const { workflowId } = await getFlowContext();
+
   const proposedEntityWithResolvedLinks = await resolvePayloadValue(
-    getStorageProvider(),
+    { storageProvider: getStorageProvider(), workflowId },
     "ProposedEntityWithResolvedLinks",
     proposedEntityInput,
   );

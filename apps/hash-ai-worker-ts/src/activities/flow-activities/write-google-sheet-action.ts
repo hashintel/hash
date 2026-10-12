@@ -87,7 +87,7 @@ export const writeGoogleSheetAction: FlowActionActivity<
     vaultClient: VaultClient;
   }
 > = async ({ inputs, vaultClient }) => {
-  const { flowEntityId, stepId, userAuthentication, webId } =
+  const { flowEntityId, stepId, userAuthentication, webId, workflowId } =
     await getFlowContext();
 
   const { audience, dataToWrite, googleAccountId, googleSheet } =
@@ -151,7 +151,7 @@ export const writeGoogleSheetAction: FlowActionActivity<
 
   if (isStoredPayloadRef(dataToWrite)) {
     resolvedDataToWrite = await resolvePayloadValue(
-      getStorageProvider(),
+      { storageProvider: getStorageProvider(), workflowId },
       "PersistedEntitiesMetadata",
       dataToWrite,
     );

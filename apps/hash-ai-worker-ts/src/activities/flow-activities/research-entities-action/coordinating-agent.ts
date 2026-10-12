@@ -81,12 +81,12 @@ const parseAndResolveCoordinatorInputs = async (params: {
     actionType: "researchEntities",
   });
 
-  const { userAuthentication } = await getFlowContext();
+  const { userAuthentication, workflowId } = await getFlowContext();
 
   // Resolve the stored ref to get the array of PersistedEntitiesMetadata
   const inputExistingEntities = existingEntitiesInput
     ? await resolvePayloadValue(
-        getStorageProvider(),
+        { storageProvider: getStorageProvider(), workflowId },
         "PersistedEntitiesMetadata",
         existingEntitiesInput,
       )

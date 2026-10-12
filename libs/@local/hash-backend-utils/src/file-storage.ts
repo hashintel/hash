@@ -42,6 +42,23 @@ export interface GetFlowOutputStorageKeyParams {
 }
 
 /**
+ * The prefix of every storage key for a workflow's outputs.
+ */
+export const getFlowOutputStoragePrefix = (workflowId: string) =>
+  `flows/${workflowId}/` as const;
+
+/**
+ * The storage key for a flow output payload, the same in every storage provider.
+ */
+export const getFlowOutputStorageKey = ({
+  workflowId,
+  runId,
+  stepId,
+  outputName,
+}: GetFlowOutputStorageKeyParams) =>
+  `${getFlowOutputStoragePrefix(workflowId)}${runId}/${stepId}/${outputName}.json` as const;
+
+/**
  * Interface describing a storage provider for file upload/download operations.
  * Supports both presigned URLs for client-side operations and direct access
  * for services with storage credentials.
@@ -100,15 +117,6 @@ export interface FileStorageProvider {
     this: void,
     params: GetFileEntityStorageKeyParams,
   ): FileStorageKey;
-
-  /**
-   * Generate a storage key for flow output payloads.
-   * Format: flows/{workflowId}/{runId}/{stepId}/{outputName}.json
-   */
-  getFlowOutputStorageKey(
-    this: void,
-    params: GetFlowOutputStorageKeyParams,
-  ): string;
 
   /**
    * Upload data directly to storage without presigning.

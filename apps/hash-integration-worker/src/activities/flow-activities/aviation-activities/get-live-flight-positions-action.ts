@@ -116,7 +116,7 @@ export const createGetLiveFlightPositionsAction = ({
 
       // The input is a stored reference - resolve it
       const persistedEntities = await resolvePayloadValue(
-        getStorageProvider(),
+        { storageProvider: getStorageProvider(), workflowId },
         "PersistedEntitiesMetadata",
         persistedEntitiesInput,
       );
