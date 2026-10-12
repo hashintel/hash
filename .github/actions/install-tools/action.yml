@@ -81,8 +81,10 @@ runs:
         retry_wait_seconds: 60
         command: ${{ github.action_path }}/install-rust.sh
 
+    # The action builds AWS-LC with tools from the checked-out revision's mise config, which a
+    # revision without the action, such as the base branch a bench compares against, lacks.
     - name: "Install AWS-LC"
-      if: ${{ inputs.rust == true || inputs.rust == 'true' }}
+      if: ${{ (inputs.rust == true || inputs.rust == 'true') && hashFiles('.github/actions/install-aws-lc/action.yml') != '' }}
       uses: $/.github/actions/install-aws-lc
       with:
         profile: ${{ inputs.aws_lc_profile }}
