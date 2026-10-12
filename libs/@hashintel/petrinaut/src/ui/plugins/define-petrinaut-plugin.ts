@@ -97,9 +97,12 @@ type CommandKeyOf<M> = M extends {
 
 declare const serviceType: unique symbol;
 
-/** A service a plugin offers other plugins, as a type: see {@link pluginService}. */
+/**
+ * A service a plugin offers other plugins, as a type: see {@link pluginService}.
+ * Only `pluginService` makes one, so `provides: {}` is a type error.
+ */
 export interface PluginService<T> {
-  readonly [serviceType]?: T;
+  readonly [serviceType]: T;
 }
 
 /**
@@ -107,7 +110,9 @@ export interface PluginService<T> {
  * returns under `provides`. Other plugins and components read it with
  * `usePluginService`.
  */
-export const pluginService = <T>(): PluginService<T> => ({});
+export const pluginService = <T>(): PluginService<T> =>
+  // The property exists in the type only, to carry `T`.
+  ({}) as PluginService<T>;
 
 /** A button the plugin declares; its icon and action come from the hook under the same key. */
 export interface PluginButtonSpec {

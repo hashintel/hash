@@ -310,4 +310,13 @@ describe("definePetrinautPlugin", () => {
       return {};
     });
   });
+
+  it("takes a service type only from pluginService", () => {
+    definePetrinautPlugin({
+      id: "test.service",
+      name: "Service",
+      // @ts-expect-error An object that is not a service type.
+      provides: {},
+    });
+  });
 });
