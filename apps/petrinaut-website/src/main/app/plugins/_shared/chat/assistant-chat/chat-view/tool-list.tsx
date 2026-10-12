@@ -21,7 +21,7 @@ import type { PetrinautAiInteractiveTool } from "../../interactive-tool";
 import type { PetrinautAiAssistantPresentation } from "../../petrinaut-ai-assistant";
 import type { PetrinautAiToolPresentationResolver } from "../../tool-presentation";
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
-import type { PetrinautRevealTarget } from "@hashintel/petrinaut/ui";
+import type { PetrinautRevealTarget } from "@hashintel/petrinaut/ui/plugin";
 
 type SimulateViewMode = Extract<
   PetrinautRevealTarget,

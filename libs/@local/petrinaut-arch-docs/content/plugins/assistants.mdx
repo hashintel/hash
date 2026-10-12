@@ -21,10 +21,8 @@ renders the whole assistant UI and draws the assistant window around its
 transcript. The editor shows one assistant at a time.
 
 ```tsx
-import {
-  definePetrinautPlugin,
-  PetrinautAssistantWindow,
-} from "@hashintel/petrinaut/ui";
+import { PetrinautAssistantWindow } from "@hashintel/petrinaut/ui";
+import { definePetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 export const echoPlugin = definePetrinautPlugin(
   { id: "example.echo", name: "Echo", assistant: { label: "Echo" } },

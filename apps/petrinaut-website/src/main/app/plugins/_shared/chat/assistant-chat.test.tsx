@@ -50,12 +50,12 @@ import type {
   PetrinautAiVoiceModeContext,
 } from "./composer-control";
 import type { PetrinautAiAssistant } from "./petrinaut-ai-assistant";
+import type { PetrinautAssistantStartRequest } from "@hashintel/petrinaut/ui";
 import type {
   AddNotificationInput,
   EditRefusal,
-  PetrinautAssistantStartRequest,
   PluginAssistantTab,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 import type { UIMessageChunk } from "ai";
 
 let voiceModeMounts = 0;

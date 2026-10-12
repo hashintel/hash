@@ -13,7 +13,7 @@ import {
   toRefusalOutput,
 } from "./assistant-chat/tool-summaries";
 
-import type { EditResult, PluginEdits } from "@hashintel/petrinaut/ui";
+import type { EditResult, PluginEdits } from "@hashintel/petrinaut/ui/plugin";
 
 type PetrinautAiMutationCall = Extract<
   AiToolCall,

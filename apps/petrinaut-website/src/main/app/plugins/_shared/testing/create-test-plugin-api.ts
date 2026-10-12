@@ -6,6 +6,7 @@ import {
   type Petrinaut,
 } from "@hashintel/petrinaut-core";
 
+import type { PetrinautNavigationState } from "@hashintel/petrinaut/ui";
 import type {
   AccessApi,
   AddNotificationInput,
@@ -13,11 +14,10 @@ import type {
   EditRefusal,
   EditResult,
   ExperimentRecord,
-  PetrinautNavigationState,
   PetrinautRevealTarget,
   PluginEdits,
   PluginExperiments,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 interface TestPluginApiOptions {
   /** The title store's first value. */

@@ -11,7 +11,7 @@ import {
   type PetrinautPlugin,
   type PluginAssistantTab,
   type PluginHook,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 import {
   AssistantChat,

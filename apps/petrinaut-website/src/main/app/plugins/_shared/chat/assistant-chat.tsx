@@ -44,10 +44,12 @@ import {
 import {
   petrinautDocsContent,
   type PetrinautAssistantStartRequest,
-  type PluginEdits,
   usePetrinautAssistantWindow,
-  useStoreSelector,
 } from "@hashintel/petrinaut/ui";
+import {
+  type PluginEdits,
+  useStoreSelector,
+} from "@hashintel/petrinaut/ui/plugin";
 
 import {
   type AssistantChatApi,

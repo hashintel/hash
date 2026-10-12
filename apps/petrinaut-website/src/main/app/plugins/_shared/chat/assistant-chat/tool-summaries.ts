@@ -15,7 +15,7 @@ import {
   describeRefusal,
   type EditRefusal,
   type PetrinautRevealTarget,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 export type AiToolSummary = {
   title: string;

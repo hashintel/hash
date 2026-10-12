@@ -254,6 +254,10 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
       </>
     );
   },
+}));
+
+vi.mock("@hashintel/petrinaut/ui/plugin", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@hashintel/petrinaut/ui/plugin")>()),
   definePetrinautPlugin:
     (manifest: unknown) => (implementation: MockPlugin["hook"] | object) => ({
       manifest,

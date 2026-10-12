@@ -1,6 +1,6 @@
 import { AiVoiceModeIcon } from "./ai-voice-mode-icon";
 
-import type { PluginAssistantStartAction } from "@hashintel/petrinaut/ui";
+import type { PluginAssistantStartAction } from "@hashintel/petrinaut/ui/plugin";
 
 /**
  * The empty-net prompt's way into the chat's Voice mode. The chat starts in

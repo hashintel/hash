@@ -11,7 +11,7 @@ import {
 import { createTestPluginApi } from "../testing/create-test-plugin-api";
 import { executePetrinautAiMutation } from "./execute-petrinaut-ai-mutation";
 
-import type { EditRefusal } from "@hashintel/petrinaut/ui";
+import type { EditRefusal } from "@hashintel/petrinaut/ui/plugin";
 
 const definition: SDCPN = {
   places: [

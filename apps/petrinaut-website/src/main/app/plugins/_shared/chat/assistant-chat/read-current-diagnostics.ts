@@ -1,6 +1,6 @@
 import { formatDiagnosticsForAi } from "./format-diagnostics-for-ai";
 
-import type { PluginDocumentReader } from "@hashintel/petrinaut/ui";
+import type { PluginDocumentReader } from "@hashintel/petrinaut/ui/plugin";
 
 /** A worker response belongs to the net it checked, not to the latest diagnostic list. */
 export const readCurrentDiagnostics = async (

@@ -1,6 +1,6 @@
 import { createContext, use } from "react";
 
-import type { AccessApi } from "@hashintel/petrinaut/ui";
+import type { AccessApi } from "@hashintel/petrinaut/ui/plugin";
 
 /** What the chat reads and changes in the editor: the document, its experiments and the selection. */
 export type AssistantChatApi = AccessApi<{

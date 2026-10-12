@@ -20,10 +20,8 @@ import {
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
-import {
-  PetrinautAssistantWindowPreview,
-  type PluginAssistantTab,
-} from "@hashintel/petrinaut/ui";
+import { PetrinautAssistantWindowPreview } from "@hashintel/petrinaut/ui";
+import { type PluginAssistantTab } from "@hashintel/petrinaut/ui/plugin";
 
 import {
   createEmptyTestInstance,

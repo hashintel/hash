@@ -1,4 +1,4 @@
-import { useStoreSelector } from "@hashintel/petrinaut/ui";
+import { useStoreSelector } from "@hashintel/petrinaut/ui/plugin";
 
 import { ExperimentExecutionCard } from "../../experiment-execution-card";
 import { useAssistantChatApi } from "../chat-api";

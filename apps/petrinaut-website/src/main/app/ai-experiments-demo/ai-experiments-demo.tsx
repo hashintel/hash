@@ -2,11 +2,11 @@ import { useState } from "react";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
 import {
   definePetrinautPlugin,
-  Petrinaut,
   type PluginHook,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 import { BrowserOptimizationProvider } from "../optimization-demo/browser-optimization-provider";
 import { AssistantChat } from "../plugins/_shared/chat/assistant-chat";

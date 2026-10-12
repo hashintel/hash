@@ -3,7 +3,7 @@ import { DefaultChatTransport } from "ai";
 import {
   definePetrinautPlugin,
   type PluginHook,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 import { VOICE_REQUEST_ID_HEADER } from "../../../../voice-diagnostics";
 import { AssistantChat } from "../_shared/chat/assistant-chat";

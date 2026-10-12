@@ -16,7 +16,7 @@ import { ExperimentCard } from "./experiment-card";
 
 import type { ExperimentToolPart } from "./experiment-card";
 import type { PetrinautExperimentResult } from "@hashintel/petrinaut-core";
-import type { ExperimentRecord } from "@hashintel/petrinaut/ui";
+import type { ExperimentRecord } from "@hashintel/petrinaut/ui/plugin";
 import type { ReactElement, ReactNode } from "react";
 
 afterEach(cleanup);

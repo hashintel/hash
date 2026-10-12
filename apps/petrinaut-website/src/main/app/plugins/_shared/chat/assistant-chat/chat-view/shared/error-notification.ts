@@ -1,4 +1,4 @@
-import type { AddNotificationInput } from "@hashintel/petrinaut/ui";
+import type { AddNotificationInput } from "@hashintel/petrinaut/ui/plugin";
 
 export const errorNotification = (
   message: string,

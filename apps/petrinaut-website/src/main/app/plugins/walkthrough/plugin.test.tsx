@@ -2,10 +2,8 @@
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import {
-  definePetrinautPlugin,
-  PetrinautAssistantWindow,
-} from "@hashintel/petrinaut/ui";
+import { PetrinautAssistantWindow } from "@hashintel/petrinaut/ui";
+import { definePetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 import { renderEditorWith } from "../_shared/testing/render-editor-with";
 import { walkthroughPlugin } from "./plugin";
