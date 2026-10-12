@@ -33,12 +33,7 @@ jobs:
             output=$("$@" 2>&1 | tail -n 25 | tr '\n' '|' | cut -c 1-3000) || true
             echo "::warning title=${name}::${output}"
           }
-          report "mise install" mise install --env ci --jobs 1 --locked
-          report "which bindgen" which bindgen
-          report "bindgen --version" bindgen --version
-          report "mise ls" mise ls --env ci --current
-          report "mise which protoc" mise which protoc
-          report "python3" python3 --version
-          report "cache key" env ACTION_FILES=x PROFILE=dev python3 .github/actions/install-aws-lc/cache-key.py dev
-          report "env" bash -c 'env | grep -E "^(AWS_LC|MISE|RUSTC_WRAPPER)" | sort'
-          report "prefix" bash -c 'ls -la "$RUNNER_TEMP"/aws-lc-* "$RUNNER_TEMP"/aws-lc-*/lib 2>&1'
+          report "bindgen header" bash -c "echo '#include <stdint.h>' > /tmp/t.h && bindgen /tmp/t.h | head -n 5"
+          report "build prefix" .github/actions/install-aws-lc/build-prefix.sh /tmp/dbg-prefix dev 0.45.0 9bff6c3b54fad79a2e60b8102caf565819711497c1f5f092f49508e2f5c31b27
+          report "built prefix" ls -R /tmp/dbg-prefix
+          report "libclang" bash -c "ls /usr/lib/llvm-*/lib/libclang*.so* /usr/lib/x86_64-linux-gnu/libclang* 2>&1"
