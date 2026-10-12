@@ -48,7 +48,7 @@ const entityHoldsFlowDefinition = (
  * web if it doesn't exist, with the flow's id as its entity uuid, and otherwise updates it if its definition
  * differs, creating a new edition. Runs and triggers link to the entity, and runs load the definition from it.
  *
- * Anyone can view the entities, because anyone can run or trigger the flows.
+ * Anyone can view them, through the policy migration 032 creates for flow definitions in the `h` web.
  *
  * Migrations call this with a snapshot (see `flow-definition-snapshots.ts`).
  */
@@ -114,14 +114,6 @@ export const seedFlowDefinitions: ImpureGraphFunction<
         flowDefinitionEntityTypeId,
       ] as FlowDefinitionEntity["entityTypeIds"],
       properties: mapFlowDefinitionToEntityProperties(flowDefinition),
-      policies: [
-        {
-          name: `public-view-entity-${flowDefinitionId}`,
-          effect: "permit",
-          actions: ["viewEntity"],
-          principal: null,
-        },
-      ],
     });
   }
 };

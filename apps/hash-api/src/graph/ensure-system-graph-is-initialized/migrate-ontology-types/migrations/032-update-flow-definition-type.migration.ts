@@ -1,9 +1,11 @@
+import { createPolicy, queryPolicies } from "@local/hash-graph-sdk/policy";
 import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { getOrgByShortname } from "../../../knowledge/system-types/org";
 import { readFlowDefinitionSnapshot } from "../flow-definition-snapshots";
 import { seedFlowDefinitions } from "../seed-flow-definitions";
 import {
@@ -313,7 +315,46 @@ const migrate: MigrationFunction = async ({
   });
 
   /**
-   * Step 7: Seed the flows HASH provides from this migration's snapshot, so that runs and triggers can link to them
+   * Step 7: Let anyone view the flow definitions in the `h` web, so that anyone can run or trigger the flows HASH
+   * provides. One policy covers every flow definition seeded there, including the dev-only ones.
+   */
+  const hashOrg = await getOrgByShortname(context, authentication, {
+    shortname: "h",
+  });
+
+  if (!hashOrg) {
+    throw new Error(
+      "Org with shortname 'h' does not exist, but is needed to seed flow definitions.",
+    );
+  }
+
+  const publicViewPolicyName = "public-view-h-flow-definitions";
+
+  const [existingPublicViewPolicy] = await queryPolicies(
+    context.graphApi,
+    authentication,
+    { name: publicViewPolicyName, principal: { filter: "unconstrained" } },
+  );
+
+  if (!existingPublicViewPolicy) {
+    await createPolicy(context.graphApi, authentication, {
+      name: publicViewPolicyName,
+      effect: "permit",
+      principal: null,
+      actions: ["viewEntity"],
+      resource: {
+        type: "entity",
+        webId: hashOrg.webId,
+        filter: {
+          type: "isOfBaseType",
+          entityType: systemEntityTypes.flowDefinition.entityTypeBaseUrl,
+        },
+      },
+    });
+  }
+
+  /**
+   * Step 8: Seed the flows HASH provides from this migration's snapshot, so that runs and triggers can link to them
    * and runs can load them. Dev-only flows are seeded by the migrations that add the types they use.
    */
   await seedFlowDefinitions(context, authentication, {
