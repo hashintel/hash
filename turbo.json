@@ -39,11 +39,9 @@
       "dependsOn": ["^manifest"]
     },
     "compile": {
-      "cache": false,
       "dependsOn": ["^manifest"]
     },
     "compile:release": {
-      "cache": false,
       "dependsOn": ["^manifest"]
     },
     // Run commands

@@ -32,7 +32,6 @@
     },
     "compile": {
       "dependsOn": [],
-      "cache": false,
       "affectedBy": [
         "darwin-kperf-codegen",
         "error-stack-macros"
@@ -40,7 +39,6 @@
     },
     "compile:release": {
       "dependsOn": [],
-      "cache": false,
       "affectedBy": [
         "darwin-kperf-codegen",
         "error-stack-macros"
