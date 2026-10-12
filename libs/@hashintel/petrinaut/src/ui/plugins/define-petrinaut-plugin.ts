@@ -76,7 +76,11 @@ export interface PluginCommandSpec {
   readonly shortcut?: string;
 }
 
-/** The id a declared command registers under: the plugin's id, a dot, the key. */
+/**
+ * The id a declared command registers under: the plugin's id, a dot, the key.
+ * Command keys contain no dot and plugin ids never start with `petrinaut.`, so
+ * the id names one command and never one of the editor's own.
+ */
 export const pluginCommandId = (pluginId: string, key: string): string =>
   `${pluginId}.${key}`;
 
@@ -304,6 +308,9 @@ export interface PetrinautPluginDefinition<M extends PetrinautPluginManifest> {
   readonly manifest: M;
 }
 
+/** Ids that would let a plugin's commands replace the editor's own. */
+type ReservedPluginId = "petrinaut" | `petrinaut.${string}`;
+
 /** `never` for every key of `T` outside `Known`. */
 type RejectUnknownKeys<T, Known extends PropertyKey> = {
   readonly [K in Exclude<keyof T, Known>]: never;
@@ -330,6 +337,18 @@ type EntryChecks<
  * misspelt key, such as `comands` or a button's `tooltp`, compiles.
  */
 type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
+  (M extends { readonly id: ReservedPluginId }
+    ? { readonly id: never }
+    : unknown) &
+  (M extends { readonly commands: infer Specs }
+    ? {
+        readonly commands: {
+          readonly [K in keyof Specs as K extends `${string}.${string}`
+            ? K
+            : never]: never;
+        };
+      }
+    : unknown) &
   (M extends { readonly access: infer A }
     ? { readonly access: RejectUnknownKeys<A, keyof PluginAccess> }
     : unknown) &
@@ -350,6 +369,22 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
 type AnyImplementation = PetrinautPlugin["hook"] | AnyPluginContributions;
 
 let nextSerial = 0;
+
+/** Throws on what the manifest's type rejects, for manifests typed loosely. */
+const assertValidManifest = ({ id, commands }: PetrinautPluginManifest) => {
+  if (id === "petrinaut" || id.startsWith("petrinaut.")) {
+    throw new Error(
+      `Plugin id "${id}" is reserved. Ids starting "petrinaut." name the editor's own commands.`,
+    );
+  }
+  for (const key of Object.keys(commands ?? {})) {
+    if (key.includes(".")) {
+      throw new Error(
+        `Plugin "${id}" command "${key}" contains a dot. Command keys contain no dot.`,
+      );
+    }
+  }
+};
 
 const createPlugin = (
   manifest: PetrinautPluginManifest,
@@ -418,6 +453,8 @@ export function definePetrinautPlugin(
   manifest: PetrinautPluginManifest,
   implementation?: AnyImplementation,
 ): PetrinautPlugin | PetrinautPluginDefinition<PetrinautPluginManifest> {
+  assertValidManifest(manifest);
+
   return implementation === undefined
     ? Object.assign(
         (later: AnyImplementation) => createPlugin(manifest, later),

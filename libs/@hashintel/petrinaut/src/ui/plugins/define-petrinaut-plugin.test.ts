@@ -240,4 +240,19 @@ describe("definePetrinautPlugin", () => {
       topBarItems: { status: { place: "top-bar-end", lable: "Status" } },
     });
   });
+
+  it("reserves the editor's command ids", () => {
+    expect(() =>
+      // @ts-expect-error An id starting "petrinaut." is reserved.
+      definePetrinautPlugin({ id: "petrinaut.edit", name: "Edit" }),
+    ).toThrow('Plugin id "petrinaut.edit" is reserved.');
+    expect(() =>
+      definePetrinautPlugin({
+        id: "test.dots",
+        name: "Dots",
+        // @ts-expect-error A command key with a dot.
+        commands: { "a.b": { label: "A" } },
+      }),
+    ).toThrow('Plugin "test.dots" command "a.b" contains a dot.');
+  });
 });
