@@ -13,13 +13,10 @@ import {
   MagnifyingGlassMinusLightIcon,
   MagnifyingGlassPlusLightIcon,
 } from "@hashintel/design-system";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 
 import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
-import {
-  FilePreviewSearch,
-  type SearchHit,
-  type SearchHits,
-} from "./file-preview-search";
+import { FilePreviewSearch } from "./file-preview-search";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 import {
   a4Ratio,
@@ -29,6 +26,11 @@ import {
 } from "./pdf-preview/dimensions";
 import { PageThumbnail } from "./pdf-preview/page-thumbnail";
 import { PdfPreviewSkeleton } from "./pdf-preview/pdf-preview-skeleton";
+import {
+  type SearchHit,
+  type SearchHits,
+  useFindSearchHits,
+} from "./pdf-preview/pdf-search-hits";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
 
 import type {
@@ -130,6 +132,36 @@ export const PdfPreview = ({
   const [selectedSearchHit, setSelectedSearchHit] = useState<SearchHit | null>(
     null,
   );
+
+  const findSearchHits = useFindSearchHits(documentProxy);
+
+  const selectSearchHit = (searchHit: SearchHit | null) => {
+    setSelectedSearchHit(searchHit);
+
+    if (searchHit) {
+      setSelectedPageNumber(searchHit.pageNumber);
+    }
+  };
+
+  const search = (text: string, ignoreCase: boolean) => {
+    if (!text) {
+      setSearchHits({ hitsByPageNumber: {}, total: 0 });
+      selectSearchHit(null);
+      return;
+    }
+
+    const hits = findSearchHits(text, ignoreCase);
+    setSearchHits(hits);
+
+    const firstPageWithHit = typedKeys(hits.hitsByPageNumber)[0];
+    const firstHit = firstPageWithHit
+      ? hits.hitsByPageNumber[firstPageWithHit]?.[0]
+      : null;
+
+    selectSearchHit(firstHit ?? null);
+  };
+
+  const allSearchHits = Object.values(searchHits.hitsByPageNumber).flat();
 
   const onDocumentLoadSuccess: OnDocumentLoadSuccess = (docProxy) => {
     setTotalPages(docProxy.numPages);
@@ -246,18 +278,11 @@ export const PdfPreview = ({
         >
           <FilePreviewSearch
             closeSearch={() => setShowSearch(false)}
-            document={documentProxy}
-            searchHits={searchHits}
-            setSearchHits={setSearchHits}
-            selectedSearchHit={selectedSearchHit}
-            setSelectedSearchHit={(searchHit) => {
-              setSelectedSearchHit(searchHit);
-
-              if (searchHit) {
-                setSelectedPageNumber(searchHit.pageNumber);
-              }
-            }}
+            onSearch={search}
+            onSelectHit={(index) => selectSearchHit(allSearchHits[index]!)}
+            selectedIndex={selectedSearchHit?.indexInAllHits ?? null}
             showSearch={showSearch}
+            total={searchHits.total}
           />
         </Box>
         {url ? (
