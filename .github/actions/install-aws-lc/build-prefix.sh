@@ -29,22 +29,22 @@ sha256sum --check --quiet <<<"$checksum  $work/aws-lc-sys.crate"
 tar --extract --gzip --file "$work/aws-lc-sys.crate" --directory "$work"
 crate=$work/aws-lc-sys-$version
 
-export MISE_ENV=${MISE_ENV:+$MISE_ENV,}aws-lc
-mise install --locked cargo:bindgen-cli
-PATH=$(mise where cargo:bindgen-cli)/bin:$PATH
+if ! bindgen_version=$(bindgen --version 2>&1); then
+  echo "::error::\`bindgen --version\` failed, \`mise install --env ci\` should provide \`bindgen-cli\`: $bindgen_version"
+  exit 1
+fi
+echo "Using $bindgen_version from $(command -v bindgen)"
 
-# These options match the CMake build `aws-lc-sys` itself runs, including the crate's symbol
-# prefix, so the bindings and library match what `aws-lc-rs` is compiled against.
+# The crate ships AWS-LC with pregenerated assembly and its symbol-prefix headers, so the build
+# needs neither Go nor Perl, and keeps the prefix the crate's own bindings use.
 cmake -S "$crate/aws-lc" -B "$work/build" \
   -DCMAKE_BUILD_TYPE="$build_type" \
   -DCMAKE_INSTALL_PREFIX="$prefix" \
-  -DBUILD_SHARED_LIBS=OFF \
   -DBUILD_LIBSSL=OFF \
   -DBUILD_TESTING=OFF \
   -DBUILD_TOOL=OFF \
   -DDISABLE_GO=ON \
   -DDISABLE_PERL=ON \
-  -DENABLE_SOURCE_MODIFICATION=OFF \
   -DBORINGSSL_PREFIX="aws_lc_${version//./_}" \
   -DBORINGSSL_PREFIX_HEADERS="$crate/generated-include" \
   -DGENERATE_RUST_BINDINGS=ON

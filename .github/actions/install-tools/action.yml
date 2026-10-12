@@ -86,7 +86,6 @@ runs:
       uses: $/.github/actions/install-aws-lc
       with:
         profile: ${{ inputs.aws_lc_profile }}
-        token: ${{ inputs.token }}
 
     - name: "Install sccache"
       if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.encrypted_sccache_credentials != '' }}

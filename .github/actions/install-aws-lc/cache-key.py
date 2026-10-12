@@ -18,7 +18,9 @@ if profile not in ("dev", "release"):
 
 with open("Cargo.lock", "rb") as lockfile:
     packages = [
-        p for p in tomllib.load(lockfile)["package"] if p["name"] == "aws-lc-sys"
+        package
+        for package in tomllib.load(lockfile)["package"]
+        if package["name"] == "aws-lc-sys"
     ]
 if len(packages) != 1:
     sys.exit(

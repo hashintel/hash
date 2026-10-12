@@ -5,9 +5,6 @@ inputs:
   profile:
     description: Cargo profile the job's Rust builds use, `dev` or `release`. Profiles inheriting from one of them, such as `test` or `bench`, use its value.
     default: dev
-  token:
-    description: GitHub token mise uses to install `bindgen-cli` when the prefix has to be built.
-    required: true
 
 runs:
   using: composite
@@ -18,7 +15,7 @@ runs:
       env:
         CACHE_KEY: ${{ github.action_path }}/cache-key.py
         PROFILE: ${{ inputs.profile }}
-        ACTION_FILES: ${{ hashFiles('.github/actions/install-aws-lc/**', '.config/mise/config.aws-lc.toml', '.config/mise/mise.aws-lc.lock') }}
+        ACTION_FILES: ${{ hashFiles('.github/actions/install-aws-lc/**', '.config/mise/config.ci.toml', '.config/mise/mise.ci.lock') }}
       run: python3 "$CACHE_KEY" "$PROFILE"
 
     - name: Restore AWS-LC
@@ -37,7 +34,6 @@ runs:
         PROFILE: ${{ inputs.profile }}
         VERSION: ${{ steps.key.outputs.version }}
         CHECKSUM: ${{ steps.key.outputs.checksum }}
-        GITHUB_TOKEN: ${{ inputs.token }}
       run: '"$BUILD_PREFIX" "$PREFIX" "$PROFILE" "$VERSION" "$CHECKSUM"'
 
     - name: Save AWS-LC
