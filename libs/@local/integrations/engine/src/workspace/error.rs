@@ -179,6 +179,8 @@ pub enum StatementError {
     StatementCount { count: usize },
     #[display("the query calls table function `{name}`, which is not allowed")]
     TableFunction { name: Box<str> },
+    #[display("the query reads parameter `${name}`, which is not set")]
+    UnknownParameter { name: Box<str> },
     /// `data_type` is the column's type as the `duckdb` crate receives it, in Arrow's notation.
     #[display("column `{column}` has type `{data_type}`, which the workspace cannot read")]
     UnsupportedType {

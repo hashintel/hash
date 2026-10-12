@@ -1,7 +1,8 @@
 {
   "package": "hash-integrations-engine",
   "dependencies": [
-    "error-stack"
+    "error-stack",
+    "hash-integrations-definition"
   ],
   "tasks": {
     "doc:dependency-diagram": {
