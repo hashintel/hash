@@ -1,3 +1,5 @@
+import { typedKeys } from "@local/advanced-types/typed-entries";
+
 import type { FlowRun } from "../graphql/api-types.gen.js";
 import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
 import type {
@@ -137,7 +139,8 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
  *
  * Payload kinds are a known union: a new kind is added to `PayloadKindValues`, and so joins this list.
  */
-export const allPayloadKinds = Object.keys(payloadKindsRecord) as PayloadKind[];
+export const allPayloadKinds: readonly PayloadKind[] =
+  typedKeys(payloadKindsRecord);
 
 /**
  * Payload kinds whose values are always stored in S3, whether singular or an array, due to their potential size.
@@ -403,7 +406,7 @@ export type InputDefinition = {
   array: boolean;
   required: boolean;
   default?: Payload;
-} & ({ oneOfPayloadKinds: PayloadKind[] } | KindFrom);
+} & ({ oneOfPayloadKinds: readonly PayloadKind[] } | KindFrom);
 
 /**
  * An action's output: a fixed kind, or the kind connected to one of its inputs (see `KindFrom`). A flow's outputs

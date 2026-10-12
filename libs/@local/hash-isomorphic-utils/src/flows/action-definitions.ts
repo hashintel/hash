@@ -1060,7 +1060,10 @@ type FlowActionInputPayloadType<
 
 /** A kind source, with the inputs and outputs that take their kind from it. */
 export type KindSource = {
-  input: Extract<InputDefinition, { oneOfPayloadKinds: PayloadKind[] }>;
+  input: Extract<
+    InputDefinition,
+    { oneOfPayloadKinds: readonly PayloadKind[] }
+  >;
   derived: { name: string; of: "input" | "output" }[];
 };
 
