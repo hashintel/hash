@@ -63,6 +63,7 @@ export { parseDocumentUri } from "@hashintel/petrinaut-core";
 export type {
   DiagnosticsSnapshot,
   ReadableStore,
+  SelectionItem,
 } from "@hashintel/petrinaut-core";
 export {
   ExperimentExecutionCard,

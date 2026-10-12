@@ -205,6 +205,29 @@ const PlaceCount = ({ document }: { document: PluginDocumentReader }) => {
 };
 ```
 
+### Read the selection
+
+`editor.navigation` holds the selection as `readonly SelectionItem[]`, one
+`{ type, id }` per item. It is a new array on every navigation change, so
+select a primitive, such as a count or an id, and the component re-renders
+only when that value changes.
+
+```tsx
+const SelectedPlace = ({ editor }: { editor: PluginEditorReader }) => {
+  const placeId = useStoreSelector(editor.navigation, ({ selection }) =>
+    selection.length === 1 && selection[0]?.type === "place"
+      ? selection[0].id
+      : null,
+  );
+
+  return placeId === null ? null : <span>Place {placeId}</span>;
+};
+```
+
+The ids name items of the net the editor shows: the root net, or the subnet at
+`subnetId`. Right after an edit, an id can name a deleted item, so look each
+one up in `document.net` before using it.
+
 ### Edits return a result
 
 Edits are checked when called, and each returns an `EditResult`:
