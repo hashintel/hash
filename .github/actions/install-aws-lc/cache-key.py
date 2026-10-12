@@ -43,6 +43,9 @@ inputs = "\n".join(
         subprocess.run(
             ["cmake", "--version"], check=True, capture_output=True, text=True
         ).stdout,
+        subprocess.run(
+            ["bindgen", "--version"], check=True, capture_output=True, text=True
+        ).stdout,
         *build_environment,
     ]
 )

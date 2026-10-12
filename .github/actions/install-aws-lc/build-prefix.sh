@@ -29,9 +29,6 @@ sha256sum --check --quiet <<<"$checksum  $work/aws-lc-sys.crate"
 tar --extract --gzip --file "$work/aws-lc-sys.crate" --directory "$work"
 crate=$work/aws-lc-sys-$version
 
-cargo binstall --no-confirm --locked --root "$work/bindgen" "bindgen-cli@$(cat "$(dirname "$0")/bindgen-version")"
-export PATH=$work/bindgen/bin:$PATH
-
 # These options match the CMake build `aws-lc-sys` itself runs, including the crate's symbol
 # prefix, so the bindings and library match what `aws-lc-rs` is compiled against.
 cmake -S "$crate/aws-lc" -B "$work/build" \
@@ -51,3 +48,4 @@ cmake --build "$work/build" --parallel "$(nproc)"
 cmake --install "$work/build"
 
 echo "$version" >"$prefix/aws-lc-sys.version"
+echo "::notice::Built the $profile AWS-LC prefix for aws-lc-sys $version in ${SECONDS}s"

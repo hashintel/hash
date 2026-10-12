@@ -5,9 +5,6 @@ inputs:
   profile:
     description: Cargo profile the job's Rust builds use, `dev` or `release`. Profiles inheriting from one of them, such as `test` or `bench`, use its value.
     default: dev
-  token:
-    description: GitHub token `cargo-binstall` uses to download `bindgen-cli` when the prefix has to be built.
-    required: true
 
 runs:
   using: composite
@@ -37,7 +34,6 @@ runs:
         PROFILE: ${{ inputs.profile }}
         VERSION: ${{ steps.key.outputs.version }}
         CHECKSUM: ${{ steps.key.outputs.checksum }}
-        GITHUB_TOKEN: ${{ inputs.token }}
       run: '"$BUILD_PREFIX" "$PREFIX" "$PROFILE" "$VERSION" "$CHECKSUM"'
 
     - name: Save AWS-LC
