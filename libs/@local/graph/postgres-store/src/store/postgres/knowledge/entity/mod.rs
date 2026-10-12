@@ -3529,6 +3529,7 @@ where
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
     ) -> Result<(), Report<UpdateError>> {
+        // Closing at the start would leave an empty decision interval
         if locked_row.decision_time.start() == &ClosedTemporalBound::Inclusive(decision_time) {
             self.as_client()
                 .query(
