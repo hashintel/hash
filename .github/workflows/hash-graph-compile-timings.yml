@@ -28,15 +28,11 @@ jobs:
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   compile:
-    name: Compile (aws-lc=${{ matrix.aws_lc }})
+    name: Compile
     needs: [sccache-credentials]
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        aws_lc: [prebuilt, source]
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -45,13 +41,11 @@ jobs:
         uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
-        id: install-tools
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
           sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
-          aws_lc: ${{ matrix.aws_lc == 'prebuilt' }}
 
       - name: Compile hash-graph with timings
         run: |
