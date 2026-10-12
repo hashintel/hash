@@ -9,11 +9,13 @@ import {
   testDocumentSearchWord,
 } from "../shared/test-document";
 
+import type { Page } from "../shared/runtime";
+
 const [firstPage, secondPage, thirdPage] = testDocumentPages;
 
-test("a PDF file entity shows a preview that can be paged, zoomed, searched and copied from", async ({
-  page,
-}) => {
+const getPdfPage = (page: Page) => page.locator(".react-pdf-page");
+
+test.beforeEach(async ({ page }) => {
   const user = await getUser(page.request);
   if (!user) {
     throw new Error("Cannot upload a file without an authenticated user");
@@ -34,31 +36,44 @@ test("a PDF file entity shows a preview that can be paged, zoomed, searched and 
     }),
   );
 
-  const pdfPage = page.locator(".react-pdf-page");
-
   await expect(
-    pdfPage.getByText(firstPage.heading, { exact: true }),
+    getPdfPage(page).getByText(firstPage.heading, { exact: true }),
   ).toBeVisible({ timeout: 15_000 });
+});
 
+test("the next page button shows the next page", async ({ page }) => {
   await page.getByRole("button", { name: "Next page" }).click();
   await expect(
-    pdfPage.getByText(secondPage.heading, { exact: true }),
+    getPdfPage(page).getByText(secondPage.heading, { exact: true }),
   ).toBeVisible();
+});
 
-  await page.getByRole("group", { name: "Page 1", exact: true }).click();
+test("a page thumbnail shows its page", async ({ page }) => {
+  await page.getByRole("group", { name: "Page 3", exact: true }).click();
   await expect(
-    pdfPage.getByText(firstPage.heading, { exact: true }),
+    getPdfPage(page).getByText(thirdPage.heading, { exact: true }),
   ).toBeVisible();
+});
+
+test("zooming in makes the page wider", async ({ page }) => {
+  const pdfPage = getPdfPage(page);
 
   const widthBeforeZoom = (await pdfPage.boundingBox())?.width ?? 0;
   await page.getByRole("button", { name: "Zoom in" }).click();
   await expect
     .poll(async () => (await pdfPage.boundingBox())?.width ?? 0)
     .toBeGreaterThan(widthBeforeZoom);
+});
+
+test("search highlights a word and the next result moves to the next page holding it", async ({
+  page,
+}) => {
+  const pdfPage = getPdfPage(page);
 
   await page.getByRole("button", { name: "Show search" }).click();
-  const searchInput = page.getByPlaceholder("Search the document...");
-  await searchInput.fill(testDocumentSearchWord);
+  await page
+    .getByPlaceholder("Search the document...")
+    .fill(testDocumentSearchWord);
 
   const searchHighlight = pdfPage.locator('span[style*="border-bottom"]', {
     hasText: testDocumentSearchWord,
@@ -71,10 +86,16 @@ test("a PDF file entity shows a preview that can be paged, zoomed, searched and 
     pdfPage.getByText(thirdPage.heading, { exact: true }),
   ).toBeVisible();
   await expect(searchHighlight).toBeVisible();
+});
 
-  await pdfPage.getByText(thirdPage.heading, { exact: true }).selectText();
+test("text selected on a page can be copied and pasted", async ({ page }) => {
+  await page.getByRole("button", { name: "Show search" }).click();
+  const searchInput = page.getByPlaceholder("Search the document...");
+
+  await getPdfPage(page)
+    .getByText(firstPage.heading, { exact: true })
+    .selectText();
   await page.keyboard.press("ControlOrMeta+C");
-  await searchInput.clear();
   await searchInput.press("ControlOrMeta+V");
-  await expect(searchInput).toHaveValue(thirdPage.heading);
+  await expect(searchInput).toHaveValue(firstPage.heading);
 });
