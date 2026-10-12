@@ -260,4 +260,32 @@ describe("definePetrinautPlugin", () => {
       }),
     ).toThrow('Plugin "test.dots" command "a.b" contains a dot.');
   });
+
+  it("keeps an enum setting's default among its options", () => {
+    expect(() =>
+      definePetrinautPlugin({
+        id: "test.enum",
+        name: "Enum",
+        settings: {
+          mode: {
+            type: "enum",
+            options: ["a", "b"],
+            // @ts-expect-error A default outside the options.
+            default: "c",
+            label: "Mode",
+          },
+        },
+      }),
+    ).toThrow('Plugin "test.enum" setting "mode" defaults to "c"');
+    expect(() =>
+      definePetrinautPlugin({
+        id: "test.enum",
+        name: "Enum",
+        settings: {
+          // @ts-expect-error Empty options.
+          mode: { type: "enum", options: [], default: "a", label: "Mode" },
+        },
+      }),
+    ).toThrow('Plugin "test.enum" setting "mode" defaults to "a"');
+  });
 });

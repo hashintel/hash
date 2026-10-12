@@ -334,6 +334,21 @@ type RejectUnknownEntryKeys<Specs, Known extends PropertyKey> = {
   readonly [K in keyof Specs]: RejectUnknownKeys<Specs[K], Known>;
 };
 
+/** `never` for an enum setting's `default` outside its `options`, or for empty `options`. */
+type SettingValueChecks<Specs> = {
+  readonly [K in keyof Specs]: Specs[K] extends {
+    readonly type: "enum";
+    readonly options: infer Options extends readonly string[];
+    readonly default: infer Default;
+  }
+    ? Options extends readonly []
+      ? { readonly options: never }
+      : Default extends Options[number]
+        ? unknown
+        : { readonly default: never }
+    : unknown;
+};
+
 type EntryChecks<
   M,
   Key extends keyof PetrinautPluginManifest,
@@ -364,6 +379,9 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
     ? { readonly access: RejectUnknownKeys<A, keyof PluginAccess> }
     : unknown) &
   EntryChecks<M, "settings", KeysOfUnion<PetrinautSettingSpec>> &
+  (M extends { readonly settings: infer Specs }
+    ? { readonly settings: SettingValueChecks<Specs> }
+    : unknown) &
   EntryChecks<M, "commands", keyof PluginCommandSpec> &
   EntryChecks<
     M,
@@ -382,7 +400,11 @@ type AnyImplementation = PluginRuntime["hook"] | AnyPluginContributions;
 let nextSerial = 0;
 
 /** Throws on what the manifest's type rejects, for manifests typed loosely. */
-const assertValidManifest = ({ id, commands }: PetrinautPluginManifest) => {
+const assertValidManifest = ({
+  id,
+  commands,
+  settings,
+}: PetrinautPluginManifest) => {
   if (id === "petrinaut" || id.startsWith("petrinaut.")) {
     throw new Error(
       `Plugin id "${id}" is reserved. Ids starting "petrinaut." name the editor's own commands.`,
@@ -392,6 +414,13 @@ const assertValidManifest = ({ id, commands }: PetrinautPluginManifest) => {
     if (key.includes(".")) {
       throw new Error(
         `Plugin "${id}" command "${key}" contains a dot. Command keys contain no dot.`,
+      );
+    }
+  }
+  for (const [key, spec] of Object.entries(settings ?? {})) {
+    if (spec.type === "enum" && !spec.options.includes(spec.default)) {
+      throw new Error(
+        `Plugin "${id}" setting "${key}" defaults to "${spec.default}", which is not one of its options.`,
       );
     }
   }

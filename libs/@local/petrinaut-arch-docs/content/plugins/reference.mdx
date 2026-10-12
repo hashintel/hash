@@ -229,12 +229,13 @@ The package root, `@hashintel/petrinaut`, exports the same plugin API as
 
 ## Error messages
 
-| Message                                                           | When                                                                                  |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `Petrinaut plugin "<id>" is passed twice. Pass each plugin once.` | Two plugins in `plugins` share an id. Thrown during render.                           |
-| `Plugin id "<id>" is reserved. ...`                               | The id is `petrinaut` or starts with `petrinaut.`. Thrown by `definePetrinautPlugin`. |
-| `Plugin "<id>" command "<key>" contains a dot. ...`               | A command key contains a dot. Thrown by `definePetrinautPlugin`.                      |
-| `Plugin "<id>" setting "<key>" rejects <value>.`                  | `settings.set` with an undeclared key or a value its spec rejects. Thrown by `set`.   |
+| Message                                                                                 | When                                                                                                            |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `Petrinaut plugin "<id>" is passed twice. Pass each plugin once.`                       | Two plugins in `plugins` share an id. Thrown during render.                                                     |
+| `Plugin id "<id>" is reserved. ...`                                                     | The id is `petrinaut` or starts with `petrinaut.`. Thrown by `definePetrinautPlugin`.                           |
+| `Plugin "<id>" command "<key>" contains a dot. ...`                                     | A command key contains a dot. Thrown by `definePetrinautPlugin`.                                                |
+| `Plugin "<id>" setting "<key>" defaults to "<value>", which is not one of its options.` | An enum setting's `default` is outside its `options`, or `options` is empty. Thrown by `definePetrinautPlugin`. |
+| `Plugin "<id>" setting "<key>" rejects <value>.`                                        | `settings.set` with an undeclared key or a value its spec rejects. Thrown by `set`.                             |
 
 ## Failure reports
 
