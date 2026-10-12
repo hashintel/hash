@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, test } from "vitest";
 
-import { conversationDbPath } from "../src/db-path";
+import { conversationDbPath } from "../src/server/db-path";
 
 const appDir = fileURLToPath(new URL("..", import.meta.url));
 

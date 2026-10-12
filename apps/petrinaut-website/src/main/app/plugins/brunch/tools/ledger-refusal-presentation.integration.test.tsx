@@ -160,7 +160,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
   const client = createFlueClient({
     fetch: fetchApplication,
     headers,
-    url: `http://brunch.test/agents/chat/${instanceId}`,
+    url: `http://brunch.test/agents/petrinaut/${instanceId}`,
   });
   const tracker = new BrunchPanelConversationTracker();
   const transport = createBrunchPanelTransport(

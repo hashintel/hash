@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("../../../../../", import.meta.url));
-const app = "apps/brunch-agent/src/agents/chat-agent";
+const agent = "apps/brunch-agent/src/agents/petrinaut";
 const library = "libs/@hashintel/brunch-agent";
 const filesWithin = async (directory: string): Promise<string[]> => {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -25,12 +25,15 @@ const filesWithin = async (directory: string): Promise<string[]> => {
 /** Source fingerprint for reproduction and drift detection, not an inference result. */
 export const guidanceManifest = async () => {
   const directories = [
-    `${app}/guidance`,
+    `${agent}/prompts`,
+    `${agent}/skills`,
+    `${agent}/tools`,
     // The Ledger lives in the library so the website can render it.
     `${library}/src/ledger`,
   ];
   const paths = [
-    `${app}/agent.ts`,
+    `${agent}/agent.ts`,
+    `${agent}/guidance.ts`,
     `${library}/src/ledger.ts`,
     "apps/brunch-agent/src/shared/petrinaut-tools.ts",
     "yarn.lock",

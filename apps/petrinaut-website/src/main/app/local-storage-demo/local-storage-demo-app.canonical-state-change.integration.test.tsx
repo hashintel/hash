@@ -70,7 +70,7 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
 });
 vi.mock("../plugins/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
-    chatEndpoint: "/agents/chat",
+    chatEndpoint: "/agents/petrinaut",
     isBrunchConfigured: true,
   }),
 }));
@@ -88,7 +88,7 @@ beforeAll(async () => {
       resource instanceof Request ? resource : new Request(resource, options);
     if (
       fixture.fetch &&
-      new URL(request.url).pathname.startsWith("/agents/chat/")
+      new URL(request.url).pathname.startsWith("/agents/petrinaut/")
     )
       return fixture.fetch(request);
     return Promise.reject(new Error("External fetch forbidden"));

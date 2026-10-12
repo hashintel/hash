@@ -15,7 +15,7 @@ import {
   netCalls,
   type ArcElement,
   type NetCall,
-} from "../../../../../conversation/net-changes.ts";
+} from "../../../shared/conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent";
@@ -194,7 +194,7 @@ export const queryBasis = (input: {
   };
 };
 
-/** `query_basis` over the net's recorded changes and this arm's own Ledger. */
+/** `query_basis` over the net's recorded changes and this agent's Ledger. */
 export const createQueryBasisTool = (options: {
   browser: BrowserContext;
   history: () => Promise<FlueConversationSnapshot>;

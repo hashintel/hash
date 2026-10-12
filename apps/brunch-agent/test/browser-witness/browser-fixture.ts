@@ -20,11 +20,11 @@ import {
 import { createFlueClient } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 
+import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../../src/conversation/identity.ts";
-import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
+} from "../../src/shared/conversation/identity.ts";
 import { nativeOpenaiProvider } from "../native-openai-provider.ts";
 
 import type { BuiltBrunchApplication } from "../load-built-application.ts";
@@ -299,7 +299,7 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
       conversationId: binding.conversationId,
     };
     const client = createFlueClient({
-      url: `${origin}/agents/chat/${flueConversationIdFrom(identity)}`,
+      url: `${origin}/agents/petrinaut/${flueConversationIdFrom(identity)}`,
       headers: agentOwnershipHeaders(identity),
     });
     return { binding, client };

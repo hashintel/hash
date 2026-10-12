@@ -6,7 +6,7 @@ import type { PersonaBrowserSession } from "../browser-turn.ts";
 import type { Page } from "@playwright/test";
 
 const session: PersonaBrowserSession = {
-  url: "https://panel.test/agents/chat/conversation",
+  url: "https://panel.test/agents/petrinaut/conversation",
   principalKey: "TEST-principal",
   conversationId: "TEST-conversation",
   uid: "TEST-uid",

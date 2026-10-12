@@ -7,8 +7,8 @@ test("the manifest fingerprints the agent's guidance and Ledger, and a changed s
   const paths = manifest.files.map(({ path }) => path);
   expect(paths).toEqual(
     expect.arrayContaining([
-      "apps/brunch-agent/src/agents/chat-agent/agent.ts",
-      "apps/brunch-agent/src/agents/chat-agent/guidance/manual/prompts/system.md",
+      "apps/brunch-agent/src/agents/petrinaut/agent.ts",
+      "apps/brunch-agent/src/agents/petrinaut/prompts/system.md",
       "libs/@hashintel/brunch-agent/src/ledger/commits.ts",
       "yarn.lock",
     ]),

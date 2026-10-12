@@ -2,13 +2,13 @@ import { expect, test } from "vitest";
 
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { queryBasis } from "../src/agents/chat-agent/guidance/manual/tools/query-basis.ts";
+import { queryBasis } from "../src/agents/petrinaut/tools/query-basis.ts";
 import {
   isAppliedChange,
   latestNetDefinition,
   latestCanonicalNetReadBefore,
   netCalls,
-} from "../src/conversation/net-changes.ts";
+} from "../src/shared/conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 

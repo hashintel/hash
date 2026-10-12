@@ -1,8 +1,10 @@
 "use agent";
 /**
- * Register and compose the Brunch agent for this Flue application: the
- * manual guidance (prompt, skills, Ledger tools and `query_basis`) over the
- * shared Petrinaut browser tools, net freshness and transport contracts.
+ * Brunch for Petrinaut: its guidance (prompt, skills, Ledger tools and
+ * `query_basis`) over the shared Petrinaut browser tools, net freshness and
+ * transport. Everything the model reads and every Ledger tool lives in this
+ * directory; a candidate agent is a copy of it with its own `agentName`,
+ * registered in `../index.ts`.
  */
 
 import {
@@ -24,18 +26,18 @@ import {
 import {
   selectChatModelSpecifier,
   selectChatThinking,
-} from "../../chat-model.ts";
-import { issueBrowserCall } from "../../conversation/browser-call-rendezvous.ts";
-import { latestCanonicalNetReadBefore } from "../../conversation/net-changes.ts";
+} from "../../shared/chat-model.ts";
+import { createBrunchContextProjection } from "../../shared/context-projection.ts";
+import { issueBrowserCall } from "../../shared/conversation/browser-call-rendezvous.ts";
+import { latestCanonicalNetReadBefore } from "../../shared/conversation/net-changes.ts";
 import {
   expectedNetRevision,
   netViewTracker,
-} from "../../conversation/net-freshness.ts";
+} from "../../shared/conversation/net-freshness.ts";
 import { usePetrinautTools } from "../../shared/petrinaut-tools.ts";
-import { createBrunchContextProjection } from "./context-projection.ts";
-import { useManualGuidance } from "./guidance/manual.ts";
-import { loadTestCompactionConfig } from "./test-compaction-config.ts";
-import { ping } from "./tools/ping.ts";
+import { ping } from "../../shared/ping.ts";
+import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
+import { useGuidance } from "./guidance.ts";
 
 const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
 const chatThinkingLevel = selectChatThinking();
@@ -50,7 +52,7 @@ const chatModelOptions = {
     : { compaction: testCompactionConfig }),
 };
 
-export function ChatAgent({ id }: AgentProps) {
+export function PetrinautAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
   useContextProjection(
     createBrunchContextProjection({
@@ -60,7 +62,7 @@ export function ChatAgent({ id }: AgentProps) {
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.
   const history = () => {
-    const router = createAgentRouter(ChatAgent);
+    const router = createAgentRouter(PetrinautAgent);
     return createFlueClient({
       url: `http://brunch.local/${id}`,
       fetch: async (input, init) =>
@@ -69,7 +71,7 @@ export function ChatAgent({ id }: AgentProps) {
         ),
     }).history();
   };
-  const { system, createQueryBasisTool } = useManualGuidance(
+  const { system, createQueryBasisTool } = useGuidance(
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     history,
@@ -125,8 +127,9 @@ export function ChatAgent({ id }: AgentProps) {
 }
 
 /**
- * Pinned, and never to be edited: conversation storage keys on this literal,
- * and Flue requires it to be a literal here.
+ * Conversation storage keys on this literal, and Flue requires it to be a
+ * literal here. Changing it starts every conversation fresh; a candidate copy
+ * of this agent takes its own.
  */
-ChatAgent.agentName = "brunch-chat-agent";
-ChatAgent.initialData = sdcpnInitialDataSchema;
+PetrinautAgent.agentName = "brunch-chat-agent";
+PetrinautAgent.initialData = sdcpnInitialDataSchema;

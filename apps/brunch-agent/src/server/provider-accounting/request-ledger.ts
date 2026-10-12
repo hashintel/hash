@@ -13,7 +13,7 @@ import { dirname } from "node:path";
 import { calculateCost } from "@earendil-works/pi-ai";
 import * as v from "valibot";
 
-import { STEP_A_MODEL_ID } from "../chat-model.ts";
+import { STEP_A_MODEL_ID } from "../../shared/chat-model.ts";
 
 import type {
   Api,

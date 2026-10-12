@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { brunchEnv } from "@hashintel/brunch-agent";
 
-import { type PostgresDatabaseConfig } from "../src/database-config.ts";
+import { type PostgresDatabaseConfig } from "../src/server/database-config.ts";
 import {
   createPostgresPool,
   createPostgresPoolConfig,
@@ -10,8 +10,8 @@ import {
   POSTGRES_CONNECTION_TIMEOUT_MS,
   POSTGRES_QUERY_TIMEOUT_MS,
   probeRdsIam,
-} from "../src/postgres.ts";
-import { diagnostics } from "../src/runtime-diagnostics.ts";
+} from "../src/server/postgres.ts";
+import { diagnostics } from "../src/server/runtime-diagnostics.ts";
 
 interface TestQueryResult {
   readonly rows: Record<string, unknown>[];

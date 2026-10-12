@@ -1,6 +1,6 @@
 /** The app's route map — one ownership-guarded Flue conversation door. */
 
-import "./telemetry-bootstrap.ts";
+import "./server/telemetry-bootstrap.ts";
 import { readFile } from "node:fs/promises";
 
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
@@ -22,24 +22,27 @@ import {
   liveToolRouteSegment,
 } from "@local/flue-aisdk-transport/server";
 
-import { ChatAgent } from "./agents/chat-agent/agent.ts";
-import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
-import { inBandBrowserToolNames } from "./agents/chat-agent/tool-catalogue.ts";
-import { healthHandler } from "./health.ts";
-import { assetHandler } from "./http/assets.ts";
-import { createBrowserCallRouter } from "./http/browser-calls.ts";
-import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
-import { agentOwnershipGuard } from "./http/ownership.ts";
-import { logger } from "./logger.ts";
-import { openaiProviderWithAddedModels } from "./openai-provider.ts";
-import { createStepARequestAccounting } from "./provider-accounting.ts";
+import { agents } from "./agents/index.ts";
+import { healthHandler } from "./server/health.ts";
+import { assetHandler } from "./server/http/assets.ts";
+import { createBrowserCallRouter } from "./server/http/browser-calls.ts";
+import {
+  createAgentCors,
+  parseCorsAllowedOrigins,
+} from "./server/http/cors.ts";
+import { agentOwnershipGuard } from "./server/http/ownership.ts";
+import { logger } from "./server/logger.ts";
+import { createTurnChronologyObserver } from "./server/observe-turn-chronology.ts";
+import { openaiProviderWithAddedModels } from "./server/openai-provider.ts";
+import { createStepARequestAccounting } from "./server/provider-accounting.ts";
 import {
   claimModelStreamIdleRetry,
   modelStreamIdleTimeoutDefaults,
   modelAdmissionScope,
   withBufferedToolAdmission,
-} from "./provider-admission.ts";
-import { diagnostics } from "./runtime-diagnostics.ts";
+} from "./server/provider-admission.ts";
+import { diagnostics } from "./server/runtime-diagnostics.ts";
+import { inBandBrowserToolNames } from "./shared/tool-catalogue.ts";
 
 import type { Provider } from "@earendil-works/pi-ai";
 
@@ -52,34 +55,46 @@ instrument({
   interceptor: (_operation, _context, next) => next(),
   dispose() {},
 });
-const liveToolBroadcaster = createLiveToolBroadcaster();
-const liveToolObserver = createLiveToolObserver(
-  liveToolBroadcaster,
-  ChatAgent.agentName,
+const mountedAgents = agents.filter(
+  ({ devOnly }) => devOnly !== true || process.env.NODE_ENV !== "production",
 );
-instrument({
-  key: Symbol.for("brunch.live-pending-tools"),
-  observe: liveToolObserver.observe,
-  interceptor: (_operation, _context, next) => next(),
-  dispose() {
-    liveToolObserver.dispose();
-    liveToolBroadcaster.close();
-  },
-});
+const mountedAgentNames = new Set(
+  mountedAgents.map(({ agent }) => agent.agentName),
+);
+// Each agent gets its own live-tool channel, so two agents never share one
+// for the same instance ID.
+const liveToolBroadcasters = new Map(
+  mountedAgents.map(({ agent }) => {
+    const broadcaster = createLiveToolBroadcaster();
+    const observer = createLiveToolObserver(broadcaster, agent.agentName);
+    instrument({
+      key: Symbol.for(`brunch.live-pending-tools:${agent.agentName}`),
+      observe: observer.observe,
+      interceptor: (_operation, _context, next) => next(),
+      dispose() {
+        observer.dispose();
+        broadcaster.close();
+      },
+    });
+    return [agent.agentName, broadcaster] as const;
+  }),
+);
 // One line per settled submission: every model request with its time to
 // first event and each tool call's argument-streaming profile, so a provider
 // stall reads differently from slow generation. Ids and durations only.
-const turnChronologyObserver = createTurnChronologyObserver(
-  ChatAgent.agentName,
-  (chronology) =>
-    logger.info("[brunch] flue.submission chronology", chronology),
-);
-instrument({
-  key: Symbol.for("brunch.turn-chronology"),
-  observe: turnChronologyObserver.observe,
-  interceptor: (_operation, _context, next) => next(),
-  dispose: turnChronologyObserver.dispose,
-});
+for (const { agent } of mountedAgents) {
+  const turnChronologyObserver = createTurnChronologyObserver(
+    agent.agentName,
+    (chronology) =>
+      logger.info("[brunch] flue.submission chronology", chronology),
+  );
+  instrument({
+    key: Symbol.for(`brunch.turn-chronology:${agent.agentName}`),
+    observe: turnChronologyObserver.observe,
+    interceptor: (_operation, _context, next) => next(),
+    dispose: turnChronologyObserver.dispose,
+  });
+}
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is ephemeral attempt policy, never a proposal/state ledger.
 const admissionScope = modelAdmissionScope;
@@ -115,7 +130,7 @@ instrument({
   interceptor(operation, context, next) {
     if (operation.type === "agent" && context.agentName !== undefined)
       return admissionScope.run(
-        context.agentName === ChatAgent.agentName
+        mountedAgentNames.has(context.agentName)
           ? { idleRetryAvailable: true }
           : false,
         next,
@@ -184,26 +199,29 @@ registerAdmittedProvider(openaiProviderWithAddedModels());
 
 const app = new Hono();
 
-const agentMount = "/agents";
-const chatAgentMount = `${agentMount}/${brunchRoutes.chatAgent}`;
 app.use(
-  `${agentMount}/*`,
+  `${brunchRoutes.agents}/*`,
   createAgentCors(
     parseCorsAllowedOrigins(process.env[brunchEnv.corsAllowedOrigins]),
   ),
 );
-app.use(
-  `${chatAgentMount}/*`,
-  agentOwnershipGuard(`${chatAgentMount}/`, ChatAgent.agentName),
-);
-app.get(`${chatAgentMount}/:id/${liveToolRouteSegment}`, (context) =>
-  liveToolResponse(liveToolBroadcaster, {
-    instanceId: context.req.param("id"),
-    request: context.req.raw,
-  }),
-);
-app.route(chatAgentMount, createBrowserCallRouter());
-app.route(chatAgentMount, createAgentRouter(ChatAgent));
+for (const { route, aliases = [], agent } of mountedAgents) {
+  const broadcaster = liveToolBroadcasters.get(agent.agentName);
+  if (broadcaster === undefined)
+    throw new Error(`No live-tool channel for ${agent.agentName}.`);
+  for (const segment of [route, ...aliases]) {
+    const mount = `${brunchRoutes.agents}/${segment}`;
+    app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, agent.agentName));
+    app.get(`${mount}/:id/${liveToolRouteSegment}`, (context) =>
+      liveToolResponse(broadcaster, {
+        instanceId: context.req.param("id"),
+        request: context.req.raw,
+      }),
+    );
+    app.route(mount, createBrowserCallRouter());
+    app.route(mount, createAgentRouter(agent));
+  }
+}
 
 app.get(brunchRoutes.health, healthHandler);
 

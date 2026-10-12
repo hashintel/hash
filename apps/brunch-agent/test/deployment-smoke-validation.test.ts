@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
   validatePersistedHistory,
   validateUiMessageStream,
-} from "../src/deployment-smoke-validation.ts";
+} from "../src/server/deployment-smoke-validation.ts";
 
 const streamOf = (...values: string[]): ReadableStream<Uint8Array> => {
   const encoder = new TextEncoder();

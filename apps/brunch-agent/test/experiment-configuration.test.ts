@@ -10,15 +10,15 @@ import {
   type PetrinautExperimentRequest,
 } from "@hashintel/petrinaut-core";
 
+import { openaiProviderWithAddedModels } from "../src/server/openai-provider.ts";
 import {
   selectChatModelSpecifier,
   selectChatThinking,
-} from "../src/chat-model.ts";
-import { openaiProviderWithAddedModels } from "../src/openai-provider.ts";
+} from "../src/shared/chat-model.ts";
 
 const reference = readFileSync(
   new URL(
-    "../src/agents/chat-agent/guidance/manual/skills/modelling/references/experiment-configuration.md",
+    "../src/agents/petrinaut/skills/modelling/references/experiment-configuration.md",
     import.meta.url,
   ),
   "utf8",

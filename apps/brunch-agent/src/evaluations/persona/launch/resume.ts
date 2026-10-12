@@ -11,7 +11,7 @@ import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../../../conversation/identity.ts";
+} from "../../../shared/conversation/identity.ts";
 import { lastAdmittedUtterance } from "./bridge-log.ts";
 import { roleSettingsFromRun } from "./role-settings.ts";
 
@@ -73,7 +73,7 @@ export const readPersonaResume = async (directory: string) => {
   assert.equal(resolve(config.databasePath), join(run, "conversation.db"));
   assert.equal(
     session.url,
-    `${config.panelOrigin}/agents/chat/${flueConversationIdFrom(session)}`,
+    `${config.panelOrigin}/agents/petrinaut/${flueConversationIdFrom(session)}`,
   );
   const binding = session.initialData.binding;
   assert.equal(binding.conversationId, session.conversationId);

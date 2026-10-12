@@ -1,11 +1,11 @@
 import { expect, test } from "vitest";
 
-import { createBrunchContextProjection } from "../src/agents/chat-agent/context-projection";
+import { createBrunchContextProjection } from "../src/shared/context-projection";
 import {
   createNetViewTracker,
   expectedNetRevision,
   noNetViewRefusal,
-} from "../src/conversation/net-freshness";
+} from "../src/shared/conversation/net-freshness";
 
 import type { ContextProjectionEntry } from "@flue/runtime";
 import type { FlueConversationSnapshot } from "@flue/sdk";

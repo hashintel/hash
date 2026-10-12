@@ -42,8 +42,10 @@ export const brunchHeaders = {
 
 /** Server routes and route segments. */
 export const brunchRoutes = {
-  /** Browser-facing agent segment; conversation identity remains the agent's pinned `agentName`. */
-  chatAgent: "chat",
+  /** Where agents mount; each serves under `<agents>/<route>`. */
+  agents: "/agents",
+  /** The Petrinaut agent's route; conversation identity remains its pinned `agentName`. */
+  petrinautAgent: "petrinaut",
   /** Cheap process-liveness probe; dependency readiness is established before listen. */
   health: "/health",
 } as const;

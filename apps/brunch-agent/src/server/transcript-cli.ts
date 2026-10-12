@@ -17,9 +17,9 @@ import { brunchRoutes } from "@hashintel/brunch-agent";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../conversation/identity.ts";
-import { formatFlueTranscript } from "../conversation/transcript.ts";
-import { defaultChatOrigin } from "../http/local-origins.ts";
+} from "../shared/conversation/identity.ts";
+import { formatFlueTranscript } from "../shared/conversation/transcript.ts";
+import { defaultChatOrigin } from "./http/local-origins.ts";
 
 const readFlag = (
   argv: readonly string[],
@@ -46,7 +46,7 @@ if (principalKey === undefined || conversationId === undefined) {
 const identity = { principalKey, conversationId };
 const instanceId = flueConversationIdFrom(identity);
 const snapshot = await createFlueClient({
-  url: `${origin}/agents/${brunchRoutes.chatAgent}/${instanceId}`,
+  url: `${origin}${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/${instanceId}`,
   headers: agentOwnershipHeaders(identity),
 }).history();
 

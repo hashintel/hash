@@ -13,11 +13,11 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
+import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
+} from "../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 
 import type { AgentSendResult, FlueConversationSnapshot } from "@flue/sdk";
@@ -133,7 +133,7 @@ faux.setResponses(
 );
 const application = await loadBuiltBrunchApplication();
 const client = createFlueClient({
-  url: `http://a4.in-process/agents/chat/${flueConversationIdFrom(identity)}`,
+  url: `http://a4.in-process/agents/petrinaut/${flueConversationIdFrom(identity)}`,
   headers: agentOwnershipHeaders(identity),
   fetch: async (input, init) =>
     application.fetch(

@@ -9,13 +9,13 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 import {
   commitToolDescription,
   compileToolDescription,
-} from "../src/agents/chat-agent/guidance/manual/tools/ledger.ts";
-import { queryBasisToolDescription } from "../src/agents/chat-agent/guidance/manual/tools/query-basis.ts";
+} from "../src/agents/petrinaut/tools/ledger.ts";
+import { queryBasisToolDescription } from "../src/agents/petrinaut/tools/query-basis.ts";
 import {
   assertPetrinautToolCatalogueConformance,
   canonicalPetrinautToolCatalogue,
   brunchToolCatalogue,
-} from "../src/agents/chat-agent/tool-catalogue.ts";
+} from "../src/shared/tool-catalogue.ts";
 
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,
@@ -46,18 +46,15 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
   },
 }));
 // Only the Flue build packages skills; these tests exercise the composition around them.
-vi.mock(
-  "../src/agents/chat-agent/guidance/manual/skills/eliciting/SKILL.md",
-  () => ({ default: { name: "eliciting" } }),
-);
-vi.mock(
-  "../src/agents/chat-agent/guidance/manual/skills/modelling/SKILL.md",
-  () => ({ default: { name: "modelling" } }),
-);
-vi.mock(
-  "../src/agents/chat-agent/guidance/manual/skills/petrinaut/SKILL.md",
-  () => ({ default: { name: "petrinaut" } }),
-);
+vi.mock("../src/agents/petrinaut/skills/eliciting/SKILL.md", () => ({
+  default: { name: "eliciting" },
+}));
+vi.mock("../src/agents/petrinaut/skills/modelling/SKILL.md", () => ({
+  default: { name: "modelling" },
+}));
+vi.mock("../src/agents/petrinaut/skills/petrinaut/SKILL.md", () => ({
+  default: { name: "petrinaut" },
+}));
 
 const bound = {
   binding: {
@@ -68,10 +65,7 @@ const bound = {
 const systemPrompt = async () =>
   (
     await readFile(
-      new URL(
-        "../src/agents/chat-agent/guidance/manual/prompts/system.md",
-        import.meta.url,
-      ),
+      new URL("../src/agents/petrinaut/prompts/system.md", import.meta.url),
       "utf8",
     )
   ).trim();
@@ -92,9 +86,9 @@ afterEach(() => vi.unstubAllEnvs());
 
 test("a document binding mounts the guidance, the complete canonical catalogue, the Ledger and the draft", async () => {
   mounted.initialData = bound;
-  const { ChatAgent: renderChatAgent } =
-    await import("../src/agents/chat-agent/agent.ts");
-  expect(renderChatAgent({ id: "bound" })).toBe(await systemPrompt());
+  const { PetrinautAgent: renderAgent } =
+    await import("../src/agents/petrinaut/agent.ts");
+  expect(renderAgent({ id: "bound" })).toBe(await systemPrompt());
   expect(mounted.contextProjections).toBe(1);
   expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
   expect(mounted.tools).toEqual(
@@ -124,9 +118,9 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
 });
 
 test("a conversation without initial data mounts the guidance and Ledger without browser tools", async () => {
-  const { ChatAgent: renderChatAgent } =
-    await import("../src/agents/chat-agent/agent.ts");
-  renderChatAgent({ id: "unbound" });
+  const { PetrinautAgent: renderAgent } =
+    await import("../src/agents/petrinaut/agent.ts");
+  renderAgent({ id: "unbound" });
   expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
   expect(mounted.tools.sort()).toEqual(
     [

@@ -6,7 +6,7 @@ import {
   flueConversationId,
   flueConversationIdFrom,
   ownsFlueInstance,
-} from "../src/conversation/identity.ts";
+} from "../src/shared/conversation/identity.ts";
 
 test("the same principal and conversation id always hash to the same Flue instance", () => {
   const identity = {

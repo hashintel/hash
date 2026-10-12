@@ -14,17 +14,17 @@
     "lint:tsc": "tsgo --noEmit",
     "persona": "node --experimental-strip-types src/evaluations/persona/launch.ts",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
-    "probe:rds-iam": "node --experimental-strip-types src/rds-iam-probe.ts",
+    "probe:rds-iam": "node --experimental-strip-types src/server/rds-iam-probe.ts",
     "proof:manifest": "node --experimental-strip-types src/evaluations/persona/refresh-proof-manifest.ts",
-    "smoke:deployment": "node --experimental-strip-types src/deployment-smoke.ts",
+    "smoke:deployment": "node --experimental-strip-types src/server/deployment-smoke.ts",
     "start": "PORT=3002 node dist/server.mjs",
     "start:healthcheck": "wait-on --timeout 1200000 http-get://localhost:3002/health",
     "test:docker": "node --experimental-strip-types test/container-smoke.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:manual:browser": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/petrinaut-panel.ts",
-    "test:manual:browser:ledger-tab": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/ledger-tab.ts",
+    "test:manual:browser": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/petrinaut VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/petrinaut-panel.ts",
+    "test:manual:browser:ledger-tab": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/petrinaut VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/ledger-tab.ts",
     "test:unit": "vitest run --config vitest.config.ts",
-    "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"
+    "transcript": "node --experimental-strip-types src/server/transcript-cli.ts"
   },
   "dependencies": {
     "@aws-sdk/rds-signer": "3.1117.0",

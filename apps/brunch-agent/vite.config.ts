@@ -5,7 +5,7 @@ import {
   defineConfig,
 } from "vite";
 
-import { localChatListen } from "./src/http/local-origins.ts";
+import { localChatListen } from "./src/server/http/local-origins.ts";
 
 // Resolve Brunch workspace packages to their TypeScript source while serving;
 // builds keep dist. See "Loading workspace source in dev" in

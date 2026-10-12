@@ -30,12 +30,12 @@ import {
   commitToolDescription,
   createLedgerCommitTool,
   createLedgerCompileTool,
-} from "../src/agents/chat-agent/guidance/manual/tools/ledger.ts";
+} from "../src/agents/petrinaut/tools/ledger.ts";
+import { openaiProviderWithAddedModels } from "../src/server/openai-provider.ts";
 import {
   selectChatModelSpecifier,
   selectChatThinking,
-} from "../src/chat-model.ts";
-import { openaiProviderWithAddedModels } from "../src/openai-provider.ts";
+} from "../src/shared/chat-model.ts";
 
 type Batch = LedgerAppend["entries"];
 

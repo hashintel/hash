@@ -23,11 +23,11 @@ import { createFlueClient } from "@flue/sdk";
 
 import { foldCommits } from "@hashintel/brunch-agent";
 
+import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../../src/conversation/identity.ts";
-import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
+} from "../../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 const directory =
@@ -122,7 +122,7 @@ const identity = {
   conversationId: `ledger-${crypto.randomUUID()}`,
 };
 const client = createFlueClient({
-  url: `http://brunch.local/agents/chat/${flueConversationIdFrom(identity)}`,
+  url: `http://brunch.local/agents/petrinaut/${flueConversationIdFrom(identity)}`,
   headers: agentOwnershipHeaders(identity),
   fetch: async (input, init) =>
     application.fetch(

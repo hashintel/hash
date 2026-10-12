@@ -23,12 +23,15 @@ import { loadEnv } from "vite";
 import { brunchEnv } from "@hashintel/brunch-agent";
 import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { DEFAULT_CHAT_MODEL, DEFAULT_CHAT_THINKING } from "../../chat-model.ts";
-import { agentOwnershipHeaders } from "../../conversation/identity.ts";
 import {
   defaultChatOrigin,
   localPanelListen,
-} from "../../http/local-origins.ts";
+} from "../../server/http/local-origins.ts";
+import {
+  DEFAULT_CHAT_MODEL,
+  DEFAULT_CHAT_THINKING,
+} from "../../shared/chat-model.ts";
+import { agentOwnershipHeaders } from "../../shared/conversation/identity.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import {
   PersonaBrowserTurnError,

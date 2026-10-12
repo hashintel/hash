@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 import { expect, test } from "vitest";
 
-import { projectBrunchContext } from "../src/agents/chat-agent/context-projection";
+import { projectBrunchContext } from "../src/shared/context-projection";
 
 import type { ContextProjection, ContextProjectionEntry } from "@flue/runtime";
 

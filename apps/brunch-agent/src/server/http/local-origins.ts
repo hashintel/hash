@@ -13,7 +13,7 @@
  * honoured, an accidental clash is reported.
  */
 
-import { brunchEnv } from "@hashintel/brunch-agent";
+import { brunchEnv, brunchRoutes } from "@hashintel/brunch-agent";
 
 const listenPort = (variable: string, fallback: number): number => {
   const requested = Number(process.env[variable]);
@@ -39,7 +39,7 @@ export const defaultChatOrigin = `http://${localChatListen.host}:${localChatList
 export const petrinautLocalServer = (chatOrigin: string) => ({
   ...localPanelListen,
   proxy: {
-    "/agents/chat": {
+    [brunchRoutes.agents]: {
       target: chatOrigin,
       changeOrigin: false,
     },

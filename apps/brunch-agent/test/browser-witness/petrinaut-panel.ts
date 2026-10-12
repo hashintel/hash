@@ -21,7 +21,7 @@ import {
 import {
   isAppliedChange,
   netCalls,
-} from "../../src/conversation/net-changes.ts";
+} from "../../src/shared/conversation/net-changes.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 import {
   installFauxOpenai,

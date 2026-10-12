@@ -8,9 +8,9 @@ import { instrument, setProvider } from "@flue/runtime";
 import { Hono } from "hono";
 import { beforeAll, expect, test, vi } from "vitest";
 
-vi.mock("../src/telemetry-bootstrap.ts", () => ({}));
-vi.mock("../src/agents/chat-agent/agent.ts", () => ({
-  ChatAgent: { agentName: "brunch-chat-agent" },
+vi.mock("../src/server/telemetry-bootstrap.ts", () => ({}));
+vi.mock("../src/agents/petrinaut/agent.ts", () => ({
+  PetrinautAgent: { agentName: "brunch-chat-agent" },
 }));
 vi.mock("@flue/runtime/routing", () => ({
   createAgentRouter: () => new Hono(),
@@ -53,7 +53,7 @@ const drain = async (stream: ReturnType<Provider["streamSimple"]>) => {
   return stream.result();
 };
 
-test("app registration scopes admission to ChatAgent execution, isolating concurrent agents and delegated tasks", async () => {
+test("app registration scopes admission to the Petrinaut agent's execution, isolating concurrent agents and delegated tasks", async () => {
   const registration = vi
     .mocked(instrument)
     .mock.calls.find(

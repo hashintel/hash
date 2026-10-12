@@ -182,7 +182,7 @@ export function Chat() {
       if (cancelled) return;
       setClient(
         createFlueClient({
-          url: `/agents/${brunchRoutes.chatAgent}/${instanceId}`,
+          url: `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/${instanceId}`,
           headers: agentOwnershipHeaders(configuration),
         }),
       );

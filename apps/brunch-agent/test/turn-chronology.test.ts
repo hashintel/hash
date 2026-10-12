@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import {
   createTurnChronologyObserver,
   type SubmissionChronology,
-} from "../src/agents/chat-agent/live/observe-turn-chronology.ts";
+} from "../src/server/observe-turn-chronology.ts";
 
 import type { FlueEventContext, FlueObservation } from "@flue/runtime";
 

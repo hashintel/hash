@@ -6,7 +6,7 @@ import {
   failBrowserCall,
   renewBrowserCall,
   settleBrowserCall,
-} from "../conversation/browser-call-rendezvous.ts";
+} from "../../shared/conversation/browser-call-rendezvous.ts";
 
 const leaseBody = v.object({ capability: v.string(), binding: v.string() });
 const outcomeEntries = {

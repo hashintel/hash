@@ -4,6 +4,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 
+import { openaiProviderWithAddedModels } from "../../../server/openai-provider.ts";
 import {
   isChatThinkingLevel,
   LEGACY_PERSONA_THINKING,
@@ -11,8 +12,7 @@ import {
   DEFAULT_CHAT_THINKING,
   STEP_A_MODEL_ID,
   type ChatThinkingLevel,
-} from "../../../chat-model.ts";
-import { openaiProviderWithAddedModels } from "../../../openai-provider.ts";
+} from "../../../shared/chat-model.ts";
 
 /** Brunch's own model; the persona agent chooses its model through its harness. */
 export type PersonaRoleSettings = {

@@ -16,7 +16,7 @@ import {
 import {
   claimModelStreamIdleRetry,
   withBufferedToolAdmission,
-} from "../../../../../../../brunch-agent/src/provider-admission";
+} from "../../../../../../../brunch-agent/src/server/provider-admission";
 import { loadBuiltBrunchApplication } from "../../../../../../../brunch-agent/test/load-built-application";
 import {
   createNativeOpenaiToolStall,
@@ -95,7 +95,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
   const client = createFlueClient({
     fetch: fetchApplication,
     headers,
-    url: `http://brunch.test/agents/chat/${instanceId}`,
+    url: `http://brunch.test/agents/petrinaut/${instanceId}`,
   });
   const tracker = new BrunchPanelConversationTracker();
   const liveErrors: unknown[] = [];

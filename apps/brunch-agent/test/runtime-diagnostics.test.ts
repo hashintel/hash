@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
   classifyError,
   createRuntimeDiagnostics,
-} from "../src/runtime-diagnostics.ts";
+} from "../src/server/runtime-diagnostics.ts";
 
 import type { FlueObservation } from "@flue/runtime";
 

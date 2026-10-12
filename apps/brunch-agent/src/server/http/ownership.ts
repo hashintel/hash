@@ -1,7 +1,7 @@
 /** Hono middleware for the mounted Flue conversation route. */
 import { brunchHeaders } from "@hashintel/brunch-agent";
 
-import { ownsFlueInstance } from "../conversation/identity.ts";
+import { ownsFlueInstance } from "../../shared/conversation/identity.ts";
 
 import type { MiddlewareHandler } from "hono";
 

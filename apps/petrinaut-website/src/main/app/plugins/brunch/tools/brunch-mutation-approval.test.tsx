@@ -302,7 +302,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     const prepareInput = vi.fn();
     const calls = createInBandBrowserCalls({
       client: Promise.resolve({
-        url: "http://brunch.local/agents/chat/instance",
+        url: "http://brunch.local/agents/petrinaut/instance",
       } as FlueClient),
       principalKey: "principal",
       binding,

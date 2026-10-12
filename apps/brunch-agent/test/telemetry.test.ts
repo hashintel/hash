@@ -15,7 +15,7 @@ import {
   probeCollector,
   recordOperationalFailure,
   withReachableCollector,
-} from "../src/telemetry.ts";
+} from "../src/server/telemetry.ts";
 
 import type {
   OpenTelemetrySetup,

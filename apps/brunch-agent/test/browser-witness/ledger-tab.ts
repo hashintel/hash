@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 
 import { fauxAssistantMessage, fauxText } from "@earendil-works/pi-ai";
 
-import { netCalls } from "../../src/conversation/net-changes.ts";
+import { netCalls } from "../../src/shared/conversation/net-changes.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 import {
   installFauxOpenai,
@@ -42,7 +42,7 @@ const savedDocument = (id: string, sdcpn: SDCPN) => ({
   },
 });
 
-/** A recorded ledger2 commit reaches the panel's Ledger tab. */
+/** A recorded Ledger commit reaches the panel's Ledger tab. */
 const ledgerTabShowsCommit = async () => {
   const page = await fixture.openAssistant();
   faux.setResponses([

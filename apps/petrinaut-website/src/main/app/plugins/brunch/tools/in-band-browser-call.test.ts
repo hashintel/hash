@@ -43,7 +43,7 @@ test("an unknown mutation record is submitted without failing the call", async (
   );
   const calls = createInBandBrowserCalls({
     client: Promise.resolve({
-      url: "http://brunch.local/agents/chat/instance",
+      url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
     principalKey: "principal",
     binding,
@@ -94,7 +94,7 @@ test("the binding matches the issued call whatever its key order", async () => {
   };
   const calls = createInBandBrowserCalls({
     client: Promise.resolve({
-      url: "http://brunch.local/agents/chat/instance",
+      url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
     principalKey: "principal",
     binding: reordered,
@@ -153,7 +153,7 @@ const createCalls = (
 ) =>
   createInBandBrowserCalls({
     client: Promise.resolve({
-      url: "http://brunch.local/agents/chat/instance",
+      url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
     principalKey: "principal",
     binding,
@@ -181,7 +181,7 @@ test("a call that throws once executed is reported failed", async () => {
   ).rejects.toBe(failure);
   expect(posted).toEqual([
     {
-      url: "http://brunch.local/agents/chat/instance/browser-calls/call/fail",
+      url: "http://brunch.local/agents/petrinaut/instance/browser-calls/call/fail",
       disposition: "failed",
     },
   ]);
@@ -207,7 +207,7 @@ test("a call that cannot be prepared is reported unstarted without executing", a
   expect(execute).not.toHaveBeenCalled();
   expect(posted).toEqual([
     {
-      url: "http://brunch.local/agents/chat/instance/browser-calls/call/fail",
+      url: "http://brunch.local/agents/petrinaut/instance/browser-calls/call/fail",
       disposition: "unstarted",
     },
   ]);
@@ -253,7 +253,7 @@ test("a change whose expected revision the document has left is reported stale a
   const accepted: string[] = [];
   const calls = createInBandBrowserCalls({
     client: Promise.resolve({
-      url: "http://brunch.local/agents/chat/instance",
+      url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
     principalKey: "principal",
     binding,

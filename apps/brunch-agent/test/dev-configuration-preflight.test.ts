@@ -4,11 +4,11 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { checkDevConfiguration } from "../src/server/dev-configuration-preflight.ts";
 import {
   selectChatModelSpecifier,
   selectChatThinking,
-} from "../src/chat-model.ts";
-import { checkDevConfiguration } from "../src/dev-configuration-preflight.ts";
+} from "../src/shared/chat-model.ts";
 
 const syntheticKey = "synthetic-config-fixture-not-a-real-credential";
 let root: string;

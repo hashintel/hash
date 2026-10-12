@@ -12,7 +12,7 @@ import {
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
-import { inBandBrowserToolNames } from "../agents/chat-agent/tool-catalogue.ts";
+import { inBandBrowserToolNames } from "../tool-catalogue.ts";
 
 import type { ContextProjectionEntry } from "@flue/runtime";
 import type { FlueConversationSnapshot } from "@flue/sdk";

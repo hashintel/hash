@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { queryBasis } from "../src/agents/chat-agent/guidance/manual/tools/query-basis.ts";
+import { queryBasis } from "../src/agents/petrinaut/tools/query-basis.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -112,7 +112,7 @@ const snapshot = {
   ],
 } as FlueConversationSnapshot;
 
-test("the manual arm's query_basis attributes a net change to its own ledger2 revision and records", () => {
+test("query_basis attributes a net change to the Ledger revision and records", () => {
   expect(
     queryBasis({ snapshot, browser, query: { kind: "place", name: "Queue" } }),
   ).toMatchObject({

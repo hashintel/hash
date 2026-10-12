@@ -8,7 +8,7 @@ import {
   issueBrowserCall,
   renewBrowserCall,
   settleBrowserCall,
-} from "../src/conversation/browser-call-rendezvous.ts";
+} from "../src/shared/conversation/browser-call-rendezvous.ts";
 
 afterEach(() => vi.useRealTimers());
 const verify = async <Result>(result: Result): Promise<Result> => result;

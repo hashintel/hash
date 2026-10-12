@@ -6,7 +6,7 @@ import { parseEnv } from "node:util";
 
 import { brunchEnv } from "@hashintel/brunch-agent";
 
-import { selectChatModelSpecifier } from "./chat-model.ts";
+import { selectChatModelSpecifier } from "../shared/chat-model.ts";
 
 const envFiles = [
   ".env",
@@ -25,7 +25,7 @@ const checkedVariables = [
   ...openaiAuthVariables,
   brunchEnv.chatModel,
 ];
-const defaultRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const defaultRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
 const credentialStatus = (value: string | undefined) => {
   if (!value?.trim()) return "missing/empty";

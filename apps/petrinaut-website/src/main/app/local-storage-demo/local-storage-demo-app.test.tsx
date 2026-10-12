@@ -102,7 +102,7 @@ vi.mock("@flue/sdk", () => ({
 }));
 
 const brunchPreviewConfig = vi.hoisted(() => ({
-  chatEndpoint: "/agents/chat",
+  chatEndpoint: "/agents/petrinaut",
   isBrunchConfigured: true,
 }));
 vi.mock("../plugins/brunch/brunch-preview-config", () => ({
@@ -1218,7 +1218,7 @@ describe("local storage demo Brunch controls", () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = {
-      url: "http://brunch.local/agents/chat/instance",
+      url: "http://brunch.local/agents/petrinaut/instance",
       history: async () => ({
         conversation: { settlements: [], messages: [] },
         offset: "0",

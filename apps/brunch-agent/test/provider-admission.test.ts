@@ -15,7 +15,7 @@ import {
   modelAdmissionScope,
   modelStreamIdleTimeoutDefaults,
   withBufferedToolAdmission,
-} from "../src/provider-admission";
+} from "../src/server/provider-admission";
 
 const collect = async (stream: ReturnType<Provider["streamSimple"]>) => {
   const events = [];

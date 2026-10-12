@@ -8,11 +8,14 @@ import {
 } from "@hashintel/brunch-agent";
 
 import {
+  createAgentCors,
+  parseCorsAllowedOrigins,
+} from "../src/server/http/cors.ts";
+import { agentOwnershipGuard } from "../src/server/http/ownership.ts";
+import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { createAgentCors, parseCorsAllowedOrigins } from "../src/http/cors.ts";
-import { agentOwnershipGuard } from "../src/http/ownership.ts";
+} from "../src/shared/conversation/identity.ts";
 
 describe("parseCorsAllowedOrigins", () => {
   test("grants no cross-origin access when configuration is absent or blank", () => {
@@ -97,7 +100,7 @@ describe("parseCorsAllowedOrigins", () => {
 
 const allowedOrigin = "https://app.example.com";
 const rejectedOrigin = "https://attacker.example";
-const mount = `/agents/${brunchRoutes.chatAgent}`;
+const mount = `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
 const identity = {
   principalKey: "principal-cors",
   conversationId: "conversation-cors",

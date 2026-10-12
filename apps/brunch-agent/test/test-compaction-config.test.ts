@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { loadTestCompactionConfig } from "../src/agents/chat-agent/test-compaction-config.ts";
+import { loadTestCompactionConfig } from "../src/shared/test-compaction-config.ts";
 
 describe("local compaction configuration", () => {
   test.each([undefined, "development", "test", "production"])(

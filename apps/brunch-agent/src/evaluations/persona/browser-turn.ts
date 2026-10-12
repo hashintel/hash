@@ -9,7 +9,7 @@ import {
 
 import { brunchHeaders } from "@hashintel/brunch-agent";
 
-import { agentOwnershipHeaders } from "../../conversation/identity.ts";
+import { agentOwnershipHeaders } from "../../shared/conversation/identity.ts";
 
 import type { Page, Response as BrowserResponse } from "@playwright/test";
 
@@ -191,7 +191,7 @@ export const submitPersonaBrowserTurn = async (
       await stopTask;
     }
     // Keep the admitted conversation's history with the failure so a failed
-    // arm can be diagnosed from what was actually delivered.
+    // run can be diagnosed from what was actually delivered.
     const history = await client?.history().catch(() => undefined);
     if (history !== undefined)
       throw new PersonaBrowserTurnError(

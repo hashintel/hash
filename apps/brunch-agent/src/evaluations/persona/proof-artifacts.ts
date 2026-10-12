@@ -7,7 +7,7 @@ import { brunchTools } from "@hashintel/brunch-agent";
 import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 
 type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
-import { formatFlueTranscript } from "../../conversation/transcript.ts";
+import { formatFlueTranscript } from "../../shared/conversation/transcript.ts";
 import { ledgerEvidence } from "./ledger-evidence.ts";
 
 interface ProofEventBase {

@@ -24,6 +24,6 @@ export function conversationDbPath(): string {
   return override
     ? override
     : fileURLToPath(
-        new URL("../.data-wipe-me/conversations.db", import.meta.url),
+        new URL("../../.data-wipe-me/conversations.db", import.meta.url),
       );
 }
