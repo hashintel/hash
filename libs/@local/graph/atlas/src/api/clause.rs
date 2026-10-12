@@ -11,19 +11,21 @@ use aide::{
     transform::{TransformOpenApi, TransformOperation},
     util::iter_operations_mut,
 };
-use hash_middleware::authentication::service_secret::SERVICE_AUTH_SCHEME;
+use hash_middleware::authentication::Challenge;
 
 use super::{headers, problem::Problem};
 
 /// The `401` the authentication middleware answers before any route runs.
-const UNAUTHENTICATED: &str = "`unauthenticated`: the call names no valid actor";
+const UNAUTHENTICATED: &str = "`unauthenticated`: the call presents no valid session";
 
 /// The `WWW-Authenticate` challenges of an operation that answers both `401`s.
 fn both_challenges() -> String {
     format!(
-        "`{SERVICE_AUTH_SCHEME}` when the call names no valid actor, `{}` when it presents no \
-         valid authority token",
-        headers::AUTHORITY_DOCUMENTED
+        "`{}` when the call presents no valid session, `{}` when it presents no valid authority \
+         token, each with `realm=\"{}\"`",
+        Challenge::Session.scheme(),
+        headers::AUTHORITY_DOCUMENTED,
+        Challenge::REALM
     )
 }
 
@@ -73,9 +75,7 @@ fn unauthenticated(operation: TransformOperation<'_>) -> TransformOperation<'_> 
     operation.response_with::<401, Problem<'static>, _>(|mut response| {
         response.inner().headers.insert(
             "WWW-Authenticate".to_owned(),
-            headers::www_authenticate(&format!(
-                "`{SERVICE_AUTH_SCHEME}`, the scheme the call authenticates with"
-            )),
+            headers::www_authenticate(&Challenge::Session.description()),
         );
         response.description(UNAUTHENTICATED)
     })
@@ -244,9 +244,16 @@ mod tests {
         let api = document();
         let response = response(&api, "get", 401).expect("a route with no 401 gains one");
         assert_eq!(response.description, UNAUTHENTICATED);
+        let challenge = response.headers["WWW-Authenticate"]
+            .as_item()
+            .expect("the inserted 401 should document its WWW-Authenticate header inline");
         assert!(
-            response.headers.contains_key("WWW-Authenticate"),
-            "the inserted 401 should document its WWW-Authenticate header"
+            challenge
+                .description
+                .as_ref()
+                .is_some_and(|description| description.contains("`Session`")),
+            "the inserted 401 should name the session challenge, not {:?}",
+            challenge.description
         );
     }
 
@@ -271,6 +278,10 @@ mod tests {
             challenge.description,
             Some(both_challenges()),
             "the merged 401 should name both challenges"
+        );
+        assert!(
+            both_challenges().starts_with("`Session`"),
+            "the merged 401 should name the session challenge first"
         );
     }
 }

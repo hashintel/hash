@@ -11,9 +11,9 @@ import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 
 /**
- * The header the atlas reads as a delegated actor statement - its own vocabulary, not this
- * module's: the proxy exports no constant for it because it neither states nor strips it. The
- * spelling is pinned upstream as `ACTOR_ID_HEADER` in the authentication middleware.
+ * The header a Graph service names its delegated actor in. The atlas accepts no delegation and
+ * ignores it, and the proxy exports no constant for it because it neither states nor strips it.
+ * The spelling is pinned upstream as `ACTOR_ID_HEADER` in the authentication middleware.
  */
 const ACTOR_ID_HEADER = "X-Authenticated-User-Actor-Id";
 
@@ -206,9 +206,9 @@ describe("the caller's identity", () => {
 
   it("states no actor of its own", async () => {
     // The pin on the deletion: the proxy used to write the actor header from this API's session
-    // resolution, and the atlas ignored it every time - a bare actor statement without its paired
-    // service secret is refused upstream. A request that arrives without the header must leave
-    // without it, so a regression re-adding the injection fails here.
+    // resolution, and the atlas ignored it every time, because it resolves the caller from the
+    // session alone. A request that arrives without the header must leave without it, so a
+    // regression re-adding the injection fails here.
     const api = await startApi();
     received.length = 0;
 
@@ -222,9 +222,8 @@ describe("the caller's identity", () => {
 
   it("passes a caller's actor header through, which impersonates nobody", async () => {
     // The proxy neither states nor strips the actor header, so a caller's spelling of it crosses
-    // the hop like any other header. The defence is the atlas's own and is pinned there:
-    // `bare_actor_id_header_does_not_impersonate` holds that without the paired service secret the
-    // header is ignored and the request resolves from its session credential alone.
+    // the hop like any other header. The defence is the atlas's own: it accepts no service
+    // delegation, so the header is ignored and the request resolves from its session alone.
     const api = await startApi();
     received.length = 0;
 

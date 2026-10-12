@@ -17,7 +17,8 @@ use tower::ServiceBuilder;
 use type_system::ontology::json_schema::DomainValidator;
 
 use super::{
-    authentication, documentation,
+    authentication::{self, api_token::ApiTokenRejection},
+    documentation,
     legacy::{self, ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext, hashql},
     middleware::{self, Middleware},
     probe, rate_limit, telemetry,
@@ -32,7 +33,6 @@ pub struct Dependencies<S> {
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
     pub session_auth: authentication::KratosSessionConfig,
-    pub cloudflare_access: Option<authentication::CloudflareAccessConfig>,
     pub service_secret: Pin<Arc<Secret<str>>>,
     pub api_tokens: Option<Arc<authentication::api_token::ApiTokenIssuer>>,
     pub rate_limit: rate_limit::RateLimitConfig,
@@ -53,39 +53,31 @@ where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
 {
-    let environment = Arc::new(
-        dependencies
-            .cloudflare_access
-            .map(|config| authentication::build_environment_provider(config, &dependencies.store)),
-    );
-    let explicit = || {
-        authentication::build_explicit_providers(
-            Pin::clone(&dependencies.service_secret),
-            &dependencies.store,
-        )
-    };
-    let public_provider = Arc::new(authentication::public_chain(
-        authentication::build_api_token_provider(
-            dependencies.api_tokens.clone(),
-            &dependencies.store,
-        ),
-        explicit(),
-        Arc::clone(&environment),
+    let public_provider = Arc::new(authentication::build_api_token_provider(
+        dependencies.api_tokens.clone(),
+        &dependencies.store,
     ));
-    let internal_provider = Arc::new(authentication::internal_chain(
-        explicit(),
+    let internal_provider = Arc::new((
+        ApiTokenRejection,
         authentication::build_session_providers(
             dependencies.session_auth,
             &dependencies.store,
             &dependencies.meter,
         ),
-        environment,
+    ));
+    let legacy_provider = Arc::new((
+        ApiTokenRejection,
+        authentication::build_explicit_providers(
+            Pin::clone(&dependencies.service_secret),
+            &dependencies.store,
+        ),
     ));
     let rate_limit_config =
         hash_middleware::rate_limit::RateLimitConfig::from(&dependencies.rate_limit);
     let middleware = Middleware {
         public_provider,
         internal_provider,
+        legacy_provider,
         service_secret: dependencies.service_secret,
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&dependencies.meter)),
         rate_limiters: RateLimiters::start(&rate_limit_config, &dependencies.meter),

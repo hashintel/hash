@@ -5,11 +5,9 @@ use aide::{
     transform::TransformOperation,
 };
 use hash_graph_authentication::kratos::{SESSION_COOKIE_NAME, SESSION_TOKEN_HEADER};
+use hash_middleware::authentication::Challenge;
 
-use crate::rest::{
-    Audience,
-    credentials::{self, CLOUDFLARE_ACCESS, DELEGATED_ACTOR, SERVICE_SECRET},
-};
+use crate::rest::{Audience, credentials};
 
 const SESSION_TOKEN: &str = "sessionToken";
 const SESSION_COOKIE: &str = "sessionCookie";
@@ -18,6 +16,7 @@ pub(super) struct Credentials;
 
 impl credentials::Credentials for Credentials {
     const AUDIENCE: Audience = Audience::Internal;
+    const CHALLENGE: Challenge = Challenge::Session;
 
     fn schemes() -> impl IntoIterator<Item = (&'static str, SecurityScheme)> {
         [
@@ -38,8 +37,6 @@ impl credentials::Credentials for Credentials {
                 ),
             ),
         ]
-        .into_iter()
-        .chain(credentials::shared_schemes())
     }
 }
 
@@ -47,9 +44,7 @@ impl OperationInput for Credentials {
     fn operation_input(_ctx: &mut GenContext, operation: &mut Operation) {
         let _: TransformOperation<'_> = TransformOperation::new(operation)
             .security_requirement(SESSION_TOKEN)
-            .security_requirement(SESSION_COOKIE)
-            .security_requirement(CLOUDFLARE_ACCESS)
-            .security_requirement_multi([SERVICE_SECRET, DELEGATED_ACTOR]);
+            .security_requirement(SESSION_COOKIE);
     }
 }
 

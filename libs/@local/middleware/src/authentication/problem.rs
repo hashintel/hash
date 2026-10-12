@@ -24,6 +24,20 @@ impl Problem for AuthenticationProblem {
     ];
 }
 
+/// The public problems of a request that failed authentication against a chain without service
+/// delegation, which reads no actor header.
+#[cfg(feature = "aide")]
+pub(crate) struct UndelegatedAuthenticationProblem;
+
+#[cfg(feature = "aide")]
+impl Problem for UndelegatedAuthenticationProblem {
+    const VARIANTS: &'static [Variant] = &[
+        Variant::of::<Unauthorized<'static>>(),
+        Variant::of::<ServiceUnavailable<'static>>(),
+        Variant::of::<InternalServerError>(),
+    ];
+}
+
 impl AuthenticationProblem {
     /// The answer to a request rejected with `report`.
     ///
@@ -133,9 +147,7 @@ struct Unauthorized<'r> {
 impl ProblemVariant for Unauthorized<'_> {
     const HEADERS: &'static [Header] = &[Header::new::<String>(
         "WWW-Authenticate",
-        "The scheme to authenticate with: `Bearer` on the public API, with \
-         `error=\"invalid_token\"` when a `Bearer` API token is refused; `HASH-Service` on the \
-         internal APIs.",
+        "The scheme to authenticate with.",
     )];
     const TYPE: ProblemType = ProblemType {
         type_uri: Cow::Borrowed("about:blank"),
@@ -144,7 +156,11 @@ impl ProblemVariant for Unauthorized<'_> {
     };
 
     fn headers(&self, headers: &mut HeaderMap) {
-        headers.insert(WWW_AUTHENTICATE, self.challenge.header_value(self.kind));
+        headers.insert(
+            WWW_AUTHENTICATE,
+            self.challenge
+                .header_value(self.kind, detail(self.kind), &Self::TYPE.type_uri),
+        );
     }
 
     fn example() -> Option<Self> {
@@ -184,7 +200,7 @@ mod tests {
     use type_system::principal::actor::ActorEntityUuid;
     use uuid::Uuid;
 
-    use super::AuthenticationProblem;
+    use super::{AuthenticationProblem, detail};
     use crate::authentication::{
         challenge::Challenge,
         request::{AuthenticationError, AuthenticationErrorKind, every_error},
@@ -230,43 +246,76 @@ mod tests {
         }
     }
 
+    /// Every `detail` is a valid RFC 6750 `error_description`: spaces and visible ASCII, without
+    /// `"` or `\`.
+    #[test]
+    fn detail_fits_error_description() {
+        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
+            let text = detail(error.kind());
+            assert!(
+                text.bytes()
+                    .all(|byte| matches!(byte, 0x20..=0x21 | 0x23..=0x5B | 0x5D..=0x7E)),
+                "`{text}` should only hold characters an `error_description` allows"
+            );
+        }
+    }
+
+    /// A refused API token names a problem type other than `about:blank` as `error_uri`.
+    #[test]
+    fn challenge_error_uri() {
+        assert_eq!(
+            Challenge::Bearer.header_value(
+                &AuthenticationErrorKind::InvalidApiToken,
+                "refused",
+                "https://example.com/problems/refused",
+            ),
+            r#"Bearer realm="HASH", error="invalid_token", error_description="refused", error_uri="https://example.com/problems/refused""#,
+            "the challenge should link the problem type"
+        );
+    }
+
     #[test]
     fn answer_challenge_value() {
         for (challenge, kind, expected) in [
             (
                 Challenge::Bearer,
                 AuthenticationErrorKind::InvalidApiToken,
-                r#"Bearer error="invalid_token""#,
+                r#"Bearer realm="HASH", error="invalid_token", error_description="API token is invalid, expired or revoked""#,
             ),
             (
                 Challenge::Bearer,
                 AuthenticationErrorKind::ApiTokenOtherEnvironment,
-                r#"Bearer error="invalid_token""#,
+                r#"Bearer realm="HASH", error="invalid_token", error_description="API token belongs to another environment""#,
             ),
             (
                 Challenge::Bearer,
                 AuthenticationErrorKind::UnverifiableApiToken,
-                r#"Bearer error="invalid_token""#,
+                r#"Bearer realm="HASH", error="invalid_token", error_description="credentials are not accepted""#,
             ),
             (
                 Challenge::Bearer,
                 AuthenticationErrorKind::InvalidAccessToken,
-                "Bearer",
+                r#"Bearer realm="HASH""#,
             ),
             (
                 Challenge::Bearer,
                 AuthenticationErrorKind::MissingCredentials,
-                "Bearer",
+                r#"Bearer realm="HASH""#,
             ),
             (
                 Challenge::Bearer,
                 AuthenticationErrorKind::NonBearerApiToken,
-                "Bearer",
+                r#"Bearer realm="HASH""#,
+            ),
+            (
+                Challenge::Session,
+                AuthenticationErrorKind::InvalidSession,
+                r#"Session realm="HASH""#,
             ),
             (
                 Challenge::Service,
                 AuthenticationErrorKind::InvalidApiToken,
-                "HASH-Service",
+                r#"HASH-Service realm="HASH""#,
             ),
         ] {
             let report = Report::new(AuthenticationError::new(kind.clone()));

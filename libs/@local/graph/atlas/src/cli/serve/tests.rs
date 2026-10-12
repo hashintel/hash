@@ -115,7 +115,6 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
     )
     .run(ServeOptions {
         provider: Arc::new(HeaderActor),
-        service_secret: Secret::from_string("atlas-layer-test-service-secret".to_owned()).to_arc(),
         rate_limit: RateLimitConfig {
             rate_limit_mode: RateLimitMode::Enforce,
             client_ip_source: ClientIpSource::ConnectInfo,
@@ -244,8 +243,8 @@ async fn layers_without_credentials() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     assert_eq!(
         response.headers()[header::WWW_AUTHENTICATE],
-        "HASH-Service",
-        "the refusal should challenge with the service credential"
+        r#"Session realm="HASH""#,
+        "the refusal should challenge with the session"
     );
     let document = problem(response).await;
     assert_eq!(document["type"], "/problems/atlas/unauthenticated");

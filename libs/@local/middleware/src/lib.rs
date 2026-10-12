@@ -88,27 +88,22 @@
 //!     &meter,
 //! );
 //!
-//! # use core::pin::Pin;
-//! # use hash_secret::Secret;
-//! let service_secret = Secret::from_string("service-secret".to_owned()).to_arc();
-//!
 //! let router: Router = Router::new()
 //!     .route("/whoami", get(whoami))
 //!     .route_layer(CallerLimitLayer {
 //!         limiters: Arc::clone(&limiters),
-//!         service_secret: Pin::clone(&service_secret),
+//!         service_secret: None,
 //!     })
 //!     .route_layer(AuthenticationLayer::<_, ActorId> {
 //!         provider: Arc::new(Verifier),
-//!         service_secret: Pin::clone(&service_secret),
 //!         metrics: Arc::new(AuthenticationMetrics::new(&meter)),
-//!         bootstrap_route: |_path| false,
-//!         challenge: Challenge::Service,
+//!         bootstrap: None,
+//!         challenge: Challenge::Bearer,
 //!         caller: PhantomData,
 //!     })
 //!     .layer(IpGateLayer {
 //!         limiters,
-//!         service_secret,
+//!         service_secret: None,
 //!     })
 //!     .layer(HttpTracingLayer::new(|path| path == "/health"));
 //!

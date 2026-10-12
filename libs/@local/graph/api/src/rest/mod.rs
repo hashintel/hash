@@ -26,6 +26,7 @@ pub(crate) mod test_utils;
 
 use aide::openapi::OpenApi;
 use axum::Router;
+use hash_middleware::authentication::Challenge;
 
 pub use self::router::{Dependencies, router};
 
@@ -39,6 +40,7 @@ pub(crate) enum Audience {
 /// An API's routes, nested under its prefix, with the document describing them.
 pub(crate) struct Api {
     audience: Audience,
+    challenge: Challenge,
     prefix: &'static str,
     router: Router,
     document: OpenApi,

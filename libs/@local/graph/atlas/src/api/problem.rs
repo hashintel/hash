@@ -634,9 +634,14 @@ pub(super) fn unauthorized() -> ProblemResponse<'static> {
             "the request presents no acceptable authority token. Re-fetch the manifest presenting \
              the held token to renew, or without one to bootstrap afresh",
         ),
-        challenge: Some(http::HeaderValue::from_static(
-            super::headers::AUTHORITY_DOCUMENTED,
-        )),
+        challenge: Some(
+            http::HeaderValue::try_from(format!(
+                "{} realm=\"{}\"",
+                super::headers::AUTHORITY_DOCUMENTED,
+                Challenge::REALM
+            ))
+            .expect("should build the challenge from visible ASCII"),
+        ),
         retry_after: None,
     }
 }
@@ -920,7 +925,7 @@ pub(crate) mod tests {
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
         assert_eq!(
             response.headers()[header::WWW_AUTHENTICATE],
-            "Atlas-Authority",
+            r#"Atlas-Authority realm="HASH""#,
             "the refusal should challenge with the authority token"
         );
     }

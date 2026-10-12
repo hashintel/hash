@@ -1,43 +1,6 @@
 {
   "components": {
     "responses": {
-      "BadRequest": {
-        "content": {
-          "application/problem+json": {
-            "example": {
-              "detail": "`X-Authenticated-User-Actor-Id` header is not a valid UUID",
-              "status": 400,
-              "title": "Bad Request",
-              "type": "about:blank"
-            },
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                },
-                {
-                  "properties": {
-                    "status": {
-                      "const": 400
-                    },
-                    "title": {
-                      "const": "Bad Request"
-                    },
-                    "type": {
-                      "const": "about:blank"
-                    }
-                  },
-                  "required": [
-                    "type"
-                  ]
-                }
-              ],
-              "title": "Bad Request"
-            }
-          }
-        },
-        "description": "The `X-Authenticated-User-Actor-Id` header is not a valid UUID."
-      },
       "InternalServerError": {
         "content": {
           "application/problem+json": {
@@ -199,7 +162,7 @@
         "description": "The request carries no credentials, or they do not identify a permitted caller.",
         "headers": {
           "WWW-Authenticate": {
-            "description": "The scheme to authenticate with: `Bearer` on the public API, with `error=\"invalid_token\"` when a `Bearer` API token is refused; `HASH-Service` on the internal APIs.",
+            "description": "The scheme to authenticate with: `Session`, with `realm=\"HASH\"`.",
             "required": true,
             "schema": {
               "type": "string"
@@ -344,24 +307,6 @@
       }
     },
     "securitySchemes": {
-      "cloudflareAccess": {
-        "description": "Cloudflare Access JWT, when configured.",
-        "in": "header",
-        "name": "Cf-Access-Jwt-Assertion",
-        "type": "apiKey"
-      },
-      "delegatedActor": {
-        "description": "Delegated actor UUID, used with the service credential. The nil UUID resolves as anonymous.",
-        "in": "header",
-        "name": "X-Authenticated-User-Actor-Id",
-        "type": "apiKey"
-      },
-      "serviceSecret": {
-        "description": "Enter the complete Authorization header value: `HASH-Service <secret>`. Include the `HASH-Service` prefix; the client sends this value unchanged. Requires the `X-Authenticated-User-Actor-Id` header to name the delegated actor.",
-        "in": "header",
-        "name": "authorization",
-        "type": "apiKey"
-      },
       "sessionCookie": {
         "description": "Kratos browser session.",
         "in": "cookie",
@@ -397,9 +342,6 @@
             },
             "description": "The resolved caller."
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -419,13 +361,6 @@
           },
           {
             "sessionCookie": []
-          },
-          {
-            "cloudflareAccess": []
-          },
-          {
-            "delegatedActor": [],
-            "serviceSecret": []
           }
         ],
         "summary": "Get the authenticated caller",
@@ -449,9 +384,6 @@
             },
             "description": "The resolved caller."
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -472,13 +404,6 @@
           },
           {
             "sessionCookie": []
-          },
-          {
-            "cloudflareAccess": []
-          },
-          {
-            "delegatedActor": [],
-            "serviceSecret": []
           }
         ],
         "summary": "Get the caller",

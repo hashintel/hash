@@ -244,8 +244,6 @@ impl RouteFixture {
                 let serving = ServeCommand::for_integration(root, secret())
                     .run(ServeOptions {
                         provider: Arc::new(HeaderDelegation),
-                        service_secret: Secret::from_string("route-test-service-secret".to_owned())
-                            .to_arc(),
                         rate_limit: RateLimitConfig {
                             rate_limit_mode: RateLimitMode::Observe,
                             client_ip_source: ClientIpSource::ConnectInfo,

@@ -1,7 +1,7 @@
 //! HTTP routing with independently retained generation maintenance and acquisition.
 
 use alloc::sync::Arc;
-use core::{error::Error, fmt, pin::Pin};
+use core::{error::Error, fmt};
 
 use axum::Router;
 use error_stack::{Report, ResultExt as _};
@@ -13,7 +13,6 @@ use hash_middleware::{
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimitConfig, RateLimiters},
     telemetry::HttpTracingLayer,
 };
-use hash_secret::Secret;
 use rand::rngs::SysRng;
 use tower::ServiceBuilder;
 use type_system::principal::actor::ActorId;
@@ -75,8 +74,6 @@ const STATUS_PATH: &str = "/status";
 pub struct ServeOptions<P> {
     /// The credential verifier chain resolving request headers to actors.
     pub provider: Arc<P>,
-    /// The delegation secret internal services use to bypass request budgets.
-    pub service_secret: Pin<Arc<Secret<str>>>,
     /// Address and caller request budgets.
     pub rate_limit: RateLimitConfig,
     /// Shared connections for feeds, visibility resolution and document hydration.
@@ -189,7 +186,6 @@ impl ServeCommand {
         self,
         ServeOptions {
             provider,
-            service_secret,
             rate_limit,
             pool,
             visibility,
@@ -253,16 +249,15 @@ impl ServeCommand {
                 .layer(IntoProblemLayer)
                 .layer(AuthenticationLayer::<_, ActorId> {
                     provider,
-                    service_secret: Pin::clone(&service_secret),
                     metrics: Arc::new(AuthenticationMetrics::new(&meter)),
-                    bootstrap_route: |_path| false,
-                    challenge: Challenge::Service,
+                    bootstrap: None,
+                    challenge: Challenge::Session,
                     caller: core::marker::PhantomData,
                 })
                 .layer(IntoProblemLayer)
                 .layer(CallerLimitLayer {
                     limiters: Arc::clone(&limiters),
-                    service_secret: Pin::clone(&service_secret),
+                    service_secret: None,
                 }),
         )
         .layer(
@@ -270,7 +265,7 @@ impl ServeCommand {
                 .layer(IntoProblemLayer)
                 .layer(IpGateLayer {
                     limiters,
-                    service_secret,
+                    service_secret: None,
                 }),
         )
         .route(
