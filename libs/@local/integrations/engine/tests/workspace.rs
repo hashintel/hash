@@ -1,12 +1,16 @@
 #![expect(missing_docs, reason = "integration tests")]
 
 use core::{future::poll_fn, num::NonZeroUsize, pin::Pin, task::Poll, time::Duration};
-use std::path::PathBuf;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use duckdb::types::{TimeUnit, Value};
 use error_stack::Report;
 use hash_integrations_engine::{
-    DataErrorType, OpenError, QueryErrorType, StatementError, Workspace, WorkspaceConfig,
+    DataErrorType, OpenError, QueryErrorType, SnapshotError, StatementError, Workspace,
+    WorkspaceConfig,
 };
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
@@ -25,6 +29,16 @@ async fn first_value(workspace: &Workspace, sql: &str) -> Result<Value, Report<S
     let rows = workspace.query(sql.into()).await?;
     let row = rows.iter().next().expect("the query should return a row");
     Ok(row.first().expect("the row should have a value").clone())
+}
+
+/// Returns the number of rows in `table` of the database at `path`.
+fn count_rows(path: &Path, table: &str) -> i64 {
+    duckdb::Connection::open(path)
+        .expect("the database should open")
+        .query_row(&format!("SELECT count(*) FROM {table}"), [], |row| {
+            row.get(0)
+        })
+        .expect("the database should hold the table")
 }
 
 /// Polls `request` once and checks that it is still pending.
@@ -442,4 +456,121 @@ async fn dropping_workspace_interrupts_running_query() {
     .await
     .expect("the lock should be released once the dropped workspace interrupts its query");
     reopened.expect("the database should open once the lock is released");
+}
+
+#[tokio::test]
+async fn snapshot_holds_tables_created_before_it() {
+    let directory = TempDir::new().expect("should create a directory");
+    let target = directory.path().join("snapshot.duckdb");
+    fs::write(&target, "not a database").expect("should write a file");
+    let workspace = open(&directory).await;
+
+    workspace
+        .create_table("flights".into(), "SELECT 'BA117' AS code".into())
+        .await
+        .expect("the table should be created");
+    workspace
+        .snapshot(target.clone())
+        .await
+        .expect("the snapshot should be written");
+    workspace
+        .create_table(
+            "flights".into(),
+            "SELECT * FROM (VALUES ('BA117'), ('LH400')) AS flights (code)".into(),
+        )
+        .await
+        .expect("the table should be replaced");
+
+    assert_eq!(
+        count_rows(&target, "flights"),
+        1,
+        "the snapshot should hold only the first table"
+    );
+    assert!(
+        !directory.path().join("snapshot.duckdb.partial").exists(),
+        "the partial copy should be renamed to the target"
+    );
+}
+
+#[tokio::test]
+async fn snapshot_refuses_workspace_files() {
+    let directory = TempDir::new().expect("should create a directory");
+    fs::create_dir_all(directory.path().join("nested")).expect("should create a directory");
+    let workspace = open(&directory).await;
+
+    for target in [
+        database_path(&directory),
+        directory.path().join("nested/../workspace.duckdb"),
+        directory.path().join("workspace.duckdb.wal"),
+        directory.path().join("workspace.duckdb.tmp"),
+        directory.path().join("workspace.duckdb.lock"),
+    ] {
+        let report = workspace
+            .snapshot(target.clone())
+            .await
+            .expect_err("a workspace file should not be a snapshot target");
+        assert!(
+            matches!(
+                report.current_context(),
+                SnapshotError::WorkspaceFile { .. }
+            ),
+            "`{}` should be refused, not by {report:?}",
+            target.display()
+        );
+    }
+}
+
+#[tokio::test]
+async fn snapshot_failure_removes_partial_copy() {
+    let directory = TempDir::new().expect("should create a directory");
+    let target = directory.path().join("snapshot");
+    fs::create_dir_all(&target).expect("should create a directory");
+    let workspace = open(&directory).await;
+
+    let report = workspace
+        .snapshot(target)
+        .await
+        .expect_err("a directory should not be replaced by the snapshot");
+
+    assert!(
+        matches!(report.current_context(), SnapshotError::Write { .. }),
+        "the failed write should be reported, not {report:?}"
+    );
+    assert!(
+        !directory.path().join("snapshot.partial").exists(),
+        "the partial copy should be removed"
+    );
+}
+
+#[tokio::test]
+async fn snapshot_replaces_link_at_partial_path() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open(&directory).await;
+    workspace
+        .create_table("flights".into(), "SELECT 'BA117' AS code".into())
+        .await
+        .expect("the table should be created");
+
+    let target = directory.path().join("snapshot");
+    fs::hard_link(
+        database_path(&directory),
+        directory.path().join("snapshot.partial"),
+    )
+    .expect("should link the database file");
+    workspace
+        .snapshot(target.clone())
+        .await
+        .expect("the snapshot should replace the link");
+    workspace.close().await.expect("the workspace should close");
+
+    assert_eq!(
+        count_rows(&database_path(&directory), "flights"),
+        1,
+        "the database should keep its table"
+    );
+    assert_eq!(
+        count_rows(&target, "flights"),
+        1,
+        "the snapshot should hold the table"
+    );
 }
