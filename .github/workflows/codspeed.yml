@@ -89,6 +89,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
           sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
+          aws_lc: false
 
       - name: Prune repository
         uses: $/.github/actions/prune-repository

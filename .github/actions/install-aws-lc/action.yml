@@ -1,0 +1,75 @@
+name: Install AWS-LC
+description: Restores a prebuilt AWS-LC from the Actions cache, building it on a miss, and makes `aws-lc-sys` link it instead of compiling AWS-LC.
+
+inputs:
+  profile:
+    description: Cargo profile the prebuilt library is compiled with. Every build in the job links it, whatever profile that build uses.
+    default: dev
+
+runs:
+  using: composite
+  steps:
+    - name: Compute AWS-LC cache key
+      id: key
+      shell: bash
+      env:
+        PROFILE: ${{ inputs.profile }}
+        ACTION_FILES: ${{ hashFiles('.github/actions/install-aws-lc/**', 'rust-toolchain.toml', '.cargo/config.toml') }}
+      run: |
+        locked=$(awk '/^\[\[package\]\]/ { if (block ~ /\nname = "(aws-lc-sys|cc)"\n/) print block; block = "" } { block = block "\n" $0 } END { if (block ~ /\nname = "(aws-lc-sys|cc)"\n/) print block }' Cargo.lock)
+        version=$(sed -n '/name = "aws-lc-sys"/{n;s/^version = "\(.*\)"$/\1/p;}' <<<"$locked")
+        if [[ -z $version ]]; then
+          echo "::error::aws-lc-sys is not in Cargo.lock"
+          exit 1
+        fi
+        inputs=$(
+          echo "$locked"
+          echo "profile=$PROFILE"
+          echo "files=$ACTION_FILES"
+          rustc -vV
+          cc --version
+          ar --version | head -n 1
+          env | grep -E '^(TARGET_|HOST_)?(CC|CFLAGS|AR|ARFLAGS|CRATE_CC_NO_DEFAULTS|AWS_LC_SYS_[A-Z_]+)(_[A-Za-z0-9_.-]+)?=' | grep -vE '^AWS_LC_SYS_(SYSTEM_DIR|STATIC)' | sort || true
+        )
+        echo "$inputs"
+        {
+          echo "version=$version"
+          echo "key=aws-lc-sys-$version-${{ runner.os }}-${{ runner.arch }}-$PROFILE-$(sha256sum <<<"$inputs" | cut -c 1-16)"
+          echo "prefix=${{ runner.temp }}/aws-lc"
+        } >>"$GITHUB_OUTPUT"
+
+    - name: Restore AWS-LC
+      id: restore
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ steps.key.outputs.prefix }}
+        key: ${{ steps.key.outputs.key }}
+
+    - name: Build AWS-LC
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: ${{ github.action_path }}/build-prefix.sh "${{ steps.key.outputs.prefix }}" "${{ inputs.profile }}"
+
+    - name: Save AWS-LC
+      if: steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ steps.key.outputs.prefix }}
+        key: ${{ steps.key.outputs.key }}
+
+    - name: Link AWS-LC from the prefix
+      shell: bash
+      env:
+        PREFIX: ${{ steps.key.outputs.prefix }}
+        VERSION: ${{ steps.key.outputs.version }}
+      run: |
+        built=$(cat "$PREFIX/aws-lc-sys.version")
+        if [[ $built != "$VERSION" ]]; then
+          echo "::error::the AWS-LC prefix was built for aws-lc-sys $built, but Cargo.lock has $VERSION"
+          exit 1
+        fi
+        target=$(rustc -vV | sed -n 's/^host: //p' | tr '-' '_')
+        {
+          echo "AWS_LC_SYS_SYSTEM_DIR_${target}=$PREFIX"
+          echo "AWS_LC_SYS_STATIC_${target}=1"
+        } >>"$GITHUB_ENV"

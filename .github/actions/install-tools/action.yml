@@ -17,6 +17,9 @@ inputs:
   sccache:
     description: Should sccache be installed? Can either be `"true"` or `true`
     default: "true"
+  aws_lc:
+    description: Should `aws-lc-sys` link a prebuilt AWS-LC compiled with the `dev` profile? Can either be `"true"` or `true`. Disable it in jobs that build with an optimized profile.
+    default: "true"
 
 runs:
   using: composite
@@ -77,6 +80,10 @@ runs:
         max_attempts: 5
         retry_wait_seconds: 60
         command: ${{ github.action_path }}/install-rust.sh
+
+    - name: "Install AWS-LC"
+      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.aws_lc == true || inputs.aws_lc == 'true') }}
+      uses: $/.github/actions/install-aws-lc
 
     - name: "Install sccache"
       if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.encrypted_sccache_credentials != '' }}
