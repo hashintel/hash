@@ -16,6 +16,7 @@ export const payloadKindJsonTypes = {
   Date: "string",
   EntityId: "string",
   FailedEntityProposal: "object",
+  FilterCondition: "object",
   FormattedText: "object",
   GoogleAccountId: "string",
   GoogleSheet: "object",

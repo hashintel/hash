@@ -14,6 +14,7 @@ const unsupportedPayloadKinds = [
   /** @todo support EntityId – requires updating the EntitySelector */
   "EntityId",
   "FailedEntityProposal",
+  "FilterCondition",
   "PersistedEntityMetadata",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",

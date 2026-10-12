@@ -6,6 +6,7 @@ import type {
   AiFlowActionDefinitionId,
   IntegrationFlowActionDefinitionId,
 } from "./action-definitions.js";
+import type { FilterCondition } from "./filter-condition.js";
 import type {
   ActorEntityUuid,
   EntityId,
@@ -100,6 +101,7 @@ export type PayloadKindValues = {
   Date: string; // e.g. "2025-01-01"
   EntityId: EntityId;
   FailedEntityProposal: FailedEntityProposal;
+  FilterCondition: FilterCondition;
   FormattedText: FormattedText;
   GoogleAccountId: string;
   GoogleSheet: GoogleSheet;
@@ -121,6 +123,7 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
   Date: true,
   EntityId: true,
   FailedEntityProposal: true,
+  FilterCondition: true,
   FormattedText: true,
   GoogleAccountId: true,
   GoogleSheet: true,
