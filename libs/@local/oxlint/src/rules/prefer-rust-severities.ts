@@ -1,7 +1,39 @@
 /**
  * Keeps literal rule severities in the `allow`, `warn`, and `deny` vocabulary.
  *
- * Fixes ESLint aliases without changing their severity or surrounding options. Computed settings and inherited presets are not resolved.
+ * Fixes ESLint aliases without changing their severity or surrounding options, but does not resolve computed settings or inherited presets.
+ *
+ * @example Incorrect
+ * ```ts
+ * import { defineConfig } from "oxlint";
+ *
+ * export default defineConfig({
+ *   rules: {
+ *     "no-console": "off", // This CLI writes results to stdout.
+ *     "eqeqeq": 1, // Loose comparisons remain during migration.
+ *     "max-params": [
+ *       "error", // Additional parameters belong in an options object.
+ *       { max: 3 },
+ *     ],
+ *   },
+ * });
+ * ```
+ *
+ * @example Correct
+ * ```ts
+ * import { defineConfig } from "oxlint";
+ *
+ * export default defineConfig({
+ *   rules: {
+ *     "no-console": "allow", // This CLI writes results to stdout.
+ *     "eqeqeq": "warn", // Loose comparisons remain during migration.
+ *     "max-params": [
+ *       "deny", // Additional parameters belong in an options object.
+ *       { max: 3 },
+ *     ],
+ *   },
+ * });
+ * ```
  *
  * @module
  */
@@ -41,11 +73,13 @@ export const preferRustSeverities = defineRule({
 
         for (const { severity } of ruleSettings(node)) {
           const { value } = severity;
-          if (value !== "allow" && value !== "warn" && value !== "deny") {
-            let replacement: Severity | undefined;
-            if (typeof value === "string" || typeof value === "number") {
-              replacement = replacements.get(value);
-            }
+          if (
+            (typeof value === "string" || typeof value === "number") &&
+            value !== "allow" &&
+            value !== "warn" &&
+            value !== "deny"
+          ) {
+            const replacement = replacements.get(value);
 
             context.report({
               messageId: "severity",

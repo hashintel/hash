@@ -14,6 +14,10 @@ ${rules}
 tester.run("require-rule-change-comment", requireRuleChangeComment, {
   invalid: [
     {
+      code: 'import { defineConfig } from "oxlint";\n\nexport default defineConfig({\n  rules: {\n    // This CLI writes results to stdout.\n    "no-console": "allow",\n    "max-params": [\n      "deny",\n      { max: 3 },\n    ], // Additional parameters belong in an options object.\n  },\n});',
+      errors: [explanation, explanation],
+    },
+    {
       code: 'import { defineConfig } from "oxlint"; const rules = { one: "off" } as const;',
       errors: [explanation],
       filename: "config-factory.ts",
@@ -95,6 +99,7 @@ tester.run("require-rule-change-comment", requireRuleChangeComment, {
     },
   ],
   valid: [
+    'import { defineConfig } from "oxlint";\n\nexport default defineConfig({\n  rules: {\n    "no-console": "allow", // This CLI writes results to stdout.\n    "max-params": [\n      "deny", // Additional parameters belong in an options object.\n      { max: 3 },\n    ],\n  },\n});',
     {
       code: 'import { defineConfig } from "oxlint"; const rules = { one: "off" as const, // CLI output is intentional.\n} as const;',
       filename: "config-factory.ts",

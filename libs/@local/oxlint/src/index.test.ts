@@ -18,6 +18,8 @@ describe("createConfig", () => {
       suspicious: "deny",
     });
     expect(config.options?.typeAware).toBe(true);
+    expect(config.options?.reportUnusedDisableDirectives).toBe("error");
+    expect(config.rules?.["hash/prefer-rust-severities"]).toBe("deny");
     expect(config.rules?.["hash/require-rule-change-comment"]).toBe("deny");
   });
 
@@ -26,8 +28,8 @@ describe("createConfig", () => {
 
     const config = createConfig({ runtime: "node", frameworks: ["vitest"] });
 
-    expect(config.rules?.["vitest/prefer-to-be-falsy"]).toBe("off");
-    expect(config.rules?.["vitest/prefer-to-be-truthy"]).toBe("off");
+    expect(config.rules?.["vitest/prefer-to-be-falsy"]).toBe("allow");
+    expect(config.rules?.["vitest/prefer-to-be-truthy"]).toBe("allow");
   });
 
   test("ignore_patterns", () => {
