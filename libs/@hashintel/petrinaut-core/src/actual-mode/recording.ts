@@ -1,3 +1,4 @@
+import { normalizeSDCPN } from "../types/sdcpn-input";
 import { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
 import { actualModeRecordingSchema } from "./schemas";
 import { parseRequiredActualModeTimestampMs } from "./time";
@@ -45,8 +46,16 @@ export const createActualModeReceivedEventsRecording = (params: {
   })),
 });
 
-export const parseActualModeRecording = (data: unknown): ActualModeRecording =>
-  actualModeRecordingSchema.parse(data);
+export const parseActualModeRecording = (
+  data: unknown,
+): ActualModeRecording => {
+  const recording = actualModeRecordingSchema.parse(data);
+  return {
+    ...recording,
+    // The schema accepts omitted collections; normalizing fills them and converts ids.
+    definition: normalizeSDCPN(recording.definition),
+  };
+};
 
 export const retimeActualModeRecordingForReplay = (
   recording: ActualModeRecording,

@@ -75,7 +75,7 @@ Ctrl-C in the launcher, closing its browser, `persona end`, or the foreground ag
 
 ## What is shared
 
-The agent's session and Brunch's interview are different conversations. The browser and the helper share **one Brunch conversation**, native incarnation and document binding; Brunch's canonical history remains authoritative. The persona sees only Brunch's reply prose, not the tool trace.
+The agent's session and Brunch's interview are different conversations. The browser and the helper share **one Brunch conversation** and document binding; Brunch's canonical history remains authoritative. The persona sees only Brunch's reply prose, not the tool trace.
 
 The bridge only submits text and observes completion. It neither fabricates results nor executes mutations independently, and it refuses to overwrite a nonempty composer draft. The panel's history-replay guard remains intact.
 

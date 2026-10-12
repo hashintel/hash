@@ -1,6 +1,6 @@
 import { Box, Skeleton } from "@mui/material";
 
-import { iconVariantSizes } from "../../../edit-emoji-icon-button";
+import { iconVariantSizes } from "../../../icon-variant-sizes";
 
 const LoadingLine = () => {
   return (

@@ -17,6 +17,7 @@ use hash_graph_postgres_store::store::{
     PostgresStoreSettings,
 };
 use hash_graph_store::pool::StorePool as _;
+use hash_secret::Secret;
 use serde_json::value::RawValue;
 use tokio::{sync::mpsc, time::timeout};
 use tokio_postgres::NoTls;
@@ -184,7 +185,7 @@ fn pool() -> Arc<PostgresStorePool> {
             &DatabaseConnectionInfo::new(
                 DatabaseType::Postgres,
                 "resolver-test".to_owned(),
-                String::new(),
+                Secret::from_string(String::new()),
                 "/no-resolver-test-postgres".to_owned(),
                 5432,
                 "resolver-test".to_owned(),

@@ -1,23 +1,20 @@
-import { Box } from "@mui/material";
 import { useState } from "react";
 
-import {
-  Filter,
-  FilterGroup,
-  Menu,
-  SelectableListSearch,
-} from "@hashintel/ds-components";
+import { Filter, SelectableListSearch } from "@hashintel/ds-components";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { DsComponentsScope } from "../shared/ds-components-scope";
+import {
+  filterChipPillChrome,
+  FilterGroupRibbon,
+  type InternalWeb,
+  WebFilterPill,
+} from "../../filter-bar";
 import { getDefaultOperatorForKind } from "../shared/property-filters/get-operators-for-kind";
-import { filterChipPillChrome } from "./filter-ribbon/filter-chip-pill-chrome";
 import {
   PropertyFilterChip,
   type SwitchablePropertyOption,
 } from "./filter-ribbon/property-filter-chip";
 import { TypeFilterPill } from "./type-filter-pill";
-import { type InternalWeb, WebFilterPill } from "./web-filter-pill";
 
 import type { EntitiesFilterState } from "../shared/filter-state";
 import type {
@@ -30,7 +27,6 @@ import type { TypeColorOverrides } from "../shared/type-colors";
 import type { AvailableType } from "../shared/use-available-types";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type { ItemOrGroup, MenuItem } from "@hashintel/ds-components";
-import type { SxProps, Theme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 
 type FilterRibbonProps = {
@@ -74,13 +70,6 @@ const disabledReasonText: Record<PropertyFilterDisabledReason, string> = {
 
 const archivedPropertyBaseUrl =
   systemPropertyTypes.archived.propertyTypeBaseUrl;
-
-const chipWrapperSx: SxProps<Theme> = {
-  display: "inline-flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: 1,
-};
 
 export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   availableEntityTypes,
@@ -318,90 +307,56 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       />
     );
 
-  const trailingControls = (
-    <>
-      <Menu
-        trigger={
-          <FilterGroup.AddFilter
-            renderAs={visiblePropertyFilters.length > 0 ? "plus" : "plusLabel"}
-          />
-        }
-        items={addFilterMenuItems}
-        header={
-          <SelectableListSearch
-            value={propertySearch}
-            onChange={setPropertySearch}
-            placeholder="Search properties"
-            aria-label="Search properties"
-          />
-        }
-        swapHeaderFooterOnFlip
-        onOpen={(open) => {
-          if (!open) {
-            setPropertySearch("");
-          }
-        }}
-      />
-      {visiblePropertyFilters.length > 1 && (
-        <FilterGroup.ClearFilters
-          aria-label="Clear filters"
-          onClick={handleClearPropertyFilters}
-        />
-      )}
-    </>
-  );
-
   return (
-    <Box
-      sx={{
-        display: "contents",
-        "& .MuiChip-root, & > .MuiIconButton-root, & [data-part='filter-group'] > *":
-          {
-            verticalAlign: "middle",
-            marginRight: 1,
-            marginTop: 0.5,
-            marginBottom: 0.5,
-          },
-        "& [data-part='filter-group']": {
-          display: "contents !important",
-        },
-      }}
-    >
-      {searchControl}
-      <WebFilterPill
-        internalWebs={internalWebs}
-        webState={filterState.web}
-        setWebState={(updater) =>
-          setFilterState((prev) => ({ ...prev, web: updater(prev.web) }))
-        }
-      />
-      {!isTypePinned && (
-        <TypeFilterPill
-          availableTypes={availableEntityTypes}
-          loading={availableTypesLoading}
-          typeState={filterState.type}
-          setTypeState={(updater) =>
-            setFilterState((prev) => ({ ...prev, type: updater(prev.type) }))
-          }
-          showColors={showTypeColors}
-          typeColorOverrides={typeColorOverrides}
-          setTypeColor={setTypeColor}
-          hiddenTypeIds={hiddenTypeIds}
-        />
-      )}
-      <DsComponentsScope sx={{ display: "contents" }}>
-        <FilterGroup dismissAbandoned>
-          {visiblePropertyFilters.map((propertyFilter, index) => (
-            <Box key={propertyFilter.id} sx={chipWrapperSx}>
-              {renderPropertyFilterChip(propertyFilter)}
-              {index === visiblePropertyFilters.length - 1 && trailingControls}
-            </Box>
-          ))}
-          {visiblePropertyFilters.length === 0 && (
-            <Box sx={chipWrapperSx}>{trailingControls}</Box>
+    <FilterGroupRibbon
+      leadingControls={
+        <>
+          {searchControl}
+          <WebFilterPill
+            internalWebs={internalWebs}
+            webState={filterState.web}
+            setWebState={(updater) =>
+              setFilterState((prev) => ({ ...prev, web: updater(prev.web) }))
+            }
+          />
+          {!isTypePinned && (
+            <TypeFilterPill
+              availableTypes={availableEntityTypes}
+              loading={availableTypesLoading}
+              typeState={filterState.type}
+              setTypeState={(updater) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  type: updater(prev.type),
+                }))
+              }
+              showColors={showTypeColors}
+              typeColorOverrides={typeColorOverrides}
+              setTypeColor={setTypeColor}
+              hiddenTypeIds={hiddenTypeIds}
+            />
           )}
-        </FilterGroup>
-      </DsComponentsScope>
-    </Box>
+        </>
+      }
+      chips={visiblePropertyFilters.map((propertyFilter) => ({
+        id: propertyFilter.id,
+        chip: renderPropertyFilterChip(propertyFilter),
+      }))}
+      addFilterMenuItems={addFilterMenuItems}
+      addFilterMenuHeader={
+        <SelectableListSearch
+          value={propertySearch}
+          onChange={setPropertySearch}
+          placeholder="Search properties"
+          aria-label="Search properties"
+        />
+      }
+      onAddFilterMenuOpen={(open) => {
+        if (!open) {
+          setPropertySearch("");
+        }
+      }}
+      onClearFilters={handleClearPropertyFilters}
+    />
   );
 };

@@ -75,6 +75,7 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
+use hash_secret::Secret;
 use hash_telemetry::logging::env_filter;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{
@@ -166,8 +167,9 @@ impl DatabaseTestWrapper {
         init_logging();
 
         let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());
-        let password =
-            std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned());
+        let password = Secret::from_string(
+            std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned()),
+        );
         let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned());
         let port =
             std::env::var("HASH_GRAPH_PG_PORT").map_or(5432, |port| port.parse::<u16>().unwrap());

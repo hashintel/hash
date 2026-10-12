@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { Filter } from "@hashintel/ds-components";
 
+import { operatorDescriptionClass } from "../../../filter-bar";
 import { getOperatorsForKind } from "../../shared/property-filters/get-operators-for-kind";
-import { operatorDescriptionClass } from "./filter-chip-pill-chrome";
 
 import type {
   FilterableProperty,
@@ -213,9 +213,10 @@ export const PropertyFilterChip: FunctionComponent<{
         commitChange(operator, committed);
       }}
       onInput={(operator, committed) => {
-        if (committed === null) {
-          // An incomplete draft never un-applies a filter, and a pending
-          // live commit no longer reflects the input.
+        if (committed === null && operator === "between") {
+          // A half-filled range is indistinguishable from a cleared one, and
+          // committing it would clobber the other bound's draft — a between
+          // only un-applies on explicit commit (Enter, blur, dropdown close).
           debouncedCommitChange.cancel();
           return;
         }

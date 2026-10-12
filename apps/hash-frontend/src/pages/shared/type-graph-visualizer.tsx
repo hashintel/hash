@@ -98,9 +98,12 @@ const defaultConfig = {
 
 export const TypeGraphVisualizer = ({
   onTypeClick,
+  searchPanel,
   types,
 }: {
   onTypeClick: (typeId: VersionedUrl) => void;
+  /** Externally controlled search panel — hides the in-graph toggle button. */
+  searchPanel?: { open: boolean; onClose: () => void };
   types: (
     | DataTypeWithMetadata
     | EntityTypeWithMetadata
@@ -341,6 +344,7 @@ export const TypeGraphVisualizer = ({
       onNodeSecondClick={onNodeClick}
       edges={edges}
       nodes={nodes}
+      searchPanel={searchPanel}
     />
   );
 };

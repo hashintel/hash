@@ -102,7 +102,6 @@ const run = async () => {
       binding: {
         conversationId: identity.conversationId,
         documentId: `document-${caseId}`,
-        incarnationId: `incarnation-${caseId}`,
       },
     };
     const client = createFlueClient({

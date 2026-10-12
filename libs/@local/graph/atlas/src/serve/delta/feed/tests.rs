@@ -8,6 +8,7 @@ use hash_graph_postgres_store::store::{
     PostgresStorePool, PostgresStoreSettings,
 };
 use hash_graph_temporal_versioning::Timestamp;
+use hash_secret::Secret;
 use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, rngs::StdRng};
 use tokio::{
@@ -63,7 +64,7 @@ fn fixture(name: &str) -> Fixture {
         &DatabaseConnectionInfo::new(
             DatabaseType::Postgres,
             "feed-test".to_owned(),
-            String::new(),
+            Secret::from_string(String::new()),
             "/no-feed-test-postgres".to_owned(),
             5432,
             "feed-test".to_owned(),

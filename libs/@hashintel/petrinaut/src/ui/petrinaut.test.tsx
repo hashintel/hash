@@ -50,7 +50,10 @@ vi.mock("./views/Editor/editor-view", async () => {
                 {
                   mode: "simulate",
                   simulateView: "scenarios",
-                  simulateResource: { type: "scenario", id: "scenario-1" },
+                  simulateResource: {
+                    type: "scenario",
+                    id: "00000000-0000-4000-8000-000000000001",
+                  },
                   simulatePresentation: "fullscreen",
                 },
                 { cause: "user", action: "simulation-resource" },
@@ -114,7 +117,7 @@ const testSdcpn: SDCPN = {
   parameters: [],
   scenarios: [
     {
-      id: "scenario-1",
+      id: "00000000-0000-4000-8000-000000000001",
       name: "Scenario",
       scenarioParameters: [],
       parameterOverrides: {},
@@ -199,11 +202,19 @@ test.each([false, true])(
     const location = () =>
       screen.getByLabelText("Simulation location").textContent;
     fireEvent.click(screen.getByRole("button", { name: "Open scenario" }));
-    await waitFor(() => expect(location()).toBe("scenario-1/fullscreen"));
+    await waitFor(() =>
+      expect(location()).toBe(
+        "00000000-0000-4000-8000-000000000001/fullscreen",
+      ),
+    );
     fireEvent.click(screen.getByRole("button", { name: "experiments" }));
     await waitFor(() => expect(location()).toBe("none/panel"));
     fireEvent.click(screen.getByRole("button", { name: "scenarios" }));
-    await waitFor(() => expect(location()).toBe("scenario-1/fullscreen"));
+    await waitFor(() =>
+      expect(location()).toBe(
+        "00000000-0000-4000-8000-000000000001/fullscreen",
+      ),
+    );
     fireEvent.click(screen.getByRole("button", { name: "experiments" }));
     fireEvent.click(
       screen.getByRole("button", { name: "Open another document" }),

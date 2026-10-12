@@ -15,10 +15,8 @@ import {
 } from "@hashintel/design-system";
 
 import { GoogleAccountSelect } from "../../shared/integrations/google/google-account-select";
-import {
-  GoogleAuthProvider,
-  useIsGoogleAuthAvailable,
-} from "../../shared/integrations/google/google-auth-context";
+import { useIsGoogleAuthAvailable } from "../../shared/integrations/google/google-auth-context";
+import { GoogleAuthProvider } from "../../shared/integrations/google/google-auth-provider";
 import { SelectOrNameGoogleSheet } from "../../shared/integrations/google/select-or-name-google-sheet";
 
 import type { GoogleSheet } from "@local/hash-isomorphic-utils/flows/types";

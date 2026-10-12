@@ -6,10 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { theme } from "@hashintel/design-system/theme";
 
-import {
-  applyConversionDefinition,
-  ConversionEditor,
-} from "./conversion-editor";
+import { applyConversionDefinition } from "./apply-conversion-definition";
+import { ConversionEditor } from "./conversion-editor";
 
 import type { DataTypeFormData } from "../data-type-form";
 import type {

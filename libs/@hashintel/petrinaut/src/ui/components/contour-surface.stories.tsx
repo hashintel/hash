@@ -141,7 +141,7 @@ const StreamingSurface = () => {
         return;
       }
       const cell = order[index]!;
-      index++;
+      index += 1;
       setValues((previous) => {
         const next = new Map(previous);
         next.set(contourSurfaceKey(cell.x, cell.y), fieldValue(cell.x, cell.y));

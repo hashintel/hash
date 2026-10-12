@@ -173,7 +173,7 @@ function ChatConversation({
 }
 
 export function Chat() {
-  const configuration = useMemo(chatConfiguration, []);
+  const configuration = useMemo(() => chatConfiguration(), []);
   const [client, setClient] = useState<FlueClient>();
 
   useEffect(() => {

@@ -5,15 +5,13 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
-import {
-  EditEmojiIconButton,
-  iconVariantSizes,
-} from "./edit-emoji-icon-button";
+import { EditEmojiIconButton } from "./edit-emoji-icon-button";
+import { iconVariantSizes } from "./icon-variant-sizes";
 import { CanvasIcon } from "./icons/canvas-icon";
 import { useUpdatePageIcon } from "./use-update-page-icon";
 
-import type { SizeVariant } from "./edit-emoji-icon-button";
 import type { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+import type { SizeVariant } from "./icon-variant-sizes";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { SxProps, Theme } from "@mui/material";
 import type { MouseEventHandler } from "react";

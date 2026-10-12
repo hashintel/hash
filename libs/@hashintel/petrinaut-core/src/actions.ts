@@ -32,6 +32,7 @@ import {
   stripDisabledExtensionData,
   type PetrinautExtensionSettings,
 } from "./extensions";
+import { toPetrinautId } from "./petrinaut-id";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
 
 import type {
@@ -412,6 +413,46 @@ function assertPlaceDynamicsReferences(
   }
 }
 
+const collectWrittenIds = (
+  value: unknown,
+  written: Map<string, string>,
+): void => {
+  if (typeof value === "string") {
+    const converted = toPetrinautId(value);
+    if (converted !== value) {
+      written.set(converted, value);
+    }
+  } else if (typeof value === "object" && value !== null) {
+    for (const item of Object.values(value)) {
+      collectWrittenIds(item, written);
+    }
+  }
+};
+
+/** Errors name an input id as the caller wrote it, not the UUID it became. */
+const withWrittenIdsInErrors = (
+  actions: MutationHelperFunctions,
+): MutationHelperFunctions =>
+  Object.fromEntries(
+    Object.entries(actions).map(([name, action]) => [
+      name,
+      (input: unknown) => {
+        try {
+          action(input as never);
+        } catch (error) {
+          if (error instanceof Error) {
+            const written = new Map<string, string>();
+            collectWrittenIds(input, written);
+            for (const [converted, id] of written) {
+              error.message = error.message.replaceAll(converted, id);
+            }
+          }
+          throw error;
+        }
+      },
+    ]),
+  ) as MutationHelperFunctions;
+
 export function createPetrinautActions(
   mutate: (fn: (sdcpn: SDCPN) => void) => void,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
@@ -477,7 +518,7 @@ export function createPetrinautActions(
     });
   };
 
-  return {
+  return withWrittenIdsInErrors({
     addPlace(input) {
       const parsed = mutationActionInputSchemas.addPlace.parse(input);
       const [targetSubnetId, place] = splitTargetSubnetId(parsed);
@@ -1381,5 +1422,5 @@ export function createPetrinautActions(
         }
       });
     },
-  };
+  });
 }

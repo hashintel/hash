@@ -50,7 +50,7 @@ import type {
 
 export const tableHeaderHeight = 52;
 
-const CheckboxFilter: FunctionComponent<{
+export const CheckboxFilter: FunctionComponent<{
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;

@@ -262,7 +262,7 @@ const NavigatorWithStreamingMetrics = () => {
         spread,
         runs: 25,
       });
-      frameNumber++;
+      frameNumber += 1;
       setFrames((previous) => [...previous, frame]);
     }, STREAM_TICK_MS);
     return () => clearInterval(timer);

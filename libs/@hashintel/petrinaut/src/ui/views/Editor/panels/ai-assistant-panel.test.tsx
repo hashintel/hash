@@ -15,6 +15,7 @@ import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  canonicalizePetrinautIds,
   createJsonDocHandle,
   type PetrinautExperimentHost,
   type PetrinautExperimentRequest,
@@ -1640,7 +1641,7 @@ describe("AiAssistantPanel composer submissions", () => {
       toolCallId: "pending-net-read",
       output: {
         title: "AI assistant panel test",
-        definition: nonEmptySDCPN,
+        definition: canonicalizePetrinautIds(nonEmptySDCPN),
         extensions: DEFAULT_PETRINAUT_EXTENSIONS,
       },
     });
@@ -4008,7 +4009,9 @@ describe("AiAssistantPanel composer submissions", () => {
         return (
           <button
             type="button"
-            onClick={() => void context.submitText({ text: "Read the net" })}
+            onClick={() => {
+              void context.submitText({ text: "Read the net" });
+            }}
           >
             Read net
           </button>

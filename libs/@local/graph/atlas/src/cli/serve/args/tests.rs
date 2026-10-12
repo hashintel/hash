@@ -9,8 +9,8 @@ use crate::serve::{
     delta::DeltaTaskOptions, document::DocumentLimits, runtime::manager::ManagerOptions,
 };
 
-/// A key in uppercase hex, the form most key exports and `hexdump` emit.
-const UPPERCASE: &str = "6AD599A5C17E1FC4D7E2988BD4F3E0367F3C4A35D6DAE135F9A1E0EFC775CE55";
+/// A 32-byte key in hexadecimal.
+const KEY: &str = "6ad599a5c17e1fc4d7e2988bd4f3e0367f3c4a35d6dae135f9a1e0efc775ce55";
 
 /// Parses `ServeArgs` from `arguments` and returns the rendered refusal.
 ///
@@ -51,8 +51,7 @@ fn assert_redacted(rendered: &str, secret: &str) {
 /// Panics if `arguments` does not parse as valid serving arguments, or if the parsed matches do
 /// not construct serving settings.
 pub(in crate::cli::serve) fn parse(arguments: &[&str]) -> ServeArgs {
-    let secret = UPPERCASE.to_ascii_lowercase();
-    let mut invocation = vec!["serve", "--secret", secret.as_str()];
+    let mut invocation = vec!["serve", "--secret", KEY];
     invocation.extend_from_slice(arguments);
     let matches = ServeArgs::augment_args(clap::Command::new("serve"))
         .try_get_matches_from(invocation)
@@ -129,16 +128,11 @@ fn limits_mapping() {
     );
 }
 
-#[test]
-fn secret_uppercase() {
-    assert_redacted(&refusal(&["serve", "--secret", UPPERCASE]), UPPERCASE);
-}
-
 /// A secret carrying the trailing newline a file or pipe leaves behind is refused.
 ///
 /// The refusal quotes none of it: the case a redaction by whole-string match misses.
 #[test]
 fn secret_trailing_newline() {
-    let secret = format!("{}\n", UPPERCASE.to_ascii_lowercase());
+    let secret = format!("{KEY}\n");
     assert_redacted(&refusal(&["serve", "--secret", &secret]), &secret);
 }

@@ -3176,12 +3176,12 @@ describe("AiAssistantContents", () => {
     const tablist = () => screen.getByRole("tablist");
     const inactiveTab = () => screen.getByRole("tab", { name: "Ledger" });
 
-    expect(tablist().getAttribute("data-style-variant")).toBe("stock");
+    expect(tablist().getAttribute("data-style-variant")).toBe("default");
     expect(tablist().querySelector("[data-mark]")).toBeNull();
     expect(inactiveTab().className).toContain("op_[0.6]");
 
     rerender(<AiAssistantContents {...props} presentation="brunch" />);
-    expect(tablist().getAttribute("data-style-variant")).toBe("brunch");
+    expect(tablist().getAttribute("data-style-variant")).toBe("pill");
     expect(tablist().querySelectorAll("[data-mark]")).toHaveLength(2);
     expect(inactiveTab().className).not.toContain("op_[0.6]");
   });

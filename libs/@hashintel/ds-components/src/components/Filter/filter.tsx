@@ -18,6 +18,7 @@ import {
   isRejectedNumberInputKey,
   preventAutocompleteProps,
 } from "../../util/form-shared";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
   SelectableList,
@@ -1067,7 +1068,7 @@ export const Filter = <
       )}
       {selectableOperators && (
         <Portal container={portalContainerRef}>
-          <ArkSelect.Positioner>
+          <ArkSelect.Positioner className={parkedPopperPositioner}>
             <SelectableList
               as="Select"
               items={menuItems}

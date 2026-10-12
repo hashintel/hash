@@ -421,6 +421,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     <AdHocFormContext value={services}>
       {/* Undo/redo listens in the capture phase, so it sees keys before any
           cell handler; open text fields and Monaco pass through untouched. */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the group handles undo and redo for the controls inside it. */}
       <div
         ref={rootRef}
         className={cx(focusClearanceStyle, className)}

@@ -9,14 +9,10 @@ import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-f
 import { getLayoutWithSidebar } from "../shared/layout";
 import { Link } from "../shared/ui/link";
 import { WorkersHeader } from "../shared/workers-header";
-import {
-  FlowDefinitionsContextProvider,
-  useFlowDefinitionsContext,
-} from "./shared/flow-definitions-context";
-import {
-  FlowRunsContextProvider,
-  useFlowRunsContext,
-} from "./shared/flow-runs-context";
+import { useFlowDefinitionsContext } from "./shared/flow-definitions-context";
+import { FlowDefinitionsContextProvider } from "./shared/flow-definitions-context-provider";
+import { useFlowRunsContext } from "./shared/flow-runs-context";
+import { FlowRunsContextProvider } from "./shared/flow-runs-context-provider";
 import {
   flowTableCellSx,
   flowTableRowHeight,

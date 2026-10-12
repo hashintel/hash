@@ -11,19 +11,19 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
 
 import {
+  brunchEvaluationConversationIdFrom,
+  ordinaryConstructionConversationIdFrom,
+} from "../plugins/brunch/conversation/brunch-conversation-id";
+import {
+  createCanonicalPetrinautHostTools,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+} from "../plugins/brunch/tools/brunch-petrinaut-tools";
+import {
   InProcessLspWorker,
   NoopResizeObserver,
   preloadMonaco,
 } from "../shared/petrinaut-jsdom";
 import { assistantSelectionStorageKey } from "./assistant-selection";
-import {
-  brunchEvaluationConversationIdFrom,
-  ordinaryConstructionConversationIdFrom,
-} from "./brunch-conversation-id";
-import {
-  createCanonicalPetrinautHostTools,
-  EMPTY_CANONICAL_PETRINAUT_REPLAY,
-} from "./brunch-petrinaut-tools";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
 import type {
@@ -62,12 +62,10 @@ const fixture = vi.hoisted(() => ({
   controller: null as DocumentController | null,
   binding: null as {
     documentId: string;
-    incarnationId: string;
     conversationId: string;
   } | null,
   baseBinding: null as {
     documentId: string;
-    incarnationId: string;
     conversationId: string;
   } | null,
 }));
@@ -95,13 +93,13 @@ vi.mock("@flue/sdk", async (importOriginal) => ({
     return fixture.client;
   },
 }));
-vi.mock("./brunch-preview-config", () => ({
+vi.mock("../plugins/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
     chatEndpoint: "/agents/chat",
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("./brunch-principal", () => ({
+vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
 vi.mock("./documents/use-document-controller", () => ({
@@ -111,7 +109,7 @@ vi.mock("./documents/use-document-controller", () => ({
     return { controller: fixture.controller };
   },
 }));
-vi.mock("./assistants/brunch/use-process-agent-binding", () => ({
+vi.mock("../plugins/brunch/conversation/use-process-agent-binding", () => ({
   useProcessAgentBinding: () => {
     if (!fixture.baseBinding)
       throw new Error("Missing test process agent binding");
@@ -183,17 +181,15 @@ test.each(["Dismiss", "Run"] as const)(
       removeItem() {},
       setItem() {},
     } satisfies Storage);
-    const baseId = ordinaryConstructionConversationIdFrom("incarnation");
+    const baseId = ordinaryConstructionConversationIdFrom("document");
     const binding = {
       conversationId: brunchEvaluationConversationIdFrom(baseId),
       documentId: "document",
-      incarnationId: "incarnation",
     };
     fixture.binding = binding;
     fixture.baseBinding = { ...binding, conversationId: baseId };
     const documentRecord: DocumentRecord = {
       documentId: binding.documentId,
-      incarnationId: binding.incarnationId,
       revisionId: "initial-revision",
       title: "Queue",
       definition,

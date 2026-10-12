@@ -188,12 +188,12 @@ export type {
   ExperimentalIconTransition,
   ExperimentalIconChoreography,
 } from "./experimental-icons";
-export {
-  // The user-guide pages the built-in documentation read serves, so a host
-  // tool under its own name can answer with the same text.
-  petrinautDocsContent,
-  type PetrinautAiMessage,
-  type PetrinautAiMessageMetadata,
+// The user-guide pages the built-in documentation read serves, so a host
+// tool under its own name can answer with the same text.
+export { petrinautDocsContent } from "./petrinaut-docs-content";
+export type {
+  PetrinautAiMessage,
+  PetrinautAiMessageMetadata,
 } from "./views/Editor/panels/ai-assistant-panel";
 export { executePetrinautAiMutation } from "./views/Editor/panels/ai-assistant-panel/apply-petrinaut-ai-mutation";
 export type {

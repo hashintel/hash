@@ -26,6 +26,10 @@ use hash_graph_store::{
         CreateUserActorResponse, GetActorError, TeamRetrievalError, WebInsertionError,
         WebRetrievalError, WebUpdateError,
     },
+    api_token::{
+        ApiTokenId, ApiTokenInsertionError, ApiTokenMetadata, ApiTokenRetrievalError,
+        ApiTokenRevocationError, ApiTokenStore, CreateApiTokenParams,
+    },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
@@ -955,6 +959,33 @@ where
         self.store
             .read_one(filters, temporal_axes, include_drafts)
             .await
+    }
+}
+
+impl<S> ApiTokenStore for FetchingStore<S>
+where
+    S: ApiTokenStore + Send + Sync,
+{
+    async fn create_api_token(
+        &mut self,
+        params: CreateApiTokenParams,
+    ) -> Result<ApiTokenMetadata, Report<ApiTokenInsertionError>> {
+        self.store.create_api_token(params).await
+    }
+
+    async fn list_api_tokens(
+        &self,
+        web_id: WebId,
+    ) -> Result<Vec<ApiTokenMetadata>, Report<ApiTokenRetrievalError>> {
+        self.store.list_api_tokens(web_id).await
+    }
+
+    async fn revoke_api_token(
+        &mut self,
+        web_id: WebId,
+        token_id: ApiTokenId,
+    ) -> Result<(), Report<ApiTokenRevocationError>> {
+        self.store.revoke_api_token(web_id, token_id).await
     }
 }
 
