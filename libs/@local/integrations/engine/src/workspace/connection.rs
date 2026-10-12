@@ -11,15 +11,23 @@ use duckdb::{Config, types::Value};
 use error_stack::{Report, ResultExt as _};
 
 use crate::{
+    ByteSize, WorkspaceConfig,
     sql::Identifier,
     workspace::{
-        CloseError, Command, OpenError, Rows, Setting, SnapshotError, StatementError,
+        CloseError, Command, DiskUsageError, OpenError, Rows, Setting, SnapshotError,
+        StatementError,
         files::WorkspaceFiles,
         interrupt::{Interrupt, InterruptGuard, RequestId},
         reply::Reply,
         select::Select,
     },
 };
+
+/// The disk space the workspace files use, and the limit they are checked against.
+struct DiskUsage {
+    used: ByteSize,
+    limit: ByteSize,
+}
 
 /// The database's only connection, owned by the workspace thread.
 ///
@@ -29,6 +37,7 @@ pub(super) struct Connection {
     interrupt: InterruptGuard,
     duckdb: duckdb::Connection,
     files: WorkspaceFiles,
+    disk_limit: Option<ByteSize>,
     /// An exclusive lock on the workspace's lock file, held until the database is closed.
     lock: File,
 }
@@ -60,37 +69,126 @@ impl Connection {
         }
     }
 
-    /// Opens the database at `path` with its settings locked.
-    pub(super) fn open(path: PathBuf) -> Result<Self, Report<OpenError>> {
+    /// Returns the size of the file at `path`, the total size of the files under it if it is a
+    /// directory, or zero if it does not exist.
+    fn file_size(path: &Path) -> io::Result<u64> {
+        let metadata = match fs::symlink_metadata(path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(0),
+            Err(error) => return Err(error),
+        };
+        if !metadata.is_dir() {
+            return Ok(metadata.len());
+        }
+
+        let mut total = 0_u64;
+        for entry in fs::read_dir(path)? {
+            total = total.saturating_add(Self::file_size(&entry?.path())?);
+        }
+        Ok(total)
+    }
+
+    /// Returns the disk space the workspace files use.
+    fn workspace_size(&self) -> Result<ByteSize, Report<DiskUsageError>> {
+        let mut used = 0_u64;
+        for path in self.files.measured() {
+            let size = Self::file_size(path).change_context_lazy(|| DiskUsageError::Measure {
+                path: path.to_owned(),
+            })?;
+            used = used.saturating_add(size);
+        }
+        Ok(ByteSize::from_bytes(used))
+    }
+
+    /// Returns the disk space the workspace files use, or `None` if there is no disk limit.
+    ///
+    /// When the files are over the limit, a checkpoint writes the log into the database file and
+    /// truncates the log, and the files are measured again.
+    fn disk_usage(&self) -> Result<Option<DiskUsage>, Report<DiskUsageError>> {
+        let Some(limit) = self.disk_limit else {
+            return Ok(None);
+        };
+        let mut used = self.workspace_size()?;
+        if used > limit {
+            self.duckdb
+                .execute_batch("CHECKPOINT")
+                .change_context(DiskUsageError::Checkpoint)?;
+            used = self.workspace_size()?;
+        }
+        Ok(Some(DiskUsage { used, limit }))
+    }
+
+    /// Checks the workspace files against the disk limit after a request.
+    fn check_disk_limit(&self) -> Result<(), Report<StatementError>> {
+        match self
+            .disk_usage()
+            .change_context(StatementError::DiskUsage)?
+        {
+            Some(DiskUsage { used, limit }) if used > limit => {
+                Err(Report::new(StatementError::DiskLimit { used, limit }))
+            }
+            Some(_) | None => Ok(()),
+        }
+    }
+
+    /// Opens the database at `path` with the limits in `config` and its settings locked.
+    pub(super) fn open(path: PathBuf, config: &WorkspaceConfig) -> Result<Self, Report<OpenError>> {
         let files = WorkspaceFiles::new(path);
         let lock = Self::lock(&files)?;
 
-        let mut config = Config::default();
-        for (setting, value) in [
-            (Setting::AllowCommunityExtensions, "false"),
-            (Setting::AutoinstallKnownExtensions, "false"),
-            (Setting::AutoloadKnownExtensions, "false"),
-            (Setting::EnableExternalAccess, "false"),
-            (Setting::LockConfiguration, "true"),
-        ] {
-            config = config
-                .with(setting.to_string(), value)
-                .change_context_lazy(|| OpenError::Configure {
-                    setting,
-                    value: value.into(),
-                })?;
+        let limits = [
+            (
+                Setting::MemoryLimit,
+                config.memory_limit.map(ByteSize::setting),
+            ),
+            (
+                Setting::MaxTempDirectorySize,
+                config.temp_directory_limit.map(ByteSize::setting),
+            ),
+            (
+                Setting::Threads,
+                config
+                    .threads
+                    .map(|threads| threads.to_string().into_boxed_str()),
+            ),
+        ];
+        let settings = [
+            (Setting::AllowCommunityExtensions, Some("false".into())),
+            (Setting::AutoinstallKnownExtensions, Some("false".into())),
+            (Setting::AutoloadKnownExtensions, Some("false".into())),
+            (Setting::EnableExternalAccess, Some("false".into())),
+        ]
+        .into_iter()
+        .chain(limits)
+        .chain([(Setting::LockConfiguration, Some("true".into()))]);
+
+        let mut duckdb_config = Config::default();
+        for (setting, value) in settings {
+            let Some(value) = value else {
+                continue;
+            };
+            duckdb_config = duckdb_config
+                .with(setting.to_string(), &value)
+                .change_context_lazy(|| OpenError::Configure { setting, value })?;
         }
-        let duckdb = duckdb::Connection::open_with_flags(files.database(), config)
+        let duckdb = duckdb::Connection::open_with_flags(files.database(), duckdb_config)
             .change_context_lazy(|| OpenError::Open {
                 path: files.database().to_owned(),
             })?;
 
-        Ok(Self {
+        let opened = Self {
             interrupt: InterruptGuard::new(Arc::new(Interrupt::new(duckdb.interrupt_handle()))),
             duckdb,
             files,
+            disk_limit: config.disk_limit,
             lock,
-        })
+        };
+        match opened.disk_usage().change_context(OpenError::DiskUsage)? {
+            Some(DiskUsage { used, limit }) if used > limit => {
+                Err(Report::new(OpenError::DiskLimit { used, limit }))
+            }
+            Some(_) | None => Ok(opened),
+        }
     }
 
     /// Returns the [`Interrupt`] that cancels the requests running on this connection.
@@ -148,6 +246,7 @@ impl Connection {
             .into_iter()
             .map(String::into_boxed_str)
             .collect();
+        self.check_disk_limit()?;
         Ok(Rows::new(columns, rows))
     }
 
@@ -163,7 +262,7 @@ impl Connection {
             ))
             .and_then(|mut statement| statement.execute([]))
             .map_err(StatementError::from_duckdb)?;
-        Ok(())
+        self.check_disk_limit()
     }
 
     /// Copies the database file to `partial`, syncs it and renames it to `target`.
@@ -294,16 +393,18 @@ impl Connection {
         }
     }
 
-    /// Opens the database at `path`, sends the result on `ready`, and runs `commands`.
+    /// Opens the database at `path` with the limits in `config`, sends the result on `ready`, and
+    /// runs `commands`.
     ///
     /// A panic while the commands run is logged. The connection is dropped while the panic
     /// unwinds, so nothing it holds is used after the panic.
     pub(super) fn serve(
         path: PathBuf,
+        config: &WorkspaceConfig,
         ready: Reply<Arc<Interrupt>, OpenError>,
         commands: &mpsc::Receiver<(RequestId, Command)>,
     ) {
-        let connection = match Self::open(path) {
+        let connection = match Self::open(path, config) {
             Ok(connection) => connection,
             Err(report) => {
                 ready.send(Err(report));
