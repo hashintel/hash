@@ -33,7 +33,7 @@
     "@tsconfig/bases": "catalog:",
     "@types/js-yaml": "^4",
     "@types/node": "catalog:",
-    "oxlint": "1.86.0",
+    "oxlint": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
