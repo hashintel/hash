@@ -8,7 +8,7 @@ import {
 
 import { CommandPalette } from "./plugin/command-palette";
 
-const createCommandPalettePlugin = definePetrinautPlugin({
+const CommandPalettePlugin = definePetrinautPlugin({
   id: "website.command-palette",
   name: "Command palette",
   description:
@@ -33,9 +33,7 @@ const createCommandPalettePlugin = definePetrinautPlugin({
 });
 
 /** Holds whether the palette is open, and binds ⌘K / Ctrl+K to the toggle. */
-const useCommandPalettePlugin: PluginHook<
-  typeof createCommandPalettePlugin
-> = () => {
+const useCommandPalettePlugin: PluginHook<typeof CommandPalettePlugin> = () => {
   const [isOpen, setOpen] = useState(false);
   const toggle = () => setOpen((open) => !open);
 
@@ -69,6 +67,6 @@ const useCommandPalettePlugin: PluginHook<
 };
 
 /** The ⌘K palette over the editor's commands, with a top-bar button. */
-export const commandPalettePlugin = createCommandPalettePlugin(
+export const commandPalettePlugin = CommandPalettePlugin(
   useCommandPalettePlugin,
 );
