@@ -8,7 +8,7 @@ import {
 import { WalkthroughDialog } from "./plugin/walkthrough-dialog";
 import { walkthroughSteps } from "./plugin/walkthrough-steps";
 
-const createWalkthroughPlugin = definePetrinautPlugin({
+const WalkthroughPlugin = definePetrinautPlugin({
   id: "website.walkthrough",
   name: "Welcome guide",
   description:
@@ -25,9 +25,7 @@ const createWalkthroughPlugin = definePetrinautPlugin({
   root: true,
 });
 
-const useWalkthroughPlugin: PluginHook<typeof createWalkthroughPlugin> = (
-  api,
-) => {
+const useWalkthroughPlugin: PluginHook<typeof WalkthroughPlugin> = (api) => {
   // Read once: changing the setting takes effect the next time the editor opens.
   const [open, setOpen] = useState(() => api.settings.get("showOnInit"));
   const close = () => {
@@ -44,4 +42,4 @@ const useWalkthroughPlugin: PluginHook<typeof createWalkthroughPlugin> = (
 };
 
 /** The welcome guide over the editor as it opens; dismissing it turns its setting off. */
-export const walkthroughPlugin = createWalkthroughPlugin(useWalkthroughPlugin);
+export const walkthroughPlugin = WalkthroughPlugin(useWalkthroughPlugin);
