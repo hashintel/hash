@@ -6,7 +6,7 @@ import {
   Typography,
 } from "@mui/material";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
@@ -200,6 +200,14 @@ export const FilePreviewSection = () => {
 
   const isFullScreen = fullScreenHandle.active;
 
+  /** The file the DOCX preview could not show, which then gets the icon view. */
+  const [unavailableDocxUrl, setUnavailableDocxUrl] = useState<string>();
+
+  const markDocxUnavailable = useCallback(
+    () => setUnavailableDocxUrl(fileUrl),
+    [fileUrl],
+  );
+
   if (!fileUrl) {
     return null;
   }
@@ -216,7 +224,9 @@ export const FilePreviewSection = () => {
   const isPdf = mimeType === "application/pdf" || fileName?.endsWith(".pdf");
 
   const isDocx =
-    mimeType === docxMimeType || !!fileName?.toLowerCase().endsWith(".docx");
+    (mimeType === docxMimeType ||
+      !!fileName?.toLowerCase().endsWith(".docx")) &&
+    unavailableDocxUrl !== fileUrl;
 
   return (
     <SectionWrapper
@@ -363,6 +373,7 @@ export const FilePreviewSection = () => {
           />
         ) : isDocx ? (
           <DocxPreview
+            onUnavailable={markDocxUnavailable}
             setShowSearch={setShowSearch}
             showSearch={showSearch}
             url={fileUrl}

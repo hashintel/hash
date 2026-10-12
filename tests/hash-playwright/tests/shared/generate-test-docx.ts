@@ -134,3 +134,16 @@ export const generateHostileTestDocx = (): Buffer =>
     ],
     extraContentTypes: `<Override PartName="/word/chunk.html" ContentType="text/html"/>`,
   });
+
+/**
+ * Builds a DOCX that folio refuses to draw: a bookmark that ends between
+ * paragraphs without having started.
+ */
+export const generateUndrawableTestDocx = (): Buffer =>
+  writeDocx({
+    body: [
+      paragraph("Undrawable document"),
+      `<w:bookmarkEnd w:id="12"/>`,
+      paragraph("After the broken bookmark"),
+    ].join(""),
+  });

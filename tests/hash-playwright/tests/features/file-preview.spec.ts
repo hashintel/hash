@@ -5,6 +5,7 @@ import { getUser, uploadFile } from "../shared/api-queries";
 import {
   generateHostileTestDocx,
   generateTestDocx,
+  generateUndrawableTestDocx,
 } from "../shared/generate-test-docx";
 import { generateTestPdf } from "../shared/generate-test-pdf";
 import { expect, test } from "../shared/runtime";
@@ -280,17 +281,27 @@ test("a .doc file keeps the icon view", async ({ page }) => {
   await expect(page.locator(".layout-page")).toHaveCount(0);
 });
 
-test("a corrupt .docx file stops the loading indicator and keeps the download", async ({
-  page,
-}) => {
-  await uploadAndOpenFile(page, {
+for (const { description, contents } of [
+  {
+    description: "a corrupt .docx file",
     contents: Buffer.from("Not a ZIP archive"),
-    mimeType: docxMimeType,
-    name: `file-preview-corrupt-${Date.now()}.docx`,
-  });
+  },
+  {
+    description: "a .docx file folio cannot draw",
+    contents: generateUndrawableTestDocx(),
+  },
+]) {
+  test(`${description} falls back to the icon view and keeps the download`, async ({
+    page,
+  }) => {
+    const name = `file-preview-unavailable-${Date.now()}.docx`;
 
-  await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
-  await expect(page.getByRole("main").getByRole("progressbar")).toHaveCount(0, {
-    timeout: 15_000,
+    await uploadAndOpenFile(page, { contents, mimeType: docxMimeType, name });
+
+    await expect(
+      page.getByRole("paragraph").filter({ hasText: name }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".layout-page")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
   });
-});
+}

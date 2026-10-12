@@ -24,18 +24,23 @@ import type {
 const zoomStep = 0.2;
 
 type DocxPreviewProps = {
+  /**
+   * Called when the document cannot be shown at all, so the caller can show
+   * the file's icon instead.
+   */
+  onUnavailable: () => void;
   showSearch: boolean;
   setShowSearch: (showSearch: boolean) => void;
   url: string;
 };
 
 export const DocxPreview = ({
+  onUnavailable,
   showSearch,
   setShowSearch,
   url,
 }: DocxPreviewProps) => {
   const [data, setData] = useState<ArrayBuffer | null>(null);
-  const [failed, setFailed] = useState(false);
   const [pages, setPages] = useState<DocxDocumentPages>({
     current: 1,
     total: 0,
@@ -63,16 +68,24 @@ export const DocxPreview = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const handleError = useCallback((error: unknown) => {
-    setFailed(true);
-    Sentry.captureException(error);
-  }, []);
+  /**
+   * An error before any page is laid out means the document cannot be shown.
+   * A later one, such as a part folio cannot draw, leaves the pages in place.
+   */
+  const handleError = useCallback(
+    (error: unknown) => {
+      Sentry.captureException(error);
+      if (!controlsRef.current?.hasPages()) {
+        onUnavailable();
+      }
+    },
+    [onUnavailable],
+  );
 
   useEffect(() => {
     let cancelled = false;
 
     setData(null);
-    setFailed(false);
 
     fetchPresignedFileUrl(url)
       .then((presignedUrl) => fetch(presignedUrl, { credentials: "omit" }))
@@ -135,34 +148,31 @@ export const DocxPreview = ({
         })}
       >
         {data ? (
-          <Sentry.ErrorBoundary onError={() => setFailed(true)}>
+          <Sentry.ErrorBoundary onError={onUnavailable}>
             <FolioDocument
               controlsRef={controlsRef}
               data={data}
-              failed={failed}
               onError={handleError}
               onPagesChange={setPages}
               onZoomChange={setZoom}
             />
           </Sentry.ErrorBoundary>
-        ) : failed ? null : (
+        ) : (
           <Stack alignItems="center" justifyContent="center" height="100%">
             <CircularProgress />
           </Stack>
         )}
-        {!failed && (
-          <Box sx={{ position: "absolute", top: 20, left: 20, zIndex: 100 }}>
-            <FilePreviewSearch
-              closeSearch={() => setShowSearch(false)}
-              onSearch={search}
-              onSelectHit={selectSearchHit}
-              selectedIndex={selectedSearchHit}
-              showSearch={showSearch}
-              total={searchHitCount}
-            />
-          </Box>
-        )}
-        {pages.total > 0 && !failed && (
+        <Box sx={{ position: "absolute", top: 20, left: 20, zIndex: 100 }}>
+          <FilePreviewSearch
+            closeSearch={() => setShowSearch(false)}
+            onSearch={search}
+            onSelectHit={selectSearchHit}
+            selectedIndex={selectedSearchHit}
+            showSearch={showSearch}
+            total={searchHitCount}
+          />
+        </Box>
+        {pages.total > 0 && (
           <>
             <Stack
               direction="row"

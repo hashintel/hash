@@ -1,5 +1,5 @@
 import "@stll/folio-react/standalone.css";
-import { CircularProgress } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import { DocxEditor, hashFolioAIBlockText } from "@stll/folio-react";
 import { getFolioMessages } from "@stll/folio-react/messages";
 import escapeRegExp from "lodash/escapeRegExp";
@@ -14,6 +14,8 @@ import type { Ref } from "react";
  * outside this file depends on the engine itself.
  */
 export type DocxDocumentControls = {
+  /** Whether the engine shows at least one page. */
+  hasPages: () => boolean;
   goToPage: (pageNumber: number) => void;
   zoomBy: (step: number) => void;
   /** Finds every hit of `text` and returns how many there are. */
@@ -28,7 +30,6 @@ type SearchHit = Parameters<DocxEditorRef["showInDocument"]>[0];
 type FolioDocumentProps = {
   controlsRef: Ref<DocxDocumentControls>;
   data: ArrayBuffer;
-  failed: boolean;
   onError: (error: Error) => void;
   onPagesChange: (pages: DocxDocumentPages) => void;
   onZoomChange: (zoom: number) => void;
@@ -39,12 +40,12 @@ const folioMessages = getFolioMessages("en");
 export const FolioDocument = ({
   controlsRef,
   data,
-  failed,
   onError,
   onPagesChange,
   onZoomChange,
 }: FolioDocumentProps) => {
   const editorRef = useRef<DocxEditorRef>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const reportedPages = useRef<DocxDocumentPages>({ current: 0, total: 0 });
   const searchResult = useRef<{
     hits: SearchHit[];
@@ -90,6 +91,11 @@ export const FolioDocument = ({
   useImperativeHandle(
     controlsRef,
     () => ({
+      /**
+       * folio reports one page before it has laid out any, so this looks for
+       * a drawn page instead.
+       */
+      hasPages: () => !!containerRef.current?.querySelector(".layout-page"),
       goToPage: (pageNumber) => editorRef.current?.scrollToPage(pageNumber),
       zoomBy: (step) => {
         const editor = editorRef.current;
@@ -150,17 +156,19 @@ export const FolioDocument = ({
 
   return (
     <IntlProvider locale="en" messages={folioMessages}>
-      <DocxEditor
-        ref={editorRef}
-        autoOpenReviewSidebar={false}
-        documentBuffer={data}
-        keyboardShortcuts="none"
-        loadingIndicator={failed ? null : <CircularProgress />}
-        onError={onError}
-        onScrollTopChange={reportPages}
-        readOnly
-        style={{ height: "100%" }}
-      />
+      <Box ref={containerRef} sx={{ height: "100%" }}>
+        <DocxEditor
+          ref={editorRef}
+          autoOpenReviewSidebar={false}
+          documentBuffer={data}
+          keyboardShortcuts="none"
+          loadingIndicator={<CircularProgress />}
+          onError={onError}
+          onScrollTopChange={reportPages}
+          readOnly
+          style={{ height: "100%" }}
+        />
+      </Box>
     </IntlProvider>
   );
 };
