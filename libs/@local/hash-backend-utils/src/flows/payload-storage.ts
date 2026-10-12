@@ -98,23 +98,28 @@ export const storePayload = async <
  * Recent downloads of stored objects, by storage key. Stored objects are never modified once written, so they
  * can be reused: this stops each branch of a for-each step from downloading the same array to pick its item.
  * The cache is kept small because stored payloads can be large.
+ *
+ * It holds the downloaded text, and each read parses its own copy, so a caller that changes the value it gets
+ * doesn't change what later reads get.
  */
-const downloadCache = new Map<string, Promise<unknown>>();
+const downloadCache = new Map<string, Promise<string>>();
 const maxCachedDownloads = 20;
 
 const downloadStoredObject = (
   storageProvider: FileStorageProvider,
   storageKey: string,
 ): Promise<unknown> => {
+  const parse = (text: string) => JSON.parse(text) as unknown;
+
   const cached = downloadCache.get(storageKey);
 
   if (cached) {
-    return cached;
+    return cached.then(parse);
   }
 
   const download = storageProvider
     .downloadDirect({ key: storageKey })
-    .then((buffer) => JSON.parse(buffer.toString("utf-8")) as unknown);
+    .then((buffer) => buffer.toString("utf-8"));
 
   /*
    * Don't cache failures, so that a later attempt can retry the download. A newer download of the same key may have
@@ -136,7 +141,7 @@ const downloadStoredObject = (
 
   downloadCache.set(storageKey, download);
 
-  return download;
+  return download.then(parse);
 };
 
 export type ResolvePayloadContext = {
