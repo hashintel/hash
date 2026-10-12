@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use error_stack::Report;
 
-use crate::variant_name::VariantName;
+use crate::{ByteSize, variant_name::VariantName};
 
 /// A DuckDB setting the workspace applies when it opens the database.
 ///
@@ -15,6 +15,9 @@ pub enum Setting {
     AutoloadKnownExtensions,
     EnableExternalAccess,
     LockConfiguration,
+    MemoryLimit,
+    MaxTempDirectorySize,
+    Threads,
 }
 
 impl Setting {
@@ -31,6 +34,16 @@ impl fmt::Display for Setting {
     }
 }
 
+/// Reports why the disk space of the workspace files could not be checked against
+/// [`WorkspaceConfig::disk_limit`](crate::WorkspaceConfig::disk_limit).
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum DiskUsageError {
+    #[display("could not read the disk usage of `{}`", path.display())]
+    Measure { path: PathBuf },
+    #[display("could not checkpoint the database")]
+    Checkpoint,
+}
+
 /// Reports why [`Workspace::open`](crate::Workspace::open) failed.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum OpenError {
@@ -42,6 +55,10 @@ pub enum OpenError {
     Configure { setting: Setting, value: Box<str> },
     #[display("could not open the database at `{}`", path.display())]
     Open { path: PathBuf },
+    #[display("the workspace files use {used}, over the disk limit of {limit}")]
+    DiskLimit { used: ByteSize, limit: ByteSize },
+    #[display("could not check the workspace files against the disk limit")]
+    DiskUsage,
     #[display("could not start the workspace thread")]
     Spawn,
     #[display("the workspace thread stopped before the database opened")]
@@ -180,6 +197,12 @@ pub enum StatementError {
     /// could not be read.
     #[display("the statement failed")]
     Failed,
+    #[display(
+        "after the statement, the workspace files use {used}, over the disk limit of {limit}"
+    )]
+    DiskLimit { used: ByteSize, limit: ByteSize },
+    #[display("could not check the workspace files against the disk limit after the statement")]
+    DiskUsage,
     #[display("the workspace thread stopped before the statement finished")]
     Stopped,
 }
