@@ -1,5 +1,4 @@
 [tools]
-"cargo:bindgen-cli"  = "0.72.1"
 "cargo:clippy-sarif" = "0.8.0"
 "cargo:sarif-fmt"    = "0.8.0"
 

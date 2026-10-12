@@ -29,6 +29,10 @@ sha256sum --check --quiet <<<"$checksum  $work/aws-lc-sys.crate"
 tar --extract --gzip --file "$work/aws-lc-sys.crate" --directory "$work"
 crate=$work/aws-lc-sys-$version
 
+export MISE_ENV=${MISE_ENV:+$MISE_ENV,}aws-lc
+mise install --locked cargo:bindgen-cli
+PATH=$(mise where cargo:bindgen-cli)/bin:$PATH
+
 # These options match the CMake build `aws-lc-sys` itself runs, including the crate's symbol
 # prefix, so the bindings and library match what `aws-lc-rs` is compiled against.
 cmake -S "$crate/aws-lc" -B "$work/build" \

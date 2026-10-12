@@ -1,0 +1,3 @@
+# Tools the `install-aws-lc` action installs when it has to build the AWS-LC prefix.
+[tools]
+"cargo:bindgen-cli" = "0.72.1"

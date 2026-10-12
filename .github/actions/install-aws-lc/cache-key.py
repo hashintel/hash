@@ -32,20 +32,22 @@ build_environment = sorted(
     for name, value in os.environ.items()
     if re.fullmatch(r"(CC|CFLAGS|ASMFLAGS|LDFLAGS|CMAKE_[A-Z_]+)", name)
 )
+
+
+def version_of(tool):
+    result = subprocess.run([tool, "--version"], capture_output=True, text=True)
+    if result.returncode != 0:
+        sys.exit(f"::error::`{tool} --version` failed: {result.stderr.strip()}")
+    return result.stdout
+
+
 inputs = "\n".join(
     [
         checksum,
         profile,
         os.environ["ACTION_FILES"],
-        subprocess.run(
-            ["cc", "--version"], check=True, capture_output=True, text=True
-        ).stdout,
-        subprocess.run(
-            ["cmake", "--version"], check=True, capture_output=True, text=True
-        ).stdout,
-        subprocess.run(
-            ["bindgen", "--version"], check=True, capture_output=True, text=True
-        ).stdout,
+        version_of("cc"),
+        version_of("cmake"),
         *build_environment,
     ]
 )
