@@ -110,7 +110,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
           sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
-          aws_lc: false
+          aws_lc_profile: release
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
@@ -149,7 +149,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
           sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
-          aws_lc: false
+          aws_lc_profile: release
 
       - name: Prune repository
         uses: $/.github/actions/prune-repository
@@ -233,7 +233,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
           sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
-          aws_lc: false
+          aws_lc_profile: release
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
@@ -330,7 +330,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           sccache: false # sccache is already running in the background
-          aws_lc: false
+          aws_lc_profile: release
 
       - name: Prune repository
         uses: $/.github/actions/prune-repository
