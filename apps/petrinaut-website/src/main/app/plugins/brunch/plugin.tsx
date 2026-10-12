@@ -7,7 +7,7 @@ import { useBrunchSession } from "./plugin/use-brunch-session";
 
 import type { PluginHook } from "@hashintel/petrinaut/ui/plugin";
 
-const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
+export const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
   const { chat, ledger, conversation } = useBrunchSession(api);
 
   return {

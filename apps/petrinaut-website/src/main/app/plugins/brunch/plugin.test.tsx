@@ -18,7 +18,7 @@ import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
 } from "./conversation/brunch-conversation-id";
-import { brunchPlugin } from "./plugin";
+import { useBrunchPlugin } from "./plugin";
 import {
   brunchPetrinautClientToolNames,
   canonicalPetrinautClientToolNames,
@@ -32,7 +32,6 @@ import type { Petrinaut } from "@hashintel/petrinaut-core";
 import type {
   PluginApi,
   PluginAssistantTab,
-  PluginHook,
 } from "@hashintel/petrinaut/ui/plugin";
 
 await vi.hoisted(async () => {
@@ -129,7 +128,6 @@ type ProbeApi = PluginApi<typeof BrunchPlugin>;
 
 /** Runs the plugin's hook as the editor does and records what it returns. */
 const BrunchProbe = ({ api }: { api: ProbeApi }) => {
-  const useBrunchPlugin = brunchPlugin.hook as PluginHook<typeof BrunchPlugin>;
   const { assistant, provides } = useBrunchPlugin(api);
   // Recorded once React commits the render, like the editor's outlets.
   useLayoutEffect(() => {

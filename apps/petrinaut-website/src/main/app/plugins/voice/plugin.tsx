@@ -8,7 +8,7 @@ import { BrunchPlugin } from "../brunch/definition";
 import { VoicePlugin } from "./definition";
 import { useBrunchVoice } from "./plugin/use-brunch-voice";
 
-const useVoicePlugin: PluginHook<typeof VoicePlugin> = (api) => {
+export const useVoicePlugin: PluginHook<typeof VoicePlugin> = (api) => {
   const brunch = usePluginService(BrunchPlugin);
   const voice = useBrunchVoice({
     shown: api.assistant.isActive,

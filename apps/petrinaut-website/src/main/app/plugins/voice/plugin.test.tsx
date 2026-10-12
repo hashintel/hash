@@ -18,12 +18,12 @@ import {
 import { renderEditorWith } from "../_shared/testing/render-editor-with";
 import { stubLocalStorage } from "../_shared/testing/stub-local-storage";
 import { brunchPlugin } from "../brunch/plugin";
-import { voicePlugin } from "./plugin";
+import { useVoicePlugin, voicePlugin } from "./plugin";
 
 import type { AssistantChatProps } from "../_shared/chat/assistant-chat";
 import type { PetrinautAiVoiceModeContext } from "../_shared/chat/composer-control";
 import type { VoicePlugin, VoiceService } from "./definition";
-import type { PluginApi, PluginHook } from "@hashintel/petrinaut/ui/plugin";
+import type { PluginApi } from "@hashintel/petrinaut/ui/plugin";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
@@ -93,7 +93,6 @@ describe("Voice's hook", () => {
     shown: boolean;
     settings: Settings;
   }) => {
-    const useVoicePlugin = voicePlugin.hook as PluginHook<typeof VoicePlugin>;
     const { assistant, provides } = useVoicePlugin({
       errors: { capture: () => {} },
       notifications: { add: () => "" },
