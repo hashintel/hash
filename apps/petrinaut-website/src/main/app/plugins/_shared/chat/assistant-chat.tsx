@@ -1173,6 +1173,16 @@ const ConversationAssistantChat = ({
       });
   };
 
+  /**
+   * Hands the transcript to a host that stores it. The host passes it back
+   * as `messages` a commit or more later, behind the chat, so its stored
+   * transcript applies only until the chat's first report.
+   */
+  const reportMessages = (reported: PetrinautAiMessage[]) => {
+    if (aiAssistant.onMessages === undefined) return;
+    hydratedConversationIdRef.current = toolHostIdentityRef.current;
+    aiAssistant.onMessages(reported);
+  };
   const {
     error,
     id: conversationId,
@@ -1268,12 +1278,12 @@ const ConversationAssistantChat = ({
         const finalized = finalizeStreamingMessageParts(finishedMessages);
         setMessages(finalized);
         setStreamError(null);
-        aiAssistant.onMessages?.(finalized);
+        reportMessages(finalized);
         setStopped(true);
         return;
       }
 
-      aiAssistant.onMessages?.(finishedMessages);
+      reportMessages(finishedMessages);
       // A rejected durable Stop remains an error even if the provider later
       // completes. Neither completion nor deferred tools may report success.
       if (failed) return;
@@ -2145,7 +2155,7 @@ const ConversationAssistantChat = ({
         setStopped(false);
         setContinuationPending(false);
         setMessages([]);
-        aiAssistant.onMessages?.([]);
+        reportMessages([]);
         aiAssistant.onClearMessages?.();
       }}
       onClose={() => {

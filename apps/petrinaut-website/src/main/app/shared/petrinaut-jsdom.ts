@@ -56,6 +56,18 @@ export const preloadMonaco = async () => {
   await import("monaco-editor");
 };
 
+/**
+ * The editor imports the language server's worker module, a large inline
+ * bundle, when it mounts, and `diagnose()` waits for that worker. Import it
+ * during setup, with `Worker` stubbed, so a test's own waits leave out the
+ * cold import. Give the hook 30 seconds, as for {@link preloadMonaco}.
+ */
+export const preloadLanguageServer = async () => {
+  const { createLanguageServerWorker } =
+    await import("@hashintel/petrinaut-core/workers/lsp");
+  (await createLanguageServerWorker()).terminate();
+};
+
 export class NoopResizeObserver {
   observe() {}
   unobserve() {}

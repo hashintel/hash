@@ -1,8 +1,12 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { createUIMessageStreamResponse, type UIMessageChunk } from "ai";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
+import {
+  InProcessLspWorker,
+  preloadLanguageServer,
+} from "../../shared/petrinaut-jsdom";
 import { renderEditorWith } from "../_shared/testing/render-editor-with";
 import { petrinautAiPlugin } from "./plugin";
 
@@ -13,6 +17,12 @@ await vi.hoisted(async () => {
     await import("../../shared/petrinaut-jsdom");
   installPetrinautDomShims();
 });
+
+// Kept until the environment is disposed, as `renderEditorWith` keeps it.
+beforeAll(async () => {
+  vi.stubGlobal("Worker", InProcessLspWorker);
+  await preloadLanguageServer();
+}, 30_000);
 
 afterEach(cleanup);
 
