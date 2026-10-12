@@ -37,7 +37,8 @@ switch are keyed by `id`.
 | `viewport-controls` | Buttons                   | The viewport controls at the canvas's bottom right, below the built-in buttons. |
 
 At each place, each plugin's buttons render before its top-bar items, in the
-order of the `plugins` array. The toolbar sets a button's size and variant to
+order of the `plugins` array. Plugin items render before the host's
+`slots.topBarStart` and `slots.topBarEnd`, and after its `viewportActions`. The toolbar sets a button's size and variant to
 match the built-in buttons.
 
 ### Settings

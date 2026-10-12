@@ -85,9 +85,12 @@ One `PluginBoundary`, Suspense plus an error boundary, wraps each host and
 each contribution. A contribution that suspends renders nothing until it is
 ready. A thrown error renders nothing, is
 [reported](doc:plugins/reference#failure-reports) to the host's error tracker,
-and stops only that host or contribution. A contribution that threw stays empty
-while its plugin shows as on, until its host remounts: a `readonly` toggle, the
-user switching the plugin off and on, or a re-created plugin.
+and stops only that host or contribution. Boundaries catch only errors thrown
+while rendering: an error in `onClick`, a command's `run`, async code or
+`settings.set` reaches none, so plugin code reports it with
+`api.errors.capture`. A contribution that threw stays empty while its plugin
+shows as on, until its host remounts: a `readonly` toggle, the user switching
+the plugin off and on, or a re-created plugin.
 
 A hook that throws marks its plugin `failed` until the user switches it off
 and on, its module is replaced (a new `hostKey`), or another document opens. A
@@ -104,6 +107,11 @@ tick both apply. Each change gives a new settings snapshot, which becomes the
 plugin's `api.settings`. The rows of a plugin that is off or failed are hidden.
 
 ## React Compiler
+
+Plugin code runs without the React Compiler. Compiled, a hook returns the same
+contributions while its inputs hold, so nothing publishes. Uncompiled, it
+returns new contributions on every render of its host, which publishes them
+again and re-renders every outlet.
 
 - `PluginHost` opts out with `"use no memo"`: the hook it calls differs per
   host, which the compiler cannot compile. A host is keyed by its plugin's
