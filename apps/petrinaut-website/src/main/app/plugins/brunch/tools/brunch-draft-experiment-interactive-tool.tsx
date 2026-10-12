@@ -302,7 +302,7 @@ export const BrunchDraftExperimentWidget = ({
     preparedOnceRef.current = true;
     const initialDefinition = instance.handle.doc();
     if (!initialDefinition) {
-      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- this effect's one live-model preparation found no document to prepare against
+      // eslint-disable-next-line react/set-state-in-effect -- this effect's one live-model preparation found no document to prepare against
       setPreparationFailure({
         kind: "prepare",
         message: "The bound browser document is unavailable.",
@@ -551,7 +551,11 @@ export const BrunchDraftExperimentWidget = ({
           run.phase === "running" ? () => run.controller.abort() : undefined
         }
         onRetry={
-          run.phase === "failed" && canRun ? () => void onRun() : undefined
+          run.phase === "failed" && canRun
+            ? () => {
+                void onRun();
+              }
+            : undefined
         }
         onViewExperiment={
           canViewExperiment
@@ -718,7 +722,9 @@ export const BrunchDraftExperimentWidget = ({
                 size="sm"
                 tone="brand"
                 disabled={blocksRun}
-                onClick={() => void onRun()}
+                onClick={() => {
+                  void onRun();
+                }}
                 type="button"
               >
                 {draft.run.phase === "failed"

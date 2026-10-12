@@ -105,7 +105,7 @@ const StreamingFramesStory = () => {
         return;
       }
       const frame = sirInfectedFrame({ frameNumber, ...FIXTURE, runs: 25 });
-      frameNumber++;
+      frameNumber += 1;
       setFrames((previous) => [...previous, frame]);
     }, 120);
     return () => clearInterval(timer);

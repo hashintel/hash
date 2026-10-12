@@ -134,7 +134,9 @@ export const useMetricPlot = ({
   // the whole chart, heatmap raster included.
   useEffect(() => {
     const pending = pendingRef.current;
-    pending.epochChange ||= contentEpoch !== contentRef.current.epoch;
+    if (contentEpoch !== contentRef.current.epoch) {
+      pending.epochChange = true;
+    }
     contentRef.current = { frames, plotData, epoch: contentEpoch };
     if (pending.frame !== null) {
       cancelAnimationFrame(pending.frame);

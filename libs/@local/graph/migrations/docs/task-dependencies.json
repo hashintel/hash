@@ -3,6 +3,7 @@
   "dependencies": [
     "error-stack",
     "hash-graph-migrations-macros",
+    "hash-secret",
     "hash-telemetry"
   ],
   "tasks": {

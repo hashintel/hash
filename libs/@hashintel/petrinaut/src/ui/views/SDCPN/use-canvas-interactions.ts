@@ -360,14 +360,14 @@ export const useCanvasInteractions = (
     });
 
     updateDraggingStateByNodeId((existing) => {
-      let next = existing;
-      for (const { id } of drops) {
-        if (id in next) {
-          const { [id]: _, ...rest } = next;
-          next = rest;
-        }
+      // Unchanged state keeps its identity, so nothing re-renders.
+      if (!drops.some(({ id }) => id in existing)) {
+        return existing;
       }
-      return next;
+      const droppedIds = new Set(drops.map(({ id }) => id));
+      return Object.fromEntries(
+        Object.entries(existing).filter(([id]) => !droppedIds.has(id)),
+      );
     });
 
     if (commits.length > 0) {

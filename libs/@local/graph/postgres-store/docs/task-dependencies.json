@@ -10,6 +10,7 @@
     "hash-graph-test-data",
     "hash-graph-types",
     "hash-graph-validation",
+    "hash-secret",
     "hash-status",
     "hash-telemetry",
     "hash-temporal-client",

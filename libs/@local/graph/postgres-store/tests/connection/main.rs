@@ -359,7 +359,7 @@ async fn pool_reports_unreachable_database() {
     let unreachable = DatabaseConnectionInfo::new(
         DatabaseType::Postgres,
         reachable.user().to_owned(),
-        reachable.password().to_owned(),
+        reachable.password().to_boxed(),
         reachable.host().to_owned(),
         reachable.port(),
         "hash_graph_does_not_exist".to_owned(),

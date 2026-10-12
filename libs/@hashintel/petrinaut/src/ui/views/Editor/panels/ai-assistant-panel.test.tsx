@@ -4009,7 +4009,9 @@ describe("AiAssistantPanel composer submissions", () => {
         return (
           <button
             type="button"
-            onClick={() => void context.submitText({ text: "Read the net" })}
+            onClick={() => {
+              void context.submitText({ text: "Read the net" });
+            }}
           >
             Read net
           </button>

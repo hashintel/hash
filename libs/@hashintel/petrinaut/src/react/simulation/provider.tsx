@@ -390,7 +390,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     initializationGenerationRef.current += 1;
     simulationRef.current?.dispose();
     simulationRef.current = null;
-    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- reacting to a scenario switch from navigation: the running simulation is disposed here, and the resets run once per switch behind the previous-id guard above
+    // Reacting to a scenario switch from navigation: the running simulation is disposed here, and the resets run once per switch behind the previous-id guard above.
     setSimulation(null);
     setError(null);
     setErrorItemId(null);

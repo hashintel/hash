@@ -21,12 +21,15 @@ mod issuer;
 
 use core::{
     fmt::{self, Write as _},
+    mem::offset_of,
+    pin::{Pin, pin},
     str::FromStr,
 };
 
 use aws_lc_rs::error::Unspecified;
 use error_stack::Report;
 use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash, ApiTokenType, ApiTokenVersion};
+use hash_secret::Secret;
 use sha2::{Digest as _, Sha256};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
@@ -139,15 +142,13 @@ pub struct ApiTokenGenerationError;
 ///
 /// `Display` shows the token up to the first four digits of the token ID and `…`, such as
 /// `hsh_pat_pd_0296…`.
-#[derive(derive_more::Debug)]
+#[derive(Debug)]
 pub struct ApiToken {
     token_type: ApiTokenType,
     environment: Environment,
     version: ApiTokenVersion,
     token_id: ApiTokenId,
-    // TODO(BE-791): zeroize the secret on drop
-    #[debug(skip)]
-    secret: [u8; SECRET_LENGTH],
+    secret: Pin<Box<Secret<[u8; SECRET_LENGTH]>>>,
 }
 
 impl ApiToken {
@@ -174,10 +175,9 @@ impl ApiToken {
     }
 
     /// The complete token, secret included.
-    // TODO(BE-791): return the token in a type whose `Debug` output leaves out the secret
     #[must_use]
-    pub fn expose(&self) -> String {
-        let mut token = TokenLayout {
+    pub fn to_secret(&self) -> Pin<Box<Secret<str>>> {
+        let layout = TokenLayout {
             prefix: PREFIX_BYTES,
             token_type: *self.token_type.code(),
             type_separator: Separator::Underscore,
@@ -185,12 +185,26 @@ impl ApiToken {
             environment_separator: Separator::Underscore,
             token_id: encode_token_id(self.version, self.token_id),
             token_id_separator: Separator::Underscore,
-            secret: self.secret,
+            secret: [0; SECRET_LENGTH],
             checksum: [0; CHECKSUM_LENGTH],
         };
-        let (signed, _) = token.as_bytes().split_at(TOKEN_LENGTH - CHECKSUM_LENGTH);
-        token.checksum = encode_base62(u128::from(crc32fast::hash(signed)));
-        token.as_bytes().iter().copied().map(char::from).collect()
+        let (public, _) = layout.as_bytes().split_at(offset_of!(TokenLayout, secret));
+
+        // The token is ASCII, so it fills the capacity exactly. A reallocation would free a copy of
+        // the secret without zeroing it.
+        let mut token = String::with_capacity(TOKEN_LENGTH);
+        let buffer = token.as_ptr();
+        token.extend(public.iter().copied().map(char::from));
+        token.extend(self.secret.expose().iter().copied().map(char::from));
+        let checksum =
+            encode_base62::<CHECKSUM_LENGTH>(u128::from(crc32fast::hash(token.as_bytes())));
+        token.extend(checksum.iter().copied().map(char::from));
+        debug_assert_eq!(
+            token.as_ptr(),
+            buffer,
+            "the token buffer should not have been reallocated"
+        );
+        Secret::from_string(token)
     }
 }
 
@@ -209,13 +223,12 @@ impl fmt::Display for ApiToken {
 /// An API token with the SHA-256 hash of its secret in place of the secret.
 ///
 /// `Display` shows the token as [`ApiToken`] does.
-#[derive(derive_more::Debug)]
+#[derive(Debug)]
 pub struct HashedApiToken {
     token_type: ApiTokenType,
     environment: Environment,
     version: ApiTokenVersion,
     token_id: ApiTokenId,
-    #[debug(skip)]
     secret_hash: ApiTokenSecretHash,
 }
 
@@ -271,7 +284,7 @@ impl From<&ApiToken> for HashedApiToken {
             environment: token.environment,
             version: token.version,
             token_id: token.token_id,
-            secret_hash: hash_secret(&token.secret),
+            secret_hash: hash_secret(token.secret.expose()),
         }
     }
 }
@@ -377,7 +390,7 @@ impl FromStr for HashedApiToken {
 }
 
 /// The SHA-256 hash of `secret`.
-fn hash_secret(secret: &[u8; SECRET_LENGTH]) -> ApiTokenSecretHash {
+fn hash_secret(secret: &[u8]) -> ApiTokenSecretHash {
     ApiTokenSecretHash::new(Sha256::digest(secret).into())
 }
 
@@ -462,14 +475,23 @@ fn fill_random(bytes: &mut [u8]) -> Result<(), Report<ApiTokenGenerationError>> 
 /// every digit is equally likely. The pool is refilled until the secret is complete.
 fn draw_secret<E>(
     mut fill: impl FnMut(&mut [u8]) -> Result<(), E>,
-) -> Result<[u8; SECRET_LENGTH], E> {
-    let mut secret = [0; SECRET_LENGTH];
+) -> Result<Pin<Box<Secret<[u8; SECRET_LENGTH]>>>, E> {
+    let mut secret = Box::pin(Secret::zeroed());
+    let mut pool = pin!(Secret::<[u8; SECRET_POOL_LENGTH]>::zeroed());
     let mut filled = 0;
     while filled < SECRET_LENGTH {
-        let mut pool = [0; SECRET_POOL_LENGTH];
-        fill(&mut pool)?;
-        let digits = pool.iter().filter_map(|byte| base62_digit(byte >> 2));
-        for (slot, digit) in secret.iter_mut().skip(filled).zip(digits) {
+        fill(pool.as_mut().expose_mut())?;
+        let digits = pool
+            .expose()
+            .iter()
+            .filter_map(|byte| base62_digit(byte >> 2));
+        for (slot, digit) in secret
+            .as_mut()
+            .expose_mut()
+            .iter_mut()
+            .skip(filled)
+            .zip(digits)
+        {
             *slot = digit;
             filled += 1;
         }
@@ -523,6 +545,7 @@ mod tests {
     use core::{assert_matches, convert::Infallible};
 
     use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
+    use hash_secret::Secret;
     use rstest::rstest;
     use uuid::Uuid;
 
@@ -536,12 +559,17 @@ mod tests {
 
     /// A token with a fixed token ID and secret.
     fn fixed_token() -> ApiToken {
+        let mut secret = Box::pin(Secret::zeroed());
+        secret
+            .as_mut()
+            .expose_mut()
+            .copy_from_slice(b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg");
         ApiToken {
             token_type: ApiTokenType::User,
             environment: Environment::Production,
             version: ApiTokenVersion::V0,
             token_id: ApiTokenId::new(Uuid::from_u128(FIXED_TOKEN_ID)),
-            secret: *b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg",
+            secret,
         }
     }
 
@@ -582,9 +610,9 @@ mod tests {
     }
 
     #[test]
-    fn expose_fixed_token() {
+    fn to_secret_fixed_token() {
         assert_eq!(
-            fixed_token().expose(),
+            fixed_token().to_secret().expose(),
             "hsh_pat_pd_0296tiiBb3U904RIpygpjj_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg39B9Yp",
             "the token should carry its type, environment, token ID, secret and the checksum"
         );
@@ -651,7 +679,7 @@ mod tests {
             format!("{:?}", fixed_token()),
             format!(
                 "ApiToken {{ token_type: User, environment: Production, version: V0, token_id: \
-                 {:?}, .. }}",
+                 {:?}, secret: Secret {{ .. }} }}",
                 ApiTokenId::new(Uuid::from_u128(FIXED_TOKEN_ID))
             ),
             "the debug output should show everything but the secret"
@@ -664,7 +692,7 @@ mod tests {
             format!("{:?}", HashedApiToken::from(fixed_token())),
             format!(
                 "HashedApiToken {{ token_type: User, environment: Production, version: V0, \
-                 token_id: {:?}, .. }}",
+                 token_id: {:?}, secret_hash: ApiTokenSecretHash(..) }}",
                 ApiTokenId::new(Uuid::from_u128(FIXED_TOKEN_ID))
             ),
             "the debug output should show everything but the secret hash"
@@ -678,9 +706,10 @@ mod tests {
     fn parse_exposed(#[case] environment: Environment) {
         let token = ApiToken::generate(ApiTokenType::User, environment)
             .expect("the random number generator should provide bytes");
-        let exposed = token.expose();
+        let exposed = token.to_secret();
         let hashed = HashedApiToken::from(token);
         let parsed = exposed
+            .expose()
             .parse::<HashedApiToken>()
             .expect("the token should parse");
 
@@ -718,7 +747,7 @@ mod tests {
         .expect("filling the pool should not fail");
 
         assert_eq!(
-            secret.as_slice(),
+            secret.expose(),
             format!("z0{}", "A".repeat(SECRET_LENGTH - 2)).as_bytes(),
             "the secret should skip the bytes that stand for no digit"
         );
@@ -739,7 +768,7 @@ mod tests {
         .expect("filling the pool should not fail");
 
         assert_eq!(
-            secret.as_slice(),
+            secret.expose(),
             format!("00{}", "A".repeat(SECRET_LENGTH - 2)).as_bytes(),
             "the secret should continue in the next pool"
         );
@@ -748,7 +777,7 @@ mod tests {
     #[test]
     fn draw_secret_failing_fill() {
         assert_eq!(
-            draw_secret(|_| Err("the byte source failed")),
+            draw_secret(|_| Err("the byte source failed")).map(|secret| secret.len()),
             Err("the byte source failed"),
             "the error of the byte source should end the draw"
         );
@@ -756,7 +785,7 @@ mod tests {
 
     #[test]
     fn parse_checksum_mismatch() {
-        let mut token = fixed_token().expose().into_bytes();
+        let mut token = fixed_token().to_secret().expose().as_bytes().to_vec();
         let last_secret_digit = TOKEN_LENGTH - CHECKSUM_LENGTH - 1;
         token[last_secret_digit] = if token[last_secret_digit] == b'a' {
             b'b'
@@ -776,7 +805,7 @@ mod tests {
 
     #[test]
     fn parse_wrong_prefix() {
-        let token = fixed_token().expose().replacen("hsh", "hsx", 1);
+        let token = fixed_token().to_secret().expose().replacen("hsh", "hsx", 1);
 
         assert_matches!(
             token
@@ -789,7 +818,7 @@ mod tests {
 
     #[test]
     fn parse_wrong_length() {
-        let mut token = fixed_token().expose();
+        let mut token = fixed_token().to_secret().expose().to_owned();
         token.pop();
 
         assert_matches!(
@@ -804,7 +833,10 @@ mod tests {
     #[test]
     fn parse_non_ascii() {
         // `é` takes two bytes, so the token keeps its length in bytes.
-        let token = fixed_token().expose().replacen("abcdefg", "abcde\u{e9}", 1);
+        let token = fixed_token()
+            .to_secret()
+            .expose()
+            .replacen("abcdefg", "abcde\u{e9}", 1);
 
         assert_matches!(
             token

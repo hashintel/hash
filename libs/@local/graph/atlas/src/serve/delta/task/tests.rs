@@ -7,6 +7,7 @@ use hash_graph_postgres_store::store::{
     PostgresStoreSettings,
 };
 use hash_graph_temporal_versioning::Timestamp;
+use hash_secret::Secret;
 use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, rngs::StdRng};
 use tokio::sync::oneshot;
@@ -74,7 +75,7 @@ fn fixture(name: &str, placement: bool) -> Fixture {
             &DatabaseConnectionInfo::new(
                 DatabaseType::Postgres,
                 "task-test".to_owned(),
-                String::new(),
+                Secret::from_string(String::new()),
                 "/no-task-test-postgres".to_owned(),
                 5432,
                 "task-test".to_owned(),
