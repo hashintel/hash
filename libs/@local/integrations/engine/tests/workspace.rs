@@ -9,20 +9,26 @@ use std::{
 use duckdb::types::{TimeUnit, Value};
 use error_stack::Report;
 use hash_integrations_engine::{
-    DataErrorType, OpenError, QueryErrorType, SnapshotError, StatementError, Workspace,
+    ByteSize, DataErrorType, OpenError, QueryErrorType, SnapshotError, StatementError, Workspace,
     WorkspaceConfig,
 };
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 
+const MIB: u64 = 1024 * 1024;
+
 fn database_path(directory: &TempDir) -> PathBuf {
     directory.path().join("workspace.duckdb")
 }
 
-async fn open(directory: &TempDir) -> Workspace {
-    Workspace::open(database_path(directory), WorkspaceConfig::default())
+async fn open_with(directory: &TempDir, config: WorkspaceConfig) -> Workspace {
+    Workspace::open(database_path(directory), config)
         .await
         .expect("the workspace should open")
+}
+
+async fn open(directory: &TempDir) -> Workspace {
+    open_with(directory, WorkspaceConfig::default()).await
 }
 
 async fn first_value(workspace: &Workspace, sql: &str) -> Result<Value, Report<StatementError>> {
@@ -398,6 +404,7 @@ async fn dropping_queued_request_skips_it() {
         database_path(&directory),
         WorkspaceConfig {
             queue_capacity: NonZeroUsize::MIN,
+            ..WorkspaceConfig::default()
         },
     )
     .await
@@ -572,5 +579,172 @@ async fn snapshot_replaces_link_at_partial_path() {
         count_rows(&target, "flights"),
         1,
         "the snapshot should hold the table"
+    );
+}
+
+#[tokio::test]
+async fn open_applies_limits() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open_with(
+        &directory,
+        WorkspaceConfig {
+            memory_limit: Some(ByteSize::from_bytes(256 * MIB)),
+            temp_directory_limit: Some(ByteSize::from_bytes(1024 * MIB)),
+            threads: NonZeroUsize::new(2),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await;
+
+    let rows = workspace
+        .query(
+            "SELECT current_setting('memory_limit'), current_setting('max_temp_directory_size'), \
+             current_setting('threads')"
+                .into(),
+        )
+        .await
+        .expect("the settings should be readable");
+
+    assert_eq!(
+        rows.iter().next(),
+        Some(
+            [
+                Value::Text("256.0 MiB".to_owned()),
+                Value::Text("1.0 GiB".to_owned()),
+                Value::BigInt(2),
+            ]
+            .as_slice()
+        ),
+        "DuckDB should use the configured limits"
+    );
+}
+
+#[tokio::test]
+async fn open_refuses_files_over_disk_limit() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open(&directory).await;
+    workspace
+        .create_table("flights".into(), "SELECT 'BA117' AS code".into())
+        .await
+        .expect("the table should be created");
+    workspace.close().await.expect("the workspace should close");
+
+    let report = Workspace::open(
+        database_path(&directory),
+        WorkspaceConfig {
+            disk_limit: Some(ByteSize::from_bytes(1)),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await
+    .expect_err("files over the disk limit should not open");
+
+    assert!(
+        matches!(
+            report.current_context(),
+            OpenError::DiskLimit { used, limit }
+                if *limit == ByteSize::from_bytes(1) && used > limit
+        ),
+        "the size and the limit should be reported, not {report:?}"
+    );
+}
+
+#[tokio::test]
+async fn create_table_over_disk_limit_keeps_table() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open_with(
+        &directory,
+        WorkspaceConfig {
+            disk_limit: Some(ByteSize::from_bytes(2 * MIB)),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await;
+
+    let report = workspace
+        .create_table(
+            "numbers".into(),
+            "SELECT random() AS value FROM range(300000)".into(),
+        )
+        .await
+        .expect_err("a table that takes the files over the limit should be reported");
+
+    assert!(
+        matches!(
+            report.current_context(),
+            StatementError::DiskLimit { used, limit } if used > limit
+        ),
+        "the disk limit should be reported, not {report:?}"
+    );
+    workspace.close().await.expect("the workspace should close");
+    assert_eq!(
+        count_rows(&database_path(&directory), "numbers"),
+        300_000,
+        "the table should stay in the database"
+    );
+}
+
+#[tokio::test]
+async fn disk_limit_counts_temp_directory() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open_with(
+        &directory,
+        WorkspaceConfig {
+            disk_limit: Some(ByteSize::from_bytes(2 * MIB)),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await;
+    let temp = directory.path().join("workspace.duckdb.tmp");
+    fs::create_dir_all(&temp).expect("should create the temporary directory");
+    let spilled = vec![0_u8; usize::try_from(3 * MIB).expect("the size should fit")];
+    fs::write(temp.join("spilled"), spilled).expect("should write a file");
+
+    let report = workspace
+        .query("SELECT 1".into())
+        .await
+        .expect_err("a file in the temporary directory should count towards the limit");
+
+    assert!(
+        matches!(report.current_context(), StatementError::DiskLimit { .. }),
+        "the disk limit should be reported, not {report:?}"
+    );
+}
+
+#[tokio::test]
+async fn disk_limit_checkpoints_before_refusing() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open_with(
+        &directory,
+        WorkspaceConfig {
+            disk_limit: Some(ByteSize::from_bytes(MIB)),
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await;
+
+    // Each table adds about 120 KB to the log, so the log alone passes the limit by the ninth.
+    for count in 0..20 {
+        workspace
+            .create_table(
+                "counters".into(),
+                format!("SELECT range AS id, {count} AS count FROM range(10000)").into(),
+            )
+            .await
+            .expect("each table should fit once the log is checkpointed");
+    }
+
+    let log = fs::metadata(directory.path().join("workspace.duckdb.wal"))
+        .map_or(0, |metadata| metadata.len());
+    assert!(
+        log < MIB,
+        "the log should be checkpointed before it passes the limit, but it holds {log} bytes"
+    );
+    assert_eq!(
+        first_value(&workspace, "SELECT min(count) FROM counters")
+            .await
+            .expect("the query should run"),
+        Value::Int(19),
+        "the last table should be kept"
     );
 }
