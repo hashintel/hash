@@ -38,6 +38,7 @@ export type {
   EditRefusal,
   EditResult,
   PluginAccess,
+  PluginDiagnostics,
   PluginDocument,
   PluginDocumentReader,
   PluginEditor,
@@ -58,7 +59,11 @@ export { useStore, useStoreSelector } from "../react/use-store";
 export type { PetrinautRevealTarget } from "../react/hooks/use-reveal-in-editor";
 export type { AddNotificationInput } from "../react/notifications/context";
 export type { ReadOnlyReason } from "../react/state/use-read-only-reason";
-export type { ReadableStore } from "@hashintel/petrinaut-core";
+export { parseDocumentUri } from "@hashintel/petrinaut-core";
+export type {
+  DiagnosticsSnapshot,
+  ReadableStore,
+} from "@hashintel/petrinaut-core";
 export {
   ExperimentExecutionCard,
   type ExperimentExecutionCardProps,

@@ -130,6 +130,7 @@ export type {
   EditRefusal,
   EditResult,
   PluginAccess,
+  PluginDiagnostics,
   PluginDocument,
   PluginDocumentReader,
   PluginEditor,

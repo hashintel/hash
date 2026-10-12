@@ -70,8 +70,8 @@ interface PluginBaseApi {
   readonly notifications: PluginNotifications;
 }
 
-/** The checked net, with its diagnostics. */
-type PluginDiagnostics = DiagnosticsSnapshot & { readonly net: SDCPN };
+/** What `diagnose()` resolves to: the diagnostics of the net it checked, and that net. */
+export type PluginDiagnostics = DiagnosticsSnapshot & { readonly net: SDCPN };
 
 /** The document, read: `access: { document: "read" }`. */
 export interface PluginDocumentReader {
@@ -82,6 +82,13 @@ export interface PluginDocumentReader {
   /** The title the host passed. */
   readonly title: ReadableStore<string>;
   readonly extensions: PetrinautExtensionSettings;
+  /**
+   * The diagnostics the editor shows, as the language service last pushed
+   * them. `byUri` is keyed by document URI: `parseDocumentUri` gives
+   * `{ itemType, itemId }`, and `null` for open editor sessions. It lags `net`
+   * by a worker round trip; `diagnose()` checks a specific net.
+   */
+  readonly diagnostics: ReadableStore<DiagnosticsSnapshot>;
   /**
    * Checks the current net with the language service and returns the net it
    * checked: `net !== document.net.get()` afterwards means the document
@@ -169,6 +176,7 @@ interface PluginEditorPorts {
   readonly instance: Petrinaut;
   readonly latest: ReadableStore<PluginEditorState>;
   readonly title: ReadableStore<string>;
+  readonly diagnostics: ReadableStore<DiagnosticsSnapshot>;
   readonly records: ReadableStore<readonly ExperimentRecord[]>;
   readonly optimizationUnavailableReason: ReadableStore<string | null>;
   readonly navigation: ReadableStore<PetrinautNavigationState>;
@@ -179,18 +187,20 @@ const readDocument = ({
   instance,
   latest,
   title,
+  diagnostics,
 }: PluginEditorPorts): PluginDocumentReader => ({
   id: instance.handle.id,
   net: instance.definition,
   title,
   extensions: instance.extensions,
+  diagnostics,
   diagnose: async () => {
     const net = instance.definition.get();
-    const diagnostics = await latest
+    const checked = await latest
       .get()
       .requestDiagnostics(net, instance.extensions);
 
-    return { ...diagnostics, net };
+    return { ...checked, net };
   },
 });
 

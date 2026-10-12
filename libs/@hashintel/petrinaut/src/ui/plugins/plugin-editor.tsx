@@ -14,7 +14,11 @@ import {
   useState,
 } from "react";
 
-import { createReadableStore, type Petrinaut } from "@hashintel/petrinaut-core";
+import {
+  createReadableStore,
+  type DiagnosticsSnapshot,
+  type Petrinaut,
+} from "@hashintel/petrinaut-core";
 
 import { ErrorTrackerContext } from "../../react/error-tracker-context";
 import { ExperimentHostContext } from "../../react/experiment-host/context";
@@ -49,6 +53,7 @@ type CanvasRegistration = ReturnType<typeof useCanvasControllerRegistration>;
 interface PluginEditorSnapshot {
   readonly state: PluginEditorState;
   readonly title: string;
+  readonly diagnostics: DiagnosticsSnapshot;
   readonly records: readonly ExperimentRecord[];
   readonly optimizationUnavailableReason: string | null;
   readonly navigation: PetrinautNavigationState;
@@ -75,6 +80,7 @@ const createPluginEditor = (
 ): PluginEditorRuntime => {
   const latest = createReadableStore(snapshot.state);
   const title = createReadableStore(snapshot.title);
+  const diagnostics = createReadableStore(snapshot.diagnostics);
   const records = createReadableStore(snapshot.records);
   const optimizationUnavailableReason = createReadableStore(
     snapshot.optimizationUnavailableReason,
@@ -89,6 +95,7 @@ const createPluginEditor = (
       instance,
       latest,
       title,
+      diagnostics,
       records,
       optimizationUnavailableReason,
       navigation,
@@ -105,6 +112,7 @@ const createPluginEditor = (
     sync: (next) => {
       latest.set(next.state);
       title.set(next.title);
+      diagnostics.set(next.diagnostics);
       records.set(next.records);
       optimizationUnavailableReason.set(next.optimizationUnavailableReason);
       // The provider's state object is new on every render in a controlled
@@ -122,7 +130,7 @@ const usePluginEditorSnapshot = (): PluginEditorSnapshot => {
   const { experiments } = use(ExperimentsContext);
   const { optimizationUnavailableReason = null } = use(OptimizationsContext);
   const { runExperiment } = use(ExperimentHostContext);
-  const { requestDiagnostics } = use(LanguageClientContext);
+  const { diagnostics, requestDiagnostics } = use(LanguageClientContext);
   const { addNotification } = use(NotificationsContext);
   const { captureException } = use(ErrorTrackerContext);
   const readOnlyReason = useReadOnlyReason();
@@ -142,6 +150,7 @@ const usePluginEditorSnapshot = (): PluginEditorSnapshot => {
       captureException,
     },
     title,
+    diagnostics,
     records: experiments,
     optimizationUnavailableReason,
     navigation: navigation.state,

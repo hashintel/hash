@@ -3,12 +3,15 @@ import { act, cleanup, screen } from "@testing-library/react";
 import { type ReactNode, use, useLayoutEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createReadableStore } from "@hashintel/petrinaut-core";
+
 import { LanguageClientContext } from "../../react/lsp/context";
 import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationIntent,
 } from "../../react/navigation";
 import { EditorContext } from "../../react/state/editor-context";
+import { useStore } from "../../react/use-store";
 import {
   definePetrinautPlugin,
   pluginService,
@@ -20,7 +23,10 @@ import { renderPlugins } from "./plugins-test-harness";
 
 import type { CanvasController } from "../views/SDCPN/canvas-renderer";
 import type { PluginDocument, PluginEditor } from "./plugin-access";
-import type { DiagnosticsSnapshot } from "@hashintel/petrinaut-core";
+import type {
+  Diagnostic,
+  DiagnosticsSnapshot,
+} from "@hashintel/petrinaut-core";
 
 const place = {
   id: "p1",
@@ -215,6 +221,50 @@ describe("plugin editor", () => {
     );
     expect(net).toBe(checked);
     expect(net).not.toBe(documentOf().net.get());
+  });
+
+  it("follows the editor's diagnostics and wakes a subscriber only when they change", () => {
+    const published = createReadableStore<DiagnosticsSnapshot>({
+      byUri: new Map(),
+      total: 0,
+      errorCount: 0,
+    });
+    const FakeLanguageClient = ({ children }: { children: ReactNode }) => (
+      <LanguageClientContext
+        value={{
+          ...use(LanguageClientContext),
+          diagnostics: useStore(published),
+        }}
+      >
+        {children}
+      </LanguageClientContext>
+    );
+    renderPlugins([documentPlugin], <Probe />, { Around: FakeLanguageClient });
+    const seen: DiagnosticsSnapshot[] = [];
+    documentOf().diagnostics.subscribe((snapshot) => seen.push(snapshot));
+    expect(documentOf().diagnostics.get()).toBe(published.get());
+
+    const diagnostic: Diagnostic = {
+      range: {
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: 1 },
+      },
+      message: "Cannot find name 'x'.",
+      severity: 1,
+    };
+    const next: DiagnosticsSnapshot = {
+      byUri: new Map([
+        ["inmemory://sdcpn/transitions/t1/lambda.ts", [diagnostic]],
+      ]),
+      total: 1,
+      errorCount: 1,
+    };
+    act(() => published.set(next));
+    expect(documentOf().diagnostics.get()).toBe(next);
+
+    // The editor renders again with the same snapshot.
+    act(() => probe.setGlobalMode?.("simulate"));
+    expect(seen).toEqual([next]);
   });
 
   it("reads where the editor is, wakes a subscriber only when it moves, and moves it", () => {

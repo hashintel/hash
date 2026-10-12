@@ -171,11 +171,11 @@ carries the mode, the views, the selection and the open overlay, and
 
 ### Values, stores and actions
 
-| Kind    | Members                                                                                                                   | Read them                                                                                                                          |
-| ------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Values  | `document.id`, `document.extensions`, `settings.get()`                                                                    | Anywhere in the hook or its components.                                                                                            |
-| Stores  | `document.net`, `document.title`, `experiments.records`, `experiments.optimizationUnavailableReason`, `editor.navigation` | In render: `useStore` or `useStoreSelector`, in the component that shows the value. In handlers, effects and async code: `.get()`. |
-| Actions | `edit.*`, `setTitle`, `diagnose`, `run`, `navigate`, `reveal`, `notifications.add`, `errors.capture`, `settings.set`      | Call them; they act on the editor as it is when called.                                                                            |
+| Kind    | Members                                                                                                                                           | Read them                                                                                                                          |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Values  | `document.id`, `document.extensions`, `settings.get()`                                                                                            | Anywhere in the hook or its components.                                                                                            |
+| Stores  | `document.net`, `document.title`, `document.diagnostics`, `experiments.records`, `experiments.optimizationUnavailableReason`, `editor.navigation` | In render: `useStore` or `useStoreSelector`, in the component that shows the value. In handlers, effects and async code: `.get()`. |
+| Actions | `edit.*`, `setTitle`, `diagnose`, `run`, `navigate`, `reveal`, `notifications.add`, `errors.capture`, `settings.set`                              | Call them; they act on the editor as it is when called.                                                                            |
 
 - Read stores in components, not in the hook: a subscription in the hook
   republishes the contributions, and re-renders the editor's outlets, on
