@@ -7,7 +7,7 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
-import { brunchHeaders } from "@hashintel/brunch-agent";
+import { brunchHeaders, brunchRoutes } from "@hashintel/brunch-agent";
 
 import { agentOwnershipHeaders } from "../../../src/shared/conversation/identity.ts";
 
@@ -66,9 +66,13 @@ export const submitPersonaBrowserTurn = async (
     "Refusing to overwrite an existing browser draft",
   );
   // Only the conversation POST admits work; /abort is a control request.
+  const admissionPath = new RegExp(
+    `^${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/[^/]+$`,
+    "u",
+  );
   const isAdmission = (response: BrowserResponse) =>
     response.request().method() === "POST" &&
-    /^\/agents\/chat\/[^/]+$/u.test(new URL(response.url()).pathname);
+    admissionPath.test(new URL(response.url()).pathname);
   let client: ReturnType<typeof createFlueClient> | undefined;
   let admitted = false;
   let stopTask: Promise<void> | undefined;
