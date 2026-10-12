@@ -1681,25 +1681,27 @@ where
         self.store.query_entities_table(actor_id, params).await
     }
 
-    async fn patch_entity(
+    async fn patch_entities(
         &mut self,
         actor_id: ActorId,
-        params: PatchEntityParams,
-    ) -> Result<Entity, Report<UpdateError>> {
-        for entity_type_id in &params.entity_type_ids {
-            self.insert_external_types_by_reference(
-                actor_id,
-                OntologyTypeReference::EntityTypeReference(&EntityTypeReference {
-                    url: entity_type_id.clone(),
-                }),
-                ConflictBehavior::Skip,
-                &HashSet::new(),
-            )
-            .await
-            .change_context(UpdateError)?;
+        params: Vec<PatchEntityParams>,
+    ) -> Result<Vec<Entity>, Report<UpdateError>> {
+        for param in &params {
+            for entity_type_id in &param.entity_type_ids {
+                self.insert_external_types_by_reference(
+                    actor_id,
+                    OntologyTypeReference::EntityTypeReference(&EntityTypeReference {
+                        url: entity_type_id.clone(),
+                    }),
+                    ConflictBehavior::Skip,
+                    &HashSet::new(),
+                )
+                .await
+                .change_context(UpdateError)?;
+            }
         }
 
-        self.store.patch_entity(actor_id, params).await
+        self.store.patch_entities(actor_id, params).await
     }
 
     async fn delete_entities(

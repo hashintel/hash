@@ -916,7 +916,20 @@ pub trait EntityStore {
         &mut self,
         actor_id: ActorId,
         params: PatchEntityParams,
-    ) -> impl Future<Output = Result<Entity, Report<UpdateError>>> + Send;
+    ) -> impl Future<Output = Result<Entity, Report<UpdateError>>> + Send {
+        self.patch_entities(actor_id, vec![params])
+            .map_ok(|mut entities| {
+                let entity = entities.pop().expect("Expected a single entity");
+                assert!(entities.is_empty(), "Expected a single entity");
+                entity
+            })
+    }
+
+    fn patch_entities(
+        &mut self,
+        actor_id: ActorId,
+        params: Vec<PatchEntityParams>,
+    ) -> impl Future<Output = Result<Vec<Entity>, Report<UpdateError>>> + Send;
 
     /// Deletes entities matching the `params` filter.
     ///

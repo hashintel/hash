@@ -17,7 +17,7 @@ import {
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
-} from "@hashintel/brunch-agent-transport-aisdk";
+} from "@hashintel/brunch-agent/conversation-identity";
 import {
   CommandRegistryProvider,
   ErrorTrackerContext,
@@ -28,14 +28,12 @@ import {
   Petrinaut,
   type PetrinautAiComposerControlContext,
   type PetrinautAiMessage,
-  WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
-import {
-  useSharedSearchNavigation,
-  withClearedSharedLocation,
-} from "../../../examples/use-shared-search-navigation";
+import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
+import { StatusPage } from "../../../shared/status-page";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
+import { createBrunchFlueAdapter } from "../plugins/brunch/brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -58,7 +56,10 @@ import { foldBrunchWorkpieceHistory } from "../plugins/brunch/ledger/brunch-work
 import { BrunchWorkpiecePane } from "../plugins/brunch/ledger/brunch-workpiece-pane";
 import { requestFlueStop } from "../plugins/brunch/plugin/request-flue-stop";
 import { useImmutableReplayBaseline } from "../plugins/brunch/plugin/use-immutable-replay-baseline";
-import { brunchPetrinautClientToolNames } from "../plugins/brunch/tools/brunch-client-tools";
+import {
+  brunchPetrinautClientToolNames,
+  canonicalPetrinautClientToolNames,
+} from "../plugins/brunch/tools/brunch-client-tools";
 import {
   createBrunchDraftExperimentInteractiveTool,
   resolveDraftAuthorityFromHistory,
@@ -78,7 +79,7 @@ import {
 } from "../plugins/brunch/tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "../plugins/brunch/tools/in-band-browser-call";
-import { CommandPalette } from "../plugins/command-palette/plugin/command-palette";
+import { demoPlugins } from "../plugins/demo-plugins";
 import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
 import { getBrunchVoiceMode } from "../plugins/voice/brunch-voice-mode";
 import { useVoiceMediationHistory } from "../plugins/voice/history/use-voice-mediation-history";
@@ -86,8 +87,6 @@ import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
 } from "../plugins/voice/session/voice-interview-control";
-import { walkthroughSteps } from "../plugins/walkthrough/walkthrough-steps";
-import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
@@ -190,16 +189,21 @@ const DemoCommands = ({
  * for background nets.
  */
 export const LocalStorageDemoApp = ({
+  netId,
+  onOpenNet,
   onSearchChange,
   search,
 }: {
+  /** The open net, named by the URL. */
+  netId: string;
+  /** Opens another net, by passing it back as `netId`. */
+  onOpenNet: (netId: string) => void;
   onSearchChange: (
     search: SharedExampleSearch,
     history: "push" | "replace",
   ) => void;
   search: SharedExampleSearch;
 }) => {
-  const sentryFeedbackAction = useSentryFeedbackAction();
   const {
     ready: assistantSelectionReady,
     selection: assistantSelection,
@@ -237,28 +241,16 @@ export const LocalStorageDemoApp = ({
    * removed every entry this page can produce, which left the first Back press
    * leaving the site instead of retracing the net.
    */
-  const navigation = useSharedSearchNavigation(search, onSearchChange);
-
-  /**
-   * The location belongs to the net that was open. Petrinaut resets its own
-   * location per document by keying on the handle id, but that only resets an
-   * uncontrolled location, so the host clears this one.
-   *
-   * Cleared through the controller rather than by writing an empty search: the
-   * shared projection is lossy, so a location the URL already renders as empty
-   * leaves the search prop unchanged and the in-memory selection would survive
-   * into the next net.
-   */
-  const clearSharedLocation = useCallback(() => {
-    navigation.onNavigate(withClearedSharedLocation, {
-      history: "replace",
-      intent: { cause: "normalization", action: "selection" },
-    });
-  }, [navigation]);
+  const navigation = useSharedSearchNavigation(search, onSearchChange, {
+    // The location belongs to the open net. Petrinaut resets its own location
+    // per document, but not a controlled one, so the host resets this one.
+    resetKey: netId,
+  });
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { controller } = useDocumentController({
-    onOpenDocument: clearSharedLocation,
+    documentId: netId,
+    onOpenDocument: onOpenNet,
   });
   const { repository } = controller;
   const currentDocument = repository.current;
@@ -298,15 +290,33 @@ export const LocalStorageDemoApp = ({
         new Date(left.lastUpdated).getTime(),
     );
 
-  const createNewNet = (params: { petriNetDefinition: SDCPN; title: string }) =>
-    controller.createAndOpen({
-      definition: params.petriNetDefinition,
-      title: params.title,
-    });
+  const [createRefusal, setCreateRefusal] = useState<string | null>(null);
+  // A refusal belongs to the net it was shown on: opening another net, from
+  // the menu or through Back and Forward, clears it.
+  const [refusalNetId, setRefusalNetId] = useState(netId);
+  if (netId !== refusalNetId) {
+    setRefusalNetId(netId);
+    setCreateRefusal(null);
+  }
+  const createNewNet = (params: {
+    petriNetDefinition: SDCPN;
+    title: string;
+  }) => {
+    try {
+      controller.createAndOpen({
+        definition: params.petriNetDefinition,
+        title: params.title,
+      });
+      setCreateRefusal(null);
+    } catch (error) {
+      setCreateRefusal(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   const loadPetriNet = (petriNetId: string) => {
     repository.open(petriNetId);
   };
+  const notice = unsavedChangeMessage ?? createRefusal;
 
   const renameCurrentDocument = repository.actions.rename;
   const setTitle =
@@ -401,8 +411,9 @@ export const LocalStorageDemoApp = ({
   });
   const { conversationTracker, flueClientPromise } = processAgentSession;
   // Failures the host contains — a stopped batch operation, an unrecordable
-  // transition, a lost history observation, a failed server tool — resolve
-  // normally for the panel and the model; this is where they become visible.
+  // transition, a lost history observation, a failed server tool, a dropped
+  // update stream — resolve normally for the panel and the model; this is
+  // where they become visible.
   const { captureException } = use(ErrorTrackerContext);
   const reportBrunchFailure = useCallback(
     (
@@ -430,11 +441,25 @@ export const LocalStorageDemoApp = ({
   const constructionClientTools = brunchSelected
     ? brunchPetrinautClientToolNames
     : undefined;
+  const flueAdapter = useMemo(
+    () =>
+      createBrunchFlueAdapter(
+        {
+          clientToolNames:
+            constructionClientTools ?? canonicalPetrinautClientToolNames,
+          dynamicClientToolNames,
+        },
+        {
+          onInvalidReopenedMetadata: ({ messageId, error }) =>
+            reportBrunchFailure("reopened-metadata", error, { messageId }),
+        },
+      ),
+    [constructionClientTools, dynamicClientToolNames, reportBrunchFailure],
+  );
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
-    constructionClientTools,
-    dynamicClientToolNames,
+    flueAdapter,
   );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
@@ -534,17 +559,7 @@ export const LocalStorageDemoApp = ({
                 },
               }
             : {}),
-          ...(constructionClientTools === undefined
-            ? {}
-            : {
-                clientToolNames: constructionClientTools,
-                dynamicClientToolNames,
-                ...(canonicalHostTools === undefined
-                  ? {}
-                  : {
-                      mapClientToolInput: (call) => call.input,
-                    }),
-              }),
+          adapter: flueAdapter,
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
             reportBrunchFailure("server-tool", new Error(event.errorText), {
@@ -552,6 +567,12 @@ export const LocalStorageDemoApp = ({
               toolCallId: event.toolCallId,
               toolName: event.toolName ?? "unknown",
             }),
+          onReattach: (event) =>
+            reportBrunchFailure("stream-reattach", event.error, {
+              submissionId: event.submissionId,
+              attempt: event.attempt,
+            }),
+          onDisconnect: flueHistory.refresh,
         },
       );
     }
@@ -559,10 +580,8 @@ export const LocalStorageDemoApp = ({
   }, [
     conversationTracker,
     conversationId,
-    constructionClientTools,
     constructionBrowser,
-    canonicalHostTools,
-    dynamicClientToolNames,
+    flueAdapter,
     flueClientPromise,
     flueHistory.refresh,
     reportBrunchFailure,
@@ -742,6 +761,15 @@ export const LocalStorageDemoApp = ({
     setAiMessagesByNetId,
   ]);
 
+  if (repository.status.state === "ready" && currentDocument === null) {
+    return (
+      <StatusPage
+        title="Local document not found"
+        body="Documents are saved in the browser that created them. Open this link in that browser, or go back to your documents."
+      />
+    );
+  }
+
   if (
     repository.status.state === "loading" ||
     currentDocument === null ||
@@ -759,46 +787,41 @@ export const LocalStorageDemoApp = ({
         width: "100vw",
       }}
     >
-      {unsavedChangeMessage !== null ? (
-        <UnsavedChangeNotice message={unsavedChangeMessage} />
-      ) : null}
+      {notice !== null ? <UnsavedChangeNotice message={notice} /> : null}
       <CommandRegistryProvider>
-        <WalkthroughProvider steps={walkthroughSteps}>
-          <Petrinaut
-            aiAssistant={aiAssistant}
-            handle={activeHandle.handle}
-            existingNets={existingNets}
-            createNewNet={createNewNet}
-            loadPetriNet={loadPetriNet}
-            navigation={navigation}
-            readonly={false}
-            setTitle={setTitle}
-            slots={{
-              settingsLabs: (
-                <AssistantLabsSettings
-                  assistantReady={assistantSelectionReady}
-                  brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
-                  brunchSelected={brunchSelected}
-                  openAIVoiceConfig={openAIVoiceConfig}
-                  realtimeEnabled={realtimeEnabled}
-                  realtimePreferenceReady={realtimePreferenceReady}
-                  selectAssistant={selectAssistant}
-                  setRealtimeEnabled={setRealtimeEnabled}
-                  setVoiceEnabled={setVoiceEnabled}
-                  voiceEnabled={brunchSelected && voiceEnabled}
-                  voicePreferenceReady={voicePreferenceReady}
-                />
-              ),
-            }}
-            title={currentDocument.title}
-            viewportActions={[sentryFeedbackAction]}
-          />
-        </WalkthroughProvider>
+        <Petrinaut
+          aiAssistant={aiAssistant}
+          handle={activeHandle.handle}
+          existingNets={existingNets}
+          createNewNet={createNewNet}
+          loadPetriNet={loadPetriNet}
+          navigation={navigation}
+          plugins={demoPlugins}
+          readonly={false}
+          setTitle={setTitle}
+          slots={{
+            settingsLabs: (
+              <AssistantLabsSettings
+                assistantReady={assistantSelectionReady}
+                brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
+                brunchSelected={brunchSelected}
+                openAIVoiceConfig={openAIVoiceConfig}
+                realtimeEnabled={realtimeEnabled}
+                realtimePreferenceReady={realtimePreferenceReady}
+                selectAssistant={selectAssistant}
+                setRealtimeEnabled={setRealtimeEnabled}
+                setVoiceEnabled={setVoiceEnabled}
+                voiceEnabled={brunchSelected && voiceEnabled}
+                voicePreferenceReady={voicePreferenceReady}
+              />
+            ),
+          }}
+          title={currentDocument.title}
+        />
         <DemoCommands
           brunchSelected={brunchSelected}
           selectAssistant={selectAssistant}
         />
-        <CommandPalette />
       </CommandRegistryProvider>
     </div>
   );

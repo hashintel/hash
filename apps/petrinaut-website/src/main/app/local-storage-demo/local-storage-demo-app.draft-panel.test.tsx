@@ -31,30 +31,11 @@ import type {
   DocumentRecord,
 } from "./documents/document-repository";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
-import type { ReactNode } from "react";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
     await import("../shared/petrinaut-jsdom");
   installPetrinautDomShims();
-  class ClipboardItem {
-    constructor(readonly items: Record<string, Blob | Promise<Blob>>) {}
-  }
-  Object.defineProperty(navigator, "clipboard", {
-    configurable: true,
-    value: {
-      write: (items: ClipboardItem[]) =>
-        Promise.all(
-          items.flatMap((item) =>
-            Object.values(item.items).map((value) => Promise.resolve(value)),
-          ),
-        ).then(() => undefined),
-    },
-  });
-  Object.defineProperty(window, "ClipboardItem", {
-    configurable: true,
-    value: ClipboardItem,
-  });
 });
 
 const fixture = vi.hoisted(() => ({
@@ -82,10 +63,6 @@ vi.mock(
     };
   },
 );
-vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@hashintel/petrinaut/ui")>()),
-  WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
-}));
 vi.mock("@flue/sdk", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/sdk")>()),
   createFlueClient: () => {
@@ -170,13 +147,20 @@ test.each(["Dismiss", "Run"] as const)(
     // Only the browser Worker boundary is emulated; Petrinaut and its assistant panel are real.
     vi.stubGlobal("Worker", InProcessLspWorker);
     vi.stubGlobal("ResizeObserver", NoopResizeObserver);
+    // Brunch is the chosen assistant and the welcome guide was dismissed.
+    const stored = new Map([
+      [assistantSelectionStorageKey, "brunch"],
+      [
+        "petrinaut:plugin:website.walkthrough",
+        JSON.stringify({ showOnInit: false }),
+      ],
+    ]);
     vi.stubGlobal("localStorage", {
       get length() {
         return 0;
       },
       clear() {},
-      getItem: (key: string) =>
-        key === assistantSelectionStorageKey ? "brunch" : null,
+      getItem: (key: string) => stored.get(key) ?? null,
       key: () => null,
       removeItem() {},
       setItem() {},
@@ -404,7 +388,14 @@ test.each(["Dismiss", "Run"] as const)(
       }),
     } as unknown as FlueClient;
     fixture.client = client;
-    render(<LocalStorageDemoApp search={{}} onSearchChange={() => {}} />);
+    render(
+      <LocalStorageDemoApp
+        netId={binding.documentId}
+        onOpenNet={() => {}}
+        search={{}}
+        onSearchChange={() => {}}
+      />,
+    );
     const showPanel = await screen.findByRole("button", {
       name: "Show AI assistant",
     });

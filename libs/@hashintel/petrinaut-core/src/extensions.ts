@@ -433,6 +433,14 @@ const cloneSubnet = (
 
   // Only set optional keys that are present on the source — see
   // `sanitizeSDCPNForExtensions` below for why absent must stay absent.
+  if (subnet.description !== undefined) {
+    next.description = subnet.description;
+  }
+
+  if (subnet.metadata !== undefined) {
+    next.metadata = { ...subnet.metadata };
+  }
+
   if (subnet.componentInstances) {
     next.componentInstances = cloneComponentInstances(
       subnet.componentInstances,
@@ -446,8 +454,9 @@ const cloneSubnet = (
  * Produce a sanitized deep copy of an SDCPN with data for disabled extensions
  * stripped out.
  *
- * The optional keys (`scenarios`, `metrics`, `subnets`, `componentInstances`)
- * are only set when they are present on the source. Writing them
+ * The optional keys (`description`, `metadata`, `scenarios`, `metrics`,
+ * `subnets`, `componentInstances`) are only set when they are present on the
+ * source. Writing them
  * unconditionally would leave them present with a value of `undefined`, which
  * is not the same shape as a definition loaded back from JSON — where absent
  * keys stay absent — and would make `isSDCPNEqual` report an untouched net as
@@ -473,6 +482,14 @@ export const sanitizeSDCPNForExtensions = (
     })),
     parameters: sdcpn.parameters.map((parameter) => ({ ...parameter })),
   };
+
+  if (sdcpn.description !== undefined) {
+    next.description = sdcpn.description;
+  }
+
+  if (sdcpn.metadata !== undefined) {
+    next.metadata = { ...sdcpn.metadata };
+  }
 
   if (sdcpn.scenarios) {
     next.scenarios = sdcpn.scenarios.map((scenario) => ({

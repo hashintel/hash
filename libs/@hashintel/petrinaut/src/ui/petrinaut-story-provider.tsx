@@ -10,6 +10,8 @@ import {
 
 import { Petrinaut, type PetrinautAiAssistant } from "./petrinaut";
 
+import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
+
 const emptySDCPN: SDCPN = {
   places: [],
   transitions: [],
@@ -39,6 +41,7 @@ const storyLoadedAt = new Date().toISOString();
  */
 export const PetrinautStoryProvider = ({
   aiAssistant,
+  plugins,
   initialTitle = "New Process",
   initialDefinition = emptySDCPN,
   hideNetManagementControls,
@@ -46,6 +49,7 @@ export const PetrinautStoryProvider = ({
   children,
 }: {
   aiAssistant?: PetrinautAiAssistant;
+  plugins?: readonly PetrinautPlugin[];
   initialTitle?: string;
   initialDefinition?: SDCPN;
   hideNetManagementControls?: "all" | "except-title";
@@ -152,6 +156,7 @@ export const PetrinautStoryProvider = ({
       <Petrinaut
         aiAssistant={aiAssistant}
         handle={handle}
+        plugins={plugins}
         existingNets={existingNets}
         createNewNet={createNewNet}
         hideNetManagementControls={hideNetManagementControls}

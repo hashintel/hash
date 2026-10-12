@@ -14,7 +14,6 @@ import { CursorTooltip } from "./components/cursor-tooltip";
 import { useContainerSize } from "./hooks/util/use-container-size";
 import { useCanvasScene } from "./use-canvas-scene";
 
-import type { ViewportAction } from "../../types/viewport-action";
 import type { CanvasController } from "./canvas-renderer";
 
 const containerSizeSettleMs = 100;
@@ -37,8 +36,7 @@ const ignoreControllerChange = (_controller: CanvasController | null) => {};
  */
 export const SDCPNView: React.FC<{
   onControllerChange?: (controller: CanvasController | null) => void;
-  viewportActions?: ViewportAction[];
-}> = ({ onControllerChange = ignoreControllerChange, viewportActions }) => {
+}> = ({ onControllerChange = ignoreControllerChange }) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
   const containerSize = useContainerSize(
     canvasContainer,
@@ -56,7 +54,6 @@ export const SDCPNView: React.FC<{
             scene={scene}
             containerSize={containerSize}
             registerController={onControllerChange}
-            viewportActions={viewportActions}
           />
         </CanvasFrameStoreProvider>
       )}
