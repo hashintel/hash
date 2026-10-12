@@ -2,13 +2,13 @@ import { expect, test } from "vitest";
 
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
+import { queryBasis } from "../src/agents/chat-agent/guidance/manual/tools/query-basis.ts";
 import {
   isAppliedChange,
   latestNetDefinition,
   latestCanonicalNetReadBefore,
   netCalls,
 } from "../src/conversation/net-changes.ts";
-import { queryBasis } from "../src/conversation/why.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -18,14 +18,16 @@ const commit = (toolCallId: string, output: unknown) => ({
   toolCallId,
   state: "output-available",
   input: {
-    changes: [
-      {
-        op: "add",
-        address: "operational/resources",
-        content: "Cases wait in a queue.",
-        source: "person",
-        standing: "settled",
-      },
+    entries: [
+      [
+        "entity/create",
+        {
+          name: "The queue",
+          kind: "location",
+          origin: "stated",
+          status: "confirmed",
+        },
+      ],
     ],
   },
   output,
@@ -76,7 +78,7 @@ const snapshot = {
           status: "recorded",
           commitId: "ledger-1",
           revision: 1,
-          notes: [{ address: "operational/resources/n1" }],
+          ids: ["e1"],
         }),
       ],
     },
@@ -152,7 +154,7 @@ test("credits only canonical applied calls with an after revision, in history or
   );
 });
 
-test("why locates the latest read element and relates the applied call to the Ledger revision and the Notes its turn recorded", () => {
+test("query_basis locates the latest read element and relates the applied call to the Ledger revision and the records its turn committed", () => {
   expect(
     queryBasis({
       snapshot,
@@ -168,7 +170,7 @@ test("why locates the latest read element and relates the applied call to the Le
         toolCallId: "add-queue",
         petrinautRevisionId: "revision-2",
         ledgerRevision: 1,
-        notesRecordedThisTurn: ["n1"],
+        recordsCommittedThisTurn: ["e1"],
       },
     ],
   });
@@ -181,7 +183,7 @@ test("why locates the latest read element and relates the applied call to the Le
   ).toBe("not-found");
 });
 
-test("why refuses to answer from a read that a later applied change made stale", () => {
+test("query_basis refuses to answer from a read that a later applied change made stale", () => {
   const later = {
     id: "assistant-later",
     role: "assistant",
@@ -220,7 +222,7 @@ test("why refuses to answer from a read that a later applied change made stale",
   });
 });
 
-test("a refused Ledger commit adds nothing to the revision or Notes a call is attributed to", () => {
+test("a refused Ledger commit adds nothing to the revision or records a call is attributed to", () => {
   const refused = {
     id: "assistant-refusal",
     role: "assistant",
@@ -230,8 +232,8 @@ test("a refused Ledger commit adds nothing to the revision or Notes a call is at
       commit("refused-ledger", {
         status: "refused",
         applied: false,
-        code: "unknown-category",
-        message: "No category.",
+        code: "unknown-address",
+        message: "No such record.",
         revision: 1,
       }),
     ],
@@ -250,10 +252,10 @@ test("a refused Ledger commit adds nothing to the revision or Notes a call is at
       browser,
       query: { kind: "place", id: "queue" },
     }).changes[0],
-  ).toMatchObject({ ledgerRevision: 1, notesRecordedThisTurn: ["n1"] });
+  ).toMatchObject({ ledgerRevision: 1, recordsCommittedThisTurn: ["e1"] });
 });
 
-test("why matches a root arc to canonical addArc by transition, direction and place, and to a batch deletion by its generated ID", () => {
+test("query_basis matches a root arc to canonical addArc by transition, direction and place, and to a batch deletion by its generated ID", () => {
   const arcDefinition = {
     ...definition,
     transitions: [
@@ -352,7 +354,7 @@ test("why matches a root arc to canonical addArc by transition, direction and pl
         operation: "addArc",
         petrinautRevisionId: "revision-3",
         ledgerRevision: 1,
-        notesRecordedThisTurn: ["n1"],
+        recordsCommittedThisTurn: ["e1"],
       },
     ],
   });
