@@ -1,14 +1,14 @@
-export const testPdfSearchWord = "quokka";
+import { testDocumentPages } from "./test-document";
 
 const pageHeight = 842;
 
-const pageTexts: [heading: string, body: string][] = [
-  ["Page 1", `A ${testPdfSearchWord} lives on this page.`],
-  ["Page 2", "Nothing to find here."],
-  ["Page 3", `Another ${testPdfSearchWord} lives on this page.`],
-];
-
-const buildContentStream = ([heading, body]: [string, string]) =>
+const buildContentStream = ({
+  heading,
+  body,
+}: {
+  heading: string;
+  body: string;
+}) =>
   [
     "BT",
     "/F1 32 Tf",
@@ -21,8 +21,7 @@ const buildContentStream = ([heading, body]: [string, string]) =>
   ].join("\n");
 
 /**
- * Builds a three-page A4 PDF whose pages are headed "Page 1" to "Page 3".
- * `testPdfSearchWord` appears on pages 1 and 3 only. The text uses the
+ * Renders `testDocumentPages` as an A4 PDF, one page per entry, in the
  * standard Helvetica font, which is not embedded.
  */
 export const generateTestPdf = (): Buffer => {
@@ -30,12 +29,12 @@ export const generateTestPdf = (): Buffer => {
 
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
-    `<< /Type /Pages /Kids [${pageTexts
+    `<< /Type /Pages /Kids [${testDocumentPages
       .map((_, index) => `${firstPageObjectNumber + index * 2} 0 R`)
-      .join(" ")}] /Count ${pageTexts.length} >>`,
+      .join(" ")}] /Count ${testDocumentPages.length} >>`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    ...pageTexts.flatMap((texts, index) => {
-      const contentStream = buildContentStream(texts);
+    ...testDocumentPages.flatMap((pageText, index) => {
+      const contentStream = buildContentStream(pageText);
       return [
         `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 ${pageHeight}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${firstPageObjectNumber + index * 2 + 1} 0 R >>`,
         `<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`,
