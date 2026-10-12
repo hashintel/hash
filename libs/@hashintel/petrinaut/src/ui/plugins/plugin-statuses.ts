@@ -2,7 +2,7 @@ import type { PetrinautPlugin } from "./define-petrinaut-plugin";
 
 /**
  * - `on`: the plugin runs.
- * - `off`: the user switched it off in User settings.
+ * - `off`: the user switched it off in User settings. A `required` plugin is never off.
  * - `failed`: its hook threw; it stays off until its module is replaced or another document opens.
  */
 export type PluginStatus = "on" | "off" | "failed";
@@ -31,11 +31,12 @@ export const resolvePluginStatuses = (
 
     return {
       plugin,
-      status: disabledPluginIds.includes(id)
-        ? "off"
-        : failedHostKeys.has(plugin.hostKey)
-          ? "failed"
-          : "on",
+      status:
+        disabledPluginIds.includes(id) && plugin.manifest.required !== true
+          ? "off"
+          : failedHostKeys.has(plugin.hostKey)
+            ? "failed"
+            : "on",
     };
   });
 };

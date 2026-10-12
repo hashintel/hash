@@ -1,8 +1,9 @@
 /**
  * One plugin in the Plugins table. Collapsed, the row is one line: a tinted
  * monogram, the name and author, a status label and the switch that runs the
- * plugin. Clicking the line opens the description and the plugin's
- * contributions as small tags, with an animated disclosure.
+ * plugin, which a `required` plugin lacks. Clicking the line opens the
+ * description and the plugin's contributions as small tags, with an animated
+ * disclosure.
  */
 
 import { use, useId, useState } from "react";
@@ -284,17 +285,19 @@ export const PluginRow = ({ manifest, status }: PluginRowProps) => {
               Not running
             </Chip>
           )}
-          <span className={switchCellStyle}>
-            <Toggle
-              aria-labelledby={nameId}
-              aria-describedby={
-                manifest.description === undefined ? undefined : descriptionId
-              }
-              value={status !== "off"}
-              onChange={(enabled) => setPluginEnabled(manifest.id, enabled)}
-              size="sm"
-            />
-          </span>
+          {manifest.required !== true && (
+            <span className={switchCellStyle}>
+              <Toggle
+                aria-labelledby={nameId}
+                aria-describedby={
+                  manifest.description === undefined ? undefined : descriptionId
+                }
+                value={status !== "off"}
+                onChange={(enabled) => setPluginEnabled(manifest.id, enabled)}
+                size="sm"
+              />
+            </span>
+          )}
         </div>
       </FocusControls>
       <div

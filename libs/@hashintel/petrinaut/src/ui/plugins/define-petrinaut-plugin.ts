@@ -118,6 +118,11 @@ export interface PetrinautPluginManifest {
   readonly description?: string;
   /** Who maintains the plugin, shown beside its name. */
   readonly author?: string;
+  /**
+   * `true` for a plugin the host depends on, such as its own Save control:
+   * its row in the Plugins section has no switch, and it always runs.
+   */
+  readonly required?: true;
   /** The editor state the plugin reads (`"read"`) or also changes (`"write"`), per family. */
   readonly access?: PluginAccess;
   /** Rows in User settings, keyed by the name `api.settings` reads. */

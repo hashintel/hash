@@ -25,6 +25,20 @@ describe("resolvePluginStatuses", () => {
     ]);
   });
 
+  it("runs a required plugin the user switched off", () => {
+    const required = definePetrinautPlugin({
+      id: "test.required",
+      name: "Required",
+      required: true,
+    })({});
+
+    expect(
+      resolvePluginStatuses([required], ["test.required"], new Set()).map(
+        ({ status }) => status,
+      ),
+    ).toEqual(["on"]);
+  });
+
   it("runs a re-created plugin whose predecessor failed", () => {
     const failed = createPlugin("test.reloaded");
 
