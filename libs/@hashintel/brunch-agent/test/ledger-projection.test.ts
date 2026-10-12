@@ -1,13 +1,7 @@
-import { describe, expect, test } from "vitest";
+import { expect, test } from "vitest";
 
-import {
-  opForAnswer,
-  opForFeedback,
-  projectLedger,
-  renderLedgerMarkdown,
-  resolveSelection,
-  supportDeskLedger,
-} from "@hashintel/brunch-agent";
+import { projectLedger, renderLedgerMarkdown } from "../src/ledger";
+import { supportDeskLedger } from "./fixtures/support-desk-ledger";
 
 const projection = projectLedger(supportDeskLedger);
 const user = renderLedgerMarkdown(projection, "user");
@@ -70,30 +64,4 @@ test("out-of-scope entities leave their kind section for the excluded list", () 
 test("a multi-entity claim repeats under each entity it references", () => {
   const matches = user.match(/Staffing is a whole number of agents/gu) ?? [];
   expect(matches.length).toBe(2);
-});
-
-describe("parked commenting flow", () => {
-  test("a partial selection resolves to its record and translates to a route op", () => {
-    const resolved = resolveSelection(
-      projection.addressEntries,
-      "Callers start hanging up after about eight",
-    )[0];
-    if (!resolved) throw new Error("selection did not resolve");
-    expect(resolved.address).toBe("c9");
-    expect(resolved.recordType).toBe("claim");
-    const op = opForFeedback(resolved, "They hang up from six minutes.");
-    expect(op.route).toBe("claim/create");
-    expect(op.payload.supersedes).toEqual(["c9"]);
-  });
-
-  test("answering a question supersedes the claim it projects", () => {
-    const conflicted = supportDeskLedger.claims.find(
-      (claim) => claim.status === "conflicted",
-    );
-    if (!conflicted) throw new Error("no conflicted claim in worked example");
-    const op = opForAnswer(conflicted, "It holds");
-    expect(op.route).toBe("claim/create");
-    expect(op.payload.supersedes).toEqual([conflicted.address]);
-    expect(op.payload.entities).toEqual(conflicted.entities);
-  });
 });

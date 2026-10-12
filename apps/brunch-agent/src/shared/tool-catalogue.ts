@@ -9,12 +9,7 @@ import {
   type PetrinautAiToolName,
 } from "@hashintel/petrinaut-core/ai";
 
-export type ToolDefinitionOwner =
-  | "flue"
-  | "brunch-core"
-  | "sdcpn-plugin"
-  | "petrinaut-core"
-  | "brunch-app";
+export type ToolDefinitionOwner = "flue" | "petrinaut-core" | "brunch-app";
 
 export type ToolExecutionOwner = "flue" | "brunch-app" | "petrinaut-website";
 
@@ -66,14 +61,14 @@ const netReaderTools: readonly BrunchToolCatalogueEntry[] = Object.values(
   netReaderToolNames,
 ).map((name) => ({
   name,
-  definitionOwner: "sdcpn-plugin",
+  definitionOwner: "brunch-app",
   executionOwner: "petrinaut-website",
   capability: "petrinaut-read",
 }));
 
 const draftBrunchTool: BrunchToolCatalogueEntry = {
   name: brunchTools.draftPetrinautExperiment,
-  definitionOwner: "sdcpn-plugin",
+  definitionOwner: "brunch-app",
   executionOwner: "petrinaut-website",
   capability: "petrinaut-experiment-draft",
 };
@@ -103,13 +98,13 @@ export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
   },
   {
     name: brunchTools.ledgerCommit,
-    definitionOwner: "brunch-core",
+    definitionOwner: "brunch-app",
     executionOwner: "brunch-app",
     capability: "ledger",
   },
   {
     name: brunchTools.ledgerCompile,
-    definitionOwner: "brunch-core",
+    definitionOwner: "brunch-app",
     executionOwner: "brunch-app",
     capability: "ledger",
   },

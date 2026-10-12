@@ -1,8 +1,9 @@
 /**
- * The Ledger's user-facing projection: committed records folded into a
- * sectioned structure and rendered to markdown in two skins over one shape.
- * `ledger_compile` renders the agent skin; the commenting flow
- * (resolve-selection) is design-only. Prototype harness: `_scratch/ledger-view`.
+ * The Ledger's projection: committed records folded into a sectioned
+ * structure and rendered to markdown in two skins over one shape. The agent
+ * skin carries record addresses and kind tokens inline; the user skin is clean
+ * prose. `ledger_compile` renders the agent skin, the website's Ledger tab the
+ * user skin.
  */
 
 export type {
@@ -30,11 +31,3 @@ export {
   renderLedgerMarkdown,
   type Skin,
 } from "./projection/render-ledger-markdown";
-export {
-  opForAnswer,
-  opForFeedback,
-  resolveSelection,
-  type LedgerOp,
-  type ResolvedRecord,
-} from "./projection/resolve-selection";
-export { supportDeskLedger } from "./projection/worked-example";

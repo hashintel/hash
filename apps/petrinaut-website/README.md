@@ -138,7 +138,7 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 | `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` judges eligible Live transcripts alongside submission, in local development and previews. Others are off.  |
 | `PETRINAUT_AI_MODEL`                | no               | `api/chat.ts`    | Overrides the model id; the default is `stockAssistantModel` in `src/shared/stock-assistant-model.ts`.           |
 | `PETRINAUT_AI_REASONING_EFFORT`     | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `stockAssistantModel.reasoningEffort`.                            |
-| `VITE_BRUNCH_CHAT_ENDPOINT`         | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
+| `VITE_BRUNCH_CHAT_ENDPOINT`         | for Brunch       | website          | Base URL of the mounted Brunch Flue route, such as `https://<brunch host>/agents/petrinaut`.                     |
 | `VITE_PETRINAUT_DEFAULT_ASSISTANT`  | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
 | `SENTRY_DSN`                        | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                                        |
 
@@ -222,7 +222,7 @@ Reload the page before starting a new session. Unsetting
 `PETRINAUT_VOICE_PROVIDER` also selects Realtime locally (Vercel previews
 default to Live; see [provider defaults](#voice-provider-defaults)). Provider/config selection is
 pinned for the mounted conversation; there is no provider switching or input
-resubmission mid-session. The launcher sets the existing `/agents/chat` route;
+resubmission mid-session. The launcher sets the `/agents/petrinaut` route;
 the ordinary website launcher still needs `VITE_BRUNCH_CHAT_ENDPOINT` configured
 to expose Voice. Export variables to the launcher directly or use `.env.local`;
 the website's generic Turbo `dev` task does not forward arbitrary shell variables.
