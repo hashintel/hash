@@ -19,6 +19,9 @@ const [firstPage, secondPage, thirdPage] = testDocumentPages;
 
 const getPdfPage = (page: Page) => page.locator(".react-pdf-page");
 
+const getDocxPage = (page: Page, heading: string) =>
+  page.locator(".layout-page", { hasText: heading });
+
 const docxMimeType =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -118,99 +121,93 @@ test.describe("PDF preview", () => {
   });
 });
 
-test("a DOCX file entity shows a preview that can be paged, zoomed and searched", async ({
-  page,
-}) => {
-  await uploadAndOpenFile(page, {
-    contents: generateTestDocx(),
-    mimeType: docxMimeType,
-    name: `file-preview-${Date.now()}.docx`,
+test.describe("DOCX preview", () => {
+  test.beforeEach(async ({ page }) => {
+    await uploadAndOpenFile(page, {
+      contents: generateTestDocx(),
+      mimeType: docxMimeType,
+      name: `file-preview-${Date.now()}.docx`,
+    });
+
+    await expect(getDocxPage(page, firstPage.heading)).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
-  const docxPage = (heading: string) =>
-    page.locator(".layout-page", { hasText: heading });
+  test("the next and previous page buttons move between pages", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "Next page" }).click();
+    await expect(getDocxPage(page, secondPage.heading)).toBeInViewport();
 
-  await expect(docxPage(firstPage.heading)).toBeVisible({ timeout: 15_000 });
-
-  await page.getByRole("button", { name: "Next page" }).click();
-  await expect(docxPage(secondPage.heading)).toBeInViewport();
-
-  await page.getByRole("button", { name: "Previous page" }).click();
-  await expect(docxPage(firstPage.heading)).toBeInViewport();
-
-  const widthBeforeZoom =
-    (await docxPage(firstPage.heading).boundingBox())?.width ?? 0;
-  await page.getByRole("button", { name: "Zoom in" }).click();
-  await expect
-    .poll(
-      async () => (await docxPage(firstPage.heading).boundingBox())?.width ?? 0,
-    )
-    .toBeGreaterThan(widthBeforeZoom);
-
-  await page.getByRole("button", { name: "Show search" }).click();
-  await page
-    .getByPlaceholder("Search the document...")
-    .fill(testDocumentSearchWord);
-  await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
-  await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
-
-  await page.getByRole("button", { name: "Next result" }).click();
-  await expect(page.getByText("2 of 2", { exact: true })).toBeVisible();
-  await expect(docxPage(thirdPage.heading)).toBeInViewport();
-  await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
-});
-
-test("the DOCX preview cannot be edited", async ({ page }) => {
-  await uploadAndOpenFile(page, {
-    contents: generateTestDocx(),
-    mimeType: docxMimeType,
-    name: `file-preview-read-only-${Date.now()}.docx`,
+    await page.getByRole("button", { name: "Previous page" }).click();
+    await expect(getDocxPage(page, firstPage.heading)).toBeInViewport();
   });
 
-  const firstDocxPage = page.locator(".layout-page", {
-    hasText: firstPage.heading,
-  });
-  await expect(firstDocxPage).toBeVisible({ timeout: 15_000 });
-  const textBefore = (await firstDocxPage.textContent()) ?? "";
+  test("zooming in makes the page wider", async ({ page }) => {
+    const docxPage = getDocxPage(page, firstPage.heading);
 
-  await firstDocxPage.getByText(firstPage.heading, { exact: true }).click();
-  await page.keyboard.type("typed text");
-  await page.keyboard.press("Enter");
-  await page.keyboard.press("Backspace");
-  await page.keyboard.press("Delete");
-
-  await expect(firstDocxPage).toHaveText(textBefore);
-});
-
-test("text selected in the DOCX preview copies exactly", async ({ page }) => {
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-
-  await uploadAndOpenFile(page, {
-    contents: generateTestDocx(),
-    mimeType: docxMimeType,
-    name: `file-preview-copy-${Date.now()}.docx`,
+    const widthBeforeZoom = (await docxPage.boundingBox())?.width ?? 0;
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    await expect
+      .poll(async () => (await docxPage.boundingBox())?.width ?? 0)
+      .toBeGreaterThan(widthBeforeZoom);
   });
 
-  const heading = page
-    .locator(".layout-page")
-    .first()
-    .getByText(firstPage.heading, { exact: true });
-  await expect(heading).toBeVisible({ timeout: 15_000 });
+  test("search selects a word and the next result moves to the next page holding it", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "Show search" }).click();
+    await page
+      .getByPlaceholder("Search the document...")
+      .fill(testDocumentSearchWord);
+    await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
+    await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
 
-  const box = await heading.boundingBox();
-  if (!box) {
-    throw new Error("The heading on page 1 has no bounding box");
-  }
-  const lineY = box.y + box.height / 2;
-  await page.mouse.move(box.x + 1, lineY);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width - 1, lineY, { steps: 5 });
-  await page.mouse.up();
-  await page.keyboard.press("ControlOrMeta+C");
+    await page.getByRole("button", { name: "Next result" }).click();
+    await expect(page.getByText("2 of 2", { exact: true })).toBeVisible();
+    await expect(getDocxPage(page, thirdPage.heading)).toBeInViewport();
+    await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
+  });
 
-  await expect
-    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe(firstPage.heading);
+  test("the preview cannot be edited", async ({ page }) => {
+    const docxPage = getDocxPage(page, firstPage.heading);
+    const textBefore = (await docxPage.textContent()) ?? "";
+
+    await docxPage.getByText(firstPage.heading, { exact: true }).click();
+    await page.keyboard.type("typed text");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Delete");
+
+    await expect(docxPage).toHaveText(textBefore);
+  });
+
+  test("text selected on a page copies exactly", async ({ page }) => {
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+
+    const heading = page
+      .locator(".layout-page")
+      .first()
+      .getByText(firstPage.heading, { exact: true });
+
+    const box = await heading.boundingBox();
+    if (!box) {
+      throw new Error("The heading on page 1 has no bounding box");
+    }
+    const lineY = box.y + box.height / 2;
+    await page.mouse.move(box.x + 1, lineY);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width - 1, lineY, { steps: 5 });
+    await page.mouse.up();
+    await page.keyboard.press("ControlOrMeta+C");
+
+    await expect
+      .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .toBe(firstPage.heading);
+  });
 });
 
 test("the DOCX preview runs and loads nothing from a hostile document", async ({
