@@ -55,7 +55,9 @@ const generatePdf = (pages: PageContent[]): Buffer => {
         `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 ${pageHeight}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${
           firstPageObjectNumber + index * 2 + 1
         } 0 R >>`,
-        `<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`,
+        `<< /Length ${Buffer.byteLength(
+          contentStream,
+        )} >>\nstream\n${contentStream}\nendstream`,
       ];
     }),
   ];
@@ -63,12 +65,12 @@ const generatePdf = (pages: PageContent[]): Buffer => {
   let pdf = "%PDF-1.4\n";
 
   const objectOffsets = objects.map((object, index) => {
-    const offset = pdf.length;
+    const offset = Buffer.byteLength(pdf);
     pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
     return offset;
   });
 
-  const crossReferenceOffset = pdf.length;
+  const crossReferenceOffset = Buffer.byteLength(pdf);
 
   pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
   for (const offset of objectOffsets) {
@@ -78,8 +80,7 @@ const generatePdf = (pages: PageContent[]): Buffer => {
     objects.length + 1
   } /Root 1 0 R >>\nstartxref\n${crossReferenceOffset}\n%%EOF\n`;
 
-  /** Every character is ASCII, so string offsets equal byte offsets */
-  return Buffer.from(pdf, "latin1");
+  return Buffer.from(pdf);
 };
 
 export const generateTestPdf = (): Buffer => generatePdf(testDocumentPages);
