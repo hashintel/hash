@@ -17,7 +17,7 @@ const copyFailedStyle = css({
   whiteSpace: "nowrap",
 });
 
-const createLocalCopyPlugin = definePetrinautPlugin({
+const LocalCopyPlugin = definePetrinautPlugin({
   id: "website.local-copy",
   name: "Local copy",
   description:
@@ -28,7 +28,7 @@ const createLocalCopyPlugin = definePetrinautPlugin({
 });
 
 /** Saves the net under its title plus "(copy)", then opens it at `/local/$netId` with the current view. */
-const useLocalCopyPlugin: PluginHook<typeof createLocalCopyPlugin> = (api) => {
+const useLocalCopyPlugin: PluginHook<typeof LocalCopyPlugin> = (api) => {
   const navigate = useNavigate();
   const [copyFailed, setCopyFailed] = useState(false);
 
@@ -67,4 +67,4 @@ const useLocalCopyPlugin: PluginHook<typeof createLocalCopyPlugin> = (api) => {
 };
 
 /** "Make a local copy" in the top bar of a read-only document. */
-export const localCopyPlugin = createLocalCopyPlugin(useLocalCopyPlugin);
+export const localCopyPlugin = LocalCopyPlugin(useLocalCopyPlugin);
