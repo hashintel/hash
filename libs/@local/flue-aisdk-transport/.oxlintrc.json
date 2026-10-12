@@ -35,6 +35,18 @@
     {
       "files": ["test/**"],
       "rules": {
+        "vitest/expect-expect": [
+          "error",
+          {
+            "assertFunctionNames": [
+              "expect",
+              "expectTypeOf",
+              "assert",
+              "assertType",
+              "expectLiveReopenParity"
+            ]
+          }
+        ],
         "no-restricted-imports": [
           "error",
           {
