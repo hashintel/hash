@@ -224,9 +224,8 @@ From `@hashintel/petrinaut/ui`.
   `{ itemType, itemId }`, or `null`.
 - `petrinautDocsContent`: the user guide's pages, by name.
 
-`@hashintel/petrinaut` re-exports `definePetrinautPlugin`, `pluginService`,
-`pluginCommandId` and the plugin and access types, for hosts that define
-plugins beside their `<Petrinaut>`.
+The package root, `@hashintel/petrinaut`, exports the same plugin API as
+`/ui`, for hosts whose module resolution cannot reach `/ui`.
 
 ## Error messages
 

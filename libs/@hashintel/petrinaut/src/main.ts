@@ -3,8 +3,7 @@
  *
  * Re-exports the editor, the contexts and types a host needs to embed it and
  * inject its own capabilities (error tracking, optimization, slots), and the
- * plugin API's definition and types. Plugin code imports from `/ui`, and the
- * React bindings live in `/react`.
+ * plugin API as `/ui` exports it. The React bindings live in `/react`.
  *
  * @layerRoot petrinaut
  * @role The host-facing entry point: the contexts and types an embedder wires up
@@ -106,41 +105,8 @@ export {
   type WorkerFactory,
 } from "@hashintel/petrinaut-core";
 export { Petrinaut } from "./ui/petrinaut";
-export {
-  definePetrinautPlugin,
-  pluginCommandId,
-  pluginService,
-} from "./ui/plugins/define-petrinaut-plugin";
-export type {
-  PetrinautPlugin,
-  PetrinautPluginDefinition,
-  PetrinautPluginManifest,
-  PetrinautSettingSpec,
-  PluginApi,
-  PluginButton,
-  PluginCommand,
-  PluginCommandSpec,
-  PluginContributions,
-  PluginHook,
-  PluginImplementation,
-  PluginService,
-} from "./ui/plugins/define-petrinaut-plugin";
-export type {
-  AccessApi,
-  EditRefusal,
-  EditResult,
-  PluginAccess,
-  PluginDiagnostics,
-  PluginDocument,
-  PluginDocumentReader,
-  PluginEditor,
-  PluginEditorReader,
-  PluginEdits,
-  PluginErrors,
-  PluginExperiments,
-  PluginExperimentsReader,
-  PluginNotifications,
-} from "./ui/plugins/plugin-access";
+// The plugin API, for hosts whose module resolution cannot reach `/ui`.
+export * from "./ui/plugins/public-api";
 export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,
