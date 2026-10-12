@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import * as v from "valibot";
 
+import type { PersonaAllowedEdit } from "../browser-turn.ts";
 import type { PersonaAgentSettings } from "./agent.ts";
 
 const admittedEntrySchema = v.object({
@@ -13,6 +14,13 @@ const admittedEntrySchema = v.object({
 });
 
 export const bridgeLogPath = (run: string) => join(run, "bridge-log.jsonl");
+
+const appendBridgeRecord = (run: string, record: Record<string, unknown>) =>
+  appendFile(
+    bridgeLogPath(run),
+    `${JSON.stringify({ ...record, recordedAt: new Date().toISOString() })}\n`,
+    { mode: 0o600 },
+  );
 
 /** A persona utterance records the agent settings that wrote it, since a resume may start a different agent. */
 export const appendAdmittedUtterance = (
@@ -25,16 +33,17 @@ export const appendAdmittedUtterance = (
         readonly submissionId: string;
         readonly personaAgent: PersonaAgentSettings;
       },
+) => appendBridgeRecord(run, { event: "admitted", ...entry });
+
+/** The persona cannot see the approval panel, so the launcher allows each destructive edit and records what it listed. */
+export const appendAllowedDestructiveEdit = (
+  run: string,
+  edit: PersonaAllowedEdit,
 ) =>
-  appendFile(
-    bridgeLogPath(run),
-    `${JSON.stringify({
-      event: "admitted",
-      ...entry,
-      recordedAt: new Date().toISOString(),
-    })}\n`,
-    { mode: 0o600 },
-  );
+  appendBridgeRecord(run, {
+    event: "destructive-edit-allowed",
+    items: edit.items,
+  });
 
 export const lastAdmittedUtterance = async (run: string) => {
   const contents = await readFile(bridgeLogPath(run), "utf8").catch(

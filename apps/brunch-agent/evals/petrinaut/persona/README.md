@@ -78,6 +78,7 @@ The [launcher](launch.ts):
 3. Sends the opening and waits through browser-tool continuations for the completed reply. The default route is `/` with no preloaded net; `--initial-net` is optional staging, not a from-scratch run.
 4. Opens the browser bridge, writes `bin/persona` and the private `persona-brief.md` (role, command guide, any objective, the opening exchange and the situation pack), then starts the agent.
 5. Types each `say` message into the ordinary composer, waits until every admitted continuation settles, and returns the reply. This uses selectors, not screenshot-based AI computer use.
+6. Clicks **Allow** on each destructive-edit approval panel (any `remove*` net tool) during a turn, because the persona sees only reply prose and cannot answer it; an unanswered panel holds the turn indefinitely. Each allowed edit is recorded in `bridge-log.jsonl`. It clicks Allow rather than Always allow so every request is recorded.
 
 Ctrl-C in the launcher, closing its browser, `persona end`, or the foreground agent exiting stops the resources the launcher created; other services are left alone. After `end` the agent's Herdr pane stays open so it can report to you; after Ctrl-C the launcher closes it. When the agent shares the launcher's terminal, Ctrl-C belongs to the agent; quit the agent to stop the run. Do not submit browser turns concurrently with the persona.
 
@@ -85,7 +86,7 @@ Ctrl-C in the launcher, closing its browser, `persona end`, or the foreground ag
 
 The agent's session and Brunch's interview are different conversations. The browser and the helper share **one Brunch conversation** and document binding; Brunch's canonical history remains authoritative. The persona sees only Brunch's reply prose, not the tool trace.
 
-The bridge only submits text and observes completion. It neither fabricates results nor executes mutations independently, and it refuses to overwrite a nonempty composer draft. The panel's history-replay guard remains intact.
+The bridge only submits text, allows destructive-edit approvals, and observes completion. It neither fabricates results nor executes mutations independently, and it refuses to overwrite a nonempty composer draft. The panel's history-replay guard remains intact.
 
 ### Read-only browser observation
 
@@ -120,7 +121,7 @@ Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-
 - `conversation.db`: this run's local Flue database, including conversation history, including the Ledger's commits, and provider usage records.
 - `session.json`: private native browser attachment, not a reusable template or public artifact.
 - `persona-brief.md`, `resume-brief.md` and `bin/persona`: the agent's private brief, latest resume notice and bridge helper.
-- `bridge-log.jsonl`: every utterance Brunch admitted, with the persona agent settings that wrote each persona utterance (empty when you started the agent yourself), used to reconcile resume.
+- `bridge-log.jsonl`: every utterance Brunch admitted, with the persona agent settings that wrote each persona utterance (empty when you started the agent yourself), used to reconcile resume; and every destructive edit the launcher allowed, with the items its approval panel listed.
 - `evidence/`: canonical snapshot and derived transcript, tool trace, compiled `ledger.md` with its `ledger.json` commits, and bound `net.json`; refreshed after completed turns and on shutdown.
 - Service logs, only for services this launch started.
 

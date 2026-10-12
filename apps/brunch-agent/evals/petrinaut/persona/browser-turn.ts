@@ -6,12 +6,15 @@ import {
   type AgentSendResult,
   type FlueConversationSnapshot,
 } from "@flue/sdk";
+import {
+  errors,
+  type Page,
+  type Response as BrowserResponse,
+} from "@playwright/test";
 
 import { brunchHeaders, brunchRoutes } from "@hashintel/brunch-agent";
 
 import { agentOwnershipHeaders } from "../../../src/shared/conversation/identity.ts";
-
-import type { Page, Response as BrowserResponse } from "@playwright/test";
 
 /** A failed persona turn that still carries the admitted conversation's history. */
 export class PersonaBrowserTurnError extends Error {
@@ -34,6 +37,50 @@ export interface PersonaBrowserSession {
   readonly initialData: unknown;
 }
 
+/** A destructive edit the harness allowed, described as the approval panel listed it. */
+export interface PersonaAllowedEdit {
+  readonly items: readonly string[];
+}
+
+/**
+ * The persona speaks only through the composer and never sees the approval
+ * panel, so an unanswered panel would hold the turn until someone clicked.
+ * Allow, not Always allow, keeps one panel and so one record per request.
+ */
+export const allowDestructiveEdits = async (
+  page: Page,
+  isSettled: () => boolean,
+  onAllowed?: (edit: PersonaAllowedEdit) => Promise<void>,
+) => {
+  const panel = page
+    .getByRole("region", { name: "Approve destructive edits", exact: true })
+    .first();
+  const allowNext = async () => {
+    try {
+      await panel.waitFor({ state: "visible", timeout: 1_000 });
+    } catch (error) {
+      if (error instanceof errors.TimeoutError) return;
+      throw error;
+    }
+    const items = await panel.getByRole("listitem").allTextContents();
+    const allow = await panel
+      .getByRole("button", { name: "Allow", exact: true })
+      .elementHandle();
+    assert(allow, "The approval panel has no Allow button");
+    try {
+      await allow.click();
+      // The panel leaves once its call is admitted; wait so it is not counted twice.
+      await allow.waitForElementState("hidden");
+    } finally {
+      await allow.dispose();
+    }
+    await onAllowed?.({ items });
+  };
+  while (!isSettled())
+    // eslint-disable-next-line no-await-in-loop -- Approvals queue; each panel must leave before the next is read.
+    await allowNext();
+};
+
 /** Submit text, not tools. Only the ordinary panel executes and continues browser work. */
 export const submitPersonaBrowserTurn = async (
   page: Page,
@@ -45,6 +92,7 @@ export const submitPersonaBrowserTurn = async (
       session: PersonaBrowserSession,
       receipt: AgentSendResult,
     ) => Promise<void>;
+    onAllowedEdit?: (edit: PersonaAllowedEdit) => Promise<void>;
   } = {},
 ) => {
   const { signal } = options;
@@ -87,6 +135,14 @@ export const submitPersonaBrowserTurn = async (
     if (signal?.aborted) aborted.reject(signal.reason);
   };
   signal?.addEventListener("abort", cancel, { once: true });
+  let turnSettled = false;
+  const allowing = allowDestructiveEdits(
+    page,
+    () => turnSettled,
+    options.onAllowedEdit,
+  );
+  // Raced while the turn runs, awaited once it ends.
+  void allowing.catch(() => {});
   try {
     await composer.fill(message);
     signal?.throwIfAborted();
@@ -145,6 +201,7 @@ export const submitPersonaBrowserTurn = async (
     await Promise.race([
       stop.waitFor({ state: "hidden", timeout: 0 }),
       aborted.promise,
+      allowing,
     ]);
     await stopTask;
     // Local Stop hides the busy state before the native abort can settle.
@@ -205,5 +262,7 @@ export const submitPersonaBrowserTurn = async (
     throw error;
   } finally {
     signal?.removeEventListener("abort", cancel);
+    turnSettled = true;
+    await allowing.catch(() => {});
   }
 };

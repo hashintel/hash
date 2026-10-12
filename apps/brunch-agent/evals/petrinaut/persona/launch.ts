@@ -50,7 +50,10 @@ import {
   type PersonaAgentProcess,
   type PersonaAgentSettings,
 } from "./launch/agent.ts";
-import { appendAdmittedUtterance } from "./launch/bridge-log.ts";
+import {
+  appendAdmittedUtterance,
+  appendAllowedDestructiveEdit,
+} from "./launch/bridge-log.ts";
 import { writePersonaBrief, writePersonaResumeBrief } from "./launch/brief.ts";
 import { openPersonaConversation } from "./launch/browser.ts";
 import {
@@ -587,6 +590,7 @@ const launchPersona = async ({
             sessionPath: join(run, "session.json"),
             signal: stop.signal,
             beforeOpening: recordingPause,
+            onAllowedEdit: (edit) => appendAllowedDestructiveEdit(run, edit),
           })),
         };
     if (opened.kind === "fresh")
@@ -608,6 +612,7 @@ const launchPersona = async ({
           const result = await submitPersonaBrowserTurn(personaPage, message, {
             session: opened.session,
             signal: AbortSignal.any([turn.signal, stop.signal]),
+            onAllowedEdit: (edit) => appendAllowedDestructiveEdit(run, edit),
             onAdmission: async (session, receipt) => {
               activeAdmission = {
                 client: createFlueClient({

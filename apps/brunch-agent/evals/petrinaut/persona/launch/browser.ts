@@ -1,6 +1,9 @@
 import { writeFile } from "node:fs/promises";
 
-import { submitPersonaBrowserTurn } from "../browser-turn.ts";
+import {
+  submitPersonaBrowserTurn,
+  type PersonaAllowedEdit,
+} from "../browser-turn.ts";
 
 import type { Page } from "@playwright/test";
 
@@ -14,6 +17,7 @@ export const openPersonaConversation = async (
     sessionPath?: string;
     signal?: AbortSignal;
     beforeOpening?: () => Promise<void>;
+    onAllowedEdit?: (edit: PersonaAllowedEdit) => Promise<void>;
   } = {},
 ) => {
   await page.goto(new URL(options.route ?? "/", origin).href);
@@ -27,6 +31,7 @@ export const openPersonaConversation = async (
   options.signal?.throwIfAborted();
   return submitPersonaBrowserTurn(page, opening, {
     signal: options.signal,
+    onAllowedEdit: options.onAllowedEdit,
     onAdmission: async (session) => {
       // Retain the admitted identity even if its response fails; never resend it.
       if (options.sessionPath)
