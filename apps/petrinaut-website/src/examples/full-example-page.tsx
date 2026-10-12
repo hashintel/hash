@@ -18,16 +18,6 @@ const pageStyle = css({
   overflow: "hidden",
 });
 
-const titleStyle = css({
-  minWidth: "0",
-  overflow: "hidden",
-  color: "neutral.s90",
-  fontSize: "sm",
-  fontWeight: "medium",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
 export type FullExamplePageProps = {
   example: LoadedExample;
   /** Writes the shared search subset back to the page URL. */
@@ -70,15 +60,10 @@ export const FullExamplePage = ({
       />
       <Petrinaut
         handle={handle}
-        hideNetManagementControls="all"
+        hideNetManagementControls="except-title"
         navigation={navigation}
         presentationProfile="review"
         readonly
-        slots={{
-          topBarStart: (
-            <span className={titleStyle}>{example.catalog.title}</span>
-          ),
-        }}
         title={example.catalog.title}
       />
     </main>

@@ -6,7 +6,7 @@ import {
   TextInput,
   type MenuItem,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   EditorContext,
@@ -21,7 +21,6 @@ import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
 
 import type { ExperimentRecord } from "../../../../../react/experiments/context";
-import type { PetrinautSlots } from "../../../../types/petrinaut-slots";
 
 const topBarStyle = css({
   display: "flex",
@@ -60,6 +59,13 @@ const titleStyles = css({
   fontWeight: "medium",
 });
 
+const readonlyTitleStyles = css({
+  minWidth: "[0]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
 interface TopBarProps {
   actualModeAvailable: boolean;
   menuItems: MenuItem[];
@@ -70,7 +76,6 @@ interface TopBarProps {
   mode: EditorState["globalMode"];
   onModeChange: (mode: EditorState["globalMode"]) => void;
   onRunningExperimentClick?: (experiment: ExperimentRecord) => void;
-  slots?: PetrinautSlots;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -83,7 +88,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   mode,
   onModeChange,
   onRunningExperimentClick,
-  slots,
 }) => {
   const { isLeftSidebarOpen, setLeftSidebarOpen, setSearchOpen } =
     use(EditorContext);
@@ -133,7 +137,6 @@ export const TopBar: React.FC<TopBarProps> = ({
         />
 
         <PluginToolbarItems place="top-bar-start" />
-        {slots?.topBarStart}
 
         {hideNetManagementControls !== "all" && (
           <TextInput
@@ -142,9 +145,8 @@ export const TopBar: React.FC<TopBarProps> = ({
             onChange={onTitleChange}
             readonly={!titleEditable}
             placeholder="Process"
-            className={titleStyles}
+            className={cx(titleStyles, !titleEditable && readonlyTitleStyles)}
             size="sm"
-            style={slots?.titleStyle}
           />
         )}
       </div>
@@ -162,7 +164,6 @@ export const TopBar: React.FC<TopBarProps> = ({
         />
         {undoRedo && <VersionHistoryButton />}
         <PluginToolbarItems place="top-bar-end" />
-        {slots?.topBarEnd}
       </div>
     </div>
   );
