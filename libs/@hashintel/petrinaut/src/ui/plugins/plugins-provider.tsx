@@ -24,6 +24,7 @@ import {
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { useStore, useStoreSelector } from "../../react/use-store";
+import { pluginRuntime } from "./define-petrinaut-plugin";
 import { accessApi } from "./plugin-access";
 import { PluginBoundary } from "./plugin-boundary";
 import { PluginCommandRegistrations } from "./plugin-commands";
@@ -153,7 +154,7 @@ const PluginHost = ({
   const { manifest } = plugin;
   const settings = usePluginSettings(manifest);
   const api = usePluginApi(manifest, editor, manifest.settings && settings);
-  const useHook = plugin.hook;
+  const useHook = plugin[pluginRuntime].hook;
   const contributions = useHook(api);
 
   useLayoutEffect(
@@ -192,10 +193,10 @@ const PluginHosts = ({
   return statuses.map(({ plugin, status }) =>
     status === "on" ? (
       <PluginBoundary
-        key={`${editor.generation}:${plugin.hostKey}`}
+        key={`${editor.generation}:${plugin[pluginRuntime].hostKey}`}
         pluginId={plugin.manifest.id}
         place="hook"
-        onError={() => onFail(plugin.hostKey)}
+        onError={() => onFail(plugin[pluginRuntime].hostKey)}
       >
         <PluginHost plugin={plugin} editor={editor} store={store} />
       </PluginBoundary>

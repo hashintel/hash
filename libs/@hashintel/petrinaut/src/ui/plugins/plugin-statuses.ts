@@ -1,4 +1,4 @@
-import type { PetrinautPlugin } from "./define-petrinaut-plugin";
+import { type PetrinautPlugin, pluginRuntime } from "./define-petrinaut-plugin";
 
 /**
  * - `on`: the plugin runs.
@@ -34,7 +34,7 @@ export const resolvePluginStatuses = (
       status:
         disabledPluginIds.includes(id) && plugin.manifest.required !== true
           ? "off"
-          : failedHostKeys.has(plugin.hostKey)
+          : failedHostKeys.has(plugin[pluginRuntime].hostKey)
             ? "failed"
             : "on",
     };

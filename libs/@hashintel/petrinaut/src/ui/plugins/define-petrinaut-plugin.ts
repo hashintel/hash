@@ -283,15 +283,26 @@ export interface AnyPluginContributions {
   readonly provides?: unknown;
 }
 
+/**
+ * Keys the part of a plugin only Petrinaut reads. The package does not export
+ * it, so a plugin comes from `definePetrinautPlugin` and its manifest checks.
+ */
+export const pluginRuntime: unique symbol = Symbol("petrinaut.pluginRuntime");
+
+/** What Petrinaut runs for a plugin. */
+export interface PluginRuntime {
+  /** Called with the `api` built from the manifest. */
+  readonly hook: (api: never) => AnyPluginContributions;
+  /** New for each plugin created, so a re-created plugin remounts and nothing else does. */
+  readonly hostKey: string;
+}
+
 /** A plugin, ready for `<Petrinaut plugins>`. Plugins of any manifest fit one array. */
 export interface PetrinautPlugin<
   M extends PetrinautPluginManifest = PetrinautPluginManifest,
 > {
   readonly manifest: M;
-  /** Only Petrinaut calls it, with the `api` built from `manifest`. */
-  readonly hook: (api: never) => AnyPluginContributions;
-  /** New for each plugin created, so a re-created plugin remounts and nothing else does. */
-  readonly hostKey: string;
+  readonly [pluginRuntime]: PluginRuntime;
 }
 
 /** What a definition takes: the hook, or contributions that need no `api`. */
@@ -366,7 +377,7 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
   >;
 
 /** A plugin's implementation, whatever its manifest. */
-type AnyImplementation = PetrinautPlugin["hook"] | AnyPluginContributions;
+type AnyImplementation = PluginRuntime["hook"] | AnyPluginContributions;
 
 let nextSerial = 0;
 
@@ -391,11 +402,13 @@ const createPlugin = (
   implementation: AnyImplementation,
 ): PetrinautPlugin => ({
   manifest,
-  hook:
-    typeof implementation === "function"
-      ? implementation
-      : () => implementation,
-  hostKey: `${manifest.id}#${nextSerial++}`,
+  [pluginRuntime]: {
+    hook:
+      typeof implementation === "function"
+        ? implementation
+        : () => implementation,
+    hostKey: `${manifest.id}#${nextSerial++}`,
+  },
 });
 
 /**

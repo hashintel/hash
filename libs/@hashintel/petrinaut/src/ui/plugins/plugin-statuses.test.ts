@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { definePetrinautPlugin } from "./define-petrinaut-plugin";
+import {
+  definePetrinautPlugin,
+  pluginRuntime,
+} from "./define-petrinaut-plugin";
 import { resolvePluginStatuses } from "./plugin-statuses";
 
 const createPlugin = (id: string) =>
@@ -16,7 +19,7 @@ describe("resolvePluginStatuses", () => {
       resolvePluginStatuses(
         [first, second, third],
         ["test.second"],
-        new Set([third.hostKey]),
+        new Set([third[pluginRuntime].hostKey]),
       ).map(({ plugin, status }) => [plugin.manifest.id, status]),
     ).toEqual([
       ["test.first", "on"],
@@ -46,7 +49,7 @@ describe("resolvePluginStatuses", () => {
       resolvePluginStatuses(
         [createPlugin("test.reloaded")],
         [],
-        new Set([failed.hostKey]),
+        new Set([failed[pluginRuntime].hostKey]),
       ).map(({ status }) => status),
     ).toEqual(["on"]);
   });

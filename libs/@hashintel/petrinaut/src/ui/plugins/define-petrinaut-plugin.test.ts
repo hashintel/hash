@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   definePetrinautPlugin,
   pluginCommandId,
+  pluginRuntime,
   pluginService,
   type PluginHook,
 } from "./define-petrinaut-plugin";
@@ -43,8 +44,10 @@ describe("definePetrinautPlugin", () => {
     const second = createPalettePlugin(contributions);
 
     expect(createPalettePlugin.manifest.id).toBe("test.palette");
-    expect(first.hostKey).not.toBe(second.hostKey);
-    expect(first.hook(undefined as never)).toBe(contributions);
+    expect(first[pluginRuntime].hostKey).not.toBe(
+      second[pluginRuntime].hostKey,
+    );
+    expect(first[pluginRuntime].hook(undefined as never)).toBe(contributions);
   });
 
   it("types the api and the contributions from the manifest", () => {
@@ -119,8 +122,10 @@ describe("definePetrinautPlugin", () => {
 
     expect(id).toBe("test.direct");
     expect(first.manifest).toBe(manifest);
-    expect(first.hook(undefined as never)).toBe(contributions);
-    expect(first.hostKey).not.toBe(second.hostKey);
+    expect(first[pluginRuntime].hook(undefined as never)).toBe(contributions);
+    expect(first[pluginRuntime].hostKey).not.toBe(
+      second[pluginRuntime].hostKey,
+    );
   });
 
   it("types an inline hook's api and the contributions in the direct form", () => {

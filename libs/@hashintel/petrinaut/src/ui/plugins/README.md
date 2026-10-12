@@ -30,7 +30,7 @@ describes the code.
 definePetrinautPlugin(manifest)        plain data, readable without running plugin code
         │
         ▼
-createXPlugin(hook | contributions)    a PetrinautPlugin: { manifest, hook, hostKey }
+createXPlugin(hook | contributions)    a PetrinautPlugin: { manifest, [pluginRuntime]: { hook, hostKey } }
         │
         ▼  <Petrinaut plugins={[…]}>
 PetrinautPluginsProvider
