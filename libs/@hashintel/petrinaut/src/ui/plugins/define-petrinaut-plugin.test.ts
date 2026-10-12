@@ -342,4 +342,26 @@ describe("definePetrinautPlugin", () => {
       buttons: { open: { icon: null, command: "open" } },
     });
   });
+
+  it("types settings from the manifest, and gives none without them", () => {
+    const createPlainPlugin = definePetrinautPlugin({
+      id: "test.plain",
+      name: "Plain",
+    });
+    const usePlainPlugin: PluginHook<typeof createPlainPlugin> = (api) => {
+      // @ts-expect-error A plugin without settings has no settings api.
+      void api.settings;
+
+      return {};
+    };
+    const useEditorPlugin: PluginHook<typeof createEditorPlugin> = (api) => {
+      // @ts-expect-error A setting the manifest does not declare.
+      api.settings.get("unknown");
+
+      return { provides: { ready: true } };
+    };
+
+    void usePlainPlugin;
+    void useEditorPlugin;
+  });
 });

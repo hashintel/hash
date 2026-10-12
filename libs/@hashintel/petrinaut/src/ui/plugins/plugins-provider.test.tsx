@@ -684,4 +684,24 @@ describe("PetrinautPluginsProvider", () => {
     act(() => screen.getByRole("button", { name: "switch off" }).click());
     expect(registered()).toEqual([]);
   });
+
+  it("skips a button's command while `when` withholds it", () => {
+    const runs = vi.fn();
+    const clicks = vi.fn();
+    const plugin = definePetrinautPlugin({
+      id: "test.withheld",
+      name: "Withheld",
+      commands: { act: { label: "Act" } },
+      buttons: { act: { label: "Act", place: "top-bar-end" } },
+    })({
+      commands: { act: { run: runs, when: false } },
+      buttons: { act: { icon: null, onClick: clicks, command: "act" } },
+    });
+
+    renderPlugins([plugin], <TopBarEnd />);
+    act(() => screen.getByRole("button", { name: "Act" }).click());
+
+    expect(clicks).toHaveBeenCalledOnce();
+    expect(runs).not.toHaveBeenCalled();
+  });
 });

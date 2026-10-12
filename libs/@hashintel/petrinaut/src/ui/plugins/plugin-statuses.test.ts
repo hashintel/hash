@@ -63,4 +63,24 @@ describe("resolvePluginStatuses", () => {
       ),
     ).toThrow('Petrinaut plugin "test.twice" is passed twice.');
   });
+
+  it("shows a failed plugin the user switched off as off, and a failed required one as failed", () => {
+    const failed = createPlugin("test.failed");
+    const required = definePetrinautPlugin({
+      id: "test.required",
+      name: "Required",
+      required: true,
+    })({});
+
+    expect(
+      resolvePluginStatuses(
+        [failed, required],
+        ["test.failed", "test.required"],
+        new Set([
+          failed[pluginRuntime].hostKey,
+          required[pluginRuntime].hostKey,
+        ]),
+      ).map(({ status }) => status),
+    ).toEqual(["off", "failed"]);
+  });
 });
