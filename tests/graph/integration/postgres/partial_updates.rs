@@ -12,6 +12,7 @@ use hash_graph_store::{
     query::Read,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
+use hash_graph_temporal_versioning::{ClosedTemporalBound, OpenTemporalBound};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use pretty_assertions::assert_eq;
 use type_system::{
@@ -786,6 +787,160 @@ async fn patch_entities_duplicate_ids() {
         .await
         .expect("should read the final entity");
     assert_eq!(stored, second, "should persist the combined patch result");
+}
+
+#[tokio::test]
+async fn patch_entities_live_then_publish() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let original = create_person(&mut api).await;
+    let live_id = original.metadata.record_id.entity_id;
+    let mut create_draft = patch_params(
+        live_id,
+        vec![add_property(
+            name_property_type_id(),
+            PropertyValue::String("Draft".to_owned()),
+        )],
+    );
+    create_draft.draft = Some(true);
+    let draft = api
+        .patch_entity(api.account_id, create_draft)
+        .await
+        .expect("should create a draft of the live entity");
+    let mut publish = patch_params(draft.metadata.record_id.entity_id, Vec::new());
+    publish.draft = Some(false);
+    let patched = api
+        .patch_entities(
+            api.account_id,
+            vec![
+                patch_params(
+                    live_id,
+                    vec![add_property(
+                        age_property_type_id(),
+                        PropertyValue::Number(Real::from(30)),
+                    )],
+                ),
+                publish,
+            ],
+        )
+        .await
+        .expect("should update the live entity and publish its draft in one batch");
+    let [updated, published]: [Entity; 2] = patched
+        .try_into()
+        .expect("should return both patch results");
+    assert_eq!(
+        updated.properties.properties().get(&age_property_type_id()),
+        Some(&Property::Value(PropertyValue::Number(Real::from(30)))),
+        "should apply the live update before publication"
+    );
+    assert_eq!(
+        published.metadata.record_id.entity_id, live_id,
+        "should publish the draft as the live entity"
+    );
+    assert_eq!(
+        published.properties, draft.properties,
+        "should publish the draft properties"
+    );
+    let stored = api
+        .get_entity_by_id(Some(api.account_id), live_id, None, None)
+        .await
+        .expect("should read the published entity");
+    assert_eq!(stored, published, "should persist the published edition");
+    let history = Read::<Entity>::read_vec(&api.store, &[], None, true)
+        .await
+        .expect("should decode history without empty temporal intervals");
+    for previous in [original, draft] {
+        assert!(
+            history.iter().any(|entity| {
+                entity.metadata.record_id.edition_id == previous.metadata.record_id.edition_id
+            }),
+            "should preserve editions that existed before the batch"
+        );
+    }
+    assert!(
+        !history.iter().any(|entity| {
+            entity.metadata.record_id.edition_id == updated.metadata.record_id.edition_id
+        }),
+        "should omit the intermediate edition with no temporal duration"
+    );
+}
+
+#[tokio::test]
+async fn patch_entities_publish_existing_decision_start() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let original = create_person(&mut api).await;
+    let live_id = original.metadata.record_id.entity_id;
+    let ClosedTemporalBound::Inclusive(decision_time) =
+        *original.metadata.temporal_versioning.decision_time.start();
+    let mut create_draft = patch_params(
+        live_id,
+        vec![add_property(
+            name_property_type_id(),
+            PropertyValue::String("Draft".to_owned()),
+        )],
+    );
+    create_draft.draft = Some(true);
+    create_draft.decision_time = Some(decision_time);
+    let draft = api
+        .patch_entity(api.account_id, create_draft)
+        .await
+        .expect("should create a draft at the original decision-time start");
+    let mut publish = patch_params(draft.metadata.record_id.entity_id, Vec::new());
+    publish.draft = Some(false);
+    publish.decision_time = Some(decision_time);
+    let [published]: [Entity; 1] = api
+        .patch_entities(api.account_id, vec![publish])
+        .await
+        .expect("should publish at the existing decision-time start")
+        .try_into()
+        .expect("should return the published entity");
+    let stored = api
+        .get_entity_by_id(Some(api.account_id), live_id, None, None)
+        .await
+        .expect("should read the published entity");
+    assert_eq!(stored, published, "should persist the published edition");
+    assert_eq!(
+        published.properties, draft.properties,
+        "should publish the draft properties"
+    );
+    let history = Read::<Entity>::read_vec(&api.store, &[], None, true)
+        .await
+        .expect("should decode history without empty intervals");
+    let previous = history
+        .iter()
+        .find(|entity| {
+            entity.metadata.record_id.edition_id == original.metadata.record_id.edition_id
+        })
+        .expect("should preserve the original live edition in transaction history");
+    assert_eq!(
+        previous.metadata.temporal_versioning.decision_time,
+        original.metadata.temporal_versioning.decision_time,
+        "should preserve the original decision-time interval"
+    );
+    assert_eq!(
+        previous
+            .metadata
+            .temporal_versioning
+            .transaction_time
+            .start(),
+        original
+            .metadata
+            .temporal_versioning
+            .transaction_time
+            .start(),
+        "should preserve the original transaction-time start"
+    );
+    let ClosedTemporalBound::Inclusive(publication_time) = *published
+        .metadata
+        .temporal_versioning
+        .transaction_time
+        .start();
+    assert_eq!(
+        previous.metadata.temporal_versioning.transaction_time.end(),
+        &OpenTemporalBound::Exclusive(publication_time),
+        "should end the original transaction history at publication"
+    );
 }
 
 #[tokio::test]
