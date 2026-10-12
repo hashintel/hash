@@ -62,13 +62,16 @@ protocols, and the costs behind each design choice.
 
 ## Embedding Petrinaut
 
-How a host application connects its own document store to the editor.
+How a host application connects its own document store to the editor and
+extends the editor with plugins.
 
 - [Embedding in a host application](doc:handle/host-integration): the
   `PetrinautDocHandle` contract, the invariants the editor relies on, and a
   worked adapter.
 - [Handle contract gaps](doc:handle/contract-gaps): where the contract
   under-specifies or misbehaves, and the enhancement each gap calls for.
+- [Plugins](doc:plugins/overview): what a plugin is, how to write one, the
+  API reference, and how the editor runs plugins.
 - [Petricon](doc:ui/petricon): icon design references, motion rules, SVG
   implementation, and the React API.
 

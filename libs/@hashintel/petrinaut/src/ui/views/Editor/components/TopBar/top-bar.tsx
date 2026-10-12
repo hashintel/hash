@@ -15,6 +15,7 @@ import {
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { MenuIcon, SidebarIcon } from "../../../../experimental-icons";
+import { PluginToolbarItems } from "../../../../plugins/plugin-outlets";
 import { ModeSelector } from "./mode-selector";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
@@ -131,6 +132,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           items={menuItems}
         />
 
+        <PluginToolbarItems place="top-bar-start" />
         {slots?.topBarStart}
 
         {hideNetManagementControls !== "all" && (
@@ -159,6 +161,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           onExperimentClick={onRunningExperimentClick}
         />
         {undoRedo && <VersionHistoryButton />}
+        <PluginToolbarItems place="top-bar-end" />
         {slots?.topBarEnd}
       </div>
     </div>

@@ -38,6 +38,7 @@ export default defineConfig(({ command }) => ({
         main: "src/main.ts",
         react: "src/react/index.ts",
         ui: "src/ui/index.ts",
+        "ui/plugin": "src/ui/plugin.ts",
         preview: "src/preview.ts",
         // Panda preset consumed by hosts that compile Petrinaut's styles
         // through their own Panda pipeline (see panda.ship.config.ts).

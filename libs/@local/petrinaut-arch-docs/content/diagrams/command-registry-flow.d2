@@ -16,9 +16,11 @@ petrinaut: "Petrinaut" {
   style.fill: "#e8e0ff"
   style.stroke: "#7051b5"
   editor: "EditorCommands\nundo, tools, auto-layout, search, panels" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  plugins: "Plugin commands\ndeclared in the manifest, <plugin id>.<key>" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
 }
 
 host.components -> registry: register
 petrinaut.editor -> registry: register
+petrinaut.plugins -> registry: register
 registry -> host.palette: "list(), subscribe()"
 host.palette -> registry: "execute(id)"

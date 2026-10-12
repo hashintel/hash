@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -19,9 +20,14 @@ import { CommandRegistryProvider } from "../../../../react/commands/command-regi
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
+import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
+import { renderPlugins } from "../../../plugins/plugins-test-harness";
 import { UserSettings } from "./user-settings";
 
-import type { PetrinautNavigationState } from "../../../../react/navigation";
+import type {
+  PetrinautNavigationState,
+  PetrinautSettingsSection,
+} from "../../../../react/navigation";
 import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
 import type { ReactNode } from "react";
 
@@ -66,6 +72,35 @@ const renderSettings = (
   );
   return { ...result, registry };
 };
+
+const voicePlugin = definePetrinautPlugin({
+  id: "test.voice",
+  name: "Voice",
+  description: "Adds a voice setting.",
+  author: "Tests",
+  settings: {
+    voice: {
+      type: "boolean",
+      default: false,
+      label: "Voice",
+      description: "Talk.",
+      section: "labs",
+    },
+  },
+})({});
+
+const renderPluginSettings = (
+  section: PetrinautSettingsSection,
+  plugins = [voicePlugin],
+) =>
+  renderPlugins(
+    plugins,
+    <PetrinautNavigationProvider
+      initialState={{ overlay: { type: "user-settings", section } }}
+    >
+      <UserSettings />
+    </PetrinautNavigationProvider>,
+  );
 
 describe("user settings", () => {
   it.each(["heading", "top padding"])(
@@ -306,6 +341,7 @@ describe("user settings", () => {
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
       "General",
       "Viewport",
+      "Plugins",
       "Labs",
     ]);
     for (const name of [
@@ -432,6 +468,44 @@ describe("Labs settings", () => {
     ).toBeNull();
   });
 
+  it("renders a plugin's Labs settings after the built-in groups and persists a toggle", async () => {
+    renderPluginSettings("labs");
+    await screen.findByRole("heading", { name: "Labs" });
+    const regions = screen.getAllByRole("region");
+    expect(
+      regions.indexOf(screen.getByRole("region", { name: "Voice" })),
+    ).toBeGreaterThan(
+      regions.indexOf(screen.getByRole("region", { name: "Developer tools" })),
+    );
+    expect(screen.getByText("Talk.")).toBeTruthy();
+    const voice = screen.getByRole("checkbox", {
+      name: "Voice",
+    }) as HTMLInputElement;
+    expect(voice.checked).toBe(false);
+
+    await act(async () => fireEvent.click(voice));
+    expect(voice.checked).toBe(true);
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:plugin:test.voice") ?? "{}"),
+    ).toEqual({ voice: true });
+  });
+
+  it("walks plugin Labs rows and crosses the existing focus flow", async () => {
+    renderPluginSettings("labs");
+    await screen.findByRole("heading", { name: "Labs" });
+    const labs = screen.getByRole("tab", { name: "Labs" });
+    const compilation = screen.getByRole("checkbox", {
+      name: "Compilation output",
+    });
+    const voice = screen.getByRole("checkbox", { name: "Voice" });
+
+    act(() => compilation.focus());
+    fireEvent.keyDown(compilation, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(voice);
+    fireEvent.keyDown(voice, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(labs);
+  });
+
   it("renders host Labs content after the built-in groups", async () => {
     const withoutHost = renderSettings({
       overlay: { type: "user-settings", section: "labs" },
@@ -496,6 +570,54 @@ describe("Labs settings", () => {
     expect(document.activeElement).toBe(labs);
     fireEvent.keyDown(labs, { key: "ArrowRight" });
     expect(document.activeElement).toBe(last);
+  });
+});
+
+describe("Plugins settings", () => {
+  it("lists plugins with what they contribute and switches one off", async () => {
+    renderPluginSettings("plugins");
+    await screen.findByRole("heading", { name: "Plugins" });
+    const table = screen.getByRole("region", { name: "Installed plugins" });
+    expect(table.textContent).toContain("1 plugin1 running");
+    const row = within(table).getByRole("group", { name: "Voice" });
+
+    // Collapsed, the row is its one line; the details stay hidden from
+    // assistive technology until it opens.
+    const disclosure = within(row).getByRole("button", {
+      name: "Voice by Tests",
+    });
+    const details = () =>
+      within(row).getByText("Adds a voice setting.").closest("[aria-hidden]");
+    expect(details()?.getAttribute("aria-hidden")).toBe("true");
+    fireEvent.click(disclosure);
+    expect(details()?.getAttribute("aria-hidden")).toBe("false");
+    expect(
+      within(row)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Setting Voice · Labs"]);
+
+    const enabled = within(row).getByRole("checkbox", {
+      name: "Voice",
+    }) as HTMLInputElement;
+    expect(enabled.checked).toBe(true);
+    await act(async () => fireEvent.click(enabled));
+    expect(enabled.checked).toBe(false);
+    expect(table.textContent).toContain("1 plugin0 running");
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({ disabledPluginIds: ["test.voice"] });
+
+    // A plugin that is off contributes nothing, and the dialog stays open.
+    fireEvent.click(screen.getByRole("tab", { name: "Labs" }));
+    await screen.findByRole("heading", { name: "Labs" });
+    expect(screen.queryByRole("region", { name: "Voice" })).toBeNull();
+  });
+
+  it("explains that no plugins were passed", async () => {
+    renderPluginSettings("plugins", []);
+    await screen.findByRole("heading", { name: "Plugins" });
+    expect(screen.getByText("This editor has no plugins.")).toBeTruthy();
   });
 });
 

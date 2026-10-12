@@ -139,6 +139,14 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, showWalkthroughOnInit: value })),
     setShowCompilationOutput: (value: boolean) =>
       setState((prev) => ({ ...prev, showCompilationOutput: value })),
+    setPluginEnabled: (pluginId: string, enabled: boolean) =>
+      setState((prev) => ({
+        ...prev,
+        disabledPluginIds: [
+          ...prev.disabledPluginIds.filter((id) => id !== pluginId),
+          ...(enabled ? [] : [pluginId]),
+        ],
+      })),
     setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) => {
       // Stamped out here: an updater runs more than once and has to be pure.
       const savedAt = Date.now();
