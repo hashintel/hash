@@ -6,8 +6,8 @@ import type {
   FlowActionDefinitionId,
   InputDefinition,
   PayloadKind,
-  PayloadOfKind,
   PayloadValue,
+  PayloadWithKind,
   StepInput,
 } from "./types.js";
 
@@ -999,11 +999,25 @@ export const typedActionDefinitions = {
 
 export type TypedActionDefinitions = typeof typedActionDefinitions;
 
+/**
+ * The types of an action definition's inputs and outputs: an entry of `typedActionDefinitions`, or an action
+ * defined in a test.
+ */
+export type ActionDefinitionTypes = DeepReadOnly<
+  Pick<ActionDefinition<FlowActionDefinitionId>, "inputs" | "outputs">
+>;
+
+type InputDefinitionOf<Definition extends ActionDefinitionTypes> =
+  Definition["inputs"][number];
+
+type OutputDefinitionOf<Definition extends ActionDefinitionTypes> =
+  Definition["outputs"][number];
+
 type InputDefinitionForFlowAction<Action extends FlowActionDefinitionId> =
-  TypedActionDefinitions[Action]["inputs"][number];
+  InputDefinitionOf<TypedActionDefinitions[Action]>;
 
 type OutputDefinitionForFlowAction<Action extends FlowActionDefinitionId> =
-  TypedActionDefinitions[Action]["outputs"][number];
+  OutputDefinitionOf<TypedActionDefinitions[Action]>;
 
 export type InputNameForFlowAction<Action extends FlowActionDefinitionId> =
   InputDefinitionForFlowAction<Action>["name"];
@@ -1011,51 +1025,74 @@ export type InputNameForFlowAction<Action extends FlowActionDefinitionId> =
 export type OutputNameForFlowAction<Action extends FlowActionDefinitionId> =
   OutputDefinitionForFlowAction<Action>["name"];
 
-/** The action's input and output definitions that have a derived kind (see `KindFrom`). */
-type DerivedKindDefinitionForFlowAction<Action extends FlowActionDefinitionId> =
-  Extract<
-    | InputDefinitionForFlowAction<Action>
-    | OutputDefinitionForFlowAction<Action>,
-    { kindFrom: string }
-  >;
+/** The names of the action's kind sources: the inputs that others take their kind from (see `KindFrom`). */
+type KindSourceNameOf<Definition extends ActionDefinitionTypes> = Extract<
+  InputDefinitionOf<Definition> | OutputDefinitionOf<Definition>,
+  { kindFrom: string }
+>["kindFrom"];
 
 /**
- * The names of the action's inputs that its implementation receives as payloads, not bare values.
+ * The kinds each of the action's kind sources accepts, by input name.
  *
- * The type-level counterpart of `getPayloadInputNames`.
+ * An action's implementation is generic over the kind each kind source is given (see `FlowActionActivity`), within
+ * these. So TypeScript checks that the implementation returns that kind, where an output takes its kind from it.
  */
-type PayloadInputNameForFlowAction<Action extends FlowActionDefinitionId> =
-  | DerivedKindDefinitionForFlowAction<Action>["kindFrom"]
-  | Extract<InputDefinitionForFlowAction<Action>, { kindFrom: string }>["name"];
+export type InputKindsOf<Definition extends ActionDefinitionTypes> = {
+  [SourceName in KindSourceNameOf<Definition>]: AcceptedKinds<
+    InputDefinitionOf<Definition>,
+    Extract<InputDefinitionOf<Definition>, { name: SourceName }>
+  >;
+};
 
-/** The kinds the input accepts. */
-type InputPayloadKindForFlowAction<
-  Action extends FlowActionDefinitionId,
-  InputName extends string,
-> = AcceptedKinds<
-  InputDefinitionForFlowAction<Action>,
-  Extract<InputDefinitionForFlowAction<Action>, { name: InputName }>
->;
+export type FlowActionInputKinds<Action extends FlowActionDefinitionId> =
+  InputKindsOf<TypedActionDefinitions[Action]>;
 
-type FlowActionInputPayloadType<
-  Action extends FlowActionDefinitionId,
-  InputName extends InputNameForFlowAction<Action>,
-> =
-  Extract<InputDefinitionForFlowAction<Action>, { name: InputName }> extends {
-    array: infer IsArray extends boolean;
-    required: infer IsRequired extends boolean;
-  }
-    ?
-        | (InputName extends PayloadInputNameForFlowAction<Action>
-            ? PayloadOfKind<
-                InputPayloadKindForFlowAction<Action, InputName>,
-                IsArray
-              >
-            : PayloadValue<
-                InputPayloadKindForFlowAction<Action, InputName>,
-                IsArray
-              >)
-        | (IsRequired extends true ? never : undefined)
+/**
+ * The kind given to the kind source named `SourceName`, out of `Kinds` (see `InputKindsOf`).
+ *
+ * A conditional type, rather than `Kinds[SourceName]`: TypeScript lets any kind `Kinds`' constraint allows be
+ * assigned to that indexed type, but nothing other than the kind given to this one.
+ */
+type GivenKind<Kinds, SourceName> = SourceName extends keyof Kinds
+  ? Kinds[SourceName] & PayloadKind
+  : never;
+
+declare const inputKinds: unique symbol;
+
+/**
+ * A step's inputs, as an action's implementation receives them.
+ *
+ * `Kinds` is the kind each of the action's kind sources was given (see `InputKindsOf`). It is only in the type, for
+ * `getSimplifiedFlowActionInputs` to type those inputs with.
+ */
+export type FlowActionInputs<Kinds> = StepInput[] & {
+  readonly [inputKinds]?: Kinds;
+};
+
+/**
+ * The type of an input as an action's implementation reads it (see `getSimplifiedFlowActionInputs`): a payload of
+ * the kind given, for a kind source or an input that takes its kind from one, and a bare value otherwise.
+ */
+type InputValueOf<Definition extends ActionDefinitionTypes, Kinds, InputName> =
+  Extract<
+    InputDefinitionOf<Definition>,
+    { name: InputName }
+  > extends infer Input
+    ? Input extends {
+        array: infer IsArray extends boolean;
+        required: infer IsRequired extends boolean;
+      }
+      ?
+          | (Input extends { kindFrom: infer SourceName }
+              ? PayloadWithKind<GivenKind<Kinds, SourceName>, IsArray>
+              : InputName extends KindSourceNameOf<Definition>
+                ? PayloadWithKind<GivenKind<Kinds, InputName>, IsArray>
+                : PayloadValue<
+                    AcceptedKinds<InputDefinitionOf<Definition>, Input>,
+                    IsArray
+                  >)
+          | (IsRequired extends true ? never : undefined)
+      : never
     : never;
 
 /** A kind source, with the inputs and outputs that take their kind from it. */
@@ -1154,37 +1191,55 @@ export const getPayloadInputNames = (
     ),
   );
 
-type SimplifiedFlowActionInputsObject<Action extends FlowActionDefinitionId> = {
-  [InputName in InputNameForFlowAction<Action>]: FlowActionInputPayloadType<
-    Action,
+/**
+ * The record of inputs an action's implementation reads, keyed by input name, given the kind each kind source was
+ * given (see `getSimplifiedFlowActionInputs`).
+ */
+export type SimplifiedInputsOf<
+  Definition extends ActionDefinitionTypes,
+  Kinds = InputKindsOf<Definition>,
+> = {
+  [InputName in InputDefinitionOf<Definition>["name"]]: InputValueOf<
+    Definition,
+    Kinds,
     InputName
   >;
 };
 
+type SimplifiedFlowActionInputsObject<
+  Action extends FlowActionDefinitionId,
+  Kinds,
+> = SimplifiedInputsOf<TypedActionDefinitions[Action], Kinds>;
+
 /**
  * Turns a step's inputs into the record an action implementation reads, keyed by input name.
  *
- * Each input is its bare value, except those `getPayloadInputNames` returns, which stay payloads.
+ * Each input is its bare value, except those `getPayloadInputNames` returns, which stay payloads: of the kind each
+ * kind source was given, which `inputs` carries in its type (see `FlowActionInputs`).
  */
 export const getSimplifiedFlowActionInputs = <
   Action extends FlowActionDefinitionId,
+  Kinds extends FlowActionInputKinds<Action> = FlowActionInputKinds<Action>,
 >(params: {
-  inputs: StepInput[];
+  inputs: FlowActionInputs<Kinds>;
   actionType: Action;
-}): SimplifiedFlowActionInputsObject<Action> => {
+}): SimplifiedFlowActionInputsObject<Action, Kinds> => {
   const { inputs, actionType } = params;
 
   const payloadInputNames = getPayloadInputNames(actionDefinitions[actionType]);
 
-  return inputs.reduce((acc, input) => {
-    const inputName = input.inputName as InputNameForFlowAction<Action>;
+  return inputs.reduce(
+    (acc, input) => {
+      const inputName = input.inputName as InputNameForFlowAction<Action>;
 
-    acc[inputName] = (
-      payloadInputNames.has(inputName) ? input.payload : input.payload.value
-    ) as FlowActionInputPayloadType<Action, typeof inputName>;
+      acc[inputName] = (
+        payloadInputNames.has(inputName) ? input.payload : input.payload.value
+      ) as SimplifiedFlowActionInputsObject<Action, Kinds>[typeof inputName];
 
-    return acc;
-  }, {} as SimplifiedFlowActionInputsObject<Action>);
+      return acc;
+    },
+    {} as SimplifiedFlowActionInputsObject<Action, Kinds>,
+  );
 };
 
 /**
@@ -1199,34 +1254,39 @@ export const getSimplifiedFlowActionInputs = <
  * each member is processed individually, creating a proper discriminated union
  * where outputName and payload are correctly paired.
  *
- * An output with a derived kind is typed as a payload of any kind its kind source accepts. The actual kind is only
- * known when the action runs, so the engine checks it when the action returns.
+ * An output with a derived kind is typed as a payload of the kind its kind source was given, out of `Kinds` (see
+ * `InputKindsOf`). Where `Kinds` holds every kind each kind source accepts, as it does outside the action, the engine
+ * checks the kind when the action returns.
  */
-type ActionStepOutput<
-  Action extends FlowActionDefinitionId,
-  Output extends OutputDefinitionForFlowAction<Action>,
-> = Output extends {
+type ActionStepOutput<Output, Kinds> = Output extends {
   name: infer OutputName extends string;
   array: infer IsArray extends boolean;
 }
   ? Output extends { payloadKind: infer Kind extends PayloadKind }
     ? {
         outputName: OutputName;
-        payload: { kind: Kind; value: PayloadValue<Kind, IsArray> };
+        payload: PayloadWithKind<Kind, IsArray>;
       }
     : Output extends { kindFrom: infer KindSourceName extends string }
       ? {
           outputName: OutputName;
-          payload: PayloadOfKind<
-            InputPayloadKindForFlowAction<Action, KindSourceName>,
-            IsArray
-          >;
+          payload: PayloadWithKind<GivenKind<Kinds, KindSourceName>, IsArray>;
         }
       : never
   : never;
 
 /**
+ * The union of the outputs an action's implementation returns, given the kind each kind source was given.
+ */
+export type StepOutputOf<
+  Definition extends ActionDefinitionTypes,
+  Kinds = InputKindsOf<Definition>,
+> = ActionStepOutput<OutputDefinitionOf<Definition>, Kinds>;
+
+/**
  * Get the union of all typed StepOutput types for a given flow action.
  */
-export type FlowActionStepOutput<Action extends FlowActionDefinitionId> =
-  ActionStepOutput<Action, OutputDefinitionForFlowAction<Action>>;
+export type FlowActionStepOutput<
+  Action extends FlowActionDefinitionId,
+  Kinds = FlowActionInputKinds<Action>,
+> = StepOutputOf<TypedActionDefinitions[Action], Kinds>;

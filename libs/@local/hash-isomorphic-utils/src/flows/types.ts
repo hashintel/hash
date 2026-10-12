@@ -346,26 +346,45 @@ export type ResolvedArrayPayload = {
 export type ResolvedPayload = ResolvedSingularPayload | ResolvedArrayPayload;
 
 /**
- * A payload whose kind is one of `Kind`. Unlike `Payload`, the type keeps which kinds are possible.
+ * A payload of the kind `Kind`, for code that is generic over the kind: an action whose inputs and outputs take their
+ * kind from another input (see `KindFrom`).
+ *
+ * A payload built from another's `kind` and items keeps its `Kind`, so TypeScript checks that it isn't given a
+ * different kind, or values of one. A `Payload` can't be built that way: its kind and value only match once it is
+ * narrowed on `kind`. `asPayload` converts this type to that one.
  */
-export type PayloadOfKind<
+export type PayloadWithKind<
   Kind extends PayloadKind,
   IsArray extends boolean,
-> = Extract<
-  IsArray extends true ? ArrayPayload : SingularPayload,
-  { kind: Kind }
->;
+> = {
+  kind: Kind;
+  value: PayloadValue<Kind, IsArray>;
+};
 
 /**
- * A resolved payload whose kind is one of `Kind`. Unlike `ResolvedPayload`, the type keeps which kinds are possible.
+ * A resolved `PayloadWithKind`: its value holds values of its kind, not stored references.
  */
-export type ResolvedPayloadOfKind<
+export type ResolvedPayloadWithKind<
   Kind extends PayloadKind,
   IsArray extends boolean,
-> = Extract<
-  IsArray extends true ? ResolvedArrayPayload : ResolvedSingularPayload,
-  { kind: Kind }
->;
+> = {
+  kind: Kind;
+  value: IsArray extends true
+    ? PayloadKindValues[Kind][]
+    : PayloadKindValues[Kind];
+};
+
+/**
+ * Converts a `PayloadWithKind` to a `Payload`, which can be narrowed on its kind.
+ *
+ * Code generic over `Kind` can only give a `PayloadWithKind` a value of its kind. When `Kind` is a union, TypeScript
+ * can't check that: an action's outputs are typed with such a union only outside the action, once the action has been
+ * checked (see `FlowActionActivity`).
+ */
+export const asPayload = <Kind extends PayloadKind, IsArray extends boolean>(
+  payload: PayloadWithKind<Kind, IsArray>,
+) =>
+  payload as unknown as IsArray extends true ? ArrayPayload : SingularPayload;
 
 /**
  * Step Definition
