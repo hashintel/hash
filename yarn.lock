@@ -35563,7 +35563,6 @@ __metadata:
     sass:
       optional: true
   bin:
-    languageName: node
     next: dist/bin/next
   checksum: 10c0/01cce4723e81d29f1a9b9986ed52d96c3b23d3cfe4908329bfa3886af57ffd90e4c75caf2b26eb412460cf5186e76faaf0b39e15f47eee94419f3d48ded61467
   languageName: node
