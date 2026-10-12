@@ -84,6 +84,24 @@ const invalidCondition = (message: string): ConditionError => ({
 
 const scalarOperators: readonly string[] = binaryFilterOperators;
 
+/** The payload kinds If and Filter list accept: a condition can compare them or their fields. */
+export const filterableKinds = [
+  "Boolean",
+  "Date",
+  "EntityId",
+  "FormattedText",
+  "GoogleSheet",
+  "Number",
+  "PersistedEntityMetadata",
+  "ProposedEntity",
+  "ProposedEntityWithResolvedLinks",
+  "Text",
+  "WebPage",
+  "WebSearchResult",
+] as const satisfies readonly PayloadKind[];
+
+export type FilterableKind = (typeof filterableKinds)[number];
+
 const entityKinds: readonly PayloadKind[] = [
   "EntityId",
   "ProposedEntity",
@@ -101,7 +119,6 @@ const scalarKinds: readonly PayloadKind[] = [
 const objectKinds: readonly PayloadKind[] = [
   "FormattedText",
   "GoogleSheet",
-  "PersistedEntitiesMetadata",
   "PersistedEntityMetadata",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",
@@ -264,6 +281,9 @@ export const validateCondition = (
   condition: FilterCondition,
   inputKind: PayloadKind,
 ): ConditionError | undefined => {
+  if (!(filterableKinds as readonly PayloadKind[]).includes(inputKind)) {
+    return invalidCondition(`${inputKind} payloads cannot be filtered.`);
+  }
   const structureError = validateStructure(condition, 1);
   if (structureError) {
     return structureError;

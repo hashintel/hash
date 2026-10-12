@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
+import { filterableKinds } from "./evaluate-condition.js";
 import { evaluateIf, filterList } from "./filter-values.js";
 
 import type {
@@ -9,6 +10,7 @@ import type {
 } from "./evaluate-condition.js";
 import type { FilterListResult, IfResult } from "./filter-values.js";
 import type { Url } from "@blockprotocol/type-system";
+import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
 
 const all = (...conditions: ConditionNode[]): FilterCondition => ({
   kind: "all",
@@ -132,6 +134,29 @@ describe("filterList", () => {
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });
   });
+
+  const isPresent = (payloadKind: PayloadKind): FilterCondition =>
+    all({
+      kind: "condition",
+      subject: { kind: "input", payloadKind },
+      operator: "isNotEmpty",
+    });
+
+  it.each(filterableKinds)("accepts %s items", (kind) => {
+    expect(filterList({ kind, value: [] }, isPresent(kind))).toMatchObject({
+      status: "success",
+    });
+  });
+
+  it.each(["FailedEntityProposal", "VersionedUrl"] as const)(
+    "rejects %s items, even for a condition that fits them",
+    (kind) => {
+      expect(filterList({ kind, value: [] }, isPresent(kind))).toMatchObject({
+        status: "error",
+        code: "invalidCondition",
+      });
+    },
+  );
 
   it("does not return partial arrays when an item is invalid", () => {
     const result = filterList(
