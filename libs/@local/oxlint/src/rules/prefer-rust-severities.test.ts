@@ -2,6 +2,31 @@ import { RuleTester } from "oxlint/plugins-dev";
 
 import { preferRustSeverities } from "./prefer-rust-severities.js";
 
+const incorrectExample = `import { defineConfig } from "oxlint";
+
+export default defineConfig({
+  rules: {
+    "no-console": "off", // This CLI writes results to stdout.
+    "eqeqeq": 1, // Loose comparisons remain during migration.
+    "max-params": [
+      "error", // Additional parameters belong in an options object.
+      { max: 3 },
+    ],
+  },
+});`;
+const correctExample = `import { defineConfig } from "oxlint";
+
+export default defineConfig({
+  rules: {
+    "no-console": "allow", // This CLI writes results to stdout.
+    "eqeqeq": "warn", // Loose comparisons remain during migration.
+    "max-params": [
+      "deny", // Additional parameters belong in an options object.
+      { max: 3 },
+    ],
+  },
+});`;
+
 const tester = new RuleTester();
 const severityError = { messageId: "severity" };
 const configuration = (rules: string): string =>
@@ -20,6 +45,11 @@ const aliases = [
 // oxlint-disable-next-line vitest/require-hook -- RuleTester declares and runs test cases rather than setting up shared state.
 tester.run("prefer-rust-severities", preferRustSeverities, {
   invalid: [
+    {
+      code: incorrectExample,
+      errors: [severityError, severityError, severityError],
+      output: correctExample,
+    },
     ...aliases.map(([severity, replacement]) => ({
       code: configuration(`one: ${JSON.stringify(severity)}, // Local policy.`),
       errors: [severityError],
@@ -74,6 +104,7 @@ tester.run("prefer-rust-severities", preferRustSeverities, {
     })),
   ],
   valid: [
+    correctExample,
     ...["allow", "warn", "deny"].map((severity) =>
       configuration(`one: "${severity}",`),
     ),

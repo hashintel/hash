@@ -76,7 +76,7 @@ export const createConfig = (options: Options): OxlintConfig => {
     {
       files: ["**/*.config.ts"],
       rules: {
-        "import/no-default-export": "off", // config files always use `defineConfig` with a default export
+        "import/no-default-export": "allow", // config files always use `defineConfig` with a default export
       },
     },
   ];
@@ -108,7 +108,7 @@ export const createConfig = (options: Options): OxlintConfig => {
           rules,
           defineRules({
             "vitest/consistent-test-it": ["deny", { withinDescribe: "test" }], // Use the same declaration name inside and outside describe blocks.
-            "vitest/no-importing-vitest-globals": "off", // import Vitest APIs instead of relying on globals
+            "vitest/no-importing-vitest-globals": "allow", // import Vitest APIs instead of relying on globals
             "vitest/no-restricted-vi-methods": [
               "deny", // Module mocks hide dependencies. Method spies remain available.
               {
@@ -116,26 +116,26 @@ export const createConfig = (options: Options): OxlintConfig => {
                 mock: "Inject dependencies instead of replacing modules.",
               },
             ],
-            "vitest/require-test-timeout": "off", // the default timeout is a good default for most tests
-            "vitest/prefer-describe-function-title": "off", // clashes with valid-title
-            "vitest/prefer-to-be-falsy": "off", // Strict boolean matchers distinguish false from falsy values.
-            "vitest/prefer-to-be-truthy": "off", // Strict boolean matchers distinguish true from truthy values.
+            "vitest/require-test-timeout": "allow", // the default timeout is a good default for most tests
+            "vitest/prefer-describe-function-title": "allow", // clashes with valid-title
+            "vitest/prefer-to-be-falsy": "allow", // Strict boolean matchers distinguish false from falsy values.
+            "vitest/prefer-to-be-truthy": "allow", // Strict boolean matchers distinguish true from truthy values.
           }),
         );
         overrides.push(
           defineOverride({
             files: ["src/**/*.test-d.ts"],
             rules: {
-              "vitest/prefer-expect-assertions": "off", // type tests run through the compiler, not the runtime assertion counter.
-              "no-magic-numbers": "off", // magic numbers are often used in test fixtures
-              "max-lines-per-function": "off", // tests are allowed to have more statements, because `describe` blocks are often used to group related tests
+              "vitest/prefer-expect-assertions": "allow", // type tests run through the compiler, not the runtime assertion counter.
+              "no-magic-numbers": "allow", // magic numbers are often used in test fixtures
+              "max-lines-per-function": "allow", // tests are allowed to have more statements, because `describe` blocks are often used to group related tests
             },
           }),
           defineOverride({
             files: ["src/**/*.test.ts"],
             rules: {
-              "no-magic-numbers": "off", // magic numbers are often used in test fixtures
-              "max-lines-per-function": "off", // tests are allowed to have more statements, because `describe` blocks are often used to group related tests
+              "no-magic-numbers": "allow", // magic numbers are often used in test fixtures
+              "max-lines-per-function": "allow", // tests are allowed to have more statements, because `describe` blocks are often used to group related tests
             },
           }),
         );
@@ -147,14 +147,14 @@ export const createConfig = (options: Options): OxlintConfig => {
         Object.assign(
           rules,
           defineRules({
-            "new-cap": "off", // clashes with effect's capitalization conventions
-            "oxc/no-barrel-file": "off", // side-effect free barrel files are common
-            "import/no-namespace": "off", // barrel files are common in effect
+            "new-cap": "allow", // clashes with effect's capitalization conventions
+            "oxc/no-barrel-file": "allow", // side-effect free barrel files are common
+            "import/no-namespace": "allow", // barrel files are common in effect
             "no-underscore-dangle": ["deny", { allow: ["_tag"] }], // `_tag` is used to discriminate union types
-            "unicorn/max-nested-calls": "off", // functional programming and composition
+            "unicorn/max-nested-calls": "allow", // functional programming and composition
             "typescript/no-namespace": ["deny", { allowDeclarations: true }], // declarations are often used for type aliases
-            "no-shadow": "off", // covered by the strict typescript setup
-            "no-redeclare": "off", // covered by the strict typescript setup
+            "no-shadow": "allow", // covered by the strict typescript setup
+            "no-redeclare": "allow", // covered by the strict typescript setup
             "effecttsgo/missed-pipeable-opportunity": "deny", // nested function calls otherwise aren't readable
           }),
         );
@@ -196,16 +196,16 @@ export const createConfig = (options: Options): OxlintConfig => {
     overrides,
     plugins,
     rules: {
-      "capitalized-comments": "off", // a linter should not police the style of comments
-      "default-case": "off", // type checking establishes the exhaustive set of cases
-      "import/exports-last": "off", // hurts readability, as items are commonly exported at declaration
-      "import/group-exports": "off", // hurts readability
-      "import/no-named-export": "off", // prefer named exports
-      "import/no-nodejs-modules": "off", // TypeScript 7 handles this natively through removal of ambient type definitions
-      "import/no-relative-parent-imports": "off", // relative parent imports are the de-factor standard for importing from parent directories
-      "import/prefer-default-export": "off", // depends on the module
-      "jsdoc/require-param": "off", // TypeScript supplies parameter types
-      "jsdoc/require-returns": "off", // TypeScript supplies return types
+      "capitalized-comments": "allow", // a linter should not police the style of comments
+      "default-case": "allow", // type checking establishes the exhaustive set of cases
+      "import/exports-last": "allow", // hurts readability, as items are commonly exported at declaration
+      "import/group-exports": "allow", // hurts readability
+      "import/no-named-export": "allow", // prefer named exports
+      "import/no-nodejs-modules": "allow", // TypeScript 7 handles this natively through removal of ambient type definitions
+      "import/no-relative-parent-imports": "allow", // relative parent imports are the de-factor standard for importing from parent directories
+      "import/prefer-default-export": "allow", // depends on the module
+      "jsdoc/require-param": "allow", // TypeScript supplies parameter types
+      "jsdoc/require-returns": "allow", // TypeScript supplies return types
       "max-lines": [
         "deny", // Keep each module reviewable as one unit, including its documentation.
         {
@@ -223,14 +223,14 @@ export const createConfig = (options: Options): OxlintConfig => {
           skipComments: true,
         },
       ],
-      "max-statements": "off", // "max-lines-per-function" is a better proxy
+      "max-statements": "allow", // "max-lines-per-function" is a better proxy
       "no-duplicate-imports": [
-        "error", // Keep type-only dependencies distinct from runtime imports.
+        "deny", // Keep type-only dependencies distinct from runtime imports.
         {
           allowSeparateTypeImports: true,
         },
       ],
-      "no-inline-comments": "off", // inline comments are useful for explaining complex logic
+      "no-inline-comments": "allow", // inline comments are useful for explaining complex logic
       "no-magic-numbers": [
         "deny", // Keep the rule narrow with the exceptions below.
         {
@@ -244,11 +244,11 @@ export const createConfig = (options: Options): OxlintConfig => {
           ignoreTypeIndexes: true,
         },
       ],
-      "no-undefined": "off", // comparisons need `undefined`
+      "no-undefined": "allow", // comparisons need `undefined`
       "one-var": ["deny", "never"], // use one declaration per variable
-      "oxc/no-optional-chaining": "off", // optional chaining is useful for optional properties
-      "oxc/no-rest-spread-properties": "off", // central to functional programming
-      "prefer-destructuring": "off", // requiring destructuring for reassignment makes the code awkward
+      "oxc/no-optional-chaining": "allow", // optional chaining is useful for optional properties
+      "oxc/no-rest-spread-properties": "allow", // central to functional programming
+      "prefer-destructuring": "allow", // requiring destructuring for reassignment makes the code awkward
       "sort-imports": [
         "deny", // Sort members while preserving dependency groups and declaration order.
         {
@@ -256,7 +256,7 @@ export const createConfig = (options: Options): OxlintConfig => {
           ignoreDeclarationSort: true,
         },
       ],
-      "sort-keys": "off", // declaration order is more important, and fix may be unsafe, sorting of keys does not increase clarity
+      "sort-keys": "allow", // declaration order is more important, and fix may be unsafe, sorting of keys does not increase clarity
       "typescript/no-floating-promises": [
         "deny", // Discarded async failures must not disappear behind void or an IIFE.
         {
@@ -298,18 +298,18 @@ export const createConfig = (options: Options): OxlintConfig => {
           allowString: false,
         },
       ],
-      "unicorn/no-null": "off", // `null` is a useful type to indicate explicit absence of a value
+      "unicorn/no-null": "allow", // `null` is a useful type to indicate explicit absence of a value
       "func-names": ["deny", "always", { generators: "never" }], // Name functions for stack traces without naming generator callbacks.
       "typescript/no-empty-interface": ["deny", { allowSingleExtends: true }], // Permit named interfaces for readable editor type hints.
       "typescript/no-empty-object-type": [
         "deny", // Permit named interfaces for readable editor type hints.
         { allowInterfaces: "with-single-extends" },
       ],
-      "typescript/prefer-readonly-parameter-types": "off", // neat idea, but way too many false positives
-      "unicorn/prefer-ternary": "off", // clashes with the rule that requires explicit if/else
+      "typescript/prefer-readonly-parameter-types": "allow", // neat idea, but way too many false positives
+      "unicorn/prefer-ternary": "allow", // clashes with the rule that requires explicit if/else
       "id-length": ["deny", { checkGeneric: false, exceptions: ["$", "_"] }], // Type parameters and conventional helper bindings need their short names.
-      "unicorn/no-array-callback-reference": "off", // goes against functional programming
-      "typescript/explicit-member-accessibility": "off", // goes against modern ts and js interop
+      "unicorn/no-array-callback-reference": "allow", // goes against functional programming
+      "typescript/explicit-member-accessibility": "allow", // goes against modern ts and js interop
       ...rules,
       ...pluginDeny,
     },
