@@ -424,6 +424,48 @@ describe("PetrinautPluginsProvider", () => {
     consoleError.mockRestore();
   });
 
+  it("runs a failed plugin again once the user switches it off and on", () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    let throws = true;
+    const createFlakyPlugin = definePetrinautPlugin({
+      id: "test.flaky",
+      name: "Flaky",
+    });
+    const useFlakyPlugin: PluginHook<typeof createFlakyPlugin> = () => {
+      if (throws) {
+        throw new Error("plugin failed");
+      }
+
+      return {};
+    };
+    const Switch = () => {
+      const { setPluginEnabled } = use(UserSettingsContext);
+      const [status] = usePluginStatuses().map((entry) => entry.status);
+
+      return (
+        <button
+          type="button"
+          onClick={() => setPluginEnabled("test.flaky", status === "off")}
+        >
+          {status}
+        </button>
+      );
+    };
+
+    renderPlugins([createFlakyPlugin(useFlakyPlugin)], <Switch />);
+    const button = screen.getByRole("button");
+    expect(button.textContent).toBe("failed");
+
+    throws = false;
+    act(() => button.click());
+    expect(button.textContent).toBe("off");
+    act(() => button.click());
+    expect(button.textContent).toBe("on");
+    consoleError.mockRestore();
+  });
+
   it("reads another plugin's service while it runs, and keeps the view mounted when it is switched off", () => {
     const createSourcePlugin = definePetrinautPlugin({
       id: "test.source",

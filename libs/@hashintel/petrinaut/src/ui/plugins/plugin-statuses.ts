@@ -3,7 +3,7 @@ import { type PetrinautPlugin, pluginRuntime } from "./define-petrinaut-plugin";
 /**
  * - `on`: the plugin runs.
  * - `off`: the user switched it off in User settings. A `required` plugin is never off.
- * - `failed`: its hook threw; it stays off until its module is replaced or another document opens.
+ * - `failed`: its hook threw; it stays off until the user switches it off and on, its module is replaced, or another document opens.
  */
 export type PluginStatus = "on" | "off" | "failed";
 

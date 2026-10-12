@@ -236,6 +236,21 @@ export const PetrinautPluginsProvider = ({
   const [failedHostKeys, setFailedHostKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
+  // A plugin the user switches off forgets its failure, so switching it back
+  // on runs its hook again.
+  const [previousDisabledPluginIds, setPreviousDisabledPluginIds] =
+    useState(disabledPluginIds);
+  if (disabledPluginIds !== previousDisabledPluginIds) {
+    setPreviousDisabledPluginIds(disabledPluginIds);
+    setFailedHostKeys(
+      new Set(
+        plugins
+          .filter(({ manifest }) => !disabledPluginIds.includes(manifest.id))
+          .map((plugin) => plugin[pluginRuntime].hostKey)
+          .filter((hostKey) => failedHostKeys.has(hostKey)),
+      ),
+    );
+  }
   const [store] = useState(createContributionsStore);
   const statuses = resolvePluginStatuses(
     plugins,

@@ -86,9 +86,9 @@ ready. A thrown error renders nothing, is
 [reported](doc:plugins/reference#failure-reports) to the host's error tracker,
 and stops only that host or contribution.
 
-A hook that throws marks its plugin `failed` until its module is replaced (a
-new `hostKey`) or another document opens. Switching it off and on, or a
-`readonly` toggle, keeps it failed.
+A hook that throws marks its plugin `failed` until the user switches it off
+and on, its module is replaced (a new `hostKey`), or another document opens. A
+`readonly` toggle keeps it failed.
 
 ## Settings storage
 
