@@ -25,6 +25,7 @@ import {
   completeForEachStep,
   passOutputsToUnprocessedSteps,
 } from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
+import { toRunFailure } from "./process-flow-workflow/to-run-failure.js";
 
 import type {
   ActionName,
@@ -274,7 +275,7 @@ const { persistFlowActivity, userHasPermissionToRunFlowInWebActivity } =
     },
   });
 
-export const processFlowWorkflow = async <
+const processFlow = async <
   ValidActionDefinitionId extends FlowActionDefinitionId,
   CreateActivitiesFn extends CreateFlowActivities<ValidActionDefinitionId>,
 >(
@@ -776,4 +777,12 @@ export const processFlowWorkflow = async <
       : StatusCode.Internal,
     contents: [{ outputs, stepErrors }],
   };
+};
+
+export const processFlowWorkflow: typeof processFlow = async (params) => {
+  try {
+    return await processFlow(params);
+  } catch (error) {
+    throw toRunFailure(error);
+  }
 };
