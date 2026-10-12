@@ -5,7 +5,7 @@ import { toPetrinautId } from "@hashintel/petrinaut-core";
 import {
   isAppliedChange,
   latestNetDefinition,
-  latestNetReadBefore,
+  latestCanonicalNetReadBefore,
   netCalls,
 } from "../src/conversation/net-changes.ts";
 import { queryBasis } from "../src/conversation/why.ts";
@@ -147,7 +147,9 @@ test("credits only canonical applied calls with an after revision, in history or
   expect(
     calls.filter(isAppliedChange).map(({ revisionAfter }) => revisionAfter),
   ).toEqual(["revision-2"]);
-  expect(latestNetReadBefore(snapshot, "draft")?.toolCallId).toBe("read-queue");
+  expect(latestCanonicalNetReadBefore(snapshot, "draft")?.toolCallId).toBe(
+    "read-queue",
+  );
 });
 
 test("why locates the latest read element and relates the applied call to the Ledger revision and the Notes its turn recorded", () => {
@@ -382,4 +384,42 @@ test("a filtered net read counts as the latest net read", () => {
     messages: [...snapshot.messages, outline],
   } as FlueConversationSnapshot;
   expect(latestNetDefinition(withOutline)?.call.toolCallId).toBe("outline");
+});
+
+test("a filtered net read is not the canonical read an experiment draft needs", () => {
+  const outlineThenDraft = {
+    id: "assistant-outline-draft",
+    role: "assistant",
+    purpose: "assistant",
+    display: "visible",
+    parts: [
+      {
+        type: "dynamic-tool",
+        toolName: "readNetOutline",
+        toolCallId: "outline",
+        state: "output-available",
+        input: {},
+        output: {
+          brunchBrowserResult: true,
+          output: { title: "Queue", definition },
+          metadata: { documentRevision: { before: "revision-2" } },
+        },
+      },
+      {
+        type: "dynamic-tool",
+        toolName: "draft_petrinaut_experiment",
+        toolCallId: "draft-after-outline",
+        state: "input-available",
+        input: {},
+      },
+    ],
+  };
+  const withOutline = {
+    ...snapshot,
+    messages: [...snapshot.messages, outlineThenDraft],
+  } as FlueConversationSnapshot;
+  expect(
+    latestCanonicalNetReadBefore(withOutline, "draft-after-outline")
+      ?.toolCallId,
+  ).toBe("read-queue");
 });

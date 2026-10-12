@@ -13,7 +13,10 @@ import {
   placeArcEndpoint,
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
+import {
+  petrinautAiTools,
+  getLatestNetDefinitionToolName,
+} from "@hashintel/petrinaut-core/ai";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -206,7 +209,12 @@ export const ledgerAtCall = (
   };
 };
 
-export const latestNetReadBefore = (
+/**
+ * The `getLatestNetDefinition` read an experiment draft is prepared from. A
+ * filtered reader does not count: the browser, the draft's tool description
+ * and admission all require the complete definition.
+ */
+export const latestCanonicalNetReadBefore = (
   snapshot: FlueConversationSnapshot,
   toolCallId: string,
 ): NetCall | undefined => {
@@ -215,7 +223,7 @@ export const latestNetReadBefore = (
   if (!position) return undefined;
   return calls.findLast(
     (call) =>
-      isNetObservationTool(call.toolName) &&
+      call.toolName === getLatestNetDefinitionToolName &&
       (call.messageIndex < position.messageIndex ||
         (call.messageIndex === position.messageIndex &&
           call.partIndex < position.partIndex)),

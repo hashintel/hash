@@ -34,7 +34,7 @@ import {
   selectChatThinking,
 } from "../../chat-model.ts";
 import { issueBrowserCall } from "../../conversation/browser-call-rendezvous.ts";
-import { latestNetReadBefore } from "../../conversation/net-changes.ts";
+import { latestCanonicalNetReadBefore } from "../../conversation/net-changes.ts";
 import {
   expectedNetRevision,
   netViewTracker,
@@ -98,7 +98,7 @@ export function ChatAgent({ id }: AgentProps) {
       ? {
           ...(instructions === undefined ? {} : { instructions }),
           authorizeDraft: async (draftCallId: string) => {
-            if (!latestNetReadBefore(await history(), draftCallId))
+            if (!latestCanonicalNetReadBefore(await history(), draftCallId))
               throw new Error(
                 "Experiment draft requires a prior canonical net read.",
               );
