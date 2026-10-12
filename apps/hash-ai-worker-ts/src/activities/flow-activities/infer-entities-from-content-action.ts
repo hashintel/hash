@@ -32,10 +32,10 @@ import type {
   SourceProvenance,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
-export const inferEntitiesFromContentAction: AiFlowActionActivity<
+export const inferEntitiesFromContentAction: FlowActionActivity<
   "inferEntitiesFromContent"
 > = async ({ inputs }) => {
   const {

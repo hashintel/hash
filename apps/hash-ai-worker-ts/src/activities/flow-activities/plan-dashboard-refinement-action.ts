@@ -10,7 +10,7 @@ import { graphApiClient } from "../shared/graph-api-client.js";
 
 import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type {
   FlowActionStepOutput,
   InputNameForFlowAction,
@@ -43,7 +43,7 @@ const tools: LlmToolDefinition<"submit_refinement_plan">[] = [
 
 type ActionOutputs = FlowActionStepOutput<"planDashboardRefinement">[];
 
-export const planDashboardRefinementAction: AiFlowActionActivity<
+export const planDashboardRefinementAction: FlowActionActivity<
   "planDashboardRefinement"
 > = async ({ inputs }) => {
   const {

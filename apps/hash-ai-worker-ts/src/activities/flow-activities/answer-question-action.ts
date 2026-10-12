@@ -30,7 +30,7 @@ import { openAiSeed } from "../shared/open-ai-seed.js";
 
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import type { PermittedOpenAiModel } from "../shared/openai-client.js";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { FlowActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { FormattedText } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
@@ -399,7 +399,7 @@ const callModel = async (
   );
 };
 
-export const answerQuestionAction: AiFlowActionActivity<
+export const answerQuestionAction: FlowActionActivity<
   "answerQuestion"
 > = async ({ inputs }) => {
   const {

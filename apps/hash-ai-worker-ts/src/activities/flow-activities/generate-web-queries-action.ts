@@ -11,7 +11,7 @@ import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
 
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 
 const webQueriesSystemPrompt = dedent(`
     You are a Web Search Assistant.
@@ -42,7 +42,7 @@ type ProposeQueryFunctionCallArguments = {
   query: string;
 };
 
-export const generateWebQueriesAction: AiFlowActionActivity<
+export const generateWebQueriesAction: FlowActionActivity<
   "generateWebQueries"
 > = async ({ inputs }) => {
   const { prompt, model } = getSimplifiedFlowActionInputs({
