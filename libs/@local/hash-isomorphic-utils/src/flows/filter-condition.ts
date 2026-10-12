@@ -1,4 +1,5 @@
 import { binaryFilterOperators, evaluateFilter } from "./evaluate-filter.js";
+import { allPayloadKinds } from "./types.js";
 
 import type {
   FilterResult,
@@ -197,6 +198,11 @@ const validateLeaf = (
           "A field subject requires an object input and nonempty, safe own-property names.",
         );
       }
+      if (!allPayloadKinds.includes(subject.payloadKind)) {
+        return invalidCondition(
+          "A field subject requires a known payload kind.",
+        );
+      }
       break;
     case "entityProperty":
     case "entityType":
@@ -204,6 +210,21 @@ const validateLeaf = (
         return invalidCondition(
           "Entity subjects require an EntityId or proposed entity input.",
         );
+      }
+      if (subject.kind === "entityProperty") {
+        if (
+          typeof subject.propertyTypeBaseUrl !== "string" ||
+          !subject.propertyTypeBaseUrl
+        ) {
+          return invalidCondition(
+            "An entity property subject requires a property type base URL.",
+          );
+        }
+        if (!allPayloadKinds.includes(subject.payloadKind)) {
+          return invalidCondition(
+            "An entity property subject requires a known payload kind.",
+          );
+        }
       }
       break;
     default:

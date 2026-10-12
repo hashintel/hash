@@ -209,6 +209,48 @@ describe("validateCondition", () => {
     });
   });
 
+  it.each<{ name: string; subject: unknown; message: string }>([
+    {
+      name: "an entity property subject without a base URL",
+      subject: { kind: "entityProperty", payloadKind: "Number" },
+      message: "property type base URL",
+    },
+    {
+      name: "an entity property subject with a non-string base URL",
+      subject: {
+        kind: "entityProperty",
+        propertyTypeBaseUrl: 42,
+        payloadKind: "Number",
+      },
+      message: "property type base URL",
+    },
+    {
+      name: "an entity property subject with an unknown payload kind",
+      subject: {
+        kind: "entityProperty",
+        propertyTypeBaseUrl: "https://example.com/types/property-type/score/",
+        payloadKind: "Nope",
+      },
+      message: "known payload kind",
+    },
+    {
+      name: "a field subject with an unknown payload kind",
+      subject: { kind: "field", path: ["score"], payloadKind: "Nope" },
+      message: "known payload kind",
+    },
+  ])("rejects $name", ({ subject, message }) => {
+    expect(
+      validateCondition(
+        all({ kind: "condition", subject, operator: "isEmpty" } as never),
+        "ProposedEntity",
+      ),
+    ).toMatchObject({
+      status: "error",
+      code: "invalidCondition",
+      message: expect.stringContaining(message) as string,
+    });
+  });
+
   it("accepts trees at the depth and leaf limits", () => {
     expect(
       validateCondition(all(any(not(scoreCondition))), "WebPage"),

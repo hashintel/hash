@@ -43,7 +43,10 @@ export const filterListAction: FlowActionActivity<"filterList"> = async ({
 
   if (result.status === "error") {
     return {
-      code: StatusCode.InvalidArgument,
+      code:
+        result.code === "entityRequired"
+          ? StatusCode.NotFound
+          : StatusCode.InvalidArgument,
       message: result.message,
       contents: [],
     };

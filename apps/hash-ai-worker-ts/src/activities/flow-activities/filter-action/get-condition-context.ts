@@ -1,4 +1,4 @@
-import { splitEntityId } from "@blockprotocol/type-system";
+import { isEntityId, splitEntityId } from "@blockprotocol/type-system";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   conditionLeaves,
@@ -15,7 +15,8 @@ import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
  * Fetches the entities whose properties or types a condition reads, as the user running the flow. An entity they
- * can't read is left out, so a condition on it fails rather than matching.
+ * can't read is left out, so a condition on it fails rather than matching. Empty and malformed EntityIds aren't
+ * queried: evaluation treats the former as empty and rejects the latter.
  */
 export const getConditionContext = async (params: {
   authentication: { actorId: UserId };
@@ -38,7 +39,10 @@ export const getConditionContext = async (params: {
 
   const entityIds = [
     ...new Set(
-      values.filter((value): value is EntityId => typeof value === "string"),
+      values.filter(
+        (value): value is EntityId =>
+          typeof value === "string" && isEntityId(value),
+      ),
     ),
   ];
 

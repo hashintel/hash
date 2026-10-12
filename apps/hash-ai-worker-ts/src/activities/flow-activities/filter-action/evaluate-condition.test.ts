@@ -460,10 +460,23 @@ describe("evaluateCondition", () => {
       status: "success",
       matches: true,
     });
-    expect(evaluateCondition(all(propertyCondition), input)).toMatchObject({
+    expect(evaluateCondition(all(propertyCondition), input)).toEqual({
       status: "error",
       code: "entityRequired",
+      message: `Entity ${entityId} wasn't found or you don't have access to it.`,
     });
+    expect(
+      evaluateCondition(all(propertyCondition), {
+        kind: "EntityId",
+        value: "not-an-entity-id",
+      }),
+    ).toMatchObject({ status: "error", code: "invalidValue" });
+    expect(
+      evaluateCondition(all(propertyCondition), {
+        kind: "EntityId",
+        value: "",
+      }),
+    ).toEqual({ status: "success", matches: false });
     expect(
       evaluateCondition(all(propertyCondition), input, {
         entities: new Map([[entityId, { ...entity, properties: {} }]]),

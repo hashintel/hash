@@ -1,3 +1,4 @@
+import { isEntityId } from "@blockprotocol/type-system";
 import { evaluateFilter } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
 import { validateCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
 
@@ -71,13 +72,19 @@ const resolveSubject = (
         message: "EntityId must be a string.",
       };
     }
-    entity = context.entities?.get(input.value as EntityId);
+    if (!isEntityId(input.value)) {
+      return {
+        status: "error",
+        code: "invalidValue",
+        message: `${input.value} is not a valid EntityId.`,
+      };
+    }
+    entity = context.entities?.get(input.value);
     if (!entity) {
       return {
         status: "error",
         code: "entityRequired",
-        message:
-          "Resolve the entity with the caller's permissions before evaluating its properties or types.",
+        message: `Entity ${input.value} wasn't found or you don't have access to it.`,
       };
     }
   }

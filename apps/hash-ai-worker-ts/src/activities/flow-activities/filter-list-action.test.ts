@@ -5,11 +5,13 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { StatusCode } from "@local/status";
 
 import { filterListAction } from "./filter-list-action.js";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type {
   Payload,
@@ -157,6 +159,75 @@ describe("filterListAction", () => {
     expect(await outputValues(result)).toEqual({
       matching: [entityIds[0], entityIds[2]],
       nonMatching: [entityIds[1]],
+    });
+  });
+
+  const companyType =
+    "https://example.com/types/entity-type/company/v/1" as VersionedUrl;
+  const isCompany: FilterCondition = {
+    kind: "all",
+    conditions: [
+      {
+        kind: "condition",
+        subject: { kind: "entityType" },
+        operator: "isOfType",
+        value: { kind: "VersionedUrl", value: companyType },
+      },
+    ],
+  };
+  const webId = "00000000-0000-4000-8000-000000000001";
+  const entityUuid = "00000000-0000-4000-8000-000000000011";
+  const validEntityId = `${webId}~${entityUuid}` as EntityId;
+
+  it("queries only well-formed EntityIds and fails on a malformed one", async () => {
+    vi.mocked(queryEntities).mockResolvedValueOnce({
+      entities: [
+        {
+          properties: {},
+          metadata: {
+            recordId: { entityId: validEntityId },
+            entityTypeIds: [companyType],
+          },
+        },
+      ],
+    } as unknown as QueryEntitiesResponse);
+
+    const result = await run(
+      {
+        kind: "EntityId",
+        value: [validEntityId, "" as EntityId, "not-an-entity-id" as EntityId],
+      },
+      isCompany,
+    );
+
+    expect(vi.mocked(queryEntities).mock.lastCall?.[2].filter).toEqual({
+      any: [
+        {
+          all: [
+            { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+            { equal: [{ path: ["webId"] }, { parameter: webId }] },
+          ],
+        },
+      ],
+    });
+    expect(result).toEqual({
+      code: StatusCode.InvalidArgument,
+      message: "not-an-entity-id is not a valid EntityId.",
+      contents: [],
+    });
+  });
+
+  it("reports an entity the user can't read as not found", async () => {
+    vi.mocked(queryEntities).mockResolvedValueOnce({
+      entities: [],
+    } as unknown as QueryEntitiesResponse);
+
+    expect(
+      await run({ kind: "EntityId", value: [validEntityId] }, isCompany),
+    ).toEqual({
+      code: StatusCode.NotFound,
+      message: `Entity ${validEntityId} wasn't found or you don't have access to it.`,
+      contents: [],
     });
   });
 });
