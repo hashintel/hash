@@ -30,51 +30,10 @@ import type {
   PetrinautAiVoiceModeContext,
 } from "@hashintel/petrinaut/ui";
 
-vi.hoisted(() => {
-  window.matchMedia = (media) => ({
-    media,
-    matches: false,
-    onchange: null,
-    addListener() {},
-    removeListener() {},
-    addEventListener() {},
-    removeEventListener() {},
-    dispatchEvent: () => true,
-  });
-  // Monaco probes legacy clipboard support at import time; jsdom has no
-  // implementation. This fixture does not exercise clipboard operations.
-  Object.defineProperty(document, "queryCommandSupported", {
-    configurable: true,
-    value: () => false,
-  });
-  class ClipboardItem {
-    constructor(readonly items: Record<string, Blob | Promise<Blob>>) {}
-  }
-  Object.defineProperty(navigator, "clipboard", {
-    configurable: true,
-    value: {
-      // Monaco's macOS gesture handler supplies deferred data. Adopt it so
-      // cancellation propagates to the handler rather than becoming unhandled.
-      write: (items: ClipboardItem[]) =>
-        Promise.all(
-          items.flatMap((item) =>
-            Object.values(item.items).map((value) => Promise.resolve(value)),
-          ),
-        ).then(() => undefined),
-    },
-  });
-  Object.defineProperty(window, "ClipboardItem", {
-    configurable: true,
-    value: ClipboardItem,
-  });
-  // Monaco's theme service escapes icon class names when it initializes.
-  Object.defineProperty(window, "CSS", {
-    configurable: true,
-    value: {
-      ...window.CSS,
-      escape: (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "\\$&"),
-    },
-  });
+await vi.hoisted(async () => {
+  const { installPetrinautDomShims } =
+    await import("../../../shared/petrinaut-jsdom");
+  installPetrinautDomShims();
 });
 
 beforeAll(async () => {

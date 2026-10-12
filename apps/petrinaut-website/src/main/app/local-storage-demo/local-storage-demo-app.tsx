@@ -82,7 +82,7 @@ import {
 } from "../plugins/brunch/tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "../plugins/brunch/tools/in-band-browser-call";
-import { CommandPalette } from "../plugins/command-palette/plugin/command-palette";
+import { demoPlugins } from "../plugins/demo-plugins";
 import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
 import { getBrunchVoiceMode } from "../plugins/voice/brunch-voice-mode";
 import { useVoiceMediationHistory } from "../plugins/voice/history/use-voice-mediation-history";
@@ -784,6 +784,7 @@ export const LocalStorageDemoApp = ({
             createNewNet={createNewNet}
             loadPetriNet={loadPetriNet}
             navigation={navigation}
+            plugins={demoPlugins}
             readonly={false}
             setTitle={setTitle}
             slots={{
@@ -811,7 +812,6 @@ export const LocalStorageDemoApp = ({
           brunchSelected={brunchSelected}
           selectAssistant={selectAssistant}
         />
-        <CommandPalette />
       </CommandRegistryProvider>
     </div>
   );

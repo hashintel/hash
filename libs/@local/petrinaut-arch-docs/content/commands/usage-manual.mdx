@@ -43,8 +43,7 @@ interface CommandRegistry extends CommandRegistryView {
   disposer does nothing, so a stale cleanup cannot remove a newer entry.
 - `list()` returns the same array until the set changes, which is what
   `useSyncExternalStore` requires of a snapshot.
-- `shortcut` is metadata for keycaps. The registry binds no keys; the
-  editor's keyboard handler still dispatches them.
+- `shortcut` is metadata for keycaps. The registry binds no keys.
 
 ## Create and provide a registry
 
@@ -123,6 +122,13 @@ const dispose = registry.register({
 The editor registers its own auto-layout command from `use-editor-commands.ts`,
 gated on edit mode, so a host embedding the full editor needs none of this.
 
+## From a plugin
+
+The demo website's ⌘K palette is a [plugin](doc:plugins/overview), in
+`apps/petrinaut-website/src/main/app/plugins/command-palette/plugin.tsx`. A
+plugin registers commands it only knows at run time, one per record for
+instance, with `useCommand` from `@hashintel/petrinaut/ui/plugin`.
+
 ## Merge registries
 
 A host with several command sources renders one list over
@@ -156,7 +162,8 @@ const commands = useCommands();
 - `formatShortcutKeys("mod+shift+z")` gives `["⌘", "⇧", "Z"]` on Apple
   platforms and `["Ctrl", "Shift", "Z"]` elsewhere. Pass `{ apple }` to pin
   the platform.
-- The opener chord (⌘K in the examples) is the host's binding.
+- The palette binds its own opener chord (⌘K in the examples), whether the
+  host renders it or a plugin does.
 
 Two reference palettes exist: the `Commands / Command palette` story (`yarn
 workspace @hashintel/petrinaut storybook`) and the demo website's ⌘K palette

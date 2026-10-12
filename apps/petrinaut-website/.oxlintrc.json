@@ -47,7 +47,7 @@
     "no-void": ["error", { "allowAsStatement": true }],
 
     "no-console": "error",
-    "new-cap": "error",
+    "new-cap": ["error", { "capIsNewExceptionPattern": "Plugin$" }],
     "no-new-func": "error",
     "func-names": "error",
     "no-bitwise": "error",
