@@ -1,7 +1,7 @@
 import {
   definePetrinautPlugin,
   type PluginHook,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 import { navigationStateToSharedSearch } from "../../../../examples/navigation-search";
 import { ShareSnapshotButton } from "../../../../sharing/share-snapshot-button";
