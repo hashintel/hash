@@ -1,6 +1,6 @@
 # Petrinaut agent evaluations
 
-The Petrinaut agent has one evaluation surface: browser-visible persona runs through the real local Petrinaut panel. The runner discovers the case directories under `cases/`, each holding exactly the two inputs it needs:
+The Petrinaut agent has two evaluation surfaces: browser-visible persona runs through the real local Petrinaut panel, and a one-turn probe that sends a case's opening message to the built app without a browser. Both read the case directories under `cases/`, each holding two inputs:
 
 - `situation-pack.md` — the person's background: who they are, what they know about their work and how they talk;
 - `opening-message.md` — the person's first message to Brunch.
@@ -17,6 +17,8 @@ The maintained cases are:
 - `truck-fleet-maintenance`
 - `vestera-scheduling`
 
+## Persona runs
+
 From the repository root:
 
 ```sh
@@ -32,4 +34,17 @@ Live-provider runs incur cost and require an explicit model and spend authorizat
 
 The detailed operator guide is [`persona/README.md`](./persona/README.md).
 
-Each maintained case also keeps a `key.md` for scoring a run by hand: what the person believes, where the pack puts that under pressure, and what Brunch must tell apart, respect or keep conditional. The launcher never loads it. There are no graders, campaign protocols, or headless case fixtures. A persona run is an observation, not an automatic quality grade or acceptance decision.
+## One-turn probe
+
+[`turn-probe.ts`](./turn-probe.ts) runs one real Brunch turn through the built app, with no browser and no persona. It sends a case's opening message in a conversation with no document binding, so only the guidance and Ledger tools are mounted, then prints the turn's duration, tool calls, reply and recorded Ledger. Use it to measure turn time and Ledger capture for one message without the cost of a persona run.
+
+```sh
+turbo run build --filter '@apps/brunch-agent'
+yarn workspace @apps/brunch-agent probe:turn pharma-cold-chain openai/gpt-6.1-sol low
+```
+
+The arguments are the case, the `provider/id` model and the thinking level; they default to `pharma-cold-chain` and Brunch's default model and thinking level. The provider's API key must be in the environment. Each probe spends one live model turn and requires the same model and spend authorization as a persona run. Output stays under `apps/brunch-agent/.data-wipe-me/turn-probes/` and is not committed. A probe is an observation of one turn, not a quality grade.
+
+## Scoring
+
+Each maintained case also keeps a `key.md` for scoring a run by hand: what the person believes, where the pack puts that under pressure, and what Brunch must tell apart, respect or keep conditional. Neither runner loads it. There are no graders or campaign protocols. A persona run or a probe is an observation, not an automatic quality grade or acceptance decision.
