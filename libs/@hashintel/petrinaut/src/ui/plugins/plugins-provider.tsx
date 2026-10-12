@@ -11,6 +11,7 @@
 
 import {
   createContext,
+  memo,
   type ReactNode,
   use,
   useLayoutEffect,
@@ -80,19 +81,22 @@ const createContributionsStore = () => {
 
 type ContributionsStore = ReturnType<typeof createContributionsStore>;
 
-const PluginsContext = createContext<{
-  readonly statuses: readonly PluginStatusEntry[];
-  readonly published: ReadableStore<Published>;
-}>({ statuses: [], published: createReadableStore<Published>(new Map()) });
+/** Changes when a plugin switches on, off or fails. */
+const PluginStatusesContext = createContext<readonly PluginStatusEntry[]>([]);
+
+/** The contributions store, which never changes, so its readers re-render only on what they select. */
+const PublishedContext = createContext<ReadableStore<Published>>(
+  createReadableStore<Published>(new Map()),
+);
 
 /** Every plugin passed to the editor with its status, in the host's order. */
 export const usePluginStatuses = (): readonly PluginStatusEntry[] =>
-  use(PluginsContext).statuses;
+  use(PluginStatusesContext);
 
 /** The running plugins with their latest contributions, in the host's order. */
 export const useRunningPlugins = (): readonly RunningPlugin[] => {
-  const { statuses, published } = use(PluginsContext);
-  const running = useStore(published);
+  const statuses = use(PluginStatusesContext);
+  const running = useStore(use(PublishedContext));
 
   return statuses.flatMap(
     ({ plugin }) => running.get(plugin.manifest.id) ?? [],
@@ -101,7 +105,7 @@ export const useRunningPlugins = (): readonly RunningPlugin[] => {
 
 /** Whether a running plugin's root covers the editor, as a modal or a tour does. */
 export const usePluginOverlay = (): boolean =>
-  useStoreSelector(use(PluginsContext).published, (running) =>
+  useStoreSelector(use(PublishedContext), (running) =>
     [...running.values()].some(
       ({ contributions }) => contributions.overlay === true,
     ),
@@ -118,7 +122,7 @@ export const usePluginService = <D extends PluginDefinitionRef>(
   definition: D,
 ): ServiceOf<D["manifest"]> | undefined =>
   useStoreSelector(
-    use(PluginsContext).published,
+    use(PublishedContext),
     (running) => running.get(definition.manifest.id)?.contributions.provides,
   ) as ServiceOf<D["manifest"]> | undefined;
 
@@ -146,7 +150,7 @@ const usePluginApi = (
   } as never;
 };
 
-const PluginHost = ({
+const PluginHostBody = ({
   plugin,
   editor,
   store,
@@ -182,6 +186,13 @@ const PluginHost = ({
     />
   );
 };
+
+/**
+ * `memo` because the React Compiler skips the host: without it, a status
+ * change re-renders every host and runs every hook. Its props stay the same
+ * while the plugin runs under one plugin editor.
+ */
+const PluginHost = memo(PluginHostBody);
 
 /**
  * One host per running plugin, in a boundary that records its failure. A new
@@ -268,17 +279,19 @@ export const PetrinautPluginsProvider = ({
   );
 
   return (
-    <PluginsContext value={{ statuses, published: store.published }}>
-      <PluginEditorProvider>
-        <PluginHosts
-          statuses={statuses}
-          store={store}
-          onFail={(hostKey) =>
-            setFailedHostKeys((keys) => new Set(keys).add(hostKey))
-          }
-        />
-        <ViewAfterHosts>{children}</ViewAfterHosts>
-      </PluginEditorProvider>
-    </PluginsContext>
+    <PluginStatusesContext value={statuses}>
+      <PublishedContext value={store.published}>
+        <PluginEditorProvider>
+          <PluginHosts
+            statuses={statuses}
+            store={store}
+            onFail={(hostKey) =>
+              setFailedHostKeys((keys) => new Set(keys).add(hostKey))
+            }
+          />
+          <ViewAfterHosts>{children}</ViewAfterHosts>
+        </PluginEditorProvider>
+      </PublishedContext>
+    </PluginStatusesContext>
   );
 };

@@ -63,8 +63,8 @@ render wakes no subscriber.
 | The host toggles `readonly`                                            | A new core instance and plugin editor: the hosts remount, the view does not. |
 | A plugin is re-created by a new definition call, as hot reloading does | That plugin remounts. The same plugin object keeps its host.                 |
 | A setting changes                                                      | The plugin's hook runs again, with a new `api`.                              |
-| Another plugin switches on, off or fails                               | Every hook runs again.                                                       |
-| The host passes a new `plugins` array                                  | Every hook runs again, without remounting.                                   |
+| Another plugin switches on, off or fails                               | No other hook runs. Readers of the statuses re-render.                       |
+| The host passes a new `plugins` array                                  | A plugin object it held before keeps its host, and its hook does not run.    |
 | An edit, a mode switch, or a simulation                                | No hook runs. Plugins see the change through stores and actions.             |
 
 ## Statuses

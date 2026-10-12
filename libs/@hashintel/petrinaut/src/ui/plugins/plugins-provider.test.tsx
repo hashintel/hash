@@ -495,6 +495,36 @@ describe("PetrinautPluginsProvider", () => {
     consoleError.mockRestore();
   });
 
+  it("runs no other plugin's hook when one switches off", () => {
+    const steadyHook = vi.fn(() => ({}));
+    const steadyPlugin = definePetrinautPlugin({
+      id: "test.steady",
+      name: "Steady",
+    })(steadyHook);
+    const togglePlugin = definePetrinautPlugin({
+      id: "test.toggle",
+      name: "Toggle",
+    })({});
+    const Switch = () => {
+      const { setPluginEnabled } = use(UserSettingsContext);
+
+      return (
+        <button
+          type="button"
+          onClick={() => setPluginEnabled("test.toggle", false)}
+        >
+          off
+        </button>
+      );
+    };
+
+    renderPlugins([steadyPlugin, togglePlugin], <Switch />);
+    const callsAfterMount = steadyHook.mock.calls.length;
+
+    act(() => screen.getByRole("button").click());
+    expect(steadyHook).toHaveBeenCalledTimes(callsAfterMount);
+  });
+
   it("runs a failed plugin again once the user switches it off and on", () => {
     const consoleError = vi
       .spyOn(console, "error")
