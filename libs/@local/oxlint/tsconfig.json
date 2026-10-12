@@ -1,0 +1,15 @@
+{
+  "extends": ["@tsconfig/bases/strictest", "@local/tsconfig/policy.json"],
+  "compilerOptions": {
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": [
+    "src",
+    "oxlint.config.ts",
+    "tsdown.config.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": ["dist"]
+}

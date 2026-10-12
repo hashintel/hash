@@ -1,0 +1,18 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["prepare:oxlint"],
+      "outputs": ["dist/**"]
+    },
+    "lint:oxlint": {
+      "dependsOn": ["build"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["build"]
+    },
+    "test:unit": {
+      "dependsOn": ["build"]
+    }
+  }
+}
