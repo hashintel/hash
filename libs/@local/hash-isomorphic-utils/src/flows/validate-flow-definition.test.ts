@@ -398,6 +398,63 @@ describe("validateFlowDefinition", () => {
       });
     });
 
+    it("rejects a for-each step that collects from itself or from another for-each step", () => {
+      const usesCollected = answerStep("after", {
+        question: { kind: "flow-input", inputName: "question" },
+        context: {
+          kind: "step-output",
+          stepId: "each",
+          outputName: "explanations",
+        },
+      });
+
+      expect(
+        diagnosticsOf(
+          forEachDefinition({
+            collect: {
+              stepId: "each",
+              outputName: "explanations",
+              as: "explanations",
+            },
+            after: [usesCollected],
+          }),
+        ),
+      ).toContainEqual({
+        severity: "error",
+        code: "invalidCollect",
+        path: ["steps", 1, "collect", "stepId"],
+      });
+
+      const collectsFrom = (stepId: string, from: string) => ({
+        kind: "for-each",
+        stepId,
+        description: "",
+        over: { kind: "step-output", stepId: "queries", outputName: "queries" },
+        steps: [],
+        collect: {
+          stepId: from,
+          outputName: "explanations",
+          as: "explanations",
+        },
+      });
+
+      expect(
+        diagnosticsOf({
+          ...forEachDefinition({}),
+          steps: [
+            forEachDefinition({}).steps[0],
+            collectsFrom("each", "other"),
+            collectsFrom("other", "each"),
+            usesCollected,
+          ],
+        }),
+      ).toContainEqual({
+        severity: "error",
+        code: "invalidCollect",
+        path: ["steps", 1, "collect", "stepId"],
+      });
+    });
+
     it("rejects collecting an output the step does not have", () => {
       expect(
         diagnosticsOf(

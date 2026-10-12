@@ -233,6 +233,16 @@ export const validateFlowDefinition = (
   const itemShapes = new Map<string, ConnectionSource | null>();
 
   /**
+   * The step a for-each step collects from, if it's directly inside the for-each step. Steps inside steps form a
+   * tree, so following a collect this way always ends.
+   */
+  const getCollectedStep = (step: ForEachStepDefinition<string>) => {
+    const collected = stepsById.get(step.collect.stepId);
+
+    return collected?.scope.at(-1) === step.stepId ? collected : undefined;
+  };
+
+  /**
    * The shape of the value produced by a step output, if it exists. Reports nothing: callers report
    * `unknownStepOutput` in context.
    */
@@ -258,7 +268,7 @@ export const validateFlowDefinition = (
       return null;
     }
 
-    const collected = stepsById.get(step.collect.stepId);
+    const collected = getCollectedStep(step);
 
     const collectedShape = collected
       ? getStepOutputShape(collected.step, step.collect.outputName)
@@ -468,10 +478,10 @@ export const validateFlowDefinition = (
       addDependency(step.stepId, child.stepId);
     }
 
-    const collected = stepsById.get(step.collect.stepId);
+    const collected = getCollectedStep(step);
     const collectPath = [...entry.path, "collect"];
 
-    if (!collected || collected.scope.at(-1) !== step.stepId) {
+    if (!collected) {
       report(
         "invalidCollect",
         `A for-each step can only collect the output of a step directly inside it, and "${step.collect.stepId}" is not`,
