@@ -9,6 +9,8 @@ import {
   type PluginHook,
 } from "./define-petrinaut-plugin";
 
+const noop = () => {};
+
 const createPalettePlugin = definePetrinautPlugin({
   id: "test.palette",
   name: "Palette",
@@ -40,7 +42,9 @@ const createEditorPlugin = definePetrinautPlugin({
 
 describe("definePetrinautPlugin", () => {
   it("exposes the manifest and gives each plugin a new host key", () => {
-    const contributions = { buttons: { toggle: { icon: null } } };
+    const contributions = {
+      buttons: { toggle: { icon: null, onClick: noop } },
+    };
     const first = createPalettePlugin(contributions);
     const second = createPalettePlugin(contributions);
 
@@ -71,14 +75,23 @@ describe("definePetrinautPlugin", () => {
 
     // @ts-expect-error A declared button the contributions leave out.
     createPalettePlugin({});
-    // @ts-expect-error A contribution the manifest does not declare.
-    createPalettePlugin({ buttons: { toggle: { icon: null } }, provides: 1 });
+    createPalettePlugin({
+      buttons: { toggle: { icon: null, onClick: noop } },
+      // @ts-expect-error A contribution the manifest does not declare.
+      provides: 1,
+    });
     // @ts-expect-error The service has the declared type.
     createEditorPlugin({ provides: { ready: "yes" } });
-    // @ts-expect-error A root the manifest does not declare.
-    createPalettePlugin({ buttons: { toggle: { icon: null } }, root: null });
-    // @ts-expect-error An overlay without a declared root.
-    createPalettePlugin({ buttons: { toggle: { icon: null } }, overlay: true });
+    createPalettePlugin({
+      buttons: { toggle: { icon: null, onClick: noop } },
+      // @ts-expect-error A root the manifest does not declare.
+      root: null,
+    });
+    createPalettePlugin({
+      buttons: { toggle: { icon: null, onClick: noop } },
+      // @ts-expect-error An overlay without a declared root.
+      overlay: true,
+    });
     // @ts-expect-error A declared root the contributions leave out.
     createRootPlugin({});
     createRootPlugin({ root: null, overlay: false });
@@ -96,7 +109,7 @@ describe("definePetrinautPlugin", () => {
       buttons: { open: { icon: null, command: "open" } },
     });
     // @ts-expect-error A declared command the contributions leave out.
-    createCommandsPlugin({ buttons: { open: { icon: null } } });
+    createCommandsPlugin({ buttons: { open: { icon: null, onClick: noop } } });
     createCommandsPlugin({
       commands: { open: { run: open } },
       // @ts-expect-error A command the manifest does not declare.
@@ -111,7 +124,7 @@ describe("definePetrinautPlugin", () => {
   });
 
   it("returns the plugin directly when given the implementation", () => {
-    const contributions = { buttons: { help: { icon: null } } };
+    const contributions = { buttons: { help: { icon: null, onClick: noop } } };
     const manifest = {
       id: "test.direct",
       name: "Direct",
@@ -186,7 +199,7 @@ describe("definePetrinautPlugin", () => {
     definePetrinautPlugin(help, { commands: { open } });
     definePetrinautPlugin(help, {
       commands: { open },
-      buttons: { help: { icon: null } },
+      buttons: { help: { icon: null, onClick: noop } },
       // @ts-expect-error A contribution the manifest does not declare.
       provides: 1,
     });
@@ -317,6 +330,16 @@ describe("definePetrinautPlugin", () => {
       name: "Service",
       // @ts-expect-error An object that is not a service type.
       provides: {},
+    });
+  });
+
+  it("requires an action on every button", () => {
+    // @ts-expect-error A button with no onClick, command or ref.
+    createPalettePlugin({ buttons: { toggle: { icon: null } } });
+    createPalettePlugin({ buttons: { toggle: { icon: null, ref: noop } } });
+    createCommandsPlugin({
+      commands: { open: { run: noop } },
+      buttons: { open: { icon: null, command: "open" } },
     });
   });
 });

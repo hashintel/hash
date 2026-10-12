@@ -207,22 +207,40 @@ export interface PluginCommand {
   readonly when?: boolean;
 }
 
-/**
- * What a declared button shows and does; its label, tooltip and place come
- * from the manifest. `CommandKey` is the keys of the plugin's commands.
- */
-export interface PluginButton<CommandKey extends string = string> {
+interface PluginButtonLook {
   /** The icon; the toolbar sets the button's size and variant. */
   readonly icon: ReactNode;
-  /** Runs on click, before `command`. */
-  readonly onClick?: () => void;
-  /** Runs one of the plugin's commands on click, so the button and its palette entry are one action. */
-  readonly command?: CommandKey;
   /** Class names added to the button element. */
   readonly className?: string;
-  /** The button element, e.g. to attach a third-party widget. */
-  readonly ref?: Ref<HTMLButtonElement>;
 }
+
+/**
+ * What a declared button shows and does; its label, tooltip and place come
+ * from the manifest. `CommandKey` is the keys of the plugin's commands. A
+ * button has at least one of `onClick`, `command` and `ref`.
+ */
+export type PluginButton<CommandKey extends string = string> =
+  PluginButtonLook &
+    (
+      | {
+          /** Runs on click, before `command`. */
+          readonly onClick: () => void;
+          readonly command?: CommandKey;
+          readonly ref?: Ref<HTMLButtonElement>;
+        }
+      | {
+          readonly onClick?: () => void;
+          /** Runs one of the plugin's commands on click, so the button and its palette entry are one action. */
+          readonly command: CommandKey;
+          readonly ref?: Ref<HTMLButtonElement>;
+        }
+      | {
+          readonly onClick?: () => void;
+          readonly command?: CommandKey;
+          /** The button element, e.g. for a third-party widget that handles its clicks. */
+          readonly ref: Ref<HTMLButtonElement>;
+        }
+    );
 
 interface ContributionTable<M extends PetrinautPluginManifest> {
   /** Rendered inside the editor behind the plugin's error boundary; `null` while there is nothing to show. */
