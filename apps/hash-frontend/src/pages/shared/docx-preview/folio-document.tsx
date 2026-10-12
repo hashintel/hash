@@ -78,6 +78,15 @@ export const FolioDocument = ({
     return () => clearInterval(interval);
   }, [reportPages]);
 
+  /** Collapses the selection `showHit` made, so no earlier hit stays marked. */
+  const clearShownHit = useCallback(() => {
+    const pagedEditor = editorRef.current?.getEditorRef();
+    const selection = pagedEditor?.getState()?.selection;
+    if (pagedEditor && selection && !selection.empty) {
+      pagedEditor.setSelection(selection.head);
+    }
+  }, []);
+
   useImperativeHandle(
     controlsRef,
     () => ({
@@ -94,6 +103,7 @@ export const FolioDocument = ({
         const editor = editorRef.current;
         if (!editor || !text) {
           searchResult.current = { hits: [], snapshot: null };
+          clearShownHit();
           return 0;
         }
 
@@ -122,6 +132,9 @@ export const FolioDocument = ({
           );
 
         searchResult.current = { hits, snapshot };
+        if (hits.length === 0) {
+          clearShownHit();
+        }
         return hits.length;
       },
       showHit: (index) => {
@@ -132,7 +145,7 @@ export const FolioDocument = ({
         }
       },
     }),
-    [onZoomChange],
+    [clearShownHit, onZoomChange],
   );
 
   return (

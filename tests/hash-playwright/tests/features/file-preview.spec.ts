@@ -170,6 +170,18 @@ test.describe("DOCX preview", () => {
     await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
   });
 
+  test("a search without results clears the previous hit", async ({ page }) => {
+    await page.getByRole("button", { name: "Show search" }).click();
+    const searchInput = page.getByPlaceholder("Search the document...");
+
+    await searchInput.fill(testDocumentSearchWord);
+    await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
+
+    await searchInput.fill("nonexistentword");
+    await expect(page.getByText("0 of 0", { exact: true })).toBeVisible();
+    await expect(page.locator("[data-folio-selection-rect]")).toHaveCount(0);
+  });
+
   test("the preview cannot be edited", async ({ page }) => {
     const docxPage = getDocxPage(page, firstPage.heading);
     const textBefore = (await docxPage.textContent()) ?? "";
