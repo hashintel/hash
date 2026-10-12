@@ -64,6 +64,17 @@ const stepInputSourceSchema = z.discriminatedUnion("kind", [
   }),
 ]) satisfies z.ZodType<StepInputSource>;
 
+/**
+ * The engine names the steps in each branch of a for-each step `<stepId>~<item index>`, so `~` can't be part of a
+ * step id.
+ */
+const stepIdSchema = z
+  .string()
+  .min(1)
+  .refine((stepId) => !stepId.includes("~"), {
+    message: 'A step id cannot contain "~"',
+  });
+
 /*
  * Action ids are typed as strings here, because a definition from outside the codebase may name one that
  * doesn't exist: `validateFlowDefinition` reports it against the step that uses it.
@@ -72,7 +83,7 @@ const stepDefinitionSchema: z.ZodType<StepDefinition<string>> = z.lazy(() =>
   z.discriminatedUnion("kind", [
     z.strictObject({
       kind: z.literal("action"),
-      stepId: z.string().min(1),
+      stepId: stepIdSchema,
       actionDefinitionId: z.string(),
       description: z.string(),
       inputs: z.record(z.string(), stepInputSourceSchema),
@@ -80,7 +91,7 @@ const stepDefinitionSchema: z.ZodType<StepDefinition<string>> = z.lazy(() =>
     }),
     z.strictObject({
       kind: z.literal("for-each"),
-      stepId: z.string().min(1),
+      stepId: stepIdSchema,
       description: z.string(),
       over: stepInputSourceSchema,
       steps: z.array(stepDefinitionSchema),

@@ -60,6 +60,28 @@ describe("validateFlowDefinition", () => {
     ]);
   });
 
+  it('rejects "~" in step ids, which the engine uses to name branch steps', () => {
+    expect(
+      diagnosticsOf({
+        ...baseDefinition,
+        steps: [
+          answerStep("answer~0"),
+          {
+            kind: "for-each",
+            stepId: "each~0",
+            description: "",
+            over: { kind: "flow-input", inputName: "question" },
+            steps: [],
+            collect: { stepId: "answer", outputName: "explanation", as: "x" },
+          },
+        ],
+      }),
+    ).toEqual([
+      { severity: "error", code: "schema", path: ["steps", 0, "stepId"] },
+      { severity: "error", code: "schema", path: ["steps", 1, "stepId"] },
+    ]);
+  });
+
   it("reports every problem at once, each with a path", () => {
     expect(
       diagnosticsOf({
