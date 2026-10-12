@@ -73,8 +73,8 @@ only the contract part.
 ## Which routes speak the contract
 
 Every page that mounts Petrinaut does: the editable demo at `/local/$netId`,
-the Brunch stream at `/brunch`, and the example pages at `/examples/$slug` and
-`/embed/examples/$slug`.
+the Brunch stream at `/brunch`, the example pages at `/examples/$slug` and
+`/embed/examples/$slug`, and snapshots at `/share`.
 
 Each also names its model in the URL. The editable demo names a net saved in
 this browser's local storage by its id, so the link opens that net only in the
@@ -83,13 +83,23 @@ open another net, so Back and Forward move between nets. The demo passes the
 net id as the hook's `resetKey`, so opening another net starts the location
 over from the URL, as a fresh page would. `/brunch` names its
 model with the stream keys it carries over, so a copied URL reproduces the
-run. The example pages name the model in the path.
+run. The example pages name the model in the path. `/share` carries the whole
+net in its fragment, `#v1.br.<payload>`, which the browser does not send to
+the server. The route keeps the fragment when the view changes, and keys the
+snapshot page by it, so Back and Forward between snapshots open each one
+afresh.
 
-**Make a local copy**, in the top bar of `/examples/$slug` or on the notice
-that explains a blocked edit, saves the example as a new local net and opens it
-at its `/local/$netId` URL. The search it passes is
+**Make a local copy**, in the top bar of `/examples/$slug` or `/share` or on
+the notice that explains a blocked edit, saves the document as a new local net
+and opens it at its `/local/$netId` URL. The search it passes is
 `navigationStateToSharedSearch` of the editor's location when clicked, so the
-copy opens at the same location.
+copy opens at the same location. It passes no fragment, so a copy made on
+`/share` opens without the snapshot's payload.
+
+**Share**, in the editable demo's top bar, builds the `/share` link from the
+net and `navigationStateToSharedSearch` of the editor's location when its
+dropdown opens. "Include current view" decides whether that search goes into
+the link.
 
 `/`, `/new` and `/examples` mount nothing. All three redirect from
 `beforeLoad` and replace the history entry:
