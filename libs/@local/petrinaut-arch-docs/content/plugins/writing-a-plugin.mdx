@@ -133,18 +133,18 @@ the first running plugin that declares one. Notices for Simulate mode, Actual
 mode or a simulation carry no action.
 
 ```tsx
-const createCopyPlugin = definePetrinautPlugin({
+const CopyPlugin = definePetrinautPlugin({
   id: "example.copy",
   name: "Copy",
   access: { document: "read" },
   readOnlyAction: { label: "Make a copy" },
 });
 
-const useCopyPlugin: PluginHook<typeof createCopyPlugin> = ({ document }) => ({
+const useCopyPlugin: PluginHook<typeof CopyPlugin> = ({ document }) => ({
   readOnlyAction: { run: () => saveCopy(document.net.get()) },
 });
 
-export const copyPlugin = createCopyPlugin(useCopyPlugin);
+export const copyPlugin = CopyPlugin(useCopyPlugin);
 ```
 
 ## Add settings

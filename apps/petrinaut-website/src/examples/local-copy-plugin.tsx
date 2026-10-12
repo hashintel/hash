@@ -3,7 +3,10 @@ import { useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { definePetrinautPlugin, type PluginHook } from "@hashintel/petrinaut/ui/plugin";
+import {
+  definePetrinautPlugin,
+  type PluginHook,
+} from "@hashintel/petrinaut/ui/plugin";
 
 import { saveNetInStorage } from "../main/app/local-storage-demo/use-local-storage-sdcpns";
 import { navigationStateToSharedSearch } from "./navigation-search";
