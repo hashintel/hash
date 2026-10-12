@@ -89,13 +89,13 @@ test("search highlights a word and the next result moves to the next page holdin
 });
 
 test("text selected on a page can be copied and pasted", async ({ page }) => {
-  await page.getByRole("button", { name: "Show search" }).click();
-  const searchInput = page.getByPlaceholder("Search the document...");
-
   await getPdfPage(page)
     .getByText(firstPage.heading, { exact: true })
     .selectText();
   await page.keyboard.press("ControlOrMeta+C");
+
+  await page.getByRole("button", { name: "Show search" }).click();
+  const searchInput = page.getByPlaceholder("Search the document...");
   await searchInput.press("ControlOrMeta+V");
   await expect(searchInput).toHaveValue(firstPage.heading);
 });
