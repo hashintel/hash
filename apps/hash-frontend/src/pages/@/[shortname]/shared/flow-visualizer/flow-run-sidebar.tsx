@@ -7,10 +7,7 @@ import {
   ClockRegularIcon,
   IconButton,
 } from "@hashintel/design-system";
-import {
-  isGoalFlowDefinitionId,
-  type GoalFlowInputName,
-} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { Link } from "../../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
@@ -23,6 +20,7 @@ import { flowSectionBorderRadius } from "./shared/styles";
 import type { FlowRun } from "../../../../../graphql/api-types.gen";
 import type { EdgesAndNodes } from "./shared/types";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
 import type { PropsWithChildren } from "react";
 
 const SidebarSection = ({ children }: PropsWithChildren) => (

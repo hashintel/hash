@@ -1,8 +1,5 @@
 import { getFlowRuns } from "@local/hash-backend-utils/flows";
-import {
-  automaticBrowserInferenceFlow,
-  manualBrowserInferenceFlow,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { FlowRunStatus } from "../../graphql/api-types.gen";
 
@@ -44,10 +41,10 @@ export const handleInferEntitiesRequest = async ({
     payload: { webId, ...flowInputs },
   } = message;
 
-  const { flowDefinitionId } =
+  const flowDefinitionId =
     message.type === "manual-inference-request"
-      ? manualBrowserInferenceFlow
-      : automaticBrowserInferenceFlow;
+      ? flowDefinitionIds.manualBrowserInference
+      : flowDefinitionIds.automaticBrowserInference;
 
   if (message.type === "automatic-inference-request") {
     const openFlowRuns = await getFlowRuns({
@@ -55,8 +52,8 @@ export const handleInferEntitiesRequest = async ({
       filters: {
         executionStatus: FlowRunStatus.Running,
         flowDefinitionIds: [
-          automaticBrowserInferenceFlow.flowDefinitionId,
-          manualBrowserInferenceFlow.flowDefinitionId,
+          flowDefinitionIds.automaticBrowserInference,
+          flowDefinitionIds.manualBrowserInference,
         ],
       },
       graphApiClient,

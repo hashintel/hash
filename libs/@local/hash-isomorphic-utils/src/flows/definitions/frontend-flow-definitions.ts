@@ -1,7 +1,8 @@
-import { typedActionDefinitions as actions } from "./action-definitions.js";
-import { defineFlow, flowInput, type StepOutputs } from "./define-flow.js";
+import { typedActionDefinitions as actions } from "../action-definitions.js";
+import { defineFlow, flowInput, type StepOutputs } from "../define-flow.js";
+import { flowDefinitionIds } from "../flow-definition-ids.js";
 
-import type { TypedActionDefinitions } from "./action-definitions.js";
+import type { TypedActionDefinitions } from "../action-definitions.js";
 
 /**
  * The outputs the frontend reads from both dashboard item flows.
@@ -38,8 +39,7 @@ const dashboardItemOutputs = ({
  */
 export const configureDashboardItemFlow = defineFlow(
   {
-    /* configure-dashboard-item */
-    flowDefinitionId: "bf7f36a2-221e-5e7d-9879-289c1f56c148",
+    flowDefinitionId: flowDefinitionIds.configureDashboardItem,
     name: "Configure Dashboard Item",
     description:
       "Generate query, analyze data, and create chart configuration for a dashboard item",
@@ -84,8 +84,7 @@ export const configureDashboardItemFlow = defineFlow(
 
 export const refineDashboardItemFlow = defineFlow(
   {
-    /* refine-dashboard-item */
-    flowDefinitionId: "6216ef71-5b7b-5468-bf12-9a34e30604b5",
+    flowDefinitionId: flowDefinitionIds.refineDashboardItem,
     name: "Refine Dashboard Item",
     description:
       "Plan and apply a scoped refinement to an existing dashboard item",

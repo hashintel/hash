@@ -1,5 +1,6 @@
-import { typedActionDefinitions as actions } from "./action-definitions.js";
-import { defineFlow, flowInput } from "./define-flow.js";
+import { typedActionDefinitions as actions } from "../action-definitions.js";
+import { defineFlow, flowInput } from "../define-flow.js";
+import { flowDefinitionIds } from "../flow-definition-ids.js";
 
 /**
  * Started when a file is uploaded (see `graphql/resolvers/knowledge/file/shared.ts` in `hash-api`), with the
@@ -7,8 +8,7 @@ import { defineFlow, flowInput } from "./define-flow.js";
  */
 export const inferMetadataFromDocumentFlow = defineFlow(
   {
-    /* infer-metadata-from-document */
-    flowDefinitionId: "936f6a29-a964-533b-ae1a-03bed7da6471",
+    flowDefinitionId: flowDefinitionIds.inferMetadataFromDocument,
     name: "Infer metadata from document",
     description:
       "Infer metadata from a document, assign appropriate type to document, and create associated entities.",

@@ -1,13 +1,13 @@
-import { typedActionDefinitions as actions } from "./action-definitions.js";
-import { defineFlow, flowInput } from "./define-flow.js";
+import { typedActionDefinitions as actions } from "../action-definitions.js";
+import { defineFlow, flowInput } from "../define-flow.js";
+import { flowDefinitionIds } from "../flow-definition-ids.js";
 
 /**
  * Flow for fetching historical flight arrivals for an airport over a date range and persisting them to the graph.
  */
 export const historicalFlightsFlow = defineFlow(
   {
-    /* historical-flights */
-    flowDefinitionId: "113ce2ec-6a12-56b6-b495-072475889b37",
+    flowDefinitionId: flowDefinitionIds.historicalFlights,
     name: "Get Historical Flights",
     description:
       "Fetch and save historical flight arrivals for an airport over a date range.",
@@ -47,8 +47,7 @@ export const historicalFlightsFlow = defineFlow(
  */
 export const scheduledFlightsFlow = defineFlow(
   {
-    /* scheduled-flights */
-    flowDefinitionId: "96a80402-c41b-5978-a018-b30f7e09bfe0",
+    flowDefinitionId: flowDefinitionIds.scheduledFlights,
     name: "Get Scheduled Flights",
     description:
       "Fetch and save scheduled flight arrivals for an airport on a given date, with position updates for live flights.",

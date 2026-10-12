@@ -4,7 +4,7 @@ import type { EntityUuid } from "@blockprotocol/type-system";
 import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
 
 export type FlowDefinitionsContextType = {
-  /** Every flow defined in code. */
+  /** The current edition of every flow definition the user can view, from the graph. */
   flowDefinitions: FlowDefinitionWithId[];
   loading: boolean;
   selectedFlowDefinitionId: EntityUuid | null;
