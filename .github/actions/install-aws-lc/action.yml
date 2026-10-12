@@ -49,7 +49,7 @@ runs:
         PREFIX: ${{ steps.key.outputs.prefix }}
         VERSION: ${{ steps.key.outputs.version }}
       run: |
-        built=$(cat "$PREFIX/aws-lc-sys.version")
+        built=$(cat "$PREFIX/aws-lc-sys.version" 2>/dev/null || echo none)
         if [[ $built != "$VERSION" ]]; then
           echo "::error::the AWS-LC prefix was built for aws-lc-sys $built, but Cargo.lock has $VERSION"
           exit 1

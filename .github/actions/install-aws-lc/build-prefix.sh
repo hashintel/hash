@@ -29,11 +29,11 @@ sha256sum --check --quiet <<<"$checksum  $work/aws-lc-sys.crate"
 tar --extract --gzip --file "$work/aws-lc-sys.crate" --directory "$work"
 crate=$work/aws-lc-sys-$version
 
-if ! bindgen_version=$(bindgen --version 2>&1); then
-  echo "::error::\`bindgen --version\` failed, \`mise install --env ci\` should provide \`bindgen-cli\`: $bindgen_version"
+# CMake runs bindgen outside the repository, where the mise shim cannot resolve a version.
+if ! bindgen=$(mise which bindgen); then
+  echo "::error::\`mise which bindgen\` failed, \`mise install --env ci\` should provide \`bindgen-cli\`"
   exit 1
 fi
-echo "Using $bindgen_version from $(command -v bindgen)"
 
 # The crate ships AWS-LC with pregenerated assembly and its symbol-prefix headers, so the build
 # needs neither Go nor Perl, and keeps the prefix the crate's own bindings use.
@@ -47,7 +47,8 @@ cmake -S "$crate/aws-lc" -B "$work/build" \
   -DDISABLE_PERL=ON \
   -DBORINGSSL_PREFIX="aws_lc_${version//./_}" \
   -DBORINGSSL_PREFIX_HEADERS="$crate/generated-include" \
-  -DGENERATE_RUST_BINDINGS=ON
+  -DGENERATE_RUST_BINDINGS=ON \
+  -DBINDGEN_EXECUTABLE="$bindgen"
 cmake --build "$work/build" --parallel "$(nproc)"
 cmake --install "$work/build"
 
