@@ -222,15 +222,16 @@ const SharePanel = ({ captured }: { captured: CapturedSnapshot }) => {
 };
 
 /**
- * A ghost icon button that opens the share dropdown. The snapshot is captured
- * when the dropdown opens, so later edits do not change the link it shows.
+ * A ghost icon button that opens the share dropdown. The snapshot and the view
+ * are captured when the dropdown opens, so later edits and navigation do not
+ * change the link it shows.
  */
 export const ShareSnapshotButton = ({
   getSnapshot,
-  search,
+  getSearch,
 }: {
   getSnapshot: () => Snapshot;
-  search: SharedExampleSearch;
+  getSearch: () => SharedExampleSearch;
 }) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [captured, setCaptured] = useState<CapturedSnapshot | null>(null);
@@ -249,7 +250,7 @@ export const ShareSnapshotButton = ({
             captured === null
               ? {
                   snapshot: structuredClone(getSnapshot()),
-                  search: { ...search },
+                  search: getSearch(),
                 }
               : null,
           )

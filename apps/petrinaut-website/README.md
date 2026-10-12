@@ -77,6 +77,8 @@ Voice is available only when Brunch is selected, the browser-local Voice prefere
 Brotli-compressed (quality 11) and base64url-encoded, so nothing is uploaded. The
 optional current view travels in the same query parameters as the other routes.
 Example pages and snapshots offer no **Share**: their own URL is the link.
+The button is the `website.share` plugin in `src/main/app/plugins/share/`. It
+reads the net, its title and the view when the dropdown opens.
 
 A worker does the compression and decompression and is terminated when it
 finishes, is cancelled, or runs 30 seconds. Both directions cap the net at 2 MiB
@@ -88,9 +90,11 @@ parameters, types, subnets, scenarios and metrics. Running simulations,
 results, assistant conversations and preferences stay behind, and later edits
 do not change a link already shared.
 
-`/share` opens the snapshot read-only and saves nothing. **Make a local copy**
-saves it at its own `/local/<net id>` URL with the current view. Sentry events,
-transactions, spans and breadcrumbs have the fragment stripped before sending.
+`/share` opens the snapshot read-only and saves nothing. **Make a local copy**,
+from the same `website.local-copy` plugin as on example pages, saves it at its own
+`/local/<net id>` URL with the current view and without the fragment. Sentry
+events, transactions, spans and breadcrumbs have the fragment stripped before
+sending.
 
 ## Example embeds and oEmbed
 

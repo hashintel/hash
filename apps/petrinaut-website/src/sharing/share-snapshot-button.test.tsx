@@ -41,6 +41,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** The link input once the mocked snapshot is prepared; it renders empty while loading. */
+const preparedLink = () => screen.findByDisplayValue(/#v1\.br\.encoded$/u);
+
 const open = () => {
   const snapshot = {
     title: "SIR",
@@ -49,7 +52,7 @@ const open = () => {
   render(
     <ShareSnapshotButton
       getSnapshot={() => snapshot}
-      search={{ mode: "simulate", view: "scenarios" }}
+      getSearch={() => ({ mode: "simulate", view: "scenarios" })}
     />,
   );
   fireEvent.click(screen.getByRole("button", { name: "Share" }));
@@ -59,7 +62,7 @@ const open = () => {
 test("captures a snapshot and copies its link with an optional current view", async () => {
   const original = open();
   original.title = "Changed later";
-  const input = await screen.findByRole("textbox", { name: "Snapshot link" });
+  const input = await preparedLink();
   expect(vi.mocked(prepareSnapshot).mock.calls[0]?.[0].title).toBe("SIR");
   expect(input.getAttribute("value")).toContain("mode=simulate");
   fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
@@ -136,7 +139,7 @@ test("offers a file instead of a copyable link when compression exceeds the limi
 test("retains a selectable link when clipboard access fails", async () => {
   writeText.mockRejectedValueOnce(new Error("Clipboard denied"));
   open();
-  await screen.findByRole("textbox", { name: "Snapshot link" });
+  await preparedLink();
   fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
   expect(await screen.findByRole("alert")).toHaveProperty(
     "textContent",
@@ -166,7 +169,7 @@ test("keeps the copied URL stable while clipboard access is pending", async () =
       }),
   );
   open();
-  const input = await screen.findByRole("textbox", { name: "Snapshot link" });
+  const input = await preparedLink();
   const originalUrl = input.getAttribute("value");
   fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
   const checkbox = screen.getByRole("checkbox", {
