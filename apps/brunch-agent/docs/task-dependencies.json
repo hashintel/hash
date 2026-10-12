@@ -3,8 +3,8 @@
   "dependencies": [
     "@hashintel/brunch-agent",
     "@hashintel/brunch-agent-plugin-sdcpn",
-    "@hashintel/brunch-agent-transport-aisdk",
     "@hashintel/petrinaut-core",
+    "@local/flue-aisdk-transport",
     "@local/hash-backend-utils"
   ],
   "tasks": {
@@ -12,8 +12,8 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
-        "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
+        "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
       "affectedBy": [
@@ -85,8 +85,8 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
-        "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
+        "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
       "cache": false,
@@ -111,9 +111,9 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
-        "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
+        "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
       "affectedBy": [
@@ -136,9 +136,9 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
-        "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
+        "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
       "env": [
@@ -164,8 +164,8 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
-        "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
+        "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
       "affectedBy": [
@@ -188,8 +188,8 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
-        "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
+        "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
       "cache": false,
@@ -291,8 +291,8 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
-        "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
+        "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build",
         "build"
       ],
@@ -319,8 +319,8 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
-        "@hashintel/brunch-agent-transport-aisdk#build",
         "@hashintel/petrinaut-core#build",
+        "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
       "env": [

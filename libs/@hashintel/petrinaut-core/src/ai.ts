@@ -96,6 +96,13 @@ export const setNetTitleToolName = "setNetTitle";
 export const readPetrinautDocToolName = "readPetrinautDoc";
 export const createExperimentToolName = "createExperiment";
 
+/**
+ * The id of the user message carrying diagnostics that the assistant appends
+ * after client tool results; it is not a human request.
+ */
+export const petrinautDiagnosticsContextMessageId =
+  "petrinaut-diagnostics-context";
+
 export const petrinautDocNames = [
   "drawing-a-net",
   "petri-net-extensions",

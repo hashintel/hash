@@ -17,6 +17,7 @@ import {
   Petrinaut,
 } from "@hashintel/petrinaut/ui";
 
+import { createBrunchFlueAdapter } from "../brunch-flue-adapter";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 
 import type {
@@ -85,7 +86,9 @@ beforeAll(async () => {
 
 const conversationId = "voice-continuity";
 const voiceAnswerToolName = "answerQuestion";
-const voiceClientToolNames = new Set([voiceAnswerToolName]);
+const voiceAdapter = createBrunchFlueAdapter({
+  clientToolNames: new Set([voiceAnswerToolName]),
+});
 const voiceAnswerTool = definePetrinautAiInteractiveTool({
   component: ({ submittedOutput, toolCallId }) => (
     <span>{`${toolCallId}: ${submittedOutput?.answer}`}</span>
@@ -203,7 +206,7 @@ const ContinuityPanel = ({
   const history = useFlueChatHistory(
     clientPromise,
     conversationId,
-    voiceClientToolNames,
+    voiceAdapter,
   );
   if (!history.ready || history.messages === undefined) return null;
   return (

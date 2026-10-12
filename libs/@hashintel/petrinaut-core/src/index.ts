@@ -202,6 +202,7 @@ export {
   petrinautAiCommandTools,
   petrinautAiMutationTools,
   petrinautAiTools,
+  petrinautDiagnosticsContextMessageId,
   petrinautDocNames,
   petrinautDocSummaries,
   placeSchema,
