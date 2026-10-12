@@ -1,0 +1,83 @@
+name: hash-graph compile timings
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/hash-graph-compile-timings.yml
+
+jobs:
+  sccache-credentials:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Mint sccache credentials
+        id: mint
+        uses: $/.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
+
+  compile:
+    name: Compile (debug=${{ matrix.debug }})
+    needs: [sccache-credentials]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # `default` leaves `CARGO_PROFILE_DEV_DEBUG` unset, as on `main`.
+        debug: [default, line-tables-only]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Clean up disk
+        uses: $/.github/actions/clean-up-disk
+
+      - name: Install tools
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
+
+      - name: Set debug info level
+        if: matrix.debug != 'default'
+        run: echo "CARGO_PROFILE_DEV_DEBUG=${{ matrix.debug }}" >> "$GITHUB_ENV"
+
+      - name: Compile hash-graph with timings
+        run: |
+          "$RUSTC_WRAPPER" --zero-stats
+          SECONDS=0
+          cargo build --bin hash-graph --all-features --timings
+          echo "::notice::Full compile took ${SECONDS}s"
+          "$RUSTC_WRAPPER" --show-stats
+          ls -l target/debug/hash-graph
+
+      - name: Recompile only the binary crate with pass timings
+        run: |
+          touch apps/hash-graph/src/main.rs
+          SECONDS=0
+          cargo rustc --bin hash-graph --all-features -- -Z time-passes > time-passes.txt 2>&1
+          echo "::notice::Binary crate recompile took ${SECONDS}s"
+          grep -E "^time: .* (total|link|link_crate|run_linker|codegen_crate|LLVM_passes|finish_ongoing_codegen)$" time-passes.txt || tail -n 40 time-passes.txt
+
+      - name: Upload timings
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: compile-timings-${{ matrix.debug }}
+          path: |
+            target/cargo-timings
+            time-passes.txt
+            /tmp/sccache.log
