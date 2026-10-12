@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/react";
 import { MdBugReport } from "react-icons/md";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { definePetrinautPlugin } from "@hashintel/petrinaut/ui";
+import { definePetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 const feedbackButtonStyle = css({
   backgroundColor: "purple.a85 !important",
