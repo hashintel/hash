@@ -194,25 +194,14 @@ export const persistEntitiesAction: FlowActionActivity<
       continue;
     }
 
-    if (Array.isArray(output.value)) {
-      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        proposedEntity: unresolvedEntity,
-        message: `Expected a single persisted entity, but received an array of length ${output.value.length}`,
-      };
-      continue;
-    }
-
-    if (isStoredPayloadRef(output.value)) {
-      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        proposedEntity: unresolvedEntity,
-        message: `Expected persisted entity metadata, but received a stored payload reference`,
-      };
-      continue;
-    }
+    const persistedEntity =
+      !Array.isArray(output.value) && !isStoredPayloadRef(output.value)
+        ? output.value
+        : undefined;
 
     if (persistedEntityOutputs.code !== StatusCode.Ok) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        existingEntityId: output.value.entityId,
+        existingEntityId: persistedEntity?.entityId,
         proposedEntity: entityWithResolvedLinks,
         message: `${persistedEntityOutputs.code}: ${
           persistedEntityOutputs.message ?? `no further details available`
@@ -221,7 +210,24 @@ export const persistEntitiesAction: FlowActionActivity<
       continue;
     }
 
-    persistedEntitiesByLocalId[unresolvedEntity.localEntityId] = output.value;
+    if (Array.isArray(output.value)) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `Expected a single persisted entity, but received an array of length ${output.value.length}`,
+      };
+      continue;
+    }
+
+    if (!persistedEntity) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `Expected persisted entity metadata, but received a stored payload reference`,
+      };
+      continue;
+    }
+
+    persistedEntitiesByLocalId[unresolvedEntity.localEntityId] =
+      persistedEntity;
   }
 
   const persistedEntities = Object.values(persistedEntitiesByLocalId);
