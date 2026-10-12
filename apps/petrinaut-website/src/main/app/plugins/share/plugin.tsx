@@ -6,7 +6,7 @@ import {
 import { navigationStateToSharedSearch } from "../../../../examples/navigation-search";
 import { ShareSnapshotButton } from "../../../../sharing/share-snapshot-button";
 
-const createSharePlugin = definePetrinautPlugin({
+const SharePlugin = definePetrinautPlugin({
   id: "website.share",
   name: "Share",
   description:
@@ -17,7 +17,7 @@ const createSharePlugin = definePetrinautPlugin({
 });
 
 /** Reads the net, its title and the view when the dropdown opens, so it subscribes to nothing. */
-const useSharePlugin: PluginHook<typeof createSharePlugin> = (api) => ({
+const useSharePlugin: PluginHook<typeof SharePlugin> = (api) => ({
   topBarItems: {
     share: (
       <ShareSnapshotButton
@@ -34,4 +34,4 @@ const useSharePlugin: PluginHook<typeof createSharePlugin> = (api) => ({
 });
 
 /** **Share** in the top bar: a dropdown with a `/share` snapshot link, Copy and Download. */
-export const sharePlugin = createSharePlugin(useSharePlugin);
+export const sharePlugin = SharePlugin(useSharePlugin);
