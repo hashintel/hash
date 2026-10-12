@@ -7,8 +7,9 @@ use std::{
     sync::mpsc,
 };
 
-use duckdb::{Config, types::Value};
+use duckdb::{Config, Statement, params_from_iter, types::Value};
 use error_stack::{Report, ResultExt as _};
+use hash_integrations_definition::Variables;
 
 use crate::{
     ByteSize, WorkspaceConfig,
@@ -38,6 +39,7 @@ pub(super) struct Connection {
     duckdb: duckdb::Connection,
     files: WorkspaceFiles,
     disk_limit: Option<ByteSize>,
+    variables: Variables,
     /// An exclusive lock on the workspace's lock file, held until the database is closed.
     lock: File,
 }
@@ -132,7 +134,7 @@ impl Connection {
     }
 
     /// Opens the database at `path` with the limits in `config` and its settings locked.
-    pub(super) fn open(path: PathBuf, config: &WorkspaceConfig) -> Result<Self, Report<OpenError>> {
+    pub(super) fn open(path: PathBuf, config: WorkspaceConfig) -> Result<Self, Report<OpenError>> {
         let files = WorkspaceFiles::new(path);
         let lock = Self::lock(&files)?;
 
@@ -181,6 +183,7 @@ impl Connection {
             duckdb,
             files,
             disk_limit: config.disk_limit,
+            variables: config.variables,
             lock,
         };
         match opened.disk_usage().change_context(OpenError::DiskUsage)? {
@@ -207,6 +210,27 @@ impl Connection {
         Select::check(sql, &serialized)
     }
 
+    /// Returns the value of each parameter of `statement`, in the order of their indices.
+    ///
+    /// DuckDB numbers each parameter name once, and compares names without regard to ASCII case.
+    fn parameter_values(
+        &self,
+        statement: &Statement<'_>,
+    ) -> Result<Vec<&str>, Report<StatementError>> {
+        (1..=statement.parameter_count())
+            .map(|index| {
+                let name = statement
+                    .parameter_name(index)
+                    .map_err(StatementError::from_duckdb)?;
+                self.variables.get(&name).ok_or_else(|| {
+                    Report::new(StatementError::UnknownParameter {
+                        name: name.into_boxed_str(),
+                    })
+                })
+            })
+            .collect()
+    }
+
     #[tracing::instrument(level = "debug", skip_all)]
     fn query(&self, sql: &str) -> Result<Rows, Report<StatementError>> {
         let select = self.select(sql)?;
@@ -214,7 +238,10 @@ impl Connection {
             .duckdb
             .prepare(select.as_str())
             .map_err(StatementError::from_duckdb)?;
-        let mut results = statement.query([]).map_err(StatementError::from_duckdb)?;
+        let values = self.parameter_values(&statement)?;
+        let mut results = statement
+            .query(params_from_iter(values))
+            .map_err(StatementError::from_duckdb)?;
 
         if let Some(executed) = results.as_ref() {
             for index in 0..executed.column_count() {
@@ -254,13 +281,17 @@ impl Connection {
     fn create_table(&self, table: &str, sql: &str) -> Result<(), Report<StatementError>> {
         let select = self.select(sql)?;
         // `select` is one statement, so the whole text is one statement as well.
-        self.duckdb
+        let mut statement = self
+            .duckdb
             .prepare(&format!(
                 "CREATE OR REPLACE TABLE {} AS {}",
                 Identifier::new(table),
                 select.as_str()
             ))
-            .and_then(|mut statement| statement.execute([]))
+            .map_err(StatementError::from_duckdb)?;
+        let values = self.parameter_values(&statement)?;
+        statement
+            .execute(params_from_iter(values))
             .map_err(StatementError::from_duckdb)?;
         self.check_disk_limit()
     }
@@ -400,7 +431,7 @@ impl Connection {
     /// unwinds, so nothing it holds is used after the panic.
     pub(super) fn serve(
         path: PathBuf,
-        config: &WorkspaceConfig,
+        config: WorkspaceConfig,
         ready: Reply<Arc<Interrupt>, OpenError>,
         commands: &mpsc::Receiver<(RequestId, Command)>,
     ) {
