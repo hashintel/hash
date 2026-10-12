@@ -1,3 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import bundleAnalyzer from "@next/bundle-analyzer";
 import { withSentryConfig } from "@sentry/nextjs";
 import { config } from "dotenv-flow";
@@ -7,6 +11,62 @@ import webpack from "webpack";
 import { buildStamp } from "./buildstamp.js";
 
 const { DefinePlugin } = webpack;
+
+/**
+ * @param {string} name
+ * @param {string} fromDirectory
+ * @returns {string}
+ */
+const findInstalledPackage = (name, fromDirectory) => {
+  for (let directory = fromDirectory; ; directory = path.dirname(directory)) {
+    const candidate = path.join(directory, "node_modules", name);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+    if (directory === path.dirname(directory)) {
+      throw new Error(`${name} is not installed above ${fromDirectory}`);
+    }
+  }
+};
+
+/**
+ * The DOCX preview's engine, folio, needs newer ProseMirror packages than
+ * HASH's own editor, so Yarn installs several copies of them inside folio's
+ * tree. ProseMirror fails when two copies meet ("Adding different instances
+ * of a keyed plugin"), so every module in folio's tree resolves them to the
+ * copies folio-core uses. HASH's editor keeps its own.
+ */
+const folioSingleProseMirrorRule = () => {
+  const folioReact = findInstalledPackage(
+    "@stll/folio-react",
+    path.dirname(fileURLToPath(import.meta.url)),
+  );
+  const folioCore = findInstalledPackage("@stll/folio-core", folioReact);
+
+  const sharedPackages = new Set();
+  for (const directory of [folioReact, folioCore]) {
+    const { dependencies = {} } = JSON.parse(
+      fs.readFileSync(path.join(directory, "package.json"), "utf8"),
+    );
+    for (const name of Object.keys(dependencies)) {
+      if (/^(prosemirror-|y-prosemirror$|yjs$)/.test(name)) {
+        sharedPackages.add(name);
+      }
+    }
+  }
+
+  const alias = Object.fromEntries(
+    [...sharedPackages].map((name) => [
+      name,
+      findInstalledPackage(name, folioCore),
+    ]),
+  );
+
+  return {
+    include: [folioReact, folioCore, ...Object.values(alias)],
+    resolve: { alias },
+  };
+};
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
@@ -267,6 +327,8 @@ export default withSentryConfig(
           test: /\.(wasm)$/,
           type: "asset/resource",
         });
+
+        webpackConfig.module.rules.push(folioSingleProseMirrorRule());
 
         // eslint-disable-next-line no-param-reassign
         webpackConfig.resolve.extensionAlias = {

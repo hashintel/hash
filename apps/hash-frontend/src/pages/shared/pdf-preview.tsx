@@ -14,6 +14,7 @@ import {
   MagnifyingGlassPlusLightIcon,
 } from "@hashintel/design-system";
 
+import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 import {
   a4Ratio,
@@ -113,21 +114,7 @@ export const PdfPreview = ({
   const [url, setUrl] = useState("");
 
   useEffect(() => {
-    /**
-     * The API normally handles file downloads by:
-     * 1. Accepting a request with a cookie
-     * 2. Checking if the authenticated user can access the file
-     * 3. Automatically redirecting the request to a presigned URL to fetch the file
-     *
-     * This doesn't work for JS fetch because the request to the redirected URL will have origin: null,
-     * which the object storage's CORS headers don't permit (at least in our deployed configuration).
-     * So we instead ask the API for the presigned URL only, and pass that to react-pdf.
-     */
-    void fetch(`${initialUrl}?urlOnly=true`, { credentials: "include" })
-      .then((resp) => resp.json())
-      .then((response) => {
-        setUrl(response.url);
-      });
+    void fetchPresignedFileUrl(initialUrl).then(setUrl);
   }, [initialUrl]);
 
   const [documentProxy, setDocumentProxy] = useState<DocumentCallback | null>(

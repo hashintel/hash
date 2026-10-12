@@ -45,6 +45,17 @@ const PdfPreview = dynamic(
   { ssr: false },
 );
 
+const DocxPreview = dynamic(
+  () => import("../../docx-preview").then((module) => module.DocxPreview),
+  {
+    ssr: false,
+    loading: () => <CircularProgress />,
+  },
+);
+
+const docxMimeType =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
 const ActionButtonsContainer = ({ children }: PropsWithChildren) => (
   <Stack
     direction="row"
@@ -204,25 +215,30 @@ export const FilePreviewSection = () => {
 
   const isPdf = mimeType === "application/pdf" || fileName?.endsWith(".pdf");
 
+  const isDocx =
+    mimeType === docxMimeType || !!fileName?.toLowerCase().endsWith(".docx");
+
   return (
     <SectionWrapper
       title="File Preview"
       titleStartContent={
-        isPdf ? (
+        isPdf || isDocx ? (
           <Stack direction="row" gap={1} ml={3}>
-            <GrayToBlueIconButton
-              aria-label={
-                showThumbnails ? "Hide thumbnails" : "Show thumbnails"
-              }
-              onClick={() => setShowThumbnails(!showThumbnails)}
-            >
-              <SidebarRegularIcon
-                sx={{
-                  color: ({ palette }) =>
-                    showThumbnails ? palette.blue[70] : undefined,
-                }}
-              />
-            </GrayToBlueIconButton>
+            {isPdf && (
+              <GrayToBlueIconButton
+                aria-label={
+                  showThumbnails ? "Hide thumbnails" : "Show thumbnails"
+                }
+                onClick={() => setShowThumbnails(!showThumbnails)}
+              >
+                <SidebarRegularIcon
+                  sx={{
+                    color: ({ palette }) =>
+                      showThumbnails ? palette.blue[70] : undefined,
+                  }}
+                />
+              </GrayToBlueIconButton>
+            )}
             <GrayToBlueIconButton
               aria-label={showSearch ? "Hide search" : "Show search"}
               onClick={() => setShowSearch(!showSearch)}
@@ -306,7 +322,8 @@ export const FilePreviewSection = () => {
           justifyContent: "center",
           boxShadow: boxShadows.sm,
           borderRadius: 1,
-          height: isPdf ? "auto" : isFullScreen ? "100%" : previewHeight,
+          height:
+            isPdf || isDocx ? "auto" : isFullScreen ? "100%" : previewHeight,
           position: "relative",
         })}
       >
@@ -342,6 +359,12 @@ export const FilePreviewSection = () => {
             setShowSearch={setShowSearch}
             showSearch={showSearch}
             showThumbnails={showThumbnails}
+            url={fileUrl}
+          />
+        ) : isDocx ? (
+          <DocxPreview
+            setShowSearch={setShowSearch}
+            showSearch={showSearch}
             url={fileUrl}
           />
         ) : (
