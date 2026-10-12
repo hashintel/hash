@@ -13,15 +13,22 @@ export type {
   PetrinautPlugin,
   PetrinautPluginDefinition,
   PetrinautPluginManifest,
-  PetrinautSettingSpec,
   PluginApi,
   PluginButton,
+  PluginButtonPlace,
+  PluginButtonSpec,
   PluginCommand,
   PluginCommandSpec,
   PluginContributions,
+  PluginDefinitionRef,
   PluginHook,
   PluginImplementation,
   PluginService,
+  PluginSettingSection,
+  PluginSettingSpec,
+  PluginTopBarItemSpec,
+  PluginTopBarPlace,
+  ServiceOf,
 } from "./define-petrinaut-plugin";
 export { describeRefusal } from "./plugin-access";
 export type {

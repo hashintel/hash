@@ -24,7 +24,7 @@ export type PluginButtonPlace =
   | "viewport-controls";
 
 /** Where the editor renders a top-bar item, after the plugin's buttons at the same place. */
-type PluginTopBarPlace = "top-bar-start" | "top-bar-end";
+export type PluginTopBarPlace = "top-bar-start" | "top-bar-end";
 
 /** The User settings section that shows a setting's row. */
 export type PluginSettingSection = Exclude<PetrinautSettingsSection, "plugins">;
@@ -43,7 +43,7 @@ type SettingRow = {
  * row and stores its value per plugin; a stored value the spec rejects reads
  * as the default.
  */
-export type PetrinautSettingSpec =
+export type PluginSettingSpec =
   | (SettingRow & { readonly type: "boolean"; readonly default: boolean })
   | (SettingRow & {
       readonly type: "enum";
@@ -109,6 +109,19 @@ export interface PluginService<T> {
  */
 export const pluginService = <T>(): PluginService<T> => ({});
 
+/** A button the plugin declares; its icon and action come from the hook under the same key. */
+export interface PluginButtonSpec {
+  /** The accessible name, and the tooltip unless `tooltip` is set. */
+  readonly label: string;
+  readonly place: PluginButtonPlace;
+  readonly tooltip?: string;
+}
+
+/** A top-bar item the plugin declares; its node comes from the hook under the same key. */
+export interface PluginTopBarItemSpec {
+  readonly place: PluginTopBarPlace;
+}
+
 /** What a plugin declares, as plain data Petrinaut reads before running the plugin. */
 export interface PetrinautPluginManifest {
   /**
@@ -130,28 +143,16 @@ export interface PetrinautPluginManifest {
   /** The editor state the plugin reads (`"read"`) or also changes (`"write"`), per family. */
   readonly access?: PluginAccess;
   /** Rows in User settings, keyed by the name `api.settings` reads. */
-  readonly settings?: Readonly<Record<string, PetrinautSettingSpec>>;
+  readonly settings?: Readonly<Record<string, PluginSettingSpec>>;
   /**
    * Palette commands; the hook returns what each one does under the same
    * key. A button runs one with `command: key`.
    */
   readonly commands?: Readonly<Record<string, PluginCommandSpec>>;
   /** Icon buttons; the hook returns each one's icon and action under the same key. */
-  readonly buttons?: Readonly<
-    Record<
-      string,
-      {
-        /** The accessible name, and the tooltip unless `tooltip` is set. */
-        readonly label: string;
-        readonly place: PluginButtonPlace;
-        readonly tooltip?: string;
-      }
-    >
-  >;
+  readonly buttons?: Readonly<Record<string, PluginButtonSpec>>;
   /** Content in the top bar; the hook returns each item's node under the same key. */
-  readonly topBarItems?: Readonly<
-    Record<string, { readonly place: PluginTopBarPlace }>
-  >;
+  readonly topBarItems?: Readonly<Record<string, PluginTopBarItemSpec>>;
   /**
    * UI inside the editor: dialogs, overlays, tours. The hook returns it under
    * `root`, and may return `overlay` while it covers the editor.
@@ -387,21 +388,13 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
   (M extends { readonly access: infer A }
     ? { readonly access: RejectUnknownKeys<A, keyof PluginAccess> }
     : unknown) &
-  EntryChecks<M, "settings", KeysOfUnion<PetrinautSettingSpec>> &
+  EntryChecks<M, "settings", KeysOfUnion<PluginSettingSpec>> &
   (M extends { readonly settings: infer Specs }
     ? { readonly settings: SettingValueChecks<Specs> }
     : unknown) &
   EntryChecks<M, "commands", keyof PluginCommandSpec> &
-  EntryChecks<
-    M,
-    "buttons",
-    keyof NonNullable<PetrinautPluginManifest["buttons"]>[string]
-  > &
-  EntryChecks<
-    M,
-    "topBarItems",
-    keyof NonNullable<PetrinautPluginManifest["topBarItems"]>[string]
-  >;
+  EntryChecks<M, "buttons", keyof PluginButtonSpec> &
+  EntryChecks<M, "topBarItems", keyof PluginTopBarItemSpec>;
 
 /** A plugin's implementation, whatever its manifest. */
 type AnyImplementation = PluginRuntime["hook"] | AnyPluginContributions;

@@ -12,7 +12,7 @@ import { useStore } from "../../react/use-store";
 
 import type {
   PetrinautPluginManifest,
-  PetrinautSettingSpec,
+  PluginSettingSpec,
 } from "./define-petrinaut-plugin";
 
 type PluginSettingValues = Readonly<Record<string, boolean | string>>;
@@ -28,7 +28,7 @@ export interface PluginSettings {
 const storageKey = (pluginId: string) => `petrinaut:plugin:${pluginId}`;
 
 const accepts = (
-  spec: PetrinautSettingSpec,
+  spec: PluginSettingSpec,
   value: unknown,
 ): value is boolean | string =>
   spec.type === "enum"

@@ -5,7 +5,7 @@ import { PluginBoundary } from "./plugin-boundary";
 import { useRunningPlugins } from "./plugins-provider";
 
 import type {
-  PetrinautSettingSpec,
+  PluginSettingSpec,
   PluginSettingSection,
 } from "./define-petrinaut-plugin";
 import type { AriaAttributes, ReactNode } from "react";
@@ -30,7 +30,7 @@ const SettingControl = ({
   aria,
   onChange,
 }: {
-  spec: PetrinautSettingSpec;
+  spec: PluginSettingSpec;
   value: boolean | string | undefined;
   aria: AriaAttributes;
   onChange: (value: boolean | string) => void;
