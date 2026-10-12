@@ -42,6 +42,17 @@ const connectionOptionsShape = {
   whenMissing: z.literal("skip").optional(),
 };
 
+/**
+ * The engine names the steps in each branch of a for-each step `<stepId>~<item index>`, so `~` can't be part of a
+ * step id.
+ */
+const stepIdSchema = z
+  .string()
+  .min(1)
+  .refine((stepId) => !stepId.includes("~"), {
+    message: 'A step id cannot contain "~"',
+  });
+
 const stepInputSourceSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("flow-input"),
@@ -50,7 +61,7 @@ const stepInputSourceSchema = z.discriminatedUnion("kind", [
   }),
   z.strictObject({
     kind: z.literal("step-output"),
-    stepId: z.string(),
+    stepId: stepIdSchema,
     outputName: z.string(),
     ...connectionOptionsShape,
   }),
@@ -63,17 +74,6 @@ const stepInputSourceSchema = z.discriminatedUnion("kind", [
     payload: z.strictObject({ kind: payloadKindSchema, value: z.unknown() }),
   }),
 ]) satisfies z.ZodType<StepInputSource>;
-
-/**
- * The engine names the steps in each branch of a for-each step `<stepId>~<item index>`, so `~` can't be part of a
- * step id.
- */
-const stepIdSchema = z
-  .string()
-  .min(1)
-  .refine((stepId) => !stepId.includes("~"), {
-    message: 'A step id cannot contain "~"',
-  });
 
 /*
  * Action ids are typed as strings here, because a definition from outside the codebase may name one that
@@ -96,7 +96,7 @@ const stepDefinitionSchema: z.ZodType<StepDefinition<string>> = z.lazy(() =>
       over: stepInputSourceSchema,
       steps: z.array(stepDefinitionSchema),
       collect: z.strictObject({
-        stepId: z.string(),
+        stepId: stepIdSchema,
         outputName: z.string(),
         as: z.string().min(1),
       }),
@@ -121,7 +121,7 @@ export const flowDefinitionSchema = z.strictObject({
   outputs: z.array(
     z.strictObject({
       name: z.string().min(1),
-      stepId: z.string(),
+      stepId: stepIdSchema,
       outputName: z.string(),
       description: z.string().optional(),
     }),

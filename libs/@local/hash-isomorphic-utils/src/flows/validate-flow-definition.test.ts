@@ -60,26 +60,39 @@ describe("validateFlowDefinition", () => {
     ]);
   });
 
-  it('rejects "~" in step ids, which the engine uses to name branch steps', () => {
+  it('rejects "~" in step ids wherever a step is named, which the engine uses to name branch steps', () => {
     expect(
       diagnosticsOf({
         ...baseDefinition,
         steps: [
-          answerStep("answer~0"),
+          answerStep("answer~0", {
+            question: { kind: "flow-input", inputName: "question" },
+            context: {
+              kind: "step-output",
+              stepId: "other~0",
+              outputName: "explanation",
+            },
+          }),
           {
             kind: "for-each",
             stepId: "each~0",
             description: "",
             over: { kind: "flow-input", inputName: "question" },
             steps: [],
-            collect: { stepId: "answer", outputName: "explanation", as: "x" },
+            collect: { stepId: "answer~1", outputName: "explanation", as: "x" },
           },
         ],
+        outputs: [{ name: "answer", stepId: "answer~0", outputName: "answer" }],
       }),
-    ).toEqual([
-      { severity: "error", code: "schema", path: ["steps", 0, "stepId"] },
-      { severity: "error", code: "schema", path: ["steps", 1, "stepId"] },
-    ]);
+    ).toEqual(
+      [
+        ["steps", 0, "stepId"],
+        ["steps", 0, "inputs", "context", "stepId"],
+        ["steps", 1, "stepId"],
+        ["steps", 1, "collect", "stepId"],
+        ["outputs", 0, "stepId"],
+      ].map((path) => ({ severity: "error", code: "schema", path })),
+    );
   });
 
   it("reports every problem at once, each with a path", () => {
