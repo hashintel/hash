@@ -15,11 +15,15 @@
 
 extern crate alloc;
 
+mod byte_size;
 mod sql;
 mod variant_name;
 mod workspace;
 
-pub use self::workspace::{
-    CloseError, DataErrorType, OpenError, QueryErrorType, Rows, Setting, SnapshotError,
-    StatementError, Workspace, WorkspaceConfig,
+pub use self::{
+    byte_size::ByteSize,
+    workspace::{
+        CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
+        SnapshotError, StatementError, Workspace, WorkspaceConfig,
+    },
 };
