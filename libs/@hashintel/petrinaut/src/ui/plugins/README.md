@@ -36,10 +36,10 @@ createXPlugin(hook | contributions)    a PetrinautPlugin: { manifest, [pluginRun
         ▼  <Petrinaut plugins={[…]}>
 PetrinautPluginsProvider
   ├─ resolvePluginStatuses             on / off / failed, duplicate ids rejected
-  ├─ PluginEditorProvider              api families, built once per core instance
-  ├─ PluginHost × running plugin       runs the hook with api, publishes contributions,
-  │     └─ PluginCommandRegistrations  registers declared commands
-  └─ ViewAfterHosts                    mounts the view after the hosts' first commit
+  └─ PluginEditorProvider              api families, built once per core instance
+       ├─ PluginHost × running plugin  runs the hook with api, publishes contributions,
+       │     └─ PluginCommandRegistrations  registers declared commands
+       └─ ViewAfterHosts               mounts the view after the hosts' first commit
                                               │
                       contributions store ◄───┘
                               │

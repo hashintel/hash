@@ -75,8 +75,9 @@ failed one **Not running**. Opening a row shows the plugin's description and
 what its manifest declares.
 
 Switching a plugin off unmounts its host; its contributions and settings rows
-go. A plugin whose manifest sets `required: true` has no switch and always
-runs, for controls the host depends on.
+go. A plugin whose manifest sets `required: true` has no switch, for controls
+the host depends on. A hook that throws still marks it failed, and with no
+switch it stays failed until it is re-created or another document opens.
 
 ## Boundaries and failures
 

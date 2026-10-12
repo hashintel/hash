@@ -142,7 +142,8 @@ export interface PetrinautPluginManifest {
   readonly author?: string;
   /**
    * `true` for a plugin the host depends on, such as its own Save control:
-   * its row in the Plugins section has no switch, and it always runs.
+   * its row in the Plugins section has no switch, so the user cannot switch
+   * it off. A hook that throws still marks it failed.
    */
   readonly required?: true;
   /** The editor state the plugin reads (`"read"`) or also changes (`"write"`), per family. */

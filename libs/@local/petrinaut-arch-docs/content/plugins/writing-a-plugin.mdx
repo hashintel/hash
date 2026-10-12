@@ -30,7 +30,7 @@ const createTidyPlugin = definePetrinautPlugin({ … });
 const useTidyPlugin: PluginHook<typeof createTidyPlugin> = (api) => …;
 export const tidyPlugin = createTidyPlugin(useTidyPlugin);
 
-// Object form
+// Object form. `openHelp` is the plugin's own function.
 export const helpPlugin = definePetrinautPlugin(
   {
     id: "example.help",
@@ -91,6 +91,7 @@ const createHistoryPlugin = definePetrinautPlugin({
   root: true,
 });
 
+// `Entry`, `HistoryIcon` and `HistoryDialog` are the plugin's own.
 const useHistoryPlugin: PluginHook<typeof createHistoryPlugin> = () => {
   const [entries, setEntries] = useState<readonly Entry[]>([]);
   const [open, setOpen] = useState(false);
@@ -163,8 +164,8 @@ and `editor`, each at `"read"` or `"write"`. Only declared families appear on
 `api`; the reference lists [what each level gives](doc:plugins/reference#access).
 `editor` holds where the editor is: its `navigation` store carries the mode,
 the views, the selection and the open overlay, and `navigate` moves them, so a
-plugin can open its own settings rows with
-`navigate({ overlay: { type: "user-settings", section: "plugins" } })`.
+plugin can open User settings at the section that holds its setting rows, such
+as `navigate({ overlay: { type: "user-settings", section: "general" } })`.
 
 ### Values, stores and actions
 
