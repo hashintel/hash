@@ -149,11 +149,13 @@ test("a DOCX file entity shows a preview that can be paged, zoomed and searched"
 
   await page.getByRole("button", { name: "Show search" }).click();
   await page
-    .getByPlaceholder("Search document...")
+    .getByPlaceholder("Search the document...")
     .fill(testDocumentSearchWord);
+  await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
   await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
 
-  await page.getByPlaceholder("Search document...").press("Enter");
+  await page.getByRole("button", { name: "Next result" }).click();
+  await expect(page.getByText("2 of 2", { exact: true })).toBeVisible();
   await expect(docxPage(thirdPage.heading)).toBeInViewport();
   await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
 });

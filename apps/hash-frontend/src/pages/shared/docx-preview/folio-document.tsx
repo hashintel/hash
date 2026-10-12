@@ -1,11 +1,12 @@
 import "@stll/folio-react/standalone.css";
 import { CircularProgress } from "@mui/material";
-import { DocxEditor } from "@stll/folio-react";
+import { DocxEditor, hashFolioAIBlockText } from "@stll/folio-react";
 import { getFolioMessages } from "@stll/folio-react/messages";
+import escapeRegExp from "lodash/escapeRegExp";
 import { useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import { IntlProvider } from "use-intl";
 
-import type { DocxEditorRef } from "@stll/folio-react";
+import type { DocxEditorRef, FolioAIEditSnapshot } from "@stll/folio-react";
 import type { Ref } from "react";
 
 /**
@@ -15,10 +16,14 @@ import type { Ref } from "react";
 export type DocxDocumentControls = {
   goToPage: (pageNumber: number) => void;
   zoomBy: (step: number) => void;
-  openSearch: () => void;
+  /** Finds every hit of `text` and returns how many there are. */
+  search: (text: string, ignoreCase: boolean) => number;
+  showHit: (index: number) => void;
 };
 
 export type DocxDocumentPages = { current: number; total: number };
+
+type SearchHit = Parameters<DocxEditorRef["showInDocument"]>[0];
 
 type FolioDocumentProps = {
   controlsRef: Ref<DocxDocumentControls>;
@@ -41,6 +46,10 @@ export const FolioDocument = ({
 }: FolioDocumentProps) => {
   const editorRef = useRef<DocxEditorRef>(null);
   const reportedPages = useRef<DocxDocumentPages>({ current: 0, total: 0 });
+  const searchResult = useRef<{
+    hits: SearchHit[];
+    snapshot: FolioAIEditSnapshot | null;
+  }>({ hits: [], snapshot: null });
 
   const reportPages = useCallback(() => {
     const editor = editorRef.current;
@@ -81,10 +90,46 @@ export const FolioDocument = ({
         editor.setZoom(editor.getZoom() + step);
         onZoomChange(editor.getZoom());
       },
-      openSearch: () => {
-        /** Find highlights a hit only once folio's editor view exists. */
-        editorRef.current?.getEditorRef()?.ensureView({ focus: false });
-        editorRef.current?.openFind();
+      search: (text, ignoreCase) => {
+        const editor = editorRef.current;
+        if (!editor || !text) {
+          searchResult.current = { hits: [], snapshot: null };
+          return 0;
+        }
+
+        /** folio creates its editor view lazily and has no snapshot before it. */
+        editor.ensureEditorView({ focus: false });
+        const snapshot = editor.createAIEditSnapshot();
+        const pattern = new RegExp(escapeRegExp(text), ignoreCase ? "gi" : "g");
+
+        const hits = (snapshot?.blocks ?? [])
+          .filter((block) => block.kind !== "diagnostic")
+          .flatMap((block) =>
+            [...block.text.matchAll(pattern)].map((match): SearchHit => {
+              const startOffset = match.index;
+              const endOffset = startOffset + match[0].length;
+              return {
+                type: "textRange",
+                story: "main",
+                blockId: block.id,
+                startOffset,
+                endOffset,
+                selectedTextHash: hashFolioAIBlockText(
+                  block.text.slice(startOffset, endOffset),
+                ),
+              };
+            }),
+          );
+
+        searchResult.current = { hits, snapshot };
+        return hits.length;
+      },
+      showHit: (index) => {
+        const { hits, snapshot } = searchResult.current;
+        const hit = hits[index];
+        if (hit) {
+          editorRef.current?.showInDocument(hit, snapshot ?? undefined);
+        }
       },
     }),
     [onZoomChange],
@@ -96,7 +141,7 @@ export const FolioDocument = ({
         ref={editorRef}
         autoOpenReviewSidebar={false}
         documentBuffer={data}
-        keyboardShortcuts="editor"
+        keyboardShortcuts="none"
         loadingIndicator={failed ? null : <CircularProgress />}
         onError={onError}
         onScrollTopChange={reportPages}

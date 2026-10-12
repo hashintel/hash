@@ -13,6 +13,7 @@ import {
 
 import { FolioDocument } from "./docx-preview/folio-document";
 import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
+import { FilePreviewSearch } from "./file-preview-search";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 
 import type {
@@ -40,6 +41,10 @@ export const DocxPreview = ({
     total: 0,
   });
   const [zoom, setZoom] = useState(1);
+  const [searchHitCount, setSearchHitCount] = useState(0);
+  const [selectedSearchHit, setSelectedSearchHit] = useState<number | null>(
+    null,
+  );
 
   const controlsRef = useRef<DocxDocumentControls>(null);
 
@@ -95,12 +100,19 @@ export const DocxPreview = ({
     };
   }, [url, handleError]);
 
-  useEffect(() => {
-    if (showSearch) {
-      controlsRef.current?.openSearch();
-      setShowSearch(false);
+  const selectSearchHit = (index: number | null) => {
+    setSelectedSearchHit(index);
+
+    if (index !== null) {
+      controlsRef.current?.showHit(index);
     }
-  }, [showSearch, setShowSearch]);
+  };
+
+  const search = (text: string, ignoreCase: boolean) => {
+    const hitCount = controlsRef.current?.search(text, ignoreCase) ?? 0;
+    setSearchHitCount(hitCount);
+    selectSearchHit(hitCount > 0 ? 0 : null);
+  };
 
   const height = fullScreenHandle.active
     ? viewportHeight
@@ -137,6 +149,18 @@ export const DocxPreview = ({
           <Stack alignItems="center" justifyContent="center" height="100%">
             <CircularProgress />
           </Stack>
+        )}
+        {!failed && (
+          <Box sx={{ position: "absolute", top: 20, left: 20, zIndex: 100 }}>
+            <FilePreviewSearch
+              closeSearch={() => setShowSearch(false)}
+              onSearch={search}
+              onSelectHit={selectSearchHit}
+              selectedIndex={selectedSearchHit}
+              showSearch={showSearch}
+              total={searchHitCount}
+            />
+          </Box>
         )}
         {pages.total > 0 && !failed && (
           <>
