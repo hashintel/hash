@@ -29,7 +29,10 @@ export const inferMetadataFromDocumentFlow = defineFlow(
     });
 
     return {
-      outputs: { persistedEntities: persist.outputs.persistedEntities },
+      outputs: {
+        persistedEntities: persist.outputs.persistedEntities,
+        failedEntityProposals: persist.outputs.failedEntityProposals,
+      },
     };
   },
 );

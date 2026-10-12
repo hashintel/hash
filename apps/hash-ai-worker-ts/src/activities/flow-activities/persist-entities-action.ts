@@ -14,14 +14,14 @@ import { getFlowContext } from "../shared/get-flow-context.js";
 import { fileEntityTypeIds, persistEntity } from "./persist-entity-action.js";
 
 import type { EntityId } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type {
   FailedEntityProposal,
   PersistedEntityMetadata,
   ProposedEntityWithResolvedLinks,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-export const persistEntitiesAction: AiFlowActionActivity<
+export const persistEntitiesAction: FlowActionActivity<
   "persistEntities"
 > = async ({ inputs }) => {
   const { runId, stepId, workflowId } = await getFlowContext();
@@ -194,25 +194,14 @@ export const persistEntitiesAction: AiFlowActionActivity<
       continue;
     }
 
-    if (Array.isArray(output.value)) {
-      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        proposedEntity: unresolvedEntity,
-        message: `Expected a single persisted entity, but received an array of length ${output.value.length}`,
-      };
-      continue;
-    }
-
-    if (isStoredPayloadRef(output.value)) {
-      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        proposedEntity: unresolvedEntity,
-        message: `Expected persisted entity metadata, but received a stored payload reference`,
-      };
-      continue;
-    }
+    const persistedEntity =
+      !Array.isArray(output.value) && !isStoredPayloadRef(output.value)
+        ? output.value
+        : undefined;
 
     if (persistedEntityOutputs.code !== StatusCode.Ok) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        existingEntityId: output.value.entityId,
+        existingEntityId: persistedEntity?.entityId,
         proposedEntity: entityWithResolvedLinks,
         message: `${persistedEntityOutputs.code}: ${
           persistedEntityOutputs.message ?? `no further details available`
@@ -221,7 +210,24 @@ export const persistEntitiesAction: AiFlowActionActivity<
       continue;
     }
 
-    persistedEntitiesByLocalId[unresolvedEntity.localEntityId] = output.value;
+    if (Array.isArray(output.value)) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `Expected a single persisted entity, but received an array of length ${output.value.length}`,
+      };
+      continue;
+    }
+
+    if (!persistedEntity) {
+      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
+        proposedEntity: unresolvedEntity,
+        message: `Expected persisted entity metadata, but received a stored payload reference`,
+      };
+      continue;
+    }
+
+    persistedEntitiesByLocalId[unresolvedEntity.localEntityId] =
+      persistedEntity;
   }
 
   const persistedEntities = Object.values(persistedEntitiesByLocalId);

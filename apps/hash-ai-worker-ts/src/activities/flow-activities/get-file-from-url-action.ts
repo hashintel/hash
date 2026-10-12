@@ -6,9 +6,9 @@ import { StatusCode } from "@local/status";
 import { logProgress } from "../shared/log-progress.js";
 import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js";
 
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 
-export const getFileFromUrlAction: AiFlowActionActivity<
+export const getFileFromUrlAction: FlowActionActivity<
   "getFileFromUrl"
 > = async ({ inputs }) => {
   const {

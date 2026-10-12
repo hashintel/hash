@@ -280,6 +280,28 @@ describe("stored arrays", () => {
     expect(getDownloadCount()).toBe(1);
   });
 
+  it("gives each read its own copy of a cached download", async () => {
+    const { storageProvider, getDownloadCount } = createMemoryStorageProvider();
+
+    const ref = await storeEntities(storageProvider, "persist", [entity(0)]);
+
+    const firstRead = await resolvePayloadValue(
+      { storageProvider, workflowId },
+      "ProposedEntity",
+      ref,
+    );
+    firstRead.push(entity(1));
+
+    await expect(
+      resolvePayloadValue(
+        { storageProvider, workflowId },
+        "ProposedEntity",
+        ref,
+      ),
+    ).resolves.toEqual([entity(0)]);
+    expect(getDownloadCount()).toBe(1);
+  });
+
   it("keeps only the most recent downloads", async () => {
     const { storageProvider, getDownloadCount } = createMemoryStorageProvider();
 
