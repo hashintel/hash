@@ -5,6 +5,9 @@ use alloc::sync::Arc;
 use core::{any::Any, pin::Pin};
 
 use aide::{
+    openapi::{
+        Header, HeaderStyle, Operation, ParameterSchemaOrContent, ReferenceOr, SchemaObject,
+    },
     transform::{TransformOpenApi, TransformOperation},
     util::iter_operations_mut,
 };
@@ -19,15 +22,22 @@ use hash_middleware::{
     response::{problem_response, status_problem},
 };
 use hash_secret::Secret;
-use http::{Method, StatusCode, Uri};
+use http::{HeaderValue, Method, StatusCode, Uri, header::CACHE_CONTROL};
+use indexmap::IndexMap;
 use problematic::{ProblemDetails, ProblemVariant as _};
-use tower_http::catch_panic::CatchPanicLayer;
+use tower_http::{catch_panic::CatchPanicLayer, set_header::SetResponseHeaderLayer};
 use type_system::principal::actor::ActorId;
 
 use super::{Api, Audience, legacy};
 
+/// The `Cache-Control` value of every response that does not set its own.
+///
+/// A response depends on the caller, and a shared cache neither keys it by the caller nor is kept
+/// from reusing a response to an anonymous request for one carrying credentials.
+const DEFAULT_CACHE_CONTROL: &str = "private, no-store";
+
 /// Documents the responses the authentication and rate-limit layers answer on every operation of
-/// an API challenging with `challenge`.
+/// an API challenging with `challenge`, and the default `Cache-Control` header on every response.
 pub(super) fn document(
     mut document: TransformOpenApi<'_>,
     challenge: Challenge,
@@ -44,10 +54,53 @@ pub(super) fn document(
                         hash_middleware::authentication::document(operation, challenge)
                     })
                     .with(hash_middleware::rate_limit::document);
+                document_cache_control(operation);
             }
         }
     }
     document
+}
+
+/// Documents [`DEFAULT_CACHE_CONTROL`] on every response of `operation` that documents no
+/// `Cache-Control` header of its own.
+fn document_cache_control(operation: &mut Operation) {
+    let Some(responses) = &mut operation.responses else {
+        return;
+    };
+    for response in responses
+        .default
+        .iter_mut()
+        .chain(responses.responses.values_mut())
+        .filter_map(ReferenceOr::as_item_mut)
+    {
+        if response
+            .headers
+            .keys()
+            .any(|name| name.eq_ignore_ascii_case(CACHE_CONTROL.as_str()))
+        {
+            continue;
+        }
+        response.headers.insert(
+            "Cache-Control".to_owned(),
+            ReferenceOr::Item(Header {
+                description: Some(format!(
+                    "Always `{DEFAULT_CACHE_CONTROL}`: the response depends on the caller, so no \
+                     cache stores it."
+                )),
+                style: HeaderStyle::Simple,
+                required: true,
+                deprecated: None,
+                format: ParameterSchemaOrContent::Schema(SchemaObject {
+                    json_schema: schemars::json_schema!({"type": "string"}),
+                    example: None,
+                    external_docs: None,
+                }),
+                example: Some(serde_json::Value::String(DEFAULT_CACHE_CONTROL.to_owned())),
+                examples: IndexMap::new(),
+                extensions: IndexMap::new(),
+            }),
+        );
+    }
 }
 
 /// Answers a request with a method its path does not serve.
@@ -104,7 +157,8 @@ where
     /// on the same budgets, and answer a method a path does not serve after authentication. The
     /// service secret passes the address gate everywhere, but the caller budgets only on the legacy
     /// routes, the only routes the services holding it call. A request whose handling panics is
-    /// answered with [`InternalServerError`].
+    /// answered with [`InternalServerError`]. Every response that sets no `Cache-Control` of its
+    /// own carries [`DEFAULT_CACHE_CONTROL`].
     ///
     /// # Panics
     ///
@@ -141,6 +195,10 @@ where
                 service_secret: Some(Pin::clone(&self.service_secret)),
             })
             .layer(CatchPanicLayer::custom(panicked))
+            .layer(SetResponseHeaderLayer::if_not_present(
+                CACHE_CONTROL,
+                HeaderValue::from_static(DEFAULT_CACHE_CONTROL),
+            ))
     }
 
     /// Attaches authentication and the caller budget to `routes`.

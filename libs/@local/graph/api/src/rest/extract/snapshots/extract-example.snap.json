@@ -144,7 +144,18 @@
             }
           }
         },
-        "description": "- Bad Request: A path parameter does not match its documented schema.\n- Bad Request: A required query parameter is missing, or one does not match its documented schema.\n- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end."
+        "description": "- Bad Request: A path parameter does not match its documented schema.\n- Bad Request: A required query parameter is missing, or one does not match its documented schema.\n- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       },
       "InternalServerError": {
         "content": {
@@ -181,7 +192,18 @@
             }
           }
         },
-        "description": "An internal error prevented the request from completing."
+        "description": "An internal error prevented the request from completing.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       },
       "PayloadTooLarge": {
         "content": {
@@ -218,7 +240,18 @@
             }
           }
         },
-        "description": "The request body is larger than the operation accepts."
+        "description": "The request body is larger than the operation accepts.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       },
       "ServiceUnavailable": {
         "content": {
@@ -255,7 +288,18 @@
             }
           }
         },
-        "description": "Authentication is temporarily unavailable."
+        "description": "Authentication is temporarily unavailable.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       },
       "TooManyRequests": {
         "content": {
@@ -294,6 +338,15 @@
         },
         "description": "The request exceeded its rate-limit budget.",
         "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
           "Retry-After": {
             "description": "Whole seconds before retrying the request.",
             "required": true,
@@ -343,6 +396,15 @@
         },
         "description": "The request carries no credentials, or they do not identify a permitted caller.",
         "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
           "WWW-Authenticate": {
             "description": "The scheme to authenticate with: `Bearer`, with `realm=\"HASH\"`. A refused API token adds `error=\"invalid_token\"` and the problem's `detail` as `error_description`.",
             "required": true,
@@ -388,7 +450,18 @@
             }
           }
         },
-        "description": "The request body does not match the schema of the operation."
+        "description": "The request body does not match the schema of the operation.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       },
       "UnsupportedMediaType": {
         "content": {
@@ -425,7 +498,18 @@
             }
           }
         },
-        "description": "The request's `Content-Type` is missing or neither `application/json` nor `application/*+json`."
+        "description": "The request's `Content-Type` is missing or neither `application/json` nor `application/*+json`.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       }
     },
     "schemas": {
@@ -582,7 +666,18 @@
                 }
               }
             },
-            "description": "The label from the path and copies of the value from the body."
+            "description": "The label from the path and copies of the value from the body.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
