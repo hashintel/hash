@@ -154,5 +154,14 @@ export const inferMetadataFromDocumentFlowDefinition: FlowDefinition<AiFlowActio
         array: true,
         required: true,
       },
+      {
+        stepId: "2",
+        stepOutputName:
+          "failedEntityProposals" satisfies OutputNameForFlowAction<"persistEntities">,
+        name: "failedEntityProposals" as const,
+        payloadKind: "FailedEntityProposal",
+        array: true,
+        required: true,
+      },
     ],
   };
