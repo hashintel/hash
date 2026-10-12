@@ -729,8 +729,8 @@ __metadata:
     "@sigma/edge-curve": "patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch"
     "@sigma/node-border": "npm:3.0.0"
     "@sigma/node-image": "npm:3.0.0"
-    "@stll/folio-core": "npm:0.55.0"
-    "@stll/folio-react": "npm:0.25.0"
+    "@stll/folio-core": "npm:0.58.5"
+    "@stll/folio-react": "npm:0.26.0"
     "@svgr/webpack": "npm:8.1.0"
     "@tanstack/react-table": "npm:8.21.3"
     "@testing-library/dom": "npm:10.4.1"
@@ -16658,9 +16658,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stll/docx-core@npm:^0.31.0":
-  version: 0.31.0
-  resolution: "@stll/docx-core@npm:0.31.0"
+"@stll/docx-core@npm:^0.36.2":
+  version: 0.36.2
+  resolution: "@stll/docx-core@npm:0.36.2"
   dependencies:
     "@nodable/entities": "npm:^3.0.0"
     "@stll/docx-utils": "npm:^0.1.0"
@@ -16668,7 +16668,7 @@ __metadata:
     fast-xml-parser: "npm:^5.10.1"
     jszip: "npm:3.10.2"
     marked: "npm:^18.0.5"
-  checksum: 10c0/b3f1f719eb8ce849e1e9f073360c0661dee7bd697a2fb9ecbb66195e749dfb64809634cf49f5b94b1415f10f54d642ccaba1d25adb0aca394eeb05317d9ce5ad
+  checksum: 10c0/9135fb0606233bf2b0c8243712ffffa359a5a0ab9366a551872788b5f16e5f8b1dd1606a553a023d33a69eaaadc89a69893f3fdee8dfef1f4a4d30412b615193
   languageName: node
   linkType: hard
 
@@ -16683,16 +16683,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stll/folio-core@npm:0.55.0, @stll/folio-core@npm:^0.55.0":
-  version: 0.55.0
-  resolution: "@stll/folio-core@npm:0.55.0"
+"@stll/folio-core@npm:0.58.5, @stll/folio-core@npm:^0.58.5":
+  version: 0.58.5
+  resolution: "@stll/folio-core@npm:0.58.5"
   dependencies:
-    "@stll/docx-core": "npm:^0.31.0"
+    "@stll/docx-core": "npm:^0.36.2"
     "@stll/docx-utils": "npm:^0.1.0"
     "@stll/template-conditions": "npm:^0.6.2"
     better-result: "npm:3.0.1"
     csstype: "npm:^3.1.3"
-    dompurify: "npm:^3.4.13"
+    dompurify: "npm:^3.4.16"
     fast-xml-parser: "npm:^5.10.1"
     hyphen: "npm:1.14.1"
     jszip: "npm:3.10.2"
@@ -16706,18 +16706,18 @@ __metadata:
     prosemirror-state: "npm:^1.4.4"
     prosemirror-tables: "npm:^1.8.5"
     prosemirror-transform: "npm:^1.12.0"
-    prosemirror-view: "npm:^1.41.8"
+    prosemirror-view: "npm:^1.42.6"
     utif2: "npm:^4.1.0"
     valibot: "npm:1.5.0"
     y-prosemirror: "npm:^1.3.7"
     yjs: "npm:^13.6.31"
-  checksum: 10c0/3ea55809939464f048632ce5079ef391bbd48308ff9db181fd61e15f2923a22fbf8704cbe6ff56b41a0b17b188ce49f506cb7b7a1a0991094254e9b8b2b8e2ed
+  checksum: 10c0/84ccd412b0bb316c728118f51c29ee741af54ad18f19f24264f8b9f50468a7ac67764ba838e6e013d8c9ee362c727aeca1f9b253484c898b6ebf842f983fe35d
   languageName: node
   linkType: hard
 
-"@stll/folio-react@npm:0.25.0":
-  version: 0.25.0
-  resolution: "@stll/folio-react@npm:0.25.0"
+"@stll/folio-react@npm:0.26.0":
+  version: 0.26.0
+  resolution: "@stll/folio-react@npm:0.26.0"
   dependencies:
     "@base-ui/react": "npm:1.8.0"
     "@fontsource/arimo": "npm:^5.2.8"
@@ -16728,21 +16728,21 @@ __metadata:
     "@fontsource/noto-sans-arabic": "npm:^5.2.7"
     "@fontsource/source-sans-3": "npm:^5.2.9"
     "@fontsource/tinos": "npm:^5.2.7"
-    "@stll/folio-core": "npm:^0.55.0"
+    "@stll/folio-core": "npm:^0.58.5"
     better-result: "npm:3.0.1"
     lucide-react: "npm:1.24.0"
     prosemirror-history: "npm:^1.5.0"
     prosemirror-model: "npm:^1.25.9"
     prosemirror-state: "npm:^1.4.4"
     prosemirror-tables: "npm:^1.8.5"
-    prosemirror-view: "npm:^1.41.8"
+    prosemirror-view: "npm:^1.42.6"
     react-compiler-runtime: "npm:^1.0.0"
     yjs: "npm:^13.6.31"
   peerDependencies:
-    react: ^18.0.0 || ^19.0.0
-    react-dom: ^18.0.0 || ^19.0.0
+    react: ^19.2.0
+    react-dom: ^19.2.0
     use-intl: ">=4.0.0"
-  checksum: 10c0/4153b0574d6fb854aa2246c305cf0e2f63c5ea543acfedf678b06622b45ab4a320a9bd2b0995bc47dd254c753d8727d8b15c83c42639bbe100c25ec5ca755585
+  checksum: 10c0/7447bc22a1286c519ed75ebc2511c8e5952e1f74704e95dc7be47ab6d0ff092a79be3e88cb1cd0269ac5b9d7177a03b8eab3f7dfa8b9a93f71fa85bfaaa5dded
   languageName: node
   linkType: hard
 
