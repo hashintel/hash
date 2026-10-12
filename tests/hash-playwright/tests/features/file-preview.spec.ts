@@ -11,7 +11,7 @@ import {
 
 const [firstPage, secondPage, thirdPage] = testDocumentPages;
 
-test("a PDF file entity shows a preview that can be paged, zoomed and searched", async ({
+test("a PDF file entity shows a preview that can be paged, zoomed, searched and copied from", async ({
   page,
 }) => {
   const user = await getUser(page.request);
@@ -57,9 +57,8 @@ test("a PDF file entity shows a preview that can be paged, zoomed and searched",
     .toBeGreaterThan(widthBeforeZoom);
 
   await page.getByRole("button", { name: "Show search" }).click();
-  await page
-    .getByPlaceholder("Search the document...")
-    .fill(testDocumentSearchWord);
+  const searchInput = page.getByPlaceholder("Search the document...");
+  await searchInput.fill(testDocumentSearchWord);
 
   const searchHighlight = pdfPage.locator('span[style*="border-bottom"]', {
     hasText: testDocumentSearchWord,
@@ -72,4 +71,10 @@ test("a PDF file entity shows a preview that can be paged, zoomed and searched",
     pdfPage.getByText(thirdPage.heading, { exact: true }),
   ).toBeVisible();
   await expect(searchHighlight).toBeVisible();
+
+  await pdfPage.getByText(thirdPage.heading, { exact: true }).selectText();
+  await page.keyboard.press("ControlOrMeta+C");
+  await searchInput.clear();
+  await searchInput.press("ControlOrMeta+V");
+  await expect(searchInput).toHaveValue(thirdPage.heading);
 });
