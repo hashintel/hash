@@ -1,4 +1,9 @@
-import { FetchError, FlueApiError, FlueExecutionError } from "@flue/sdk";
+import {
+  DurableStreamError,
+  FetchError,
+  FlueApiError,
+  FlueExecutionError,
+} from "@flue/sdk";
 
 import { serializeErrorText } from "./error-text";
 import {
@@ -151,7 +156,7 @@ export class FlueChatDisconnectError extends TypeError {
     options?: { readonly cause?: unknown },
   ) {
     super(
-      "The network connection to the agent was lost before the chat turn settled; the turn may still be running. Reopen the conversation to recover.",
+      "The network connection to the agent was lost before the chat turn settled; the turn may still be running.",
       options,
     );
     this.name = "FlueChatDisconnectError";
@@ -277,12 +282,20 @@ const pause = (milliseconds: number, signal: AbortSignal): Promise<void> =>
     signal.addEventListener("abort", finish, { once: true });
   });
 
-/** A settled turn or a local cancellation; anything else may be the update stream itself. */
-const endsTheTurn = (error: unknown, signal: AbortSignal): boolean =>
-  signal.aborted ||
-  isAbortError(error) ||
+/**
+ * A failure of the update stream itself, which a fresh `wait()` may get past:
+ * the stream ending before the turn settled, or a refusal from its HTTP layer.
+ * A 400 or an unparseable update would recur, and any other error is not the
+ * stream's, so those end the turn as themselves. 401 and 403 are re-attachable
+ * here but end at once as a disconnect; see `isSpentAuthRetry`.
+ */
+const isUpdateStreamFailure = (error: unknown): boolean =>
   (error instanceof FlueExecutionError &&
-    error.failure !== "terminal_event_missing");
+    error.failure === "terminal_event_missing") ||
+  (error instanceof FetchError && error.status !== 400) ||
+  (error instanceof DurableStreamError &&
+    error.code !== "BAD_REQUEST" &&
+    error.code !== "PARSE_ERROR");
 
 /** Flue's SDK has already spent its own retry budget on 401 and 403. */
 const isSpentAuthRetry = (error: unknown): boolean =>
@@ -426,7 +439,9 @@ const streamSubmission = (
             if (
               projectionFailed ||
               terminalEmitted ||
-              endsTheTurn(error, signal)
+              signal.aborted ||
+              isAbortError(error) ||
+              !isUpdateStreamFailure(error)
             ) {
               throw error;
             }

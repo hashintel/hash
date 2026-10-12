@@ -1,4 +1,9 @@
-import { FetchError, FlueApiError, FlueExecutionError } from "@flue/sdk";
+import {
+  DurableStreamError,
+  FetchError,
+  FlueApiError,
+  FlueExecutionError,
+} from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
 import { useUiChunkRecorder } from "../../test/ai-sdk-oracle";
@@ -7,6 +12,7 @@ import {
   createFlueChatTransport,
   FlueChatDisconnectError,
 } from "./chat-transport";
+import { serializeErrorText } from "./error-text";
 
 import type { FlueChatTransportOptions } from "./chat-transport";
 import type {
@@ -323,7 +329,10 @@ test.each([
       failure: "terminal_event_missing",
     }),
   ],
-  ["an unclassified wait failure", new Error("The stream broke.")],
+  [
+    "a durable stream that is gone",
+    new DurableStreamError("Stream gone.", "NOT_FOUND", 404),
+  ],
 ])(
   "fails the stream as an AI SDK disconnect once re-attaching gives up on %s",
   async (_label, waitError) => {
@@ -565,6 +574,133 @@ test.each([401, 403])(
     expect(onReattach).not.toHaveBeenCalled();
   },
 );
+
+test.each([
+  ["a plain bug", new Error("A plain bug.")],
+  ["a bad request", refusedReconnect(400)],
+  [
+    "a durable stream bad request",
+    new DurableStreamError("Bad request.", "BAD_REQUEST", 400),
+  ],
+  [
+    "an unparseable update",
+    new DurableStreamError("Malformed update.", "PARSE_ERROR"),
+  ],
+])(
+  "ends the turn with %s as its own error, without re-attaching",
+  async (_label, waitError) => {
+    const send = vi.fn<FlueClient["send"]>(async () => admission);
+    const wait = vi.fn<FlueClient["wait"]>(async () => {
+      throw waitError;
+    });
+    const onReattach =
+      vi.fn<NonNullable<FlueChatTransportOptions["onReattach"]>>();
+    const onDisconnect =
+      vi.fn<NonNullable<FlueChatTransportOptions["onDisconnect"]>>();
+    const transport = createFlueChatTransport({
+      client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+      clientToolNames: new Set(),
+      onReattach,
+      onDisconnect,
+    });
+
+    const chunks = await readChunks(
+      await transport.sendMessages(
+        sendOptions([
+          {
+            id: "user-1",
+            role: "user",
+            parts: [{ type: "text", text: "Fail on its own terms." }],
+          },
+        ]),
+      ),
+    );
+
+    expect(chunks.at(-1)).toEqual({
+      type: "error",
+      errorText: serializeErrorText(waitError),
+    });
+    expect(wait).toHaveBeenCalledOnce();
+    expect(onReattach).not.toHaveBeenCalled();
+    expect(onDisconnect).not.toHaveBeenCalled();
+  },
+);
+
+test("a stream that drops repeatedly but makes progress each time still completes", async () => {
+  vi.useFakeTimers();
+  const deltas = ["One ", "two ", "three ", "four."].map(
+    (delta, index): ConversationStreamChunk => ({
+      type: "message-delta",
+      conversationId: "conversation-1",
+      messageId: "assistant-1",
+      kind: "text",
+      delta,
+      position: position(index + 1),
+    }),
+  );
+  const events: ConversationStreamChunk[] = [
+    {
+      type: "message-started",
+      conversationId: "conversation-1",
+      messageId: "assistant-1",
+      submissionId: admission.submissionId,
+      turnId: "turn-1",
+      position: position(0),
+    },
+    ...deltas,
+    {
+      type: "message-completed",
+      conversationId: "conversation-1",
+      messageId: "assistant-1",
+      position: position(5),
+    },
+    {
+      type: "submission-settled",
+      conversationId: "conversation-1",
+      submissionId: admission.submissionId,
+      outcome: "completed",
+      position: position(6),
+    },
+  ];
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  // Each attempt delivers one event more than the last, then drops.
+  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    const delivered = wait.mock.calls.length;
+    for (const event of events.slice(0, delivered)) {
+      // eslint-disable-next-line no-await-in-loop
+      await options?.onEvent?.(event);
+    }
+    if (delivered < events.length) throw refusedReconnect(410);
+  });
+  const onReattach =
+    vi.fn<NonNullable<FlueChatTransportOptions["onReattach"]>>();
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+    onReattach,
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions([
+      { id: "user-1", role: "user", parts: [{ type: "text", text: "Go." }] },
+    ]),
+  );
+  const reading = readChunks(stream);
+  await vi.runAllTimersAsync();
+  vi.useRealTimers();
+
+  const chunks = await reading;
+  expect(chunks.at(-1)?.type).toBe("finish");
+  expect(
+    chunks.flatMap((chunk) =>
+      chunk.type === "text-delta" ? [chunk.delta] : [],
+    ),
+  ).toEqual(["One ", "two ", "three ", "four."]);
+  expect(wait).toHaveBeenCalledTimes(events.length);
+  expect(
+    onReattach.mock.calls.map(([event]) => [event.attempt, event.delayMs]),
+  ).toEqual(Array.from({ length: events.length - 1 }, () => [1, 250]));
+});
 
 test("makes no further wait() call when stopped during a re-attach pause", async () => {
   const abortController = new AbortController();
