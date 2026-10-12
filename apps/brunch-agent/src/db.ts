@@ -1,7 +1,7 @@
 import { postgres } from "@flue/postgres";
 
+import { conversationDbPath } from "./db-path.ts";
 import { loadDatabaseConfig } from "./server/database-config.ts";
-import { conversationDbPath } from "./server/db-path.ts";
 import { createPostgresRunner } from "./server/postgres.ts";
 import { diagnostics } from "./server/runtime-diagnostics.ts";
 import { shutdownBrunchTelemetry } from "./server/telemetry-bootstrap.ts";

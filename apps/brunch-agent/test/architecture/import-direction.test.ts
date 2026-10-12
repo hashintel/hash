@@ -195,8 +195,8 @@ describe("Brunch import direction", () => {
       rule: "library imports application",
       edge: importEdge(
         `${libraryRoot}/src/index.ts`,
-        "../../../../apps/brunch-agent/src/server/db-path.ts",
-        `${appRoot}/src/server/db-path.ts`,
+        "../../../../apps/brunch-agent/src/db-path.ts",
+        `${appRoot}/src/db-path.ts`,
       ),
     },
     {

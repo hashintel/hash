@@ -420,7 +420,7 @@ const launchPersona = async ({
       process.execPath,
       [
         "--experimental-strip-types",
-        join(appRoot, "src/dev-configuration-preflight.ts"),
+        join(appRoot, "src/server/dev-configuration-preflight.ts"),
       ],
       { cwd: repoRoot, env, signal: stop.signal },
     );
