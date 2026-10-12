@@ -13,11 +13,11 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/shared/conversation/identity.ts";
+import { installFauxProvider } from "./install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 
 import type { AgentSendResult, FlueConversationSnapshot } from "@flue/sdk";

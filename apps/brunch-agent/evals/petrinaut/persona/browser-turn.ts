@@ -9,7 +9,7 @@ import {
 
 import { brunchHeaders } from "@hashintel/brunch-agent";
 
-import { agentOwnershipHeaders } from "../../shared/conversation/identity.ts";
+import { agentOwnershipHeaders } from "../../../src/shared/conversation/identity.ts";
 
 import type { Page, Response as BrowserResponse } from "@playwright/test";
 

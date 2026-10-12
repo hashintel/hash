@@ -1,6 +1,6 @@
-# Persona testing
+# Petrinaut agent evaluations
 
-Brunch retains one evaluation surface: browser-visible persona runs through the real local Petrinaut panel. The runner discovers maintained case directories containing exactly the two inputs it needs:
+The Petrinaut agent has one evaluation surface: browser-visible persona runs through the real local Petrinaut panel. The runner discovers the case directories under `cases/`, each holding exactly the two inputs it needs:
 
 - `situation-pack.md` — the person's background: who they are, what they know about their work and how they talk;
 - `opening-message.md` — the person's first message to Brunch.
@@ -30,6 +30,6 @@ Use unused `BRUNCH_CHAT_PORT` and `BRUNCH_PANEL_PORT` values rather than interru
 
 Live-provider runs incur cost and require an explicit model and spend authorization. Synthetic tests do not. Keep credentials, private situation packs, browser profiles, and run output out of tracked artifacts.
 
-The detailed operator guide is [`apps/brunch-agent/src/evaluations/persona/README.md`](../../../apps/brunch-agent/src/evaluations/persona/README.md).
+The detailed operator guide is [`persona/README.md`](./persona/README.md).
 
 Each maintained case also keeps a `key.md` for scoring a run by hand: what the person believes, where the pack puts that under pressure, and what Brunch must tell apart, respect or keep conditional. The launcher never loads it. There are no graders, campaign protocols, or headless case fixtures. A persona run is an observation, not an automatic quality grade or acceptance decision.

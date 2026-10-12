@@ -26,11 +26,11 @@ import {
 } from "@hashintel/brunch-agent";
 import { createFlueAiSdkAdapter } from "@local/flue-aisdk-transport";
 
-import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../src/shared/conversation/identity.ts";
+import { installFauxProvider } from "../install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 import type { AdmissionVoiceEvidence } from "../admission-voice-evidence.ts";

@@ -62,7 +62,7 @@ Inspect the retained dialogue, Ledger and net together. Tool and skill tests est
 
 ## Supply a context pack
 
-`--case` accepts a name under `libs/@hashintel/brunch-agent/evaluations/cases/` or an absolute or caller-relative directory. That directory supplies exactly two launcher inputs:
+`--case` accepts a name under `apps/brunch-agent/evals/petrinaut/cases/` or an absolute or caller-relative directory. That directory supplies exactly two launcher inputs:
 
 - `situation-pack.md`: the person's background: who they are, what they know about their work, what they want and how they talk.
 - `opening-message.md`: the person's first message, sent as the whole file, trimmed.

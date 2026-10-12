@@ -8,12 +8,12 @@ import { promisify } from "node:util";
 import { FlueExecutionError } from "@flue/sdk";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { createStepARequestAccounting } from "../../server/provider-accounting.ts";
+import { createStepARequestAccounting } from "../../../src/server/provider-accounting.ts";
 import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
-} from "../../shared/chat-model.ts";
-import { flueConversationIdFrom } from "../../shared/conversation/identity.ts";
+} from "../../../src/shared/chat-model.ts";
+import { flueConversationIdFrom } from "../../../src/shared/conversation/identity.ts";
 import {
   documentIdFromInitialData,
   personaEnvironment,

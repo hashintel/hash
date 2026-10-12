@@ -11,7 +11,7 @@ import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../../../shared/conversation/identity.ts";
+} from "../../../../src/shared/conversation/identity.ts";
 import { lastAdmittedUtterance } from "./bridge-log.ts";
 import { roleSettingsFromRun } from "./role-settings.ts";
 

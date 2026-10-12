@@ -8,7 +8,7 @@ import { afterEach, expect, test } from "vitest";
 import {
   deriveProofTrace,
   writeProofArtifacts,
-} from "../src/evaluations/persona/proof-artifacts";
+} from "../evals/petrinaut/persona/proof-artifacts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 

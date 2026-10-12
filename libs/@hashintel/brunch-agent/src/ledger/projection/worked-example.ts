@@ -1,6 +1,6 @@
 /**
  * A worked-example ledger derived from the support-desk-staffing evaluation
- * case (`libs/@hashintel/brunch-agent/evaluations/cases/support-desk-staffing`):
+ * case (`apps/brunch-agent/evals/petrinaut/cases/support-desk-staffing`):
  * committed records as the system would hold them after several turns, with
  * assigned IDs and turn anchors (user-message IDs).
  */
