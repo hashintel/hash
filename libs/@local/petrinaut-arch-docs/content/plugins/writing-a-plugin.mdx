@@ -306,7 +306,14 @@ const chat = usePluginService(createChatPlugin); // ChatService | undefined
 returns the providing hook's latest `provides`, or `undefined` while that
 plugin is not running or before its
 [first publish](doc:plugins/runtime#publishing-contributions). It adds no
-dependency, so two plugins can read each other.
+dependency, so two plugins can read each other's services and show them.
+
+A service is a new object whenever the services it is built from change. So
+two services must not each be built from the other: plugin A's `provides`
+changes with B's service, B's with A's, and the editor stops with "Maximum
+update depth exceeded". A plugin that calls the other's service from its own
+reads it when the call runs, through a function the other plugin provides,
+rather than closing over the value.
 
 ## What plugin code imports
 

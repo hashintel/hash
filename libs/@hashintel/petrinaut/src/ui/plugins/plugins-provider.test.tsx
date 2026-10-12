@@ -424,6 +424,47 @@ describe("PetrinautPluginsProvider", () => {
     consoleError.mockRestore();
   });
 
+  it("lets two plugins read and show each other's services", () => {
+    const createFirstPlugin = definePetrinautPlugin({
+      id: "test.first",
+      name: "First",
+      topBarItems: { seen: { place: "top-bar-end" } },
+      provides: pluginService<{ name: string }>(),
+    });
+    const createSecondPlugin = definePetrinautPlugin({
+      id: "test.second",
+      name: "Second",
+      topBarItems: { seen: { place: "top-bar-end" } },
+      provides: pluginService<{ name: string }>(),
+    });
+    const firstService = { name: "first" };
+    const secondService = { name: "second" };
+    const useFirstPlugin: PluginHook<typeof createFirstPlugin> = () => {
+      const second = usePluginService(createSecondPlugin);
+
+      return {
+        topBarItems: { seen: <span>{`first sees ${second?.name}`}</span> },
+        provides: firstService,
+      };
+    };
+    const useSecondPlugin: PluginHook<typeof createSecondPlugin> = () => {
+      const first = usePluginService(createFirstPlugin);
+
+      return {
+        topBarItems: { seen: <span>{`second sees ${first?.name}`}</span> },
+        provides: secondService,
+      };
+    };
+
+    renderPlugins(
+      [createFirstPlugin(useFirstPlugin), createSecondPlugin(useSecondPlugin)],
+      <TopBarEnd />,
+    );
+
+    expect(screen.getByText("first sees second")).toBeTruthy();
+    expect(screen.getByText("second sees first")).toBeTruthy();
+  });
+
   it("starts a remounted plugin's contributions afresh, failures included", () => {
     const consoleError = vi
       .spyOn(console, "error")

@@ -110,7 +110,9 @@ export const usePluginOverlay = (): boolean =>
 /**
  * The service a plugin provides: its hook's latest `provides`, or `undefined`
  * while that plugin is not running or before its first publish. It adds no
- * dependency, so two plugins can read each other's services.
+ * dependency, so two plugins can read each other's services. Two services
+ * built each from the other change each other's identity on every publish,
+ * which never settles.
  */
 export const usePluginService = <D extends PluginDefinitionRef>(
   definition: D,
