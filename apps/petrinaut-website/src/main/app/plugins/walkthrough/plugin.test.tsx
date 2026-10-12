@@ -34,18 +34,18 @@ const aiAssistant: PetrinautAiAssistant = {
 };
 
 test("the guide opens with the editor and, once skipped, stays closed the next time", async () => {
-  renderEditorWith(walkthroughPlugin);
+  renderEditorWith([walkthroughPlugin]);
   fireEvent.click(await screen.findByRole("button", { name: "Skip tour" }));
   expect(screen.queryByRole("dialog")).toBeNull();
 
   cleanup();
-  renderEditorWith(walkthroughPlugin);
+  renderEditorWith([walkthroughPlugin]);
   await screen.findByRole("button", { name: "Menu" });
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 test("switching the setting back on opens the guide only the next time the editor opens", async () => {
-  renderEditorWith(walkthroughPlugin);
+  renderEditorWith([walkthroughPlugin]);
   fireEvent.click(await screen.findByRole("button", { name: "Skip tour" }));
 
   fireEvent.keyDown(window, { key: ",", metaKey: true });
@@ -58,13 +58,13 @@ test("switching the setting back on opens the guide only the next time the edito
   ).toBeNull();
 
   cleanup();
-  renderEditorWith(walkthroughPlugin);
+  renderEditorWith([walkthroughPlugin]);
   await screen.findByRole("button", { name: "Skip tour" });
 });
 
 test("the open guide holds back the empty-net assistant prompt", async () => {
   const name = "Describe the process you want to create";
-  renderEditorWith(walkthroughPlugin, { aiAssistant });
+  renderEditorWith([walkthroughPlugin], { aiAssistant });
 
   const skip = await screen.findByRole("button", { name: "Skip tour" });
   // The modal guide hides the rest of the page from the accessibility tree.

@@ -21,6 +21,13 @@ The demo shell passes one list, `demoPlugins` from `plugins/demo-plugins.ts`,
 to `<Petrinaut plugins>`. The Brunch Actual Mode route passes
 `[sentryFeedbackPlugin]` alone.
 
+The example page at `/examples/$slug` passes `[localCopyPlugin]` alone; the
+embed passes none. That plugin, `website.local-copy` in
+`src/examples/local-copy-plugin.tsx`, puts **Make a local copy** in a read-only
+document's top bar: it saves the net in this browser and opens its
+`/local/$netId` URL. It lives beside the example page and imports the local net
+storage from `local-storage-demo/`.
+
 The shell provides the command registry and registers its own commands in it.
 The editor reuses that registry, so the palette lists the editor's commands and
 the demo's.
