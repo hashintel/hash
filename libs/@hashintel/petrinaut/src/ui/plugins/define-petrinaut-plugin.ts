@@ -160,6 +160,16 @@ export interface PetrinautPluginManifest {
   /** Content in the top bar; the hook returns each item's node under the same key. */
   readonly topBarItems?: Readonly<Record<string, PluginTopBarItemSpec>>;
   /**
+   * A button on the notice that explains a blocked edit on a document the
+   * host made read-only, such as one that saves an editable copy. The hook
+   * returns what it does under `readOnlyAction`. The notice shows the action
+   * of the first running plugin that declares one.
+   */
+  readonly readOnlyAction?: {
+    /** The button's text. */
+    readonly label: string;
+  };
+  /**
    * UI inside the editor: dialogs, overlays, tours. The hook returns it under
    * `root`, and may return `overlay` while it covers the editor.
    */
@@ -243,6 +253,12 @@ export type PluginButton<CommandKey extends string = string> =
         }
     );
 
+/** What the read-only notice's button does; its label comes from the manifest. */
+export interface PluginReadOnlyAction {
+  /** Runs on click; the notice then closes. */
+  readonly run: () => void;
+}
+
 interface ContributionTable<M extends PetrinautPluginManifest> {
   /** Rendered inside the editor behind the plugin's error boundary; `null` while there is nothing to show. */
   root: ReactNode;
@@ -257,6 +273,7 @@ interface ContributionTable<M extends PetrinautPluginManifest> {
   topBarItems: {
     readonly [K in keyof NonNullable<M["topBarItems"]>]: ReactNode;
   };
+  readOnlyAction: PluginReadOnlyAction;
   provides: ServiceOf<M>;
 }
 
@@ -305,6 +322,7 @@ export interface AnyPluginContributions {
   readonly commands?: Readonly<Record<string, PluginCommand>>;
   readonly buttons?: Readonly<Record<string, PluginButton>>;
   readonly topBarItems?: Readonly<Record<string, ReactNode>>;
+  readonly readOnlyAction?: PluginReadOnlyAction;
   readonly provides?: unknown;
 }
 
@@ -417,6 +435,9 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
     ? { readonly settings: SettingValueChecks<Specs> }
     : unknown) &
   EntryChecks<M, "commands", keyof PluginCommandSpec> &
+  (M extends { readonly readOnlyAction: infer Spec }
+    ? { readonly readOnlyAction: RejectUnknownKeys<Spec, "label"> }
+    : unknown) &
   EntryChecks<M, "buttons", keyof PluginButtonSpec> &
   EntryChecks<M, "topBarItems", keyof PluginTopBarItemSpec>;
 

@@ -20,7 +20,8 @@ export type NetManagement = {
   loadPetriNet: (petriNetId: string) => void;
   /**
    * Offered with the notice that explains a blocked edit on a document the
-   * host made read-only, e.g. saving an editable copy.
+   * host made read-only, e.g. saving an editable copy. `<Petrinaut>` sets it
+   * from the first running plugin that declares `readOnlyAction`.
    */
   readOnlyAction?: { label: string; onClick: () => void };
 };

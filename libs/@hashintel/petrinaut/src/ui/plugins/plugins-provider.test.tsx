@@ -1,5 +1,11 @@
 /** @vitest-environment jsdom */
-import { act, cleanup, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { type ReactNode, use, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,6 +20,7 @@ import {
   type ErrorTracker,
   ErrorTrackerContext,
 } from "../../react/error-tracker-context";
+import { useReadOnlyFeedback } from "../../react/hooks/use-read-only-feedback";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
 import {
   definePetrinautPlugin,
@@ -101,6 +108,18 @@ const labelPlugin = definePetrinautPlugin({
   name: "Label",
   topBarItems: { label: { place: "top-bar-end" } },
 })({ topBarItems: { label: <span>label</span> } });
+
+/** The read-only notice actions that ran, in order. Module scope, as for `commandRuns`. */
+const noticeRuns: string[] = [];
+
+const createNoticePlugin = (key: string, label: string) =>
+  definePetrinautPlugin(
+    { id: `test.${key}`, name: label, readOnlyAction: { label } },
+    { readOnlyAction: { run: () => noticeRuns.push(key) } },
+  );
+
+const copyPlugin = createNoticePlugin("copy", "Make a copy");
+const forkPlugin = createNoticePlugin("fork", "Fork");
 
 describe("PetrinautPluginsProvider", () => {
   it("renders the object form and the hook form, whose api keeps its identity across a host re-render", () => {
@@ -701,5 +720,45 @@ describe("PetrinautPluginsProvider", () => {
 
     expect(clicks).toHaveBeenCalledOnce();
     expect(runs).not.toHaveBeenCalled();
+  });
+
+  it("puts the first running plugin's read-only action on the notice of a blocked edit, and runs it", async () => {
+    const View = () => {
+      const explainBlockedEdit = useReadOnlyFeedback();
+      const { setPluginEnabled } = use(UserSettingsContext);
+
+      return (
+        <>
+          <button type="button" onClick={() => explainBlockedEdit()}>
+            drag a node
+          </button>
+          <button
+            type="button"
+            onClick={() => setPluginEnabled("test.copy", false)}
+          >
+            switch copy off
+          </button>
+        </>
+      );
+    };
+    const notice = "This document is read-only.";
+
+    renderPlugins([labelPlugin, copyPlugin, forkPlugin], <View />, {
+      readonly: true,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "drag a node" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Make a copy" }));
+    expect(noticeRuns).toEqual(["copy"]);
+    // The toast leaves after the toaster's remove delay, whose timer fires late
+    // while other suites load the machine.
+    await waitFor(() => expect(screen.queryByText(notice)).toBeNull(), {
+      timeout: 3000,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "switch copy off" }));
+    fireEvent.click(screen.getByRole("button", { name: "drag a node" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Fork" }));
+    expect(noticeRuns).toEqual(["copy", "fork"]);
   });
 });
