@@ -14,7 +14,7 @@ export default defineConfig({
     }),
   ],
   rules: {
-    "eslint/no-console": "off", // This CLI writes results to stdout.
+    "eslint/no-console": "allow", // This CLI writes results to stdout.
   },
 });
 ```
@@ -28,6 +28,16 @@ The React and Next selections enable their native plugins. Vitest adds test rule
 ## Repository rules
 
 The `hash` plugin enforces naming conventions, including mapped type parameters. Its naming fixes update references and avoid name collisions. Other rules cover JavaScript visibility and options-object parameters. Type assertions and individual lint suppressions require explanations.
+
+Use `allow`, `warn` or `deny` for rule severities. The default `hash/prefer-rust-severities` rule checks literal settings and fixes equivalent ESLint aliases:
+
+| Alias        | Replacement |
+| ------------ | ----------- |
+| `off`, `0`   | `allow`     |
+| `1`          | `warn`      |
+| `error`, `2` | `deny`      |
+
+The fix leaves rule options and comments unchanged. Other settings, such as `reportUnusedDisableDirectives: "error"`, keep their own vocabulary.
 
 The default `hash/require-rule-change-comment` rule requires an inline explanation beside a literal severity setting. For tuple settings, put the comment beside the first element:
 
