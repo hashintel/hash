@@ -1,0 +1,109 @@
+/**
+ * HashQL paths with an optional root and a nonempty sequence of identifiers.
+ *
+ * {@link SchemaFromSelf} validates path objects and supports schema-derived arbitrary generation. {@link Schema} decodes source text without treating `::` inside a quoted identifier as a separator.
+ *
+ * @module
+ */
+import {
+  Schema as $Schema,
+  Array,
+  Option,
+  SchemaGetter,
+  SchemaParser,
+  Struct,
+} from "effect";
+import { compose } from "effect/Function";
+
+import * as Scan from "../internal/scan.js";
+import * as Ident from "./Ident.js";
+
+import type { Effect, SchemaIssue } from "effect";
+import type { Result } from "effect/Result";
+import type { ParseOptions } from "effect/SchemaAST";
+
+/**
+ * Schema for path objects containing decoded identifiers.
+ *
+ * `Arbitrary.schema(SchemaFromSelf)` generates rooted and relative paths with at least one segment.
+ */
+export const SchemaFromSelf: $Schema.Struct<{
+  rooted: $Schema.Boolean;
+  segments: $Schema.NonEmptyArray<typeof Ident.SchemaFromSelf>;
+}> = $Schema.Struct({
+  rooted: $Schema.Boolean,
+  segments: $Schema.NonEmptyArray(Ident.SchemaFromSelf),
+});
+
+/** Codec between path source text and a {@link Path} object. */
+export const Schema: $Schema.decodeTo<
+  typeof SchemaFromSelf,
+  typeof $Schema.NonEmptyString
+> = $Schema.NonEmptyString.pipe(
+  $Schema.decodeTo(SchemaFromSelf, {
+    decode: SchemaGetter.transformOptional(
+      compose(
+        Option.andThen(Scan.scanPath),
+        Option.map(
+          Struct.evolve({
+            segments: Array.map(Ident.fromScanned),
+          }),
+        ),
+      ),
+    ),
+    // oxlint-disable-next-line no-use-before-define -- circular evaluation
+    encode: SchemaGetter.transform((path) => compile(path)),
+  }),
+);
+
+export interface Path extends $Schema.Schema.Type<typeof Schema> {}
+
+/** Source text representing a {@link Path}, including quotes and separators. */
+export type Encoded = $Schema.Codec.Encoded<typeof Schema>;
+
+type MakeIn = (typeof Schema)["~type.make.in"];
+
+/**
+ * Constructs a path from its object representation.
+ *
+ * @throws {Error} If a segment is not a valid identifier.
+ */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
+export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Path =
+  SchemaParser.make(Schema);
+
+/** Constructs a path with schema failures in the error channel. */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
+export const makeEffect: (
+  input: MakeIn,
+  options?: $Schema.MakeOptions,
+) => Effect.Effect<Path, SchemaIssue.Issue> = SchemaParser.makeEffect(Schema);
+
+/** Constructs a path, returning `None` if validation fails. */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
+export const makeOption: (
+  input: MakeIn,
+  options?: $Schema.MakeOptions,
+) => Option.Option<Path> = SchemaParser.makeOption(Schema);
+
+export const compile = (path: Path): string => {
+  const segments = path.segments
+    .map((segment) => Ident.compile(segment))
+    .join("::");
+
+  if (path.rooted) {
+    return `::${segments}`;
+  }
+
+  return segments;
+};
+
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
+export const decodeResult: (
+  input: string,
+  options?: ParseOptions,
+) => Result<Path, SchemaIssue.Issue> = SchemaParser.decodeResult(Schema);
+
+export const isAbsolute = (path: Path): boolean => path.rooted;
+
+export const isRelative = (path: Path): boolean => !path.rooted;
