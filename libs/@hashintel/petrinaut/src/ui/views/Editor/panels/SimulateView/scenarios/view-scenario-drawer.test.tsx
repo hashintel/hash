@@ -4,7 +4,10 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
 
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
@@ -325,7 +328,9 @@ describe("ViewScenarioDrawer", () => {
     expect(update.scenarioParameters).toEqual([
       { type: "real", identifier: "rate", default: 10 },
     ]);
-    expect(Object.keys(update.parameterOverrides)).toEqual(["param-rate"]);
+    expect(Object.keys(update.parameterOverrides)).toEqual([
+      toPetrinautId("param-rate"),
+    ]);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

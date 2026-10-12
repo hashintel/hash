@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+import {
+  canonicalizePetrinautIds,
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
@@ -31,32 +35,27 @@ import {
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { Constraint, Scenario } from "@hashintel/petrinaut-core";
 
+/** The SIR example as a document holds it, with its ids converted. */
+const sirDefinition = canonicalizePetrinautIds(sirModel.petriNetDefinition);
+
 export const sirSdcpnContextValue: SDCPNContextValue = {
   createNewNet: () => {},
   existingNets: [],
   loadPetriNet: () => {},
   petriNetId: "sir-story-net",
-  petriNetDefinition: sirModel.petriNetDefinition,
+  petriNetDefinition: sirDefinition,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   setTitle: () => {},
   title: sirModel.title,
   getItemType: (id) => {
-    if (sirModel.petriNetDefinition.places.some((place) => place.id === id)) {
+    if (sirDefinition.places.some((place) => place.id === id)) {
       return "place";
     }
-    if (
-      sirModel.petriNetDefinition.transitions.some(
-        (transition) => transition.id === id,
-      )
-    ) {
+    if (sirDefinition.transitions.some((transition) => transition.id === id)) {
       return "transition";
     }
-    if (
-      sirModel.petriNetDefinition.parameters.some(
-        (parameter) => parameter.id === id,
-      )
-    ) {
+    if (sirDefinition.parameters.some((parameter) => parameter.id === id)) {
       return "parameter";
     }
     return null;
@@ -136,7 +135,7 @@ export function makeExperiment(
 
 /** The scenario the sweep fixture's axes belong to: its two swept rates and nothing else. */
 export const sweepFixtureScenario: Scenario = {
-  id: "scenario__seasonal_flu",
+  id: toPetrinautId("scenario__seasonal_flu"),
   name: "Seasonal Flu",
   scenarioParameters: [
     { identifier: "transmission_rate", type: "real", default: 0.3 },
@@ -250,7 +249,7 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
         kind: "placeTokenCountMean",
         id: "infected",
         label: "Infected",
-        placeId: "place__infected",
+        placeId: toPetrinautId("place__infected"),
         runOutput: { type: "distribution", binning: "exact" },
       },
     ],
@@ -518,7 +517,7 @@ export const multipleExperiments: ExperimentRecord[] = [
 
 const getScenario = (scenarioId: string | null): Scenario | null =>
   scenarioId
-    ? (sirModel.petriNetDefinition.scenarios?.find(
+    ? (sirDefinition.scenarios?.find(
         (scenario) => scenario.id === scenarioId,
       ) ?? null)
     : null;

@@ -11,6 +11,7 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   ActualModeMarking,
   ActualModeTransitionFiring,
+  SDCPN,
 } from "@hashintel/petrinaut-core";
 
 const MAX_VISIBLE_EVENTS = 500;
@@ -164,17 +165,35 @@ const formatMarkingValue = (
   return Array.isArray(value) ? String(value.length) : String(value);
 };
 
-const formatMarking = (marking: ActualModeMarking): string =>
+/** Names of the net's places and transitions by id, which events refer to. */
+const namesByIdOf = (definition: SDCPN | null): ReadonlyMap<string, string> =>
+  new Map(
+    [...(definition?.places ?? []), ...(definition?.transitions ?? [])].map(
+      ({ id, name }) => [id, name],
+    ),
+  );
+
+const nameOf = (namesById: ReadonlyMap<string, string>, id: string) =>
+  namesById.get(id) || id;
+
+const formatMarking = (
+  marking: ActualModeMarking,
+  namesById: ReadonlyMap<string, string>,
+): string =>
   Object.entries(marking).length === 0
     ? "none"
     : Object.entries(marking)
-        .map(([placeId, value]) => `${placeId}: ${formatMarkingValue(value)}`)
+        .map(
+          ([placeId, value]) =>
+            `${nameOf(namesById, placeId)}: ${formatMarkingValue(value)}`,
+        )
         .join(", ");
 
 const EventRow: React.FC<{
   firing: ActualModeTransitionFiring;
   index: number;
-}> = ({ firing, index }) => (
+  namesById: ReadonlyMap<string, string>;
+}> = ({ firing, index, namesById }) => (
   <tr>
     <td
       className={cx(
@@ -204,7 +223,7 @@ const EventRow: React.FC<{
         transitionCellStyle,
       )}
     >
-      {firing.transitionId}
+      {nameOf(namesById, firing.transitionId)}
     </td>
     <td
       className={cx(
@@ -214,10 +233,10 @@ const EventRow: React.FC<{
         markingCellStyle,
       )}
     >
-      {formatMarking(firing.input)}
+      {formatMarking(firing.input, namesById)}
     </td>
     <td className={cx(cellStyle, singleLineCellStyle, markingCellStyle)}>
-      {formatMarking(firing.output)}
+      {formatMarking(firing.output, namesById)}
     </td>
   </tr>
 );
@@ -233,6 +252,7 @@ const ActualEventsContent: React.FC = () => {
   const transitionFirings = actualMode.transitionFirings;
   const visibleFirings = transitionFirings.slice(-MAX_VISIBLE_EVENTS);
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
+  const namesById = namesByIdOf(actualMode.definition);
 
   const handleExportStream = () => {
     if (!actualMode.available || !canExportStream) {
@@ -368,6 +388,7 @@ const ActualEventsContent: React.FC = () => {
                   }`}
                   firing={firing}
                   index={firstVisibleIndex + index}
+                  namesById={namesById}
                 />
               ))}
             </tbody>

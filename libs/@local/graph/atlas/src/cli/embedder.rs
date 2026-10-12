@@ -7,17 +7,15 @@
 //! from that same constant. A preflight request proves the credentials, so a refused key fails
 //! the command before anything expensive happens.
 
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, pin::Pin};
 
 use clap::Args;
 use error_stack::Report;
 use hash_graph_embeddings::{EmbeddingError, OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig};
+use hash_secret::Secret;
 
-use crate::{
-    integrity::SecretString,
-    salt::embedding::external::{
-        EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits,
-    },
+use crate::salt::embedding::external::{
+    EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits,
 };
 
 /// The embedding endpoint the operator commands dial.
@@ -31,17 +29,17 @@ const EMBEDDING_ENDPOINT: &str = "https://api.openai.com/v1";
 pub struct EmbedderArgs {
     /// The OpenAI API key the embedding provider authenticates with.
     #[arg(long, env = "OPENAI_API_KEY", hide_env_values = true)]
-    openai_api_key: SecretString,
+    openai_api_key: Pin<Box<Secret<str>>>,
 }
 
 impl EmbedderArgs {
     /// Wraps a key a host resolved outside this flag, exactly as the flag would carry it.
-    pub(crate) const fn new(openai_api_key: SecretString) -> Self {
+    pub(crate) const fn new(openai_api_key: Pin<Box<Secret<str>>>) -> Self {
         Self { openai_api_key }
     }
 
     /// Takes the key out for the provider constructor.
-    pub(crate) fn into_key(self) -> SecretString {
+    pub(crate) fn into_key(self) -> Pin<Box<Secret<str>>> {
         self.openai_api_key
     }
 }
@@ -87,11 +85,11 @@ impl Error for EmbedderError {
 /// Returns [`EmbedderError::Construct`] when the client refuses its configuration and
 /// [`EmbedderError::Preflight`] when the preflight request fails.
 pub(crate) async fn openai<P>(
-    api_key: SecretString,
+    api_key: Pin<Box<Secret<str>>>,
     progress: P,
 ) -> Result<ExternalEmbeddingProvider<OpenAiEmbeddingClient, P>, EmbedderError> {
     let generator = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
-        api_key: api_key.into_unguarded().as_ref().to_owned(),
+        api_key: api_key.to_arc(),
         base_url: Some(EMBEDDING_ENDPOINT.to_owned()),
     })
     .map_err(EmbedderError::Construct)?;

@@ -48,7 +48,6 @@ export {
   type DocChangeEvent,
   type DocHandleState,
   type DocumentId,
-  type DocumentRevisionId,
   type HistoryEntry,
   type PetrinautDocHandle,
   type PetrinautHistory,
@@ -172,15 +171,6 @@ export type {
 } from "./command-schemas";
 export { mutationActionInputSchemas } from "./action-schemas";
 export {
-  executeSelectedMutationBatch,
-  selectedMutationBatchSchema,
-  selectedMutationOperationSchema,
-  type SelectedMutationAttempt,
-  type SelectedMutationEffect,
-  type SelectedMutationOperation,
-  type SelectedMutationOutcome,
-} from "./selected-mutation-batch";
-export {
   calculateGraphLayout,
   classicNodeDimensions,
   compactNodeDimensions,
@@ -208,11 +198,11 @@ export {
   getNetCompilationErrorsToolName,
   metricSchema,
   parameterSchema,
+  petrinautAiCapabilitySections,
   petrinautAiCommandTools,
-  petrinautAiModel,
   petrinautAiMutationTools,
-  petrinautAiPrompt,
   petrinautAiTools,
+  petrinautDiagnosticsContextMessageId,
   petrinautDocNames,
   petrinautDocSummaries,
   placeSchema,
@@ -410,6 +400,14 @@ export {
   type ArcIdPrefix,
 } from "./arc-id";
 export {
+  canonicalizeArcId,
+  canonicalizePetrinautIds,
+  generatePetrinautId,
+  isPetrinautId,
+  petrinautIdSchema,
+  toPetrinautId,
+} from "./petrinaut-id";
+export {
   arcEndpointsEqual,
   arcMatchesEndpoint,
   arcReferencesComponentInstance,
@@ -435,6 +433,12 @@ export {
 } from "./parameter-values";
 export { SDCPNItemError } from "./errors";
 export { isSDCPNEqual } from "./lib/deep-equal";
+export {
+  hashPetrinautDocument,
+  petrinautNonSemanticParts,
+  type HashPetrinautDocumentOptions,
+  type PetrinautNonSemanticPart,
+} from "./lib/hash-petrinaut-document";
 export { getNodeConnections } from "./lib/get-connections";
 
 // --- Authoring helpers ---

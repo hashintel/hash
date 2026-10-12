@@ -44,6 +44,11 @@ import { MiniMap } from "./react-flow-canvas/mini-map";
 import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
 import { PlaceNode } from "./react-flow-canvas/place-node";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
+import {
+  isMac,
+  selectionKeyCode,
+  useMultiSelectionModifier,
+} from "./react-flow-canvas/selection-keys";
 import { TransitionNode } from "./react-flow-canvas/transition-node";
 import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes";
 import { useMonacoKeyboardIsolation } from "./react-flow-canvas/use-monaco-keyboard-isolation";
@@ -192,6 +197,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
 
   useRecenterOnPanelOpen(controller, containerSize, scene.nodes, insets);
   useMonacoKeyboardIsolation();
+  useMultiSelectionModifier(isMac);
 
   // The viewport at mount: where this net was last left, or centered on the
   // net. Bounds and container changes must not recompute it. The saved
@@ -306,6 +312,8 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           selectionMode={
             partialSelection ? SelectionMode.Partial : SelectionMode.Full
           }
+          selectionKeyCode={selectionKeyCode}
+          multiSelectionKeyCode={null}
           selectNodesOnDrag={false}
           nodeOrigin={[0.5, 0.5]}
           deleteKeyCode={null}

@@ -1,0 +1,84 @@
+import { createContext, useContext, useMemo } from "react";
+
+import { linkEntityTypeUrl } from "./urls";
+
+import type {
+  EntityTypeReference,
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+
+export type EntityTypesByVersionedUrl = Record<
+  VersionedUrl,
+  EntityTypeWithMetadata
+>;
+
+export type EntityTypePermissions = {
+  edit: boolean;
+  instantiate: boolean;
+  view: boolean;
+};
+
+export type EntityTypesContextValue = {
+  entityTypes: EntityTypesByVersionedUrl;
+  linkTypes: EntityTypesByVersionedUrl;
+  // the requesting user's permissions on each entity type, keyed by entity type id.
+  // undefined when the consumer does not supply permission information.
+  entityTypePermissions?: Record<VersionedUrl, EntityTypePermissions>;
+};
+
+export const EntityTypesOptionsContext =
+  createContext<EntityTypesContextValue | null>(null);
+
+export const useEntityTypesOptionsContextValue = (
+  entityTypes: Record<VersionedUrl, EntityTypeWithMetadata>,
+): EntityTypesContextValue => {
+  return useMemo(() => {
+    const linkEntityTypesRecord: EntityTypesByVersionedUrl = {};
+    const nonLinkEntityTypesRecord: EntityTypesByVersionedUrl = {};
+
+    for (const entityType of Object.values(entityTypes)) {
+      let targetRecord =
+        entityType.schema.$id === linkEntityTypeUrl
+          ? linkEntityTypesRecord
+          : nonLinkEntityTypesRecord;
+
+      let parentRefObjects: EntityTypeReference[] =
+        entityType.schema.allOf ?? [];
+
+      while (parentRefObjects.length) {
+        if (parentRefObjects.find(({ $ref }) => $ref === linkEntityTypeUrl)) {
+          targetRecord = linkEntityTypesRecord;
+          break;
+        }
+
+        parentRefObjects = parentRefObjects.flatMap(({ $ref }) => {
+          const parentEntityType = entityTypes[$ref];
+          if (!parentEntityType) {
+            throw new Error(
+              `Entity type ${$ref} not found when looking up ancestors of ${entityType.schema.$id}`,
+            );
+          }
+          return parentEntityType.schema.allOf ?? [];
+        });
+      }
+
+      targetRecord[entityType.schema.$id] = entityType;
+    }
+
+    return {
+      entityTypes: nonLinkEntityTypesRecord,
+      linkTypes: linkEntityTypesRecord,
+    };
+  }, [entityTypes]);
+};
+
+export const useEntityTypesOptions = () => {
+  const entityTypesOptionsContext = useContext(EntityTypesOptionsContext);
+
+  if (!entityTypesOptionsContext) {
+    throw new Error("no EntityTypesOptionsContext value has been provided");
+  }
+
+  return entityTypesOptionsContext;
+};

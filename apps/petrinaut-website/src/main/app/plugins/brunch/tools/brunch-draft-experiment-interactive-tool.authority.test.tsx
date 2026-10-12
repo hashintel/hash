@@ -1,0 +1,147 @@
+/** @vitest-environment jsdom */
+import { expect, test, vi } from "vitest";
+
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+} from "@hashintel/petrinaut-core";
+
+import { resolveDraftAuthorityFromHistory } from "./brunch-draft-experiment-interactive-tool";
+import {
+  createCanonicalPetrinautHostTools,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+} from "./brunch-petrinaut-tools";
+import { documentRevisionOf } from "./shared/document-revision";
+
+import type { FlueConversationState } from "@flue/sdk";
+
+vi.hoisted(() => {
+  window.matchMedia = (media) => ({
+    media,
+    matches: false,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => true,
+  });
+});
+const input = {
+  experiment: {
+    name: "Baseline",
+    scenarioId: "baseline",
+    scenarioParameterValues: {},
+    runCount: 10,
+    seed: 42,
+    dt: 0.1,
+    maxTime: 10,
+    metricIds: ["throughput"],
+    execution: { mode: "simulate" as const },
+  },
+  declarations: [{ subject: "result", statement: "No guarantee." }],
+  unsupported: [],
+};
+const draft = {
+  type: "dynamic-tool",
+  toolCallId: "draft-1",
+  toolName: "draft_petrinaut_experiment",
+  state: "output-available",
+  input,
+  output: { brunchBrowserResult: true, output: { prepared: true } },
+};
+const history = () => {
+  const instance = createPetrinaut({
+    document: createJsonDocHandle({
+      id: "document",
+      initial: {
+        places: [],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+      },
+      capabilities: { disabledExtensions: [] },
+    }),
+  });
+  const host = createCanonicalPetrinautHostTools({
+    handle: instance.handle,
+    readTitle: () => "Queue",
+    replayReadiness: {
+      status: "ready",
+      replay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
+    },
+  });
+  const read = host.tools.find(
+    (tool) => tool.toolName === "getLatestNetDefinition",
+  );
+  if (!read) throw new Error("Missing canonical read");
+  const output = read.execute({
+    input: {},
+    toolCallId: "read-1",
+    handle: instance.handle,
+    mutations: instance.mutations,
+    commands: instance.commands,
+    readDiagnosticsContext: async () => "",
+    viewport: { frameSceneAfterRender: async () => "framed" },
+    signal: new AbortController().signal,
+  });
+  const metadata = host.clientToolResultMetadataFor("read-1", output);
+  const definition = instance.handle.doc();
+  if (!definition) throw new Error("The test document is unavailable.");
+  const readCall = {
+    type: "dynamic-tool",
+    toolCallId: "read-1",
+    toolName: "getLatestNetDefinition",
+    state: "output-available",
+    input: {},
+    output: { brunchBrowserResult: true, output, metadata },
+  };
+  const messages = [
+    { role: "assistant", purpose: "assistant", parts: [readCall] },
+    { role: "assistant", purpose: "assistant", parts: [draft] },
+  ];
+  return {
+    snapshot: { messages } as FlueConversationState,
+    revision: documentRevisionOf(definition),
+  };
+};
+
+test("authorizes a draft from the latest read revision without a Ledger", async () => {
+  const { snapshot, revision } = history();
+  await expect(
+    resolveDraftAuthorityFromHistory(snapshot, "draft-1"),
+  ).resolves.toBe(revision);
+  await expect(
+    resolveDraftAuthorityFromHistory(snapshot, "missing"),
+  ).rejects.toThrow(/absent/u);
+});
+
+test("a changed net after the read requires another canonical read before a draft", async () => {
+  const { snapshot } = history();
+  const changed = {
+    type: "dynamic-tool",
+    toolName: "addPlace",
+    toolCallId: "changed",
+    state: "output-available",
+    input: { id: "place" },
+    output: {
+      brunchBrowserResult: true,
+      output: { applied: true },
+      metadata: { documentRevision: { before: "old", after: "new" } },
+    },
+  };
+  const messages = [
+    {
+      ...snapshot.messages[0]!,
+      parts: [...snapshot.messages[0]!.parts, changed],
+    },
+    ...snapshot.messages.slice(1),
+  ];
+  await expect(
+    resolveDraftAuthorityFromHistory(
+      { ...snapshot, messages } as FlueConversationState,
+      "draft-1",
+    ),
+  ).rejects.toThrow(/read the latest model before drafting/u);
+});

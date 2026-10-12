@@ -2,9 +2,10 @@ import { use } from "react";
 
 import { PetrinautInstanceContext } from "../instance-context";
 import { ActiveNetContext } from "../state/active-net-context";
-import { SDCPNContext } from "../state/sdcpn-context";
-import { simulateModeAllowedMutationNames } from "../state/simulate-mode-allowed-mutation-names";
-import { useIsReadOnly } from "../state/use-is-read-only";
+import {
+  mutationBlockedBy,
+  useReadOnlyReason,
+} from "../state/use-read-only-reason";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
 
@@ -17,12 +18,9 @@ type PetrinautMutationInput<Name extends keyof PetrinautMutations> = Parameters<
  *
  * Each helper is wrapped so that:
  *
- * - Most mutations no-op when {@link useIsReadOnly} returns `true` (host
- *   `readonly`, simulate mode, or an active simulation).
- * - Scenario/metric mutations only check the host `readonly` flag — they
- *   remain available in simulate mode where the Simulate panel manages them.
- *   The list lives in {@link simulateModeAllowedMutationNames} so the AI
- *   tool dispatcher stays in sync.
+ * - It no-ops while {@link mutationBlockedBy} names a reason, the rule the AI
+ *   tool dispatcher applies too: scenario and metric mutations stay
+ *   available in simulate mode, where the Simulate panel manages them.
  *
  * Components MUST NOT reach for `usePetrinautInstance().mutations` directly;
  * the public `usePetrinautInstance()` return type narrows away the mutation
@@ -35,21 +33,19 @@ export function usePetrinautMutations(): PetrinautMutations {
       "usePetrinautMutations must be used inside <PetrinautProvider> (or <Petrinaut>).",
     );
   }
-  const { readonly } = use(SDCPNContext);
   const { activeSubnetId } = use(ActiveNetContext);
-  const isReadOnly = useIsReadOnly();
+  const readOnlyReason = useReadOnlyReason();
   const { mutations } = instance;
 
   const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
     name: Name,
     options?: { targetActiveSubnet?: boolean },
   ): PetrinautMutations[Name] => {
-    const allowedInSimulate = simulateModeAllowedMutationNames.has(name);
     const target = mutations[name] as (
       input: PetrinautMutationInput<Name>,
     ) => void;
     const wrapped = ((input: PetrinautMutationInput<Name>) => {
-      if (allowedInSimulate ? readonly : isReadOnly) {
+      if (mutationBlockedBy(name, readOnlyReason) !== null) {
         return;
       }
       const nextInput =

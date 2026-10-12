@@ -1,0 +1,8 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/policy/tests.rs
+description: "[ResolvedPolicy { original_policy_id: PolicyId(bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb), effect: Permit, actions: [ViewEntity], resource: None }, ResolvedPolicy { original_policy_id: PolicyId(cccccccc-cccc-cccc-cccc-cccccccccccc), effect: Forbid, actions: [ViewEntity], resource: Some(Entity(Any { filter: IsReadOnly })) }]"
+expression: "snapshot_with_params(&result.condition.transpile_to_string(),\n&fixture.parameters)"
+---
+NOT(("entity_ids_0_0_1"."read_only"))
+
+parameters: AuxiliaryParameters { initial_offset: 0, parameters: [] }

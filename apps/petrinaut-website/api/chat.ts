@@ -9,11 +9,10 @@ import {
 } from "ai";
 import { z } from "zod";
 
-import {
-  petrinautAiModel,
-  petrinautAiPrompt,
-  petrinautAiTools,
-} from "@hashintel/petrinaut-core";
+import { petrinautAiTools } from "@hashintel/petrinaut-core";
+
+import { petrinautAiPrompt } from "../src/main/app/plugins/petrinaut-ai/server/petrinaut-ai-prompt.js";
+import { stockAssistantModel } from "../src/shared/stock-assistant-model.js";
 
 declare const process: {
   env: Record<string, string | undefined>;
@@ -195,7 +194,7 @@ const fetch = async (request: Request): Promise<Response> => {
 
   const openai = createOpenAI({ apiKey });
   const registry = createProviderRegistry({ openai });
-  const modelId = process.env.PETRINAUT_AI_MODEL ?? petrinautAiModel.id;
+  const modelId = process.env.PETRINAUT_AI_MODEL ?? stockAssistantModel.id;
 
   const result = streamText({
     model: registry.languageModel(`openai:${modelId}`),
@@ -208,7 +207,7 @@ const fetch = async (request: Request): Promise<Response> => {
       openai: {
         reasoningEffort:
           process.env.PETRINAUT_AI_REASONING_EFFORT ??
-          petrinautAiModel.reasoningEffort,
+          stockAssistantModel.reasoningEffort,
         reasoningSummary: "auto",
         textVerbosity: "medium",
       },

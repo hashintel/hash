@@ -45,6 +45,8 @@ const Example = ({
   renderTrigger,
   size,
   align,
+  variant,
+  tone,
 }: {
   /** Shown above the menu; used for columns within a multi-example row */
   columnLabel?: string;
@@ -61,6 +63,8 @@ const Example = ({
       ) => React.ReactElement);
   size?: FormInputSize;
   align?: "left" | "right";
+  variant?: React.ComponentProps<typeof SortMenu>["variant"];
+  tone?: React.ComponentProps<typeof SortMenu>["tone"];
 }) => {
   const [value, setValue] = useState<Value | undefined>(initialValue);
 
@@ -73,6 +77,8 @@ const Example = ({
       renderTrigger={renderTrigger}
       size={size}
       align={align}
+      variant={variant}
+      tone={tone}
     />
   );
 
@@ -170,8 +176,9 @@ export const Default: Story = () => (
         initialValue={{ sortKey: "name", direction: "ASCENDING" }}
       />
     </Row>
-    <Row label="Custom trigger">
+    <Row label="Trigger variants">
       <Example
+        columnLabel="Custom render"
         initialValue={{ sortKey: "name", direction: "ASCENDING" }}
         renderTrigger={(sorter, direction) => (
           <button
@@ -189,6 +196,16 @@ export const Default: Story = () => (
             {direction ? (direction === "ASCENDING" ? " A-Z" : " Z-A") : null}
           </button>
         )}
+      />
+      <Example
+        columnLabel='variant="solid"'
+        variant="solid"
+        initialValue={{ sortKey: "name", direction: "ASCENDING" }}
+      />
+      <Example
+        columnLabel='tone="brand"'
+        tone="brand"
+        initialValue={{ sortKey: "name", direction: "ASCENDING" }}
       />
     </Row>
     <Row label="Searchable">

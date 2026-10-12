@@ -7,7 +7,7 @@ import { workerFlowFilterParam } from "@local/hash-isomorphic-utils/flows/fronte
 
 import { getLayoutWithSidebar } from "../shared/layout";
 import { WorkersHeader } from "../shared/workers-header";
-import { FlowRunsContextProvider } from "./shared/flow-runs-context";
+import { FlowRunsContextProvider } from "./shared/flow-runs-context-provider";
 import { FlowRunTable } from "./workers.page/flow-run-table";
 import { FlowSchedulesTable } from "./workers.page/flow-schedules-table";
 

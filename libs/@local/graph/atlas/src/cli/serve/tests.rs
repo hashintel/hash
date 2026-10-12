@@ -28,6 +28,7 @@ use hash_middleware::{
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
+use hash_secret::Secret;
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
@@ -41,7 +42,6 @@ use crate::{
         generation::{GenerationRoot, ScratchDirectory},
         storage::error::StorageError,
     },
-    integrity::SecretString,
     math::nz,
     serve::visibility::cache::VisibilityLimits,
 };
@@ -94,7 +94,7 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
         &DatabaseConnectionInfo::new(
             DatabaseType::Postgres,
             "atlas-layer-test".to_owned(),
-            String::new(),
+            Secret::from_string(String::new()),
             "/no-atlas-layer-test-postgres".to_owned(),
             5432,
             "atlas-layer-test".to_owned(),
@@ -115,7 +115,7 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
     )
     .run(ServeOptions {
         provider: Arc::new(HeaderActor),
-        service_secret: SecretString::from("atlas-layer-test-service-secret"),
+        service_secret: Secret::from_string("atlas-layer-test-service-secret".to_owned()).to_arc(),
         rate_limit: RateLimitConfig {
             rate_limit_mode: RateLimitMode::Enforce,
             client_ip_source: ClientIpSource::ConnectInfo,

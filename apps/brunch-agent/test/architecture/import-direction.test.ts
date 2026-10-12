@@ -268,7 +268,7 @@ describe("Brunch import direction", () => {
     {
       rule: "Brunch extension imports a sibling extension",
       edge: importEdge(
-        `${packagesRoot}/transport-aisdk/src/index.ts`,
+        `${packagesRoot}/plugin-example/src/index.ts`,
         "@hashintel/brunch-agent-plugin-sdcpn",
         `${packagesRoot}/plugin-sdcpn/src/index.ts`,
       ),

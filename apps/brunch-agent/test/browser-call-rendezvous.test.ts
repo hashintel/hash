@@ -16,7 +16,6 @@ it("accepts one issued, bound result and refuses unsolicited, forged, conflictin
   const binding = JSON.stringify({
     conversationId: "c",
     documentId: "d",
-    incarnationId: "i",
   });
   const call = {
     instanceId: "owner",
@@ -33,7 +32,7 @@ it("accepts one issued, bound result and refuses unsolicited, forged, conflictin
     failBrowserCall({ ...call, capability: "forged", disposition: "failed" }),
   ).toBe(false);
   expect(
-    claimBrowserCall(call.instanceId, call.toolCallId, "wrong-incarnation"),
+    claimBrowserCall(call.instanceId, call.toolCallId, "wrong-document"),
   ).toBeUndefined();
   const issued = claimBrowserCall(call.instanceId, call.toolCallId, binding);
   expect(issued?.input).toEqual(call.canonicalInput);
@@ -49,7 +48,7 @@ it("accepts one issued, bound result and refuses unsolicited, forged, conflictin
   expect(settleBrowserCall({ ...reply, capability: "forged" })).toBe(
     "not-issued",
   );
-  expect(settleBrowserCall({ ...reply, binding: "wrong-incarnation" })).toBe(
+  expect(settleBrowserCall({ ...reply, binding: "wrong-document" })).toBe(
     "not-issued",
   );
   expect(
@@ -58,9 +57,7 @@ it("accepts one issued, bound result and refuses unsolicited, forged, conflictin
   expect(settleBrowserCall({ ...reply, toolName: "removePlace" })).toBe(
     "not-issued",
   );
-  expect(failBrowserCall({ ...reply, binding: "wrong-incarnation" })).toBe(
-    false,
-  );
+  expect(failBrowserCall({ ...reply, binding: "wrong-document" })).toBe(false);
   expect(failBrowserCall({ ...reply, capability: "forged" })).toBe(false);
   expect(settleBrowserCall(reply)).toBe("settled");
   await expect(result).resolves.toMatchObject({
@@ -134,7 +131,7 @@ it("settles a stopped call and refuses late results without replaying it", async
     toolCallId: crypto.randomUUID(),
     toolName: "addPlace",
     canonicalInput: {},
-    binding: "document-incarnation",
+    binding: "document-binding",
     verify,
     signal: controller.signal,
   };
@@ -165,7 +162,7 @@ it("classifies an unclaimed Stop or expiry as unstarted, never as an attempted w
     toolCallId: crypto.randomUUID(),
     toolName: "addPlace",
     canonicalInput: {},
-    binding: "document-incarnation",
+    binding: "document-binding",
     verify,
     signal: controller.signal,
   };
@@ -199,7 +196,7 @@ it("a bound negative result marks an explicitly skipped sibling as unstarted", a
     toolCallId: crypto.randomUUID(),
     toolName: "addPlace",
     canonicalInput: {},
-    binding: "document-incarnation",
+    binding: "document-binding",
     verify,
   };
   const result = issueBrowserCall(call);
@@ -235,7 +232,7 @@ it("a silent browser must renew its bounded lease; silence is not an instantaneo
     toolCallId: crypto.randomUUID(),
     toolName: "getLatestNetDefinition",
     canonicalInput: {},
-    binding: "document-incarnation",
+    binding: "document-binding",
     verify,
   };
   const result = issueBrowserCall(call);
@@ -278,14 +275,14 @@ it("a renewal keeps calls queued behind it on the same document claimable", asyn
     toolCallId: crypto.randomUUID(),
     toolName: "applyAutoLayout",
     canonicalInput: {},
-    binding: "document-incarnation",
+    binding: "document-binding",
     verify,
   };
   const queued = { ...running, toolCallId: crypto.randomUUID() };
   const otherDocument = {
     ...running,
     toolCallId: crypto.randomUUID(),
-    binding: "other-document-incarnation",
+    binding: "other-document-binding",
   };
   void issueBrowserCall(running);
   const queuedResult = issueBrowserCall(queued);
@@ -324,7 +321,7 @@ it("classifies a claimed call that cannot change the document as unchanged when 
   const base = {
     instanceId: "owner",
     canonicalInput: {},
-    binding: "document-incarnation",
+    binding: "document-binding",
     verify,
   };
   const draft = {

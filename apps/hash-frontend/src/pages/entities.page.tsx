@@ -348,7 +348,7 @@ const EntitiesPage: NextPageWithLayout = () => {
           </Stack>
         </Container>
       </Box>
-      <Container sx={{ ...largePageMaxWidthCss, py: 5 }}>
+      <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
         <EntitiesVisualizer
           entityTypeBaseUrl={entityTypeBaseUrl}
           entityTypeId={entityTypeId}

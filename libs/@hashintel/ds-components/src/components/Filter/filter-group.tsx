@@ -12,7 +12,7 @@ import {
 import {
   attachAbandonmentController,
   FilterGroupAbandonmentContext,
-  focusWithoutRing,
+  focusInitialSegment,
   type AbandonableChip,
   type FilterGroupAbandonment,
 } from "./filter-util";
@@ -72,12 +72,6 @@ const ClearFilters = ({
 
 /** A `Filter` chip's root element, as rendered anywhere inside the group. */
 const chipSelector = '[role="group"][data-property]';
-
-/** A chip's first interactive segment (operator trigger or input) — never its remove button. */
-const firstSegmentOf = (chip: HTMLElement) =>
-  chip.querySelector<HTMLElement>(
-    'button:enabled:not([data-part="remove"]), input:enabled',
-  );
 
 /**
  * Lays out a collection of `Filter` chips — and any interleaved controls
@@ -156,10 +150,7 @@ const FilterGroupRoot = ({
         if (active instanceof Element && active.closest(chipSelector)) {
           return;
         }
-        const segment = firstSegmentOf(freshChip);
-        if (segment) {
-          focusWithoutRing(freshChip, segment);
-        }
+        focusInitialSegment(freshChip);
       });
     });
   });

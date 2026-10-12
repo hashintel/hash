@@ -1,7 +1,9 @@
 use alloc::sync::Arc;
+use core::pin::Pin;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::email_subscription::{EmailSubscriptionError, EmailSubscriptionProvider};
+use hash_secret::Secret;
 use md5::{Digest as _, Md5};
 use reqwest::Client;
 
@@ -15,7 +17,7 @@ pub(crate) struct InvalidMailchimpApiKey;
 /// The subscriber is identified by `MD5(lowercase(email))`.
 pub(crate) struct MailchimpSubscriptionProvider {
     client: Arc<Client>,
-    api_key: String,
+    api_key: Pin<Arc<Secret<str>>>,
     list_id: String,
     server: String,
 }
@@ -31,10 +33,13 @@ impl MailchimpSubscriptionProvider {
     /// Returns [`InvalidMailchimpApiKey`] if the key does not contain a `-<server>` suffix.
     pub(crate) fn new(
         client: Arc<Client>,
-        api_key: String,
+        api_key: Pin<Arc<Secret<str>>>,
         list_id: String,
     ) -> Result<Self, Report<InvalidMailchimpApiKey>> {
-        let (_, server) = api_key.rsplit_once('-').ok_or(InvalidMailchimpApiKey)?;
+        let (_, server) = api_key
+            .expose()
+            .rsplit_once('-')
+            .ok_or(InvalidMailchimpApiKey)?;
         let server = server.to_owned();
         Ok(Self {
             client,
@@ -61,7 +66,7 @@ impl EmailSubscriptionProvider for MailchimpSubscriptionProvider {
         let response = self
             .client
             .post(&url)
-            .basic_auth("hash-graph", Some(&self.api_key))
+            .basic_auth("hash-graph", Some(self.api_key.expose()))
             .send()
             .await
             .change_context(EmailSubscriptionError::DeletionFailed {

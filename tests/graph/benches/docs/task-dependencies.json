@@ -10,6 +10,7 @@
     "hash-graph-test-data",
     "hash-graph-type-fetcher",
     "hash-repo-chores",
+    "hash-secret",
     "hash-telemetry",
     "type-system"
   ],

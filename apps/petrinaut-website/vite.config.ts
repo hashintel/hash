@@ -131,7 +131,7 @@ export default defineConfig(({ command, mode }) => {
         compiler: {
           target: "19",
           compilationMode: "infer",
-          panicThreshold: "critical_errors",
+          panicThreshold: "all_errors",
         },
       }),
     ],

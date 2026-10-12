@@ -12,7 +12,8 @@ import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { HEADER_HEIGHT } from "../../../../shared/layout/layout-with-header/page-header";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../../shared/top-context-bar";
 import { BlockCreationDialog } from "./canvas-page/block-creation-dialog";
-import { BlockShapeDef, BlockTool } from "./canvas-page/block-shape";
+import { BlockShapeDef } from "./canvas-page/block-shape-def";
+import { BlockTool } from "./canvas-page/block-tool";
 import { LockedCanvas } from "./canvas-page/locked-canvas";
 
 import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";

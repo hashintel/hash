@@ -1,10 +1,14 @@
 import { describe, expect, test } from "vitest";
 
+import {
+  canonicalizePetrinautIds,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+
 import { summarizePetrinautAiToolCall } from "./tool-summaries";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
-
-const definition: SDCPN = {
+// A loaded document holds converted ids; the assistant's inputs keep its own.
+const definition: SDCPN = canonicalizePetrinautIds({
   differentialEquations: [],
   parameters: [],
   places: [
@@ -32,7 +36,7 @@ const definition: SDCPN = {
     },
   ],
   types: [],
-};
+});
 
 describe("summarizePetrinautAiToolCall", () => {
   test("falls back to existing entity names when updates omit names", () => {
