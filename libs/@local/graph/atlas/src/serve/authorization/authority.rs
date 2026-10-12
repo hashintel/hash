@@ -4,13 +4,14 @@
 //! [`Scope`]. Verification authenticates the envelope before comparing its actor, generation and
 //! delta lifetime with the request. [`ScopeLease::current`] checks expiry.
 
-use core::time::Duration;
+use core::{pin::Pin, time::Duration};
 use std::{sync::nonpoison::Mutex, time::SystemTime};
 
 use chacha20poly1305::{
     AeadCore, AeadInPlace as _, KeyInit as _, KeySizeUser, Tag, XChaCha20Poly1305, XNonce,
 };
 use error_stack::Report;
+use hash_secret::Secret;
 use hkdf::Hkdf;
 use rand::TryCryptoRng;
 use sha2::{Sha256, digest::typenum::Unsigned};
@@ -23,7 +24,6 @@ use super::{
     token::{EncryptedToken, MessageVersion, Token, TokenHeader, UnixEpochSeconds},
 };
 use crate::{
-    integrity::SecretHexBytes,
     morton::Zoom,
     serve::{delta::epoch::Epoch, visibility::cache::FilterDigest},
 };
@@ -81,7 +81,7 @@ pub(crate) struct Issue {
 /// earlier key. Authorities constructed independently from the same deployment secret are not
 /// configured to share tokens.
 pub(crate) struct Authority<R> {
-    key: SecretHexBytes<KEY_BYTES>,
+    key: Pin<Box<Secret<[u8; KEY_BYTES]>>>,
     expiration: Duration,
     rng: Mutex<R>,
 }
@@ -106,10 +106,10 @@ impl<R> Authority<R> {
         R: TryCryptoRng,
     {
         let salt = rng.try_next_u64()?;
-        let mut key = SecretHexBytes::zeroed();
+        let mut key = Box::pin(Secret::zeroed());
 
         Hkdf::<Sha256>::new(Some(&salt.to_be_bytes()), secret)
-            .expand(LABEL, key.as_mut())
+            .expand(LABEL, key.as_mut().expose_mut())
             .expect("the cipher's key size stays within HKDF-SHA256's expansion bound");
 
         Ok(Self {
@@ -172,7 +172,7 @@ impl<R> Authority<R> {
             .unwrap_or_else(|_err| unreachable!("scope is included in the payload"));
 
         // the fixed-size header and scope fit the cipher's message and associated-data bounds.
-        let sealed_tag = Encryption::new(self.key.as_bytes().into())
+        let sealed_tag = Encryption::new(self.key.expose().into())
             .encrypt_in_place_detached(
                 XNonce::from_slice(&nonce),
                 header.as_bytes(),
@@ -215,7 +215,7 @@ impl<R> Authority<R> {
             .map_err(|_err| Report::new(AuthorityError::Envelope))?;
 
         let mut plaintext = token.ciphertext;
-        XChaCha20Poly1305::new(self.key.as_bytes().into())
+        XChaCha20Poly1305::new(self.key.expose().into())
             .decrypt_in_place_detached(
                 &XNonce::from(token.header.nonce),
                 token.header.as_bytes(),

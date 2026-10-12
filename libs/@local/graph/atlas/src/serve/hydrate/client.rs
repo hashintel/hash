@@ -412,6 +412,7 @@ mod tests {
     use hash_graph_store::filter::{
         Filter, FilterExpression, Parameter, protection::PropertyProtectionFilterConfig,
     };
+    use hash_secret::Secret;
     use hashql_core::id::IdSlice;
     use tokio::runtime::Handle;
     use tokio_postgres::NoTls;
@@ -479,7 +480,7 @@ mod tests {
                 &DatabaseConnectionInfo::new(
                     DatabaseType::Postgres,
                     "hydrate-test".to_owned(),
-                    String::new(),
+                    Secret::from_string(String::new()),
                     "/no-hydrate-test-postgres".to_owned(),
                     5432,
                     "hydrate-test".to_owned(),

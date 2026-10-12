@@ -51,6 +51,7 @@
         "hash-graph-types",
         "hash-graph-validation",
         "hash-middleware",
+        "hash-secret",
         "hash-status",
         "hash-telemetry",
         "hash-temporal-client",

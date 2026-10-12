@@ -3,6 +3,7 @@ use core::{
     fmt,
     net::{AddrParseError, SocketAddr},
     num::NonZero,
+    pin::Pin,
     str::FromStr,
     time::Duration,
 };
@@ -41,6 +42,7 @@ use hash_graph_store::{
     pool::StorePool,
 };
 use hash_graph_type_fetcher::FetchingPool;
+use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
@@ -57,7 +59,9 @@ use crate::{
     error::{GraphError, HealthcheckError},
     subcommand::{
         HealthcheckArgs, ServerLifecycle,
-        admin_server::{AdminConfig, cloudflare_access_config, start_admin_server},
+        admin_server::{
+            AdminConfig, cloudflare_access_config, require_service_secret, start_admin_server,
+        },
         type_fetcher::{
             REACHABILITY_WINDOW, TypeFetcherConfig, start_type_fetcher, wait_for_type_fetcher,
         },
@@ -287,7 +291,7 @@ impl From<ApiTokenEnvironment> for api_token::Environment {
 ///
 /// API tokens are unavailable when none of the three options is set. Setting only some of them is
 /// an error.
-#[derive(derive_more::Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser)]
 #[expect(
     clippy::struct_field_names,
     reason = "the field names are the command-line options, which share the `api-token` prefix"
@@ -300,8 +304,7 @@ pub struct ApiTokenConfig {
         env = "HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY",
         hide_env_values = true
     )]
-    #[debug("***")]
-    pub api_token_encryption_key: Option<String>,
+    pub api_token_encryption_key: Option<Pin<Box<Secret<[u8; 32]>>>>,
 
     /// The ID recorded with every secret hash the key encrypts. A new key needs a new ID.
     #[clap(long, env = "HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY_ID")]
@@ -313,20 +316,15 @@ pub struct ApiTokenConfig {
 }
 
 impl ApiTokenConfig {
-    /// Converts the CLI configuration into an API token issuer, or `None` if no API token option
+    /// Builds the API token issuer from the CLI configuration, or `None` if no API token option
     /// is set.
     ///
     /// # Errors
     ///
-    /// Returns [`GraphError`] if only some API token options are set or the key is not 64
-    /// hexadecimal characters.
-    pub(crate) fn into_issuer(self) -> Result<Option<ApiTokenIssuer>, Report<GraphError>> {
-        const KEY_FORMAT: &str = "--api-token-encryption-key \
-                                  (HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY) must be 64 hexadecimal \
-                                  characters";
-
+    /// Returns [`GraphError`] if only some API token options are set.
+    pub(crate) fn issuer(&self) -> Result<Option<ApiTokenIssuer>, Report<GraphError>> {
         let (key, key_id, environment) = match (
-            self.api_token_encryption_key,
+            &self.api_token_encryption_key,
             self.api_token_encryption_key_id,
             self.api_token_environment,
         ) {
@@ -343,20 +341,9 @@ impl ApiTokenConfig {
             }
         };
 
-        // TODO(BE-791): zeroize the raw key in `key`, `key_bytes` and the copy left in
-        // `ServerConfig`
-        let mut key_bytes = [0; 32];
-        let decoded_length = base16ct::mixed::decode(key.trim(), &mut key_bytes)
-            .map(<[u8]>::len)
-            .change_context(GraphError)
-            .attach(KEY_FORMAT)?;
-        if decoded_length != key_bytes.len() {
-            return Err(Report::new(GraphError).attach(KEY_FORMAT));
-        }
-
         tracing::info!(%key_id, ?environment, "API tokens enabled");
         Ok(Some(ApiTokenIssuer::new(
-            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(key_id), &key_bytes),
+            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(key_id), key),
             api_token::Environment::from(environment),
         )))
     }
@@ -370,7 +357,7 @@ impl ApiTokenConfig {
     clippy::struct_excessive_bools,
     reason = "CLI arguments are boolean flags."
 )]
-#[derive(derive_more::Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser)]
 pub struct ServerConfig {
     #[clap(flatten)]
     pub http_address: HttpAddress,
@@ -390,8 +377,7 @@ pub struct ServerConfig {
     /// If not set, the entity and entity-type search endpoints cannot resolve a `semanticString`;
     /// callers must provide a precomputed `embedding` instead.
     #[clap(long, env = "HASH_GRAPH_OPENAI_API_KEY", hide_env_values = true)]
-    #[debug("***")]
-    pub openai_api_key: Option<String>,
+    pub openai_api_key: Option<Pin<Box<Secret<str>>>>,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
     /// a domain that doesn't satisfy the pattern will error.
@@ -465,13 +451,14 @@ pub struct ServerConfig {
     /// Shared secret internal services present to act on behalf of an actor.
     ///
     /// Sent as the `Authorization: HASH-Service <secret>` credential, either next to
-    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes.
+    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes. The value is used as given:
+    /// an empty value, one that starts or ends with whitespace, or one with characters other
+    /// than printable ASCII stops the server.
     //
     // Optional at parse time so `--healthcheck` does not require the environment variable. The
     // server refuses to start without it.
     #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
-    #[debug("***")]
-    pub service_secret: Option<String>,
+    pub service_secret: Option<Pin<Box<Secret<str>>>>,
 
     #[clap(flatten)]
     pub api_tokens: ApiTokenConfig,
@@ -590,7 +577,8 @@ fn create_embedding_client(
     let Some(api_key) = config
         .openai_api_key
         .as_ref()
-        .filter(|api_key| !api_key.trim().is_empty())
+        .map(|api_key| api_key.expose().trim())
+        .filter(|api_key| !api_key.is_empty())
     else {
         tracing::warn!(
             "`HASH_GRAPH_OPENAI_API_KEY` is not set; semantic-string search is disabled. Search \
@@ -600,7 +588,7 @@ fn create_embedding_client(
     };
 
     let client = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
-        api_key: api_key.trim().to_owned(),
+        api_key: Secret::from_string(api_key.to_owned()).to_arc(),
         base_url: None,
     })
     .change_context(GraphError)?;
@@ -673,12 +661,11 @@ where
     Ok(())
 }
 
-/// Starts the main graph API server (REST + optional RPC).
 /// Resolved authentication configuration for the REST and admin routers.
 pub(crate) struct AuthenticationSetup {
     pub session_auth: KratosSessionConfig,
     pub cloudflare_access: Option<CloudflareAccessConfig>,
-    pub service_secret: String,
+    pub service_secret: Pin<Arc<Secret<str>>>,
     pub api_tokens: Option<Arc<ApiTokenIssuer>>,
 }
 
@@ -755,21 +742,8 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
     // without tearing down established connections.
     let session_auth = args.config.session_auth.clone().into_provider_config()?;
     let cloudflare_access = cloudflare_access_config(&args.admin)?;
-    // HTTP strips surrounding whitespace from header values, so the senders' secret arrives
-    // trimmed. Trimming here keeps both sides comparing the same bytes.
-    let service_secret = args
-        .config
-        .service_secret
-        .clone()
-        .map(|secret| secret.trim().to_owned())
-        .filter(|secret| !secret.is_empty())
-        .ok_or_else(|| {
-            Report::new(GraphError).attach(
-                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
-                 running the server",
-            )
-        })?;
-    let api_tokens = args.config.api_tokens.clone().into_issuer()?.map(Arc::new);
+    let service_secret = require_service_secret(args.config.service_secret.take())?;
+    let api_tokens = args.config.api_tokens.issuer()?.map(Arc::new);
 
     let pool = PostgresStorePool::new(
         &args.db_info,
@@ -812,7 +786,7 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
         start_admin_server(
             pool.clone(),
             args.admin,
-            service_secret.clone(),
+            Pin::clone(&service_secret),
             telemetry.meter("Graph Admin API"),
             &lifecycle,
         );
@@ -949,12 +923,13 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
 
 #[cfg(test)]
 mod tests {
-    use core::num::NonZero;
+    use core::{num::NonZero, pin::Pin};
 
     use hash_graph_api::rest::authentication::api_token::{
         ApiTokenEncryptionKey, Environment, HashedApiToken, IssuedApiToken,
     };
     use hash_graph_store::api_token::{ApiTokenEncryptionKeyId, ApiTokenName};
+    use hash_secret::Secret;
     use reqwest::Url;
     use rstest::rstest;
     use type_system::principal::{
@@ -968,16 +943,8 @@ mod tests {
     /// A key in mixed case, `00 11 … ff` twice.
     const MIXED_CASE_KEY: &str = "00112233445566778899AaBbCcDdEeFf00112233445566778899aAbBcCdDeEfF";
 
-    /// The bytes [`MIXED_CASE_KEY`] encodes.
-    const MIXED_CASE_KEY_BYTES: [u8; 32] = [
-        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE,
-        0xFF, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD,
-        0xEE, 0xFF,
-    ];
-
-    /// A key of `length` hexadecimal characters.
-    fn hex_key(length: usize) -> String {
-        "0123456789abcdef".chars().cycle().take(length).collect()
+    fn key() -> Pin<Box<Secret<[u8; 32]>>> {
+        Secret::<[u8; 32]>::from_hex(MIXED_CASE_KEY.to_owned()).expect("the key should decode")
     }
 
     #[test]
@@ -987,7 +954,7 @@ mod tests {
             api_token_encryption_key_id: None,
             api_token_environment: None,
         }
-        .into_issuer()
+        .issuer()
         .expect("a configuration without API token options should convert");
 
         assert!(
@@ -998,10 +965,10 @@ mod tests {
 
     #[rstest]
     #[case::key_missing(None, Some(Uuid::nil()), Some(ApiTokenEnvironment::Local))]
-    #[case::key_id_missing(Some(hex_key(64)), None, Some(ApiTokenEnvironment::Local))]
-    #[case::environment_missing(Some(hex_key(64)), Some(Uuid::nil()), None)]
+    #[case::key_id_missing(Some(key()), None, Some(ApiTokenEnvironment::Local))]
+    #[case::environment_missing(Some(key()), Some(Uuid::nil()), None)]
     fn api_tokens_partial(
-        #[case] api_token_encryption_key: Option<String>,
+        #[case] api_token_encryption_key: Option<Pin<Box<Secret<[u8; 32]>>>>,
         #[case] api_token_encryption_key_id: Option<Uuid>,
         #[case] api_token_environment: Option<ApiTokenEnvironment>,
     ) {
@@ -1010,30 +977,12 @@ mod tests {
             api_token_encryption_key_id,
             api_token_environment,
         }
-        .into_issuer()
+        .issuer()
         .expect_err("a partial configuration should not convert");
 
         assert!(
             format!("{report:?}").contains("must be set together"),
             "the error should ask for all API token options"
-        );
-    }
-
-    #[rstest]
-    #[case::short(hex_key(62))]
-    #[case::not_hexadecimal(format!("{}g", hex_key(63)))]
-    fn api_tokens_invalid_key(#[case] key: String) {
-        let report = ApiTokenConfig {
-            api_token_encryption_key: Some(key),
-            api_token_encryption_key_id: Some(Uuid::nil()),
-            api_token_environment: Some(ApiTokenEnvironment::Local),
-        }
-        .into_issuer()
-        .expect_err("a key that is not 32 bytes of hexadecimal should not convert");
-
-        assert!(
-            format!("{report:?}").contains("64 hexadecimal characters"),
-            "the error should name the expected key format"
         );
     }
 
@@ -1044,11 +993,11 @@ mod tests {
             0x4444_4444_4444_4444_4444_4444_4444_4444,
         ));
         let issuer = ApiTokenConfig {
-            api_token_encryption_key: Some(format!(" {MIXED_CASE_KEY}\n")),
+            api_token_encryption_key: Some(key()),
             api_token_encryption_key_id: Some(Uuid::from(key_id)),
             api_token_environment: Some(ApiTokenEnvironment::Staging),
         }
-        .into_issuer()
+        .issuer()
         .expect("a complete configuration should convert")
         .expect("a complete configuration should make API tokens available");
         let user_id = UserId::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
@@ -1072,7 +1021,7 @@ mod tests {
             "the token should record the configured key ID"
         );
         assert_eq!(
-            ApiTokenEncryptionKey::new(key_id, &MIXED_CASE_KEY_BYTES)
+            ApiTokenEncryptionKey::new(key_id, &key())
                 .decrypt(
                     params.encrypted_secret_hash,
                     &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),

@@ -1,6 +1,6 @@
-use core::ops::Deref;
+use core::pin::Pin;
 
-use crate::integrity::SecretHexBytes;
+use hash_secret::Secret;
 
 /// A serving deployment's 32-byte secret.
 ///
@@ -9,28 +9,20 @@ use crate::integrity::SecretHexBytes;
 /// Authorization also salts each authority's derivation with fresh randomness.
 ///
 /// Supply unpredictable key material: the type accepts every 32-byte value and checks no entropy.
-/// Configuration uses the canonical lowercase hexadecimal form provided by [`SecretHexBytes`].
-/// [`core::fmt::Debug`] redacts the value, and each owned buffer zeroizes on drop. This zeroization
-/// does not cover copies obtained through byte access.
+/// [`core::fmt::Debug`] redacts the value, and each owned buffer zeroes on drop. This zeroing does
+/// not cover copies made from [`expose`](Self::expose).
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[repr(transparent)]
-pub(crate) struct ServeSecret(SecretHexBytes<32>);
+pub(crate) struct ServeSecret(Pin<Box<Secret<[u8; 32]>>>);
 
 impl ServeSecret {
-    /// The secret's width in bytes.
-    const LENGTH: usize = size_of::<Self>();
-}
-
-impl Deref for ServeSecret {
-    type Target = SecretHexBytes<{ Self::LENGTH }>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    /// The secret's bytes.
+    pub(crate) fn expose(&self) -> &[u8] {
+        self.0.expose()
     }
 }
 
-impl From<SecretHexBytes<{ Self::LENGTH }>> for ServeSecret {
-    fn from(bytes: SecretHexBytes<{ Self::LENGTH }>) -> Self {
-        Self(bytes)
+impl From<Pin<Box<Secret<[u8; 32]>>>> for ServeSecret {
+    fn from(secret: Pin<Box<Secret<[u8; 32]>>>) -> Self {
+        Self(secret)
     }
 }

@@ -259,7 +259,7 @@ where
         "created an API token"
     );
     Ok(Json(CreateApiTokenResponse {
-        token: token.expose(),
+        token: token.to_secret().expose().to_owned(),
         api_token: ApiTokenResponse::new(metadata, issuer.environment(), OffsetDateTime::now_utc()),
     }))
 }

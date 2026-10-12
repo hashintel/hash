@@ -25,12 +25,13 @@ include_dir        = { workspace = true, public = true, optional = true }
 include_dir_macros = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
+hash-secret    = { workspace = true, optional = true, features = ["clap"] }
 hash-telemetry = { workspace = true, optional = true, features = ["clap"] }
 
 # Private third-party dependencies
 clap           = { workspace = true, optional = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete  = { workspace = true, optional = true }
-derive_more    = { workspace = true, features = ["debug", "display", "error"] }
+derive_more    = { workspace = true, features = ["display", "error"] }
 futures        = { workspace = true }
 sha2           = { workspace = true }
 simple-mermaid = { workspace = true }
@@ -39,7 +40,7 @@ tracing        = { workspace = true }
 
 [features]
 macros = ["dep:hash-graph-migrations-macros", "dep:include_dir", "dep:include_dir_macros"]
-cli    = ["macros", "dep:clap", "dep:clap_complete", "dep:hash-telemetry", "tokio/rt-multi-thread", "tokio-postgres/runtime"]
+cli    = ["macros", "dep:clap", "dep:clap_complete", "dep:hash-secret", "dep:hash-telemetry", "tokio/rt-multi-thread", "tokio-postgres/runtime"]
 
 [lints]
 workspace = true

@@ -9,6 +9,7 @@ version.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true }
+hash-secret = { workspace = true, public = true }
 problematic = { workspace = true, public = true, features = ["axum"] }
 type-system = { workspace = true, public = true }
 
@@ -34,7 +35,6 @@ opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_ex
 serde                              = { workspace = true, features = ["derive"] }
 serde_json                         = { workspace = true }
 simple-mermaid                     = { workspace = true }
-subtle                             = { workspace = true }
 tokio                              = { workspace = true, features = ["rt", "time"] }
 tower                              = { workspace = true }
 tracing                            = { workspace = true }

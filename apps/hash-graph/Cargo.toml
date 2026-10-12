@@ -20,16 +20,15 @@ hash-graph-embeddings     = { workspace = true }
 hash-graph-postgres-store = { workspace = true, features = ["clap"] }
 hash-graph-store          = { workspace = true }
 hash-graph-type-fetcher   = { workspace = true }
+hash-secret               = { workspace = true, features = ["clap"] }
 hash-telemetry            = { workspace = true, features = ["clap"] }
 hash-temporal-client      = { workspace = true }
 type-system               = { workspace = true }
 
 # Third party dependencies
 axum           = { workspace = true }
-base16ct       = { workspace = true }
 clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete  = { workspace = true }
-derive_more    = { workspace = true, features = ["debug"] }
 futures        = { workspace = true }
 jsonwebtoken   = { workspace = true }
 mimalloc       = { workspace = true }

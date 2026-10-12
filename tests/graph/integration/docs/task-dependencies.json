@@ -9,6 +9,7 @@
     "hash-graph-temporal-versioning",
     "hash-graph-test-data",
     "hash-graph-types",
+    "hash-secret",
     "hash-status",
     "hash-telemetry",
     "type-system"
