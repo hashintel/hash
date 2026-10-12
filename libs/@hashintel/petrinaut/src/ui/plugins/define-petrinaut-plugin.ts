@@ -473,20 +473,20 @@ const createPlugin = (
  *
  * @example
  * ```tsx
- * const createCounterPlugin = definePetrinautPlugin({
+ * const CounterPlugin = definePetrinautPlugin({
  *   id: "example.counter",
  *   name: "Counter",
  *   topBarItems: { counter: { place: "top-bar-end" } },
  * });
  *
- * const useCounterPlugin: PluginHook<typeof createCounterPlugin> = () => {
+ * const useCounterPlugin: PluginHook<typeof CounterPlugin> = () => {
  *   const [count, setCount] = useState(0);
  *   return {
  *     topBarItems: { counter: <button onClick={() => setCount(count + 1)}>{count}</button> },
  *   };
  * };
  *
- * export const counterPlugin = createCounterPlugin(useCounterPlugin);
+ * export const counterPlugin = CounterPlugin(useCounterPlugin);
  * ```
  */
 export function definePetrinautPlugin<const M extends PetrinautPluginManifest>(

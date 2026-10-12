@@ -52,7 +52,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-const createCounterPlugin = definePetrinautPlugin({
+const CounterPlugin = definePetrinautPlugin({
   id: "test.counter",
   name: "Counter",
   topBarItems: { count: { place: "top-bar-end" } },
@@ -67,7 +67,7 @@ const seenApis: unknown[] = [];
  */
 const commandRuns: string[] = [];
 
-const useCounterPlugin: PluginHook<typeof createCounterPlugin> = (api) => {
+const useCounterPlugin: PluginHook<typeof CounterPlugin> = (api) => {
   const [count, setCount] = useState(0);
   useLayoutEffect(() => {
     seenApis.push(api);
@@ -84,13 +84,13 @@ const useCounterPlugin: PluginHook<typeof createCounterPlugin> = (api) => {
   };
 };
 
-const createRemountPlugin = definePetrinautPlugin({
+const RemountPlugin = definePetrinautPlugin({
   id: "test.remount",
   name: "Remount",
   topBarItems: { mount: { place: "top-bar-end" } },
 });
 
-const useRemountPlugin: PluginHook<typeof createRemountPlugin> = () => {
+const useRemountPlugin: PluginHook<typeof RemountPlugin> = () => {
   const [mount] = useState(nextMount);
 
   return { topBarItems: { mount: <span>{`mount ${mount}`}</span> } };
@@ -105,7 +105,7 @@ const labelPlugin = definePetrinautPlugin({
 describe("PetrinautPluginsProvider", () => {
   it("renders the object form and the hook form, whose api keeps its identity across a host re-render", () => {
     renderPlugins(
-      [createCounterPlugin(useCounterPlugin), labelPlugin],
+      [CounterPlugin(useCounterPlugin), labelPlugin],
       <TopBarEnd />,
     );
 
@@ -120,7 +120,7 @@ describe("PetrinautPluginsProvider", () => {
   });
 
   it("applies two settings.set calls of one tick, with a new api over the same families", () => {
-    const createSettingsPlugin = definePetrinautPlugin({
+    const SettingsPlugin = definePetrinautPlugin({
       id: "test.settings",
       name: "Settings",
       access: { document: "read" },
@@ -130,10 +130,8 @@ describe("PetrinautPluginsProvider", () => {
       },
       topBarItems: { values: { place: "top-bar-end" } },
     });
-    const apis: PluginApi<typeof createSettingsPlugin>[] = [];
-    const useSettingsPlugin: PluginHook<typeof createSettingsPlugin> = (
-      api,
-    ) => {
+    const apis: PluginApi<typeof SettingsPlugin>[] = [];
+    const useSettingsPlugin: PluginHook<typeof SettingsPlugin> = (api) => {
       useLayoutEffect(() => {
         apis.push(api);
       });
@@ -155,7 +153,7 @@ describe("PetrinautPluginsProvider", () => {
       };
     };
 
-    renderPlugins([createSettingsPlugin(useSettingsPlugin)], <TopBarEnd />);
+    renderPlugins([SettingsPlugin(useSettingsPlugin)], <TopBarEnd />);
     const before = apis.at(-1);
     act(() => screen.getByRole("button", { name: "a true b false" }).click());
 
@@ -173,11 +171,11 @@ describe("PetrinautPluginsProvider", () => {
   it("tags api.errors.capture with the plugin's id, which the plugin cannot replace", () => {
     const captureException = vi.fn();
     const error = new Error("plugin error");
-    const createCapturePlugin = definePetrinautPlugin({
+    const CapturePlugin = definePetrinautPlugin({
       id: "test.x",
       name: "Capture",
     });
-    const useCapturePlugin: PluginHook<typeof createCapturePlugin> = (api) => {
+    const useCapturePlugin: PluginHook<typeof CapturePlugin> = (api) => {
       useLayoutEffect(() => {
         api.errors.capture(error);
         api.errors.capture(error, { source: "x", tags: { pluginId: "spoof" } });
@@ -186,7 +184,7 @@ describe("PetrinautPluginsProvider", () => {
       return {};
     };
 
-    renderPlugins([createCapturePlugin(useCapturePlugin)], null, {
+    renderPlugins([CapturePlugin(useCapturePlugin)], null, {
       wrapper: trackedBy(captureException),
     });
 
@@ -272,14 +270,14 @@ describe("PetrinautPluginsProvider", () => {
   });
 
   it("remounts a re-created plugin and keeps the host of the same plugin object", () => {
-    const plugin = createRemountPlugin(useRemountPlugin);
+    const plugin = RemountPlugin(useRemountPlugin);
     const { rerender } = renderPlugins([plugin], <TopBarEnd />);
     const first = screen.getByText(/^mount/).textContent;
 
     rerender([plugin]);
     expect(screen.getByText(/^mount/).textContent).toBe(first);
 
-    rerender([createRemountPlugin(useRemountPlugin)]);
+    rerender([RemountPlugin(useRemountPlugin)]);
     expect(screen.getByText(/^mount/).textContent).not.toBe(first);
   });
 
@@ -294,7 +292,7 @@ describe("PetrinautPluginsProvider", () => {
         </>
       );
     };
-    const plugins = [createRemountPlugin(useRemountPlugin)];
+    const plugins = [RemountPlugin(useRemountPlugin)];
     const { instance, rerender } = renderPlugins(plugins, <View />);
     const view = screen.getByText(/^view/).textContent;
     const host = screen.getByText(/^mount/).textContent;
@@ -310,13 +308,13 @@ describe("PetrinautPluginsProvider", () => {
 
   it("re-renders the view when contributions change, not when a host re-renders with the same ones", () => {
     const steady = { rerun: () => {}, flip: () => {} };
-    const createSteadyPlugin = definePetrinautPlugin({
+    const SteadyPlugin = definePetrinautPlugin({
       id: "test.steady",
       name: "Steady",
       settings: { beta: { type: "boolean", default: false, label: "Beta" } },
       root: true,
     });
-    const useSteadyPlugin: PluginHook<typeof createSteadyPlugin> = (api) => {
+    const useSteadyPlugin: PluginHook<typeof SteadyPlugin> = (api) => {
       const [, setTick] = useState(0);
       useLayoutEffect(() => {
         steady.rerun = () => setTick((tick) => tick + 1);
@@ -333,7 +331,7 @@ describe("PetrinautPluginsProvider", () => {
       return null;
     };
 
-    renderPlugins([createSteadyPlugin(useSteadyPlugin)], <View />);
+    renderPlugins([SteadyPlugin(useSteadyPlugin)], <View />);
     const rendersAfterMount = viewRendered.mock.calls.length;
 
     act(() => steady.rerun());
@@ -348,11 +346,11 @@ describe("PetrinautPluginsProvider", () => {
       .spyOn(console, "error")
       .mockImplementation(() => {});
     const captureException = vi.fn();
-    const createBrokenPlugin = definePetrinautPlugin({
+    const BrokenPlugin = definePetrinautPlugin({
       id: "test.broken",
       name: "Broken",
     });
-    const useBrokenPlugin: PluginHook<typeof createBrokenPlugin> = () => {
+    const useBrokenPlugin: PluginHook<typeof BrokenPlugin> = () => {
       throw new Error("plugin failed");
     };
     const Statuses = () =>
@@ -361,7 +359,7 @@ describe("PetrinautPluginsProvider", () => {
       ));
 
     renderPlugins(
-      [createBrokenPlugin(useBrokenPlugin), labelPlugin],
+      [BrokenPlugin(useBrokenPlugin), labelPlugin],
       <>
         <Statuses />
         <TopBarEnd />
@@ -425,13 +423,13 @@ describe("PetrinautPluginsProvider", () => {
   });
 
   it("lets two plugins read and show each other's services", () => {
-    const createFirstPlugin = definePetrinautPlugin({
+    const FirstPlugin = definePetrinautPlugin({
       id: "test.first",
       name: "First",
       topBarItems: { seen: { place: "top-bar-end" } },
       provides: pluginService<{ name: string }>(),
     });
-    const createSecondPlugin = definePetrinautPlugin({
+    const SecondPlugin = definePetrinautPlugin({
       id: "test.second",
       name: "Second",
       topBarItems: { seen: { place: "top-bar-end" } },
@@ -439,16 +437,16 @@ describe("PetrinautPluginsProvider", () => {
     });
     const firstService = { name: "first" };
     const secondService = { name: "second" };
-    const useFirstPlugin: PluginHook<typeof createFirstPlugin> = () => {
-      const second = usePluginService(createSecondPlugin);
+    const useFirstPlugin: PluginHook<typeof FirstPlugin> = () => {
+      const second = usePluginService(SecondPlugin);
 
       return {
         topBarItems: { seen: <span>{`first sees ${second?.name}`}</span> },
         provides: firstService,
       };
     };
-    const useSecondPlugin: PluginHook<typeof createSecondPlugin> = () => {
-      const first = usePluginService(createFirstPlugin);
+    const useSecondPlugin: PluginHook<typeof SecondPlugin> = () => {
+      const first = usePluginService(FirstPlugin);
 
       return {
         topBarItems: { seen: <span>{`second sees ${first?.name}`}</span> },
@@ -457,7 +455,7 @@ describe("PetrinautPluginsProvider", () => {
     };
 
     renderPlugins(
-      [createFirstPlugin(useFirstPlugin), createSecondPlugin(useSecondPlugin)],
+      [FirstPlugin(useFirstPlugin), SecondPlugin(useSecondPlugin)],
       <TopBarEnd />,
     );
 
@@ -477,20 +475,20 @@ describe("PetrinautPluginsProvider", () => {
 
       return <span>item</span>;
     };
-    const createItemPlugin = definePetrinautPlugin({
+    const ItemPlugin = definePetrinautPlugin({
       id: "test.item",
       name: "Item",
       topBarItems: { item: { place: "top-bar-end" } },
     });
 
     const { rerender } = renderPlugins(
-      [createItemPlugin({ topBarItems: { item: <Item /> } })],
+      [ItemPlugin({ topBarItems: { item: <Item /> } })],
       <TopBarEnd />,
     );
     expect(screen.queryByText("item")).toBeNull();
 
     throws = false;
-    rerender([createItemPlugin({ topBarItems: { item: <Item /> } })]);
+    rerender([ItemPlugin({ topBarItems: { item: <Item /> } })]);
     expect(screen.getByText("item")).toBeTruthy();
     consoleError.mockRestore();
   });
@@ -530,11 +528,11 @@ describe("PetrinautPluginsProvider", () => {
       .spyOn(console, "error")
       .mockImplementation(() => {});
     let throws = true;
-    const createFlakyPlugin = definePetrinautPlugin({
+    const FlakyPlugin = definePetrinautPlugin({
       id: "test.flaky",
       name: "Flaky",
     });
-    const useFlakyPlugin: PluginHook<typeof createFlakyPlugin> = () => {
+    const useFlakyPlugin: PluginHook<typeof FlakyPlugin> = () => {
       if (throws) {
         throw new Error("plugin failed");
       }
@@ -555,7 +553,7 @@ describe("PetrinautPluginsProvider", () => {
       );
     };
 
-    renderPlugins([createFlakyPlugin(useFlakyPlugin)], <Switch />);
+    renderPlugins([FlakyPlugin(useFlakyPlugin)], <Switch />);
     const button = screen.getByRole("button");
     expect(button.textContent).toBe("failed");
 
@@ -568,14 +566,14 @@ describe("PetrinautPluginsProvider", () => {
   });
 
   it("reads another plugin's service while it runs, and keeps the view mounted when it is switched off", () => {
-    const createSourcePlugin = definePetrinautPlugin({
+    const SourcePlugin = definePetrinautPlugin({
       id: "test.source",
       name: "Source",
       provides: pluginService<{ value: string }>(),
     });
-    const sourcePlugin = createSourcePlugin({ provides: { value: "ready" } });
+    const sourcePlugin = SourcePlugin({ provides: { value: "ready" } });
     const View = () => {
-      const service = usePluginService(createSourcePlugin);
+      const service = usePluginService(SourcePlugin);
       const { setPluginEnabled } = use(UserSettingsContext);
       const [mount] = useState(nextMount);
 
@@ -603,7 +601,7 @@ describe("PetrinautPluginsProvider", () => {
 
   it("registers declared commands under prefixed ids while `when` holds, runs the latest handler, and withdraws them with the plugin", () => {
     const registry = createCommandRegistry();
-    const createPalettePlugin = definePetrinautPlugin({
+    const PalettePlugin = definePetrinautPlugin({
       id: "test.palette",
       name: "Palette",
       commands: {
@@ -612,7 +610,7 @@ describe("PetrinautPluginsProvider", () => {
       },
       buttons: { toggle: { label: "Palette", place: "top-bar-end" } },
     });
-    const usePalettePlugin: PluginHook<typeof createPalettePlugin> = () => {
+    const usePalettePlugin: PluginHook<typeof PalettePlugin> = () => {
       const [toggles, setToggles] = useState(0);
 
       return {
@@ -661,7 +659,7 @@ describe("PetrinautPluginsProvider", () => {
           shortcut,
         ]);
 
-    renderPlugins([createPalettePlugin(usePalettePlugin)], <View />, {
+    renderPlugins([PalettePlugin(usePalettePlugin)], <View />, {
       Around,
     });
     expect(registered()).toEqual([

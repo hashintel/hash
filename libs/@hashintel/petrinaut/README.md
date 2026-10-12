@@ -103,13 +103,13 @@ import {
   type PluginHook,
 } from "@hashintel/petrinaut/ui/plugin";
 
-const createCounterPlugin = definePetrinautPlugin({
+const CounterPlugin = definePetrinautPlugin({
   id: "example.counter",
   name: "Counter",
   topBarItems: { counter: { place: "top-bar-end" } },
 });
 
-const useCounterPlugin: PluginHook<typeof createCounterPlugin> = () => {
+const useCounterPlugin: PluginHook<typeof CounterPlugin> = () => {
   const [count, setCount] = useState(0);
   return {
     topBarItems: {
@@ -118,7 +118,7 @@ const useCounterPlugin: PluginHook<typeof createCounterPlugin> = () => {
   };
 };
 
-export const counterPlugin = createCounterPlugin(useCounterPlugin);
+export const counterPlugin = CounterPlugin(useCounterPlugin);
 
 // <Petrinaut handle={handle} plugins={[counterPlugin]} />
 ```

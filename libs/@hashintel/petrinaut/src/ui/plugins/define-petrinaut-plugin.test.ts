@@ -11,26 +11,26 @@ import {
 
 const noop = () => {};
 
-const createPalettePlugin = definePetrinautPlugin({
+const PalettePlugin = definePetrinautPlugin({
   id: "test.palette",
   name: "Palette",
   buttons: { toggle: { label: "Toggle", place: "top-bar-end" } },
 });
 
-const createCommandsPlugin = definePetrinautPlugin({
+const CommandsPlugin = definePetrinautPlugin({
   id: "test.commands",
   name: "Commands",
   commands: { open: { label: "Open" } },
   buttons: { open: { label: "Open", place: "top-bar-end" } },
 });
 
-const createRootPlugin = definePetrinautPlugin({
+const RootPlugin = definePetrinautPlugin({
   id: "test.root",
   name: "Root",
   root: true,
 });
 
-const createEditorPlugin = definePetrinautPlugin({
+const EditorPlugin = definePetrinautPlugin({
   id: "test.editor",
   name: "Editor",
   access: { document: "read", editor: "read" },
@@ -45,10 +45,10 @@ describe("definePetrinautPlugin", () => {
     const contributions = {
       buttons: { toggle: { icon: null, onClick: noop } },
     };
-    const first = createPalettePlugin(contributions);
-    const second = createPalettePlugin(contributions);
+    const first = PalettePlugin(contributions);
+    const second = PalettePlugin(contributions);
 
-    expect(createPalettePlugin.manifest.id).toBe("test.palette");
+    expect(PalettePlugin.manifest.id).toBe("test.palette");
     expect(first[pluginRuntime].hostKey).not.toBe(
       second[pluginRuntime].hostKey,
     );
@@ -56,7 +56,7 @@ describe("definePetrinautPlugin", () => {
   });
 
   it("types the api and the contributions from the manifest", () => {
-    const useEditorPlugin: PluginHook<typeof createEditorPlugin> = (api) => {
+    const useEditorPlugin: PluginHook<typeof EditorPlugin> = (api) => {
       const mode: "a" | "b" = api.settings.get("mode");
       // @ts-expect-error A value outside an enum's options.
       api.settings.set("mode", "c");
@@ -74,29 +74,29 @@ describe("definePetrinautPlugin", () => {
     };
 
     // @ts-expect-error A declared button the contributions leave out.
-    createPalettePlugin({});
-    createPalettePlugin({
+    PalettePlugin({});
+    PalettePlugin({
       buttons: { toggle: { icon: null, onClick: noop } },
       // @ts-expect-error A contribution the manifest does not declare.
       provides: 1,
     });
     // @ts-expect-error The service has the declared type.
-    createEditorPlugin({ provides: { ready: "yes" } });
-    createPalettePlugin({
+    EditorPlugin({ provides: { ready: "yes" } });
+    PalettePlugin({
       buttons: { toggle: { icon: null, onClick: noop } },
       // @ts-expect-error A root the manifest does not declare.
       root: null,
     });
-    createPalettePlugin({
+    PalettePlugin({
       buttons: { toggle: { icon: null, onClick: noop } },
       // @ts-expect-error An overlay without a declared root.
       overlay: true,
     });
     // @ts-expect-error A declared root the contributions leave out.
-    createRootPlugin({});
-    createRootPlugin({ root: null, overlay: false });
+    RootPlugin({});
+    RootPlugin({ root: null, overlay: false });
 
-    expect(createEditorPlugin(useEditorPlugin).manifest.access).toEqual({
+    expect(EditorPlugin(useEditorPlugin).manifest.access).toEqual({
       document: "read",
       editor: "read",
     });
@@ -104,19 +104,19 @@ describe("definePetrinautPlugin", () => {
 
   it("types a button's command by the manifest's command keys", () => {
     const open = () => {};
-    const plugin = createCommandsPlugin({
+    const plugin = CommandsPlugin({
       commands: { open: { run: open } },
       buttons: { open: { icon: null, command: "open" } },
     });
     // @ts-expect-error A declared command the contributions leave out.
-    createCommandsPlugin({ buttons: { open: { icon: null, onClick: noop } } });
-    createCommandsPlugin({
+    CommandsPlugin({ buttons: { open: { icon: null, onClick: noop } } });
+    CommandsPlugin({
       commands: { open: { run: open } },
       // @ts-expect-error A command the manifest does not declare.
       buttons: { open: { icon: null, command: "close" } },
     });
     // @ts-expect-error A plugin without commands has no button commands.
-    createPalettePlugin({ buttons: { toggle: { icon: null, command: "x" } } });
+    PalettePlugin({ buttons: { toggle: { icon: null, command: "x" } } });
 
     expect(pluginCommandId(plugin.manifest.id, "open")).toBe(
       "test.commands.open",
@@ -335,26 +335,26 @@ describe("definePetrinautPlugin", () => {
 
   it("requires an action on every button", () => {
     // @ts-expect-error A button with no onClick, command or ref.
-    createPalettePlugin({ buttons: { toggle: { icon: null } } });
-    createPalettePlugin({ buttons: { toggle: { icon: null, ref: noop } } });
-    createCommandsPlugin({
+    PalettePlugin({ buttons: { toggle: { icon: null } } });
+    PalettePlugin({ buttons: { toggle: { icon: null, ref: noop } } });
+    CommandsPlugin({
       commands: { open: { run: noop } },
       buttons: { open: { icon: null, command: "open" } },
     });
   });
 
   it("types settings from the manifest, and gives none without them", () => {
-    const createPlainPlugin = definePetrinautPlugin({
+    const PlainPlugin = definePetrinautPlugin({
       id: "test.plain",
       name: "Plain",
     });
-    const usePlainPlugin: PluginHook<typeof createPlainPlugin> = (api) => {
+    const usePlainPlugin: PluginHook<typeof PlainPlugin> = (api) => {
       // @ts-expect-error A plugin without settings has no settings api.
       void api.settings;
 
       return {};
     };
-    const useEditorPlugin: PluginHook<typeof createEditorPlugin> = (api) => {
+    const useEditorPlugin: PluginHook<typeof EditorPlugin> = (api) => {
       // @ts-expect-error A setting the manifest does not declare.
       api.settings.get("unknown");
 

@@ -15,20 +15,20 @@ definition with the implementation returns the plugin. This is the default.
 `definePetrinautPlugin(manifest, implementation)` returns the plugin in one
 call.
 
-| The plugin                                                                         | Write                                                                                                                                                           |
-| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Keeps state, calls hooks, or has a definition another plugin imports (the default) | `const createXPlugin = definePetrinautPlugin(manifest)`, a module-scope `const useXPlugin: PluginHook<typeof createXPlugin>`, then `createXPlugin(useXPlugin)`. |
-| Only reads `api`                                                                   | `definePetrinautPlugin(manifest, (api) => ({ … }))`                                                                                                             |
-| Needs no `api`                                                                     | `definePetrinautPlugin(manifest, { … })`. Component state still works inside the JSX it renders.                                                                |
+| The plugin                                                                         | Write                                                                                                                                         |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Keeps state, calls hooks, or has a definition another plugin imports (the default) | `const XPlugin = definePetrinautPlugin(manifest)`, a module-scope `const useXPlugin: PluginHook<typeof XPlugin>`, then `XPlugin(useXPlugin)`. |
+| Only reads `api`                                                                   | `definePetrinautPlugin(manifest, (api) => ({ … }))`                                                                                           |
+| Needs no `api`                                                                     | `definePetrinautPlugin(manifest, { … })`. Component state still works inside the JSX it renders.                                              |
 
 An inline function is not a hook to the rules of hooks or to the React
 Compiler, so a hook with state stays a module-scope `useXPlugin`.
 
 ```tsx
 // Hook form
-const createTidyPlugin = definePetrinautPlugin({ … });
-const useTidyPlugin: PluginHook<typeof createTidyPlugin> = (api) => …;
-export const tidyPlugin = createTidyPlugin(useTidyPlugin);
+const TidyPlugin = definePetrinautPlugin({ … });
+const useTidyPlugin: PluginHook<typeof TidyPlugin> = (api) => …;
+export const tidyPlugin = TidyPlugin(useTidyPlugin);
 
 // Object form. `openHelp` is the plugin's own function.
 export const helpPlugin = definePetrinautPlugin(
@@ -45,12 +45,12 @@ export const helpPlugin = definePetrinautPlugin(
 
 - Name the hook `useXPlugin`: the `use` prefix makes the rules of hooks and
   the React Compiler treat it as a hook. Name a definition you keep
-  `createXPlugin`. Keep one only for the hook form, or when another plugin
+  `XPlugin`. Keep one only for the hook form, or when another plugin
   imports it.
 - Annotate the hook (`const useX: PluginHook<…> = …`). Never use `satisfies`
   on it: the compiler skips a function wrapped in `satisfies`.
 - Keep definitions, hooks and plugins at module scope. Code that renders never
-  calls `createXPlugin(…)` or `definePetrinautPlugin(manifest, …)`: each call
+  calls `XPlugin(…)` or `definePetrinautPlugin(manifest, …)`: each call
   makes a plugin with a new `hostKey`, which remounts on every render.
   Rendering code may choose among plugins, but keeps the array's identity (a
   module constant, or a literal the React Compiler memoizes): a new array runs
@@ -80,7 +80,7 @@ under the same key: `run`, and `when` to withhold it while a condition does
 not hold.
 
 ```tsx
-const createHistoryPlugin = definePetrinautPlugin({
+const HistoryPlugin = definePetrinautPlugin({
   id: "example.history",
   name: "History",
   commands: {
@@ -92,7 +92,7 @@ const createHistoryPlugin = definePetrinautPlugin({
 });
 
 // `Entry`, `HistoryIcon` and `HistoryDialog` are the plugin's own.
-const useHistoryPlugin: PluginHook<typeof createHistoryPlugin> = () => {
+const useHistoryPlugin: PluginHook<typeof HistoryPlugin> = () => {
   const [entries, setEntries] = useState<readonly Entry[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -132,7 +132,7 @@ it with `api.settings.set(key, value)`. Both are typed by the spec, and a
 change runs the hook again.
 
 ```tsx
-const createPlaceCountPlugin = definePetrinautPlugin({
+const PlaceCountPlugin = definePetrinautPlugin({
   id: "example.place-count",
   name: "Place count",
   access: { document: "read" },
@@ -147,7 +147,7 @@ const createPlaceCountPlugin = definePetrinautPlugin({
   topBarItems: { count: { place: "top-bar-end" } },
 });
 
-const usePlaceCountPlugin: PluginHook<typeof createPlaceCountPlugin> = ({
+const usePlaceCountPlugin: PluginHook<typeof PlaceCountPlugin> = ({
   document,
   settings,
 }) => ({
@@ -294,13 +294,13 @@ version, use `hashPetrinautDocument(document.net.get())` from
 
 ```ts
 // chat/definition.ts
-export const createChatPlugin = definePetrinautPlugin({
+export const ChatPlugin = definePetrinautPlugin({
   …,
   provides: pluginService<ChatService>(),
 });
 
 // another plugin's hook, or any component the editor renders
-const chat = usePluginService(createChatPlugin); // ChatService | undefined
+const chat = usePluginService(ChatPlugin); // ChatService | undefined
 ```
 
 `pluginService<T>()` is a type-only marker. `usePluginService(definition)`

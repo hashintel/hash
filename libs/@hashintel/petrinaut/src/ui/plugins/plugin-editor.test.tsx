@@ -38,31 +38,31 @@ const place = {
   y: 0,
 };
 
-const createDocumentPlugin = definePetrinautPlugin({
+const DocumentPlugin = definePetrinautPlugin({
   id: "test.document",
   name: "Document",
   access: { document: "write" },
   provides: pluginService<PluginDocument>(),
 });
 
-const useDocumentPlugin: PluginHook<typeof createDocumentPlugin> = (api) => ({
+const useDocumentPlugin: PluginHook<typeof DocumentPlugin> = (api) => ({
   provides: api.document,
 });
 
-const documentPlugin = createDocumentPlugin(useDocumentPlugin);
+const documentPlugin = DocumentPlugin(useDocumentPlugin);
 
-const createEditorPlugin = definePetrinautPlugin({
+const EditorPlugin = definePetrinautPlugin({
   id: "test.editor",
   name: "Editor",
   access: { editor: "write" },
   provides: pluginService<PluginEditor>(),
 });
 
-const useEditorPlugin: PluginHook<typeof createEditorPlugin> = (api) => ({
+const useEditorPlugin: PluginHook<typeof EditorPlugin> = (api) => ({
   provides: api.editor,
 });
 
-const editorPlugin = createEditorPlugin(useEditorPlugin);
+const editorPlugin = EditorPlugin(useEditorPlugin);
 
 /** What the view's probe last saw: the plugins' services and the editor's mode setter. */
 const probe: {
@@ -72,8 +72,8 @@ const probe: {
 } = {};
 
 const Probe = () => {
-  const document = usePluginService(createDocumentPlugin);
-  const editor = usePluginService(createEditorPlugin);
+  const document = usePluginService(DocumentPlugin);
+  const editor = usePluginService(EditorPlugin);
   const { setGlobalMode } = use(EditorContext);
   useLayoutEffect(() => {
     probe.document = document;
@@ -332,13 +332,13 @@ describe("plugin editor", () => {
 
   it("gives a host's layout effect the read-only reason of the same commit", () => {
     const refusals: (string | null)[] = [];
-    const createModePlugin = definePetrinautPlugin({
+    const ModePlugin = definePetrinautPlugin({
       id: "test.mode",
       name: "Mode",
       access: { document: "write" },
       provides: pluginService<() => void>(),
     });
-    const useModePlugin: PluginHook<typeof createModePlugin> = (api) => {
+    const useModePlugin: PluginHook<typeof ModePlugin> = (api) => {
       const [bumps, setBumps] = useState(0);
       useLayoutEffect(() => {
         if (bumps > 0) {
@@ -350,7 +350,7 @@ describe("plugin editor", () => {
       return { provides: () => setBumps((count) => count + 1) };
     };
     const Switch = () => {
-      const bump = usePluginService(createModePlugin);
+      const bump = usePluginService(ModePlugin);
       const { setGlobalMode } = use(EditorContext);
 
       return (
@@ -366,7 +366,7 @@ describe("plugin editor", () => {
       );
     };
 
-    renderPlugins([createModePlugin(useModePlugin)], <Switch />);
+    renderPlugins([ModePlugin(useModePlugin)], <Switch />);
     act(() => screen.getByRole("button", { name: "simulate" }).click());
 
     expect(refusals).toEqual(["simulate-mode"]);

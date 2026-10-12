@@ -257,12 +257,12 @@ test("runs a plugin button's onClick, then its command, through the registry Pet
 /** One entry per mount of the mount plugin's hook. */
 const hookMounts: string[] = [];
 
-const createMountPlugin = definePetrinautPlugin({
+const MountPlugin = definePetrinautPlugin({
   id: "test.mount",
   name: "Mount",
 });
 
-const useMountPlugin: PluginHook<typeof createMountPlugin> = () => {
+const useMountPlugin: PluginHook<typeof MountPlugin> = () => {
   useEffect(() => {
     hookMounts.push("mount");
   }, []);
@@ -270,7 +270,7 @@ const useMountPlugin: PluginHook<typeof createMountPlugin> = () => {
   return {};
 };
 
-const mountPlugin = createMountPlugin(useMountPlugin);
+const mountPlugin = MountPlugin(useMountPlugin);
 
 test("mounts a plugin's hook once when the editor opens", () => {
   render(<Petrinaut handle={createHandle()} plugins={[mountPlugin]} />);

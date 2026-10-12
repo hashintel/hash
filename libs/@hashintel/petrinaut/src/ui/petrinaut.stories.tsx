@@ -530,7 +530,7 @@ export const HiddenNetManagement: Story = {
   ),
 };
 
-const createCounterPlugin = definePetrinautPlugin({
+const CounterPlugin = definePetrinautPlugin({
   id: "story.counter",
   name: "Counter",
   description: "Counts clicks at the end of the top bar.",
@@ -538,7 +538,7 @@ const createCounterPlugin = definePetrinautPlugin({
   topBarItems: { counter: { place: "top-bar-end" } },
 });
 
-const useCounterPlugin: PluginHook<typeof createCounterPlugin> = () => {
+const useCounterPlugin: PluginHook<typeof CounterPlugin> = () => {
   const [count, setCount] = useState(0);
 
   return {
@@ -560,7 +560,7 @@ const PlaceCount = ({ document }: { document: PluginDocumentReader }) => {
   return <span className={placeCountStyle}>{`${count} places`}</span>;
 };
 
-const createNetSummaryPlugin = definePetrinautPlugin({
+const NetSummaryPlugin = definePetrinautPlugin({
   id: "story.net-summary",
   name: "Net summary",
   description:
@@ -580,9 +580,7 @@ const createNetSummaryPlugin = definePetrinautPlugin({
   topBarItems: { count: { place: "top-bar-start" } },
 });
 
-const useNetSummaryPlugin: PluginHook<typeof createNetSummaryPlugin> = (
-  api,
-) => ({
+const useNetSummaryPlugin: PluginHook<typeof NetSummaryPlugin> = (api) => ({
   buttons: {
     layout: {
       icon: <Icon name="diagramProject" size="xs" />,
@@ -606,8 +604,8 @@ const useNetSummaryPlugin: PluginHook<typeof createNetSummaryPlugin> = (
 });
 
 const storyPlugins = [
-  createCounterPlugin(useCounterPlugin),
-  createNetSummaryPlugin(useNetSummaryPlugin),
+  CounterPlugin(useCounterPlugin),
+  NetSummaryPlugin(useNetSummaryPlugin),
 ];
 
 /** Two plugins: see them in User settings → Plugins, and their setting under Viewport. */

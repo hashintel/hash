@@ -12,14 +12,14 @@ Petrinaut editor.
 
 ## The parts
 
-| Part          | What it is                                                                                                                                                            |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Manifest      | Plain data: what the plugin adds and which editor state it reads or changes.                                                                                          |
-| Definition    | What `definePetrinautPlugin(manifest)` returns, named `createXPlugin`. It is callable and carries `.manifest`, which User settings reads without running plugin code. |
-| Hook          | `useXPlugin(api)`: receives `api` and returns the contributions. A plugin whose contributions need no `api` passes them as an object instead.                         |
-| `api`         | `errors` and `notifications`, plus `settings` and the `access` families the manifest declares.                                                                        |
-| Contributions | What the hook returns: an entry for each key the manifest declares, `root` included.                                                                                  |
-| Plugin        | What calling the definition returns, or `definePetrinautPlugin(manifest, implementation)` in one call. `<Petrinaut plugins>` takes an array of them.                  |
+| Part          | What it is                                                                                                                                                      |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manifest      | Plain data: what the plugin adds and which editor state it reads or changes.                                                                                    |
+| Definition    | What `definePetrinautPlugin(manifest)` returns, named `XPlugin`. It is callable and carries `.manifest`, which User settings reads without running plugin code. |
+| Hook          | `useXPlugin(api)`: receives `api` and returns the contributions. A plugin whose contributions need no `api` passes them as an object instead.                   |
+| `api`         | `errors` and `notifications`, plus `settings` and the `access` families the manifest declares.                                                                  |
+| Contributions | What the hook returns: an entry for each key the manifest declares, `root` included.                                                                            |
+| Plugin        | What calling the definition returns, or `definePetrinautPlugin(manifest, implementation)` in one call. `<Petrinaut plugins>` takes an array of them.            |
 
 ## Example
 
@@ -31,13 +31,13 @@ import {
   type PluginHook,
 } from "@hashintel/petrinaut/ui/plugin";
 
-const createCounterPlugin = definePetrinautPlugin({
+const CounterPlugin = definePetrinautPlugin({
   id: "example.counter",
   name: "Counter",
   topBarItems: { counter: { place: "top-bar-end" } },
 });
 
-const useCounterPlugin: PluginHook<typeof createCounterPlugin> = () => {
+const useCounterPlugin: PluginHook<typeof CounterPlugin> = () => {
   const [count, setCount] = useState(0);
 
   return {
@@ -47,7 +47,7 @@ const useCounterPlugin: PluginHook<typeof createCounterPlugin> = () => {
   };
 };
 
-export const counterPlugin = createCounterPlugin(useCounterPlugin);
+export const counterPlugin = CounterPlugin(useCounterPlugin);
 
 // <Petrinaut handle={handle} plugins={[counterPlugin]} />
 ```
