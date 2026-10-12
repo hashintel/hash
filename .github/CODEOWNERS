@@ -35,6 +35,14 @@ LICENSE* @hashintel/legal
 turbo.json @hashintel/infra
 task-dependencies.json @hashintel/infra
 
+# GitHub Actions and CI configuration
+/.github/workflows/ @hashintel/infra
+/.github/actions/ @hashintel/infra
+/.github/scripts/ @hashintel/infra
+/.github/dependabot.yml @hashintel/infra
+/.github/renovate.json @hashintel/infra
+/.github/codecov.yml @hashintel/infra
+
 # Environment variable files
 .env @hashintel/infra
 .env.* @hashintel/infra
