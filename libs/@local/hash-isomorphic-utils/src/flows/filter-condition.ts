@@ -6,6 +6,7 @@ import type {
   ScalarFilterCondition,
 } from "./evaluate-filter.js";
 import type { PayloadKind } from "./types.js";
+import type { ActionStepCheck } from "./validate-flow-definition.js";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 
 export type ConditionSubject =
@@ -278,3 +279,40 @@ export const validateCondition = (
   }
   return undefined;
 };
+
+/**
+ * Checks a step's `condition` input against the kind connected to its `kindSourceName` input, when the flow is
+ * defined. The condition must be a constant for now. If the kind doesn't resolve, the step checks the condition
+ * when it runs.
+ */
+export const checkConditionInput =
+  (kindSourceName: string): ActionStepCheck =>
+  ({ step, getInputKind, report }) => {
+    const source = step.inputs.condition;
+
+    /* A missing condition is reported as a missing input. */
+    if (!source) {
+      return;
+    }
+
+    if (source.kind !== "constant") {
+      report("condition", "The condition must be a constant for now");
+      return;
+    }
+
+    const kind = getInputKind(kindSourceName);
+
+    /* A constant of another kind is reported as an incompatible connection. */
+    if (source.payload.kind !== "FilterCondition" || !kind) {
+      return;
+    }
+
+    const error = validateCondition(
+      source.payload.value as FilterCondition,
+      kind,
+    );
+
+    if (error) {
+      report("condition", error.message);
+    }
+  };

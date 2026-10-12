@@ -4,6 +4,7 @@ import {
   getKindSources,
 } from "./action-definitions.js";
 import { type ConnectionSource, canConnect } from "./can-connect.js";
+import { checkConditionInput } from "./filter-condition.js";
 import {
   flowDefinitionSchema,
   payloadKindJsonTypes,
@@ -50,7 +51,9 @@ export type FlowDefinitionDiagnosticCode =
   /** An input or output with a derived kind (see `KindFrom`), whose kind source isn't connected. */
   | "unresolvedKind"
   /** An input with a derived kind, given a value of a different kind from its kind source's. */
-  | "kindMismatch";
+  | "kindMismatch"
+  /** An input its action's own check rejects (see `ActionStepCheck`). */
+  | "invalidInput";
 
 export type FlowDefinitionDiagnostic = {
   severity: "error" | "warning";
@@ -73,6 +76,23 @@ type StepEntry = {
   path: (string | number)[];
   /** Ids of the for-each steps enclosing this step, outermost first. */
   scope: string[];
+};
+
+/**
+ * A check an action needs beyond the shapes of its inputs, e.g. that a constant fits the kind of another input.
+ */
+export type ActionStepCheck = (params: {
+  step: ActionStepDefinition<string>;
+  /** The kind of the value connected to an input of the step, or `null` if it isn't connected or doesn't resolve. */
+  getInputKind: (inputName: string) => PayloadKind | null;
+  report: (inputName: string, message: string) => void;
+}) => void;
+
+const actionStepChecks: Partial<
+  Record<FlowActionDefinitionId, ActionStepCheck>
+> = {
+  filterList: checkConditionInput("items"),
+  if: checkConditionInput("value"),
 };
 
 const isMandatoryInput = (
@@ -618,6 +638,13 @@ export const validateFlowDefinition = (
         );
       }
     }
+
+    actionStepChecks[step.actionDefinitionId as FlowActionDefinitionId]?.({
+      step,
+      getInputKind: (inputName) => shapes.getInputKind(step.stepId, inputName),
+      report: (inputName, message) =>
+        report("invalidInput", message, [...entry.path, "inputs", inputName]),
+    });
   };
 
   /*
