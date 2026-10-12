@@ -112,6 +112,10 @@
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/infra/compose/**"]
     },
     // Linting and formatting
+    // Patching writes node_modules, which an artifact cache cannot restore.
+    "prepare:oxlint": {
+      "cache": false
+    },
     "lint": {},
     // The clippy invocation differs between pull requests (`--all-features`) and other runs
     // such as the merge queue (`cargo hack --feature-powerset`), selected via
@@ -125,6 +129,9 @@
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
       "dependsOn": ["codegen", "^build", "@local/eslint#build"]
+    },
+    "lint:oxlint": {
+      "dependsOn": ["codegen", "^build"]
     },
     "lint:tsc": {
       "dependsOn": ["codegen", "^build"]
