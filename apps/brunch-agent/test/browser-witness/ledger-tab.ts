@@ -1,7 +1,7 @@
 /**
- * Manual witness for the `manual` guidance arm: the built website's Brunch
- * panel in real Chrome against the built Brunch app, with scripted OpenAI
- * responses only. Each case reports PASS, FAIL or a measured duration, and
+ * Manual witness for the Ledger tab and experiment timing: the built
+ * website's Brunch panel in real Chrome against the built Brunch app, with
+ * scripted OpenAI responses only. Each case reports PASS, FAIL or a measured duration, and
  * every case runs even when an earlier one fails.
  */
 import assert from "node:assert/strict";
@@ -21,9 +21,7 @@ import {
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-prepareWitnessProcess("browser-witness-manual");
-// The agent module reads the arm once, when the built app loads.
-process.env.BRUNCH_GUIDANCE_VARIANT = "manual";
+prepareWitnessProcess("browser-witness-ledger-tab");
 const faux = installFauxOpenai();
 
 const app = await loadBuiltBrunchApplication();

@@ -88,21 +88,32 @@ const snapshot: FlueConversationSnapshot = {
           toolName: "ledger_commit",
           state: "output-available",
           input: {
-            changes: [
-              {
-                op: "add",
-                address: "purpose",
-                content: "Model what happens when the alarm fires.",
-                source: "person",
-                standing: "settled",
-              },
+            entries: [
+              [
+                "entity/create",
+                {
+                  name: "Alarm",
+                  kind: "signal",
+                  origin: "stated",
+                  status: "confirmed",
+                },
+              ],
+              [
+                "claim/create",
+                {
+                  text: "Model what happens when the alarm fires.",
+                  entities: ["$0"],
+                  origin: "stated",
+                  status: "confirmed",
+                },
+              ],
             ],
           },
           output: {
             status: "recorded",
             commitId: "commit-1",
             revision: 1,
-            notes: [{ address: "purpose/n1" }],
+            ids: ["e1", "c1"],
           },
         },
         {
@@ -286,8 +297,9 @@ test("atomically writes the canonical snapshot and its derived projections", asy
   expect(traceMarkdown).toContain(
     "7. turn 1: `tool(ledger_commit, server, ok)` — call `commit-1`",
   );
-  expect(ledger).toContain("[n1 — person; settled] `purpose/n1`");
-  expect(ledger).toContain("Model what happens when the alarm fires.");
+  expect(ledger).toContain(
+    "Model what happens when the alarm fires. \u2014 stated \u00b7 confirmed `c1`",
+  );
   expect(JSON.parse(ledgerJson)).toMatchObject([
     { commitId: "commit-1", revision: 1, afterMessageId: "user-1" },
   ]);

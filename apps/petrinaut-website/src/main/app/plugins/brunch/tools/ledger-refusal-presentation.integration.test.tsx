@@ -43,13 +43,14 @@ const adapter = createBrunchFlueAdapter({ clientToolNames: new Set() });
 const noop = () => {};
 const originalFetch = globalThis.fetch;
 
-const note = (address: string, content: string) => ({
-  op: "add",
-  address,
-  content,
-  source: "person",
-  standing: "settled",
-});
+const entity = (name: string) => [
+  "entity/create",
+  { name, kind: "resource", origin: "stated", status: "confirmed" },
+];
+const claimAbout = (entityId: string, text: string) => [
+  "claim/create",
+  { text, entities: [entityId], origin: "stated", status: "confirmed" },
+];
 const commitName = "ledger_commit";
 
 beforeAll(() => {
@@ -109,7 +110,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       [
         fauxToolCall(
           commitName,
-          { changes: [note("purpose", "Explain the system.")] },
+          { entries: [entity("The reservoir")] },
           { id: "applied-first" },
         ),
       ],
@@ -119,8 +120,8 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       [
         fauxToolCall(
           commitName,
-          { changes: [note("invented", "Filed nowhere.")] },
-          { id: "refused-category" },
+          { entries: [claimAbout("e99", "Refers to nothing.")] },
+          { id: "refused-reference" },
         ),
       ],
       { stopReason: "toolUse" },
@@ -129,14 +130,14 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       [
         fauxToolCall(
           commitName,
-          { changes: [note("delivery", "Retained conclusion.")] },
+          { entries: [claimAbout("e1", "The reservoir overflows.")] },
           { id: "applied-second" },
         ),
       ],
       { stopReason: "toolUse" },
     ),
     fauxAssistantMessage(
-      [fauxToolCall(commitName, { changes: [] }, { id: "thrown-empty" })],
+      [fauxToolCall(commitName, {}, { id: "thrown-invalid" })],
       { stopReason: "toolUse" },
     ),
     fauxAssistantMessage([
@@ -217,7 +218,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
 
     for (const toolCallId of [
       "applied-first",
-      "refused-category",
+      "refused-reference",
       "applied-second",
     ]) {
       const pending = pendingById.get(toolCallId);
@@ -256,7 +257,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     expect(refusedRow.querySelector('[data-tool-status="ok"]')).not.toBeNull();
     expect(within(refusedRow).queryByTestId("tool-detail")).toBeNull();
     fireEvent.click(refusedRow);
-    expect(screen.getAllByText(/nothing was recorded/u).length).toBeGreaterThan(
+    expect(screen.getAllByText(/Unknown entity e99/u).length).toBeGreaterThan(
       0,
     );
 
@@ -275,26 +276,26 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
     );
     expect(canonicalIds).toEqual([
       "applied-first",
-      "refused-category",
+      "refused-reference",
       "applied-second",
-      "thrown-empty",
+      "thrown-invalid",
     ]);
     const refusedPart = history.messages
       .flatMap((message) => message.parts)
       .find(
         (part) =>
           part.type === "dynamic-tool" &&
-          part.toolCallId === "refused-category",
+          part.toolCallId === "refused-reference",
       );
     expect(refusedPart).toMatchObject({
       state: "output-available",
-      output: { status: "refused", code: "unknown-category" },
+      output: { status: "refused", code: "unknown-address" },
     });
     const thrownPart = history.messages
       .flatMap((message) => message.parts)
       .find(
         (part) =>
-          part.type === "dynamic-tool" && part.toolCallId === "thrown-empty",
+          part.type === "dynamic-tool" && part.toolCallId === "thrown-invalid",
       );
     expect(thrownPart).toMatchObject({ state: "output-error" });
 

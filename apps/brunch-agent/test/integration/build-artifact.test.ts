@@ -217,14 +217,17 @@ describe("the emitted server bundle", () => {
 
   test("packages each mounted skill directory natively through Flue", () => {
     expect(bundle).toContain("createSkillReference(");
-    expect(bundle).toMatch(/"id": "skill:elicitation:[0-9a-f]+"/u);
-    expect(bundle).toMatch(/"id": "skill:sdcpn-modelling:[0-9a-f]+"/u);
+    for (const skill of ["eliciting", "modelling", "petrinaut"])
+      expect(bundle).toMatch(
+        new RegExp(`"id": "skill:${skill}:[0-9a-f]+"`, "u"),
+      );
     for (const resource of [
       "references/checks.md",
       "references/experiment-configuration.md",
-      "references/pn-construction.md",
-      "references/profile.md",
-      "references/ledger-filing.md",
+      "references/mapping.md",
+      "references/docs.md",
+      "references/examples.md",
+      "references/experiments.md",
     ])
       expect(bundle).toContain(`"${resource}"`);
   });

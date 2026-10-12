@@ -23,19 +23,12 @@ import { loadEnv } from "vite";
 import { brunchEnv } from "@hashintel/brunch-agent";
 import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
-import {
-  guidanceVariantEnvironment,
-  guidanceVariants,
-  selectGuidanceVariant,
-  type GuidanceVariant,
-} from "../../agents/chat-agent/guidance-variant.ts";
 import { DEFAULT_CHAT_MODEL, DEFAULT_CHAT_THINKING } from "../../chat-model.ts";
 import { agentOwnershipHeaders } from "../../conversation/identity.ts";
 import {
   defaultChatOrigin,
   localPanelListen,
 } from "../../http/local-origins.ts";
-import { selectLedgerNoteShape } from "../../ledger-note-shape.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import {
   PersonaBrowserTurnError,
@@ -134,7 +127,6 @@ export const personaEnvironment = (
   // An explicit empty value also overrides Vite env files on backend startup.
   // Historical campaign ledgers must not gate persona requests or resumed runs.
   loaded[brunchEnv.stepAAccounting] = "";
-  loaded[guidanceVariantEnvironment] = "baseline";
   return loaded;
 };
 
@@ -279,7 +271,6 @@ export const responds = async (
 
 type PersonaLaunchOptions = {
   readonly caseDirectory: string;
-  readonly guidance?: GuidanceVariant;
   readonly objective?: string;
   readonly route?: string;
   readonly initialNetPath?: string;
@@ -297,7 +288,6 @@ type PersonaLaunchOptions = {
  */
 const launchPersona = async ({
   caseDirectory,
-  guidance = "baseline",
   objective,
   route = "/",
   initialNetPath,
@@ -308,7 +298,7 @@ const launchPersona = async ({
 }: PersonaLaunchOptions) => {
   const manifest = resume
     ? await verifyGuidanceResume(resume.config.guidance)
-    : await guidanceManifest(guidance);
+    : await guidanceManifest();
   const { pack, opening } = resume
     ? { pack: "", opening: "" }
     : await readPersonaCase(caseDirectory);
@@ -329,11 +319,6 @@ const launchPersona = async ({
       `Resume requires the original panel origin ${resume.config.panelOrigin}; set ${brunchEnv.panelPort} accordingly`,
     );
   const env = personaEnvironment(settings);
-  env[guidanceVariantEnvironment] = manifest.variant;
-  env[brunchEnv.ledgerNotes] =
-    resume && typeof resume.config.ledgerNoteShape === "string"
-      ? resume.config.ledgerNoteShape
-      : selectLedgerNoteShape(env);
   const initialNet =
     initialNetPath === undefined
       ? undefined
@@ -362,7 +347,6 @@ const launchPersona = async ({
   const record = {
     caseDirectory,
     guidance: manifest,
-    ledgerNoteShape: selectLedgerNoteShape(env),
     ...(!resume
       ? {
           caseSha256: createHash("sha256")
@@ -611,11 +595,7 @@ const launchPersona = async ({
         message: opening,
       });
     documentId = documentIdFromInitialData(opened.session.initialData);
-    await writeProofArtifacts(
-      join(run, "evidence"),
-      opened.snapshot,
-      manifest.variant,
-    );
+    await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
     const flue = createFlueClient({
       url: opened.session.url,
       headers: agentOwnershipHeaders(opened.session),
@@ -649,11 +629,7 @@ const launchPersona = async ({
               });
             },
           });
-          await writeProofArtifacts(
-            join(run, "evidence"),
-            result.snapshot,
-            manifest.variant,
-          );
+          await writeProofArtifacts(join(run, "evidence"), result.snapshot);
           if (documentId !== undefined)
             await retainPersonaDocument(
               personaPage,
@@ -666,11 +642,7 @@ const launchPersona = async ({
           };
         } catch (error) {
           if (error instanceof PersonaBrowserTurnError)
-            await writeProofArtifacts(
-              join(run, "evidence"),
-              error.snapshot,
-              manifest.variant,
-            );
+            await writeProofArtifacts(join(run, "evidence"), error.snapshot);
           throw error;
         } finally {
           if (!stop.signal.aborted) activeAdmission = undefined;
@@ -822,7 +794,6 @@ if (
       route: { type: "string" },
       "brunch-model": { type: "string" },
       "brunch-thinking": { type: "string" },
-      guidance: { type: "string" },
       agent: { type: "string" },
       "agent-command": { type: "string" },
       "persona-model": { type: "string" },
@@ -833,9 +804,6 @@ if (
     },
   });
   if (values.help) {
-    report(
-      `Guidance comparison: --guidance ${guidanceVariants.join("|")} (default baseline). Each run retains its selected guidance and source hashes.`,
-    );
     report(
       `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
     );
@@ -880,8 +848,7 @@ if (
         values.route ||
         values["initial-net"] ||
         values["brunch-model"] ||
-        values["brunch-thinking"] ||
-        values.guidance
+        values["brunch-thinking"]
       )
         throw new Error("--resume cannot be combined with fresh-run options");
       const selectedAgent = agent();
@@ -899,7 +866,6 @@ if (
     const freshRun = async (caseDirectory: string) =>
       launchPersona({
         caseDirectory,
-        guidance: selectGuidanceVariant(values.guidance ?? "baseline"),
         objective: values.objective,
         route: values.route,
         initialNetPath: values["initial-net"]

@@ -47,7 +47,6 @@ const runSchema = v.pipe(
     personaModel: v.optional(text),
     personaThinking: v.optional(text),
     guidance: v.optional(v.unknown()),
-    ledgerNoteShape: v.optional(v.picklist(["typed", "open"])),
   }),
   v.transform((config) => ({
     ...config,

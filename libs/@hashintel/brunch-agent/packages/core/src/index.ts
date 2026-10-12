@@ -16,12 +16,3 @@
 
 export * from "./constants";
 export { type ToolExecution } from "./conversation/reply-protocol";
-export * from "./ledger";
-export {
-  createIdentityLedgerCommitTool,
-  createIdentityLedgerCompileTool,
-  createLedgerCommitTool,
-  createLedgerCompileTool,
-  type IdentityLedgerServices,
-  type LedgerServices,
-} from "./ledger-tools";

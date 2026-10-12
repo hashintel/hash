@@ -1,4 +1,3 @@
-import { reconstructLedger } from "@hashintel/brunch-agent";
 import {
   isNetObservationTool,
   netReaderLevelOf,
@@ -182,32 +181,6 @@ const toolCallPosition = (
         : [],
     )
     .at(0);
-
-/** The Ledger as it stood when a call was made, and the Notes its turn had recorded so far. */
-export const ledgerAtCall = (
-  snapshot: FlueConversationSnapshot,
-  call: NetCall,
-) => {
-  const message = snapshot.messages[call.messageIndex];
-  if (!message) return undefined;
-  const prefix = {
-    messages: [
-      ...snapshot.messages.slice(0, call.messageIndex),
-      { ...message, parts: message.parts.slice(0, call.partIndex) },
-    ],
-  };
-  const commits = reconstructLedger(prefix);
-  const latest = commits.at(-1);
-  const userMessageId = prefix.messages.findLast(
-    (entry) => entry.role === "user" && entry.purpose === "user",
-  )?.id;
-  return {
-    revision: latest?.revision ?? 0,
-    notesThisTurn: commits
-      .filter(({ afterMessageId }) => afterMessageId === userMessageId)
-      .flatMap(({ notes }) => notes.map(({ id }) => id)),
-  };
-};
 
 /**
  * The `getLatestNetDefinition` read an experiment draft is prepared from. A

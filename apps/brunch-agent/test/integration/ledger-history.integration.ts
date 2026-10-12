@@ -21,7 +21,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { reconstructLedger } from "@hashintel/brunch-agent";
+import { foldCommits } from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
 
 import {
   agentOwnershipHeaders,
@@ -99,12 +99,22 @@ const inflated = (message: AssistantMessage): AssistantMessage => ({
 });
 
 const observed: Record<string, unknown> = {};
-const note = (
-  op: "add" | "supersede",
-  address: string,
-  content: string,
-  standing = "settled",
-) => ({ op, address, content, source: "person", standing });
+const claim = (
+  text: string,
+  {
+    supersedes,
+    status = "confirmed",
+  }: { supersedes?: string; status?: string } = {},
+) => [
+  "claim/create",
+  {
+    text,
+    entities: ["e1"],
+    origin: "stated",
+    status,
+    ...(supersedes === undefined ? {} : { supersedes: [supersedes] }),
+  },
+];
 
 let application = await loadBuiltBrunchApplication();
 const identity = {
@@ -140,34 +150,42 @@ const speak = async (body: string) => {
 try {
   steps.push(
     () =>
-      call("c1", "ledger_commit", {
-        changes: [
-          note("add", "purpose", "Size the night crew for truck loading."),
-          note("add", "operational/resources", "Two people load each truck."),
+      call("commit-1", "ledger_commit", {
+        entries: [
+          [
+            "entity/create",
+            {
+              name: "Night crew",
+              kind: "resource",
+              origin: "stated",
+              status: "confirmed",
+            },
+          ],
+          claim("Two people load each truck."),
         ],
       }),
     (context) => {
-      observed.c1 = toolOutput(context, "c1");
-      return call("c2", "ledger_commit", {
-        changes: [
-          note("supersede", "n2", "Three people load a hazardous truck."),
+      observed.commit1 = toolOutput(context, "commit-1");
+      return call("commit-2", "ledger_commit", {
+        entries: [
+          claim("Three people load a hazardous truck.", { supersedes: "c1" }),
         ],
       });
     },
     (context) => {
-      observed.c2 = toolOutput(context, "c2");
+      observed.commit2 = toolOutput(context, "commit-2");
       return calls(
-        ["s1", "ledger_commit", { changes: [note("add", "delivery", "A.")] }],
-        ["s2", "ledger_commit", { changes: [note("add", "delivery", "B.")] }],
+        ["sibling-1", "ledger_commit", { entries: [claim("A.")] }],
+        ["sibling-2", "ledger_commit", { entries: [claim("B.")] }],
       );
     },
     (context) => {
-      observed.s1 = toolOutput(context, "s1");
-      observed.s2 = toolOutput(context, "s2");
-      return call("k1", "ledger_compile", {});
+      observed.sibling1 = toolOutput(context, "sibling-1");
+      observed.sibling2 = toolOutput(context, "sibling-2");
+      return call("compile-1", "ledger_compile", {});
     },
     (context) => {
-      observed.k1 = toolOutput(context, "k1");
+      observed.compile1 = toolOutput(context, "compile-1");
       return fauxAssistantMessage([fauxText("Recorded.")]);
     },
   );
@@ -177,17 +195,20 @@ try {
   await application.stop();
   application = await loadBuiltBrunchApplication();
   steps.push(
-    () => call("k2", "ledger_compile", {}),
+    () => call("compile-2", "ledger_compile", {}),
     (context) => {
-      observed.k2 = toolOutput(context, "k2");
-      return call("c3", "ledger_commit", {
-        changes: [
-          note("supersede", "n1", "Size both night crews.", "tentative"),
+      observed.compile2 = toolOutput(context, "compile-2");
+      return call("commit-3", "ledger_commit", {
+        entries: [
+          claim("Size both night crews.", {
+            supersedes: "c2",
+            status: "tentative",
+          }),
         ],
       });
     },
     (context) => {
-      observed.c3 = toolOutput(context, "c3");
+      observed.commit3 = toolOutput(context, "commit-3");
       return inflated(fauxAssistantMessage([fauxText("Recorded again.")]));
     },
   );
@@ -197,13 +218,13 @@ try {
   steps.push(
     (context) => {
       observed.turn3ContextMessages = context.messages.length;
-      observed.turn3ContextHasC1 = JSON.stringify(context.messages).includes(
-        '"c1"',
-      );
-      return call("k3", "ledger_compile", {});
+      observed.turn3ContextHasCommit1 = JSON.stringify(
+        context.messages,
+      ).includes('"commit-1"');
+      return call("compile-3", "ledger_compile", {});
     },
     (context) => {
-      observed.k3 = toolOutput(context, "k3");
+      observed.compile3 = toolOutput(context, "compile-3");
       return fauxAssistantMessage([fauxText("Read back.")]);
     },
   );
@@ -213,7 +234,7 @@ try {
   observed.summaryRequests = contexts.filter(
     ({ label }) => label === "summary-request",
   ).length;
-  observed.reconstructed = reconstructLedger(finalHistory);
+  observed.reconstructed = foldCommits(finalHistory).commits;
   observed.userMessageIds = finalHistory.messages
     .filter((message) => message.role === "user" && message.purpose === "user")
     .map((message) => message.id);
@@ -225,67 +246,61 @@ try {
 
 process.stdout.write(`LEDGER_OBSERVATIONS ${directory}\n`);
 
-const markdownOf = (output: unknown): string => {
+const mapOf = (output: unknown): string => {
   assert(
     typeof output === "object" &&
       output !== null &&
-      "markdown" in output &&
-      typeof output.markdown === "string",
+      "map" in output &&
+      typeof output.map === "string",
     `Expected a compilation, got ${JSON.stringify(output)}`,
   );
-  return output.markdown;
+  return output.map;
 };
 
-assert.deepEqual(observed.c1, {
+assert.partialDeepStrictEqual(observed.commit1, {
   status: "recorded",
-  commitId: "c1",
+  commitId: "commit-1",
   revision: 1,
-  notes: [{ address: "purpose/n1" }, { address: "operational/resources/n2" }],
+  ids: ["e1", "c1"],
 });
-assert.deepEqual(
-  observed.c2,
-  {
-    status: "recorded",
-    commitId: "c2",
-    revision: 2,
-    notes: [
-      {
-        address: "operational/resources/n3",
-        supersedes: "operational/resources/n2",
-      },
-    ],
-  },
+assert.partialDeepStrictEqual(
+  observed.commit2,
+  { status: "recorded", commitId: "commit-2", revision: 2, ids: ["c2"] },
   "A later call in the same turn sees the earlier accepted commit.",
 );
-assert.partialDeepStrictEqual(observed.s1, {
+assert.partialDeepStrictEqual(observed.sibling1, {
   status: "recorded",
-  notes: [{ address: "delivery/n4" }],
+  ids: ["c3"],
 });
-// Flue may run a proposal's calls together or in turn; either way the ids
+// Flue may run a proposal's calls together or in turn; either way the IDs
 // never collide.
 const siblingRecorded =
-  (observed.s2 as { status?: string } | undefined)?.status === "recorded";
+  (observed.sibling2 as { status?: string } | undefined)?.status === "recorded";
 assert.partialDeepStrictEqual(
-  observed.s2,
+  observed.sibling2,
   siblingRecorded
-    ? { status: "recorded", notes: [{ address: "delivery/n5" }] }
-    : { status: "refused", code: "concurrent-commit", revision: 2 },
+    ? { status: "recorded", ids: ["c4"] }
+    : { status: "refused", code: "concurrent-commit" },
 );
-const beforeRestart = markdownOf(observed.k1);
-assert.match(beforeRestart, /\[n2 — superseded by n3; person; settled\]/u);
+const beforeRestart = mapOf(observed.compile1);
+assert(
+  beforeRestart.includes("Three people load a hazardous truck."),
+  beforeRestart,
+);
+assert(beforeRestart.includes("superseded `c1`"), beforeRestart);
 assert.equal(
-  markdownOf(observed.k2),
+  mapOf(observed.compile2),
   beforeRestart,
   "Restart changes nothing.",
 );
-const c3Id = siblingRecorded ? "n6" : "n5";
-assert.partialDeepStrictEqual(observed.c3, {
+const commit3Id = siblingRecorded ? "c5" : "c4";
+assert.partialDeepStrictEqual(observed.commit3, {
   status: "recorded",
-  notes: [{ address: `purpose/${c3Id}`, supersedes: "purpose/n1" }],
+  ids: [commit3Id],
 });
 const reconstructed = observed.reconstructed as ReturnType<
-  typeof reconstructLedger
->;
+  typeof foldCommits
+>["commits"];
 const userIds = observed.userMessageIds as string[];
 assert.deepEqual(
   reconstructed.map(({ commitId, afterMessageId }) => ({
@@ -293,21 +308,25 @@ assert.deepEqual(
     afterMessageId,
   })),
   [
-    { commitId: "c1", afterMessageId: userIds[0] },
-    { commitId: "c2", afterMessageId: userIds[0] },
-    { commitId: "s1", afterMessageId: userIds[0] },
+    { commitId: "commit-1", afterMessageId: userIds[0] },
+    { commitId: "commit-2", afterMessageId: userIds[0] },
+    { commitId: "sibling-1", afterMessageId: userIds[0] },
     ...(siblingRecorded
-      ? [{ commitId: "s2", afterMessageId: userIds[0] }]
+      ? [{ commitId: "sibling-2", afterMessageId: userIds[0] }]
       : []),
-    { commitId: "c3", afterMessageId: userIds[1] },
+    { commitId: "commit-3", afterMessageId: userIds[1] },
   ],
   "The host stamps each commit with the user message it followed.",
 );
-assert.match(
-  markdownOf(observed.k3),
-  new RegExp(`\\[${c3Id} — supersedes n1; person; tentative\\]`, "u"),
+const afterCompaction = mapOf(observed.compile3);
+assert(
+  afterCompaction.includes(
+    `Size both night crews. \u2014 stated \u00b7 tentative \`${commit3Id}\``,
+  ),
+  afterCompaction,
 );
+assert(afterCompaction.includes("superseded `c2`"), afterCompaction);
 process.stdout.write(
-  `LEDGER_SIBLINGS ${siblingRecorded ? "sequential" : "concurrent"}; SUMMARY_REQUESTS ${String(observed.summaryRequests)}; TURN3_CONTEXT_MESSAGES ${String(observed.turn3ContextMessages)}; TURN3_CONTEXT_HAS_C1 ${String(observed.turn3ContextHasC1)}\n`,
+  `LEDGER_SIBLINGS ${siblingRecorded ? "sequential" : "concurrent"}; SUMMARY_REQUESTS ${String(observed.summaryRequests)}; TURN3_CONTEXT_MESSAGES ${String(observed.turn3ContextMessages)}; TURN3_CONTEXT_HAS_COMMIT1 ${String(observed.turn3ContextHasCommit1)}\n`,
 );
 process.stdout.write("LEDGER_HISTORY_PASS\n");

@@ -4,13 +4,17 @@ import { expect, test } from "vitest";
 import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
 import { BrunchLedgerPane } from "./brunch-ledger-pane";
 
-const change = {
-  op: "add",
-  address: "operational/resources",
-  content: "Two people load each truck.",
-  source: "person",
-  standing: "settled",
-};
+const entries = [
+  [
+    "entity/create",
+    {
+      name: "Hillcrest service reservoir",
+      kind: "resource",
+      origin: "stated",
+      status: "confirmed",
+    },
+  ],
+];
 
 const commit = (
   toolCallId: string,
@@ -20,12 +24,12 @@ const commit = (
   toolName: "ledger_commit",
   toolCallId,
   state: "output-available",
-  input: { changes: [change] },
+  input: { entries },
   output: {
     status: "recorded",
     commitId: toolCallId,
     revision: 1,
-    notes: [{ address: "operational/resources/n1" }],
+    ids: ["e1"],
   },
   ...overrides,
 });
@@ -37,13 +41,14 @@ const assistant = (...parts: unknown[]) => ({
   parts,
 });
 
-test("renders the compiled Ledger from accepted commits", () => {
-  const html = renderToStaticMarkup(
-    <BrunchLedgerPane messages={[assistant(commit("c1"))]} />,
-  );
-  expect(html).toContain("Two people load each truck.");
-  expect(html).toContain("operational/resources/n1");
-  expect(html).toContain("person; settled");
+test("renders the Ledger from accepted commits in the user skin", () => {
+  const messages = [assistant(commit("c1"))];
+  const html = renderToStaticMarkup(<BrunchLedgerPane messages={messages} />);
+  expect(html).toContain("Hillcrest service reservoir");
+  expect(html).not.toContain("e1");
+  expect(
+    foldBrunchLedgerHistory(messages, { skin: "agent" }).markdown,
+  ).toContain("`e1`");
 });
 
 test("never shows refused, failed, pending or unbound commits", () => {
@@ -51,8 +56,9 @@ test("never shows refused, failed, pending or unbound commits", () => {
     commit("refused", {
       output: {
         status: "refused",
-        code: "unknown-category",
-        message: "No category.",
+        applied: false,
+        code: "unknown-address",
+        message: "No such record.",
         revision: 0,
       },
     }),
@@ -63,7 +69,7 @@ test("never shows refused, failed, pending or unbound commits", () => {
         status: "recorded",
         commitId: "another-call",
         revision: 1,
-        notes: [{ address: "operational/resources/n1" }],
+        ids: ["e1"],
       },
     }),
   ]) {
@@ -71,7 +77,7 @@ test("never shows refused, failed, pending or unbound commits", () => {
       <BrunchLedgerPane messages={[assistant(part)]} />,
     );
     expect(html).toContain("Nothing is recorded in the Ledger yet.");
-    expect(html).not.toContain("Two people load each truck.");
+    expect(html).not.toContain("Hillcrest service reservoir");
   }
 });
 
@@ -103,36 +109,4 @@ test("counts accepted commits and settled document changes as activity", () => {
       assistant(commit("c1"), settledChange, unchangedRead),
     ]).activityIdentities,
   ).toEqual(["c1", "canonical-call"]);
-});
-
-const ledger2Commit = {
-  type: "dynamic-tool",
-  toolName: "ledger_commit",
-  toolCallId: "m1",
-  state: "output-available",
-  input: {
-    entries: [
-      [
-        "entity/create",
-        {
-          name: "Hillcrest service reservoir",
-          kind: "resource",
-          origin: "stated",
-          status: "confirmed",
-        },
-      ],
-    ],
-  },
-  output: { status: "recorded", commitId: "m1", revision: 1, ids: ["e1"] },
-};
-
-test("renders the manual arm's route-encoded Ledger in the user skin", () => {
-  const messages = [assistant(ledger2Commit)];
-  const html = renderToStaticMarkup(<BrunchLedgerPane messages={messages} />);
-  expect(html).toContain("Hillcrest service reservoir");
-  expect(html).not.toContain("e1");
-  expect(foldBrunchLedgerHistory(messages).activityIdentities).toEqual(["m1"]);
-  expect(
-    foldBrunchLedgerHistory(messages, { skin: "agent" }).markdown,
-  ).toContain("`e1`");
 });

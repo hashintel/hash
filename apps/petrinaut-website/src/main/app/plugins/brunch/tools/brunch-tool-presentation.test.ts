@@ -98,35 +98,36 @@ describe("Brunch tool presentation", () => {
   });
 
   test("marks ordinary pending rows gold and typed refusals compact neutral", () => {
-    const changes = [
-      {
-        op: "add",
-        address: "purpose",
-        content: "Size the crew.",
-        source: "person",
-        standing: "settled",
-      },
+    const entries = [
+      [
+        "claim/create",
+        {
+          text: "The crew is sized by shift.",
+          entities: ["e9"],
+          origin: "stated",
+          status: "confirmed",
+        },
+      ],
     ];
     expect(
       resolveBrunchToolPresentation({
         toolName: "ledger_commit",
         state: "pending",
-        input: { changes },
+        input: { entries },
         output: undefined,
         error: undefined,
       }),
     ).toEqual({ title: "Recording in the Ledger", tone: "pending" });
-    const message =
-      "No category invented; nothing was recorded. add takes a category path.";
+    const message = "Unknown entity e9.";
     expect(
       resolveBrunchToolPresentation({
         toolName: "ledger_commit",
         state: "success",
-        input: { changes },
+        input: { entries },
         output: {
           status: "refused",
           applied: false,
-          code: "unknown-category",
+          code: "unknown-address",
           message,
           revision: 0,
         },

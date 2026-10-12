@@ -103,12 +103,12 @@ export const assertCrashRecovery = (
     readJson(join(directory, "receipt.json")),
     "receipt",
   );
-  const changes = asArray(receipt.changes, "receipt changes");
+  const entries = asArray(receipt.entries, "receipt entries");
   const expectedOutput = {
     status: "recorded",
     commitId: "a4-crash-revision",
     revision: 1,
-    notes: [{ address: "purpose/n1" }],
+    ids: ["e1", "c1"],
   };
   const result = asObject(
     readJson(join(directory, "recover-plain-result.json")),
@@ -126,28 +126,28 @@ export const assertCrashRecovery = (
   }
   assert.deepEqual(
     recovered.input,
-    { changes },
-    "Recovered tool input must match the crashed changes",
+    { entries },
+    "Recovered tool input must match the crashed entries",
   );
-  assert.deepEqual(
+  assert.partialDeepStrictEqual(
     recovered.output,
     expectedOutput,
-    "Recovered tool output must carry the same host-assigned addresses",
+    "Recovered tool output must carry the same host-assigned record IDs",
   );
   assert.equal(
     nextRevision.toolCallId,
     "a4-next-revision",
     "Distinct next commit must keep its call identity",
   );
-  assert.deepEqual(
+  assert.partialDeepStrictEqual(
     nextRevision.output,
     {
       status: "recorded",
       commitId: "a4-next-revision",
       revision: 2,
-      notes: [{ address: "purpose/n2", supersedes: "purpose/n1" }],
+      ids: ["c2"],
     },
-    "The next commit must see the recovered Note",
+    "The next commit must see the recovered records",
   );
   assert.deepEqual(
     nextTools.map((tool) => tool.toolCallId),

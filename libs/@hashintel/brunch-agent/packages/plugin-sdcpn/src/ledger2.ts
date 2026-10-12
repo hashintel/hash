@@ -8,6 +8,7 @@
 export { vLedgerAppend, type LedgerAppend } from "./ledger2/append";
 export {
   foldCommits,
+  isRefusedLedgerCommit,
   ledgerAppendOutputSchema,
   prepareAppend,
   type AcceptedCommit,

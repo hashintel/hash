@@ -1,21 +1,14 @@
 "use agent";
 /**
- * The SDCPN plugin's agent composition. It mounts a packaged SKILL.md, so only
- * code built by Flue may import this entry; everything else lives on the main entry.
+ * The SDCPN plugin's Flue tools. Only code built by Flue imports this entry;
+ * everything else lives on the main entry.
  */
 
-import {
-  useInitialData,
-  useInstruction,
-  useSkill,
-  useTool,
-} from "@flue/runtime";
+import { useInitialData, useInstruction, useTool } from "@flue/runtime";
 
-import sdcpnModellingSkill from "@hashintel/brunch-agent-plugin-sdcpn/skills/sdcpn-modelling/SKILL.md";
 import { petrinautAiCapabilityGuidance } from "@hashintel/petrinaut-core/ai";
 
 import { type SdcpnInitialData } from "./initial-data";
-import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import { createDraftExperimentTool } from "./tools/draft-experiment";
 import {
   asyncCanonicalPetrinautTools,
@@ -71,11 +64,4 @@ export const useSdcpnTools = (options?: SdcpnToolOptions): void => {
     for (const tool of netReaderTools(options.executeBrowserTool))
       useTool(tool);
   }
-};
-
-/** Baseline guidance retained for the controlled app-owned-guidance comparison. */
-export const useSdcpnPlugin = (options?: SdcpnToolOptions): void => {
-  useInstruction(sdcpnAppend.trim());
-  useSkill(sdcpnModellingSkill);
-  useSdcpnTools(options);
 };

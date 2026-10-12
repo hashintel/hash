@@ -58,8 +58,6 @@ export const brunchEnv = {
   corsAllowedOrigins: "BRUNCH_CORS_ALLOWED_ORIGINS",
   dbKind: "BRUNCH_DB_KIND",
   devDbPath: "BRUNCH_DEV_DB_PATH",
-  /** `typed` (default) or `open`: the Ledger Note shape offered to the model. */
-  ledgerNotes: "BRUNCH_LEDGER_NOTES",
   modelStreamCancellationTimeoutMs:
     "BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS",
   modelStreamFirstEventTimeoutMs: "BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS",

@@ -10,7 +10,6 @@ type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
 import { ledgerEvidence } from "./ledger-evidence.ts";
 
-import type { GuidanceVariant } from "../../agents/chat-agent/guidance-variant.ts";
 import type { ToolExecution } from "@hashintel/brunch-agent";
 
 interface ProofEventBase {
@@ -244,11 +243,10 @@ export const refreshProofManifest = async (
 export const writeProofArtifacts = async (
   directory: string,
   snapshot: FlueConversationSnapshot,
-  variant?: GuidanceVariant,
 ): Promise<void> => {
   await mkdir(directory, { recursive: true });
   const trace = deriveProofTrace(snapshot);
-  const ledger = ledgerEvidence(snapshot, variant);
+  const ledger = ledgerEvidence(snapshot);
   await Promise.all([
     atomicWrite(
       join(directory, "snapshot.json"),
@@ -263,7 +261,7 @@ export const writeProofArtifacts = async (
       `${JSON.stringify(trace, null, 2)}\n`,
     ),
     atomicWrite(join(directory, "trace.md"), formatProofTrace(trace)),
-    ...(ledger.commits.length === 0 || ledger.markdown === undefined
+    ...(ledger.commits.length === 0
       ? []
       : [
           atomicWrite(join(directory, "ledger.md"), ledger.markdown),

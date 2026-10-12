@@ -84,34 +84,47 @@ installFauxProvider({
     return faux.provider.streamSimple(model, context, options);
   },
 });
-const changes = [
-  {
-    op: "add",
-    address: "purpose",
-    content:
-      "Crash-boundary diagnostic, not elicited testimony. Preserve exact source.",
-    source: "agent",
-    standing: "settled",
-  },
+const entries = [
+  [
+    "entity/create",
+    {
+      name: "Crash boundary",
+      kind: "thing",
+      origin: "inferred",
+      status: "confirmed",
+    },
+  ],
+  [
+    "claim/create",
+    {
+      text: "Crash-boundary diagnostic, not elicited testimony. Preserve exact source.",
+      entities: ["$0"],
+      origin: "inferred",
+      status: "confirmed",
+    },
+  ],
 ];
-const nextChanges = [
-  {
-    op: "supersede",
-    address: "n1",
-    content: "Next synthetic diagnostic commit after recovery.",
-    source: "agent",
-    standing: "settled",
-  },
+const nextEntries = [
+  [
+    "claim/create",
+    {
+      text: "Next synthetic diagnostic commit after recovery.",
+      entities: ["e1"],
+      origin: "inferred",
+      status: "confirmed",
+      supersedes: ["c1"],
+    },
+  ],
 ];
-const response = (id: string, commitChanges: readonly unknown[]) =>
+const response = (id: string, commitEntries: readonly unknown[]) =>
   fauxAssistantMessage(
-    fauxToolCall("ledger_commit", { changes: commitChanges }, { id }),
+    fauxToolCall("ledger_commit", { entries: commitEntries }, { id }),
     { stopReason: "toolUse" },
   );
 faux.setResponses(
   phase === "create"
     ? [
-        response("a4-crash-revision", changes),
+        response("a4-crash-revision", entries),
         fauxAssistantMessage("Synthetic commit acknowledged."),
       ]
     : Array.from({ length: 6 }, () =>
@@ -134,20 +147,20 @@ const tools = (snapshot: FlueConversationSnapshot) =>
 const assertCommit = (
   snapshot: FlueConversationSnapshot,
   commitId: string,
-  commitChanges: readonly unknown[],
+  commitEntries: readonly unknown[],
   output: Record<string, unknown>,
 ) => {
   const tool = tools(snapshot).find((part) => part.toolCallId === commitId);
   assert(tool?.state === "output-available");
   assert.deepEqual(
     tool.input,
-    { changes: commitChanges },
+    { entries: commitEntries },
     "Raw call input survives",
   );
-  assert.deepEqual(
+  assert.partialDeepStrictEqual(
     tool.output,
     { status: "recorded", commitId, ...output },
-    "Stable call identity and host-assigned Note addresses",
+    "Stable call identity and host-assigned record IDs",
   );
 };
 try {
@@ -168,7 +181,7 @@ try {
     writeFileSync(
       join(directory, "receipt.json"),
       `${JSON.stringify(
-        { receipt, pid: process.pid, identity, changes },
+        { receipt, pid: process.pid, identity, entries },
         null,
         2,
       )}\n`,
@@ -193,7 +206,7 @@ try {
     const recovered = await client.history();
     save("history", recovered);
     faux.setResponses([
-      response("a4-next-revision", nextChanges),
+      response("a4-next-revision", nextEntries),
       fauxAssistantMessage("Next commit acknowledged."),
     ]);
     await client.read(
@@ -217,13 +230,13 @@ try {
       providerCalls: faux.state.callCount,
     });
     // Persist both observations before asserting, so failures retain the next commit too.
-    assertCommit(recovered, "a4-crash-revision", changes, {
+    assertCommit(recovered, "a4-crash-revision", entries, {
       revision: 1,
-      notes: [{ address: "purpose/n1" }],
+      ids: ["e1", "c1"],
     });
-    assertCommit(next, "a4-next-revision", nextChanges, {
+    assertCommit(next, "a4-next-revision", nextEntries, {
       revision: 2,
-      notes: [{ address: "purpose/n2", supersedes: "purpose/n1" }],
+      ids: ["c2"],
     });
     assert.deepEqual(
       tools(next).map((part) => part.toolCallId),

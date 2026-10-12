@@ -28,8 +28,6 @@ export const useManualGuidance = (
   for (const tool of createLedger2Tools(readHistory)) useTool(tool);
   return {
     system: system.trim(),
-    // An empty set, unlike none, keeps every shared instruction unmounted.
-    instructions: {},
     createQueryBasisTool,
   };
 };

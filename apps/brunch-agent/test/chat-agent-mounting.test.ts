@@ -1,22 +1,17 @@
-import { readdir, readFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { readFile } from "node:fs/promises";
 
 import * as v from "valibot";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
-import {
-  petrinautAiCapabilityGuidance,
-  petrinautAiTools,
-} from "@hashintel/petrinaut-core/ai";
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { selfContainedGuidanceVariants } from "../src/agents/chat-agent/guidance-variant.ts";
 import {
-  commitToolDescription as ledger2CommitDescription,
-  compileToolDescription as ledger2CompileDescription,
+  commitToolDescription,
+  compileToolDescription,
 } from "../src/agents/chat-agent/guidance/manual/tools/ledger.ts";
-import { queryBasisToolDescription as manualQueryBasisDescription } from "../src/agents/chat-agent/guidance/manual/tools/query-basis.ts";
+import { queryBasisToolDescription } from "../src/agents/chat-agent/guidance/manual/tools/query-basis.ts";
 import {
   assertPetrinautToolCatalogueConformance,
   canonicalPetrinautToolCatalogue,
@@ -52,53 +47,39 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
   },
 }));
 // Only the Flue build packages skills; these tests exercise the composition around them.
-vi.mock("@hashintel/brunch-agent/skills/elicitation/SKILL.md", () => ({
-  default: { name: "elicitation" },
-}));
-vi.mock(
-  "@hashintel/brunch-agent-plugin-sdcpn/skills/sdcpn-modelling/SKILL.md",
-  () => ({ default: { name: "sdcpn-modelling" } }),
-);
-vi.mock("../src/agents/chat-agent/guidance/skills/eliciting/SKILL.md", () => ({
-  default: { name: "eliciting" },
-}));
-vi.mock(
-  "../src/agents/chat-agent/guidance/skills/constructing/SKILL.md",
-  () => ({
-    default: { name: "constructing" },
-  }),
-);
 vi.mock(
   "../src/agents/chat-agent/guidance/manual/skills/eliciting/SKILL.md",
-  () => ({ default: { name: "manual eliciting" } }),
+  () => ({ default: { name: "eliciting" } }),
 );
 vi.mock(
   "../src/agents/chat-agent/guidance/manual/skills/modelling/SKILL.md",
-  () => ({ default: { name: "manual modelling" } }),
+  () => ({ default: { name: "modelling" } }),
 );
 vi.mock(
   "../src/agents/chat-agent/guidance/manual/skills/petrinaut/SKILL.md",
-  () => ({ default: { name: "manual petrinaut" } }),
+  () => ({ default: { name: "petrinaut" } }),
 );
-vi.mock(
-  "../src/agents/chat-agent/guidance/receipt/skills/eliciting/SKILL.md",
-  () => ({ default: { name: "receipt eliciting" } }),
-);
-vi.mock(
-  "../src/agents/chat-agent/guidance/receipt/skills/constructing/SKILL.md",
-  () => ({ default: { name: "receipt constructing" } }),
-);
+
 const bound = {
   binding: {
     conversationId: "conversation",
     documentId: "document",
   },
 };
+const systemPrompt = async () =>
+  (
+    await readFile(
+      new URL(
+        "../src/agents/chat-agent/guidance/manual/prompts/system.md",
+        import.meta.url,
+      ),
+      "utf8",
+    )
+  ).trim();
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
-  vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", "baseline");
   vi.stubEnv("NODE_ENV", "test");
   mounted.initialData = undefined;
   mounted.contextProjections = 0;
@@ -110,179 +91,58 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-test("a document binding mounts the complete canonical catalogue plus the Brunch Ledger and draft", async () => {
+test("a document binding mounts the guidance, the complete canonical catalogue, the Ledger and the draft", async () => {
   mounted.initialData = bound;
   const { ChatAgent: renderChatAgent } =
     await import("../src/agents/chat-agent/agent.ts");
-  expect(renderChatAgent({ id: "bound" })).toContain("Ledger");
+  expect(renderChatAgent({ id: "bound" })).toBe(await systemPrompt());
   expect(mounted.contextProjections).toBe(1);
+  expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
   expect(mounted.tools).toEqual(
     expect.arrayContaining([
       brunchTools.ledgerCommit,
       brunchTools.ledgerCompile,
       brunchTools.queryBasis,
+      brunchTools.ping,
       "readNetOutline",
       "readNetStructure",
       brunchTools.draftPetrinautExperiment,
       ...Object.keys(petrinautAiTools),
     ]),
   );
-  expect(mounted.skills).toEqual(
-    expect.arrayContaining(["elicitation", "sdcpn-modelling"]),
+  // Petrinaut, runtime, experiment and query_basis guidance live in the
+  // skills and tool descriptions, so no instruction is mounted.
+  expect(mounted.instructions).toEqual([]);
+  expect(mounted.descriptions.get(brunchTools.ledgerCommit)).toBe(
+    commitToolDescription,
   );
-  expect(mounted.instructions).toContain(petrinautAiCapabilityGuidance);
+  expect(mounted.descriptions.get(brunchTools.ledgerCompile)).toBe(
+    compileToolDescription,
+  );
+  expect(mounted.descriptions.get(brunchTools.queryBasis)).toBe(
+    queryBasisToolDescription,
+  );
 });
 
-test("a conversation without initial data mounts the SDCPN skill without browser tools", async () => {
+test("a conversation without initial data mounts the guidance and Ledger without browser tools", async () => {
   const { ChatAgent: renderChatAgent } =
     await import("../src/agents/chat-agent/agent.ts");
   renderChatAgent({ id: "unbound" });
-  expect(mounted.skills).toContain("sdcpn-modelling");
-  expect(mounted.tools).not.toContain(brunchTools.draftPetrinautExperiment);
-  expect(mounted.tools).not.toContain("readPetrinautDoc");
-  expect(mounted.instructions).toEqual(
-    expect.arrayContaining([
-      expect.stringContaining("This conversation has no browser tools"),
-    ]),
+  expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
+  expect(mounted.tools.sort()).toEqual(
+    [
+      brunchTools.ledgerCommit,
+      brunchTools.ledgerCompile,
+      brunchTools.ping,
+    ].sort(),
   );
+  expect(mounted.instructions).toEqual([]);
 });
 
 test("the agent admits a document binding or no initial data", () => {
   expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
   expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
 });
-
-test.each(["replacement", "feedback", "identity"])(
-  "%s mounts only app-owned skills and the same tools",
-  async (variant) => {
-    mounted.initialData = bound;
-    const { ChatAgent: baseline } =
-      await import("../src/agents/chat-agent/agent.ts");
-    baseline({ id: "baseline" });
-    const tools = [...mounted.tools];
-    mounted.tools.length = 0;
-    mounted.skills.length = 0;
-    mounted.instructions.length = 0;
-    vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", variant);
-    vi.resetModules();
-    const { ChatAgent: candidate } =
-      await import("../src/agents/chat-agent/agent.ts");
-    expect(candidate({ id: "candidate" })).toContain("Establish early");
-    expect(mounted.skills).toEqual(["eliciting", "constructing"]);
-    expect(mounted.tools.sort()).toEqual(tools.sort());
-    expect(
-      mounted.instructions.some((text) =>
-        text.includes("# Account–draft feedback"),
-      ),
-    ).toBe(variant !== "replacement");
-    expect(
-      mounted.instructions.some((text) =>
-        text.includes("# Low-resolution modelling"),
-      ),
-    ).toBe(variant === "identity");
-  },
-);
-
-test.each(selfContainedGuidanceVariants)(
-  "%s mounts only its own guidance copies and the same tools",
-  async (arm) => {
-    mounted.initialData = bound;
-    const { ChatAgent: baseline } =
-      await import("../src/agents/chat-agent/agent.ts");
-    baseline({ id: "baseline" });
-    const tools = [...mounted.tools];
-    mounted.tools.length = 0;
-    mounted.skills.length = 0;
-    mounted.instructions.length = 0;
-    vi.stubEnv("BRUNCH_GUIDANCE_VARIANT", arm);
-    vi.resetModules();
-    const sources = new URL(
-      `../src/agents/chat-agent/guidance/${arm}/`,
-      import.meta.url,
-    );
-    const files = (await readdir(sources, { recursive: true })).filter((path) =>
-      path.endsWith(".md"),
-    );
-    const pathOf = (name: string) =>
-      files.find((path) => basename(path) === name) ?? name;
-    // The manual arm's tools carry their descriptions inline, and it mounts
-    // only the Petrinaut capability instruction beside its system prompt.
-    const manual = arm === "manual";
-    const toolDescriptions = manual
-      ? []
-      : ["query-basis-tool.md", "ledger-commit.md", "ledger-compile.md"];
-    for (const name of toolDescriptions)
-      vi.doMock(
-        `../src/agents/chat-agent/guidance/${arm}/${pathOf(name)}?raw`,
-        () => ({ default: `${arm} ${name}` }),
-      );
-    const textsByPath = new Map(
-      await Promise.all(
-        files.map(
-          async (path) =>
-            [
-              path,
-              String(await readFile(new URL(path, sources))).trim(),
-            ] as const,
-        ),
-      ),
-    );
-    const texts = {
-      get: (name: string) => textsByPath.get(pathOf(name)),
-      values: () => textsByPath.values(),
-    };
-    const { ChatAgent: candidate } =
-      await import("../src/agents/chat-agent/agent.ts");
-    expect(candidate({ id: arm })).toBe(texts.get("system.md"));
-    expect(mounted.skills).toEqual(
-      manual
-        ? [`${arm} eliciting`, `${arm} modelling`, `${arm} petrinaut`]
-        : [`${arm} eliciting`, `${arm} constructing`],
-    );
-    expect(mounted.tools.sort()).toEqual(tools.sort());
-    const own = new Set(texts.values());
-    expect(mounted.instructions.filter((text) => !own.has(text))).toEqual([]);
-    expect(mounted.instructions.length === 0).toBe(manual);
-    expect(mounted.instructions).toEqual(
-      expect.arrayContaining(
-        (manual
-          ? []
-          : [
-              "feedback.md",
-              "identity-ledger.md",
-              "petrinaut-capability.md",
-              "experiment-drafting.md",
-              "runtime-bound.md",
-              "query-basis.md",
-            ]
-        ).map((name) => texts.get(name)),
-      ),
-    );
-    expect(mounted.descriptions.get(brunchTools.queryBasis)).toBe(
-      manual ? manualQueryBasisDescription : `${arm} query-basis-tool.md`,
-    );
-    expect(mounted.descriptions.get(brunchTools.ledgerCompile)).toBe(
-      manual ? ledger2CompileDescription : `${arm} ledger-compile.md`,
-    );
-    // The receipt arm appends its vocabulary after the mounted description.
-    const [commitHead, ...commitRest] = (
-      mounted.descriptions.get(brunchTools.ledgerCommit) ?? ""
-    ).split("\n");
-    expect(commitHead).toBe(
-      manual ? ledger2CommitDescription : `${arm} ledger-commit.md`,
-    );
-    expect(commitRest.length > 0).toBe(!manual);
-
-    mounted.initialData = undefined;
-    mounted.instructions.length = 0;
-    candidate({ id: `${arm}-unbound` });
-    expect(mounted.instructions.filter((text) => !own.has(text))).toEqual([]);
-    expect(mounted.instructions.length === 0).toBe(manual);
-    expect(
-      mounted.instructions.includes(texts.get("runtime-unbound.md") ?? ""),
-    ).toBe(!manual);
-  },
-);
 
 test("the Brunch catalogue classifies every canonical tool", () => {
   const canonicalNames = Object.keys(petrinautAiTools);

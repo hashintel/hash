@@ -112,6 +112,14 @@ export const ledgerAppendOutputSchema = v.variant("status", [
 
 export type LedgerAppendOutput = v.InferOutput<typeof ledgerAppendOutputSchema>;
 
+/** A `ledger_commit` result that recorded nothing and says why. */
+export const isRefusedLedgerCommit = (
+  output: unknown,
+): output is Extract<LedgerAppendOutput, { status: "refused" }> => {
+  const parsed = v.safeParse(ledgerAppendOutputSchema, output);
+  return parsed.success && parsed.output.status === "refused";
+};
+
 export interface AcceptedCommit {
   readonly commitId: string;
   readonly revision: number;

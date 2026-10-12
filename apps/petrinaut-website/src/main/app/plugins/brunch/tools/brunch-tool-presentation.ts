@@ -1,6 +1,6 @@
 import { netReaderToolNames } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { isRefusedLedgerCommit } from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
-import { isRefusedLedgerCommit } from "@hashintel/brunch-agent/ledger";
 
 import type {
   PetrinautAiToolPresentation,

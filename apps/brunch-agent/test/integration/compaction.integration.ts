@@ -118,14 +118,16 @@ try {
   steps.push(
     () =>
       call("c1", "ledger_commit", {
-        changes: [
-          {
-            op: "add",
-            address: "purpose",
-            content: "Size the night crew.",
-            source: "person",
-            standing: "settled",
-          },
+        entries: [
+          [
+            "entity/create",
+            {
+              name: "Night crew",
+              kind: "resource",
+              origin: "stated",
+              status: "confirmed",
+            },
+          ],
         ],
       }),
     reply("Recorded."),
@@ -177,8 +179,8 @@ assert(
   "After compaction the model's context no longer carries c1's result.",
 );
 assert.match(
-  (compiled as { markdown?: string } | undefined)?.markdown ?? "",
-  /\[n1 — person; settled\] `purpose\/n1`/u,
+  (compiled as { map?: string } | undefined)?.map ?? "",
+  /\*\*Night crew\*\* — stated · confirmed `e1`/u,
   "The Ledger still compiles from canonical history.",
 );
 process.stdout.write("COMPACTION_PASS\n");

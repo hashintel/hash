@@ -89,14 +89,15 @@ installFauxProvider({
 const question = "What remains unknown?";
 const privateMarkdown = "Ledger payload must not be spoken. Unknown timing.";
 const ledgerChanges = (content: string) => ({
-  changes: [
-    {
-      op: "add",
-      address: "open-matters",
-      content,
-      source: "agent",
-      standing: "open",
-    },
+  entries: [
+    [
+      "entity/create",
+      { name: "Timing", kind: "thing", origin: "inferred", status: "open" },
+    ],
+    [
+      "claim/create",
+      { text: content, entities: ["$0"], origin: "inferred", status: "open" },
+    ],
   ],
 });
 const makeCall = (name: string) =>

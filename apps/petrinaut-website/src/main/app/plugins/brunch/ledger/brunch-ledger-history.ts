@@ -1,21 +1,11 @@
-import {
-  parseClientToolResultMetadata,
-  sdcpnLedgerProfile,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { parseClientToolResultMetadata } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   foldCommits,
   projectLedger,
   renderLedgerMarkdown,
+  type LedgerHistoryMessage,
   type Skin,
 } from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
-import {
-  compileLedger,
-  composeLedgerProfile,
-  reconstructLedger,
-  type LedgerHistoryMessage,
-} from "@hashintel/brunch-agent/ledger";
-
-const profile = composeLedgerProfile(sdcpnLedgerProfile);
 
 export type BrunchLedgerHistoryMessage = LedgerHistoryMessage;
 
@@ -49,37 +39,20 @@ const settledDocumentChanges = (
       : [],
   );
 
-/**
- * Folds only accepted commits; refused, failed, pending and unbound calls never
- * appear. A conversation keeps one Ledger: the Note Ledger, or the manual
- * arm's route-encoded ledger2, whose commits the Note reader never accepts.
- */
+/** Folds only accepted commits; refused, failed, pending and unbound calls never appear. */
 export const foldBrunchLedgerHistory = (
   messages: readonly BrunchLedgerHistoryMessage[],
   { skin = "user" }: { readonly skin?: Skin } = {},
 ): BrunchLedgerHistory => {
-  const settled = settledDocumentChanges(messages);
-  const commits = reconstructLedger({ messages });
-  if (commits.length === 0) {
-    const ledger2 = foldCommits({ messages });
-    if (ledger2.commits.length > 0)
-      return {
-        activityIdentities: [
-          ...ledger2.commits.map(({ commitId }) => commitId),
-          ...settled,
-        ],
-        markdown: renderLedgerMarkdown(projectLedger(ledger2.state), skin),
-      };
-  }
-  const compiled = compileLedger(commits, profile);
+  const { commits, state } = foldCommits({ messages });
   return {
     activityIdentities: [
       ...commits.map(({ commitId }) => commitId),
-      ...settled,
+      ...settledDocumentChanges(messages),
     ],
     markdown:
-      commits.length > 0 && compiled.status === "compiled"
-        ? compiled.markdown
+      commits.length > 0
+        ? renderLedgerMarkdown(projectLedger(state), skin)
         : undefined,
   };
 };

@@ -25,18 +25,7 @@
       "types": "./src/client-tools.ts",
       "@dev/source": "./src/client-tools.ts",
       "import": "./dist/client-tools.js"
-    },
-    "./flue": {
-      "types": "./src/flue.ts",
-      "@dev/source": "./src/flue.ts",
-      "import": "./dist/flue.js"
-    },
-    "./ledger": {
-      "types": "./src/ledger.ts",
-      "@dev/source": "./src/ledger.ts",
-      "import": "./dist/ledger.js"
-    },
-    "./skills/elicitation/SKILL.md": "./src/skills/elicitation/SKILL.md"
+    }
   },
   "scripts": {
     "build": "vite build",
