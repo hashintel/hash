@@ -1,13 +1,13 @@
 import { Icon } from "@hashintel/ds-components";
 
-import { createBrunchPlugin } from "./definition";
+import { BrunchPlugin } from "./definition";
 import { BrunchWorkpiecePane } from "./ledger/brunch-workpiece-pane";
 import { BrunchChat } from "./plugin/brunch-chat";
 import { useBrunchSession } from "./plugin/use-brunch-session";
 
 import type { PluginHook } from "@hashintel/petrinaut/ui/plugin";
 
-const useBrunchPlugin: PluginHook<typeof createBrunchPlugin> = (api) => {
+const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
   const { chat, ledger, conversation } = useBrunchSession(api);
 
   return {
@@ -36,4 +36,4 @@ const useBrunchPlugin: PluginHook<typeof createBrunchPlugin> = (api) => {
 };
 
 /** HASH's process agent as an assistant, with the Ledger of what it did. */
-export const brunchPlugin = createBrunchPlugin(useBrunchPlugin);
+export const brunchPlugin = BrunchPlugin(useBrunchPlugin);

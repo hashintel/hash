@@ -4,11 +4,11 @@ import {
   AssistantChat,
   type AssistantChatProps,
 } from "../../_shared/chat/assistant-chat";
-import { createVoicePlugin } from "../../voice/definition";
+import { VoicePlugin } from "../../voice/definition";
 
 /** Brunch's chat, with the voice mode and captions Voice adds while it runs. */
 export const BrunchChat = (props: AssistantChatProps) => {
-  const voice = usePluginService(createVoicePlugin);
+  const voice = usePluginService(VoicePlugin);
 
   return <AssistantChat {...props} {...voice} />;
 };

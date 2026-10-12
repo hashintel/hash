@@ -66,6 +66,6 @@ assistant, so it runs only while Brunch does. The two read each other through
 which add no dependency:
 
 - Voice reads the conversation, and whether a tool call waits on the user's
-  approval or was refused, with `usePluginService(createBrunchPlugin)`.
+  approval or was refused, with `usePluginService(BrunchPlugin)`.
 - Brunch's chat reads Voice's voice mode and captions with
-  `usePluginService(createVoicePlugin)`.
+  `usePluginService(VoicePlugin)`.

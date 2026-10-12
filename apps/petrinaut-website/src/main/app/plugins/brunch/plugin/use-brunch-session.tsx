@@ -60,7 +60,7 @@ import { useImmutableReplayBaseline } from "./use-immutable-replay-baseline";
 import { useInstanceFor } from "./use-instance-for";
 
 import type { AssistantChatProps } from "../../_shared/chat/assistant-chat";
-import type { BrunchConversation, createBrunchPlugin } from "../definition";
+import type { BrunchConversation, BrunchPlugin } from "../definition";
 import type { BrunchWorkpieceHistoryMessage } from "../ledger/brunch-workpiece-history";
 import type { PluginApi } from "@hashintel/petrinaut/ui/plugin";
 
@@ -91,7 +91,7 @@ const createBrunchTools = ({
   coordinator,
   replayReadiness,
 }: Pick<
-  PluginApi<typeof createBrunchPlugin>,
+  PluginApi<typeof BrunchPlugin>,
   "document" | "editor" | "experiments"
 > & {
   editorDrafts: EditorDrafts;
@@ -163,7 +163,7 @@ export const useBrunchSession = ({
   experiments,
   errors,
   assistant,
-}: PluginApi<typeof createBrunchPlugin>): BrunchSession => {
+}: PluginApi<typeof BrunchPlugin>): BrunchSession => {
   // One construction conversation per net; clearing the chat starts another.
   const initialConversationId = ordinaryConstructionConversationIdFrom(
     document.id,

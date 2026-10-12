@@ -3,7 +3,7 @@ import {
   pluginService,
 } from "@hashintel/petrinaut/ui/plugin";
 
-import { createBrunchPlugin } from "../brunch/definition";
+import { BrunchPlugin } from "../brunch/definition";
 
 import type { AssistantChatProps } from "../_shared/chat/assistant-chat";
 
@@ -14,13 +14,13 @@ export type VoiceService = Pick<
 >;
 
 /** Voice's definition: Brunch's chat reads its service. */
-export const createVoicePlugin = definePetrinautPlugin({
+export const VoicePlugin = definePetrinautPlugin({
   id: "website.voice",
   name: "Voice",
   description:
     "Talk to Brunch instead of typing: live or realtime speech in, spoken answers and captions out.",
   author: "HASH",
-  assistant: { extends: createBrunchPlugin },
+  assistant: { extends: BrunchPlugin },
   settings: {
     voice: {
       type: "boolean",

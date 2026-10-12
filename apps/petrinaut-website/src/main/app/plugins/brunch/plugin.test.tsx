@@ -26,7 +26,7 @@ import {
 
 import type { AssistantChatProps } from "../_shared/chat/assistant-chat";
 import type { BrunchPanelConversationTracker } from "./brunch-panel-transport";
-import type { BrunchService, createBrunchPlugin } from "./definition";
+import type { BrunchService, BrunchPlugin } from "./definition";
 import type { AgentConversationObservationSnapshot } from "@flue/sdk";
 import type { Petrinaut } from "@hashintel/petrinaut-core";
 import type {
@@ -125,13 +125,11 @@ const rendered = {
   service: undefined as BrunchService | undefined,
 };
 
-type ProbeApi = PluginApi<typeof createBrunchPlugin>;
+type ProbeApi = PluginApi<typeof BrunchPlugin>;
 
 /** Runs the plugin's hook as the editor does and records what it returns. */
 const BrunchProbe = ({ api }: { api: ProbeApi }) => {
-  const useBrunchPlugin = brunchPlugin.hook as PluginHook<
-    typeof createBrunchPlugin
-  >;
+  const useBrunchPlugin = brunchPlugin.hook as PluginHook<typeof BrunchPlugin>;
   const { assistant, provides } = useBrunchPlugin(api);
   // Recorded once React commits the render, like the editor's outlets.
   useLayoutEffect(() => {

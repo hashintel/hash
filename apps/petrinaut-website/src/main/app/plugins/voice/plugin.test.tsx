@@ -22,7 +22,7 @@ import { voicePlugin } from "./plugin";
 
 import type { AssistantChatProps } from "../_shared/chat/assistant-chat";
 import type { PetrinautAiVoiceModeContext } from "../_shared/chat/composer-control";
-import type { createVoicePlugin, VoiceService } from "./definition";
+import type { VoicePlugin, VoiceService } from "./definition";
 import type { PluginApi, PluginHook } from "@hashintel/petrinaut/ui/plugin";
 
 await vi.hoisted(async () => {
@@ -93,9 +93,7 @@ describe("Voice's hook", () => {
     shown: boolean;
     settings: Settings;
   }) => {
-    const useVoicePlugin = voicePlugin.hook as PluginHook<
-      typeof createVoicePlugin
-    >;
+    const useVoicePlugin = voicePlugin.hook as PluginHook<typeof VoicePlugin>;
     const { assistant, provides } = useVoicePlugin({
       errors: { capture: () => {} },
       notifications: { add: () => "" },
@@ -104,7 +102,7 @@ describe("Voice's hook", () => {
       settings: {
         get: (key: keyof Settings) => settings[key],
         set: () => {},
-      } as PluginApi<typeof createVoicePlugin>["settings"],
+      } as PluginApi<typeof VoicePlugin>["settings"],
     });
     // Recorded once React commits the render, like the editor's outlets.
     useLayoutEffect(() => {

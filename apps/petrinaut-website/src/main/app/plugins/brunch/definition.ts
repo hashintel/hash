@@ -27,7 +27,7 @@ export interface BrunchService {
 }
 
 /** Brunch's definition: other plugins extend it and read its conversation service. */
-export const createBrunchPlugin = definePetrinautPlugin({
+export const BrunchPlugin = definePetrinautPlugin({
   id: "website.brunch",
   name: "Brunch",
   description:
