@@ -1,0 +1,40 @@
+{
+  "name": "@local/oxlint",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Composable, reviewed Oxlint configuration profiles",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./rules": {
+      "types": "./dist/rules/index.d.ts",
+      "default": "./dist/rules/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint:format": "oxfmt --check --config ../../../oxfmt.config.ts .",
+    "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
+    "lint:tsc": "tsc --noEmit",
+    "prepare:oxlint": "effect-tsgo patch --no-typescript --oxlint",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@effect/tsgo": "0.47.1",
+    "@oxlint/plugins": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:"
+  },
+  "devDependencies": {
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
+    "@types/node": "catalog:",
+    "tsdown": "0.23.0",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}
