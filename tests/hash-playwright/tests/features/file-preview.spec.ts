@@ -45,7 +45,7 @@ test("a PDF file entity shows a preview that can be paged, zoomed and searched",
     pdfPage.getByText(secondPage.heading, { exact: true }),
   ).toBeVisible();
 
-  await page.getByRole("link", { name: "Page 1", exact: true }).click();
+  await page.getByRole("group", { name: "Page 1", exact: true }).click();
   await expect(
     pdfPage.getByText(firstPage.heading, { exact: true }),
   ).toBeVisible();
