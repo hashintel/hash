@@ -26,7 +26,7 @@ mod tests {
         actor::tests::FixedActorResolver, delegation::ServiceDelegationProvider,
     };
     use hash_middleware::authentication::{
-        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics,
+        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, Challenge,
     };
     use hash_secret::Secret;
     use http::{Request, StatusCode, header::CONTENT_TYPE};
@@ -113,6 +113,7 @@ mod tests {
             service_secret,
             metrics,
             bootstrap_route: is_bootstrap_route,
+            challenge: Challenge::Service,
             caller: core::marker::PhantomData,
         })
     }

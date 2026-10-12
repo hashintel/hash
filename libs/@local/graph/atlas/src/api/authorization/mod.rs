@@ -78,16 +78,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Actor {
             resolution
         };
 
-        match resolution {
-            Ok(actor) => Ok(actor),
-            Err(AuthenticationRejection::Misconfigured { .. }) => Err(Problem::internal_message(
-                "`Actor` extracted on a route without the authentication middleware",
-                "the caller's authentication was never resolved",
-            )),
-            Err(AuthenticationRejection::Authentication { ref report, .. }) => {
-                Err(Problem::from(&**report))
-            }
-        }
+        resolution.map_err(Problem::from)
     }
 }
 

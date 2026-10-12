@@ -155,7 +155,7 @@ where
 {
     async fn authenticate_token(&self, token: &str) -> Result<UserId, Report<AuthenticationError>> {
         let token = HashedApiToken::from_str(token)
-            .change_context(AuthenticationError::malformed_credential())?;
+            .change_context(AuthenticationError::invalid_api_token())?;
         self.verify_token(&token)
             .await
             .attach_with(|| format!("API token {}", token.token_id()))
@@ -367,7 +367,7 @@ mod tests {
             token.pop();
             format!("Bearer {token}")
         },
-        AuthenticationErrorKind::MalformedCredential
+        AuthenticationErrorKind::InvalidApiToken
     )]
     #[case::no_scheme(|token: &str| token.to_owned(), AuthenticationErrorKind::NonBearerApiToken)]
     #[tokio::test]

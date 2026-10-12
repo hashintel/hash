@@ -52,7 +52,9 @@ use hash_graph_store::{
 };
 #[cfg(feature = "unsafe-dev-endpoints")]
 use hash_middleware::authentication::ServiceSecretLayer;
-use hash_middleware::authentication::{AuthenticationLayer, provider::AuthenticationProvider};
+use hash_middleware::authentication::{
+    AuthenticationLayer, Challenge, provider::AuthenticationProvider,
+};
 use hash_secret::Secret;
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
@@ -126,6 +128,7 @@ where
         service_secret,
         metrics: authentication_metrics,
         bootstrap_route: super::is_bootstrap_route,
+        challenge: Challenge::Service,
         caller: core::marker::PhantomData,
     }));
 

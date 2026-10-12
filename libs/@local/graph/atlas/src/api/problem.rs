@@ -24,12 +24,11 @@ use hash_graph_postgres_store::store::postgres::query::SelectCompilerError;
 use hash_graph_store::filter::ParameterConversionError;
 use hash_middleware::{
     authentication::{
-        AuthenticationProblem, AuthenticationRejection, request::AuthenticationError,
+        AuthenticationProblem, AuthenticationRejection, Challenge, request::AuthenticationError,
     },
     rate_limit::{RateLimitRejection, TooManyRequests},
 };
 use opentelemetry::{KeyValue, trace::TraceContextExt as _};
-use problematic::Expose;
 use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 
 use crate::serve::{
@@ -125,6 +124,9 @@ pub(crate) struct Problem<'content> {
     #[schemars(with = "u16")]
     status: StatusCode,
     detail: Cow<'content, str>,
+    /// The `WWW-Authenticate` challenge of a `401`.
+    #[serde(skip)]
+    challenge: Option<http::HeaderValue>,
 }
 
 impl<'content> Problem<'content> {
@@ -139,6 +141,7 @@ impl<'content> Problem<'content> {
             title: Cow::Borrowed(status.canonical_reason().unwrap_or("error")),
             status,
             detail: detail.into(),
+            challenge: None,
         }
     }
 
@@ -357,14 +360,18 @@ impl From<Report<VisibilityProofError>> for Problem<'static> {
     }
 }
 
-/// Carries an authentication failure as this crate's problem document.
-///
-/// The status and detail are those of the middleware's public problem, and a failure the
-/// middleware answers with status `500` becomes `/problems/atlas/internal`. A failure answered with
-/// a server error is logged with its report, and any other failure is added to the current span.
-impl From<&Report<AuthenticationError>> for Problem<'static> {
-    fn from(report: &Report<AuthenticationError>) -> Self {
-        let answer = Expose::<AuthenticationProblem>::expose(report);
+impl Problem<'static> {
+    /// Carries an authentication failure as this crate's problem document.
+    ///
+    /// The status, detail and `WWW-Authenticate` challenge are those of the middleware's public
+    /// problem, and a failure the middleware answers with status `500` becomes
+    /// `/problems/atlas/internal`. A failure answered with a server error is logged with its
+    /// report, and any other failure is added to the current span.
+    pub(super) fn authentication(
+        report: &Report<AuthenticationError>,
+        challenge: Challenge,
+    ) -> Self {
+        let answer = AuthenticationProblem::answer(report, challenge);
         let details = answer.details();
         // TODO(BE-909): answer through `problematic` rejections, which the tracing layer records.
         if details.status.is_server_error() {
@@ -382,22 +389,38 @@ impl From<&Report<AuthenticationError>> for Problem<'static> {
         if details.status == StatusCode::INTERNAL_SERVER_ERROR {
             return Self::internal_response(Cow::Borrowed("the credential could not be verified"));
         }
-        Self::new(
-            details.status,
-            ProblemType::Unauthenticated,
-            details.detail.unwrap_or(details.title).into_owned(),
-        )
+        let mut headers = http::HeaderMap::new();
+        answer.headers(&mut headers);
+        Self {
+            challenge: headers.remove(header::WWW_AUTHENTICATE),
+            ..Self::new(
+                details.status,
+                ProblemType::Unauthenticated,
+                details.detail.unwrap_or(details.title).into_owned(),
+            )
+        }
     }
 }
 
 impl IntoResponse for Problem<'_> {
-    fn into_response(self) -> Response {
-        (
+    fn into_response(mut self) -> Response {
+        let challenge = self.challenge.take();
+        debug_assert!(
+            self.status != StatusCode::UNAUTHORIZED || challenge.is_some(),
+            "a 401 problem should carry a WWW-Authenticate challenge"
+        );
+        let mut response = (
             self.status,
             [(header::CONTENT_TYPE, "application/problem+json")],
             Json(self),
         )
-            .into_response()
+            .into_response();
+        if let Some(challenge) = challenge {
+            response
+                .headers_mut()
+                .insert(header::WWW_AUTHENTICATE, challenge);
+        }
+        response
     }
 }
 
@@ -490,24 +513,23 @@ impl From<RateLimitRejection> for ProblemResponse<'static> {
     }
 }
 
-impl From<AuthenticationRejection> for ProblemResponse<'static> {
-    /// Converts an authentication rejection into its problem response.
+impl From<AuthenticationRejection> for Problem<'static> {
+    /// Converts an authentication rejection into its problem document.
     ///
-    /// A resolved failure uses [`Problem`]'s conversion from its [`AuthenticationError`] report.
-    /// A misconfigured extractor, used on a route without the authentication middleware, answers
-    /// as a logged `internal` problem.
+    /// A resolved failure becomes [`Problem::authentication`] with the rejection's challenge. A
+    /// misconfigured extractor, used on a route without the authentication middleware, answers as
+    /// a logged `internal` problem.
     fn from(error: AuthenticationRejection) -> Self {
         match error {
             AuthenticationRejection::Authentication {
                 ref report,
-                metrics: _,
-                recorded: _,
-            } => Problem::from(&**report).into(),
-            AuthenticationRejection::Misconfigured { .. } => Problem::internal_message(
+                challenge,
+                ..
+            } => Self::authentication(report, challenge),
+            AuthenticationRejection::Misconfigured { .. } => Self::internal_message(
                 "`Actor` extracted on a route without the authentication middleware",
                 "the caller's authentication was never resolved",
-            )
-            .into(),
+            ),
         }
     }
 }
@@ -572,12 +594,17 @@ where
 /// a stale issue time, or an actor mismatch). A caller learns only that the server refused its
 /// presentation and nothing about why.
 pub(super) fn unauthorized() -> Problem<'static> {
-    Problem::new(
-        StatusCode::UNAUTHORIZED,
-        ProblemType::Unauthorized,
-        "the request presents no acceptable authority token. Re-fetch the manifest presenting the \
-         held token to renew, or without one to bootstrap afresh",
-    )
+    Problem {
+        challenge: Some(http::HeaderValue::from_static(
+            super::headers::AUTHORITY_DOCUMENTED,
+        )),
+        ..Problem::new(
+            StatusCode::UNAUTHORIZED,
+            ProblemType::Unauthorized,
+            "the request presents no acceptable authority token. Re-fetch the manifest presenting \
+             the held token to renew, or without one to bootstrap afresh",
+        )
+    }
 }
 
 /// Rejects a route naming a variant this generation does not serve.
@@ -615,7 +642,10 @@ pub(crate) mod tests {
     };
     use error_stack::Report;
     use hash_graph_postgres_store::store::postgres::query::SelectCompilerError;
-    use hash_middleware::authentication::request::{AuthenticationError, AuthenticationErrorKind};
+    use hash_middleware::authentication::{
+        Challenge,
+        request::{AuthenticationError, AuthenticationErrorKind},
+    };
     use tracing::{
         Dispatch, Event, Level, Subscriber,
         field::{Field, Visit},
@@ -627,7 +657,7 @@ pub(crate) mod tests {
         registry::LookupSpan,
     };
 
-    use super::{Problem, ProblemType};
+    use super::{Problem, ProblemType, unauthorized};
     use crate::{offload, serve::hydrate::visibility::VisibilityProofError};
 
     /// One captured tracing event's fields, by name.
@@ -849,14 +879,26 @@ pub(crate) mod tests {
         }
     }
 
+    /// A refused authority token challenges with the `Atlas-Authority` scheme.
+    #[test]
+    fn unauthorized_challenge() {
+        let response = unauthorized().into_response();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            response.headers()[header::WWW_AUTHENTICATE],
+            "Atlas-Authority",
+            "the refusal should challenge with the authority token"
+        );
+    }
+
     /// A failure the authentication middleware keeps internal answers the `internal` problem.
     #[test]
     fn authentication_internal() {
         let report = Report::new(AuthenticationError::new(
             AuthenticationErrorKind::InvalidProviderResponse,
         ));
-        let document =
-            serde_json::to_value(Problem::from(&report)).expect("should serialize the problem");
+        let document = serde_json::to_value(Problem::authentication(&report, Challenge::Service))
+            .expect("should serialize the problem");
         assert_eq!(document["status"], 500);
         assert_eq!(document["type"], "/problems/atlas/internal");
     }

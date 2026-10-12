@@ -68,7 +68,7 @@ fn extract_session_credential(
             token
                 .to_str()
                 .map(|token| SessionCredential::Token(SessionToken(token)))
-                .change_context(AuthenticationError::malformed_credential()),
+                .change_context(AuthenticationError::invalid_session()),
         );
     }
 
@@ -420,7 +420,7 @@ mod tests {
 
     use axum::{Json, Router, response::IntoResponse as _, routing::get};
     use hash_middleware::authentication::{
-        AuthenticationProblem,
+        AuthenticationProblem, Challenge,
         provider::{AuthenticationProvider as _, expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
@@ -435,7 +435,6 @@ mod tests {
             SumDataPoint,
         },
     };
-    use problematic::Expose;
     use reqwest::Url;
     use rstest::rstest;
     use serde_json::{Value as JsonValue, json};
@@ -824,8 +823,8 @@ mod tests {
         let report = expect_rejection::<ActorId>(provider.authenticate(&headers).await);
         assert_matches!(
             report.current_context().kind(),
-            AuthenticationErrorKind::MalformedCredential,
-            "a non-ASCII session token should be rejected as malformed, not ignored"
+            AuthenticationErrorKind::InvalidSession,
+            "a non-ASCII session token should be rejected as an invalid session, not ignored"
         );
     }
 
@@ -938,7 +937,7 @@ mod tests {
             AuthenticationErrorKind::InvalidSession,
             "a forbidden session should fail as an invalid session, not as provider unavailability"
         );
-        let answer = Expose::<AuthenticationProblem>::expose(&*report);
+        let answer = AuthenticationProblem::answer(&report, Challenge::Service);
         let problem = answer.details();
         assert_eq!(problem.status, 401);
         assert_eq!(

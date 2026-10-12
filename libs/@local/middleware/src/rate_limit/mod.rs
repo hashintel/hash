@@ -842,7 +842,7 @@ where
 /// # use axum::{Router, routing::get};
 /// # use error_stack::Report;
 /// # use hash_middleware::authentication::{
-/// #     AuthenticationLayer, AuthenticationMetrics,
+/// #     AuthenticationLayer, AuthenticationMetrics, Challenge,
 /// #     provider::{AuthenticationProvider, Caller},
 /// #     request::AuthenticationError,
 /// # };
@@ -892,6 +892,7 @@ where
 ///         service_secret: Pin::clone(&service_secret),
 ///         metrics: auth_metrics,
 ///         bootstrap_route: |_path| false,
+///         challenge: Challenge::Service,
 ///         caller: PhantomData,
 ///     })
 ///     .layer(IpGateLayer {

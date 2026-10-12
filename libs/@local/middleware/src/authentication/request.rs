@@ -49,9 +49,6 @@ pub enum AuthenticationErrorKind {
     /// No credentials were provided with the request.
     #[display("no credentials provided")]
     MissingCredentials,
-    /// A credential is present but not decodable.
-    #[display("credential is malformed")]
-    MalformedCredential,
     /// The actor-ID header is present but not a valid UUID.
     #[display("`X-Authenticated-User-Actor-Id` header is not a valid UUID")]
     InvalidActorIdHeader,
@@ -73,13 +70,14 @@ pub enum AuthenticationErrorKind {
     /// The credential provider returned a response that could not be interpreted.
     #[display("the credential provider returned an invalid response")]
     InvalidProviderResponse,
-    /// The session is invalid, expired, or revoked.
+    /// The session token cannot be decoded, or the session is invalid, expired, or revoked.
     #[display("session is invalid or expired")]
     InvalidSession,
-    /// The access token is invalid, expired, or not issued for this API.
+    /// The access token cannot be decoded, or it is invalid, expired, or not issued for this API.
     #[display("access token is invalid or expired")]
     InvalidAccessToken,
-    /// The API token does not exist, is expired or revoked, or carries the wrong secret.
+    /// The API token does not parse, does not exist, is expired or revoked, or carries the wrong
+    /// secret.
     #[display("API token is invalid, expired or revoked")]
     InvalidApiToken,
     /// The API token belongs to another environment.
@@ -126,7 +124,6 @@ impl AuthenticationErrorKind {
     pub(super) const fn metric_reason(&self) -> &'static str {
         match self {
             Self::MissingCredentials => "missing_credentials",
-            Self::MalformedCredential => "malformed_credential",
             Self::InvalidActorIdHeader => "invalid_actor_id_header",
             Self::MissingServiceSecret => "missing_service_secret",
             Self::InvalidServiceSecret => "invalid_service_secret",
@@ -149,8 +146,8 @@ impl AuthenticationErrorKind {
         }
     }
 
-    /// Whether the provider verified a session or access token and rejected it, as opposed to
-    /// failing to verify it.
+    /// Whether the provider rejected the presented session or access token, as opposed to failing
+    /// to check it.
     #[must_use]
     pub const fn is_verified_rejection(&self) -> bool {
         matches!(self, Self::InvalidSession | Self::InvalidAccessToken)
@@ -177,7 +174,6 @@ impl AuthenticationErrorKind {
             // A request arriving without the service secret says nothing about the deployment:
             // anyone can send one.
             Self::MissingCredentials
-            | Self::MalformedCredential
             | Self::InvalidActorIdHeader
             | Self::MissingServiceSecret
             | Self::MissingDelegatedActor
@@ -226,12 +222,6 @@ impl AuthenticationError {
     #[must_use]
     pub const fn missing_credentials() -> Self {
         Self::new(AuthenticationErrorKind::MissingCredentials)
-    }
-
-    /// Creates an error for [`AuthenticationErrorKind::MalformedCredential`].
-    #[must_use]
-    pub const fn malformed_credential() -> Self {
-        Self::new(AuthenticationErrorKind::MalformedCredential)
     }
 
     /// Creates an error for [`AuthenticationErrorKind::InvalidActorIdHeader`].
@@ -363,7 +353,7 @@ impl core::error::Error for AuthenticationError {}
 ///
 /// The provider is the only credential path: a request without a recognized credential resolves
 /// through [`Caller::anonymous`], and so does one whose session or access token the provider
-/// verified and rejected — an expired session reads public data like a request without one. Any
+/// rejected — an expired session reads public data like a request without one. Any
 /// other rejection, a rejected API token among them, and a failure to verify keep failing the
 /// request. A degrade to anonymous is counted on `metrics` and added to the current span. Chain
 /// providers as pairs, nested for more than two, to accept several credential kinds.
@@ -371,7 +361,7 @@ impl core::error::Error for AuthenticationError {}
 /// # Errors
 ///
 /// - the rejection reason of the provider that recognized the credential, unless the provider
-///   verified and rejected a session or access token and the caller type serves anonymous callers
+///   rejected a session or access token and the caller type serves anonymous callers
 /// - [`MissingCredentials`] if no provider recognized a credential and the caller type requires an
 ///   actor
 ///
@@ -427,7 +417,6 @@ pub(crate) fn every_error(
 ) -> [AuthenticationError; core::mem::variant_count::<AuthenticationErrorKind>()] {
     let errors = [
         AuthenticationErrorKind::MissingCredentials,
-        AuthenticationErrorKind::MalformedCredential,
         AuthenticationErrorKind::InvalidActorIdHeader,
         AuthenticationErrorKind::MissingServiceSecret,
         AuthenticationErrorKind::InvalidServiceSecret,
@@ -494,7 +483,6 @@ mod tests {
 
     use error_stack::Report;
     use http::HeaderMap;
-    use problematic::Expose;
     use tracing::{Instrument as _, instrument::WithSubscriber as _};
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
@@ -502,7 +490,7 @@ mod tests {
     use super::{AuthenticationError, FaultDomain, every_error, resolve_request_actor};
     use crate::{
         authentication::{
-            AuthenticationMetrics, AuthenticationProblem,
+            AuthenticationMetrics, AuthenticationProblem, Challenge,
             provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
             request::AuthenticationErrorKind,
         },
@@ -692,7 +680,7 @@ mod tests {
             let service_fault = error.fault_domain() == FaultDomain::Service;
             let message = error.to_string();
             let report = Report::new(error);
-            let server_error = Expose::<AuthenticationProblem>::expose(&report)
+            let server_error = AuthenticationProblem::answer(&report, Challenge::Service)
                 .details()
                 .status
                 .is_server_error();
