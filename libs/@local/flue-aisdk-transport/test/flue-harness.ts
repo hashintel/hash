@@ -157,6 +157,67 @@ export const startFlueHarness = async () => {
     });
 
   /**
+   * A client whose update stream can be cut mid-turn: open response bodies
+   * error, and the next `refusals` update-stream requests get `status`.
+   */
+  const cuttableClient = () => {
+    const openBodies = new Set<ReadableStreamDefaultController<Uint8Array>>();
+    let pending = { status: 0, refusals: 0 };
+    let refused = 0;
+    const cut = (status: number, refusals: number) => {
+      pending = { status, refusals };
+      for (const body of openBodies) body.error(new TypeError("terminated"));
+      openBodies.clear();
+    };
+    const conversation = createFlueClient({
+      url: `http://flue.test/${crypto.randomUUID()}`,
+      fetch: async (input, init) => {
+        const request = new Request(input, init);
+        if (new URL(request.url).searchParams.get("view") !== "updates") {
+          return fetchHarness(request);
+        }
+        if (pending.refusals > 0) {
+          pending.refusals -= 1;
+          refused += 1;
+          return new Response("Refused by the harness.", {
+            status: pending.status,
+          });
+        }
+        const response = await fetchHarness(request);
+        if (response.body === null) return response;
+        const reader = response.body.getReader();
+        let tracked: ReadableStreamDefaultController<Uint8Array> | undefined;
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            tracked = controller;
+            openBodies.add(controller);
+          },
+          async pull(controller) {
+            const result = await reader.read();
+            if (tracked === undefined || !openBodies.has(tracked)) return;
+            if (result.done) {
+              openBodies.delete(tracked);
+              controller.close();
+            } else {
+              controller.enqueue(result.value);
+            }
+          },
+          cancel(reason) {
+            if (tracked !== undefined) openBodies.delete(tracked);
+            return reader.cancel(reason);
+          },
+        });
+        return new Response(body, {
+          headers: response.headers,
+          status: response.status,
+          statusText: response.statusText,
+        });
+      },
+    });
+    return { client: conversation, cut, refused: () => refused };
+  };
+
+  /**
    * Send one real user turn through the transport, reduce its chunks with the
    * AI SDK, then reopen the same conversation from stored history.
    */
@@ -167,9 +228,11 @@ export const startFlueHarness = async () => {
       readonly transport?: Partial<FlueChatTransportOptions>;
       /** Runs once the turn is admitted, before its stream is read. */
       readonly duringTurn?: (conversation: FlueClient) => Promise<void>;
+      /** The conversation to use; a fresh one by default. */
+      readonly client?: FlueClient;
     } = {},
   ) => {
-    const conversation = client();
+    const conversation = options.client ?? client();
     const adapter = createFlueAiSdkAdapter({
       ...harnessAdapterConfig,
       ...options.adapter,
@@ -201,6 +264,7 @@ export const startFlueHarness = async () => {
   return {
     /** A client for a fresh conversation. */
     client,
+    cuttableClient,
     fetch: fetchHarness,
     runTurn,
     /** Script the model's next responses, one per model call. */
