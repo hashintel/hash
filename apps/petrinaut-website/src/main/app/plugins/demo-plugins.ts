@@ -5,7 +5,7 @@
 
 import { commandPalettePlugin } from "./command-palette/plugin";
 
-import type { PetrinautPlugin } from "@hashintel/petrinaut/ui";
+import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 /** The plugins the demo shell passes to `<Petrinaut plugins>`. */
 export const demoPlugins: readonly PetrinautPlugin[] = [commandPalettePlugin];

@@ -51,8 +51,8 @@ import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 import type {
   PetrinautAiAssistant,
   PetrinautAiMessage,
-  PetrinautPlugin,
 } from "@hashintel/petrinaut/ui";
+import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 const netOneId = toPetrinautId("net-1");
 const netTwoId = toPetrinautId("net-2");

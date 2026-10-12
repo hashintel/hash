@@ -4,7 +4,7 @@ import { MdKeyboardCommandKey } from "react-icons/md";
 import {
   definePetrinautPlugin,
   type PluginHook,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 import { CommandPalette } from "./plugin/command-palette";
 

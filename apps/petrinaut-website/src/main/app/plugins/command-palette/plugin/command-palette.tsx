@@ -1,10 +1,10 @@
 import { useState } from "react";
 
+import { KeyboardShortcut } from "@hashintel/petrinaut/ui";
 import {
-  KeyboardShortcut,
   useCommandRegistry,
   useCommands,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 import type { CSSProperties } from "react";
 
