@@ -37,10 +37,8 @@ const findInstalledPackage = (name, fromDirectory) => {
  * copies folio-core uses. HASH's editor keeps its own.
  */
 const folioSingleProseMirrorRule = () => {
-  const folioReact = findInstalledPackage(
-    "@stll/folio-react",
-    path.dirname(fileURLToPath(import.meta.url)),
-  );
+  const frontend = path.dirname(fileURLToPath(import.meta.url));
+  const folioReact = findInstalledPackage("@stll/folio-react", frontend);
   const folioCore = findInstalledPackage("@stll/folio-core", folioReact);
 
   const sharedPackages = new Set();
@@ -61,6 +59,20 @@ const folioSingleProseMirrorRule = () => {
       findInstalledPackage(name, folioCore),
     ]),
   );
+
+  const { dependencies: frontendDependencies } = JSON.parse(
+    fs.readFileSync(path.join(frontend, "package.json"), "utf8"),
+  );
+  for (const [name, directory] of Object.entries(alias)) {
+    if (
+      name in frontendDependencies &&
+      directory === findInstalledPackage(name, frontend)
+    ) {
+      throw new Error(
+        `folio and the frontend resolve ${name} to the same copy at ${directory}, so folio's ProseMirror imports cannot be kept apart from the frontend's`,
+      );
+    }
+  }
 
   return {
     include: [folioReact, folioCore, ...Object.values(alias)],
