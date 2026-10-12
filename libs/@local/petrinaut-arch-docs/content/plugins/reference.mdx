@@ -157,8 +157,7 @@ resource of another section, is resolved and never refused. `reveal` selects
 
 ```ts
 type EditResult<Value = undefined> =
-  | { applied: true; value: Value }
-  | { applied: false; reason: EditRefusal };
+  { applied: true; value: Value } | { applied: false; reason: EditRefusal };
 
 type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 ```

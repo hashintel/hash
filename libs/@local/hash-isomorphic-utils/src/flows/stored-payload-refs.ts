@@ -23,16 +23,13 @@ export const getStoredItemRefs = <K extends StorablePayloadKind>(
     return ref.parts.flatMap((part) => getStoredItemRefs(part));
   }
 
-  return Array.from(
-    { length: ref.length },
-    (_, index): StoredItemRef<K> => ({
-      __stored: true,
-      kind: ref.kind,
-      array: false,
-      of: ref,
-      index,
-    }),
-  );
+  return Array.from({ length: ref.length }, (_, index): StoredItemRef<K> => ({
+    __stored: true,
+    kind: ref.kind,
+    array: false,
+    of: ref,
+    index,
+  }));
 };
 
 /**
