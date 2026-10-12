@@ -145,7 +145,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
   // Reset to the first step every time the dialog opens. Using the
   // prev-prop comparison pattern recommended by React's "you might not need
   // an effect" guide, since calling setState inside useEffect would cause a
-  // cascading render and is flagged by react-hooks-js.
+  // cascading render and is flagged by react/set-state-in-effect.
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);

@@ -1468,6 +1468,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2f6c7dbe95a6ed67ad9f18e57daf93a2f034c524b99fd2b76d18fdfeb6660aa"
 dependencies = [
  "hybrid-array",
+ "zeroize",
 ]
 
 [[package]]
@@ -4152,6 +4153,7 @@ dependencies = [
  "const-oid 0.10.2",
  "crypto-common 0.2.2",
  "ctutils",
+ "zeroize",
 ]
 
 [[package]]
@@ -6192,7 +6194,6 @@ dependencies = [
  "axum",
  "clap",
  "clap_complete",
- "derive_more",
  "error-stack",
  "futures",
  "harpc-codec",
@@ -6205,6 +6206,7 @@ dependencies = [
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-type-fetcher",
+ "hash-secret",
  "hash-telemetry",
  "hash-temporal-client",
  "jsonwebtoken",
@@ -6214,6 +6216,7 @@ dependencies = [
  "rayon",
  "regex",
  "reqwest 0.13.4",
+ "rstest",
  "simple-mermaid",
  "time",
  "tokio",
@@ -6221,6 +6224,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "type-system",
+ "uuid",
 ]
 
 [[package]]
@@ -6258,6 +6262,7 @@ dependencies = [
  "hash-graph-types",
  "hash-graph-validation",
  "hash-middleware",
+ "hash-secret",
  "hash-status",
  "hash-temporal-client",
  "hashql-ast",
@@ -6278,6 +6283,7 @@ dependencies = [
  "opentelemetry",
  "problematic",
  "reqwest 0.13.4",
+ "rstest",
  "scalar_api_reference",
  "schemars 1.2.2",
  "sentry",
@@ -6328,6 +6334,7 @@ dependencies = [
  "hash-graph-temporal-versioning",
  "hash-graph-types",
  "hash-middleware",
+ "hash-secret",
  "hash-temporal-client",
  "hashbrown 0.17.1",
  "hashql-core",
@@ -6361,7 +6368,6 @@ dependencies = [
  "smallvec 2.0.0-alpha.12",
  "sprs",
  "steppe",
- "subtle",
  "tiktoken-rs",
  "time",
  "tokio",
@@ -6382,6 +6388,7 @@ dependencies = [
 name = "hash-graph-authentication"
 version = "0.0.0"
 dependencies = [
+ "aws-lc-rs",
  "axum",
  "cookie",
  "crc32fast",
@@ -6390,6 +6397,7 @@ dependencies = [
  "hash-graph-authorization",
  "hash-graph-store",
  "hash-middleware",
+ "hash-secret",
  "hmac 0.13.0",
  "http 1.4.2",
  "jsonwebtoken",
@@ -6397,7 +6405,6 @@ dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
  "problematic",
- "rand 0.10.1",
  "reqwest 0.13.4",
  "rstest",
  "serde",
@@ -6460,6 +6467,7 @@ dependencies = [
  "hash-graph-test-data",
  "hash-graph-type-fetcher",
  "hash-repo-chores",
+ "hash-secret",
  "hash-telemetry",
  "itertools 0.14.0",
  "rand 0.10.1",
@@ -6485,6 +6493,7 @@ dependencies = [
  "derive_more",
  "error-stack",
  "hash-graph-types",
+ "hash-secret",
  "rand 0.10.1",
  "rand_xoshiro 0.8.1",
  "rayon",
@@ -6509,6 +6518,7 @@ dependencies = [
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
  "hash-graph-types",
+ "hash-secret",
  "hash-status",
  "hash-telemetry",
  "pretty_assertions",
@@ -6533,6 +6543,7 @@ dependencies = [
  "error-stack",
  "futures",
  "hash-graph-migrations-macros",
+ "hash-secret",
  "hash-telemetry",
  "include_dir",
  "include_dir_macros",
@@ -6569,7 +6580,6 @@ dependencies = [
  "bytes",
  "clap",
  "deadpool",
- "derive-where",
  "derive_more",
  "dotenv-flow",
  "error-stack",
@@ -6584,6 +6594,7 @@ dependencies = [
  "hash-graph-test-data",
  "hash-graph-types",
  "hash-graph-validation",
+ "hash-secret",
  "hash-status",
  "hash-telemetry",
  "hash-temporal-client",
@@ -6627,11 +6638,13 @@ dependencies = [
  "hash-temporal-client",
  "insta",
  "postgres-types",
+ "rstest",
  "serde",
  "serde_json",
  "simple-mermaid",
  "specta",
  "thiserror 2.0.18",
+ "time",
  "tokio",
  "tokio-postgres",
  "tracing",
@@ -6769,6 +6782,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-integrations-definition"
+version = "0.0.0"
+dependencies = [
+ "derive_more",
+ "error-stack",
+ "simple-mermaid",
+ "type-system",
+]
+
+[[package]]
 name = "hash-middleware"
 version = "0.0.0"
 dependencies = [
@@ -6780,6 +6803,7 @@ dependencies = [
  "error-stack",
  "futures",
  "governor",
+ "hash-secret",
  "http 1.4.2",
  "opentelemetry",
  "opentelemetry-semantic-conventions",
@@ -6790,7 +6814,6 @@ dependencies = [
  "serde_core",
  "serde_json",
  "simple-mermaid",
- "subtle",
  "tokio",
  "tower",
  "tower-layer",
@@ -6829,6 +6852,22 @@ dependencies = [
  "tokio",
  "tracing",
  "walkdir",
+]
+
+[[package]]
+name = "hash-secret"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "base16ct",
+ "clap",
+ "clap_builder",
+ "derive_more",
+ "error-stack",
+ "rstest",
+ "simple-mermaid",
+ "trybuild",
+ "zeroize",
 ]
 
 [[package]]

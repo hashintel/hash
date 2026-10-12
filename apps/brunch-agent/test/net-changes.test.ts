@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import { expect, test } from "vitest";
 
+import { toPetrinautId } from "@hashintel/petrinaut-core";
+
 import {
   isAppliedChange,
   latestNetReadBefore,
@@ -40,7 +42,6 @@ const browser = {
   binding: {
     conversationId: "conversation",
     documentId: "document",
-    incarnationId: "incarnation",
   },
 };
 const snapshot = {
@@ -134,7 +135,7 @@ const snapshot = {
   ],
 } as FlueConversationSnapshot;
 
-test("credits only canonical applied calls with a settled revision, in history order", () => {
+test("credits only canonical applied calls with an after revision, in history order", () => {
   const calls = netCalls(snapshot);
   expect(calls.map(({ toolCallId }) => toolCallId)).toEqual([
     "add-queue",
@@ -266,9 +267,11 @@ test("why matches a root arc to canonical addArc by transition, direction and pl
     ...definition,
     transitions: [
       {
-        id: "serve",
+        id: toPetrinautId("serve"),
         name: "Serve",
-        inputArcs: [{ placeId: "queue", weight: 1, type: "standard" }],
+        inputArcs: [
+          { placeId: toPetrinautId("queue"), weight: 1, type: "standard" },
+        ],
         outputArcs: [],
         lambdaType: "predicate",
         lambdaCode: "",
@@ -351,7 +354,7 @@ test("why matches a root arc to canonical addArc by transition, direction and pl
       },
     }),
   ).toMatchObject({
-    target: { id: "serve:input:queue" },
+    target: { id: `${toPetrinautId("serve")}:input:${toPetrinautId("queue")}` },
     changes: [
       { toolCallId: "delete-arc", operation: "deleteItemsByIds" },
       {

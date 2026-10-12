@@ -123,8 +123,8 @@ export const ContourSurface = ({
     if (!canvas || !size || size.width === 0) {
       return;
     }
-    paintStateRef.current ??= createPaintState();
-    const state = paintStateRef.current;
+    const state = paintStateRef.current ?? createPaintState();
+    paintStateRef.current = state;
     const frame = requestAnimationFrame(() => {
       paintField({
         canvas,

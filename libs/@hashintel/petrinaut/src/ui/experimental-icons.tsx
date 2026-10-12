@@ -534,11 +534,11 @@ export const PrintIcon = createIcon("print");
 export const PuzzlePieceIcon = createIcon("puzzlePiece");
 export const RulerIcon = createIcon("ruler");
 export const SortDownIcon = createIcon("sortDown");
-export const SortDown19Icon = createIcon("sortDown19");
-export const SortDownAZIcon = createIcon("sortDownAZ");
+export const SortDownAlphabeticalIcon = createIcon("sortDownAlphabetical");
+export const SortDownNumericIcon = createIcon("sortDownNumeric");
 export const SortUpIcon = createIcon("sortUp");
-export const SortUp19Icon = createIcon("sortUp19");
-export const SortUpAZIcon = createIcon("sortUpAZ");
+export const SortUpAlphabeticalIcon = createIcon("sortUpAlphabetical");
+export const SortUpNumericIcon = createIcon("sortUpNumeric");
 export const SquareCheckIcon = createIcon("squareCheck");
 export const StarIcon = createIcon("star");
 export const ThoughtBubbleIcon = createIcon("thoughtBubble");
@@ -580,11 +580,11 @@ export const experimentalIconPack: Required<IconPack> = {
   puzzlePiece: PuzzlePieceIcon,
   ruler: RulerIcon,
   sortDown: SortDownIcon,
-  sortDown19: SortDown19Icon,
-  sortDownAZ: SortDownAZIcon,
+  sortDownAlphabetical: SortDownAlphabeticalIcon,
+  sortDownNumeric: SortDownNumericIcon,
   sortUp: SortUpIcon,
-  sortUp19: SortUp19Icon,
-  sortUpAZ: SortUpAZIcon,
+  sortUpAlphabetical: SortUpAlphabeticalIcon,
+  sortUpNumeric: SortUpNumericIcon,
   squareCheck: SquareCheckIcon,
   star: StarIcon,
   thoughtBubble: ThoughtBubbleIcon,

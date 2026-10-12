@@ -16,7 +16,7 @@ import { ProductionScheduleView } from "./production-schedule";
 import {
   lineOccupancyOperationsFromReason,
   lineOccupancyTimingLabel,
-} from "./production-schedule/line-occupancy-rows";
+} from "./production-schedule/line-occupancy-labels";
 
 import type {
   ProductionScheduleV12,

@@ -269,13 +269,13 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         playback.play();
       })();
       playInitializationRef.current = initialization;
-      try {
-        await initialization;
-      } finally {
+      // `.finally` rather than `try`/`finally`, which React Compiler cannot
+      // compile without a `catch`.
+      await initialization.finally(() => {
         if (playInitializationRef.current === initialization) {
           playInitializationRef.current = null;
         }
-      }
+      });
       return;
     }
 

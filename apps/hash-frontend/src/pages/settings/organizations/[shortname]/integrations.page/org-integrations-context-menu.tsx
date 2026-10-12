@@ -8,7 +8,8 @@ import {
 
 import { archiveEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { MenuItem } from "../../../../../shared/ui";
-import { ContextButton, contextMenuProps } from "../../../shared/context-menu";
+import { ContextButton } from "../../../shared/context-menu";
+import { contextMenuProps } from "../../../shared/context-menu-props";
 
 import type {
   ArchiveEntityMutation,

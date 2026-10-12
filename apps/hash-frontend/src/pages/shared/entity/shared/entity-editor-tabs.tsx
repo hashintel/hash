@@ -1,23 +1,17 @@
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { TabLink } from "../../../../shared/ui/tab-link";
 import { Tabs } from "../../../../shared/ui/tabs";
+import {
+  defaultTab,
+  EntityEditorTabContext,
+  useEntityEditorTab,
+} from "./entity-editor-tab-context";
 
+import type { EntityEditorTab } from "./entity-editor-tab-context";
 import type { PropsWithChildren } from "react";
-
-type EntityEditorTab = "overview" | "history";
-
-const defaultTab: EntityEditorTab = "overview";
-
-interface EntityEditorTabContextValue {
-  tab: EntityEditorTab;
-  setTab: (tab: EntityEditorTab) => void;
-}
-
-const EntityEditorTabContext =
-  createContext<EntityEditorTabContextValue | null>(null);
 
 export const EntityEditorTabProvider = ({
   children,
@@ -47,16 +41,6 @@ export const EntityEditorTabProvider = ({
       {children}
     </EntityEditorTabContext.Provider>
   );
-};
-
-export const useEntityEditorTab = () => {
-  const context = useContext(EntityEditorTabContext);
-  if (!context) {
-    throw new Error(
-      "useEntityEditorTab must be used within an EntityEditorTabProvider",
-    );
-  }
-  return context;
 };
 
 const getTabUrl = (tab: string, entityPath: string) => {

@@ -5,6 +5,7 @@
 //! EnvironmentProviders))`, or without sessions `(ExplicitProviders, EnvironmentProviders)`.
 
 use alloc::sync::Arc;
+use core::pin::Pin;
 
 use hash_graph_authentication::{
     actor::StorePoolActorResolver,
@@ -12,6 +13,7 @@ use hash_graph_authentication::{
     kratos::{KratosEmailActorResolver, KratosSessionProvider},
 };
 pub use hash_graph_authentication::{
+    api_token,
     cloudflare::CloudflareAccessProvider,
     jwt::{JwtValidator, JwtValidatorConfig},
     kratos::{KratosAdminConfig, KratosSessionConfig, SessionCacheConfig},
@@ -19,6 +21,7 @@ pub use hash_graph_authentication::{
 use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_store::pool::StorePool;
 pub use hash_middleware::authentication::{AuthenticatedActorId, AuthenticationMetrics};
+use hash_secret::Secret;
 
 /// Configuration for Cloudflare Access authentication.
 #[derive(Debug, Clone)]
@@ -41,7 +44,10 @@ pub type EnvironmentProviders<S> =
     Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>;
 
 /// Builds the [`ExplicitProviders`].
-pub fn build_explicit_providers<S>(service_secret: String, store: &Arc<S>) -> ExplicitProviders<S>
+pub fn build_explicit_providers<S>(
+    service_secret: Pin<Arc<Secret<str>>>,
+    store: &Arc<S>,
+) -> ExplicitProviders<S>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,

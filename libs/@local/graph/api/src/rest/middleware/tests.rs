@@ -12,6 +12,7 @@ use hash_middleware::{
     problem::InternalServerError,
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
+use hash_secret::Secret;
 use http::{
     HeaderValue, Method, Request, StatusCode,
     header::{ALLOW, AUTHORIZATION, CONTENT_TYPE},
@@ -56,7 +57,7 @@ fn middleware(
     Middleware {
         public_provider: Arc::new(public_provider),
         internal_provider: Arc::new(internal_provider),
-        service_secret: Arc::from(SERVICE_SECRET),
+        service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&meter)),
         rate_limiters: RateLimiters::start(config, &meter),
     }

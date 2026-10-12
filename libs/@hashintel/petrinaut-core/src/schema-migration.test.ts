@@ -2,11 +2,14 @@ import { describe, expect, test } from "vitest";
 
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
+import { toPetrinautId } from "./petrinaut-id";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
 import { scenarioSchema } from "./schemas/scenario-schema";
 import { formatUuid, toUuid } from "./simulation/engine/uuid";
 
 import type { Place, SDCPN } from "./types/sdcpn";
+
+const idOf = toPetrinautId;
 
 const NIL_UUID_STRING = "00000000-0000-0000-0000-000000000000";
 
@@ -172,11 +175,11 @@ describe("scenario row migration through actions", () => {
     });
 
     const definition = instance.definition.get();
-    expect(getScenarioRows(definition, "place-1")).toEqual([
+    expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
       [1.5, 2, "alpha", NIL_UUID_STRING],
       [2.5, 3, "beta", NIL_UUID_STRING],
     ]);
-    expect(getScenarioRows(definition, "place-sub")).toEqual([
+    expect(getScenarioRows(definition, idOf("place-sub"))).toEqual([
       [9.5, 7, "gamma", NIL_UUID_STRING],
     ]);
   });
@@ -190,11 +193,13 @@ describe("scenario row migration through actions", () => {
     });
 
     const definition = instance.definition.get();
-    expect(getScenarioRows(definition, "place-1")).toEqual([
+    expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
       [1.5, "alpha"],
       [2.5, "beta"],
     ]);
-    expect(getScenarioRows(definition, "place-sub")).toEqual([[9.5, "gamma"]]);
+    expect(getScenarioRows(definition, idOf("place-sub"))).toEqual([
+      [9.5, "gamma"],
+    ]);
   });
 
   test("moveTypeElement permutes row columns, clamping out-of-range targets", () => {
@@ -208,11 +213,11 @@ describe("scenario row migration through actions", () => {
 
     const definition = instance.definition.get();
     expect(definition.types[0]!.elements.map((el) => el.elementId)).toEqual([
-      "element-2",
-      "element-3",
-      "element-1",
+      idOf("element-2"),
+      idOf("element-3"),
+      idOf("element-1"),
     ]);
-    expect(getScenarioRows(definition, "place-1")).toEqual([
+    expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
       [2, "alpha", 1.5],
       [3, "beta", 2.5],
     ]);
@@ -227,10 +232,12 @@ describe("scenario row migration through actions", () => {
       elementId: "element-1",
       update: { type: "integer" },
     });
-    expect(getScenarioRows(instance.definition.get(), "place-1")).toEqual([
-      [2, 2, "alpha"],
-      [3, 3, "beta"],
-    ]);
+    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
+      [
+        [2, 2, "alpha"],
+        [3, 3, "beta"],
+      ],
+    );
 
     // string "alpha" → integer: not numeric, falls back to the default 0.
     instance.mutations.updateTypeElement({
@@ -238,10 +245,12 @@ describe("scenario row migration through actions", () => {
       elementId: "element-3",
       update: { type: "integer" },
     });
-    expect(getScenarioRows(instance.definition.get(), "place-1")).toEqual([
-      [2, 2, 0],
-      [3, 3, 0],
-    ]);
+    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
+      [
+        [2, 2, 0],
+        [3, 3, 0],
+      ],
+    );
 
     // integer → boolean: nonzero numbers become true.
     instance.mutations.updateTypeElement({
@@ -249,10 +258,12 @@ describe("scenario row migration through actions", () => {
       elementId: "element-3",
       update: { type: "boolean" },
     });
-    expect(getScenarioRows(instance.definition.get(), "place-1")).toEqual([
-      [2, 2, false],
-      [3, 3, false],
-    ]);
+    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
+      [
+        [2, 2, false],
+        [3, 3, false],
+      ],
+    );
 
     // integer → uuid: numbers convert deterministically to canonical
     // lowercase UUIDv5 strings.
@@ -261,13 +272,15 @@ describe("scenario row migration through actions", () => {
       elementId: "element-2",
       update: { type: "uuid" },
     });
-    expect(getScenarioRows(instance.definition.get(), "place-1")).toEqual([
-      [2, formatUuid(toUuid(2)), false],
-      [3, formatUuid(toUuid(3)), false],
-    ]);
-    expect(getScenarioRows(instance.definition.get(), "place-sub")).toEqual([
-      [10, formatUuid(toUuid(7)), false],
-    ]);
+    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
+      [
+        [2, formatUuid(toUuid(2)), false],
+        [3, formatUuid(toUuid(3)), false],
+      ],
+    );
+    expect(
+      getScenarioRows(instance.definition.get(), idOf("place-sub")),
+    ).toEqual([[10, formatUuid(toUuid(7)), false]]);
   });
 
   test("rename-only element updates leave rows untouched", () => {
@@ -279,10 +292,12 @@ describe("scenario row migration through actions", () => {
       update: { name: "mass_kg" },
     });
 
-    expect(getScenarioRows(instance.definition.get(), "place-1")).toEqual([
-      [1.5, 2, "alpha"],
-      [2.5, 3, "beta"],
-    ]);
+    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
+      [
+        [1.5, 2, "alpha"],
+        [2.5, 3, "beta"],
+      ],
+    );
   });
 
   test("leaves uncolored expressions and code scenarios untouched, and keeps scenarios valid", () => {
@@ -302,7 +317,9 @@ describe("scenario row migration through actions", () => {
     if (perPlaceScenario.initialState.type !== "per_place") {
       throw new Error("expected per_place scenario");
     }
-    expect(perPlaceScenario.initialState.content["place-plain"]).toBe("5");
+    expect(perPlaceScenario.initialState.content[idOf("place-plain")]).toBe(
+      "5",
+    );
     expect(definition.scenarios![1]!.initialState).toEqual({
       type: "code",
       content: "return {};",
@@ -320,16 +337,18 @@ describe("scenario row migration through actions", () => {
       typeId: "type-1",
       elementId: "element-2",
     });
-    expect(getScenarioRows(instance.definition.get(), "place-1")).toEqual([
-      [1.5, "alpha"],
-      [2.5, "beta"],
-    ]);
+    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
+      [
+        [1.5, "alpha"],
+        [2.5, "beta"],
+      ],
+    );
 
     instance.handle.history!.undo();
 
     const definition = instance.definition.get();
     expect(definition.types[0]!.elements).toHaveLength(3);
-    expect(getScenarioRows(definition, "place-1")).toEqual([
+    expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
       [1.5, 2, "alpha"],
       [2.5, 3, "beta"],
     ]);

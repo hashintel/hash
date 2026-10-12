@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import { toPetrinautId } from "../petrinaut-id";
 import {
   petrinautOptimizationEventSchema,
   petrinautOptimizationManifestSchema,
 } from "./index";
 
 const scenario = {
-  id: "baseline",
+  id: toPetrinautId("baseline"),
   name: "Baseline",
   scenarioParameters: [
     { identifier: "rate", type: "real" as const, default: 0.5 },
@@ -27,7 +28,7 @@ const definition = {
   subnets: [],
   componentInstances: [],
   scenarios: [scenario],
-  metrics: [{ id: "profit", name: "Profit", code: "return 1;" }],
+  metrics: [{ id: toPetrinautId("profit"), name: "Profit", code: "return 1;" }],
 };
 
 const validManifest = {
@@ -36,7 +37,7 @@ const validManifest = {
   name: "Find the best rate",
   model: { title: "Example", definition },
   scenario: {
-    id: "baseline",
+    id: toPetrinautId("baseline"),
     parameterBindings: {
       rate: {
         kind: "optimize" as const,
@@ -55,12 +56,35 @@ const validManifest = {
       share: { kind: "fixed" as const, value: 0.25 },
     },
   },
-  objective: { metricId: "profit", direction: "maximize" as const },
+  objective: {
+    metricId: toPetrinautId("profit"),
+    direction: "maximize" as const,
+  },
   execution: { seed: 42, dt: 0.1, maxTime: 100 },
   study: { trials: 20, sampler: "tpe" as const },
 };
 
 describe("petrinautOptimizationManifestSchema", () => {
+  it("accepts a manifest written with legacy ids and converts them", () => {
+    const legacyManifest = {
+      ...validManifest,
+      model: {
+        title: "Example",
+        definition: {
+          ...definition,
+          scenarios: [{ ...scenario, id: "baseline" }],
+          metrics: [{ id: "profit", name: "Profit", code: "return 1;" }],
+        },
+      },
+      scenario: { ...validManifest.scenario, id: "baseline" },
+      objective: { ...validManifest.objective, metricId: "profit" },
+    };
+
+    expect(petrinautOptimizationManifestSchema.parse(legacyManifest)).toEqual(
+      validManifest,
+    );
+  });
+
   it("accepts an exhaustive flat scenario-parameter manifest", () => {
     expect(petrinautOptimizationManifestSchema.parse(validManifest)).toEqual(
       validManifest,

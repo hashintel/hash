@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent/constants";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import {
   draftPetrinautExperimentInputSchema,
@@ -73,7 +74,9 @@ describe("draft_petrinaut_experiment input schema", () => {
   test("accepts an integer range and a disclosed restriction without protocol identity", () => {
     const parsed = draftPetrinautExperimentInputSchema.parse(input);
     expect(parsed.experiment.execution.mode).toBe("optimize");
-    expect(parsed.unsupported[0]?.reportedByMetricId).toBe("metric-late");
+    expect(parsed.unsupported[0]?.reportedByMetricId).toBe(
+      toPetrinautId("metric-late"),
+    );
     expect(parsed.unsupported[0]?.blocksRun).toBe(true);
     expect(
       draftPetrinautExperimentInputSchema.parse({

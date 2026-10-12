@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { serializeDocument } from "@hashintel/petrinaut-core";
+import { serializeDocument, toPetrinautId } from "@hashintel/petrinaut-core";
 import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model";
 import {
   deriveOptimizationTrialSeeds,
@@ -256,7 +256,7 @@ describe("createOptimizationProtocol", () => {
     });
     expect(
       "metricSpecs" in calls[0]! ? calls[0].metricSpecs?.[0]?.id : undefined,
-    ).toBe("metric_profit");
+    ).toBe(toPetrinautId("metric_profit"));
   });
 
   it("loads a versioned manifest from a file", async () => {
@@ -311,9 +311,9 @@ describe("createOptimizationProtocol", () => {
     ).resolves.toEqual({ objective: 0.25 });
     expect(calls[0]).toMatchObject({
       initialMarking: {
-        place__susceptible: 180,
-        place__infected: 20,
-        place__recovered: 0,
+        [toPetrinautId("place__susceptible")]: 180,
+        [toPetrinautId("place__infected")]: 20,
+        [toPetrinautId("place__recovered")]: 0,
       },
       parameterValues: { infection_rate: "1.5", recovery_rate: "0.8" },
       seed: 42,
@@ -414,9 +414,9 @@ describe("createOptimizationProtocol", () => {
     ).resolves.toEqual({ objective: 0.25 });
     expect(calls[0]).toMatchObject({
       initialMarking: {
-        place__susceptible: 0,
-        place__infected: 1,
-        place__recovered: 0,
+        [toPetrinautId("place__susceptible")]: 0,
+        [toPetrinautId("place__infected")]: 1,
+        [toPetrinautId("place__recovered")]: 0,
       },
       parameterValues: { infection_rate: "1.5", recovery_rate: "0.8" },
       seed: 42,

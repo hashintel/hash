@@ -147,5 +147,3 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
     </LayoutWithHeader>
   );
 };
-
-export * from "./layout-with-sidebar/sidebar-context";

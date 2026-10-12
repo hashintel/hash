@@ -22,14 +22,15 @@ graph TD
     10[<a href="../harpc_types/index.html">harpc-types</a>]
     11[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
     12[<a href="../hash_middleware/index.html">hash-middleware</a>]
-    13[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    14[<a href="../error_stack/index.html">error-stack</a>]
-    15[<a href="../problematic/index.html">problematic</a>]
-    16[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    17[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    13[<a href="../hash_secret/index.html">hash-secret</a>]
+    14[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    15[<a href="../error_stack/index.html">error-stack</a>]
+    16[<a href="../problematic/index.html">problematic</a>]
+    17[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    18[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 4
     1 --> 8
-    1 -.-> 17
+    1 -.-> 18
     2 -.-> 3
     2 --> 11
     4 -.-> 5
@@ -40,14 +41,16 @@ graph TD
     6 --> 1
     7 --> 6
     7 --> 9
-    7 --> 13
+    7 --> 14
     8 --> 2
-    9 -.-> 17
+    9 -.-> 18
     11 -.-> 10
     11 --> 10
-    11 --> 14
+    11 --> 15
     12 --> 1
-    12 --> 15
-    13 --> 1
-    16 -.-> 4
-    17 --> 7
+    12 --> 13
+    12 --> 16
+    13 --> 15
+    14 --> 1
+    17 -.-> 4
+    18 --> 7

@@ -88,7 +88,6 @@ test("locates the bound Petrinaut document", () => {
       binding: {
         conversationId: "conversation",
         documentId: "document-bound",
-        incarnationId: "incarnation",
       },
     }),
   ).toBe("document-bound");
@@ -170,7 +169,6 @@ test.each([false, true])(
               binding: {
                 conversationId: identity.conversationId,
                 documentId: "TEST-document",
-                incarnationId: "TEST-incarnation",
               },
             },
           }),
@@ -274,7 +272,6 @@ test("resume requires the bridge log that Pi-era runs lack", async () => {
             binding: {
               conversationId: identity.conversationId,
               documentId: "TEST-document",
-              incarnationId: "TEST-incarnation",
             },
           },
         }),

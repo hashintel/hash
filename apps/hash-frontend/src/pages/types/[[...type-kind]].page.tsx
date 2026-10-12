@@ -16,10 +16,8 @@ import { CreateButton } from "../shared/create-button";
 import { largePageMaxWidthCss } from "../shared/page-width";
 import { TopContextBar } from "../shared/top-context-bar";
 import { TypesTable } from "../shared/types-table";
-import {
-  tabTitles,
-  TypesPageTabs,
-} from "./[[...type-kind]].page/types-page-tabs";
+import { tabTitles } from "./[[...type-kind]].page/tab-titles";
+import { TypesPageTabs } from "./[[...type-kind]].page/types-page-tabs";
 
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { DataTypeRootType } from "@blockprotocol/graph";
@@ -266,16 +264,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             Types
           </Typography>
           <Stack direction="row" justifyContent="space-between">
-            <TypesPageTabs
-              currentTab={currentTab}
-              numberOfTypesByTab={{
-                all: allTypes?.length,
-                "entity-type": latestNonLinkEntityTypes?.length,
-                "link-type": latestLinkEntityTypes?.length,
-                "property-type": latestPropertyTypes?.length,
-                "data-type": latestDataTypes?.length,
-              }}
-            />
+            <TypesPageTabs currentTab={currentTab} />
             {createButton ? (
               <CreateButton
                 href={createButton.href}
@@ -298,7 +287,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           </Stack>
         </Container>
       </Box>
-      <Container sx={{ paddingTop: 5, ...largePageMaxWidthCss }}>
+      <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
         <TypesTable kind={currentTab} types={currentTypes} />
       </Container>
     </>

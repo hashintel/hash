@@ -1,7 +1,9 @@
-use core::{fmt, time::Duration};
+use alloc::sync::Arc;
+use core::{fmt, pin::Pin, time::Duration};
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_types::Embedding;
+use hash_secret::Secret;
 use reqwest::{Client, StatusCode};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
@@ -49,28 +51,19 @@ const MIN_RETRY_INTERVAL: Duration = Duration::from_millis(250);
 const MAX_RETRY_INTERVAL: Duration = Duration::from_secs(2);
 
 /// Configuration for an [`OpenAiEmbeddingClient`].
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct OpenAiEmbeddingClientConfig {
     /// The OpenAI API key used to authenticate requests.
-    pub api_key: String,
+    pub api_key: Pin<Arc<Secret<str>>>,
     /// Overrides the OpenAI API base URL. Defaults to `https://api.openai.com/v1`.
     pub base_url: Option<String>,
-}
-
-impl fmt::Debug for OpenAiEmbeddingClientConfig {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("OpenAiEmbeddingClientConfig")
-            .field("api_key", &"[redacted]")
-            .field("base_url", &self.base_url)
-            .finish()
-    }
 }
 
 /// An [`EmbeddingGenerator`] backed by the OpenAI embeddings API.
 #[derive(Clone)]
 pub struct OpenAiEmbeddingClient {
     client: ClientWithMiddleware,
-    api_key: String,
+    api_key: Pin<Arc<Secret<str>>>,
     base_url: String,
 }
 
@@ -152,7 +145,7 @@ impl EmbeddingGenerator for OpenAiEmbeddingClient {
         let response = self
             .client
             .post(format!("{}/embeddings", self.base_url))
-            .bearer_auth(&self.api_key)
+            .bearer_auth(self.api_key.expose())
             .json(&EmbeddingRequest {
                 model: EMBEDDING_MODEL,
                 input: inputs,

@@ -3,18 +3,13 @@
  * @role Editable demo shell: nets in local storage, one live document handle
  */
 
-import {
-  createFlueClient,
-  type FlueConversationSettlement,
-  type FlueConversationState,
-} from "@flue/sdk";
+import { createFlueClient } from "@flue/sdk";
 import {
   use,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -22,29 +17,17 @@ import {
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
-} from "@hashintel/brunch-agent-transport-aisdk";
-import {
-  createJsonDocHandle,
-  type DocumentRevisionId,
-  type MinimalNetMetadata,
-  type PetrinautDocHandle,
-  type PetrinautHandleCapabilities,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
+} from "@hashintel/brunch-agent/conversation-identity";
 import {
   CommandRegistryProvider,
   ErrorTrackerContext,
   useCommand,
-  UserSettingsProvider,
 } from "@hashintel/petrinaut/react";
 import {
   DefaultChatTransport,
   Petrinaut,
   type PetrinautAiComposerControlContext,
   type PetrinautAiMessage,
-  type PetrinautAiStopResult,
-  type PetrinautAiVoiceMode,
-  type PetrinautAiVoiceModeContext,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
@@ -53,13 +36,62 @@ import {
   withClearedSharedLocation,
 } from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
-import { CommandPalette } from "../command-palette";
-import { useSentryFeedbackAction } from "../sentry-feedback-button";
+import { createBrunchFlueAdapter } from "../plugins/brunch/brunch-flue-adapter";
+import {
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "../plugins/brunch/brunch-panel-transport";
+import { resolveBrunchPreviewConfig } from "../plugins/brunch/brunch-preview-config";
+import {
+  brunchEvaluationConversationIdFrom,
+  getOrCreateBrunchConversationId,
+  ordinaryConstructionConversationIdFrom,
+  replaceBrunchConversationId,
+} from "../plugins/brunch/conversation/brunch-conversation-id";
+import { getOrCreateBrunchPrincipal } from "../plugins/brunch/conversation/brunch-principal";
+import { useFlueChatHistory } from "../plugins/brunch/conversation/use-flue-chat-history";
+import {
+  useProcessAgentBinding,
+  type FixtureProcessAgentConfiguration,
+  type ProcessAgentBinding,
+} from "../plugins/brunch/conversation/use-process-agent-binding";
+import { foldBrunchWorkpieceHistory } from "../plugins/brunch/ledger/brunch-workpiece-history";
+import { BrunchWorkpiecePane } from "../plugins/brunch/ledger/brunch-workpiece-pane";
+import { requestFlueStop } from "../plugins/brunch/plugin/request-flue-stop";
+import { useImmutableReplayBaseline } from "../plugins/brunch/plugin/use-immutable-replay-baseline";
+import {
+  brunchPetrinautClientToolNames,
+  canonicalPetrinautClientToolNames,
+} from "../plugins/brunch/tools/brunch-client-tools";
+import {
+  createBrunchDraftExperimentInteractiveTool,
+  resolveDraftAuthorityFromHistory,
+} from "../plugins/brunch/tools/brunch-draft-experiment-interactive-tool";
+import { BrunchExperimentFollowUp } from "../plugins/brunch/tools/brunch-experiment-follow-up";
+import {
+  createBrunchMutationAdmission,
+  createBrunchMutationApprovalCoordinator,
+  createBrunchMutationApprovalInteractiveTools,
+} from "../plugins/brunch/tools/brunch-mutation-approval";
+import {
+  createCanonicalPetrinautHostTools,
+  issuedCanonicalCallsFromHistory,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautReplay,
+  type CanonicalPetrinautReplayReadiness,
+} from "../plugins/brunch/tools/brunch-petrinaut-tools";
+import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
+import { createInBandBrowserCalls } from "../plugins/brunch/tools/in-band-browser-call";
+import { CommandPalette } from "../plugins/command-palette/plugin/command-palette";
+import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
+import { getBrunchVoiceMode } from "../plugins/voice/brunch-voice-mode";
+import { useVoiceMediationHistory } from "../plugins/voice/history/use-voice-mediation-history";
 import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
-  VoiceInterviewControl,
-} from "../voice-interview/voice-interview-control";
+} from "../plugins/voice/session/voice-interview-control";
+import { walkthroughSteps } from "../plugins/walkthrough/walkthrough-steps";
+import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
@@ -67,222 +99,17 @@ import {
   type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
-import {
-  useProcessAgentBinding,
-  type FixtureProcessAgentConfiguration,
-  type ProcessAgentBinding,
-} from "./assistants/brunch/use-process-agent-binding";
-import { brunchPetrinautClientToolNames } from "./brunch-client-tools";
-import {
-  brunchEvaluationConversationIdFrom,
-  getOrCreateBrunchConversationId,
-  ordinaryConstructionConversationIdFrom,
-  replaceBrunchConversationId,
-} from "./brunch-conversation-id";
-import {
-  createBrunchDraftExperimentInteractiveTool,
-  resolveDraftAuthorityFromHistory,
-} from "./brunch-draft-experiment-interactive-tool";
-import { BrunchExperimentFollowUp } from "./brunch-experiment-follow-up";
-import {
-  createBrunchMutationAdmission,
-  createBrunchMutationApprovalCoordinator,
-  createBrunchMutationApprovalInteractiveTools,
-} from "./brunch-mutation-approval";
-import {
-  BrunchPanelConversationTracker,
-  type BrunchPanelAdmissionTarget,
-  createBrunchPanelTransport,
-} from "./brunch-panel-transport";
-import {
-  createCanonicalPetrinautHostTools,
-  issuedCanonicalCallsFromHistory,
-  EMPTY_CANONICAL_PETRINAUT_REPLAY,
-  type CanonicalPetrinautReplay,
-  type CanonicalPetrinautReplayReadiness,
-} from "./brunch-petrinaut-tools";
-import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
-import { getOrCreateBrunchPrincipal } from "./brunch-principal";
-import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
-import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
-import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
+import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
-import { createInBandBrowserCalls } from "./in-band-browser-call";
-import { useFlueChatHistory } from "./use-flue-chat-history";
-import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
-import { emptySDCPN } from "./use-local-storage-sdcpns";
-import { useVoiceMediationHistory } from "./use-voice-mediation-history";
+import { UnsavedChangeNotice } from "./unsaved-change-notice";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
-import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
-import type { VoiceMediationHistory } from "../voice-interview/voice-mediation-history";
-import type {
-  DocumentRecord,
-  DocumentRepository,
-} from "./documents/document-repository";
-
-const useCurrentSettlementAction = (
-  settleRevision: DocumentRepository["settleRevision"],
-): DocumentRepository["settleRevision"] => {
-  const latest = useRef(settleRevision);
-  useLayoutEffect(() => {
-    latest.current = settleRevision;
-  }, [settleRevision]);
-  return useCallback((revision) => latest.current(revision), []);
-};
-
-const DEMO_CAPABILITIES = {
-  disabledExtensions: [],
-} satisfies PetrinautHandleCapabilities;
-
-type ReplayReadiness<Replay> =
-  | { readonly status: "pending" }
-  | { readonly status: "ready"; readonly replay: Replay };
-
-type ReplayBaseline<Snapshot, Replay> = {
-  readonly key: string;
-  readonly snapshot: Snapshot | undefined;
-  readonly readiness: ReplayReadiness<Replay>;
-};
-
-/**
- * Captures the first authoritative history state for one mounted binding. An
- * absent history becomes an empty baseline during render; an existing history
- * is captured once and stays fail-closed until its asynchronous verification
- * completes. Later observation offsets cannot alter the ready baseline.
- */
-const useImmutableReplayBaseline = <Snapshot, Replay>(input: {
-  readonly bindingKey: string | undefined;
-  readonly emptyReplay: Replay;
-  readonly historyPhase: string | undefined;
-  readonly snapshot: Snapshot | undefined;
-  readonly derive: (snapshot: Snapshot) => Promise<Replay>;
-}): ReplayReadiness<Replay> => {
-  const [storedBaseline, setStoredBaseline] = useState<
-    ReplayBaseline<Snapshot, Replay> | undefined
-  >(undefined);
-  let baseline = storedBaseline;
-
-  if (input.bindingKey === undefined) {
-    if (baseline !== undefined) setStoredBaseline(undefined);
-    baseline = undefined;
-  } else if (baseline === undefined || baseline.key !== input.bindingKey) {
-    baseline = {
-      key: input.bindingKey,
-      snapshot: input.snapshot,
-      readiness:
-        input.historyPhase === "absent"
-          ? { status: "ready", replay: input.emptyReplay }
-          : { status: "pending" },
-    };
-    setStoredBaseline(baseline);
-  } else if (
-    baseline.readiness.status === "pending" &&
-    baseline.snapshot === undefined &&
-    (input.historyPhase === "absent" || input.snapshot !== undefined)
-  ) {
-    baseline = {
-      ...baseline,
-      snapshot: input.snapshot,
-      readiness:
-        input.historyPhase === "absent"
-          ? { status: "ready", replay: input.emptyReplay }
-          : baseline.readiness,
-    };
-    setStoredBaseline(baseline);
-  }
-
-  const derive = input.derive;
-  useEffect(() => {
-    const capturedSnapshot = baseline?.snapshot;
-    if (
-      baseline === undefined ||
-      baseline.readiness.status === "ready" ||
-      capturedSnapshot === undefined
-    )
-      return;
-    let cancelled = false;
-    const capturedBaseline = baseline;
-    void derive(capturedSnapshot).then((replay) => {
-      if (!cancelled) {
-        setStoredBaseline((current) =>
-          current === capturedBaseline
-            ? {
-                ...capturedBaseline,
-                readiness: { status: "ready", replay },
-              }
-            : current,
-        );
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [baseline, derive]);
-
-  return baseline?.readiness ?? { status: "pending" };
-};
+import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
 
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
-
-export const getBrunchVoiceMode = (
-  config: OpenAIVoiceConfig | null | undefined,
-  tracker?: BrunchPanelConversationTracker,
-  settlements?: readonly FlueConversationSettlement[],
-  snapshot?: FlueConversationState,
-  mediationHistory?: VoiceMediationHistory,
-): PetrinautAiVoiceMode | undefined => {
-  if (!config) return undefined;
-
-  const resolveInputSubmission = tracker?.submissionForInput.bind(tracker);
-  const resolveResponseSubmission =
-    tracker?.submissionsForResponse.bind(tracker);
-  const subscribeToResponseMessageCompleted =
-    tracker?.subscribeToResponseMessageCompleted.bind(tracker);
-  const subscribeToResponseMessageStarted =
-    tracker?.subscribeToResponseMessageStarted.bind(tracker);
-  const subscribeToStopRequested =
-    tracker?.subscribeToStopRequested.bind(tracker);
-  const subscribeToAdmission =
-    tracker === undefined
-      ? undefined
-      : (target: BrunchPanelAdmissionTarget, listener: (id: string) => void) =>
-          tracker.subscribeToAdmission(target, ({ admission }) =>
-            listener(admission.submissionId),
-          );
-  const subscribeToAdmissionFailure =
-    tracker?.subscribeToAdmissionFailure.bind(tracker);
-
-  return (context: PetrinautAiVoiceModeContext) => (
-    <VoiceInterviewControl
-      {...context}
-      config={config}
-      mediationHistory={mediationHistory}
-      settlements={settlements}
-      // Voice only observes this snapshot. Message replacement remains gated
-      // independently by followMessages.canReplace below.
-      snapshot={snapshot}
-      resolveInputSubmission={resolveInputSubmission}
-      resolveResponseSubmission={resolveResponseSubmission}
-      subscribeToResponseMessageCompleted={subscribeToResponseMessageCompleted}
-      subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
-      subscribeToStopRequested={subscribeToStopRequested}
-      subscribeToAdmission={subscribeToAdmission}
-      subscribeToAdmissionFailure={subscribeToAdmissionFailure}
-    />
-  );
-};
-
-const createHandle = (document: DocumentRecord): PetrinautDocHandle =>
-  createJsonDocHandle({
-    id: document.documentId,
-    initial: document.definition,
-    initialRevisionId: document.revisionId,
-    capabilities: DEMO_CAPABILITIES,
-  });
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
 
@@ -312,46 +139,9 @@ const createBrunchFlueClient = async (conversationId: string) => {
   });
 };
 
-/**
- * Flue's `abort()` is conversation-wide and only reaches unsettled work, so a
- * Stop pressed while `send()` is still in flight must first let that admission
- * land; otherwise `aborted: false` would read as "already settled" while the
- * admitted turn keeps running.
- */
-export const requestFlueStop = async (
-  clientPromise: Promise<ReturnType<typeof createFlueClient>>,
-  tracker: BrunchPanelConversationTracker,
-): Promise<PetrinautAiStopResult> => {
-  tracker.recordStopRequested();
-  const client = await clientPromise;
-  await tracker.settleInFlightSubmissions();
-  const result = await client.abort();
-  return result.aborted ? "stop-requested" : "already-settled";
-};
-
 const createConversationTrackerFor = (
   _conversationId: string | null,
 ): BrunchPanelConversationTracker => new BrunchPanelConversationTracker();
-
-type ActiveHandle = {
-  handle: PetrinautDocHandle;
-  document: DocumentRecord;
-  /**
-   * Every revision this handle has produced (plus the one it opened at). A
-   * repository revision outside this set was written by someone else — another
-   * tab, typically — and the handle must be recreated from it rather than keep
-   * chaining edits from a predecessor the repository no longer holds.
-   */
-  emittedRevisionIds: Set<DocumentRevisionId>;
-};
-
-type PersistFailure = {
-  /** The handle whose change was refused; it is replaced, not kept. */
-  handle: PetrinautDocHandle;
-  documentId: DocumentRecord["documentId"];
-  incarnationId: DocumentRecord["incarnationId"];
-  error: Error;
-};
 
 const useProcessAgentSession = (input: {
   readonly binding: ProcessAgentBinding | null;
@@ -369,36 +159,17 @@ const useProcessAgentSession = (input: {
   }, [input.binding, input.brunchSelected]);
 };
 
-const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
-  const handle = createHandle(document);
-  return {
-    handle,
-    document,
-    emittedRevisionIds: new Set([document.revisionId]),
-  };
-};
-
 /**
  * The demo's own palette commands, registered beside Petrinaut's.
  * Brunch and Stock are selected through the product UI.
  */
 const DemoCommands = ({
-  createNewNet,
   brunchSelected,
   selectAssistant,
 }: {
-  createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   brunchSelected: boolean;
   selectAssistant: (selection: "brunch" | "stock") => void;
 }) => {
-  useCommand({
-    id: "demo.net.new",
-    label: "Create a new empty net",
-    category: "Demo",
-    keywords: ["file"],
-    run: () =>
-      createNewNet({ petriNetDefinition: emptySDCPN, title: "New Process" }),
-  });
   useCommand(
     {
       id: "demo.assistant.switch",
@@ -503,7 +274,7 @@ export const LocalStorageDemoApp = ({
     }
 
     const abortController = new AbortController();
-    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- reset stale capability before a newly selected Brunch session checks Voice
+    // eslint-disable-next-line react/set-state-in-effect -- reset stale capability before a newly selected Brunch session checks Voice
     setOpenAIVoiceConfig(undefined);
     void loadOpenAIVoiceConfig(
       globalThis.fetch.bind(globalThis),
@@ -517,84 +288,7 @@ export const LocalStorageDemoApp = ({
     return () => abortController.abort();
   }, [brunchSelected]);
 
-  // Live editable document handle for the selected net only.
-  const [storedHandle, setStoredHandle] = useState<ActiveHandle | null>(null);
-  // The most recent change the repository refused to persist, if any. It is
-  // about the open document: cleared once a later change to that document
-  // lands, or when another document is opened in its place.
-  const [persistFailure, setPersistFailure] = useState<PersistFailure | null>(
-    null,
-  );
-
-  // The handle follows the repository: it is recreated from the repository's
-  // record whenever the two diverge — another document is open, the record
-  // shows a revision this handle never emitted (another tab wrote it), or the
-  // repository refused one of this handle's changes, after which every further
-  // change from it would be refused too, because each names the rejected
-  // revision as predecessor. It is decided during render, not in an effect, so
-  // no render pairs the open document with another document's handle.
-  const activeHandle =
-    currentDocument === null
-      ? null
-      : storedHandle?.document.documentId === currentDocument.documentId &&
-          storedHandle.document.incarnationId ===
-            currentDocument.incarnationId &&
-          storedHandle.emittedRevisionIds.has(currentDocument.revisionId) &&
-          persistFailure?.handle !== storedHandle.handle
-        ? storedHandle
-        : createActiveHandle(currentDocument);
-  if (activeHandle !== storedHandle) setStoredHandle(activeHandle);
-  if (
-    persistFailure !== null &&
-    currentDocument !== null &&
-    (persistFailure.documentId !== currentDocument.documentId ||
-      persistFailure.incarnationId !== currentDocument.incarnationId)
-  )
-    setPersistFailure(null);
-
-  // Saving the handle's changes subscribes to it, so it stays an effect: the
-  // subscription must end with its handle, and render may create handles that
-  // React discards.
-  useEffect(() => {
-    if (!activeHandle) {
-      return;
-    }
-
-    const { document, emittedRevisionIds, handle } = activeHandle;
-    return handle.subscribe((event) => {
-      emittedRevisionIds.add(event.revisionId);
-      repository
-        .persistRevision({
-          documentId: document.documentId,
-          incarnationId: document.incarnationId,
-          definition: event.next,
-          previousRevisionId: event.previousRevisionId,
-          revisionId: event.revisionId,
-        })
-        .then(
-          () =>
-            setPersistFailure((failure) =>
-              failure?.documentId === document.documentId &&
-              failure.incarnationId === document.incarnationId
-                ? null
-                : failure,
-            ),
-          (error: unknown) =>
-            setPersistFailure({
-              handle,
-              documentId: document.documentId,
-              incarnationId: document.incarnationId,
-              error: error instanceof Error ? error : new Error(String(error)),
-            }),
-        );
-    });
-  }, [activeHandle, repository]);
-  const unsavedChangeMessage =
-    persistFailure !== null &&
-    persistFailure.documentId === currentDocument?.documentId &&
-    persistFailure.incarnationId === currentDocument.incarnationId
-      ? persistFailure.error.message
-      : null;
+  const { activeHandle, unsavedChangeMessage } = useActiveHandle(repository);
 
   const existingNets: MinimalNetMetadata[] = repository.records
     .map((document) => ({
@@ -630,19 +324,18 @@ export const LocalStorageDemoApp = ({
   const [freshConversationIds, setFreshConversationIds] = useState<
     Record<string, string>
   >({});
-  const incarnationId = currentDocument?.incarnationId;
   const baseConstructionConversationId = useMemo(() => {
-    if (!brunchSelected || incarnationId === undefined) return undefined;
-    const initialId = ordinaryConstructionConversationIdFrom(incarnationId);
+    if (!brunchSelected || currentNetId === null) return undefined;
+    const initialId = ordinaryConstructionConversationIdFrom(currentNetId);
     return (
-      freshConversationIds[incarnationId] ??
+      freshConversationIds[currentNetId] ??
       getOrCreateBrunchConversationId(
         initialId,
         window.localStorage,
         () => initialId,
       )
     );
-  }, [brunchSelected, freshConversationIds, incarnationId]);
+  }, [brunchSelected, currentNetId, freshConversationIds]);
   const fixtureProcessAgentConfiguration = useMemo<
     FixtureProcessAgentConfiguration | undefined
   >(
@@ -741,14 +434,28 @@ export const LocalStorageDemoApp = ({
   const constructionClientTools = brunchSelected
     ? brunchPetrinautClientToolNames
     : undefined;
+  const flueAdapter = useMemo(
+    () =>
+      createBrunchFlueAdapter(
+        {
+          clientToolNames:
+            constructionClientTools ?? canonicalPetrinautClientToolNames,
+          dynamicClientToolNames,
+        },
+        {
+          onInvalidReopenedMetadata: ({ messageId, error }) =>
+            reportBrunchFailure("reopened-metadata", error, { messageId }),
+        },
+      ),
+    [constructionClientTools, dynamicClientToolNames, reportBrunchFailure],
+  );
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
-    constructionClientTools,
-    dynamicClientToolNames,
+    flueAdapter,
   );
   const replayBindingKey = constructionBrowser
-    ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.incarnationId}:${constructionBrowser.binding.conversationId}`
+    ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
     : undefined;
   const deriveCanonicalReplay = useCallback(
     async (snapshot: NonNullable<typeof flueHistory.snapshot>) => {
@@ -768,28 +475,14 @@ export const LocalStorageDemoApp = ({
     snapshot: flueHistory.snapshot,
     derive: deriveCanonicalReplay,
   }) satisfies CanonicalPetrinautReplayReadiness;
-  // A persisted revision can change the repository action's identity while a
-  // canonical tool is still settling. Keep the host adapter's evidence store
-  // alive, but dispatch settlement through the latest committed action.
-  const settleConstructionRevision = useCurrentSettlementAction(
-    // eslint-disable-next-line typescript/unbound-method -- repository actions do not use `this`
-    repository.settleRevision,
-  );
   const canonicalHostTools = useMemo(() => {
     if (!constructionBrowser || !activeHandle) return undefined;
     return createCanonicalPetrinautHostTools({
       handle: activeHandle.handle,
-      binding: constructionBrowser.binding,
       readTitle: () => activeHandle.document.title,
       replayReadiness: canonicalReplayReadiness,
-      settleRevision: settleConstructionRevision,
     });
-  }, [
-    activeHandle,
-    canonicalReplayReadiness,
-    constructionBrowser,
-    settleConstructionRevision,
-  ]);
+  }, [activeHandle, canonicalReplayReadiness, constructionBrowser]);
   const mediationHistory = useVoiceMediationHistory(conversationId);
   const mapVoiceMessages = useSyncExternalStore(
     mediationHistory?.subscribe ?? subscribeToNothing,
@@ -822,6 +515,7 @@ export const LocalStorageDemoApp = ({
         flueHistory.settlements,
         flueHistory.snapshot,
         mediationHistory,
+        (toolCallId) => mutationApproval.coordinator.approvalState(toolCallId),
       ),
     [
       brunchSelected,
@@ -829,6 +523,7 @@ export const LocalStorageDemoApp = ({
       flueHistory.settlements,
       flueHistory.snapshot,
       mediationHistory,
+      mutationApproval,
       openAIVoiceConfig,
       realtimeEnabled,
       realtimePreferenceReady,
@@ -857,17 +552,7 @@ export const LocalStorageDemoApp = ({
                 },
               }
             : {}),
-          ...(constructionClientTools === undefined
-            ? {}
-            : {
-                clientToolNames: constructionClientTools,
-                dynamicClientToolNames,
-                ...(canonicalHostTools === undefined
-                  ? {}
-                  : {
-                      mapClientToolInput: (call) => call.input,
-                    }),
-              }),
+          adapter: flueAdapter,
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
             reportBrunchFailure("server-tool", new Error(event.errorText), {
@@ -882,10 +567,8 @@ export const LocalStorageDemoApp = ({
   }, [
     conversationTracker,
     conversationId,
-    constructionClientTools,
     constructionBrowser,
-    canonicalHostTools,
-    dynamicClientToolNames,
+    flueAdapter,
     flueClientPromise,
     flueHistory.refresh,
     reportBrunchFailure,
@@ -899,7 +582,7 @@ export const LocalStorageDemoApp = ({
             client: flueClientPromise,
             principalKey: brunchPrincipal,
             binding: constructionBrowser.binding,
-            metadataFor: async (toolCallId, output) =>
+            metadataFor: (toolCallId, output) =>
               canonicalHostTools?.clientToolResultMetadataFor(
                 toolCallId,
                 output,
@@ -1016,14 +699,14 @@ export const LocalStorageDemoApp = ({
         }));
       },
       onClearMessages: () => {
-        if (flueClientPromise !== null && incarnationId !== undefined) {
+        if (flueClientPromise !== null && currentNetId !== null) {
           const initialId =
-            ordinaryConstructionConversationIdFrom(incarnationId);
+            ordinaryConstructionConversationIdFrom(currentNetId);
           const nextId = `${initialId}:${crypto.randomUUID()}`;
           replaceBrunchConversationId(initialId, nextId);
           setFreshConversationIds((current) => ({
             ...current,
-            [incarnationId]: nextId,
+            [currentNetId]: nextId,
           }));
           return;
         }
@@ -1051,7 +734,6 @@ export const LocalStorageDemoApp = ({
     canonicalHostTools,
     inBandBrowserTools,
     draftInteractiveTool,
-    incarnationId,
     mutationApprovalTools,
     constructionBrowser,
     conversationTracker,
@@ -1084,86 +766,46 @@ export const LocalStorageDemoApp = ({
       }}
     >
       {unsavedChangeMessage !== null ? (
-        // Host notices are centred below Petrinaut's 64px top bar and stacked
-        // above its side panels (z-index 1097) and bar (1100), so neither can
-        // hide them.
-        <div
-          style={{
-            alignItems: "center",
-            display: "flex",
-            flexDirection: "column",
-            fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
-            fontSize: 14,
-            gap: 8,
-            left: "50%",
-            maxWidth: "calc(100vw - 32px)",
-            pointerEvents: "none",
-            position: "fixed",
-            top: 80,
-            transform: "translateX(-50%)",
-            zIndex: 1200,
-          }}
-        >
-          <p
-            role="alert"
-            style={{
-              background: "#fff1f0",
-              border: "1px solid #ffa39e",
-              borderRadius: 8,
-              boxShadow: "0 2px 8px rgba(20, 33, 50, 0.12)",
-              color: "#a8071a",
-              margin: 0,
-              padding: "10px 12px",
-            }}
-          >
-            Changes not saved: {unsavedChangeMessage} The editor shows the last
-            saved version.
-          </p>
-        </div>
+        <UnsavedChangeNotice message={unsavedChangeMessage} />
       ) : null}
-      {/* The settings are mounted here, above the editor, so the demo's own
-          command and selector read the same persisted state the editor does. */}
-      <UserSettingsProvider>
-        <CommandRegistryProvider>
-          <WalkthroughProvider steps={walkthroughSteps}>
-            <Petrinaut
-              aiAssistant={aiAssistant}
-              handle={activeHandle.handle}
-              existingNets={existingNets}
-              createNewNet={createNewNet}
-              loadPetriNet={loadPetriNet}
-              navigation={navigation}
-              readonly={false}
-              setTitle={setTitle}
-              slots={{
-                settingsLabs: (
-                  <AssistantLabsSettings
-                    assistantReady={assistantSelectionReady}
-                    brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
-                    brunchSelected={brunchSelected}
-                    openAIVoiceConfig={openAIVoiceConfig}
-                    realtimeEnabled={realtimeEnabled}
-                    realtimePreferenceReady={realtimePreferenceReady}
-                    selectAssistant={selectAssistant}
-                    setRealtimeEnabled={setRealtimeEnabled}
-                    setVoiceEnabled={setVoiceEnabled}
-                    voiceEnabled={brunchSelected && voiceEnabled}
-                    voicePreferenceReady={voicePreferenceReady}
-                  />
-                ),
-              }}
-              title={currentDocument.title}
-              viewportActions={[sentryFeedbackAction]}
-            />
-          </WalkthroughProvider>
-          <DemoCommands
+      <CommandRegistryProvider>
+        <WalkthroughProvider steps={walkthroughSteps}>
+          <Petrinaut
+            aiAssistant={aiAssistant}
+            handle={activeHandle.handle}
+            existingNets={existingNets}
             createNewNet={createNewNet}
-            brunchSelected={brunchSelected}
-            selectAssistant={selectAssistant}
+            loadPetriNet={loadPetriNet}
+            navigation={navigation}
+            readonly={false}
+            setTitle={setTitle}
+            slots={{
+              settingsLabs: (
+                <AssistantLabsSettings
+                  assistantReady={assistantSelectionReady}
+                  brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
+                  brunchSelected={brunchSelected}
+                  openAIVoiceConfig={openAIVoiceConfig}
+                  realtimeEnabled={realtimeEnabled}
+                  realtimePreferenceReady={realtimePreferenceReady}
+                  selectAssistant={selectAssistant}
+                  setRealtimeEnabled={setRealtimeEnabled}
+                  setVoiceEnabled={setVoiceEnabled}
+                  voiceEnabled={brunchSelected && voiceEnabled}
+                  voicePreferenceReady={voicePreferenceReady}
+                />
+              ),
+            }}
+            title={currentDocument.title}
+            viewportActions={[sentryFeedbackAction]}
           />
-          <CommandPalette />
-        </CommandRegistryProvider>
-      </UserSettingsProvider>
+        </WalkthroughProvider>
+        <DemoCommands
+          brunchSelected={brunchSelected}
+          selectAssistant={selectAssistant}
+        />
+        <CommandPalette />
+      </CommandRegistryProvider>
     </div>
   );
 };

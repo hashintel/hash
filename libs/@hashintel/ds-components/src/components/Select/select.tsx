@@ -15,23 +15,22 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { OverflowRow } from "../../util/OverflowRow/overflow-row";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
+import { hasMultiItemSuffix } from "../../util/SelectableList/has-multi-item-suffix";
 import {
   SelectableList,
-  isCustomItem,
   type Item,
   type ItemOrGroup,
 } from "../../util/SelectableList/selectable-list";
-import {
-  hasMultiItemSuffix,
-  MultiItemSuffix,
-} from "../../util/SelectableList/selectable-list-multi-suffix";
+import { MultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
 import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
 import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
 import { SelectableListSelectionSummary } from "../../util/SelectableList/selectable-list-selection-summary";
 import {
   getItemId,
   getVisibleTabbables,
+  isCustomItem,
 } from "../../util/SelectableList/selectable-list-util";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
@@ -1085,7 +1084,7 @@ export const Select = <TValue extends string>({
         )}
       </div>
       <Portal container={portalContainerRef}>
-        <ArkSelect.Positioner>
+        <ArkSelect.Positioner className={parkedPopperPositioner}>
           <SelectableList
             as="Select"
             className={classes.list}

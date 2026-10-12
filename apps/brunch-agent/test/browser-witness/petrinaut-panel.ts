@@ -11,7 +11,12 @@ import {
   type Context,
 } from "@earendil-works/pi-ai";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent/client-tools";
+import {
+  canonicalizePetrinautIds,
+  toPetrinautId,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
 import {
   isAppliedChange,
@@ -25,8 +30,6 @@ import {
   prepareWitnessProcess,
   toolCall,
 } from "./browser-fixture.ts";
-
-import type { SDCPN } from "@hashintel/petrinaut-core";
 
 prepareWitnessProcess("browser-witness");
 const faux = installFauxOpenai();
@@ -51,10 +54,11 @@ const experimentNet: SDCPN = {
   ],
   metrics: [{ id: "throughput", name: "Throughput", code: "return 1;" }],
 };
+const experimentNetId = toPetrinautId("experiment-net");
+const draftNetId = toPetrinautId("draft-net");
 const savedDocument = (id: string, sdcpn: SDCPN) => ({
   [id]: {
     id,
-    incarnationId: `${id}-incarnation`,
     revisionId: `${id}-revision`,
     title: "Queue",
     lastUpdated: "2020-01-01T00:00:00.000Z",
@@ -67,8 +71,12 @@ const settledResult = (context: Context, toolName: string) => {
   );
   assert(result?.role === "toolResult" && !result.isError);
 };
+/** The browser stamps calls with a SHA-256 hash of the document's content. */
+const assertContentRevision = (revision: string | undefined) => {
+  assert.match(revision ?? "", /^[0-9a-f]{64}$/u);
+};
 
-/** Canonical construction and compiler diagnostics, settled into browser storage and Flue history. */
+/** Canonical construction and compiler diagnostics, written to browser storage and Flue history. */
 const canonicalConstruction = async () => {
   const dirtyCode = "return definitelyNotDefined;";
   const repairedCode = "return tokens.map(({ level }) => ({ level: -level }));";
@@ -159,6 +167,7 @@ const canonicalConstruction = async () => {
   const before = call("read-before");
   const repair = call("equation-repair");
   const after = call("read-after");
+  assertContentRevision(before.revisionBefore);
   assert.equal(before.revisionAfter, undefined);
   assert.equal(call("type-1").revisionBefore, before.revisionBefore);
   assert.equal(isAppliedChange(call("place-1")), true);
@@ -170,25 +179,24 @@ const canonicalConstruction = async () => {
     call("diagnostics-clean").output,
     "No errors or warnings found in net function code. Scenario and metric compilation is checked when creating an experiment.",
   );
-  assert(repair.revisionAfter);
+  assertContentRevision(repair.revisionAfter);
+  assert.notEqual(repair.revisionAfter, repair.revisionBefore);
   assert.equal(after.revisionBefore, repair.revisionAfter);
   assert.equal(after.revisionAfter, undefined);
   assert.deepEqual(
     (after.output as { definition: SDCPN }).definition.places.map(
       ({ id }) => id,
     ),
-    ["store"],
+    [toPetrinautId("store")],
   );
-  const stored = await fixture.storedDocument<{
-    revisionId: string;
-    incarnationId: string;
-    sdcpn: SDCPN;
-  }>(page, binding.documentId);
-  assert.equal(stored?.incarnationId, binding.incarnationId);
-  assert.equal(stored.revisionId, repair.revisionAfter);
+  const stored = await fixture.storedDocument<{ sdcpn: SDCPN }>(
+    page,
+    binding.documentId,
+  );
+  assert(stored);
   assert.deepEqual(
     stored.sdcpn.differentialEquations.map(({ id, code }) => ({ id, code })),
-    [{ id: "decay", code: repairedCode }],
+    [{ id: toPetrinautId("decay"), code: repairedCode }],
   );
 };
 
@@ -207,7 +215,7 @@ const directExperiment = async () => {
   };
   const page = await fixture.openAssistant(
     "/",
-    savedDocument("experiment-net", experimentNet),
+    savedDocument(experimentNetId, experimentNet),
   );
   faux.setResponses([
     toolCall("getLatestNetDefinition", {}, "read-1"),
@@ -229,8 +237,8 @@ const directExperiment = async () => {
     ({ toolCallId }) => toolCallId === openaiCallId("experiment-1"),
   );
   assert(read && result);
-  assert.equal(read.revisionBefore, "experiment-net-revision");
-  assert.equal(result.revisionBefore, "experiment-net-revision");
+  assertContentRevision(read.revisionBefore);
+  assert.equal(result.revisionBefore, read.revisionBefore);
   assert.equal(result.revisionAfter, undefined);
   assert.deepEqual(result.input, experiment);
   assert.equal((result.output as { status: string }).status, "complete");
@@ -238,15 +246,16 @@ const directExperiment = async () => {
     revisionId: string;
     sdcpn: SDCPN;
   }>(page, binding.documentId);
-  assert.equal(stored?.revisionId, "experiment-net-revision");
-  assert.deepEqual(stored.sdcpn, experimentNet);
+  assert.equal(stored?.revisionId, `${experimentNetId}-revision`);
+  // The website stores the net with its ids converted.
+  assert.deepEqual(stored.sdcpn, canonicalizePetrinautIds(experimentNet));
 };
 
 /** A drafted experiment reaches the real card, and Dismiss stays in the browser. */
 const draftedExperiment = async () => {
   const page = await fixture.openAssistant(
     "/",
-    savedDocument("draft-net", experimentNet),
+    savedDocument(draftNetId, experimentNet),
   );
   faux.setResponses([
     toolCall("getLatestNetDefinition", {}, "read-1"),
@@ -294,8 +303,7 @@ const draftedExperiment = async () => {
     .waitFor({ timeout: 30_000 });
   assert.equal(delivery.kind, "user");
   const { binding, client } = await fixture.conversationOf(page, delivery);
-  assert.equal(binding.documentId, "draft-net");
-  assert.equal(binding.incarnationId, "draft-net-incarnation");
+  assert.equal(binding.documentId, draftNetId);
   const history = await client.history();
   const results = clientToolHistoryFrom(history.messages).results;
   assert.deepEqual(

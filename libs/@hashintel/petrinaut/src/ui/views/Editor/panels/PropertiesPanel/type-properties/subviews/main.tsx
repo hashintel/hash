@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { v4 as uuidv4 } from "uuid";
 
 import {
   Button,
@@ -11,6 +10,7 @@ import {
 } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import {
+  generatePetrinautId,
   validateDisplayName,
   type ColorElementType,
 } from "@hashintel/petrinaut-core";
@@ -213,7 +213,7 @@ const TypeMainContent: React.FC = () => {
     const nextNumber = maxNumber + 1;
 
     const newElement = {
-      elementId: uuidv4(),
+      elementId: generatePetrinautId(),
       name: `dimension_${nextNumber}`,
       type: "real" as const,
     };

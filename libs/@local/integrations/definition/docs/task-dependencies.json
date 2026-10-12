@@ -1,0 +1,41 @@
+{
+  "package": "hash-integrations-definition",
+  "dependencies": [
+    "error-stack",
+    "type-system"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": {
+      "dependsOn": [
+        "hash-repo-chores#build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
+      ]
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
+    }
+  }
+}

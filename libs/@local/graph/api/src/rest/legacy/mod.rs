@@ -2,6 +2,7 @@
 
 //! Legacy Graph HTTP handlers and their OpenAPI document.
 
+mod api_token;
 pub mod data_type;
 pub mod entity;
 pub mod entity_type;
@@ -38,6 +39,7 @@ use hash_graph_embeddings::{EmbeddingError, EmbeddingGenerator as _, OpenAiEmbed
 use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
 use hash_graph_store::{
     account::AccountStore,
+    api_token::ApiTokenStore,
     data_type::DataTypeStore,
     entity::{DiffEntityParams, EntityStore},
     entity_type::EntityTypeStore,
@@ -225,7 +227,7 @@ static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/rest/lega
 pub(crate) fn routes<S>() -> Router
 where
     S: StorePool + Send + Sync + 'static,
-    for<'pool> S::Store<'pool>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'pool> S::Store<'pool>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
 {
     [
         data_type::DataTypeResource::routes::<S>(),
@@ -234,6 +236,7 @@ where
         entity::EntityResource::routes::<S>(),
         permissions::PermissionResource::routes::<S>(),
         principal::PrincipalResource::routes::<S>(),
+        api_token::ApiTokenResource::routes::<S>(),
         hashql::HashQlResource::routes(),
     ]
     .into_iter()
@@ -248,6 +251,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         entity::EntityResource::openapi(),
         permissions::PermissionResource::openapi(),
         principal::PrincipalResource::openapi(),
+        api_token::ApiTokenResource::openapi(),
         hashql::HashQlResource::openapi(),
     ]
 }

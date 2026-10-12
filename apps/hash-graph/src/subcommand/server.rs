@@ -3,6 +3,7 @@ use core::{
     fmt,
     net::{AddrParseError, SocketAddr},
     num::NonZero,
+    pin::Pin,
     str::FromStr,
     time::Duration,
 };
@@ -17,7 +18,10 @@ use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
         self,
-        authentication::{CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig},
+        authentication::{
+            CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig,
+            api_token::{self, ApiTokenEncryptionKey, ApiTokenIssuer},
+        },
         legacy::{
             ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext,
             hashql::CompilerContext,
@@ -32,8 +36,13 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
     SemanticSearchSettings,
 };
-use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
+use hash_graph_store::{
+    api_token::{ApiTokenEncryptionKeyId, ApiTokenStore},
+    filter::protection::PropertyProtectionFilterConfig,
+    pool::StorePool,
+};
 use hash_graph_type_fetcher::FetchingPool;
+use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
@@ -44,12 +53,15 @@ use tokio::{io, net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
+use uuid::Uuid;
 
 use crate::{
     error::{GraphError, HealthcheckError},
     subcommand::{
         HealthcheckArgs, ServerLifecycle,
-        admin_server::{AdminConfig, cloudflare_access_config, start_admin_server},
+        admin_server::{
+            AdminConfig, cloudflare_access_config, require_service_secret, start_admin_server,
+        },
         type_fetcher::{
             REACHABILITY_WINDOW, TypeFetcherConfig, start_type_fetcher, wait_for_type_fetcher,
         },
@@ -254,6 +266,89 @@ impl KratosSessionAuthConfig {
     }
 }
 
+/// The environment an API token belongs to.
+#[derive(Debug, Copy, Clone, clap::ValueEnum)]
+pub enum ApiTokenEnvironment {
+    /// The production deployment.
+    Production,
+    /// The staging deployment.
+    Staging,
+    /// A deployment on a developer's machine or in CI.
+    Local,
+}
+
+impl From<ApiTokenEnvironment> for api_token::Environment {
+    fn from(environment: ApiTokenEnvironment) -> Self {
+        match environment {
+            ApiTokenEnvironment::Production => Self::Production,
+            ApiTokenEnvironment::Staging => Self::Staging,
+            ApiTokenEnvironment::Local => Self::Local,
+        }
+    }
+}
+
+/// Configuration for issuing API tokens.
+///
+/// API tokens are unavailable when none of the three options is set. Setting only some of them is
+/// an error.
+#[derive(Debug, Clone, Parser)]
+#[expect(
+    clippy::struct_field_names,
+    reason = "the field names are the command-line options, which share the `api-token` prefix"
+)]
+pub struct ApiTokenConfig {
+    /// The AES-256-GCM key that encrypts the secret hashes of API tokens, as 64 hexadecimal
+    /// characters.
+    #[clap(
+        long,
+        env = "HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY",
+        hide_env_values = true
+    )]
+    pub api_token_encryption_key: Option<Pin<Box<Secret<[u8; 32]>>>>,
+
+    /// The ID recorded with every secret hash the key encrypts. A new key needs a new ID.
+    #[clap(long, env = "HASH_GRAPH_API_TOKEN_ENCRYPTION_KEY_ID")]
+    pub api_token_encryption_key_id: Option<Uuid>,
+
+    /// The environment of the API tokens this server issues.
+    #[clap(long, env = "HASH_GRAPH_API_TOKEN_ENVIRONMENT", value_enum)]
+    pub api_token_environment: Option<ApiTokenEnvironment>,
+}
+
+impl ApiTokenConfig {
+    /// Builds the API token issuer from the CLI configuration, or `None` if no API token option
+    /// is set.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError`] if only some API token options are set.
+    pub(crate) fn issuer(&self) -> Result<Option<ApiTokenIssuer>, Report<GraphError>> {
+        let (key, key_id, environment) = match (
+            &self.api_token_encryption_key,
+            self.api_token_encryption_key_id,
+            self.api_token_environment,
+        ) {
+            (None, None, None) => {
+                tracing::warn!("API tokens are unavailable because no API token option is set");
+                return Ok(None);
+            }
+            (Some(key), Some(key_id), Some(environment)) => (key, key_id, environment),
+            _ => {
+                return Err(Report::new(GraphError).attach(
+                    "--api-token-encryption-key, --api-token-encryption-key-id and \
+                     --api-token-environment must be set together",
+                ));
+            }
+        };
+
+        tracing::info!(%key_id, ?environment, "API tokens enabled");
+        Ok(Some(ApiTokenIssuer::new(
+            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(key_id), key),
+            api_token::Environment::from(environment),
+        )))
+    }
+}
+
 /// Configuration for the main graph API server.
 ///
 /// Groups HTTP address, RPC address, temporal client, store behavior, and
@@ -262,7 +357,7 @@ impl KratosSessionAuthConfig {
     clippy::struct_excessive_bools,
     reason = "CLI arguments are boolean flags."
 )]
-#[derive(derive_more::Debug, Clone, Parser)]
+#[derive(Debug, Clone, Parser)]
 pub struct ServerConfig {
     #[clap(flatten)]
     pub http_address: HttpAddress,
@@ -282,8 +377,7 @@ pub struct ServerConfig {
     /// If not set, the entity and entity-type search endpoints cannot resolve a `semanticString`;
     /// callers must provide a precomputed `embedding` instead.
     #[clap(long, env = "HASH_GRAPH_OPENAI_API_KEY", hide_env_values = true)]
-    #[debug("***")]
-    pub openai_api_key: Option<String>,
+    pub openai_api_key: Option<Pin<Box<Secret<str>>>>,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
     /// a domain that doesn't satisfy the pattern will error.
@@ -357,13 +451,17 @@ pub struct ServerConfig {
     /// Shared secret internal services present to act on behalf of an actor.
     ///
     /// Sent as the `Authorization: HASH-Service <secret>` credential, either next to
-    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes.
+    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes. The value is used as given:
+    /// an empty value, one that starts or ends with whitespace, or one with characters other
+    /// than printable ASCII stops the server.
     //
     // Optional at parse time so `--healthcheck` does not require the environment variable. The
     // server refuses to start without it.
     #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
-    #[debug("***")]
-    pub service_secret: Option<String>,
+    pub service_secret: Option<Pin<Box<Secret<str>>>>,
+
+    #[clap(flatten)]
+    pub api_tokens: ApiTokenConfig,
 
     #[clap(flatten)]
     pub compiler: CompilerConfig,
@@ -479,7 +577,8 @@ fn create_embedding_client(
     let Some(api_key) = config
         .openai_api_key
         .as_ref()
-        .filter(|api_key| !api_key.trim().is_empty())
+        .map(|api_key| api_key.expose().trim())
+        .filter(|api_key| !api_key.is_empty())
     else {
         tracing::warn!(
             "`HASH_GRAPH_OPENAI_API_KEY` is not set; semantic-string search is disabled. Search \
@@ -489,7 +588,7 @@ fn create_embedding_client(
     };
 
     let client = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
-        api_key: api_key.trim().to_owned(),
+        api_key: Secret::from_string(api_key.to_owned()).to_arc(),
         base_url: None,
     })
     .change_context(GraphError)?;
@@ -562,12 +661,12 @@ where
     Ok(())
 }
 
-/// Starts the main graph API server (REST + optional RPC).
 /// Resolved authentication configuration for the REST and admin routers.
 pub(crate) struct AuthenticationSetup {
     pub session_auth: KratosSessionConfig,
     pub cloudflare_access: Option<CloudflareAccessConfig>,
-    pub service_secret: String,
+    pub service_secret: Pin<Arc<Secret<str>>>,
+    pub api_tokens: Option<Arc<ApiTokenIssuer>>,
 }
 
 #[expect(
@@ -586,7 +685,7 @@ async fn start_server<S>(
 ) -> Result<(), Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
 {
     let store = Arc::new(pool);
     let temporal_client = create_temporal_client(&config.temporal)
@@ -619,6 +718,7 @@ where
         session_auth: authentication.session_auth,
         cloudflare_access: authentication.cloudflare_access,
         service_secret: authentication.service_secret,
+        api_tokens: authentication.api_tokens,
         rate_limit: config.rate_limit,
         meter,
         compiler,
@@ -642,20 +742,8 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
     // without tearing down established connections.
     let session_auth = args.config.session_auth.clone().into_provider_config()?;
     let cloudflare_access = cloudflare_access_config(&args.admin)?;
-    // HTTP strips surrounding whitespace from header values, so the senders' secret arrives
-    // trimmed. Trimming here keeps both sides comparing the same bytes.
-    let service_secret = args
-        .config
-        .service_secret
-        .clone()
-        .map(|secret| secret.trim().to_owned())
-        .filter(|secret| !secret.is_empty())
-        .ok_or_else(|| {
-            Report::new(GraphError).attach(
-                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
-                 running the server",
-            )
-        })?;
+    let service_secret = require_service_secret(args.config.service_secret.take())?;
+    let api_tokens = args.config.api_tokens.issuer()?.map(Arc::new);
 
     let pool = PostgresStorePool::new(
         &args.db_info,
@@ -698,7 +786,7 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
         start_admin_server(
             pool.clone(),
             args.admin,
-            service_secret.clone(),
+            Pin::clone(&service_secret),
             telemetry.meter("Graph Admin API"),
             &lifecycle,
         );
@@ -764,6 +852,7 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
             session_auth,
             cloudflare_access,
             service_secret,
+            api_tokens,
         },
         query_logger,
         telemetry.meter("Graph API"),
@@ -834,11 +923,114 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
 
 #[cfg(test)]
 mod tests {
-    use core::num::NonZero;
+    use core::{num::NonZero, pin::Pin};
 
+    use hash_graph_api::rest::authentication::api_token::{
+        ApiTokenEncryptionKey, Environment, HashedApiToken, IssuedApiToken,
+    };
+    use hash_graph_store::api_token::{ApiTokenEncryptionKeyId, ApiTokenName};
+    use hash_secret::Secret;
     use reqwest::Url;
+    use rstest::rstest;
+    use type_system::principal::{
+        actor::{ActorEntityUuid, UserId},
+        actor_group::WebId,
+    };
+    use uuid::Uuid;
 
-    use super::KratosSessionAuthConfig;
+    use super::{ApiTokenConfig, ApiTokenEnvironment, KratosSessionAuthConfig};
+
+    /// A key in mixed case, `00 11 … ff` twice.
+    const MIXED_CASE_KEY: &str = "00112233445566778899AaBbCcDdEeFf00112233445566778899aAbBcCdDeEfF";
+
+    fn key() -> Pin<Box<Secret<[u8; 32]>>> {
+        Secret::<[u8; 32]>::from_hex(MIXED_CASE_KEY.to_owned()).expect("the key should decode")
+    }
+
+    #[test]
+    fn api_tokens_unset() {
+        let issuer = ApiTokenConfig {
+            api_token_encryption_key: None,
+            api_token_encryption_key_id: None,
+            api_token_environment: None,
+        }
+        .issuer()
+        .expect("a configuration without API token options should convert");
+
+        assert!(
+            issuer.is_none(),
+            "API tokens should be unavailable without their options"
+        );
+    }
+
+    #[rstest]
+    #[case::key_missing(None, Some(Uuid::nil()), Some(ApiTokenEnvironment::Local))]
+    #[case::key_id_missing(Some(key()), None, Some(ApiTokenEnvironment::Local))]
+    #[case::environment_missing(Some(key()), Some(Uuid::nil()), None)]
+    fn api_tokens_partial(
+        #[case] api_token_encryption_key: Option<Pin<Box<Secret<[u8; 32]>>>>,
+        #[case] api_token_encryption_key_id: Option<Uuid>,
+        #[case] api_token_environment: Option<ApiTokenEnvironment>,
+    ) {
+        let report = ApiTokenConfig {
+            api_token_encryption_key,
+            api_token_encryption_key_id,
+            api_token_environment,
+        }
+        .issuer()
+        .expect_err("a partial configuration should not convert");
+
+        assert!(
+            format!("{report:?}").contains("must be set together"),
+            "the error should ask for all API token options"
+        );
+    }
+
+    /// The issuer encrypts with the configured key bytes and records the configured key ID.
+    #[test]
+    fn api_tokens_configured_key() {
+        let key_id = ApiTokenEncryptionKeyId::new(Uuid::from_u128(
+            0x4444_4444_4444_4444_4444_4444_4444_4444,
+        ));
+        let issuer = ApiTokenConfig {
+            api_token_encryption_key: Some(key()),
+            api_token_encryption_key_id: Some(Uuid::from(key_id)),
+            api_token_environment: Some(ApiTokenEnvironment::Staging),
+        }
+        .issuer()
+        .expect("a complete configuration should convert")
+        .expect("a complete configuration should make API tokens available");
+        let user_id = UserId::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
+
+        let IssuedApiToken { token, params } = issuer
+            .issue(
+                user_id,
+                ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
+                None,
+            )
+            .expect("the random number generator should provide bytes");
+
+        let hashed = HashedApiToken::from(&token);
+        assert_eq!(
+            hashed.environment(),
+            Environment::Staging,
+            "the token should belong to the configured environment"
+        );
+        assert_eq!(
+            params.encryption_key_id, key_id,
+            "the token should record the configured key ID"
+        );
+        assert_eq!(
+            ApiTokenEncryptionKey::new(key_id, &key())
+                .decrypt(
+                    params.encrypted_secret_hash,
+                    &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),
+                )
+                .expect("the configured key should decrypt the secret hash"),
+            hashed.secret_hash(),
+            "the token should be encrypted with the configured key"
+        );
+    }
 
     #[test]
     fn session_cache_ttl_zero_disables_the_cache() {
