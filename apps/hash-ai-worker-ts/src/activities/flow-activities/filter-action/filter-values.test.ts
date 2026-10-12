@@ -1,15 +1,16 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { filterableKinds } from "./evaluate-condition.js";
+import { filterableKinds } from "@local/hash-isomorphic-utils/flows/filter-condition";
+
 import { evaluateIf, filterList } from "./filter-values.js";
 
+import type { FilterListResult, IfResult } from "./filter-values.js";
+import type { Url } from "@blockprotocol/type-system";
 import type {
   ConditionNode,
   FilterCondition,
   FilterLeaf,
-} from "./evaluate-condition.js";
-import type { FilterListResult, IfResult } from "./filter-values.js";
-import type { Url } from "@blockprotocol/type-system";
+} from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
 
 const all = (...conditions: ConditionNode[]): FilterCondition => ({

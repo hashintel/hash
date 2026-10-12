@@ -1,15 +1,15 @@
+import { validateCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
+
 import {
   evaluateCondition,
   evaluateValidatedCondition,
-  validateCondition,
 } from "./evaluate-condition.js";
 
+import type { ConditionContext, ConditionInput } from "./evaluate-condition.js";
 import type {
-  ConditionContext,
   ConditionError,
-  ConditionInput,
   FilterCondition,
-} from "./evaluate-condition.js";
+} from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type {
   PayloadKind,
   PayloadKindValues,

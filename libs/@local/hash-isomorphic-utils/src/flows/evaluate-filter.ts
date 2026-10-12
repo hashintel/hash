@@ -1,4 +1,4 @@
-import type { PayloadKindValues } from "@local/hash-isomorphic-utils/flows/types";
+import type { PayloadKindValues } from "./types.js";
 
 type FilterPayloadKind = "Text" | "Number" | "Boolean" | "Date" | "EntityId";
 
