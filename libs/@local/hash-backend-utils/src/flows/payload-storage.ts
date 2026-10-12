@@ -116,8 +116,15 @@ const downloadStoredObject = (
     .downloadDirect({ key: storageKey })
     .then((buffer) => JSON.parse(buffer.toString("utf-8")) as unknown);
 
-  /* Don't cache failures, so that a later attempt can retry the download. */
-  download.catch(() => downloadCache.delete(storageKey));
+  /*
+   * Don't cache failures, so that a later attempt can retry the download. A newer download of the same key may have
+   * replaced this one if it was dropped from the cache while pending, so only remove this one.
+   */
+  download.catch(() => {
+    if (downloadCache.get(storageKey) === download) {
+      downloadCache.delete(storageKey);
+    }
+  });
 
   if (downloadCache.size >= maxCachedDownloads) {
     const oldestKey = downloadCache.keys().next().value;
