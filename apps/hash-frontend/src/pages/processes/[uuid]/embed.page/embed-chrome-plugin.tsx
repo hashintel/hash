@@ -1,4 +1,4 @@
-import { definePetrinautPlugin } from "@hashintel/petrinaut";
+import { definePetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 import { EmbedActions, EmbedBreadcrumbs } from "./embed-chrome";
 
