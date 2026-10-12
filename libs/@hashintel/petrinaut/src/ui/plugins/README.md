@@ -50,40 +50,11 @@ one call.
 
 ## Design
 
-- **Hosts render beside the view, not around it.** A host runs the plugin's
-  hook and publishes the result, in a layout effect, to a store the view's
-  outlets read with `useRunningPlugins`. A plugin switched on, off, failing or
-  remounting therefore never remounts the view.
-- **`api` is built once per core instance.** `PluginEditorProvider` creates
-  the access families when the instance changes, as a `readonly` toggle does.
-  Render-scoped inputs (read-only reason, viewed subnet, `setTitle`, records)
-  go into stores that `PluginEditorSync` updates in the first layout effect of
-  every commit; actions read them when called. A plugin's `api` object changes
-  only when its settings snapshot changes.
-- **Undeclared means absent.** `accessApi` picks from the families only what
-  the manifest's `access` names, and `PluginApi` types the same shape, so the
-  type and the runtime object cannot disagree.
-- **Contributions are typed from the manifest.** `PluginContributions`
-  requires every declared key and rejects every other one; a button's
-  `command` is one of the manifest's command keys.
-- **Commands reuse the registry's React binding.** Each declared command is one
-  `useCommand` registration under `<plugin id>.<key>`, replaced only when the
-  spec changes, dropped while `when` is `false` or once the host unmounts.
-- **Every plugin fails alone.** `PluginBoundary` wraps each host and each
-  contribution. A hook that throws marks the plugin `failed`; a contribution
-  that throws renders nothing. Both are reported with the plugin's id and the
-  place.
-- **Settings are per plugin and per browser.** Stored under
-  `petrinaut:plugin:<id>`; a stored value the spec rejects reads as the
-  default. A change gives a new snapshot, which re-runs the hook.
-
-## React Compiler
-
-`PluginHost` calls a hook that differs per plugin, which the compiler cannot
-compile, so it opts out with `"use no memo"`; a host is keyed by its plugin's
-`hostKey`, so it calls one hook for life. `usePluginApi` opts in with
-`"use memo"` because it calls no hook. Plugin hooks are annotated with
-`PluginHook`, never `satisfies`, which the compiler skips.
+[How the editor runs plugins](../../../../../@local/petrinaut-arch-docs/content/plugins/runtime.mdx)
+describes hosts, publishing, remounts, failures, settings storage and the
+React Compiler directives. The
+[Plugin API reference](../../../../../@local/petrinaut-arch-docs/content/plugins/reference.mdx)
+gives the typing rules.
 
 ## Consumers
 
@@ -96,7 +67,9 @@ compile, so it opts out with `"use no memo"`; a host is keyed by its plugin's
 
 ## Tests
 
-Each module has a test beside it. `plugins-provider.test.tsx` covers the
-runtime end to end through `renderPlugins`: hook and object forms, `api`
-identity, settings, failures, services, remounts and commands.
-`define-petrinaut-plugin.test.ts` checks the types with `@ts-expect-error`.
+`plugins-provider.test.tsx` covers the runtime end to end through
+`renderPlugins`: hook and object forms, `api` identity, settings, failures,
+services, remounts and commands. `plugin-editor.test.tsx` covers the access
+families, and `define-petrinaut-plugin.test.ts` checks the types with
+`@ts-expect-error`. Settings, statuses and contribution tags have unit tests
+beside their modules.

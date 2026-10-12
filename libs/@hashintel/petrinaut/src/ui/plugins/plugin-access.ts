@@ -79,7 +79,7 @@ export interface PluginDocumentReader {
   readonly id: string;
   /** The net without the data of disabled extensions; an empty net until the handle is ready. */
   readonly net: ReadableStore<SDCPN>;
-  /** The title the host passed. */
+  /** The title the host passed, or "Untitled" when it passes none. */
   readonly title: ReadableStore<string>;
   readonly extensions: PetrinautExtensionSettings;
   /**

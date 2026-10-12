@@ -9,8 +9,8 @@ A command is a labelled, argument-free action a person picks from a list:
 "Undo", "Add a place", "Auto-layout the net". The registry in
 `petrinaut-core/src/command-registry/command-registry.ts` holds the current
 set. The editor writes to the host's registry, or to its own when the host
-provides none, from components; the host, or a plugin inside the editor,
-reads it and renders a palette. Petrinaut ships no palette.
+provides none. A palette, from the host or a plugin, reads it. Petrinaut ships
+no palette.
 
 ![Who writes to the registry and who reads it](@diagrams/command-registry-flow.svg)
 
@@ -105,8 +105,7 @@ useCommand(
 
 The editor declares its own commands this way in `use-editor-commands.ts`,
 from a null-rendering leaf so their context subscriptions re-render nothing
-else. A plugin declares its commands in its manifest instead, and the editor
-registers them under `<plugin id>.<key>`; see
+else. A plugin declares its commands in its manifest; see
 [Add commands](doc:plugins/writing-a-plugin#add-commands).
 
 ## Register without React

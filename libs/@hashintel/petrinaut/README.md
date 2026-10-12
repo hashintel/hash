@@ -91,9 +91,9 @@ docs:
 
 ## Plugins
 
-A plugin adds buttons, top-bar items, settings and UI to the editor. Its
-manifest declares what it adds and which editor state it reads or changes;
-its hook receives `api` and returns the contributions:
+A plugin adds buttons, top-bar items, commands, settings and UI to the
+editor. Its manifest declares what it adds and which editor state it reads or
+changes; its hook receives `api` and returns the contributions:
 
 ```tsx
 import { useState } from "react";

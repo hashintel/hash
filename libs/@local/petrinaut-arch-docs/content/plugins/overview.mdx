@@ -7,22 +7,19 @@ sidebar_order: 10
 
 A plugin adds buttons, top-bar items, commands, settings and UI to the
 Petrinaut editor.
-This page names the parts of a plugin and where the editor shows what it adds.
-The pages under [Read next](#read-next) cover writing a plugin, the API
-tables, and how the editor runs plugins.
 
 ![From a manifest to the editor's outlets](@diagrams/plugin-definition.svg)
 
 ## The parts
 
-| Part          | What it is                                                                                                                                                                      |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Manifest      | Plain data: what the plugin adds and which editor state it reads or changes.                                                                                                    |
-| Definition    | What `definePetrinautPlugin(manifest)` returns, named `createXPlugin`. It is callable and carries `.manifest`, which User settings reads without running plugin code.           |
-| Hook          | `useXPlugin(api)`: receives `api` and returns the contributions. A plugin whose contributions need no `api` passes them as an object instead.                                   |
-| `api`         | What the manifest grants: `errors` and `notifications` always, `settings` when the manifest declares settings, `document`, `experiments` and `editor` when `access` names them. |
-| Contributions | What the hook returns: an entry for each key the manifest declares, `root` included.                                                                                            |
-| Plugin        | What calling the definition returns, or `definePetrinautPlugin(manifest, implementation)` in one call. `<Petrinaut plugins>` takes an array of them.                            |
+| Part          | What it is                                                                                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manifest      | Plain data: what the plugin adds and which editor state it reads or changes.                                                                                          |
+| Definition    | What `definePetrinautPlugin(manifest)` returns, named `createXPlugin`. It is callable and carries `.manifest`, which User settings reads without running plugin code. |
+| Hook          | `useXPlugin(api)`: receives `api` and returns the contributions. A plugin whose contributions need no `api` passes them as an object instead.                         |
+| `api`         | `errors` and `notifications`, plus `settings` and the `access` families the manifest declares.                                                                        |
+| Contributions | What the hook returns: an entry for each key the manifest declares, `root` included.                                                                                  |
+| Plugin        | What calling the definition returns, or `definePetrinautPlugin(manifest, implementation)` in one call. `<Petrinaut plugins>` takes an array of them.                  |
 
 ## Example
 
@@ -62,8 +59,8 @@ under the same key.
 
 - **The top bar**: buttons and top-bar items, at its start or its end.
 - **The viewport controls**: buttons, below the canvas's built-in buttons.
-- **The command registry**: commands, which a palette the host or another
-  plugin renders lists beside the editor's own.
+- **The command registry**: commands, listed by any palette the host or a
+  plugin renders.
 - **Inside the editor**: `root`, for dialogs, overlays and tours.
 - **User settings**: the plugin's setting rows, and its row under Plugins,
   where the user switches it off.

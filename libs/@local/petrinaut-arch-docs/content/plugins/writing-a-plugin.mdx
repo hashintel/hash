@@ -5,9 +5,8 @@ attachTo: ui.plugins
 sidebar_order: 20
 ---
 
-How to write a plugin, task by task, for plugin authors. It uses the parts
-named in [Plugins](doc:plugins/overview). Exact keys, members and messages are
-in the [Plugin API reference](doc:plugins/reference).
+The parts are named in [Plugins](doc:plugins/overview); exact keys, members
+and messages are in the [Plugin API reference](doc:plugins/reference).
 
 ## Choose a form
 
@@ -56,7 +55,7 @@ export const helpPlugin = definePetrinautPlugin(
   Rendering code may choose among plugins, but keeps the array's identity (a
   module constant, or a literal the React Compiler memoizes): a new array runs
   every plugin's hook again.
-- Export plugins by name, not as default exports.
+- Export plugins as named exports.
 - Put the definition in its own `definition.ts` when another plugin imports it
   for `usePluginService`, so importing it loads no implementation. Such a
   plugin uses the curried form.
@@ -109,15 +108,13 @@ const useHistoryPlugin: PluginHook<typeof createHistoryPlugin> = () => {
 };
 ```
 
-The editor registers each command in its command registry under
-`<plugin id>.<key>` (`example.history.show`), while the plugin runs and
-`when` holds, and keeps the registration pointed at the latest `run`. A
-palette, from the host or from another plugin, lists it with the editor's own
-commands; see [Commands and the palette](doc:commands/usage-manual). When the
-host provides no registry, `<Petrinaut>` provides its own. `shortcut` is
-display only: a plugin that wants the keys bound listens for them itself and
-runs the same handler. `pluginCommandId(id, key)` gives the registered id, for
-a key handler that goes through the registry.
+The editor registers each command as `<plugin id>.<key>`
+(`example.history.show`) while the plugin runs and `when` holds, and keeps the
+registration pointed at the latest `run`. A palette, from the host or from
+another plugin, lists it with the editor's own commands; see
+[Commands and the palette](doc:commands/usage-manual). `shortcut` is display
+only: a plugin that wants the keys bound listens for them itself and runs the
+same handler, or calls `useCommandRegistry()?.execute(pluginCommandId(id, key))`.
 
 ## Render UI inside the editor
 
@@ -164,30 +161,36 @@ const usePlaceCountPlugin: PluginHook<typeof createPlaceCountPlugin> = ({
 Declare in `access` the families the plugin needs, `document`, `experiments`
 and `editor`, each at `"read"` or `"write"`. Only declared families appear on
 `api`; the reference lists [what each level gives](doc:plugins/reference#access).
-`editor` is where the editor is, not what it holds: its `navigation` store
-carries the mode, the views, the selection and the open overlay, and
-`navigate` moves them, so a plugin can open its own settings rows with
+`editor` holds where the editor is: its `navigation` store carries the mode,
+the views, the selection and the open overlay, and `navigate` moves them, so a
+plugin can open its own settings rows with
 `navigate({ overlay: { type: "user-settings", section: "plugins" } })`.
 
 ### Values, stores and actions
 
-| Kind    | Members                                                                                                                                           | Read them                                                                                                                          |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Values  | `document.id`, `document.extensions`, `settings.get()`                                                                                            | Anywhere in the hook or its components.                                                                                            |
-| Stores  | `document.net`, `document.title`, `document.diagnostics`, `experiments.records`, `experiments.optimizationUnavailableReason`, `editor.navigation` | In render: `useStore` or `useStoreSelector`, in the component that shows the value. In handlers, effects and async code: `.get()`. |
-| Actions | `edit.*`, `setTitle`, `diagnose`, `run`, `navigate`, `reveal`, `notifications.add`, `errors.capture`, `settings.set`                              | Call them; they act on the editor as it is when called.                                                                            |
+- **Values**: `document.id`, `document.extensions`, `settings.get()`. Read
+  them anywhere in the hook or its components.
+- **Stores**: `document.net`, `document.title`, `document.diagnostics`,
+  `experiments.records`, `experiments.optimizationUnavailableReason`,
+  `editor.navigation`. In render, read them with `useStore` or
+  `useStoreSelector` in the component that shows the value. In handlers,
+  effects and async code, call `.get()`.
+- **Actions**: `edit.*`, `setTitle`, `diagnose`, `run`, `navigate`, `reveal`,
+  `notifications.add`, `errors.capture`, `settings.set`. They act on the
+  editor as it is when called.
 
-- Read stores in components, not in the hook: a subscription in the hook
+Rules:
+
+- Read stores in the components that show them. A subscription in the hook
   republishes the contributions, and re-renders the editor's outlets, on
   every edit.
 - Never call `.get()` during render: the React Compiler caches the result.
 - After an `await`, read stores with `.get()` and change things through
   actions, never through values captured at render.
-- Pass the family objects (`api.document`, `api.experiments`, `api.editor`,
-  `api.errors`, `api.notifications`) to code that lives as long as the plugin,
-  not `api`.
-  They never change while the plugin is mounted; `api` changes with every
-  setting change.
+- Give code that lives as long as the plugin the family objects
+  (`api.document`, `api.experiments`, `api.editor`, `api.errors`,
+  `api.notifications`). They never change while the plugin is mounted, and
+  `api` changes with every setting change.
 - Write hooks that tolerate extra runs. Editor changes never run a hook again,
   but other events do; see [when hooks run](doc:plugins/runtime#remounts-and-re-runs).
 
@@ -228,6 +231,37 @@ The ids name items of the net the editor shows: the root net, or the subnet at
 `subnetId`. Right after an edit, an id can name a deleted item, so look each
 one up in `document.net` before using it.
 
+### Read diagnostics
+
+`document.diagnostics` holds what the editor's diagnostics indicator and panel
+show. `byUri` is a `Map` from a code document's URI to its LSP diagnostics.
+`parseDocumentUri(uri)` gives the transition or differential equation the URI
+belongs to. Select a number, as for the selection.
+
+```tsx
+const TransitionIssues = ({
+  document,
+  transitionId,
+}: {
+  document: PluginDocumentReader;
+  transitionId: string;
+}) => {
+  const count = useStoreSelector(document.diagnostics, ({ byUri }) =>
+    [...byUri].reduce(
+      (sum, [uri, diagnostics]) =>
+        parseDocumentUri(uri)?.itemId === transitionId
+          ? sum + diagnostics.length
+          : sum,
+      0,
+    ),
+  );
+
+  return count === 0 ? null : <span>{count} issues</span>;
+};
+```
+
+To check a net on demand, call `diagnose()`.
+
 ### Edits return a result
 
 Edits are checked when called, and each returns an `EditResult`:
@@ -258,14 +292,14 @@ version, use `hashPetrinautDocument(document.net.get())` from
 ## Share a service between plugins
 
 ```ts
-// brunch/definition.ts
-export const createBrunchPlugin = definePetrinautPlugin({
+// chat/definition.ts
+export const createChatPlugin = definePetrinautPlugin({
   …,
-  provides: pluginService<BrunchService>(),
+  provides: pluginService<ChatService>(),
 });
 
 // another plugin's hook, or any component the editor renders
-const brunch = usePluginService(createBrunchPlugin); // BrunchService | undefined
+const chat = usePluginService(createChatPlugin); // ChatService | undefined
 ```
 
 `pluginService<T>()` is a type-only marker. `usePluginService(definition)`

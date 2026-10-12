@@ -5,10 +5,7 @@ attachTo: ui.plugins
 sidebar_order: 50
 ---
 
-How `<Petrinaut>` runs its plugins: when hooks run, when plugins remount, what
-a failure stops, and where settings live. For Petrinaut maintainers, and for
-host developers who need to know when plugin code runs. The code is in
-`petrinaut/src/ui/plugins/`.
+The code is in `petrinaut/src/ui/plugins/`.
 
 ![How the editor runs plugins](@diagrams/plugin-runtime.svg)
 
@@ -27,9 +24,9 @@ is mounted.
 ## Publishing contributions
 
 After each commit, a host publishes its contributions, in a layout effect, to
-a store the view's outlets read. Identical contributions publish nothing, and
-a host that unmounts withdraws them. A plugin switched on, off or failing
-therefore never remounts the view. `usePluginService` reads the same store, so
+a store the view's outlets read. The same contributions object publishes
+nothing, and a host that unmounts withdraws them. A plugin switched on, off or
+failing therefore never remounts the view. `usePluginService` reads the same store, so
 a plugin's service is readable a layout pass after the plugin mounts, before
 paint.
 
