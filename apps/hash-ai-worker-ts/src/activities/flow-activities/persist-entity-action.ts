@@ -34,7 +34,7 @@ import {
 
 import type { MatchedEntityUpdate } from "../shared/match-existing-entity.js";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import type {
   PersistedEntityMetadata,
@@ -67,7 +67,7 @@ export const persistEntity = async ({
 }: {
   proposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   draft: boolean;
-}): Promise<ReturnType<AiFlowActionActivity<"persistEntity">>> => {
+}): Promise<ReturnType<FlowActionActivity<"persistEntity">>> => {
   const {
     flowEntityId,
     stepId,
@@ -352,9 +352,9 @@ export const persistEntity = async ({
 /**
  * Flow action activity that persists a single entity.
  */
-export const persistEntityAction: AiFlowActionActivity<
-  "persistEntity"
-> = async ({ inputs }) => {
+export const persistEntityAction: FlowActionActivity<"persistEntity"> = async ({
+  inputs,
+}) => {
   const { draft, proposedEntityWithResolvedLinks: proposedEntityInput } =
     getSimplifiedFlowActionInputs({
       inputs,
