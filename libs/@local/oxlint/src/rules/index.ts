@@ -3,6 +3,7 @@ import { definePlugin } from "@oxlint/plugins";
 import { namingConventions } from "./naming-conventions.js";
 import { noPropertyModifiers } from "./no-property-modifiers.js";
 import { preferOptionsObject } from "./prefer-options-object.js";
+import { preferRustSeverities } from "./prefer-rust-severities.js";
 import { requireRuleChangeComment } from "./require-rule-change-comment.js";
 import { requireSafetyCommentForTypeAssertion } from "./require-safety-comment-for-type-assertion.js";
 import { requireSuppressionComment } from "./require-suppression-comment.js";
@@ -16,6 +17,7 @@ export default definePlugin({
     "naming-conventions": namingConventions,
     "no-property-modifiers": noPropertyModifiers,
     "prefer-options-object": preferOptionsObject,
+    "prefer-rust-severities": preferRustSeverities,
     "require-rule-change-comment": requireRuleChangeComment,
     "require-safety-comment-for-type-assertion":
       requireSafetyCommentForTypeAssertion,
