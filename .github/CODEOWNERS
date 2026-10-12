@@ -42,6 +42,7 @@ task-dependencies.json @hashintel/infra
 /.github/dependabot.yml @hashintel/infra
 /.github/renovate.json @hashintel/infra
 /.github/codecov.yml @hashintel/infra
+/.github/labeler.yml @hashintel/infra
 
 # Environment variable files
 .env @hashintel/infra
