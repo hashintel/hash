@@ -5,6 +5,9 @@ inputs:
   profile:
     description: Cargo profile the job's Rust builds use, `dev` or `release`. Profiles inheriting from one of them, such as `test` or `bench`, use its value.
     default: dev
+  token:
+    description: GitHub token `cargo-binstall` uses to download `bindgen-cli` when the prefix has to be built.
+    required: true
 
 runs:
   using: composite
@@ -13,36 +16,10 @@ runs:
       id: key
       shell: bash
       env:
+        CACHE_KEY: ${{ github.action_path }}/cache-key.py
         PROFILE: ${{ inputs.profile }}
-        ACTION_FILES: ${{ hashFiles('.github/actions/install-aws-lc/**', 'rust-toolchain.toml', '.cargo/config.toml') }}
-        RUNNER_OS_NAME: ${{ runner.os }}
-        RUNNER_ARCH_NAME: ${{ runner.arch }}
-      run: |
-        if [[ $PROFILE != dev && $PROFILE != release ]]; then
-          echo "::error::the AWS-LC profile must be \`dev\` or \`release\`, not \`$PROFILE\`"
-          exit 1
-        fi
-        locked=$(awk '/^\[\[package\]\]/ { if (block ~ /\nname = "(aws-lc-sys|cc)"\n/) print block; block = "" } { block = block "\n" $0 } END { if (block ~ /\nname = "(aws-lc-sys|cc)"\n/) print block }' Cargo.lock)
-        version=$(sed -n '/name = "aws-lc-sys"/{n;s/^version = "\(.*\)"$/\1/p;}' <<<"$locked")
-        if [[ -z $version ]]; then
-          echo "::error::aws-lc-sys is not in Cargo.lock"
-          exit 1
-        fi
-        inputs=$(
-          echo "$locked"
-          echo "profile=$PROFILE"
-          echo "files=$ACTION_FILES"
-          rustc -vV
-          cc --version
-          ar --version | head -n 1
-          env | grep -E '^((TARGET_|HOST_)?(CC|CFLAGS|AR|ARFLAGS|CRATE_CC_NO_DEFAULTS)(_[A-Za-z0-9_.-]+)?|AWS_LC_SYS_[A-Za-z0-9_]+|CARGO_PROFILE_[A-Z_]+|(CARGO_ENCODED_)?RUSTFLAGS)=' | grep -vE '^AWS_LC_SYS_(SYSTEM_DIR|STATIC)' | sort || true
-        )
-        echo "$inputs"
-        {
-          echo "version=$version"
-          echo "key=aws-lc-sys-$version-$RUNNER_OS_NAME-$RUNNER_ARCH_NAME-$PROFILE-$(sha256sum <<<"$inputs" | cut -c 1-16)"
-          echo "prefix=$RUNNER_TEMP/aws-lc-$PROFILE"
-        } >>"$GITHUB_OUTPUT"
+        ACTION_FILES: ${{ hashFiles('.github/actions/install-aws-lc/**') }}
+      run: python3 "$CACHE_KEY" "$PROFILE"
 
     - name: Restore AWS-LC
       id: restore
@@ -58,7 +35,10 @@ runs:
         BUILD_PREFIX: ${{ github.action_path }}/build-prefix.sh
         PREFIX: ${{ steps.key.outputs.prefix }}
         PROFILE: ${{ inputs.profile }}
-      run: '"$BUILD_PREFIX" "$PREFIX" "$PROFILE"'
+        VERSION: ${{ steps.key.outputs.version }}
+        CHECKSUM: ${{ steps.key.outputs.checksum }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: '"$BUILD_PREFIX" "$PREFIX" "$PROFILE" "$VERSION" "$CHECKSUM"'
 
     - name: Save AWS-LC
       if: steps.restore.outputs.cache-hit != 'true'

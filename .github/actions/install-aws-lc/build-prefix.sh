@@ -1,54 +1,53 @@
 #!/usr/bin/env bash
-# Usage: build-prefix.sh <prefix> [cargo profile]
+# Usage: build-prefix.sh <prefix> <dev|release> <aws-lc-sys version> <aws-lc-sys checksum>
 #
-# Builds `aws-lc-sys` from source and lays its library, headers and bindings out as an install
-# prefix, which `aws-lc-sys` links when given `AWS_LC_SYS_SYSTEM_DIR` and `AWS_LC_SYS_STATIC=1`.
+# Builds the AWS-LC source bundled in the `aws-lc-sys` crate with AWS-LC's own CMake build, and
+# installs the static library, headers and generated Rust bindings into <prefix>, which
+# `aws-lc-sys` links when `AWS_LC_SYS_SYSTEM_DIR` points at it.
 set -euo pipefail
 
 prefix=$1
-profile=${2:-dev}
+profile=$2
+version=$3
+checksum=$4
 
-target_dir=$(mktemp -d)
-trap 'rm -rf "$target_dir"' EXIT
-
-# Compiling AWS-LC locally is faster than fetching each object from the remote compiler cache.
-unset RUSTC_WRAPPER
-while read -r name; do unset "$name"; done < <(compgen -e | grep -E '^AWS_LC_SYS_(SYSTEM_DIR|STATIC)' || true)
-
-package=$(cargo metadata --locked --format-version 1 |
-  jq --compact-output --exit-status '[.packages[] | select(.name == "aws-lc-sys")] | if length == 1 then .[0] else error("expected one aws-lc-sys package, found \(length)") end')
-manifest_dir=$(dirname "$(jq --raw-output '.manifest_path' <<<"$package")")
-version=$(jq --raw-output '.version' <<<"$package")
-
-build_script=$(cargo build --locked --package aws-lc-sys --profile "$profile" --target-dir "$target_dir" --message-format json |
-  jq --compact-output 'select(.reason == "build-script-executed" and (.package_id | test("aws-lc-sys")))')
-
-out_dir=$(jq --raw-output --exit-status '.out_dir' <<<"$build_script")
-library=$(jq --raw-output --exit-status '[.linked_libs[] | select(startswith("static=") and endswith("_crypto"))] | if length == 1 then .[0] | ltrimstr("static=") else error("expected one static crypto library, found \(length)") end' <<<"$build_script")
-
-if jq --exit-status '.cfgs | index("use_bindgen_pregenerated")' <<<"$build_script" >/dev/null; then
-  bindings=$out_dir/bindings.rs
-else
-  bindings=$(jq --raw-output --exit-status --arg src "$manifest_dir/src" '[.cfgs[] | $src + "/" + . + "_crypto.rs"]' <<<"$build_script" |
-    jq --raw-output '.[]' | while read -r candidate; do [[ -f $candidate ]] && echo "$candidate"; done)
-  if [[ $(wc -l <<<"$bindings") -ne 1 || -z $bindings ]]; then
-    echo "::error::expected one pregenerated bindings file for the emitted cfgs, found: ${bindings:-none}"
+case $profile in
+  dev) build_type=Debug ;;
+  release) build_type=Release ;;
+  *)
+    echo "::error::unknown profile \`$profile\`, expected \`dev\` or \`release\`"
     exit 1
-  fi
-fi
+    ;;
+esac
 
-rm -rf "$prefix"
-mkdir -p "$prefix/lib" "$prefix/share/rust"
-cp "$out_dir/lib${library}.a" "$prefix/lib/libcrypto-awslc.a"
-cp -R "$out_dir/include" "$prefix/include"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
 
-# `aws-lc-sys` includes these bindings inside a module that carries the same `allow` list, and an
-# included file cannot start with an inner attribute.
-sed '/^#!\[allow($/,/^)\]$/d' "$bindings" >"$prefix/share/rust/aws_lc_bindings.rs"
-if grep --quiet '^#!' "$prefix/share/rust/aws_lc_bindings.rs"; then
-  echo "::error::could not remove the inner attributes from $bindings"
-  exit 1
-fi
+curl --fail --silent --show-error --location --retry 3 \
+  --output "$work/aws-lc-sys.crate" "https://static.crates.io/crates/aws-lc-sys/aws-lc-sys-$version.crate"
+sha256sum --check --quiet <<<"$checksum  $work/aws-lc-sys.crate"
+tar --extract --gzip --file "$work/aws-lc-sys.crate" --directory "$work"
+crate=$work/aws-lc-sys-$version
+
+cargo binstall --no-confirm --locked --root "$work/bindgen" "bindgen-cli@$(cat "$(dirname "$0")/bindgen-version")"
+export PATH=$work/bindgen/bin:$PATH
+
+# These options match the CMake build `aws-lc-sys` itself runs, including the crate's symbol
+# prefix, so the bindings and library match what `aws-lc-rs` is compiled against.
+cmake -S "$crate/aws-lc" -B "$work/build" \
+  -DCMAKE_BUILD_TYPE="$build_type" \
+  -DCMAKE_INSTALL_PREFIX="$prefix" \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DBUILD_LIBSSL=OFF \
+  -DBUILD_TESTING=OFF \
+  -DBUILD_TOOL=OFF \
+  -DDISABLE_GO=ON \
+  -DDISABLE_PERL=ON \
+  -DENABLE_SOURCE_MODIFICATION=OFF \
+  -DBORINGSSL_PREFIX="aws_lc_${version//./_}" \
+  -DBORINGSSL_PREFIX_HEADERS="$crate/generated-include" \
+  -DGENERATE_RUST_BINDINGS=ON
+cmake --build "$work/build" --parallel "$(nproc)"
+cmake --install "$work/build"
 
 echo "$version" >"$prefix/aws-lc-sys.version"
-echo "Built the AWS-LC prefix for aws-lc-sys $version at $prefix"
