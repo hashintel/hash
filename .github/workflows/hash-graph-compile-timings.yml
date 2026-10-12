@@ -1,0 +1,72 @@
+name: hash-graph compile timings
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/hash-graph-compile-timings.yml
+      - .github/actions/install-aws-lc/**
+
+jobs:
+  sccache-credentials:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Mint sccache credentials
+        id: mint
+        uses: $/.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
+
+  compile:
+    name: Compile (aws-lc=${{ matrix.aws_lc }})
+    needs: [sccache-credentials]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        aws_lc: [prebuilt, source]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Clean up disk
+        uses: $/.github/actions/clean-up-disk
+
+      - name: Install tools
+        id: install-tools
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
+          aws_lc: ${{ matrix.aws_lc == 'prebuilt' }}
+
+      - name: Compile hash-graph with timings
+        run: |
+          "$RUSTC_WRAPPER" --zero-stats
+          SECONDS=0
+          cargo build --bin hash-graph --all-features --timings
+          echo "::notice::Full compile took ${SECONDS}s"
+          stats=$("$RUSTC_WRAPPER" --show-stats)
+          echo "$stats"
+          echo "::notice::sccache: $(grep -E '^Cache (hits|misses) ' <<<"$stats" | tr -s ' ' | paste -sd ';')"
+          python3 - target/cargo-timings/cargo-timing.html <<'EOF'
+          import json, re, sys
+          units = json.loads(re.search(r"UNIT_DATA = (\[.*?\]);", open(sys.argv[1]).read(), re.S).group(1))
+          for unit in units:
+              if unit["name"] == "aws-lc-sys":
+                  print(f"::notice::aws-lc-sys {unit.get('target') or 'lib'}: start {unit['start']:.1f}s, {unit['duration']:.1f}s")
+          EOF
+          grep -h 'Building with' target/debug/build/aws-lc-sys*/*/output target/debug/build/aws-lc-sys/*/run/stdout 2>/dev/null | sed 's/^cargo:warning=/::notice::aws-lc-sys /' || true
