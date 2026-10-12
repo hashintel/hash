@@ -101,7 +101,7 @@ import { useState } from "react";
 import {
   definePetrinautPlugin,
   type PluginHook,
-} from "@hashintel/petrinaut/ui";
+} from "@hashintel/petrinaut/ui/plugin";
 
 const createCounterPlugin = definePetrinautPlugin({
   id: "example.counter",

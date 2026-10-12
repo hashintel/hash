@@ -12,8 +12,6 @@
 export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
 
-// Plugins: what `<Petrinaut plugins>` takes, and what plugin code imports.
-export * from "./plugins/public-api";
 export {
   ExperimentExecutionCard,
   type ExperimentExecutionCardProps,

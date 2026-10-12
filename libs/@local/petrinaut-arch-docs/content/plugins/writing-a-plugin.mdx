@@ -318,8 +318,9 @@ rather than closing over the value.
 
 ## What plugin code imports
 
-Plugin code imports from `@hashintel/petrinaut/ui`, and domain contracts (SDCPN
-and experiment types, AI tool schemas, `hashPetrinautDocument`) from
+Plugin code imports the plugin API from `@hashintel/petrinaut/ui/plugin`,
+icons and other components from `@hashintel/petrinaut/ui`, and domain contracts
+(SDCPN and experiment types, AI tool schemas, `hashPetrinautDocument`) from
 `@hashintel/petrinaut-core`. It never imports `@hashintel/petrinaut/react`, a
 handle, an instance or a Petrinaut context. Host state reaches contributions
 through the host's own context. The reference lists

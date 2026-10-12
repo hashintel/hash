@@ -1,9 +1,9 @@
 /**
  * Public surface for `@hashintel/petrinaut` — the host-facing entry point.
  *
- * Re-exports the editor, the contexts and types a host needs to embed it and
- * inject its own capabilities (error tracking, optimization, slots), and the
- * plugin API as `/ui` exports it. The React bindings live in `/react`.
+ * Re-exports the editor and the contexts and types a host needs to embed it and
+ * inject its own capabilities (error tracking, optimization, slots). The React
+ * bindings live in `/react`, and the plugin API in `/ui/plugin`.
  *
  * @layerRoot petrinaut
  * @role The host-facing entry point: the contexts and types an embedder wires up
@@ -105,8 +105,6 @@ export {
   type WorkerFactory,
 } from "@hashintel/petrinaut-core";
 export { Petrinaut } from "./ui/petrinaut";
-// The plugin API, for hosts whose module resolution cannot reach `/ui`.
-export * from "./ui/plugins/public-api";
 export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,

@@ -189,7 +189,7 @@ Declare it inline, or with `as const satisfies PetrinautPluginManifest`.
 
 ## Exports
 
-From `@hashintel/petrinaut/ui`.
+From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashintel/petrinaut/ui`.
 
 ### Definition
 
@@ -234,9 +234,6 @@ From `@hashintel/petrinaut/ui`.
 - `parseDocumentUri(uri)`: the code document a diagnostics key names, as
   `{ itemType, itemId }`, or `null`.
 - `petrinautDocsContent`: the user guide's pages, by name.
-
-The package root, `@hashintel/petrinaut`, exports the same plugin API as
-`/ui`, for hosts whose module resolution cannot reach `/ui`.
 
 ## Error messages
 

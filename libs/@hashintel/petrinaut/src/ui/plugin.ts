@@ -1,14 +1,13 @@
 /**
- * The plugin API as a host and plugin code import it: what `<Petrinaut
- * plugins>` takes and what plugin code reads. `@hashintel/petrinaut/ui` and
- * the package root both export this module, so the two cannot differ.
+ * Public surface for `@hashintel/petrinaut/ui/plugin`: what `<Petrinaut
+ * plugins>` takes and what plugin code imports.
  */
 
 export {
   definePetrinautPlugin,
   pluginCommandId,
   pluginService,
-} from "./define-petrinaut-plugin";
+} from "./plugins/define-petrinaut-plugin";
 export type {
   PetrinautPlugin,
   PetrinautPluginDefinition,
@@ -29,8 +28,8 @@ export type {
   PluginTopBarItemSpec,
   PluginTopBarPlace,
   ServiceOf,
-} from "./define-petrinaut-plugin";
-export { describeRefusal } from "./plugin-access";
+} from "./plugins/define-petrinaut-plugin";
+export { describeRefusal } from "./plugins/plugin-access";
 export type {
   AccessApi,
   EditRefusal,
@@ -46,17 +45,17 @@ export type {
   PluginExperiments,
   PluginExperimentsReader,
   PluginNotifications,
-} from "./plugin-access";
-export { usePluginService } from "./plugins-provider";
+} from "./plugins/plugin-access";
+export { usePluginService } from "./plugins/plugins-provider";
 export {
   useCommand,
   useCommandRegistry,
   useCommands,
-} from "../../react/commands/command-registry";
-export { useStore, useStoreSelector } from "../../react/use-store";
-export type { PetrinautRevealTarget } from "../../react/hooks/use-reveal-in-editor";
-export type { AddNotificationInput } from "../../react/notifications/context";
-export type { ReadOnlyReason } from "../../react/state/use-read-only-reason";
+} from "../react/commands/command-registry";
+export { useStore, useStoreSelector } from "../react/use-store";
+export type { PetrinautRevealTarget } from "../react/hooks/use-reveal-in-editor";
+export type { AddNotificationInput } from "../react/notifications/context";
+export type { ReadOnlyReason } from "../react/state/use-read-only-reason";
 export { parseDocumentUri } from "@hashintel/petrinaut-core";
 export type {
   DiagnosticsSnapshot,

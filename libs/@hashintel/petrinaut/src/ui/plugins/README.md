@@ -2,7 +2,9 @@
 
 The plugin API and its runtime: how a plugin is defined, how the editor runs
 it, and how what it returns reaches the editor's UI. The layer is declared in
-`define-petrinaut-plugin.ts` (`@layerRoot ui.plugins`). Author-facing
+`define-petrinaut-plugin.ts` (`@layerRoot ui.plugins`). `../plugin.ts` is the
+`@hashintel/petrinaut/ui/plugin` entry: what `<Petrinaut plugins>` takes and
+what plugin code imports. Author-facing
 documentation lives in the architecture docs under `plugins/`; this file
 describes the code.
 
@@ -11,7 +13,6 @@ describes the code.
 | File                                                  | Holds                                                                                                                    |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `define-petrinaut-plugin.ts`                          | The public types (manifest, `api`, contributions, hook) and `definePetrinautPlugin`, `pluginService`, `pluginCommandId`. |
-| `public-api.ts`                                       | What `/ui` and the package root export of the plugin API: one list for both.                                             |
 | `plugin-access.ts`                                    | The `document`, `experiments` and `editor` families of `api`, at `read` and `write` levels, and `EditResult` refusals.   |
 | `plugin-editor.tsx`                                   | One plugin editor per core instance: the access families, `errors`, `notifications`, and the stores the actions read.    |
 | `plugin-editor/use-canvas-controller-registration.ts` | Where the canvas registers its controller, so `applyAutoLayout` can frame the net once drawn.                            |
