@@ -3,7 +3,7 @@ import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import type { Model, Provider } from "@earendil-works/pi-ai";
 
 /**
- * pi-ai's OpenAI catalogue plus two models it lacks. Flue 2.x resolves models
+ * pi-ai's OpenAI catalogue plus the models it lacks. Flue 2.x resolves models
  * through pi-ai ^0.83.0, which lists GPT-5.5 only as the undated `gpt-5.5` and
  * predates GPT-6. Delete this module and register `openaiProvider()` once Flue
  * resolves a pi-ai that declares both.
@@ -94,11 +94,59 @@ const gpt6Sol: Model<"openai-responses"> = {
   },
 };
 
+/** An opt-in for testing, copied from the pi-ai catalogue Pi 0.87 ships. */
+const gpt61Sol: Model<"openai-responses"> = {
+  id: "gpt-6.1-sol",
+  name: "GPT-6.1 Sol",
+  api: "openai-responses",
+  provider: "openai",
+  baseUrl: "https://api.openai.com/v1",
+  reasoning: true,
+  input: ["text", "image"],
+  cost: {
+    input: 2,
+    output: 10,
+    cacheRead: 0.1,
+    cacheWrite: 2.5,
+    tiers: [
+      {
+        inputTokensAbove: 272000,
+        input: 4,
+        output: 15,
+        cacheRead: 0.2,
+        cacheWrite: 5,
+      },
+    ],
+  },
+  contextWindow: 272000,
+  maxTokens: 128000,
+  thinkingLevelMap: {
+    off: null,
+    minimal: null,
+    low: "low",
+    medium: "medium",
+    high: "high",
+    xhigh: "xhigh",
+    max: "max",
+  },
+  compat: {
+    supportsStrictMode: true,
+    supportsOpenAIGrammarTools: true,
+    supportsToolSearch: true,
+    supportsExplicitPromptCacheMode: true,
+  },
+};
+
 /** Streams stay the catalogue provider's own, so a faux catalogue under test keeps its responses. */
 export const openaiProviderWithAddedModels = (): Provider => {
   const catalogue = openaiProvider();
   return {
     ...catalogue,
-    getModels: () => [...catalogue.getModels(), gpt55Snapshot, gpt6Sol],
+    getModels: () => [
+      ...catalogue.getModels(),
+      gpt55Snapshot,
+      gpt6Sol,
+      gpt61Sol,
+    ],
   };
 };
