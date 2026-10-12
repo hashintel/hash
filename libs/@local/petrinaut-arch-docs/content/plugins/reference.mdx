@@ -24,7 +24,7 @@ together.
 | `topBarItems`    | Per key: `{ place }`.                                                                                                                          |                                     | `topBarItems`    |
 | `readOnlyAction` | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                     | `readOnlyAction` |
 | `root`           | `true`: the plugin renders UI inside the editor.                                                                                               |                                     | `root`           |
-| `assistant`      | `{ label }` or `{ extends: createXPlugin }`; see [Assistant plugins](doc:plugins/assistants).                                                  | `assistant`                         | `assistant`      |
+| `assistant`      | `{ label }` or `{ extends: XPlugin }`; see [Assistant plugins](doc:plugins/assistants).                                                        | `assistant`                         | `assistant`      |
 | `provides`       | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                     | `provides`       |
 
 Every key but `id` and `name` is optional. Stored settings, the user's switch

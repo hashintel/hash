@@ -11,7 +11,7 @@ import { useLocalStorageAiMessages } from "./plugin/use-local-storage-ai-message
 
 import type { PetrinautAiMessage } from "../_shared/chat/ai-message";
 
-const createPetrinautAiPlugin = definePetrinautPlugin({
+const PetrinautAiPlugin = definePetrinautPlugin({
   id: "website.petrinaut-ai",
   name: "Petrinaut AI",
   description:
@@ -27,9 +27,7 @@ const transport = new DefaultChatTransport<PetrinautAiMessage>({
   headers: () => ({ [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID() }),
 });
 
-const usePetrinautAiPlugin: PluginHook<typeof createPetrinautAiPlugin> = (
-  api,
-) => {
+const usePetrinautAiPlugin: PluginHook<typeof PetrinautAiPlugin> = (api) => {
   const [messages, setMessages] = useLocalStorageAiMessages(api.document.id);
 
   return {
@@ -48,4 +46,4 @@ const usePetrinautAiPlugin: PluginHook<typeof createPetrinautAiPlugin> = (
 };
 
 /** Petrinaut's own assistant, with each document's transcript saved in this browser. */
-export const petrinautAiPlugin = createPetrinautAiPlugin(usePetrinautAiPlugin);
+export const petrinautAiPlugin = PetrinautAiPlugin(usePetrinautAiPlugin);

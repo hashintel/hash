@@ -31,7 +31,7 @@ export const BrunchBridgeContext = createContext<BrunchBridge>({
   ledger: null,
 });
 
-const createBrunchBridgePlugin = definePetrinautPlugin({
+const BrunchBridgePlugin = definePetrinautPlugin({
   id: "website.brunch",
   name: "Brunch",
   description:
@@ -41,9 +41,7 @@ const createBrunchBridgePlugin = definePetrinautPlugin({
   assistant: { label: "Brunch" },
 });
 
-const useBrunchBridgePlugin: PluginHook<typeof createBrunchBridgePlugin> = (
-  api,
-) => {
+const useBrunchBridgePlugin: PluginHook<typeof BrunchBridgePlugin> = (api) => {
   const { chat, ledger } = use(BrunchBridgeContext);
 
   return {
@@ -56,7 +54,7 @@ const useBrunchBridgePlugin: PluginHook<typeof createBrunchBridgePlugin> = (
   };
 };
 
-const brunchBridgePlugin = createBrunchBridgePlugin(useBrunchBridgePlugin);
+const brunchBridgePlugin = BrunchBridgePlugin(useBrunchBridgePlugin);
 
 /** The demo's plugins with Brunch as the assistant. */
 export const brunchDemoPlugins: readonly PetrinautPlugin[] = [

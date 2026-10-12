@@ -27,7 +27,7 @@ const introduction: PetrinautAiMessage[] = [
   },
 ];
 
-const createDemoAssistantPlugin = definePetrinautPlugin({
+const DemoAssistantPlugin = definePetrinautPlugin({
   id: "website.ai-experiments-demo",
   name: "Demo assistant",
   description: "A scripted conversation that runs real experiments.",
@@ -38,7 +38,7 @@ const createDemoAssistantPlugin = definePetrinautPlugin({
 
 const demoTransport = createExperimentDemoTransport();
 
-const useDemoAssistantPlugin: PluginHook<typeof createDemoAssistantPlugin> = (
+const useDemoAssistantPlugin: PluginHook<typeof DemoAssistantPlugin> = (
   api,
 ) => ({
   assistant: {
@@ -54,9 +54,7 @@ const useDemoAssistantPlugin: PluginHook<typeof createDemoAssistantPlugin> = (
 });
 
 /** A scripted assistant whose conversation runs real experiments. */
-const aiExperimentsDemoPlugin = createDemoAssistantPlugin(
-  useDemoAssistantPlugin,
-);
+const aiExperimentsDemoPlugin = DemoAssistantPlugin(useDemoAssistantPlugin);
 
 export const AiExperimentsDemo = () => {
   const [handle] = useState(() =>
