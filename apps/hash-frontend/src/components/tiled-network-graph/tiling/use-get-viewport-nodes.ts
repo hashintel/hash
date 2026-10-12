@@ -117,6 +117,7 @@ import {
 } from "react";
 
 import * as Num from "../atlas-decode/num";
+import { isAtlasSpeculationPaused } from "./atlas-backpressure";
 import {
   ATLAS_ROOT_COORDINATE,
   atlasTileIndex,
@@ -1168,7 +1169,13 @@ export const getViewportNodes = async (
   // detail, so issuing minimal prefetches for them would spend every hit twice.
   cache.recordHistory(rect, targetDepth);
   if (detail === "minimal") {
-    schedulePrefetch(cache, requiredKeys);
+    if (isAtlasSpeculationPaused()) {
+      // Rate-limited: speculation yields first. The empty batch also cancels
+      // in-flight prefetches, returning their budget to the required loads.
+      cache.prefetchBatch([]);
+    } else {
+      schedulePrefetch(cache, requiredKeys);
+    }
   }
 
   // Edges among the delivered tiles, ordered nearest-first so the transport's

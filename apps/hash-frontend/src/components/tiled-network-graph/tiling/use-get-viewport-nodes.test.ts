@@ -1,8 +1,20 @@
-import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from "vitest";
 
 import { BinaryEntityId } from "../atlas-decode/binary-entity-id";
 import * as Num from "../atlas-decode/num";
 import * as Result from "../atlas-decode/result";
+import {
+  noteAtlasRateLimited,
+  resetAtlasBackpressure,
+} from "./atlas-backpressure";
 import {
   clampRectToWorld,
   rectCenterX,
@@ -203,6 +215,10 @@ describe("getViewportNodes", () => {
 
   beforeEach(() => {
     fetcher = countingFetcher();
+  });
+
+  afterEach(() => {
+    resetAtlasBackpressure();
   });
 
   it("returns only the depth-0 root for a null viewport", async () => {
@@ -463,6 +479,55 @@ describe("getViewportNodes", () => {
     await getViewportNodes(viewportAt(55_000, 55_000, 1_024, 5), cache); // jump away
 
     expect(cache.prefetchStats.cancelled).toBeGreaterThan(0);
+  });
+
+  it("issues no prefetches while atlas speculation is paused", async () => {
+    noteAtlasRateLimited(30_000);
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+
+    // The same pan that "prefetches ahead of a detected pan" above.
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache);
+    await cache.settled();
+
+    expect(cache.prefetchStats.issued).toBe(0);
+  });
+
+  it("cancels in-flight prefetches once speculation pauses", async () => {
+    // Prefetches hang until aborted; required loads resolve at once.
+    const pendingFetcher: TileFetcher = (zoom, tileIndex, controls) => {
+      if (controls?.priority === "low") {
+        return new Promise<FetchedTile>((_resolve, reject) => {
+          controls.signal?.addEventListener(
+            "abort",
+            () => reject(new Error("aborted")),
+            { once: true },
+          );
+        });
+      }
+      return Promise.resolve({
+        nodes: [{ id: Number(zoom) * 1_000 + Number(tileIndex), x: 0, y: 0 }],
+        complete: false,
+      });
+    };
+    const cache = new TileCache({
+      fetcher: pendingFetcher,
+      edgesFetcher: noEdges,
+    });
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache); // ring fires
+    const issuedBeforePause = cache.prefetchStats.issued;
+    expect(issuedBeforePause).toBeGreaterThan(0);
+
+    noteAtlasRateLimited(30_000);
+    // Far from the pending ring: a nearby step's required loads would ride
+    // (and claim) the hanging prefetches instead of leaving them cancellable.
+    await getViewportNodes(viewportAt(55_000, 55_000, 1_024, 5), cache);
+
+    // An unpaused jump would still fire its ring; the pause cancels the old
+    // speculation and issues none of its own.
+    expect(cache.prefetchStats.cancelled).toBeGreaterThan(0);
+    expect(cache.prefetchStats.issued).toBe(issuedBeforePause);
   });
 });
 

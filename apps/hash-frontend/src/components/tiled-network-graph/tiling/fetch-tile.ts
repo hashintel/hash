@@ -27,7 +27,14 @@
  * the map is an exact, reversible display transform.
  *
  * HTTP requests are retried with exponential backoff on transient failures —
- * transport errors and `5xx`/`429` responses (see {@link withAtlasRetry}).
+ * transport errors and `5xx`/`429` responses (see {@link withAtlasRetry}). A
+ * response's `Retry-After` floors the backoff wait, and one naming a wait no
+ * viewport load can sit out makes the failure terminal instead (see
+ * {@link isRetryableError}); every `429` also pauses speculative prefetching
+ * (see `atlas-backpressure.ts`). The data routes run under a shared
+ * concurrency pool in which speculative loads yield to required ones (see
+ * `atlas-request-pool.ts`); the manifest and `current` stay unpooled because
+ * the `401` renewal path makes pooled requests depend on them.
  * Terminal failures (`4xx`, a decode mismatch) are not retried; a `401`, meaning
  * the authority token no longer admits the request, has its own one-shot token
  * renewal in {@link requestAtlas}, while the three failures that end a session — a
@@ -51,6 +58,8 @@ import * as Option from "../atlas-decode/option";
 import * as Record from "../atlas-decode/record";
 import * as Result from "../atlas-decode/result";
 import * as TileDocument from "../atlas-decode/tile-document";
+import { noteAtlasRateLimited } from "./atlas-backpressure";
+import { atlasRequestPool } from "./atlas-request-pool";
 import {
   atlasTileAtIndex,
   AtlasTileCoordinateError,
@@ -172,6 +181,8 @@ interface FetchTileErrorOptions extends ErrorOptions {
   readonly status?: number;
   /** The refusal's RFC 9457 `type`, when the response carried a problem document. */
   readonly problem?: string;
+  /** The response's `Retry-After` in milliseconds, when it carried a readable one. */
+  readonly retryAfterMs?: number;
 }
 
 /** A tile could not be fetched, was rejected by the server, or failed to decode. */
@@ -188,11 +199,20 @@ export class FetchTileError extends Error {
    * locate whose source names no visible node, and those two ask for opposite handling.
    */
   readonly problem: string | undefined;
+  /**
+   * The server's stated wait before the refusal clears, in milliseconds — the
+   * response's `Retry-After`, read as delta-seconds or an HTTP-date. Present
+   * only when the response carried a readable one, which also needs the hop to
+   * expose the header cross-origin (hash-api's atlas proxy names it in
+   * `Access-Control-Expose-Headers`; an unexposed header reads as absent).
+   */
+  readonly retryAfterMs: number | undefined;
 
   constructor(message: string, options?: FetchTileErrorOptions) {
     super(message, options);
     this.status = options?.status;
     this.problem = options?.problem;
+    this.retryAfterMs = options?.retryAfterMs;
   }
 }
 
@@ -253,15 +273,32 @@ const abortError = (signal: AbortSignal | undefined): FetchTileError =>
   new FetchTileError("Atlas request aborted", { cause: signal?.reason });
 
 /**
+ * A stated `Retry-After` past this is a refusal no viewport load can usefully
+ * sit out — a drained hourly budget rather than a momentary burst — so the
+ * failure is terminal and the viewport partial-renders; the next movement
+ * retries naturally. Deliberately above {@link RETRY_MAX_DELAY_MS}: a short
+ * stated wait is worth honouring even past the backoff ceiling.
+ */
+const RETRY_AFTER_TERMINAL_MS = 5_000;
+
+/**
  * Whether a failure is worth retrying.
  *
  * Retried: a transport error (no HTTP status reached us) or the server asking us
- * to try again (`429`, `5xx`). Terminal failures — `4xx` (including the `404`
+ * to try again (`429`, `5xx`) — unless its stated wait exceeds
+ * {@link RETRY_AFTER_TERMINAL_MS}, where retrying within a load's lifetime can
+ * only be refused again. Terminal failures — `4xx` (including the `404`
  * that signals a re-pin) and non-HTTP errors such as a decode mismatch — are
  * not.
  */
 const isRetryableError = (error: unknown): boolean => {
   if (!(error instanceof FetchTileError)) {
+    return false;
+  }
+  if (
+    error.retryAfterMs !== undefined &&
+    error.retryAfterMs > RETRY_AFTER_TERMINAL_MS
+  ) {
     return false;
   }
   return (
@@ -333,7 +370,19 @@ export const withAtlasRetry = async <T>(
       if (attempt >= retries || signal?.aborted || !isRetryableError(error)) {
         throw error;
       }
-      await sleep(backoffDelayMs(attempt, baseDelayMs, maxDelayMs), signal);
+      // The server's stated wait floors the backoff — sleeping less buys a
+      // guaranteed second refusal. Retryability already bounds the floor (see
+      // {@link RETRY_AFTER_TERMINAL_MS}), and the jittered window still
+      // spreads retries whose floor has passed.
+      const statedWaitMs =
+        error instanceof FetchTileError ? (error.retryAfterMs ?? 0) : 0;
+      await sleep(
+        Math.max(
+          backoffDelayMs(attempt, baseDelayMs, maxDelayMs),
+          statedWaitMs,
+        ),
+        signal,
+      );
     }
   }
 };
@@ -367,6 +416,25 @@ const readErrorDetail = async (
     detail: text || response.statusText || "no error detail",
     problem: undefined,
   };
+};
+
+/**
+ * The response's `Retry-After` in milliseconds: delta-seconds, or an HTTP-date
+ * measured against the local clock, floored at zero. `undefined` for an absent
+ * or unreadable header — which is also what a header the hop does not expose
+ * cross-origin reads as (see {@link FetchTileError.retryAfterMs}).
+ */
+const readRetryAfterMs = (response: Response): number | undefined => {
+  const header = response.headers.get("retry-after");
+  if (header === null) {
+    return undefined;
+  }
+  const seconds = Number(header);
+  if (Number.isFinite(seconds)) {
+    return seconds >= 0 ? seconds * 1000 : undefined;
+  }
+  const date = Date.parse(header);
+  return Number.isNaN(date) ? undefined : Math.max(0, date - Date.now());
 };
 
 /** One origin's authority state: the token its data routes present, and the renewal that replaces it. */
@@ -625,9 +693,16 @@ const requestAtlasOnce = async (
   }
   if (!response.ok) {
     const { detail, problem } = await readErrorDetail(response);
+    const retryAfterMs = readRetryAfterMs(response);
+    // Every rate-limited response pauses speculation, wherever its request
+    // lands next: a prefetch continuing past a 429 spends exactly the budget
+    // the refused load is waiting on.
+    if (response.status === 429) {
+      noteAtlasRateLimited(retryAfterMs);
+    }
     throw new FetchTileError(
       `Atlas responded ${response.status} for ${url}: ${detail}`,
-      { status: response.status, problem },
+      { status: response.status, problem, retryAfterMs },
     );
   }
   retainAtlasAuthority(url, response, incarnation, request.role);
@@ -828,10 +903,25 @@ export const requestAtlas = async (
   retries?: number,
   priority?: RequestPriority,
 ): Promise<Response> => {
+  // Pooled per HTTP attempt — inside the retry loop, so a backoff sleep never
+  // holds a slot. The lane rides the existing priority hint: a prefetch is the
+  // one caller that states `"low"`, and it is exactly the traffic that yields.
+  const lane = priority === "low" ? "speculative" : "required";
   const attempt = (): Promise<Response> =>
     withAtlasRetry(
       () =>
-        requestAtlasOnce(url, accept, { role: "data", body }, signal, priority),
+        atlasRequestPool.run(
+          lane,
+          () =>
+            requestAtlasOnce(
+              url,
+              accept,
+              { role: "data", body },
+              signal,
+              priority,
+            ),
+          signal,
+        ),
       { signal, retries },
     );
 

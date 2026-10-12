@@ -15,6 +15,10 @@ import {
   u32le,
 } from "../atlas-decode/fixtures";
 import * as Num from "../atlas-decode/num";
+import {
+  isAtlasSpeculationPaused,
+  resetAtlasBackpressure,
+} from "./atlas-backpressure";
 import { WORLD_SIZE } from "./atlas-tile-coordinate";
 import {
   ATLAS_API_BASE_URL,
@@ -75,6 +79,39 @@ describe("withAtlasRetry", () => {
       expect(operation).toHaveBeenCalledTimes(1);
     },
   );
+
+  it("does not retry a 429 whose stated wait exceeds the retry window", async () => {
+    const error = new FetchTileError("over budget", {
+      status: 429,
+      retryAfterMs: 6_000,
+    });
+    const operation = vi.fn(() => Promise.reject(error));
+
+    await expect(withAtlasRetry(operation, FAST)).rejects.toBe(error);
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
+  it("floors the backoff at a short stated Retry-After", async () => {
+    vi.useFakeTimers();
+    try {
+      const operation = flaky(
+        1,
+        new FetchTileError("busy", { status: 429, retryAfterMs: 1_000 }),
+        "ok",
+      );
+      const result = withAtlasRetry(operation, FAST);
+
+      // FAST's zero backoff would retry immediately; the stated wait holds it.
+      await vi.advanceTimersByTimeAsync(999);
+      expect(operation).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(result).resolves.toBe("ok");
+      expect(operation).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   it("does not retry a non-HTTP error (e.g. a decode failure)", async () => {
     const error = new Error("decode mismatch");
@@ -348,10 +385,29 @@ const stubTransport = (routes: Record<string, () => Response>): string[] => {
   return paths;
 };
 
+/** The atlas rate limiter's refusal, with its stated wait in seconds. */
+const tooManyRequests = (retryAfterSeconds: number): Response =>
+  new Response(
+    JSON.stringify({
+      type: "about:blank",
+      title: "Too Many Requests",
+      status: 429,
+      detail: "the caller is over its request budget",
+    }),
+    {
+      status: 429,
+      headers: {
+        "content-type": "application/problem+json",
+        "retry-after": `${retryAfterSeconds}`,
+      },
+    },
+  );
+
 describe("fetchTile", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     clearAtlasSessionCache();
+    resetAtlasBackpressure();
   });
 
   it("fetches a tile and maps wire positions onto the tiling world", async () => {
@@ -376,6 +432,27 @@ describe("fetchTile", () => {
     ]);
     // `children` was non-zero, so deeper tiles hold the rest.
     expect(complete).toBe(false);
+  });
+
+  it("surfaces a 429's stated wait, pausing speculation and skipping futile retries", async () => {
+    const generation = genHex(0x19);
+    const paths = stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      // Seven seconds is past the retry window, so the refusal is terminal.
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () => tooManyRequests(7),
+    });
+
+    await expect(
+      fetchTile(u64(3), u64(13), { baseUrl: BASE }),
+    ).rejects.toMatchObject({ status: 429, retryAfterMs: 7_000 });
+
+    expect(isAtlasSpeculationPaused()).toBe(true);
+    // Bootstrap (current + manifest) plus exactly one tile attempt: a wait the
+    // load cannot sit out is not retried against.
+    expect(
+      paths.filter((path) => path.startsWith("/atlas/tile/")),
+    ).toHaveLength(1);
   });
 
   it("serves a restricted caller, whose cut carries the manifest's k", async () => {
