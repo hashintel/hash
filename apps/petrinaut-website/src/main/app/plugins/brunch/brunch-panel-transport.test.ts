@@ -1,5 +1,7 @@
-import { FlueApiError } from "@flue/sdk";
+import { FetchError, FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
+
+import { FlueChatDisconnectError } from "@local/flue-aisdk-transport";
 
 import { createBrunchFlueAdapter } from "./brunch-flue-adapter";
 import {
@@ -149,6 +151,68 @@ test("projects adapter names dynamically and untouched canonical names staticall
       dynamic: true,
     }),
   );
+});
+
+test("reports each re-attach and the lost turn to the host, and still fails the stream", async () => {
+  vi.useFakeTimers();
+  const admission: AgentSendResult = {
+    streamUrl: "http://brunch.test/stream",
+    offset: "offset-hidden",
+    submissionId: "submission-hidden",
+    uid: "uid-hidden",
+  };
+  const refusal = new FetchError(
+    410,
+    "Refused.",
+    undefined,
+    {},
+    admission.streamUrl,
+  );
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async () => {
+    throw refusal;
+  });
+  const onReattach = vi.fn();
+  const onDisconnect = vi.fn();
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send, wait } as Pick<
+      FlueClient,
+      "send" | "wait"
+    > as FlueClient),
+    new BrunchPanelConversationTracker(),
+    { onReattach, onDisconnect },
+  );
+
+  const stream = await transport.sendMessages({
+    trigger: "submit-message",
+    chatId: "conversation-stable",
+    messageId: undefined,
+    messages: [
+      {
+        id: "user-hidden",
+        role: "user",
+        parts: [{ type: "text", text: "Lose the stream." }],
+      },
+    ],
+    abortSignal: undefined,
+  });
+  const reading = (async () => {
+    const reader = stream.getReader();
+    for (;;) {
+      if ((await reader.read()).done) return;
+    }
+  })();
+  reading.catch(() => {});
+  await vi.runAllTimersAsync();
+  vi.useRealTimers();
+
+  const failure = await reading.then(
+    () => undefined,
+    (error: unknown) => error,
+  );
+  expect(failure).toBeInstanceOf(FlueChatDisconnectError);
+  expect(onReattach).toHaveBeenCalledTimes(3);
+  expect(onDisconnect).toHaveBeenCalledExactlyOnceWith(failure);
 });
 
 test("refuses fixture traffic when the mounted Flue route is unavailable", async () => {

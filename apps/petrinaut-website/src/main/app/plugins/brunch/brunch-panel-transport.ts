@@ -332,6 +332,8 @@ export const createBrunchPanelTransport = (
     readonly onAdmission?: (admission: AgentSendResult) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
+    readonly onReattach?: FlueChatTransportOptions["onReattach"];
+    readonly onDisconnect?: FlueChatTransportOptions["onDisconnect"];
   },
 ): PetrinautAiChatTransport => ({
   reconnectToStream: async () => null,
@@ -354,6 +356,8 @@ export const createBrunchPanelTransport = (
           onResponseMessageCompleted: (event) =>
             tracker.recordResponseMessageCompleted(event),
           onToolOutputError: options?.onToolOutputError,
+          onReattach: options?.onReattach,
+          onDisconnect: options?.onDisconnect,
         });
         try {
           return decorateBrunchStream(
