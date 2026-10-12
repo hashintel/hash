@@ -7,13 +7,23 @@ Definition {
     connector: ConnectorId(
         "demo",
     ),
+    variables: Variables(
+        {
+            VariableName(
+                "REGION",
+            ): "EU",
+            VariableName(
+                "TYPES",
+            ): "https://example.com/@demo/types",
+        },
+    ),
     sources: {
         SourceName(
             "orders",
         ): Source {
             kind: Sql {
                 query: SqlQuery(
-                    "SELECT 1 AS id, 'EU' AS region",
+                    "SELECT 1 AS id, $REGION AS region",
                 ),
                 primary_key: PrimaryKey(
                     [

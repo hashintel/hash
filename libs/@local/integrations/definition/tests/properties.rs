@@ -15,6 +15,7 @@ use hash_integrations_definition::{
     Accessor, Action, BranchStep, Branches, Coercion, Coverage, Definition, DefinitionIssue,
     DefinitionParts, EntityPipeline, EntitySink, IssueKind, LinkEndpoint, LinkInput, LinkPipeline,
     ParseError, PrimaryKey, Properties, Source, SourceKind, SqlQuery, Step, StepKind, UnitMap,
+    Variables,
 };
 use proptest::{
     arbitrary::{Arbitrary, any},
@@ -206,7 +207,7 @@ impl Names {
 /// The shape of an action before it is named.
 #[derive(Debug, Clone, Arbitrary)]
 enum ActionShape {
-    Sql(#[proptest(regex = "SELECT [a-z0-9 ,*]{0,20}")] String),
+    Sql(#[proptest(regex = "SELECT [a-z0-9 ,*${}]{0,20}")] String),
     Checkpoint,
     Sink(#[proptest(strategy = "collection::vec(any::<AccessorDoc>(), 0..4)")] Vec<AccessorDoc>),
 }
@@ -358,8 +359,7 @@ impl Arbitrary for Document {
     }
 }
 
-/// Writes `text` as a double-quoted YAML string, leaving `${NAME}` placeholders for the parser to
-/// replace.
+/// Writes `text` as a double-quoted YAML string, leaving `${` unescaped.
 fn quote_template(text: &str) -> String {
     let escaped = text.replace('\\', "\\\\").replace('"', "\\\"");
     format!("\"{escaped}\"")
@@ -387,7 +387,7 @@ impl Document {
         indent: &str,
     ) -> core::fmt::Result {
         match action {
-            ActionDoc::Sql(query) => writeln!(text, "{indent}sql: {}", quote(query)),
+            ActionDoc::Sql(query) => writeln!(text, "{indent}sql: {}", quote_template(query)),
             ActionDoc::Checkpoint(name) => writeln!(text, "{indent}checkpoint: {}", quote(name)),
             ActionDoc::Sink(properties) => {
                 writeln!(text, "{indent}sink:")?;
@@ -555,6 +555,8 @@ impl Document {
     fn definition(&self) -> Definition {
         let parts = DefinitionParts {
             connector: parse("demo"),
+            variables: Variables::try_from(BTreeMap::from([(parse("TYPES"), TYPES.into())]))
+                .expect("one variable should be valid"),
             sources: self
                 .sources
                 .iter()
@@ -689,7 +691,7 @@ impl Mutation {
                 Some(("Bad Step".to_owned(), 0))
             }
             Self::UnknownVariable => {
-                "SELECT ${MISSING}".clone_into(&mut document.sources.first_mut()?.sql);
+                "${MISSING}".clone_into(&mut document.sources.first_mut()?.name);
                 Some(("${MISSING}".to_owned(), 0))
             }
         }

@@ -10,7 +10,7 @@ use alloc::{
     string::String,
     vec::Vec,
 };
-use core::str::FromStr;
+use core::{mem, str::FromStr};
 
 use error_stack::{
     Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, TryReportTupleExt as _,
@@ -24,8 +24,9 @@ use crate::{
     name::{ColumnName, ConnectorId, InvalidName, SourceName, UnitCode, UnitMapName, VariableName},
     source::{Coverage, PrimaryKey, Source, SourceKind, SqlQuery},
     unit_map::UnitMap,
+    variables::Variables,
     yaml::{
-        interpolate::Variables,
+        interpolate::Interpolation,
         locations::Locations,
         syntax::{CoverageSyntax, Document, SourceSyntax, UnitMapSyntax, spanned_map::SpannedMap},
     },
@@ -51,7 +52,7 @@ impl DefinitionIssue {
 /// The variables and source locations used while lowering a document.
 #[derive(Default)]
 struct Lowering {
-    variables: Variables,
+    interpolation: Interpolation,
     locations: Locations,
 }
 
@@ -73,7 +74,7 @@ impl Lowering {
 
     /// Replaces the placeholders in `text`, reporting each issue at `path`.
     fn resolve(&self, text: &str, path: &DefinitionPath) -> LoweredResult<String> {
-        let (resolved, kinds) = self.variables.resolve(text);
+        let (resolved, kinds) = self.interpolation.resolve(text);
         let mut issues = ReportSink::new();
         for kind in kinds {
             issues.capture(self.issue(path.clone(), kind));
@@ -104,7 +105,8 @@ impl Lowering {
         })
     }
 
-    /// Records the variables that placeholders refer to, reporting names that are not valid.
+    /// Records the variables that placeholders and SQL parameters refer to, reporting names that
+    /// are not valid.
     fn variables(&mut self, vars: &SpannedMap<Spanned<String>>) -> LoweredResult<()> {
         let vars_path = DefinitionPath::default().field("vars");
         let mut issues = ReportSink::new();
@@ -113,9 +115,9 @@ impl Lowering {
             let path = vars_path.clone().key(&name.value);
             self.record_location(&path, SourceLocation::from_spanned(name));
             match self.parse_name::<VariableName>(name.value.clone(), &path) {
-                Ok(name) => self.variables.insert(name, value.value.as_str().into()),
+                Ok(name) => self.interpolation.insert(name, value.value.as_str().into()),
                 Err(report) => {
-                    self.variables
+                    self.interpolation
                         .insert_invalid(name.value.as_str().into(), value.value.as_str().into());
                     issues.append(report);
                 }
@@ -162,9 +164,11 @@ impl Lowering {
         self.parse_url(text, path)
     }
 
+    /// Records the location of `value` at `path` and returns its text without replacing
+    /// placeholders.
     fn query(&mut self, value: &Spanned<String>, path: &DefinitionPath) -> LoweredResult<SqlQuery> {
-        let text = self.text(value, path)?;
-        Ok(SqlQuery::try_from(text)
+        self.record_location(path, SourceLocation::from_spanned(value));
+        Ok(SqlQuery::try_from(value.value.clone())
             .change_context_lazy(|| self.issue(path.clone(), IssueKind::EmptySql))?)
     }
 
@@ -380,7 +384,7 @@ impl Document {
     /// afterwards.
     pub(in crate::yaml) fn lower(&self) -> LoweredResult<(DefinitionParts, Locations)> {
         let mut lowering = Lowering::default();
-        let variables = lowering.variables(&self.vars);
+        let declared = lowering.variables(&self.vars);
 
         let connector = lowering.name::<ConnectorId>(
             &self.connector,
@@ -398,8 +402,18 @@ impl Document {
         );
         let entity_pipelines = self.pipelines.lower_entities(&mut lowering);
         let link_pipelines = self.pipelines.lower_links(&mut lowering);
+        let variables = Variables::try_from(mem::take(&mut lowering.interpolation).into_values())
+            .map_err(|reason| {
+                lowering.report(
+                    DefinitionPath::default()
+                        .field("vars")
+                        .key(&reason.variable),
+                    IssueKind::ConflictingVariables { reason },
+                )
+            });
 
-        let ((), connector, unit_maps, sources, entity_pipelines, link_pipelines) = (
+        let ((), variables, connector, unit_maps, sources, entity_pipelines, link_pipelines) = (
+            declared,
             variables,
             connector,
             unit_maps,
@@ -412,6 +426,7 @@ impl Document {
         Ok((
             DefinitionParts {
                 connector,
+                variables,
                 sources,
                 unit_maps,
                 entity_pipelines,

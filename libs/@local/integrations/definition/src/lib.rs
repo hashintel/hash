@@ -30,6 +30,7 @@ mod pipeline;
 mod source;
 mod step;
 mod unit_map;
+mod variables;
 mod variant_name;
 mod yaml;
 
@@ -39,7 +40,7 @@ pub use self::{
     link::{EmptyLinkInputs, LinkEndpoint, LinkInput, LinkInputs, LinkPipeline, LinkStep},
     name::{
         CheckpointName, ColumnName, ConnectorId, InputAlias, InvalidName, LinkId, SourceName,
-        StepId, UnitCode, UnitMapName,
+        StepId, UnitCode, UnitMapName, VariableName,
     },
     pipeline::EntityPipeline,
     source::{
@@ -50,5 +51,6 @@ pub use self::{
         InvalidBranches, Properties, Step, StepKind,
     },
     unit_map::{EmptyUnitMap, UnitMap},
+    variables::{ConflictingVariables, Variables},
     yaml::{ParseError, SyntaxError},
 };
