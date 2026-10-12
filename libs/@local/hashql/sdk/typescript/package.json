@@ -19,7 +19,12 @@
     "fix:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts --fix",
     "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
     "lint:tsc": "tsc --noEmit",
-    "test:unit": "vitest run --typecheck --passWithNoTests"
+    "test:unit": "vitest run --typecheck"
+  },
+  "dependencies": {
+    "effect": "4.0.3",
+    "esrap": "2.4.0",
+    "oxc-parser": "0.152.0"
   },
   "devDependencies": {
     "@local/oxlint": "workspace:*",

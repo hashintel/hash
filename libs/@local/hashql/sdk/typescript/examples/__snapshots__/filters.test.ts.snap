@@ -1,0 +1,393 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`filter_examples > frontend_selection: 5. Frontend: look up a published entity 1`] = `
+[
+  "::kernel::special_form::let",
+  "webId",
+  [
+    "::kernel::special_form::input",
+    "web_id",
+    "::graph::types::principal::actor_group::web::WebId",
+  ],
+  [
+    "::kernel::special_form::let",
+    "entityUuid",
+    [
+      "::kernel::special_form::input",
+      "entity_uuid",
+      "::graph::types::knowledge::entity::EntityUuid",
+    ],
+    [
+      "::graph::tail::collect",
+      [
+        "::graph::body::filter",
+        [
+          "::graph::head::entities",
+          [
+            "::graph::tmp::decision_time_now",
+          ],
+        ],
+        [
+          "fn",
+          {
+            "#tuple": [],
+          },
+          {
+            "#struct": {
+              "vertex": "_",
+            },
+          },
+          "_",
+          [
+            "::core::bool::and",
+            [
+              "::core::bool::and",
+              [
+                "::core::cmp::eq",
+                [
+                  "::kernel::special_form::access",
+                  [
+                    "::kernel::special_form::access",
+                    [
+                      "::kernel::special_form::access",
+                      [
+                        "::kernel::special_form::access",
+                        "vertex",
+                        "metadata",
+                      ],
+                      "record_id",
+                    ],
+                    "entity_id",
+                  ],
+                  "web_id",
+                ],
+                "webId",
+              ],
+              [
+                "::core::cmp::eq",
+                [
+                  "::kernel::special_form::access",
+                  [
+                    "::kernel::special_form::access",
+                    [
+                      "::kernel::special_form::access",
+                      [
+                        "::kernel::special_form::access",
+                        "vertex",
+                        "metadata",
+                      ],
+                      "record_id",
+                    ],
+                    "entity_id",
+                  ],
+                  "entity_uuid",
+                ],
+                "entityUuid",
+              ],
+            ],
+            [
+              "::core::cmp::eq",
+              [
+                "::kernel::special_form::access",
+                [
+                  "::kernel::special_form::access",
+                  [
+                    "::kernel::special_form::access",
+                    [
+                      "::kernel::special_form::access",
+                      "vertex",
+                      "metadata",
+                    ],
+                    "record_id",
+                  ],
+                  "entity_id",
+                ],
+                "draft_id",
+              ],
+              [
+                "::core::option::None",
+              ],
+            ],
+          ],
+        ],
+      ],
+    ],
+  ],
+]
+`;
+
+exports[`filter_examples > frontend_selection: 6. Frontend: the sidebar's web and arch… 1`] = `
+[
+  "::kernel::special_form::let",
+  "webId",
+  [
+    "::kernel::special_form::input",
+    "web_id",
+    "::graph::types::principal::actor_group::web::WebId",
+  ],
+  [
+    "::graph::tail::collect",
+    [
+      "::graph::body::filter",
+      [
+        "::graph::body::filter",
+        [
+          "::graph::head::entities",
+          [
+            "::graph::tmp::decision_time_now",
+          ],
+        ],
+        [
+          "fn",
+          {
+            "#tuple": [],
+          },
+          {
+            "#struct": {
+              "vertex": "_",
+            },
+          },
+          "_",
+          [
+            "::core::cmp::eq",
+            [
+              "::kernel::special_form::access",
+              [
+                "::kernel::special_form::access",
+                [
+                  "::kernel::special_form::access",
+                  [
+                    "::kernel::special_form::access",
+                    "vertex",
+                    "metadata",
+                  ],
+                  "record_id",
+                ],
+                "entity_id",
+              ],
+              "web_id",
+            ],
+            "webId",
+          ],
+        ],
+      ],
+      [
+        "fn",
+        {
+          "#tuple": [],
+        },
+        {
+          "#struct": {
+            "vertex": "_",
+          },
+        },
+        "_",
+        [
+          "::core::bool::and",
+          [
+            "::core::cmp::ne",
+            [
+              "::kernel::special_form::access",
+              [
+                "::kernel::special_form::access",
+                "vertex",
+                "metadata",
+              ],
+              "archived",
+            ],
+            {
+              "#literal": true,
+            },
+          ],
+          [
+            "::core::cmp::eq",
+            [
+              "::kernel::special_form::access",
+              [
+                "::kernel::special_form::access",
+                [
+                  "::kernel::special_form::access",
+                  [
+                    "::kernel::special_form::access",
+                    "vertex",
+                    "metadata",
+                  ],
+                  "record_id",
+                ],
+                "entity_id",
+              ],
+              "draft_id",
+            ],
+            [
+              "::core::option::None",
+            ],
+          ],
+        ],
+      ],
+    ],
+  ],
+]
+`;
+
+exports[`filter_examples > frontend_selection: 7. Frontend: match any supplied entity … 1`] = `
+[
+  "::graph::tail::collect",
+  [
+    "::graph::body::filter",
+    [
+      "::graph::head::entities",
+      [
+        "::graph::tmp::decision_time_now",
+      ],
+    ],
+    [
+      "fn",
+      {
+        "#tuple": [],
+      },
+      {
+        "#struct": {
+          "vertex": "_",
+        },
+      },
+      "_",
+      [
+        "::core::bool::or",
+        [
+          "::core::bool::or",
+          {
+            "#literal": false,
+          },
+          [
+            "::core::cmp::eq",
+            [
+              "::kernel::special_form::access",
+              [
+                "::kernel::special_form::access",
+                [
+                  "::kernel::special_form::access",
+                  [
+                    "::kernel::special_form::access",
+                    "vertex",
+                    "metadata",
+                  ],
+                  "record_id",
+                ],
+                "entity_id",
+              ],
+              "entity_uuid",
+            ],
+            [
+              "::graph::types::knowledge::entity::EntityUuid",
+              [
+                "::core::uuid::Uuid",
+                {
+                  "#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f",
+                },
+              ],
+            ],
+          ],
+        ],
+        [
+          "::core::cmp::eq",
+          [
+            "::kernel::special_form::access",
+            [
+              "::kernel::special_form::access",
+              [
+                "::kernel::special_form::access",
+                [
+                  "::kernel::special_form::access",
+                  "vertex",
+                  "metadata",
+                ],
+                "record_id",
+              ],
+              "entity_id",
+            ],
+            "entity_uuid",
+          ],
+          [
+            "::graph::types::knowledge::entity::EntityUuid",
+            [
+              "::core::uuid::Uuid",
+              {
+                "#literal": "926b2d9b-c099-4cc4-9b0b-906b0c27bc70",
+              },
+            ],
+          ],
+        ],
+      ],
+    ],
+  ],
+]
+`;
+
+exports[`filter_examples > frontend_selection: 8. Frontend: make draft inclusion a que… 1`] = `
+[
+  "::kernel::special_form::let",
+  "includeDrafts",
+  [
+    "::kernel::special_form::input",
+    "include_drafts",
+    "::kernel::type::Boolean",
+    {
+      "#literal": false,
+    },
+  ],
+  [
+    "::graph::tail::collect",
+    [
+      "::graph::body::filter",
+      [
+        "::graph::head::entities",
+        [
+          "::graph::tmp::decision_time_now",
+        ],
+      ],
+      [
+        "fn",
+        {
+          "#tuple": [],
+        },
+        {
+          "#struct": {
+            "vertex": "_",
+          },
+        },
+        "_",
+        [
+          "::kernel::special_form::if",
+          "includeDrafts",
+          {
+            "#literal": true,
+          },
+          [
+            "::core::cmp::eq",
+            [
+              "::kernel::special_form::access",
+              [
+                "::kernel::special_form::access",
+                [
+                  "::kernel::special_form::access",
+                  [
+                    "::kernel::special_form::access",
+                    "vertex",
+                    "metadata",
+                  ],
+                  "record_id",
+                ],
+                "entity_id",
+              ],
+              "draft_id",
+            ],
+            [
+              "::core::option::None",
+            ],
+          ],
+        ],
+      ],
+    ],
+  ],
+]
+`;

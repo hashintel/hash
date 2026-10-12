@@ -263,7 +263,7 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
     /** @type {Record<string, string> | undefined} */
     const scripts = workspace.manifest.scripts;
 
-    if (!scripts) {
+    if (!scripts || ignoredWorkspaces.includes(workspace.ident)) {
       continue;
     }
 

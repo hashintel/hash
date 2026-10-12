@@ -1,0 +1,219 @@
+// oxlint-disable unicorn/no-array-method-this-argument -- filter is a HashQL function, not Array.filter
+import { Result } from "effect";
+import { describe, expectTypeOf, test } from "vitest";
+
+import * as Module from "./Module.js";
+
+import type * as Type from "../type/index.js";
+import type * as Expression from "./Expression.js";
+import type * as Inputs from "./Inputs.js";
+import type { TypeExpression } from "./TypeExpression.js";
+
+type Vertex = Type.Struct<{ readonly name: Type.PrimitiveString }>;
+type OtherVertex = Type.Struct<{ readonly age: Type.PrimitiveInteger }>;
+type Graph<T extends Type.Any> = Type.Opaque<
+  "::graph::Graph",
+  Type.Struct<{ readonly "'marker": T }>
+>;
+type VertexOf<T> = T extends Graph<infer VertexType> ? VertexType : never;
+
+interface Filter extends Type.FunctionSignature {
+  readonly type: this["Target"] extends readonly [infer Input, Type.Any]
+    ? Type.Function<
+        readonly [
+          Graph<VertexOf<Input>>,
+          Type.Function<readonly [VertexOf<Input>], Type.PrimitiveBoolean>,
+        ],
+        Graph<VertexOf<Input>>
+      >
+    : Type.Function<readonly [never, never], Type.Never>;
+}
+
+interface List extends Type.TypeConstructor {
+  readonly arity: 1;
+  readonly type: this["Target"] extends readonly [
+    infer Element extends Type.Any,
+  ]
+    ? Type.List<Element>
+    : Type.Never;
+}
+
+interface Equal extends Type.FunctionSignature {
+  readonly type: this["Target"] extends readonly [
+    infer Left extends Type.Any,
+    infer Right extends Type.Any,
+  ]
+    ? Type.Function<readonly [Left, Right], Type.PrimitiveBoolean>
+    : Type.Function<readonly [never, never], Type.Never>;
+}
+
+type Uuid = Type.Opaque<"::core::uuid::Uuid", Type.PrimitiveString>;
+type Remainder = Type.Function<
+  readonly [Type.PrimitiveInteger, Type.PrimitiveInteger],
+  Type.PrimitiveInteger
+>;
+
+const kernelTypes = Result.getOrThrow(
+  Module.define("::kernel::type", {
+    types: {
+      Integer: Module.type<Type.PrimitiveInteger>(),
+      String: Module.type<Type.PrimitiveString>(),
+      List: Module.genericType<List>(1),
+    },
+  }),
+);
+const math = Result.getOrThrow(
+  Module.define("::core::math", {
+    values: { rem: Module.value<Remainder>() },
+  }),
+);
+const cmp = Result.getOrThrow(
+  Module.define("::core::cmp", {
+    values: { eq: Module.value<Type.GenericFunction<Equal>>() },
+  }),
+);
+const uuid = Result.getOrThrow(
+  Module.define("::core::uuid", {
+    types: { Uuid: Module.type<Uuid>() },
+    values: {
+      Uuid: Module.value<
+        Type.Function<readonly [Type.PrimitiveString], Uuid>
+      >(),
+    },
+  }),
+);
+const body = Result.getOrThrow(
+  Module.define("::graph::body", {
+    values: { filter: Module.value<Type.GenericFunction<Filter>>() },
+  }),
+);
+const modules = Result.getOrThrow(
+  Module.root({
+    kernel: Result.getOrThrow(
+      Module.define("::kernel", { modules: { type: kernelTypes } }),
+    ),
+    core: Result.getOrThrow(
+      Module.define("::core", { modules: { math, cmp, uuid } }),
+    ),
+    graph: Result.getOrThrow(Module.define("::graph", { modules: { body } })),
+  }),
+);
+const prelude = {
+  rem: modules.modules.core.modules.math.values.rem,
+  eq: modules.modules.core.modules.cmp.values.eq,
+  filter: modules.modules.graph.modules.body.values.filter,
+  Integer: modules.modules.kernel.modules.type.types.Integer,
+  List: modules.modules.kernel.modules.type.types.List,
+};
+const aliases = Result.getOrThrow(
+  Module.define("::application", {
+    values: { select: prelude.filter },
+    types: { Sequence: prelude.List },
+  }),
+);
+
+declare const integer: Expression.Expression<
+  Type.PrimitiveInteger,
+  Inputs.Empty
+>;
+declare const string: Expression.Expression<Type.PrimitiveString, Inputs.Empty>;
+declare const vertices: Expression.Expression<Graph<Vertex>, Inputs.Empty>;
+declare const predicate: Expression.Expression<
+  Type.Function<readonly [Vertex], Type.PrimitiveBoolean>,
+  Inputs.Empty
+>;
+declare const otherPredicate: Expression.Expression<
+  Type.Function<readonly [OtherVertex], Type.PrimitiveBoolean>,
+  Inputs.Empty
+>;
+declare const wrongResult: Expression.Expression<
+  Type.Function<readonly [Vertex], Type.PrimitiveInteger>,
+  Inputs.Empty
+>;
+
+describe("module_types", () => {
+  test("module_call_types", () => {
+    expectTypeOf(prelude.rem(integer, integer)).toEqualTypeOf<
+      Expression.Expression<Type.PrimitiveInteger, Inputs.Empty>
+    >();
+    expectTypeOf(prelude.eq(integer, string)).toEqualTypeOf<
+      Expression.Expression<Type.PrimitiveBoolean, Inputs.Empty>
+    >();
+    expectTypeOf(uuid.values.Uuid(string)).toEqualTypeOf<
+      Expression.Expression<Uuid, Inputs.Empty>
+    >();
+    expectTypeOf(uuid.types.Uuid).toEqualTypeOf<TypeExpression<Uuid>>();
+    // @ts-expect-error Remainder requires integers.
+    prelude.rem(integer, string);
+    // @ts-expect-error Remainder takes two operands.
+    prelude.rem(integer);
+    // @ts-expect-error Values and types occupy distinct namespaces.
+    uuid.types.Uuid(string);
+    // @ts-expect-error A newtype remains distinct from its representation.
+    prelude.rem(uuid.values.Uuid(string), integer);
+  });
+
+  test("generic_alias", () => {
+    expectTypeOf(body.values.filter(vertices, predicate)).toEqualTypeOf<
+      Expression.Expression<Graph<Vertex>, Inputs.Empty>
+    >();
+    expectTypeOf(prelude.filter(vertices, predicate)).toEqualTypeOf<
+      Expression.Expression<Graph<Vertex>, Inputs.Empty>
+    >();
+    expectTypeOf(aliases.values.select(vertices, predicate)).toEqualTypeOf<
+      Expression.Expression<Graph<Vertex>, Inputs.Empty>
+    >();
+    // @ts-expect-error The predicate's vertex must match the graph's vertex.
+    prelude.filter(vertices, otherPredicate);
+    // @ts-expect-error A predicate returns Boolean.
+    prelude.filter(vertices, wrongResult);
+    // @ts-expect-error The source must be a graph.
+    prelude.filter(integer, predicate);
+    // @ts-expect-error Filter requires a predicate.
+    prelude.filter(vertices);
+    // @ts-expect-error Filter takes two operands.
+    prelude.filter(vertices, predicate, integer);
+  });
+
+  test("generic_type", () => {
+    expectTypeOf(prelude.List(prelude.Integer)).toEqualTypeOf<
+      TypeExpression<Type.List<Type.PrimitiveInteger>>
+    >();
+    expectTypeOf(
+      aliases.types.Sequence(kernelTypes.types.String),
+    ).toEqualTypeOf<TypeExpression<Type.List<Type.PrimitiveString>>>();
+    expectTypeOf(prelude.List(prelude.List(prelude.Integer))).toEqualTypeOf<
+      TypeExpression<Type.List<Type.List<Type.PrimitiveInteger>>>
+    >();
+    // @ts-expect-error List requires an element type.
+    prelude.List();
+    // @ts-expect-error List has exactly one type parameter.
+    prelude.List(prelude.Integer, prelude.Integer);
+    // @ts-expect-error A value expression is not a type expression.
+    prelude.List(integer);
+    // @ts-expect-error The constructor's arity comes from its declaration.
+    Module.genericType<List>(2);
+  });
+
+  test("tree_members", () => {
+    expectTypeOf(modules.modules.core.modules.math.values.rem).toEqualTypeOf<
+      typeof prelude.rem
+    >();
+    // @ts-expect-error Missing modules do not become arbitrary string lookups.
+    expectTypeOf(modules.modules.missing);
+    // @ts-expect-error Empty namespaces retain their exact keys.
+    expectTypeOf(math.types.Integer);
+    // @ts-expect-error A module record is readonly.
+    modules.modules.core = modules.modules.kernel;
+    // @ts-expect-error A value export is readonly.
+    math.values.rem = prelude.eq;
+    // @ts-expect-error A value declaration cannot enter the type namespace.
+    Module.define("::bad", { types: { value: Module.value<Remainder>() } });
+    Result.getOrThrow(
+      Module.define("::bad", {
+        // @ts-expect-error A type declaration cannot enter the value namespace.
+        values: { Integer: Module.type<Type.PrimitiveInteger>() },
+      }),
+    );
+  });
+});
