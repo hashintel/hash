@@ -139,7 +139,14 @@ export const createStepShapeResolver = (
     const { step } = entry;
 
     if (step.kind === "for-each") {
-      if (outputName !== step.collect.as) {
+      /*
+       * A for-each step can only collect from a step directly inside it. Steps inside steps form a tree, so
+       * following a collect this way always ends.
+       */
+      if (
+        outputName !== step.collect.as ||
+        stepsById.get(step.collect.stepId)?.scope.at(-1) !== step.stepId
+      ) {
         return null;
       }
 
