@@ -195,4 +195,49 @@ describe("definePetrinautPlugin", () => {
       () => ({ root: null, provides: 1 }),
     );
   });
+
+  it("rejects a manifest key it does not know, at any depth", () => {
+    definePetrinautPlugin({
+      id: "test.typos",
+      name: "Typos",
+      // @ts-expect-error A misspelt manifest key.
+      comands: { open: { label: "Open" } },
+    });
+    definePetrinautPlugin({
+      id: "test.typos",
+      name: "Typos",
+      // @ts-expect-error A misspelt access family.
+      access: { documnt: "read" },
+    });
+    definePetrinautPlugin({
+      id: "test.typos",
+      name: "Typos",
+      buttons: {
+        // @ts-expect-error A misspelt button key.
+        help: { label: "Help", place: "top-bar-end", tooltp: "Help" },
+      },
+    });
+    definePetrinautPlugin({
+      id: "test.typos",
+      name: "Typos",
+      commands: {
+        // @ts-expect-error A misspelt command key.
+        open: { label: "Open", shortcuts: "mod+o" },
+      },
+    });
+    definePetrinautPlugin({
+      id: "test.typos",
+      name: "Typos",
+      settings: {
+        // @ts-expect-error A misspelt setting key.
+        on: { type: "boolean", default: true, label: "On", sectoin: "labs" },
+      },
+    });
+    definePetrinautPlugin({
+      id: "test.typos",
+      name: "Typos",
+      // @ts-expect-error A misspelt top-bar item key.
+      topBarItems: { status: { place: "top-bar-end", lable: "Status" } },
+    });
+  });
 });

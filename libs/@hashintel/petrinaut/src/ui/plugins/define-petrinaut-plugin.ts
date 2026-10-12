@@ -304,6 +304,48 @@ export interface PetrinautPluginDefinition<M extends PetrinautPluginManifest> {
   readonly manifest: M;
 }
 
+/** `never` for every key of `T` outside `Known`. */
+type RejectUnknownKeys<T, Known extends PropertyKey> = {
+  readonly [K in Exclude<keyof T, Known>]: never;
+};
+
+/** Every key of every member of a union; `keyof` gives only the shared ones. */
+type KeysOfUnion<T> = T extends unknown ? keyof T : never;
+
+type RejectUnknownEntryKeys<Specs, Known extends PropertyKey> = {
+  readonly [K in keyof Specs]: RejectUnknownKeys<Specs[K], Known>;
+};
+
+type EntryChecks<
+  M,
+  Key extends keyof PetrinautPluginManifest,
+  Known extends PropertyKey,
+> = M extends { readonly [K in Key]: infer Specs }
+  ? { readonly [K in Key]: RejectUnknownEntryKeys<Specs, Known> }
+  : unknown;
+
+/**
+ * Checks a manifest gets on top of its type. TypeScript skips its
+ * excess-property check on an inferred type parameter, so without them a
+ * misspelt key, such as `comands` or a button's `tooltp`, compiles.
+ */
+type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
+  (M extends { readonly access: infer A }
+    ? { readonly access: RejectUnknownKeys<A, keyof PluginAccess> }
+    : unknown) &
+  EntryChecks<M, "settings", KeysOfUnion<PetrinautSettingSpec>> &
+  EntryChecks<M, "commands", keyof PluginCommandSpec> &
+  EntryChecks<
+    M,
+    "buttons",
+    keyof NonNullable<PetrinautPluginManifest["buttons"]>[string]
+  > &
+  EntryChecks<
+    M,
+    "topBarItems",
+    keyof NonNullable<PetrinautPluginManifest["topBarItems"]>[string]
+  >;
+
 /** A plugin's implementation, whatever its manifest. */
 type AnyImplementation = PetrinautPlugin["hook"] | AnyPluginContributions;
 
@@ -345,7 +387,7 @@ const createPlugin = (
  * ```
  */
 export function definePetrinautPlugin<const M extends PetrinautPluginManifest>(
-  manifest: M,
+  manifest: M & NoInfer<ManifestChecks<M>>,
 ): PetrinautPluginDefinition<M>;
 /**
  * Returns the plugin for a manifest and its implementation. Call it at module
@@ -367,7 +409,7 @@ export function definePetrinautPlugin<const M extends PetrinautPluginManifest>(
  * ```
  */
 export function definePetrinautPlugin<const M extends PetrinautPluginManifest>(
-  manifest: M,
+  manifest: M & NoInfer<ManifestChecks<M>>,
   implementation:
     | NoInfer<PluginHook<{ manifest: M }>>
     | PluginContributions<{ manifest: M }>,
