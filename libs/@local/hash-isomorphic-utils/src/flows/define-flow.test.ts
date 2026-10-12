@@ -541,9 +541,25 @@ describe("steps of actions with derived kinds", () => {
     ],
   } as const;
 
+  const pickIfGivenAction = {
+    actionDefinitionId: "pickIfGiven",
+    inputs: [
+      {
+        name: "items",
+        oneOfPayloadKinds: allPayloadKinds,
+        array: true,
+        required: false,
+      },
+    ],
+    outputs: [
+      { name: "first", kindFrom: "items", array: false, required: false },
+    ],
+  } as const;
+
   const typeChecks = (
     step: AddStep,
     entities: Ref<"PersistedEntityMetadata", true, true>,
+    maybeEntities: Ref<"PersistedEntityMetadata", true, false>,
     entity: Ref<"PersistedEntityMetadata", false, true>,
     text: Ref<"Text", false, true>,
   ) => {
@@ -585,7 +601,29 @@ describe("steps of actions with derived kinds", () => {
       inputs: {},
     });
 
-    return [matchesHasItemsKind, matchHasItemsKind, found];
+    const picked = step("pick", pickIfGivenAction, {
+      description: "",
+      inputs: { items: maybeEntities },
+    });
+
+    const firstHasItemsKind: Equals<
+      typeof picked.outputs.first,
+      Ref<"PersistedEntityMetadata", false, false>
+    > = true;
+
+    step("unconnectedKindSource", pickIfGivenAction, {
+      description: "",
+      // @ts-expect-error -- `items` is optional, but `first` takes its kind from it, so it must be connected
+      inputs: {},
+    });
+
+    return [
+      matchesHasItemsKind,
+      matchHasItemsKind,
+      firstHasItemsKind,
+      found,
+      picked,
+    ];
   };
 
   it("type outputs and inputs with derived kinds by the kind connected", () => {

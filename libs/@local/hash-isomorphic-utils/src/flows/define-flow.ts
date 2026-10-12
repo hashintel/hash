@@ -108,6 +108,29 @@ type IsMandatory<Input extends ActionInputShape> =
       : true
     : false;
 
+/** The input a definition takes its kind from, if it has a derived kind (see `KindFrom`). */
+type KindSourceOf<Definition> = Definition extends {
+  readonly kindFrom: infer Name;
+}
+  ? Name
+  : never;
+
+/**
+ * Whether a step must connect an input: a mandatory input, or a kind source, which gives the kinds derived from it.
+ * A kind source that's optional still has to be connected, though the value connected may be missing.
+ */
+type MustBeConnected<
+  Action extends ActionDefinitionShape,
+  Input extends ActionInputShape,
+> =
+  IsMandatory<Input> extends true
+    ? true
+    : Input["name"] extends KindSourceOf<
+          Action["inputs"][number] | Action["outputs"][number]
+        >
+      ? true
+      : false;
+
 type InputAcceptsInAction<
   Action extends ActionDefinitionShape,
   Input extends ActionInputShape,
@@ -118,11 +141,17 @@ type InputAcceptsInAction<
 >;
 
 export type StepInputs<Action extends ActionDefinitionShape> = {
-  [Input in Action["inputs"][number] as IsMandatory<Input> extends true
+  [Input in Action["inputs"][number] as MustBeConnected<
+    Action,
+    Input
+  > extends true
     ? Input["name"]
     : never]: InputAcceptsInAction<Action, Input>;
 } & {
-  [Input in Action["inputs"][number] as IsMandatory<Input> extends true
+  [Input in Action["inputs"][number] as MustBeConnected<
+    Action,
+    Input
+  > extends true
     ? never
     : Input["name"]]?: InputAcceptsInAction<Action, Input>;
 };
