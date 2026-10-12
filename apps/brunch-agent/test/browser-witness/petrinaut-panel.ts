@@ -338,11 +338,97 @@ const draftedExperiment = async () => {
   );
 };
 
+/**
+ * The browser's update stream drops mid-submission and its reconnect is
+ * refused, while the server runs on. Browser calls issued after that point
+ * still run in the page, against its document.
+ */
+const callsAfterStreamLoss = async () => {
+  const page = await fixture.openAssistant();
+  const finalReply = "Finished after the stream loss.";
+  faux.setResponses([
+    toolCall("getLatestNetDefinition", {}, "read-before-cut"),
+    () => {
+      fixture.cutStreams(1);
+      return toolCall(
+        "addPlace",
+        {
+          id: "queue",
+          name: "Queue",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+          targetSubnetId: null,
+        },
+        "place-after-cut",
+      );
+    },
+    toolCall("getNetCompilationErrors", {}, "diagnostics-after-cut"),
+    fauxAssistantMessage([fauxText(finalReply)]),
+  ]);
+  try {
+    const delivery = await fixture.send(
+      page,
+      "Read the net, add a queue place and check diagnostics.",
+    );
+    const { binding, client } = await fixture.conversationOf(page, delivery);
+    const deadline = Date.now() + 120_000;
+    let history = await client.history();
+    while (
+      !history.messages.some((message) =>
+        message.parts.some(
+          (part) => part.type === "text" && part.text === finalReply,
+        ),
+      )
+    ) {
+      assert(Date.now() < deadline, "The submission did not settle.");
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Polls until the server submission settles.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Polls until the server submission settles.
+      history = await client.history();
+    }
+    const outcomes = Object.fromEntries(
+      history.messages
+        .flatMap((message) => message.parts)
+        .flatMap((part) =>
+          part.type === "dynamic-tool"
+            ? [
+                [
+                  part.toolCallId,
+                  part.state === "output-error" ? part.errorText : part.state,
+                ] as const,
+              ]
+            : [],
+        ),
+    );
+    process.stdout.write(`${JSON.stringify(outcomes)}\n`);
+    assert.equal(fixture.servedRefusals(), 1);
+    assert.deepEqual(outcomes, {
+      [openaiCallId("read-before-cut")]: "output-available",
+      [openaiCallId("place-after-cut")]: "output-available",
+      [openaiCallId("diagnostics-after-cut")]: "output-available",
+    });
+    const stored = await fixture.storedDocument<{ sdcpn: SDCPN }>(
+      page,
+      binding.documentId,
+    );
+    assert.deepEqual(
+      stored?.sdcpn.places.map(({ id }) => id),
+      ["queue"],
+    );
+  } finally {
+    fixture.restoreStreams();
+  }
+};
+
 try {
   for (const witness of [
     canonicalConstruction,
     directExperiment,
     draftedExperiment,
+    callsAfterStreamLoss,
   ]) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- The cases share one scripted response queue.
     await witness();

@@ -739,6 +739,30 @@ describe("AiAssistantPanel composer submissions", () => {
     });
   });
 
+  test("does not offer a message again once the transport has accepted it", async () => {
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: async () => null,
+          sendMessages: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.error(new Error("The stream was lost."));
+              },
+            }),
+        },
+      },
+    });
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Send this once" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(await screen.findByText("The stream was lost.")).not.toBeNull();
+    expect(textarea.value).toBe("");
+  });
+
   test("keeps an expected composer refusal as UI state without capturing it", async () => {
     const captureException = vi.fn<ErrorTracker["captureException"]>();
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
