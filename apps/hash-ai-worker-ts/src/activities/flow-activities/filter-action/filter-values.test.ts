@@ -30,25 +30,20 @@ describe("evaluateIf", () => {
     { value: 6, outputName: "true" },
     { value: 5, outputName: "false" },
   ])("routes $value only to $outputName", ({ value, outputName }) => {
-    const input = Object.freeze({ kind: "Number" as const, value });
-    const result = evaluateIf(input, condition);
-    expectTypeOf(result).toEqualTypeOf<IfResult<"Number">>();
-    expect(result).toEqual({ status: "success", outputName, payload: input });
-    if (result.status === "success") {
-      expect(result.payload).toBe(input);
-    }
+    const result = evaluateIf({ kind: "Number", value }, condition);
+    expectTypeOf(result).toEqualTypeOf<IfResult>();
+    expect(result).toStrictEqual({ status: "success", outputName });
   });
 
-  it("preserves the original object and payload kind when filtering a field", () => {
-    const input = {
-      kind: "WebPage" as const,
-      value: {
-        url: "https://example.com" as Url,
-        title: "HASH",
-        htmlContent: "",
-        innerText: "",
-      },
-    };
+  it("only reads the payload, so the caller can emit it unchanged", () => {
+    const page = Object.freeze({
+      url: "https://example.com" as Url,
+      title: "HASH",
+      htmlContent: "",
+      innerText: "",
+    });
+    const input = Object.freeze({ kind: "WebPage" as const, value: page });
+    const snapshot = structuredClone(input);
     const result = evaluateIf(
       input,
       all({
@@ -58,24 +53,18 @@ describe("evaluateIf", () => {
         value: { kind: "Text", value: "HASH" },
       }),
     );
-    expectTypeOf(result).toEqualTypeOf<IfResult<"WebPage">>();
-    expect(result).toEqual({
-      status: "success",
-      outputName: "true",
-      payload: input,
-    });
-    if (result.status === "success") {
-      expect(result.payload.value).toBe(input.value);
-    }
+    expect(result).toStrictEqual({ status: "success", outputName: "true" });
+    expect(input).toStrictEqual(snapshot);
+    expect(input.value).toBe(page);
   });
 
-  it("does not emit either branch for invalid conditions", () => {
+  it("does not choose a branch for invalid conditions", () => {
     const result = evaluateIf(
       { kind: "Number", value: 6 },
       all({ ...leaf, operator: "contains" }),
     );
     expect(result).toMatchObject({ status: "error", code: "invalidCondition" });
-    expect(result).not.toHaveProperty("payload");
+    expect(result).not.toHaveProperty("outputName");
   });
 });
 

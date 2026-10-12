@@ -7,6 +7,7 @@ import {
 import type {
   ConditionContext,
   ConditionError,
+  ConditionInput,
   FilterCondition,
 } from "./evaluate-condition.js";
 import type {
@@ -14,18 +15,13 @@ import type {
   PayloadKindValues,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-export type FilterPayload<Kind extends PayloadKind> = {
-  kind: Kind;
-  value: PayloadKindValues[Kind];
-};
 export type FilterListPayload<Kind extends PayloadKind> = {
   kind: Kind;
   value: readonly PayloadKindValues[Kind][];
 };
 
-export type IfResult<Kind extends PayloadKind> =
-  | { status: "success"; outputName: "true"; payload: FilterPayload<Kind> }
-  | { status: "success"; outputName: "false"; payload: FilterPayload<Kind> }
+export type IfResult =
+  | { status: "success"; outputName: "true" | "false" }
   | ConditionError;
 
 export type FilterListResult<Kind extends PayloadKind> =
@@ -36,20 +32,19 @@ export type FilterListResult<Kind extends PayloadKind> =
     }
   | ConditionError;
 
-/** Returns exactly one output, preserving the original payload rather than the subject. */
-export const evaluateIf = <Kind extends PayloadKind>(
-  input: FilterPayload<Kind>,
+/**
+ * Picks the one output If produces. It only reads the resolved input: the caller emits its original
+ * payload, which may be a stored reference, unchanged on that output.
+ */
+export const evaluateIf = (
+  input: ConditionInput,
   condition: FilterCondition,
   context?: ConditionContext,
-): IfResult<Kind> => {
+): IfResult => {
   const result = evaluateCondition(condition, input, context);
   return result.status === "error"
     ? result
-    : {
-        status: "success",
-        outputName: result.matches ? "true" : "false",
-        payload: input,
-      };
+    : { status: "success", outputName: result.matches ? "true" : "false" };
 };
 
 /** Stable partition. Empty inputs still validate; errors never return partial outputs. */
