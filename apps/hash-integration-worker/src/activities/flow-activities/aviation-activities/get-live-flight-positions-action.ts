@@ -35,7 +35,7 @@ import { StatusCode } from "@local/status";
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 import { splitPropertiesAndMetadata } from "../shared/split-properties-and-metadata.js";
 
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { PrimaryKeyInput } from "@local/hash-backend-utils/integrations/aviation/shared/primary-keys";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
@@ -102,7 +102,7 @@ export const createGetLiveFlightPositionsAction = ({
   graphApiClient,
 }: {
   graphApiClient: GraphApi;
-}): IntegrationFlowActionActivity<"getLiveFlightPositions"> => {
+}): FlowActionActivity<"getLiveFlightPositions"> => {
   return async ({ inputs }) => {
     try {
       const { flowEntityId, runId, stepId, userAuthentication, workflowId } =

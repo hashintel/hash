@@ -32,7 +32,7 @@ import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   FailedEntityProposal,
@@ -669,7 +669,7 @@ export const createPersistIntegrationEntitiesAction = ({
   graphApiClient,
 }: {
   graphApiClient: GraphApi;
-}): IntegrationFlowActionActivity<"persistIntegrationEntities"> => {
+}): FlowActionActivity<"persistIntegrationEntities"> => {
   return async ({ inputs }) => {
     try {
       const {

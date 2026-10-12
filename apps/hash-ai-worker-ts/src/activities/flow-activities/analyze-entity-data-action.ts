@@ -38,7 +38,7 @@ import { stringify } from "../shared/stringify.js";
 
 import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type {
   FlowActionStepOutput,
   InputNameForFlowAction,
@@ -226,7 +226,7 @@ const maximumIterations = 8;
 
 type ActionOutputs = FlowActionStepOutput<"analyzeEntityData">[];
 
-export const analyzeEntityDataAction: AiFlowActionActivity<
+export const analyzeEntityDataAction: FlowActionActivity<
   "analyzeEntityData"
 > = async ({ inputs }) => {
   const {

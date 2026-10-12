@@ -51,7 +51,7 @@ import type {
   OriginProvenance,
   Url,
 } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type {
   ProposedEntity,
   StepInput,
@@ -157,7 +157,7 @@ const parseAndResolveCoordinatorInputs = async (params: {
  * 1. Any claims inferred during the process will be saved to the graph, in the web chosen for the overall flow run
  * 2. Any metered API usage incurred will be recorded
  */
-export const runCoordinatingAgent: AiFlowActionActivity<
+export const runCoordinatingAgent: FlowActionActivity<
   "researchEntities",
   {
     state: CoordinatingAgentState;

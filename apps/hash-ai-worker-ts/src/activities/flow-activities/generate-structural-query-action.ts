@@ -40,7 +40,7 @@ import { stringify } from "../shared/stringify.js";
 
 import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { EntityTraversalPath, Filter } from "@local/hash-graph-client";
 import type {
   FlowActionStepOutput,
@@ -612,7 +612,7 @@ const maximumIterations = 20;
 
 type ActionOutputs = FlowActionStepOutput<"generateStructuralQuery">[];
 
-export const generateStructuralQueryAction: AiFlowActionActivity<
+export const generateStructuralQueryAction: FlowActionActivity<
   "generateStructuralQuery"
 > = async ({ inputs }) => {
   const {

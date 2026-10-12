@@ -35,7 +35,7 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type {
   PersistedEntitiesMetadata,
@@ -81,7 +81,7 @@ type ActivityHeartbeatDetails = {
   spreadsheetId?: string;
 };
 
-export const writeGoogleSheetAction: AiFlowActionActivity<
+export const writeGoogleSheetAction: FlowActionActivity<
   "writeGoogleSheet",
   {
     vaultClient: VaultClient;

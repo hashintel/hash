@@ -6,12 +6,12 @@ import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { BrowserPluginSettings } from "@local/hash-isomorphic-utils/system-types/shared";
 
-export const processAutomaticBrowsingSettingsAction: AiFlowActionActivity<
+export const processAutomaticBrowsingSettingsAction: FlowActionActivity<
   "processAutomaticBrowsingSettings"
 > = async ({ inputs }) => {
   const { webPage } = getSimplifiedFlowActionInputs({
