@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { Petrinaut, type PetrinautPlugin } from "@hashintel/petrinaut/ui";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
+import { type PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 import { localCopyPlugin } from "./local-copy-plugin";
 import { getOEmbedDiscoveryUrl } from "./oembed-discovery";
