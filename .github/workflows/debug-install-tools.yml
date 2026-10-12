@@ -1,0 +1,44 @@
+name: Debug install-tools
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/debug-install-tools.yml
+
+jobs:
+  debug:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install tools
+        id: install-tools
+        continue-on-error: true
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Report
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          report() {
+            local name=$1
+            shift
+            local output
+            output=$("$@" 2>&1 | tail -n 25 | tr '\n' '|' | cut -c 1-3000) || true
+            echo "::warning title=${name}::${output}"
+          }
+          report "mise install" mise install --env ci --jobs 1 --locked
+          report "which bindgen" which bindgen
+          report "bindgen --version" bindgen --version
+          report "mise ls" mise ls --env ci --current
+          report "mise which protoc" mise which protoc
+          report "python3" python3 --version
+          report "cache key" env ACTION_FILES=x PROFILE=dev python3 .github/actions/install-aws-lc/cache-key.py dev
+          report "env" bash -c 'env | grep -E "^(AWS_LC|MISE|RUSTC_WRAPPER)" | sort'
+          report "prefix" bash -c 'ls -la "$RUNNER_TEMP"/aws-lc-* "$RUNNER_TEMP"/aws-lc-*/lib 2>&1'
