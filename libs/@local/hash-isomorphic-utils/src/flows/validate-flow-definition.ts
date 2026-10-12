@@ -256,6 +256,15 @@ export const validateFlowDefinition = (
         ) ?? false)
       : outputName === step.collect.as;
 
+  /**
+   * The step a for-each step collects from, if it's directly inside the for-each step.
+   */
+  const getCollectedStep = (step: ForEachStepDefinition<string>) => {
+    const collected = stepsById.get(step.collect.stepId);
+
+    return collected?.scope.at(-1) === step.stepId ? collected : undefined;
+  };
+
   const resolveStepOutput = ({
     stepId,
     outputName,
@@ -447,10 +456,10 @@ export const validateFlowDefinition = (
       addDependency(step.stepId, child.stepId);
     }
 
-    const collected = stepsById.get(step.collect.stepId);
+    const collected = getCollectedStep(step);
     const collectPath = [...entry.path, "collect"];
 
-    if (!collected || collected.scope.at(-1) !== step.stepId) {
+    if (!collected) {
       report(
         "invalidCollect",
         `A for-each step can only collect the output of a step directly inside it, and "${step.collect.stepId}" is not`,

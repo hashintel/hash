@@ -17,7 +17,7 @@ import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
  * Flow activity for generating chart configuration.
  * This activity generates Apache ECharts configuration based on chart data and user goal.
  */
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { ChartConfig } from "@local/hash-isomorphic-utils/dashboard-types";
 import type {
   FlowActionStepOutput,
@@ -115,7 +115,7 @@ const maximumIterations = 4;
 
 type ActionOutputs = FlowActionStepOutput<"generateChartConfig">[];
 
-export const generateChartConfigAction: AiFlowActionActivity<
+export const generateChartConfigAction: FlowActionActivity<
   "generateChartConfig"
 > = async ({ inputs }) => {
   const {

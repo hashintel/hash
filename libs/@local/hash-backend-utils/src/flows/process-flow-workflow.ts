@@ -25,6 +25,7 @@ import {
   completeForEachStep,
   passOutputsToUnprocessedSteps,
 } from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
+import { toRunFailure } from "./process-flow-workflow/to-run-failure.js";
 
 import type {
   ActionName,
@@ -97,9 +98,17 @@ const getStepReadiness = (params: {
   flowDefinition: FlowDefinition;
   processedStepIds: string[];
   skippedStepIds: string[];
+  /** Steps that ran and failed. */
+  failedStepIds: string[];
 }): StepReadiness => {
-  const { step, flow, flowDefinition, processedStepIds, skippedStepIds } =
-    params;
+  const {
+    step,
+    flow,
+    flowDefinition,
+    processedStepIds,
+    skippedStepIds,
+    failedStepIds,
+  } = params;
 
   /**
    * The readiness of one missing value, from the source that would provide it.
@@ -157,10 +166,13 @@ const getStepReadiness = (params: {
     }
 
     /*
-     * The producer ran but didn't produce the value. Unless the connection skips this step when the value is
-     * missing, the step never becomes ready, and the run fails.
+     * The producer finished without producing the value. If it failed, or the connection doesn't skip this step when
+     * the value is missing, the step never becomes ready, and the run fails.
      */
-    return source.whenMissing === "skip" ? "skip" : "waiting";
+    return source.whenMissing === "skip" &&
+      !failedStepIds.includes(producerStepId)
+      ? "skip"
+      : "waiting";
   };
 
   if (step.kind === "for-each") {
@@ -263,7 +275,7 @@ const { persistFlowActivity, userHasPermissionToRunFlowInWebActivity } =
     },
   });
 
-export const processFlowWorkflow = async <
+const processFlow = async <
   ValidActionDefinitionId extends FlowActionDefinitionId,
   CreateActivitiesFn extends CreateFlowActivities<ValidActionDefinitionId>,
 >(
@@ -592,6 +604,7 @@ export const processFlowWorkflow = async <
             flowDefinition,
             processedStepIds,
             skippedStepIds,
+            failedStepIds: Object.keys(processStepErrors),
           }) === "skip"
         ) {
           log(
@@ -639,6 +652,7 @@ export const processFlowWorkflow = async <
       flowDefinition,
       processedStepIds,
       skippedStepIds,
+      failedStepIds: Object.keys(processStepErrors),
     }) === "ready";
 
   /*
@@ -792,4 +806,12 @@ export const processFlowWorkflow = async <
       : StatusCode.Internal,
     contents: [{ outputs, stepErrors }],
   };
+};
+
+export const processFlowWorkflow: typeof processFlow = async (params) => {
+  try {
+    return await processFlow(params);
+  } catch (error) {
+    throw toRunFailure(error);
+  }
 };
