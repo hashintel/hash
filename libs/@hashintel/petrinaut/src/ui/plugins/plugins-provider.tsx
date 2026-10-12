@@ -50,6 +50,11 @@ import type {
 /** A running plugin as the editor reads it. */
 interface RunningPlugin {
   readonly manifest: PetrinautPluginManifest;
+  /**
+   * New for each host, so the outlets key a plugin's contributions by it and a
+   * remounted host starts them afresh, failures included.
+   */
+  readonly instanceKey: string;
   /** What the hook returned in its latest committed render. */
   readonly contributions: AnyPluginContributions;
   readonly settings: PluginSettings;
@@ -157,9 +162,11 @@ const PluginHost = ({
   const useHook = plugin[pluginRuntime].hook;
   const contributions = useHook(api);
 
+  const instanceKey = `${editor.generation}:${plugin[pluginRuntime].hostKey}`;
+
   useLayoutEffect(
-    () => store.publish({ manifest, contributions, settings }),
-    [store, manifest, contributions, settings],
+    () => store.publish({ manifest, instanceKey, contributions, settings }),
+    [store, manifest, instanceKey, contributions, settings],
   );
   useLayoutEffect(
     () => () => store.withdraw(manifest.id),

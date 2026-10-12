@@ -84,7 +84,9 @@ One `PluginBoundary`, Suspense plus an error boundary, wraps each host and
 each contribution. A contribution that suspends renders nothing until it is
 ready. A thrown error renders nothing, is
 [reported](doc:plugins/reference#failure-reports) to the host's error tracker,
-and stops only that host or contribution.
+and stops only that host or contribution. A contribution that threw stays empty
+while its plugin shows as on, until its host remounts: a `readonly` toggle, the
+user switching the plugin off and on, or a re-created plugin.
 
 A hook that throws marks its plugin `failed` until the user switches it off
 and on, its module is replaced (a new `hostKey`), or another document opens. A

@@ -424,6 +424,36 @@ describe("PetrinautPluginsProvider", () => {
     consoleError.mockRestore();
   });
 
+  it("starts a remounted plugin's contributions afresh, failures included", () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    let throws = true;
+    const Item = () => {
+      if (throws) {
+        throw new Error("contribution failed");
+      }
+
+      return <span>item</span>;
+    };
+    const createItemPlugin = definePetrinautPlugin({
+      id: "test.item",
+      name: "Item",
+      topBarItems: { item: { place: "top-bar-end" } },
+    });
+
+    const { rerender } = renderPlugins(
+      [createItemPlugin({ topBarItems: { item: <Item /> } })],
+      <TopBarEnd />,
+    );
+    expect(screen.queryByText("item")).toBeNull();
+
+    throws = false;
+    rerender([createItemPlugin({ topBarItems: { item: <Item /> } })]);
+    expect(screen.getByText("item")).toBeTruthy();
+    consoleError.mockRestore();
+  });
+
   it("runs a failed plugin again once the user switches it off and on", () => {
     const consoleError = vi
       .spyOn(console, "error")

@@ -41,13 +41,15 @@ export const PluginToolbarItems = ({
   /** Added to every plugin button, e.g. the viewport controls' chrome. */
   buttonClassName?: string;
 }) => {
-  return useRunningPlugins().flatMap(({ manifest, contributions }) => [
+  const running = useRunningPlugins();
+
+  return running.flatMap(({ manifest, instanceKey, contributions }) => [
     ...atPlace(manifest.buttons, place).map(([key, spec]) => {
       const button = contributions.buttons?.[key];
 
       return (
         <PluginBoundary
-          key={`${manifest.id}.buttons.${key}`}
+          key={`${instanceKey}.buttons.${key}`}
           pluginId={manifest.id}
           place={place}
           contributionId={key}
@@ -78,7 +80,7 @@ export const PluginToolbarItems = ({
     }),
     ...atPlace(manifest.topBarItems, place).map(([key]) => (
       <PluginBoundary
-        key={`${manifest.id}.topBarItems.${key}`}
+        key={`${instanceKey}.topBarItems.${key}`}
         pluginId={manifest.id}
         place={place}
         contributionId={key}
@@ -91,8 +93,8 @@ export const PluginToolbarItems = ({
 
 /** Every plugin's `root`, inside the editor, each behind its own boundary. */
 export const PluginRoots = () =>
-  useRunningPlugins().map(({ manifest, contributions }) => (
-    <PluginBoundary key={manifest.id} pluginId={manifest.id} place="root">
+  useRunningPlugins().map(({ manifest, instanceKey, contributions }) => (
+    <PluginBoundary key={instanceKey} pluginId={manifest.id} place="root">
       {contributions.root}
     </PluginBoundary>
   ));
