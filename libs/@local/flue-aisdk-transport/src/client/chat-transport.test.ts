@@ -699,6 +699,43 @@ test("a re-attach observer that throws cannot fail the turn", async () => {
   expect(raised).toEqual([observerFailure]);
 });
 
+test("a disconnect observer that throws cannot replace the disconnect", async () => {
+  const raised = captureRaisedErrors();
+  const observerFailure = new Error("Observer failure.");
+  vi.useFakeTimers();
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async () => {
+    throw refusedReconnect(410);
+  });
+  const onDisconnect = vi.fn<
+    NonNullable<FlueChatTransportOptions["onDisconnect"]>
+  >(() => {
+    throw observerFailure;
+  });
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+    onDisconnect,
+  });
+
+  const stream = await transport.sendMessages(
+    sendOptions([
+      { id: "user-1", role: "user", parts: [{ type: "text", text: "Drop." }] },
+    ]),
+  );
+  const reading = readChunks(stream).then(
+    () => undefined,
+    (error: unknown) => error,
+  );
+  await vi.runAllTimersAsync();
+  vi.useRealTimers();
+
+  const failure = await reading;
+  expect(failure).toBeInstanceOf(FlueChatDisconnectError);
+  expect(onDisconnect).toHaveBeenCalledExactlyOnceWith(failure);
+  expect(raised).toEqual([observerFailure]);
+});
+
 test("keeps caller cancellation distinct from durable abort", async () => {
   const abortController = new AbortController();
   const send = vi.fn<FlueClient["send"]>(async () => admission);

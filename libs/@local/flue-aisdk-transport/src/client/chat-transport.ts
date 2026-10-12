@@ -86,9 +86,14 @@ export interface FlueChatTransportOptions {
   ) => void;
   /**
    * Each re-attach the turn survives. When re-attaching gives up, the stream
-   * fails with {@link FlueChatDisconnectError}, which only `onError` reports.
+   * fails with {@link FlueChatDisconnectError}; see `onDisconnect`.
    */
   readonly onReattach?: (event: FlueChatReattachEvent) => void;
+  /**
+   * The transport stopped following a turn that may still be running. The
+   * stream still fails with the same error, which `onError` reports.
+   */
+  readonly onDisconnect?: (error: FlueChatDisconnectError) => void;
   /**
    * Server tool failures never reach `useChat.onError`; this is the only seam
    * that sees them. Admission, stream and settlement
@@ -320,6 +325,7 @@ const streamSubmission = (
         closed = true;
         disconnectLive?.();
         localAbort.abort();
+        notifyObserver(options.onDisconnect, error);
         controller.error(error);
       };
       const write = (chunk: UIMessageChunk): void => {
