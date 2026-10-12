@@ -124,7 +124,7 @@ export const useActualExecutionFrameSource = (params: {
 
   const getFramesInRange = async (
     startIndex: number,
-    endIndex = timelinePoints.length,
+    endIndex?: number,
   ): Promise<SimulationFrameReader[]> =>
     timelinePoints.slice(startIndex, endIndex).map((point, offset) =>
       createActualModeTimelineFrameReader({

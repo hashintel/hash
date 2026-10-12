@@ -299,6 +299,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       <tbody key={rowIndex} style={rowPaletteVars[kind]}>
         {isDynamic ? (
           <tr>
+            {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- an empty cell has nothing to label. */}
             <td
               className={cx(
                 gutterCellStyle,
@@ -581,10 +582,12 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       {hasSharedColumns ? (
         <tbody>
           <tr>
+            {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- an empty cell has nothing to label. */}
             <td className={gutterCellStyle} />
             {elements.map((element, columnIndex) => {
               const shared = state.sharedColumns[element.name];
               if (!shared) {
+                // eslint-disable-next-line jsx-a11y/control-has-associated-label -- an empty cell has nothing to label.
                 return <td key={element.elementId} className={cellStyle} />;
               }
               const target = {

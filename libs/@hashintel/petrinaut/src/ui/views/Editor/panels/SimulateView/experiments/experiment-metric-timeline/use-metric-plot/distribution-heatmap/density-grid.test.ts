@@ -5,6 +5,9 @@ import { buildHeatmapDensityGrid } from "./density-grid";
 
 import type { HeatmapFrame } from "./density-grid";
 
+/** Index of a cell in a grid with two columns, stored row by row. */
+const cell = (row: number, column: number) => row * 2 + column;
+
 const frame = (
   time: number,
   bins: (readonly [number, number])[],
@@ -39,7 +42,7 @@ describe("buildHeatmapDensityGrid", () => {
     )!;
     expect(grid.rows).toBe(2);
     expect(grid.densities[0]).toBeCloseTo(1); // row 0, column 0
-    expect(grid.densities[1 * 2 + 1]).toBeCloseTo(1); // row 1, column 1
+    expect(grid.densities[cell(1, 1)]).toBeCloseTo(1); // row 1, column 1
   });
 
   it("resolves values that never share a frame with a near neighbour", () => {
@@ -56,13 +59,13 @@ describe("buildHeatmapDensityGrid", () => {
       TALL_PLOT,
     )!;
     expect(grid.rows).toBe(3);
-    expect(grid.densities[0 * 2 + 1]).toBe(0); // value 0, column 1
-    expect(grid.densities[1 * 2 + 1]).toBeCloseTo(1); // value 500, column 1
-    expect(grid.densities[2 * 2 + 1]).toBe(0); // value 1000, column 1
+    expect(grid.densities[cell(0, 1)]).toBe(0); // value 0, column 1
+    expect(grid.densities[cell(1, 1)]).toBeCloseTo(1); // value 500, column 1
+    expect(grid.densities[cell(2, 1)]).toBe(0); // value 1000, column 1
     // The two-mode exact frame stays two modes.
-    expect(grid.densities[0 * 2]).toBeCloseTo(1); // value 0, column 0
-    expect(grid.densities[1 * 2]).toBe(0); // value 500, column 0
-    expect(grid.densities[2 * 2]).toBeCloseTo(1); // value 1000, column 0
+    expect(grid.densities[cell(0, 0)]).toBeCloseTo(1); // value 0, column 0
+    expect(grid.densities[cell(1, 0)]).toBe(0); // value 500, column 0
+    expect(grid.densities[cell(2, 0)]).toBeCloseTo(1); // value 1000, column 0
   });
 
   it("caps the grid at the plot's pixel resolution", () => {
@@ -175,8 +178,8 @@ describe("buildHeatmapDensityGrid with mixed lattices", () => {
       TALL_PLOT,
     )!;
     expect(grid.rows).toBe(2); // values 0..1
-    expect(grid.densities[0 * 2 + 1]).toBeCloseTo(0.5);
-    expect(grid.densities[1 * 2 + 1]).toBeCloseTo(1);
+    expect(grid.densities[cell(0, 1)]).toBeCloseTo(0.5);
+    expect(grid.densities[cell(1, 1)]).toBeCloseTo(1);
   });
 
   it("keeps a bin exactly on the lattice in its own row", () => {
