@@ -363,6 +363,15 @@ type EntryChecks<
  * misspelt key, such as `comands` or a button's `tooltp`, compiles.
  */
 type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
+  // A manifest typed as `PetrinautPluginManifest` holds `access` as optional,
+  // which no literal does; its `api` and contributions would type as empty.
+  ("access" extends keyof M
+    ? undefined extends M["access" & keyof M]
+      ? {
+          readonly "Declare the manifest inline, or with `as const satisfies PetrinautPluginManifest`": never;
+        }
+      : unknown
+    : unknown) &
   (M extends { readonly id: ReservedPluginId }
     ? { readonly id: never }
     : unknown) &

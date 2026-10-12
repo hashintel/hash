@@ -180,6 +180,12 @@ TypeScript also catches a setting value outside an enum's `options`, a button
 `command` that is not one of the manifest's command keys, a service of the
 wrong type, and a read of a family `access` does not declare.
 
+In the manifest itself, TypeScript catches a key it does not know at any depth,
+a reserved id, a command key with a dot, and an enum `default` outside its
+`options`. A manifest typed as `PetrinautPluginManifest` is a type error: the
+annotation drops the literal keys `api` and the contributions are typed from.
+Declare it inline, or with `as const satisfies PetrinautPluginManifest`.
+
 ## Exports
 
 From `@hashintel/petrinaut/ui`.

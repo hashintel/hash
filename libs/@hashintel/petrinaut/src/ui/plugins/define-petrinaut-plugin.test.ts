@@ -5,6 +5,7 @@ import {
   pluginCommandId,
   pluginRuntime,
   pluginService,
+  type PetrinautPluginManifest,
   type PluginHook,
 } from "./define-petrinaut-plugin";
 
@@ -287,5 +288,26 @@ describe("definePetrinautPlugin", () => {
         },
       }),
     ).toThrow('Plugin "test.enum" setting "mode" defaults to "a"');
+  });
+
+  it("refuses a manifest widened to its base type", () => {
+    const widened: PetrinautPluginManifest = {
+      id: "test.widened",
+      name: "Widened",
+      access: { document: "read" },
+    };
+    const kept = {
+      id: "test.kept",
+      name: "Kept",
+      access: { document: "read" },
+    } as const satisfies PetrinautPluginManifest;
+
+    // @ts-expect-error The manifest has lost its literal keys.
+    definePetrinautPlugin(widened);
+    definePetrinautPlugin(kept)((api) => {
+      void api.document.net;
+
+      return {};
+    });
   });
 });
