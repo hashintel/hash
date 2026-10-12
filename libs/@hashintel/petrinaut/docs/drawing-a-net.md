@@ -7,7 +7,7 @@ The editor is organized around a central canvas where you build your net:
 - **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
 - **Canvas / Definitions** -- a compact selector floating over Canvas, or beside search in the Definitions toolbar.
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
-- **Viewport controls** (bottom right of the canvas) -- zoom, fit and viewport settings buttons. The host application, or its plugins, may add buttons below them.
+- **Viewport controls** (bottom right of the canvas) -- zoom, fit and viewport settings buttons. Plugins may add buttons below them; see [Plugins](visual-settings.md#plugins).
 - **Left sidebar** -- the Entities tree: every node, token type, differential equation and parameter in the net, in one hierarchy. See [Left sidebar](#left-sidebar).
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).

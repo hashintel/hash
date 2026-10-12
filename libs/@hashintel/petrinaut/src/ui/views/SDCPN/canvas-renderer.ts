@@ -9,7 +9,6 @@
 import { createContext, use } from "react";
 
 import type { CanvasViewport } from "../../../react/state/canvas-viewport-context";
-import type { ViewportAction } from "../../types/viewport-action";
 import type { CanvasPoint, CanvasScene } from "./canvas-scene";
 import type { Size } from "@hashintel/petrinaut-core";
 
@@ -58,8 +57,6 @@ export type CanvasRendererProps = {
   scene: CanvasScene;
   /** Settled size of the canvas container. */
   containerSize: Size;
-  /** Extra buttons hosts add to the viewport controls. */
-  viewportActions?: ViewportAction[];
   /** Publishes this renderer's controller to the editor-level command seam. */
   registerController: (controller: CanvasController | null) => void;
 };
