@@ -59,7 +59,9 @@ const LeftOrRightEntityEndAdornment: FunctionComponent<{
   </Typography>
 );
 
-const getRightOrLeftEntitySx = (params: { isDraft: boolean }): BoxProps["sx"] =>
+const getRightOrLeftEntitySx = (params: {
+  isDraft: boolean;
+}): BoxProps["sx"] =>
   params.isDraft
     ? {
         backgroundColor: ({ palette }) => palette.gray[15],

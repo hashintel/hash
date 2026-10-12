@@ -599,24 +599,22 @@ test(
       graphApiClient,
     });
 
-    const claims = ftse350Claims.map(
-      (claim): Claim => ({
-        ...claim,
-        claimId: entityIdFromComponents(
-          userAuthentication.actorId as WebId,
-          generateUuid() as EntityUuid,
-        ),
-        sources: [
-          {
-            type: "webpage",
-            location: {
-              uri: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
-            },
-            loadedAt: currentTimestamp(),
+    const claims = ftse350Claims.map((claim): Claim => ({
+      ...claim,
+      claimId: entityIdFromComponents(
+        userAuthentication.actorId as WebId,
+        generateUuid() as EntityUuid,
+      ),
+      sources: [
+        {
+          type: "webpage",
+          location: {
+            uri: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
           },
-        ],
-      }),
-    );
+          loadedAt: currentTimestamp(),
+        },
+      ],
+    }));
 
     const { proposedEntities } = await proposeEntitiesFromClaims({
       entitySummaries: ftse350EntitySummaries,

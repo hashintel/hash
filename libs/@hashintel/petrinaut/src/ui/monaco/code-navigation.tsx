@@ -86,15 +86,13 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
       ];
     }),
     ...(extensions.colors && extensions.dynamics
-      ? activeNet.differentialEquations.map(
-          (equation): CodeEntry => ({
-            path: getDocumentUri("differential-equation", equation.id),
-            label: "Differential equation",
-            selection: { type: "differentialEquation", id: equation.id },
-            panel: "diff-eq-properties",
-            section: "diff-eq-main-content",
-          }),
-        )
+      ? activeNet.differentialEquations.map((equation): CodeEntry => ({
+          path: getDocumentUri("differential-equation", equation.id),
+          label: "Differential equation",
+          selection: { type: "differentialEquation", id: equation.id },
+          panel: "diff-eq-properties",
+          section: "diff-eq-main-content",
+        }))
       : []),
     ...activeNet.places.flatMap((place): CodeEntry[] =>
       place.visualizerCode === undefined

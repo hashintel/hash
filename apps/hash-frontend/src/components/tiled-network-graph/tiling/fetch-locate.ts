@@ -240,17 +240,16 @@ const fetchAndDecodeLocate = async (
       trailer.typeIds,
     ],
     Function.spread(Iterable.zip),
-    Iterable.map(
-      ([rowId, [x, y], mask, label, typeId], index): LocateNode =>
-        Record.omitUndefined({
-          id: rowId,
-          x: (x + 1) * scale,
-          y: (y + 1) * scale,
-          typeIndices: mask ? [...mask] : undefined,
-          label: label ?? undefined,
-          typeId: typeId ?? undefined,
-          properties: index === 0 ? trailer.properties : undefined,
-        }),
+    Iterable.map(([rowId, [x, y], mask, label, typeId], index): LocateNode =>
+      Record.omitUndefined({
+        id: rowId,
+        x: (x + 1) * scale,
+        y: (y + 1) * scale,
+        typeIndices: mask ? [...mask] : undefined,
+        label: label ?? undefined,
+        typeId: typeId ?? undefined,
+        properties: index === 0 ? trailer.properties : undefined,
+      }),
     ),
     Iterable.collect(),
   );

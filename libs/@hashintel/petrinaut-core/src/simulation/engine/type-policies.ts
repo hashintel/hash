@@ -124,7 +124,9 @@ function coerceBoolean(value: unknown, context: string): boolean {
  * over `TokenAttributeValue`: a (well-typed-ly unreachable) bigint is
  * formatted rather than leaking into JSON.
  */
-const storeVerbatim = (value: TokenAttributeValue): StoredTokenAttributeValue =>
+const storeVerbatim = (
+  value: TokenAttributeValue,
+): StoredTokenAttributeValue =>
   typeof value === "bigint" ? formatUuid(value) : value;
 
 /**

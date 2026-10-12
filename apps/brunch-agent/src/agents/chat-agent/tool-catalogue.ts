@@ -52,14 +52,12 @@ assertPetrinautToolCatalogueConformance();
 
 export const canonicalPetrinautToolCatalogue = Object.keys(
   petrinautAiTools,
-).map(
-  (name): BrunchToolCatalogueEntry => ({
-    name,
-    definitionOwner: "petrinaut-core",
-    executionOwner: "petrinaut-website",
-    capability: petrinautToolEffects[name as PetrinautAiToolName].capability,
-  }),
-);
+).map((name): BrunchToolCatalogueEntry => ({
+  name,
+  definitionOwner: "petrinaut-core",
+  executionOwner: "petrinaut-website",
+  capability: petrinautToolEffects[name as PetrinautAiToolName].capability,
+}));
 
 const draftBrunchTool: BrunchToolCatalogueEntry = {
   name: brunchTools.draftPetrinautExperiment,

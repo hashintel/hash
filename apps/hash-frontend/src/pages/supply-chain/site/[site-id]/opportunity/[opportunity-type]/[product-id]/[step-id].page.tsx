@@ -18,8 +18,9 @@ import { OpportunityBrief } from "../../../../../supply-chain-data-shell/opportu
 import type { NextPageWithLayout } from "../../../../../../../shared/layout";
 import type { OpportunityType } from "../../../../../supply-chain-data-shell/opportunity/opportunity-utils";
 
-const normaliseOpportunityType = (value: string | undefined): OpportunityType =>
-  value === "planning" ? "planning" : "dwell";
+const normaliseOpportunityType = (
+  value: string | undefined,
+): OpportunityType => (value === "planning" ? "planning" : "dwell");
 
 const OpportunityPage: NextPageWithLayout = () => {
   const router = useRouter();

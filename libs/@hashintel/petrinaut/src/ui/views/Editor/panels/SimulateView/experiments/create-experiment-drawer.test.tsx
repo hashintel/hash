@@ -358,8 +358,9 @@ const colouredContextValue: SDCPNContextValue = {
         elements: [{ elementId: "el__tag", name: "tag", type: "string" }],
       },
     ],
-    places: sirSdcpnContextValue.petriNetDefinition.places.map((place, index) =>
-      index === 0 ? { ...place, colorId: "type__batch" } : place,
+    places: sirSdcpnContextValue.petriNetDefinition.places.map(
+      (place, index) =>
+        index === 0 ? { ...place, colorId: "type__batch" } : place,
     ),
   },
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,

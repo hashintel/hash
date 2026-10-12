@@ -212,17 +212,8 @@ import { Checkbox as ArkCheckbox } from "@ark-ui/react/checkbox";
 import { css } from "@hashintel/ds-helpers/css";
 
 export const Checkbox = (props) => (
-  <ArkCheckbox.Root
-    className={css({
-      /* styles */
-    })}
-    {...props}
-  >
-    <ArkCheckbox.Control
-      className={css({
-        /* styles */
-      })}
-    >
+  <ArkCheckbox.Root className={css({/* styles */})} {...props}>
+    <ArkCheckbox.Control className={css({/* styles */})}>
       <ArkCheckbox.Indicator>{/* check icon */}</ArkCheckbox.Indicator>
     </ArkCheckbox.Control>
     <ArkCheckbox.Label>{props.children}</ArkCheckbox.Label>
