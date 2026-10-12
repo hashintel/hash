@@ -41,6 +41,7 @@ PetrinautPluginsProvider
        ├─ PluginHost × running plugin  runs the hook with api, publishes contributions,
        │     └─ PluginCommandRegistrations  registers declared commands
        └─ ViewAfterHosts               mounts the view after the hosts' first commit
+             └─ ReadOnlyActionProvider re-provides NetManagementContext with the first plugin's readOnlyAction
                                               │
                       contributions store ◄───┘
                               │
@@ -49,6 +50,9 @@ PetrinautPluginsProvider
 
 `definePetrinautPlugin(manifest, implementation)` returns the same plugin in
 one call.
+
+The read-only notice lives in the React layer, which cannot import this one,
+so it reads the action from `NetManagementContext`.
 
 ## Design
 

@@ -22,6 +22,7 @@ export type {
   PluginDefinitionRef,
   PluginHook,
   PluginImplementation,
+  PluginReadOnlyAction,
   PluginService,
   PluginSettingSection,
   PluginSettingSpec,

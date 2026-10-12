@@ -62,6 +62,27 @@ passes `readonly` as well, which is what disables the fields themselves:
 />
 ```
 
+A blocked node drag or editing shortcut shows a brief notice saying why. On a
+document the host made read-only, a [plugin](#plugins) can add a button to
+that notice, for example one that saves an editable copy. The manifest gives
+the button's label under `readOnlyAction`, and the plugin's contributions give
+what it does:
+
+```tsx
+export const copyPlugin = definePetrinautPlugin(
+  {
+    id: "example.copy",
+    name: "Copy",
+    readOnlyAction: { label: "Make a copy" },
+  },
+  { readOnlyAction: { run: createEditableCopy } },
+);
+
+// <Petrinaut handle={handle} readonly plugins={[copyPlugin]} />
+```
+
+The notice shows the action of the first running plugin that declares one.
+
 ## Commands and the palette
 
 Petrinaut registers its user-invocable actions (undo, tools, search, panel

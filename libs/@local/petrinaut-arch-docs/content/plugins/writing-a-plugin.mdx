@@ -124,6 +124,29 @@ Declare `root: true` and return a `root` for dialogs, overlays and tours,
 behind the plugin's error boundary. Return `overlay: true` while the root
 covers the editor: it holds back the empty-canvas assistant prompt.
 
+## Add an action to the read-only notice
+
+On a document the host made read-only, a blocked edit shows a notice that
+says so. Declare `readOnlyAction: { label }` to add a button to that notice,
+and return what it does under `readOnlyAction`. The notice shows the action of
+the first running plugin that declares one. Notices for Simulate mode, Actual
+mode or a simulation carry no action.
+
+```tsx
+const CopyPlugin = definePetrinautPlugin({
+  id: "example.copy",
+  name: "Copy",
+  access: { document: "read" },
+  readOnlyAction: { label: "Make a copy" },
+});
+
+const useCopyPlugin: PluginHook<typeof CopyPlugin> = ({ document }) => ({
+  readOnlyAction: { run: () => saveCopy(document.net.get()) },
+});
+
+export const copyPlugin = CopyPlugin(useCopyPlugin);
+```
+
 ## Add settings
 
 Declare each setting under `settings`. The editor renders its row in User

@@ -21,10 +21,11 @@ const LocalCopyPlugin = definePetrinautPlugin({
   id: "website.local-copy",
   name: "Local copy",
   description:
-    "A top-bar button that saves an editable copy of a read-only document in this browser and opens it.",
+    "Saves an editable copy of a read-only document in this browser and opens it, from the top bar or from the notice of a blocked edit.",
   author: "HASH",
   access: { document: "read", editor: "read" },
   topBarItems: { makeLocalCopy: { place: "top-bar-end" } },
+  readOnlyAction: { label: "Make a local copy" },
 });
 
 /** Saves the net under its title plus "(copy)", then opens it at `/local/$netId` with the current view. */
@@ -63,8 +64,9 @@ const useLocalCopyPlugin: PluginHook<typeof LocalCopyPlugin> = (api) => {
         </>
       ),
     },
+    readOnlyAction: { run: makeLocalCopy },
   };
 };
 
-/** "Make a local copy" in the top bar of a read-only document. */
+/** "Make a local copy" in the top bar of a read-only document and on its read-only notice. */
 export const localCopyPlugin = LocalCopyPlugin(useLocalCopyPlugin);

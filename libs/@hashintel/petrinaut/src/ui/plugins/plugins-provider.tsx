@@ -23,8 +23,9 @@ import {
   type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
+import { NetManagementContext } from "../../react/net-management-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
-import { useStore, useStoreSelector } from "../../react/use-store";
+import { useStoreSelector } from "../../react/use-store";
 import { pluginRuntime } from "./define-petrinaut-plugin";
 import { accessApi } from "./plugin-access";
 import { PluginBoundary } from "./plugin-boundary";
@@ -93,15 +94,25 @@ const PublishedContext = createContext<ReadableStore<Published>>(
 export const usePluginStatuses = (): readonly PluginStatusEntry[] =>
   use(PluginStatusesContext);
 
-/** The running plugins with their latest contributions, in the host's order. */
-export const useRunningPlugins = (): readonly RunningPlugin[] => {
+/**
+ * A value selected from the running plugins, in the host's order; the caller
+ * re-renders only when the selected value changes.
+ */
+export const useRunningPluginsSelector = <T,>(
+  selector: (running: readonly RunningPlugin[]) => T,
+): T => {
   const statuses = use(PluginStatusesContext);
-  const running = useStore(use(PublishedContext));
 
-  return statuses.flatMap(
-    ({ plugin }) => running.get(plugin.manifest.id) ?? [],
+  return useStoreSelector(use(PublishedContext), (map) =>
+    selector(
+      statuses.flatMap(({ plugin }) => map.get(plugin.manifest.id) ?? []),
+    ),
   );
 };
+
+/** The running plugins with their latest contributions, in the host's order. */
+export const useRunningPlugins = (): readonly RunningPlugin[] =>
+  useRunningPluginsSelector((running) => running);
 
 /** Whether a running plugin's root covers the editor, as a modal or a tour does. */
 export const usePluginOverlay = (): boolean =>
@@ -242,6 +253,35 @@ const ViewAfterHosts = ({ children }: { children: ReactNode }) => {
 };
 
 /**
+ * Re-provides the host's net management to the view, with the read-only
+ * notice's action of the first running plugin that declares one.
+ */
+const ReadOnlyActionProvider = ({ children }: { children: ReactNode }) => {
+  const netManagement = use(NetManagementContext);
+  const plugin = useRunningPluginsSelector((running) =>
+    running.find(
+      ({ manifest, contributions }) =>
+        manifest.readOnlyAction !== undefined &&
+        contributions.readOnlyAction !== undefined,
+    ),
+  );
+  const label = plugin?.manifest.readOnlyAction?.label;
+  const run = plugin?.contributions.readOnlyAction?.run;
+
+  return (
+    <NetManagementContext
+      value={
+        label === undefined || run === undefined
+          ? netManagement
+          : { ...netManagement, readOnlyAction: { label, onClick: run } }
+      }
+    >
+      {children}
+    </NetManagementContext>
+  );
+};
+
+/**
  * Runs `plugins` beside the editor view passed as `children`. `<Petrinaut>`
  * mounts it inside `<PetrinautProvider>`.
  */
@@ -289,7 +329,9 @@ export const PetrinautPluginsProvider = ({
               setFailedHostKeys((keys) => new Set(keys).add(hostKey))
             }
           />
-          <ViewAfterHosts>{children}</ViewAfterHosts>
+          <ViewAfterHosts>
+            <ReadOnlyActionProvider>{children}</ReadOnlyActionProvider>
+          </ViewAfterHosts>
         </PluginEditorProvider>
       </PublishedContext>
     </PluginStatusesContext>

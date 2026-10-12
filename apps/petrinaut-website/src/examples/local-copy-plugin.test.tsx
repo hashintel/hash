@@ -1,5 +1,11 @@
 /** @vitest-environment jsdom */
-import { act, cleanup, fireEvent, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { defaultPetrinautNavigationState } from "@hashintel/petrinaut/react";
@@ -95,4 +101,27 @@ test("explains a refused save and stays on the page", async () => {
     "Couldn't save: browser storage is full or blocked",
   );
   expect(navigate).not.toHaveBeenCalled();
+});
+
+test("offers the same copy on the notice of a blocked edit", async () => {
+  renderEditorWith([localCopyPlugin], { readonly: true, title: "SIR model" });
+  await screen.findByRole("button", { name: "Make a local copy" });
+
+  fireEvent.keyDown(document.body, { key: "n" });
+  await screen.findByText("This document is read-only.");
+  fireEvent.click(
+    within(screen.getByRole("region", { name: /^Notifications/ })).getByRole(
+      "button",
+      { name: "Make a local copy" },
+    ),
+  );
+
+  const [copy] = storedNets();
+  expect(copy?.title).toBe("SIR model (copy)");
+  expect(navigate).toHaveBeenCalledWith(
+    expect.objectContaining({
+      to: "/local/$netId",
+      params: { netId: copy?.id },
+    }),
+  );
 });

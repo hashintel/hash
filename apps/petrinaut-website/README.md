@@ -50,8 +50,9 @@ when the browser refuses the write. Empty nets stay saved when the visitor
 switches away, so their URLs keep working.
 
 Published `/examples/<slug>` pages offer **Make a local copy**, which saves an
-editable copy and opens its local URL with the current view. The button comes
-from the `website.local-copy` plugin in `src/examples/local-copy-plugin.tsx`.
+editable copy and opens its local URL with the current view. The button, and
+the same action on the notice that explains a blocked edit, come from the
+`website.local-copy` plugin in `src/examples/local-copy-plugin.tsx`.
 When the browser refuses the write, the top bar shows "Couldn't save" next to
 the button.
 

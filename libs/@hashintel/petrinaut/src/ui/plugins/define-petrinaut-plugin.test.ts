@@ -30,6 +30,12 @@ const RootPlugin = definePetrinautPlugin({
   root: true,
 });
 
+const NoticePlugin = definePetrinautPlugin({
+  id: "test.notice",
+  name: "Notice",
+  readOnlyAction: { label: "Make a copy" },
+});
+
 const EditorPlugin = definePetrinautPlugin({
   id: "test.editor",
   name: "Editor",
@@ -121,6 +127,33 @@ describe("definePetrinautPlugin", () => {
     expect(pluginCommandId(plugin.manifest.id, "open")).toBe(
       "test.commands.open",
     );
+  });
+
+  it("requires the read-only action's run exactly when the manifest declares the action", () => {
+    const run = () => {};
+    const useNoticePlugin: PluginHook<typeof NoticePlugin> = () => ({
+      readOnlyAction: { run },
+    });
+    const plugin = NoticePlugin(useNoticePlugin);
+    // @ts-expect-error A declared read-only action the contributions leave out.
+    NoticePlugin({});
+    PalettePlugin({
+      buttons: { toggle: { icon: null, onClick: noop } },
+      // @ts-expect-error A read-only action the manifest does not declare.
+      readOnlyAction: { run },
+    });
+    // @ts-expect-error The hook gives what the action does, not its label.
+    NoticePlugin({ readOnlyAction: { label: "Copy" } });
+    definePetrinautPlugin({
+      id: "test.unlabelled",
+      name: "Unlabelled",
+      // @ts-expect-error The manifest gives the action's label.
+      readOnlyAction: {},
+    });
+
+    expect(plugin[pluginRuntime].hook(undefined as never)).toEqual({
+      readOnlyAction: { run },
+    });
   });
 
   it("returns the plugin directly when given the implementation", () => {
