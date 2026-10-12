@@ -281,7 +281,7 @@ test("a corrupt .docx file stops the loading indicator and keeps the download", 
   });
 
   await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
-  await expect(page.getByRole("progressbar")).toHaveCount(0, {
+  await expect(page.getByRole("main").getByRole("progressbar")).toHaveCount(0, {
     timeout: 15_000,
   });
 });
