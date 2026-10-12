@@ -1,7 +1,38 @@
 /**
  * Requires explanations beside literal severity settings in Oxlint configuration.
  *
- * Checks `rules` objects and `defineRules` arguments in files that import Oxlint or use its configuration filename. Tuple settings put the explanation beside the first element. Computed settings and inherited presets are not resolved.
+ * Checks `rules` objects and `defineRules` arguments in files that import Oxlint or use its configuration filename, requiring tuple explanations beside the first element without resolving computed settings or inherited presets.
+ *
+ * @example Incorrect
+ * ```ts
+ * import { defineConfig } from "oxlint";
+ *
+ * export default defineConfig({
+ *   rules: {
+ *     // This CLI writes results to stdout.
+ *     "no-console": "allow",
+ *     "max-params": [
+ *       "deny",
+ *       { max: 3 },
+ *     ], // Additional parameters belong in an options object.
+ *   },
+ * });
+ * ```
+ *
+ * @example Correct
+ * ```ts
+ * import { defineConfig } from "oxlint";
+ *
+ * export default defineConfig({
+ *   rules: {
+ *     "no-console": "allow", // This CLI writes results to stdout.
+ *     "max-params": [
+ *       "deny", // Additional parameters belong in an options object.
+ *       { max: 3 },
+ *     ],
+ *   },
+ * });
+ * ```
  *
  * @module
  */
