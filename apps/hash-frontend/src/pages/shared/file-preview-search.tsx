@@ -19,8 +19,8 @@ import {
 } from "@hashintel/design-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 
-import { FontCaseRegularIcon } from "../../../shared/icons/font-case-regular-icon";
-import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
+import { FontCaseRegularIcon } from "../../shared/icons/font-case-regular-icon";
+import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
 import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types";
@@ -144,7 +144,7 @@ const findStringInPages = ({
   return results;
 };
 
-type PdfSearchProps = {
+type FilePreviewSearchProps = {
   closeSearch: () => void;
   document: DocumentCallback | null;
   searchHits: SearchHits;
@@ -154,7 +154,7 @@ type PdfSearchProps = {
   showSearch: boolean;
 };
 
-export const PdfSearch = ({
+export const FilePreviewSearch = ({
   closeSearch,
   document,
   searchHits,
@@ -162,7 +162,7 @@ export const PdfSearch = ({
   selectedSearchHit,
   setSelectedSearchHit,
   showSearch,
-}: PdfSearchProps) => {
+}: FilePreviewSearchProps) => {
   const [ignoreCase, setIgnoreCase] = useState(true);
   const [searchText, setSearchText] = useState("");
 

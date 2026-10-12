@@ -15,6 +15,11 @@ import {
 } from "@hashintel/design-system";
 
 import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
+import {
+  FilePreviewSearch,
+  type SearchHit,
+  type SearchHits,
+} from "./file-preview-search";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 import {
   a4Ratio,
@@ -24,11 +29,6 @@ import {
 } from "./pdf-preview/dimensions";
 import { PageThumbnail } from "./pdf-preview/page-thumbnail";
 import { PdfPreviewSkeleton } from "./pdf-preview/pdf-preview-skeleton";
-import {
-  PdfSearch,
-  type SearchHit,
-  type SearchHits,
-} from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
 
 import type {
@@ -244,7 +244,7 @@ export const PdfPreview = ({
             zIndex: 100,
           }}
         >
-          <PdfSearch
+          <FilePreviewSearch
             closeSearch={() => setShowSearch(false)}
             document={documentProxy}
             searchHits={searchHits}
