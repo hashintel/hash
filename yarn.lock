@@ -445,7 +445,6 @@ __metadata:
     "@flue/sdk": "npm:2.0.3"
     "@flue/vite": "npm:2.0.3"
     "@hashintel/brunch-agent": "workspace:*"
-    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
     "@local/flue-aisdk-transport": "workspace:*"
     "@local/hash-backend-utils": "workspace:*"
@@ -921,7 +920,6 @@ __metadata:
     "@flue/runtime": "npm:2.0.3"
     "@flue/sdk": "npm:2.0.3"
     "@hashintel/brunch-agent": "workspace:*"
-    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*"
     "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:*"
     "@hashintel/petrinaut": "workspace:*"
@@ -7605,12 +7603,11 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/brunch-agent-plugin-sdcpn@workspace:*, @hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn":
+"@hashintel/brunch-agent@workspace:*, @hashintel/brunch-agent@workspace:libs/@hashintel/brunch-agent":
   version: 0.0.0-use.local
-  resolution: "@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn"
+  resolution: "@hashintel/brunch-agent@workspace:libs/@hashintel/brunch-agent"
   dependencies:
-    "@flue/runtime": "npm:2.0.3"
-    "@hashintel/brunch-agent": "workspace:*"
+    "@flue/sdk": "npm:2.0.3"
     "@hashintel/petrinaut-core": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
@@ -7622,22 +7619,6 @@ __metadata:
     vite: "npm:8.2.2"
     vitest: "npm:4.1.11"
     zod: "npm:4.4.3"
-  languageName: unknown
-  linkType: soft
-
-"@hashintel/brunch-agent@workspace:*, @hashintel/brunch-agent@workspace:libs/@hashintel/brunch-agent/packages/core":
-  version: 0.0.0-use.local
-  resolution: "@hashintel/brunch-agent@workspace:libs/@hashintel/brunch-agent/packages/core"
-  dependencies:
-    "@flue/runtime": "npm:2.0.3"
-    "@flue/sdk": "npm:2.0.3"
-    "@types/node": "npm:22.18.13"
-    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
-    oxlint: "npm:1.86.0"
-    oxlint-tsgolint: "npm:7.0.2003"
-    valibot: "npm:1.4.2"
-    vite: "npm:8.2.2"
-    vitest: "npm:4.1.11"
   languageName: unknown
   linkType: soft
 

@@ -1,5 +1,4 @@
-import { netReaderToolNames } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { brunchTools } from "@hashintel/brunch-agent/constants";
+import { brunchTools, netReaderToolNames } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core";
 
 /** Literal stock catalogue handled by Petrinaut's existing static panel tools. */

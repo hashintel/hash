@@ -17,7 +17,7 @@ import {
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
-} from "@hashintel/brunch-agent/conversation-identity";
+} from "@hashintel/brunch-agent";
 import {
   CommandRegistryProvider,
   ErrorTrackerContext,

@@ -7,7 +7,7 @@ import petrinaut from "./manual/skills/petrinaut/SKILL.md";
 import { createLedger2Tools } from "./manual/tools/ledger.ts";
 import { createQueryBasisTool } from "./manual/tools/query-basis.ts";
 
-import type { LedgerHistory } from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
+import type { LedgerHistory } from "@hashintel/brunch-agent";
 
 /**
  * A hand-edited arm, copied from `identity` as of round 4c. Everything the

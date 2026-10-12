@@ -6,11 +6,14 @@ import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 import { describe, expect, test, vi } from "vitest";
 
-import { brunchTools } from "@hashintel/brunch-agent";
-import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
+  brunchTools,
   entityKindStages,
   foldCommits,
+  type LedgerAppend,
+  type LedgerHistory,
+  type LedgerHistoryMessage,
+  netElementKinds,
   prepareAppend,
   projectLedger,
   renderLedgerMarkdown,
@@ -21,10 +24,7 @@ import {
   vOrigin,
   vReflection,
   vStatus,
-  type LedgerAppend,
-  type LedgerHistory,
-  type LedgerHistoryMessage,
-} from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
+} from "@hashintel/brunch-agent";
 
 import {
   commitToolDescription,

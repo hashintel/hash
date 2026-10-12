@@ -9,7 +9,7 @@ test("the manifest fingerprints the agent's guidance and Ledger, and a changed s
     expect.arrayContaining([
       "apps/brunch-agent/src/agents/chat-agent/agent.ts",
       "apps/brunch-agent/src/agents/chat-agent/guidance/manual/prompts/system.md",
-      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/ledger2/commits.ts",
+      "libs/@hashintel/brunch-agent/src/ledger/commits.ts",
       "yarn.lock",
     ]),
   );

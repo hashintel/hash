@@ -14,14 +14,12 @@ import {
 } from "react";
 
 import {
-  brunchRoutes,
-  localUiPrincipal,
-} from "@hashintel/brunch-agent/constants";
-import {
   agentOwnershipHeaders,
-  flueConversationIdWeb,
+  brunchRoutes,
   type ConversationIdentity,
-} from "@hashintel/brunch-agent/conversation-identity";
+  flueConversationIdWeb,
+  localUiPrincipal,
+} from "@hashintel/brunch-agent";
 
 /** The local UI always speaks as its one demo principal. */
 type LocalConversationIdentity = ConversationIdentity & {

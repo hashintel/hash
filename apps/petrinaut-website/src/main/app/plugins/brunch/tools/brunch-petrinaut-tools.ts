@@ -1,11 +1,11 @@
 import {
   browserToolMutatesDocument,
   type ClientToolResultMetadata,
-  netReaderToolNames,
   type NetReaderLevel,
+  netReaderToolNames,
   parseNetReaderInput,
   projectNetDefinition,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+} from "@hashintel/brunch-agent";
 import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,

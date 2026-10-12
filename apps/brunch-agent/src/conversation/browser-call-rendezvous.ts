@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 
-import { browserToolMutatesDocument } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { browserToolMutatesDocument } from "@hashintel/brunch-agent";
 
-import type { ClientToolResult } from "@hashintel/brunch-agent/client-tools";
+import type { ClientToolResult } from "@hashintel/brunch-agent";
 
 /** Process-local handoff for the documented single-owner Node deployment. No durable effects live here. */
 const leaseMs = 25_000;

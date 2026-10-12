@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   browserToolOutput,
   projectBrunchMessageMetadata,
-} from "@hashintel/brunch-agent/client-tools";
+} from "@hashintel/brunch-agent";
 import { createFlueAiSdkAdapter } from "@local/flue-aisdk-transport";
 
 import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";

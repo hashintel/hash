@@ -1,9 +1,9 @@
 import {
   foldCommits,
+  type LedgerHistory,
   projectLedger,
   renderLedgerMarkdown,
-  type LedgerHistory,
-} from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
+} from "@hashintel/brunch-agent";
 
 /** `ledger.json` and `ledger.md`. */
 export interface LedgerEvidence {

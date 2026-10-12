@@ -25,7 +25,7 @@ import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
-} from "@hashintel/brunch-agent/conversation-identity";
+} from "@hashintel/brunch-agent";
 
 import { AiAssistantContents } from "../../../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
 import { loadBuiltBrunchApplication } from "../../../../../../../brunch-agent/test/load-built-application";

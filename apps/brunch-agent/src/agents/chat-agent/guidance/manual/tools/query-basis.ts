@@ -1,9 +1,11 @@
 import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
-import { brunchTools } from "@hashintel/brunch-agent";
-import { netElementKinds } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { foldCommits } from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
+import {
+  brunchTools,
+  foldCommits,
+  netElementKinds,
+} from "@hashintel/brunch-agent";
 
 import {
   callsForElement,
@@ -16,7 +18,7 @@ import {
 } from "../../../../../conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
-import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn";
+import type { BrowserContext } from "@hashintel/brunch-agent";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 export const queryBasisToolDescription =

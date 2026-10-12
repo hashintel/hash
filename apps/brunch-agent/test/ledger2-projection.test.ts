@@ -7,7 +7,7 @@ import {
   renderLedgerMarkdown,
   resolveSelection,
   supportDeskLedger,
-} from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
+} from "@hashintel/brunch-agent";
 
 const projection = projectLedger(supportDeskLedger);
 const user = renderLedgerMarkdown(projection, "user");

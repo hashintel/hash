@@ -1,10 +1,10 @@
 import {
   isNetObservationTool,
+  type NetElementKind,
   netReaderLevelOf,
   parseClientToolResultMetadata,
   petrinautToolTargets,
-  type NetElementKind,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+} from "@hashintel/brunch-agent";
 import {
   canonicalizeArcId,
   generateArcId,

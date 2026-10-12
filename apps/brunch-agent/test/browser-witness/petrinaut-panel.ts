@@ -11,7 +11,7 @@ import {
   type Context,
 } from "@earendil-works/pi-ai";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent/client-tools";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
 import {
   canonicalizePetrinautIds,
   toPetrinautId,

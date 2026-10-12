@@ -17,10 +17,9 @@ import { createFlueClient } from "@flue/sdk";
 import {
   browserToolMutatesDocument,
   canonicalContent,
-  sdcpnInitialDataSchema,
   type SdcpnInitialData,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
-import { useSdcpnTools } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+  sdcpnInitialDataSchema,
+} from "@hashintel/brunch-agent";
 
 import {
   selectChatModelSpecifier,
@@ -32,6 +31,7 @@ import {
   expectedNetRevision,
   netViewTracker,
 } from "../../conversation/net-freshness.ts";
+import { usePetrinautTools } from "../../shared/petrinaut-tools.ts";
 import { createBrunchContextProjection } from "./context-projection.ts";
 import { useManualGuidance } from "./guidance/manual.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
@@ -76,7 +76,7 @@ export function ChatAgent({ id }: AgentProps) {
   );
   // The guidance's skills and tool descriptions carry the Petrinaut, runtime,
   // experiment and `query_basis` instructions, so none is mounted here.
-  useSdcpnTools(
+  usePetrinautTools(
     initialData
       ? {
           instructions: {},

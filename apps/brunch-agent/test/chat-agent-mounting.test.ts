@@ -3,8 +3,7 @@ import { readFile } from "node:fs/promises";
 import * as v from "valibot";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { brunchTools } from "@hashintel/brunch-agent";
-import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { brunchTools, sdcpnInitialDataSchema } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {

@@ -1,0 +1,51 @@
+/**
+ * `@hashintel/brunch-agent`: what the Brunch agent app and the Petrinaut
+ * website share. Browser-safe throughout; nothing here imports the Flue
+ * runtime, which `apps/brunch-agent/test/architecture/import-direction.test.ts`
+ * enforces. Flue tools, guidance and server mechanics live in the app.
+ */
+
+export * from "./constants";
+export * from "./conversation-identity";
+export * from "./client-tools";
+export * from "./ledger";
+export {
+  canonicalContent,
+  parseClientToolResultMetadata,
+  type ClientToolResultMetadata,
+} from "./petrinaut/browser-metadata";
+export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./petrinaut/construction-tool-names";
+export {
+  PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
+  parsePetrinautUserMessageBody,
+  petrinautContextualUserMessageBody,
+} from "./petrinaut/contextual-user-message";
+export {
+  isNetObservationTool,
+  netReaderDescriptions,
+  netReaderInputSchema,
+  netReaderLevelOf,
+  netReaderToolNames,
+  parseNetReaderInput,
+  projectNetDefinition,
+  type NetReaderLevel,
+} from "./petrinaut/net-readers";
+export {
+  browserToolMutatesDocument,
+  netElementKinds,
+  petrinautToolTargets,
+  petrinautToolEffects,
+  type NetElementKind,
+  type PetrinautToolCapability,
+} from "./petrinaut/petrinaut-tool-effects";
+export {
+  sdcpnInitialDataSchema,
+  type BrowserContext,
+  type SdcpnInitialData,
+} from "./petrinaut/initial-data";
+export {
+  draftPetrinautExperimentInputSchema,
+  draftPetrinautExperimentOutputSchema,
+  type DraftPetrinautExperimentInput,
+  type DraftPetrinautExperimentOutput,
+} from "./petrinaut/draft-experiment";

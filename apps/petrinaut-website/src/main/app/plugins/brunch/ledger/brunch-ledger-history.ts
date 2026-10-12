@@ -1,11 +1,11 @@
-import { parseClientToolResultMetadata } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   foldCommits,
+  type LedgerHistoryMessage,
+  parseClientToolResultMetadata,
   projectLedger,
   renderLedgerMarkdown,
-  type LedgerHistoryMessage,
   type Skin,
-} from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
+} from "@hashintel/brunch-agent";
 
 export type BrunchLedgerHistoryMessage = LedgerHistoryMessage;
 

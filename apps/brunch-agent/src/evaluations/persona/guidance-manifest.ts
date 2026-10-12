@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("../../../../../", import.meta.url));
 const app = "apps/brunch-agent/src/agents/chat-agent";
-const packages = "libs/@hashintel/brunch-agent/packages";
+const library = "libs/@hashintel/brunch-agent";
 const filesWithin = async (directory: string): Promise<string[]> => {
   const entries = await readdir(directory, { withFileTypes: true });
   return (
@@ -26,13 +26,13 @@ const filesWithin = async (directory: string): Promise<string[]> => {
 export const guidanceManifest = async () => {
   const directories = [
     `${app}/guidance`,
-    // The Ledger lives in the plugin so the website can render it.
-    `${packages}/plugin-sdcpn/src/ledger2`,
+    // The Ledger lives in the library so the website can render it.
+    `${library}/src/ledger`,
   ];
   const paths = [
     `${app}/agent.ts`,
-    `${packages}/plugin-sdcpn/src/ledger2.ts`,
-    `${packages}/plugin-sdcpn/src/flue.ts`,
+    `${library}/src/ledger.ts`,
+    "apps/brunch-agent/src/shared/petrinaut-tools.ts",
     "yarn.lock",
     ...(
       await Promise.all(

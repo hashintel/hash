@@ -15,7 +15,7 @@ import {
 } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent/client-tools";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";

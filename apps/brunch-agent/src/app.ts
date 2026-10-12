@@ -8,8 +8,12 @@ import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
-import { brunchEnv, brunchRoutes, brunchTools } from "@hashintel/brunch-agent";
-import { netReaderToolNames } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  brunchEnv,
+  brunchRoutes,
+  brunchTools,
+  netReaderToolNames,
+} from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 import {
   createLiveToolBroadcaster,

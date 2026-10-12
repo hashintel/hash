@@ -16,7 +16,7 @@ import {
   type UserConfig,
 } from "vite";
 
-import { brunchEnv } from "@hashintel/brunch-agent/constants";
+import { brunchEnv } from "@hashintel/brunch-agent";
 
 import {
   defaultChatOrigin,

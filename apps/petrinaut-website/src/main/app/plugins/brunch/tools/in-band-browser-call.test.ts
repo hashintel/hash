@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { canonicalContent } from "@hashintel/brunch-agent";
 
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 

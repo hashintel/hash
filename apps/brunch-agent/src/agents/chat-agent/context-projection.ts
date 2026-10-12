@@ -2,7 +2,7 @@ import {
   browserToolMutatesDocument,
   isNetObservationTool,
   parseClientToolResultMetadata,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+} from "@hashintel/brunch-agent";
 
 import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 

@@ -3,11 +3,11 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
 import {
-  identityPayload,
   type ConversationIdentity,
-} from "@hashintel/brunch-agent/conversation-identity";
+  identityPayload,
+} from "@hashintel/brunch-agent";
 
-export { agentOwnershipHeaders } from "@hashintel/brunch-agent/conversation-identity";
+export { agentOwnershipHeaders } from "@hashintel/brunch-agent";
 export type { ConversationIdentity };
 
 export const flueConversationId = (identity: ConversationIdentity): string =>

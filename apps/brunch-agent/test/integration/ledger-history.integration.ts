@@ -21,7 +21,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { foldCommits } from "@hashintel/brunch-agent-plugin-sdcpn/ledger2";
+import { foldCommits } from "@hashintel/brunch-agent";
 
 import {
   agentOwnershipHeaders,

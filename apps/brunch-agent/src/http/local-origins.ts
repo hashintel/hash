@@ -13,7 +13,7 @@
  * honoured, an accidental clash is reported.
  */
 
-import { brunchEnv } from "@hashintel/brunch-agent/constants";
+import { brunchEnv } from "@hashintel/brunch-agent";
 
 const listenPort = (variable: string, fallback: number): number => {
   const requested = Number(process.env[variable]);

@@ -1,16 +1,16 @@
 import {
+  agentOwnershipHeaders,
+  brunchTools,
   canonicalContent,
   draftPetrinautExperimentInputSchema,
   netReaderToolNames,
   parseNetReaderInput,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
-import { brunchTools } from "@hashintel/brunch-agent/constants";
-import { agentOwnershipHeaders } from "@hashintel/brunch-agent/conversation-identity";
+} from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import type { ProcessAgentBinding } from "../conversation/use-process-agent-binding";
 import type { FlueClient } from "@flue/sdk";
-import type { ClientToolResultMetadata } from "@hashintel/brunch-agent-plugin-sdcpn";
+import type { ClientToolResultMetadata } from "@hashintel/brunch-agent";
 
 /** Every tool the server may issue to this browser, by the schema that parses its input. */
 const issuedInputSchemas: Readonly<

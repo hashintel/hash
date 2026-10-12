@@ -17,7 +17,7 @@ import {
 } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { brunchTools } from "@hashintel/brunch-agent/constants";
+import { brunchTools } from "@hashintel/brunch-agent";
 import {
   createExperimentToolName,
   toPetrinautId,

@@ -19,11 +19,11 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
-import { brunchTools } from "@hashintel/brunch-agent";
 import {
   browserToolOutput,
+  brunchTools,
   projectBrunchMessageMetadata,
-} from "@hashintel/brunch-agent/client-tools";
+} from "@hashintel/brunch-agent";
 import { createFlueAiSdkAdapter } from "@local/flue-aisdk-transport";
 
 import {

@@ -10,8 +10,6 @@ type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
 import { ledgerEvidence } from "./ledger-evidence.ts";
 
-import type { ToolExecution } from "@hashintel/brunch-agent";
-
 interface ProofEventBase {
   readonly sequence: number;
   readonly turn: number;
@@ -39,7 +37,8 @@ type ProofTraceEvent =
       readonly type: "tool";
       readonly toolCallId: string;
       readonly name: string;
-      readonly executor: ToolExecution;
+      /** Which side executed the call: the browser client or the server. */
+      readonly executor: "client" | "server";
       readonly outcome: "ok" | "error";
     })
   | (ProofEventBase & {

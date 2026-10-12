@@ -1,9 +1,9 @@
-import { brunchTools } from "@hashintel/brunch-agent";
 import {
+  brunchTools,
   netReaderToolNames,
-  petrinautToolEffects,
   type PetrinautToolCapability,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+  petrinautToolEffects,
+} from "@hashintel/brunch-agent";
 import {
   petrinautAiTools,
   type PetrinautAiToolName,
