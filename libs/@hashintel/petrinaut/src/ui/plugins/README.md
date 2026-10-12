@@ -45,6 +45,9 @@ PetrinautPluginsProvider
         PluginToolbarItems, PluginRoots, PluginSettingsRows   (the view's outlets)
 ```
 
+`definePetrinautPlugin(manifest, implementation)` returns the same plugin in
+one call.
+
 ## Design
 
 - **Hosts render beside the view, not around it.** A host runs the plugin's

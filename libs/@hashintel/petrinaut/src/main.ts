@@ -122,6 +122,7 @@ export type {
   PluginCommandSpec,
   PluginContributions,
   PluginHook,
+  PluginImplementation,
   PluginService,
 } from "./ui/plugins/define-petrinaut-plugin";
 export type {

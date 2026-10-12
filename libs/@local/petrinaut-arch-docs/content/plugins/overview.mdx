@@ -22,7 +22,7 @@ tables, and how the editor runs plugins.
 | Hook          | `useXPlugin(api)`: receives `api` and returns the contributions. A plugin whose contributions need no `api` passes them as an object instead.                                   |
 | `api`         | What the manifest grants: `errors` and `notifications` always, `settings` when the manifest declares settings, `document`, `experiments` and `editor` when `access` names them. |
 | Contributions | What the hook returns: an entry for each key the manifest declares, `root` included.                                                                                            |
-| Plugin        | What calling the definition returns. `<Petrinaut plugins>` takes an array of them.                                                                                              |
+| Plugin        | What calling the definition returns, or `definePetrinautPlugin(manifest, implementation)` in one call. `<Petrinaut plugins>` takes an array of them.                            |
 
 ## Example
 
@@ -70,7 +70,7 @@ under the same key.
 
 ## Read next
 
-- [Writing a plugin](doc:plugins/writing-a-plugin): the two forms, the rules,
+- [Writing a plugin](doc:plugins/writing-a-plugin): the forms, the rules,
   and how to add each contribution, read and edit the document, and share a
   service.
 - [Plugin API reference](doc:plugins/reference): manifest keys, `access`

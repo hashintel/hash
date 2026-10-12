@@ -29,6 +29,7 @@ export type {
   PluginCommandSpec,
   PluginContributions,
   PluginHook,
+  PluginImplementation,
   PluginService,
 } from "./plugins/define-petrinaut-plugin";
 export { describeRefusal } from "./plugins/plugin-access";

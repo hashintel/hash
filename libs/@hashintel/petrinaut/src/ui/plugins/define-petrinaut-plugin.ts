@@ -4,7 +4,8 @@
  *
  * `definePetrinautPlugin(manifest)` returns a definition. Calling the
  * definition with a hook, or with the contributions themselves, returns the
- * plugin `<Petrinaut plugins>` takes. The manifest is plain data Petrinaut
+ * plugin `<Petrinaut plugins>` takes; `definePetrinautPlugin(manifest,
+ * implementation)` returns it directly. The manifest is plain data Petrinaut
  * reads before running plugin code; the hook receives `api`, which holds what
  * the manifest declares, and returns the contributions it declares.
  */
@@ -280,29 +281,45 @@ export interface PetrinautPlugin<
   readonly manifest: M;
   /** Only Petrinaut calls it, with the `api` built from `manifest`. */
   readonly hook: (api: never) => AnyPluginContributions;
-  /** New for each call of the definition, so a re-created plugin remounts and nothing else does. */
+  /** New for each plugin created, so a re-created plugin remounts and nothing else does. */
   readonly hostKey: string;
 }
+
+/** What a definition takes: the hook, or contributions that need no `api`. */
+export type PluginImplementation<M extends PetrinautPluginManifest> =
+  | PluginHook<{ manifest: M }>
+  | PluginContributions<{ manifest: M }>;
 
 /**
  * Returns the plugin for a hook, or for contributions that need no `api`.
  * `manifest` is readable without running plugin code.
  */
 export interface PetrinautPluginDefinition<M extends PetrinautPluginManifest> {
-  (
-    implementation:
-      | PluginHook<{ manifest: M }>
-      | PluginContributions<{ manifest: M }>,
-  ): PetrinautPlugin<M>;
+  (implementation: PluginImplementation<M>): PetrinautPlugin<M>;
   readonly manifest: M;
 }
 
+/** A plugin's implementation, whatever its manifest. */
+type AnyImplementation = PetrinautPlugin["hook"] | AnyPluginContributions;
+
 let nextSerial = 0;
 
+const createPlugin = (
+  manifest: PetrinautPluginManifest,
+  implementation: AnyImplementation,
+): PetrinautPlugin => ({
+  manifest,
+  hook:
+    typeof implementation === "function"
+      ? implementation
+      : () => implementation,
+  hostKey: `${manifest.id}#${nextSerial++}`,
+});
+
 /**
- * Defines a plugin's manifest. Call the definition at module scope, with the
- * hook or with the contributions written inline; a call during render makes a
- * new plugin, which remounts on every render.
+ * Defines a plugin's manifest and returns the definition. Call the definition
+ * at module scope, with the hook or with the contributions written inline; a
+ * call during render makes a new plugin, which remounts on every render.
  *
  * @example
  * ```tsx
@@ -322,21 +339,42 @@ let nextSerial = 0;
  * export const counterPlugin = createCounterPlugin(useCounterPlugin);
  * ```
  */
-export const definePetrinautPlugin = <const M extends PetrinautPluginManifest>(
+export function definePetrinautPlugin<const M extends PetrinautPluginManifest>(
   manifest: M,
-): PetrinautPluginDefinition<M> =>
-  Object.assign(
-    (
-      implementation:
-        | PluginHook<{ manifest: M }>
-        | PluginContributions<{ manifest: M }>,
-    ): PetrinautPlugin<M> => ({
-      manifest,
-      hook:
-        typeof implementation === "function"
-          ? implementation
-          : () => implementation,
-      hostKey: `${manifest.id}#${nextSerial++}`,
-    }),
-    { manifest },
-  );
+): PetrinautPluginDefinition<M>;
+/**
+ * Returns the plugin for a manifest and its implementation. Call it at module
+ * scope: a call during render makes a new plugin, which remounts on every
+ * render. The implementation is the contributions, or a hook written inline
+ * that only reads `api`. A hook with state stays a module-scope `useXPlugin`
+ * passed to the definition.
+ *
+ * @example
+ * ```tsx
+ * export const helpPlugin = definePetrinautPlugin(
+ *   {
+ *     id: "example.help",
+ *     name: "Help",
+ *     buttons: { help: { label: "Open help", place: "top-bar-end" } },
+ *   },
+ *   { buttons: { help: { icon: <InfoIcon />, onClick: openHelp } } },
+ * );
+ * ```
+ */
+export function definePetrinautPlugin<const M extends PetrinautPluginManifest>(
+  manifest: M,
+  implementation:
+    | NoInfer<PluginHook<{ manifest: M }>>
+    | PluginContributions<{ manifest: M }>,
+): PetrinautPlugin<M>;
+export function definePetrinautPlugin(
+  manifest: PetrinautPluginManifest,
+  implementation?: AnyImplementation,
+): PetrinautPlugin | PetrinautPluginDefinition<PetrinautPluginManifest> {
+  return implementation === undefined
+    ? Object.assign(
+        (later: AnyImplementation) => createPlugin(manifest, later),
+        { manifest },
+      )
+    : createPlugin(manifest, implementation);
+}

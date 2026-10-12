@@ -105,4 +105,94 @@ describe("definePetrinautPlugin", () => {
       "test.commands.open",
     );
   });
+
+  it("returns the plugin directly when given the implementation", () => {
+    const contributions = { buttons: { help: { icon: null } } };
+    const manifest = {
+      id: "test.direct",
+      name: "Direct",
+      buttons: { help: { label: "Help", place: "top-bar-end" } },
+    } as const;
+    const first = definePetrinautPlugin(manifest, contributions);
+    const second = definePetrinautPlugin(manifest, contributions);
+    const id: "test.direct" = first.manifest.id;
+
+    expect(id).toBe("test.direct");
+    expect(first.manifest).toBe(manifest);
+    expect(first.hook(undefined as never)).toBe(contributions);
+    expect(first.hostKey).not.toBe(second.hostKey);
+  });
+
+  it("types an inline hook's api and the contributions in the direct form", () => {
+    definePetrinautPlugin(
+      {
+        id: "test.direct-editor",
+        name: "Direct editor",
+        access: { document: "read", editor: "read" },
+        settings: {
+          mode: {
+            type: "enum",
+            options: ["a", "b"],
+            default: "a",
+            label: "Mode",
+          },
+        },
+        provides: pluginService<{ ready: boolean }>(),
+      },
+      (api) => {
+        const mode: "a" | "b" = api.settings.get("mode");
+        // @ts-expect-error A value outside an enum's options.
+        api.settings.set("mode", "c");
+        // @ts-expect-error A reader has no edits.
+        void api.document.edit;
+        // @ts-expect-error An undeclared family is absent.
+        void api.experiments;
+
+        return { provides: { ready: mode === "a" } };
+      },
+    );
+
+    const help = {
+      id: "test.direct-help",
+      name: "Help",
+      commands: { open: { label: "Open" } },
+      buttons: { help: { label: "Help", place: "top-bar-end" } },
+    } as const;
+    const open = { run: () => {} };
+    definePetrinautPlugin(help, (api) => ({
+      commands: {
+        open: { run: () => api.notifications.add({ message: "Open" }) },
+      },
+      buttons: { help: { icon: null, command: "open" } },
+    }));
+    definePetrinautPlugin(
+      {
+        id: "test.direct-status",
+        name: "Status",
+        provides: pluginService<{ status: "idle" | "busy" }>(),
+      },
+      (api) => {
+        void api.notifications;
+        return { provides: { status: "idle" } };
+      },
+    );
+    // @ts-expect-error A declared button the contributions leave out.
+    definePetrinautPlugin(help, { commands: { open } });
+    definePetrinautPlugin(help, {
+      commands: { open },
+      buttons: { help: { icon: null } },
+      // @ts-expect-error A contribution the manifest does not declare.
+      provides: 1,
+    });
+    definePetrinautPlugin(help, {
+      commands: { open },
+      // @ts-expect-error A command the manifest does not declare.
+      buttons: { help: { icon: null, command: "close" } },
+    });
+    definePetrinautPlugin(
+      { id: "test.direct-root", name: "Root", root: true },
+      // @ts-expect-error The hook returns a contribution the manifest does not declare.
+      () => ({ root: null, provides: 1 }),
+    );
+  });
 });
