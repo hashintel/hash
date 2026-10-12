@@ -7050,6 +7050,7 @@ dependencies = [
  "derive_more",
  "duckdb",
  "error-stack",
+ "hash-integrations-definition",
  "pretty_assertions",
  "proptest",
  "serde_json",
