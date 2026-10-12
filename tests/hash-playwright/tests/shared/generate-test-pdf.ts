@@ -1,42 +1,60 @@
-import { testDocumentPages } from "./test-document";
+import { type PageContent, testDocumentPages } from "./test-document";
 
 const pageHeight = 842;
 
-const buildContentStream = ({
-  heading,
-  body,
-}: {
-  heading: string;
-  body: string;
-}) =>
+/**
+ * Literal strings may only hold letters, digits, spaces and full stops, because
+ * ISO 32000-1 lets these appear unescaped and Helvetica draws them as in ASCII.
+ *
+ * @see https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf#page=23
+ */
+const unsupportedCharacter = /[^A-Za-z0-9 .]/;
+
+const toLiteralString = (text: string) => {
+  const match = unsupportedCharacter.exec(text);
+  if (match) {
+    throw new Error(
+      `Cannot write "${match[0]}" in "${text}" to the PDF: page text may only hold letters, digits, spaces and full stops`,
+    );
+  }
+  return `(${text})`;
+};
+
+const buildContentStream = ({ heading, body }: PageContent) =>
   [
     "BT",
     "/F1 32 Tf",
     `72 ${pageHeight - 108} Td`,
-    `(${heading}) Tj`,
+    `${toLiteralString(heading)} Tj`,
     "/F1 14 Tf",
     "0 -48 Td",
-    `(${body}) Tj`,
+    `${toLiteralString(body)} Tj`,
     "ET",
   ].join("\n");
 
 /**
- * Renders `testDocumentPages` as an A4 PDF, one page per entry, in the
- * standard Helvetica font, which is not embedded.
+ * Renders `pages` as an A4 PDF, one page per entry, in the standard Helvetica
+ * font, which is not embedded. The file structure follows the "Simple Text
+ * String Example" in ISO 32000-1.
+ *
+ * @see https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf#page=708
  */
-export const generateTestPdf = (): Buffer => {
+const generatePdf = (pages: PageContent[]): Buffer => {
+  // After the catalog, page tree and font
   const firstPageObjectNumber = 4;
 
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
-    `<< /Type /Pages /Kids [${testDocumentPages
+    `<< /Type /Pages /Kids [${pages
       .map((_, index) => `${firstPageObjectNumber + index * 2} 0 R`)
-      .join(" ")}] /Count ${testDocumentPages.length} >>`,
+      .join(" ")}] /Count ${pages.length} >>`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    ...testDocumentPages.flatMap((pageText, index) => {
-      const contentStream = buildContentStream(pageText);
+    ...pages.flatMap((page, index) => {
+      const contentStream = buildContentStream(page);
       return [
-        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 ${pageHeight}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${firstPageObjectNumber + index * 2 + 1} 0 R >>`,
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 ${pageHeight}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${
+          firstPageObjectNumber + index * 2 + 1
+        } 0 R >>`,
         `<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`,
       ];
     }),
@@ -56,8 +74,12 @@ export const generateTestPdf = (): Buffer => {
   for (const offset of objectOffsets) {
     pdf += `${offset.toString().padStart(10, "0")} 00000 n \n`;
   }
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${crossReferenceOffset}\n%%EOF\n`;
+  pdf += `trailer\n<< /Size ${
+    objects.length + 1
+  } /Root 1 0 R >>\nstartxref\n${crossReferenceOffset}\n%%EOF\n`;
 
   /** Every character is ASCII, so string offsets equal byte offsets */
   return Buffer.from(pdf, "latin1");
 };
+
+export const generateTestPdf = (): Buffer => generatePdf(testDocumentPages);

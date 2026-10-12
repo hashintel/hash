@@ -1,5 +1,10 @@
 export const testDocumentSearchWord = "quokka";
 
+export interface PageContent {
+  heading: string;
+  body: string;
+}
+
 /**
  * The text of the generated test documents, one entry per page.
  * `testDocumentSearchWord` appears on the first and third pages only.
@@ -16,4 +21,4 @@ export const testDocumentPages = [
     heading: "Page 3",
     body: `Another ${testDocumentSearchWord} lives on this page.`,
   },
-] as const;
+] as const satisfies PageContent[];
