@@ -17,9 +17,6 @@ use aide::{
 };
 use axum::{Extension, Router};
 use hash_graph_postgres_store::store::PostgresStorePool;
-use hash_middleware::authentication::{
-    request::ACTOR_ID_HEADER, service_secret::SERVICE_AUTH_SCHEME,
-};
 use rand::rngs::SysRng;
 
 use self::openapi::OpenApiDocument;
@@ -97,13 +94,13 @@ const API_DESCRIPTION: &str =
 const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 
 /// Credential schemes declared in the OpenAPI root.
-// The Kratos and Cloudflare names mirror `hash-graph-authentication`'s provider constants.
-// Depending on that crate for three strings would pull its Kratos and JWT machinery into this one.
+// The Kratos names mirror `hash-graph-authentication`'s provider constants. Depending on that
+// crate for two strings would pull its Kratos and JWT machinery into this one.
 #[expect(
     clippy::default_trait_access,
     reason = "naming the upstream type would add an authentication dependency"
 )]
-fn credential_schemes() -> [(&'static str, SecurityScheme); 4] {
+fn credential_schemes() -> [(&'static str, SecurityScheme); 2] {
     [
         (
             "sessionToken",
@@ -120,29 +117,6 @@ fn credential_schemes() -> [(&'static str, SecurityScheme); 4] {
                 location: ApiKeyLocation::Cookie,
                 name: "ory_kratos_session".to_owned(),
                 description: Some("the caller's Kratos browser session".to_owned()),
-                extensions: Default::default(),
-            },
-        ),
-        (
-            "cloudflareAccess",
-            SecurityScheme::ApiKey {
-                location: ApiKeyLocation::Header,
-                name: "Cf-Access-Jwt-Assertion".to_owned(),
-                description: Some(
-                    "the Cloudflare Access JWT, on deployments behind Cloudflare Access".to_owned(),
-                ),
-                extensions: Default::default(),
-            },
-        ),
-        (
-            "serviceDelegation",
-            SecurityScheme::Http {
-                scheme: SERVICE_AUTH_SCHEME.to_owned(),
-                bearer_format: None,
-                description: Some(format!(
-                    "the shared service secret, with the delegated actor beside it in the \
-                     `{ACTOR_ID_HEADER}` header"
-                )),
                 extensions: Default::default(),
             },
         ),

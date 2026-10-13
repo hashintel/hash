@@ -34,7 +34,7 @@ hashql-core     = { workspace = true, public = true }
 http            = { workspace = true, public = true }
 jsonwebtoken    = { workspace = true, public = true, features = ["aws_lc_rs"] }
 opentelemetry   = { workspace = true, public = true, features = ["metrics"] }
-tower-http      = { workspace = true, public = true, features = ["catch-panic"] }
+tower-http      = { workspace = true, public = true, features = ["catch-panic", "set-header"] }
 tracing         = { workspace = true, public = true }
 
 # Private workspace dependencies

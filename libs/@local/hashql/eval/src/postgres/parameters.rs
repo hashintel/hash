@@ -250,6 +250,8 @@ impl<A: Allocator> fmt::Display for Parameters<'_, A> {
     }
 }
 
+pub(crate) struct Checkpoint(usize);
+
 /// Runtime parameter values for authorization conditions, indexed after
 /// the compiled parameters (`$K+1..`).
 #[derive(Debug)]
@@ -285,6 +287,15 @@ impl<A: Allocator> AuxiliaryParameters<A> {
 
     pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = &(dyn ToSql + Sync)> {
         self.parameters.iter().map(|param| &**param)
+    }
+
+    pub(crate) fn checkpoint(&self) -> Checkpoint {
+        Checkpoint(self.parameters.len())
+    }
+
+    #[expect(clippy::needless_pass_by_value, reason = "API contract")]
+    pub(crate) fn rollback(&mut self, checkpoint: Checkpoint) {
+        self.parameters.truncate(checkpoint.0);
     }
 }
 

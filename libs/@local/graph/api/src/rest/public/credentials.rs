@@ -4,29 +4,28 @@ use aide::{
     openapi::{Operation, SecurityScheme},
     transform::TransformOperation,
 };
+use hash_middleware::authentication::Challenge;
 
 use crate::rest::{
     Audience,
-    credentials::{self, API_TOKEN, CLOUDFLARE_ACCESS, DELEGATED_ACTOR, SERVICE_SECRET},
+    credentials::{self, API_TOKEN},
 };
 
 pub(super) struct Credentials;
 
 impl credentials::Credentials for Credentials {
     const AUDIENCE: Audience = Audience::Public;
+    const CHALLENGE: Challenge = Challenge::Bearer;
 
     fn schemes() -> impl IntoIterator<Item = (&'static str, SecurityScheme)> {
-        core::iter::once((API_TOKEN, credentials::api_token_scheme()))
-            .chain(credentials::shared_schemes())
+        [(API_TOKEN, credentials::api_token_scheme())]
     }
 }
 
 impl OperationInput for Credentials {
     fn operation_input(_ctx: &mut GenContext, operation: &mut Operation) {
-        let _: TransformOperation<'_> = TransformOperation::new(operation)
-            .security_requirement(API_TOKEN)
-            .security_requirement(CLOUDFLARE_ACCESS)
-            .security_requirement_multi([SERVICE_SECRET, DELEGATED_ACTOR]);
+        let _: TransformOperation<'_> =
+            TransformOperation::new(operation).security_requirement(API_TOKEN);
     }
 }
 

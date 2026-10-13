@@ -334,11 +334,11 @@ pub(crate) fn require_service_secret(
 pub(crate) async fn run_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
+    cloudflare_access: Option<CloudflareAccessConfig>,
     service_secret: Pin<Arc<Secret<str>>>,
     meter: Meter,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    let cloudflare_access = cloudflare_access_config(&config)?;
     if let Some(access) = &cloudflare_access {
         tracing::info!(jwks_url = %access.jwt.jwks_url, "Cloudflare Access authentication enabled for admin API");
     }
@@ -396,9 +396,13 @@ pub(crate) async fn run_admin_server(
 }
 
 /// Spawns the admin server as a background task with lifecycle management.
+///
+/// `cloudflare_access` is the result of [`cloudflare_access_config`], which the caller validates
+/// before connecting anywhere.
 pub(crate) fn start_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
+    cloudflare_access: Option<CloudflareAccessConfig>,
     service_secret: Pin<Arc<Secret<str>>>,
     meter: Meter,
     lifecycle: &ServerLifecycle,
@@ -407,7 +411,15 @@ pub(crate) fn start_admin_server(
 
     let shutdown = lifecycle.shutdown.clone();
     lifecycle.spawn("Admin server", async move {
-        run_admin_server(pool, config, service_secret, meter, shutdown).await
+        run_admin_server(
+            pool,
+            config,
+            cloudflare_access,
+            service_secret,
+            meter,
+            shutdown,
+        )
+        .await
     });
 }
 
@@ -420,6 +432,7 @@ pub async fn admin_server(
     args: AdminServerArgs,
     telemetry: &Telemetry,
 ) -> Result<(), Report<GraphError>> {
+    let cloudflare_access = cloudflare_access_config(&args.config)?;
     let pool = PostgresStorePool::new(
         &args.db_info,
         &args.pool_config,
@@ -438,6 +451,7 @@ pub async fn admin_server(
     start_admin_server(
         pool,
         args.config,
+        cloudflare_access,
         service_secret,
         telemetry.meter("Graph Admin API"),
         &lifecycle,

@@ -1,11 +1,17 @@
 import { logLiveDiagnostic } from "../../shared/live-diagnostic";
 import { repeatsLiveOutput } from "./utterance-pipeline/repeats-live-output";
+import {
+  isControlOnly,
+  isFillerOnly,
+} from "./utterance-pipeline/spoken-phrases";
 
 import type { FinalizedInput } from "../live-conversation";
 
 export type SkipReason =
   | "echo"
   | "doubtful-short-during-output"
+  | "filler"
+  | "control"
   | "short-during-output"
   | "empty";
 
@@ -54,6 +60,18 @@ export const liveUtteranceStages: readonly UtteranceStage[] = [
       ((utterance.minLogprob !== undefined &&
         utterance.minLogprob < doubtfulBelowLogprob) ||
         repeatsOverlappingOutput(utterance)),
+  },
+  // Word lists traced beside log mode's model judgments of the same input, so
+  // the two can be compared before either decides anything.
+  {
+    reason: "filler",
+    mode: "shadow",
+    skips: ({ text }) => isFillerOnly(text),
+  },
+  {
+    reason: "control",
+    mode: "shadow",
+    skips: ({ text }) => isControlOnly(text),
   },
   // Leaked Live audio finalizes as phantoms of a few words.
   {

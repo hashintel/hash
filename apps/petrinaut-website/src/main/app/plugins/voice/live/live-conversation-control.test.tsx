@@ -132,6 +132,75 @@ const start = async () => {
   fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
 };
 
+test.each(["log", undefined] as const)(
+  "wires judgment mode %s without waiting for it to submit",
+  async (utteranceJudgment) => {
+    const pending = Promise.withResolvers<Response>();
+    const fetch = vi.fn<typeof globalThis.fetch>(async (url) =>
+      url === "/api/voice/utterance-judgment"
+        ? pending.promise
+        : Response.json({ fields: {} }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const judgmentCalls = () =>
+      fetch.mock.calls.filter(
+        ([url]) => url === "/api/voice/utterance-judgment",
+      );
+    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+    window.localStorage.setItem(
+      LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    const props = context();
+    vi.mocked(props.submitVoiceInput).mockResolvedValue({
+      kind: "message",
+      messageId: "one",
+    });
+    try {
+      render(
+        <VoiceInterviewControl
+          {...props}
+          config={{ ...config, utteranceJudgment }}
+          resolveInputSubmission={() => "root"}
+        />,
+      );
+      const onInput = vi.mocked(createLiveConversation).mock.calls[0]![2];
+      act(() =>
+        onInput({
+          id: "one",
+          text: "PRIVATE OKAY",
+          startedDuringOutput: false,
+        }),
+      );
+      await waitFor(() =>
+        expect(props.submitVoiceInput).toHaveBeenCalledOnce(),
+      );
+      expect(judgmentCalls()).toHaveLength(utteranceJudgment === "log" ? 1 : 0);
+      if (utteranceJudgment === "log") {
+        expect(judgmentCalls()[0]?.[1]?.body).toBe(
+          JSON.stringify({
+            transcript: "PRIVATE OKAY",
+            offeredBrunchText: null,
+          }),
+        );
+      }
+      pending.resolve(
+        Response.json({
+          contribution: "social_or_backchannel",
+          confidence: 0.94,
+        }),
+      );
+      await act(async () => {
+        await pending.promise;
+      });
+      expect(props.submitVoiceInput).toHaveBeenCalledOnce();
+      expect(JSON.stringify(debug.mock.calls)).not.toContain("PRIVATE");
+    } finally {
+      pending.resolve(Response.json({}));
+      debug.mockRestore();
+    }
+  },
+);
 test("streams a display-only user bubble, then prepares and admits only corrected final text", async () => {
   let resolveBrief!: (response: Response) => void;
   vi.stubGlobal(

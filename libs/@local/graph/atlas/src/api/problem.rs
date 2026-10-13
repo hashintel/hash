@@ -10,7 +10,7 @@
 //! bytes and axum refuses an oversize or interrupted one before the handler runs.
 
 use alloc::borrow::Cow;
-use core::{num::NonZero, task};
+use core::task;
 
 use aide::{OperationOutput, generate::GenContext, openapi};
 use axum::{
@@ -29,6 +29,7 @@ use hash_middleware::{
     rate_limit::{RateLimitRejection, TooManyRequests},
 };
 use opentelemetry::{KeyValue, trace::TraceContextExt as _};
+use problematic::ProblemVariant as _;
 use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 
 use crate::serve::{
@@ -420,15 +421,21 @@ impl OperationOutput for Problem<'_> {
     }
 }
 
-/// A [`Problem`] with the headers its response carries: the `WWW-Authenticate` challenge of a
-/// `401`, or the `Retry-After` delay of a `429`.
+/// The problem document a request is refused with, and the headers its response carries.
 ///
 /// It converts from the domain rejection types axum middleware and extractors refuse a request
 /// with.
-pub(crate) struct ProblemResponse<'content> {
-    problem: Problem<'content>,
-    challenge: Option<http::HeaderValue>,
-    retry_after: Option<NonZero<u64>>,
+pub(crate) enum ProblemResponse<'content> {
+    /// Any other refusal.
+    Problem(Problem<'content>),
+    /// A `401 Unauthorized`, answered with its `WWW-Authenticate` challenge.
+    Unauthorized {
+        problem: Problem<'content>,
+        challenge: http::HeaderValue,
+    },
+    /// A request over its budget, answered `too-many-requests` with the `Retry-After`,
+    /// `RateLimit-Policy` and `RateLimit` fields of the [`TooManyRequests`] rejection.
+    TooManyRequests(TooManyRequests),
 }
 
 impl ProblemResponse<'static> {
@@ -463,16 +470,16 @@ impl ProblemResponse<'static> {
             ))
             .into();
         }
+        let problem = Problem::new(
+            details.status,
+            ProblemType::Unauthenticated,
+            details.detail.unwrap_or(details.title).into_owned(),
+        );
         let mut headers = http::HeaderMap::new();
         answer.headers(&mut headers);
-        Self {
-            problem: Problem::new(
-                details.status,
-                ProblemType::Unauthenticated,
-                details.detail.unwrap_or(details.title).into_owned(),
-            ),
-            challenge: headers.remove(header::WWW_AUTHENTICATE),
-            retry_after: None,
+        match headers.remove(header::WWW_AUTHENTICATE) {
+            Some(challenge) => Self::Unauthorized { problem, challenge },
+            None => Self::Problem(problem),
         }
     }
 }
@@ -482,25 +489,13 @@ where
     T: Into<Problem<'content>>,
 {
     fn from(problem: T) -> Self {
-        Self {
-            problem: problem.into(),
-            challenge: None,
-            retry_after: None,
-        }
+        Self::Problem(problem.into())
     }
 }
 
 impl From<TooManyRequests> for ProblemResponse<'static> {
-    fn from(TooManyRequests { retry_after }: TooManyRequests) -> Self {
-        Self {
-            problem: Problem::new(
-                StatusCode::TOO_MANY_REQUESTS,
-                ProblemType::TooManyRequests,
-                "rate limit exceeded",
-            ),
-            challenge: None,
-            retry_after: Some(retry_after),
-        }
+    fn from(too_many_requests: TooManyRequests) -> Self {
+        Self::TooManyRequests(too_many_requests)
     }
 }
 
@@ -542,22 +537,26 @@ impl From<AuthenticationRejection> for ProblemResponse<'static> {
 
 impl IntoResponse for ProblemResponse<'_> {
     fn into_response(self) -> Response {
-        debug_assert!(
-            self.problem.status != StatusCode::UNAUTHORIZED || self.challenge.is_some(),
-            "a 401 problem should carry a WWW-Authenticate challenge"
-        );
-        let mut response = self.problem.document_response();
-        if let Some(challenge) = self.challenge {
-            response
-                .headers_mut()
-                .insert(header::WWW_AUTHENTICATE, challenge);
+        match self {
+            Self::Problem(problem) => problem.into_response(),
+            Self::Unauthorized { problem, challenge } => {
+                let mut response = problem.document_response();
+                response
+                    .headers_mut()
+                    .insert(header::WWW_AUTHENTICATE, challenge);
+                response
+            }
+            Self::TooManyRequests(too_many_requests) => {
+                let mut response = Problem::new(
+                    StatusCode::TOO_MANY_REQUESTS,
+                    ProblemType::TooManyRequests,
+                    "rate limit exceeded",
+                )
+                .into_response();
+                too_many_requests.headers(response.headers_mut());
+                response
+            }
         }
-        if let Some(retry_after) = self.retry_after {
-            response
-                .headers_mut()
-                .insert(header::RETRY_AFTER, retry_after.get().into());
-        }
-        response
     }
 }
 
@@ -627,17 +626,19 @@ where
 /// a stale issue time, or an actor mismatch). A caller learns only that the server refused its
 /// presentation and nothing about why.
 pub(super) fn unauthorized() -> ProblemResponse<'static> {
-    ProblemResponse {
+    ProblemResponse::Unauthorized {
         problem: Problem::new(
             StatusCode::UNAUTHORIZED,
             ProblemType::Unauthorized,
             "the request presents no acceptable authority token. Re-fetch the manifest presenting \
              the held token to renew, or without one to bootstrap afresh",
         ),
-        challenge: Some(http::HeaderValue::from_static(
+        challenge: http::HeaderValue::try_from(format!(
+            "{} realm=\"{}\"",
             super::headers::AUTHORITY_DOCUMENTED,
-        )),
-        retry_after: None,
+            Challenge::REALM
+        ))
+        .expect("should build the challenge from visible ASCII"),
     }
 }
 
@@ -920,7 +921,7 @@ pub(crate) mod tests {
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
         assert_eq!(
             response.headers()[header::WWW_AUTHENTICATE],
-            "Atlas-Authority",
+            r#"Atlas-Authority realm="HASH""#,
             "the refusal should challenge with the authority token"
         );
     }
@@ -931,10 +932,12 @@ pub(crate) mod tests {
         let report = Report::new(AuthenticationError::new(
             AuthenticationErrorKind::InvalidProviderResponse,
         ));
-        let document = serde_json::to_value(
-            ProblemResponse::authentication(&report, Challenge::Service).problem,
-        )
-        .expect("should serialize the problem");
+        let ProblemResponse::Problem(problem) =
+            ProblemResponse::authentication(&report, Challenge::Service)
+        else {
+            panic!("an internal failure should carry no challenge");
+        };
+        let document = serde_json::to_value(problem).expect("should serialize the problem");
         assert_eq!(document["status"], 500);
         assert_eq!(document["type"], "/problems/atlas/internal");
     }
