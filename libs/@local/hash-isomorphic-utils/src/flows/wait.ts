@@ -49,7 +49,9 @@ const validateDuration = (duration: unknown): WaitError | undefined => {
     return waitError("A duration's amount must be a number greater than 0.");
   }
   if (durationToMs({ amount, unit: unit as Duration["unit"] }) > maxWaitMs) {
-    return waitError("A Wait step can't wait for more than 30 days.");
+    return waitError(
+      `A Wait step can't wait for more than ${maxWaitMs / day} days.`,
+    );
   }
   return undefined;
 };
@@ -149,7 +151,7 @@ export const resolveResumeAt = (
     }
     if (untilMs - startedAtMs > maxWaitMs) {
       return waitError(
-        "A Wait step can't wait until more than 30 days after it starts.",
+        `A Wait step can't wait until more than ${maxWaitMs / day} days after it starts.`,
       );
     }
     return new Date(Math.max(untilMs, startedAtMs)).toISOString();
