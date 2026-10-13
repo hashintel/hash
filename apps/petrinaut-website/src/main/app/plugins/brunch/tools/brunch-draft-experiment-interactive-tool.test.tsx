@@ -485,6 +485,48 @@ describe("BrunchDraftExperimentWidget", () => {
     instance.dispose();
   });
 
+  it("checks the revision against the full document when a disabled extension hides data from `api.document.net`", async () => {
+    // The revision basis is a pending decision (see the `readDefinition` prop):
+    // Brunch hashes `handle.doc()`, disabled-extension data included. A JSON
+    // handle drops that data itself, so this handle keeps the colour type its
+    // capabilities disable, as a stored document can.
+    const stored = createJsonDocHandle({
+      id: "disabled-colours",
+      initial: {
+        ...makeDefinition(),
+        types: [
+          {
+            id: "type__caller",
+            name: "Caller",
+            iconSlug: "circle",
+            displayColor: "#336699",
+            elements: [],
+          },
+        ],
+      },
+    });
+    const instance = createPetrinaut({
+      document: { ...stored, capabilities: { disabledExtensions: ["colors"] } },
+    });
+    expect(revisionOfHandle(instance)).not.toBe(
+      documentRevisionOf(instance.definition.get()),
+    );
+
+    const { submit } = renderWidget({
+      input: makeInput(),
+      readDraftAuthority: async () => revisionOfHandle(instance),
+      toolCallId: "disabled-colours",
+      state: awaiting,
+      definition: instance.definition,
+      instance,
+      runExperiment: vi.fn(),
+    });
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "drafted" });
+    instance.dispose();
+  });
+
   it("reports invalid without a Run button when the model lacks the metric", async () => {
     const runExperiment = vi.fn();
     const definition = createReadableStore(makeDefinition());
