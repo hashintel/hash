@@ -269,6 +269,7 @@ prettyplease                       = { version = "0.2.37", default-features = fa
 proc-macro2                        = { version = "1.0.103", default-features = false }
 prometheus-client                  = { version = "0.24.0", default-features = false }
 proptest                           = { version = "1.7.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
+proptest-derive                    = { version = "0.8.0", default-features = false }
 quote                              = { version = "1.0.41", default-features = false }
 railroad                           = { version = "0.3.9", default-features = false }
 rancor                             = { version = "0.1.2", default-features = false }

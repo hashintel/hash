@@ -15,7 +15,14 @@ use hash_integrations_definition::{
     DefinitionParts, EntityPipeline, EntitySink, IssueKind, LinkEndpoint, LinkInput, LinkPipeline,
     ParseError, PrimaryKey, Properties, Source, SourceKind, SqlQuery, Step, StepKind, UnitMap,
 };
-use proptest::{prelude::*, sample::Index};
+use proptest::{
+    arbitrary::{Arbitrary, any},
+    collection, option, prop_assert, prop_assert_eq, property_test,
+    sample::{self, Index},
+    strategy::{BoxedStrategy, Strategy},
+    test_runner::TestCaseError,
+};
+use proptest_derive::Arbitrary;
 use serde_saphyr::budget::BudgetBreach;
 use type_system::ontology::VersionedUrl;
 
@@ -42,15 +49,19 @@ fn parse<T: FromStr<Err: core::fmt::Debug>>(text: &str) -> T {
 }
 
 /// A column name that can need quoting in YAML. It can contain `${`, which must be escaped.
-fn column() -> impl Strategy<Value = String> {
-    "[A-Za-z0-9 _:#'\"${}-]{1,10}"
-}
+const COLUMN: &str = "[A-Za-z0-9 _:#'\"${}-]{1,10}";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Arbitrary)]
 enum AccessorDoc {
-    Column(String),
-    Coerce(String, (&'static str, Coercion)),
-    Measure(String, String),
+    Column(#[proptest(strategy = "COLUMN")] String),
+    Coerce(
+        #[proptest(strategy = "COLUMN")] String,
+        #[proptest(strategy = "sample::select(COERCIONS)")] (&'static str, Coercion),
+    ),
+    Measure(
+        #[proptest(strategy = "COLUMN")] String,
+        #[proptest(strategy = "COLUMN")] String,
+    ),
 }
 
 #[derive(Debug, Clone)]
@@ -129,11 +140,11 @@ impl Names {
 }
 
 /// The shape of an action before it is named.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Arbitrary)]
 enum ActionShape {
-    Sql(String),
+    Sql(#[proptest(regex = "SELECT [a-z0-9 ,*]{0,20}")] String),
     Checkpoint,
-    Sink(Vec<AccessorDoc>),
+    Sink(#[proptest(strategy = "collection::vec(any::<AccessorDoc>(), 0..4)")] Vec<AccessorDoc>),
 }
 
 impl ActionShape {
@@ -151,149 +162,136 @@ impl ActionShape {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Arbitrary)]
 enum StepShape {
+    #[proptest(weight = 4)]
     Action(ActionShape),
-    Branch(Vec<Vec<ActionShape>>),
+    Branch(
+        #[proptest(
+            strategy = "collection::vec(collection::vec(any::<ActionShape>(), 1..3), 1..3)"
+        )]
+        Vec<Vec<ActionShape>>,
+    ),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Arbitrary)]
 struct PipelineShape {
+    #[proptest(strategy = "COLUMN")]
     primary_key: String,
+    #[proptest(strategy = "option::of(sample::select(COVERAGES))")]
     coverage: Option<(&'static str, Coverage)>,
+    #[proptest(strategy = "collection::vec(any::<Index>(), 0..3)")]
     depends_on: Vec<Index>,
+    #[proptest(strategy = "collection::vec(any::<StepShape>(), 0..4)")]
     steps: Vec<StepShape>,
 }
 
-fn accessor() -> impl Strategy<Value = AccessorDoc> {
-    prop_oneof![
-        column().prop_map(AccessorDoc::Column),
-        (column(), prop::sample::select(COERCIONS))
-            .prop_map(|(column, coercion)| AccessorDoc::Coerce(column, coercion)),
-        (column(), column()).prop_map(|(amount, unit)| AccessorDoc::Measure(amount, unit)),
-    ]
+/// The shape of a document before its parts are named.
+#[derive(Debug, Clone, Arbitrary)]
+struct DocumentShape {
+    use_vars: bool,
+    #[proptest(strategy = "collection::vec(any::<PipelineShape>(), 1..4)")]
+    pipelines: Vec<PipelineShape>,
+    #[proptest(strategy = "collection::vec(any::<Index>(), 0..3)")]
+    links: Vec<Index>,
 }
 
-fn action() -> impl Strategy<Value = ActionShape> {
-    prop_oneof![
-        "SELECT [a-z0-9 ,*]{0,20}".prop_map(ActionShape::Sql),
-        Just(ActionShape::Checkpoint),
-        prop::collection::vec(accessor(), 0..4).prop_map(ActionShape::Sink),
-    ]
-}
+/// Names the parts of a document shape. A pipeline depends only on pipelines declared before it,
+/// and links read only checkpoints that some step produces.
+impl From<DocumentShape> for Document {
+    fn from(shape: DocumentShape) -> Self {
+        let DocumentShape {
+            use_vars,
+            pipelines: shapes,
+            links,
+        } = shape;
+        let mut names = Names::default();
+        let mut sources = Vec::new();
+        let mut pipelines = Vec::new();
 
-fn step() -> impl Strategy<Value = StepShape> {
-    prop_oneof![
-        4 => action().prop_map(StepShape::Action),
-        1 => prop::collection::vec(prop::collection::vec(action(), 1..3), 1..3)
-            .prop_map(StepShape::Branch),
-    ]
-}
+        for (position, shape) in shapes.into_iter().enumerate() {
+            let source = format!("source-{position}");
+            sources.push(SourceDoc {
+                name: source.clone(),
+                sql: format!("SELECT {position}"),
+                primary_key: shape.primary_key,
+                coverage: shape.coverage,
+            });
 
-fn pipeline() -> impl Strategy<Value = PipelineShape> {
-    (
-        column(),
-        prop::option::of(prop::sample::select(COVERAGES)),
-        prop::collection::vec(any::<Index>(), 0..3),
-        prop::collection::vec(step(), 0..4),
-    )
-        .prop_map(|(primary_key, coverage, depends_on, steps)| PipelineShape {
-            primary_key,
-            coverage,
-            depends_on,
-            steps,
-        })
-}
-
-/// Generates valid documents. A pipeline depends only on pipelines declared before it, and
-/// links read only checkpoints that some step produces.
-fn document() -> impl Strategy<Value = Document> {
-    (
-        any::<bool>(),
-        prop::collection::vec(pipeline(), 1..4),
-        prop::collection::vec(any::<Index>(), 0..3),
-    )
-        .prop_map(|(use_vars, shapes, links)| {
-            let mut names = Names::default();
-            let mut sources = Vec::new();
-            let mut pipelines = Vec::new();
-
-            for (position, shape) in shapes.into_iter().enumerate() {
-                let source = format!("source-{position}");
-                sources.push(SourceDoc {
-                    name: source.clone(),
-                    sql: format!("SELECT {position}"),
-                    primary_key: shape.primary_key,
-                    coverage: shape.coverage,
-                });
-
-                let mut depends_on: Vec<usize> = if position == 0 {
-                    Vec::new()
-                } else {
-                    shape
-                        .depends_on
-                        .iter()
-                        .map(|index| index.index(position))
-                        .collect()
-                };
-                depends_on.sort_unstable();
-                depends_on.dedup();
-
-                let steps = shape
-                    .steps
-                    .into_iter()
-                    .map(|step| {
-                        let id = names.step();
-                        let kind = match step {
-                            StepShape::Action(action) => {
-                                StepKindDoc::Action(action.name(&mut names))
-                            }
-                            StepShape::Branch(branches) => StepKindDoc::Branch(
-                                branches
-                                    .into_iter()
-                                    .map(|branch| {
-                                        branch
-                                            .into_iter()
-                                            .map(|action| (names.step(), action.name(&mut names)))
-                                            .collect()
-                                    })
-                                    .collect(),
-                            ),
-                        };
-                        StepDoc { id, kind }
-                    })
-                    .collect();
-
-                pipelines.push(PipelineDoc {
-                    source,
-                    depends_on: depends_on
-                        .into_iter()
-                        .map(|dependency| format!("source-{dependency}"))
-                        .collect(),
-                    steps,
-                });
-            }
-
-            let links = if names.checkpoints.is_empty() {
+            let mut depends_on: Vec<usize> = if position == 0 {
                 Vec::new()
             } else {
-                links
+                shape
+                    .depends_on
                     .iter()
-                    .enumerate()
-                    .map(|(position, index)| LinkDoc {
-                        id: format!("link-{position}"),
-                        checkpoint: index.get(&names.checkpoints).clone(),
-                    })
+                    .map(|index| index.index(position))
                     .collect()
             };
+            depends_on.sort_unstable();
+            depends_on.dedup();
 
-            Document {
-                use_vars,
-                sources,
-                pipelines,
-                links,
-            }
-        })
+            let steps = shape
+                .steps
+                .into_iter()
+                .map(|step| {
+                    let id = names.step();
+                    let kind = match step {
+                        StepShape::Action(action) => StepKindDoc::Action(action.name(&mut names)),
+                        StepShape::Branch(branches) => StepKindDoc::Branch(
+                            branches
+                                .into_iter()
+                                .map(|branch| {
+                                    branch
+                                        .into_iter()
+                                        .map(|action| (names.step(), action.name(&mut names)))
+                                        .collect()
+                                })
+                                .collect(),
+                        ),
+                    };
+                    StepDoc { id, kind }
+                })
+                .collect();
+
+            pipelines.push(PipelineDoc {
+                source,
+                depends_on: depends_on
+                    .into_iter()
+                    .map(|dependency| format!("source-{dependency}"))
+                    .collect(),
+                steps,
+            });
+        }
+
+        let links = if names.checkpoints.is_empty() {
+            Vec::new()
+        } else {
+            links
+                .iter()
+                .enumerate()
+                .map(|(position, index)| LinkDoc {
+                    id: format!("link-{position}"),
+                    checkpoint: index.get(&names.checkpoints).clone(),
+                })
+                .collect()
+        };
+
+        Self {
+            use_vars,
+            sources,
+            pipelines,
+            links,
+        }
+    }
+}
+
+impl Arbitrary for Document {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        any::<DocumentShape>().prop_map(Self::from).boxed()
+    }
 }
 
 /// Writes `text` as a double-quoted YAML string, leaving `${NAME}` placeholders for the parser to
@@ -670,8 +668,8 @@ fn line_of(text: &str, marker: &str, occurrence: usize) -> Option<u64> {
 
 /// YAML-shaped fragments, so that random input reaches the format as well as the parser.
 fn fragments() -> impl Strategy<Value = String> {
-    prop::collection::vec(
-        prop::sample::select(
+    collection::vec(
+        sample::select(
             &[
                 "connector: demo\n",
                 "sources:\n",
@@ -705,60 +703,79 @@ fn fragments() -> impl Strategy<Value = String> {
     .prop_map(|parts| parts.concat())
 }
 
-proptest! {
-    #[test]
-    fn fragments_located_in_input(text in fragments()) {
-        let Err(report) = Definition::from_yaml(&text) else {
-            return Ok(());
-        };
-        let lines = u64::try_from(text.lines().count()).expect("line count should fit") + 1;
-        let locations: Vec<_> = match report.current_context() {
-            ParseError::Syntax { location, .. } => location.iter().copied().collect(),
-            ParseError::Invalid => DefinitionIssue::in_report(&report)
-                .filter_map(DefinitionIssue::location)
-                .collect(),
-        };
-        for location in locations {
-            prop_assert!(
-                location.line.get() <= lines,
-                "location {location} should be inside the {lines}-line input"
-            );
-        }
-    }
-
-    #[test]
-    fn valid_documents_round_trip(document in document()) {
-        let text = document.render();
-        let parsed = Definition::from_yaml(&text)
-            .map_err(|report| {
-                TestCaseError::fail(format!("the text should parse: {report:?}\n{text}"))
-            })?;
-        prop_assert_eq!(parsed, document.definition(), "the text should parse to the document");
-    }
-
-    #[test]
-    fn mutation_reports_one_issue(mut document in document(), first in 0..MUTATIONS.len()) {
-        let (mutation, (marker, occurrence)) = MUTATIONS
-            .iter()
-            .skip(first)
-            .find_map(|&mutation| Some((mutation, mutation.apply(&mut document)?)))
-            .expect("the last mutations should apply to every document");
-        let text = document.render();
-        let report = Definition::from_yaml(&text)
-            .err()
-            .ok_or_else(|| TestCaseError::fail(format!("{mutation:?} should make the text invalid\n{text}")))?;
-        let issues: Vec<_> = DefinitionIssue::in_report(&report).collect();
-
-        prop_assert_eq!(issues.len(), 1, "{:?} should cause exactly one issue: {:?}\n{}", mutation, issues, text);
-        let issue = issues[0];
-        prop_assert!(mutation.matches(issue.kind()), "{:?} should cause its own issue, not {}", mutation, issue);
-        prop_assert_eq!(
-            issue.location().map(|location| location.line.get()),
-            line_of(&text, &marker, occurrence),
-            "the issue should be on the changed line\n{}",
-            text
+#[property_test]
+fn fragments_located_in_input(#[strategy = fragments()] text: String) -> Result<(), TestCaseError> {
+    let Err(report) = Definition::from_yaml(&text) else {
+        return Ok(());
+    };
+    let lines = u64::try_from(text.lines().count()).expect("line count should fit") + 1;
+    let locations: Vec<_> = match report.current_context() {
+        ParseError::Syntax { location, .. } => location.iter().copied().collect(),
+        ParseError::Invalid => DefinitionIssue::in_report(&report)
+            .filter_map(DefinitionIssue::location)
+            .collect(),
+    };
+    for location in locations {
+        prop_assert!(
+            location.line.get() <= lines,
+            "location {location} should be inside the {lines}-line input"
         );
     }
+    Ok(())
+}
+
+#[property_test]
+fn valid_documents_round_trip(document: Document) -> Result<(), TestCaseError> {
+    let text = document.render();
+    let parsed = Definition::from_yaml(&text).map_err(|report| {
+        TestCaseError::fail(format!("the text should parse: {report:?}\n{text}"))
+    })?;
+    prop_assert_eq!(
+        parsed,
+        document.definition(),
+        "the text should parse to the document"
+    );
+    Ok(())
+}
+
+#[property_test]
+fn mutation_reports_one_issue(
+    mut document: Document,
+    #[strategy = 0..MUTATIONS.len()] first: usize,
+) -> Result<(), TestCaseError> {
+    let (mutation, (marker, occurrence)) = MUTATIONS
+        .iter()
+        .skip(first)
+        .find_map(|&mutation| Some((mutation, mutation.apply(&mut document)?)))
+        .expect("the last mutations should apply to every document");
+    let text = document.render();
+    let report = Definition::from_yaml(&text).err().ok_or_else(|| {
+        TestCaseError::fail(format!("{mutation:?} should make the text invalid\n{text}"))
+    })?;
+    let issues: Vec<_> = DefinitionIssue::in_report(&report).collect();
+
+    prop_assert_eq!(
+        issues.len(),
+        1,
+        "{:?} should cause exactly one issue: {:?}\n{}",
+        mutation,
+        issues,
+        text
+    );
+    let issue = issues[0];
+    prop_assert!(
+        mutation.matches(issue.kind()),
+        "{:?} should cause its own issue, not {}",
+        mutation,
+        issue
+    );
+    prop_assert_eq!(
+        issue.location().map(|location| location.line.get()),
+        line_of(&text, &marker, occurrence),
+        "the issue should be on the changed line\n{}",
+        text
+    );
+    Ok(())
 }
 
 /// Returns the YAML parser's error in `report`, without its source snippet.
