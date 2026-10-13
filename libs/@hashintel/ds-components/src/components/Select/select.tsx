@@ -892,7 +892,6 @@ export const Select = <TValue extends string>({
         overflowMode !== undefined) &&
       (connectsLeft || connectsRight),
     willClear: showClear && canClear && !hasSelection,
-    replaceArrow: showClear && !hideArrow,
   });
 
   if (readonly) {
@@ -983,7 +982,6 @@ export const Select = <TValue extends string>({
       <div
         ref={selectRef}
         className={classes.select}
-        data-can-clear={showClear && canClear && hasSelection ? "" : undefined}
         onClick={(event) => {
           if (
             internalRef.current &&
@@ -1049,11 +1047,19 @@ export const Select = <TValue extends string>({
               )}
               aria-label="Clear input"
             >
-              <Icon
-                name="close"
-                size={iconSizeMap[size]}
+              {/* Stroked rather than the close icon so its weight follows the arrow's */}
+              <svg
+                viewBox="0 0 10 10"
+                aria-hidden="true"
                 className={classes.clearIcon}
-              />
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  d="M0 0L10 10M10 0L0 10"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
             </button>
           )}
         </div>
