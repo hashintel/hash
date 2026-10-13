@@ -101,6 +101,8 @@ const filterCapabilities = {
   Aggregation: [],
   Boolean: ["scalar"],
   Date: ["scalar"],
+  DateTime: [],
+  Duration: [],
   EntityId: ["scalar", "entity"],
   FailedEntityProposal: [],
   FilterCondition: [],
