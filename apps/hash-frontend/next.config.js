@@ -142,6 +142,14 @@ export default withSentryConfig(
             destination: "/verification",
             permanent: false,
           },
+          // After a re-authentication, Kratos returns the browser to
+          // `/self-service/settings?flow=<id>` on this origin. The settings page
+          // loads that flow, so the user only has to submit the change again.
+          {
+            source: "/self-service/settings",
+            destination: "/settings/security",
+            permanent: false,
+          },
         ];
       },
       async headers() {
