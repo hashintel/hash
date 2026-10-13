@@ -11,7 +11,7 @@ use aide::{
     transform::{TransformOpenApi, TransformOperation},
     util::iter_operations_mut,
 };
-use hash_middleware::authentication::Challenge;
+use hash_middleware::{authentication::Challenge, rate_limit};
 
 use super::{headers, problem::Problem};
 
@@ -32,9 +32,10 @@ fn both_challenges() -> String {
 /// States on every operation what the middleware in front of the router answers.
 ///
 /// The request budgets and the authentication layer wrap the whole router. Their `429` and
-/// `401` belong to every operation. This helper states them once for the router. An
-/// operation that documents a `401` of its own keeps it and gains the middleware's cause beside
-/// it, because one operation documents one `401`.
+/// `401` belong to every operation, and the budgets' `RateLimit-Policy` and `RateLimit` fields
+/// to every response. This helper states them once for the router. An operation that documents a
+/// `401` of its own keeps it and gains the middleware's cause beside it, because one operation
+/// documents one `401`.
 pub(super) fn middleware(mut api: TransformOpenApi<'_>) -> TransformOpenApi<'_> {
     let Some(paths) = api.inner_mut().paths.as_mut() else {
         return api;
@@ -61,9 +62,10 @@ pub(super) fn middleware(mut api: TransformOpenApi<'_>) -> TransformOpenApi<'_> 
                 }
                 Some(openapi::ReferenceOr::Reference { .. }) => {}
                 None => {
-                    let _: TransformOperation<'_> = operation.with(unauthenticated);
+                    operation = operation.with(unauthenticated);
                 }
             }
+            rate_limit::document_fields(operation.inner_mut());
         }
     }
     api
@@ -232,6 +234,23 @@ mod tests {
                 response.headers.contains_key("Retry-After"),
                 "{method}: the 429 documents its Retry-After header"
             );
+        }
+    }
+
+    /// [`middleware`] documents the budgets' fields on every response, including the `401` it
+    /// inserts.
+    #[test]
+    fn rate_limit_fields_on_every_response() {
+        let api = document();
+        for (method, status) in [("get", 401), ("get", 429), ("post", 401), ("post", 429)] {
+            let response =
+                response(&api, method, status).expect("the fixture should state the response");
+            for field in ["RateLimit-Policy", "RateLimit"] {
+                assert!(
+                    response.headers.contains_key(field),
+                    "{method} {status}: the response should document `{field}`"
+                );
+            }
         }
     }
 

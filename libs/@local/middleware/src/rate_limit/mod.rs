@@ -23,6 +23,16 @@
 //! In [`RateLimitMode::Observe`], requests are served unchanged; the `would_deny` outcome of the
 //! decisions metric records requests that enforcement would have denied.
 //!
+//! In [`RateLimitMode::Enforce`], the response to a request carries one `RateLimit-Policy` and one
+//! `RateLimit` item for each budget the request was checked against, as
+//! [draft-ietf-httpapi-ratelimit-headers-11] defines them. The policy item states the burst as `q`
+//! and the whole seconds an exhausted budget takes to refill as `w`, and the `RateLimit` item
+//! states the requests the budget has left as `r`. A `429` reports the crossed budget with `r=0`. A
+//! request that passes a middleware unchecked carries no item of that middleware, and in
+//! [`RateLimitMode::Observe`] no response carries either field.
+//!
+//! [draft-ietf-httpapi-ratelimit-headers-11]: https://www.ietf.org/archive/id/draft-ietf-httpapi-ratelimit-headers-11.html
+//!
 //! Budget decisions, unchecked passes, misconfigurations, address fallbacks, maintenance runs,
 //! evicted keys, and denial waits are recorded on the meter the state is built with, and the keys
 //! each limiter store holds are gauged. Every instrument carries a `scope` attribute naming the set
@@ -38,7 +48,7 @@ mod address;
 mod aide;
 mod config;
 #[cfg(feature = "aide")]
-pub use self::aide::document;
+pub use self::aide::{document, document_fields};
 #[cfg(test)]
 mod tests;
 
@@ -51,11 +61,11 @@ use futures::{TryFutureExt as _, future::Either};
 use governor::{
     Quota, RateLimiter,
     clock::{Clock as _, DefaultClock},
-    middleware::NoOpMiddleware,
+    middleware::StateInformationMiddleware,
     state::keyed::DefaultKeyedStateStore,
 };
 use hash_secret::Secret;
-use http::{HeaderMap, HeaderValue, StatusCode, header::RETRY_AFTER};
+use http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header::RETRY_AFTER};
 use opentelemetry::{
     KeyValue,
     metrics::{Counter, Histogram, Meter},
@@ -76,7 +86,14 @@ use crate::{
 /// How often replenished keys are evicted.
 const MAINTENANCE_INTERVAL: Duration = Duration::from_secs(60);
 
-type KeyedLimiter<K> = RateLimiter<K, DefaultKeyedStateStore<K>, DefaultClock, NoOpMiddleware>;
+/// The field naming each budget that charged a request with the quota it allocates.
+const RATELIMIT_POLICY: HeaderName = HeaderName::from_static("ratelimit-policy");
+
+/// The field stating what each budget that charged a request has left.
+const RATELIMIT: HeaderName = HeaderName::from_static("ratelimit");
+
+type KeyedLimiter<K> =
+    RateLimiter<K, DefaultKeyedStateStore<K>, DefaultClock, StateInformationMiddleware>;
 
 /// The budget a request is charged against, and the key it is charged for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -303,20 +320,36 @@ impl RateLimitMetrics {
     }
 }
 
+/// What the `RateLimit-Policy` field tells a client.
+const RATELIMIT_POLICY_DESCRIPTION: &str =
+    "The budgets the request was checked against, one item each, as \
+     draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at \
+     once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` \
+     seconds stay within its sustained rate.";
+
+/// What the `RateLimit` field tells a client.
+const RATELIMIT_DESCRIPTION: &str = "The requests each budget in `RateLimit-Policy` has left \
+                                     after this request, as its `r`. A crossed budget reports \
+                                     `r=0`.";
+
 /// The request exceeded its rate-limit budget.
-#[derive(Debug, Clone, Copy, derive_more::Display, serde::Serialize, schemars::JsonSchema)]
+#[derive(Debug, Clone, derive_more::Display, serde::Serialize, schemars::JsonSchema)]
 #[display("The request exceeded its rate-limit budget.")]
 pub struct TooManyRequests {
     /// Whole seconds until the crossed budget admits the request again, at least one.
     #[serde(skip)]
-    pub retry_after: NonZero<u64>,
+    retry_after: NonZero<u64>,
+    /// The crossed budget, which the response reports in `RateLimit-Policy` and `RateLimit`.
+    #[serde(skip)]
+    charge: Charge,
 }
 
 impl ProblemVariant for TooManyRequests {
-    const HEADERS: &'static [Header] = &[Header::new::<NonZero<u64>>(
-        "Retry-After",
-        "Whole seconds before retrying the request.",
-    )];
+    const HEADERS: &'static [Header] = &[
+        Header::new::<NonZero<u64>>("Retry-After", "Whole seconds before retrying the request."),
+        Header::new::<String>("RateLimit-Policy", RATELIMIT_POLICY_DESCRIPTION),
+        Header::new::<String>("RateLimit", RATELIMIT_DESCRIPTION),
+    ];
     const TYPE: ProblemType = ProblemType {
         type_uri: Cow::Borrowed("about:blank"),
         title: Cow::Borrowed("Too Many Requests"),
@@ -325,11 +358,16 @@ impl ProblemVariant for TooManyRequests {
 
     fn headers(&self, headers: &mut HeaderMap) {
         headers.insert(RETRY_AFTER, HeaderValue::from(self.retry_after.get()));
+        self.charge.append_to(headers);
     }
 
     fn example() -> Option<Self> {
         Some(Self {
             retry_after: NonZero::<u64>::MIN,
+            charge: Charge {
+                policy: HeaderValue::from_static(r#""actor";q=500;w=50"#),
+                service_limit: HeaderValue::from_static(r#""actor";r=0"#),
+            },
         })
     }
 }
@@ -337,11 +375,11 @@ impl ProblemVariant for TooManyRequests {
 impl IntoResponse for TooManyRequests {
     fn into_response(self) -> Response {
         // A flood is answered with this rejection, so its body is serialized once: `retry_after`
-        // travels in the header only, which leaves the body constant.
+        // and the crossed budget travel in headers only, which leaves the body constant.
         static BODY: LazyLock<&'static [u8]> = LazyLock::new(|| {
-            let answer = Answer::<RateLimitProblem>::new(TooManyRequests {
-                retry_after: NonZero::<u64>::MIN,
-            });
+            let answer = Answer::<RateLimitProblem>::new(
+                TooManyRequests::example().expect("the rate-limit problem should have an example"),
+            );
             serde_json::to_vec(&answer.details())
                 .expect("the rate-limit problem should serialize")
                 .leak()
@@ -389,7 +427,7 @@ impl From<TooManyRequests> for RateLimitRejection {
 impl Expose<RateLimitProblem> for RateLimitRejection {
     fn expose(&self) -> Answer<'_, RateLimitProblem> {
         match self {
-            Self::TooManyRequests(too_many_requests) => Answer::new(*too_many_requests),
+            Self::TooManyRequests(too_many_requests) => Answer::new(too_many_requests.clone()),
             Self::Misconfigured => Answer::new(InternalServerError),
         }
     }
@@ -404,24 +442,118 @@ impl IntoResponse for RateLimitRejection {
     }
 }
 
+/// The items a response reports for the budget its request was checked against.
+#[derive(Debug, Clone)]
+struct Charge {
+    /// The budget's `RateLimit-Policy` item.
+    policy: HeaderValue,
+    /// The budget's `RateLimit` item, stating the requests it has left: `r=0` for a crossed
+    /// budget.
+    service_limit: HeaderValue,
+}
+
+impl Charge {
+    /// Appends this budget's items as field lines of their own, after any that another layer
+    /// added.
+    fn append_to(&self, headers: &mut HeaderMap) {
+        headers.append(RATELIMIT_POLICY, self.policy.clone());
+        headers.append(RATELIMIT, self.service_limit.clone());
+    }
+}
+
+/// The quota of a budget, as the responses to the requests checked against it report it.
+#[derive(Debug)]
+struct Policy {
+    /// The name both items give the budget.
+    name: &'static str,
+    /// The `RateLimit-Policy` item.
+    item: HeaderValue,
+    /// The `RateLimit` item of the budget with nothing left.
+    exhausted: HeaderValue,
+}
+
+impl Policy {
+    /// The policy of the budget `name`, which allocates `quota`.
+    ///
+    /// The quota `q` is the burst, and the window `w` is the time an exhausted budget takes to
+    /// refill, rounded up to whole seconds, so `q` requests per `w` seconds stay within the
+    /// configured rate.
+    fn new(name: &'static str, quota: Quota) -> Self {
+        Self {
+            name,
+            item: HeaderValue::try_from(format!(
+                "\"{name}\";q={};w={}",
+                quota.burst_size(),
+                whole_seconds(quota.burst_size_replenished_in())
+            ))
+            .expect("should build the item from a budget name and numbers"),
+            exhausted: service_limit(name, 0),
+        }
+    }
+
+    /// The charge of a request after which the budget has `remaining` requests left.
+    fn charge(&self, remaining: u32) -> Charge {
+        Charge {
+            policy: self.item.clone(),
+            service_limit: if remaining == 0 {
+                self.exhausted.clone()
+            } else {
+                service_limit(self.name, remaining)
+            },
+        }
+    }
+}
+
+/// The `RateLimit` item of the budget `name` with `remaining` requests left.
+fn service_limit(name: &str, remaining: u32) -> HeaderValue {
+    HeaderValue::try_from(format!("\"{name}\";r={remaining}"))
+        .expect("should build the item from a budget name and a number")
+}
+
+/// A store of budgets keyed by `K`, with the policy their quota follows.
+struct Limiter<K>
+where
+    K: Clone + Eq + core::hash::Hash,
+{
+    store: KeyedLimiter<K>,
+    policy: Policy,
+}
+
+impl<K> Limiter<K>
+where
+    K: Clone + Eq + core::hash::Hash,
+{
+    fn new(name: &'static str, quota: Quota) -> Self {
+        Self {
+            store: RateLimiter::keyed(quota).with_middleware(),
+            policy: Policy::new(name, quota),
+        }
+    }
+}
+
+/// `duration` rounded up to whole seconds, at least one.
+fn whole_seconds(duration: Duration) -> NonZero<u64> {
+    NonZero::new(duration.as_secs() + u64::from(duration.subsec_nanos() > 0))
+        .unwrap_or(NonZero::<u64>::MIN)
+}
+
 /// A request found to be over its budget.
 struct Denial {
     /// Whole seconds until the budget admits the request again, at least one.
     retry_after: NonZero<u64>,
+    /// The crossed budget, with nothing left.
+    charge: Charge,
     mode: RateLimitMode,
 }
 
 impl Denial {
-    const fn apply(self) -> Option<TooManyRequests> {
-        match self {
-            Self {
-                mode: RateLimitMode::Observe,
-                retry_after: _,
-            } => None,
-            Self {
-                mode: RateLimitMode::Enforce,
-                retry_after,
-            } => Some(TooManyRequests { retry_after }),
+    fn apply(self) -> Option<TooManyRequests> {
+        match self.mode {
+            RateLimitMode::Observe => None,
+            RateLimitMode::Enforce => Some(TooManyRequests {
+                retry_after: self.retry_after,
+                charge: self.charge,
+            }),
         }
     }
 }
@@ -437,11 +569,11 @@ impl Denial {
 pub struct RateLimiters {
     mode: RateLimitMode,
     client_ip_source: ClientIpSource,
-    gate: Arc<KeyedLimiter<BucketKey>>,
+    gate: Arc<Limiter<BucketKey>>,
     // The parent owns maintenance and metrics for the shared gate.
     parent: Option<Arc<Self>>,
-    anonymous: KeyedLimiter<BucketKey>,
-    actor: KeyedLimiter<ActorId>,
+    anonymous: Limiter<BucketKey>,
+    actor: Limiter<ActorId>,
     metrics: RateLimitMetrics,
 }
 
@@ -471,24 +603,22 @@ impl RateLimiters {
         let this = Arc::new(Self {
             mode: config.rate_limit_mode,
             client_ip_source: config.client_ip_source,
-            gate: Arc::new(
-                RateLimiter::keyed(
-                    Quota::per_second(config.rate_limit_gate_per_second)
-                        .allow_burst(config.rate_limit_gate_burst),
-                )
-                .with_middleware(),
-            ),
+            gate: Arc::new(Limiter::new(
+                Budget::GATE,
+                Quota::per_second(config.rate_limit_gate_per_second)
+                    .allow_burst(config.rate_limit_gate_burst),
+            )),
             parent: None,
-            anonymous: RateLimiter::keyed(
+            anonymous: Limiter::new(
+                Budget::ANONYMOUS,
                 Quota::per_hour(config.rate_limit_anonymous_per_hour)
                     .allow_burst(config.rate_limit_anonymous_burst),
-            )
-            .with_middleware(),
-            actor: RateLimiter::keyed(
+            ),
+            actor: Limiter::new(
+                Budget::ACTOR,
                 Quota::per_hour(config.rate_limit_actor_per_hour)
                     .allow_burst(config.rate_limit_actor_burst),
-            )
-            .with_middleware(),
+            ),
             metrics: RateLimitMetrics::new(meter, config.rate_limit_mode, "global"),
         });
 
@@ -516,14 +646,14 @@ impl RateLimiters {
             client_ip_source: self.client_ip_source,
             gate: Arc::clone(&self.gate),
             parent: Some(Arc::clone(self)),
-            anonymous: RateLimiter::keyed(
+            anonymous: Limiter::new(
+                Budget::ANONYMOUS,
                 Quota::per_hour(config.anonymous_per_hour).allow_burst(config.anonymous_burst),
-            )
-            .with_middleware(),
-            actor: RateLimiter::keyed(
+            ),
+            actor: Limiter::new(
+                Budget::ACTOR,
                 Quota::per_hour(config.actor_per_hour).allow_burst(config.actor_burst),
-            )
-            .with_middleware(),
+            ),
             metrics: RateLimitMetrics::new(meter, self.mode, scope),
         });
         this.start_maintenance(meter);
@@ -544,10 +674,10 @@ impl RateLimiters {
                     for (limiter, keys) in [
                         (
                             Budget::GATE,
-                            limiters.parent.is_none().then(|| limiters.gate.len()),
+                            limiters.parent.is_none().then(|| limiters.gate.store.len()),
                         ),
-                        (Budget::ANONYMOUS, Some(limiters.anonymous.len())),
-                        (Budget::ACTOR, Some(limiters.actor.len())),
+                        (Budget::ANONYMOUS, Some(limiters.anonymous.store.len())),
+                        (Budget::ACTOR, Some(limiters.actor.store.len())),
                     ] {
                         if let Some(keys) = keys {
                             observer.observe(
@@ -625,7 +755,7 @@ impl RateLimiters {
 
     #[cfg(test)]
     fn tracked_keys(&self) -> usize {
-        self.gate.len() + self.anonymous.len() + self.actor.len()
+        self.gate.store.len() + self.anonymous.store.len() + self.actor.store.len()
     }
 
     /// Drops keys that regained their full budget and shrinks the stores.
@@ -636,10 +766,10 @@ impl RateLimiters {
         for (limiter, evicted) in [
             (
                 Budget::GATE,
-                self.parent.is_none().then(|| release(&self.gate)),
+                self.parent.is_none().then(|| release(&self.gate.store)),
             ),
-            (Budget::ANONYMOUS, Some(release(&self.anonymous))),
-            (Budget::ACTOR, Some(release(&self.actor))),
+            (Budget::ANONYMOUS, Some(release(&self.anonymous.store))),
+            (Budget::ACTOR, Some(release(&self.actor.store))),
         ] {
             if let Some(evicted) = evicted {
                 self.metrics.evicted_keys.add(
@@ -657,7 +787,10 @@ impl RateLimiters {
     }
 
     /// Charges one request against the store the budget names.
-    fn charge(&self, budget: Budget) -> Result<(), Denial> {
+    ///
+    /// Yields the [`Charge`] the response reports, or [`None`] in [`RateLimitMode::Observe`].
+    /// Fails with a [`Denial`] when the budget is exhausted, in either mode.
+    fn charge(&self, budget: Budget) -> Result<Option<Charge>, Denial> {
         match budget {
             Budget::Gate(key) => self.parent.as_ref().map_or_else(
                 || self.charge_key(budget, &self.gate, &key),
@@ -672,25 +805,25 @@ impl RateLimiters {
     fn charge_key<K>(
         &self,
         budget: Budget,
-        limiter: &KeyedLimiter<K>,
+        limiter: &Limiter<K>,
         key: &K,
-    ) -> Result<(), Denial>
+    ) -> Result<Option<Charge>, Denial>
     where
         K: fmt::Display + Clone + Eq + core::hash::Hash,
     {
-        let not_until = match limiter.check_key(key) {
-            Ok(()) => {
+        let not_until = match limiter.store.check_key(key) {
+            Ok(snapshot) => {
                 self.metrics.decision(budget, Outcome::Allowed);
-                return Ok(());
+                return Ok((self.mode == RateLimitMode::Enforce)
+                    .then(|| limiter.policy.charge(snapshot.remaining_burst_capacity())));
             }
             Err(not_until) => not_until,
         };
 
-        let wait = not_until.wait_time_from(limiter.clock().now());
+        let wait = not_until.wait_time_from(limiter.store.clock().now());
         self.metrics
             .denial(budget, self.mode.denial_outcome(), wait);
-        let seconds = wait.as_secs() + u64::from(wait.subsec_nanos() > 0);
-        let retry_after = NonZero::new(seconds).unwrap_or(NonZero::<u64>::MIN);
+        let retry_after = whole_seconds(wait);
         tracing::debug!(
             budget = budget.as_str(),
             key = %key,
@@ -700,6 +833,7 @@ impl RateLimiters {
         );
         Err(Denial {
             retry_after,
+            charge: limiter.policy.charge(0),
             mode: self.mode,
         })
     }
@@ -784,9 +918,9 @@ pub struct IpGateService<S> {
     service_secret: Option<Pin<Arc<Secret<str>>>>,
 }
 
-impl<B, S> tower::Service<http::Request<B>> for IpGateService<S>
+impl<B, R, S> tower::Service<http::Request<B>> for IpGateService<S>
 where
-    S: tower::Service<http::Request<B>>,
+    S: tower::Service<http::Request<B>, Response = http::Response<R>>,
 {
     type Error = S::Error;
     type Response = Result<S::Response, TooManyRequests>;
@@ -798,7 +932,7 @@ where
     }
 
     fn call(&mut self, mut req: http::Request<B>) -> Self::Future {
-        if self
+        let charge = if self
             .service_secret
             .as_deref()
             .is_some_and(|secret| presents_service_secret(req.headers(), secret))
@@ -808,27 +942,33 @@ where
                 .unchecked(Stage::Gate, UncheckedReason::ServiceSecret);
             req.extensions_mut()
                 .insert(ResolvedClientAddress::Unresolved);
-
-            return Either::Right(self.inner.call(req).map_ok(Ok));
-        }
-
-        let resolved = self.limiters.client_key(&req);
-        if let Some(key) = resolved {
-            if let Err(denial) = self.limiters.charge(Budget::Gate(key))
-                && let Some(error) = denial.apply()
-            {
-                return Either::Left(future::ready(Ok(Err(error))));
-            }
+            None
         } else {
-            self.limiters.note_unknown_address();
-        }
+            let resolved = self.limiters.client_key(&req);
+            let charge = if let Some(key) = resolved {
+                match self.limiters.charge(Budget::Gate(key)) {
+                    Ok(charge) => charge,
+                    Err(denial) => match denial.apply() {
+                        Some(error) => return Either::Left(future::ready(Ok(Err(error)))),
+                        None => None,
+                    },
+                }
+            } else {
+                self.limiters.note_unknown_address();
+                None
+            };
+            req.extensions_mut().insert(resolved.map_or(
+                ResolvedClientAddress::Unknown,
+                ResolvedClientAddress::Bucketed,
+            ));
+            charge
+        };
 
-        req.extensions_mut().insert(resolved.map_or(
-            ResolvedClientAddress::Unknown,
-            ResolvedClientAddress::Bucketed,
-        ));
-
-        Either::Right(self.inner.call(req).map_ok(Ok))
+        Either::Right(
+            self.inner
+                .call(req)
+                .map_ok(move |response| Ok(report(response, charge))),
+        )
     }
 }
 
@@ -939,20 +1079,12 @@ pub struct CallerLimitService<S> {
     service_secret: Option<Pin<Arc<Secret<str>>>>,
 }
 
-impl<B, S> tower::Service<http::Request<B>> for CallerLimitService<S>
-where
-    S: tower::Service<http::Request<B>>,
-{
-    type Error = S::Error;
-    type Response = Result<S::Response, RateLimitRejection>;
-
-    type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
-
-    fn poll_ready(&mut self, cx: &mut task::Context<'_>) -> task::Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx)
-    }
-
-    fn call(&mut self, req: http::Request<B>) -> Self::Future {
+impl<S> CallerLimitService<S> {
+    /// Charges `req` against the budget of its caller.
+    ///
+    /// Yields the charge its response reports, or [`None`] when the request passes unchecked.
+    /// Fails with the rejection the layer answers instead.
+    fn charge<B>(&self, req: &http::Request<B>) -> Result<Option<Charge>, RateLimitRejection> {
         if self
             .service_secret
             .as_deref()
@@ -961,7 +1093,7 @@ where
             self.limiters
                 .metrics
                 .unchecked(Stage::Caller, UncheckedReason::ServiceSecret);
-            return Either::Right(self.inner.call(req).map_ok(Ok));
+            return Ok(None);
         }
 
         let Some(resolved) = req.extensions().get::<ResolvedAuthentication>() else {
@@ -974,7 +1106,7 @@ where
             self.limiters
                 .metrics
                 .misconfiguration(Misconfiguration::MissingAuthentication);
-            return Either::Left(future::ready(Ok(Err(RateLimitRejection::Misconfigured))));
+            return Err(RateLimitRejection::Misconfigured);
         };
 
         let actor = match resolved.outcome() {
@@ -995,7 +1127,7 @@ where
                 self.limiters
                     .metrics
                     .misconfiguration(Misconfiguration::UnrejectedAuthenticationError);
-                return Either::Left(future::ready(Ok(Err(RateLimitRejection::Misconfigured))));
+                return Err(RateLimitRejection::Misconfigured);
             }
         };
 
@@ -1011,12 +1143,12 @@ where
                 self.limiters
                     .metrics
                     .misconfiguration(Misconfiguration::MissingAddressGate);
-                return Either::Left(future::ready(Ok(Err(RateLimitRejection::Misconfigured))));
+                return Err(RateLimitRejection::Misconfigured);
             };
             let key = match resolved {
                 ResolvedClientAddress::Bucketed(key) => Some(key),
                 ResolvedClientAddress::Unknown => None,
-                ResolvedClientAddress::Unresolved => self.limiters.client_key(&req),
+                ResolvedClientAddress::Unresolved => self.limiters.client_key(req),
             };
             let Some(key) = key else {
                 // Counted per stage, so the gate's count of this address does not stand in for the
@@ -1024,14 +1156,51 @@ where
                 self.limiters
                     .metrics
                     .unchecked(Stage::Caller, UncheckedReason::UnknownAddress);
-                return Either::Right(self.inner.call(req).map_ok(Ok));
+                return Ok(None);
             };
             Budget::Anonymous(key)
         };
 
-        match self.limiters.charge(budget).map_err(Denial::apply) {
-            Ok(()) | Err(None) => Either::Right(self.inner.call(req).map_ok(Ok)),
-            Err(Some(error)) => Either::Left(future::ready(Ok(Err(error.into())))),
+        match self.limiters.charge(budget) {
+            Ok(charge) => Ok(charge),
+            Err(denial) => denial
+                .apply()
+                .map_or(Ok(None), |error| Err(RateLimitRejection::from(error))),
         }
+    }
+}
+
+/// Adds the fields of `charge` to `response`.
+fn report<R>(mut response: http::Response<R>, charge: Option<Charge>) -> http::Response<R> {
+    if let Some(charge) = charge {
+        charge.append_to(response.headers_mut());
+    }
+    response
+}
+
+impl<B, R, S> tower::Service<http::Request<B>> for CallerLimitService<S>
+where
+    S: tower::Service<http::Request<B>, Response = http::Response<R>>,
+{
+    type Error = S::Error;
+    type Response = Result<S::Response, RateLimitRejection>;
+
+    type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
+
+    fn poll_ready(&mut self, cx: &mut task::Context<'_>) -> task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: http::Request<B>) -> Self::Future {
+        let charge = match self.charge(&req) {
+            Ok(charge) => charge,
+            Err(error) => return Either::Left(future::ready(Ok(Err(error)))),
+        };
+
+        Either::Right(
+            self.inner
+                .call(req)
+                .map_ok(move |response| Ok(report(response, charge))),
+        )
     }
 }

@@ -300,20 +300,31 @@ describe("a request body", () => {
   });
 });
 
+/** The header names a cross-origin response exposes to script. */
+const exposedHeaders = (response: globalThis.Response) =>
+  (response.headers.get("access-control-expose-headers") ?? "")
+    .split(",")
+    .map((name) => name.trim());
+
 describe("the authority token's path back to the browser", () => {
   // Without the expose header the whole token round trip no-ops silently: a cross-origin response
   // hands script only the CORS-safelisted headers, so a contract-perfect client reads `null` for
   // the minted token, sends nothing back, and takes a uniform 401 on every data route - a refusal
   // that reads as authority working. `CORS_CONFIG` states no `exposedHeaders`, and the `cors`
   // package emits the header not at all when the option is unset.
-  it("exposes the authority header so the caller's own script can read it", async () => {
+  it("exposes the authority header and the rate-limit fields to the caller's own script", async () => {
     const api = await startApi();
     received.length = 0;
 
     const response = await fetch(`${api.url}/atlas/current`);
 
-    expect(response.headers.get("access-control-expose-headers")).toBe(
-      ATLAS_AUTHORITY_HEADER,
+    expect(exposedHeaders(response)).toEqual(
+      expect.arrayContaining([
+        ATLAS_AUTHORITY_HEADER,
+        "RateLimit-Policy",
+        "RateLimit",
+        "Retry-After",
+      ]),
     );
 
     await close(api.server);
@@ -337,9 +348,7 @@ describe("the authority token's path back to the browser", () => {
     expect(received[0]!.body).toBe("");
     expect(response.headers.get(ATLAS_AUTHORITY_HEADER)).toBe(MINTED_TOKEN);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
-    expect(response.headers.get("access-control-expose-headers")).toBe(
-      ATLAS_AUTHORITY_HEADER,
-    );
+    expect(exposedHeaders(response)).toContain(ATLAS_AUTHORITY_HEADER);
 
     await close(api.server);
   });

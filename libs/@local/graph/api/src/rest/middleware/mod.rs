@@ -37,7 +37,8 @@ use super::{Api, Audience, legacy};
 const DEFAULT_CACHE_CONTROL: &str = "private, no-store";
 
 /// Documents the responses the authentication and rate-limit layers answer on every operation of
-/// an API challenging with `challenge`, and the default `Cache-Control` header on every response.
+/// an API challenging with `challenge`, and the default `Cache-Control` header and the
+/// `RateLimit-Policy` and `RateLimit` fields on every response.
 pub(super) fn document(
     mut document: TransformOpenApi<'_>,
     challenge: Challenge,
