@@ -88,7 +88,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/repo/.turbo/cache,sharing=locked \
     turbo run build --filter '@apps/brunch-agent' --env-mode=loose && \
     rm -rf apps/brunch-agent/test && \
-    find apps/brunch-agent/src -name '*.test.ts' -delete
+    find apps/brunch-agent/src \( -name '*.test.ts' -o -name fixtures -o -name __snapshots__ \) -prune -exec rm -rf {} +
 
 
 FROM mise AS runner
