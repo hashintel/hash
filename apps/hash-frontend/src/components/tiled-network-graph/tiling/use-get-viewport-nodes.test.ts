@@ -366,8 +366,16 @@ describe("getViewportNodes", () => {
     expect(prefetched).toBe(true);
   });
 
-  it("does not issue unusable geometry prefetches for auxiliary viewports", async () => {
-    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+  it("prefetches auxiliary viewports at their own detail mode", async () => {
+    const details: string[] = [];
+    const detailFetcher: TileFetcher = (zoom, tileIndex, controls) => {
+      details.push(controls?.detail ?? "minimal");
+      return fetcher(zoom, tileIndex, controls);
+    };
+    const cache = new TileCache({
+      fetcher: detailFetcher,
+      edgesFetcher: noEdges,
+    });
     const options = { detail: "auxiliary" as const };
 
     await getViewportNodes(
@@ -382,7 +390,10 @@ describe("getViewportNodes", () => {
     );
     await cache.settled();
 
-    expect(cache.prefetchStats.issued).toBe(0);
+    expect(cache.prefetchStats.issued).toBeGreaterThan(0);
+    // Required and speculative loads alike ride the viewport's mode, so every
+    // prefetched tile is one the following detailed loads can consume.
+    expect(details.every((detail) => detail === "auxiliary")).toBe(true);
   });
 
   it("does not prefetch when the viewport is unchanged", async () => {
@@ -744,7 +755,7 @@ describe("getViewportNodes detailed data", () => {
     expect(fetcher.calls.every((call) => call.detailed)).toBe(true);
   });
 
-  it("keeps labels out of geometry residency after an in-flight detail fetch", async () => {
+  it("retains an in-flight detail fetch as a resident entry serving both modes", async () => {
     let resolveFetch: ((tile: FetchedTile) => void) | undefined;
     const fetcher: TileFetcher = () =>
       new Promise((resolve) => {
@@ -756,14 +767,19 @@ describe("getViewportNodes detailed data", () => {
     const auxiliary = cache.load(coordinate, "auxiliary");
     const minimal = cache.load(coordinate);
     resolveFetch?.({
-      nodes: [{ id: 1, x: 0, y: 0, label: "ephemeral" }],
+      nodes: [{ id: 1, x: 0, y: 0, label: "retained" }],
       complete: true,
     });
 
-    expect((await auxiliary)[0]?.label).toBe("ephemeral");
-    expect((await minimal)[0]?.label).toBe("ephemeral");
+    expect((await auxiliary)[0]?.label).toBe("retained");
+    expect((await minimal)[0]?.label).toBe("retained");
     expect(cache.tileCount).toBe(1);
-    expect((await cache.load(coordinate))[0]?.label).toBeUndefined();
+    // The settled entry records its auxiliary detail, so both re-reads serve
+    // from cache — the single-resolve fetcher would hang a refetch.
+    expect((await cache.load(coordinate))[0]?.label).toBe("retained");
+    expect((await cache.load(coordinate, "auxiliary"))[0]?.label).toBe(
+      "retained",
+    );
   });
 
   it("refetches a resident compact tile with detail on entering the detailed view", async () => {
@@ -784,7 +800,7 @@ describe("getViewportNodes detailed data", () => {
     expect(fetcher.calls.at(-1)?.detailed).toBe(true);
   });
 
-  it("refetches detail instead of retaining it as cache-resident geometry", async () => {
+  it("serves retained detail from cache on a repeat detailed read", async () => {
     const fetcher = labellingFetcher();
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
 
@@ -793,12 +809,14 @@ describe("getViewportNodes detailed data", () => {
 
     const second = await getViewportNodes(null, cache, { detail: "auxiliary" });
 
-    expect(fetcher.calls.length).toBe(firstDetailedCalls * 2);
+    // The detailed tile stayed resident, so the repeat pass fetches nothing.
+    expect(fetcher.calls.length).toBe(firstDetailedCalls);
     expect(second.nodes.every((node) => node.label !== undefined)).toBe(true);
     expect(cache.tileCount).toBe(1);
+    // And the retained labels ride a minimal read of the same entry.
     expect(
       (await cache.load({ z: u64(0), x: u64(0), y: u64(0) }))[0]?.label,
-    ).toBeUndefined();
+    ).toBe("n0");
   });
 });
 

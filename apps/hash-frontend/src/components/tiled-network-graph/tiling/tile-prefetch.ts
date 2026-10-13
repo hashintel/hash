@@ -43,6 +43,7 @@ import {
   type ViewportRegion,
 } from "./tile-geometry";
 
+import type * as Detail from "../atlas-decode/detail";
 import type * as TileDocument from "../atlas-decode/tile-document";
 
 /** How many recent viewports to retain for movement prediction. */
@@ -89,10 +90,14 @@ export interface PrefetchCache {
   /** Whether a tile is already resident. */
   has(coordinate: TileDocument.Coordinate): boolean;
   /**
-   * Issues this batch of speculative loads and cancels any still-in-flight
-   * prefetch no longer in the batch (superseded speculation).
+   * Issues this batch of speculative loads at the given detail mode and
+   * cancels any still-in-flight prefetch no longer in the batch (superseded
+   * speculation). `detail` defaults to `"minimal"`.
    */
-  prefetchBatch(coordinates: readonly TileDocument.Coordinate[]): void;
+  prefetchBatch(
+    coordinates: readonly TileDocument.Coordinate[],
+    detail?: Detail.Detail,
+  ): void;
 }
 
 /** Tiles to prefetch given cache fullness: 0 when near full, tapering below. */
@@ -249,10 +254,16 @@ const ringTiles = (region: ViewportRegion): TileDocument.Coordinate[] => {
  *
  * @param currentKeys Tile keys the current viewport already required, so the
  *   ring never re-requests a tile this frame is loading anyway.
+ * @param detail The viewport's detail mode, forwarded to the batch so each
+ *   speculative load fetches the form the next required load will ask for.
+ *   Already-resident tiles are not re-speculated at a richer detail — an
+ *   upgrade is the later required load's to take, so the budget goes to tiles
+ *   the cache holds nothing for.
  */
 export const schedulePrefetch = (
   cache: PrefetchCache,
   currentKeys: ReadonlySet<string>,
+  detail: Detail.Detail = "minimal",
 ): void => {
   const { history } = cache;
   const current = history[history.length - 1];
@@ -302,5 +313,6 @@ export const schedulePrefetch = (
   candidates.sort((a, b) => a.distance - b.distance);
   cache.prefetchBatch(
     candidates.slice(0, budget).map(({ coordinate }) => coordinate),
+    detail,
   );
 };
