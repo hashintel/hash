@@ -146,6 +146,77 @@ test("query_basis attributes a net change to the Ledger revision and records", (
   });
 });
 
+test("query_basis returns a change's reflection committed after it in the same turn, but not a later turn's records", () => {
+  const [user, assistant] = snapshot.messages;
+  const [commit, add, read] = assistant?.parts ?? [];
+  const committed = (
+    toolCallId: string,
+    revision: number,
+    entries: unknown[],
+    ids: string[],
+  ) => ({
+    type: "dynamic-tool",
+    toolName: "ledger_commit",
+    toolCallId,
+    state: "output-available",
+    input: { entries },
+    output: { status: "recorded", commitId: toolCallId, revision, ids },
+  });
+  const reflection = committed(
+    "ledger-2",
+    2,
+    [
+      [
+        "reflection/create",
+        {
+          text: "The Queue place holds waiting cases.",
+          netElements: [{ kind: "place", id: "queue" }],
+          claims: ["c1"],
+        },
+      ],
+    ],
+    ["r1"],
+  );
+  const laterTurn = committed(
+    "ledger-3",
+    3,
+    [
+      [
+        "claim/create",
+        {
+          text: "The queue is first come, first served.",
+          entities: ["e1"],
+          origin: "stated",
+          status: "confirmed",
+        },
+      ],
+    ],
+    ["c2"],
+  );
+  const history = {
+    ...snapshot,
+    messages: [
+      user,
+      { ...assistant, parts: [commit, add, reflection, read] },
+      { ...user, id: "user-2" },
+      { ...assistant, id: "assistant-2", parts: [laterTurn] },
+    ],
+  } as FlueConversationSnapshot;
+
+  const [change] = queryBasis({
+    snapshot: history,
+    browser,
+    query: { kind: "place", name: "Queue" },
+  }).changes;
+  // The revision is the Ledger's at the call; the records span the call's turn.
+  expect(change).toMatchObject({ toolCallId: "add-queue", ledgerRevision: 1 });
+  expect(change?.recordsCommittedThisTurn.map(({ id }) => id)).toEqual([
+    "e1",
+    "c1",
+    "r1",
+  ]);
+});
+
 test("query_basis returns a reflection committed this turn with its text and net elements", () => {
   const [user, assistant] = snapshot.messages;
   const [commit, ...calls] = assistant?.parts ?? [];

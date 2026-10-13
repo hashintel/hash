@@ -22,7 +22,7 @@ import type { BrowserContext, LedgerState } from "@hashintel/brunch-agent";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 export const queryBasisToolDescription =
-  "Use when the USER asks why a visible net element exists, instead of answering from memory. Finds the element in the latest net read and lists the canonical calls that changed it, each with its settled document revision, the Ledger revision current at the call, and the Ledger records committed earlier in the same turn, each with its ID, record type and content as it stood at the call, including the net element addresses a reflection concerns. These are chronological associations, not semantic justification: say so, and say plainly when no call is associated. A stale-read disposition means the net changed after the latest read: read it again, then query.";
+  "Use when the USER asks why a visible net element exists, instead of answering from memory. Finds the element in the latest net read and lists the canonical calls that changed it, each with its settled document revision, the Ledger revision current at the call, and the Ledger records committed in the same turn, before or after the call, each with its ID, record type and content, including the net element addresses a reflection concerns. These are chronological associations, not semantic justification: say so, and say plainly when no call is associated. A stale-read disposition means the net changed after the latest read: read it again, then query.";
 
 const elementSchema = v.object({
   selector: v.pipe(
@@ -104,50 +104,65 @@ const elements = (
   });
 };
 
-const withoutAnchors = <Fields extends { address: string; turn: string }>({
-  address,
-  turn: _turn,
-  ...fields
-}: Fields) => ({ id: address, ...fields });
+/** A record as the model reads it: its ID and type with its fields, without the turn anchor. */
+const recordContent = <
+  Type extends string,
+  Fields extends { address: string; turn: string },
+>(
+  type: Type,
+  { address, turn: _turn, ...fields }: Fields,
+) => ({ id: address, type, ...fields });
 
-/** A record's content as the Ledger held it at the call; reflections have no other read-back. */
-const recordContent = (state: LedgerState, id: string) => {
+const findRecord = (state: LedgerState, id: string) => {
   const entity = state.entities.find(({ address }) => address === id);
-  if (entity) return { type: "entity" as const, ...withoutAnchors(entity) };
+  if (entity) return recordContent("entity", entity);
   const claim = state.claims.find(({ address }) => address === id);
-  if (claim) return { type: "claim" as const, ...withoutAnchors(claim) };
+  if (claim) return recordContent("claim", claim);
   const reflection = state.reflections.find(({ address }) => address === id);
-  if (reflection)
-    return { type: "reflection" as const, ...withoutAnchors(reflection) };
+  if (reflection) return recordContent("reflection", reflection);
   const obligation = state.obligations.find(({ address }) => address === id);
-  if (obligation)
-    return { type: "obligation" as const, ...withoutAnchors(obligation) };
+  if (obligation) return recordContent("obligation", obligation);
   return undefined;
 };
 
-/** This Ledger as it stood when a call was made, and the records its turn had committed so far. */
+const isUserMessage = (message: FlueConversationSnapshot["messages"][number]) =>
+  message.role === "user" && message.purpose === "user";
+
+/**
+ * The Ledger revision current when a call was made, and every record its turn
+ * committed, before or after the call: the guidance commits a change's
+ * reflections after the change, in the same turn.
+ */
 const ledgerAtCall = (snapshot: FlueConversationSnapshot, call: NetCall) => {
   const message = snapshot.messages[call.messageIndex];
   if (!message) return undefined;
-  const prefix = {
+  const { revision } = foldCommits({
     messages: [
       ...snapshot.messages.slice(0, call.messageIndex),
       { ...message, parts: message.parts.slice(0, call.partIndex) },
     ],
-  };
-  const { state, commits, revision } = foldCommits(prefix);
-  const userMessageId = prefix.messages.findLast(
-    (entry) => entry.role === "user" && entry.purpose === "user",
-  )?.id;
+  });
+  const turnId = snapshot.messages
+    .slice(0, call.messageIndex)
+    .findLast(isUserMessage)?.id;
+  const nextTurn = snapshot.messages.findIndex(
+    (entry, index) => index > call.messageIndex && isUserMessage(entry),
+  );
+  const { state, commits } = foldCommits({
+    messages: snapshot.messages.slice(
+      0,
+      nextTurn === -1 ? undefined : nextTurn,
+    ),
+  });
   const idsThisTurn = new Set(
     commits
-      .filter(({ afterMessageId }) => afterMessageId === userMessageId)
+      .filter(({ afterMessageId }) => afterMessageId === turnId)
       .flatMap(({ ids }) => ids),
   );
   return {
     revision,
     recordsThisTurn: [...idsThisTurn].flatMap(
-      (id) => recordContent(state, id) ?? [],
+      (id) => findRecord(state, id) ?? [],
     ),
   };
 };
