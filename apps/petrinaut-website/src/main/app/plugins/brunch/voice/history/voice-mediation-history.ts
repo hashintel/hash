@@ -3,7 +3,7 @@ import { z } from "zod";
 import type {
   VoiceBriefFields,
   VoiceLine,
-} from "../../../../../shared/voice-mediation";
+} from "../../../../../../shared/voice-mediation";
 import type { FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 

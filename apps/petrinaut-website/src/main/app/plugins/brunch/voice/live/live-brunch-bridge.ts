@@ -3,8 +3,8 @@ import { getToolName, isToolUIPart } from "ai";
 import {
   maxUtteranceTextLength,
   shouldWithholdUtterance,
-} from "../../../../../shared/live-utterance-judgment";
-import { serializeVoiceBrief } from "../../../../../shared/voice-mediation";
+} from "../../../../../../shared/live-utterance-judgment";
+import { serializeVoiceBrief } from "../../../../../../shared/voice-mediation";
 import { logLiveDiagnostic } from "../shared/live-diagnostic";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { ProgressPolicy } from "./live-brunch-bridge/progress-policy";
@@ -16,8 +16,8 @@ import {
 import type {
   UtteranceJudgment,
   UtteranceJudgmentState,
-} from "../../../../../shared/live-utterance-judgment";
-import type { VoiceBriefFields } from "../../../../../shared/voice-mediation";
+} from "../../../../../../shared/live-utterance-judgment";
+import type { VoiceBriefFields } from "../../../../../../shared/voice-mediation";
 import type { VoiceMediationHistory } from "../history/voice-mediation-history";
 import type {
   RealtimeBrunchBridge,

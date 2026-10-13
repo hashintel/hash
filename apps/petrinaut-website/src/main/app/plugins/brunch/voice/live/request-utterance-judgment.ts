@@ -1,12 +1,12 @@
 import {
   isUtteranceJudgment,
   utteranceJudgmentTimeoutMs,
-} from "../../../../../shared/live-utterance-judgment";
+} from "../../../../../../shared/live-utterance-judgment";
 
 import type {
   UtteranceJudgment,
   UtteranceJudgmentState,
-} from "../../../../../shared/live-utterance-judgment";
+} from "../../../../../../shared/live-utterance-judgment";
 
 /** One request, no retry. Failure affects the diagnostic only, never Brunch. */
 export const createUtteranceJudgmentRequester =

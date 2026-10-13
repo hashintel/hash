@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { VoiceError } from "../../../../../voice-diagnostics";
+import { VoiceError } from "../../../../../../voice-diagnostics";
 import { VoiceTurnController } from "./voice-turn-controller";
 
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";

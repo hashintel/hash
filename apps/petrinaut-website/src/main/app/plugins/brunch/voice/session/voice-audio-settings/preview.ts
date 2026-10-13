@@ -1,4 +1,4 @@
-import type { VoiceProvider } from "../../../../../../shared/voice-settings";
+import type { VoiceProvider } from "../../../../../../../shared/voice-settings";
 
 type PreviewState = "loading" | "playing" | null;
 type Output = { muted: boolean; volume: number; sinkId?: string };

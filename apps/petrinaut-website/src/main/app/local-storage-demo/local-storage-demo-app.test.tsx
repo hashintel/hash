@@ -36,8 +36,8 @@ import {
   canonicalPetrinautClientToolNames,
   brunchPetrinautClientToolNames,
 } from "../plugins/brunch/tools/brunch-client-tools";
+import { OpenAIRealtimeSession } from "../plugins/brunch/voice/realtime/openai-realtime-session";
 import { demoPlugins } from "../plugins/demo-plugins";
-import { OpenAIRealtimeSession } from "../plugins/voice/realtime/openai-realtime-session";
 import {
   assistantSelectionStorageKey,
   defaultAssistantSelection,

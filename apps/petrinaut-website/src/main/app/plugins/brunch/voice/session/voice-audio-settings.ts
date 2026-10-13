@@ -2,7 +2,7 @@ import {
   isSupportedVoice,
   voiceNames,
   type VoiceProvider,
-} from "../../../../../shared/voice-settings";
+} from "../../../../../../shared/voice-settings";
 import { previewVoice } from "./voice-audio-settings/preview";
 
 import type {

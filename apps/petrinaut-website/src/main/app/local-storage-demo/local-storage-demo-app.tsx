@@ -79,14 +79,14 @@ import {
 } from "../plugins/brunch/tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "../plugins/brunch/tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "../plugins/brunch/tools/in-band-browser-call";
-import { demoPlugins } from "../plugins/demo-plugins";
-import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
-import { getBrunchVoiceMode } from "../plugins/voice/brunch-voice-mode";
-import { useVoiceMediationHistory } from "../plugins/voice/history/use-voice-mediation-history";
+import { getBrunchVoiceMode } from "../plugins/brunch/voice/brunch-voice-mode";
+import { useVoiceMediationHistory } from "../plugins/brunch/voice/history/use-voice-mediation-history";
 import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
-} from "../plugins/voice/session/voice-interview-control";
+} from "../plugins/brunch/voice/session/voice-interview-control";
+import { demoPlugins } from "../plugins/demo-plugins";
+import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,

@@ -5,7 +5,7 @@ import {
   reportVoiceDiagnostic,
   voiceDurationMs,
   type VoiceDiagnosticReporter,
-} from "../../../../../voice-diagnostics";
+} from "../../../../../../voice-diagnostics";
 import { classifyInterruption } from "../shared/classify-interruption";
 
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";

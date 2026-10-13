@@ -8,7 +8,7 @@ import {
 } from "react";
 import { z } from "zod";
 
-import { voiceWrapUpResponseSchema } from "../../../../../shared/voice-mediation";
+import { voiceWrapUpResponseSchema } from "../../../../../../shared/voice-mediation";
 import { VoiceMediationHistory } from "../history/voice-mediation-history";
 import { VoiceAudioSettings } from "../session/voice-audio-settings";
 import {

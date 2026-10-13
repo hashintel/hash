@@ -6,7 +6,7 @@ import {
 import type {
   BrunchPanelAdmissionTarget,
   BrunchPanelConversationTracker,
-} from "../brunch/brunch-panel-transport";
+} from "../brunch-panel-transport";
 import type { VoiceMediationHistory } from "./history/voice-mediation-history";
 import type { ToolApprovalState } from "./live/live-brunch-bridge";
 import type {

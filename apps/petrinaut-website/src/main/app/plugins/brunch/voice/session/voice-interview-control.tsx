@@ -12,7 +12,7 @@ import {
   type FlueChatResponseMessageStartedEvent,
 } from "@local/flue-aisdk-transport";
 
-import { reportVoiceDiagnostic } from "../../../../../voice-diagnostics";
+import { reportVoiceDiagnostic } from "../../../../../../voice-diagnostics";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { LiveConversationControl } from "../live/live-conversation-control";
 import { OpenAIRealtimeSession } from "../realtime/openai-realtime-session";
@@ -30,7 +30,7 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
-import type { UtteranceJudgmentMode } from "../../../../../shared/live-utterance-judgment";
+import type { UtteranceJudgmentMode } from "../../../../../../shared/live-utterance-judgment";
 import type { VoiceMediationHistory } from "../history/voice-mediation-history";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { ToolApprovalState } from "../live/live-brunch-bridge";

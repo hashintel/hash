@@ -4,11 +4,11 @@ import { fileURLToPath } from "node:url";
 
 import { beforeAll, expect, test, vi } from "vitest";
 
-import { runNodeScript } from "../../../../../../../brunch-agent/test/integration/run-node-script";
+import { runNodeScript } from "../../../../../../../../brunch-agent/test/integration/run-node-script";
 import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
 import { selectCanonicalSpeech } from "./canonical-speech";
 
-import type { AdmissionVoiceEvidence } from "../../../../../../../brunch-agent/test/admission-voice-evidence";
+import type { AdmissionVoiceEvidence } from "../../../../../../../../brunch-agent/test/admission-voice-evidence";
 
 const testDirectory = dirname(fileURLToPath(import.meta.url));
 let result: AdmissionVoiceEvidence;
@@ -16,9 +16,9 @@ beforeAll(async () => {
   const { exitCode, stdout, stderr } = await runNodeScript(
     join(
       testDirectory,
-      "../../../../../../../brunch-agent/test/integration/admission-controls.integration.ts",
+      "../../../../../../../../brunch-agent/test/integration/admission-controls.integration.ts",
     ),
-    join(testDirectory, "../../../../../../../.."),
+    join(testDirectory, "../../../../../../../../.."),
     {},
   );
   if (exitCode !== 0) throw new Error(stderr || stdout);

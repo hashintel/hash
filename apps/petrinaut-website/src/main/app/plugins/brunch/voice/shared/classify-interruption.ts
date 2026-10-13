@@ -1,4 +1,4 @@
-import { voiceTranscriptionPrompt } from "../../../../../shared/voice-transcription";
+import { voiceTranscriptionPrompt } from "../../../../../../shared/voice-transcription";
 
 export const tokensOf = (text: string): string[] =>
   text

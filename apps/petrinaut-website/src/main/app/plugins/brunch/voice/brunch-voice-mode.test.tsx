@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
-import { BrunchPanelConversationTracker } from "../brunch/brunch-panel-transport";
+import { BrunchPanelConversationTracker } from "../brunch-panel-transport";
 import { getBrunchVoiceMode } from "./brunch-voice-mode";
 import { VoiceInterviewControl } from "./session/voice-interview-control";
 

@@ -1,7 +1,7 @@
 import {
   VoiceError,
   type VoiceErrorCode,
-} from "../../../../../voice-diagnostics";
+} from "../../../../../../voice-diagnostics";
 
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "../realtime/openai-realtime-session";

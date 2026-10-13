@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, expect, test, vi } from "vitest";
 
-import { voiceNames } from "../../../../../../shared/voice-settings";
+import { voiceNames } from "../../../../../../../shared/voice-settings";
 import { previewVoice } from "./preview";
 
 afterEach(() => {
@@ -136,7 +136,10 @@ test("releases a sample when playback is denied", async () => {
 
 test("has a static preview asset for every supported provider voice", () => {
   const assetRoot = fileURLToPath(
-    new URL("../../../../../../../public/voice-previews/v1", import.meta.url),
+    new URL(
+      "../../../../../../../../public/voice-previews/v1",
+      import.meta.url,
+    ),
   );
   for (const [provider, voices] of Object.entries(voiceNames)) {
     for (const voice of voices) {

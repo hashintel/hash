@@ -9,11 +9,11 @@ import { Petrinaut } from "@hashintel/petrinaut/ui";
 import {
   NoopResizeObserver,
   preloadMonaco,
-} from "../../../shared/petrinaut-jsdom";
+} from "../../../../shared/petrinaut-jsdom";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
-} from "../../brunch/brunch-panel-transport";
+} from "../../brunch-panel-transport";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
@@ -27,7 +27,7 @@ import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../../../shared/petrinaut-jsdom");
+    await import("../../../../shared/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 

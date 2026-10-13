@@ -1,4 +1,4 @@
-import { voicePreferenceHeader } from "../../../../../shared/voice-settings";
+import { voicePreferenceHeader } from "../../../../../../shared/voice-settings";
 import {
   createVoiceRequestId,
   VoiceError,
@@ -10,7 +10,7 @@ import {
   type VoiceDiagnosticReporter,
   type VoiceErrorCode,
   type VoiceOperation,
-} from "../../../../../voice-diagnostics";
+} from "../../../../../../voice-diagnostics";
 
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { VoiceAudioSettings } from "../session/voice-audio-settings";

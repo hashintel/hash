@@ -1,4 +1,4 @@
-import type { VoiceLine } from "../../../../../shared/voice-mediation";
+import type { VoiceLine } from "../../../../../../shared/voice-mediation";
 
 export interface LiveTranscriptFragment {
   readonly id: string;
