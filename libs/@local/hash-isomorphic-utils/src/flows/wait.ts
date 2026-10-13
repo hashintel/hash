@@ -27,9 +27,9 @@ export const durationToMs = (duration: Duration): number =>
   duration.amount * unitMs[duration.unit];
 
 /**
- * Checks a duration, which may come from JSON and so may not have the shape its type says.
+ * Reads a duration into milliseconds. It may come from JSON, so it may not have the shape its type says.
  */
-const validateDuration = (duration: unknown): WaitError | undefined => {
+const parseDuration = (duration: unknown): number | WaitError => {
   if (
     typeof duration !== "object" ||
     duration === null ||
@@ -48,12 +48,13 @@ const validateDuration = (duration: unknown): WaitError | undefined => {
   if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
     return waitError("A duration's amount must be a number greater than 0.");
   }
-  if (durationToMs({ amount, unit: unit as Duration["unit"] }) > maxWaitMs) {
+  const durationMs = durationToMs({ amount, unit: unit as Duration["unit"] });
+  if (durationMs > maxWaitMs) {
     return waitError(
       `A Wait step can't wait for more than ${maxWaitMs / day} days.`,
     );
   }
-  return undefined;
+  return durationMs;
 };
 
 /**
@@ -69,7 +70,7 @@ const dateTimePattern =
  * into epoch milliseconds.
  */
 export const parseDateTime = (value: unknown): number | WaitError => {
-  /* A value from JSON may not be a string, and `RegExp.exec` would turn e.g. an array of one string into one. */
+  /* `RegExp.exec` would read a value from JSON such as `["2026-10-16T14:00:00Z"]` as the string inside it. */
   if (typeof value !== "string") {
     return waitError("A date and time must be a string.");
   }
@@ -131,10 +132,11 @@ export const parseDateTime = (value: unknown): number | WaitError => {
  * instant to wait `until`. Returns the instant as an ISO 8601 UTC string.
  *
  * An `until` in the past resumes at `startedAt`, i.e. straight away. A wait longer than {@link maxWaitMs} is an
- * error rather than being shortened.
+ * error rather than being shortened. The inputs may come from a flow input or an earlier step without being
+ * checked, so they're read as `unknown`.
  */
 export const resolveResumeAt = (
-  inputs: { duration?: Duration; until?: string },
+  inputs: { duration?: unknown; until?: unknown },
   startedAt: Date,
 ): string | WaitError => {
   const { duration, until } = inputs;
@@ -142,11 +144,11 @@ export const resolveResumeAt = (
   const startedAtMs = startedAt.getTime();
 
   if (duration !== undefined && until === undefined) {
-    const error = validateDuration(duration);
-    if (error) {
-      return error;
+    const durationMs = parseDuration(duration);
+    if (typeof durationMs !== "number") {
+      return durationMs;
     }
-    return new Date(startedAtMs + durationToMs(duration)).toISOString();
+    return new Date(startedAtMs + durationMs).toISOString();
   }
 
   if (until !== undefined && duration === undefined) {
@@ -187,9 +189,9 @@ export const checkWaitInputs: ActionStepCheck = ({ step, report }) => {
 
   /* A constant of another kind is reported as an incompatible connection. */
   if (duration?.kind === "constant" && duration.payload.kind === "Duration") {
-    const error = validateDuration(duration.payload.value);
-    if (error) {
-      report("duration", error.message);
+    const parsed = parseDuration(duration.payload.value);
+    if (typeof parsed !== "number") {
+      report("duration", parsed.message);
     }
   }
 

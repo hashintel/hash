@@ -3,18 +3,14 @@ import { describe, expect, it } from "vitest";
 import { flowDefinitionSchema } from "./flow-definition-schema.js";
 import { checkWaitInputs, parseDateTime, resolveResumeAt } from "./wait.js";
 
-import type {
-  ActionStepDefinition,
-  Duration,
-  StepInputSource,
-} from "./types.js";
+import type { ActionStepDefinition, StepInputSource } from "./types.js";
 
 const startedAt = new Date("2026-10-13T12:00:00.000Z");
 
-const resumeAfter = (duration: Duration) =>
+const resumeAfter = (duration: unknown) =>
   resolveResumeAt({ duration }, startedAt);
 
-const resumeUntil = (until: string) => resolveResumeAt({ until }, startedAt);
+const resumeUntil = (until: unknown) => resolveResumeAt({ until }, startedAt);
 
 const anError = { status: "error", message: expect.any(String) };
 
@@ -80,7 +76,7 @@ describe("resolveResumeAt", () => {
       {},
       null,
     ])("rejects %o", (duration) => {
-      expect(resumeAfter(duration as Duration)).toEqual(anError);
+      expect(resumeAfter(duration)).toEqual(anError);
     });
   });
 
@@ -113,7 +109,7 @@ describe("resolveResumeAt", () => {
       "2026-11-12T12:00:01Z",
       "2026-11-12T14:00:01+02:00",
     ])("rejects %j", (until) => {
-      expect(resumeUntil(until as string)).toEqual(anError);
+      expect(resumeUntil(until)).toEqual(anError);
     });
   });
 
