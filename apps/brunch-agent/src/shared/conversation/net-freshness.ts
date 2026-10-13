@@ -58,8 +58,9 @@ export const noNetViewRefusal = `Not started: no current view of the net is in y
 /**
  * The revision of the latest net result before `toolCallId` that the model
  * can still see. Reads carry the revision they observed; a change carries the
- * revision it produced, with the net read back. A change that left the
- * document as it was carries no read-back, so it shows the model nothing.
+ * revision it produced only when it also carries the net read back, which the
+ * context projection shows. A change that left the document as it was, or
+ * whose read-back is missing, shows the model nothing.
  */
 export const expectedNetRevision = (
   snapshot: FlueConversationSnapshot,
@@ -85,13 +86,13 @@ export const expectedNetRevision = (
         !("metadata" in part.output)
       )
         continue;
-      const observed = parseClientToolResultMetadata(
-        part.output.metadata,
-      )?.documentRevision;
-      revision =
-        (browserToolMutatesDocument(part.toolName)
-          ? observed?.after
-          : observed?.before) ?? revision;
+      const metadata = parseClientToolResultMetadata(part.output.metadata);
+      const observed = browserToolMutatesDocument(part.toolName)
+        ? metadata?.readBack === undefined
+          ? undefined
+          : metadata.documentRevision.after
+        : metadata?.documentRevision.before;
+      revision = observed ?? revision;
     }
   }
   throw new Error(

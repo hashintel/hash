@@ -61,6 +61,7 @@ const snapshot = (
     toolName: string;
     state?: string;
     revision?: Revision;
+    readBack?: object;
   }[],
 ): FlueConversationSnapshot =>
   ({
@@ -69,14 +70,18 @@ const snapshot = (
         id: "a1",
         role: "assistant",
         purpose: "assistant",
-        parts: parts.map(({ toolCallId, toolName, state, revision }) => ({
-          type: "dynamic-tool",
-          toolCallId,
-          toolName,
-          state: state ?? "output-available",
-          input: {},
-          ...(revision === undefined ? {} : { output: envelope({}, revision) }),
-        })),
+        parts: parts.map(
+          ({ toolCallId, toolName, state, revision, readBack }) => ({
+            type: "dynamic-tool",
+            toolCallId,
+            toolName,
+            state: state ?? "output-available",
+            input: {},
+            ...(revision === undefined
+              ? {}
+              : { output: envelope({}, revision, readBack) }),
+          }),
+        ),
       },
     ],
   }) as unknown as FlueConversationSnapshot;
@@ -110,6 +115,7 @@ test("a change is expected at the revision of the latest net result the model ca
       toolCallId: "place",
       toolName: "addPlace",
       revision: { before: "r1", after: "r2" },
+      readBack: { places: ["p1"] },
     },
     { toolCallId: "next", toolName: "addArc", state: "input-available" },
   ]);
@@ -145,6 +151,21 @@ test("a change that left the document unchanged does not count as a view of the 
   expect(
     expectedNetRevision(history, "next", new Set(["read", "no-op"])),
   ).toEqual({ revision: "r1" });
+});
+
+test("a change without its read-back does not count as a view of the net", () => {
+  // A website build that predates the read-back still reports the revision.
+  const history = snapshot([
+    {
+      toolCallId: "place",
+      toolName: "addPlace",
+      revision: { before: "r1", after: "r2" },
+    },
+    { toolCallId: "next", toolName: "addArc", state: "input-available" },
+  ]);
+  expect(expectedNetRevision(history, "next", new Set(["place"]))).toEqual({
+    refusal: noNetViewRefusal,
+  });
 });
 
 test("a change with no net result left in context is refused before it is issued", () => {
