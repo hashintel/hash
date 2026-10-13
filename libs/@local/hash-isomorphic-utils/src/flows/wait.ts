@@ -55,11 +55,12 @@ const validateDuration = (duration: unknown): WaitError | undefined => {
 };
 
 /**
- * `YYYY-MM-DDTHH:mm[:ss[.fraction]]` followed by `Z` or an offset. `Date.parse` alone also accepts values without a
- * timezone, which it reads as local time, and implementation-specific formats.
+ * `YYYY-MM-DDTHH:mm[:ss[.fraction]]` followed by `Z` or an offset, with hours, minutes and seconds in range.
+ * `Date.parse` alone reads a value without a timezone as local time, accepts implementation-specific formats, and
+ * rolls over impossible values such as February 30th or 24:00.
  */
 const dateTimePattern =
-  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(?:Z|([+-])(\d{2}):(\d{2}))$/;
+  /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d)(?:\.(\d+))?)?(?:Z|([+-])([01]\d|2[0-3]):([0-5]\d))$/;
 
 /**
  * Parses an ISO 8601 instant with `Z` or an offset, e.g. `"2026-10-16T14:00:00Z"` or `"2026-10-16T16:00:00+02:00"`,
@@ -92,28 +93,13 @@ export const parseDateTime = (value: string): number | WaitError => {
   const year = Number(yearText);
   const month = Number(monthText);
   const dayOfMonth = Number(dayText);
-  const hours = Number(hoursText);
-  const minutes = Number(minutesText);
-  const seconds = Number(secondsText);
-  const offsetHours = Number(offsetHoursText);
-  const offsetMinutes = Number(offsetMinutesText);
-
-  if (
-    hours > 23 ||
-    minutes > 59 ||
-    seconds > 59 ||
-    offsetHours > 23 ||
-    offsetMinutes > 59
-  ) {
-    return invalid;
-  }
 
   const date = new Date(0);
   date.setUTCFullYear(year, month - 1, dayOfMonth);
   date.setUTCHours(
-    hours,
-    minutes,
-    seconds,
+    Number(hoursText),
+    Number(minutesText),
+    Number(secondsText),
     Number(fraction.padEnd(3, "0").slice(0, 3)),
   );
 
@@ -128,7 +114,7 @@ export const parseDateTime = (value: string): number | WaitError => {
 
   const offsetMs =
     (offsetSign === "-" ? -1 : 1) *
-    (offsetHours * hour + offsetMinutes * minute);
+    (Number(offsetHoursText) * hour + Number(offsetMinutesText) * minute);
 
   return date.getTime() - offsetMs;
 };

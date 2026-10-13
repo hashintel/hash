@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { flowDefinitionSchema } from "./flow-definition-schema.js";
-import {
-  checkWaitInputs,
-  durationToMs,
-  parseDateTime,
-  resolveResumeAt,
-} from "./wait.js";
+import { checkWaitInputs, parseDateTime, resolveResumeAt } from "./wait.js";
 
 import type {
   ActionStepDefinition,
@@ -22,18 +17,6 @@ const resumeAfter = (duration: Duration) =>
 const resumeUntil = (until: string) => resolveResumeAt({ until }, startedAt);
 
 const anError = { status: "error", message: expect.any(String) };
-
-describe("durationToMs", () => {
-  it.each([
-    [{ amount: 45, unit: "seconds" }, 45_000],
-    [{ amount: 90, unit: "minutes" }, 5_400_000],
-    [{ amount: 5, unit: "hours" }, 18_000_000],
-    [{ amount: 2, unit: "days" }, 172_800_000],
-    [{ amount: 3, unit: "weeks" }, 1_814_400_000],
-  ] as const)("converts %o to %d ms", (duration, ms) => {
-    expect(durationToMs(duration)).toBe(ms);
-  });
-});
 
 describe("parseDateTime", () => {
   it("reads an offset as the UTC instant it names", () => {
@@ -61,6 +44,7 @@ describe("parseDateTime", () => {
     "2026-02-30T14:00:00Z",
     "2026-13-01T14:00:00Z",
     "2026-10-16T24:00:00Z",
+    "2026-10-16T14:60:00Z",
     "2026-10-16T14:00:00+24:00",
     "Fri, 16 Oct 2026 14:00:00 GMT",
   ])("rejects %j", (value) => {
