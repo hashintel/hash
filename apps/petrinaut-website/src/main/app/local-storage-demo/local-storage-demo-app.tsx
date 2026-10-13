@@ -259,6 +259,13 @@ export const LocalStorageDemoApp = ({
     ],
   );
   const aiAssistant = brunch.assistant ?? stockAssistant;
+  const plugins = useMemo(
+    () =>
+      brunch.plugins.length === 0
+        ? demoPlugins
+        : [...demoPlugins, ...brunch.plugins],
+    [brunch.plugins],
+  );
 
   if (repository.status.state === "ready" && currentDocument === null) {
     return (
@@ -295,7 +302,7 @@ export const LocalStorageDemoApp = ({
           createNewNet={createNewNet}
           loadPetriNet={loadPetriNet}
           navigation={navigation}
-          plugins={demoPlugins}
+          plugins={plugins}
           readonly={false}
           setTitle={setTitle}
           slots={{

@@ -2124,6 +2124,24 @@ describe("assistant selection", () => {
     ).toEqual(["demo.assistant.switch"]);
   });
 
+  test("adds the Brunch plugin only while Brunch is the assistant", async () => {
+    seedStoredNet();
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    flueClientMock.current = flueHistoryClient();
+    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() =>
+      expect(
+        editorProps.current?.plugins?.map(({ manifest }) => manifest.id),
+      ).toEqual([
+        ...demoPlugins.map(({ manifest }) => manifest.id),
+        "website.brunch",
+      ]),
+    );
+
+    switchAssistant(/Use the stock Petrinaut assistant/);
+    await waitFor(() => expect(editorProps.current?.plugins).toBe(demoPlugins));
+  });
+
   test("without a configured Brunch endpoint there is no choice to make", () => {
     brunchPreviewConfig.isBrunchConfigured = false;
     seedStoredNet();

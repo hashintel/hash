@@ -36,8 +36,7 @@ import {
 } from "./conversation/use-process-agent-binding";
 import { foldBrunchLedgerHistory } from "./ledger/brunch-ledger-history";
 import { BrunchLedgerPane } from "./ledger/brunch-ledger-pane";
-import { requestFlueStop } from "./plugin/request-flue-stop";
-import { useImmutableReplayBaseline } from "./plugin/use-immutable-replay-baseline";
+import { brunchPlugin, WithBrunchEditorApi } from "./plugin";
 import {
   brunchPetrinautClientToolNames,
   canonicalPetrinautClientToolNames,
@@ -61,6 +60,8 @@ import {
 } from "./tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "./tools/in-band-browser-call";
+import { requestFlueStop } from "./use-brunch-assistant/request-flue-stop";
+import { useImmutableReplayBaseline } from "./use-brunch-assistant/use-immutable-replay-baseline";
 import { getBrunchVoiceMode } from "./voice/brunch-voice-mode";
 import { useVoiceMediationHistory } from "./voice/history/use-voice-mediation-history";
 import {
@@ -73,6 +74,7 @@ import type {
   PetrinautAiAssistant,
   PetrinautAiComposerControlContext,
 } from "@hashintel/petrinaut/ui";
+import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 export const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
@@ -82,6 +84,9 @@ const brunchPrincipal = getOrCreateBrunchPrincipal();
 
 const subscribeToNothing = () => () => {};
 const readNothing = () => undefined;
+
+const noPlugins: readonly PetrinautPlugin[] = [];
+const brunchPlugins: readonly PetrinautPlugin[] = [brunchPlugin];
 
 const createBrunchFlueClient = async (conversationId: string) => {
   const identity = { conversationId, principalKey: brunchPrincipal };
@@ -147,6 +152,11 @@ export interface BrunchAssistant {
    * does not or Brunch is not selected.
    */
   readonly openAIVoiceConfig: OpenAIVoiceConfig | null | undefined;
+  /**
+   * The plugins Brunch adds to the editor while it is the assistant: its cards
+   * read the editor through their `api`.
+   */
+  readonly plugins: readonly PetrinautPlugin[];
 }
 
 /**
@@ -480,6 +490,7 @@ export const useBrunchAssistant = ({
         ? createBrunchDraftExperimentInteractiveTool({
             browserCalls: inBandBrowserTools,
             readTitle: editor.readTitle,
+            readDefinition: () => editor.handle.doc(),
             readDraftAuthority: async (toolCallId) => {
               const client = await flueClientPromise;
               return resolveDraftAuthorityFromHistory(
@@ -522,7 +533,14 @@ export const useBrunchAssistant = ({
       resolveToolPresentation: resolveBrunchToolPresentation,
       workingLabel: "Working…",
       renderComposerControl: (context: PetrinautAiComposerControlContext) => (
-        <BrunchExperimentFollowUp context={context} />
+        <WithBrunchEditorApi>
+          {(api) => (
+            <BrunchExperimentFollowUp
+              context={context}
+              net={api.document.net}
+            />
+          )}
+        </WithBrunchEditorApi>
       ),
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: true,
@@ -584,5 +602,6 @@ export const useBrunchAssistant = ({
     assistant,
     conversationId,
     openAIVoiceConfig: selected ? openAIVoiceConfig : null,
+    plugins: assistant === null ? noPlugins : brunchPlugins,
   };
 };
