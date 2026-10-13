@@ -170,7 +170,7 @@ test("query_basis locates the latest read element and relates the applied call t
         toolCallId: "add-queue",
         petrinautRevisionId: "revision-2",
         ledgerRevision: 1,
-        recordsCommittedThisTurn: ["e1"],
+        recordsCommittedThisTurn: [{ id: "e1", type: "entity" }],
       },
     ],
   });
@@ -252,7 +252,10 @@ test("a refused Ledger commit adds nothing to the revision or records a call is 
       browser,
       query: { kind: "place", id: "queue" },
     }).changes[0],
-  ).toMatchObject({ ledgerRevision: 1, recordsCommittedThisTurn: ["e1"] });
+  ).toMatchObject({
+    ledgerRevision: 1,
+    recordsCommittedThisTurn: [{ id: "e1", type: "entity" }],
+  });
 });
 
 test("query_basis matches a root arc to canonical addArc by transition, direction and place, and to a batch deletion by its generated ID", () => {
@@ -354,7 +357,7 @@ test("query_basis matches a root arc to canonical addArc by transition, directio
         operation: "addArc",
         petrinautRevisionId: "revision-3",
         ledgerRevision: 1,
-        recordsCommittedThisTurn: ["e1"],
+        recordsCommittedThisTurn: [{ id: "e1", type: "entity" }],
       },
     ],
   });

@@ -18,11 +18,11 @@ import {
 } from "../../../shared/conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
-import type { BrowserContext } from "@hashintel/brunch-agent";
+import type { BrowserContext, LedgerState } from "@hashintel/brunch-agent";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 export const queryBasisToolDescription =
-  "Use when the USER asks why a visible net element exists, instead of answering from memory. Finds the element in the latest net read and lists the canonical calls that changed it, each with its settled document revision, the Ledger revision current at the call, and the IDs of Ledger records committed earlier in the same turn; compile the Ledger for their content. These are chronological associations, not semantic justification: say so, and say plainly when no call is associated. A stale-read disposition means the net changed after the latest read: read it again, then query.";
+  "Use when the USER asks why a visible net element exists, instead of answering from memory. Finds the element in the latest net read and lists the canonical calls that changed it, each with its settled document revision, the Ledger revision current at the call, and the Ledger records committed earlier in the same turn, each with its ID, record type and content as it stood at the call, including the net element addresses a reflection concerns. These are chronological associations, not semantic justification: say so, and say plainly when no call is associated. A stale-read disposition means the net changed after the latest read: read it again, then query.";
 
 const elementSchema = v.object({
   selector: v.pipe(
@@ -104,6 +104,27 @@ const elements = (
   });
 };
 
+const withoutAnchors = <Fields extends { address: string; turn: string }>({
+  address,
+  turn: _turn,
+  ...fields
+}: Fields) => ({ id: address, ...fields });
+
+/** A record's content as the Ledger held it at the call; reflections have no other read-back. */
+const recordContent = (state: LedgerState, id: string) => {
+  const entity = state.entities.find(({ address }) => address === id);
+  if (entity) return { type: "entity" as const, ...withoutAnchors(entity) };
+  const claim = state.claims.find(({ address }) => address === id);
+  if (claim) return { type: "claim" as const, ...withoutAnchors(claim) };
+  const reflection = state.reflections.find(({ address }) => address === id);
+  if (reflection)
+    return { type: "reflection" as const, ...withoutAnchors(reflection) };
+  const obligation = state.obligations.find(({ address }) => address === id);
+  if (obligation)
+    return { type: "obligation" as const, ...withoutAnchors(obligation) };
+  return undefined;
+};
+
 /** This Ledger as it stood when a call was made, and the records its turn had committed so far. */
 const ledgerAtCall = (snapshot: FlueConversationSnapshot, call: NetCall) => {
   const message = snapshot.messages[call.messageIndex];
@@ -114,15 +135,20 @@ const ledgerAtCall = (snapshot: FlueConversationSnapshot, call: NetCall) => {
       { ...message, parts: message.parts.slice(0, call.partIndex) },
     ],
   };
-  const { commits, revision } = foldCommits(prefix);
+  const { state, commits, revision } = foldCommits(prefix);
   const userMessageId = prefix.messages.findLast(
     (entry) => entry.role === "user" && entry.purpose === "user",
   )?.id;
-  return {
-    revision,
-    recordsThisTurn: commits
+  const idsThisTurn = new Set(
+    commits
       .filter(({ afterMessageId }) => afterMessageId === userMessageId)
       .flatMap(({ ids }) => ids),
+  );
+  return {
+    revision,
+    recordsThisTurn: [...idsThisTurn].flatMap(
+      (id) => recordContent(state, id) ?? [],
+    ),
   };
 };
 

@@ -123,8 +123,80 @@ test("query_basis attributes a net change to the Ledger revision and records", (
         toolCallId: "add-queue",
         petrinautRevisionId: "revision-2",
         ledgerRevision: 1,
-        recordsCommittedThisTurn: ["e1", "c1"],
+        recordsCommittedThisTurn: [
+          {
+            id: "e1",
+            type: "entity",
+            name: "The queue",
+            kind: "location",
+            origin: "stated",
+            status: "confirmed",
+          },
+          {
+            id: "c1",
+            type: "claim",
+            text: "Cases wait in a queue.",
+            entities: ["e1"],
+            origin: "stated",
+            status: "confirmed",
+          },
+        ],
       },
     ],
+  });
+});
+
+test("query_basis returns a reflection committed this turn with its text and net elements", () => {
+  const [user, assistant] = snapshot.messages;
+  const [commit, ...calls] = assistant?.parts ?? [];
+  const reflectionCommit = {
+    type: "dynamic-tool",
+    toolName: "ledger_commit",
+    toolCallId: "ledger-2",
+    state: "output-available",
+    input: {
+      entries: [
+        [
+          "reflection/create",
+          {
+            text: "The Queue place holds waiting cases.",
+            netElements: [{ kind: "place", id: "queue" }],
+            claims: ["c1"],
+          },
+        ],
+      ],
+    },
+    output: {
+      status: "recorded",
+      commitId: "ledger-2",
+      revision: 2,
+      ids: ["r1"],
+    },
+  };
+  const withReflection = {
+    ...snapshot,
+    messages: [
+      user,
+      { ...assistant, parts: [commit, reflectionCommit, ...calls] },
+    ],
+  } as FlueConversationSnapshot;
+
+  const [change] = queryBasis({
+    snapshot: withReflection,
+    browser,
+    query: { kind: "place", name: "Queue" },
+  }).changes;
+  expect(change).toMatchObject({ toolCallId: "add-queue", ledgerRevision: 2 });
+  expect(change?.recordsCommittedThisTurn.map(({ id }) => id)).toEqual([
+    "e1",
+    "c1",
+    "r1",
+  ]);
+  expect(change?.recordsCommittedThisTurn.at(-1)).toEqual({
+    id: "r1",
+    type: "reflection",
+    text: "The Queue place holds waiting cases.",
+    netElements: [{ kind: "place", id: "queue" }],
+    claims: ["c1"],
   });
 });
