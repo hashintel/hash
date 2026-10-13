@@ -3,11 +3,12 @@
 //! The tests generate valid definitions, write them as YAML, and check that the text parses to the
 //! definition built directly from the same parts. Mutations change one part so that parsing must
 //! report exactly one issue.
+#![feature(type_info, variant_count)]
 
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use core::{fmt::Write as _, str::FromStr};
+use core::{any::TypeId, fmt::Write as _, mem, str, str::FromStr};
 
 use error_stack::Report;
 use hash_integrations_definition::{
@@ -28,21 +29,84 @@ use type_system::ontology::VersionedUrl;
 
 const TYPES: &str = "https://example.com/@demo/types";
 
-const COERCIONS: &[(&str, Coercion)] = &[
-    ("date", Coercion::Date),
-    ("time", Coercion::Time),
-    ("boolean", Coercion::Boolean),
-    ("number", Coercion::Number),
-    ("integer", Coercion::Integer),
-    ("year", Coercion::Year),
-    ("trim", Coercion::Trim),
-];
+/// The longest spelling a [`Spelling`] holds, in bytes.
+const MAX_SPELLING_BYTES: usize = 32;
 
-const COVERAGES: &[(&str, Coverage)] = &[
-    ("partial", Coverage::Partial),
-    ("complete", Coverage::Complete),
-    ("complete-or-empty", Coverage::CompleteOrEmpty),
-];
+/// A variant name in kebab-case, which is how a definition spells it, kept in a fixed buffer so
+/// that a static can hold it.
+#[derive(Clone, Copy)]
+struct Spelling {
+    bytes: [u8; MAX_SPELLING_BYTES],
+    len: usize,
+}
+
+impl Spelling {
+    /// Returns the name of each variant of `T` in kebab-case, in declaration order.
+    ///
+    /// `N` must be the number of variants of `T`, and each spelling at most 32 bytes. Either
+    /// mistake fails the build.
+    const fn kebab_case<T: 'static, const N: usize>() -> [Self; N] {
+        const {
+            assert!(
+                N == mem::variant_count::<T>(),
+                "`N` should be the number of variants"
+            );
+
+            let id = TypeId::of::<T>();
+            let mut spellings = [Self {
+                bytes: [0; MAX_SPELLING_BYTES],
+                len: 0,
+            }; N];
+            let mut index = 0;
+            while index < N {
+                let name = id.variant(index).name().as_bytes();
+                let mut byte = 0;
+                while byte < name.len() {
+                    if byte > 0 && name[byte].is_ascii_uppercase() {
+                        spellings[index].push(b'-');
+                    }
+                    spellings[index].push(name[byte].to_ascii_lowercase());
+                    byte += 1;
+                }
+                index += 1;
+            }
+            spellings
+        }
+    }
+
+    const fn push(&mut self, byte: u8) {
+        assert!(
+            self.len < MAX_SPELLING_BYTES,
+            "a spelling should be at most 32 bytes"
+        );
+        self.bytes[self.len] = byte;
+        self.len += 1;
+    }
+
+    /// Returns the spelling of the variant with the discriminant `discriminant`.
+    fn of(spellings: &'static [Self], discriminant: usize) -> &'static str {
+        spellings
+            .get(discriminant)
+            .expect("each discriminant should have a spelling")
+            .as_str()
+    }
+
+    const fn as_str(&self) -> &str {
+        let (bytes, _) = self.bytes.split_at(self.len);
+        match str::from_utf8(bytes) {
+            Ok(spelling) => spelling,
+            Err(_) => panic!("a spelling should be UTF-8"),
+        }
+    }
+}
+
+/// The spelling of each coercion, indexed by its discriminant.
+static COERCIONS: [Spelling; mem::variant_count::<Coercion>()] =
+    Spelling::kebab_case::<Coercion, _>();
+
+/// The spelling of each coverage, indexed by its discriminant.
+static COVERAGES: [Spelling; mem::variant_count::<Coverage>()] =
+    Spelling::kebab_case::<Coverage, _>();
 
 fn parse<T: FromStr<Err: core::fmt::Debug>>(text: &str) -> T {
     T::from_str(text).expect("document values should be valid")
@@ -56,7 +120,7 @@ enum AccessorDoc {
     Column(#[proptest(strategy = "COLUMN")] String),
     Coerce(
         #[proptest(strategy = "COLUMN")] String,
-        #[proptest(strategy = "sample::select(COERCIONS)")] (&'static str, Coercion),
+        #[proptest(strategy = "sample::select(&Coercion::ALL[..])")] Coercion,
     ),
     Measure(
         #[proptest(strategy = "COLUMN")] String,
@@ -88,7 +152,7 @@ struct SourceDoc {
     name: String,
     sql: String,
     primary_key: String,
-    coverage: Option<(&'static str, Coverage)>,
+    coverage: Option<Coverage>,
 }
 
 #[derive(Debug, Clone)]
@@ -178,8 +242,8 @@ enum StepShape {
 struct PipelineShape {
     #[proptest(strategy = "COLUMN")]
     primary_key: String,
-    #[proptest(strategy = "option::of(sample::select(COVERAGES))")]
-    coverage: Option<(&'static str, Coverage)>,
+    #[proptest(strategy = "option::of(sample::select(&Coverage::ALL[..]))")]
+    coverage: Option<Coverage>,
     #[proptest(strategy = "collection::vec(any::<Index>(), 0..3)")]
     depends_on: Vec<Index>,
     #[proptest(strategy = "collection::vec(any::<StepShape>(), 0..4)")]
@@ -347,7 +411,7 @@ impl Document {
                             text,
                             "{indent}    {key}: {{ column: {}, coerce: {} }}",
                             quote(column),
-                            coercion.0
+                            Spelling::of(&COERCIONS, *coercion as usize)
                         ),
                         AccessorDoc::Measure(amount, unit) => writeln!(
                             text,
@@ -378,7 +442,11 @@ impl Document {
             writeln!(text, "    sql: {}", quote_template(&source.sql))?;
             writeln!(text, "    primaryKey: [{}]", quote(&source.primary_key))?;
             if let Some(coverage) = source.coverage {
-                writeln!(text, "    coverage: {}", coverage.0)?;
+                writeln!(
+                    text,
+                    "    coverage: {}",
+                    Spelling::of(&COVERAGES, coverage as usize)
+                )?;
             }
         }
 
@@ -466,7 +534,7 @@ impl Document {
                                 AccessorDoc::Column(column) => Accessor::Column(parse(column)),
                                 AccessorDoc::Coerce(column, coercion) => Accessor::Coerce {
                                     column: parse(column),
-                                    coercion: coercion.1,
+                                    coercion: *coercion,
                                 },
                                 AccessorDoc::Measure(amount, unit) => Accessor::Measure {
                                     amount: parse(amount),
@@ -498,9 +566,7 @@ impl Document {
                             primary_key: PrimaryKey::new([parse(&source.primary_key)])
                                 .expect("a one-column key should be valid"),
                         },
-                        coverage: source
-                            .coverage
-                            .map_or(Coverage::Complete, |coverage| coverage.1),
+                        coverage: source.coverage.unwrap_or(Coverage::Complete),
                     };
                     (parse(&source.name), source_value)
                 })

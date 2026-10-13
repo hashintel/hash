@@ -10,7 +10,15 @@
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![feature(ascii_char, ascii_char_variants, type_info, variant_count)]
+#![feature(
+    ascii_char,
+    ascii_char_variants,
+    const_array,
+    const_closures,
+    const_trait_impl,
+    type_info,
+    variant_count
+)]
 
 extern crate alloc;
 
