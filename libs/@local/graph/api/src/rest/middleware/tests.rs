@@ -15,7 +15,7 @@ use hash_middleware::{
 use hash_secret::Secret;
 use http::{
     HeaderValue, Method, Request, StatusCode,
-    header::{ALLOW, AUTHORIZATION, CONTENT_TYPE, WWW_AUTHENTICATE},
+    header::{ALLOW, AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, WWW_AUTHENTICATE},
 };
 use serde_json::json;
 use tower::ServiceExt as _;
@@ -206,6 +206,88 @@ async fn fallback_answers_problem_document() {
         response_json(response).await["status"],
         json!(404),
         "the problem document should carry the response status"
+    );
+}
+
+/// A response the address gate refuses carries the default `Cache-Control` like the one it admits.
+#[tokio::test]
+async fn cache_control_gate_rejection() {
+    let router = middleware(
+        &config(1, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), [test_utils::api("/first")], Router::new());
+
+    let mut answers = Vec::new();
+    for _ in 0..2 {
+        let response = send(&router, "/first/test").await;
+        answers.push((
+            response.status(),
+            response.headers().get(CACHE_CONTROL).cloned(),
+        ));
+    }
+    let default = Some(HeaderValue::from_static("private, no-store"));
+    assert_eq!(
+        answers,
+        [
+            (StatusCode::OK, default.clone()),
+            (StatusCode::TOO_MANY_REQUESTS, default)
+        ],
+        "both the admitted request and the gate's refusal should carry the default"
+    );
+}
+
+/// The problem documents for an unknown path and an unserved method carry the default
+/// `Cache-Control`.
+#[tokio::test]
+async fn cache_control_fallback() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), [test_utils::api("/first")], Router::new());
+
+    for request in [
+        request_to("/does-not-exist"),
+        request_with(Method::DELETE, "/first/test"),
+    ] {
+        let path = request.uri().path().to_owned();
+        let response = send_request(&router, request).await;
+        assert_eq!(
+            response.headers().get(CACHE_CONTROL),
+            Some(&HeaderValue::from_static("private, no-store")),
+            "the {} for {path} should carry the default",
+            response.status()
+        );
+    }
+}
+
+/// A route that sets its own `Cache-Control` keeps it.
+#[tokio::test]
+async fn cache_control_own_value() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(
+        Router::new().route(
+            "/cached",
+            get(async || ([(CACHE_CONTROL, "max-age=60")], "ok")),
+        ),
+        [],
+        Router::new(),
+    );
+
+    assert_eq!(
+        send(&router, "/cached").await.headers()[CACHE_CONTROL],
+        "max-age=60",
+        "the default should not replace the route's own value"
     );
 }
 

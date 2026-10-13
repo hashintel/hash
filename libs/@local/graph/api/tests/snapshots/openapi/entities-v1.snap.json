@@ -36,7 +36,18 @@
             }
           }
         },
-        "description": "An internal error prevented the request from completing."
+        "description": "An internal error prevented the request from completing.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       },
       "ServiceUnavailable": {
         "content": {
@@ -73,7 +84,18 @@
             }
           }
         },
-        "description": "Authentication is temporarily unavailable."
+        "description": "Authentication is temporarily unavailable.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       },
       "TooManyRequests": {
         "content": {
@@ -112,6 +134,15 @@
         },
         "description": "The request exceeded its rate-limit budget.",
         "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
           "Retry-After": {
             "description": "Whole seconds before retrying the request.",
             "required": true,
@@ -161,6 +192,15 @@
         },
         "description": "The request carries no credentials, or they do not identify a permitted caller.",
         "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
           "WWW-Authenticate": {
             "description": "The scheme to authenticate with: `Bearer`, with `realm=\"HASH\"`. A refused API token adds `error=\"invalid_token\"` and the problem's `detail` as `error_description`.",
             "required": true,
@@ -333,7 +373,18 @@
                 }
               }
             },
-            "description": "The resolved caller."
+            "description": "The resolved caller.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -372,7 +423,18 @@
                 }
               }
             },
-            "description": "The resolved caller."
+            "description": "The resolved caller.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"

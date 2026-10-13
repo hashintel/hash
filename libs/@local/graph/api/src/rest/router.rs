@@ -113,17 +113,23 @@ where
 }
 
 /// Merges the health probe after the layers, so it carries no budget, no span, and no extensions.
+///
+/// The probe carries the default `Cache-Control` like every other response.
 fn merge_probe(router: Router) -> Router {
-    // Axum sets the method-not-allowed fallback only on routes without one, which leaves the probe.
-    router
-        .merge(probe::router())
-        .method_not_allowed_fallback(middleware::method_not_allowed)
+    router.merge(
+        probe::router()
+            .method_not_allowed_fallback(middleware::method_not_allowed)
+            .layer(middleware::default_cache_control()),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use axum::{Router, body::Body};
-    use http::{Method, Request, StatusCode, header::CONTENT_TYPE};
+    use http::{
+        Method, Request, StatusCode,
+        header::{CACHE_CONTROL, CONTENT_TYPE},
+    };
     use tower::ServiceExt as _;
 
     use super::merge_probe;
@@ -152,5 +158,30 @@ mod tests {
             "application/problem+json",
             "the probe should answer the same problem document as the APIs"
         );
+    }
+
+    /// The probe's answer and its `405` carry the default `Cache-Control` like every other
+    /// response.
+    #[tokio::test]
+    async fn probe_cache_control() {
+        for method in [Method::GET, Method::POST] {
+            let request = Request::builder()
+                .method(&method)
+                .uri(HEALTH_PATH)
+                .body(Body::empty())
+                .expect("the request should build");
+
+            let response = merge_probe(Router::new())
+                .oneshot(request)
+                .await
+                .expect("the router should answer");
+
+            assert_eq!(
+                response.headers().get(CACHE_CONTROL),
+                Some(&http::HeaderValue::from_static("private, no-store")),
+                "the probe's {} to {method} should carry the default",
+                response.status()
+            );
+        }
     }
 }
