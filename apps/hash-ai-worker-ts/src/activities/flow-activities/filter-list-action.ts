@@ -52,7 +52,6 @@ export const filterListAction: FlowActionActivity<"filterList"> = async ({
     };
   }
 
-  /* `filterList` keeps the items' kind, but its result type loses which kind that is. */
   const prepareOutput = (outputName: "matching" | "nonMatching") =>
     prepareOutputPayload({
       storageProvider,
@@ -60,7 +59,7 @@ export const filterListAction: FlowActionActivity<"filterList"> = async ({
       runId,
       stepId,
       outputName,
-      payload: result[outputName] as typeof resolvedItems,
+      payload: result[outputName],
     });
 
   const [matching, nonMatching] = await Promise.all([

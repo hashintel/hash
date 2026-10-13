@@ -24,11 +24,16 @@ export type IfResult =
   | { status: "success"; outputName: "true" | "false" }
   | ConditionError;
 
+type FilteredPayload<Kind extends PayloadKind> = {
+  kind: Kind;
+  value: PayloadKindValues[Kind][];
+};
+
 export type FilterListResult<Kind extends PayloadKind> =
   | {
       status: "success";
-      matching: FilterListPayload<Kind>;
-      nonMatching: FilterListPayload<Kind>;
+      matching: FilteredPayload<Kind>;
+      nonMatching: FilteredPayload<Kind>;
     }
   | ConditionError;
 
