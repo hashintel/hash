@@ -4,7 +4,6 @@ import {
   parseClientToolResultMetadata,
   projectLedger,
   renderLedgerMarkdown,
-  type Skin,
 } from "@hashintel/brunch-agent";
 
 export type BrunchLedgerHistoryMessage = LedgerHistoryMessage;
@@ -39,10 +38,9 @@ const settledDocumentChanges = (
       : [],
   );
 
-/** Folds only accepted commits; refused, failed, pending and unbound calls never appear. */
+/** Folds only accepted commits, rendered in the user skin; refused, failed, pending and unbound calls never appear. */
 export const foldBrunchLedgerHistory = (
   messages: readonly BrunchLedgerHistoryMessage[],
-  { skin = "user" }: { readonly skin?: Skin } = {},
 ): BrunchLedgerHistory => {
   const { commits, state } = foldCommits({ messages });
   return {
@@ -52,7 +50,7 @@ export const foldBrunchLedgerHistory = (
     ],
     markdown:
       commits.length > 0
-        ? renderLedgerMarkdown(projectLedger(state), skin)
+        ? renderLedgerMarkdown(projectLedger(state), "user")
         : undefined,
   };
 };

@@ -46,9 +46,6 @@ test("renders the Ledger from accepted commits in the user skin", () => {
   const html = renderToStaticMarkup(<BrunchLedgerPane messages={messages} />);
   expect(html).toContain("Hillcrest service reservoir");
   expect(html).not.toContain("e1");
-  expect(
-    foldBrunchLedgerHistory(messages, { skin: "agent" }).markdown,
-  ).toContain("`e1`");
 });
 
 test("never shows refused, failed, pending or unbound commits", () => {
