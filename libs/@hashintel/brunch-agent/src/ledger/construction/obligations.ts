@@ -1,4 +1,3 @@
-import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 import { vClaimReference, vEntityReference } from "../shared/references";
@@ -40,7 +39,3 @@ export const vObligation = v.pipe(
 );
 
 export type Obligation = v.InferOutput<typeof vObligation>;
-
-export const ObligationSchema = toJsonSchema(vObligation, {
-  errorMode: "ignore",
-});

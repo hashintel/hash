@@ -1,4 +1,3 @@
-import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 import { netElementKinds } from "../../petrinaut/petrinaut-tool-effects";
@@ -83,8 +82,3 @@ export const vReflection = v.pipe(
 
 export type NetElementAddress = v.InferOutput<typeof vNetElementAddress>;
 export type Reflection = v.InferOutput<typeof vReflection>;
-
-export const NetElementAddressSchema = toJsonSchema(vNetElementAddress);
-export const ReflectionSchema = toJsonSchema(vReflection, {
-  errorMode: "ignore",
-});

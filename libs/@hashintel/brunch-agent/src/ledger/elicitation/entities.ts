@@ -1,4 +1,3 @@
-import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 import { vOrigin, vStatus } from "../shared/epistemics";
@@ -200,6 +199,3 @@ export const entityKindStages = {
   externality: "output",
   case: "case",
 } as const satisfies Record<EntityKind, EntityStage>;
-
-export const EntityKindSchema = toJsonSchema(vEntityKind);
-export const EntitySchema = toJsonSchema(vEntity, { errorMode: "ignore" });

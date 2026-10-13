@@ -1,4 +1,3 @@
-import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 export const vOrigin = v.pipe(
@@ -60,6 +59,3 @@ export const vStatus = v.pipe(
 
 export type Origin = v.InferOutput<typeof vOrigin>;
 export type Status = v.InferOutput<typeof vStatus>;
-
-export const OriginSchema = toJsonSchema(vOrigin);
-export const StatusSchema = toJsonSchema(vStatus);

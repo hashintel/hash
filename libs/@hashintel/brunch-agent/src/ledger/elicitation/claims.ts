@@ -1,4 +1,3 @@
-import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 import { vOrigin, vStatus } from "../shared/epistemics";
@@ -36,5 +35,3 @@ export const vClaim = v.pipe(
 );
 
 export type Claim = v.InferOutput<typeof vClaim>;
-
-export const ClaimSchema = toJsonSchema(vClaim, { errorMode: "ignore" });

@@ -1,4 +1,3 @@
-import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 
 import { vObligation } from "./construction/obligations";
@@ -117,7 +116,3 @@ export const vLedgerAppend = v.pipe(
 );
 
 export type LedgerAppend = v.InferOutput<typeof vLedgerAppend>;
-
-export const LedgerAppendSchema = toJsonSchema(vLedgerAppend, {
-  errorMode: "ignore",
-});
