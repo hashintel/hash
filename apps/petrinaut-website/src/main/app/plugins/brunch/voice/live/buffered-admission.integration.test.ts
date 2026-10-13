@@ -1,35 +1,16 @@
 /// <reference types="node" />
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { beforeAll, expect, test, vi } from "vitest";
 
-import { runNodeScript } from "../../../../../../../../brunch-agent/test/integration/run-node-script";
+import { runAdmissionControls } from "@local/brunch-testing/admission-controls";
+
 import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
 import { selectCanonicalSpeech } from "./canonical-speech";
 
-import type { AdmissionVoiceEvidence } from "../../../../../../../../brunch-agent/test/admission-voice-evidence";
+import type { AdmissionVoiceEvidence } from "@local/brunch-testing/admission-voice-evidence";
 
-const testDirectory = dirname(fileURLToPath(import.meta.url));
 let result: AdmissionVoiceEvidence;
 beforeAll(async () => {
-  const { exitCode, stdout, stderr } = await runNodeScript(
-    join(
-      testDirectory,
-      "../../../../../../../../brunch-agent/test/integration/admission-controls.integration.ts",
-    ),
-    join(testDirectory, "../../../../../../../../.."),
-    {},
-  );
-  if (exitCode !== 0) throw new Error(stderr || stdout);
-  const line = stdout
-    .split("\n")
-    .find((entry) => entry.startsWith("ADMISSION_CONTROLS "));
-  if (line === undefined) throw new Error(stdout);
-  const parsed = JSON.parse(line.slice("ADMISSION_CONTROLS ".length)) as {
-    voice: AdmissionVoiceEvidence;
-  };
-  result = parsed.voice;
+  result = (await runAdmissionControls()).result.voice;
 });
 const speechFrom = (
   messages: AdmissionVoiceEvidence["buffering"][number]["projectedAfter"],

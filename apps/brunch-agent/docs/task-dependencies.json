@@ -3,14 +3,18 @@
   "dependencies": [
     "@hashintel/brunch-agent",
     "@hashintel/petrinaut-core",
+    "@local/brunch-provider-admission",
+    "@local/brunch-testing",
     "@local/flue-aisdk-transport",
-    "@local/hash-backend-utils"
+    "@local/hash-backend-utils",
+    "@local/pi-faux-providers"
   ],
   "tasks": {
     "build": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
@@ -83,6 +87,7 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
@@ -108,6 +113,7 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-provider-admission#build",
         "@local/eslint#build",
         "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
@@ -132,6 +138,7 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-provider-admission#build",
         "@local/eslint#build",
         "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
@@ -159,6 +166,7 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
@@ -182,6 +190,7 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],
@@ -284,6 +293,7 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build",
         "build"
@@ -311,6 +321,7 @@
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/petrinaut-core#build",
+        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "@local/hash-backend-utils#build"
       ],

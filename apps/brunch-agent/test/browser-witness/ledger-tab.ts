@@ -9,8 +9,9 @@ import { readFileSync } from "node:fs";
 
 import { fauxAssistantMessage, fauxText } from "@earendil-works/pi-ai";
 
+import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
+
 import { netCalls } from "../../src/shared/conversation/net-changes.ts";
-import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 import {
   installFauxOpenai,
   openaiCallId,

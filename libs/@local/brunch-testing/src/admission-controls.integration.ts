@@ -1,5 +1,6 @@
 /** Unpaid production rejection, continuation and active-Stop probe. */
 /* oxlint-disable eslint/no-await-in-loop -- One faux response queue; ordering is the assertion boundary. */
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -20,20 +21,17 @@ import {
 } from "@flue/sdk";
 
 import {
+  agentOwnershipHeaders,
   browserToolOutput,
   brunchTools,
+  identityPayload,
   projectBrunchMessageMetadata,
 } from "@hashintel/brunch-agent";
+import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
 import { createFlueAiSdkAdapter } from "@local/flue-aisdk-transport";
+import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../src/shared/conversation/identity.ts";
-import { installFauxProvider } from "../install-faux-provider.ts";
-import { loadBuiltBrunchApplication } from "../load-built-application.ts";
-
-import type { AdmissionVoiceEvidence } from "../admission-voice-evidence.ts";
+import type { AdmissionVoiceEvidence } from "@local/brunch-testing/admission-voice-evidence";
 
 const directory =
   process.env.A2_OUTPUT_DIRECTORY ?? mkdtempSync(join(tmpdir(), "admission-"));
@@ -122,9 +120,9 @@ const run = async () => {
       },
     };
     const client = createFlueClient({
-      url: `http://brunch.local/agents/petrinaut/${flueConversationIdFrom(
-        identity,
-      )}`,
+      url: `http://brunch.local/agents/petrinaut/${createHash("sha256")
+        .update(identityPayload(identity))
+        .digest("hex")}`,
       headers: agentOwnershipHeaders(identity),
       fetch: async (input, init) =>
         application.fetch(

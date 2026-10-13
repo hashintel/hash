@@ -22,8 +22,7 @@ import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { brunchHeaders } from "@hashintel/brunch-agent";
-
-import { loadBuiltBrunchApplication } from "../load-built-application";
+import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
 
 const DEV_APP = fileURLToPath(new URL("../..", import.meta.url)).replace(
   /[/\\]$/u,

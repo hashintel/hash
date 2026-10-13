@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../../.config/oxlint/brunch/base.json"],
+  "categories": {
+    "correctness": "error",
+    "perf": "warn"
+  },
+  "env": {
+    "builtin": true,
+    "es2026": true,
+    "node": true
+  },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["@apps/*"],
+            "message": "Libraries never import applications; reach the Brunch server through its build."
+          }
+        ]
+      }
+    ]
+  }
+}

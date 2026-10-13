@@ -17,9 +17,10 @@ import {
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { afterEach, expect, test } from "vitest";
 
+import { withBufferedToolAdmission } from "@local/brunch-provider-admission";
+
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import { RequestLedger } from "./provider-accounting/request-ledger.ts";
-import { withBufferedToolAdmission } from "./provider-admission.ts";
 
 const native: Provider = anthropicProvider();
 const model = native

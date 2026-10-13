@@ -16,6 +16,12 @@ import {
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 import {
+  claimModelStreamIdleRetry,
+  modelStreamIdleTimeoutDefaults,
+  modelAdmissionScope,
+  withBufferedToolAdmission,
+} from "@local/brunch-provider-admission";
+import {
   createLiveToolBroadcaster,
   createLiveToolObserver,
   liveToolResponse,
@@ -36,12 +42,6 @@ import { createTurnChronologyObserver } from "./server/observe-turn-chronology.t
 import { openaiProviderWithAddedModels } from "./server/openai-provider.ts";
 import { openrouterProviderWithAddedModels } from "./server/openrouter-provider.ts";
 import { createStepARequestAccounting } from "./server/provider-accounting.ts";
-import {
-  claimModelStreamIdleRetry,
-  modelStreamIdleTimeoutDefaults,
-  modelAdmissionScope,
-  withBufferedToolAdmission,
-} from "./server/provider-admission.ts";
 import { diagnostics } from "./server/runtime-diagnostics.ts";
 import { inBandBrowserToolNames } from "./shared/tool-catalogue.ts";
 

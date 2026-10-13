@@ -17,8 +17,8 @@ import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
+import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
 
-import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
 import { documentRevisionOf } from "../plugins/brunch/tools/shared/document-revision";
 import {
   InProcessLspWorker,

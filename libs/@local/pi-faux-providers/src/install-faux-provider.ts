@@ -1,4 +1,4 @@
-/** Test/evaluation-only factory substitution; never imported by the application. */
+/** Test-only factory substitution; never imported by an application. */
 import { registerHooks } from "node:module";
 
 import type { Provider } from "@earendil-works/pi-ai";
@@ -9,7 +9,7 @@ const installed = new Set<string>();
 export const installFauxProvider = (provider: Provider): void => {
   if (provider.id !== "anthropic" && provider.id !== "openai")
     throw new Error("Expected a faux Anthropic or OpenAI provider.");
-  const key = `brunch.evaluation.faux-provider.${provider.id}`;
+  const key = `pi-faux-providers.${provider.id}`;
   const providerKey = Symbol.for(key);
   const factoryUrl = `brunch-faux-provider:${provider.id}`;
   Reflect.set(globalThis, providerKey, provider);
@@ -27,8 +27,8 @@ export const installFauxProvider = (provider: Provider): void => {
             format: "module",
             source:
               provider.id === "anthropic"
-                ? 'export const anthropicProvider = () => globalThis[Symbol.for("brunch.evaluation.faux-provider.anthropic")];'
-                : 'export const openaiProvider = () => globalThis[Symbol.for("brunch.evaluation.faux-provider.openai")];',
+                ? 'export const anthropicProvider = () => globalThis[Symbol.for("pi-faux-providers.anthropic")];'
+                : 'export const openaiProvider = () => globalThis[Symbol.for("pi-faux-providers.openai")];',
             shortCircuit: true,
           }
         : nextLoad(url, context);

@@ -36,6 +36,7 @@
     "@flue/sdk": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
+    "@local/brunch-provider-admission": "workspace:*",
     "@local/flue-aisdk-transport": "workspace:*",
     "@local/hash-backend-utils": "workspace:*",
     "@opentelemetry/api": "1.9.1",
@@ -50,6 +51,8 @@
   "devDependencies": {
     "@earendil-works/pi-tui": "0.84.3",
     "@flue/vite": "2.0.3",
+    "@local/brunch-testing": "workspace:*",
+    "@local/pi-faux-providers": "workspace:*",
     "@playwright/test": "1.58.2",
     "@types/node": "22.18.13",
     "@types/pg": "8.23.1",

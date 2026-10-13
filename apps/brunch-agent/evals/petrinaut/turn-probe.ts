@@ -22,6 +22,7 @@ import {
   projectLedger,
   renderLedgerMarkdown,
 } from "@hashintel/brunch-agent";
+import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
 
 import {
   DEFAULT_CHAT_MODEL,
@@ -31,7 +32,6 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../src/shared/conversation/identity.ts";
-import { loadBuiltBrunchApplication } from "../../test/load-built-application.ts";
 
 const [
   caseName = "pharma-cold-chain",

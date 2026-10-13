@@ -12,16 +12,16 @@ import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent";
-
 import {
   claimModelStreamIdleRetry,
   withBufferedToolAdmission,
-} from "../../../../../../../brunch-agent/src/server/provider-admission";
-import { loadBuiltBrunchApplication } from "../../../../../../../brunch-agent/test/load-built-application";
+} from "@local/brunch-provider-admission";
+import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
 import {
   createNativeOpenaiToolStall,
   nativeOpenaiProvider,
-} from "../../../../../../../brunch-agent/test/native-openai-provider";
+} from "@local/pi-faux-providers/native-openai-provider";
+
 import { createBrunchFlueAdapter } from "../brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,

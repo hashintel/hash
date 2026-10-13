@@ -1,34 +1,22 @@
-import { join } from "node:path";
-
 import { isToolUIPart, type UIMessageChunk } from "ai";
 import { beforeAll, expect, test } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent";
+import {
+  runAdmissionControls,
+  type AdmissionControlsResult,
+} from "@local/brunch-testing/admission-controls";
 import { createFlueUiStream } from "@local/flue-aisdk-transport";
-
-import { runNodeScript } from "./run-node-script";
-
-import type { AdmissionControlsResult } from "./admission-controls.integration";
 
 let result: AdmissionControlsResult;
 let serverOutput: string;
 let localDiagnosticOutput: string;
 beforeAll(async () => {
-  const { exitCode, stdout, stderr } = await runNodeScript(
-    join(import.meta.dirname, "admission-controls.integration.ts"),
-    join(import.meta.dirname, "../../../.."),
-    { NODE_ENV: "development" },
-  );
-  if (exitCode !== 0) throw new Error(stderr || stdout);
-  serverOutput = stdout;
-  localDiagnosticOutput = stderr;
-  const line = stdout
-    .split("\n")
-    .find((entry) => entry.startsWith("ADMISSION_CONTROLS "));
-  if (line === undefined) throw new Error(stdout);
-  result = JSON.parse(
-    line.slice("ADMISSION_CONTROLS ".length),
-  ) as AdmissionControlsResult;
+  ({
+    result,
+    stdout: serverOutput,
+    stderr: localDiagnosticOutput,
+  } = await runAdmissionControls({ NODE_ENV: "development" }));
 });
 
 test("production rejects every mixed proposal outside the allowlist before publishing or partially executing it", () => {

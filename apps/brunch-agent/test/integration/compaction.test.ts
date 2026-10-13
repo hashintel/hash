@@ -2,7 +2,7 @@ import { join } from "node:path";
 
 import { expect, test } from "vitest";
 
-import { runNodeScript } from "./run-node-script";
+import { runNodeScript } from "@local/brunch-testing/run-node-script";
 
 test("compaction removes earlier results from the model's context while the Ledger still compiles", async () => {
   const { exitCode, stdout, stderr } = await runNodeScript(
