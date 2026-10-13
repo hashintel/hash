@@ -1,7 +1,10 @@
+import { useContext } from "react";
+
 /* eslint-disable react/destructuring-assignment, react/button-has-type, @typescript-eslint/prefer-nullish-coalescing */
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
+import { TriggerPressedContext } from "../../util/trigger-pressed-context";
 import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { Tooltip } from "../Tooltip/tooltip";
@@ -145,6 +148,7 @@ export const Button = (props: ButtonProps) => {
     ((suffixHasIcon && !prefixHasIcon) || (prefixHasIcon && !suffixHasIcon)) &&
     !children;
   const isPressed = !!pressed || !!rest["aria-pressed"];
+  const triggerPressed = useContext(TriggerPressedContext);
 
   const classes = styles({
     size,
@@ -153,7 +157,7 @@ export const Button = (props: ButtonProps) => {
     tone,
     isLoading: loading,
     isDisabled: disabled || loading,
-    isPressed: isPressed || !!rest["aria-expanded"],
+    isPressed: isPressed || triggerPressed,
     hasIcon,
     hasIconLeft: prefixHasIcon,
     hasIconRight: suffixHasIcon,

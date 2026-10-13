@@ -63,6 +63,7 @@ export const ExperimentDetails = ({
         aria-label="Experiment details"
         aria-haspopup="dialog"
         aria-expanded={open}
+        pressed={open}
         onClick={() => setOpen((previous) => !previous)}
       >
         Details

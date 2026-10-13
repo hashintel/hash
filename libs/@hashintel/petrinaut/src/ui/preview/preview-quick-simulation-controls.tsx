@@ -130,6 +130,7 @@ export const PreviewSimulationConfiguration = ({
         prefix={<Icon name="play" size="xs" />}
         aria-label="Configure Quick Simulation"
         aria-expanded={open}
+        pressed={open}
         onClick={() => setOpen((wasOpen) => !wasOpen)}
       >
         <span className={configurationLabelStyle}>Quick Simulation</span>

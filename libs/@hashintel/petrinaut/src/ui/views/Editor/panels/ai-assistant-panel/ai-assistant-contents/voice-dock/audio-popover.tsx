@@ -160,6 +160,7 @@ export const AudioPopover = ({
         ref={triggerRef}
         aria-expanded={open}
         aria-haspopup="dialog"
+        pressed={open}
         aria-label={voiceSessionActionLabels.audioOptions}
         iconName="sliders"
         onClick={() => {
