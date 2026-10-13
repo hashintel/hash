@@ -281,23 +281,39 @@ test("a .doc file keeps the icon view", async ({ page }) => {
   await expect(page.locator(".layout-page")).toHaveCount(0);
 });
 
-for (const { description, contents } of [
-  {
-    description: "a corrupt .docx file",
+test("a corrupt .docx file falls back to the icon view and keeps the download", async ({
+  page,
+}) => {
+  const name = `file-preview-unavailable-${Date.now()}.docx`;
+
+  await uploadAndOpenFile(page, {
     contents: Buffer.from("Not a ZIP archive"),
-  },
-  {
-    description: "a .docx file folio cannot draw",
-    contents: generateUndrawableTestDocx(),
-  },
-]) {
-  test(`${description} falls back to the icon view and keeps the download`, async ({
+    mimeType: docxMimeType,
+    name,
+  });
+
+  await expect(
+    page.getByRole("paragraph").filter({ hasText: name }),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator(".layout-page")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
+});
+
+test.describe("a .docx file folio cannot draw", () => {
+  // React logs the refusal that the preview's error boundary catches.
+  test.use({
+    tolerableConsoleMessages: [
+      /^ProseMirrorDocumentValidationError: Document conversion produced an invalid ProseMirror document:/,
+    ],
+  });
+
+  test("falls back to the icon view and keeps the download", async ({
     page,
   }) => {
     const name = `file-preview-unavailable-${Date.now()}.docx`;
 
     await uploadAndOpenFile(page, {
-      contents: await contents,
+      contents: await generateUndrawableTestDocx(),
       mimeType: docxMimeType,
       name,
     });
@@ -308,4 +324,4 @@ for (const { description, contents } of [
     await expect(page.locator(".layout-page")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
   });
-}
+});

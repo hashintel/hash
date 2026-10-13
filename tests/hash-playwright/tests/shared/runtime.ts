@@ -1,7 +1,5 @@
 import { expect, test as base } from "@playwright/test";
 
-import type { Page } from "@playwright/test";
-
 const tolerableConsoleMessageMatches: RegExp[] = [
   /Download the Apollo DevTools for a better development experience/,
   /Download the React DevTools for a better development experience/,
@@ -17,10 +15,6 @@ const tolerableConsoleMessageMatches: RegExp[] = [
   // targets cannot be resolved (e.g. lost permissions), warning for
   // observability – see notifications-with-links-context.tsx
   /^Skipping (mention|comment) notification .+ because the target of the following link\(s\) could not be resolved: /,
-
-  // The DOCX preview's engine logs why it refuses a document it cannot draw;
-  // the preview then falls back to the file's icon.
-  /^ProseMirrorDocumentValidationError: Document conversion produced an invalid ProseMirror document:/,
 
   // You can add temporarily add more RegExps, but please track their removal
   /No validator provided for shape type bpBlock/, // canvas page warning from TLDraw
@@ -56,10 +50,12 @@ export * from "@playwright/test";
 
 /**
  * This is a wrapper around the Playwright test function that adds checks for console messages.
+ * A test that expects further console messages lists them in `tolerableConsoleMessages`.
  * @see https://github.com/microsoft/playwright/discussions/11690#discussioncomment-2060397
  */
-export const test = base.extend<Page>({
-  page: async ({ page }, use) => {
+export const test = base.extend<{ tolerableConsoleMessages: RegExp[] }>({
+  tolerableConsoleMessages: [[], { option: true }],
+  page: async ({ page, tolerableConsoleMessages }, use) => {
     const messages: string[] = [];
 
     // Browser "Failed to load resource" console messages only carry the
@@ -86,7 +82,11 @@ export const test = base.extend<Page>({
 
     page.on("console", (msg) => {
       const text = msg.text();
-      if (tolerableConsoleMessageMatches.some((match) => match.test(text))) {
+      if (
+        [...tolerableConsoleMessageMatches, ...tolerableConsoleMessages].some(
+          (match) => match.test(text),
+        )
+      ) {
         return;
       }
 
