@@ -140,6 +140,26 @@
     "no-throw-literal": "off",
     "prefer-promise-reject-errors": "off"
   },
+  "overrides": [
+    {
+      "files": ["src/main/app/plugins/_shared/chat/**"],
+      "rules": {
+        "react/static-components": "error",
+        "react/use-memo": "error",
+        "react/void-use-memo": "error",
+        "react/preserve-manual-memoization": "error",
+        "react/incompatible-library": "error",
+        "react/immutability": "error",
+        "react/globals": "error",
+        "react/refs": "error",
+        "react/set-state-in-effect": "error",
+        "react/error-boundaries": "error",
+        "react/purity": "error",
+        "react/set-state-in-render": "error",
+        "react/unsupported-syntax": "error"
+      }
+    }
+  ],
   "ignorePatterns": [
     "dist/**",
     "styled-system/**",

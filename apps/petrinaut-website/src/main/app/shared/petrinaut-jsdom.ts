@@ -7,20 +7,11 @@ import {
 import type { LspWorkerFactory } from "@hashintel/petrinaut-core";
 
 /**
- * Call from `vi.hoisted`: Petrinaut's dependencies read these while their
- * modules load, before any test hook runs.
+ * Call from `vi.hoisted`: Monaco reads `queryCommandSupported` and
+ * `CSS.escape` while its modules load, before any test hook runs.
+ * `vitest.setup.ts` installs `matchMedia`.
  */
 export const installPetrinautDomShims = () => {
-  window.matchMedia = (media) => ({
-    media,
-    matches: false,
-    onchange: null,
-    addListener() {},
-    removeListener() {},
-    addEventListener() {},
-    removeEventListener() {},
-    dispatchEvent: () => true,
-  });
   // Monaco's clipboard contrib reads this at import time; jsdom does not
   // implement it.
   Object.defineProperty(document, "queryCommandSupported", {
@@ -63,6 +54,18 @@ export const installPetrinautDomShims = () => {
  */
 export const preloadMonaco = async () => {
   await import("monaco-editor");
+};
+
+/**
+ * The editor imports the language server's worker module, a large inline
+ * bundle, when it mounts, and `diagnose()` waits for that worker. Import it
+ * during setup, with `Worker` stubbed, so a test's own waits leave out the
+ * cold import. Give the hook 30 seconds, as for {@link preloadMonaco}.
+ */
+export const preloadLanguageServer = async () => {
+  const { createLanguageServerWorker } =
+    await import("@hashintel/petrinaut-core/workers/lsp");
+  (await createLanguageServerWorker()).terminate();
 };
 
 export class NoopResizeObserver {

@@ -5,7 +5,6 @@ import { z } from "zod";
 import {
   aiCommandActionInputSchemas,
   createExperimentToolName,
-  createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
   normalizePetrinautAiToolInput,
   petrinautAiCapabilityGuidance,
@@ -200,9 +199,8 @@ describe("Petrinaut AI core exports", () => {
 
   test("converts invented entity ids so references and arc ids resolve", () => {
     const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
 
-    callbacks.addPlace({
+    instance.mutations.addPlace({
       id: "place__queue",
       name: "Queue",
       colorId: null,
@@ -211,7 +209,7 @@ describe("Petrinaut AI core exports", () => {
       x: 0,
       y: 0,
     });
-    callbacks.addTransition({
+    instance.mutations.addTransition({
       id: "transition__serve",
       name: "Serve",
       inputArcs: [],
@@ -222,7 +220,7 @@ describe("Petrinaut AI core exports", () => {
       x: 0,
       y: 0,
     });
-    callbacks.addArc({
+    instance.mutations.addArc({
       transitionId: "transition__serve",
       arcDirection: "input",
       placeId: "place__queue",
@@ -235,7 +233,7 @@ describe("Petrinaut AI core exports", () => {
       toPetrinautId("place__queue"),
     );
 
-    callbacks.deleteItemsByIds({
+    instance.mutations.deleteItemsByIds({
       items: [
         {
           type: "arc",
@@ -248,54 +246,5 @@ describe("Petrinaut AI core exports", () => {
     });
 
     expect(instance.definition.get().transitions[0]?.inputArcs).toEqual([]);
-  });
-
-  test("callback map applies tool inputs to a Petrinaut instance", () => {
-    const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
-
-    callbacks.addPlace({
-      id: "place-1",
-      name: "Queue",
-      colorId: null,
-      dynamicsEnabled: false,
-      differentialEquationId: null,
-      x: 0,
-      y: 0,
-    });
-    callbacks.updatePlace({
-      placeId: "place-1",
-      update: { name: "UpdatedQueue" },
-    });
-
-    expect(instance.definition.get().places[0]!.name).toBe("UpdatedQueue");
-  });
-
-  test("callback map validates tool inputs before applying them", () => {
-    const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
-
-    expect(() =>
-      callbacks.addPlace({
-        id: "",
-        name: "Queue",
-        colorId: null,
-        dynamicsEnabled: false,
-        differentialEquationId: null,
-        x: 0,
-        y: 0,
-      }),
-    ).toThrow();
-
-    expect(instance.definition.get().places).toEqual([]);
-  });
-
-  test("AI writable callbacks include applyAutoLayout from commands", async () => {
-    const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
-
-    expect(typeof callbacks.applyAutoLayout).toBe("function");
-    const result = await callbacks.applyAutoLayout();
-    expect(result.commitCount).toBe(0);
   });
 });

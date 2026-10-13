@@ -303,6 +303,7 @@ const TestProviders = ({
     setEnableNetComponents: () => {},
     setShowCompilationOutput: () => {},
     setCanvasViewport: () => {},
+    setAiAssistantId: () => {},
     setPluginEnabled: () => {},
     updateSubViewSection: () => {},
   };

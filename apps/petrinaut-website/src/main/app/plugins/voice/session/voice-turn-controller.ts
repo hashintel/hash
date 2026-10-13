@@ -3,6 +3,10 @@ import {
   type VoiceErrorCode,
 } from "../../../../../voice-diagnostics";
 
+import type {
+  PetrinautAiComposerControlContext,
+  PetrinautAiVoiceModeContext,
+} from "../../_shared/chat/composer-control";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "../realtime/openai-realtime-session";
 import type {
@@ -11,10 +15,6 @@ import type {
   RealtimeBrunchBridgeEvent,
   VoiceSubmissionSettlement,
 } from "../realtime/realtime-brunch-bridge";
-import type {
-  PetrinautAiComposerControlContext,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
 
 type VoiceConnectionState = "idle" | "connecting" | "connected" | "error";
 export type VoiceInputState = "listening" | "paused" | "submitting";

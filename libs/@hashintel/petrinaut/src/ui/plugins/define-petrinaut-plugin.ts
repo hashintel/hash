@@ -174,6 +174,18 @@ export interface PetrinautPluginManifest {
    * `root`, and may return `overlay` while it covers the editor.
    */
   readonly root?: true;
+  /**
+   * An assistant, named by `label` in the assistant selector, or `extends`:
+   * the definition of the plugin whose assistant this one adds to, which
+   * must itself declare `assistant: { label }`. The hook returns the
+   * assistant, or the extension, under `assistant`.
+   */
+  readonly assistant?:
+    | { readonly label: string; readonly extends?: never }
+    | {
+        readonly extends: PluginAssistantDefinitionRef;
+        readonly label?: never;
+      };
   /** The service the hook returns under `provides`, declared with `pluginService<T>()`. */
   readonly provides?: PluginService<unknown>;
 }
@@ -182,6 +194,68 @@ export interface PetrinautPluginManifest {
 export type PluginDefinitionRef = {
   readonly manifest: PetrinautPluginManifest;
 };
+
+/** The definition of a plugin that provides an assistant, as `assistant.extends` takes it. */
+export type PluginAssistantDefinitionRef = {
+  readonly manifest: {
+    readonly id: string;
+    readonly name: string;
+    readonly assistant: { readonly label: string };
+  };
+};
+
+/** A tab in the assistant window, shown after the chat tab. */
+export interface PluginAssistantTab {
+  /** Identifies the tab among the window's tabs; never `"chat"`, the chat tab's id. */
+  readonly id: string;
+  /** Text shown on the tab, also its accessible name. */
+  readonly label: string;
+  /** Decorative content before the label, such as an icon. */
+  readonly mark?: ReactNode;
+  /**
+   * Stable ids of the activity the tab lists; ids that appear while the tab is
+   * hidden badge it. The first list is the baseline; `undefined` until the
+   * activity is known.
+   */
+  readonly activityIdentities?: readonly string[];
+  /** What the tab renders; it stays mounted while another tab shows, and fails alone. */
+  readonly content: ReactNode;
+}
+
+/**
+ * A way to start the assistant besides typing, such as voice mode. The
+ * empty-net prompt offers the first one; choosing it opens the window with
+ * the start request `{ action: id }`.
+ */
+export interface PluginAssistantStartAction {
+  readonly id: string;
+  /** The button's accessible name and tooltip. */
+  readonly label: string;
+  readonly icon: ReactNode;
+}
+
+/** The assistant of a plugin whose manifest declares `assistant: { label }`. */
+export interface PluginAssistant {
+  /**
+   * The whole assistant UI, which draws `PetrinautAssistantWindow` around its
+   * transcript; rendered once per document while this assistant is shown.
+   * `null` until ready: the editor then hides the window and every AI entry point.
+   */
+  readonly view: ReactNode | null;
+  /** Tabs after the chat tab, before the tabs of the plugins extending this assistant. */
+  readonly tabs?: readonly PluginAssistantTab[];
+  readonly startActions?: readonly PluginAssistantStartAction[];
+}
+
+/**
+ * What a plugin whose manifest declares `assistant: { extends }` adds to that
+ * assistant while it is shown: tabs and start actions, after its own.
+ */
+export interface PluginAssistantExtension {
+  readonly tabs?: readonly PluginAssistantTab[];
+  readonly startActions?: readonly PluginAssistantStartAction[];
+  readonly view?: never;
+}
 
 /** Reads and writes the manifest's settings, typed by each spec. */
 interface PluginSettingsApi<Specs> {
@@ -200,8 +274,9 @@ type AccessOf<M> = M extends { readonly access: infer A extends PluginAccess }
 
 /**
  * What the hook receives: `errors` and `notifications`, plus a member for
- * each family in `access` and `settings` when the manifest declares them.
- * Undeclared members are absent from the type and from the object.
+ * each family in `access`, and `settings` and `assistant` when the manifest
+ * declares them. Undeclared members are absent from the type and from the
+ * object.
  */
 export type PluginApi<
   D extends PluginDefinitionRef,
@@ -209,6 +284,14 @@ export type PluginApi<
 > = AccessApi<AccessOf<M>> &
   (M extends { readonly settings: infer Specs }
     ? { readonly settings: PluginSettingsApi<Specs> }
+    : unknown) &
+  (M extends { readonly assistant: object }
+    ? {
+        readonly assistant: {
+          /** Whether the editor shows this plugin's assistant, or the one it extends. */
+          readonly isActive: boolean;
+        };
+      }
     : unknown);
 
 /** What a declared command does; its label, category, keywords and shortcut come from the manifest. */
@@ -274,6 +357,9 @@ interface ContributionTable<M extends PetrinautPluginManifest> {
     readonly [K in keyof NonNullable<M["topBarItems"]>]: ReactNode;
   };
   readOnlyAction: PluginReadOnlyAction;
+  assistant: M["assistant"] extends { readonly label: string }
+    ? PluginAssistant
+    : PluginAssistantExtension;
   provides: ServiceOf<M>;
 }
 
@@ -323,6 +409,7 @@ export interface AnyPluginContributions {
   readonly buttons?: Readonly<Record<string, PluginButton>>;
   readonly topBarItems?: Readonly<Record<string, ReactNode>>;
   readonly readOnlyAction?: PluginReadOnlyAction;
+  readonly assistant?: PluginAssistant | PluginAssistantExtension;
   readonly provides?: unknown;
 }
 
@@ -437,6 +524,9 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
   EntryChecks<M, "commands", keyof PluginCommandSpec> &
   (M extends { readonly readOnlyAction: infer Spec }
     ? { readonly readOnlyAction: RejectUnknownKeys<Spec, "label"> }
+    : unknown) &
+  (M extends { readonly assistant: infer Spec }
+    ? { readonly assistant: RejectUnknownKeys<Spec, "label" | "extends"> }
     : unknown) &
   EntryChecks<M, "buttons", keyof PluginButtonSpec> &
   EntryChecks<M, "topBarItems", keyof PluginTopBarItemSpec>;

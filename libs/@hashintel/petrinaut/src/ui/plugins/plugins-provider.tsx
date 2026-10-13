@@ -37,6 +37,8 @@ import {
 } from "./plugin-editor";
 import { type PluginSettings, usePluginSettings } from "./plugin-settings";
 import {
+  isAssistantActiveFor,
+  resolveActiveAssistantId,
   type PluginStatusEntry,
   resolvePluginStatuses,
 } from "./plugin-statuses";
@@ -50,7 +52,7 @@ import type {
 } from "./define-petrinaut-plugin";
 
 /** A running plugin as the editor reads it. */
-interface RunningPlugin {
+export interface RunningPlugin {
   readonly manifest: PetrinautPluginManifest;
   /**
    * New for each host, so the outlets key a plugin's contributions by it and a
@@ -90,9 +92,16 @@ const PublishedContext = createContext<ReadableStore<Published>>(
   createReadableStore<Published>(new Map()),
 );
 
+/** The plugin id of the assistant the editor shows, resolved once per render. */
+const ActiveAssistantContext = createContext<string | undefined>(undefined);
+
 /** Every plugin passed to the editor with its status, in the host's order. */
 export const usePluginStatuses = (): readonly PluginStatusEntry[] =>
   use(PluginStatusesContext);
+
+/** The plugin id of the assistant the editor shows, or `undefined` while none runs. */
+export const useActiveAssistantId = (): string | undefined =>
+  use(ActiveAssistantContext);
 
 /**
  * A value selected from the running plugins, in the host's order; the caller
@@ -138,15 +147,16 @@ export const usePluginService = <D extends PluginDefinitionRef>(
   ) as ServiceOf<D["manifest"]> | undefined;
 
 /**
- * One plugin's `api`: a new object only when its settings snapshot changes.
- * Its family objects come from the host's editor, so they never change while
- * the host is mounted. The cast erases the type the manifest gives it, for the
- * hook's erased parameter.
+ * One plugin's `api`: a new object only when its settings snapshot or
+ * `isActive` changes. Its family objects come from the host's editor, so
+ * they never change while the host is mounted. The cast erases the type the
+ * manifest gives it, for the hook's erased parameter.
  */
 const usePluginApi = (
   manifest: PetrinautPluginManifest,
   editor: PluginEditorRuntime,
   settings: PluginSettings | undefined,
+  isActive: boolean,
 ): never => {
   // It calls no hook, which `infer` mode would skip.
   "use memo";
@@ -158,6 +168,7 @@ const usePluginApi = (
     notifications: editor.notifications,
     ...access,
     ...(settings && { settings }),
+    ...(manifest.assistant && { assistant: { isActive } }),
   } as never;
 };
 
@@ -175,7 +186,13 @@ const PluginHostBody = ({
   "use no memo";
   const { manifest } = plugin;
   const settings = usePluginSettings(manifest);
-  const api = usePluginApi(manifest, editor, manifest.settings && settings);
+  const isActive = isAssistantActiveFor(manifest, useActiveAssistantId());
+  const api = usePluginApi(
+    manifest,
+    editor,
+    manifest.settings && settings,
+    isActive,
+  );
   const useHook = plugin[pluginRuntime].hook;
   const contributions = useHook(api);
 
@@ -292,7 +309,7 @@ export const PetrinautPluginsProvider = ({
   plugins: readonly PetrinautPlugin[];
   children: ReactNode;
 }) => {
-  const { disabledPluginIds } = use(UserSettingsContext);
+  const { aiAssistantId, disabledPluginIds } = use(UserSettingsContext);
   const [failedHostKeys, setFailedHostKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -317,22 +334,25 @@ export const PetrinautPluginsProvider = ({
     disabledPluginIds,
     failedHostKeys,
   );
+  const activeAssistantId = resolveActiveAssistantId(statuses, aiAssistantId);
 
   return (
     <PluginStatusesContext value={statuses}>
       <PublishedContext value={store.published}>
-        <PluginEditorProvider>
-          <PluginHosts
-            statuses={statuses}
-            store={store}
-            onFail={(hostKey) =>
-              setFailedHostKeys((keys) => new Set(keys).add(hostKey))
-            }
-          />
-          <ViewAfterHosts>
-            <ReadOnlyActionProvider>{children}</ReadOnlyActionProvider>
-          </ViewAfterHosts>
-        </PluginEditorProvider>
+        <ActiveAssistantContext value={activeAssistantId}>
+          <PluginEditorProvider>
+            <PluginHosts
+              statuses={statuses}
+              store={store}
+              onFail={(hostKey) =>
+                setFailedHostKeys((keys) => new Set(keys).add(hostKey))
+              }
+            />
+            <ViewAfterHosts>
+              <ReadOnlyActionProvider>{children}</ReadOnlyActionProvider>
+            </ViewAfterHosts>
+          </PluginEditorProvider>
+        </ActiveAssistantContext>
       </PublishedContext>
     </PluginStatusesContext>
   );

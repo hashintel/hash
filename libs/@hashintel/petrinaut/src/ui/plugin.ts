@@ -13,6 +13,10 @@ export type {
   PetrinautPluginDefinition,
   PetrinautPluginManifest,
   PluginApi,
+  PluginAssistant,
+  PluginAssistantExtension,
+  PluginAssistantStartAction,
+  PluginAssistantTab,
   PluginButton,
   PluginButtonPlace,
   PluginButtonSpec,
@@ -57,6 +61,7 @@ export { useStore, useStoreSelector } from "../react/use-store";
 export type { PetrinautRevealTarget } from "../react/hooks/use-reveal-in-editor";
 export type { AddNotificationInput } from "../react/notifications/context";
 export type { ReadOnlyReason } from "../react/state/use-read-only-reason";
+export type { ExperimentRecord } from "../react/experiments/context";
 export { parseDocumentUri } from "@hashintel/petrinaut-core";
 export type {
   DiagnosticsSnapshot,

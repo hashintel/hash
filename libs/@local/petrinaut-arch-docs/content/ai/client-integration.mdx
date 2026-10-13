@@ -24,7 +24,7 @@ experiments independently.
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | [Core](layer:core.experiments)                         | Define request/result schemas and host/progress types.                                        |
 | [Browser host](doc:experiments/ai-created-experiments) | Validate, run, cancel, protect inputs, and capture results.                                   |
-| [AI chat](doc:ai/experiment-chat)                      | Dispatch calls, show progress, and return terminal results.                                   |
+| [Assistant chat](doc:ai/experiment-chat)               | Dispatch calls, show progress, and return terminal results.                                   |
 | Integrating application                                | Select tools, carry schemas, preserve call identity, persist history, and continue the agent. |
 
 To adopt experiments, register `createExperiment` in Brunch's tool catalog and
@@ -43,7 +43,8 @@ needs a separate integration change, tracked in
 ## Integration demo
 
 The [website demo](layer:website.ai-experiments) uses scripted conversation and
-real browser execution. It exercises Petrinaut's contract and chat presentation.
+real browser execution. It exercises Petrinaut's experiment contract and the
+website chat's presentation.
 Brunch retains ownership of production prompts, tool selection, persistence,
 and result interpretation. Its production catalog is unchanged.
 

@@ -17,10 +17,13 @@ import {
   type PluginContributionItem,
   type PluginContributionKind,
 } from "../../../../../../plugins/plugin-contributions";
+import {
+  parentOf,
+  type PluginStatus,
+} from "../../../../../../plugins/plugin-statuses";
 import { FocusControls } from "../../../../../../worksheet/focus-controls";
 
 import type { PetrinautPluginManifest } from "../../../../../../plugins/define-petrinaut-plugin";
-import type { PluginStatus } from "../../../../../../plugins/plugin-statuses";
 
 const rowStyle = css({
   "& + &": { borderTop: "[1px solid {colors.neutral.s30}]" },
@@ -210,6 +213,7 @@ const contributionKinds: Record<
   "read-only-action": { label: "Read-only notice", icon: "lockClosed" },
   command: { label: "Command", icon: "lightning" },
   setting: { label: "Setting", icon: "sliders" },
+  assistant: { label: "Assistant", icon: "magic" },
   provides: { label: "Provides", icon: "plug", code: true },
   root: { label: "Renders", icon: "layer" },
 };
@@ -284,6 +288,11 @@ export const PluginRow = ({ manifest, status }: PluginRowProps) => {
           {status === "failed" && (
             <Chip size="xs" color="red" variant="soft" shape="round">
               Not running
+            </Chip>
+          )}
+          {status === "needs-parent" && (
+            <Chip size="xs" color="grey" variant="soft" shape="round">
+              {`Needs ${parentOf(manifest)?.name}`}
             </Chip>
           )}
           {manifest.required !== true && (

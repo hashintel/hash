@@ -2,10 +2,17 @@ import { useState } from "react";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
-import { Petrinaut, type PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
+import {
+  definePetrinautPlugin,
+  type PluginHook,
+} from "@hashintel/petrinaut/ui/plugin";
 
 import { BrowserOptimizationProvider } from "../optimization-demo/browser-optimization-provider";
+import { AssistantChat } from "../plugins/_shared/chat/assistant-chat";
 import { createExperimentDemoTransport } from "./create-experiment-demo-transport";
+
+import type { PetrinautAiMessage } from "../plugins/_shared/chat/ai-message";
 
 const introduction: PetrinautAiMessage[] = [
   {
@@ -20,6 +27,35 @@ const introduction: PetrinautAiMessage[] = [
   },
 ];
 
+const DemoAssistantPlugin = definePetrinautPlugin({
+  id: "website.ai-experiments-demo",
+  name: "Demo assistant",
+  description: "A scripted conversation that runs real experiments.",
+  author: "HASH",
+  access: { document: "write", experiments: "write", editor: "write" },
+  assistant: { label: "Demo" },
+});
+
+const demoTransport = createExperimentDemoTransport();
+
+const useDemoAssistantPlugin: PluginHook<typeof DemoAssistantPlugin> = (
+  api,
+) => ({
+  assistant: {
+    view: (
+      <AssistantChat
+        api={api}
+        conversationId="ai-experiments-demo"
+        messages={introduction}
+        transport={demoTransport}
+      />
+    ),
+  },
+});
+
+/** A scripted assistant whose conversation runs real experiments. */
+const aiExperimentsDemoPlugin = DemoAssistantPlugin(useDemoAssistantPlugin);
+
 export const AiExperimentsDemo = () => {
   const [handle] = useState(() =>
     createJsonDocHandle({
@@ -27,7 +63,6 @@ export const AiExperimentsDemo = () => {
       initial: structuredClone(sirModel.petriNetDefinition),
     }),
   );
-  const [transport] = useState(createExperimentDemoTransport);
 
   return (
     <main style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -49,11 +84,7 @@ export const AiExperimentsDemo = () => {
             handle={handle}
             title="Outbreak experiments"
             hideNetManagementControls="except-title"
-            aiAssistant={{
-              conversationId: "ai-experiments-demo",
-              messages: introduction,
-              transport,
-            }}
+            plugins={[aiExperimentsDemoPlugin]}
           />
         </BrowserOptimizationProvider>
       </div>

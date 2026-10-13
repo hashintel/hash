@@ -5,6 +5,7 @@ import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
 import { sweepOutputSchema } from "./tools/brunch-sweep-output";
 
+import type { PetrinautAiTransport } from "../_shared/chat/ai-message";
 import type { BrunchFlueAdapter } from "./brunch-flue-adapter";
 import type {
   SweepCapture,
@@ -16,7 +17,6 @@ import type {
   FlueClient,
   FlueConversationState,
 } from "@flue/sdk";
-import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
@@ -335,7 +335,7 @@ export const createBrunchPanelTransport = (
     readonly onReattach?: FlueChatTransportOptions["onReattach"];
     readonly onDisconnect?: FlueChatTransportOptions["onDisconnect"];
   },
-): PetrinautAiChatTransport => ({
+): PetrinautAiTransport => ({
   reconnectToStream: async () => null,
   sendMessages: (sendOptions) =>
     tracker.trackSubmission(
@@ -386,7 +386,7 @@ export const createBrunchPanelTransport = (
 
 export const createUnavailableBrunchPanelTransport = (
   reason: string,
-): PetrinautAiChatTransport => ({
+): PetrinautAiTransport => ({
   reconnectToStream: async () => null,
   sendMessages: async () => {
     throw new Error(reason);

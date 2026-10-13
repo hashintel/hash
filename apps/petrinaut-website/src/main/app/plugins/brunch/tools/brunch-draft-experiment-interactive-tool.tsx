@@ -21,12 +21,12 @@ import {
   usePetrinautInstance,
   usePetrinautNavigation,
 } from "@hashintel/petrinaut/react";
+
+import { ExperimentExecutionCard } from "../../_shared/chat/experiment-execution-card";
 import {
   definePetrinautAiInteractiveTool,
-  ExperimentExecutionCard,
   type PetrinautAiInteractiveToolWidgetProps,
-} from "@hashintel/petrinaut/ui";
-
+} from "../../_shared/chat/interactive-tool";
 import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 import {
   describeBudget,

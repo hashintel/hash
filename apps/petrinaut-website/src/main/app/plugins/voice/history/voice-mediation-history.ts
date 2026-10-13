@@ -4,8 +4,8 @@ import type {
   VoiceBriefFields,
   VoiceLine,
 } from "../../../../../shared/voice-mediation";
+import type { PetrinautAiMessage } from "../../_shared/chat/ai-message";
 import type { FlueConversationState } from "@flue/sdk";
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const lineSchema = z.object({
   text: z.string().max(32_000),

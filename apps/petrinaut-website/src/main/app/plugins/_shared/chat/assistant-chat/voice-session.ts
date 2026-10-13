@@ -1,0 +1,169 @@
+import { use, useCallback, useSyncExternalStore } from "react";
+
+import { VoiceSessionContext } from "./voice-session/context";
+
+import type { PetrinautAiVoiceSessionPhase } from "../voice-session-state";
+import type { VoiceSessionActions } from "./voice-session/store";
+
+export { VoiceSessionContext } from "./voice-session/context";
+export { VoiceSessionProvider } from "./voice-session/provider";
+export {
+  createVoiceSessionStore,
+  type VoiceSessionActions,
+} from "./voice-session/store";
+
+/**
+ * Each hook selects a single field so a microphone-level update only
+ * re-renders the indicator, not every Voice surface on screen.
+ */
+export const useVoiceSessionPhase = (): PetrinautAiVoiceSessionPhase | null => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.phase ?? null,
+    () => null,
+  );
+};
+
+/**
+ * Reads the level without subscribing. The indicator samples it once per
+ * animation frame, so routing it through React would re-render a component
+ * sixty times a second to draw something React never touches.
+ */
+export const useVoiceSessionMicrophoneLevelReader = (): (() => number) => {
+  const store = use(VoiceSessionContext);
+
+  return useCallback(
+    () => store.getSnapshot().state?.microphoneLevel ?? 0,
+    [store],
+  );
+};
+
+export const useVoiceSessionMicrophoneMuted = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.microphoneMuted ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionSpeakerMuted = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.speakerMuted ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionSpeakerVolume = (): number => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.speakerVolume ?? 1,
+    () => 1,
+  );
+};
+
+export const useVoiceSessionAudioSettings = () => {
+  const store = use(VoiceSessionContext);
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.audioSettings,
+    () => undefined,
+  );
+};
+
+export const useVoiceSessionErrorMessage = (): string | null => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.errorMessage ?? null,
+    () => null,
+  );
+};
+
+export const useVoiceSessionActions = (): VoiceSessionActions | null => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().actions,
+    () => null,
+  );
+};
+
+export const useVoiceSessionCanReadFullResponse = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canReadFullResponse ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionCanRepeatQuestion = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canRepeatQuestion ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionCanRetryPlayback = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canRetryPlayback ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionCanTakeTurn = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canTakeTurn ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionNotice = (): string | null => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.notice ?? null,
+    () => null,
+  );
+};
+
+export const useVoiceSessionWarningMessage = (): string | null => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.warningMessage ?? null,
+    () => null,
+  );
+};
+
+export const useVoiceSessionInterruptionBySpeaking = (): boolean => {
+  const store = use(VoiceSessionContext);
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.interruptionBySpeaking ?? false,
+    () => false,
+  );
+};

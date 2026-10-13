@@ -5,7 +5,13 @@ import { ErrorTrackerContext } from "../../react/error-tracker-context";
 import type { PluginButtonPlace } from "./define-petrinaut-plugin";
 
 /** Where a plugin's code runs, as reported with its failures. */
-type PluginPlace = "hook" | "root" | "settings" | PluginButtonPlace;
+type PluginPlace =
+  | "hook"
+  | "root"
+  | "settings"
+  | "assistant"
+  | "assistant-tab"
+  | PluginButtonPlace;
 
 type Props = {
   pluginId: string;
@@ -14,13 +20,15 @@ type Props = {
   contributionId?: string;
   /** Called after the failure is reported. */
   onError?: () => void;
+  /** Shown in place of the failed contribution. */
+  fallback?: ReactNode;
   children: ReactNode;
 };
 
 /**
  * Lets a plugin's hook, or one of its contributions, load lazily and fail
  * alone. A suspended child renders nothing until it is ready; a thrown error
- * renders nothing, reaches the host's error tracker, and leaves the editor and
+ * renders `fallback`, reaches the host's error tracker, and leaves the editor and
  * the other contributions running.
  */
 export class PluginBoundary extends Component<Props, { failed: boolean }> {
@@ -46,7 +54,9 @@ export class PluginBoundary extends Component<Props, { failed: boolean }> {
   }
 
   render(): ReactNode {
-    return this.state.failed ? null : (
+    return this.state.failed ? (
+      this.props.fallback
+    ) : (
       <Suspense fallback={null}>{this.props.children}</Suspense>
     );
   }

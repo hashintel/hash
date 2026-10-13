@@ -13,7 +13,11 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
+import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
+import {
+  PluginSettingsRows,
+  settingSelectStyle,
+} from "../../../../plugins/plugin-settings-rows";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
@@ -375,6 +379,11 @@ export const UserSettingsDialog = ({
 }) => {
   const settings = use(UserSettingsContext);
   const { extensions } = use(SDCPNContext);
+  const {
+    assistants,
+    activeId: activeAssistantId,
+    choose: chooseAssistant,
+  } = useAssistantChoice();
   const item =
     sections.find((candidate) => candidate.id === section) ?? sections[0];
   const headingRef = useRef<HTMLElement>(null);
@@ -484,6 +493,31 @@ export const UserSettingsDialog = ({
                           onChange={settings.setKeepPanelsMounted}
                         />
                       </SettingsGroup>
+                      {assistants.length > 1 &&
+                        activeAssistantId !== undefined && (
+                          <SettingsGroup title="AI assistant">
+                            <SettingRow
+                              label="Assistant"
+                              description="Choose which assistant answers in the AI window."
+                              wideControl
+                            >
+                              {(aria) => (
+                                <Select
+                                  {...aria}
+                                  size="sm"
+                                  className={settingSelectStyle}
+                                  required
+                                  value={activeAssistantId}
+                                  onChange={chooseAssistant}
+                                  items={assistants.map(({ id, label }) => ({
+                                    value: id,
+                                    text: label,
+                                  }))}
+                                />
+                              )}
+                            </SettingRow>
+                          </SettingsGroup>
+                        )}
                       <PluginSettingsRows
                         section="general"
                         components={pluginRowComponents}
@@ -527,10 +561,7 @@ export const UserSettingsDialog = ({
                               <Select
                                 {...aria}
                                 size="sm"
-                                className={css({
-                                  width: "[156px]",
-                                  maxWidth: "[100%]",
-                                })}
+                                className={settingSelectStyle}
                                 required
                                 value={settings.arcRendering}
                                 onChange={settings.setArcRendering}

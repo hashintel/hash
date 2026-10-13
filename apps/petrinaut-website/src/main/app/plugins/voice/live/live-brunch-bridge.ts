@@ -10,6 +10,8 @@ import {
 } from "./live-brunch-bridge/utterance-pipeline";
 
 import type { VoiceBriefFields } from "../../../../../shared/voice-mediation";
+import type { PetrinautAiMessage } from "../../_shared/chat/ai-message";
+import type { PetrinautAiVoiceModeContext } from "../../_shared/chat/composer-control";
 import type { VoiceMediationHistory } from "../history/voice-mediation-history";
 import type {
   RealtimeBrunchBridge,
@@ -19,10 +21,6 @@ import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { SkipReason } from "./live-brunch-bridge/utterance-pipeline";
 import type { FinalizedInput } from "./live-conversation";
 import type { FlueConversationState } from "@flue/sdk";
-import type {
-  PetrinautAiMessage,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,

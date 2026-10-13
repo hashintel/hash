@@ -1,5 +1,8 @@
-import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
-import { usePersistedState } from "./use-persisted-state";
+import {
+  readBrowserStorage,
+  writeBrowserStorage,
+} from "../shared/browser-storage";
+import { usePersistedState } from "../shared/use-persisted-state";
 
 /**
  * Which assistant the demo's AI panel talks to.
@@ -36,13 +39,6 @@ export const parseAssistantSelection = (
   stored === "brunch" || stored === "stock"
     ? stored
     : defaultAssistantSelection;
-
-/**
- * The stock assistant's own endpoint. It never moves with the Brunch endpoint:
- * with Brunch configured and the stock assistant selected, the panel still
- * talks to the stock backend and nothing else.
- */
-export const stockChatEndpoint = "/api/chat";
 
 const readAssistantSelection = (): AssistantSelection =>
   parseAssistantSelection(
