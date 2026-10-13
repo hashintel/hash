@@ -105,6 +105,7 @@ pub fn routes<P>(
         not(feature = "unsafe-dev-endpoints"),
         expect(
             unused_variables,
+            clippy::needless_pass_by_value,
             reason = "only the unsafe dev endpoints check the secret"
         )
     )]
