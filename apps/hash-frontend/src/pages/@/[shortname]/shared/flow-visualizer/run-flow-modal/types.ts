@@ -65,8 +65,8 @@ export type LocalPayload = {
 }[LocalPayloadKind];
 
 export type FormState = {
-  [outputName: string]: {
-    outputName: string;
+  [inputName: string]: {
+    inputName: string;
     payload: LocalPayload;
   };
 };

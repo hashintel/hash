@@ -1,74 +1,5 @@
-import {
-  type EntityUuid,
-  extractEntityUuidFromEntityId,
-} from "@blockprotocol/type-system";
-
-import { simplifyProperties } from "../simplify-properties.js";
-
-import type { FlowDefinition as FlowDefinitionEntity } from "../system-types/flowdefinition.js";
 import type { FlowRun } from "../system-types/flowrun.js";
-import type { TriggerDefinitionId } from "./trigger-definitions.js";
-import type {
-  FlowActionDefinitionId,
-  FlowDefinition,
-  LocalFlowRun,
-  OutputDefinition,
-} from "./types.js";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-
-export const mapFlowDefinitionToEntityProperties = (
-  flowDefinition: FlowDefinition<FlowActionDefinitionId>,
-): FlowDefinitionEntity["properties"] => ({
-  "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-    flowDefinition.name,
-  "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-    flowDefinition.description,
-  "https://hash.ai/@h/types/property-type/output-definitions/":
-    flowDefinition.outputs,
-  "https://hash.ai/@h/types/property-type/step-definitions/":
-    flowDefinition.steps,
-  "https://hash.ai/@h/types/property-type/trigger-definition/": {
-    "https://hash.ai/@h/types/property-type/trigger-definition-id/":
-      flowDefinition.trigger.triggerDefinitionId,
-    "https://hash.ai/@h/types/property-type/output-definitions/":
-      flowDefinition.trigger.outputs,
-  },
-});
-
-export const mapFlowDefinitionEntityToFlowDefinition = (
-  entity: HashEntity<FlowDefinitionEntity>,
-): FlowDefinition<FlowActionDefinitionId> => {
-  const {
-    name,
-    description,
-    outputDefinitions,
-    stepDefinitions,
-    triggerDefinition,
-  } = simplifyProperties(entity.properties);
-
-  return {
-    name,
-    type: "ai",
-    description,
-    flowDefinitionId: extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    ),
-    outputs:
-      outputDefinitions as FlowDefinition<FlowActionDefinitionId>["outputs"],
-    steps: stepDefinitions as FlowDefinition<FlowActionDefinitionId>["steps"],
-    trigger: {
-      kind: "trigger",
-      triggerDefinitionId:
-        triggerDefinition[
-          "https://hash.ai/@h/types/property-type/trigger-definition-id/"
-        ],
-      outputs: triggerDefinition[
-        "https://hash.ai/@h/types/property-type/output-definitions/"
-      ] as OutputDefinition<boolean>[],
-      /** @todo: fix this */
-    } as unknown as FlowDefinition<FlowActionDefinitionId>["trigger"],
-  };
-};
+import type { LocalFlowRun } from "./types.js";
 
 export const mapFlowRunToEntityProperties = (
   flowRun: LocalFlowRun,
@@ -117,58 +48,32 @@ export const mapFlowRunToEntityProperties = (
         },
       })),
     },
+    /**
+     * The `Flow Run` entity type still requires a `Trigger`, from when flows had trigger definitions. Flows now
+     * declare inputs instead, so the run's input values are recorded as the trigger's outputs. Nothing reads this
+     * property back: the `Flow Run` type replaces it with an `Inputs` property in FE-1894.
+     */
     "https://hash.ai/@h/types/property-type/trigger/": {
       value: {
         "https://hash.ai/@h/types/property-type/trigger-definition-id/": {
-          value: flowRun.trigger.triggerDefinitionId,
+          value: "userTrigger",
           metadata: {
             dataTypeId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
-        ...(flowRun.trigger.outputs
-          ? {
-              "https://hash.ai/@h/types/property-type/outputs/": {
-                value: flowRun.trigger.outputs.map((output) => ({
-                  value: output,
-                  metadata: {
-                    dataTypeId:
-                      "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-                  },
-                })),
+        "https://hash.ai/@h/types/property-type/outputs/": {
+          value: Object.entries(flowRun.flowInputs).map(
+            ([inputName, payload]) => ({
+              value: { outputName: inputName, payload },
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
               },
-            }
-          : {}),
+            }),
+          ),
+        },
       },
     },
   },
 });
-
-export const mapFlowEntityToFlow = (
-  entity: HashEntity<FlowRun>,
-): LocalFlowRun => {
-  const {
-    name,
-    flowDefinitionId,
-    outputs,
-    step: steps,
-    trigger,
-    workflowId,
-  } = simplifyProperties(entity.properties);
-
-  return {
-    name,
-    temporalWorkflowId: workflowId,
-    flowDefinitionId: flowDefinitionId as EntityUuid,
-    outputs: outputs as LocalFlowRun["outputs"],
-    steps: steps as LocalFlowRun["steps"],
-    trigger: {
-      triggerDefinitionId: trigger[
-        "https://hash.ai/@h/types/property-type/trigger-definition-id/"
-      ] as TriggerDefinitionId,
-      outputs: trigger[
-        "https://hash.ai/@h/types/property-type/outputs/"
-      ] as LocalFlowRun["trigger"]["outputs"],
-    },
-  };
-};

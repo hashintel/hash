@@ -1,36 +1,34 @@
 import { Backdrop, Box, Slide, Stack } from "@mui/material";
 
 import { IconButton, XMarkRegularIcon } from "@hashintel/design-system";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 import { DAG } from "./dag";
 import { Topbar } from "./topbar";
 
-import type {
-  GroupWithEdgesAndNodes,
-  UngroupedEdgesAndNodes,
-} from "./shared/types";
+import type { EdgesAndNodes } from "./shared/types";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 type DagSlideProps = {
-  groups: [UngroupedEdgesAndNodes] | GroupWithEdgesAndNodes[];
+  graph: EdgesAndNodes;
   open: boolean;
   onClose: () => void;
   selectedFlowDefinition: FlowDefinition<FlowActionDefinitionId>;
+  flowDefinitionId: EntityUuid;
 };
 
 export const DagSlide = ({
-  groups,
+  graph,
   open,
   onClose,
   selectedFlowDefinition,
+  flowDefinitionId,
 }: DagSlideProps) => {
-  const isGoal = goalFlowDefinitionIds.includes(
-    selectedFlowDefinition.flowDefinitionId,
-  );
+  const isGoal = isGoalFlowDefinitionId(flowDefinitionId);
 
   return (
     <Backdrop
@@ -76,7 +74,7 @@ export const DagSlide = ({
           </Stack>
           <Box p={3}>
             <DAG
-              groups={groups}
+              graph={graph}
               selectedFlowDefinition={selectedFlowDefinition}
             />
           </Box>

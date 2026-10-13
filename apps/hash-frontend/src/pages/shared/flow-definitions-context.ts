@@ -1,13 +1,12 @@
 import { createContext, useContext } from "react";
 
 import type { EntityUuid } from "@blockprotocol/type-system";
-import type {
-  FlowActionDefinitionId,
-  FlowDefinition,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
 
 export type FlowDefinitionsContextType = {
-  flowDefinitions: FlowDefinition<FlowActionDefinitionId>[];
+  /** Every flow defined in code. */
+  flowDefinitions: FlowDefinitionWithId[];
+  loading: boolean;
   selectedFlowDefinitionId: EntityUuid | null;
 };
 

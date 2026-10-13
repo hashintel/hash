@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
-  automaticBrowserInferenceFlowDefinition,
-  manualBrowserInferenceFlowDefinition,
+  automaticBrowserInferenceFlow,
+  manualBrowserInferenceFlow,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 
 import { getMinimalFlowRunsQuery } from "../../../../../graphql/queries/flow.queries";
@@ -22,10 +22,10 @@ import type {
 } from "../../../../../shared/storage";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type {
-  AutomaticInferenceTriggerInputName,
-  AutomaticInferenceTriggerInputs,
+  AutomaticInferenceInputName,
+  AutomaticInferenceInputs,
   browserInferenceFlowOutput,
-  ManualInferenceTriggerInputName,
+  ManualInferenceInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { PayloadKindValues } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -55,13 +55,11 @@ const mapFlowRunToMinimalFlowRun = (
     }),
   );
 
-  const webPage = flowRun.inputs[0].flowTrigger.outputs?.find(
-    ({ outputName }) =>
-      outputName ===
-      ("visitedWebPage" satisfies AutomaticInferenceTriggerInputName &
-        ManualInferenceTriggerInputName),
-  )?.payload
-    .value as PayloadKindValues[AutomaticInferenceTriggerInputs["visitedWebPage"]["kind"]];
+  const webPage = flowRun.flowInputs[
+    "visitedWebPage" satisfies AutomaticInferenceInputName &
+      ManualInferenceInputName
+  ]
+    ?.value as PayloadKindValues[AutomaticInferenceInputs["visitedWebPage"]["kind"]];
 
   return {
     persistedEntities,
@@ -95,9 +93,9 @@ const getFlowRuns = async ({
       for (const flowRun of unfilteredFlowRuns) {
         if (
           flowRun.flowDefinitionId ===
-            manualBrowserInferenceFlowDefinition.flowDefinitionId ||
+            manualBrowserInferenceFlow.flowDefinitionId ||
           flowRun.flowDefinitionId ===
-            automaticBrowserInferenceFlowDefinition.flowDefinitionId
+            automaticBrowserInferenceFlow.flowDefinitionId
         ) {
           flowRunsOfInterest.push(mapFlowRunToMinimalFlowRun(flowRun));
         }

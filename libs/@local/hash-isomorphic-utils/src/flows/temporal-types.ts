@@ -1,18 +1,13 @@
-import type { AiFlowActionDefinitionId } from "./action-definitions.js";
 import type {
-  FlowActionDefinitionId,
   FlowDataSources,
   FlowDefinition,
-  FlowTrigger,
   LocalFlowRun,
+  FlowInputValues,
 } from "./types.js";
 import type { EntityUuid, UserId, WebId } from "@blockprotocol/type-system";
 import type { Status } from "@local/status";
 
-export type BaseRunFlowWorkflowParams<
-  ValidActionDefinitionId extends FlowActionDefinitionId =
-    FlowActionDefinitionId,
-> = {
+export type BaseRunFlowWorkflowParams = {
   /**
    * Optionally provide the UUID to use when persisting the Flow Entity.
    * For manually-triggered Flow Runs, so that the user can be instantly given the entity's UUID,
@@ -23,21 +18,22 @@ export type BaseRunFlowWorkflowParams<
    * 2. Schedules result in multiple runs, so there's no single entity UUID to return.
    */
   flowRunId?: EntityUuid;
-  flowDefinition: FlowDefinition<ValidActionDefinitionId>;
+  /** The definition to run, which the caller has validated. */
+  flowDefinition: FlowDefinition;
+  flowDefinitionId: EntityUuid;
   /**
    * Optional name for the flow run. If not provided, the flow definition name is used.
    * For scheduled flows, this is typically the schedule name.
    */
   flowRunName?: string;
-  flowTrigger: FlowTrigger;
+  flowInputs: FlowInputValues;
   userAuthentication: { actorId: UserId };
   webId: WebId;
 };
 
-export type RunAiFlowWorkflowParams =
-  BaseRunFlowWorkflowParams<AiFlowActionDefinitionId> & {
-    dataSources: FlowDataSources;
-  };
+export type RunAiFlowWorkflowParams = BaseRunFlowWorkflowParams & {
+  dataSources: FlowDataSources;
+};
 
 export type RunFlowWorkflowParams =
   | BaseRunFlowWorkflowParams

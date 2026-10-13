@@ -19,7 +19,7 @@ const textFieldSx: SxProps<Theme> = {
   height: inputHeight,
 };
 
-export const ManualTriggerInput = <Payload extends LocalPayload>({
+export const FlowInputField = <Payload extends LocalPayload>({
   array,
   formState,
   payload,

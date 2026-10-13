@@ -1,251 +1,121 @@
-import {
-  browserInferenceFlowFailuresOutput,
-  browserInferenceFlowOutput,
-} from "./browser-plugin-flow-types.js";
+import { typedActionDefinitions as actions } from "./action-definitions.js";
+import { defineFlow, flowInput } from "./define-flow.js";
 
-import type {
-  AiFlowActionDefinitionId,
-  InputNameForFlowAction,
-  OutputNameForFlowAction,
-} from "./action-definitions.js";
-import type {
-  AutomaticInferenceTriggerInputName,
-  AutomaticInferenceTriggerInputs,
-  ManualInferenceTriggerInputName,
-  ManualInferenceTriggerInputs,
-} from "./browser-plugin-flow-types.js";
-import type { FlowDefinition } from "./types.js";
-import type { EntityUuid } from "@blockprotocol/type-system";
+const persistedEntitiesOutputDescription =
+  "The entities created or updated by the flow run";
 
-export const manualBrowserInferenceFlowDefinition: FlowDefinition<AiFlowActionDefinitionId> =
+const failedEntityProposalsOutputDescription =
+  "The proposed entities that could not be saved";
+
+/**
+ * The plugin starts this flow with the inputs typed as `ManualInferenceInputs`.
+ */
+export const manualBrowserInferenceFlow = defineFlow(
   {
+    /* manual-browser-inference */
+    flowDefinitionId: "a7bc5e44-f1ce-5126-b5db-8eb4cf054116",
     name: "Analyze webpage",
-    type: "ai",
-    flowDefinitionId: "manual-browser-inference" as EntityUuid,
     description: "Find entities of the requested types in a web page",
-    trigger: {
-      kind: "trigger",
-      description: "Triggered manually by user for a specific web page",
-      triggerDefinitionId: "userTrigger",
-      outputs: [
-        {
-          payloadKind:
-            "WebPage" satisfies ManualInferenceTriggerInputs["visitedWebPage"]["kind"],
-          description: "The web page visited",
-          name: "visitedWebPage" satisfies ManualInferenceTriggerInputName,
-          array: false,
-          required: true,
-        },
-        {
-          payloadKind:
-            "VersionedUrl" satisfies ManualInferenceTriggerInputs["entityTypeIds"]["kind"],
-          description: "The ids of the entity types to create entities of",
-          name: "entityTypeIds" satisfies ManualInferenceTriggerInputName,
-          array: true,
-          required: true,
-        },
-        {
-          payloadKind:
-            "Text" satisfies ManualInferenceTriggerInputs["model"]["kind"],
-          description: "The model to use for inference",
-          name: "model" satisfies ManualInferenceTriggerInputName,
-          array: true,
-          required: true,
-        },
-        {
-          payloadKind:
-            "Boolean" satisfies ManualInferenceTriggerInputs["draft"]["kind"],
-          description:
-            "Whether the entities should be created as drafts or not",
-          name: "draft" satisfies ManualInferenceTriggerInputName,
-          array: false,
-          required: true,
-        },
-      ],
+    inputs: {
+      visitedWebPage: flowInput("WebPage", {
+        description: "The web page visited",
+      }),
+      entityTypeIds: flowInput("VersionedUrl", {
+        array: true,
+        description: "The ids of the entity types to create entities of",
+      }),
+      model: flowInput("Text", {
+        description: "The model to use for inference",
+      }),
+      draft: flowInput("Boolean", {
+        description: "Whether the entities should be created as drafts or not",
+      }),
     },
-    steps: [
-      {
-        stepId: "0",
-        kind: "action",
-        actionDefinitionId: "inferEntitiesFromContent",
-        description: "Find entities in web page content",
-        inputSources: [
-          {
-            inputName:
-              "content" satisfies InputNameForFlowAction<"inferEntitiesFromContent">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName:
-              "visitedWebPage" satisfies ManualInferenceTriggerInputName,
-          },
-          {
-            inputName:
-              "entityTypeIds" satisfies InputNameForFlowAction<"inferEntitiesFromContent">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName:
-              "entityTypeIds" satisfies ManualInferenceTriggerInputName,
-          },
-          {
-            inputName:
-              "model" satisfies InputNameForFlowAction<"inferEntitiesFromContent">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName:
-              "model" satisfies ManualInferenceTriggerInputName,
-          },
-        ],
+  },
+  ({ inputs, step }) => {
+    const inferEntities = step("0", actions.inferEntitiesFromContent, {
+      description: "Find entities in web page content",
+      inputs: {
+        content: inputs.visitedWebPage,
+        entityTypeIds: inputs.entityTypeIds,
+        model: inputs.model,
       },
-      {
-        stepId: "1",
-        kind: "action",
-        actionDefinitionId: "persistEntities",
-        description: "Save proposed entities to database",
-        inputSources: [
-          {
-            inputName:
-              "proposedEntities" satisfies InputNameForFlowAction<"persistEntities">,
-            kind: "step-output",
-            sourceStepId: "0",
-            sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForFlowAction<"inferEntitiesFromContent">,
-          },
-          {
-            inputName:
-              "draft" satisfies InputNameForFlowAction<"persistEntities">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName:
-              "draft" satisfies ManualInferenceTriggerInputName,
-          },
-        ],
-      },
-    ],
-    outputs: [
-      {
-        stepId: "1",
-        stepOutputName:
-          "persistedEntities" as const satisfies OutputNameForFlowAction<"persistEntities">,
-        ...browserInferenceFlowOutput,
-      },
-      {
-        stepId: "1",
-        stepOutputName:
-          "failedEntityProposals" as const satisfies OutputNameForFlowAction<"persistEntities">,
-        ...browserInferenceFlowFailuresOutput,
-      },
-    ],
-  };
+    });
 
-export const automaticBrowserInferenceFlowDefinition: FlowDefinition<AiFlowActionDefinitionId> =
+    const persist = step("1", actions.persistEntities, {
+      description: "Save proposed entities to database",
+      inputs: {
+        proposedEntities: inferEntities.outputs.proposedEntities,
+        draft: inputs.draft,
+      },
+    });
+
+    return {
+      outputs: {
+        persistedEntities: {
+          ref: persist.outputs.persistedEntities,
+          description: persistedEntitiesOutputDescription,
+        },
+        failedEntityProposals: {
+          ref: persist.outputs.failedEntityProposals,
+          description: failedEntityProposalsOutputDescription,
+        },
+      },
+    };
+  },
+);
+
+/**
+ * The plugin starts this flow with the inputs typed as `AutomaticInferenceInputs`.
+ */
+export const automaticBrowserInferenceFlow = defineFlow(
   {
+    /* automatic-browser-inference */
+    flowDefinitionId: "a4385fa8-a457-584e-b81e-f7e49f3d0b3c",
     name: "Auto-analyze webpage",
-    type: "ai",
-    flowDefinitionId: "automatic-browser-inference" as EntityUuid,
     description:
       "Find entities in a web page according to the user's passive analysis settings",
-    trigger: {
-      kind: "trigger",
-      description: "Triggered automatically when the user visited a web page",
-      triggerDefinitionId: "userVisitedWebPageTrigger",
-      outputs: [
-        {
-          payloadKind:
-            "WebPage" satisfies AutomaticInferenceTriggerInputs["visitedWebPage"]["kind"],
-          description: "The web page visited",
-          name: "visitedWebPage" satisfies AutomaticInferenceTriggerInputName,
-          array: false,
-          required: true,
-        },
-      ],
+    inputs: {
+      visitedWebPage: flowInput("WebPage", {
+        description: "The web page visited",
+      }),
     },
-    steps: [
-      {
-        stepId: "0",
-        kind: "action",
-        actionDefinitionId: "processAutomaticBrowsingSettings",
-        description:
-          "Decide which types of entity to find given the web page visited",
-        inputSources: [
-          {
-            inputName:
-              "webPage" satisfies InputNameForFlowAction<"processAutomaticBrowsingSettings">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName:
-              "visitedWebPage" satisfies AutomaticInferenceTriggerInputName,
-          },
-        ],
+  },
+  ({ inputs, step }) => {
+    const settings = step("0", actions.processAutomaticBrowsingSettings, {
+      description:
+        "Decide which types of entity to find given the web page visited",
+      inputs: { webPage: inputs.visitedWebPage },
+    });
+
+    const inferEntities = step("1", actions.inferEntitiesFromContent, {
+      description: "Infer entities from web page content",
+      inputs: {
+        content: inputs.visitedWebPage,
+        model: settings.outputs.model,
+        entityTypeIds: settings.outputs.entityTypeIds,
       },
-      {
-        stepId: "1",
-        kind: "action",
-        actionDefinitionId: "inferEntitiesFromContent",
-        description: "Infer entities from web page content",
-        inputSources: [
-          {
-            inputName:
-              "content" satisfies InputNameForFlowAction<"inferEntitiesFromContent">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName:
-              "visitedWebPage" satisfies AutomaticInferenceTriggerInputName,
-          },
-          {
-            inputName:
-              "model" satisfies InputNameForFlowAction<"inferEntitiesFromContent">,
-            kind: "step-output",
-            sourceStepId: "0",
-            sourceStepOutputName:
-              "model" satisfies OutputNameForFlowAction<"processAutomaticBrowsingSettings">,
-          },
-          {
-            inputName:
-              "entityTypeIds" satisfies InputNameForFlowAction<"inferEntitiesFromContent">,
-            kind: "step-output",
-            sourceStepId: "0",
-            sourceStepOutputName:
-              "entityTypeIds" satisfies OutputNameForFlowAction<"processAutomaticBrowsingSettings">,
-          },
-        ],
+    });
+
+    const persist = step("2", actions.persistEntities, {
+      description: "Save proposed entities to database",
+      inputs: {
+        proposedEntities: inferEntities.outputs.proposedEntities,
+        draft: settings.outputs.draft,
       },
-      {
-        stepId: "2",
-        kind: "action",
-        actionDefinitionId: "persistEntities",
-        description: "Save proposed entities to database",
-        inputSources: [
-          {
-            inputName:
-              "proposedEntities" satisfies InputNameForFlowAction<"persistEntities">,
-            kind: "step-output",
-            sourceStepId: "1",
-            sourceStepOutputName:
-              "proposedEntities" satisfies OutputNameForFlowAction<"inferEntitiesFromContent">,
-          },
-          {
-            inputName:
-              "draft" satisfies InputNameForFlowAction<"persistEntities">,
-            kind: "step-output",
-            sourceStepId: "0",
-            sourceStepOutputName:
-              "draft" satisfies OutputNameForFlowAction<"processAutomaticBrowsingSettings">,
-          },
-        ],
+    });
+
+    return {
+      outputs: {
+        persistedEntities: {
+          ref: persist.outputs.persistedEntities,
+          description: persistedEntitiesOutputDescription,
+        },
+        failedEntityProposals: {
+          ref: persist.outputs.failedEntityProposals,
+          description: failedEntityProposalsOutputDescription,
+        },
       },
-    ],
-    outputs: [
-      {
-        stepId: "2",
-        stepOutputName:
-          "persistedEntities" as const satisfies OutputNameForFlowAction<"persistEntities">,
-        ...browserInferenceFlowOutput,
-      },
-      {
-        stepId: "2",
-        stepOutputName:
-          "failedEntityProposals" as const satisfies OutputNameForFlowAction<"persistEntities">,
-        ...browserInferenceFlowFailuresOutput,
-      },
-    ],
-  };
+    };
+  },
+);

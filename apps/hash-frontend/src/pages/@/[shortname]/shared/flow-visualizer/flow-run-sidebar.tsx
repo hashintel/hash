@@ -8,8 +8,8 @@ import {
   IconButton,
 } from "@hashintel/design-system";
 import {
-  goalFlowDefinitionIds,
-  type GoalFlowTriggerInput,
+  isGoalFlowDefinitionId,
+  type GoalFlowInputName,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 import { Link } from "../../../../../shared/ui/link";
@@ -21,12 +21,8 @@ import { SectionLabel } from "./section-label";
 import { flowSectionBorderRadius } from "./shared/styles";
 
 import type { FlowRun } from "../../../../../graphql/api-types.gen";
-import type { FlowMaybeGrouped } from "./shared/types";
+import type { EdgesAndNodes } from "./shared/types";
 import type { EntityUuid } from "@blockprotocol/type-system";
-import type {
-  FlowActionDefinitionId,
-  FlowDefinition,
-} from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
 
 const SidebarSection = ({ children }: PropsWithChildren) => (
@@ -44,19 +40,19 @@ const SidebarSection = ({ children }: PropsWithChildren) => (
 );
 
 type FlowRunSidebarProps = {
-  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
+  flowDefinitionId: EntityUuid;
   flowRunId: EntityUuid;
   flowScheduleId: EntityUuid | null;
-  groups: FlowMaybeGrouped["groups"];
+  graph: EdgesAndNodes;
   name: FlowRun["name"];
   showDag: () => void;
 };
 
 export const FlowRunSidebar = ({
-  flowDefinition,
+  flowDefinitionId,
   flowRunId,
   flowScheduleId,
-  groups,
+  graph,
   name,
   showDag,
 }: FlowRunSidebarProps) => {
@@ -82,10 +78,9 @@ export const FlowRunSidebar = ({
     }));
   }, [name]);
 
-  const researchPrompt = selectedFlowRun?.inputs[0].flowTrigger.outputs?.find(
-    (input) =>
-      input.outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
-  )?.payload.value as string | undefined;
+  const researchPrompt = selectedFlowRun?.flowInputs[
+    "researchGuidance" satisfies GoalFlowInputName
+  ]?.value as string | undefined;
 
   return (
     <Box sx={{ ml: 3, minWidth: 320, width: 320 }}>
@@ -93,9 +88,7 @@ export const FlowRunSidebar = ({
         <Stack direction="row" alignItems="center" gap={0.75}>
           <SectionLabel
             text={
-              goalFlowDefinitionIds.includes(flowDefinition.flowDefinitionId)
-                ? "Goal"
-                : "Description"
+              isGoalFlowDefinitionId(flowDefinitionId) ? "Goal" : "Description"
             }
           />
           {flowScheduleId && (
@@ -208,12 +201,7 @@ export const FlowRunSidebar = ({
         </Stack>
         <SidebarSection>
           <Box>
-            {groups.map((groupData) => (
-              <GroupStatus
-                key={groupData.group?.groupId ?? "ungrouped"}
-                groupData={groupData}
-              />
-            ))}
+            <GroupStatus graph={graph} />
           </Box>
         </SidebarSection>
       </Box>

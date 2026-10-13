@@ -1,10 +1,26 @@
-import type {
-  AiFlowActionDefinitionId,
-  InputNameForFlowAction,
-  OutputNameForFlowAction,
-} from "./action-definitions.js";
-import type { FlowDefinition } from "./types.js";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import { typedActionDefinitions as actions } from "./action-definitions.js";
+import { defineFlow, flowInput, type StepOutputs } from "./define-flow.js";
+
+import type { TypedActionDefinitions } from "./action-definitions.js";
+
+/**
+ * The outputs the frontend reads from both dashboard item flows.
+ */
+const dashboardItemOutputs = ({
+  query,
+  analysis,
+  chart,
+}: {
+  query: StepOutputs<TypedActionDefinitions["generateStructuralQuery"]>;
+  analysis: StepOutputs<TypedActionDefinitions["analyzeEntityData"]>;
+  chart: StepOutputs<TypedActionDefinitions["generateChartConfig"]>;
+}) => ({
+  structuralQuery: query.structuralQuery,
+  pythonScript: analysis.pythonScript,
+  chartData: analysis.chartData,
+  chartType: analysis.suggestedChartType,
+  chartConfig: chart.chartConfig,
+});
 
 /**
  * Flow definition for configuring a dashboard item.
@@ -20,328 +36,115 @@ import type { EntityUuid } from "@blockprotocol/type-system";
  * - Polling for flow completion
  * - Extracting outputs and updating the dashboard item entity with results
  */
-export const configureDashboardItemFlowDefinition: FlowDefinition<AiFlowActionDefinitionId> =
+export const configureDashboardItemFlow = defineFlow(
   {
+    /* configure-dashboard-item */
+    flowDefinitionId: "bf7f36a2-221e-5e7d-9879-289c1f56c148",
     name: "Configure Dashboard Item",
-    type: "ai",
-    flowDefinitionId: "configure-dashboard-item" as EntityUuid,
     description:
       "Generate query, analyze data, and create chart configuration for a dashboard item",
-    trigger: {
-      triggerDefinitionId: "userTrigger",
-      description: "User provides a goal for the dashboard chart",
-      kind: "trigger",
-      outputs: [
-        {
-          payloadKind: "Text",
-          name: "userGoal",
-          array: false,
-          required: true,
-        },
-      ],
+    inputs: {
+      userGoal: flowInput("Text"),
     },
-    steps: [
-      {
-        stepId: "1",
-        kind: "action",
-        actionDefinitionId: "generateStructuralQuery",
-        description: "Generate a structural query based on the user's goal",
-        inputSources: [
-          {
-            inputName:
-              "userGoal" satisfies InputNameForFlowAction<"generateStructuralQuery">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "userGoal",
-          },
-        ],
-      },
-      {
-        stepId: "2",
-        kind: "action",
-        actionDefinitionId: "analyzeEntityData",
-        description:
-          "Analyze entity data and generate Python transformation script",
-        inputSources: [
-          {
-            inputName:
-              "structuralQuery" satisfies InputNameForFlowAction<"analyzeEntityData">,
-            kind: "step-output",
-            sourceStepId: "1",
-            sourceStepOutputName:
-              "structuralQuery" satisfies OutputNameForFlowAction<"generateStructuralQuery">,
-          },
-          {
-            inputName:
-              "userGoal" satisfies InputNameForFlowAction<"analyzeEntityData">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "userGoal",
-          },
-          {
-            inputName:
-              "targetChartType" satisfies InputNameForFlowAction<"analyzeEntityData">,
-            kind: "step-output",
-            sourceStepId: "1",
-            sourceStepOutputName:
-              "suggestedChartTypes" satisfies OutputNameForFlowAction<"generateStructuralQuery">,
-          },
-        ],
-      },
-      {
-        stepId: "3",
-        kind: "action",
-        actionDefinitionId: "generateChartConfig",
-        description: "Generate ECharts configuration",
-        inputSources: [
-          {
-            inputName:
-              "chartData" satisfies InputNameForFlowAction<"generateChartConfig">,
-            kind: "step-output",
-            sourceStepId: "2",
-            sourceStepOutputName:
-              "chartData" satisfies OutputNameForFlowAction<"analyzeEntityData">,
-          },
-          {
-            inputName:
-              "chartType" satisfies InputNameForFlowAction<"generateChartConfig">,
-            kind: "step-output",
-            sourceStepId: "2",
-            sourceStepOutputName:
-              "suggestedChartType" satisfies OutputNameForFlowAction<"analyzeEntityData">,
-          },
-          {
-            inputName:
-              "userGoal" satisfies InputNameForFlowAction<"generateChartConfig">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "userGoal",
-          },
-        ],
-      },
-    ],
-    outputs: [
-      {
-        stepId: "1",
-        stepOutputName:
-          "structuralQuery" satisfies OutputNameForFlowAction<"generateStructuralQuery">,
-        name: "structuralQuery" as const,
-        payloadKind: "Text",
-        array: false,
-        required: true,
-      },
-      {
-        stepId: "2",
-        stepOutputName:
-          "pythonScript" satisfies OutputNameForFlowAction<"analyzeEntityData">,
-        name: "pythonScript" as const,
-        payloadKind: "Text",
-        array: false,
-        required: true,
-      },
-      {
-        stepId: "2",
-        stepOutputName:
-          "chartData" satisfies OutputNameForFlowAction<"analyzeEntityData">,
-        name: "chartData" as const,
-        payloadKind: "Text",
-        array: false,
-        required: true,
-      },
-      {
-        stepId: "2",
-        stepOutputName:
-          "suggestedChartType" satisfies OutputNameForFlowAction<"analyzeEntityData">,
-        name: "chartType" as const,
-        payloadKind: "Text",
-        array: false,
-        required: true,
-      },
-      {
-        stepId: "3",
-        stepOutputName:
-          "chartConfig" satisfies OutputNameForFlowAction<"generateChartConfig">,
-        name: "chartConfig" as const,
-        payloadKind: "Text",
-        array: false,
-        required: true,
-      },
-    ],
-  };
+  },
+  ({ inputs, step }) => {
+    const query = step("1", actions.generateStructuralQuery, {
+      description: "Generate a structural query based on the user's goal",
+      inputs: { userGoal: inputs.userGoal },
+    });
 
-export const refineDashboardItemFlowDefinition: FlowDefinition<AiFlowActionDefinitionId> =
+    const analysis = step("2", actions.analyzeEntityData, {
+      description:
+        "Analyze entity data and generate Python transformation script",
+      inputs: {
+        structuralQuery: query.outputs.structuralQuery,
+        userGoal: inputs.userGoal,
+        targetChartType: query.outputs.suggestedChartTypes,
+      },
+    });
+
+    const chart = step("3", actions.generateChartConfig, {
+      description: "Generate ECharts configuration",
+      inputs: {
+        chartData: analysis.outputs.chartData,
+        chartType: analysis.outputs.suggestedChartType,
+        userGoal: inputs.userGoal,
+      },
+    });
+
+    return {
+      outputs: dashboardItemOutputs({
+        query: query.outputs,
+        analysis: analysis.outputs,
+        chart: chart.outputs,
+      }),
+    };
+  },
+);
+
+export const refineDashboardItemFlow = defineFlow(
   {
+    /* refine-dashboard-item */
+    flowDefinitionId: "6216ef71-5b7b-5468-bf12-9a34e30604b5",
     name: "Refine Dashboard Item",
-    type: "ai",
-    flowDefinitionId: "refine-dashboard-item" as EntityUuid,
     description:
       "Plan and apply a scoped refinement to an existing dashboard item",
-    trigger: {
-      triggerDefinitionId: "userTrigger",
-      description:
-        "User provides a refinement instruction and existing dashboard configuration",
-      kind: "trigger",
-      outputs: [
-        "userGoal",
-        "refinementInstruction",
-        "existingStructuralQuery",
-        "existingPythonScript",
-        "existingChartType",
-        "existingChartConfig",
-      ].map((name) => ({
-        payloadKind: "Text" as const,
-        name,
-        array: false,
-        required: true,
-      })),
+    inputs: {
+      userGoal: flowInput("Text"),
+      refinementInstruction: flowInput("Text"),
+      existingStructuralQuery: flowInput("Text"),
+      existingPythonScript: flowInput("Text"),
+      existingChartType: flowInput("Text"),
+      existingChartConfig: flowInput("Text"),
     },
-    steps: [
-      {
-        stepId: "plan",
-        kind: "action",
-        actionDefinitionId: "planDashboardRefinement",
-        description: "Determine which configuration stages need refinement",
-        inputSources: [
-          "userGoal",
-          "refinementInstruction",
-          "existingStructuralQuery",
-          "existingPythonScript",
-          "existingChartType",
-          "existingChartConfig",
-        ].map((inputName) => ({
-          inputName:
-            inputName as InputNameForFlowAction<"planDashboardRefinement">,
-          kind: "step-output" as const,
-          sourceStepId: "trigger",
-          sourceStepOutputName: inputName,
-        })),
+  },
+  ({ inputs, step }) => {
+    const plan = step("plan", actions.planDashboardRefinement, {
+      description: "Determine which configuration stages need refinement",
+      inputs,
+    });
+
+    const query = step("1", actions.generateStructuralQuery, {
+      description: "Preserve or refine the structural query",
+      inputs: {
+        userGoal: inputs.userGoal,
+        refinementInstruction: inputs.refinementInstruction,
+        existingStructuralQuery: inputs.existingStructuralQuery,
+        existingChartType: inputs.existingChartType,
+        refinementScope: plan.outputs.refinementScope,
       },
-      {
-        stepId: "1",
-        kind: "action",
-        actionDefinitionId: "generateStructuralQuery",
-        description: "Preserve or refine the structural query",
-        inputSources: [
-          {
-            inputName:
-              "userGoal" satisfies InputNameForFlowAction<"generateStructuralQuery">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "userGoal",
-          },
-          {
-            inputName:
-              "refinementInstruction" satisfies InputNameForFlowAction<"generateStructuralQuery">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "refinementInstruction",
-          },
-          {
-            inputName:
-              "existingStructuralQuery" satisfies InputNameForFlowAction<"generateStructuralQuery">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "existingStructuralQuery",
-          },
-          {
-            inputName:
-              "existingChartType" satisfies InputNameForFlowAction<"generateStructuralQuery">,
-            kind: "step-output",
-            sourceStepId: "trigger",
-            sourceStepOutputName: "existingChartType",
-          },
-          {
-            inputName:
-              "refinementScope" satisfies InputNameForFlowAction<"generateStructuralQuery">,
-            kind: "step-output",
-            sourceStepId: "plan",
-            sourceStepOutputName:
-              "refinementScope" satisfies OutputNameForFlowAction<"planDashboardRefinement">,
-          },
-        ],
+    });
+
+    const analysis = step("2", actions.analyzeEntityData, {
+      description: "Preserve or refine data analysis",
+      inputs: {
+        structuralQuery: query.outputs.structuralQuery,
+        targetChartType: query.outputs.suggestedChartTypes,
+        userGoal: inputs.userGoal,
+        refinementInstruction: inputs.refinementInstruction,
+        existingPythonScript: inputs.existingPythonScript,
+        refinementScope: plan.outputs.refinementScope,
       },
-      {
-        stepId: "2",
-        kind: "action",
-        actionDefinitionId: "analyzeEntityData",
-        description: "Preserve or refine data analysis",
-        inputSources: [
-          {
-            inputName:
-              "structuralQuery" satisfies InputNameForFlowAction<"analyzeEntityData">,
-            kind: "step-output",
-            sourceStepId: "1",
-            sourceStepOutputName:
-              "structuralQuery" satisfies OutputNameForFlowAction<"generateStructuralQuery">,
-          },
-          {
-            inputName:
-              "targetChartType" satisfies InputNameForFlowAction<"analyzeEntityData">,
-            kind: "step-output",
-            sourceStepId: "1",
-            sourceStepOutputName:
-              "suggestedChartTypes" satisfies OutputNameForFlowAction<"generateStructuralQuery">,
-          },
-          ...["userGoal", "refinementInstruction", "existingPythonScript"].map(
-            (inputName) => ({
-              inputName:
-                inputName as InputNameForFlowAction<"analyzeEntityData">,
-              kind: "step-output" as const,
-              sourceStepId: "trigger",
-              sourceStepOutputName: inputName,
-            }),
-          ),
-          {
-            inputName:
-              "refinementScope" satisfies InputNameForFlowAction<"analyzeEntityData">,
-            kind: "step-output",
-            sourceStepId: "plan",
-            sourceStepOutputName:
-              "refinementScope" satisfies OutputNameForFlowAction<"planDashboardRefinement">,
-          },
-        ],
+    });
+
+    const chart = step("3", actions.generateChartConfig, {
+      description: "Preserve or refine chart configuration",
+      inputs: {
+        chartData: analysis.outputs.chartData,
+        chartType: analysis.outputs.suggestedChartType,
+        userGoal: inputs.userGoal,
+        refinementInstruction: inputs.refinementInstruction,
+        existingChartConfig: inputs.existingChartConfig,
+        refinementScope: plan.outputs.refinementScope,
       },
-      {
-        stepId: "3",
-        kind: "action",
-        actionDefinitionId: "generateChartConfig",
-        description: "Preserve or refine chart configuration",
-        inputSources: [
-          {
-            inputName:
-              "chartData" satisfies InputNameForFlowAction<"generateChartConfig">,
-            kind: "step-output",
-            sourceStepId: "2",
-            sourceStepOutputName:
-              "chartData" satisfies OutputNameForFlowAction<"analyzeEntityData">,
-          },
-          {
-            inputName:
-              "chartType" satisfies InputNameForFlowAction<"generateChartConfig">,
-            kind: "step-output",
-            sourceStepId: "2",
-            sourceStepOutputName:
-              "suggestedChartType" satisfies OutputNameForFlowAction<"analyzeEntityData">,
-          },
-          ...["userGoal", "refinementInstruction", "existingChartConfig"].map(
-            (inputName) => ({
-              inputName:
-                inputName as InputNameForFlowAction<"generateChartConfig">,
-              kind: "step-output" as const,
-              sourceStepId: "trigger",
-              sourceStepOutputName: inputName,
-            }),
-          ),
-          {
-            inputName:
-              "refinementScope" satisfies InputNameForFlowAction<"generateChartConfig">,
-            kind: "step-output",
-            sourceStepId: "plan",
-            sourceStepOutputName:
-              "refinementScope" satisfies OutputNameForFlowAction<"planDashboardRefinement">,
-          },
-        ],
-      },
-    ],
-    outputs: configureDashboardItemFlowDefinition.outputs,
-  };
+    });
+
+    return {
+      outputs: dashboardItemOutputs({
+        query: query.outputs,
+        analysis: analysis.outputs,
+        chart: chart.outputs,
+      }),
+    };
+  },
+);
