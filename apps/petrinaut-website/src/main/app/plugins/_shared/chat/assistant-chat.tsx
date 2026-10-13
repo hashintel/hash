@@ -64,7 +64,6 @@ import {
   getInteractiveTool,
   resolveDynamicInteractiveTool,
 } from "./assistant-chat/interactive-tools/registry";
-import { readCurrentDiagnostics } from "./assistant-chat/read-current-diagnostics";
 import {
   type AiToolOutput,
   type AiToolCall,
@@ -78,6 +77,7 @@ import {
   VoiceSessionProvider,
 } from "./assistant-chat/voice-session";
 import { executePetrinautAiMutation } from "./execute-petrinaut-ai-mutation";
+import { readDiagnosticsForAi } from "./read-diagnostics-for-ai";
 import { voiceStartAction } from "./voice-start-action";
 
 import type { PetrinautAiMessage, PetrinautAiTransport } from "./ai-message";
@@ -589,7 +589,7 @@ const ConversationAssistantChat = ({
   );
 
   const readDiagnosticsContext = useCallback(
-    () => readCurrentDiagnostics(document),
+    () => readDiagnosticsForAi(document),
     [document],
   );
 
@@ -907,8 +907,6 @@ const ConversationAssistantChat = ({
           output = automaticTool.outputSchema.parse(
             await automaticTool.execute({
               input: toolInput,
-              edit: document.edit,
-              readDiagnosticsContext,
               toolCallId: toolCall.toolCallId,
               signal: abortController.signal,
             }),

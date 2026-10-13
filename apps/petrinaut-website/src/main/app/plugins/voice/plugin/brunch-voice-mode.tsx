@@ -1,18 +1,18 @@
 import {
   VoiceInterviewControl,
   type OpenAIVoiceConfig,
-} from "./session/voice-interview-control";
+} from "../session/voice-interview-control";
 
 import type {
   PetrinautAiVoiceMode,
   PetrinautAiVoiceModeContext,
-} from "../_shared/chat/composer-control";
+} from "../../_shared/chat/composer-control";
 import type {
   BrunchPanelAdmissionTarget,
   BrunchPanelConversationTracker,
-} from "../brunch/brunch-panel-transport";
-import type { VoiceMediationHistory } from "./history/voice-mediation-history";
-import type { ToolApprovalState } from "./live/live-brunch-bridge";
+} from "../../brunch/brunch-panel-transport";
+import type { VoiceMediationHistory } from "../history/voice-mediation-history";
+import type { ToolApprovalState } from "../live/live-brunch-bridge";
 import type {
   FlueConversationSettlement,
   FlueConversationState,
@@ -60,7 +60,7 @@ export const getBrunchVoiceMode = (
       toolApprovalState={toolApprovalState}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated
-      // independently by followMessages.canReplace in the demo shell.
+      // independently by followMessages.canReplace in the Brunch plugin.
       snapshot={snapshot}
       resolveInputSubmission={resolveInputSubmission}
       resolveResponseSubmission={resolveResponseSubmission}

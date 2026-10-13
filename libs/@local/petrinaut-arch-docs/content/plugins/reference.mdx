@@ -259,6 +259,9 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `{ itemType, itemId }`, or `null`.
 - `petrinautDocsContent`: the user guide's pages, by name.
 - `AiAssistantIcon`: the editor's AI mark, for an assistant's own UI.
+- `prepareExperiment(request, definition, title)`: checks an experiment request
+  against a net and resolves what a run needs. Throws on a scenario, parameter
+  or metric the net lacks, or a value its parameter rejects.
 
 ## Error messages
 

@@ -1,10 +1,12 @@
+import { createReadableStore } from "@hashintel/petrinaut-core";
+
 import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type {
   PetrinautExperimentProgress,
   PetrinautExperimentResult,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-import type { prepareExperiment } from "@hashintel/petrinaut/react";
+import type { prepareExperiment } from "@hashintel/petrinaut/ui/plugin";
 
 export type PreparedExperiment = ReturnType<typeof prepareExperiment>;
 
@@ -44,58 +46,40 @@ type EditorDraftsState = {
   drafts: ReadonlyMap<string, EditorDraft>;
 };
 
-const createEditorDrafts = () => {
-  let state: EditorDraftsState = {
+/**
+ * The experiments Brunch drafted in this editor, with what the person did
+ * with each. Create one per plugin: the drafts live as long as it runs.
+ */
+export const createEditorDrafts = () => {
+  const store = createReadableStore<EditorDraftsState>({
     currentToolCallId: null,
     drafts: new Map(),
-  };
-  const listeners = new Set<() => void>();
-  const publish = (next: EditorDraftsState) => {
-    state = next;
-    for (const listener of listeners) listener();
-  };
+  });
   return {
-    subscribe: (listener: () => void): (() => void) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    get: (): EditorDraftsState => state,
+    subscribe: (listener: () => void) => store.subscribe(listener),
+    get: () => store.get(),
     /** Remounting an existing card must not revive it or supersede a newer one. */
     register: (draft: EditorDraft): EditorDraft => {
+      const state = store.get();
       const existing = state.drafts.get(draft.toolCallId);
       if (existing) return existing;
       const drafts = new Map(state.drafts);
       drafts.set(draft.toolCallId, draft);
-      publish({ currentToolCallId: draft.toolCallId, drafts });
+      store.set({ currentToolCallId: draft.toolCallId, drafts });
       return draft;
     },
     update: (
       toolCallId: string,
       patch: Partial<Omit<EditorDraft, "toolCallId">>,
     ) => {
+      const state = store.get();
       const existing = state.drafts.get(toolCallId);
       if (!existing) return;
       const drafts = new Map(state.drafts);
       drafts.set(toolCallId, { ...existing, ...patch });
-      publish({ ...state, drafts });
+      store.set({ ...state, drafts });
     },
   };
 };
 
-// The definition store survives panel remounts, but belongs to one editor.
-// Weak keys release drafts when that editor is disposed rather than retaining
-// every model and run in a tab-wide singleton.
-let editors = new WeakMap<object, ReturnType<typeof createEditorDrafts>>();
-export const editorDraftsFor = (definitionStore: object) => {
-  let drafts = editors.get(definitionStore);
-  if (!drafts) {
-    drafts = createEditorDrafts();
-    editors.set(definitionStore, drafts);
-  }
-  return drafts;
-};
-
-/** Test seam: forget every editor's drafts, as a reload would. */
-export const resetEditorDrafts = () => {
-  editors = new WeakMap();
-};
+export type EditorDrafts = ReturnType<typeof createEditorDrafts>;

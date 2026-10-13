@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 
 type ReplayReadiness<Replay> =
   | { readonly status: "pending" }
@@ -8,6 +8,74 @@ type ReplayBaseline<Snapshot, Replay> = {
   readonly key: string;
   readonly snapshot: Snapshot | undefined;
   readonly readiness: ReplayReadiness<Replay>;
+};
+
+type HistoryInput<Snapshot> = {
+  readonly bindingKey: string | undefined;
+  readonly historyPhase: string | undefined;
+  readonly snapshot: Snapshot | undefined;
+};
+
+/**
+ * The parts of the history input that can change the baseline; the hook calls
+ * `nextBaseline` only when one of them changes, so a new snapshot object for
+ * the same history changes nothing.
+ */
+type HistoryObservation = {
+  readonly bindingKey: string | undefined;
+  readonly absent: boolean;
+  readonly hasSnapshot: boolean;
+};
+
+const observe = <Snapshot>(
+  input: HistoryInput<Snapshot>,
+): HistoryObservation => ({
+  bindingKey: input.bindingKey,
+  absent: input.historyPhase === "absent",
+  hasSnapshot: input.snapshot !== undefined,
+});
+
+const sameObservation = (left: HistoryObservation, right: HistoryObservation) =>
+  left.bindingKey === right.bindingKey &&
+  left.absent === right.absent &&
+  left.hasSnapshot === right.hasSnapshot;
+
+/**
+ * The baseline after `input`: captured afresh for a new binding, completed
+ * once when the history first reports, and otherwise unchanged.
+ */
+const nextBaseline = <Snapshot, Replay>(
+  baseline: ReplayBaseline<Snapshot, Replay> | undefined,
+  input: HistoryInput<Snapshot>,
+  emptyReplay: Replay,
+): ReplayBaseline<Snapshot, Replay> | undefined => {
+  const { bindingKey, historyPhase, snapshot } = input;
+  if (bindingKey === undefined) return undefined;
+  // An absent history is ready at once, with nothing to replay.
+  const readyIfAbsent: ReplayReadiness<Replay> | undefined =
+    historyPhase === "absent"
+      ? { status: "ready", replay: emptyReplay }
+      : undefined;
+  if (baseline?.key !== bindingKey) {
+    return {
+      key: bindingKey,
+      snapshot,
+      readiness: readyIfAbsent ?? { status: "pending" },
+    };
+  }
+  if (
+    baseline.readiness.status === "pending" &&
+    baseline.snapshot === undefined &&
+    (readyIfAbsent !== undefined || snapshot !== undefined)
+  ) {
+    return {
+      ...baseline,
+      snapshot,
+      readiness: readyIfAbsent ?? baseline.readiness,
+    };
+  }
+
+  return baseline;
 };
 
 /**
@@ -23,41 +91,21 @@ export const useImmutableReplayBaseline = <Snapshot, Replay>(input: {
   readonly snapshot: Snapshot | undefined;
   readonly derive: (snapshot: Snapshot) => Promise<Replay>;
 }): ReplayReadiness<Replay> => {
-  const [storedBaseline, setStoredBaseline] = useState<
-    ReplayBaseline<Snapshot, Replay> | undefined
-  >(undefined);
+  const observation = observe(input);
+  const [previousObservation, setPreviousObservation] = useState(observation);
+  const [storedBaseline, setStoredBaseline] = useState(() =>
+    nextBaseline<Snapshot, Replay>(undefined, input, input.emptyReplay),
+  );
   let baseline = storedBaseline;
-
-  if (input.bindingKey === undefined) {
-    if (baseline !== undefined) setStoredBaseline(undefined);
-    baseline = undefined;
-  } else if (baseline === undefined || baseline.key !== input.bindingKey) {
-    baseline = {
-      key: input.bindingKey,
-      snapshot: input.snapshot,
-      readiness:
-        input.historyPhase === "absent"
-          ? { status: "ready", replay: input.emptyReplay }
-          : { status: "pending" },
-    };
-    setStoredBaseline(baseline);
-  } else if (
-    baseline.readiness.status === "pending" &&
-    baseline.snapshot === undefined &&
-    (input.historyPhase === "absent" || input.snapshot !== undefined)
-  ) {
-    baseline = {
-      ...baseline,
-      snapshot: input.snapshot,
-      readiness:
-        input.historyPhase === "absent"
-          ? { status: "ready", replay: input.emptyReplay }
-          : baseline.readiness,
-    };
+  if (!sameObservation(observation, previousObservation)) {
+    setPreviousObservation(observation);
+    baseline = nextBaseline(storedBaseline, input, input.emptyReplay);
     setStoredBaseline(baseline);
   }
 
-  const derive = input.derive;
+  // The verification runs once per captured baseline, with whatever `derive`
+  // the caller passes at that time; a new `derive` alone restarts nothing.
+  const derive = useEffectEvent((snapshot: Snapshot) => input.derive(snapshot));
   useEffect(() => {
     const capturedSnapshot = baseline?.snapshot;
     if (
@@ -83,7 +131,7 @@ export const useImmutableReplayBaseline = <Snapshot, Replay>(input: {
     return () => {
       cancelled = true;
     };
-  }, [baseline, derive]);
+  }, [baseline]);
 
   return baseline?.readiness ?? { status: "pending" };
 };
