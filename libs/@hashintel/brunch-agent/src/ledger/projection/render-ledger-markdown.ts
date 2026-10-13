@@ -39,24 +39,15 @@ const entityItems = (
 ): ListItems => {
   const { record, claims } = entity;
   const kindNote = withKind ? `${record.kind} \u00b7 ` : "";
-  // Plannotator's parser renders **bold**, not md-pen's __bold__.
   const heading = `**${record.name}** \u2014 ${kindNote}${record.origin} \u00b7 ${record.status}${tag(skin, record.address)}`;
   if (claims.length === 0) return [heading];
   return [heading, claims.flatMap((claim) => claimLine(skin, claim))];
 };
 
-/** Plannotator `:::question` directive; `- [ ]` choices, never `- [x]`. */
-const questionBlock = (skin: Skin, question: ProjectedQuestion) =>
-  [
-    ":::question",
-    question.prompt,
-    "",
-    `${question.context}${skin === "agent" ? ` Record: ${question.claim.address}.` : ""}`,
-    ...(question.choices.length > 0
-      ? ["", ...question.choices.map((choice) => `- [ ] ${choice}`)]
-      : []),
-    ":::",
-  ].join("\n");
+const questionItems = (
+  skin: Skin,
+  { claim, prompt, context }: ProjectedQuestion,
+): ListItems => [`${prompt}${tag(skin, claim.address)}`, [context]];
 
 const obligationLine = (
   skin: Skin,
@@ -88,8 +79,13 @@ export const renderLedgerMarkdown = (
   }
   if (projection.questions.length > 0) {
     blocks.push(h2("Open questions"));
-    for (const question of projection.questions)
-      blocks.push(questionBlock(skin, question));
+    blocks.push(
+      ul(
+        projection.questions.flatMap((question) =>
+          questionItems(skin, question),
+        ),
+      ),
+    );
   }
   if (projection.owed.length > 0) {
     blocks.push(h2("Checks still owed"));

@@ -83,21 +83,10 @@ exports[`the worked example renders the approved markdown structure > agent skin
 
 ## Open questions
 
-:::question
-Is the current six one agent too many on the peak block?
-
-Accounts disagree and nobody has said which holds. Concerns: Agents on the block, Agents on the phones. Record: c10.
-
-- [ ] It holds
-- [ ] It does not hold
-- [ ] Leave it unresolved
-:::
-
-:::question
-Is there a pattern inside the two-hour block beyond “it builds after ten”?
-
-It matters and nobody knows yet. Concerns: Weekday morning peak, Callers. Record: c11.
-:::
+- Is the current six one agent too many on the peak block? \`c10\`
+  - Accounts disagree and nobody has said which holds. Concerns: Agents on the block, Agents on the phones.
+- Is there a pattern inside the two-hour block beyond “it builds after ten”? \`c11\`
+  - It matters and nobody knows yet. Concerns: Weekday morning peak, Callers.
 
 ## Checks still owed
 
@@ -197,21 +186,10 @@ exports[`the worked example renders the approved markdown structure > user skin 
 
 ## Open questions
 
-:::question
-Is the current six one agent too many on the peak block?
-
-Accounts disagree and nobody has said which holds. Concerns: Agents on the block, Agents on the phones.
-
-- [ ] It holds
-- [ ] It does not hold
-- [ ] Leave it unresolved
-:::
-
-:::question
-Is there a pattern inside the two-hour block beyond “it builds after ten”?
-
-It matters and nobody knows yet. Concerns: Weekday morning peak, Callers.
-:::
+- Is the current six one agent too many on the peak block?
+  - Accounts disagree and nobody has said which holds. Concerns: Agents on the block, Agents on the phones.
+- Is there a pattern inside the two-hour block beyond “it builds after ten”?
+  - It matters and nobody knows yet. Concerns: Weekday morning peak, Callers.
 
 ## Checks still owed
 

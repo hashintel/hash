@@ -36,16 +36,22 @@ test("superseded claims collapse under their successor, struck through", () => {
   ).toBeLessThan(horizons.indexOf("~~About 45 calls"));
 });
 
-test("open and conflicted claims become question cards; open ones take free text", () => {
-  const openQuestions = user.slice(user.indexOf("## Open questions"));
+test("open and conflicted claims list as plain-markdown questions", () => {
+  const openQuestions = user.slice(
+    user.indexOf("## Open questions"),
+    user.indexOf("## Checks still owed"),
+  );
   expect(openQuestions).toContain(
-    "Is the current six one agent too many on the peak block?",
+    "- Is the current six one agent too many on the peak block?\n  - Accounts disagree",
   );
-  expect(openQuestions).toContain("- [ ] It holds");
-  const openCard = openQuestions.slice(
-    openQuestions.indexOf("Is there a pattern inside the two-hour block"),
+  expect(openQuestions).toContain(
+    "- Is there a pattern inside the two-hour block",
   );
-  expect(openCard.slice(0, openCard.indexOf(":::"))).not.toContain("- [ ]");
+  expect(openQuestions).not.toContain(":::");
+  expect(openQuestions).not.toContain("- [ ]");
+  expect(agent).toContain(
+    "- Is the current six one agent too many on the peak block? `c10`",
+  );
 });
 
 test("out-of-scope entities leave their kind section for the excluded list", () => {

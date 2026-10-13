@@ -50,14 +50,6 @@ export interface ProjectedQuestion {
   claim: ClaimRecord;
   prompt: string;
   context: string;
-  choices: string[];
-}
-
-export interface AddressEntry {
-  address: string;
-  recordType: "entity" | "claim";
-  /** Exact text snippets this record contributes to the rendered document. */
-  snippets: string[];
 }
 
 export interface ProjectedObligation {
@@ -78,7 +70,6 @@ export interface LedgerProjection {
   questions: ProjectedQuestion[];
   owed: ProjectedObligation[];
   met: ProjectedMetObligation[];
-  addressEntries: AddressEntry[];
 }
 
 const stageTitles: Record<EntityStage, string> = {
@@ -122,9 +113,8 @@ const addressNumber = (address: string) => Number(address.slice(1));
 
 /**
  * The deterministic fold from committed records to the sectioned view
- * structure, plus the address entries that let a selection in the rendered
- * document resolve back to records. Reflections are construction-mode records
- * and deliberately stay out of this account view.
+ * structure. Reflections are construction-mode records and deliberately stay
+ * out of this account view.
  */
 export const projectLedger = (ledger: LedgerState): LedgerProjection => {
   const supersededBy = new Map<string, string>();
@@ -214,19 +204,6 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
         ];
   });
 
-  const addressEntries: AddressEntry[] = [
-    ...ledger.entities.map((entity) => ({
-      address: entity.address,
-      recordType: "entity" as const,
-      snippets: [entity.name],
-    })),
-    ...ledger.claims.map((claim) => ({
-      address: claim.address,
-      recordType: "claim" as const,
-      snippets: [claim.text],
-    })),
-  ];
-
   return {
     title: ledger.title,
     sections,
@@ -234,7 +211,6 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     questions,
     owed,
     met,
-    addressEntries,
   };
 };
 
@@ -254,13 +230,10 @@ const projectQuestion = (
       claim,
       prompt: claim.text,
       context: `Accounts disagree and nobody has said which holds. Concerns: ${names}.`,
-      choices: ["It holds", "It does not hold", "Leave it unresolved"],
     };
-  // An open claim takes a free-text answer: no choices renders a text card.
   return {
     claim,
     prompt: claim.text,
     context: `It matters and nobody knows yet. Concerns: ${names}.`,
-    choices: [],
   };
 };

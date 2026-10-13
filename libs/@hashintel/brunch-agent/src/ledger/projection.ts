@@ -17,7 +17,6 @@ export type {
 export {
   owedObligations,
   projectLedger,
-  type AddressEntry,
   type LedgerProjection,
   type ProjectedClaim,
   type ProjectedEntity,
