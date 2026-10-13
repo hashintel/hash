@@ -14,7 +14,7 @@ extern crate alloc;
 mod common;
 
 use alloc::sync::Arc;
-use core::{assert_matches, error::Error, ops::ControlFlow, time::Duration};
+use core::{assert_matches, error::Error, ops::ControlFlow, pin::pin, time::Duration};
 
 use error_stack::Report;
 use futures::lock::Mutex;
@@ -42,6 +42,7 @@ use hash_middleware::authentication::{
     provider::AuthenticationProvider,
     request::{AuthenticationError, AuthenticationErrorKind},
 };
+use hash_secret::Secret;
 use http::{HeaderMap, HeaderValue, header::AUTHORIZATION};
 use pretty_assertions::assert_eq;
 use time::OffsetDateTime;
@@ -900,7 +901,9 @@ async fn delete_user_revokes_tokens() -> Result<(), Box<dyn Error>> {
 }
 
 fn key() -> ApiTokenEncryptionKey {
-    ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(Uuid::nil()), &[7; 32])
+    let mut key = pin!(Secret::<[u8; 32]>::zeroed());
+    key.as_mut().expose_mut().fill(7);
+    ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(Uuid::nil()), &key)
 }
 
 fn issuer() -> ApiTokenIssuer {
@@ -933,7 +936,7 @@ async fn record_issued(store: &mut Store<'_>, user_id: UserId) -> Result<String,
         .issue(user_id, ApiTokenName::new("ci".to_owned())?, Some(LIFETIME))
         .expect("the random number generator should provide bytes");
     store.create_api_token(generated.params).await?;
-    Ok(generated.token.expose())
+    Ok(generated.token.to_secret().expose().to_owned())
 }
 
 /// Authenticates `token` as a bearer token with an [`ApiTokenProvider`] reading the test

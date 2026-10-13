@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{num::NonZeroU32, ops::ControlFlow};
+use core::{num::NonZeroU32, ops::ControlFlow, pin::pin};
 use std::collections::HashMap;
 
 use aide::{
@@ -86,8 +86,10 @@ impl AuthenticateApiToken for UnreadableTokens {
 }
 
 fn issuer() -> ApiTokenIssuer {
+    let mut key = pin!(Secret::<[u8; 32]>::zeroed());
+    key.as_mut().expose_mut().fill(7);
     ApiTokenIssuer::new(
-        ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(Uuid::nil()), &[7; 32]),
+        ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(Uuid::nil()), &key),
         Environment::Local,
     )
 }
@@ -102,7 +104,9 @@ fn api_token() -> String {
         )
         .expect("the random number generator should provide bytes")
         .token
+        .to_secret()
         .expose()
+        .to_owned()
 }
 
 /// The schemes a generated document advertises.

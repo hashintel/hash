@@ -239,7 +239,10 @@ where
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
-    use core::sync::atomic::{AtomicUsize, Ordering};
+    use core::{
+        pin::pin,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
 
     use error_stack::Report;
     use hash_graph_store::api_token::{
@@ -250,6 +253,7 @@ mod tests {
         provider::{AuthenticationProvider, expect_rejection},
         request::{AuthenticationError, AuthenticationErrorKind},
     };
+    use hash_secret::Secret;
     use http::{HeaderMap, HeaderValue, header::AUTHORIZATION};
     use rstest::rstest;
     use type_system::principal::actor::{ActorId, UserId};
@@ -281,8 +285,10 @@ mod tests {
     }
 
     fn issuer(environment: Environment) -> Arc<ApiTokenIssuer> {
+        let mut key = pin!(Secret::<[u8; 32]>::zeroed());
+        key.as_mut().expose_mut().fill(7);
         Arc::new(ApiTokenIssuer::new(
-            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(Uuid::nil()), &[7; 32]),
+            ApiTokenEncryptionKey::new(ApiTokenEncryptionKeyId::new(Uuid::nil()), &key),
             environment,
         ))
     }
@@ -297,7 +303,9 @@ mod tests {
             )
             .expect("the random number generator should provide bytes")
             .token
+            .to_secret()
             .expose()
+            .to_owned()
     }
 
     fn authorization(credentials: &str) -> HeaderMap {
