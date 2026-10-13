@@ -31,8 +31,6 @@ import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provi
 import { flueConversationId } from "../../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
-import type { AdmissionVoiceEvidence } from "../admission-voice-evidence.ts";
-
 const directory =
   process.env.A2_OUTPUT_DIRECTORY ?? mkdtempSync(join(tmpdir(), "admission-"));
 if (process.env.A2_OUTPUT_DIRECTORY !== undefined) {
@@ -326,8 +324,14 @@ const run = async () => {
         privateMarkdown,
       });
     }
-    const voice: AdmissionVoiceEvidence = { question, buffering };
-    return { observations, refusals, buffering, question, wire, voice };
+    return {
+      observations,
+      refusals,
+      buffering,
+      question,
+      wire,
+      voice: { question, buffering },
+    };
   } finally {
     await application.stop();
     unobserve();

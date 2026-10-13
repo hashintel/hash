@@ -1,6 +1,6 @@
 import { join } from "node:path";
 
-import { runNodeScript } from "./run-node-script.ts";
+import { runNodeScript, type NodeScriptResult } from "./run-node-script.ts";
 
 import type { AdmissionControlsResult } from "./admission-controls.integration.ts";
 
@@ -10,12 +10,12 @@ const outputPrefix = "ADMISSION_CONTROLS ";
 
 /** Runs the probe in its own process, since it installs module hooks before loading the build. */
 export const runAdmissionControls = async (
-  env: Readonly<Record<string, string>> = {},
-): Promise<{
-  readonly result: AdmissionControlsResult;
-  readonly stderr: string;
-  readonly stdout: string;
-}> => {
+  env: Parameters<typeof runNodeScript>[2] = {},
+): Promise<
+  Pick<NodeScriptResult, "stderr" | "stdout"> & {
+    readonly result: AdmissionControlsResult;
+  }
+> => {
   const { exitCode, stdout, stderr } = await runNodeScript(
     join(import.meta.dirname, "admission-controls.integration.ts"),
     join(import.meta.dirname, "../../../.."),

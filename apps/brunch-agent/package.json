@@ -7,7 +7,6 @@
   "type": "module",
   "exports": {
     "./testing/admission-controls": "./test/integration/run-admission-controls.ts",
-    "./testing/admission-voice-evidence": "./test/admission-voice-evidence.ts",
     "./testing/load-built-application": "./test/load-built-application.ts"
   },
   "scripts": {

@@ -43,6 +43,7 @@ import { documentRevisionOf } from "./shared/document-revision";
 import type { createInBandBrowserCalls } from "./in-band-browser-call";
 import type { FlueConversationState } from "@flue/sdk";
 import type {
+  PetrinautDocHandle,
   PetrinautExperimentRequest,
   SDCPN,
 } from "@hashintel/petrinaut-core";
@@ -271,7 +272,7 @@ export const BrunchDraftExperimentWidget = ({
    * The open document as Brunch hashes it, disabled-extension data included.
    * `api.document.net` leaves that data out, so it cannot check a revision.
    */
-  readDefinition: () => SDCPN | undefined;
+  readDefinition: PetrinautDocHandle["doc"];
   readDraftAuthority: (toolCallId: string) => Promise<string>;
   /** Claim the issued call, then submit what `prepareOutput` resolves to, so the lease covers preparation. */
   claimAndSubmit: (
@@ -788,7 +789,7 @@ export const createBrunchDraftExperimentInteractiveTool = ({
 }: {
   browserCalls: ReturnType<typeof createInBandBrowserCalls>;
   readTitle: () => string;
-  readDefinition: () => SDCPN | undefined;
+  readDefinition: PetrinautDocHandle["doc"];
   readDraftAuthority: (toolCallId: string) => Promise<string>;
 }) =>
   definePetrinautAiInteractiveTool<

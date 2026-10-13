@@ -167,7 +167,7 @@ export const useBrunchAssistant = ({
   /** Brunch is configured and chosen as the assistant. */
   readonly selected: boolean;
   /** The open document, or `null` while none is open. */
-  readonly document: { readonly documentId: string } | null;
+  readonly document: Parameters<typeof useProcessAgentBinding>[0]["document"];
   /** The open document's live handle, or `null` while it is loading. */
   readonly editor: BrunchEditorDocument | null;
   readonly voice: BrunchVoicePreferences;

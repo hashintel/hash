@@ -1,11 +1,14 @@
 /// <reference types="node" />
 import { beforeAll, expect, test, vi } from "vitest";
 
-import { runAdmissionControls } from "@apps/brunch-agent/testing/admission-controls";
+import {
+  runAdmissionControls,
+  type AdmissionControlsResult,
+} from "@apps/brunch-agent/testing/admission-controls";
 import { selectCanonicalSpeech } from "@apps/petrinaut-website/src/main/app/plugins/brunch/voice/live/canonical-speech";
 import { RealtimeBrunchBridge } from "@apps/petrinaut-website/src/main/app/plugins/brunch/voice/realtime/realtime-brunch-bridge";
 
-import type { AdmissionVoiceEvidence } from "@apps/brunch-agent/testing/admission-voice-evidence";
+type AdmissionVoiceEvidence = AdmissionControlsResult["voice"];
 
 let result: AdmissionVoiceEvidence;
 beforeAll(async () => {
