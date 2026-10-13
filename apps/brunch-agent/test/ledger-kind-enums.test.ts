@@ -670,6 +670,52 @@ test("the receipt notes an agent claim superseding the account", async () => {
   expect(correction).not.toHaveProperty("notes");
 });
 
+test("a claim supersedes only an earlier claim, by literal ID as by $index", async () => {
+  const account = toBatch([
+    [
+      "entity/create",
+      {
+        name: "Night demand",
+        kind: "thing",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ]);
+  const claim = {
+    text: "Summer night demand is 15 to 25 L/s.",
+    entities: ["e1"],
+    origin: "stated",
+    status: "confirmed",
+  } as const;
+  const selfSuperseding = toBatch([
+    ["claim/create", { ...claim, supersedes: ["c1"] }],
+  ]);
+  expect(await runCommit([account], selfSuperseding)).toEqual({
+    status: "refused",
+    applied: false,
+    code: "unknown-address",
+    message: "Claim c1 cannot supersede c1; supersedes names an earlier claim.",
+    revision: 1,
+  });
+  const forward = toBatch([
+    ["claim/create", { ...claim, supersedes: ["c2"] }],
+    ["claim/create", claim],
+  ]);
+  expect(await runCommit([account], forward)).toMatchObject({
+    status: "refused",
+    message: "Claim c1 cannot supersede c2; supersedes names an earlier claim.",
+  });
+  const backward = toBatch([
+    ["claim/create", claim],
+    ["claim/create", { ...claim, supersedes: ["c1"] }],
+  ]);
+  expect(await runCommit([account], backward)).toMatchObject({
+    status: "recorded",
+    ids: ["c1", "c2"],
+  });
+});
+
 test("an obligation stays owed until a reflection discharges it", async () => {
   const owing = toBatch([
     [

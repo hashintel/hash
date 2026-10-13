@@ -227,9 +227,17 @@ const deriveBatch = (
         if (!entityKnown(reference))
           return refusal(`Unknown entity ${reference}.`);
       const supersedes = (payload.supersedes ?? []).map(resolveReference);
-      for (const reference of supersedes)
+      for (const reference of supersedes) {
         if (!claimKnown(reference))
           return refusal(`Unknown claim ${reference}.`);
+        if (
+          !priorClaims.has(reference) &&
+          !newClaims.some((claim) => claim.address === reference)
+        )
+          return refusal(
+            `Claim ${address} cannot supersede ${reference}; supersedes names an earlier claim.`,
+          );
+      }
       newClaims.push({
         address,
         text: payload.text,
