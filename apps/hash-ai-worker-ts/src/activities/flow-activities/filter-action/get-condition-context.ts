@@ -14,7 +14,8 @@ import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-
 import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
- * Fetches the entities whose properties or types a condition reads, as the user running the flow. An entity they
+ * Fetches the entities whose properties or types a condition reads, as the user running the flow. Each EntityId
+ * loads exactly the edition it names: the draft for one with a draftId, otherwise the live edition. An entity they
  * can't read is left out, so a condition on it fails rather than matching. Empty and malformed EntityIds aren't
  * queried: evaluation treats the former as empty and rejects the latter.
  */
@@ -56,12 +57,15 @@ export const getConditionContext = async (params: {
     {
       filter: {
         any: entityIds.map((entityId) => {
-          const [webId, entityUuid] = splitEntityId(entityId);
+          const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
           return {
             all: [
               { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
               { equal: [{ path: ["webId"] }, { parameter: webId }] },
+              draftId
+                ? { equal: [{ path: ["draftId"] }, { parameter: draftId }] }
+                : { not: { exists: { path: ["draftId"] } } },
             ],
           };
         }),
