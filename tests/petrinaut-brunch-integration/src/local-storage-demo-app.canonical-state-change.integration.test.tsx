@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+// @vitest-environment jsdom
 import {
   fauxAssistantMessage,
   fauxProvider,
@@ -15,18 +15,17 @@ import {
 } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
-import { toPetrinautId } from "@hashintel/petrinaut-core";
-import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
-
-import { documentRevisionOf } from "../plugins/brunch/tools/shared/document-revision";
+import { loadBuiltBrunchApplication } from "@apps/brunch-agent/testing/load-built-application";
+import { assistantSelectionStorageKey } from "@apps/petrinaut-website/src/main/app/local-storage-demo/assistant-selection";
+import { LocalStorageDemoApp } from "@apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app";
+import { documentRevisionOf } from "@apps/petrinaut-website/src/main/app/plugins/brunch/tools/shared/document-revision";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
   preloadMonaco,
-} from "../shared/petrinaut-jsdom";
-import { assistantSelectionStorageKey } from "./assistant-selection";
-import { LocalStorageDemoApp } from "./local-storage-demo-app";
+} from "@apps/petrinaut-website/src/main/app/shared/petrinaut-jsdom";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import type { FlueClient } from "@flue/sdk";
 import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
@@ -34,7 +33,7 @@ import type { ComponentProps } from "react";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../shared/petrinaut-jsdom");
+    await import("@apps/petrinaut-website/src/main/app/shared/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 
@@ -68,15 +67,21 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
     },
   };
 });
-vi.mock("../plugins/brunch/brunch-preview-config", () => ({
-  resolveBrunchPreviewConfig: () => ({
-    chatEndpoint: "/agents/petrinaut",
-    isBrunchConfigured: true,
+vi.mock(
+  "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-preview-config",
+  () => ({
+    resolveBrunchPreviewConfig: () => ({
+      chatEndpoint: "/agents/petrinaut",
+      isBrunchConfigured: true,
+    }),
   }),
-}));
-vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
-  getOrCreateBrunchPrincipal: () => "test-principal",
-}));
+);
+vi.mock(
+  "@apps/petrinaut-website/src/main/app/plugins/brunch/conversation/brunch-principal",
+  () => ({
+    getOrCreateBrunchPrincipal: () => "test-principal",
+  }),
+);
 
 const originalFetch = globalThis.fetch;
 beforeAll(async () => {

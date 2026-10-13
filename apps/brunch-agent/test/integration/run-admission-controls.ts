@@ -1,8 +1,8 @@
 import { join } from "node:path";
 
-import { runNodeScript } from "@local/brunch-testing/run-node-script";
+import { runNodeScript } from "./run-node-script.ts";
 
-import type { AdmissionControlsResult } from "./admission-controls.integration";
+import type { AdmissionControlsResult } from "./admission-controls.integration.ts";
 
 export type { AdmissionControlsResult };
 

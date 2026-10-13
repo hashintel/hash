@@ -5,6 +5,11 @@
   "description": "Remote Brunch server and local Petrinaut development loop.",
   "license": "AGPL-3.0",
   "type": "module",
+  "exports": {
+    "./testing/admission-controls": "./test/integration/run-admission-controls.ts",
+    "./testing/admission-voice-evidence": "./test/admission-voice-evidence.ts",
+    "./testing/load-built-application": "./test/load-built-application.ts"
+  },
   "scripts": {
     "build": "vite build && vite build --config vite.client.config.ts",
     "build:docker": "docker buildx build --tag brunch-agent --file docker/Dockerfile ../../ --load",
@@ -50,7 +55,6 @@
   "devDependencies": {
     "@earendil-works/pi-tui": "0.84.3",
     "@flue/vite": "2.0.3",
-    "@local/brunch-testing": "workspace:*",
     "@local/pi-faux-providers": "workspace:*",
     "@playwright/test": "1.58.2",
     "@types/node": "22.18.13",

@@ -1,0 +1,11 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "test:integration": {
+      // `^build` builds the Brunch server the tests load, and the website's
+      // build first generates the route tree and examples its sources import.
+      "dependsOn": ["^build"],
+      "env": ["TEST_COVERAGE"]
+    }
+  }
+}

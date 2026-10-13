@@ -22,13 +22,13 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import { foldCommits } from "@hashintel/brunch-agent";
-import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../src/shared/conversation/identity.ts";
+import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 const directory =
   process.env.LEDGER_OBSERVATION_DIRECTORY ??

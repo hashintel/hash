@@ -1,6 +1,4 @@
-/**
- * @vitest-environment jsdom
- */
+// @vitest-environment jsdom
 import {
   fauxAssistantMessage,
   fauxProvider,
@@ -19,25 +17,24 @@ import {
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
+import { loadBuiltBrunchApplication } from "@apps/brunch-agent/testing/load-built-application";
+import { renderEditorWith } from "@apps/petrinaut-website/src/main/app/plugins/_shared/testing/render-editor-with";
+import { createBrunchFlueAdapter } from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-flue-adapter";
+import {
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-panel-transport";
+import { resolveBrunchToolPresentation } from "@apps/petrinaut-website/src/main/app/plugins/brunch/tools/brunch-tool-presentation";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent";
-import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
-
-import { renderEditorWith } from "../../_shared/testing/render-editor-with";
-import { createBrunchFlueAdapter } from "../brunch-flue-adapter";
-import {
-  BrunchPanelConversationTracker,
-  createBrunchPanelTransport,
-} from "../brunch-panel-transport";
-import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../../../shared/petrinaut-jsdom");
+    await import("@apps/petrinaut-website/src/main/app/shared/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 

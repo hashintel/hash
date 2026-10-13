@@ -2,11 +2,12 @@ import { isToolUIPart, type UIMessageChunk } from "ai";
 import { beforeAll, expect, test } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent";
+import { createFlueUiStream } from "@local/flue-aisdk-transport";
+
 import {
   runAdmissionControls,
   type AdmissionControlsResult,
-} from "@local/brunch-testing/admission-controls";
-import { createFlueUiStream } from "@local/flue-aisdk-transport";
+} from "./run-admission-controls.ts";
 
 let result: AdmissionControlsResult;
 let serverOutput: string;

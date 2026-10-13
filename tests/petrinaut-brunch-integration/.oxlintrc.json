@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": ["../../../.config/oxlint/brunch/base.json"],
+  "extends": ["../../.config/oxlint/brunch/react.json"],
   "categories": {
     "correctness": "error",
     "perf": "warn"
@@ -8,6 +8,7 @@
   "env": {
     "builtin": true,
     "es2026": true,
+    "browser": true,
     "node": true
   },
   "options": {
@@ -22,10 +23,6 @@
           {
             "regex": "^(\\.\\./)+((apps|libs|@[a-z0-9-]+)/|[^./][^/]*/(src|dist)/)",
             "message": "Import another workspace package by its package name, not a relative path into it."
-          },
-          {
-            "group": ["@apps/*"],
-            "message": "Libraries never import applications; reach the Brunch server through its build."
           }
         ]
       }

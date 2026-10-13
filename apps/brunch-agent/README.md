@@ -43,6 +43,8 @@ To try a candidate, copy `src/agents/petrinaut/` to `src/agents/petrinaut-alt-<i
 
 Neither `test:unit` nor `test:integration` needs anything running. `test:integration` checks the built app, starting it as a server and loading it in process with scripted OpenAI responses on the default model.
 
+The app exports its harness for the built server under `@apps/brunch-agent/testing/*` (`test/load-built-application.ts`, `test/admission-voice-evidence.ts` and `test/integration/run-admission-controls.ts`). Its one consumer is `tests/petrinaut-brunch-integration`, which runs the Petrinaut website's Brunch code against the built app.
+
 The `test:manual:*` scripts are not part of either suite and do not run in CI. `test:manual:browser` builds the website and drives it in the local macOS Chrome against the built app.
 
 ## Local Postgres

@@ -15,7 +15,7 @@ export const loadBuiltBrunchApplication =
   async (): Promise<BuiltBrunchApplication> => {
     // Not `import.meta.url`, which a jsdom test environment reports as http:.
     const applicationUrl = pathToFileURL(
-      join(import.meta.dirname, "../../../../apps/brunch-agent/dist/app.mjs"),
+      join(import.meta.dirname, "../dist/app.mjs"),
     ).href;
     const builtModule = (await import(
       applicationUrl

@@ -5,12 +5,11 @@ import { pathToFileURL } from "node:url";
 
 import { expect, test } from "vitest";
 
-import { runNodeScript } from "@local/brunch-testing/run-node-script";
-
 import {
   assertCrashRecovery,
   type CrashRecoveryKind,
 } from "./history-retention-crash-audit";
+import { runNodeScript } from "./run-node-script.ts";
 
 const repositoryRoot = join(import.meta.dirname, "../../../..");
 const crashScript = join(

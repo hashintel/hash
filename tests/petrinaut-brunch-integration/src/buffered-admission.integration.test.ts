@@ -1,12 +1,11 @@
 /// <reference types="node" />
 import { beforeAll, expect, test, vi } from "vitest";
 
-import { runAdmissionControls } from "@local/brunch-testing/admission-controls";
+import { runAdmissionControls } from "@apps/brunch-agent/testing/admission-controls";
+import { selectCanonicalSpeech } from "@apps/petrinaut-website/src/main/app/plugins/brunch/voice/live/canonical-speech";
+import { RealtimeBrunchBridge } from "@apps/petrinaut-website/src/main/app/plugins/brunch/voice/realtime/realtime-brunch-bridge";
 
-import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
-import { selectCanonicalSpeech } from "./canonical-speech";
-
-import type { AdmissionVoiceEvidence } from "@local/brunch-testing/admission-voice-evidence";
+import type { AdmissionVoiceEvidence } from "@apps/brunch-agent/testing/admission-voice-evidence";
 
 let result: AdmissionVoiceEvidence;
 beforeAll(async () => {
@@ -22,7 +21,12 @@ const speechFrom = (
     messages as unknown as Parameters<typeof selectCanonicalSpeech>[0],
   );
 const voice = () => {
-  const speakCanonical = vi.fn();
+  const speakCanonical =
+    vi.fn<
+      ConstructorParameters<
+        typeof RealtimeBrunchBridge
+      >[0]["session"]["speakCanonical"]
+    >();
   const bridge = new RealtimeBrunchBridge({
     session: { speakCanonical, subscribe: () => () => {} },
     submitInterviewAnswer: async () => {

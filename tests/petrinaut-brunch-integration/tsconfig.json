@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
+    "jsx": "react-jsx",
     "target": "es2024",
-    "lib": ["ESNext"],
+    "lib": ["dom", "dom.iterable", "ESNext"],
     "types": ["node"],
     "module": "preserve",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -15,5 +17,5 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["src"]
+  "include": ["src", "vitest.config.ts"]
 }

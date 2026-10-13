@@ -7,23 +7,22 @@ import { createFlueClient } from "@flue/sdk";
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, beforeAll, expect, test } from "vitest";
 
+import { loadBuiltBrunchApplication } from "@apps/brunch-agent/testing/load-built-application";
+import { createBrunchFlueAdapter } from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-flue-adapter";
+import {
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-panel-transport";
 import {
   agentOwnershipHeaders,
   brunchEnv,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent";
-import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 import {
   createNativeOpenaiToolStall,
   nativeOpenaiProvider,
 } from "@local/pi-faux-providers/native-openai-provider";
-
-import { createBrunchFlueAdapter } from "../brunch-flue-adapter";
-import {
-  BrunchPanelConversationTracker,
-  createBrunchPanelTransport,
-} from "../brunch-panel-transport";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 

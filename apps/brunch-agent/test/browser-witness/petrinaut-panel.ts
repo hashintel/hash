@@ -17,12 +17,12 @@ import {
   toPetrinautId,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
 
 import {
   isAppliedChange,
   netCalls,
 } from "../../src/shared/conversation/net-changes.ts";
+import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 import {
   installFauxOpenai,
   openaiCallId,

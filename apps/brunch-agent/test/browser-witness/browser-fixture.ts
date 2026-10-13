@@ -28,7 +28,7 @@ import {
   flueConversationIdFrom,
 } from "../../src/shared/conversation/identity.ts";
 
-import type { BuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
+import type { BuiltBrunchApplication } from "../load-built-application.ts";
 
 const websiteDist = resolve(
   import.meta.dirname,
