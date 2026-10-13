@@ -44,6 +44,10 @@ use crate::{
 
 const SERVICE_SECRET: &str = "hash-svc-test-secret";
 
+fn service_secret() -> Pin<Arc<Secret<str>>> {
+    Secret::from_string(SERVICE_SECRET.to_owned()).to_arc()
+}
+
 fn non_zero(value: u32) -> core::num::NonZeroU32 {
     core::num::NonZeroU32::new(value).expect("the value should be non-zero")
 }
@@ -76,7 +80,7 @@ fn gate_router_with(limiters: &Arc<RateLimiters>) -> Router {
         .route("/entities", get(async || "ok"))
         .route_layer(IpGateLayer {
             limiters: Arc::clone(limiters),
-            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
+            service_secret: Some(service_secret()),
         })
 }
 
@@ -93,7 +97,7 @@ fn caller_router_with(limiters: &Arc<RateLimiters>) -> Router {
         .route("/entities", get(async || "ok"))
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(limiters),
-            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
+            service_secret: Some(service_secret()),
         })
 }
 
@@ -106,24 +110,22 @@ fn full_stack_router_with(
     limiters: &Arc<RateLimiters>,
     provider: StaticAuthenticationProvider,
 ) -> Router {
-    let service_secret = Secret::from_string(SERVICE_SECRET.to_owned()).to_arc();
     Router::new()
         .route("/entities", get(async || "ok"))
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(limiters),
-            service_secret: Pin::clone(&service_secret),
+            service_secret: Some(service_secret()),
         })
         .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider: Arc::new(provider),
-            service_secret: Pin::clone(&service_secret),
             metrics: auth_metrics(),
-            bootstrap_route: |_path| false,
+            bootstrap: None,
             challenge: Challenge::Service,
             caller: PhantomData,
         })
         .route_layer(IpGateLayer {
             limiters: Arc::clone(limiters),
-            service_secret,
+            service_secret: Some(service_secret()),
         })
 }
 
@@ -368,6 +370,82 @@ async fn service_secret_bypasses_both_middlewares() {
         .await;
         assert_eq!(response.status(), StatusCode::OK);
     }
+}
+
+/// A gate configured without a secret charges a request presenting one like any other.
+#[tokio::test]
+async fn gate_charges_secret_without_exemption() {
+    let recorded = RecordedMetrics::new();
+    let router = Router::new()
+        .route("/entities", get(async || "ok"))
+        .route_layer(IpGateLayer {
+            limiters: RateLimiters::start(&config(1), &recorded.meter()),
+            service_secret: None,
+        });
+    let client = address("192.0.2.1");
+
+    let mut statuses = Vec::new();
+    for _ in 0..2 {
+        let response = send(
+            &router,
+            credentialed_request(client, &format!("HASH-Service {SERVICE_SECRET}")),
+        )
+        .await;
+        statuses.push(response.status());
+    }
+    assert_eq!(
+        statuses,
+        [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS],
+        "the gate should charge the secret's presenter against its address"
+    );
+    assert_eq!(
+        recorded.counter(
+            "hash.rate_limit.unchecked",
+            &[("stage", "gate"), ("reason", "service_secret")],
+        ),
+        0,
+        "no request should pass the gate by secret"
+    );
+}
+
+/// A caller limiter without the exemption charges a request the gate passed by its secret,
+/// against the client address the gate left unresolved.
+#[tokio::test]
+async fn caller_charges_secret_exempted_at_gate() {
+    let limiters = limiters(&config(1));
+    let router = Router::new()
+        .route("/entities", get(async || "ok"))
+        .route_layer(CallerLimitLayer {
+            limiters: Arc::clone(&limiters),
+            service_secret: None,
+        })
+        .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
+            provider: Arc::new(StaticAuthenticationProvider::NotRecognized),
+            metrics: auth_metrics(),
+            bootstrap: None,
+            challenge: Challenge::Bearer,
+            caller: PhantomData,
+        })
+        .route_layer(IpGateLayer {
+            limiters,
+            service_secret: Some(service_secret()),
+        });
+    let client = address("192.0.2.1");
+
+    let mut statuses = Vec::new();
+    for _ in 0..2 {
+        let response = send(
+            &router,
+            credentialed_request(client, &format!("HASH-Service {SERVICE_SECRET}")),
+        )
+        .await;
+        statuses.push(response.status());
+    }
+    assert_eq!(
+        statuses,
+        [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS],
+        "the caller limiter should charge the anonymous budget of the presenter's address"
+    );
 }
 
 #[tokio::test]
@@ -683,7 +761,6 @@ async fn enforced_denials_skip_the_inner_stack() {
         rate_limit_anonymous_burst: non_zero(10),
         ..config(1)
     });
-    let service_secret = Secret::from_string(SERVICE_SECRET.to_owned()).to_arc();
     let router = Router::new()
         .route(
             "/entities",
@@ -694,19 +771,18 @@ async fn enforced_denials_skip_the_inner_stack() {
         )
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(&limiters),
-            service_secret: Pin::clone(&service_secret),
+            service_secret: Some(service_secret()),
         })
         .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider: Arc::new(StaticAuthenticationProvider::NotRecognized),
-            service_secret: Pin::clone(&service_secret),
             metrics: auth_metrics(),
-            bootstrap_route: |_path| false,
+            bootstrap: None,
             challenge: Challenge::Service,
             caller: PhantomData,
         })
         .route_layer(IpGateLayer {
             limiters,
-            service_secret,
+            service_secret: Some(service_secret()),
         });
     let client = address("192.0.2.1");
 
@@ -1031,16 +1107,15 @@ async fn maintenance_releases_replenished_keys_from_every_store() {
     };
     let recorded = RecordedMetrics::new();
     let limiters = RateLimiters::start(&quotas, &recorded.meter());
-    let service_secret = Secret::from_string(SERVICE_SECRET.to_owned()).to_arc();
     let router = Router::new()
         .route("/entities", get(async || "ok"))
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(&limiters),
-            service_secret: Pin::clone(&service_secret),
+            service_secret: Some(service_secret()),
         })
         .route_layer(IpGateLayer {
             limiters: Arc::clone(&limiters),
-            service_secret,
+            service_secret: Some(service_secret()),
         });
 
     let client = address("192.0.2.1");

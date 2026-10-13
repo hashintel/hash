@@ -34,7 +34,7 @@ hash-graph-embeddings          = { workspace = true, public = true }
 hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true }
 hash-middleware                = { workspace = true, public = true }
-hash-secret                    = { workspace = true, public = true, features = ["clap"] }
+hash-secret                    = { workspace = true, features = ["clap"] }
 problematic                    = { workspace = true }
 
 # Private third-party dependencies

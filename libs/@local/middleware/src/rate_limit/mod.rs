@@ -8,12 +8,14 @@
 //! further caller budgets that share the gate, which the state `start` returned keeps charging,
 //! maintaining, and gauging.
 //!
-//! Requests presenting the service secret pass both middlewares unchecked. Both middlewares and
-//! [`AuthenticationLayer`] have to share one secret: the caller limiter treats a stored
-//! authentication error as unreachable because the requests it could arise from passed by secret
-//! above.
+//! Each middleware passes requests presenting its configured service secret unchecked, and
+//! exempts none when configured without one. A [`CallerLimitLayer`] behind an
+//! [`AuthenticationLayer`] with [`Bootstrap`] routes has to be configured with the bootstrap
+//! secret: a bootstrap request naming no actor reaches it with its authentication error stored,
+//! which only that exemption lets through.
 //!
 //! [`AuthenticationLayer`]: crate::authentication::AuthenticationLayer
+//! [`Bootstrap`]: crate::authentication::Bootstrap
 //!
 //! A request over its budget receives `429 Too Many Requests` with an `application/problem+json`
 //! body and `Retry-After` in [`RateLimitMode::Enforce`], the default. The problem type is
@@ -716,10 +718,10 @@ where
 
 /// Throttles each client address ahead of credential verification.
 ///
-/// The service secret is verified against the configured value, so a request merely presenting
-/// the scheme stays gated. A request whose client address cannot be determined passes unchecked —
-/// reading the connection's address requires serving the router with
-/// `into_make_service_with_connect_info`.
+/// A request presenting the configured service secret passes unchecked. The secret is compared
+/// with the configured value, so a request merely presenting the scheme stays gated. A request
+/// whose client address cannot be determined passes unchecked too — reading the connection's
+/// address requires serving the router with `into_make_service_with_connect_info`.
 ///
 /// # Example
 ///
@@ -743,14 +745,13 @@ where
 /// #     rate_limit_actor_per_hour: quota(6000),
 /// #     rate_limit_actor_burst: quota(100),
 /// # };
-/// # use hash_secret::Secret;
 /// # let meter = opentelemetry::global::meter("doc");
 /// // A `layer` rather than a `route_layer`, so unmatched paths draw on a budget too.
 /// let router: Router = Router::new()
 ///     .route("/entities", get(async || "ok"))
 ///     .layer(IpGateLayer {
 ///         limiters: RateLimiters::start(&config, &meter),
-///         service_secret: Secret::from_string("service-secret".to_owned()).to_arc(),
+///         service_secret: None,
 ///     });
 /// # }
 /// ```
@@ -758,8 +759,8 @@ where
 pub struct IpGateLayer {
     /// The shared limiter state requests are charged against.
     pub limiters: Arc<RateLimiters>,
-    /// The secret whose presenters pass unchecked.
-    pub service_secret: Pin<Arc<Secret<str>>>,
+    /// The secret whose presenters pass unchecked, or [`None`] to exempt no request by secret.
+    pub service_secret: Option<Pin<Arc<Secret<str>>>>,
 }
 
 impl<S> tower::Layer<S> for IpGateLayer {
@@ -769,7 +770,7 @@ impl<S> tower::Layer<S> for IpGateLayer {
         IpGateService {
             inner,
             limiters: Arc::clone(&self.limiters),
-            service_secret: Pin::clone(&self.service_secret),
+            service_secret: self.service_secret.clone(),
         }
     }
 }
@@ -780,7 +781,7 @@ pub struct IpGateService<S> {
     inner: S,
 
     limiters: Arc<RateLimiters>,
-    service_secret: Pin<Arc<Secret<str>>>,
+    service_secret: Option<Pin<Arc<Secret<str>>>>,
 }
 
 impl<B, S> tower::Service<http::Request<B>> for IpGateService<S>
@@ -797,10 +798,16 @@ where
     }
 
     fn call(&mut self, mut req: http::Request<B>) -> Self::Future {
-        if presents_service_secret(req.headers(), &self.service_secret) {
+        if self
+            .service_secret
+            .as_deref()
+            .is_some_and(|secret| presents_service_secret(req.headers(), secret))
+        {
             self.limiters
                 .metrics
                 .unchecked(Stage::Gate, UncheckedReason::ServiceSecret);
+            req.extensions_mut()
+                .insert(ResolvedClientAddress::Unresolved);
 
             return Either::Right(self.inner.call(req).map_ok(Ok));
         }
@@ -827,8 +834,8 @@ where
 
 /// Budgets requests by the caller the authentication middleware resolved.
 ///
-/// Requests presenting the service secret pass unchecked, as does an anonymous request whose
-/// client address the gate could not determine. A route reached without the authentication
+/// Requests presenting the configured service secret pass unchecked, as does an anonymous request
+/// whose client address cannot be determined. A route reached without the authentication
 /// middleware or without the address gate is answered with an internal error.
 ///
 /// # Example
@@ -875,9 +882,6 @@ where
 /// # };
 /// # let meter = opentelemetry::global::meter("doc");
 /// let limiters = RateLimiters::start(&config, &meter);
-/// # use core::pin::Pin;
-/// # use hash_secret::Secret;
-/// let service_secret = Secret::from_string("service-secret".to_owned()).to_arc();
 /// # let provider = Arc::new(Verifier);
 /// # let auth_metrics = Arc::new(AuthenticationMetrics::new(&meter));
 ///
@@ -885,19 +889,18 @@ where
 ///     .route("/entities", get(async || "ok"))
 ///     .route_layer(CallerLimitLayer {
 ///         limiters: Arc::clone(&limiters),
-///         service_secret: Pin::clone(&service_secret),
+///         service_secret: None,
 ///     })
 ///     .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
 ///         provider,
-///         service_secret: Pin::clone(&service_secret),
 ///         metrics: auth_metrics,
-///         bootstrap_route: |_path| false,
-///         challenge: Challenge::Service,
+///         bootstrap: None,
+///         challenge: Challenge::Bearer,
 ///         caller: PhantomData,
 ///     })
 ///     .layer(IpGateLayer {
 ///         limiters,
-///         service_secret,
+///         service_secret: None,
 ///     });
 /// # }
 /// ```
@@ -905,8 +908,14 @@ where
 pub struct CallerLimitLayer {
     /// The shared limiter state requests are charged against.
     pub limiters: Arc<RateLimiters>,
-    /// The secret whose presenters pass unchecked.
-    pub service_secret: Pin<Arc<Secret<str>>>,
+    /// The secret whose presenters pass unchecked, or [`None`] to exempt no request by secret.
+    ///
+    /// Behind an [`AuthenticationLayer`] with [`Bootstrap`] routes, this has to be the bootstrap
+    /// secret.
+    ///
+    /// [`AuthenticationLayer`]: crate::authentication::AuthenticationLayer
+    /// [`Bootstrap`]: crate::authentication::Bootstrap
+    pub service_secret: Option<Pin<Arc<Secret<str>>>>,
 }
 
 impl<S> tower::Layer<S> for CallerLimitLayer {
@@ -916,7 +925,7 @@ impl<S> tower::Layer<S> for CallerLimitLayer {
         CallerLimitService {
             inner,
             limiters: Arc::clone(&self.limiters),
-            service_secret: Pin::clone(&self.service_secret),
+            service_secret: self.service_secret.clone(),
         }
     }
 }
@@ -927,7 +936,7 @@ pub struct CallerLimitService<S> {
     inner: S,
 
     limiters: Arc<RateLimiters>,
-    service_secret: Pin<Arc<Secret<str>>>,
+    service_secret: Option<Pin<Arc<Secret<str>>>>,
 }
 
 impl<B, S> tower::Service<http::Request<B>> for CallerLimitService<S>
@@ -944,7 +953,11 @@ where
     }
 
     fn call(&mut self, req: http::Request<B>) -> Self::Future {
-        if presents_service_secret(req.headers(), &self.service_secret) {
+        if self
+            .service_secret
+            .as_deref()
+            .is_some_and(|secret| presents_service_secret(req.headers(), secret))
+        {
             self.limiters
                 .metrics
                 .unchecked(Stage::Caller, UncheckedReason::ServiceSecret);
@@ -969,9 +982,9 @@ where
             Err(error) => {
                 // A stored error means a bootstrap route tolerated the failure, and those
                 // requests presented the service secret and passed above. Reaching this
-                // arm means the middleware order broke, so the report's attachments are the only
-                // account of what the provider saw: `Display` would print the first context and
-                // drop them.
+                // arm means the middleware order broke or this layer lacks the bootstrap secret,
+                // so the report's attachments are the only account of what the provider saw:
+                // `Display` would print the first context and drop them.
                 tracing::error!(
                     method = %req.method(),
                     path = req.uri().path(),
@@ -989,7 +1002,7 @@ where
         let budget = if let Some(actor) = actor {
             Budget::Actor(actor)
         } else {
-            let Some(resolved) = req.extensions().get::<ResolvedClientAddress>() else {
+            let Some(&resolved) = req.extensions().get::<ResolvedClientAddress>() else {
                 tracing::error!(
                     method = %req.method(),
                     path = req.uri().path(),
@@ -1000,7 +1013,12 @@ where
                     .misconfiguration(Misconfiguration::MissingAddressGate);
                 return Either::Left(future::ready(Ok(Err(RateLimitRejection::Misconfigured))));
             };
-            let Some(key) = resolved.key() else {
+            let key = match resolved {
+                ResolvedClientAddress::Bucketed(key) => Some(key),
+                ResolvedClientAddress::Unknown => None,
+                ResolvedClientAddress::Unresolved => self.limiters.client_key(&req),
+            };
+            let Some(key) = key else {
                 // Counted per stage, so the gate's count of this address does not stand in for the
                 // caller stage.
                 self.limiters

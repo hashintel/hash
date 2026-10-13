@@ -1,18 +1,16 @@
 //! Authentication providers shared by the Graph HTTP APIs.
 //!
-//! Only the first credential found in a request is checked. The providers look for an API token
-//! first, then for a service delegation, then for a Kratos session, and last for a Cloudflare
-//! Access JWT. The public APIs accept API tokens and no sessions. Every other API rejects a request
-//! that carries an API token.
+//! Only the first credential found in a request is checked. The public APIs accept API tokens.
+//! The internal APIs and Atlas accept Kratos sessions. The legacy routes accept service
+//! delegation. The admin API accepts service delegation and, when configured, Cloudflare Access
+//! JWTs. Every API but the public ones rejects a request that carries an API token.
 
 use alloc::sync::Arc;
 use core::pin::Pin;
 
 use hash_graph_authentication::{
     actor::StorePoolActorResolver,
-    api_token::{
-        ApiTokenIssuer, ApiTokenProvider, ApiTokenRejection, StorePoolApiTokenAuthenticator,
-    },
+    api_token::{ApiTokenIssuer, ApiTokenProvider, StorePoolApiTokenAuthenticator},
     delegation::ServiceDelegationProvider,
     kratos::{KratosEmailActorResolver, KratosSessionProvider},
 };
@@ -41,29 +39,6 @@ pub type ExplicitProviders<S> = ServiceDelegationProvider<StorePoolActorResolver
 
 /// The credentials a browser carries: the Kratos session.
 pub type SessionProviders<S> = KratosSessionProvider<StorePoolActorResolver<S>>;
-
-/// The credentials the infrastructure stamps onto a request: the Cloudflare Access JWT, when
-/// configured.
-pub type EnvironmentProviders<S> =
-    Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>;
-
-/// Chains `api_token`, `explicit` and `environment`, consulted in that order.
-pub(super) const fn public_chain<A, E, V>(
-    api_token: ApiTokenProvider<A>,
-    explicit: E,
-    environment: V,
-) -> (ApiTokenProvider<A>, (E, V)) {
-    (api_token, (explicit, environment))
-}
-
-/// Chains [`ApiTokenRejection`], `explicit`, `session` and `environment`, consulted in that order.
-pub(super) const fn internal_chain<E, P, V>(
-    explicit: E,
-    session: P,
-    environment: V,
-) -> (ApiTokenRejection, (E, (P, V))) {
-    (ApiTokenRejection, (explicit, (session, environment)))
-}
 
 /// Builds the [`ApiTokenProvider`], which verifies tokens with `issuer`.
 ///
@@ -114,10 +89,7 @@ where
     )
 }
 
-/// Builds the Cloudflare Access provider of the [`EnvironmentProviders`].
-///
-/// The provider caches the JWKS it verifies against, so a process shares one instance between
-/// its routers.
+/// Builds the provider of the Cloudflare Access JWT the infrastructure stamps onto a request.
 pub fn build_environment_provider<S>(
     config: CloudflareAccessConfig,
     store: &Arc<S>,

@@ -1,13 +1,10 @@
 use alloc::sync::Arc;
-use core::{net::SocketAddr, pin::Pin, time::Duration};
+use core::{net::SocketAddr, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::{
-    authentication::{
-        EnvironmentProviders, api_token::ApiTokenRejection, build_explicit_providers,
-        build_session_providers,
-    },
+    authentication::{api_token::ApiTokenRejection, build_session_providers},
     rate_limit::RateLimitConfig,
 };
 use hash_graph_atlas::cli::{self, Storage};
@@ -15,7 +12,6 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
 use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
-use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use opentelemetry::metrics::Meter;
 use reqwest::Client;
@@ -26,7 +22,6 @@ use crate::{
     error::{GraphError, HealthcheckError},
     subcommand::{
         ServerLifecycle,
-        admin_server::require_service_secret,
         server::{KratosSessionAuthConfig, TemporalConfig, create_temporal_client},
     },
 };
@@ -88,15 +83,6 @@ pub struct AtlasServeArgs {
     #[clap(flatten)]
     pub session_auth: KratosSessionAuthConfig,
 
-    /// Shared secret internal services present to act on behalf of an actor.
-    ///
-    /// Sent as the `Authorization: HASH-Service <secret>` credential next to
-    /// `X-Authenticated-User-Actor-Id`. The value is used as given: an empty value, one that
-    /// starts or ends with whitespace, or one with characters other than printable ASCII stops
-    /// the server.
-    #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
-    pub service_secret: Pin<Box<Secret<str>>>,
-
     #[clap(flatten)]
     pub rate_limit: RateLimitConfig,
 
@@ -155,7 +141,6 @@ async fn run_atlas(
 ) -> Result<(), Report<GraphError>> {
     // Before running anything, make sure that the configuration is valid.
     let session_auth = args.session_auth.into_provider_config()?;
-    let service_secret = require_service_secret(Some(args.service_secret))?;
 
     let filter_protection = if args.skip_filter_protection {
         PropertyProtectionFilterConfig::new()
@@ -193,19 +178,12 @@ async fn run_atlas(
 
     let provider = Arc::new((
         ApiTokenRejection,
-        (
-            build_explicit_providers(Pin::clone(&service_secret), &pool),
-            (
-                build_session_providers(session_auth, &pool, &telemetry.meter),
-                EnvironmentProviders::<PostgresStorePool>::None,
-            ),
-        ),
+        build_session_providers(session_auth, &pool, &telemetry.meter),
     ));
 
     let serve = cli::ServeCommand::new(args.root, args.serve)
         .run(cli::ServeOptions {
             provider,
-            service_secret,
             rate_limit: (&args.rate_limit).into(),
             pool,
             visibility: cli::VisibilityLimits {
