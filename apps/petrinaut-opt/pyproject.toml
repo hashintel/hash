@@ -5,7 +5,7 @@ description = "Scenario-parameter optimization for Petrinaut using Optuna"
 readme = "README.md"
 requires-python = ">=3.10.20"
 dependencies = [
-    "fastapi>=0.128.8",
+    "fastapi<0.142.0,>=0.141.1",
     "opentelemetry-exporter-otlp-proto-grpc>=1.44.0",
     "opentelemetry-exporter-otlp-proto-http>=1.44.0",
     "opentelemetry-instrumentation-fastapi>=0.65b0",
@@ -15,6 +15,7 @@ dependencies = [
     "petrinaut-python",
     "pydantic>=2.13.4",
     "python-dotenv>=1.0.0",
+    "starlette<2.0.0,>=1.7.0",
     "uvicorn[standard]>=0.39.0",
 ]
 
