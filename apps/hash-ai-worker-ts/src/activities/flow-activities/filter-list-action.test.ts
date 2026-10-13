@@ -206,6 +206,7 @@ describe("filterListAction", () => {
           all: [
             { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
             { equal: [{ path: ["webId"] }, { parameter: webId }] },
+            { not: { exists: { path: ["draftId"] } } },
           ],
         },
       ],
@@ -214,6 +215,58 @@ describe("filterListAction", () => {
       code: StatusCode.InvalidArgument,
       message: "not-an-entity-id is not a valid EntityId.",
       contents: [],
+    });
+  });
+
+  it("evaluates a draft and the live entity against their own editions", async () => {
+    const draftId = "00000000-0000-4000-8000-000000000099";
+    const draftEntityId = `${validEntityId}~${draftId}` as EntityId;
+
+    vi.mocked(queryEntities).mockResolvedValueOnce({
+      entities: [
+        {
+          properties: {},
+          metadata: {
+            recordId: { entityId: validEntityId },
+            entityTypeIds: [companyType],
+          },
+        },
+        {
+          properties: {},
+          metadata: {
+            recordId: { entityId: draftEntityId },
+            entityTypeIds: ["https://example.com/types/entity-type/person/v/1"],
+          },
+        },
+      ],
+    } as unknown as QueryEntitiesResponse);
+
+    const result = await run(
+      { kind: "EntityId", value: [validEntityId, draftEntityId] },
+      isCompany,
+    );
+
+    expect(vi.mocked(queryEntities).mock.lastCall?.[2].filter).toEqual({
+      any: [
+        {
+          all: [
+            { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+            { equal: [{ path: ["webId"] }, { parameter: webId }] },
+            { not: { exists: { path: ["draftId"] } } },
+          ],
+        },
+        {
+          all: [
+            { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+            { equal: [{ path: ["webId"] }, { parameter: webId }] },
+            { equal: [{ path: ["draftId"] }, { parameter: draftId }] },
+          ],
+        },
+      ],
+    });
+    expect(await outputValues(result)).toEqual({
+      matching: [validEntityId],
+      nonMatching: [draftEntityId],
     });
   });
 
