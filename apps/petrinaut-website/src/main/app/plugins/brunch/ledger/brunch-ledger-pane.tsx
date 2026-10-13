@@ -42,7 +42,7 @@ const noticeStyle = css({
   marginBottom: "3",
 });
 
-/** The Ledger compiled from conversation history, as the model reads it. */
+/** The Ledger compiled from conversation history, rendered in the user skin. */
 export const BrunchLedgerPane = ({
   messages,
 }: {
