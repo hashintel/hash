@@ -1,4 +1,8 @@
-import { binaryFilterOperators, evaluateFilter } from "./evaluate-filter.js";
+import {
+  binaryFilterOperators,
+  evaluateFilter,
+  filterPayloadKinds,
+} from "./evaluate-filter.js";
 import { allPayloadKinds } from "./types.js";
 
 import type {
@@ -65,6 +69,8 @@ const invalidCondition = (message: string): ConditionError => ({
 });
 
 const scalarOperators: readonly string[] = binaryFilterOperators;
+
+const scalarKinds: readonly PayloadKind[] = filterPayloadKinds;
 
 /** The payload kinds If and Filter list accept: a condition can compare them or their fields. */
 export const filterableKinds = [
@@ -253,12 +259,13 @@ const validateLeaf = (
   if (
     operator === "isOfType" ||
     !scalarOperators.includes(operator) ||
+    !scalarKinds.includes(subject.payloadKind) ||
     !value ||
     value.kind !== subject.payloadKind ||
     value.kind === "VersionedUrl"
   ) {
     return invalidCondition(
-      "A scalar operator requires a comparison value of the subject's payload kind.",
+      `A scalar operator requires a subject of kind ${scalarKinds.join(", ")} and a comparison value of the same kind.`,
     );
   }
   const validation = evaluateFilter({

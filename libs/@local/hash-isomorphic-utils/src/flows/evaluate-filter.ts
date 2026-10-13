@@ -1,6 +1,15 @@
-import type { PayloadKindValues } from "./types.js";
+import type { PayloadKind, PayloadKindValues } from "./types.js";
 
-type FilterPayloadKind = "Text" | "Number" | "Boolean" | "Date" | "EntityId";
+/** The payload kinds scalar operators compare. */
+export const filterPayloadKinds = [
+  "Text",
+  "Number",
+  "Boolean",
+  "Date",
+  "EntityId",
+] as const satisfies readonly PayloadKind[];
+
+type FilterPayloadKind = (typeof filterPayloadKinds)[number];
 
 export type FilterValue = {
   [Kind in FilterPayloadKind]: { kind: Kind; value: PayloadKindValues[Kind] };

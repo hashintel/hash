@@ -1,5 +1,8 @@
 import { isEntityId } from "@blockprotocol/type-system";
-import { evaluateFilter } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
+import {
+  evaluateFilter,
+  filterPayloadKinds,
+} from "@local/hash-isomorphic-utils/flows/evaluate-filter";
 import { validateCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
@@ -29,13 +32,7 @@ export type ConditionResult =
   | { status: "success"; matches: boolean }
   | ConditionError;
 
-const scalarKinds: readonly PayloadKind[] = [
-  "Text",
-  "Number",
-  "Boolean",
-  "Date",
-  "EntityId",
-];
+const scalarKinds: readonly PayloadKind[] = filterPayloadKinds;
 
 const isEmptyValue = (value: unknown): boolean =>
   value === undefined || value === null || value === "";

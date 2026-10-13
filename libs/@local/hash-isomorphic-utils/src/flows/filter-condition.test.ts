@@ -84,6 +84,33 @@ describe("validateCondition", () => {
     ).toMatchObject({ status: "error", code: "invalidCondition" });
   });
 
+  it("rejects scalar operators on a non-scalar subject", () => {
+    expect(
+      validateCondition(
+        all({
+          kind: "condition",
+          subject: { kind: "field", path: ["page"], payloadKind: "WebPage" },
+          operator: "equals",
+          value: { kind: "WebPage", value: "https://example.com" },
+        } as unknown as FilterLeaf),
+        "WebSearchResult",
+      ),
+    ).toMatchObject({ status: "error", code: "invalidCondition" });
+  });
+
+  it("accepts presence operators on a non-scalar subject", () => {
+    expect(
+      validateCondition(
+        all({
+          kind: "condition",
+          subject: { kind: "field", path: ["page"], payloadKind: "WebPage" },
+          operator: "isNotEmpty",
+        }),
+        "WebSearchResult",
+      ),
+    ).toBeUndefined();
+  });
+
   it.each(["__proto__", "constructor", "prototype"])(
     "rejects unsafe field segment %s",
     (segment) => {
