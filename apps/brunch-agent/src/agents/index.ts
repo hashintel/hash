@@ -1,3 +1,5 @@
+import { brunchRoutes } from "@hashintel/brunch-agent";
+
 import { PetrinautAgent } from "./petrinaut/agent.ts";
 
 /** One agent this app serves under `/agents/<route>`. */
@@ -16,7 +18,7 @@ export interface MountedAgent {
  */
 export const agents: readonly MountedAgent[] = [
   {
-    route: "petrinaut",
+    route: brunchRoutes.petrinautAgent,
     agent: PetrinautAgent,
     // The deployed website still calls `/agents/chat`; drop this once its
     // `VITE_BRUNCH_CHAT_ENDPOINT` names `/agents/petrinaut`.
