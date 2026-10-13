@@ -2686,6 +2686,12 @@ fn has_email_property(entity: &Entity) -> bool {
     entity.properties.properties().contains_key(&email_url)
 }
 
+/// Helper to check if an entity's property metadata contains the email property.
+fn has_email_metadata(entity: &Entity) -> bool {
+    let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).unwrap();
+    entity.metadata.properties.value.contains_key(&email_url)
+}
+
 /// When querying without email filter, User entity should NOT have email in response.
 #[tokio::test]
 async fn user_email_masked_in_response() {
@@ -2712,6 +2718,10 @@ async fn user_email_masked_in_response() {
     assert!(
         !has_email_property(&results[0]),
         "User entity should NOT have email property in response (masked)"
+    );
+    assert!(
+        !has_email_metadata(&results[0]),
+        "User entity should NOT have email property metadata in response (masked)"
     );
 }
 
@@ -2742,6 +2752,10 @@ async fn invitation_email_visible_in_response() {
         has_email_property(&results[0]),
         "Invitation entity SHOULD have email property in response (not masked)"
     );
+    assert!(
+        has_email_metadata(&results[0]),
+        "Invitation entity SHOULD have email property metadata in response (not masked)"
+    );
 }
 
 /// When querying own User entity, email SHOULD be visible (self-access).
@@ -2770,6 +2784,10 @@ async fn own_user_email_visible_in_response() {
     assert!(
         has_email_property(&results[0]),
         "Own User entity SHOULD have email property in response (self-access)"
+    );
+    assert!(
+        has_email_metadata(&results[0]),
+        "Own User entity SHOULD have email property metadata in response (self-access)"
     );
 }
 
