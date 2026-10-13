@@ -1,15 +1,14 @@
 import { interviewBudgetContextKey } from "@hashintel/brunch-agent-plugin-sdcpn";
-import {
-  createFlueChatTransport,
-  FlueChatAdmissionError,
-} from "@hashintel/brunch-agent-transport-aisdk";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import {
   getInterviewBudget,
   type InterviewBudgetLevel,
 } from "../../../../shared/interview-budget";
-import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
+import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
+import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
 
+import type { BrunchFlueAdapter } from "./brunch-flue-adapter";
 import type {
   AgentSendResult,
   FlueClient,
@@ -20,14 +19,14 @@ import type {
   InterviewBudget,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type {
-  FlueChatResponseMessageCompletedEvent,
-  FlueChatResponseMessageStartedEvent,
-  FlueChatTransportOptions,
-} from "@hashintel/brunch-agent-transport-aisdk";
-import type {
   PetrinautAiChatTransport,
   PetrinautAiInputMode,
 } from "@hashintel/petrinaut/ui";
+import type {
+  FlueChatResponseMessageCompletedEvent,
+  FlueChatResponseMessageStartedEvent,
+  FlueChatTransportOptions,
+} from "@local/flue-aisdk-transport";
 
 export type BrunchPanelAdmission = Parameters<
   NonNullable<FlueChatTransportOptions["onAdmission"]>
@@ -229,17 +228,17 @@ export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
   tracker: BrunchPanelConversationTracker,
   options?: {
+    /** The projection shared with this conversation's reopened history. */
+    readonly adapter?: BrunchFlueAdapter;
     readonly initialData?: BrowserContext;
     readonly interviewBudgetLevel?: InterviewBudgetLevel;
     /** The host's canonical count, shared with the estimate above the composer. */
     readonly interviewRepliesAsked?: number;
-    /** Browser tools executed by Petrinaut's static panel registry. */
-    readonly clientToolNames?: ReadonlySet<string>;
-    readonly dynamicClientToolNames?: FlueChatTransportOptions["dynamicClientToolNames"];
-    readonly mapClientToolInput?: FlueChatTransportOptions["mapClientToolInput"];
     readonly onAdmission?: (admission: AgentSendResult) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
+    readonly onReattach?: FlueChatTransportOptions["onReattach"];
+    readonly onDisconnect?: FlueChatTransportOptions["onDisconnect"];
   },
 ): PetrinautAiChatTransport => ({
   reconnectToStream: async () => null,
@@ -255,22 +254,17 @@ export const createBrunchPanelTransport = (
               : "text"),
           options?.interviewRepliesAsked ?? 0,
         );
-        const transport = createFlueChatTransport({
+        const submissionContext =
+          budget === undefined
+            ? undefined
+            : { [interviewBudgetContextKey]: budget satisfies InterviewBudget };
+        const transport = (
+          options?.adapter ?? canonicalBrunchFlueAdapter
+        ).chatTransport({
           client,
-          ...(options?.initialData === undefined
-            ? {}
-            : { initialData: options.initialData }),
-          ...(budget === undefined
-            ? {}
-            : {
-                submissionContext: {
-                  [interviewBudgetContextKey]: budget satisfies InterviewBudget,
-                },
-              }),
-          clientToolNames:
-            options?.clientToolNames ?? canonicalPetrinautClientToolNames,
-          dynamicClientToolNames: options?.dynamicClientToolNames,
-          mapClientToolInput: options?.mapClientToolInput,
+          submittedUserMessage: (messages) =>
+            brunchSubmittedUserMessage(messages, submissionContext),
+          initialData: options?.initialData,
           liveToolStream: options?.liveToolStream,
           onAdmission: (event) => {
             tracker.recordAdmission(event);
@@ -280,6 +274,8 @@ export const createBrunchPanelTransport = (
           onResponseMessageCompleted: (event) =>
             tracker.recordResponseMessageCompleted(event),
           onToolOutputError: options?.onToolOutputError,
+          onReattach: options?.onReattach,
+          onDisconnect: options?.onDisconnect,
         });
         try {
           return await transport.sendMessages(sendOptions);

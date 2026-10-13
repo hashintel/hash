@@ -117,10 +117,6 @@ SELECT
     ("continuation_0_0"."row")."locals" AS "continuation_0_0_locals",
     ("continuation_0_0"."row")."values" AS "continuation_0_0_values"
 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-INNER JOIN "entity_editions" AS "entity_editions_0_0_1"
-    ON
-        "entity_editions_0_0_1"."entity_edition_id"
-        = "entity_temporal_metadata_0_0_0"."entity_edition_id"
 INNER JOIN "entity_ids" AS "entity_ids_0_0_3"
     ON
         "entity_ids_0_0_3"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
@@ -156,6 +152,20 @@ LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_0_5"
         = "entity_temporal_metadata_0_0_0"."web_id"
         AND "entity_has_right_entity_0_0_5"."entity_uuid"
         = "entity_temporal_metadata_0_0_0"."entity_uuid"
+CROSS JOIN LATERAL (
+    SELECT
+        "ee"."entity_edition_id" AS "entity_edition_id",
+        "ee"."properties" AS "properties",
+        "ee"."archived" AS "archived",
+        "ee"."confidence" AS "confidence",
+        "ee"."provenance" AS "provenance",
+        "ee"."property_metadata" AS "property_metadata",
+        "ee"."created_by_id" AS "created_by_id"
+    FROM "entity_editions" AS "ee"
+    WHERE
+        "ee"."entity_edition_id"
+        = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+) AS "entity_editions_0_0_1"
 CROSS JOIN LATERAL
     (
         SELECT

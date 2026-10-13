@@ -176,7 +176,9 @@ export const SweepOptimizeControl = ({
                   size="sm"
                   loading={starting}
                   disabled={starting || validationError !== null}
-                  onClick={() => void start()}
+                  onClick={() => {
+                    void start();
+                  }}
                 >
                   Start
                 </Button>

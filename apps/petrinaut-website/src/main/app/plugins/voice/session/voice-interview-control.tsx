@@ -10,7 +10,7 @@ import {
   FlueChatAdmissionError,
   type FlueChatResponseMessageCompletedEvent,
   type FlueChatResponseMessageStartedEvent,
-} from "@hashintel/brunch-agent-transport-aisdk";
+} from "@local/flue-aisdk-transport";
 
 import { reportVoiceDiagnostic } from "../../../../../voice-diagnostics";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
@@ -541,7 +541,7 @@ const AvailableVoiceInterviewControl = ({
     if (inputMode === "text") {
       handledVoiceSelectionRef.current = false;
       if (!active) {
-        // eslint-disable-next-line react-hooks-js/set-state-in-effect -- input mode synchronizes this consent-state machine
+        // eslint-disable-next-line react/set-state-in-effect -- input mode synchronizes this consent-state machine
         setShowDisclosure(false);
       }
       return;

@@ -33,7 +33,7 @@ A physical location becomes target structure only through its recorded operation
 
 Use the exact mounted schemas and wait for results before depending on them. The host owns immutable binding, protocol correlation, document-base checks, persistence, and record attachment. The model must not copy document hashes, workpiece revisions, observation call IDs, or Ledger locators into canonical tool inputs.
 
-1. Apply one bounded connected fragment with canonical mutation calls. Include only the types, parameters and differential equations that fragment needs, before their dependants; places and transitions before arcs. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase. Use stable IDs and the exact canonical input schemas.
+1. Apply one bounded connected fragment with canonical mutation calls. Include only the types, parameters and differential equations that fragment needs, before their dependants; places and transitions before arcs. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase. Use stable IDs and the exact canonical input schemas. IDs you supply are stored as UUIDs, so refer to elements by the IDs in the latest read.
 2. Read the net again before another state-dependent mutation or a live explanation, and at delivery. After a failed or no-op call, inspect its outcome and current state, then submit only the needed correction; do not replay already successful work.
 
 ### Keep incidental choices small

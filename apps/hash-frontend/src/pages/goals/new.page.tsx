@@ -42,12 +42,10 @@ import { WorkersHeader } from "../../shared/workers-header";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { WebSelector } from "../shared/web-selector";
+import { defaultBrowserPluginDomains } from "./new.page/default-browser-plugin-domains";
 import { DeliverableSettings } from "./new.page/deliverable-settings";
 import { FileSettings } from "./new.page/file-settings";
-import {
-  defaultBrowserPluginDomains,
-  InternetSettings,
-} from "./new.page/internet-settings";
+import { InternetSettings } from "./new.page/internet-settings";
 
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { DeliverableSettingsState } from "./new.page/deliverable-settings";

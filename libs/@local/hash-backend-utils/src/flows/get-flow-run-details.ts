@@ -4,15 +4,15 @@ import {
 } from "@temporalio/common";
 import proto from "@temporalio/proto";
 
-import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 
 import { temporalNamespace } from "../temporal.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
-import { retrievePayload } from "./payload-storage.js";
+import { resolvePayloadValue } from "./payload-storage.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
+import type { ResolvePayloadContext } from "./payload-storage.js";
 import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 import type {
   CheckpointLog,
@@ -40,53 +40,35 @@ import type { Client as TemporalClient } from "@temporalio/client";
 type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
 
 /**
- * Cache for resolved payloads to avoid re-downloading the same S3 objects.
- * Keyed by S3 storage key.
- */
-type PayloadCache = Map<string, unknown>;
-
-/**
- * Resolve any stored payload references in step outputs.
- * This downloads the actual payload data from S3 and replaces the reference.
+ * Resolve any stored payloads in step outputs, downloading the actual payload data from S3 in place of their
+ * references. `resolvePayloadValue` caches downloads, so outputs that share stored objects fetch them once.
  *
  * @param outputs - The step outputs to resolve
- * @param storageProvider - The storage provider to retrieve payloads from
- * @param cache - Optional cache to avoid re-downloading the same S3 objects
+ * @param context - The storage provider to retrieve payloads from, and the run's workflow id
  */
 const resolveStoredPayloadsInOutputs = async (
   outputs: StepOutput[] | undefined,
-  storageProvider: FileStorageProvider,
-  cache?: PayloadCache,
+  context: ResolvePayloadContext,
 ): Promise<ResolvedStepOutput[] | undefined> => {
   if (!outputs) {
     return outputs;
   }
 
   return Promise.all(
-    outputs.map(async (output) => {
-      const { payload } = output;
-
-      if (isStoredPayloadRef(payload.value)) {
-        const storageKey = payload.value.storageKey;
-
-        // Check cache first
-        let resolvedValue = cache?.get(storageKey);
-        if (resolvedValue === undefined) {
-          resolvedValue = await retrievePayload(storageProvider, payload.value);
-          cache?.set(storageKey, resolvedValue);
-        }
-
-        return {
+    outputs.map(
+      async (output) =>
+        ({
           ...output,
           payload: {
-            kind: payload.kind,
-            value: resolvedValue,
-          } as unknown as ResolvedPayload,
-        } satisfies ResolvedStepOutput;
-      }
-
-      return output as ResolvedStepOutput;
-    }),
+            kind: output.payload.kind,
+            value: await resolvePayloadValue(
+              context,
+              output.payload.kind,
+              output.payload.value,
+            ),
+          } as ResolvedPayload,
+        }) satisfies ResolvedStepOutput,
+    ),
   );
 };
 
@@ -663,10 +645,6 @@ const getFlowRunDetailedFields = async ({
     step.logs.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
   }
 
-  // Create a cache for resolved payloads to avoid re-downloading the same S3 objects
-  // This is shared between step outputs and workflow outputs
-  const payloadCache: PayloadCache = new Map();
-
   // Resolve any stored payload references in step outputs
   const steps: StepRun[] = await Promise.all(
     Object.values(unresolvedStepMap).map(async (step) => {
@@ -686,8 +664,7 @@ const getFlowRunDetailedFields = async ({
 
           const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
             firstContent.outputs,
-            storageProvider,
-            payloadCache,
+            { storageProvider, workflowId },
           );
 
           return {
@@ -723,8 +700,7 @@ const getFlowRunDetailedFields = async ({
 
         const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
           firstContent.outputs,
-          storageProvider,
-          payloadCache,
+          { storageProvider, workflowId },
         );
 
         return {

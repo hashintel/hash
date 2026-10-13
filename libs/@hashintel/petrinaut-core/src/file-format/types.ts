@@ -27,6 +27,10 @@ export const SDCPN_FILE_FORMAT_VERSION = 1;
  * schemas: hand-written and older files may omit visual fields, arc weight and
  * type, and a place's colour and dynamics fields, and imported display names
  * may predate current UI validation rules.
+ *
+ * Entity ids stay as written here, while the reference fields inherited from
+ * the current schemas convert. The parser then runs `canonicalizePetrinautIds`
+ * over the whole net, which converts every id and reference together.
  */
 const inputArcSchema = z.object({
   ...currentInputArcSchema.shape,

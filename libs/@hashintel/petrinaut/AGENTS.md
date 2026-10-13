@@ -26,7 +26,7 @@ function useMyHook() {
 }
 ```
 
-The compiler runs with `panicThreshold: "critical_errors"` — the build fails if it encounters critical errors not opted out via `"use no memo"`.
+Compiler errors fail the build unless the function opts out. The options are in [`vite.config.ts`](./vite.config.ts). `yarn lint:eslint` reports them without a build, as oxlint's native `react/*` compiler rules. oxlint also reports bailouts inside opted-out functions, which the build skips; suppress those with the reason.
 
 ## Commands
 

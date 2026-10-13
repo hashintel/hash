@@ -6,6 +6,8 @@ import { toPetrinautId } from "./petrinaut-id";
 
 import type { SDCPN } from "./types/sdcpn";
 
+const idOf = toPetrinautId;
+
 const emptySDCPN: SDCPN = {
   places: [],
   transitions: [],
@@ -62,7 +64,7 @@ describe("Petrinaut core actions", () => {
 
     expect(instance.definition.get().places).toEqual([
       {
-        id: "place-1",
+        id: idOf("place-1"),
         name: "UpdatedQueue",
         colorId: null,
         dynamicsEnabled: false,
@@ -114,10 +116,12 @@ describe("Petrinaut core actions", () => {
     instance.mutations.removePlace({ placeId: "place-1" });
 
     const definition = instance.definition.get();
-    expect(definition.places.map((place) => place.id)).toEqual(["place-2"]);
+    expect(definition.places.map((place) => place.id)).toEqual([
+      idOf("place-2"),
+    ]);
     expect(definition.transitions[0]!.inputArcs).toEqual([]);
     expect(definition.transitions[0]!.outputArcs).toEqual([
-      { placeId: "place-2", weight: 1 },
+      { placeId: idOf("place-2"), weight: 1 },
     ]);
   });
 
@@ -191,8 +195,8 @@ describe("Petrinaut core actions", () => {
     });
 
     expect(instance.definition.get().transitions[0]).toMatchObject({
-      inputArcs: [{ placeId: "place-3", weight: 1, type: "standard" }],
-      outputArcs: [{ placeId: "place-4", weight: 1 }],
+      inputArcs: [{ placeId: idOf("place-3"), weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: idOf("place-4"), weight: 1 }],
     });
   });
 
@@ -278,8 +282,8 @@ describe("Petrinaut core actions", () => {
     ).toThrow();
 
     expect(instance.definition.get().transitions[0]).toMatchObject({
-      inputArcs: [{ placeId: "place-1", weight: 2, type: "read" }],
-      outputArcs: [{ placeId: "place-2", weight: 3 }],
+      inputArcs: [{ placeId: idOf("place-1"), weight: 2, type: "read" }],
+      outputArcs: [{ placeId: idOf("place-2"), weight: 3 }],
     });
   });
 
@@ -551,13 +555,13 @@ describe("Petrinaut core actions", () => {
 
     const inputEndpoint = {
       kind: "componentPort" as const,
-      componentInstanceId: "instance-1",
-      portPlaceId: "place-output-port",
+      componentInstanceId: idOf("instance-1"),
+      portPlaceId: idOf("place-output-port"),
     };
     const outputEndpoint = {
       kind: "componentPort" as const,
-      componentInstanceId: "instance-1",
-      portPlaceId: "place-input-port",
+      componentInstanceId: idOf("instance-1"),
+      portPlaceId: idOf("place-input-port"),
     };
 
     instance.mutations.addArc({
@@ -648,8 +652,8 @@ describe("Petrinaut core actions", () => {
     });
 
     expect(instance.definition.get().types[0]!.elements).toEqual([
-      { elementId: "element-1", name: "MassKg", type: "real" },
-      { elementId: "element-3", name: "Charge", type: "integer" },
+      { elementId: idOf("element-1"), name: "MassKg", type: "real" },
+      { elementId: idOf("element-3"), name: "Charge", type: "integer" },
     ]);
   });
 
@@ -1046,10 +1050,10 @@ describe("Petrinaut core actions", () => {
     ).toThrow();
 
     expect(instance.definition.get().transitions[0]!.inputArcs).toEqual([
-      { placeId: "place-1", weight: 1, type: "standard" },
+      { placeId: idOf("place-1"), weight: 1, type: "standard" },
     ]);
     expect(instance.definition.get().types[0]!.elements).toEqual([
-      { elementId: "element-1", name: "Mass", type: "real" },
+      { elementId: idOf("element-1"), name: "Mass", type: "real" },
     ]);
   });
 
@@ -1140,7 +1144,7 @@ describe("Petrinaut core actions", () => {
 
     expect(instance.definition.get().scenarios).toEqual([
       {
-        id: "scenario-1",
+        id: idOf("scenario-1"),
         name: "Scenario",
         scenarioParameters: [],
         parameterOverrides: {},
@@ -1149,7 +1153,7 @@ describe("Petrinaut core actions", () => {
     ]);
     expect(instance.definition.get().metrics).toEqual([
       {
-        id: "metric-1",
+        id: idOf("metric-1"),
         name: "Metric",
         code: "return 0;",
       },
@@ -1201,7 +1205,7 @@ describe("Petrinaut core actions", () => {
     expect(definition.places).toEqual([]);
     expect(definition.subnets?.[0]?.places).toEqual([
       {
-        id: "place-1",
+        id: idOf("place-1"),
         name: "Input",
         colorId: null,
         dynamicsEnabled: false,
@@ -1211,5 +1215,18 @@ describe("Petrinaut core actions", () => {
         y: 0,
       },
     ]);
+  });
+
+  test("names an id as written in errors about it", () => {
+    const instance = createInstance();
+
+    expect(() =>
+      instance.mutations.addArc({
+        transitionId: "serve",
+        arcDirection: "input",
+        placeId: "queu",
+        weight: 1,
+      }),
+    ).toThrow("Arc references place ID `queu` which does not exist");
   });
 });

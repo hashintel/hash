@@ -25,7 +25,7 @@
 //!
 //! The hosts dial: a command runs over the store connection its host supplies -
 //! [`PostgresArgs::connect`] dials the shell's own flags field by field, [`connect`] dials a
-//! rendered connection string.
+//! [`tokio_postgres::Config`] its host builds.
 //!
 //! The fit command drives the run entry points live with the runner. This module re-exports their
 //! vocabulary ([`Options`], [`Placement`], [`ClassifierSource`], [`RunError`]) as the crate's
@@ -64,7 +64,6 @@ pub use self::{
 };
 pub use crate::{
     file::storage::Storage,
-    integrity::{EmptyPasswordError, PasswordString, SecretString},
     salt::runner::operator::{ClassifierSource, Options, Placement, RunError},
     serve::{delta::placement::EmbeddingWorkflow, visibility::cache::VisibilityLimits},
 };

@@ -23,11 +23,11 @@ import {
   canonicalContent,
   interviewBudgetContextKey,
   parseInterviewBudget,
+  parsePetrinautUserMessageBody,
   sdcpnInitialDataSchema,
   type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { useSdcpnPlugin } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 

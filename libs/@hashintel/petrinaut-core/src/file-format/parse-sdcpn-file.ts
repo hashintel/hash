@@ -138,7 +138,7 @@ const checkRecordKeys = (sdcpn: SDCPN): ImportResult | null => {
       };
 };
 
-/** Successful parse of either format: fill visual info, convert subnet ids
+/** Successful parse of either format: fill visual info, convert entity ids
  * to Petrinaut ids, then apply the record-key boundary check. */
 const toImportResult = (
   sdcpnData: Parameters<typeof fillMissingVisualInfo>[0],

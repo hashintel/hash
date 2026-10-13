@@ -129,6 +129,7 @@ export const InterviewBudgetControl = ({
           gapY={10}
           onClose={() => setOpen(false)}
         >
+          {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Observes Escape bubbling from the slider; Popover's onClose does not say why it closed. */}
           <div
             role="group"
             aria-label="Interview length"

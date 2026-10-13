@@ -4,7 +4,7 @@ import { brunchTools } from "@hashintel/brunch-agent";
 import {
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
-} from "@hashintel/brunch-agent-transport-aisdk";
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 

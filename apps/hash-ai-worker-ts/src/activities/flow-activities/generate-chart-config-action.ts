@@ -1,7 +1,7 @@
 import dedent from "dedent";
 
 import { chartConfigSchema } from "@local/hash-isomorphic-utils/chart-config-schema";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -17,11 +17,11 @@ import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
  * Flow activity for generating chart configuration.
  * This activity generates Apache ECharts configuration based on chart data and user goal.
  */
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { ChartConfig } from "@local/hash-isomorphic-utils/dashboard-types";
 import type {
-  AiActionStepOutput,
-  InputNameForAiFlowAction,
+  FlowActionStepOutput,
+  InputNameForFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
 const model: PermittedAnthropicModel = "claude-opus-4-8";
@@ -113,9 +113,9 @@ const tools: LlmToolDefinition<ToolName>[] = [
 
 const maximumIterations = 4;
 
-type ActionOutputs = AiActionStepOutput<"generateChartConfig">[];
+type ActionOutputs = FlowActionStepOutput<"generateChartConfig">[];
 
-export const generateChartConfigAction: AiFlowActionActivity<
+export const generateChartConfigAction: FlowActionActivity<
   "generateChartConfig"
 > = async ({ inputs }) => {
   const {
@@ -125,11 +125,11 @@ export const generateChartConfigAction: AiFlowActionActivity<
     refinementInstruction,
     existingChartConfig,
     refinementScope,
-  } = getSimplifiedAiFlowActionInputs({
+  } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "generateChartConfig",
   }) as {
-    [K in InputNameForAiFlowAction<"generateChartConfig">]: string | undefined;
+    [K in InputNameForFlowAction<"generateChartConfig">]: string | undefined;
   };
 
   const { userAuthentication, stepId, flowEntityId, webId } =

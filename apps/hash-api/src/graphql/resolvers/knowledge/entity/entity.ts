@@ -26,6 +26,7 @@ import {
   createEntityWithLinks,
   getLatestEntityById,
   updateEntity,
+  updateEntities,
 } from "../../../../graph/knowledge/primitive/entity";
 import {
   createLinkEntity,
@@ -253,18 +254,41 @@ export const updateEntitiesResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateEntitiesArgs
-> = async (_, { entityUpdates }, context, info) => {
-  /**
-   * @todo: use bulk `updateEntities` endpoint in the Graph API
-   * when it has been implemented.
-   */
-  const updatedEntities = await Promise.all(
-    entityUpdates.map(async (entityUpdate) =>
-      updateEntityResolver({}, { entityUpdate }, context, info),
+> = async (_, { entityUpdates }, graphQLContext) => {
+  const { authentication, user } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  if (
+    !user.isAccountSignupComplete &&
+    entityUpdates.some(
+      ({ entityId }) => entityId !== user.entity.metadata.recordId.entityId,
+    )
+  ) {
+    throw Error.forbidden(
+      "You must complete the sign-up process to perform this action.",
+    );
+  }
+
+  const updates = await Promise.all(
+    entityUpdates.map(
+      async ({ entityId, entityTypeIds, propertyPatches, draft }) => {
+        const entity = await getLatestEntityById(context, authentication, {
+          entityId,
+        });
+        return {
+          entity,
+          entityTypeIds:
+            !isEntityLinkEntity(entity) && entityTypeIds
+              ? mustHaveAtLeastOne(entityTypeIds)
+              : undefined,
+          propertyPatches,
+          draft: draft ?? undefined,
+        };
+      },
     ),
   );
 
-  return updatedEntities;
+  return updateEntities(context, authentication, updates);
 };
 
 export const validateEntityResolver: ResolverFn<

@@ -3,8 +3,10 @@ import { createHash } from "node:crypto";
 
 import { expect, test } from "vitest";
 
-import { interviewBudgetContextKey } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  interviewBudgetContextKey,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import {
   createBrunchContextProjection,

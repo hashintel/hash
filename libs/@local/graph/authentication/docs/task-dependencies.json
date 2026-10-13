@@ -5,6 +5,7 @@
     "hash-graph-authorization",
     "hash-graph-store",
     "hash-middleware",
+    "hash-secret",
     "problematic",
     "type-system"
   ],

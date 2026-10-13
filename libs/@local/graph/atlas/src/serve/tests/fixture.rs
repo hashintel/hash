@@ -23,6 +23,7 @@ use std::io::Write as _;
 #[cfg(test)]
 use camino::Utf8Path;
 use camino::Utf8PathBuf;
+use hash_secret::Secret;
 use hashql_core::id::{IdSlice, IdVec};
 use smallvec::SmallVec;
 use type_system::ontology::id::VersionedUrl;
@@ -52,7 +53,7 @@ use crate::{
         },
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    integrity::{SecretHexBytes, Sha256Digest},
+    integrity::Sha256Digest,
     math::{
         AffinityCurve, DNonNegative, FinitePointField, Vec2, d_positive, non_negative, nz,
         open_unit_fraction, positive, unit_fraction,
@@ -135,12 +136,12 @@ const SEED: u64 = 0x5E4E;
 pub(crate) const EDGE_SEED: u8 = 64;
 
 /// The suite's serving secret, an arbitrary value of the secret's width.
-const SECRET: &[u8] = b"61746c61732d746573742d73657276652d7365637265742d33322d6279746573";
+const SECRET: &str = "61746c61732d746573742d73657276652d7365637265742d33322d6279746573";
 
 /// Returns the serving secret every suite open uses.
 pub(crate) fn secret() -> ServeSecret {
     ServeSecret::from(
-        SecretHexBytes::from_encoded_bytes(SECRET).expect("should decode the fixture secret"),
+        Secret::<[u8; 32]>::from_hex(SECRET.to_owned()).expect("should decode the fixture secret"),
     )
 }
 

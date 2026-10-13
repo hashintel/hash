@@ -2,16 +2,17 @@
 
 #[cfg(feature = "cli")]
 use core::panic::UnwindSafe;
+use core::pin::Pin;
 
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand, ValueHint};
+use hash_secret::Secret;
 
 #[cfg(feature = "cli")]
 use super::EmbedderArgs;
 use super::{DumpArgs, FitArgs, PostgresArgs, ReportCommand, RootArgs, S3Args};
 #[cfg(feature = "cli")]
 use crate::file::storage::{Storage, error::StorageError};
-use crate::integrity::SecretString;
 #[cfg(feature = "cli")]
 use crate::progress::Progress;
 
@@ -51,7 +52,7 @@ enum Command {
             hide_env_values = true,
             required_unless_present = "offline"
         )]
-        openai_api_key: Option<SecretString>,
+        openai_api_key: Option<Pin<Box<Secret<str>>>>,
 
         /// Fit from the dump directory instead of the live store.
         ///
@@ -108,7 +109,7 @@ enum FitSource {
 #[cfg(feature = "cli")]
 fn fit_source(
     store: PostgresArgs,
-    openai_api_key: Option<SecretString>,
+    openai_api_key: Option<Pin<Box<Secret<str>>>>,
     offline: Option<Utf8PathBuf>,
 ) -> FitSource {
     match (offline, openai_api_key) {

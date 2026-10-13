@@ -54,6 +54,7 @@ import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes"
 import { useMonacoKeyboardIsolation } from "./react-flow-canvas/use-monaco-keyboard-isolation";
 import { useReactFlowController } from "./react-flow-canvas/use-react-flow-controller";
 import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-elements";
+import { useReadOnlyNodeDrag } from "./react-flow-canvas/use-read-only-node-drag";
 
 import type { CanvasNodeKind } from "../../canvas-scene";
 import type { Connection, IsValidConnection } from "@xyflow/react";
@@ -116,7 +117,6 @@ const paneStyle = css({
 const ReactFlowCanvasInner: CanvasRenderer = ({
   scene,
   containerSize,
-  viewportActions,
   registerController,
 }) => {
   const presentation = usePetrinautPresentation();
@@ -134,6 +134,10 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
 
   const interactions = useCanvasInteractions(scene);
   const flowStore = useStoreApi();
+  const readOnlyDragHandlers = useReadOnlyNodeDrag({
+    readonly: interactions.readonly,
+    isPanMode: interactions.isPanMode,
+  });
   const { nodes, edges } = useReactFlowElements(scene);
   const applyChanges = useApplyNodeChanges(interactions);
   const insets = useCanvasInsets();
@@ -247,6 +251,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   return (
     <CanvasControllerContext value={controller}>
       <div
+        {...readOnlyDragHandlers}
         className={paneStyle}
         data-animated={showAnimations}
         data-focus-active={scene.focusActive ? "" : undefined}
@@ -325,9 +330,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           {showMinimap && presentation.showMinimap && (
             <MiniMap pannable zoomable />
           )}
-          {!isActualMode && (
-            <ViewportControls viewportActions={viewportActions} />
-          )}
+          {!isActualMode && <ViewportControls />}
         </ReactFlow>
       </div>
     </CanvasControllerContext>

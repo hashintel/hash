@@ -1,8 +1,8 @@
 import {
   interviewBudgetContextKey,
   parseInterviewBudget,
+  parsePetrinautUserMessageBody,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 
 import type { FlueConversationMessage, FlueConversationState } from "@flue/sdk";
 

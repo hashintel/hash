@@ -4,9 +4,9 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { brunchTools } from "@hashintel/brunch-agent";
 import {
   interviewBudgetContextKey,
+  petrinautContextualUserMessageBody,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   petrinautAiCapabilityGuidance,
   petrinautAiTools,

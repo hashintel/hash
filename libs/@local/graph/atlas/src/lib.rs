@@ -102,7 +102,6 @@
     // Library Features
     allocator_ext,
     alloc_io,
-    arc_is_unique,
     clone_from_ref,
     clone_to_uninit,
     const_array,
@@ -120,7 +119,6 @@
     exact_size_is_empty,
     file_buffered,
     generic_atomic,
-    get_mut_unchecked,
     impl_trait_in_assoc_type,
     integer_casts,
     iter_map_windows,

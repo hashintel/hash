@@ -424,6 +424,10 @@ export const getTranscriptLabel = (
     ? "Voice"
     : (primaryLabel ?? "AI");
 
+/** `alerts` with `message` appended, unless it is already there. */
+const withVoiceAlert = (alerts: string[], message: string): string[] =>
+  alerts.includes(message) ? alerts : [...alerts, message];
+
 export const AiAssistantContents = ({
   additionalTab,
   attentionAnnouncement,
@@ -565,9 +569,7 @@ export const AiAssistantContents = ({
 
   const [voiceAlerts, setVoiceAlerts] = useState<string[]>([]);
   const recordVoiceAlert = useEffectEvent((message: string) => {
-    setVoiceAlerts((previous) =>
-      previous.includes(message) ? previous : [...previous, message],
-    );
+    setVoiceAlerts((previous) => withVoiceAlert(previous, message));
   });
   const notifiedErrorRef = useRef<Error | undefined>(undefined);
   useEffect(() => {
@@ -602,12 +604,19 @@ export const AiAssistantContents = ({
   }, [voiceSessionErrorMessage, voiceSessionPhase]);
 
   // Host-designated recoverable issues need the same on-demand details even
-  // while Voice remains connected or listening.
-  useEffect(() => {
+  // while Voice remains connected or listening. Each new warning is recorded
+  // during render, the way state adjusts to a changed value.
+  const [lastWarningMessage, setLastWarningMessage] = useState<string | null>(
+    null,
+  );
+  if (voiceSessionWarningMessage !== lastWarningMessage) {
+    setLastWarningMessage(voiceSessionWarningMessage);
     if (voiceSessionWarningMessage) {
-      recordVoiceAlert(voiceSessionWarningMessage);
+      setVoiceAlerts((previous) =>
+        withVoiceAlert(previous, voiceSessionWarningMessage),
+      );
     }
-  }, [voiceSessionWarningMessage]);
+  }
 
   const voiceAlertIndicator =
     isOpen && voiceAlerts.length > 0 ? (

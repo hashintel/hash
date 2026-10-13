@@ -3,6 +3,10 @@
  * @role The canonical TypeScript types describing an SDCPN document
  */
 
+/**
+ * An entity id: a lowercase UUID (see `isPetrinautId`). Documents written
+ * with other ids are converted when they load (see `canonicalizePetrinautIds`).
+ */
 export type ID = string;
 
 export type JsonValue =

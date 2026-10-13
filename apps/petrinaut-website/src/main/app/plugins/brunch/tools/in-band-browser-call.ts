@@ -2,8 +2,8 @@ import {
   canonicalContent,
   draftPetrinautExperimentInputSchema,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { agentOwnershipHeaders } from "@hashintel/brunch-agent-transport-aisdk";
 import { brunchTools } from "@hashintel/brunch-agent/constants";
+import { agentOwnershipHeaders } from "@hashintel/brunch-agent/conversation-identity";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import type { ProcessAgentBinding } from "../conversation/use-process-agent-binding";
@@ -110,8 +110,12 @@ export const createInBandBrowserCalls = (input: {
       !inputSchema
     )
       throw new Error("Browser call was not issued for this document.");
-    const canonicalInput = inputSchema.parse(call.input);
-    if (canonicalContent(canonicalInput) !== canonicalContent(issued.input))
+    // Both sides parse, so ids compare converted whether or not the server
+    // that issued the call converts them.
+    if (
+      canonicalContent(inputSchema.parse(call.input)) !==
+      canonicalContent(inputSchema.parse(issued.input))
+    )
       throw new Error("Issued browser input does not match the admitted call.");
     const claimed = issued;
     const lease = setInterval(() => {

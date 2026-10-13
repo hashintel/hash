@@ -25,14 +25,14 @@ import {
   patchesFromPropertyObjects,
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   FailedEntityProposal,
@@ -669,7 +669,7 @@ export const createPersistIntegrationEntitiesAction = ({
   graphApiClient,
 }: {
   graphApiClient: GraphApi;
-}): IntegrationFlowActionActivity<"persistIntegrationEntities"> => {
+}): FlowActionActivity<"persistIntegrationEntities"> => {
   return async ({ inputs }) => {
     try {
       const {
@@ -682,13 +682,13 @@ export const createPersistIntegrationEntitiesAction = ({
       } = await getFlowContext({ graphApiClient });
 
       const { proposedEntities: proposedEntitiesInput } =
-        getSimplifiedIntegrationFlowActionInputs({
+        getSimplifiedFlowActionInputs({
           inputs,
           actionType: "persistIntegrationEntities",
         });
 
       const proposedEntities = await resolvePayloadValue(
-        getStorageProvider(),
+        { storageProvider: getStorageProvider(), workflowId },
         "ProposedEntity",
         proposedEntitiesInput,
       );

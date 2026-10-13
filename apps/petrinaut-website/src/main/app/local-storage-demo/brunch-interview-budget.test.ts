@@ -1,12 +1,12 @@
 import { expect, test } from "vitest";
 
-import { interviewBudgetContextKey } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
+  interviewBudgetContextKey,
   petrinautContextualUserMessageBody,
-  snapshotToUiMessages,
-} from "@hashintel/brunch-agent-transport-aisdk";
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import { getInterviewBudget } from "../../../shared/interview-budget";
+import { canonicalBrunchFlueAdapter } from "../plugins/brunch/brunch-flue-adapter";
 import {
   countInterviewReplies,
   isInterviewClosing,
@@ -38,7 +38,7 @@ test("canonical counting ignores display projection, partial text, tools and hid
   expect(countInterviewReplies({ messages })).toBe(2);
   // Projection marks text as done; it must never be the count's input.
   expect(
-    snapshotToUiMessages({ messages }, { clientToolNames: new Set() }).length,
+    canonicalBrunchFlueAdapter.reopen({ messages }).length,
   ).toBeGreaterThan(2);
   messages[2] = reply("pending", "What about weekends?");
   expect(countInterviewReplies({ messages })).toBe(3);

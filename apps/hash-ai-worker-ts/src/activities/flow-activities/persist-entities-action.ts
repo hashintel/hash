@@ -6,33 +6,33 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { fileEntityTypeIds, persistEntity } from "./persist-entity-action.js";
 
 import type { EntityId } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type {
   FailedEntityProposal,
   PersistedEntityMetadata,
   ProposedEntityWithResolvedLinks,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-export const persistEntitiesAction: AiFlowActionActivity<
+export const persistEntitiesAction: FlowActionActivity<
   "persistEntities"
 > = async ({ inputs }) => {
   const { runId, stepId, workflowId } = await getFlowContext();
 
   const { draft, proposedEntities: proposedEntitiesInput } =
-    getSimplifiedAiFlowActionInputs({
+    getSimplifiedFlowActionInputs({
       inputs,
       actionType: "persistEntities",
     });
 
   const proposedEntities = await resolvePayloadValue(
-    getStorageProvider(),
+    { storageProvider: getStorageProvider(), workflowId },
     "ProposedEntity",
     proposedEntitiesInput,
   );

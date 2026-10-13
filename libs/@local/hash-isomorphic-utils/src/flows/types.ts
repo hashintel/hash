@@ -136,65 +136,7 @@ export type PayloadKindValues = {
 export type PayloadKind = keyof PayloadKindValues;
 
 /**
- * A reference to a payload that has been stored in S3.
- * Used to avoid passing large payloads through Temporal activities.
- *
- * @template K - The payload kind being stored
- * @template IsArray - Whether the stored value is an array of K values
- */
-export type StoredPayloadRef<
-  K extends StoredPayloadKind = StoredPayloadKind,
-  IsArray extends boolean = boolean,
-> = {
-  /** Discriminator to identify this as a stored reference */
-  __stored: true;
-  /** The payload kind being stored - for type checking */
-  kind: K;
-  /** S3 storage key */
-  storageKey: string;
-  /** Whether the stored value is an array */
-  array: IsArray;
-};
-
-/**
- * A stored payload reference to a singular value.
- */
-export type SingularStoredPayloadRef<
-  K extends StoredPayloadKind = StoredPayloadKind,
-> = StoredPayloadRef<K, false>;
-
-/**
- * A stored payload reference to an array of values.
- */
-export type ArrayStoredPayloadRef<
-  K extends StoredPayloadKind = StoredPayloadKind,
-> = StoredPayloadRef<K, true>;
-
-/** Type guard to check if a value is a stored payload reference */
-export const isStoredPayloadRef = (
-  value: unknown,
-): value is StoredPayloadRef<StoredPayloadKind, boolean> => {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "__stored" in value &&
-    value.__stored === true
-  );
-};
-
-/** Type guard to check if a stored payload ref is for an array */
-export const isArrayStoredPayloadRef = <K extends StoredPayloadKind>(
-  ref: StoredPayloadRef<K, boolean>,
-): ref is ArrayStoredPayloadRef<K> => ref.array;
-
-/** Type guard to check if a stored payload ref is for a singular value */
-export const isSingularStoredPayloadRef = <K extends StoredPayloadKind>(
-  ref: StoredPayloadRef<K, boolean>,
-): ref is SingularStoredPayloadRef<K> => !ref.array;
-
-/**
- * Payload kinds that are always stored in S3 due to their potential size.
- * These kinds will have StoredPayloadRef as their value type in activity outputs.
+ * Payload kinds whose values are always stored in S3, whether singular or an array, due to their potential size.
  */
 export const storedPayloadKinds = [
   "PersistedEntitiesMetadata",
@@ -205,7 +147,12 @@ export const storedPayloadKinds = [
 export type StoredPayloadKind = (typeof storedPayloadKinds)[number];
 
 /**
- * Check if a payload kind is always stored in S3.
+ * Payload kinds that can appear in a stored payload reference.
+ */
+export type StorablePayloadKind = StoredPayloadKind;
+
+/**
+ * Check if a payload kind's values are always stored in S3.
  */
 export const isStoredPayloadKind = (
   kind: PayloadKind,
@@ -213,9 +160,115 @@ export const isStoredPayloadKind = (
   storedPayloadKinds.includes(kind as StoredPayloadKind);
 
 /**
+ * A payload written to S3 as one object.
+ *
+ * @template K - The payload kind being stored
+ * @template IsArray - Whether the stored value is an array of K values
+ */
+export type StoredObjectRef<
+  K extends StorablePayloadKind = StorablePayloadKind,
+  IsArray extends boolean = boolean,
+> = {
+  /** Discriminator to identify this as a stored reference */
+  __stored: true;
+  /** The payload kind being stored - for type checking */
+  kind: K;
+  /** S3 storage key */
+  storageKey: string;
+  /** Whether the stored value is an array */
+  array: IsArray;
+} & (IsArray extends true
+  ? {
+      /** The number of items in the stored array, so that it can be iterated over without fetching it. */
+      length: number;
+    }
+  : unknown);
+
+/**
+ * One item of a stored array, e.g. the item a branch of a for-each step runs for.
+ *
+ * It points at the stored object that holds the item, never at a concatenation, so that it stays small and
+ * resolving it downloads one object.
+ */
+export type StoredItemRef<K extends StorablePayloadKind = StorablePayloadKind> =
+  {
+    __stored: true;
+    kind: K;
+    array: false;
+    of: StoredObjectRef<K, true>;
+    index: number;
+  };
+
+/**
+ * Several stored arrays concatenated, e.g. the arrays collected from each branch of a for-each step.
+ */
+export type StoredConcatRef<
+  K extends StorablePayloadKind = StorablePayloadKind,
+> = {
+  __stored: true;
+  kind: K;
+  array: true;
+  parts: StoredArrayRef<K>[];
+  length: number;
+};
+
+/**
+ * A stored payload reference to a singular value.
+ */
+export type SingularStoredPayloadRef<
+  K extends StorablePayloadKind = StorablePayloadKind,
+> = StoredObjectRef<K, false> | StoredItemRef<K>;
+
+/**
+ * A stored payload reference to an array of values.
+ */
+export type ArrayStoredPayloadRef<
+  K extends StorablePayloadKind = StorablePayloadKind,
+> = StoredObjectRef<K, true> | StoredConcatRef<K>;
+
+type StoredArrayRef<K extends StorablePayloadKind> = ArrayStoredPayloadRef<K>;
+
+/**
+ * A reference to a payload that has been stored in S3, used to avoid passing large payloads through Temporal.
+ *
+ * Only activities resolve references (see `payload-storage.ts` in `@local/hash-backend-utils`): workflow code
+ * handles them using their metadata alone, e.g. an array's `length`, or an item's index.
+ */
+export type StoredPayloadRef<
+  K extends StorablePayloadKind = StorablePayloadKind,
+  IsArray extends boolean = boolean,
+> = IsArray extends true
+  ? ArrayStoredPayloadRef<K>
+  : SingularStoredPayloadRef<K>;
+
+/** Type guard to check if a value is a stored payload reference */
+export const isStoredPayloadRef = (
+  value: unknown,
+): value is StoredPayloadRef => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "__stored" in value &&
+    value.__stored === true
+  );
+};
+
+/** Type guard to check if a stored payload ref is for an array */
+export const isArrayStoredPayloadRef = <K extends StorablePayloadKind>(
+  ref: StoredPayloadRef<K>,
+): ref is ArrayStoredPayloadRef<K> => ref.array;
+
+/** Type guard to check if a stored payload ref is for a singular value */
+export const isSingularStoredPayloadRef = <K extends StorablePayloadKind>(
+  ref: StoredPayloadRef<K>,
+): ref is SingularStoredPayloadRef<K> => !ref.array;
+
+/**
  * Payload value type used in activity outputs and inputs.
- * For stored payload kinds, the value is always a StoredPayloadRef with the array-ness encoded.
- * For other kinds, the value is the actual payload value (or array of values).
+ *
+ * - For a {@link StoredPayloadKind}, the value is always a stored reference: to a stored object, to one item of a
+ *   stored array, or to stored arrays concatenated.
+ * - For other kinds, the value is the actual payload value (or array of values).
  */
 export type PayloadValue<
   K extends PayloadKind,
@@ -228,28 +281,21 @@ export type PayloadValue<
 
 /**
  * Singular payload types for all payload kinds.
- * For stored payload kinds, the value is a SingularStoredPayloadRef.
  */
 export type SingularPayload = {
-  [K in keyof PayloadKindValues]: K extends StoredPayloadKind
-    ? { kind: K; value: SingularStoredPayloadRef<K> }
-    : { kind: K; value: PayloadKindValues[K] };
+  [K in keyof PayloadKindValues]: { kind: K; value: PayloadValue<K, false> };
 }[keyof PayloadKindValues];
 
 /**
  * Array payload types for all payload kinds.
- * For stored payload kinds, the value is an ArrayStoredPayloadRef (which represents the stored array).
  */
 export type ArrayPayload = {
-  [K in keyof PayloadKindValues]: K extends StoredPayloadKind
-    ? { kind: K; value: ArrayStoredPayloadRef<K> }
-    : { kind: K; value: PayloadKindValues[K][] };
+  [K in keyof PayloadKindValues]: { kind: K; value: PayloadValue<K, true> };
 }[keyof PayloadKindValues];
 
 /**
- * General payload type used throughout the flow system.
- * For stored payload kinds (ProposedEntity, ProposedEntityWithResolvedLinks, PersistedEntitiesMetadata),
- * the value may be a StoredPayloadRef that activities will resolve.
+ * General payload type used throughout the flow system. For stored kinds, the value may be a stored reference
+ * that activities resolve.
  */
 export type Payload = SingularPayload | ArrayPayload;
 
