@@ -18,7 +18,15 @@ case $profile in
     ;;
 esac
 
-crate=$(dirname "$(cargo metadata --locked --format-version 1 | jq --raw-output '.packages[] | select(.name == "aws-lc-sys") | .manifest_path')")
+if ! metadata=$(cargo metadata --locked --format-version 1); then
+  echo "::error::\`cargo metadata --locked\` failed"
+  exit 1
+fi
+if ! manifest=$(jq --raw-output --exit-status '.packages[] | select(.name == "aws-lc-sys") | .manifest_path' <<<"$metadata"); then
+  echo "::error::\`cargo metadata\` lists no aws-lc-sys package"
+  exit 1
+fi
+crate=$(dirname "$manifest")
 version=$(cargo pkgid --locked aws-lc-sys)
 version=${version##*@}
 
@@ -30,6 +38,7 @@ fi
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
+rm -rf "$prefix"
 
 # The crate ships AWS-LC with pregenerated assembly and its symbol-prefix headers, so the build
 # needs neither Go nor Perl, and keeps the prefix the crate's own bindings use. The source is
@@ -50,4 +59,4 @@ cmake -S "$crate/aws-lc" -B "$work" \
 cmake --build "$work" --parallel "$(nproc)"
 cmake --install "$work"
 
-echo "::notice::Built the $profile AWS-LC prefix for aws-lc-sys $version in ${SECONDS}s"
+echo "::notice::Built the $profile AWS-LC prefix for aws-lc-sys $version on ${ImageOS:-an unknown image} in ${SECONDS}s"

@@ -18,7 +18,7 @@ runs:
       run: |
         package=$(cargo pkgid --locked aws-lc-sys)
         {
-          echo "key=aws-lc-sys-${package##*@}-$RUNNER_OS-$RUNNER_ARCH-$PROFILE-$ACTION_FILES"
+          echo "key=aws-lc-sys-${package##*@}-${ImageOS:?the runner image sets no ImageOS}-$RUNNER_ARCH-$PROFILE-$ACTION_FILES"
           echo "prefix=$RUNNER_TEMP/aws-lc-$PROFILE"
         } >>"$GITHUB_OUTPUT"
 

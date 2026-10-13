@@ -18,7 +18,7 @@ inputs:
     description: Should sccache be installed? Can either be `"true"` or `true`
     default: "true"
   aws_lc_profile:
-    description: Cargo profile, `dev` or `release`, that the prebuilt AWS-LC `aws-lc-sys` links is compiled with. Set it to the profile the job's Rust builds use.
+    description: Cargo profile the job's Rust builds use, `dev` or `release`, which the prebuilt AWS-LC is compiled with. Profiles inheriting from one of them, such as `test` or `bench`, use its value.
     default: dev
 
 runs:
