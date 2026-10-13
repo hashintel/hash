@@ -52,16 +52,7 @@ describe("Brunch tool presentation", () => {
     });
   });
 
-  test("names the Ledger scope a compile reads", () => {
-    expect(
-      resolveBrunchToolPresentation({
-        toolName: "ledger_compile",
-        state: "success",
-        input: { address: "operational/resources" },
-        output: undefined,
-        error: undefined,
-      }),
-    ).toEqual({ title: "Read the Ledger: operational/resources" });
+  test("titles a Ledger compile by its lifecycle", () => {
     expect(
       resolveBrunchToolPresentation({
         toolName: "ledger_compile",

@@ -152,18 +152,6 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
       };
     }
 
-    if (toolName === brunchTools.ledgerCompile) {
-      return withPendingTone(
-        {
-          title: withSuffix(
-            titles[context.state],
-            stringProperty(context.input, "address"),
-          ),
-        },
-        context.state,
-      );
-    }
-
     if (toolName === "task") {
       detail =
         stringProperty(context.input, "description") ??
