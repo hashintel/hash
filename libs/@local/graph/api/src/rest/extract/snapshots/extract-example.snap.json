@@ -42,9 +42,9 @@
                 }
               },
               "about:blank (5)": {
-                "summary": "Bad Request: The credentials are malformed.",
+                "summary": "Bad Request: The `X-Authenticated-User-Actor-Id` header is not a valid UUID.",
                 "value": {
-                  "detail": "credentials are malformed",
+                  "detail": "`X-Authenticated-User-Actor-Id` header is not a valid UUID",
                   "status": 400,
                   "title": "Bad Request",
                   "type": "about:blank"
@@ -171,13 +171,13 @@
                       ]
                     }
                   ],
-                  "title": "Bad Request: The credentials are malformed."
+                  "title": "Bad Request: The `X-Authenticated-User-Actor-Id` header is not a valid UUID."
                 }
               ]
             }
           }
         },
-        "description": "- Bad Request: A path parameter does not match its documented schema.\n- Bad Request: A required query parameter is missing, or one does not match its documented schema.\n- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end.\n- Bad Request: The credentials are malformed."
+        "description": "- Bad Request: A path parameter does not match its documented schema.\n- Bad Request: A required query parameter is missing, or one does not match its documented schema.\n- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end.\n- Bad Request: The `X-Authenticated-User-Actor-Id` header is not a valid UUID."
       },
       "InternalServerError": {
         "content": {
@@ -374,7 +374,17 @@
             }
           }
         },
-        "description": "The request carries no credentials, or they do not identify a permitted caller."
+        "description": "The request carries no credentials, or they do not identify a permitted caller.",
+        "headers": {
+          "WWW-Authenticate": {
+            "description": "The scheme to authenticate with: `Bearer` on the public API, with `error=\"invalid_token\"` when a `Bearer` API token is refused; `HASH-Service` on the internal APIs.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       },
       "UnprocessableEntity": {
         "content": {

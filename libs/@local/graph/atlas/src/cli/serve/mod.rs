@@ -8,7 +8,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_postgres_store::store::PostgresStorePool;
 use hash_middleware::{
     authentication::{
-        AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
+        AuthenticationLayer, AuthenticationMetrics, Challenge, provider::AuthenticationProvider,
     },
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimitConfig, RateLimiters},
     telemetry::HttpTracingLayer,
@@ -256,6 +256,7 @@ impl ServeCommand {
                     service_secret: Pin::clone(&service_secret),
                     metrics: Arc::new(AuthenticationMetrics::new(&meter)),
                     bootstrap_route: |_path| false,
+                    challenge: Challenge::Service,
                     caller: core::marker::PhantomData,
                 })
                 .layer(IntoProblemLayer)

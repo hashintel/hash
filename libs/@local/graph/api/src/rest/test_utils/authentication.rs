@@ -30,7 +30,10 @@ use hash_middleware::{
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
 use hash_secret::Secret;
-use http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE};
+use http::{
+    HeaderMap, Request, StatusCode,
+    header::{CONTENT_TYPE, WWW_AUTHENTICATE},
+};
 use serde_json::json;
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorId, ActorType, UserId};
@@ -38,6 +41,7 @@ use uuid::Uuid;
 
 use super::{echo_caller, response_json};
 use crate::rest::{
+    Audience,
     authentication::{internal_chain, public_chain},
     credentials::{API_TOKEN, Actor, Credentials, MaybeActor},
     middleware::Middleware,
@@ -209,25 +213,24 @@ enum Outcome {
 ///
 /// A session token resolves an actor exactly when `C` documents the session token header. Where
 /// `C` documents the API token scheme, a bearer API token is looked up, which the unreadable store
-/// answers with 503, and one without the `Bearer` scheme is a bad request; elsewhere both are not
-/// accepted. Either way an API token fails the request even where anonymous callers are served.
-/// This ties the provider chain the audience selects to the schemes the document states.
+/// answers with 503; elsewhere it is not accepted. An API token without the `Bearer` scheme is not
+/// accepted either way, and an API token fails the request even where anonymous callers are
+/// served. Every `401` challenges with the scheme of the audience. This ties the provider chain
+/// the audience selects to the schemes the document states.
 pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
     let operator = ActorId::new(Uuid::from_u128(1), ActorType::Machine);
     let session_actor = ActorId::new(Uuid::from_u128(2), ActorType::User);
     let (router, advertised) = caller_router::<C>(operator, session_actor);
     let session = Outcome::Caller(advertised.session.then_some(session_actor));
     let api_token = api_token();
-    let (bearer_api_token, api_token_without_scheme) = if advertised.api_token {
-        (
-            Outcome::Rejected(StatusCode::SERVICE_UNAVAILABLE),
-            Outcome::Rejected(StatusCode::BAD_REQUEST),
-        )
+    let bearer_api_token = if advertised.api_token {
+        Outcome::Rejected(StatusCode::SERVICE_UNAVAILABLE)
     } else {
-        (
-            Outcome::Rejected(StatusCode::UNAUTHORIZED),
-            Outcome::Rejected(StatusCode::UNAUTHORIZED),
-        )
+        Outcome::Rejected(StatusCode::UNAUTHORIZED)
+    };
+    let challenge = match C::AUDIENCE {
+        Audience::Public => "Bearer",
+        Audience::Internal => "HASH-Service",
     };
 
     for (headers, outcome) in [
@@ -252,7 +255,10 @@ pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
             vec![("authorization", format!("Bearer {api_token}"))],
             bearer_api_token,
         ),
-        (vec![("authorization", api_token)], api_token_without_scheme),
+        (
+            vec![("authorization", api_token)],
+            Outcome::Rejected(StatusCode::UNAUTHORIZED),
+        ),
     ] {
         for path in ["/test/optional", "/test/required"] {
             let mut request = Request::builder().uri(path);
@@ -278,6 +284,16 @@ pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
                 expected_status,
                 "{path} should enforce its credential scope for {headers:?}"
             );
+            if expected_status == StatusCode::UNAUTHORIZED {
+                let presented = response
+                    .headers()
+                    .get(WWW_AUTHENTICATE)
+                    .and_then(|value| value.to_str().ok());
+                assert!(
+                    presented.is_some_and(|presented| presented.starts_with(challenge)),
+                    "{path} should challenge {headers:?} with `{challenge}`, not {presented:?}"
+                );
+            }
             if let (StatusCode::OK, Outcome::Caller(expected_actor)) = (expected_status, outcome) {
                 assert_eq!(
                     response_json(response).await,

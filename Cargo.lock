@@ -6398,7 +6398,6 @@ dependencies = [
  "moka",
  "opentelemetry",
  "opentelemetry_sdk",
- "problematic",
  "reqwest 0.13.4",
  "rstest",
  "serde",

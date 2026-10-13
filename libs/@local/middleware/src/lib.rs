@@ -40,7 +40,7 @@
 //! use error_stack::Report;
 //! use hash_middleware::{
 //!     authentication::{
-//!         AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics,
+//!         AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, Challenge,
 //!         provider::{AuthenticationProvider, Caller},
 //!         request::AuthenticationError,
 //!     },
@@ -103,6 +103,7 @@
 //!         service_secret: Pin::clone(&service_secret),
 //!         metrics: Arc::new(AuthenticationMetrics::new(&meter)),
 //!         bootstrap_route: |_path| false,
+//!         challenge: Challenge::Service,
 //!         caller: PhantomData,
 //!     })
 //!     .layer(IpGateLayer {

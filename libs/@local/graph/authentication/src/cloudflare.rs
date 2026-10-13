@@ -106,10 +106,13 @@ where
             return ControlFlow::Continue(());
         };
 
-        let Ok(token) = token.to_str() else {
-            return ControlFlow::Break(Err(Arc::new(Report::new(
-                AuthenticationError::malformed_credential(),
-            ))));
+        let token = match token.to_str() {
+            Ok(token) => token,
+            Err(error) => {
+                return ControlFlow::Break(Err(Arc::new(
+                    Report::new(error).change_context(AuthenticationError::invalid_access_token()),
+                )));
+            }
         };
 
         ControlFlow::Break(
@@ -132,13 +135,12 @@ mod tests {
     use axum::{Json, Router, routing::get};
     use error_stack::Report;
     use hash_middleware::authentication::{
-        AuthenticationProblem,
+        AuthenticationProblem, Challenge,
         provider::{AuthenticationProvider as _, expect_rejection},
         request::{AuthenticationError, AuthenticationErrorKind},
     };
     use http::{HeaderMap, HeaderValue, StatusCode};
     use jsonwebtoken::{Algorithm, EncodingKey, Header};
-    use problematic::Expose;
     use reqwest::Url;
     use rstest::rstest;
     use serde_json::{Value as JsonValue, json};
@@ -361,8 +363,8 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
         let report = expect_rejection::<ActorId>(provider.authenticate(&headers).await);
         assert_matches!(
             report.current_context().kind(),
-            AuthenticationErrorKind::MalformedCredential,
-            "a non-ASCII Access token should be rejected as malformed, not ignored"
+            AuthenticationErrorKind::InvalidAccessToken,
+            "a non-ASCII Access token should be rejected as an invalid access token, not ignored"
         );
     }
 
@@ -586,7 +588,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
             AuthenticationErrorKind::ProviderUnreachable,
             "a failing JWKS endpoint should fail as provider unavailability, not as a bad token"
         );
-        let answer = Expose::<AuthenticationProblem>::expose(&*report);
+        let answer = AuthenticationProblem::answer(&report, Challenge::Service);
         let problem = answer.details();
         assert_eq!(problem.status, 503);
         assert_eq!(

@@ -11,7 +11,7 @@ use aide::{
 use axum::{Router, response::Response};
 use hash_middleware::{
     authentication::{
-        AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
+        AuthenticationLayer, AuthenticationMetrics, Challenge, provider::AuthenticationProvider,
     },
     problem::InternalServerError,
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimiters},
@@ -79,8 +79,15 @@ where
             audience, router, ..
         } = api;
         match audience {
-            Audience::Public => self.attach(router, &self.public_provider, |_| false),
-            Audience::Internal => self.attach(router, &self.internal_provider, |_| false),
+            Audience::Public => {
+                self.attach(router, &self.public_provider, |_| false, Challenge::Bearer)
+            }
+            Audience::Internal => self.attach(
+                router,
+                &self.internal_provider,
+                |_| false,
+                Challenge::Service,
+            ),
         }
     }
 
@@ -105,6 +112,7 @@ where
             legacy_routes,
             &self.internal_provider,
             legacy::is_bootstrap_route,
+            Challenge::Service,
         );
         for api in apis {
             router = router.merge(self.attach_api(api));
@@ -130,6 +138,7 @@ where
         routes: Router,
         provider: &Arc<A>,
         bootstrap_route: fn(&str) -> bool,
+        challenge: Challenge,
     ) -> Router
     where
         A: AuthenticationProvider<Option<ActorId>> + 'static,
@@ -152,6 +161,7 @@ where
                 service_secret: Pin::clone(&self.service_secret),
                 metrics: Arc::clone(&self.authentication_metrics),
                 bootstrap_route,
+                challenge,
                 caller: core::marker::PhantomData,
             })
     }

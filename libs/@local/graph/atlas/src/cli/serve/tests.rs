@@ -242,6 +242,11 @@ async fn layers_without_credentials() {
     let serving = serving.expect("should construct serving without a generation");
     let response = send(&serving.router, Request::get("/v1/atlas/current")).await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        response.headers()[header::WWW_AUTHENTICATE],
+        "HASH-Service",
+        "the refusal should challenge with the service credential"
+    );
     let document = problem(response).await;
     assert_eq!(document["type"], "/problems/atlas/unauthenticated");
     assert_eq!(document["status"], 401);
