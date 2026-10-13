@@ -44,6 +44,8 @@ pub enum SyntaxError {
     MissingField { field: &'static str },
     #[display("`{value}` must be quoted to be read as text")]
     Unquoted { value: Box<str> },
+    #[display("expected {expected}")]
+    Expected { expected: &'static str },
     #[display("expected {expected}, found {found}")]
     Unexpected { found: Box<str>, expected: Box<str> },
     #[display("the text is too large or nested too deeply")]
@@ -54,6 +56,36 @@ pub enum SyntaxError {
 }
 
 impl SyntaxError {
+    /// Returns the definition term for a YAML parser event that the parser expected.
+    fn event(event: &'static str) -> &'static str {
+        match event {
+            "mapping start" => "a mapping",
+            "sequence start" => "a list",
+            "string scalar" => "text",
+            other => other,
+        }
+    }
+
+    /// Returns `found` with serde's name for null replaced.
+    fn found(found: &str) -> Box<str> {
+        if found == "unit value" {
+            "null".into()
+        } else {
+            found.into()
+        }
+    }
+
+    /// Returns `expected` with serde's description of a derived Rust type replaced.
+    fn expected(expected: &str) -> Box<str> {
+        if expected.starts_with("struct ") {
+            "a mapping".into()
+        } else if expected.starts_with("enum ") {
+            "text".into()
+        } else {
+            expected.into()
+        }
+    }
+
     /// Returns the reason the YAML parser refused the text.
     #[expect(
         clippy::wildcard_enum_match_arm,
@@ -92,9 +124,17 @@ impl SyntaxError {
                 expected,
                 ..
             } => Self::Unexpected {
-                found: unexpected.as_str().into(),
-                expected: expected.as_str().into(),
+                found: Self::found(unexpected),
+                expected: Self::expected(expected),
             },
+            serde_saphyr::Error::Unexpected { expected, .. } => Self::Expected {
+                expected: Self::event(expected),
+            },
+            serde_saphyr::Error::ExternallyTaggedEnumExpectedScalarOrMapping { .. } => {
+                Self::Expected {
+                    expected: "text or a mapping",
+                }
+            }
             serde_saphyr::Error::Budget { .. } => Self::TooLarge,
             other => Self::Other {
                 message: UserMessageFormatter.format_message(other).into(),
@@ -190,5 +230,47 @@ impl DefinitionIssue {
             .collect();
         issues.sort_by_key(|issue| (issue.location().is_none(), issue.location()));
         issues.into_iter()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::borrow::ToOwned as _;
+
+    use serde_saphyr::Location;
+
+    use super::SyntaxError;
+
+    #[test]
+    fn from_yaml_uses_definition_terms() {
+        for (error, message) in [
+            (
+                serde_saphyr::Error::Unexpected {
+                    expected: "sequence start",
+                    location: Location::UNKNOWN,
+                },
+                "expected a list",
+            ),
+            (
+                serde_saphyr::Error::ExternallyTaggedEnumExpectedScalarOrMapping {
+                    location: Location::UNKNOWN,
+                },
+                "expected text or a mapping",
+            ),
+            (
+                serde_saphyr::Error::SerdeInvalidType {
+                    unexpected: "unit value".to_owned(),
+                    expected: "struct SourceSyntax".to_owned(),
+                    location: Location::UNKNOWN,
+                },
+                "expected a mapping, found null",
+            ),
+        ] {
+            assert_eq!(
+                SyntaxError::from_yaml(&error).to_string(),
+                message,
+                "the message should use the terms of the definition format"
+            );
+        }
     }
 }
