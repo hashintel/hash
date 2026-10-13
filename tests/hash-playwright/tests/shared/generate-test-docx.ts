@@ -1,56 +1,15 @@
-import { crc32 } from "node:zlib";
+import JSZip from "jszip";
 
 import { testDocumentPages } from "./test-document";
 
 type ZipEntry = { name: string; contents: string };
 
-/**
- * Writes a ZIP archive whose entries are stored uncompressed, which is all a
- * DOCX reader needs.
- */
-const writeStoredZip = (entries: ZipEntry[]): Buffer => {
-  const localParts: Buffer[] = [];
-  const centralParts: Buffer[] = [];
-  let offset = 0;
-
-  for (const entry of entries) {
-    const name = Buffer.from(entry.name, "utf8");
-    const data = Buffer.from(entry.contents, "utf8");
-    const checksum = crc32(data);
-
-    const localHeader = Buffer.alloc(30);
-    localHeader.writeUInt32LE(0x04034b50, 0);
-    localHeader.writeUInt16LE(20, 4);
-    localHeader.writeUInt32LE(checksum, 14);
-    localHeader.writeUInt32LE(data.length, 18);
-    localHeader.writeUInt32LE(data.length, 22);
-    localHeader.writeUInt16LE(name.length, 26);
-
-    const centralHeader = Buffer.alloc(46);
-    centralHeader.writeUInt32LE(0x02014b50, 0);
-    centralHeader.writeUInt16LE(20, 4);
-    centralHeader.writeUInt16LE(20, 6);
-    centralHeader.writeUInt32LE(checksum, 16);
-    centralHeader.writeUInt32LE(data.length, 20);
-    centralHeader.writeUInt32LE(data.length, 24);
-    centralHeader.writeUInt16LE(name.length, 28);
-    centralHeader.writeUInt32LE(offset, 42);
-
-    localParts.push(localHeader, name, data);
-    centralParts.push(centralHeader, name);
-    offset += localHeader.length + name.length + data.length;
+const writeZip = (entries: ZipEntry[]): Promise<Buffer> => {
+  const zip = new JSZip();
+  for (const { name, contents } of entries) {
+    zip.file(name, contents);
   }
-
-  const centralDirectory = Buffer.concat(centralParts);
-
-  const end = Buffer.alloc(22);
-  end.writeUInt32LE(0x06054b50, 0);
-  end.writeUInt16LE(entries.length, 8);
-  end.writeUInt16LE(entries.length, 10);
-  end.writeUInt32LE(centralDirectory.length, 12);
-  end.writeUInt32LE(offset, 16);
-
-  return Buffer.concat([...localParts, centralDirectory, end]);
+  return zip.generateAsync({ type: "nodebuffer" });
 };
 
 const wordNamespace =
@@ -59,6 +18,14 @@ const relationshipNamespace =
   "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 const relationshipTypes =
   "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+/**
+ * A4 (210 by 297 mm) with one-inch margins, in twentieths of a point.
+ *
+ * @see https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.pagesize
+ * @see https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.pagemargin
+ */
+const sectionProperties = `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>`;
 
 const writeDocx = ({
   body,
@@ -70,8 +37,8 @@ const writeDocx = ({
   documentRelationships?: string[];
   extraParts?: ZipEntry[];
   extraContentTypes?: string;
-}): Buffer =>
-  writeStoredZip([
+}): Promise<Buffer> =>
+  writeZip([
     {
       name: "[Content_Types].xml",
       contents: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>${extraContentTypes}</Types>`,
@@ -86,7 +53,7 @@ const writeDocx = ({
     },
     {
       name: "word/document.xml",
-      contents: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="${wordNamespace}" xmlns:r="${relationshipNamespace}"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`,
+      contents: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="${wordNamespace}" xmlns:r="${relationshipNamespace}"><w:body>${body}${sectionProperties}</w:body></w:document>`,
     },
     ...extraParts,
   ]);
@@ -97,7 +64,7 @@ const paragraph = (text: string) =>
 const pageBreak = `<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
 
 /** Renders `testDocumentPages` as a DOCX, one page per entry. */
-export const generateTestDocx = (): Buffer =>
+export const generateTestDocx = (): Promise<Buffer> =>
   writeDocx({
     body: testDocumentPages
       .map(({ heading, body }) => `${paragraph(heading)}${paragraph(body)}`)
@@ -110,7 +77,7 @@ export const generateTestDocx = (): Buffer =>
  * with an event handler, a picture linked from another origin, and an HTML
  * altChunk holding a script.
  */
-export const generateHostileTestDocx = (): Buffer =>
+export const generateHostileTestDocx = (): Promise<Buffer> =>
   writeDocx({
     body: [
       paragraph("Hostile document"),
@@ -139,7 +106,7 @@ export const generateHostileTestDocx = (): Buffer =>
  * Builds a DOCX that folio refuses to draw: a bookmark that ends between
  * paragraphs without having started.
  */
-export const generateUndrawableTestDocx = (): Buffer =>
+export const generateUndrawableTestDocx = (): Promise<Buffer> =>
   writeDocx({
     body: [
       paragraph("Undrawable document"),

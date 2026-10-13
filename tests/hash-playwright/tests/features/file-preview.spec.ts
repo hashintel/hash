@@ -125,7 +125,7 @@ test.describe("PDF preview", () => {
 test.describe("DOCX preview", () => {
   test.beforeEach(async ({ page }) => {
     await uploadAndOpenFile(page, {
-      contents: generateTestDocx(),
+      contents: await generateTestDocx(),
       mimeType: docxMimeType,
       name: `file-preview-${Date.now()}.docx`,
     });
@@ -240,7 +240,7 @@ test("the DOCX preview runs and loads nothing from a hostile document", async ({
   });
 
   await uploadAndOpenFile(page, {
-    contents: generateHostileTestDocx(),
+    contents: await generateHostileTestDocx(),
     mimeType: docxMimeType,
     name: `file-preview-hostile-${Date.now()}.docx`,
   });
@@ -296,7 +296,11 @@ for (const { description, contents } of [
   }) => {
     const name = `file-preview-unavailable-${Date.now()}.docx`;
 
-    await uploadAndOpenFile(page, { contents, mimeType: docxMimeType, name });
+    await uploadAndOpenFile(page, {
+      contents: await contents,
+      mimeType: docxMimeType,
+      name,
+    });
 
     await expect(
       page.getByRole("paragraph").filter({ hasText: name }),
