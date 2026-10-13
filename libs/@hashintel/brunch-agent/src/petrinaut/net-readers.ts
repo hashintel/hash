@@ -2,6 +2,21 @@ import * as v from "valibot";
 
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
+import type {
+  AdHocOptimizeSettings,
+  AdHocPlaceState,
+  AdHocRow,
+  AdHocScenarioState,
+  AdHocValue,
+  ComponentInstance,
+  DifferentialEquation,
+  Metric,
+  Scenario,
+  SDCPN,
+  Subnet,
+  Transition,
+} from "@hashintel/petrinaut-core";
+
 /** Filtered views of `getLatestNetDefinition`, executed by the bound browser. */
 export const netReaderToolNames = {
   outline: "readNetOutline",
@@ -41,22 +56,34 @@ type Projection = (value: unknown) => unknown;
 /** How one named field is copied: left out, or projected. */
 type FieldRule = "omit" | Projection;
 
-type FieldRules = Readonly<Record<string, FieldRule>>;
+/** Every key of every member of a union, so a rule may name a field any member has. */
+type KeyOf<Owner> = Owner extends unknown ? keyof Owner & string : never;
+
+/**
+ * Rules keyed by the fields of the petrinaut-core type that owns them, so a
+ * renamed or removed field fails to compile instead of silently passing
+ * through. A rule set must name its owner: without one, no key is allowed.
+ */
+type FieldRules<Owner> = Readonly<Partial<Record<KeyOf<Owner>, FieldRule>>>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** Copies an object applying `rules` to its own fields; other fields pass through. */
-const projectObject = (value: unknown, rules: FieldRules): unknown =>
-  isRecord(value)
-    ? Object.fromEntries(
-        Object.entries(value).flatMap(([key, member]) => {
-          const rule = Object.hasOwn(rules, key) ? rules[key] : undefined;
-          if (rule === "omit") return [];
-          return [[key, rule ? rule(member) : member]];
-        }),
-      )
-    : value;
+const projectObject = <Owner>(
+  value: unknown,
+  rules: FieldRules<Owner>,
+): unknown => {
+  if (!isRecord(value)) return value;
+  const byKey: Readonly<Record<string, FieldRule | undefined>> = rules;
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([key, member]) => {
+      const rule = Object.hasOwn(byKey, key) ? byKey[key] : undefined;
+      if (rule === "omit") return [];
+      return [[key, rule ? rule(member) : member]];
+    }),
+  );
+};
 
 const eachItem =
   (project: Projection): Projection =>
@@ -73,11 +100,11 @@ const eachValue =
         )
       : value;
 
-const omitAll = (keys: readonly string[]): FieldRules =>
-  Object.fromEntries(keys.map((key) => [key, "omit"]));
+const omitAll = <Owner>(keys: readonly KeyOf<Owner>[]): FieldRules<Owner> =>
+  Object.fromEntries(keys.map((key) => [key, "omit"])) as FieldRules<Owner>;
 
 /** Left out of the net and of each item in its collections, never deeper. */
-const presentationalRules = omitAll([
+const presentationalRules = omitAll<SDCPN | Subnet | NetItem>([
   "x",
   "y",
   "visualizerCode",
@@ -88,25 +115,28 @@ const presentationalRules = omitAll([
 ]);
 
 const adHocBoundsOutline = (settings: unknown) =>
-  projectObject(settings, omitAll(["min", "max", "step"]));
+  projectObject(
+    settings,
+    omitAll<AdHocOptimizeSettings>(["min", "max", "step"]),
+  );
 
 /** An `AdHocValue`, or a Variable or net parameter built on one, without its expressions. */
 const adHocValueOutline = (value: unknown) =>
-  projectObject(value, {
+  projectObject<AdHocValue>(value, {
     expression: "omit",
     optimize: adHocBoundsOutline,
     retainedOptimize: adHocBoundsOutline,
   });
 
 const adHocRowOutline = (row: unknown) =>
-  projectObject(row, {
+  projectObject<AdHocRow>(row, {
     cells: eachItem(adHocValueOutline),
     count: adHocValueOutline,
     retainedCount: adHocValueOutline,
   });
 
 const adHocPlaceOutline = (place: unknown) =>
-  projectObject(place, {
+  projectObject<AdHocPlaceState>(place, {
     variables: eachItem(adHocValueOutline),
     rows: eachItem(adHocRowOutline),
     count: adHocValueOutline,
@@ -115,20 +145,22 @@ const adHocPlaceOutline = (place: unknown) =>
   });
 
 const adHocStateOutline = (state: unknown) =>
-  projectObject(state, {
+  projectObject<AdHocScenarioState>(state, {
     variables: eachItem(adHocValueOutline),
     netParameters: eachItem(adHocValueOutline),
     places: eachValue(adHocPlaceOutline),
   });
 
+type InitialState = Scenario["initialState"];
+
 /** Ad-hoc states keep their shape; code and per-place states keep only their type. */
 const initialStateOutline = (state: unknown) => {
   switch (isRecord(state) ? state.type : undefined) {
-    case "adhoc":
-      return projectObject(state, { content: adHocStateOutline });
-    case "code":
-    case "per_place":
-      return projectObject(state, { content: "omit" });
+    case "adhoc" satisfies InitialState["type"]:
+      return projectObject<InitialState>(state, { content: adHocStateOutline });
+    case "code" satisfies InitialState["type"]:
+    case "per_place" satisfies InitialState["type"]:
+      return projectObject<InitialState>(state, { content: "omit" });
     default:
       return state;
   }
@@ -144,17 +176,23 @@ const itemCollections = [
   "scenarios",
   "metrics",
   "componentInstances",
-] as const;
+] as const satisfies readonly (keyof SDCPN)[];
+
+type ItemCollection = (typeof itemCollections)[number];
+
+type NetItem = NonNullable<SDCPN[ItemCollection]>[number];
 
 /** Code and expression fields the outline also leaves out, by collection. */
-const outlineItemRules: Partial<
-  Record<(typeof itemCollections)[number], FieldRules>
-> = {
-  transitions: omitAll(["lambdaCode", "transitionKernelCode"]),
-  differentialEquations: omitAll(["code"]),
+const outlineItemRules: {
+  readonly [Collection in ItemCollection]?: FieldRules<
+    NonNullable<SDCPN[Collection]>[number]
+  >;
+} = {
+  transitions: omitAll<Transition>(["lambdaCode", "transitionKernelCode"]),
+  differentialEquations: omitAll<DifferentialEquation>(["code"]),
   scenarios: { parameterOverrides: "omit", initialState: initialStateOutline },
-  metrics: omitAll(["code"]),
-  componentInstances: omitAll(["parameterValues"]),
+  metrics: omitAll<Metric>(["code"]),
+  componentInstances: omitAll<ComponentInstance>(["parameterValues"]),
 };
 
 /**
@@ -168,11 +206,11 @@ export const projectNetDefinition = (
   value: unknown,
   level: NetReaderLevel,
 ): unknown =>
-  projectObject(value, {
+  projectObject<SDCPN | Subnet>(value, {
     ...presentationalRules,
     ...Object.fromEntries(
       itemCollections.map((collection) => {
-        const itemRules: FieldRules = {
+        const itemRules: FieldRules<NetItem> = {
           ...presentationalRules,
           ...(level === "outline" ? outlineItemRules[collection] : {}),
         };
