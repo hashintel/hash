@@ -33,13 +33,17 @@ use crate::{
     reify::unwrap_closure_type,
 };
 
-/// Constructs a `&'static [ConstantSymbol]` path from `::` separated segments.
+/// Constructs a path array of [`ConstantSymbol`]s.
 ///
-/// Each segment maps to the corresponding `sym::` constant.
+/// Each `::`-separated segment maps to `sym::<segment>::CONST`.
+///
+/// These examples use `ignore` because the macro is private to this module.
 ///
 /// ```ignore
-/// T![::core::math::add]  // expands to &[sym::core, sym::math, sym::add]
-/// T![::core::cmp::eq]    // expands to &[sym::core, sym::cmp, sym::eq]
+/// // Expands to [sym::core::CONST, sym::math::CONST, sym::add::CONST].
+/// T![::core::math::add]
+/// // Expands to [sym::core::CONST, sym::cmp::CONST, sym::eq::CONST].
+/// T![::core::cmp::eq]
 /// ```
 #[expect(clippy::min_ident_chars)]
 macro_rules! T {
