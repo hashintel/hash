@@ -53,6 +53,10 @@ utoipa           = { workspace = true, optional = true, features = ["uuid"] }
 uuid             = { workspace = true, features = ["v4", "serde"] }
 
 [dev-dependencies]
+hash-graph-authentication = { workspace = true }
+hash-middleware           = { workspace = true }
+http                      = { workspace = true }
+
 # The crate's own test suites wrap each test in a rollback transaction, so they need the
 # `test-utils`-gated `BeginReadOnlyTransaction` impl for `InTransaction` stores. The
 # self-dependency enables the feature for test builds only via feature unification.

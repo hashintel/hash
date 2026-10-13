@@ -334,6 +334,11 @@
       }
     },
     "securitySchemes": {
+      "apiToken": {
+        "description": "API token starting with `hsh_pat_`. The token acts as the user it belongs to.",
+        "scheme": "bearer",
+        "type": "http"
+      },
       "cloudflareAccess": {
         "description": "Cloudflare Access JWT, when configured.",
         "in": "header",
@@ -393,6 +398,9 @@
         },
         "security": [
           {
+            "apiToken": []
+          },
+          {
             "cloudflareAccess": []
           },
           {
@@ -439,6 +447,9 @@
         },
         "security": [
           {},
+          {
+            "apiToken": []
+          },
           {
             "cloudflareAccess": []
           },
