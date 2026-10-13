@@ -36,10 +36,12 @@ CROSS JOIN LATERAL (
             - (
                 CASE
                     WHEN
-                        ($5 = ANY("entity_edition_cache_0_0_2"."base_urls"))
-                        AND (
-                            "entity_temporal_metadata_0_0_0"."entity_uuid" != $6
-                        )
+                        (
+                            ($5 = ANY("entity_edition_cache_0_0_2"."base_urls"))
+                            AND (
+                                "entity_temporal_metadata_0_0_0"."entity_uuid" != $6
+                            )
+                        ) IS NOT FALSE
                         THEN ARRAY[$7]::text []
                     ELSE ARRAY[]::text []
                 END
@@ -48,15 +50,17 @@ CROSS JOIN LATERAL (
         "ee"."archived" AS "archived",
         "ee"."confidence" AS "confidence",
         "ee"."provenance" AS "provenance",
-        (
-            "ee"."property_metadata"
+        JSONB_SET(
+            "ee"."property_metadata",
+            $8,
+            COALESCE("ee"."property_metadata" -> 'value', JSONB_BUILD_OBJECT())
             - (
                 CASE
                     WHEN
-                        ($5 = ANY("entity_edition_cache_0_0_2"."base_urls"))
-                        AND (
-                            "entity_temporal_metadata_0_0_0"."entity_uuid" != $6
-                        )
+                        (
+                            ($5 = ANY("entity_edition_cache_0_0_2"."base_urls"))
+                            AND ("entity_temporal_metadata_0_0_0"."entity_uuid" != $6)
+                        ) IS NOT FALSE
                         THEN ARRAY[$7]::text []
                     ELSE ARRAY[]::text []
                 END
@@ -103,4 +107,4 @@ $3: Symbol(name)
 $4: Input(expected)
 ============================= Auxiliary Parameters =============================
 
-AuxiliaryParameters { initial_offset: 4, parameters: ["https://hash.ai/@h/types/entity-type/user/", User(UserId(ActorEntityUuid(EntityUuid(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)))), "https://hash.ai/@h/types/property-type/email/"] }
+AuxiliaryParameters { initial_offset: 4, parameters: ["https://hash.ai/@h/types/entity-type/user/", User(UserId(ActorEntityUuid(EntityUuid(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)))), "https://hash.ai/@h/types/property-type/email/", ["value"]] }

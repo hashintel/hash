@@ -6,14 +6,15 @@
 //! - **Policy** ([`policy`]): permit/forbid admission conditions added to WHERE
 //! - **Protection** ([`protection`]): property masking applied inside the `entity_editions` LATERAL
 //!   subquery
+use alloc::borrow::Cow;
 use core::{alloc::Allocator, mem};
 
 use hash_graph_authorization::policies::PolicyComponents;
 use hash_graph_postgres_store::store::postgres::query::{
-    Expression, FromItem, SelectExpression, Table, TableName,
+    Expression, FromItem, Function, SelectExpression, Table, TableName,
     table::{self, DatabaseColumn as _},
 };
-use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
+use hash_graph_store::filter::{PathToken, protection::PropertyProtectionFilterConfig};
 
 use self::{
     policy::{PolicyTranslation, PolicyTranslationUnit},
@@ -94,7 +95,7 @@ fn find_from_by_name<'from, 'id>(
 ///
 /// - **Policy admission**: permit/forbid conditions appended to WHERE.
 /// - **Property masking**: CASE WHEN expressions grafted into the `entity_editions` LATERAL
-///   subquery, stripping protected property keys from `properties` and `property_metadata`.
+///   subquery, stripping protected property keys from `properties` and `property_metadata.value`.
 ///
 /// This layer must be the innermost in the [`PreparedQueryPatch`] pipeline.
 /// It locates the `entity_editions` LATERAL by the alias assigned during
@@ -144,9 +145,9 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
             .unwrap_or_else(|| unreachable!("prepared queries are always simple queries"))
             .add_condition(condition, |lhs, rhs| Expression::all(vec![lhs, rhs]));
 
-        // Lower protection BEFORE join materialization so its join demands
-        // (e.g. entity_edition_cache for TypeBaseUrls) are registered.
-        // The resulting mask expression is grafted AFTER joins are built.
+        // Lower protection before join materialization to register its join demands (e.g.
+        // entity_edition_cache for TypeBaseUrls). Apply the resulting mask after building those
+        // joins.
         let entity_edition_alias = context.projections.entity_edition_alias();
 
         let keys_to_remove = entity_edition_alias.and_then(|_| {
@@ -211,14 +212,29 @@ impl<A: Allocator + Clone, S: Allocator> PatchPreparedQueryLayer<A, S>
                 );
             };
 
-            if alias.as_ref() == table::EntityEditions::Properties.name().as_str()
-                || alias.as_ref() == table::EntityEditions::PropertyMetadata.name().as_str()
-            {
+            let is_metadata =
+                alias.as_ref() == table::EntityEditions::PropertyMetadata.name().as_str();
+            if alias.as_ref() == table::EntityEditions::Properties.name().as_str() || is_metadata {
                 let base = mem::replace(expression, Expression::Parameter(0));
 
-                // Group the result of the subtraction so that subsequent operators bind to the
-                // result, and not to one of its parts.
-                *expression = Expression::subtract(base, keys_to_remove.clone()).grouped();
+                *expression = if is_metadata {
+                    // `property_metadata` has some indirection. values live under `value`.
+                    let values = Expression::from(Function::JsonExtract(
+                        Box::new(base.clone()),
+                        PathToken::Field(Cow::Borrowed("value")),
+                    ))
+                    .coalesce(Function::JsonBuildObject(Vec::new()));
+
+                    let path = query.auxiliary_parameters.push(["value"].as_slice());
+                    Expression::from(Function::JsonSet {
+                        target: Box::new(base),
+                        path: Box::new(Expression::Parameter(path)),
+                        value: Box::new(values.subtract(keys_to_remove.clone())),
+                    })
+                } else {
+                    // Group the subtraction so subsequent operators bind to its result.
+                    base.subtract(keys_to_remove.clone()).grouped()
+                };
 
                 #[cfg(debug_assertions)]
                 {

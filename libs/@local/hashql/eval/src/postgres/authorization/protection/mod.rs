@@ -2,7 +2,8 @@ use core::alloc::Allocator;
 
 use hash_graph_authorization::policies::PolicyComponents;
 use hash_graph_postgres_store::store::postgres::query::{
-    Column, ColumnReference, Constant, Expression, Function, PostgresType, table,
+    Column, ColumnReference, Constant, Expression, Function, PostgresType, UnaryExpression,
+    UnaryOperator, table,
 };
 use hash_graph_store::filter::{
     Parameter,
@@ -135,15 +136,14 @@ fn lower_filter<A: Allocator + Clone>(
 /// Builds the mask expression for a single protected property.
 ///
 /// ```sql
-/// CASE WHEN <condition>
+/// CASE WHEN (<condition>) IS NOT FALSE
 ///      THEN ARRAY[$url]::text[]
 ///      ELSE '{}'::text[]
 /// END
 /// ```
 ///
-/// Evaluates to a single-element array containing the property's base URL
-/// when the condition holds (property should be masked), or an empty array
-/// otherwise.
+/// Only an explicitly false condition leaves the property visible. A true or SQL NULL condition
+/// masks it.
 fn lower_property_filter<A: Allocator + Clone>(
     unit: &mut ProtectionTranslationUnit<'_, A>,
     property_url: BaseUrl,
@@ -152,10 +152,12 @@ fn lower_property_filter<A: Allocator + Clone>(
     let condition = lower_filter(unit, filter);
     let url_index = unit.parameters.push(property_url);
 
-    // CASE WHEN <condition> THEN ARRAY[$url]::text[] ELSE '{}'::text[] END
     Expression::CaseWhen {
         conditions: vec![(
-            condition,
+            Expression::Unary(UnaryExpression {
+                op: UnaryOperator::IsNotFalse,
+                expr: Box::new(condition.grouped()),
+            }),
             Expression::Function(Function::ArrayLiteral {
                 elements: vec![Expression::Parameter(url_index)],
                 element_type: PostgresType::Text,
@@ -170,11 +172,10 @@ fn lower_property_filter<A: Allocator + Clone>(
 
 /// The mask expression produced by lowering property protection rules.
 ///
-/// When present, this expression evaluates to a `text[]` of property base URLs
-/// that should be stripped. It is subtracted from the `properties` and
-/// `property_metadata` columns inside the `entity_editions` LATERAL subquery.
+/// When present, this expression evaluates to a `text[]` of property base URLs to strip from
+/// `properties` and `property_metadata.value` inside the `entity_editions` LATERAL subquery.
 pub(super) struct ProtectionTranslation {
-    /// `NULL` when no properties are protected (no masking needed).
+    /// [`None`] skips masking.
     pub keys_to_remove: Option<Expression>,
 }
 
