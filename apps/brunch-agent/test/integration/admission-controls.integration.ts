@@ -20,7 +20,11 @@ import {
 } from "@flue/sdk";
 
 import { brunchTools } from "@hashintel/brunch-agent";
-import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  browserToolOutput,
+  projectBrunchMessageMetadata,
+} from "@hashintel/brunch-agent/client-tools";
+import { createFlueAiSdkAdapter } from "@local/flue-aisdk-transport";
 
 import {
   agentOwnershipHeaders,
@@ -52,9 +56,11 @@ const recordWire = (chunk: ConversationStreamChunk) => {
 };
 const unobserve = observe((event) => record("runtime", event));
 const project = (history: FlueConversationSnapshot) =>
-  snapshotToUiMessages(history, {
+  createFlueAiSdkAdapter({
     clientToolNames: new Set(["addType"]),
-  });
+    mapToolOutput: browserToolOutput,
+    projectMetadata: projectBrunchMessageMetadata,
+  }).reopen(history);
 const faux = fauxProvider({ provider: "openai" });
 const createStall = () => ({
   upstream: createAssistantMessageEventStream(),

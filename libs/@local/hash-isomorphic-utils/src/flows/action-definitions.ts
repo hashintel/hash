@@ -2,6 +2,7 @@ import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
   ActionDefinition,
   DeepReadOnly,
+  FlowActionDefinitionId,
   PayloadKind,
   PayloadValue,
   StepInput,
@@ -373,9 +374,17 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntitiesMetadata",
+        payloadKind: "PersistedEntityMetadata",
         name: "persistedEntities",
-        array: false,
+        description: "The entities that were created or updated",
+        array: true,
+        required: true,
+      },
+      {
+        payloadKind: "FailedEntityProposal",
+        name: "failedEntityProposals",
+        description: "The proposed entities that could not be persisted",
+        array: true,
         required: true,
       },
     ],
@@ -446,10 +455,10 @@ const aiFlowActionDefinitionsAsConst = {
        * @todo make this do something / rethink it as needed
        */
       {
-        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
         name: "existingEntities",
         required: false,
-        array: false,
+        array: true,
       },
     ],
     outputs: [
@@ -535,10 +544,10 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
         name: "entities",
         required: false,
-        array: false,
+        array: true,
       },
     ],
     outputs: [
@@ -778,16 +787,20 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: [
-          "FormattedText",
-          "PersistedEntitiesMetadata",
-          "EntityId",
-        ],
+        oneOfPayloadKinds: ["FormattedText", "EntityId"],
         description:
-          "The data to write to the Google Sheet, as one of: CSV-formatted text; entities; or the id of a query to retrieve the data via.",
+          "The data to write to the Google Sheet, as either CSV-formatted text or the id of a query to retrieve the data via. Provide either this or `persistedEntities`.",
         name: "dataToWrite",
-        required: true,
+        required: false,
         array: false,
+      },
+      {
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
+        description:
+          "Entities to write to the Google Sheet. Provide either this or `dataToWrite`.",
+        name: "persistedEntities",
+        required: false,
+        array: true,
       },
       {
         oneOfPayloadKinds: ["ActorType"],
@@ -865,12 +878,12 @@ const integrationFlowActionDefinitionsAsConst = {
     kind: "action",
     inputs: [
       {
-        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
         name: "persistedEntities",
         description:
           "The persisted flight entities to check for live positions",
         required: true,
-        array: false,
+        array: true,
       },
     ],
     outputs: [
@@ -934,11 +947,17 @@ const integrationFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntitiesMetadata",
+        payloadKind: "PersistedEntityMetadata",
         name: "persistedEntities",
-        description:
-          "The result of persisting the entities, including any failures",
-        array: false,
+        description: "The entities that were created or updated",
+        array: true,
+        required: true,
+      },
+      {
+        payloadKind: "FailedEntityProposal",
+        name: "failedEntityProposals",
+        description: "The proposed entities that could not be persisted",
+        array: true,
         required: true,
       },
     ],
@@ -965,150 +984,73 @@ export const actionDefinitions = {
   ...integrationActionDefinitions,
 };
 
-export type InputNameForAiFlowAction<
-  T extends keyof typeof aiFlowActionDefinitionsAsConst,
-> = (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number]["name"];
-
-export type OutputNameForAiFlowAction<
-  T extends keyof typeof aiFlowActionDefinitionsAsConst,
-> = (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number]["name"];
-
-export type InputPayloadKindForAiFlowAction<
-  T extends AiFlowActionDefinitionId,
-  N extends InputNameForAiFlowAction<T>,
-> = Extract<
-  (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-  { name: N }
->["oneOfPayloadKinds"][number];
-
-export type InputNameForIntegrationFlowAction<
-  T extends keyof typeof integrationFlowActionDefinitionsAsConst,
-> =
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number]["name"];
-
-export type OutputNameForIntegrationFlowAction<
-  T extends keyof typeof integrationFlowActionDefinitionsAsConst,
-> =
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["outputs"][number]["name"];
-
-export type InputPayloadKindForIntegrationFlowAction<
-  T extends IntegrationFlowActionDefinitionId,
-  N extends InputNameForIntegrationFlowAction<T>,
-> = Extract<
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-  { name: N }
->["oneOfPayloadKinds"][number];
-
-export type OutputPayloadKindForAiFlowAction<
-  T extends AiFlowActionDefinitionId,
-  N extends OutputNameForAiFlowAction<T>,
-> = Extract<
-  (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number],
-  { name: N }
->["payloadKind"];
-
-type AiFlowInputPayloadType<
-  T extends AiFlowActionDefinitionId,
-  N extends InputNameForAiFlowAction<T>,
-> =
-  Extract<
-    (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-    { name: N }
-  > extends { required: true; array: true }
-    ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true>
-    : Extract<
-          (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-          { name: N }
-        > extends { required: false; array: true }
-      ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true> | undefined
-      : Extract<
-            (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-            { name: N }
-          > extends { required: true; array: false }
-        ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
-        :
-            | PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
-            | undefined;
-
-type SimplifiedActionInputsObject<T extends AiFlowActionDefinitionId> = {
-  [N in InputNameForAiFlowAction<T>]: AiFlowInputPayloadType<T, N>;
+/**
+ * Every action definition with its literal types preserved: input and output names, payload kinds, and the
+ * `array`, `required` and `default` flags. Use this where the types matter (e.g. the typed flow builder), and
+ * {@link actionDefinitions} for lookups by an id that is only known at runtime.
+ */
+export const typedActionDefinitions = {
+  ...aiFlowActionDefinitionsAsConst,
+  ...integrationFlowActionDefinitionsAsConst,
 };
 
-export const getSimplifiedAiFlowActionInputs = <
-  T extends AiFlowActionDefinitionId,
+export type TypedActionDefinitions = typeof typedActionDefinitions;
+
+type InputDefinitionForFlowAction<T extends FlowActionDefinitionId> =
+  TypedActionDefinitions[T]["inputs"][number];
+
+type OutputDefinitionForFlowAction<T extends FlowActionDefinitionId> =
+  TypedActionDefinitions[T]["outputs"][number];
+
+export type InputNameForFlowAction<T extends FlowActionDefinitionId> =
+  InputDefinitionForFlowAction<T>["name"];
+
+export type OutputNameForFlowAction<T extends FlowActionDefinitionId> =
+  OutputDefinitionForFlowAction<T>["name"];
+
+type InputPayloadKindForFlowAction<
+  T extends FlowActionDefinitionId,
+  N extends InputNameForFlowAction<T>,
+> = Extract<
+  InputDefinitionForFlowAction<T>,
+  { name: N }
+>["oneOfPayloadKinds"][number];
+
+type FlowActionInputPayloadType<
+  T extends FlowActionDefinitionId,
+  N extends InputNameForFlowAction<T>,
+> =
+  Extract<InputDefinitionForFlowAction<T>, { name: N }> extends {
+    array: infer A extends boolean;
+    required: infer R extends boolean;
+  }
+    ?
+        | PayloadValue<InputPayloadKindForFlowAction<T, N>, A>
+        | (R extends true ? never : undefined)
+    : never;
+
+type SimplifiedFlowActionInputsObject<T extends FlowActionDefinitionId> = {
+  [N in InputNameForFlowAction<T>]: FlowActionInputPayloadType<T, N>;
+};
+
+export const getSimplifiedFlowActionInputs = <
+  T extends FlowActionDefinitionId,
 >(params: {
   inputs: StepInput[];
   actionType: T;
-}): SimplifiedActionInputsObject<T> => {
+}): SimplifiedFlowActionInputsObject<T> => {
   const { inputs } = params;
 
   return inputs.reduce((acc, input) => {
-    const inputName = input.inputName as InputNameForAiFlowAction<T>;
+    const inputName = input.inputName as InputNameForFlowAction<T>;
 
-    acc[inputName] = input.payload.value as AiFlowInputPayloadType<
+    acc[inputName] = input.payload.value as FlowActionInputPayloadType<
       T,
       typeof inputName
     >;
 
     return acc;
-  }, {} as SimplifiedActionInputsObject<T>);
-};
-
-type IntegrationFlowInputPayloadType<
-  T extends IntegrationFlowActionDefinitionId,
-  N extends InputNameForIntegrationFlowAction<T>,
-> =
-  Extract<
-    (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-    { name: N }
-  > extends { required: true; array: true }
-    ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
-    : Extract<
-          (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-          { name: N }
-        > extends { required: false; array: true }
-      ?
-          | PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
-          | undefined
-      : Extract<
-            (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-            { name: N }
-          > extends { required: true; array: false }
-        ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, false>
-        :
-            | PayloadValue<
-                InputPayloadKindForIntegrationFlowAction<T, N>,
-                false
-              >
-            | undefined;
-
-type SimplifiedIntegrationActionInputsObject<
-  T extends IntegrationFlowActionDefinitionId,
-> = {
-  [N in InputNameForIntegrationFlowAction<T>]: IntegrationFlowInputPayloadType<
-    T,
-    N
-  >;
-};
-
-export const getSimplifiedIntegrationFlowActionInputs = <
-  T extends IntegrationFlowActionDefinitionId,
->(params: {
-  inputs: StepInput[];
-  actionType: T;
-}): SimplifiedIntegrationActionInputsObject<T> => {
-  const { inputs } = params;
-
-  return inputs.reduce((acc, input) => {
-    const inputName = input.inputName as InputNameForIntegrationFlowAction<T>;
-
-    acc[inputName] = input.payload.value as IntegrationFlowInputPayloadType<
-      T,
-      typeof inputName
-    >;
-
-    return acc;
-  }, {} as SimplifiedIntegrationActionInputsObject<T>);
+  }, {} as SimplifiedFlowActionInputsObject<T>);
 };
 
 /**
@@ -1141,18 +1083,7 @@ type ActionStepOutput<
   : never;
 
 /**
- * Get the union of all typed StepOutput types for a given AI flow action.
+ * Get the union of all typed StepOutput types for a given flow action.
  */
-export type AiActionStepOutput<T extends AiFlowActionDefinitionId> =
-  ActionStepOutput<
-    (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number]
-  >;
-
-/**
- * Get the union of all typed StepOutput types for a given integration flow action.
- */
-export type IntegrationActionStepOutput<
-  T extends IntegrationFlowActionDefinitionId,
-> = ActionStepOutput<
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["outputs"][number]
->;
+export type FlowActionStepOutput<T extends FlowActionDefinitionId> =
+  ActionStepOutput<OutputDefinitionForFlowAction<T>>;

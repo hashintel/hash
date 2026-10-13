@@ -18,6 +18,7 @@ import {
 } from "../../../graph/knowledge/system-types/flow-schedule";
 import * as GraphQLError from "../../error";
 import { graphQLContextToImpureGraphContext } from "../util";
+import { getRunnableFlowDefinition } from "./shared/get-runnable-flow-definition";
 
 import type {
   Mutation,
@@ -41,22 +42,21 @@ export const createFlowScheduleResolver: ResolverFn<
   const context = graphQLContextToImpureGraphContext(graphQLContext);
   const { authentication } = graphQLContext;
 
-  const { flowDefinition } = input;
-  const flowType = flowDefinition.type;
+  const { flowDefinitionId } = input;
 
-  if (flowType === "ai" && !user.enabledFeatureFlags.includes("ai")) {
-    throw GraphQLError.forbidden("AI flows are not enabled for this user");
-  }
+  const { flowDefinition, flowType } = getRunnableFlowDefinition(
+    graphQLContext,
+    input.flowDefinition,
+  );
 
   if (flowType === "ai" && !input.dataSources) {
     throw GraphQLError.badRequest("Data sources are required for AI flows");
   }
 
-  const schedule = await createFlowScheduleEntity(
-    context,
-    authentication,
-    input,
-  );
+  const schedule = await createFlowScheduleEntity(context, authentication, {
+    ...input,
+    flowDefinition,
+  });
 
   const props = simplifyProperties(schedule.properties);
   const scheduleId = extractEntityUuidFromEntityId(
@@ -70,8 +70,9 @@ export const createFlowScheduleResolver: ResolverFn<
       ? { dataSources: input.dataSources }
       : {}),
     flowDefinition,
+    flowDefinitionId,
     flowRunName: input.name,
-    flowTrigger: input.flowTrigger,
+    flowInputs: input.flowInputs,
     userAuthentication: { actorId: user.accountId },
     webId: input.webId,
   };
@@ -86,7 +87,7 @@ export const createFlowScheduleResolver: ResolverFn<
         taskQueue,
         args: [workflowParams],
         memo: {
-          flowDefinitionId: flowDefinition.flowDefinitionId,
+          flowDefinitionId,
           userAccountId: user.accountId,
           webId: input.webId,
         },

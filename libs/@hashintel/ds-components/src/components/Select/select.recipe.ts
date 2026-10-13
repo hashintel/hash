@@ -508,7 +508,7 @@ export const selectRecipe = sva({
       true: {
         trigger: {
           maxHeight:
-            "[calc(var(--form-line-height) + 2 * var(--form-padding-y))]",
+            "[calc(round(var(--form-line-height), 1px) + 2 * var(--form-padding-y))]",
         },
       },
     },

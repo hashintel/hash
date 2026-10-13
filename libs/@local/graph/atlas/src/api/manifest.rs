@@ -25,7 +25,7 @@ use super::{
     AppState,
     authorization::Renewal,
     clause, headers,
-    problem::{Problem, ProblemType},
+    problem::{Problem, ProblemResponse, ProblemType},
     saltile::{self, DocumentResponse},
     visibility,
 };
@@ -111,7 +111,7 @@ pub(super) async fn handler<R>(
         carried,
     }: Renewal,
     body: Bytes,
-) -> Result<Response, Problem<'static>>
+) -> Result<Response, ProblemResponse<'static>>
 where
     R: TryCryptoRng + Send + 'static,
 {

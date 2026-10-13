@@ -2,8 +2,8 @@ import { Link, Stack, Typography } from "@mui/material";
 
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import {
-  automaticBrowserInferenceFlowDefinition,
-  manualBrowserInferenceFlowDefinition,
+  automaticBrowserInferenceFlow,
+  manualBrowserInferenceFlow,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generatedFilteredWorkersPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
@@ -17,8 +17,8 @@ export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
         href={`${FRONTEND_ORIGIN}${generatedFilteredWorkersPath({
           flowDefinitionIds:
             type === "manual"
-              ? [manualBrowserInferenceFlowDefinition.flowDefinitionId]
-              : [automaticBrowserInferenceFlowDefinition.flowDefinitionId],
+              ? [manualBrowserInferenceFlow.flowDefinitionId]
+              : [automaticBrowserInferenceFlow.flowDefinitionId],
         })}`}
         sx={{
           alignItems: "center",

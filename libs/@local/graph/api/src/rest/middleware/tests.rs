@@ -12,9 +12,10 @@ use hash_middleware::{
     problem::InternalServerError,
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
+use hash_secret::Secret;
 use http::{
     HeaderValue, Method, Request, StatusCode,
-    header::{ALLOW, AUTHORIZATION, CONTENT_TYPE},
+    header::{ALLOW, AUTHORIZATION, CONTENT_TYPE, WWW_AUTHENTICATE},
 };
 use serde_json::json;
 use tower::ServiceExt as _;
@@ -56,7 +57,7 @@ fn middleware(
     Middleware {
         public_provider: Arc::new(public_provider),
         internal_provider: Arc::new(internal_provider),
-        service_secret: Arc::from(SERVICE_SECRET),
+        service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&meter)),
         rate_limiters: RateLimiters::start(config, &meter),
     }
@@ -523,5 +524,30 @@ async fn legacy_routes_use_internal_provider() {
         response_json(response).await,
         json!({"actor": actor}),
         "legacy routes should hand the resolved actor to the handler"
+    );
+}
+
+#[tokio::test]
+async fn legacy_routes_challenge_service() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(
+        Router::new().route(
+            "/test",
+            get(async |AuthenticatedActorId(actor)| echo_caller(Some(actor)).await),
+        ),
+        [],
+        Router::new(),
+    );
+
+    let response = send(&router, "/test").await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        response.headers()[WWW_AUTHENTICATE],
+        "HASH-Service",
+        "legacy routes should challenge with the service secret"
     );
 }

@@ -2,36 +2,94 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 
 import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
 
+import type { EntityUuid } from "@blockprotocol/type-system";
 import type {
   ActionStep,
   ActionStepDefinition,
-  ActionStepWithParallelInput,
   ArrayPayload,
-  FlowActionDefinitionId,
   FlowDefinition,
+  FlowInputValues,
   FlowStep,
-  FlowTrigger,
+  ForEachStep,
+  ForEachStepDefinition,
   LocalFlowRun,
-  ParallelGroupStep,
-  ParallelGroupStepDefinition,
   Payload,
-  StepInput,
+  StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
+/**
+ * Wraps a singular payload into a one-item array, for a connection marked `wrap`.
+ */
+export const wrapPayload = (payload: Payload): ArrayPayload =>
+  ({ kind: payload.kind, value: [payload.value] }) as ArrayPayload;
+
+/**
+ * The payload a step input source provides when a step is initialized, if it is available yet.
+ *
+ * Step outputs are only available here if the producing step has already run (e.g. for the steps of a
+ * for-each branch, created once the array is available). Otherwise `passOutputsToUnprocessedSteps` provides
+ * them when the producing step completes.
+ */
+const getInitialSourcePayload = ({
+  source,
+  flowInputs,
+  existingFlow,
+  item,
+}: {
+  source: StepInputSource;
+  flowInputs: FlowInputValues;
+  existingFlow?: LocalFlowRun;
+  item?: Payload;
+}): Payload | undefined => {
+  switch (source.kind) {
+    case "flow-input":
+      return flowInputs[source.inputName];
+
+    case "step-output": {
+      if (!existingFlow) {
+        return undefined;
+      }
+
+      const sourceStep = getAllStepsInFlow(existingFlow).find(
+        ({ stepId }) => stepId === source.stepId,
+      );
+
+      const sourceStepOutputs =
+        sourceStep?.kind === "action"
+          ? (sourceStep.outputs ?? [])
+          : sourceStep?.collected
+            ? [sourceStep.collected]
+            : [];
+
+      return sourceStepOutputs.find(
+        ({ outputName }) => outputName === source.outputName,
+      )?.payload;
+    }
+
+    case "item":
+      if (!item) {
+        throw new Error(
+          "Expected the item of a for-each step when initializing a step that uses it",
+        );
+      }
+
+      return item;
+
+    case "constant":
+      return source.payload as Payload;
+  }
+};
+
 export const initializeActionStep = (params: {
-  flowTrigger: FlowTrigger;
-  stepDefinition: ActionStepDefinition | ActionStepWithParallelInput;
+  flowInputs: FlowInputValues;
+  stepDefinition: ActionStepDefinition;
   overrideStepId?: string;
   existingFlow?: LocalFlowRun;
-  parallelGroupInputPayload?: Payload;
+  /** The item of the for-each step branch this step is in, if any. */
+  item?: Payload;
 }): ActionStep => {
-  const {
-    overrideStepId,
-    stepDefinition,
-    flowTrigger,
-    existingFlow,
-    parallelGroupInputPayload,
-  } = params;
+  const { overrideStepId, stepDefinition, flowInputs, existingFlow, item } =
+    params;
 
   const actionDefinition = actionDefinitions[stepDefinition.actionDefinitionId];
 
@@ -40,85 +98,39 @@ export const initializeActionStep = (params: {
     kind: "action",
     actionDefinitionId: stepDefinition.actionDefinitionId,
     inputs: [
-      ...stepDefinition.inputSources.flatMap((inputSource) => {
-        if (inputSource.kind === "step-output") {
-          if (inputSource.sourceStepId === "trigger") {
-            const matchingTriggerOutput = flowTrigger.outputs?.find(
-              ({ outputName }) =>
-                outputName === inputSource.sourceStepOutputName,
-            );
+      ...Object.entries(stepDefinition.inputs).flatMap(
+        ([inputName, source]) => {
+          const payload = getInitialSourcePayload({
+            source,
+            flowInputs,
+            existingFlow,
+            item,
+          });
 
-            if (matchingTriggerOutput) {
-              return {
-                inputName: inputSource.inputName,
-                payload: matchingTriggerOutput.payload,
-              };
-            }
-          } else if (existingFlow) {
-            /**
-             * If the input source refers to a step output, pass
-             * the referred to output from the step as an input to
-             * the new step.
-             */
-            const sourceStep = getAllStepsInFlow(existingFlow).find(
-              (step) => step.stepId === inputSource.sourceStepId,
-            );
-
-            const sourceStepOutputs =
-              sourceStep?.kind === "action"
-                ? (sourceStep.outputs ?? [])
-                : sourceStep?.aggregateOutput
-                  ? [sourceStep.aggregateOutput]
-                  : [];
-
-            const matchingSourceStepOutput = sourceStepOutputs.find(
-              ({ outputName }) =>
-                outputName === inputSource.sourceStepOutputName,
-            );
-
-            if (matchingSourceStepOutput) {
-              return {
-                inputName: inputSource.inputName,
-                payload: matchingSourceStepOutput.payload,
-              };
-            }
-          }
-        } else if (inputSource.kind === "parallel-group-input") {
-          if (!parallelGroupInputPayload) {
-            throw new Error(
-              `Expected a parallel group input payload when initializing step with step definition id ${stepDefinition.stepId}`,
-            );
+          if (!payload) {
+            return [];
           }
 
           return {
-            inputName: inputSource.inputName,
-            payload: parallelGroupInputPayload,
+            inputName,
+            payload:
+              source.kind !== "constant" && source.wrap
+                ? wrapPayload(payload)
+                : payload,
           };
-        } else {
-          return {
-            inputName: inputSource.inputName,
-            payload: inputSource.payload,
-          };
-        }
-
-        return [];
-      }),
+        },
+      ),
       /**
-       * For inputs without input sources, use the default value specified
-       * in the action definition if it exists.
+       * For inputs that aren't connected, use the default value specified in the action definition if it
+       * exists.
        */
       ...actionDefinition.inputs
-        .filter(
-          ({ name }) =>
-            !stepDefinition.inputSources.some(
-              ({ inputName }) => inputName === name,
-            ),
-        )
-        .flatMap((inputWithoutInputSource) =>
-          inputWithoutInputSource.default
+        .filter(({ name }) => !(name in stepDefinition.inputs))
+        .flatMap((unconnectedInput) =>
+          unconnectedInput.default
             ? {
-                inputName: inputWithoutInputSource.name,
-                payload: inputWithoutInputSource.default,
+                inputName: unconnectedInput.name,
+                payload: unconnectedInput.default,
               }
             : [],
         ),
@@ -127,69 +139,56 @@ export const initializeActionStep = (params: {
   };
 };
 
-export const initializeParallelGroup = (params: {
-  flowTrigger: FlowTrigger;
-  stepDefinition: ParallelGroupStepDefinition;
-}): ParallelGroupStep => {
-  const { stepDefinition, flowTrigger } = params;
+export const initializeForEachStep = (params: {
+  flowInputs: FlowInputValues;
+  stepDefinition: ForEachStepDefinition;
+  overrideStepId?: string;
+  existingFlow?: LocalFlowRun;
+  /** The item of the enclosing for-each step's branch, if this step is nested in one. */
+  item?: Payload;
+}): ForEachStep => {
+  const { stepDefinition, overrideStepId, flowInputs, existingFlow, item } =
+    params;
 
-  let initialInputToParallelizeOn: StepInput<ArrayPayload> | undefined;
-
-  if (
-    stepDefinition.inputSourceToParallelizeOn.kind === "step-output" &&
-    stepDefinition.inputSourceToParallelizeOn.sourceStepId === "trigger"
-  ) {
-    const { sourceStepOutputName } = stepDefinition.inputSourceToParallelizeOn;
-
-    const matchingTriggerOutput = flowTrigger.outputs?.find(
-      ({ outputName }) => outputName === sourceStepOutputName,
-    );
-
-    if (matchingTriggerOutput) {
-      if (Array.isArray(matchingTriggerOutput.payload.value)) {
-        initialInputToParallelizeOn = {
-          inputName: stepDefinition.inputSourceToParallelizeOn.inputName,
-          payload: matchingTriggerOutput.payload as ArrayPayload,
-        };
-      }
-    }
-  } else if (stepDefinition.inputSourceToParallelizeOn.kind === "hardcoded") {
-    initialInputToParallelizeOn = {
-      inputName: stepDefinition.inputSourceToParallelizeOn.inputName,
-      payload: stepDefinition.inputSourceToParallelizeOn.payload,
-    };
-  }
+  const over = getInitialSourcePayload({
+    source: stepDefinition.over,
+    flowInputs,
+    existingFlow,
+    item,
+  });
 
   return {
-    stepId: stepDefinition.stepId,
-    kind: "parallel-group",
-    inputToParallelizeOn: initialInputToParallelizeOn,
+    stepId: overrideStepId ?? stepDefinition.stepId,
+    kind: "for-each",
+    over: over ? (over as ArrayPayload) : undefined,
     /** @todo: consider initializing the child steps here? */
-  } satisfies ParallelGroupStep;
+  } satisfies ForEachStep;
 };
 
 export const initializeFlow = (params: {
-  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
-  flowTrigger: FlowTrigger;
+  flowDefinition: FlowDefinition;
+  flowDefinitionId: EntityUuid;
+  flowInputs: FlowInputValues;
   name: string;
   temporalWorkflowId: string;
 }): LocalFlowRun => {
-  const { flowDefinition, flowTrigger, name, temporalWorkflowId } = params;
+  const {
+    flowDefinition,
+    flowDefinitionId,
+    flowInputs,
+    name,
+    temporalWorkflowId,
+  } = params;
 
   return {
     name,
     temporalWorkflowId,
-    trigger: {
-      triggerDefinitionId: flowTrigger.triggerDefinitionId,
-      outputs: flowTrigger.outputs,
-    },
-    flowDefinitionId: flowDefinition.flowDefinitionId,
-    steps: flowDefinition.steps.map<FlowStep>((stepDefinition) => {
-      if (stepDefinition.kind === "action") {
-        return initializeActionStep({ flowTrigger, stepDefinition });
-      } else {
-        return initializeParallelGroup({ flowTrigger, stepDefinition });
-      }
-    }),
+    flowInputs,
+    flowDefinitionId,
+    steps: flowDefinition.steps.map<FlowStep>((stepDefinition) =>
+      stepDefinition.kind === "action"
+        ? initializeActionStep({ flowInputs, stepDefinition })
+        : initializeForEachStep({ flowInputs, stepDefinition }),
+    ),
   };
 };

@@ -16,7 +16,7 @@ import {
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getFlightPositionProperties } from "@local/hash-backend-utils/integrations/aviation/flightradar24/client";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -35,7 +35,7 @@ import { StatusCode } from "@local/status";
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 import { splitPropertiesAndMetadata } from "../shared/split-properties-and-metadata.js";
 
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { PrimaryKeyInput } from "@local/hash-backend-utils/integrations/aviation/shared/primary-keys";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
@@ -102,28 +102,25 @@ export const createGetLiveFlightPositionsAction = ({
   graphApiClient,
 }: {
   graphApiClient: GraphApi;
-}): IntegrationFlowActionActivity<"getLiveFlightPositions"> => {
+}): FlowActionActivity<"getLiveFlightPositions"> => {
   return async ({ inputs }) => {
     try {
       const { flowEntityId, runId, stepId, userAuthentication, workflowId } =
         await getFlowContext({ graphApiClient });
 
       const { persistedEntities: persistedEntitiesInput } =
-        getSimplifiedIntegrationFlowActionInputs({
+        getSimplifiedFlowActionInputs({
           inputs,
           actionType: "getLiveFlightPositions",
         });
 
-      // The input is a stored reference - resolve it
       const persistedEntities = await resolvePayloadValue(
-        getStorageProvider(),
-        "PersistedEntitiesMetadata",
+        { storageProvider: getStorageProvider(), workflowId },
+        "PersistedEntityMetadata",
         persistedEntitiesInput,
       );
 
-      const flightEntityIds = persistedEntities.persistedEntities.map(
-        ({ entityId }) => entityId,
-      );
+      const flightEntityIds = persistedEntities.map(({ entityId }) => entityId);
 
       if (flightEntityIds.length === 0) {
         const emptyStoredRef = await storePayload({

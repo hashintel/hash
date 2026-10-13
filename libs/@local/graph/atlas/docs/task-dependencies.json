@@ -11,6 +11,7 @@
     "hash-graph-temporal-versioning",
     "hash-graph-types",
     "hash-middleware",
+    "hash-secret",
     "hash-temporal-client",
     "hashql-core",
     "problematic",

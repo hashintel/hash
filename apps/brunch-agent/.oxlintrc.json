@@ -31,10 +31,6 @@
         ],
         "patterns": [
           {
-            "group": ["@local/*"],
-            "message": "The Brunch application must not depend on unpublished HASH packages."
-          },
-          {
             "group": [
               "@hashintel/petrinaut/*",
               "@hashintel/petrinaut-cli",

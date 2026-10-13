@@ -2,7 +2,7 @@ import { chipClasses } from "@mui/material";
 
 import type { SxProps, Theme } from "@mui/material";
 
-const dsFilterChipHeight = "28.4px";
+const dsFilterChipHeight = "28px";
 
 const basePillSx = {
   height: dsFilterChipHeight,

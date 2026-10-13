@@ -2,7 +2,7 @@
 mod tests;
 
 use alloc::sync::Arc;
-use core::any::Any;
+use core::{any::Any, pin::Pin};
 
 use aide::{
     transform::{TransformOpenApi, TransformOperation},
@@ -11,12 +11,13 @@ use aide::{
 use axum::{Router, response::Response};
 use hash_middleware::{
     authentication::{
-        AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
+        AuthenticationLayer, AuthenticationMetrics, Challenge, provider::AuthenticationProvider,
     },
     problem::InternalServerError,
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimiters},
     response::{problem_response, status_problem},
 };
+use hash_secret::Secret;
 use http::{Method, StatusCode, Uri};
 use problematic::{ProblemDetails, ProblemVariant as _};
 use tower_http::catch_panic::CatchPanicLayer;
@@ -63,7 +64,7 @@ fn panicked(_panic: Box<dyn Any + Send>) -> Response {
 pub(super) struct Middleware<P, I> {
     pub public_provider: Arc<P>,
     pub internal_provider: Arc<I>,
-    pub service_secret: Arc<str>,
+    pub service_secret: Pin<Arc<Secret<str>>>,
     pub authentication_metrics: Arc<AuthenticationMetrics>,
     pub rate_limiters: Arc<RateLimiters>,
 }
@@ -78,8 +79,15 @@ where
             audience, router, ..
         } = api;
         match audience {
-            Audience::Public => self.attach(router, &self.public_provider, |_| false),
-            Audience::Internal => self.attach(router, &self.internal_provider, |_| false),
+            Audience::Public => {
+                self.attach(router, &self.public_provider, |_| false, Challenge::Bearer)
+            }
+            Audience::Internal => self.attach(
+                router,
+                &self.internal_provider,
+                |_| false,
+                Challenge::Service,
+            ),
         }
     }
 
@@ -104,6 +112,7 @@ where
             legacy_routes,
             &self.internal_provider,
             legacy::is_bootstrap_route,
+            Challenge::Service,
         );
         for api in apis {
             router = router.merge(self.attach_api(api));
@@ -119,7 +128,7 @@ where
             })
             .layer(IpGateLayer {
                 limiters: Arc::clone(&self.rate_limiters),
-                service_secret: Arc::clone(&self.service_secret),
+                service_secret: Pin::clone(&self.service_secret),
             })
             .layer(CatchPanicLayer::custom(panicked))
     }
@@ -129,6 +138,7 @@ where
         routes: Router,
         provider: &Arc<A>,
         bootstrap_route: fn(&str) -> bool,
+        challenge: Challenge,
     ) -> Router
     where
         A: AuthenticationProvider<Option<ActorId>> + 'static,
@@ -144,13 +154,14 @@ where
             .method_not_allowed_fallback(method_not_allowed)
             .route_layer(CallerLimitLayer {
                 limiters: Arc::clone(&self.rate_limiters),
-                service_secret: Arc::clone(&self.service_secret),
+                service_secret: Pin::clone(&self.service_secret),
             })
             .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
                 provider: Arc::clone(provider),
-                service_secret: Arc::clone(&self.service_secret),
+                service_secret: Pin::clone(&self.service_secret),
                 metrics: Arc::clone(&self.authentication_metrics),
                 bootstrap_route,
+                challenge,
                 caller: core::marker::PhantomData,
             })
     }

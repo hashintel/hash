@@ -1,3 +1,5 @@
+import { getNamedInputSources } from "./shared/named-input-sources";
+
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 type StepWithParallelParentId = StepDefinition & { parallelParentId?: string };
@@ -14,7 +16,7 @@ export const getFlattenedSteps = (
       parallelParentId,
     });
 
-    if (step.kind === "parallel-group") {
+    if (step.kind === "for-each") {
       flattenedSteps.push(...getFlattenedSteps(step.steps, step.stepId));
     }
   }
@@ -34,18 +36,8 @@ export const sortStepsTopologically = (
   const steps = getFlattenedSteps(possiblyNestedSteps);
 
   for (const step of steps) {
-    const stepInputs =
-      step.kind === "action"
-        ? step.inputSources
-        : /**
-           * This is a parallel group, which has a single input source to parallelize
-           */
-          [step.inputSourceToParallelizeOn];
-
-    const dependencyCount = stepInputs.filter(
-      (input) =>
-        input.kind !== "hardcoded" &&
-        !(input.kind === "step-output" && input.sourceStepId === "trigger"),
+    const dependencyCount = getNamedInputSources(step).filter(
+      (input) => input.kind !== "constant" && input.kind !== "flow-input",
     ).length;
 
     dependencyCountByStepId.set(step.stepId, dependencyCount);
@@ -63,60 +55,53 @@ export const sortStepsTopologically = (
     const stepsReducedToZeroDependenciesByReadyStep: string[] = [];
 
     for (const possiblyDependentStep of steps) {
-      const inputSources =
-        possiblyDependentStep.kind === "action"
-          ? possiblyDependentStep.inputSources
-          : [possiblyDependentStep.inputSourceToParallelizeOn];
-
-      const numberOfDependenciesSatisfiedByReadyStep = inputSources.filter(
-        (input) => {
-          if (input.kind === "parallel-group-input") {
-            /**
-             * A 'parallel-group-input' is satisfied by the readyStep if the readyStep is its parent
-             */
-            return (
-              readyStep.kind === "parallel-group" &&
-              possiblyDependentStep.parallelParentId === readyStep.stepId
-            );
-          }
-
-          if (input.kind === "hardcoded" || input.sourceStepId === "trigger") {
-            /** We excluded these from the dependency count when calculating it */
-            return false;
-          }
-
-          const sourceStep = steps.find(
-            (step) => step.stepId === input.sourceStepId,
+      const numberOfDependenciesSatisfiedByReadyStep = getNamedInputSources(
+        possiblyDependentStep,
+      ).filter((input) => {
+        if (input.kind === "item") {
+          /**
+           * An item is satisfied by the readyStep if the readyStep is the for-each step it is nested in
+           */
+          return (
+            readyStep.kind === "for-each" &&
+            possiblyDependentStep.parallelParentId === readyStep.stepId
           );
+        }
 
-          if (!sourceStep) {
-            throw new Error(
-              `Could not find source step with stepId ${input.sourceStepId}`,
-            );
-          }
+        if (input.kind === "constant" || input.kind === "flow-input") {
+          /** We excluded these from the dependency count when calculating it */
+          return false;
+        }
 
-          if (sourceStep.kind === "parallel-group") {
-            /**
-             * If the source step is a parallel group, its outputs are only available once all of its children
-             * have no dependencies left. This may be satisfied when any one of it or its children are processed.
-             */
-            return [sourceStep, ...sourceStep.steps].every(
-              (step) =>
-                /**
-                 * The final dependency of steps within a parallel group may have been reduced to zero in this iteration,
-                 * in which case we don't want to count a step dependent on the group as being satisfied yet.
-                 * Any steps reduced to zero in this iteration will be processed in a future iteration,
-                 * at which point the step dependent on the parallel group can be pushed into the zero deps queue.
-                 */
-                !stepsReducedToZeroDependenciesByReadyStep.includes(
-                  step.stepId,
-                ) && dependencyCountByStepId.get(step.stepId) === 0,
-            );
-          }
+        const sourceStep = steps.find((step) => step.stepId === input.stepId);
 
-          return input.sourceStepId === readyStep.stepId;
-        },
-      ).length;
+        if (!sourceStep) {
+          throw new Error(
+            `Could not find source step with stepId ${input.stepId}`,
+          );
+        }
+
+        if (sourceStep.kind === "for-each") {
+          /**
+           * If the source step is a for-each step, its outputs are only available once all of its children
+           * have no dependencies left. This may be satisfied when any one of it or its children are processed.
+           */
+          return [sourceStep, ...sourceStep.steps].every(
+            (step) =>
+              /**
+               * The final dependency of steps within a for-each step may have been reduced to zero in this iteration,
+               * in which case we don't want to count a step dependent on the for-each step as being satisfied yet.
+               * Any steps reduced to zero in this iteration will be processed in a future iteration,
+               * at which point the step dependent on the for-each step can be pushed into the zero deps queue.
+               */
+              !stepsReducedToZeroDependenciesByReadyStep.includes(
+                step.stepId,
+              ) && dependencyCountByStepId.get(step.stepId) === 0,
+          );
+        }
+
+        return input.stepId === readyStep.stepId;
+      }).length;
 
       if (numberOfDependenciesSatisfiedByReadyStep) {
         const currentCount = dependencyCountByStepId.get(
@@ -183,73 +168,67 @@ export const groupStepsByDependencyLayer = (
     for (let index = 0; index < layers.length; index++) {
       const layer = layers[index]!;
 
-      const inputSources =
-        step.kind === "action"
-          ? step.inputSources
-          : [step.inputSourceToParallelizeOn];
+      const dependenciesAreInEarlierGroup = getNamedInputSources(step).every(
+        (input) => {
+          if (input.kind === "constant" || input.kind === "flow-input") {
+            return true;
+          }
 
-      const dependenciesAreInEarlierGroup = inputSources.every((input) => {
-        if (
-          input.kind === "hardcoded" ||
-          (input.kind === "step-output" && input.sourceStepId === "trigger")
-        ) {
-          return true;
-        }
+          const inputSourceStepId =
+            input.kind === "step-output"
+              ? input.stepId
+              : sortedAndFlattenedSteps.find(
+                  (possibleParent) =>
+                    possibleParent.kind === "for-each" &&
+                    possibleParent.stepId === step.parallelParentId,
+                )?.stepId;
 
-        const inputSourceStepId =
-          input.kind === "step-output"
-            ? input.sourceStepId
-            : sortedAndFlattenedSteps.find(
-                (possibleParent) =>
-                  possibleParent.kind === "parallel-group" &&
-                  possibleParent.stepId === step.parallelParentId,
-              )?.stepId;
-
-        if (!inputSourceStepId) {
-          throw new Error(
-            `Could not find input source step for input '${input.inputName}' for step with stepId '${step.stepId}'`,
-          );
-        }
-
-        const inputStep = sortedAndFlattenedSteps.find(
-          (stp) => stp.stepId === inputSourceStepId,
-        );
-        if (!inputStep) {
-          throw new Error(
-            `Could not find input source step with stepId ${inputSourceStepId}`,
-          );
-        }
-
-        const inputStepIds =
-          inputStep.kind === "parallel-group"
-            ? /**
-               * If the input is from a parallel group, all steps in the parallel group must be satisfied
-               * for this input to be considered satisfied.
-               *
-               * Technically this input is satisfied as soon as the parallel group child which produces the output
-               * used as the aggregate output of the group is complete, and there may be leaf steps within the group
-               * that do not contribute to that output, but that would make for a messy DAG visualization.
-               */
-              [inputStep.stepId, ...inputStep.steps.map((stp) => stp.stepId)]
-            : [inputStep.stepId];
-
-        const inputIsSatisfied = inputStepIds.every((inputStepId) => {
-          const inputGroupIndex = layerByStepId.get(inputStepId);
-
-          if (inputGroupIndex === undefined) {
+          if (!inputSourceStepId) {
             throw new Error(
-              `Source step with stepId ${inputStepId} does not appear before step with stepId ${step.stepId} – steps are not topologically sorted, or source is missing.`,
+              `Could not find input source step for input '${input.inputName}' for step with stepId '${step.stepId}'`,
             );
           }
 
-          /**
-           * The input source is from a step that is in a previous layer
-           */
-          return inputGroupIndex < index;
-        });
+          const inputStep = sortedAndFlattenedSteps.find(
+            (stp) => stp.stepId === inputSourceStepId,
+          );
+          if (!inputStep) {
+            throw new Error(
+              `Could not find input source step with stepId ${inputSourceStepId}`,
+            );
+          }
 
-        return inputIsSatisfied;
-      });
+          const inputStepIds =
+            inputStep.kind === "for-each"
+              ? /**
+                 * If the input is from a for-each step, all steps in it must be satisfied for this input to be
+                 * considered satisfied.
+                 *
+                 * Technically this input is satisfied as soon as the nested step which produces the collected output
+                 * is complete, and there may be leaf steps within the for-each step that do not contribute to that
+                 * output, but that would make for a messy DAG visualization.
+                 */
+                [inputStep.stepId, ...inputStep.steps.map((stp) => stp.stepId)]
+              : [inputStep.stepId];
+
+          const inputIsSatisfied = inputStepIds.every((inputStepId) => {
+            const inputGroupIndex = layerByStepId.get(inputStepId);
+
+            if (inputGroupIndex === undefined) {
+              throw new Error(
+                `Source step with stepId ${inputStepId} does not appear before step with stepId ${step.stepId} – steps are not topologically sorted, or source is missing.`,
+              );
+            }
+
+            /**
+             * The input source is from a step that is in a previous layer
+             */
+            return inputGroupIndex < index;
+          });
+
+          return inputIsSatisfied;
+        },
+      );
 
       if (dependenciesAreInEarlierGroup) {
         layer.push(step);

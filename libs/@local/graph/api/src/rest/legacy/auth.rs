@@ -26,8 +26,9 @@ mod tests {
         actor::tests::FixedActorResolver, delegation::ServiceDelegationProvider,
     };
     use hash_middleware::authentication::{
-        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics,
+        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, Challenge,
     };
+    use hash_secret::Secret;
     use http::{Request, StatusCode, header::CONTENT_TYPE};
     use serde_json::{Value, json};
     use tower::ServiceExt as _;
@@ -100,10 +101,10 @@ mod tests {
     /// production predicate through the production middleware.
     fn delegation_router() -> Router {
         let provider = Arc::new(ServiceDelegationProvider::new(
-            SERVICE_SECRET.to_owned(),
+            Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             FixedActorResolver::new(HashMap::new()),
         ));
-        let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
+        let service_secret = Secret::from_string(SERVICE_SECRET.to_owned()).to_arc();
         let metrics = Arc::new(AuthenticationMetrics::new(&opentelemetry::global::meter(
             "test",
         )));
@@ -112,6 +113,7 @@ mod tests {
             service_secret,
             metrics,
             bootstrap_route: is_bootstrap_route,
+            challenge: Challenge::Service,
             caller: core::marker::PhantomData,
         })
     }

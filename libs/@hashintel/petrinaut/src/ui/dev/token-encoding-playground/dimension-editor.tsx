@@ -45,6 +45,15 @@ const typeSelectStyle = css({
   flexShrink: 0,
 });
 
+/** The first free `dim_N` name: the count alone can collide after removals. */
+const nextDimensionName = (dimensions: readonly PlaygroundDimension[]) => {
+  let index = dimensions.length;
+  while (dimensions.some((d) => d.name === `dim_${index}`)) {
+    index++;
+  }
+  return `dim_${index}`;
+};
+
 /**
  * Store-free version of the type-properties dimension list: local state only,
  * for the playground story.
@@ -99,17 +108,7 @@ export const DimensionEditor: React.FC<DimensionEditorProps> = ({
         onClick={() =>
           onChange([
             ...dimensions,
-            // First free dim_N: length alone can collide after removals.
-            {
-              name: (() => {
-                let index = dimensions.length;
-                while (dimensions.some((d) => d.name === `dim_${index}`)) {
-                  index++;
-                }
-                return `dim_${index}`;
-              })(),
-              type: "real",
-            },
+            { name: nextDimensionName(dimensions), type: "real" },
           ])
         }
         size="xs"

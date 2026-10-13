@@ -1,0 +1,43 @@
+use error_stack::Report;
+use hash_graph_migrations::{ContextTransaction, Migration};
+use tokio_postgres::Client;
+use tracing::Instrument as _;
+
+pub struct ApiTokens;
+
+impl Migration for ApiTokens {
+    type Context = Client;
+    type Error = tokio_postgres::Error;
+
+    async fn up(
+        self,
+        context: &mut ContextTransaction<'_, Self::Context>,
+    ) -> Result<(), Report<Self::Error>> {
+        context
+            .simple_query(include_str!("up.sql"))
+            .instrument(tracing::info_span!(
+                "BATCH",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await?;
+        Ok(())
+    }
+
+    async fn down(
+        self,
+        context: &mut ContextTransaction<'_, Self::Context>,
+    ) -> Result<(), Report<Self::Error>> {
+        context
+            .simple_query(include_str!("down.sql"))
+            .instrument(tracing::info_span!(
+                "BATCH",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await?;
+        Ok(())
+    }
+}

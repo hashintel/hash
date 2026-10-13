@@ -14,6 +14,7 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
+use hash_secret::Secret;
 use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, TryCryptoRng, TryRng, rngs::StdRng};
 use tokio::{sync::oneshot, task::JoinHandle};
@@ -101,7 +102,7 @@ fn unconnected_pool() -> (Arc<PostgresStorePool>, Weak<PostgresStorePool>) {
             &DatabaseConnectionInfo::new(
                 DatabaseType::Postgres,
                 "runtime-test".to_owned(),
-                String::new(),
+                Secret::from_string(String::new()),
                 "/no-runtime-test-postgres".to_owned(),
                 5432,
                 "runtime-test".to_owned(),

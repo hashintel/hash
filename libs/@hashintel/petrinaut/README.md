@@ -62,11 +62,33 @@ passes `readonly` as well, which is what disables the fields themselves:
 />
 ```
 
+A blocked node drag or editing shortcut shows a brief notice saying why. On a
+document the host made read-only, a [plugin](#plugins) can add a button to
+that notice, for example one that saves an editable copy. The manifest gives
+the button's label under `readOnlyAction`, and the plugin's contributions give
+what it does:
+
+```tsx
+export const copyPlugin = definePetrinautPlugin(
+  {
+    id: "example.copy",
+    name: "Copy",
+    readOnlyAction: { label: "Make a copy" },
+  },
+  { readOnlyAction: { run: createEditableCopy } },
+);
+
+// <Petrinaut handle={handle} readonly plugins={[copyPlugin]} />
+```
+
+The notice shows the action of the first running plugin that declares one.
+
 ## Commands and the palette
 
 Petrinaut registers its user-invocable actions (undo, tools, search, panel
-toggles, auto-layout) into a command registry the host owns. The host renders
-the palette; Petrinaut ships none.
+toggles, auto-layout) into the ambient command registry: the host's, or the
+editor's own when the host provides none. The host, or a plugin inside the
+editor, renders the palette; Petrinaut ships none.
 
 ```tsx
 import {
@@ -87,6 +109,44 @@ unmounts. Outside React, `createCommandRegistry()` and
 registries. The guide, with a reference palette, lives in the architecture
 docs:
 [Commands and the palette](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/commands/usage-manual.mdx).
+
+## Plugins
+
+A plugin adds buttons, top-bar items, commands, settings and UI to the
+editor. Its manifest declares what it adds and which editor state it reads or
+changes; its hook receives `api` and returns the contributions:
+
+```tsx
+import { useState } from "react";
+
+import {
+  definePetrinautPlugin,
+  type PluginHook,
+} from "@hashintel/petrinaut/ui/plugin";
+
+const CounterPlugin = definePetrinautPlugin({
+  id: "example.counter",
+  name: "Counter",
+  topBarItems: { counter: { place: "top-bar-end" } },
+});
+
+const useCounterPlugin: PluginHook<typeof CounterPlugin> = () => {
+  const [count, setCount] = useState(0);
+  return {
+    topBarItems: {
+      counter: <button onClick={() => setCount(count + 1)}>{count}</button>,
+    },
+  };
+};
+
+export const counterPlugin = CounterPlugin(useCounterPlugin);
+
+// <Petrinaut handle={handle} plugins={[counterPlugin]} />
+```
+
+User settings lists the plugins and lets the user switch each one off. The
+guide lives in the architecture docs:
+[Plugins](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/plugins/overview.mdx).
 
 ## Petricon
 

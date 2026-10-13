@@ -12,8 +12,7 @@ import {
 } from "@local/hash-backend-utils/google";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { generateEntityIdFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   googleEntityTypes,
@@ -35,12 +34,9 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type {
-  PersistedEntitiesMetadata,
-  StoredPayloadRef,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   AssociatedWithAccount,
   GoogleSheetsFile,
@@ -81,20 +77,33 @@ type ActivityHeartbeatDetails = {
   spreadsheetId?: string;
 };
 
-export const writeGoogleSheetAction: AiFlowActionActivity<
+export const writeGoogleSheetAction: FlowActionActivity<
   "writeGoogleSheet",
   {
     vaultClient: VaultClient;
   }
 > = async ({ inputs, vaultClient }) => {
-  const { flowEntityId, stepId, userAuthentication, webId } =
+  const { flowEntityId, stepId, userAuthentication, webId, workflowId } =
     await getFlowContext();
 
-  const { audience, dataToWrite, googleAccountId, googleSheet } =
-    getSimplifiedAiFlowActionInputs({
-      inputs,
-      actionType: "writeGoogleSheet",
-    });
+  const {
+    audience,
+    dataToWrite,
+    persistedEntities: persistedEntitiesInput,
+    googleAccountId,
+    googleSheet,
+  } = getSimplifiedFlowActionInputs({
+    inputs,
+    actionType: "writeGoogleSheet",
+  });
+
+  if ((dataToWrite === undefined) === (persistedEntitiesInput === undefined)) {
+    return {
+      code: StatusCode.InvalidArgument,
+      message: `Provide exactly one of 'dataToWrite' or 'persistedEntities'.`,
+      contents: [],
+    };
+  }
 
   /**
    * 1. Confirm that the Google account exists and has valid credentials associated with it
@@ -144,19 +153,27 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
    */
   let sheetRequests: sheets_v4.Schema$Request[] | undefined;
 
-  // Resolve stored ref if dataToWrite is a StoredPayloadRef (for PersistedEntitiesMetadata)
   let resolvedDataToWrite:
-    | Exclude<typeof dataToWrite, StoredPayloadRef<"PersistedEntitiesMetadata">>
-    | PersistedEntitiesMetadata;
+    | NonNullable<typeof dataToWrite>
+    | { persistedEntities: PersistedEntityMetadata[] };
 
-  if (isStoredPayloadRef(dataToWrite)) {
-    resolvedDataToWrite = await resolvePayloadValue(
-      getStorageProvider(),
-      "PersistedEntitiesMetadata",
-      dataToWrite,
-    );
-  } else {
+  if (persistedEntitiesInput) {
+    resolvedDataToWrite = {
+      persistedEntities: await resolvePayloadValue(
+        { storageProvider: getStorageProvider(), workflowId },
+        "PersistedEntityMetadata",
+        persistedEntitiesInput,
+      ),
+    };
+  } else if (dataToWrite) {
     resolvedDataToWrite = dataToWrite;
+  } else {
+    /* Unreachable: exactly one of the two is provided, checked above. */
+    return {
+      code: StatusCode.InvalidArgument,
+      message: `No data to write provided.`,
+      contents: [],
+    };
   }
 
   if ("format" in resolvedDataToWrite) {

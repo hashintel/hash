@@ -7,15 +7,6 @@ import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 
 const controllers: PetrinautNavigationController[] = [];
 
-vi.mock("../sentry-feedback-button", () => ({
-  useSentryFeedbackAction: () => ({
-    key: "sentry-feedback",
-    icon: null,
-    label: "Feedback",
-    tooltip: "Feedback",
-  }),
-}));
-
 vi.mock("./brunch-actual-mode-route", () => ({
   BrunchActualModeRoute: ({
     navigation,
