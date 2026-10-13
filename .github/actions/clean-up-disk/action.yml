@@ -38,8 +38,8 @@ runs:
           /usr/local/share/powershell \
         ; do
           if [ -d "$dir" ]; then
-            size=$(du -sh "$dir" 2>/dev/null | cut -f1)
-            echo "  → $dir ($size)"
+            # No `du` here: walking these directories serially takes about a minute.
+            echo "  → $dir"
             (sudo rsync -a --delete /tmp/empty/ "$dir/" && sudo rmdir "$dir") &
           fi
         done
@@ -47,14 +47,6 @@ runs:
         wait
         rmdir /tmp/empty
         echo "✓ Deletion complete"
-
-    - name: Remove unused packages
-      shell: bash
-      run: |
-        echo "Removing unused packages..."
-        sudo apt-get autoremove -y
-        sudo apt-get autoclean -y
-        echo
 
     - name: Check disk space after cleanup
       shell: bash
