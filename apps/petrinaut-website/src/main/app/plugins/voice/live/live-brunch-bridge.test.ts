@@ -362,7 +362,9 @@ test("brief stays streaming through extraction and transport, and becomes done o
   await turn;
 });
 
-test("keeps a dropped utterance's words visible so they can be sent from the composer", async () => {
+const oversized = "x".repeat(32_001);
+
+test("keeps an oversized utterance's words visible so they can be sent from the composer", async () => {
   const history = new VoiceMediationHistory("test");
   const brief = Promise.withResolvers<Record<string, string>>();
   const fixture = setup({
@@ -372,14 +374,14 @@ test("keeps a dropped utterance's words visible so they can be sent from the com
     offered: vi.fn(),
   });
   const first = fixture.bridge.accept(speech("first", "Compare staffing"));
-  await fixture.bridge.accept(speech("second", "Also check the queue"));
+  await fixture.bridge.accept(speech("second", oversized));
 
   expect(fixture.notice).toHaveBeenCalledWith(
-    expect.stringContaining("Those words weren’t sent"),
+    expect.stringContaining("too long"),
   );
   expect(
     history.project([]).find((message) => message.id === "second")?.parts,
-  ).toEqual([{ type: "text", text: "Also check the queue" }]);
+  ).toEqual([{ type: "text", text: oversized }]);
   expect(history.project([]).map((message) => message.id)).toEqual([
     "first",
     "second",
@@ -388,7 +390,7 @@ test("keeps a dropped utterance's words visible so they can be sent from the com
   await first;
 });
 
-test("keeps a dropped utterance's words in the conversation switched to", async () => {
+test("keeps an oversized utterance's words in the conversation switched to", async () => {
   const brief = Promise.withResolvers<Record<string, string>>();
   const original = new VoiceMediationHistory("original");
   const switched = new VoiceMediationHistory("switched");
@@ -411,7 +413,7 @@ test("keeps a dropped utterance's words in the conversation switched to", async 
     },
   ];
   fixture.update({ messages });
-  await fixture.bridge.accept(speech("second", "Also check the queue"));
+  await fixture.bridge.accept(speech("second", oversized));
 
   expect(switched.project(messages).map((message) => message.id)).toEqual([
     "switched-answer",
@@ -420,7 +422,7 @@ test("keeps a dropped utterance's words in the conversation switched to", async 
   expect(
     switched.project(messages).find((message) => message.id === "second")
       ?.parts,
-  ).toEqual([{ type: "text", text: "Also check the queue" }]);
+  ).toEqual([{ type: "text", text: oversized }]);
   brief.resolve({});
   await first;
 });
@@ -797,9 +799,7 @@ test("speech keeps a submitted turn's composer slot until Brunch admits it", asy
   ).toHaveLength(0);
   expect(prepare).toHaveBeenCalledOnce();
   expect(fixture.submit).toHaveBeenCalledOnce();
-  expect(fixture.notice).toHaveBeenLastCalledWith(
-    expect.stringContaining("when the assistant is ready"),
-  );
+  expect(fixture.notice).not.toHaveBeenCalledWith(expect.any(String));
 });
 
 const judgmentRecords = () =>
@@ -899,16 +899,21 @@ test.each(["null", "throw"])(
   },
 );
 
-test("judges only eligible inputs, once per input id", async () => {
-  const judge = vi.fn(async () => null);
+test("judges only eligible inputs, once per input id, including queued speech", async () => {
+  const judge = vi.fn<
+    NonNullable<ConstructorParameters<typeof LiveBrunchBridge>[0]["judge"]>
+  >(async () => null);
   const fixture = setup(undefined, judge);
   await fixture.bridge.accept(speech("one", "PRIVATE"));
   await fixture.bridge.accept(speech("one", "PRIVATE"));
   await fixture.bridge.accept(speech("empty", " "));
   await fixture.bridge.accept(speech("oversize", "x".repeat(32_001)));
   fixture.update({ canAcceptVoiceInput: false });
-  await fixture.bridge.accept(speech("unavailable", "PRIVATE"));
-  expect(judge).toHaveBeenCalledOnce();
+  await fixture.bridge.accept(speech("queued", "PRIVATE QUEUED"));
+  expect(judge.mock.calls.map(([state]) => state.transcript)).toEqual([
+    "PRIVATE",
+    "PRIVATE QUEUED",
+  ]);
 });
 
 test.each([true, false])(
@@ -972,7 +977,7 @@ test("stop aborts an outstanding judgment without resubmission", async () => {
   expect(fixture.submit).toHaveBeenCalledOnce();
 });
 
-test("trace distinguishes ungated admission, later delegation matching, settlement and dropped speech", async () => {
+test("trace distinguishes ungated admission, later delegation matching, settlement and queued speech", async () => {
   vi.stubEnv("DEV", true);
   const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
   const fixture = setup();
@@ -989,7 +994,7 @@ test("trace distinguishes ungated admission, later delegation matching, settleme
     settlements: completed,
   });
   fixture.update({ canAcceptVoiceInput: false });
-  await fixture.bridge.accept(speech("dropped-input", "PRIVATE DROPPED"));
+  await fixture.bridge.accept(speech("queued-input", "PRIVATE QUEUED"));
   const records = debug.mock.calls.map(
     ([line]) =>
       JSON.parse(String(line).replace("[Petrinaut Live trace] ", "")) as Record<
@@ -1021,11 +1026,10 @@ test("trace distinguishes ungated admission, later delegation matching, settleme
         delegationId: "late-delegation",
       }),
       expect.objectContaining({
-        event: "input.dropped",
-        inputId: "dropped-input",
+        event: "input.queued",
+        inputId: "queued-input",
         admissionUnavailable: true,
         waitingForComposer: false,
-        oversized: false,
       }),
     ]),
   );
@@ -1279,7 +1283,7 @@ test.each(["failed", "aborted", "completed"] as const)(
   },
 );
 
-test("duplicates, empty input and one waiting composer submission never create another admission", async () => {
+test("duplicates and empty input never create another admission, and speech waits for the composer", async () => {
   const fixture = setup();
   let release = () => {};
   fixture.submit.mockImplementationOnce(async () => {
@@ -1293,13 +1297,14 @@ test("duplicates, empty input and one waiting composer submission never create a
   await fixture.bridge.accept(speech("empty", "  "));
   await fixture.bridge.accept(speech("two", "Follow-up"));
   expect(fixture.submit).toHaveBeenCalledOnce();
-  expect(fixture.notice).toHaveBeenLastCalledWith(
-    expect.stringContaining("Those words weren’t sent"),
-  );
+  expect(fixture.notice).not.toHaveBeenCalledWith(expect.any(String));
   release();
   await pending;
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
+  expect(fixture.submit.mock.calls[1]?.[0].id).toBe("two");
+  expect(fixture.submit.mock.calls[1]?.[0].text).toContain("Follow-up");
   await fixture.bridge.accept(speech("three", "First"));
-  expect(fixture.submit).toHaveBeenCalledTimes(2);
+  expect(fixture.submit).toHaveBeenCalledTimes(3);
 });
 
 test("empty finalized input resolves its delegation before a later turn", async () => {
@@ -1750,7 +1755,7 @@ test("a response failure after confirmed admission does not report uncertain adm
   );
 });
 
-test("admission frees the existing waiting-input slot, but finishing an earlier turn cannot free a newer wait", async () => {
+test("admission frees the waiting-input slot for queued speech, but finishing an earlier turn cannot free a newer wait", async () => {
   const fixture = setup();
   let finishFirst = () => {};
   let admitCorrection = () => {};
@@ -1779,13 +1784,13 @@ test("admission frees the existing waiting-input slot, but finishing an earlier 
   await first;
   await fixture.bridge.accept(speech("three", "Another pending input"));
   expect(fixture.submit).toHaveBeenCalledTimes(2);
-  expect(fixture.notice).toHaveBeenLastCalledWith(
-    expect.stringContaining("Those words weren’t sent"),
-  );
-
   admitCorrection();
   await fixture.bridge.accept(speech("four", "Approval is optional"));
-  expect(fixture.submit).toHaveBeenCalledTimes(3);
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(3));
+  expect(fixture.submit.mock.calls[2]?.[0].id).toBe("four");
+  expect(fixture.submit.mock.calls[2]?.[0].text).toContain(
+    "Another pending input\\n\\nApproval is optional",
+  );
   finishCorrection();
   await correction;
 });
@@ -2545,7 +2550,7 @@ test.each(["before", "after"] as const)(
   },
 );
 
-test("dropped input resolves only its claimed delegation, once, without changing the waiting-input policy", async () => {
+test("queued input keeps its claimed delegation until the composer frees up", async () => {
   const fixture = setup();
   fixture.bridge.acceptDelegation("waiting");
   let release = () => {};
@@ -2556,17 +2561,17 @@ test("dropped input resolves only its claimed delegation, once, without changing
     return { kind: "message", messageId: "first", submissionId: "root" };
   });
   const pending = fixture.bridge.accept(speech("first", "First"));
-  fixture.bridge.acceptDelegation("dropped");
+  fixture.bridge.acceptDelegation("queued");
   await fixture.bridge.accept(speech("second", "Second"));
   await fixture.bridge.accept(speech("second", "Second"));
-  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
-    expect.stringContaining("The request was not submitted"),
-    "dropped",
-  );
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
   expect(fixture.submit).toHaveBeenCalledOnce();
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
   release();
   await pending;
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
+  expect(fixture.submit.mock.calls[1]?.[0].id).toBe("second");
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
   fixture.bridge.stop();
 });
 
@@ -2644,6 +2649,438 @@ test("textless and dropped inputs without delegations do not inject session-wide
   await fixture.bridge.accept(speech("two", "Dropped"));
   expect(fixture.appendInstructions).not.toHaveBeenCalled();
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
+});
+
+const abortablePreparation = () => {
+  const prepare = vi.fn(async (_text: string, _signal: AbortSignal) => ({}));
+  prepare.mockImplementationOnce(
+    (_text, signal) =>
+      new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(signal.reason));
+      }),
+  );
+  return prepare;
+};
+
+test("speech queued behind the composer goes as one turn after admission, answered by the newest delegation", async () => {
+  vi.stubEnv("DEV", true);
+  const fixture = setup();
+  let admitFirst = () => {};
+  fixture.submit.mockImplementationOnce(async (input) => {
+    await new Promise<void>((resolve) => {
+      admitFirst = resolve;
+    });
+    input.onAdmission("first");
+    return { kind: "message", messageId: "one", submissionId: "first" };
+  });
+  fixture.bridge.acceptDelegation("first-delegation");
+  const first = fixture.bridge.accept(speech("one", "Compare staffing"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  fixture.bridge.acceptDelegation("older");
+  await fixture.bridge.accept(speech("two", "Also check the queue"));
+  fixture.bridge.acceptDelegation("newer");
+  await fixture.bridge.accept(speech("three", "And the rework rate"));
+  expect(fixture.submit).toHaveBeenCalledOnce();
+
+  admitFirst();
+  await first;
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
+  expect(fixture.submit.mock.calls[1]?.[0].id).toBe("three");
+  expect(fixture.submit.mock.calls[1]?.[0].text).toContain(
+    "Also check the queue\\n\\nAnd the rework rate",
+  );
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("sent to Brunch together"),
+    "older",
+  );
+  expect(traceRecords(diagnosticSpy.mock.calls, "input.merged")).toEqual([
+    expect.objectContaining({
+      inputId: "three",
+      mergedInputIds: "two,three",
+      delegationId: "newer",
+      reason: "composer-busy",
+    }),
+  ]);
+  expect(traceRecords(diagnosticSpy.mock.calls, "brunch.submit")).toEqual([
+    expect.objectContaining({
+      inputId: "one",
+      delegationId: "first-delegation",
+    }),
+    expect.objectContaining({ inputId: "three", delegationId: "newer" }),
+  ]);
+});
+
+test("a delegation that arrives after its speech was queued pairs with it", async () => {
+  vi.stubEnv("DEV", true);
+  const fixture = setup();
+  fixture.speechPending.mockReturnValue(false);
+  fixture.submit.mockImplementationOnce(() => new Promise(() => {}));
+  void fixture.bridge.accept(speech("one", "Compare staffing"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  fixture.bridge.acceptDelegation("first-delegation");
+  await fixture.bridge.accept(speech("two", "Also check the queue"));
+  fixture.bridge.acceptDelegation("late");
+  expect(traceRecords(diagnosticSpy.mock.calls, "delegation.matched")).toEqual([
+    expect.objectContaining({
+      delegationId: "first-delegation",
+      inputId: "one",
+    }),
+    expect.objectContaining({ delegationId: "late", inputId: "two" }),
+  ]);
+});
+
+test("words that speech withdrew before submission join the next input instead of staying unsent", async () => {
+  vi.stubEnv("DEV", true);
+  const history = new VoiceMediationHistory("test");
+  const fixture = setup({
+    history,
+    prepare: abortablePreparation(),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const first = fixture.bridge.accept(speech("one", "Compare staffing"));
+  fixture.bridge.speechStarted();
+  await first;
+  expect(history.project([]).map((message) => message.id)).toEqual(["one"]);
+  expect(fixture.notice).toHaveBeenLastCalledWith(
+    expect.stringContaining("started speaking again"),
+  );
+
+  await fixture.bridge.accept(speech("two", "and the queue"));
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.submit.mock.calls[0]?.[0].id).toBe("two");
+  expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
+    "Compare staffing\\n\\nand the queue",
+  );
+  expect(history.project([]).map((message) => message.id)).not.toContain("one");
+  expect(fixture.notice).toHaveBeenLastCalledWith(null);
+  expect(traceRecords(diagnosticSpy.mock.calls, "input.merged")).toEqual([
+    expect.objectContaining({
+      inputId: "two",
+      mergedInputIds: "one",
+      reason: "speech-started",
+    }),
+  ]);
+});
+
+test("withdrawn words that do not fit with the next input stay unsent", async () => {
+  const history = new VoiceMediationHistory("test");
+  const fixture = setup({
+    history,
+    prepare: abortablePreparation(),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const long = "y".repeat(20_000);
+  const first = fixture.bridge.accept(speech("one", long));
+  fixture.bridge.speechStarted();
+  await first;
+  await fixture.bridge.accept(speech("two", "z".repeat(20_000)));
+  expect(fixture.submit.mock.calls[0]?.[0].id).toBe("two");
+  expect(fixture.submit.mock.calls[0]?.[0].text).not.toContain(long);
+  expect(history.project([]).map((message) => message.id)).toEqual(["one"]);
+});
+
+test("words withdrawn behind queued speech go ahead of it, and no later delegation pairs with them", async () => {
+  vi.stubEnv("DEV", true);
+  const history = new VoiceMediationHistory("test");
+  const fixture = setup({
+    history,
+    prepare: abortablePreparation(),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  fixture.bridge.acceptDelegation("first-delegation");
+  const first = fixture.bridge.accept(speech("one", "Compare staffing"));
+  await fixture.bridge.accept(speech("two", "Also check the queue"));
+  fixture.bridge.speechStarted();
+  await first;
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("started speaking again"),
+    "first-delegation",
+  );
+  expect(fixture.notice).not.toHaveBeenCalledWith(
+    expect.stringContaining("started speaking again"),
+  );
+  expect(fixture.submit).not.toHaveBeenCalled();
+
+  fixture.bridge.acceptDelegation("newer");
+  await fixture.bridge.accept(speech("three", "And the rework rate"));
+  expect(fixture.submit).toHaveBeenCalledOnce();
+  expect(fixture.submit.mock.calls[0]?.[0].id).toBe("three");
+  expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
+    "Compare staffing\\n\\nAlso check the queue\\n\\nAnd the rework rate",
+  );
+  expect(traceRecords(diagnosticSpy.mock.calls, "brunch.submit")).toEqual([
+    expect.objectContaining({ inputId: "three", delegationId: "newer" }),
+  ]);
+});
+
+test("queued speech held by a speech start goes once no speech is pending", async () => {
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare: abortablePreparation(),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const first = fixture.bridge.accept(speech("one", "Compare staffing"));
+  await fixture.bridge.accept(speech("two", "Also check the queue"));
+  fixture.bridge.speechStarted();
+  await first;
+  fixture.update();
+  expect(fixture.submit).not.toHaveBeenCalled();
+
+  fixture.speechPending.mockReturnValue(false);
+  fixture.update();
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  expect(fixture.submit.mock.calls[0]?.[0].id).toBe("two");
+  expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
+    "Compare staffing\\n\\nAlso check the queue",
+  );
+});
+
+test("speech waiting for the composer stays sendable when the conversation errors", async () => {
+  const history = new VoiceMediationHistory("test");
+  const fixture = setup({
+    history,
+    prepare: async () => ({}),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  fixture.submit.mockImplementationOnce(() => new Promise(() => {}));
+  fixture.bridge.acceptDelegation("first-delegation");
+  void fixture.bridge.accept(speech("one", "Compare staffing"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  fixture.bridge.acceptDelegation("queued");
+  await fixture.bridge.accept(speech("two", "Also check the queue"));
+
+  fixture.update({ status: "error" });
+  expect(fixture.appendInstructions).toHaveBeenCalledWith(
+    expect.stringContaining("The request was not submitted"),
+    "queued",
+  );
+  expect(fixture.notice).toHaveBeenLastCalledWith(
+    "Speech that was waiting for Brunch was not sent. Use the composer to send it.",
+  );
+  expect(
+    history.project([]).find((message) => message.id === "two")?.parts,
+  ).toEqual([{ type: "text", text: "Also check the queue" }]);
+  fixture.update();
+  expect(fixture.submit).toHaveBeenCalledOnce();
+});
+
+test("speech queued in one conversation is neither submitted to nor merged into the conversation switched to", async () => {
+  vi.stubEnv("DEV", true);
+  const original = new VoiceMediationHistory("original");
+  const switched = new VoiceMediationHistory("switched");
+  let current = original;
+  const fixture = setup({
+    get history() {
+      return current;
+    },
+    prepare: async () => ({}),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  let admitFirst = () => {};
+  fixture.submit.mockImplementationOnce(async (input) => {
+    await new Promise<void>((resolve) => {
+      admitFirst = resolve;
+    });
+    input.onAdmission("first");
+    return { kind: "message", messageId: "one", submissionId: "first" };
+  });
+  fixture.bridge.acceptDelegation("first-delegation");
+  const first = fixture.bridge.accept(speech("one", "Compare staffing"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  fixture.bridge.acceptDelegation("queued");
+  await fixture.bridge.accept(speech("two", "Also check the queue"));
+
+  current = switched;
+  fixture.update();
+  expect(fixture.appendInstructions).toHaveBeenCalledWith(
+    expect.stringContaining("The request was not submitted"),
+    "queued",
+  );
+  expect(fixture.appendInstructions).toHaveBeenCalledWith(
+    expect.stringContaining("its answer stays in the original conversation"),
+    "first-delegation",
+  );
+  expect(fixture.notice).toHaveBeenLastCalledWith(
+    "Speech that was waiting for Brunch was not sent. Use the composer to send it.",
+  );
+  expect(
+    switched.project([]).find((message) => message.id === "two")?.parts,
+  ).toEqual([{ type: "text", text: "Also check the queue" }]);
+  expect(traceRecords(diagnosticSpy.mock.calls, "input.dropped")).toEqual([
+    expect.objectContaining({
+      inputId: "two",
+      delegationId: "queued",
+      reason: "conversation-switched",
+    }),
+  ]);
+
+  await fixture.bridge.accept(speech("three", "And the rework rate"));
+  admitFirst();
+  await first;
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
+  expect(fixture.submit.mock.calls[1]?.[0].id).toBe("three");
+  expect(fixture.submit.mock.calls[1]?.[0].text).toContain(
+    "And the rework rate",
+  );
+  expect(fixture.submit.mock.calls[1]?.[0].text).not.toContain(
+    "Also check the queue",
+  );
+});
+
+test("ending voice keeps speech queued behind the composer sendable", async () => {
+  vi.stubEnv("DEV", true);
+  const history = new VoiceMediationHistory("test");
+  const fixture = setup({
+    history,
+    prepare: async () => ({}),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  fixture.submit.mockImplementationOnce(() => new Promise(() => {}));
+  void fixture.bridge.accept(speech("one", "Compare staffing"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  fixture.bridge.acceptDelegation("first-delegation");
+  fixture.bridge.acceptDelegation("queued");
+  await fixture.bridge.accept(speech("two", "Also check the queue"));
+
+  fixture.bridge.stop();
+  expect(
+    history.project([]).find((message) => message.id === "two")?.parts,
+  ).toEqual([{ type: "text", text: "Also check the queue" }]);
+  expect(fixture.appendInstructions).toHaveBeenCalledWith(
+    expect.stringContaining("The request was not submitted"),
+    "queued",
+  );
+  expect(fixture.notice).toHaveBeenLastCalledWith(
+    "Speech that was waiting for Brunch was not sent. Use the composer to send it.",
+  );
+  expect(traceRecords(diagnosticSpy.mock.calls, "input.dropped")).toEqual([
+    expect.objectContaining({
+      inputId: "two",
+      delegationId: "queued",
+      reason: "ended",
+    }),
+  ]);
+});
+
+test.each(["Stop", "ending voice", "failed admission"] as const)(
+  "%s keeps words merged into an unadmitted turn sendable",
+  async (interruption) => {
+    const history = new VoiceMediationHistory("test");
+    const fixture = setup({
+      history,
+      prepare: abortablePreparation(),
+      summarize: vi.fn(),
+      offered: vi.fn(),
+    });
+    const first = fixture.bridge.accept(speech("one", "Compare staffing"));
+    fixture.bridge.speechStarted();
+    await first;
+    const admission = Promise.withResolvers<never>();
+    fixture.submit.mockImplementationOnce(() => admission.promise);
+    const second = fixture.bridge.accept(speech("two", "and the queue"));
+    await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+    expect(history.project([]).map((message) => message.id)).not.toContain(
+      "one",
+    );
+
+    if (interruption === "Stop") fixture.bridge.stopResponse();
+    else if (interruption === "ending voice") fixture.bridge.stop();
+    else admission.reject(new Error("Unavailable"));
+    if (interruption === "failed admission") await second;
+
+    expect(
+      history.project([]).find((message) => message.id === "one")?.parts,
+    ).toEqual([{ type: "text", text: "Compare staffing" }]);
+    expect(
+      history.project([]).filter((message) => message.id === "one"),
+    ).toHaveLength(1);
+  },
+);
+
+test.each(["Stop", "ending voice", "failed admission"] as const)(
+  "%s keeps queued speech sent as one unadmitted turn sendable",
+  async (interruption) => {
+    const history = new VoiceMediationHistory("test");
+    const fixture = setup({
+      history,
+      prepare: async () => ({}),
+      summarize: vi.fn(),
+      offered: vi.fn(),
+    });
+    let admitFirst = () => {};
+    fixture.submit.mockImplementationOnce(async (input) => {
+      await new Promise<void>((resolve) => {
+        admitFirst = resolve;
+      });
+      input.onAdmission("first");
+      return { kind: "message", messageId: "one", submissionId: "first" };
+    });
+    const merged = Promise.withResolvers<never>();
+    fixture.submit.mockImplementationOnce(() => merged.promise);
+    const first = fixture.bridge.accept(speech("one", "Compare staffing"));
+    await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+    await fixture.bridge.accept(speech("two", "Also check the queue"));
+    await fixture.bridge.accept(speech("three", "And the rework rate"));
+    admitFirst();
+    await first;
+    await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledTimes(2));
+    expect(fixture.submit.mock.calls[1]?.[0].id).toBe("three");
+
+    if (interruption === "Stop") fixture.bridge.stopResponse();
+    else if (interruption === "ending voice") fixture.bridge.stop();
+    else {
+      merged.reject(new Error("Unavailable"));
+      await vi.waitFor(() =>
+        expect(fixture.notice).toHaveBeenLastCalledWith(
+          expect.stringContaining("Couldn’t confirm your message was sent"),
+        ),
+      );
+    }
+
+    const unsent = (id: string) =>
+      history.project([]).find((message) => message.id === id)?.parts;
+    expect(unsent("two")).toEqual([
+      { type: "text", text: "Also check the queue" },
+    ]);
+    expect(unsent("three")).toEqual([
+      { type: "text", text: "And the rework rate" },
+    ]);
+  },
+);
+
+test("skipped speech does not release queued speech held by a speech start", async () => {
+  const fixture = setup({
+    history: new VoiceMediationHistory("test"),
+    prepare: abortablePreparation(),
+    summarize: vi.fn(),
+    offered: vi.fn(),
+  });
+  const first = fixture.bridge.accept(speech("one", "Compare staffing"));
+  await fixture.bridge.accept(speech("two", "Also check the queue"));
+  fixture.bridge.speechStarted();
+  await first;
+  await fixture.bridge.accept({
+    id: "phantom",
+    text: "Yes.",
+    startedDuringOutput: true,
+  });
+  await fixture.bridge.accept(speech("blip", " . "));
+  fixture.update();
+  expect(fixture.submit).not.toHaveBeenCalled();
+
+  await fixture.bridge.accept(speech("three", "And the rework rate"));
+  await vi.waitFor(() => expect(fixture.submit).toHaveBeenCalledOnce());
+  expect(fixture.submit.mock.calls[0]?.[0].id).toBe("three");
+  expect(fixture.submit.mock.calls[0]?.[0].text).toContain(
+    "Compare staffing\\n\\nAlso check the queue\\n\\nAnd the rework rate",
+  );
 });
 
 const runningTool = (toolName = "createExperiment") => ({

@@ -10,11 +10,14 @@ export const utteranceContributions = [
 
 export type UtteranceContribution = (typeof utteranceContributions)[number];
 
-/** Enforcement requires a separate decision after the log-only experiment. */
+/** Observation only: judgments never control submission. */
 export type UtteranceJudgmentMode = "off" | "log";
 
 /** Longest finalized transcript Live submits, in UTF-16 code units. Also bounds judgment context. */
 export const maxUtteranceTextLength = 32_000;
+
+/** Judgments below this confidence never recommend withholding. */
+export const utteranceWithholdConfidence = 0.8;
 
 /** Browser measurement window for the log-only latency tail, not an enforcement deadline. */
 export const utteranceJudgmentTimeoutMs = 10_000;
@@ -48,3 +51,11 @@ export const isUtteranceJudgment = (
   Number.isFinite(value.confidence) &&
   value.confidence >= 0 &&
   value.confidence <= 1;
+
+/** The withhold rule log mode records as its recommendation. */
+export const shouldWithholdUtterance = (
+  judgment: UtteranceJudgment | null,
+): boolean =>
+  judgment !== null &&
+  judgment.confidence >= utteranceWithholdConfidence &&
+  judgment.contribution !== "interview_content";

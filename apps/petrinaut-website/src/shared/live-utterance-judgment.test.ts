@@ -1,6 +1,9 @@
 import { expect, test } from "vitest";
 
-import { isUtteranceJudgment } from "./live-utterance-judgment";
+import {
+  isUtteranceJudgment,
+  shouldWithholdUtterance,
+} from "./live-utterance-judgment";
 
 test.each([
   null,
@@ -17,4 +20,14 @@ test.each([0, 0.8, 1])("accepts confidence %s", (confidence) => {
   expect(isUtteranceJudgment({ contribution: "control", confidence })).toBe(
     true,
   );
+});
+
+test.each([
+  [null, false],
+  [{ contribution: "interview_content", confidence: 1 }, false],
+  [{ contribution: "control", confidence: 0.799 }, false],
+  [{ contribution: "control", confidence: 0.8 }, true],
+  [{ contribution: "no_content", confidence: 1 }, true],
+] as const)("recommends withholding %j: %s", (judgment, withheld) => {
+  expect(shouldWithholdUtterance(judgment)).toBe(withheld);
 });
