@@ -149,6 +149,7 @@
     "use-intl": "4.14.9",
     "uuid": "14.0.0",
     "web-worker": "1.4.1",
+    "y-protocols": "1.0.7",
     "zod": "4.4.3"
   },
   "devDependencies": {

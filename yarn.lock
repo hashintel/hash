@@ -837,6 +837,7 @@ __metadata:
     wait-on: "npm:9.0.1"
     web-worker: "npm:1.4.1"
     webpack: "npm:5.104.1"
+    y-protocols: "npm:1.0.7"
     zod: "npm:4.4.3"
   languageName: unknown
   linkType: soft
