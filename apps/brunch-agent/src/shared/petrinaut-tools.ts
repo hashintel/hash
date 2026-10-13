@@ -23,7 +23,7 @@ type SdcpnToolOptions = {
   >[0]["authorizeDraft"];
 };
 
-/** Shared runtime capabilities, independent of the experimental guidance owner. */
+/** Mounts the Petrinaut browser tools in a document-bound conversation. */
 export const usePetrinautTools = (options?: SdcpnToolOptions): void => {
   const initialData = useInitialData<SdcpnInitialData>();
   if (initialData) {
