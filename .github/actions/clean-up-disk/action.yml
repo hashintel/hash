@@ -23,6 +23,7 @@ runs:
         # echo
 
     - name: Remove unused files
+      if: false
       shell: bash
       run: |
         echo "Deleting large directories..."
