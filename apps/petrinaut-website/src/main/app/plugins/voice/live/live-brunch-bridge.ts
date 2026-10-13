@@ -1,5 +1,6 @@
 import { getToolName, isToolUIPart } from "ai";
 
+import { maxUtteranceTextLength } from "../../../../../shared/live-utterance-judgment";
 import { serializeVoiceBrief } from "../../../../../shared/voice-mediation";
 import { logLiveDiagnostic } from "../shared/live-diagnostic";
 import { selectCanonicalSpeech } from "./canonical-speech";
@@ -9,6 +10,10 @@ import {
   routeUtterance,
 } from "./live-brunch-bridge/utterance-pipeline";
 
+import type {
+  UtteranceJudgment,
+  UtteranceJudgmentState,
+} from "../../../../../shared/live-utterance-judgment";
 import type { VoiceBriefFields } from "../../../../../shared/voice-mediation";
 import type { VoiceMediationHistory } from "../history/voice-mediation-history";
 import type {
@@ -100,6 +105,11 @@ interface Dependencies {
    * executing; a refused call stays input-available until its output arrives.
    */
   readonly toolApprovalState?: (toolCallId: string) => ToolApprovalState | null;
+  /** Optional log-only observation. Never controls submission or admission. */
+  readonly judge?: (
+    state: UtteranceJudgmentState,
+    signal: AbortSignal,
+  ) => Promise<UtteranceJudgment | null>;
 }
 
 export type ToolApprovalState = "awaiting" | "refused";
@@ -144,6 +154,7 @@ export class LiveBrunchBridge {
     >
   >();
   #waitingForComposer: Turn | undefined;
+  #lastOfferedText: string | null = null;
   #progressTimer: ReturnType<typeof setInterval> | undefined;
   #liveSpeaking = false;
   #progressPendingUntil = 0;
@@ -508,7 +519,7 @@ export class LiveBrunchBridge {
     if (!input.superseded && this.#waitingForComposer?.superseded)
       this.#evict(this.#waitingForComposer);
     if (
-      input.text.length > 32_000 ||
+      input.text.length > maxUtteranceTextLength ||
       this.#waitingForComposer ||
       !this.#chat.canAcceptVoiceInput
     ) {
@@ -516,7 +527,7 @@ export class LiveBrunchBridge {
         inputId: input.id,
         delegationId,
         superseded: input.superseded === true,
-        oversized: input.text.length > 32_000,
+        oversized: input.text.length > maxUtteranceTextLength,
         waitingForComposer: this.#waitingForComposer !== undefined,
         admissionUnavailable: !this.#chat.canAcceptVoiceInput,
       });
@@ -573,6 +584,9 @@ export class LiveBrunchBridge {
     if (delegationId !== null) turn.progress.acknowledged(Date.now());
     this.#progressTimer ??= setInterval(() => this.#updateProgress(), 250);
     this.#preparations.add(turn.preparation);
+    // No await: a slow judge must not change the composer's admission window.
+    const { judge } = this.#dependencies;
+    if (judge) void this.#observeJudgment(judge, turn, input.text);
     try {
       let text = input.text;
       const mediation = this.#dependencies.mediation;
@@ -646,6 +660,47 @@ export class LiveBrunchBridge {
       if (this.#waitingForComposer === turn)
         this.#waitingForComposer = undefined;
     }
+  }
+
+  async #observeJudgment(
+    judge: NonNullable<Dependencies["judge"]>,
+    turn: Turn,
+    transcript: string,
+  ): Promise<void> {
+    const startedAt = performance.now();
+    let judgment: UtteranceJudgment | null = null;
+    try {
+      judgment = await judge(
+        {
+          transcript,
+          // Keep the tail, where Brunch's latest question is, within the wire limit.
+          offeredBrunchText:
+            this.#lastOfferedText?.slice(-maxUtteranceTextLength) ?? null,
+        },
+        this.#abort.signal,
+      );
+    } catch {
+      // Provider errors can contain source text. Record only an absent judgment.
+    }
+    // Delegation is traced separately; any override needs its own decision.
+    const decision =
+      judgment === null ||
+      judgment.confidence < 0.8 ||
+      judgment.contribution === "interview_content"
+        ? "submit"
+        : "withhold";
+    logLiveDiagnostic("judgment.result", {
+      inputId: turn.inputId,
+      delegationId: turn.delegationId,
+      judgment: judgment !== null,
+      contribution: judgment?.contribution ?? null,
+      confidence: judgment?.confidence ?? null,
+      latencyMs: Math.round(performance.now() - startedAt),
+      decision,
+      applied: "submit",
+      mode: "log",
+      afterStop: this.#abort.signal.aborted,
+    });
   }
 
   public responseStarted(event: FlueChatResponseMessageStartedEvent): void {
@@ -1107,7 +1162,9 @@ export class LiveBrunchBridge {
       if (turn.preparation.signal.aborted || this.#abort.signal.aborted) return;
       // Only provider output transcripts prove that these words were spoken.
       mediation.offered(turn.inputId);
-      this.#dependencies.appendCommentary(summary, turn.delegationId);
+      if (this.#dependencies.appendCommentary(summary, turn.delegationId)) {
+        this.#lastOfferedText = summary;
+      }
     } catch {
       if (!turn.preparation.signal.aborted && !this.#abort.signal.aborted) {
         this.#dependencies.notice(
