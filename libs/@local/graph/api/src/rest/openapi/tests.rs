@@ -96,7 +96,7 @@ fn shared_response_component() {
         .description;
     for variant in [
         "The request uses an unsupported query.",
-        "The credentials are malformed.",
+        "The `X-Authenticated-User-Actor-Id` header is not a valid UUID.",
     ] {
         assert!(
             custom.contains(variant),

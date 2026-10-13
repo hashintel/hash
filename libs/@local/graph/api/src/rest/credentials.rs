@@ -18,6 +18,7 @@ use type_system::principal::actor::ActorId;
 
 use super::Audience;
 
+pub(super) const API_TOKEN: &str = "apiToken";
 pub(super) const CLOUDFLARE_ACCESS: &str = "cloudflareAccess";
 pub(super) const SERVICE_SECRET: &str = "serviceSecret";
 pub(super) const DELEGATED_ACTOR: &str = "delegatedActor";
@@ -41,6 +42,18 @@ pub(super) fn api_key(
         location,
         name: name.to_owned(),
         description: Some(description.into()),
+        extensions: IndexMap::default(),
+    }
+}
+
+pub(super) fn api_token_scheme() -> SecurityScheme {
+    SecurityScheme::Http {
+        scheme: "bearer".to_owned(),
+        bearer_format: None,
+        description: Some(
+            "API token starting with `hsh_pat_`. The token acts as the user it belongs to."
+                .to_owned(),
+        ),
         extensions: IndexMap::default(),
     }
 }

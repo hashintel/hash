@@ -34,7 +34,7 @@ use super::{
 };
 use crate::{
     authentication::{
-        AuthenticationLayer, AuthenticationMetrics, ResolvedAuthentication,
+        AuthenticationLayer, AuthenticationMetrics, Challenge, ResolvedAuthentication,
         provider::StaticAuthenticationProvider,
         request::{AuthenticationError, AuthenticationErrorKind},
     },
@@ -118,6 +118,7 @@ fn full_stack_router_with(
             service_secret: Pin::clone(&service_secret),
             metrics: auth_metrics(),
             bootstrap_route: |_path| false,
+            challenge: Challenge::Service,
             caller: PhantomData,
         })
         .route_layer(IpGateLayer {
@@ -700,6 +701,7 @@ async fn enforced_denials_skip_the_inner_stack() {
             service_secret: Pin::clone(&service_secret),
             metrics: auth_metrics(),
             bootstrap_route: |_path| false,
+            challenge: Challenge::Service,
             caller: PhantomData,
         })
         .route_layer(IpGateLayer {

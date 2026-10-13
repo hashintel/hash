@@ -21,7 +21,7 @@ use super::{
     AppState, clause,
     extract::Body,
     headers,
-    problem::{Problem, ProblemType},
+    problem::{Problem, ProblemResponse, ProblemType},
     saltile::{DocumentResponse, spawn},
     visibility::Visibility,
 };
@@ -108,20 +108,17 @@ pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,
     visibility: Visibility,
     Body(request): Body<TranslateRequest>,
-) -> Result<Response, Problem<'static>> {
+) -> Result<Response, ProblemResponse<'static>> {
     let limits = state.limits.translate;
     if request.entity_ids.len() > limits.entity_ids as usize {
-        return Err(too_many_entity_ids(
-            request.entity_ids.len(),
-            limits.entity_ids,
-        ));
+        return Err(too_many_entity_ids(request.entity_ids.len(), limits.entity_ids).into());
     }
 
     // The whole pipeline is one synchronous call on a rayon worker, construction and encoding
     // both. `TranslateDocument` borrows the scene `visibility.scene()` resolves. Neither can
     // outlive this closure.
     let (bytes, content_type) = spawn(
-        move || -> Result<(Vec<u8>, &'static str), Problem<'static>> {
+        move || -> Result<(Vec<u8>, &'static str), ProblemResponse<'static>> {
             let scene = visibility.scene()?;
             let document = TranslateDocument::new(scene, request.entity_ids, limits)?;
 
