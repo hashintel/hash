@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 
-import { projectLedger, renderLedgerMarkdown } from "../src/ledger";
-import { supportDeskLedger } from "./fixtures/support-desk-ledger";
+import { projectLedger, renderLedgerMarkdown } from "./projection";
+import { supportDeskLedger } from "./projection/fixtures/support-desk-ledger";
 
 const projection = projectLedger(supportDeskLedger);
 const user = renderLedgerMarkdown(projection, "user");

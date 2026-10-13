@@ -5,7 +5,7 @@
  * assigned IDs and turn anchors (user-message IDs).
  */
 
-import type { LedgerState } from "../../src/ledger/projection/records";
+import type { LedgerState } from "../records";
 
 export const supportDeskLedger: LedgerState = {
   title: "Brightwater support desk — peak staffing",

@@ -49,7 +49,7 @@ export const defineBrunchLibraryConfig = (
     },
     root: fileURLToPath(new URL(".", packageUrl)),
     test: {
-      include: ["test/**/*.test.ts"],
+      include: ["src/**/*.test.ts"],
     },
   });
 };

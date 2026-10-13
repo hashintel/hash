@@ -4,8 +4,8 @@ import {
   isNetObservationTool,
   netReaderToolNames,
   projectNetDefinition,
-} from "../src/petrinaut/net-readers";
-import { browserToolMutatesDocument } from "../src/petrinaut/petrinaut-tool-effects";
+} from "./net-readers";
+import { browserToolMutatesDocument } from "./petrinaut-tool-effects";
 
 const definition = {
   metadata: { host: "opaque" },

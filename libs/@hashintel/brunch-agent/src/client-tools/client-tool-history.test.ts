@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   clientToolHistoryFrom,
   type ClientToolHistoryMessage,
-} from "../src/client-tools";
+} from "./client-tool-history";
 
 describe("clientToolHistoryFrom", () => {
   test("projects an in-band Flue browser outcome with its host metadata", () => {

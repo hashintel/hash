@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { projectBrunchMessageMetadata } from "../src/client-tools";
+import { projectBrunchMessageMetadata } from "./message-metadata";
 
 describe("projectBrunchMessageMetadata", () => {
   test("marks only a durably aborted response stopped", () => {

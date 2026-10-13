@@ -2,11 +2,11 @@ import { expect, test } from "vitest";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { brunchTools } from "../src/constants";
+import { brunchTools } from "../constants";
 import {
   browserToolMutatesDocument,
   petrinautToolEffects,
-} from "../src/petrinaut/petrinaut-tool-effects";
+} from "./petrinaut-tool-effects";
 
 test("classifies every canonical Petrinaut tool", () => {
   expect(Object.keys(petrinautToolEffects).toSorted()).toEqual(

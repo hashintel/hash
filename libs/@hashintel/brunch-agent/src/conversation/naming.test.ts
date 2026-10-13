@@ -1,13 +1,13 @@
 import { describe, expect, test } from "vitest";
 
-import { brunchProductName } from "../src/constants";
+import { brunchProductName } from "../constants";
 import {
   OPERATIONS,
   toolName,
   toolPrefix,
   type Operation,
   type ToolName,
-} from "../src/conversation/naming";
+} from "./naming";
 
 // Spec §12.3: architectural strings name identity, not function. The tool
 // prefix derives from the product name so the unresolved name-fog costs one

@@ -5,7 +5,7 @@ import {
   PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
-} from "../src/petrinaut/contextual-user-message";
+} from "./contextual-user-message";
 
 test("round trips contextual user evidence and diagnostics through explicit framing", () => {
   const markerLikeText = [
