@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { brunchTools } from "@hashintel/brunch-agent";
-import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
+import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 

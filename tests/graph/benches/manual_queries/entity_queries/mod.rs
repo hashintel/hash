@@ -19,6 +19,7 @@ use hash_graph_postgres_store::{
 use hash_graph_store::{
     entity::EntityStore, pool::StorePool as _, subgraph::edges::SubgraphTraversalParams,
 };
+use hash_secret::Secret;
 use itertools::{Itertools as _, iproduct};
 use serde::{Deserialize as _, Serialize as _};
 use serde_json::Value as JsonValue;
@@ -384,7 +385,9 @@ fn bench_json_queries(crit: &mut Criterion) {
         &DatabaseConnectionInfo::new(
             DatabaseType::Postgres,
             env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned()),
-            env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned()),
+            Secret::from_string(
+                env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned()),
+            ),
             env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned()),
             env::var("HASH_GRAPH_PG_PORT").map_or(5432, |port| {
                 port.parse::<u16>()

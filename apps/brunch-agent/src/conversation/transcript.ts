@@ -1,6 +1,6 @@
 /** Human-readable projection of Flue's public conversation snapshot. */
 
-import { petrinautUserMessageText } from "@hashintel/brunch-agent-transport-aisdk";
+import { petrinautUserMessageText } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import type {
   FlueConversationMessage,

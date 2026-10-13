@@ -10,6 +10,8 @@ import {
 
 import { Petrinaut, type PetrinautAiAssistant } from "./petrinaut";
 
+import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
+
 const emptySDCPN: SDCPN = {
   places: [],
   transitions: [],
@@ -27,6 +29,9 @@ type StoredNet = {
 
 type HandlesByNetId = Record<string, PetrinautDocHandle>;
 
+/** Every story net reports the time the story loaded as its last update. */
+const storyLoadedAt = new Date().toISOString();
+
 /**
  * Self-contained wrapper around {@link Petrinaut} that manages a small
  * in-memory net registry, mirroring the shape of the demo-site's `DevApp`.
@@ -36,6 +41,7 @@ type HandlesByNetId = Record<string, PetrinautDocHandle>;
  */
 export const PetrinautStoryProvider = ({
   aiAssistant,
+  plugins,
   initialTitle = "New Process",
   initialDefinition = emptySDCPN,
   hideNetManagementControls,
@@ -43,6 +49,7 @@ export const PetrinautStoryProvider = ({
   children,
 }: {
   aiAssistant?: PetrinautAiAssistant;
+  plugins?: readonly PetrinautPlugin[];
   initialTitle?: string;
   initialDefinition?: SDCPN;
   hideNetManagementControls?: "all" | "except-title";
@@ -100,7 +107,7 @@ export const PetrinautStoryProvider = ({
   const existingNets: MinimalNetMetadata[] = Object.values(nets).map((net) => ({
     netId: net.id,
     title: net.title,
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: storyLoadedAt,
   }));
 
   const createNewNet = (params: {
@@ -149,6 +156,7 @@ export const PetrinautStoryProvider = ({
       <Petrinaut
         aiAssistant={aiAssistant}
         handle={handle}
+        plugins={plugins}
         existingNets={existingNets}
         createNewNet={createNewNet}
         hideNetManagementControls={hideNetManagementControls}

@@ -1,4 +1,4 @@
-import { petrinautUserMessageText } from "@hashintel/brunch-agent-transport-aisdk";
+import { petrinautUserMessageText } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import type { PersonaTranscriptEntry } from "../rpc-protocol.ts";
 import type { FlueConversationSnapshot } from "@flue/sdk";

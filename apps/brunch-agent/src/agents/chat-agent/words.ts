@@ -5,7 +5,7 @@ import {
   usePersistentState,
 } from "@flue/runtime";
 
-import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
+import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 /** The admitted user snapshot applies on the first render; signals keep the last admitted snapshot. */
 export const useWords = (): void => {

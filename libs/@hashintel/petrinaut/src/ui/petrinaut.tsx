@@ -16,9 +16,14 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import {
+  CommandRegistryProvider,
+  useCommandRegistry,
+} from "../react/commands/command-registry";
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
+import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 import { EditorView } from "./views/Editor/editor-view";
 import {
   PetrinautPresentationProvider,
@@ -183,11 +188,17 @@ export type PetrinautAiAssistant = {
 
 import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
+import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
-import type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;
+  /**
+   * The plugins that add buttons, top-bar items, settings and UI to the
+   * editor. Define each at module scope: a plugin created during render
+   * remounts on every render.
+   */
+  plugins?: readonly PetrinautPlugin[];
   title?: string;
   setTitle?: (title: string) => void;
   readonly?: boolean;
@@ -206,7 +217,6 @@ export type PetrinautProps = {
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
   aiAssistant?: PetrinautAiAssistant;
-  viewportActions?: ViewportAction[];
   /**
    * Host-supplied components to inject at specific locations in the editor.
    */
@@ -243,6 +253,7 @@ export type PetrinautProps = {
 };
 
 const noop = () => {};
+const noPlugins: readonly PetrinautPlugin[] = [];
 
 /**
  * Handle-driven entry point. Creates a Core {@link Instance} from the given
@@ -254,6 +265,7 @@ const noop = () => {};
  */
 export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   handle,
+  plugins = noPlugins,
   title = "Untitled",
   setTitle,
   readonly = false,
@@ -262,7 +274,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   createNewNet = noop,
   loadPetriNet = noop,
   aiAssistant,
-  viewportActions,
   slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
@@ -286,8 +297,11 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
     createNewNet,
     loadPetriNet,
   };
+  // Plugin buttons run commands; without a host registry they register in
+  // the editor's own.
+  const hostRegistry = useCommandRegistry();
 
-  return (
+  const editor = (
     <PortalContainerContext value={portalContainerRef}>
       <PetrinautProvider
         instance={instance}
@@ -303,17 +317,24 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               className={cx(editorRootStyle, "petrinaut-root")}
               ref={portalContainerRef}
             >
-              <EditorView
-                aiAssistant={aiAssistant}
-                hideNetManagementControls={hideNetManagementControls}
-                slots={slots}
-                titleEditable={titleEditable}
-                viewportActions={viewportActions}
-              />
+              <PetrinautPluginsProvider plugins={plugins}>
+                <EditorView
+                  aiAssistant={aiAssistant}
+                  hideNetManagementControls={hideNetManagementControls}
+                  slots={slots}
+                  titleEditable={titleEditable}
+                />
+              </PetrinautPluginsProvider>
             </Stack>
           </MonacoProvider>
         </PetrinautPresentationProvider>
       </PetrinautProvider>
     </PortalContainerContext>
+  );
+
+  return (
+    <CommandRegistryProvider registry={hostRegistry ?? undefined}>
+      {editor}
+    </CommandRegistryProvider>
   );
 };

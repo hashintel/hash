@@ -2,7 +2,7 @@ import {
   normalizePetrinautWordLiteral,
   petrinautWordSpellingLimits,
   validatePetrinautWordSpellings,
-} from "@hashintel/brunch-agent-transport-aisdk/words";
+} from "@hashintel/brunch-agent-plugin-sdcpn/words";
 
 /** Only the spelling reaches Brunch; pronunciation stays with the speaking model. */
 export type VoiceWord = Readonly<{ spelling: string; pronunciation?: string }>;

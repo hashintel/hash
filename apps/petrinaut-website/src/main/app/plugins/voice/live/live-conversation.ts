@@ -334,7 +334,9 @@ export const createLiveConversation = (
       // not end the session.
     }
     if (abort.signal.aborted) return;
-    activityTimer = setTimeout(() => void sampleActivity(), 100);
+    activityTimer = setTimeout(() => {
+      void sampleActivity();
+    }, 100);
     if (recoveryTimers.size > 0) return;
     const playing = audio?.srcObject && !audio.paused;
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
@@ -444,7 +446,9 @@ export const createLiveConversation = (
         },
       });
     if (recoveryTimers.size === 0) onState(activeState("connected"));
-    activityTimer = setTimeout(() => void sampleActivity(), 100);
+    activityTimer = setTimeout(() => {
+      void sampleActivity();
+    }, 100);
     flushFinalizedInputs();
   };
 

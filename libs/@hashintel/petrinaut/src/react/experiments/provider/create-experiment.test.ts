@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 import { selectExperimentBackend } from "@hashintel/petrinaut-core/experiments";
 import { lowerScenarioToHir } from "@hashintel/petrinaut-core/hir";
@@ -203,7 +206,7 @@ describe("compileExperimentScenario", () => {
   it("keeps the generated scenario of a toggled ad-hoc definition, one parameter per axis", async () => {
     const compiled = await compileAdHoc(true);
 
-    expect(compiled.scenario?.id).toBe("adhoc-scenario");
+    expect(compiled.scenario?.id).toBe(toPetrinautId("adhoc-scenario"));
     expect(compiled.axes.map((axis) => axis.identifier)).toEqual([
       "adhoc_count_Queue",
     ]);
@@ -217,7 +220,7 @@ describe("compileExperimentScenario", () => {
   it("keeps the generated scenario of a plain ad-hoc definition", async () => {
     const compiled = await compileAdHoc(false);
 
-    expect(compiled.scenario?.id).toBe("adhoc-scenario");
+    expect(compiled.scenario?.id).toBe(toPetrinautId("adhoc-scenario"));
     expect(compiled.scenario?.scenarioParameters).toEqual([]);
     expect(compiled.axes).toEqual([]);
   });

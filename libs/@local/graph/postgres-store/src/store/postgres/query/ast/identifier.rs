@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::fmt::{self, Write as _};
 
-use crate::store::postgres::query::Transpile;
+use crate::store::postgres::query::{Table, Transpile};
 
 /// A PostgreSQL identifier (table name, column name, alias, schema name, etc.).
 ///
@@ -28,6 +28,14 @@ impl<'name> Identifier<'name> {
             "identifiers must not be empty: Postgres rejects zero-length quoted identifiers"
         );
         Self { name }
+    }
+}
+
+impl Identifier<'static> {
+    pub(crate) const fn from_table(table: Table) -> Self {
+        Self {
+            name: Cow::Borrowed(table.as_str()),
+        }
     }
 }
 

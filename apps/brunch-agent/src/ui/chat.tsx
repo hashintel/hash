@@ -13,16 +13,16 @@ import {
   type FormEvent,
 } from "react";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdWeb,
-  petrinautUserMessageText,
-  type ConversationIdentity,
-} from "@hashintel/brunch-agent-transport-aisdk";
+import { petrinautUserMessageText } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   brunchRoutes,
   localUiPrincipal,
 } from "@hashintel/brunch-agent/constants";
+import {
+  agentOwnershipHeaders,
+  flueConversationIdWeb,
+  type ConversationIdentity,
+} from "@hashintel/brunch-agent/conversation-identity";
 
 /** The local UI always speaks as its one demo principal. */
 type LocalConversationIdentity = ConversationIdentity & {
@@ -176,7 +176,7 @@ function ChatConversation({
 }
 
 export function Chat() {
-  const configuration = useMemo(chatConfiguration, []);
+  const configuration = useMemo(() => chatConfiguration(), []);
   const [client, setClient] = useState<FlueClient>();
 
   useEffect(() => {

@@ -88,6 +88,22 @@ impl SelectClause {
     pub fn except_all(self, other: impl Into<Self>) -> Self {
         self.set_operation(SetOperator::Except, Some(SetQuantifier::All), other)
     }
+
+    #[must_use]
+    pub fn as_simple(&self) -> Option<&SimpleSelect> {
+        match self {
+            Self::Simple(select) => Some(select),
+            Self::SetOperation { .. } => None,
+        }
+    }
+
+    #[must_use]
+    pub fn as_simple_mut(&mut self) -> Option<&mut SimpleSelect> {
+        match self {
+            Self::Simple(select) => Some(select),
+            Self::SetOperation { .. } => None,
+        }
+    }
 }
 
 impl From<SimpleSelect> for SelectClause {

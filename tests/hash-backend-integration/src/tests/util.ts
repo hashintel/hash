@@ -56,11 +56,6 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<
       },
     },
     uploadProvider: {
-      getFlowOutputStorageKey: () => {
-        throw new Error(
-          "File fetching not implemented in tests. Override with mock to test.",
-        );
-      },
       downloadDirect: () => {
         throw new Error(
           "File fetching not implemented in tests. Override with mock to test.",

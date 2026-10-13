@@ -288,7 +288,9 @@ export const VoiceDock = ({
               <Button
                 aria-label={voiceSessionActionLabels.takeTurn}
                 iconName="arrowsLeftRight"
-                onClick={() => void actions.takeTurn?.()}
+                onClick={() => {
+                  void actions.takeTurn?.();
+                }}
                 size="sm"
                 tooltip={voiceSessionActionLabels.takeTurn}
                 type="button"

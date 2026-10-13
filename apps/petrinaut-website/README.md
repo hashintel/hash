@@ -36,17 +36,29 @@ drawing order and manual progress. Math, code, and AI studies offer paired
 alternatives. The page uses the same Petricon
 renderer as the editor.
 
-## Starting a new net
+## Local document URLs
 
-`/new` creates an empty net in local storage and redirects to the editable demo,
-which opens the most recently modified net. The redirect replaces, so a reload
-cannot make a second net and Back skips the route. Empty nets earlier visits
-left behind are dropped, matching the editor's own rule when a visitor switches
-away from an untouched net.
+`/local/<net id>` opens a net saved in this browser's local storage. The net id
+is the document's Petrinaut id, so the URL needs no separate key. Opening another
+net pushes its URL, and Back and Forward reopen the net each entry names. A net
+the browser does not hold shows "Local document not found".
 
-The editor chooses the initial document after saved nets load. Open tabs refresh
-their saved nets and stock-assistant messages when local storage changes, and
-updates start from the latest persisted value so another tab's documents survive.
+`/` redirects to the most recently edited net, saving an empty one for a new
+visitor. `/new` saves an empty net and redirects to its URL. Both redirects
+replace, so Back skips them, and both show an error page instead of redirecting
+when the browser refuses the write. Empty nets stay saved when the visitor
+switches away, so their URLs keep working.
+
+Published `/examples/<slug>` pages offer **Make a local copy**, which saves an
+editable copy and opens its local URL with the current view. The button, and
+the same action on the notice that explains a blocked edit, come from the
+`website.local-copy` plugin in `src/examples/local-copy-plugin.tsx`.
+When the browser refuses the write, the top bar shows "Couldn't save" next to
+the button.
+
+Open tabs refresh their saved nets and stock-assistant messages when local
+storage changes, and updates start from the latest persisted value so another
+tab's documents survive.
 
 ## Choosing the assistant
 
@@ -59,6 +71,32 @@ A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSIS
 Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 
 With Brunch selected, Labs also shows **Custom words**, off by default, for preferred spellings and pronunciation hints in Voice. See [Custom words](docs/custom-words.md).
+
+## Snapshot links
+
+**Share**, an icon in a local document's top bar, opens a dropdown with a self-contained
+`/share#v1.br.<payload>` link. The payload is the net as compact canonical JSON,
+Brotli-compressed (quality 11) and base64url-encoded, so nothing is uploaded. The
+optional current view travels in the same query parameters as the other routes.
+Example pages and snapshots offer no **Share**: their own URL is the link.
+The button is the `website.share` plugin in `src/main/app/plugins/share/`. It
+reads the net, its title and the view when the dropdown opens.
+
+A worker does the compression and decompression and is terminated when it
+finishes, is cancelled, or runs 30 seconds. Both directions cap the net at 2 MiB
+and the fragment at 16,000 characters; a larger net can be downloaded as a file
+from the same dropdown.
+
+A snapshot holds the net as it was when shared: title, layout, code,
+parameters, types, subnets, scenarios and metrics. Running simulations,
+results, assistant conversations and preferences stay behind, and later edits
+do not change a link already shared.
+
+`/share` opens the snapshot read-only and saves nothing. **Make a local copy**,
+from the same `website.local-copy` plugin as on example pages, saves it at its own
+`/local/<net id>` URL with the current view and without the fragment. Sentry
+events, transactions, spans and breadcrumbs have the fragment stripped before
+sending.
 
 ## Example embeds and oEmbed
 

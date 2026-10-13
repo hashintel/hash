@@ -8,9 +8,10 @@ import {
   ActualModeContext,
   type PetrinautNavigationController,
 } from "@hashintel/petrinaut/react";
-import { Petrinaut, type ViewportAction } from "@hashintel/petrinaut/ui";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { StatusPage } from "../../../shared/status-page";
+import { sentryFeedbackPlugin } from "../plugins/sentry-feedback/plugin";
 
 import type {
   ActualModeSource,
@@ -26,13 +27,11 @@ const BrunchPetrinautWithHandle = ({
   navigation,
   source,
   title,
-  viewportActions,
 }: {
   definition: SDCPN;
   navigation: PetrinautNavigationController;
   source: ActualModeSource;
   title: string;
-  viewportActions: ViewportAction[];
 }) => {
   const [handle] = useState<PetrinautDocHandle>(() =>
     createJsonDocHandle({
@@ -52,10 +51,10 @@ const BrunchPetrinautWithHandle = ({
         handle={handle}
         hideNetManagementControls="except-title"
         navigation={navigation}
+        plugins={[sentryFeedbackPlugin]}
         readonly
         setTitle={() => {}}
         title={title}
-        viewportActions={viewportActions}
       />
     </div>
   );
@@ -63,10 +62,8 @@ const BrunchPetrinautWithHandle = ({
 
 export const BrunchPetrinaut = ({
   navigation,
-  viewportActions,
 }: {
   navigation: PetrinautNavigationController;
-  viewportActions: ViewportAction[];
 }) => {
   const actualMode = use(ActualModeContext);
   const definition = actualMode.available ? actualMode.definition : null;
@@ -116,7 +113,6 @@ export const BrunchPetrinaut = ({
         actualMode.title ??
         (source.runId ? `Brunch run ${source.runId}` : "Brunch run")
       }
-      viewportActions={viewportActions}
     />
   );
 };

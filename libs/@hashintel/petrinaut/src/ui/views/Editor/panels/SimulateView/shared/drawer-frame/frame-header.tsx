@@ -494,6 +494,7 @@ export const FrameHeader = ({
           ref={setStripElement}
           className={cx(scrollingLineStyle, statsRowStyle)}
           data-frame-stats-line
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- an overflowing strip takes focus so the keyboard can scroll it.
           tabIndex={stripOverflows ? 0 : undefined}
           aria-label="Header statistics"
         >

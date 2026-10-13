@@ -24,6 +24,13 @@
   ],
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
+  "typesVersions": {
+    "*": {
+      "ui/plugin": [
+        "dist/ui/plugin.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/main.d.ts",
@@ -36,6 +43,10 @@
     "./ui": {
       "types": "./dist/ui.d.ts",
       "default": "./dist/ui.js"
+    },
+    "./ui/plugin": {
+      "types": "./dist/ui/plugin.d.ts",
+      "default": "./dist/ui/plugin.js"
     },
     "./preview": {
       "types": "./dist/preview.d.ts",
@@ -99,11 +110,11 @@
     "@types/react-dom": "19.2.3",
     "@types/use-sync-external-store": "0.0.6",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
-    "@vitejs/plugin-react": "6.1.0",
+    "@vitejs/plugin-react": "6.1.1",
     "jsdom": "24.1.3",
-    "oxc-transform-react": "0.145.0",
-    "oxlint": "1.63.0",
-    "oxlint-tsgolint": "0.22.1",
+    "oxc-transform-react": "0.152.0",
+    "oxlint": "1.86.0",
+    "oxlint-tsgolint": "7.0.2003",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "rolldown": "1.2.6",

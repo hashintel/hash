@@ -13,7 +13,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { petrinautWordsUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
+import { petrinautWordsUserMessageBody } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import {
   agentOwnershipHeaders,

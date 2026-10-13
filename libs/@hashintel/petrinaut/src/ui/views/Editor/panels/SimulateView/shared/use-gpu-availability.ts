@@ -10,6 +10,7 @@ import { experimentSdcpnWithMetrics } from "../../../../../../react/experiments/
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
+import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
 import type {
   HirArtifacts,
   MonteCarloMetricSpec,
@@ -49,6 +50,53 @@ const attachMetricArtifacts = (
   return { ok: true, specs: withArtifacts };
 };
 
+/** What the analysis ran on. */
+type AnalysisInput = {
+  sdcpn: SDCPN;
+  extensions: PetrinautExtensionSettings;
+  specsKey: string | null;
+  requestHirArtifacts: LanguageClientContextValue["requestHirArtifacts"];
+};
+
+/**
+ * Why the GPU backend could not run `input`, or null when it could. A net that
+ * fails to compile yields a reason rather than an error.
+ */
+const analyzeGpuUnavailability = async ({
+  sdcpn,
+  extensions,
+  specsKey,
+  requestHirArtifacts,
+}: AnalysisInput): Promise<string | null> => {
+  const specs =
+    specsKey === null
+      ? []
+      : (JSON.parse(specsKey) as ExperimentMetricSpecInput[]);
+  const experimentSdcpn = experimentSdcpnWithMetrics(sdcpn, specs);
+  try {
+    const { artifacts } = await requestHirArtifacts(
+      experimentSdcpn,
+      extensions,
+      { includeHir: true },
+    );
+    const attached = attachMetricArtifacts(specs, artifacts);
+    return attached.ok
+      ? summarizeGpuUnavailability(
+          analyzeCompilation({
+            sdcpn: experimentSdcpn,
+            artifacts,
+            extensions,
+            metricSpecs: attached.specs,
+          }),
+        )
+      : attached.reason;
+  } catch (caught) {
+    return caught instanceof Error
+      ? `The net could not be compiled: ${caught.message}`
+      : "The net could not be compiled.";
+  }
+};
+
 /**
  * Whether the GPU backend could run a compute request over this net with
  * these metrics, and the reason when it could not.
@@ -79,9 +127,19 @@ export const useGpuAvailability = ({
   metricSpecs: readonly ExperimentMetricSpecInput[] | null;
 }): GpuAvailability => {
   const { requestHirArtifacts } = use(LanguageClientContext);
-  const [reason, setReason] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
   const specsKey = metricSpecs === null ? null : JSON.stringify(metricSpecs);
+  // The latest analysis, with the input it ran on. It is pending while the
+  // input has moved on, and its reason stands until the next one lands.
+  const [analysis, setAnalysis] = useState<{
+    input: AnalysisInput;
+    reason: string | null;
+  } | null>(null);
+  const pending =
+    analysis?.input.sdcpn !== sdcpn ||
+    analysis.input.extensions !== extensions ||
+    analysis.input.specsKey !== specsKey ||
+    analysis.input.requestHirArtifacts !== requestHirArtifacts;
+  const reason = analysis?.reason ?? null;
 
   useEffect(() => {
     if (!enabled) {
@@ -89,52 +147,14 @@ export const useGpuAvailability = ({
     }
 
     let cancelled = false;
-    setPending(true);
-    const specs =
-      specsKey === null
-        ? []
-        : (JSON.parse(specsKey) as ExperimentMetricSpecInput[]);
-    const experimentSdcpn = experimentSdcpnWithMetrics(sdcpn, specs);
-
-    const analyze = async () => {
-      try {
-        const { artifacts } = await requestHirArtifacts(
-          experimentSdcpn,
-          extensions,
-          { includeHir: true },
-        );
-        if (cancelled) {
-          return;
-        }
-        const attached = attachMetricArtifacts(specs, artifacts);
-        setReason(
-          attached.ok
-            ? summarizeGpuUnavailability(
-                analyzeCompilation({
-                  sdcpn: experimentSdcpn,
-                  artifacts,
-                  extensions,
-                  metricSpecs: attached.specs,
-                }),
-              )
-            : attached.reason,
-        );
-      } catch (caught) {
+    const input = { sdcpn, extensions, specsKey, requestHirArtifacts };
+    const timer = setTimeout(() => {
+      void analyzeGpuUnavailability(input).then((nextReason) => {
         if (!cancelled) {
-          setReason(
-            caught instanceof Error
-              ? `The net could not be compiled: ${caught.message}`
-              : "The net could not be compiled.",
-          );
+          setAnalysis({ input, reason: nextReason });
         }
-      } finally {
-        if (!cancelled) {
-          setPending(false);
-        }
-      }
-    };
-
-    const timer = setTimeout(() => void analyze(), GPU_ANALYSIS_DEBOUNCE_MS);
+      });
+    }, GPU_ANALYSIS_DEBOUNCE_MS);
 
     return () => {
       cancelled = true;

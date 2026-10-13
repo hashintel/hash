@@ -15,17 +15,14 @@ import { ClickableCellChip } from "../../../../../shared/clickable-cell-chip";
 import { useSlideStack } from "../../../../../shared/slide-stack";
 import { ValueChip } from "../../../../../shared/value-chip";
 import { VirtualizedTable } from "../../../../../shared/virtualized-table";
-import {
-  isValueIncludedInFilter,
-  missingValueString,
-} from "../../../../../shared/virtualized-table/header/filter";
+import { missingValueString } from "../../../../../shared/virtualized-table/header/filter";
+import { isValueIncludedInFilter } from "../../../../../shared/virtualized-table/header/is-value-included-in-filter";
 import { useVirtualizedTableFilterState } from "../../../../../shared/virtualized-table/use-filter-state";
+import { cellSx, typographySx } from "./entity-result-table/cell-styles";
 import {
-  cellSx,
   LinkedEntitiesCell,
   NoValueCell,
   PropertyValueCell,
-  typographySx,
 } from "./entity-result-table/cells";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
