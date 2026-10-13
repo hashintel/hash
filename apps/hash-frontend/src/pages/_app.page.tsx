@@ -416,18 +416,15 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   if (!userEntity) {
     let redirectTo: string | undefined;
 
-    if (pathname === "/404") {
-      // A server-side redirect does not work on the 404 page: the response
-      // keeps status 404, and browsers ignore its `Location` header. The
-      // effect in `App` performs this redirect in the browser instead.
-      redirectTo = "/signin";
-    } else if (!publiclyAccessiblePagePathnames.includes(pathname)) {
-      // If the user is logged out and not on a page that should be publicly
-      // accessible, redirect them to the sign in page
+    // If the user is logged out and not on a page that should be publicly accessible...
+    if (!publiclyAccessiblePagePathnames.includes(pathname)) {
+      // ...redirect them to the sign in page
       redirectTo = redirectInGetInitialProps({
         appContext,
         location: `/signin${
-          ["", "/"].includes(pathname) ? "" : `?return_to=${req?.url ?? asPath}`
+          ["", "/", "/404"].includes(pathname)
+            ? ""
+            : `?return_to=${req?.url ?? asPath}`
         }`,
       });
     }
