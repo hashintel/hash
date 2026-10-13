@@ -2298,6 +2298,10 @@ const ConversationAiAssistantPanel = ({
     // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
     composerControlContext,
   );
+  const composerStatus = aiAssistant.renderComposerStatus?.(
+    // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
+    composerControlContext,
+  );
   // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
   const voiceMode = aiAssistant.renderVoiceMode?.({
     ...composerControlContext,
@@ -2326,9 +2330,7 @@ const ConversationAiAssistantPanel = ({
       }
       composerFocusRequest={composerFocusRequest + focusRequest}
       composerControl={composerControl}
-      composerStatus={aiAssistant.renderComposerStatus?.(
-        composerControlContext,
-      )}
+      composerStatus={composerStatus}
       error={streamError ?? error}
       experimentStates={experimentStates}
       hostExperimentRunning={hostExperimentReport?.running ?? false}
