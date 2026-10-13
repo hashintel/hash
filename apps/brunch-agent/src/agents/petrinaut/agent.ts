@@ -79,12 +79,9 @@ export function PetrinautAgent({ id }: AgentProps) {
     chatModelOptions,
     history,
   );
-  // The guidance's skills and tool descriptions carry the Petrinaut, runtime,
-  // experiment and `query_basis` instructions, so none is mounted here.
   usePetrinautTools(
     initialData
       ? {
-          instructions: {},
           authorizeDraft: async (draftCallId: string) => {
             if (!latestCanonicalNetReadBefore(await history(), draftCallId))
               throw new Error(
