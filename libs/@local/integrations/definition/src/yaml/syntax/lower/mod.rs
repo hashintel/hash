@@ -30,7 +30,7 @@ use crate::{
 };
 
 /// The value an item lowers to, or every issue found in it.
-type Lowered<T> = Result<T, Report<[DefinitionIssue]>>;
+type LoweredResult<T> = Result<T, Report<[DefinitionIssue]>>;
 
 impl DefinitionIssue {
     /// Returns the issue for the entry at `path`, whose key at `location` repeats an earlier key
@@ -70,7 +70,7 @@ impl Lowering {
     }
 
     /// Replaces the placeholders in `text`, reporting each issue at `path`.
-    fn resolve(&self, text: &str, path: &DefinitionPath) -> Lowered<String> {
+    fn resolve(&self, text: &str, path: &DefinitionPath) -> LoweredResult<String> {
         let (resolved, kinds) = self.variables.resolve(text);
         let mut issues = ReportSink::new();
         for kind in kinds {
@@ -81,7 +81,7 @@ impl Lowering {
 
     /// Records the location of `value` at `path` and returns its text with placeholders
     /// replaced.
-    fn text(&mut self, value: &Spanned<String>, path: &DefinitionPath) -> Lowered<String> {
+    fn text(&mut self, value: &Spanned<String>, path: &DefinitionPath) -> LoweredResult<String> {
         self.record_location(path, SourceLocation::from_spanned(value));
         self.resolve(&value.value, path)
     }
@@ -90,7 +90,7 @@ impl Lowering {
         &self,
         text: String,
         path: &DefinitionPath,
-    ) -> Lowered<T> {
+    ) -> LoweredResult<T> {
         T::from_str(&text).map_err(|reason| {
             self.report(
                 path.clone(),
@@ -103,7 +103,7 @@ impl Lowering {
     }
 
     /// Records the variables that placeholders refer to, reporting names that are not valid.
-    fn variables(&mut self, vars: &SpannedMap<Spanned<String>>) -> Lowered<()> {
+    fn variables(&mut self, vars: &SpannedMap<Spanned<String>>) -> LoweredResult<()> {
         let vars_path = DefinitionPath::default().field("vars");
         let mut issues = ReportSink::new();
 
@@ -127,12 +127,12 @@ impl Lowering {
         &mut self,
         value: &Spanned<String>,
         path: &DefinitionPath,
-    ) -> Lowered<T> {
+    ) -> LoweredResult<T> {
         let text = self.text(value, path)?;
         self.parse_name(text, path)
     }
 
-    fn parse_url(&self, text: String, path: &DefinitionPath) -> Lowered<VersionedUrl> {
+    fn parse_url(&self, text: String, path: &DefinitionPath) -> LoweredResult<VersionedUrl> {
         VersionedUrl::from_str(&text).map_err(|reason| {
             self.report(
                 path.clone(),
@@ -144,12 +144,16 @@ impl Lowering {
         })
     }
 
-    fn url(&mut self, value: &Spanned<String>, path: &DefinitionPath) -> Lowered<VersionedUrl> {
+    fn url(
+        &mut self,
+        value: &Spanned<String>,
+        path: &DefinitionPath,
+    ) -> LoweredResult<VersionedUrl> {
         let text = self.text(value, path)?;
         self.parse_url(text, path)
     }
 
-    fn query(&mut self, value: &Spanned<String>, path: &DefinitionPath) -> Lowered<SqlQuery> {
+    fn query(&mut self, value: &Spanned<String>, path: &DefinitionPath) -> LoweredResult<SqlQuery> {
         let text = self.text(value, path)?;
         Ok(SqlQuery::try_from(text)
             .change_context_lazy(|| self.issue(path.clone(), IssueKind::EmptySql))?)
@@ -162,7 +166,7 @@ impl Lowering {
         &mut self,
         key: &Spanned<String>,
         map_path: &DefinitionPath,
-    ) -> (DefinitionPath, Lowered<String>) {
+    ) -> (DefinitionPath, LoweredResult<String>) {
         let written_path = map_path.clone().key(&key.value);
         self.record_location(&written_path, SourceLocation::from_spanned(key));
         match self.resolve(&key.value, &written_path) {
@@ -182,9 +186,9 @@ impl Lowering {
         &mut self,
         map: &SpannedMap<S>,
         map_path: &DefinitionPath,
-        mut parse_key: impl FnMut(&mut Self, String, &DefinitionPath) -> Lowered<K>,
-        mut lower_value: impl FnMut(&mut Self, &S, &DefinitionPath) -> Lowered<V>,
-    ) -> Lowered<BTreeMap<K, V>>
+        mut parse_key: impl FnMut(&mut Self, String, &DefinitionPath) -> LoweredResult<K>,
+        mut lower_value: impl FnMut(&mut Self, &S, &DefinitionPath) -> LoweredResult<V>,
+    ) -> LoweredResult<BTreeMap<K, V>>
     where
         K: Ord + Clone,
     {
@@ -234,8 +238,8 @@ impl Lowering {
         &mut self,
         map: &SpannedMap<S>,
         map_path: &DefinitionPath,
-        lower_value: impl FnMut(&mut Self, &S, &DefinitionPath) -> Lowered<V>,
-    ) -> Lowered<BTreeMap<K, V>>
+        lower_value: impl FnMut(&mut Self, &S, &DefinitionPath) -> LoweredResult<V>,
+    ) -> LoweredResult<BTreeMap<K, V>>
     where
         K: Ord + Clone + FromStr<Err = InvalidName>,
     {
@@ -251,7 +255,7 @@ impl Lowering {
         &mut self,
         value: &Spanned<Vec<Spanned<String>>>,
         path: &DefinitionPath,
-    ) -> Lowered<PrimaryKey> {
+    ) -> LoweredResult<PrimaryKey> {
         self.record_location(path, SourceLocation::from_spanned(value));
         let columns: Vec<ColumnName> = value
             .value
@@ -267,7 +271,7 @@ impl Lowering {
 }
 
 impl UnitMapSyntax {
-    fn lower(&self, lowering: &mut Lowering, path: &DefinitionPath) -> Lowered<UnitMap> {
+    fn lower(&self, lowering: &mut Lowering, path: &DefinitionPath) -> LoweredResult<UnitMap> {
         let units = lowering.map::<UnitCode, _, _>(
             &self.units,
             &path.clone().field("units"),
@@ -298,7 +302,7 @@ impl From<CoverageSyntax> for Coverage {
 impl SourceSyntax {
     const KINDS: &'static [&'static str] = &["sql", "checkpoint"];
 
-    fn lower(&self, lowering: &mut Lowering, path: &DefinitionPath) -> Lowered<Source> {
+    fn lower(&self, lowering: &mut Lowering, path: &DefinitionPath) -> LoweredResult<Source> {
         let coverage = self.coverage.map_or(Coverage::Complete, Coverage::from);
 
         let kind = match (&self.sql, &self.checkpoint) {
@@ -365,7 +369,7 @@ impl Document {
     /// Returns every issue found while lowering, each with its source location where one is known.
     /// [`Definition::new`](crate::Definition::new) checks the parts against each other
     /// afterwards.
-    pub(in crate::yaml) fn lower(&self) -> Lowered<(DefinitionParts, Locations)> {
+    pub(in crate::yaml) fn lower(&self) -> LoweredResult<(DefinitionParts, Locations)> {
         let mut lowering = Lowering::default();
         let variables = lowering.variables(&self.vars);
 

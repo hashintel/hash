@@ -41,5 +41,5 @@ pub use self::{
         InvalidBranches, Properties, Step, StepKind,
     },
     unit_map::{EmptyUnitMap, UnitMap},
-    yaml::ParseError,
+    yaml::{ParseError, SyntaxError},
 };

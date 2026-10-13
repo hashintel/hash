@@ -92,7 +92,13 @@ impl Display for DefinitionPath {
     }
 }
 
-struct DisplayList<'list, T>(&'list [T]);
+pub(crate) struct DisplayList<'list, T>(&'list [T]);
+
+impl<'list, T> DisplayList<'list, T> {
+    pub(crate) const fn new(items: &'list [T]) -> Self {
+        Self(items)
+    }
+}
 
 impl<T: Display> Display for DisplayList<'_, T> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {

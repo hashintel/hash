@@ -13,16 +13,10 @@ fn render(text: &str) -> String {
     };
 
     match report.current_context() {
-        ParseError::Syntax { location } => {
-            let message = report
-                .frames()
-                .find_map(|frame| frame.downcast_ref::<serde_saphyr::Error>())
-                .expect("a syntax error should keep the YAML parser's error as its source");
-            location.map_or_else(
-                || message.to_string(),
-                |location| format!("{location}: {message}"),
-            )
-        }
+        ParseError::Syntax { location, reason } => location.map_or_else(
+            || reason.to_string(),
+            |location| format!("{location}: {reason}"),
+        ),
         ParseError::Invalid => {
             let mut rendered = String::new();
             for issue in DefinitionIssue::in_report(&report) {

@@ -9,27 +9,111 @@ mod interpolate;
 mod locations;
 mod syntax;
 
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
 use error_stack::{Report, ResultExt as _};
-use serde_saphyr::MergeKeyPolicy;
+use serde_saphyr::{MergeKeyPolicy, MessageFormatter as _, UserMessageFormatter};
 
 use self::syntax::Document;
 use crate::{
     definition::Definition,
-    issue::{DefinitionIssue, SourceLocation},
+    issue::{DefinitionIssue, DisplayList, SourceLocation},
 };
+
+/// Reports why the text is not YAML, or does not fit the definition format.
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+pub enum SyntaxError {
+    #[display("`{key}` repeats an earlier key")]
+    DuplicateKey { key: Box<str> },
+    #[display("merge keys (`<<`) are not allowed")]
+    MergeKey,
+    #[display(
+        "`{field}` is not a field here; expected one of {}",
+        DisplayList::new(expected)
+    )]
+    UnknownField {
+        field: Box<str>,
+        expected: Box<[&'static str]>,
+    },
+    #[display("`{value}` is not one of {}", DisplayList::new(expected))]
+    UnknownValue {
+        value: Box<str>,
+        expected: Box<[&'static str]>,
+    },
+    #[display("`{field}` is required")]
+    MissingField { field: &'static str },
+    #[display("`{value}` must be quoted to be read as text")]
+    Unquoted { value: Box<str> },
+    #[display("expected {expected}, found {found}")]
+    Unexpected { found: Box<str>, expected: Box<str> },
+    #[display("the text is too large or nested too deeply")]
+    TooLarge,
+    /// Any other error the YAML parser reports, in the parser's own words.
+    #[display("{message}")]
+    Other { message: Box<str> },
+}
+
+impl SyntaxError {
+    /// Returns the reason the YAML parser refused the text.
+    #[expect(
+        clippy::wildcard_enum_match_arm,
+        reason = "the YAML parser's error enum is non-exhaustive, and every other error keeps the \
+                  parser's message"
+    )]
+    fn from_yaml(error: &serde_saphyr::Error) -> Self {
+        match error.without_snippet() {
+            serde_saphyr::Error::DuplicateMappingKey { key: Some(key), .. } => Self::DuplicateKey {
+                key: key.as_str().into(),
+            },
+            serde_saphyr::Error::MergeKeyNotAllowed { .. } => Self::MergeKey,
+            serde_saphyr::Error::SerdeUnknownField {
+                field, expected, ..
+            } => Self::UnknownField {
+                field: field.as_str().into(),
+                expected: expected.as_slice().into(),
+            },
+            serde_saphyr::Error::SerdeUnknownVariant {
+                variant, expected, ..
+            } => Self::UnknownValue {
+                value: variant.as_str().into(),
+                expected: expected.as_slice().into(),
+            },
+            serde_saphyr::Error::SerdeMissingField { field, .. } => Self::MissingField { field },
+            serde_saphyr::Error::QuotingRequired { value, .. } => Self::Unquoted {
+                value: value.as_str().into(),
+            },
+            serde_saphyr::Error::SerdeInvalidType {
+                unexpected,
+                expected,
+                ..
+            }
+            | serde_saphyr::Error::SerdeInvalidValue {
+                unexpected,
+                expected,
+                ..
+            } => Self::Unexpected {
+                found: unexpected.as_str().into(),
+                expected: expected.as_str().into(),
+            },
+            serde_saphyr::Error::Budget { .. } => Self::TooLarge,
+            other => Self::Other {
+                message: UserMessageFormatter.format_message(other).into(),
+            },
+        }
+    }
+}
 
 /// Reports why a definition could not be parsed.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum ParseError {
     /// The text is not YAML, or does not fit the definition format.
     ///
-    /// The report keeps the YAML parser's error, which shows the offending line.
-    #[display("text is not a definition in the YAML format")]
+    /// The report keeps the YAML parser's error as its source.
+    #[display("{reason}")]
     Syntax {
         /// Where the YAML parser stopped, if it reported a position.
         location: Option<SourceLocation>,
+        reason: SyntaxError,
     },
     /// The definition fits the format but has issues.
     ///
@@ -83,7 +167,8 @@ impl Definition {
                 let location = error
                     .location()
                     .and_then(|location| SourceLocation::from_yaml(&location));
-                Report::new(error).change_context(ParseError::Syntax { location })
+                let reason = SyntaxError::from_yaml(&error);
+                Report::new(error).change_context(ParseError::Syntax { location, reason })
             })?;
 
         let (parts, locations) = document.lower().change_context(ParseError::Invalid)?;
