@@ -216,6 +216,7 @@ export const LocalStorageDemoApp = ({
       enabled: voicePreferenceReady && voiceEnabled && realtimePreferenceReady,
       realtime: realtimeEnabled,
     },
+    plugins: demoPlugins,
   });
   const stockAssistant = useMemo(
     (): PetrinautAiAssistant => ({
@@ -249,13 +250,6 @@ export const LocalStorageDemoApp = ({
     [aiMessagesByNetId, currentNetId, setAiMessagesByNetId],
   );
   const aiAssistant = brunch.assistant ?? stockAssistant;
-  const plugins = useMemo(
-    () =>
-      brunch.plugins.length === 0
-        ? demoPlugins
-        : [...demoPlugins, ...brunch.plugins],
-    [brunch.plugins],
-  );
 
   if (repository.status.state === "ready" && currentDocument === null) {
     return (
@@ -292,7 +286,7 @@ export const LocalStorageDemoApp = ({
           createNewNet={createNewNet}
           loadPetriNet={loadPetriNet}
           navigation={navigation}
-          plugins={plugins}
+          plugins={brunch.plugins}
           readonly={false}
           setTitle={setTitle}
           slots={{

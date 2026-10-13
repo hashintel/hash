@@ -85,9 +85,6 @@ const brunchPrincipal = getOrCreateBrunchPrincipal();
 const subscribeToNothing = () => () => {};
 const readNothing = () => undefined;
 
-const noPlugins: readonly PetrinautPlugin[] = [];
-const brunchPlugins: readonly PetrinautPlugin[] = [brunchPlugin];
-
 const createBrunchFlueClient = async (conversationId: string) => {
   const identity = { conversationId, principalKey: brunchPrincipal };
   const instanceId = await flueConversationIdWeb(identity);
@@ -148,8 +145,9 @@ export interface BrunchAssistant {
    */
   readonly openAIVoiceConfig: OpenAIVoiceConfig | null | undefined;
   /**
-   * The plugins Brunch adds to the editor while it is the assistant: its cards
-   * read the editor through their `api`.
+   * The host's plugins, with Brunch's added while it is the assistant. Pass
+   * this list to `<Petrinaut plugins>`: Brunch's cards read the editor through
+   * its plugin and render nothing without it.
    */
   readonly plugins: readonly PetrinautPlugin[];
 }
@@ -164,6 +162,7 @@ export const useBrunchAssistant = ({
   document,
   editor,
   voice,
+  plugins,
 }: {
   /** Brunch is configured and chosen as the assistant. */
   readonly selected: boolean;
@@ -172,6 +171,8 @@ export const useBrunchAssistant = ({
   /** The open document's live handle, or `null` while it is loading. */
   readonly editor: BrunchEditorDocument | null;
   readonly voice: BrunchVoicePreferences;
+  /** The plugins the host gives the editor. */
+  readonly plugins: readonly PetrinautPlugin[];
 }): BrunchAssistant => {
   const currentNetId = document?.documentId ?? null;
 
@@ -593,9 +594,15 @@ export const useBrunchAssistant = ({
     mutationApprovalTools,
   ]);
 
+  const brunchActive = assistant !== null;
+  const editorPlugins = useMemo(
+    () => (brunchActive ? [...plugins, brunchPlugin] : plugins),
+    [brunchActive, plugins],
+  );
+
   return {
     assistant,
     openAIVoiceConfig: selected ? openAIVoiceConfig : null,
-    plugins: assistant === null ? noPlugins : brunchPlugins,
+    plugins: editorPlugins,
   };
 };
