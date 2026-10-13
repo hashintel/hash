@@ -18,6 +18,10 @@ const tolerableConsoleMessageMatches: RegExp[] = [
   // observability – see notifications-with-links-context.tsx
   /^Skipping (mention|comment) notification .+ because the target of the following link\(s\) could not be resolved: /,
 
+  // The DOCX preview's engine logs why it refuses a document it cannot draw;
+  // the preview then falls back to the file's icon.
+  /^ProseMirrorDocumentValidationError: Document conversion produced an invalid ProseMirror document:/,
+
   // You can add temporarily add more RegExps, but please track their removal
   /No validator provided for shape type bpBlock/, // canvas page warning from TLDraw
   // Dev-only deprecation warnings via the shared Link component (shared/ui/link.tsx)
