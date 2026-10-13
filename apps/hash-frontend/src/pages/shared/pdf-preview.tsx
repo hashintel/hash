@@ -30,7 +30,7 @@ import {
   type SearchHit,
   type SearchHits,
   useFindSearchHits,
-} from "./pdf-preview/pdf-search-hits";
+} from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
 
 import type {
