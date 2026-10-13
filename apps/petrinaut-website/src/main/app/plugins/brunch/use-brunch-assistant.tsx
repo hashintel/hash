@@ -143,11 +143,6 @@ export interface BrunchAssistant {
    */
   readonly assistant: PetrinautAiAssistant | null;
   /**
-   * The open document's bound conversation id. Computed whichever assistant is
-   * selected: the stock assistant currently takes it as its chat identity.
-   */
-  readonly conversationId: string | null;
-  /**
    * Whether the server offers Voice: `undefined` while checking, `null` when it
    * does not or Brunch is not selected.
    */
@@ -600,7 +595,6 @@ export const useBrunchAssistant = ({
 
   return {
     assistant,
-    conversationId,
     openAIVoiceConfig: selected ? openAIVoiceConfig : null,
     plugins: assistant === null ? noPlugins : brunchPlugins,
   };

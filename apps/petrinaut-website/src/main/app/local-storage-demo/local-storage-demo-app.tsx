@@ -219,11 +219,6 @@ export const LocalStorageDemoApp = ({
   });
   const stockAssistant = useMemo(
     (): PetrinautAiAssistant => ({
-      // The stock chat takes the conversation id Brunch binds for this net as
-      // its identity, whichever assistant is selected.
-      ...(brunch.conversationId === null
-        ? {}
-        : { conversationId: brunch.conversationId }),
       canClearMessages: true,
       automaticTools: [],
       interactiveTools: [],
@@ -251,12 +246,7 @@ export const LocalStorageDemoApp = ({
         });
       },
     }),
-    [
-      aiMessagesByNetId,
-      brunch.conversationId,
-      currentNetId,
-      setAiMessagesByNetId,
-    ],
+    [aiMessagesByNetId, currentNetId, setAiMessagesByNetId],
   );
   const aiAssistant = brunch.assistant ?? stockAssistant;
   const plugins = useMemo(
