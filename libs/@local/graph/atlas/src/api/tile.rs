@@ -10,7 +10,7 @@ use type_system::ontology::id::VersionedUrl;
 use super::{
     AppState, clause,
     extract::{Body, Coordinates},
-    problem::Problem,
+    problem::{Problem, ProblemResponse},
     saltile::{DocumentResponse, Saltile, spawn},
     visibility::Visibility,
 };
@@ -126,7 +126,7 @@ pub(super) async fn handler<R>(
     visibility: Visibility,
     Coordinates(CellPath { z, x, y }): Coordinates,
     query: Option<Body<TileQuery>>,
-) -> Result<Response, Problem<'static>> {
+) -> Result<Response, ProblemResponse<'static>> {
     let TileQuery {
         mode,
         colored_type_ids,
@@ -141,7 +141,7 @@ pub(super) async fn handler<R>(
     // both. `TileDocument` borrows the scene `visibility.scene()` resolves. Neither can outlive
     // this closure.
     let (bytes, content_type) = spawn(
-        move || -> Result<(Vec<u8>, &'static str), Problem<'static>> {
+        move || -> Result<(Vec<u8>, &'static str), ProblemResponse<'static>> {
             let ontology: Vec<ArchivedOntologyTypeUuid> = colored_type_ids
                 .iter()
                 .map(ArchivedOntologyTypeUuid::from_url)

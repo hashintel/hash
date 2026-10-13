@@ -1,13 +1,15 @@
 //! Assembly of the Graph HTTP APIs and their shared middleware.
 
 use alloc::sync::Arc;
+use core::pin::Pin;
 
 use axum::{Extension, Router};
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::PostgresStorePool;
-use hash_graph_store::pool::StorePool;
+use hash_graph_store::{api_token::ApiTokenStore, pool::StorePool};
 use hash_middleware::{authentication::AuthenticationMetrics, rate_limit::RateLimiters};
+use hash_secret::Secret;
 use hash_temporal_client::TemporalClient;
 use opentelemetry::metrics::Meter;
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
@@ -31,7 +33,8 @@ pub struct Dependencies<S> {
     pub api_config: ApiConfig,
     pub session_auth: authentication::KratosSessionConfig,
     pub cloudflare_access: Option<authentication::CloudflareAccessConfig>,
-    pub service_secret: String,
+    pub service_secret: Pin<Arc<Secret<str>>>,
+    pub api_tokens: Option<Arc<authentication::api_token::ApiTokenIssuer>>,
     pub rate_limit: rate_limit::RateLimitConfig,
     pub meter: Meter,
     pub compiler: Arc<hashql::CompilerContext>,
@@ -48,7 +51,7 @@ pub struct Dependencies<S> {
 pub fn router<S>(dependencies: Dependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
 {
     let environment = Arc::new(
         dependencies
@@ -57,28 +60,33 @@ where
     );
     let explicit = || {
         authentication::build_explicit_providers(
-            dependencies.service_secret.clone(),
+            Pin::clone(&dependencies.service_secret),
             &dependencies.store,
         )
     };
-    let public_provider = Arc::new((explicit(), Arc::clone(&environment)));
-    let internal_provider = Arc::new((
-        explicit(),
-        (
-            authentication::build_session_providers(
-                dependencies.session_auth,
-                &dependencies.store,
-                &dependencies.meter,
-            ),
-            environment,
+    let public_provider = Arc::new(authentication::public_chain(
+        authentication::build_api_token_provider(
+            dependencies.api_tokens.clone(),
+            &dependencies.store,
         ),
+        explicit(),
+        Arc::clone(&environment),
+    ));
+    let internal_provider = Arc::new(authentication::internal_chain(
+        explicit(),
+        authentication::build_session_providers(
+            dependencies.session_auth,
+            &dependencies.store,
+            &dependencies.meter,
+        ),
+        environment,
     ));
     let rate_limit_config =
         hash_middleware::rate_limit::RateLimitConfig::from(&dependencies.rate_limit);
     let middleware = Middleware {
         public_provider,
         internal_provider,
-        service_secret: Arc::from(dependencies.service_secret),
+        service_secret: dependencies.service_secret,
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&dependencies.meter)),
         rate_limiters: RateLimiters::start(&rate_limit_config, &dependencies.meter),
     };
@@ -101,6 +109,7 @@ where
         .layer(Extension(dependencies.embedding_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
+        .layer(Extension(dependencies.api_tokens))
         .layer(Extension(dependencies.compiler))
         .layer(Extension(dependencies.clustering));
 

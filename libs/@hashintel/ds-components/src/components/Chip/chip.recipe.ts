@@ -197,7 +197,7 @@ export const styles = sva({
       xxs: {
         root: {
           fontSize: "xxs",
-          lineHeight: "[1.2]",
+          lineHeight: "[round(1em * 1.2, 1px)]",
           "--chip-border-width": "1px",
           "--chip-padding-y": "[0px]",
           "--chip-padding-x": "var(--spacing-0\\.5)",
@@ -207,7 +207,7 @@ export const styles = sva({
       xs: {
         root: {
           fontSize: "xxs",
-          lineHeight: "[1.4]",
+          lineHeight: "[round(1em * 1.4, 1px)]",
           "--chip-border-width": "1px",
           "--chip-padding-y": "[0px]",
           "--chip-padding-x": "var(--spacing-1)",
@@ -217,7 +217,7 @@ export const styles = sva({
       sm: {
         root: {
           fontSize: "xxs",
-          lineHeight: "[1.5]",
+          lineHeight: "[round(1em * 1.5, 1px)]",
           "--chip-border-width": "1px",
           "--chip-padding-y": "[0.5px]",
           "--chip-padding-x": "var(--spacing-1)",
@@ -227,7 +227,7 @@ export const styles = sva({
       md: {
         root: {
           fontSize: "xs",
-          lineHeight: "[1.5]",
+          lineHeight: "[round(1em * 1.5, 1px)]",
           "--chip-border-width": "1px",
           "--chip-padding-y": "[1px]",
           "--chip-padding-x": "var(--spacing-1)",
@@ -237,7 +237,7 @@ export const styles = sva({
       lg: {
         root: {
           fontSize: "sm",
-          lineHeight: "[1.5]",
+          lineHeight: "[round(1em * 1.5, 1px)]",
           "--chip-border-width": "1px",
           "--chip-padding-y": "[1.5px]",
           "--chip-padding-x": "[5px]",
@@ -247,7 +247,7 @@ export const styles = sva({
       xl: {
         root: {
           fontSize: "base",
-          lineHeight: "[1.5]",
+          lineHeight: "[round(1em * 1.5, 1px)]",
           "--chip-border-width": "1px",
           "--chip-padding-y": "[2px]",
           "--chip-padding-x": "[6px]",

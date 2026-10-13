@@ -6,7 +6,7 @@ import {
   getStorageProvider,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
@@ -31,7 +31,7 @@ import type {
   SourceProvenance,
   Url,
 } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -41,7 +41,7 @@ const isFileEntity = (entity: HashEntity): entity is HashEntity<File> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
-export const inferMetadataFromDocumentAction: AiFlowActionActivity<
+export const inferMetadataFromDocumentAction: FlowActionActivity<
   "inferMetadataFromDocument"
 > = async ({ inputs }) => {
   const {
@@ -53,7 +53,7 @@ export const inferMetadataFromDocumentAction: AiFlowActionActivity<
     workflowId,
   } = await getFlowContext();
 
-  const { documentEntityId } = getSimplifiedAiFlowActionInputs({
+  const { documentEntityId } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "inferMetadataFromDocument",
   });

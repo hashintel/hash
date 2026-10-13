@@ -186,9 +186,6 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   const generatedDocumentId = useId();
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const hasQuickSimulation = quickSimulation !== undefined;
-  if (quickSimulation) {
-    validatePreviewQuickSimulation(definition, quickSimulation);
-  }
   const handle = useMemo(
     () =>
       createJsonDocHandle({
@@ -199,6 +196,11 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
       }),
     [definition, documentId, generatedDocumentId],
   );
+  if (quickSimulation) {
+    // The handle holds the definition with its ids converted, which is what
+    // the precompiled scenarios are keyed by.
+    validatePreviewQuickSimulation(handle.doc() ?? definition, quickSimulation);
+  }
   const instance = useMemo<PetrinautInstance>(
     () => createPetrinaut({ document: handle, readonly: true }),
     [handle],

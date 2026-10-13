@@ -3,9 +3,10 @@
 //! A service layers [`AuthenticationLayer`] over its routes with the provider chain it builds,
 //! and handlers receive the acting actor through the [`AuthenticatedActorId`] extractor — taking
 //! it as an `Option` is how a handler serves anonymous callers. A request with an invalid
-//! credential never reaches a handler, and a request without credentials resolves through the
-//! chain's [`Caller`] type: a chain over [`ActorId`] rejects it, a chain over `Option<ActorId>`
-//! verifies it as anonymous.
+//! credential never reaches a handler, except that a rejected session or access token resolves as
+//! anonymous where the chain serves anonymous callers. A request without credentials resolves
+//! through the chain's [`Caller`] type: a chain over [`ActorId`] rejects it, a chain over
+//! `Option<ActorId>` verifies it as anonymous.
 //!
 //! Bootstrap routes, the paths the service names through the layer's predicate, require the
 //! service secret regardless of the chain. With the secret presented they tolerate exactly one
@@ -15,11 +16,13 @@
 //!
 //! Rejections return Problem Details with the `application/problem+json` content type. The kind
 //! of the [`AuthenticationError`] decides the public problem: `about:blank`, the HTTP status
-//! phrase as the title, and a client-safe explanation as `detail`. A kind that stays internal,
-//! and a route wired without the middleware, answer with a generic internal server error.
+//! phrase as the title, and a client-safe explanation as `detail`. A `401` carries a
+//! [`Challenge`] in `WWW-Authenticate`. A kind that stays internal, and a route wired without the
+//! middleware, answer with a generic internal server error.
 //! HASH treats replacing `about:blank` with a specific problem type URI as a non-breaking API
 //! change. Clients should handle unrecognized problem types using the HTTP status code.
 
+mod challenge;
 mod problem;
 pub mod provider;
 pub mod request;
@@ -32,6 +35,7 @@ use core::{
     error::Error,
     future,
     marker::PhantomData,
+    pin::Pin,
     sync::atomic::{AtomicBool, Ordering},
     task,
 };
@@ -43,6 +47,7 @@ use axum::{
 };
 use error_stack::Report;
 use futures::{TryFutureExt as _, future::Either};
+use hash_secret::Secret;
 use opentelemetry::{
     KeyValue,
     metrics::{Counter, Meter},
@@ -54,7 +59,7 @@ use type_system::principal::actor::ActorId;
 
 #[cfg(feature = "aide")]
 pub use self::aide::document;
-pub use self::problem::AuthenticationProblem;
+pub use self::{challenge::Challenge, problem::AuthenticationProblem};
 use self::{
     provider::{AuthenticationProvider, Caller},
     request::{AuthenticationError, AuthenticationErrorKind, resolve_request_actor},
@@ -157,9 +162,12 @@ impl AuthenticationMetrics {
 pub enum AuthenticationRejection {
     /// The credentials did not resolve to a caller the route admits.
     #[display("{report}")]
+    #[non_exhaustive]
     Authentication {
         /// Why the credentials were rejected.
         report: Arc<Report<AuthenticationError>>,
+        /// The scheme a `401` answer challenges the client with.
+        challenge: Challenge,
         /// The instruments the rejection is counted on.
         #[debug(skip)]
         metrics: Arc<AuthenticationMetrics>,
@@ -181,7 +189,9 @@ impl Error for AuthenticationRejection {}
 impl Expose<AuthenticationProblem> for AuthenticationRejection {
     fn expose(&self) -> Answer<'_, AuthenticationProblem> {
         match self {
-            Self::Authentication { report, .. } => report.expose(),
+            Self::Authentication {
+                report, challenge, ..
+            } => AuthenticationProblem::answer(report, *challenge),
             Self::Misconfigured { .. } => Answer::new(InternalServerError),
         }
     }
@@ -194,6 +204,7 @@ impl AuthenticationRejection {
             report,
             metrics,
             recorded,
+            ..
         } = self
         {
             // `Relaxed` is permissible here, as it is only used to avoid double-counting.
@@ -229,6 +240,7 @@ impl Drop for AuthenticationRejection {
 #[derive(Clone)]
 pub(crate) struct ResolvedAuthentication {
     outcome: Result<Option<ActorId>, Arc<Report<AuthenticationError>>>,
+    challenge: Challenge,
     metrics: Arc<AuthenticationMetrics>,
     /// Whether this request's rejection has been counted.
     rejection_recorded: Arc<AtomicBool>,
@@ -242,6 +254,7 @@ impl ResolvedAuthentication {
     ) -> Self {
         Self {
             outcome,
+            challenge: Challenge::Service,
             metrics,
             rejection_recorded: Arc::new(AtomicBool::new(false)),
         }
@@ -258,7 +271,7 @@ impl ResolvedAuthentication {
 /// does.
 fn service_secret_rejection(
     headers: &http::HeaderMap,
-    service_secret: &str,
+    service_secret: &Secret<str>,
     metrics: &Arc<AuthenticationMetrics>,
 ) -> Option<AuthenticationRejection> {
     if presents_service_secret(headers, service_secret) {
@@ -276,13 +289,15 @@ fn service_secret_rejection(
     let report = Report::new(AuthenticationError::new(kind));
     Some(AuthenticationRejection::Authentication {
         report: Arc::new(report),
+        challenge: Challenge::Service,
         metrics: Arc::clone(metrics),
         recorded: Arc::new(AtomicBool::new(false)),
     })
 }
 /// Rejects requests that do not carry the service secret.
 ///
-/// No credential is resolved, so no actor reaches the handler.
+/// No credential is resolved, so no actor reaches the handler. A rejection answers `401` with the
+/// [`Challenge::Service`] challenge.
 ///
 /// # Example
 ///
@@ -291,18 +306,19 @@ fn service_secret_rejection(
 /// # use axum::{Router, routing::get};
 /// use hash_middleware::authentication::{AuthenticationMetrics, ServiceSecretLayer};
 ///
+/// # use hash_secret::Secret;
 /// # let meter = opentelemetry::global::meter("doc");
 /// let router: Router = Router::new()
 ///     .route("/snapshot", get(async || "gated"))
 ///     .route_layer(ServiceSecretLayer {
-///         service_secret: Arc::from("service-secret"),
+///         service_secret: Secret::from_string("service-secret".to_owned()).to_arc(),
 ///         metrics: Arc::new(AuthenticationMetrics::new(&meter)),
 ///     });
 /// ```
 #[derive(Clone)]
 pub struct ServiceSecretLayer {
     /// The secret a request must present.
-    pub service_secret: Arc<str>,
+    pub service_secret: Pin<Arc<Secret<str>>>,
     /// The instruments rejections are counted on.
     pub metrics: Arc<AuthenticationMetrics>,
 }
@@ -312,7 +328,7 @@ impl<S> tower::Layer<S> for ServiceSecretLayer {
 
     fn layer(&self, inner: S) -> Self::Service {
         ServiceSecretService {
-            service_secret: Arc::clone(&self.service_secret),
+            service_secret: Pin::clone(&self.service_secret),
             metrics: Arc::clone(&self.metrics),
             inner,
         }
@@ -322,7 +338,7 @@ impl<S> tower::Layer<S> for ServiceSecretLayer {
 /// The service [`ServiceSecretLayer`] wraps its inner service into.
 #[derive(Clone)]
 pub struct ServiceSecretService<S> {
-    service_secret: Arc<str>,
+    service_secret: Pin<Arc<Secret<str>>>,
     metrics: Arc<AuthenticationMetrics>,
     inner: S,
 }
@@ -356,6 +372,7 @@ where
 fn store_outcome<B>(
     request: &mut http::Request<B>,
     outcome: Result<Option<ActorId>, Arc<Report<AuthenticationError>>>,
+    challenge: Challenge,
     metrics: Arc<AuthenticationMetrics>,
 ) {
     if let Ok(Some(actor_id)) = &outcome {
@@ -364,6 +381,7 @@ fn store_outcome<B>(
 
     request.extensions_mut().insert(ResolvedAuthentication {
         outcome,
+        challenge,
         metrics,
         rejection_recorded: Arc::new(AtomicBool::new(false)),
     });
@@ -399,7 +417,7 @@ fn store_outcome<B>(
 /// # };
 /// # use http::HeaderMap;
 /// use hash_middleware::authentication::{
-///     AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics,
+///     AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, Challenge,
 /// };
 /// use type_system::principal::actor::ActorId;
 ///
@@ -416,13 +434,15 @@ fn store_outcome<B>(
 ///     actor.to_string()
 /// }
 ///
+/// # use hash_secret::Secret;
 /// # let meter = opentelemetry::global::meter("doc");
 /// let router: Router = Router::new().route("/whoami", get(whoami)).route_layer(
 ///     AuthenticationLayer::<_, ActorId> {
 ///         provider: Arc::new(Verifier),
-///         service_secret: Arc::from("service-secret"),
+///         service_secret: Secret::from_string("service-secret".to_owned()).to_arc(),
 ///         metrics: Arc::new(AuthenticationMetrics::new(&meter)),
 ///         bootstrap_route: |_path| false,
+///         challenge: Challenge::Bearer,
 ///         caller: PhantomData,
 ///     },
 /// );
@@ -431,11 +451,14 @@ pub struct AuthenticationLayer<P, C> {
     /// The provider chain requests resolve against.
     pub provider: Arc<P>,
     /// The secret bootstrap routes require.
-    pub service_secret: Arc<str>,
+    pub service_secret: Pin<Arc<Secret<str>>>,
     /// The instruments rejections are counted on.
     pub metrics: Arc<AuthenticationMetrics>,
     /// Names the bootstrap routes by path.
     pub bootstrap_route: fn(&str) -> bool,
+    /// The scheme a `401` answer challenges the client with. Bootstrap routes always challenge
+    /// with [`Challenge::Service`].
+    pub challenge: Challenge,
 
     /// Selects the caller type the chain resolves to: [`ActorId`] rejects uncredentialed
     /// requests, `Option<ActorId>` serves them anonymously.
@@ -446,9 +469,10 @@ impl<P, C> Clone for AuthenticationLayer<P, C> {
     fn clone(&self) -> Self {
         Self {
             provider: Arc::clone(&self.provider),
-            service_secret: Arc::clone(&self.service_secret),
+            service_secret: Pin::clone(&self.service_secret),
             metrics: Arc::clone(&self.metrics),
             bootstrap_route: self.bootstrap_route,
+            challenge: self.challenge,
             caller: PhantomData,
         }
     }
@@ -462,9 +486,10 @@ impl<P, C, S> tower::Layer<S> for AuthenticationLayer<P, C> {
             inner,
             _caller: PhantomData,
             provider: Arc::clone(&self.provider),
-            service_secret: Arc::clone(&self.service_secret),
+            service_secret: Pin::clone(&self.service_secret),
             metrics: Arc::clone(&self.metrics),
             bootstrap_route: self.bootstrap_route,
+            challenge: self.challenge,
         }
     }
 }
@@ -475,9 +500,10 @@ pub struct AuthenticationService<P, C, S> {
     _caller: PhantomData<fn() -> C>,
 
     provider: Arc<P>,
-    service_secret: Arc<str>,
+    service_secret: Pin<Arc<Secret<str>>>,
     metrics: Arc<AuthenticationMetrics>,
     bootstrap_route: fn(&str) -> bool,
+    challenge: Challenge,
 }
 
 impl<P, C, S: Clone> Clone for AuthenticationService<P, C, S> {
@@ -486,9 +512,10 @@ impl<P, C, S: Clone> Clone for AuthenticationService<P, C, S> {
             inner: self.inner.clone(),
             _caller: PhantomData,
             provider: Arc::clone(&self.provider),
-            service_secret: Arc::clone(&self.service_secret),
+            service_secret: Pin::clone(&self.service_secret),
             metrics: Arc::clone(&self.metrics),
             bootstrap_route: self.bootstrap_route,
+            challenge: self.challenge,
         }
     }
 }
@@ -522,6 +549,11 @@ where
 
         let provider = Arc::clone(&self.provider);
         let metrics = Arc::clone(&self.metrics);
+        let challenge = if bootstrap {
+            Challenge::Service
+        } else {
+            self.challenge
+        };
 
         Either::Left(async move {
             let outcome = resolve_request_actor(&*provider, req.headers(), &metrics)
@@ -543,6 +575,7 @@ where
                 Err(report) => {
                     return Ok(Err(AuthenticationRejection::Authentication {
                         report,
+                        challenge,
                         metrics,
                         recorded: Arc::new(AtomicBool::new(false)),
                     }));
@@ -550,7 +583,7 @@ where
                 Ok(value) => Ok(value),
             };
 
-            store_outcome(&mut req, outcome, metrics);
+            store_outcome(&mut req, outcome, challenge, metrics);
 
             next.call(req).await.map(Ok)
         })
@@ -581,21 +614,25 @@ impl<S: Sync> FromRequestParts<S> for AuthenticatedActorId {
 
             Some(ResolvedAuthentication {
                 outcome: Ok(None),
+                challenge,
                 metrics,
                 rejection_recorded,
             }) => Err(AuthenticationRejection::Authentication {
                 report: Arc::new(Report::new(AuthenticationError::new(
                     AuthenticationErrorKind::MissingCredentials,
                 ))),
+                challenge: *challenge,
                 metrics: Arc::clone(metrics),
                 recorded: Arc::clone(rejection_recorded),
             }),
             Some(ResolvedAuthentication {
                 outcome: Err(report),
+                challenge,
                 metrics,
                 rejection_recorded,
             }) => Err(AuthenticationRejection::Authentication {
                 report: Arc::clone(report),
+                challenge: *challenge,
                 metrics: Arc::clone(metrics),
                 recorded: Arc::clone(rejection_recorded),
             }),
@@ -626,10 +663,12 @@ impl<S: Sync> OptionalFromRequestParts<S> for AuthenticatedActorId {
             }) => Ok(caller.map(Self)),
             Some(ResolvedAuthentication {
                 outcome: Err(report),
+                challenge,
                 metrics,
                 rejection_recorded,
             }) => Err(AuthenticationRejection::Authentication {
                 report: Arc::clone(report),
+                challenge: *challenge,
                 metrics: Arc::clone(metrics),
                 recorded: Arc::clone(rejection_recorded),
             }),
@@ -648,7 +687,11 @@ mod tests {
 
     use axum::{Router, body::Body, response::IntoResponse as _, routing::get};
     use error_stack::Report;
-    use http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE};
+    use hash_secret::Secret;
+    use http::{
+        HeaderMap, Request, StatusCode,
+        header::{CONTENT_TYPE, WWW_AUTHENTICATE},
+    };
     use problematic::{Answer, Rejected};
     use serde_json::{Value, json};
     use tower::ServiceExt as _;
@@ -657,7 +700,7 @@ mod tests {
 
     use super::{
         AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, AuthenticationProblem,
-        AuthenticationRejection, ServiceSecretLayer,
+        AuthenticationRejection, Challenge, ServiceSecretLayer,
     };
     use crate::{
         authentication::{
@@ -710,9 +753,10 @@ mod tests {
     ) -> Router {
         routes().layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider: Arc::new(provider),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             metrics,
             bootstrap_route: is_bootstrap_route,
+            challenge: Challenge::Service,
             caller: PhantomData,
         })
     }
@@ -915,15 +959,49 @@ mod tests {
         assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
     }
 
-    /// A router requiring an actor.
-    fn actor_required_router(provider: StaticAuthenticationProvider) -> Router {
+    /// A router requiring an actor, challenging a `401` with `challenge`.
+    fn actor_required_router(
+        provider: StaticAuthenticationProvider,
+        challenge: Challenge,
+    ) -> Router {
         routes().layer(AuthenticationLayer::<_, ActorId> {
             provider: Arc::new(provider),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
             bootstrap_route: is_bootstrap_route,
+            challenge,
             caller: PhantomData,
         })
+    }
+
+    /// A bootstrap route challenges with the service secret whatever the layer's challenge.
+    #[tokio::test]
+    async fn challenge_bootstrap_service() {
+        let router =
+            actor_required_router(StaticAuthenticationProvider::Rejected, Challenge::Bearer);
+
+        let bootstrap = router
+            .clone()
+            .oneshot(request_with_secret("/bootstrap", SERVICE_SECRET))
+            .await
+            .expect("the router should respond");
+        assert_eq!(bootstrap.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            bootstrap.headers()[WWW_AUTHENTICATE],
+            "HASH-Service",
+            "a bootstrap route should challenge with the service secret"
+        );
+
+        let protected = router
+            .oneshot(request("/protected"))
+            .await
+            .expect("the router should respond");
+        assert_eq!(protected.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            protected.headers()[WWW_AUTHENTICATE],
+            "Bearer",
+            "any other route should challenge with the layer's challenge"
+        );
     }
 
     #[tokio::test]
@@ -956,10 +1034,13 @@ mod tests {
 
     #[tokio::test]
     async fn actor_requiring_chain_rejects_uncredentialed_requests_before_handlers() {
-        let response = actor_required_router(StaticAuthenticationProvider::NotRecognized)
-            .oneshot(request("/anonymous-allowed"))
-            .await
-            .expect("the router should respond");
+        let response = actor_required_router(
+            StaticAuthenticationProvider::NotRecognized,
+            Challenge::Service,
+        )
+        .oneshot(request("/anonymous-allowed"))
+        .await
+        .expect("the router should respond");
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
@@ -967,9 +1048,10 @@ mod tests {
     #[tokio::test]
     async fn actor_requiring_chain_passes_verified_actors_to_handlers() {
         let actor_id = ActorEntityUuid::new(Uuid::new_v4());
-        let response = actor_required_router(StaticAuthenticationProvider::Verified(
-            ActorId::User(UserId::new(actor_id)),
-        ))
+        let response = actor_required_router(
+            StaticAuthenticationProvider::Verified(ActorId::User(UserId::new(actor_id))),
+            Challenge::Service,
+        )
         .oneshot(request("/protected"))
         .await
         .expect("the router should respond");
@@ -980,7 +1062,7 @@ mod tests {
     /// A router gated by the service secret alone, as bulk-destructive admin routes are.
     fn secret_gated_router() -> Router {
         routes().layer(ServiceSecretLayer {
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
         })
     }
@@ -1000,7 +1082,7 @@ mod tests {
         let recorded = RecordedMetrics::new();
         let response = routes()
             .layer(ServiceSecretLayer {
-                service_secret: Arc::from(SERVICE_SECRET),
+                service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
                 metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
             })
             .oneshot(request_with_secret("/protected", "hash-svc-wrong"))
@@ -1204,9 +1286,10 @@ mod tests {
         let recorded = RecordedMetrics::new();
         let router = routes().layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider: Arc::new(MissingDelegation),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
             bootstrap_route: is_bootstrap_route,
+            challenge: Challenge::Service,
             caller: PhantomData,
         });
 
@@ -1242,6 +1325,7 @@ mod tests {
             report: Arc::new(Report::new(AuthenticationError::new(
                 AuthenticationErrorKind::MissingCredentials,
             ))),
+            challenge: Challenge::Service,
             metrics: Arc::clone(&metrics),
             recorded: Arc::new(AtomicBool::new(false)),
         });
@@ -1269,6 +1353,7 @@ mod tests {
             report: Arc::new(Report::new(AuthenticationError::new(
                 AuthenticationErrorKind::MissingCredentials,
             ))),
+            challenge: Challenge::Service,
             metrics: Arc::clone(&metrics),
             recorded: Arc::new(AtomicBool::new(false)),
         };
@@ -1302,11 +1387,13 @@ mod tests {
 
         drop(AuthenticationRejection::Authentication {
             report: Arc::clone(&report),
+            challenge: Challenge::Service,
             metrics: Arc::clone(&metrics),
             recorded: Arc::clone(&request_cell),
         });
         drop(AuthenticationRejection::Authentication {
             report,
+            challenge: Challenge::Service,
             metrics: Arc::clone(&metrics),
             recorded: request_cell,
         });
@@ -1345,9 +1432,10 @@ mod tests {
         let response = routes()
             .layer(AuthenticationLayer::<_, ActorId> {
                 provider: Arc::new(SharedRejectionProvider(Arc::new(report))),
-                service_secret: Arc::from(SERVICE_SECRET),
+                service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
                 metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
                 bootstrap_route: is_bootstrap_route,
+                challenge: Challenge::Service,
                 caller: PhantomData,
             })
             .oneshot(request("/protected"))
@@ -1383,6 +1471,7 @@ mod tests {
         for error in cases {
             let rejection = AuthenticationRejection::Authentication {
                 report: Arc::new(Report::new(error).attach("private diagnostic")),
+                challenge: Challenge::Service,
                 metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
                 recorded: Arc::new(AtomicBool::new(false)),
             };
@@ -1412,9 +1501,10 @@ mod tests {
             provider: Arc::new(SharedRejectionProvider(Arc::new(Report::new(
                 AuthenticationError::new(AuthenticationErrorKind::ProviderUnreachable),
             )))),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
             bootstrap_route: is_bootstrap_route,
+            challenge: Challenge::Service,
             caller: PhantomData,
         });
 

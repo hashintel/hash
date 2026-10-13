@@ -4,13 +4,15 @@
 //! values below are the same structures serving constructs, and clap renders their fields as the
 //! flags' defaults. A serving default that changes therefore changes the help text with it.
 
-use core::{num::NonZero, time::Duration};
+use core::{num::NonZero, pin::Pin, time::Duration};
+
+use clap::builder::TypedValueParser as _;
+use hash_secret::Secret;
 
 use super::ServeCommand;
 use crate::{
     cli::RootArgs,
     file::{generation::DownloadOptions, storage::path::FilePath},
-    integrity::SecretHexBytesValueParser,
     math::nz,
     serve::{
         delta::{DeltaFeedTaskOptions, DeltaPlacementTaskOptions, DeltaTaskOptions},
@@ -344,13 +346,13 @@ pub struct ServeArgs {
 
     /// The server secret behind the wire row-id codec.
     ///
-    /// Required: exactly 64 lowercase hexadecimal characters. Generate one with
-    /// `openssl rand -hex 32`. Keep it unchanged for every generation that has served.
+    /// Required: exactly 64 hexadecimal characters. Generate one with `openssl rand -hex 32`. Keep
+    /// it unchanged for every generation that has served.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_SECRET",
         hide_env_values = true,
-        value_parser = SecretHexBytesValueParser::<ServeSecret, { size_of::<ServeSecret>() }>::new(),
+        value_parser = clap::value_parser!(Pin<Box<Secret<[u8; 32]>>>).map(ServeSecret::from),
     )]
     secret: ServeSecret,
 }

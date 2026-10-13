@@ -117,7 +117,7 @@ export const useSubViewMaximization = (
       restoreFocusRef.current = section;
     }
     const from = relativeBounds(section, container);
-    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Measure the current DOM bounds before moving a routed section; the destination guard prevents repeated updates.
+    // Measure the current DOM bounds before moving a routed section; the destination guard prevents repeated updates.
     setMaximization(
       !targetId && !animated
         ? null

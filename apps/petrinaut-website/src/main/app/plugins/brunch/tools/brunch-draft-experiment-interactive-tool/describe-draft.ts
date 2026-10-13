@@ -5,11 +5,12 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 const nameOfScenario = (definition: SDCPN, scenarioId: string) =>
-  definition.scenarios?.find((scenario) => scenario.id === scenarioId)?.name ??
+  definition.scenarios?.find((scenario) => scenario.id === scenarioId)?.name ||
   scenarioId;
 
-const nameOfMetric = (definition: SDCPN, metricId: string) =>
-  definition.metrics?.find((metric) => metric.id === metricId)?.name ??
+/** A metric's name in the live definition, or its id when the metric is gone or unnamed. */
+export const nameOfMetric = (definition: SDCPN, metricId: string) =>
+  definition.metrics?.find((metric) => metric.id === metricId)?.name ||
   metricId;
 
 const formatNumber = (value: number) => String(value);

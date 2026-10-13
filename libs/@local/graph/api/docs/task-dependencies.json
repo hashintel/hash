@@ -19,6 +19,7 @@
     "hash-graph-types",
     "hash-graph-validation",
     "hash-middleware",
+    "hash-secret",
     "hash-status",
     "hash-temporal-client",
     "hashql-ast",

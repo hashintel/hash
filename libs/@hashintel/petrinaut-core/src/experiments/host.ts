@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { petrinautIdSchema } from "../petrinaut-id";
+
 import type { AbortSignalLike } from "../environment";
 
 const parameterValueSchema = z.union([z.number().finite(), z.boolean()]);
@@ -15,7 +17,7 @@ const parameterInputSchema = z.discriminatedUnion("mode", [
 export const petrinautExperimentRequestSchema = z
   .strictObject({
     name: z.string().min(1).max(120),
-    scenarioId: z.string().min(1),
+    scenarioId: petrinautIdSchema,
     scenarioParameterValues: z
       .record(z.string().min(1), parameterInputSchema)
       .describe(
@@ -25,12 +27,12 @@ export const petrinautExperimentRequestSchema = z
     seed: z.number().int().min(0).max(4294967295),
     dt: z.number().positive().max(1_000_000),
     maxTime: z.number().positive().max(1_000_000),
-    metricIds: z.array(z.string().min(1)).min(1).max(20),
+    metricIds: z.array(petrinautIdSchema).min(1).max(20),
     execution: z.discriminatedUnion("mode", [
       z.strictObject({ mode: z.literal("simulate") }),
       z.strictObject({
         mode: z.literal("optimize"),
-        objectiveMetricId: z.string().min(1),
+        objectiveMetricId: petrinautIdSchema,
         direction: z.enum(["minimize", "maximize"]),
         steps: z.number().int().min(1).max(100),
         runsPerStep: z.number().int().min(1).max(1000),

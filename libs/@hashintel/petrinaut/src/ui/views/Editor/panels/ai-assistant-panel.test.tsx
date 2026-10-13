@@ -15,6 +15,7 @@ import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
+  canonicalizePetrinautIds,
   createJsonDocHandle,
   type PetrinautExperimentHost,
   type PetrinautExperimentRequest,
@@ -736,6 +737,30 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(captureException).toHaveBeenCalledWith(failure, {
       source: "ai-assistant.stream",
     });
+  });
+
+  test("does not offer a message again once the transport has accepted it", async () => {
+    renderTestPanel({
+      aiAssistant: {
+        transport: {
+          reconnectToStream: async () => null,
+          sendMessages: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.error(new Error("The stream was lost."));
+              },
+            }),
+        },
+      },
+    });
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Send this once" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(await screen.findByText("The stream was lost.")).not.toBeNull();
+    expect(textarea.value).toBe("");
   });
 
   test("keeps an expected composer refusal as UI state without capturing it", async () => {
@@ -1640,7 +1665,7 @@ describe("AiAssistantPanel composer submissions", () => {
       toolCallId: "pending-net-read",
       output: {
         title: "AI assistant panel test",
-        definition: nonEmptySDCPN,
+        definition: canonicalizePetrinautIds(nonEmptySDCPN),
         extensions: DEFAULT_PETRINAUT_EXTENSIONS,
       },
     });
@@ -4008,7 +4033,9 @@ describe("AiAssistantPanel composer submissions", () => {
         return (
           <button
             type="button"
-            onClick={() => void context.submitText({ text: "Read the net" })}
+            onClick={() => {
+              void context.submitText({ text: "Read the net" });
+            }}
           >
             Read net
           </button>

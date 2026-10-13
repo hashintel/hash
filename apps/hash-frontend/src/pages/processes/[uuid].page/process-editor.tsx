@@ -508,7 +508,7 @@ export const ProcessEditor = ({
           revisions: buildRevisionSummaries(revisions),
         });
       },
-      onReportError: ({ source, name, message, stack, mode }) => {
+      onReportError: ({ source, name, message, stack, mode, tags }) => {
         /**
          * Reconstruct an Error from the iframe's serialised payload so
          * Sentry's stack-trace processing has something to chew on. The
@@ -522,6 +522,7 @@ export const ProcessEditor = ({
         });
         Sentry.captureException(reconstructed, {
           tags: {
+            ...tags,
             "petrinaut.source": source,
             "petrinaut.mode": mode?.kind ?? "unknown",
           },

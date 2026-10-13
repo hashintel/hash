@@ -23,6 +23,7 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
+use hash_secret::Secret;
 use rand::{
     SeedableRng as _, TryCryptoRng,
     rngs::{StdRng, SysRng},
@@ -120,7 +121,7 @@ fn pool() -> Arc<PostgresStorePool> {
             &DatabaseConnectionInfo::new(
                 DatabaseType::Postgres,
                 "atlas-admission-test".to_owned(),
-                String::new(),
+                Secret::from_string(String::new()),
                 "/no-atlas-admission-test-postgres".to_owned(),
                 5432,
                 "atlas-admission-test".to_owned(),

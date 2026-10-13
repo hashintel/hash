@@ -1,13 +1,13 @@
 import { backOff } from "exponential-backoff";
 
 import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { logger } from "../shared/activity-logger.js";
 
 import type { Url } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { GetWebSearchResults200ResponseWebSearchResultsInner } from "@local/internal-api-client";
 
 export type GetWebSearchResultsResponse = Omit<
@@ -24,10 +24,10 @@ const mapWebSearchResults = (
     (webSearchResult) => webSearchResult as GetWebSearchResultsResponse,
   );
 
-export const webSearchAction: AiFlowActionActivity<"webSearch"> = async ({
+export const webSearchAction: FlowActionActivity<"webSearch"> = async ({
   inputs,
 }) => {
-  const { query, numberOfSearchResults } = getSimplifiedAiFlowActionInputs({
+  const { query, numberOfSearchResults } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "webSearch",
   });

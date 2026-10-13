@@ -1,6 +1,7 @@
-use core::{fmt, num::NonZero};
+use core::{fmt, num::NonZero, pin::Pin};
 
-use derive_where::derive_where;
+use hash_secret::Secret;
+use tokio_postgres::Config;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
@@ -9,8 +10,7 @@ pub enum DatabaseType {
     Postgres,
 }
 
-#[derive(Clone, PartialEq, Eq)]
-#[derive_where(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct DatabaseConnectionInfo {
     /// The database type to connect to.
@@ -43,8 +43,7 @@ pub struct DatabaseConnectionInfo {
             global = true
         )
     )]
-    #[derive_where(skip)]
-    password: String,
+    password: Pin<Box<Secret<str>>>,
 
     /// The host to connect to.
     #[cfg_attr(
@@ -88,7 +87,7 @@ impl DatabaseConnectionInfo {
     pub const fn new(
         database_type: DatabaseType,
         user: String,
-        password: String,
+        password: Pin<Box<Secret<str>>>,
         host: String,
         port: u16,
         database: String,
@@ -103,21 +102,19 @@ impl DatabaseConnectionInfo {
         }
     }
 
-    /// Creates a database connection url.
+    /// The connection configuration, password included.
     ///
-    /// Note, that this will reveal the password, so the returned output should not be printed. The
-    /// [`Display`] implementation should be used instead, which will mask the password.
-    ///
-    /// [`Display`]: core::fmt::Display.
+    /// The copy of the password in the returned [`Config`] is not zeroed when it is dropped.
     #[must_use]
-    pub fn url(&self) -> String {
-        let db_type = match self.database_type {
-            DatabaseType::Postgres => "postgres",
-        };
-        format!(
-            "{}://{}:{}@{}:{}/{}",
-            db_type, self.user, self.password, self.host, self.port, self.database
-        )
+    pub fn config(&self) -> Config {
+        let mut config = Config::new();
+        config
+            .user(&self.user)
+            .password(self.password.expose())
+            .host(&self.host)
+            .port(self.port)
+            .dbname(&self.database);
+        config
     }
 
     #[must_use]
@@ -130,11 +127,8 @@ impl DatabaseConnectionInfo {
         &self.user
     }
 
-    /// Returns the password in plain text.
-    ///
-    /// Note, that this will reveal the password, so the returned output should not be printed.
     #[must_use]
-    pub fn password(&self) -> &str {
+    pub fn password(&self) -> &Secret<str> {
         &self.password
     }
 
@@ -189,5 +183,45 @@ impl Default for DatabasePoolConfig {
         Self {
             max_connections: NonZero::new(10).unwrap(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use hash_secret::Secret;
+    use tokio_postgres::config::Host;
+
+    use super::{DatabaseConnectionInfo, DatabaseType};
+
+    #[test]
+    fn config_reserved_characters() {
+        let info = DatabaseConnectionInfo::new(
+            DatabaseType::Postgres,
+            "graph".to_owned(),
+            Secret::from_string("p@ss/w:rd".to_owned()),
+            "db.example.com".to_owned(),
+            5433,
+            "hash".to_owned(),
+        );
+
+        let config = info.config();
+
+        assert_eq!(config.get_user(), Some("graph"), "the user should be set");
+        assert_eq!(
+            config.get_password(),
+            Some(b"p@ss/w:rd".as_slice()),
+            "the password should be set without escaping"
+        );
+        assert_eq!(
+            config.get_hosts(),
+            [Host::Tcp("db.example.com".to_owned())],
+            "the host should be set"
+        );
+        assert_eq!(config.get_ports(), [5433], "the port should be set");
+        assert_eq!(
+            config.get_dbname(),
+            Some("hash"),
+            "the database should be set"
+        );
     }
 }

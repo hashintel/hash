@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { flueConversationIdWeb } from "@hashintel/brunch-agent-transport-aisdk";
+import { flueConversationIdWeb } from "@hashintel/brunch-agent/conversation-identity";
 
 import {
   flueConversationId,

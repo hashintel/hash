@@ -48,7 +48,6 @@
   },
   "scripts": {
     "build:pack": "node ../../../scripts/check-package-payload.mjs",
-    "codegen": "true",
     "prepack": "turbo run build:pack"
   }
 }

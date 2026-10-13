@@ -16,7 +16,6 @@ import {
   type ExperimentBackendRegistration,
   selectExperimentBackend,
   type ExperimentBackend,
-  type ReusableWorkerFactory,
 } from "@hashintel/petrinaut-core/experiments";
 import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 
@@ -89,6 +88,14 @@ type PendingExperimentRegistration = {
   abortController: AbortController;
 };
 
+/**
+ * Throws `message` as an error. A `throw` statement inside `try` keeps React
+ * Compiler from compiling the provider, so the initialization calls this.
+ */
+const fail: (message: string) => never = (message) => {
+  throw new Error(message);
+};
+
 export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   children,
   workerFactory,
@@ -101,42 +108,37 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const languageClientRef = useLatest(languageClient);
-  const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
+  const createBaseWorker = useStableCallback(() =>
+    (workerFactory ?? createMonteCarloWorker)(),
+  );
   const shardCountRef = useLatest(experimentShardCount);
   // One worker pool per provider: batches lease workers instead of spawning
   // and killing a pool's worth per ladder rung and per surface cell. The
   // base factory is read at call time, so an injected factory stays live;
   // changing it drains the old pool below.
-  const reusableWorkerFactoryRef = useRef<ReusableWorkerFactory | null>(null);
-  reusableWorkerFactoryRef.current ??= createReusableWorkerFactory(
-    () => workerFactoryRef.current(),
-    {
+  const [reusableWorkerFactory] = useState(() =>
+    createReusableWorkerFactory(createBaseWorker, {
       // A sweep commit releases the whole working set at once: TWO sharded
       // foreground batches (the ladder pipelines its rungs) plus the surface
       // lanes. The pool must hold that set or every commit terminates the
       // overflow and respawns it a moment later.
       maxIdle:
         2 * (experimentShardCount ?? getDefaultMonteCarloShardCount()) + 8,
-    },
+    }),
   );
-  const reusableWorkerFactory = reusableWorkerFactoryRef.current;
   // Factory change: flush pooled workers built from the old base factory
   // (leases in flight finish on it and re-pool; the next lease is fresh).
-  useEffect(() => {
-    const pool = reusableWorkerFactoryRef.current;
-    return () => {
-      pool?.drain();
-    };
-  }, [workerFactory]);
+  useEffect(
+    () => () => reusableWorkerFactory.drain(),
+    [reusableWorkerFactory, workerFactory],
+  );
   // Unmount: shut the pool for good. Handles released by later cleanups (and
   // in-flight leases finishing afterwards) must terminate their workers
   // rather than pool them where nothing will ever lease or drain again.
-  useEffect(() => {
-    const pool = reusableWorkerFactoryRef.current;
-    return () => {
-      pool?.dispose();
-    };
-  }, []);
+  useEffect(
+    () => () => reusableWorkerFactory.dispose(),
+    [reusableWorkerFactory],
+  );
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
   );
@@ -577,7 +579,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         }
 
         if (!selection.ok) {
-          throw new Error(
+          fail(
             selection.declined
               .map((entry) => `${entry.backendId}: ${entry.reason}`)
               .join("; ") || "No compute backend could run this experiment.",

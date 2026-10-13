@@ -32,6 +32,7 @@
 //! [Graph Admin API]: https://www.notion.so/hashintel/Graph-Admin-API-31a3c81fe02480f792c9d7bedfdc49db
 
 use alloc::sync::Arc;
+use core::pin::Pin;
 
 use axum::{Extension, Json, Router, routing::post};
 #[cfg(feature = "unsafe-dev-endpoints")]
@@ -51,7 +52,10 @@ use hash_graph_store::{
 };
 #[cfg(feature = "unsafe-dev-endpoints")]
 use hash_middleware::authentication::ServiceSecretLayer;
-use hash_middleware::authentication::{AuthenticationLayer, provider::AuthenticationProvider};
+use hash_middleware::authentication::{
+    AuthenticationLayer, Challenge, provider::AuthenticationProvider,
+};
+use hash_secret::Secret;
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
 #[cfg(feature = "unsafe-dev-endpoints")]
@@ -80,7 +84,7 @@ const KRATOS_HTTP_TIMEOUT: core::time::Duration = core::time::Duration::from_sec
 pub struct ExternalServicesConfig {
     pub kratos_admin_url: reqwest::Url,
     pub hydra_admin_url: reqwest::Url,
-    pub mailchimp_api_key: Option<String>,
+    pub mailchimp_api_key: Option<Pin<Arc<Secret<str>>>>,
     pub mailchimp_list_id: Option<String>,
 }
 
@@ -97,7 +101,7 @@ pub struct ExternalServicesConfig {
 pub fn routes<P>(
     store_pool: Arc<PostgresStorePool>,
     authentication_provider: Arc<P>,
-    service_secret: Arc<str>,
+    service_secret: Pin<Arc<Secret<str>>>,
     authentication_metrics: Arc<authentication::AuthenticationMetrics>,
     external_services: ExternalServicesConfig,
 ) -> Router
@@ -115,7 +119,7 @@ where
 
     #[cfg(feature = "unsafe-dev-endpoints")]
     let secret_layer = ServiceSecretLayer {
-        service_secret: Arc::clone(&service_secret),
+        service_secret: Pin::clone(&service_secret),
         metrics: Arc::clone(&authentication_metrics),
     };
 
@@ -124,6 +128,7 @@ where
         service_secret,
         metrics: authentication_metrics,
         bootstrap_route: super::is_bootstrap_route,
+        challenge: Challenge::Service,
         caller: core::marker::PhantomData,
     }));
 
@@ -367,7 +372,7 @@ async fn delete_user(
         (Some(api_key), Some(list_id)) => Some(
             MailchimpSubscriptionProvider::new(
                 Arc::clone(&http_client),
-                api_key.clone(),
+                Pin::clone(api_key),
                 list_id.clone(),
             )
             .map_err(report_to_response)?,
@@ -391,7 +396,8 @@ async fn delete_user(
         let code = match report.current_context() {
             UserDeletionError::UserLookup => StatusCode::Unavailable,
             UserDeletionError::MissingKratosIdentityId => StatusCode::FailedPrecondition,
-            UserDeletionError::EntityDeletion
+            UserDeletionError::ApiTokenRevocation
+            | UserDeletionError::EntityDeletion
             | UserDeletionError::KratosDeletion
             | UserDeletionError::UnknownIdentity
             | UserDeletionError::HydraLoginRevocation

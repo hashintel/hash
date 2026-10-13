@@ -5,7 +5,7 @@
         "content": {
           "application/problem+json": {
             "example": {
-              "detail": "credentials are malformed",
+              "detail": "`X-Authenticated-User-Actor-Id` header is not a valid UUID",
               "status": 400,
               "title": "Bad Request",
               "type": "about:blank"
@@ -36,7 +36,7 @@
             }
           }
         },
-        "description": "The credentials are malformed."
+        "description": "The `X-Authenticated-User-Actor-Id` header is not a valid UUID."
       },
       "InternalServerError": {
         "content": {
@@ -196,7 +196,17 @@
             }
           }
         },
-        "description": "The request carries no credentials, or they do not identify a permitted caller."
+        "description": "The request carries no credentials, or they do not identify a permitted caller.",
+        "headers": {
+          "WWW-Authenticate": {
+            "description": "The scheme to authenticate with: `Bearer` on the public API, with `error=\"invalid_token\"` when a `Bearer` API token is refused; `HASH-Service` on the internal APIs.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       }
     },
     "schemas": {
@@ -334,6 +344,11 @@
       }
     },
     "securitySchemes": {
+      "apiToken": {
+        "description": "API token starting with `hsh_pat_`. The token acts as the user it belongs to.",
+        "scheme": "bearer",
+        "type": "http"
+      },
       "cloudflareAccess": {
         "description": "Cloudflare Access JWT, when configured.",
         "in": "header",
@@ -393,6 +408,9 @@
         },
         "security": [
           {
+            "apiToken": []
+          },
+          {
             "cloudflareAccess": []
           },
           {
@@ -439,6 +457,9 @@
         },
         "security": [
           {},
+          {
+            "apiToken": []
+          },
           {
             "cloudflareAccess": []
           },

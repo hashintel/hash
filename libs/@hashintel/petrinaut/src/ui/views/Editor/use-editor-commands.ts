@@ -37,8 +37,9 @@ const useEditorCommands = ({
   const isReadOnly = useIsReadOnly();
   const canEditNet =
     globalMode === "edit" && editViewMode === "canvas" && !isReadOnly;
-  const runAutoLayout = () =>
+  const runAutoLayout = () => {
     void (applyAutoLayoutAndFrame?.() ?? applyAutoLayout());
+  };
 
   useCommand(
     {

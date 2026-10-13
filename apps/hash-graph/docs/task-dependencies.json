@@ -12,6 +12,7 @@
     "hash-graph-postgres-store",
     "hash-graph-store",
     "hash-graph-type-fetcher",
+    "hash-secret",
     "hash-telemetry",
     "hash-temporal-client",
     "type-system"
@@ -31,11 +32,19 @@
     },
     "compile": {
       "dependsOn": [],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "compile:release": {
       "dependsOn": [],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "doc:dependency-diagram": {
       "dependsOn": [
@@ -65,38 +74,62 @@
         "start:migrate"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "start:healthcheck": {
       "dependsOn": [
         "compile:release"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "start:migrate": {
       "dependsOn": [
         "compile:release"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "start:test": {
       "dependsOn": [
         "start:test:migrate"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "start:test:healthcheck": {
       "dependsOn": [
         "compile"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "start:test:migrate": {
       "dependsOn": [
         "compile"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
     },
     "test:unit": {
       "dependsOn": [],

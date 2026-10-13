@@ -1,6 +1,7 @@
 import {
   generateArcId,
   getArcEndpointKey,
+  mutationActionInputSchemas,
   placeArcEndpoint,
   type ArcEndpoint,
   type PetrinautAiCommandToolInput,
@@ -279,11 +280,25 @@ export const summarizeApplyAutoLayout = (
   };
 };
 
+/** A mutation call with its input parsed, so its ids are the converted ids the document stores. */
+const withConvertedIds = (call: AiToolCall): AiToolCall => {
+  if (!Object.hasOwn(mutationActionInputSchemas, call.toolName)) {
+    return call;
+  }
+  const parsed = mutationActionInputSchemas[
+    call.toolName as PetrinautAiMutationToolName
+  ].safeParse(call.input);
+  return parsed.success
+    ? ({ ...call, input: parsed.data } as AiToolCall)
+    : call;
+};
+
 export const summarizePetrinautAiToolCall = (
-  { input, toolName }: AiToolCall,
+  call: AiToolCall,
   context: AiToolSummaryContext = {},
 ): AiToolSummary => {
   const { definition } = context;
+  const { input, toolName } = withConvertedIds(call);
 
   switch (toolName) {
     case "addPlace":

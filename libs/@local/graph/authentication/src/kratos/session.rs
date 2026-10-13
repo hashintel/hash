@@ -68,7 +68,7 @@ fn extract_session_credential(
             token
                 .to_str()
                 .map(|token| SessionCredential::Token(SessionToken(token)))
-                .change_context(AuthenticationError::malformed_credential()),
+                .change_context(AuthenticationError::invalid_session()),
         );
     }
 
@@ -193,9 +193,14 @@ impl SessionCache {
             })
             .build();
 
+        let mut key = [0; 32];
+        aws_lc_rs::rand::fill(&mut key).unwrap_or_else(|error| {
+            unreachable!("the random generator should fill the session cache key: {error}")
+        });
+
         Self {
             verified,
-            key: rand::random(),
+            key,
             lookups: meter
                 .u64_counter("hash.authentication.session_cache.lookups")
                 .with_description("Session-cache lookups by outcome")
@@ -415,11 +420,12 @@ mod tests {
 
     use axum::{Json, Router, response::IntoResponse as _, routing::get};
     use hash_middleware::authentication::{
-        AuthenticationProblem,
+        AuthenticationProblem, Challenge,
         provider::{AuthenticationProvider as _, expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
     };
+    use hash_secret::Secret;
     use http::{HeaderMap, HeaderValue, StatusCode};
     use opentelemetry::metrics::MeterProvider as _;
     use opentelemetry_sdk::metrics::{
@@ -429,7 +435,6 @@ mod tests {
             SumDataPoint,
         },
     };
-    use problematic::Expose;
     use reqwest::Url;
     use rstest::rstest;
     use serde_json::{Value as JsonValue, json};
@@ -818,8 +823,8 @@ mod tests {
         let report = expect_rejection::<ActorId>(provider.authenticate(&headers).await);
         assert_matches!(
             report.current_context().kind(),
-            AuthenticationErrorKind::MalformedCredential,
-            "a non-ASCII session token should be rejected as malformed, not ignored"
+            AuthenticationErrorKind::InvalidSession,
+            "a non-ASCII session token should be rejected as an invalid session, not ignored"
         );
     }
 
@@ -932,7 +937,7 @@ mod tests {
             AuthenticationErrorKind::InvalidSession,
             "a forbidden session should fail as an invalid session, not as provider unavailability"
         );
-        let answer = Expose::<AuthenticationProblem>::expose(&*report);
+        let answer = AuthenticationProblem::answer(&report, Challenge::Service);
         let problem = answer.details();
         assert_eq!(problem.status, 401);
         assert_eq!(
@@ -1043,7 +1048,7 @@ mod tests {
         let chain = (
             provider_with_static_response(StatusCode::UNAUTHORIZED, "{}").await,
             ServiceDelegationProvider::new(
-                CHAIN_SERVICE_SECRET.to_owned(),
+                Secret::from_string(CHAIN_SERVICE_SECRET.to_owned()).to_arc(),
                 FixedActorResolver::new(HashMap::new()),
             ),
         );
@@ -1069,7 +1074,7 @@ mod tests {
             )
             .await,
             ServiceDelegationProvider::new(
-                CHAIN_SERVICE_SECRET.to_owned(),
+                Secret::from_string(CHAIN_SERVICE_SECRET.to_owned()).to_arc(),
                 FixedActorResolver::new(HashMap::new()),
             ),
         );

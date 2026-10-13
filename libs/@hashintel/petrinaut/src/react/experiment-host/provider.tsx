@@ -61,59 +61,60 @@ export const ExperimentHostProvider = ({ children }: PropsWithChildren) => {
         cancel();
       }
       controllers.current.add(controller);
-      try {
-        const result = await runHostExperiment(
-          {
-            definition: instance?.definition.get() ?? petriNetDefinition,
-            extensions: instance?.extensions ?? extensions,
-            title,
-            experiments,
-            optimizations,
-            optimizationUnavailableReason:
-              optimizationsContext.optimizationUnavailableReason ?? null,
-            actions: {
-              createExperiment: experimentsContext.createExperiment,
-              navigateSweep: experimentsContext.navigateSweep,
-              cancelExperiment: experimentsContext.cancelExperiment,
-              createOptimization: optimizationsContext.createOptimization,
-              cancelOptimization: optimizationsContext.cancelOptimization,
-            },
-            validate: async (definition, settings) => {
-              const diagnostics = await languageClient.requestDiagnostics(
-                definition,
-                settings,
-              );
-              if (diagnostics.errorCount > 0) {
-                throw new Error(
-                  [...diagnostics.byUri.values()]
-                    .flat()
-                    .filter((diagnostic) => diagnostic.severity === 1)
-                    .map((diagnostic) => diagnostic.message)
-                    .join("\n"),
-                );
-              }
-            },
-          },
-          request,
-          { ...options, signal: controller.signal },
-        );
-        addNotification({
-          message:
-            result.status === "complete"
-              ? `${result.name} complete`
-              : (result.message ?? `${result.name} stopped`),
-          tone:
-            result.status === "complete"
-              ? "success"
-              : result.status === "error"
-                ? "error"
-                : "neutral",
-        });
-        return result;
-      } finally {
+      const release = () => {
         options?.signal?.removeEventListener("abort", cancel);
         controllers.current.delete(controller);
-      }
+      };
+      // `.finally` rather than `try`/`finally`, which React Compiler cannot
+      // compile without a `catch`.
+      const result = await runHostExperiment(
+        {
+          definition: instance?.definition.get() ?? petriNetDefinition,
+          extensions: instance?.extensions ?? extensions,
+          title,
+          experiments,
+          optimizations,
+          optimizationUnavailableReason:
+            optimizationsContext.optimizationUnavailableReason ?? null,
+          actions: {
+            createExperiment: experimentsContext.createExperiment,
+            navigateSweep: experimentsContext.navigateSweep,
+            cancelExperiment: experimentsContext.cancelExperiment,
+            createOptimization: optimizationsContext.createOptimization,
+            cancelOptimization: optimizationsContext.cancelOptimization,
+          },
+          validate: async (definition, settings) => {
+            const diagnostics = await languageClient.requestDiagnostics(
+              definition,
+              settings,
+            );
+            if (diagnostics.errorCount > 0) {
+              throw new Error(
+                [...diagnostics.byUri.values()]
+                  .flat()
+                  .filter((diagnostic) => diagnostic.severity === 1)
+                  .map((diagnostic) => diagnostic.message)
+                  .join("\n"),
+              );
+            }
+          },
+        },
+        request,
+        { ...options, signal: controller.signal },
+      ).finally(release);
+      addNotification({
+        message:
+          result.status === "complete"
+            ? `${result.name} complete`
+            : (result.message ?? `${result.name} stopped`),
+        tone:
+          result.status === "complete"
+            ? "success"
+            : result.status === "error"
+              ? "error"
+              : "neutral",
+      });
+      return result;
     });
   const [value] = useState<PetrinautExperimentHost>(() => ({
     runExperiment,

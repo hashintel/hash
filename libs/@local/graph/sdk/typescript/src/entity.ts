@@ -1278,6 +1278,25 @@ export class HashEntity<
      *    )
      */
   ): Promise<this> {
+    return graphAPI
+      .patchEntity(
+        authentication.actorId,
+        this.preparePatch({
+          entityTypeIds,
+          propertyPatches,
+          additionalAllowedPropertyBaseUrls,
+          ...params,
+        }),
+      )
+      .then(({ data }) => new HashEntity(data) as this);
+  }
+
+  public preparePatch({
+    entityTypeIds,
+    propertyPatches,
+    additionalAllowedPropertyBaseUrls,
+    ...params
+  }: PatchEntityParameters): GraphApiPatchEntityParams {
     if (propertyPatches) {
       const isUserEntity = this.metadata.entityTypeIds.some(
         (id) => extractBaseUrl(id) === userEntityTypeBaseUrl,
@@ -1385,14 +1404,12 @@ export class HashEntity<
       }
     }
 
-    return graphAPI
-      .patchEntity(authentication.actorId, {
-        entityId: this.entityId,
-        entityTypeIds,
-        properties: propertyPatches,
-        ...params,
-      })
-      .then(({ data }) => new HashEntity(data) as this);
+    return {
+      entityId: this.entityId,
+      entityTypeIds,
+      properties: propertyPatches,
+      ...params,
+    };
   }
 
   public async archive(
@@ -1551,6 +1568,25 @@ export class HashLinkEntity<
       ...params
     }: PatchEntityParameters,
   ): Promise<this> {
+    return graphAPI
+      .patchEntity(
+        authentication.actorId,
+        this.preparePatch({
+          entityTypeIds,
+          propertyPatches,
+          additionalAllowedPropertyBaseUrls,
+          ...params,
+        }),
+      )
+      .then(({ data }) => new HashLinkEntity(data) as this);
+  }
+
+  public preparePatch({
+    entityTypeIds,
+    propertyPatches,
+    additionalAllowedPropertyBaseUrls,
+    ...params
+  }: PatchEntityParameters): GraphApiPatchEntityParams {
     if (propertyPatches) {
       const isUserEntity = this.metadata.entityTypeIds.some((id) =>
         id.startsWith(userEntityTypeBaseUrl as string),
@@ -1576,14 +1612,12 @@ export class HashLinkEntity<
       }
     }
 
-    return graphAPI
-      .patchEntity(authentication.actorId, {
-        entityId: this.entityId,
-        entityTypeIds,
-        properties: propertyPatches,
-        ...params,
-      })
-      .then(({ data }) => new HashLinkEntity(data) as this);
+    return {
+      entityId: this.entityId,
+      entityTypeIds,
+      properties: propertyPatches,
+      ...params,
+    };
   }
 
   public get linkData(): LinkData {

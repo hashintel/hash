@@ -45,10 +45,12 @@
       "dependsOn": ["^manifest"]
     },
     "compile": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^manifest"]
     },
     "compile:release": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^manifest"]
     },
     // Run commands
     "start:migrate": {
@@ -160,10 +162,13 @@
     "yarn*"
   ],
   "globalPassThroughEnv": [
+    "AWS_LC_SYS_*",
     "CARGO_TERM_PROGRESS_WHEN",
     "RUSTC_WRAPPER",
     "CARGO_INCREMENTAL"
   ],
+  // The root `AGENTS.md` is maintained by hand, so turbo must not write guidance into it.
+  "agentGuidance": false,
   "futureFlags": {
     "affectedUsingTaskInputs": true,
     "experimentalCargoWorkspaces": true,

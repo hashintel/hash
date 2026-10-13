@@ -17,6 +17,7 @@ import {
   type DiffEntityInput,
   HashEntity,
   HashLinkEntity,
+  type PatchEntityParameters,
   queryEntities,
   queryEntitySubgraph,
   summarizeEntities,
@@ -474,15 +475,12 @@ type UpdateEntityFunction<Properties extends TypeIdsAndPropertiesForEntity> =
     true
   >;
 
-/**
- * Update an entity.
- */
-export const updateEntity = async <
-  Properties extends TypeIdsAndPropertiesForEntity,
->(
-  ...args: Parameters<UpdateEntityFunction<Properties>>
-): ReturnType<UpdateEntityFunction<Properties>> => {
-  const [context, authentication, params] = args;
+const prepareEntityUpdate: ImpureGraphFunction<
+  Parameters<UpdateEntityFunction<TypeIdsAndPropertiesForEntity>>[2],
+  Promise<PatchEntityParameters>,
+  false,
+  true
+> = async (context, authentication, params) => {
   const { entity, entityTypeIds, propertyPatches } = params;
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
@@ -495,9 +493,6 @@ export const updateEntity = async <
       });
     }
   }
-
-  const { graphApi } = context;
-  const { actorId } = authentication;
 
   /**
    * The SDK's patch method auto-enforces the base user property whitelist.
@@ -516,19 +511,24 @@ export const updateEntity = async <
     additionalAllowedUrls.add(shortnamePropertyBaseUrl);
   }
 
-  const updatedEntity = await entity.patch(
-    graphApi,
-    { actorId },
-    {
-      entityTypeIds,
-      draft: params.draft,
-      propertyPatches,
-      provenance: context.provenance,
-      archived: params.archived,
-      additionalAllowedPropertyBaseUrls: additionalAllowedUrls,
-    },
-  );
+  return {
+    entityTypeIds,
+    draft: params.draft,
+    propertyPatches,
+    provenance: context.provenance,
+    archived: params.archived,
+    additionalAllowedPropertyBaseUrls: additionalAllowedUrls,
+  };
+};
 
+const runAfterEntityUpdateHooks: ImpureGraphFunction<
+  Parameters<UpdateEntityFunction<TypeIdsAndPropertiesForEntity>>[2] & {
+    updatedEntity: HashEntity;
+  },
+  void,
+  false,
+  true
+> = (context, authentication, { entity, propertyPatches, updatedEntity }) => {
   for (const afterUpdateHook of afterUpdateEntityHooks) {
     if (entity.metadata.entityTypeIds.includes(afterUpdateHook.entityTypeId)) {
       void afterUpdateHook.callback({
@@ -540,7 +540,72 @@ export const updateEntity = async <
       });
     }
   }
+};
 
+export const updateEntities: ImpureGraphFunction<
+  Parameters<UpdateEntityFunction<TypeIdsAndPropertiesForEntity>>[2][],
+  Promise<HashEntity[]>,
+  false,
+  true
+> = async (context, authentication, updates) => {
+  const patches = await Promise.all(
+    updates.map(async (update) => {
+      const params = isEntityLinkEntity(update.entity)
+        ? {
+            propertyPatches: update.propertyPatches,
+            draft: update.draft,
+            provenance: context.provenance,
+          }
+        : await prepareEntityUpdate(context, authentication, update);
+      return update.entity.preparePatch(params);
+    }),
+  );
+
+  const { data } = await context.graphApi.patchEntities(
+    authentication.actorId,
+    patches,
+  );
+  if (data.length !== updates.length) {
+    throw new Error("Bulk update returned an unexpected number of entities");
+  }
+  return data.map((entity, index) => {
+    const update = updates[index];
+    if (!update) {
+      throw new Error("Bulk update returned more entities than requested");
+    }
+    const updatedEntity = isEntityLinkEntity(update.entity)
+      ? new HashLinkEntity(entity)
+      : new HashEntity(entity);
+    if (!isEntityLinkEntity(update.entity)) {
+      runAfterEntityUpdateHooks(context, authentication, {
+        ...update,
+        updatedEntity,
+      });
+    }
+    return updatedEntity;
+  });
+};
+
+/**
+ * Update an entity.
+ */
+export const updateEntity = async <
+  Properties extends TypeIdsAndPropertiesForEntity,
+>(
+  ...args: Parameters<UpdateEntityFunction<Properties>>
+): ReturnType<UpdateEntityFunction<Properties>> => {
+  const [context, authentication, params] = args;
+  const { entity } = params;
+  const patch = await prepareEntityUpdate(context, authentication, params);
+  const updatedEntity = await entity.patch(
+    context.graphApi,
+    authentication,
+    patch,
+  );
+  runAfterEntityUpdateHooks(context, authentication, {
+    ...params,
+    updatedEntity,
+  });
   return updatedEntity;
 };
 

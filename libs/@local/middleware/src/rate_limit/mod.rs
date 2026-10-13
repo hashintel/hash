@@ -41,7 +41,7 @@ pub use self::aide::document;
 mod tests;
 
 use alloc::{borrow::Cow, sync::Arc};
-use core::{error::Error, fmt, future, num::NonZero, task, time::Duration};
+use core::{error::Error, fmt, future, num::NonZero, pin::Pin, task, time::Duration};
 use std::sync::LazyLock;
 
 use axum::response::{IntoResponse, Response};
@@ -52,6 +52,7 @@ use governor::{
     middleware::NoOpMiddleware,
     state::keyed::DefaultKeyedStateStore,
 };
+use hash_secret::Secret;
 use http::{HeaderMap, HeaderValue, StatusCode, header::RETRY_AFTER};
 use opentelemetry::{
     KeyValue,
@@ -742,13 +743,14 @@ where
 /// #     rate_limit_actor_per_hour: quota(6000),
 /// #     rate_limit_actor_burst: quota(100),
 /// # };
+/// # use hash_secret::Secret;
 /// # let meter = opentelemetry::global::meter("doc");
 /// // A `layer` rather than a `route_layer`, so unmatched paths draw on a budget too.
 /// let router: Router = Router::new()
 ///     .route("/entities", get(async || "ok"))
 ///     .layer(IpGateLayer {
 ///         limiters: RateLimiters::start(&config, &meter),
-///         service_secret: Arc::from("service-secret"),
+///         service_secret: Secret::from_string("service-secret".to_owned()).to_arc(),
 ///     });
 /// # }
 /// ```
@@ -757,7 +759,7 @@ pub struct IpGateLayer {
     /// The shared limiter state requests are charged against.
     pub limiters: Arc<RateLimiters>,
     /// The secret whose presenters pass unchecked.
-    pub service_secret: Arc<str>,
+    pub service_secret: Pin<Arc<Secret<str>>>,
 }
 
 impl<S> tower::Layer<S> for IpGateLayer {
@@ -767,7 +769,7 @@ impl<S> tower::Layer<S> for IpGateLayer {
         IpGateService {
             inner,
             limiters: Arc::clone(&self.limiters),
-            service_secret: Arc::clone(&self.service_secret),
+            service_secret: Pin::clone(&self.service_secret),
         }
     }
 }
@@ -778,7 +780,7 @@ pub struct IpGateService<S> {
     inner: S,
 
     limiters: Arc<RateLimiters>,
-    service_secret: Arc<str>,
+    service_secret: Pin<Arc<Secret<str>>>,
 }
 
 impl<B, S> tower::Service<http::Request<B>> for IpGateService<S>
@@ -840,7 +842,7 @@ where
 /// # use axum::{Router, routing::get};
 /// # use error_stack::Report;
 /// # use hash_middleware::authentication::{
-/// #     AuthenticationLayer, AuthenticationMetrics,
+/// #     AuthenticationLayer, AuthenticationMetrics, Challenge,
 /// #     provider::{AuthenticationProvider, Caller},
 /// #     request::AuthenticationError,
 /// # };
@@ -873,7 +875,9 @@ where
 /// # };
 /// # let meter = opentelemetry::global::meter("doc");
 /// let limiters = RateLimiters::start(&config, &meter);
-/// let service_secret: Arc<str> = Arc::from("service-secret");
+/// # use core::pin::Pin;
+/// # use hash_secret::Secret;
+/// let service_secret = Secret::from_string("service-secret".to_owned()).to_arc();
 /// # let provider = Arc::new(Verifier);
 /// # let auth_metrics = Arc::new(AuthenticationMetrics::new(&meter));
 ///
@@ -881,13 +885,14 @@ where
 ///     .route("/entities", get(async || "ok"))
 ///     .route_layer(CallerLimitLayer {
 ///         limiters: Arc::clone(&limiters),
-///         service_secret: Arc::clone(&service_secret),
+///         service_secret: Pin::clone(&service_secret),
 ///     })
 ///     .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
 ///         provider,
-///         service_secret: Arc::clone(&service_secret),
+///         service_secret: Pin::clone(&service_secret),
 ///         metrics: auth_metrics,
 ///         bootstrap_route: |_path| false,
+///         challenge: Challenge::Service,
 ///         caller: PhantomData,
 ///     })
 ///     .layer(IpGateLayer {
@@ -901,7 +906,7 @@ pub struct CallerLimitLayer {
     /// The shared limiter state requests are charged against.
     pub limiters: Arc<RateLimiters>,
     /// The secret whose presenters pass unchecked.
-    pub service_secret: Arc<str>,
+    pub service_secret: Pin<Arc<Secret<str>>>,
 }
 
 impl<S> tower::Layer<S> for CallerLimitLayer {
@@ -911,7 +916,7 @@ impl<S> tower::Layer<S> for CallerLimitLayer {
         CallerLimitService {
             inner,
             limiters: Arc::clone(&self.limiters),
-            service_secret: Arc::clone(&self.service_secret),
+            service_secret: Pin::clone(&self.service_secret),
         }
     }
 }
@@ -922,7 +927,7 @@ pub struct CallerLimitService<S> {
     inner: S,
 
     limiters: Arc<RateLimiters>,
-    service_secret: Arc<str>,
+    service_secret: Pin<Arc<Secret<str>>>,
 }
 
 impl<B, S> tower::Service<http::Request<B>> for CallerLimitService<S>

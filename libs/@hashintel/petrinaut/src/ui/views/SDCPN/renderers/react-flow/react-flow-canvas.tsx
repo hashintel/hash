@@ -44,11 +44,17 @@ import { MiniMap } from "./react-flow-canvas/mini-map";
 import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
 import { PlaceNode } from "./react-flow-canvas/place-node";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
+import {
+  isMac,
+  selectionKeyCode,
+  useMultiSelectionModifier,
+} from "./react-flow-canvas/selection-keys";
 import { TransitionNode } from "./react-flow-canvas/transition-node";
 import { useApplyNodeChanges } from "./react-flow-canvas/use-apply-node-changes";
 import { useMonacoKeyboardIsolation } from "./react-flow-canvas/use-monaco-keyboard-isolation";
 import { useReactFlowController } from "./react-flow-canvas/use-react-flow-controller";
 import { useReactFlowElements } from "./react-flow-canvas/use-react-flow-elements";
+import { useReadOnlyNodeDrag } from "./react-flow-canvas/use-read-only-node-drag";
 
 import type { CanvasNodeKind } from "../../canvas-scene";
 import type { Connection, IsValidConnection } from "@xyflow/react";
@@ -111,7 +117,6 @@ const paneStyle = css({
 const ReactFlowCanvasInner: CanvasRenderer = ({
   scene,
   containerSize,
-  viewportActions,
   registerController,
 }) => {
   const presentation = usePetrinautPresentation();
@@ -129,6 +134,10 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
 
   const interactions = useCanvasInteractions(scene);
   const flowStore = useStoreApi();
+  const readOnlyDragHandlers = useReadOnlyNodeDrag({
+    readonly: interactions.readonly,
+    isPanMode: interactions.isPanMode,
+  });
   const { nodes, edges } = useReactFlowElements(scene);
   const applyChanges = useApplyNodeChanges(interactions);
   const insets = useCanvasInsets();
@@ -192,6 +201,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
 
   useRecenterOnPanelOpen(controller, containerSize, scene.nodes, insets);
   useMonacoKeyboardIsolation();
+  useMultiSelectionModifier(isMac);
 
   // The viewport at mount: where this net was last left, or centered on the
   // net. Bounds and container changes must not recompute it. The saved
@@ -241,6 +251,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   return (
     <CanvasControllerContext value={controller}>
       <div
+        {...readOnlyDragHandlers}
         className={paneStyle}
         data-animated={showAnimations}
         data-focus-active={scene.focusActive ? "" : undefined}
@@ -306,6 +317,8 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           selectionMode={
             partialSelection ? SelectionMode.Partial : SelectionMode.Full
           }
+          selectionKeyCode={selectionKeyCode}
+          multiSelectionKeyCode={null}
           selectNodesOnDrag={false}
           nodeOrigin={[0.5, 0.5]}
           deleteKeyCode={null}
@@ -317,9 +330,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           {showMinimap && presentation.showMinimap && (
             <MiniMap pannable zoomable />
           )}
-          {!isActualMode && (
-            <ViewportControls viewportActions={viewportActions} />
-          )}
+          {!isActualMode && <ViewportControls />}
         </ReactFlow>
       </div>
     </CanvasControllerContext>

@@ -624,9 +624,16 @@ const ConversationAiAssistantPanel = ({
   // discarding that conversation. Timing stays outside diagnostics so it tags
   // receipt of the response chunks.
   const hostTransportRef = useLatest(aiAssistant.transport);
+  const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
   const liveHostTransport = useMemo<PetrinautAiTransport>(
     () => ({
-      sendMessages: (options) => hostTransportRef.current.sendMessages(options),
+      sendMessages: async (options) => {
+        const stream = await hostTransportRef.current.sendMessages(options);
+        // The host accepted the message, so a failure of its stream must not
+        // offer the message for sending again.
+        pendingSubmissionRecoveryRef.current = null;
+        return stream;
+      },
       reconnectToStream: (options) =>
         hostTransportRef.current.reconnectToStream(options),
     }),
@@ -635,6 +642,7 @@ const ConversationAiAssistantPanel = ({
   const diagnosticsTransport = useMemo(
     () =>
       createReasoningTimingAwareAiTransport(
+        // eslint-disable-next-line react/refs -- the transport reads refs when it sends, not while rendering; see the "use no memo" comment above.
         createDiagnosticsAwareAiTransport({
           readDiagnosticsContext,
           transport: liveHostTransport,
@@ -773,7 +781,6 @@ const ConversationAiAssistantPanel = ({
   // cannot settle, stop, or continue a replacement turn.
   const submissionGenerationRef = useRef(0);
   const toolHostIdentityRef = useRef<string | null>(null);
-  const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
   const hydratedConversationIdRef = useRef<string | null>(null);
   const followedMessagesRef = useRef<PetrinautAiMessage[] | undefined>(
     undefined,
@@ -985,6 +992,7 @@ const ConversationAiAssistantPanel = ({
         executionConversationId === toolHostIdentityRef.current &&
         experimentControllersRef.current.get(toolCall.toolCallId) ===
           controller;
+      // eslint-disable-next-line react/todo -- the build skips this panel, which opts out with "use no memo"; oxlint reports bailouts in opted-out functions anyway.
       try {
         const result = await experimentHost.runExperiment(request, {
           signal: controller.signal,
@@ -1539,14 +1547,24 @@ const ConversationAiAssistantPanel = ({
     isAiAssistantOpen,
   ]);
 
-  useEffect(() => {
-    if (isAiAssistantOpen && hostTabSelected) {
+  // The tab in view, or null while the panel is closed.
+  const viewedTab = !isAiAssistantOpen
+    ? null
+    : hostTabSelected
+      ? "host"
+      : "primary";
+  // Bringing a tab into view clears its attention marker, once per change of
+  // view. React documents this shape for state that follows a changed value:
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [lastViewedTab, setLastViewedTab] = useState(viewedTab);
+  if (viewedTab !== lastViewedTab) {
+    setLastViewedTab(viewedTab);
+    if (viewedTab === "host") {
       setHostAttentionCount(0);
-    }
-    if (isAiAssistantOpen && !hostTabSelected) {
+    } else if (viewedTab === "primary") {
       setPrimaryAttention(false);
     }
-  }, [hostTabSelected, isAiAssistantOpen]);
+  }
 
   useEffect(() => {
     const isBusy = status === "submitted" || status === "streaming";
@@ -2016,6 +2034,7 @@ const ConversationAiAssistantPanel = ({
     }
     if (status === "error") {
       queuedVoiceInputRef.current = null;
+      // eslint-disable-next-line react/set-state-in-effect -- settling the queued input's promise is the effect; the flag follows it.
       setVoiceInputQueued(false);
       queued.release();
       queued.reject(new Error("Voice mode could not accept that input."));
@@ -2215,6 +2234,7 @@ const ConversationAiAssistantPanel = ({
       interactionMode === "voice" &&
       aiAssistant.renderVoiceMode === undefined
     ) {
+      // eslint-disable-next-line react/set-state-in-effect -- the mode setter also moves a ref and the voice dock, so it cannot run during render.
       selectInteractionMode("text");
     }
   }, [aiAssistant.renderVoiceMode, interactionMode, selectInteractionMode]);
@@ -2274,8 +2294,10 @@ const ConversationAiAssistantPanel = ({
     reportExperimentRunning,
   };
   const composerControl = aiAssistant.renderComposerControl?.(
+    // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
     composerControlContext,
   );
+  // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
   const voiceMode = aiAssistant.renderVoiceMode?.({
     ...composerControlContext,
     canAcceptVoiceInput: !voiceInputQueued,

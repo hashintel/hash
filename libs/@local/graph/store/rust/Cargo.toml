@@ -17,6 +17,7 @@ hash-temporal-client     = { workspace = true, public = true }
 futures-core   = { workspace = true, public = true }
 postgres-types = { workspace = true, public = true, optional = true, features = ["derive", "with-serde_json-1", "with-uuid-1"] }
 specta         = { workspace = true, public = true, optional = true, features = ["derive"] }
+time           = { workspace = true, public = true }
 tokio-postgres = { workspace = true, public = true, optional = true }
 utoipa         = { workspace = true, public = true, optional = true }
 
@@ -29,7 +30,7 @@ type-system                    = { workspace = true }
 base64         = { workspace = true }
 bytes          = { workspace = true, optional = true }
 derive-where   = { workspace = true }
-derive_more    = { workspace = true, features = ["display", "error"] }
+derive_more    = { workspace = true, features = ["debug", "display", "error"] }
 futures        = { workspace = true }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
@@ -41,6 +42,7 @@ uuid           = { workspace = true, features = ["v4"] }
 [dev-dependencies]
 hash-codegen = { workspace = true }
 insta        = { workspace = true }
+rstest       = { workspace = true }
 tokio        = { workspace = true, features = ["macros"] }
 
 [[test]]

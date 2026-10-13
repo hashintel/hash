@@ -45,13 +45,17 @@ export const flowTypedef = gql`
     TIMED_OUT
     CANCEL_REQUESTED
     CANCELLED
+    """
+    The step didn't run, because a value it needs is missing.
+    """
+    SKIPPED
   }
 
   scalar ArbitraryJsonData
   scalar EntityUuid
   scalar ExternalInputRequest
-  scalar FlowInputs
   scalar StepInput
+  scalar FlowInputValues
   scalar ResolvedStepRunOutput
   scalar StepProgressLog
   # FlowActionDefinitionId is just here so that the type is generated along with the other scalars,
@@ -59,8 +63,6 @@ export const flowTypedef = gql`
   scalar FlowActionDefinitionId
   scalar FlowDefinition
   scalar FlowDataSources
-  scalar FlowTypeDataType
-  scalar FlowTrigger
   scalar ExternalInputResponseWithoutUser
   scalar ScheduleSpec
   scalar CreateFlowScheduleInput
@@ -170,9 +172,13 @@ export const flowTypedef = gql`
     """
     failureMessage: String
     """
-    Inputs to the flow run
+    The values given to the flow's inputs
     """
-    inputs: FlowInputs!
+    flowInputs: FlowInputValues!
+    """
+    The data sources the run's AI steps can use. Only present for AI flow runs.
+    """
+    dataSources: FlowDataSources
     """
     Outputs of the flow run
     """
@@ -236,8 +242,8 @@ export const flowTypedef = gql`
     startFlow(
       dataSources: FlowDataSources
       flowDefinition: FlowDefinition!
-      flowTrigger: FlowTrigger!
-      flowType: FlowTypeDataType!
+      flowDefinitionId: EntityUuid!
+      flowInputs: FlowInputValues!
       webId: WebId!
     ): EntityUuid!
 

@@ -5,6 +5,7 @@ use core::{
     marker::PhantomData,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     num::NonZero,
+    pin::Pin,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
@@ -16,6 +17,7 @@ use axum::{
     routing::get,
 };
 use error_stack::Report;
+use hash_secret::Secret;
 use http::{
     Request, StatusCode,
     header::{CONTENT_TYPE, RETRY_AFTER},
@@ -32,7 +34,7 @@ use super::{
 };
 use crate::{
     authentication::{
-        AuthenticationLayer, AuthenticationMetrics, ResolvedAuthentication,
+        AuthenticationLayer, AuthenticationMetrics, Challenge, ResolvedAuthentication,
         provider::StaticAuthenticationProvider,
         request::{AuthenticationError, AuthenticationErrorKind},
     },
@@ -74,7 +76,7 @@ fn gate_router_with(limiters: &Arc<RateLimiters>) -> Router {
         .route("/entities", get(async || "ok"))
         .route_layer(IpGateLayer {
             limiters: Arc::clone(limiters),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
         })
 }
 
@@ -91,7 +93,7 @@ fn caller_router_with(limiters: &Arc<RateLimiters>) -> Router {
         .route("/entities", get(async || "ok"))
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(limiters),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
         })
 }
 
@@ -104,18 +106,19 @@ fn full_stack_router_with(
     limiters: &Arc<RateLimiters>,
     provider: StaticAuthenticationProvider,
 ) -> Router {
-    let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
+    let service_secret = Secret::from_string(SERVICE_SECRET.to_owned()).to_arc();
     Router::new()
         .route("/entities", get(async || "ok"))
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(limiters),
-            service_secret: Arc::clone(&service_secret),
+            service_secret: Pin::clone(&service_secret),
         })
         .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider: Arc::new(provider),
-            service_secret: Arc::clone(&service_secret),
+            service_secret: Pin::clone(&service_secret),
             metrics: auth_metrics(),
             bootstrap_route: |_path| false,
+            challenge: Challenge::Service,
             caller: PhantomData,
         })
         .route_layer(IpGateLayer {
@@ -680,7 +683,7 @@ async fn enforced_denials_skip_the_inner_stack() {
         rate_limit_anonymous_burst: non_zero(10),
         ..config(1)
     });
-    let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
+    let service_secret = Secret::from_string(SERVICE_SECRET.to_owned()).to_arc();
     let router = Router::new()
         .route(
             "/entities",
@@ -691,13 +694,14 @@ async fn enforced_denials_skip_the_inner_stack() {
         )
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(&limiters),
-            service_secret: Arc::clone(&service_secret),
+            service_secret: Pin::clone(&service_secret),
         })
         .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider: Arc::new(StaticAuthenticationProvider::NotRecognized),
-            service_secret: Arc::clone(&service_secret),
+            service_secret: Pin::clone(&service_secret),
             metrics: auth_metrics(),
             bootstrap_route: |_path| false,
+            challenge: Challenge::Service,
             caller: PhantomData,
         })
         .route_layer(IpGateLayer {
@@ -1027,12 +1031,12 @@ async fn maintenance_releases_replenished_keys_from_every_store() {
     };
     let recorded = RecordedMetrics::new();
     let limiters = RateLimiters::start(&quotas, &recorded.meter());
-    let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
+    let service_secret = Secret::from_string(SERVICE_SECRET.to_owned()).to_arc();
     let router = Router::new()
         .route("/entities", get(async || "ok"))
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(&limiters),
-            service_secret: Arc::clone(&service_secret),
+            service_secret: Pin::clone(&service_secret),
         })
         .route_layer(IpGateLayer {
             limiters: Arc::clone(&limiters),

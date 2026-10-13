@@ -96,6 +96,13 @@ export const setNetTitleToolName = "setNetTitle";
 export const readPetrinautDocToolName = "readPetrinautDoc";
 export const createExperimentToolName = "createExperiment";
 
+/**
+ * The id of the user message carrying diagnostics that the assistant appends
+ * after client tool results; it is not a human request.
+ */
+export const petrinautDiagnosticsContextMessageId =
+  "petrinaut-diagnostics-context";
+
 export const petrinautDocNames = [
   "drawing-a-net",
   "petri-net-extensions",
@@ -142,7 +149,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "code-editor":
     "Code editing in the Properties Panel: expand a section to fill the panel, return to the item’s other properties, direct function navigation, automatic edits and read-only behavior.",
   "visual-settings":
-    "General, Viewport, and Labs preferences: animations, keep-panels-mounted, welcome guide, minimap, snap-to-grid, compact nodes, partial selection, arc rendering style, notebook, net components, and compilation output.",
+    "General, Viewport, Plugins and Labs preferences: animations, keep-panels-mounted, minimap, snap-to-grid, compact nodes, partial selection, arc rendering style, switching plugins on or off, plugin settings, net components, and compilation output.",
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:

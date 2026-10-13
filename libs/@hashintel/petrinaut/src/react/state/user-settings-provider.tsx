@@ -45,6 +45,8 @@ type PersistedUserSettings = Partial<UserSettings> & {
   enableNotebookView?: boolean;
   /** Showed a host's Brunch demo affordances. Dropped on the next write. */
   brunchDemoMode?: boolean;
+  /** Opened the built-in welcome guide on init. Dropped on the next write. */
+  showWalkthroughOnInit?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -63,6 +65,7 @@ const loadSettings = (): UserSettings => {
         enableAdHocScenarios: _enableAdHocScenarios,
         enableNotebookView: _enableNotebookView,
         brunchDemoMode: _brunchDemoMode,
+        showWalkthroughOnInit: _showWalkthroughOnInit,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
       return {
@@ -135,10 +138,16 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, partialSelection: value })),
     setEnableNetComponents: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNetComponents: value })),
-    setShowWalkthroughOnInit: (value: boolean) =>
-      setState((prev) => ({ ...prev, showWalkthroughOnInit: value })),
     setShowCompilationOutput: (value: boolean) =>
       setState((prev) => ({ ...prev, showCompilationOutput: value })),
+    setPluginEnabled: (pluginId: string, enabled: boolean) =>
+      setState((prev) => ({
+        ...prev,
+        disabledPluginIds: [
+          ...prev.disabledPluginIds.filter((id) => id !== pluginId),
+          ...(enabled ? [] : [pluginId]),
+        ],
+      })),
     setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) => {
       // Stamped out here: an updater runs more than once and has to be pure.
       const savedAt = Date.now();
