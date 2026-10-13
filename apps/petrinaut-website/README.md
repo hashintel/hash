@@ -68,6 +68,8 @@ When Voice is enabled for Brunch, Labs also shows **Realtime mode**, off by defa
 
 A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch`; explicit browser-local assistant choices remain authoritative, so changing the launch fallback does not migrate existing users. With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the command palette (⌘K) continues to offer **Use Brunch** and, once switched, **Use the stock Petrinaut assistant**. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Ledger pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint, the Labs control remains visible but disabled, the stock assistant is the only one, and no command is offered.
 
+While Brunch is the assistant, **User settings → Plugins** lists **Brunch**, the `website.brunch` plugin in `src/main/app/plugins/brunch/plugin.tsx`. It has no switch: Brunch's cards read the open net, its experiments and the editor's navigation through its `api`, and render nothing without it. It leaves the list with the Brunch assistant.
+
 Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 
 ## Snapshot links
