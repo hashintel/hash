@@ -68,7 +68,12 @@ const dateTimePattern =
  * Parses an ISO 8601 instant with `Z` or an offset, e.g. `"2026-10-16T14:00:00Z"` or `"2026-10-16T16:00:00+02:00"`,
  * into epoch milliseconds.
  */
-export const parseDateTime = (value: string): number | WaitError => {
+export const parseDateTime = (value: unknown): number | WaitError => {
+  /* A value from JSON may not be a string, and `RegExp.exec` would turn e.g. an array of one string into one. */
+  if (typeof value !== "string") {
+    return waitError("A date and time must be a string.");
+  }
+
   const invalid = waitError(
     `"${value}" isn't an ISO 8601 date and time with Z or an offset, e.g. "2026-10-16T14:00:00Z".`,
   );
@@ -189,11 +194,7 @@ export const checkWaitInputs: ActionStepCheck = ({ step, report }) => {
   }
 
   if (until?.kind === "constant" && until.payload.kind === "DateTime") {
-    const { value } = until.payload;
-    const parsed =
-      typeof value === "string"
-        ? parseDateTime(value)
-        : waitError("An until time must be a string.");
+    const parsed = parseDateTime(until.payload.value);
     if (typeof parsed !== "number") {
       report("until", parsed.message);
     }

@@ -61,11 +61,13 @@ describe("resolveResumeAt", () => {
       [{ amount: 2, unit: "days" }, "2026-10-15T12:00:00.000Z"],
       [{ amount: 3, unit: "weeks" }, "2026-11-03T12:00:00.000Z"],
       [{ amount: 30, unit: "days" }, "2026-11-12T12:00:00.000Z"],
+      [{ amount: 1.5, unit: "hours" }, "2026-10-13T13:30:00.000Z"],
+      [{ amount: 0.5, unit: "days" }, "2026-10-14T00:00:00.000Z"],
     ] as const)("resumes %o after it starts at %s", (duration, resumeAt) => {
       expect(resumeAfter(duration)).toBe(resumeAt);
     });
 
-    it.each([
+    it.each<unknown>([
       { amount: 0, unit: "hours" },
       { amount: -1, unit: "hours" },
       { amount: Number.NaN, unit: "hours" },
@@ -73,8 +75,12 @@ describe("resolveResumeAt", () => {
       { amount: 31, unit: "days" },
       { amount: 5, unit: "weeks" },
       { amount: 30 * 24 * 60 * 60 + 1, unit: "seconds" },
-    ] as const)("rejects %o", (duration) => {
-      expect(resumeAfter(duration)).toEqual(anError);
+      { amount: 2, unit: "months" },
+      { amount: "2", unit: "days" },
+      {},
+      null,
+    ])("rejects %o", (duration) => {
+      expect(resumeAfter(duration as Duration)).toEqual(anError);
     });
   });
 
@@ -99,12 +105,16 @@ describe("resolveResumeAt", () => {
       );
     });
 
-    it.each(["tomorrow", "2026-11-12T12:00:01Z", "2026-11-12T14:00:01+02:00"])(
-      "rejects %j",
-      (until) => {
-        expect(resumeUntil(until)).toEqual(anError);
-      },
-    );
+    it.each<unknown>([
+      "tomorrow",
+      12_345,
+      /* `it.each` spreads an array row into arguments, so this passes an array of one string. */
+      [["2026-10-16T14:00:00Z"]],
+      "2026-11-12T12:00:01Z",
+      "2026-11-12T14:00:01+02:00",
+    ])("rejects %j", (until) => {
+      expect(resumeUntil(until as string)).toEqual(anError);
+    });
   });
 
   it("rejects neither a duration nor an until time", () => {
@@ -141,26 +151,26 @@ const until = (value: unknown): StepInputSource => ({
   payload: { kind: "DateTime", value },
 });
 
-describe("checkWaitInputs", () => {
-  const reportsFor = (inputs: Record<string, StepInputSource>) => {
-    const step: ActionStepDefinition<string> = {
-      kind: "action",
-      stepId: "wait",
-      actionDefinitionId: "wait",
-      description: "",
-      inputs,
-    };
-    const reported: string[] = [];
-
-    checkWaitInputs({
-      step,
-      getInputKind: () => null,
-      report: (inputName) => reported.push(inputName),
-    });
-
-    return reported;
+const reportsFor = (inputs: Record<string, StepInputSource>) => {
+  const step: ActionStepDefinition<string> = {
+    kind: "action",
+    stepId: "wait",
+    actionDefinitionId: "wait",
+    description: "",
+    inputs,
   };
+  const reported: string[] = [];
 
+  checkWaitInputs({
+    step,
+    getInputKind: () => null,
+    report: (inputName) => reported.push(inputName),
+  });
+
+  return reported;
+};
+
+describe("checkWaitInputs", () => {
   it("reports neither a duration nor an until time", () => {
     expect(reportsFor({})).toEqual(["duration"]);
   });
@@ -177,6 +187,7 @@ describe("checkWaitInputs", () => {
   it.each([
     { amount: 2, unit: "days" },
     { amount: 30, unit: "days" },
+    { amount: 1.5, unit: "hours" },
   ])("accepts the constant duration %o", (value) => {
     expect(reportsFor({ duration: duration(value) })).toEqual([]);
   });
@@ -251,5 +262,37 @@ describe("Duration and DateTime constants", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("pass the flow definition schema when malformed, so checkWaitInputs checks their shape", () => {
+    const malformedDuration = duration({ amount: -1, unit: "months" });
+    const malformedUntil = until("next tuesday");
+
+    const result = flowDefinitionSchema.safeParse({
+      name: "Wait",
+      description: "",
+      inputs: [],
+      steps: [
+        {
+          kind: "action",
+          stepId: "waitFor",
+          actionDefinitionId: "wait",
+          description: "",
+          inputs: { duration: malformedDuration },
+        },
+        {
+          kind: "action",
+          stepId: "waitUntil",
+          actionDefinitionId: "wait",
+          description: "",
+          inputs: { until: malformedUntil },
+        },
+      ],
+      outputs: [],
+    });
+
+    expect(result.success).toBe(true);
+    expect(reportsFor({ duration: malformedDuration })).toEqual(["duration"]);
+    expect(reportsFor({ until: malformedUntil })).toEqual(["until"]);
   });
 });
