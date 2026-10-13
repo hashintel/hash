@@ -13,7 +13,7 @@ const unsupportedPayloadKinds = [
   "ActorType",
   /** @todo support EntityId – requires updating the EntitySelector */
   "EntityId",
-  "PersistedEntitiesMetadata",
+  "FailedEntityProposal",
   "PersistedEntityMetadata",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",

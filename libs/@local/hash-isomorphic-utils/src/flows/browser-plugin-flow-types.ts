@@ -61,7 +61,15 @@ export type ManualInferenceArguments = ManualInferenceTriggerInputs &
 export const browserInferenceFlowOutput = {
   name: "persistedEntities",
   description: "The entities created or updated by the flow run",
-  payloadKind: "PersistedEntitiesMetadata",
+  payloadKind: "PersistedEntityMetadata",
+  array: true,
+  required: true,
+} as const satisfies Readonly<OutputDefinition>;
+
+export const browserInferenceFlowFailuresOutput = {
+  name: "failedEntityProposals",
+  description: "The proposed entities that could not be saved",
+  payloadKind: "FailedEntityProposal",
   array: true,
   required: true,
 } as const satisfies Readonly<OutputDefinition>;
