@@ -3,7 +3,9 @@ use core::ops::Range;
 
 use axum::response::{Html, IntoResponse as _};
 use error_stack::Report;
-use hash_graph_authorization::policies::store::error::ContextCreationError;
+use hash_graph_authorization::policies::store::error::{
+    BuildPrincipalContextError, ContextCreationError,
+};
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
@@ -69,6 +71,18 @@ impl DiagnosticCategory for HashQlDiagnosticCategory {
     }
 }
 
+fn log_report(
+    diagnostic: &mut Diagnostic<HashQlDiagnosticCategory, SpanId, Critical>,
+    report: &Report<impl core::error::Error>,
+    log_message: &str,
+) {
+    if cfg!(debug_assertions) {
+        diagnostic.add_message(Message::note(format!("{report:?}")));
+    } else {
+        tracing::error!(?report, "{log_message}");
+    }
+}
+
 pub(crate) fn store_acquire_diagnostic(
     report: &Report<impl core::error::Error>,
     root_span: SpanId,
@@ -90,26 +104,6 @@ pub(crate) fn store_acquire_diagnostic(
     );
 
     diagnostic
-}
-
-pub(crate) fn authorization_context_diagnostic(
-    report: &Report<ContextCreationError>,
-    root_span: SpanId,
-) -> Diagnostic<HashQlDiagnosticCategory, SpanId, Critical> {
-    match report.current_context() {
-        ContextCreationError::ActorNotFound { actor_id } => {
-            actor_not_found(report, root_span, actor_id)
-        }
-        ContextCreationError::BuildPrincipalContext { .. }
-        | ContextCreationError::BuildEntityTypeContext { .. }
-        | ContextCreationError::BuildPropertyTypeContext { .. }
-        | ContextCreationError::BuildDataTypeContext { .. }
-        | ContextCreationError::BuildEntityContext { .. }
-        | ContextCreationError::ResolveActorPolicies { .. }
-        | ContextCreationError::CreatePolicySet
-        | ContextCreationError::CreatePolicyContext
-        | ContextCreationError::StoreError => authorization_context_failed(report, root_span),
-    }
 }
 
 fn actor_not_found(
@@ -160,15 +154,31 @@ fn authorization_context_failed(
     diagnostic
 }
 
-fn log_report(
-    diagnostic: &mut Diagnostic<HashQlDiagnosticCategory, SpanId, Critical>,
-    report: &Report<impl core::error::Error>,
-    log_message: &str,
-) {
-    if cfg!(debug_assertions) {
-        diagnostic.add_message(Message::note(format!("{report:?}")));
-    } else {
-        tracing::error!(?report, "{log_message}");
+/// Classifies missing actors as request errors, even inside principal-context failures.
+pub(crate) fn authorization_context_diagnostic(
+    report: &Report<ContextCreationError>,
+    root_span: SpanId,
+) -> Diagnostic<HashQlDiagnosticCategory, SpanId, Critical> {
+    match report.current_context() {
+        ContextCreationError::ActorNotFound { actor_id } => {
+            actor_not_found(report, root_span, actor_id)
+        }
+        ContextCreationError::BuildPrincipalContext { .. } => match report.downcast_ref() {
+            Some(BuildPrincipalContextError::ActorNotFound { actor_id }) => {
+                actor_not_found(report, root_span, actor_id)
+            }
+            Some(BuildPrincipalContextError::StoreError) | None => {
+                authorization_context_failed(report, root_span)
+            }
+        },
+        ContextCreationError::BuildEntityTypeContext { .. }
+        | ContextCreationError::BuildPropertyTypeContext { .. }
+        | ContextCreationError::BuildDataTypeContext { .. }
+        | ContextCreationError::BuildEntityContext { .. }
+        | ContextCreationError::ResolveActorPolicies { .. }
+        | ContextCreationError::CreatePolicySet
+        | ContextCreationError::CreatePolicyContext
+        | ContextCreationError::StoreError => authorization_context_failed(report, root_span),
     }
 }
 
