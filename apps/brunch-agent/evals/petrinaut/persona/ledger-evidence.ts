@@ -1,5 +1,6 @@
 import {
   foldCommits,
+  type FoldedLedger,
   type LedgerHistory,
   projectLedger,
   renderLedgerMarkdown,
@@ -7,7 +8,7 @@ import {
 
 /** `ledger.json` and `ledger.md`. */
 export interface LedgerEvidence {
-  readonly commits: readonly unknown[];
+  readonly commits: FoldedLedger["commits"];
   readonly markdown: string;
 }
 
