@@ -35,7 +35,7 @@ use super::{
     AppState,
     extract::{Generation, Variant},
     headers,
-    problem::{Problem, unauthorized},
+    problem::{ProblemResponse, unauthorized},
 };
 use crate::serve::{
     authorization::{
@@ -64,7 +64,7 @@ struct ActorCache(Result<Actor, AuthenticationRejection>);
 pub(super) struct Actor(pub ActorId);
 
 impl<S: Send + Sync> FromRequestParts<S> for Actor {
-    type Rejection = Problem<'static>;
+    type Rejection = ProblemResponse<'static>;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let resolution = if let Some(ActorCache(cached)) = parts.extensions.get::<ActorCache>() {
@@ -78,7 +78,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Actor {
             resolution
         };
 
-        resolution.map_err(Problem::from)
+        resolution.map_err(ProblemResponse::from)
     }
 }
 
@@ -88,9 +88,9 @@ impl OperationInput for Actor {}
 ///
 /// # Errors
 ///
-/// Returns the unauthorized [`Problem`] when `header` contains invalid header text or does not
-/// parse as an [`EncryptedToken`].
-fn presentation(header: &HeaderValue) -> Result<EncryptedToken, Problem<'static>> {
+/// Returns the unauthorized [`ProblemResponse`] when `header` contains invalid header text or does
+/// not parse as an [`EncryptedToken`].
+fn presentation(header: &HeaderValue) -> Result<EncryptedToken, ProblemResponse<'static>> {
     header
         .to_str()
         .ok()
@@ -109,7 +109,7 @@ fn presentation(header: &HeaderValue) -> Result<EncryptedToken, Problem<'static>
 ///
 /// [`Actor`] errors precede a missing or malformed token's unauthorized response. [`Variant`]
 /// errors precede verification. All token verification and expiry failures return the unauthorized
-/// [`Problem`].
+/// [`ProblemResponse`].
 pub(super) struct AuthorityScope {
     /// The publication used for the token's generation and delta-lifetime checks.
     pub observation: Observation,
@@ -118,7 +118,7 @@ pub(super) struct AuthorityScope {
 }
 
 impl<R: Send> FromRequestParts<AppState<R>> for AuthorityScope {
-    type Rejection = Problem<'static>;
+    type Rejection = ProblemResponse<'static>;
 
     async fn from_request_parts(
         parts: &mut Parts,
@@ -167,8 +167,8 @@ impl OperationInput for AuthorityScope {
 /// # Errors
 ///
 /// [`Actor`] errors precede a malformed token's unauthorized response. [`Generation`] errors
-/// precede verification. All token verification failures return the unauthorized [`Problem`],
-/// including for renewal.
+/// precede verification. All token verification failures return the unauthorized
+/// [`ProblemResponse`], including for renewal.
 pub(super) struct Renewal {
     /// The publication used for the token's generation and delta-lifetime checks.
     pub observation: Observation,
@@ -179,7 +179,7 @@ pub(super) struct Renewal {
 }
 
 impl<R: Send> FromRequestParts<AppState<R>> for Renewal {
-    type Rejection = Problem<'static>;
+    type Rejection = ProblemResponse<'static>;
 
     async fn from_request_parts(
         parts: &mut Parts,

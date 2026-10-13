@@ -13,7 +13,7 @@ use type_system::principal::actor::ActorId;
 use super::{
     AppState,
     authorization::AuthorityScope,
-    problem::{Problem, unauthorized},
+    problem::{ProblemResponse, unauthorized},
 };
 use crate::{
     morton::Zoom,
@@ -38,9 +38,9 @@ impl Visibility {
     ///
     /// # Errors
     ///
-    /// Returns the unauthorized [`Problem`] when the authority offset cannot bind the entry's
-    /// delivery schedule.
-    pub(super) fn scene(&self) -> Result<Scene<'_>, Problem<'static>> {
+    /// Returns the unauthorized [`ProblemResponse`] when the authority offset cannot bind the
+    /// entry's delivery schedule.
+    pub(super) fn scene(&self) -> Result<Scene<'_>, ProblemResponse<'static>> {
         let requested = self.observation.requested();
         Scene::of(
             requested.world(),
@@ -59,7 +59,7 @@ impl Visibility {
 }
 
 impl<R: Send> FromRequestParts<AppState<R>> for Visibility {
-    type Rejection = Problem<'static>;
+    type Rejection = ProblemResponse<'static>;
 
     async fn from_request_parts(
         parts: &mut Parts,
@@ -95,15 +95,15 @@ impl OperationInput for Visibility {
 ///
 /// # Errors
 ///
-/// Returns [`Problem`] when the store cannot compile or answer the filter, or when the store
-/// resolves no scope for `actor`.
+/// Returns [`ProblemResponse`] when the store cannot compile or answer the filter, or when the
+/// store resolves no scope for `actor`.
 pub(super) async fn resolve<R>(
     state: &AppState<R>,
     observation: &Observation,
     actor: ActorId,
     filter: Option<FilterDigest>,
     document: Option<Arc<RawValue>>,
-) -> Result<Arc<CacheEntry>, Problem<'static>> {
+) -> Result<Arc<CacheEntry>, ProblemResponse<'static>> {
     state
         .scopes
         .resolve(observation, actor, filter, document)
