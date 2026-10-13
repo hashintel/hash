@@ -1,8 +1,6 @@
 /**
  * @vitest-environment jsdom
  */
-// oxlint-disable-next-line typescript/triple-slash-reference -- The rendered source fixture needs the package's CSS-only module declarations.
-/// <reference path="../../../../../../../../libs/@hashintel/petrinaut/src/ui/fontsource.d.ts" />
 import {
   fauxAssistantMessage,
   fauxProvider,
@@ -14,13 +12,12 @@ import { createFlueClient } from "@flue/sdk";
 import {
   cleanup,
   fireEvent,
-  render,
   screen,
   waitFor,
   within,
 } from "@testing-library/react";
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
-import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import {
   agentOwnershipHeaders,
@@ -28,7 +25,7 @@ import {
 } from "@hashintel/brunch-agent";
 import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
 
-import { AiAssistantContents } from "../../../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
+import { renderEditorWith } from "../../_shared/testing/render-editor-with";
 import { createBrunchFlueAdapter } from "../brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
@@ -38,9 +35,14 @@ import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
+await vi.hoisted(async () => {
+  const { installPetrinautDomShims } =
+    await import("../../../shared/petrinaut-jsdom");
+  installPetrinautDomShims();
+});
+
 const adapter = createBrunchFlueAdapter({ clientToolNames: new Set() });
 
-const noop = () => {};
 const originalFetch = globalThis.fetch;
 
 const entity = (name: string) => [
@@ -54,11 +56,6 @@ const claimAbout = (entityId: string, text: string) => [
 const commitName = "ledger_commit";
 
 beforeAll(() => {
-  globalThis.ResizeObserver = class {
-    public disconnect() {}
-    public observe() {}
-    public unobserve() {}
-  };
   globalThis.fetch = () =>
     Promise.reject(new Error("External fetch is forbidden in this fixture."));
 });
@@ -68,26 +65,24 @@ afterAll(() => {
 });
 afterEach(cleanup);
 
-const renderAssistant = (
-  messages: readonly PetrinautAiMessage[],
-  status: "ready" | "streaming" = "ready",
-) =>
-  render(
-    <AiAssistantContents
-      input=""
-      messages={[...messages]}
-      onClose={noop}
-      onInputChange={noop}
-      onStop={noop}
-      onSubmit={noop}
-      presentation="brunch"
-      resolveToolPresentation={resolveBrunchToolPresentation}
-      status={status}
-    />,
-  );
+/** Opens the real editor's Brunch assistant on `messages`, through Petrinaut's public props. */
+const renderAssistant = (messages: readonly PetrinautAiMessage[]) => {
+  renderEditorWith([], {
+    aiAssistant: {
+      presentation: "brunch",
+      messages: [...messages],
+      resolveToolPresentation: resolveBrunchToolPresentation,
+      transport: {
+        sendMessages: () => new Promise(() => {}),
+        reconnectToStream: async () => null,
+      },
+    },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" }));
+};
 
 const expandSettledTools = async () => {
-  const activity = screen.getByRole("button", { name: /^Activity/u });
+  const activity = await screen.findByRole("button", { name: /^Activity/u });
   fireEvent.click(activity);
   await waitFor(() =>
     expect(activity.getAttribute("aria-expanded")).toBe("true"),
@@ -97,7 +92,7 @@ const expandSettledTools = async () => {
   await waitFor(() => expect(tools.getAttribute("aria-expanded")).toBe("true"));
 };
 
-test("renders pending gold, applied green, typed refusal compact, and thrown red across reopen", async () => {
+test("presents pending calls as pending, and renders applied green, typed refusal compact, and thrown red across reopen", async () => {
   process.env.BRUNCH_CHAT_MODEL = "openai/faux-model";
   process.env.BRUNCH_CHAT_THINKING = "medium";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
@@ -193,7 +188,7 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       ],
       trigger: "submit-message",
     });
-    const pendingById = new Map<string, PetrinautAiMessage>();
+    const pendingInputById = new Map<string, unknown>();
     let terminalMessage: PetrinautAiMessage | undefined;
     for await (const message of readUIMessageStream<PetrinautAiMessage>({
       stream,
@@ -207,8 +202,8 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
         ) {
           continue;
         }
-        if (!pendingById.has(part.toolCallId)) {
-          pendingById.set(part.toolCallId, structuredClone(message));
+        if (!pendingInputById.has(part.toolCallId)) {
+          pendingInputById.set(part.toolCallId, structuredClone(part.input));
         }
       }
     }
@@ -221,17 +216,21 @@ test("renders pending gold, applied green, typed refusal compact, and thrown red
       "refused-reference",
       "applied-second",
     ]) {
-      const pending = pendingById.get(toolCallId);
-      expect(pending, `pending row missing for ${toolCallId}`).toBeDefined();
-      cleanup();
-      renderAssistant([pending!], "streaming");
-      const pendingRow = screen
-        .getAllByRole("button")
-        .find((row) => row.getAttribute("aria-busy") === "true");
-      expect(pendingRow?.getAttribute("data-tone")).toBe("pending");
       expect(
-        pendingRow?.querySelector('[data-tool-status="pending"]'),
-      ).not.toBeNull();
+        pendingInputById.has(toolCallId),
+        `pending call missing for ${toolCallId}`,
+      ).toBe(true);
+      // Petrinaut draws a pending row only while its own chat streams, which
+      // its public props cannot set; the tone it draws is Brunch's, from here.
+      expect(
+        resolveBrunchToolPresentation({
+          toolName: commitName,
+          state: "pending",
+          input: pendingInputById.get(toolCallId),
+          output: undefined,
+          error: undefined,
+        })?.tone,
+      ).toBe("pending");
     }
 
     cleanup();

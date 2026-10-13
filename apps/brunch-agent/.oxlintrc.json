@@ -31,6 +31,10 @@
         ],
         "patterns": [
           {
+            "regex": "^(\\.\\./)+((apps|libs|@[a-z0-9-]+)/|[^./][^/]*/(src|dist)/)",
+            "message": "Import another workspace package by its package name, not a relative path into it."
+          },
+          {
             "group": [
               "@hashintel/petrinaut/*",
               "@hashintel/petrinaut-cli",

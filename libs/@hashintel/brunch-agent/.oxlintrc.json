@@ -26,6 +26,10 @@
         ],
         "patterns": [
           {
+            "regex": "^(\\.\\./)+((apps|libs|@[a-z0-9-]+)/|[^./][^/]*/(src|dist)/)",
+            "message": "Import another workspace package by its package name, not a relative path into it."
+          },
+          {
             "group": ["@local/*"],
             "message": "Brunch libraries must remain independent of unpublished HASH packages."
           },
