@@ -23,8 +23,8 @@ You can check current TypeScript compilation diagnostics at any point using the 
 
 Three tools read the current net, each returning `{ title, definition, extensions }`: the user-visible net title, the SDCPN, and the active extension capabilities for this document.
 
-- `readNetOutline` leaves out code bodies, canvas positions and visual settings.
-- `readNetStructure` adds lambda, kernel, equation, scenario and metric code.
+- `readNetOutline` leaves out code and expressions (including parameter overrides, component parameter values and scenario initial states beyond the shape of an ad-hoc one), canvas positions and visual settings.
+- `readNetStructure` adds that code and those expressions.
 - `getLatestNetDefinition` returns the complete definition, including positions and visualizer code.
 
 A change is refused unless a current read of the net is in context, so read it before the first change, and again when the USER may have edited the net since. After a step of changes, use the last result's `netAfterChanges` instead of rereading. Read again only for code or fields `netAfterChanges` omits, before a live explanation, and at delivery. Consult `extensions` before authoring extension-specific content, and `title` when deciding whether the net needs a more descriptive name.

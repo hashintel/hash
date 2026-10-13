@@ -17,7 +17,7 @@ export const parseNetReaderInput = (value: unknown) =>
 
 export const netReaderDescriptions: Record<NetReaderLevel, string> = {
   outline:
-    "Read a compact outline of the current net: ids, names and core properties of places, transitions with their input and output arcs, token types, parameters, equations, scenarios, metrics, subnets and component instances. Code bodies, canvas positions and visual settings are left out. Returns { title, definition, extensions }.",
+    "Read a compact outline of the current net: ids, names and core properties of places, transitions with their input and output arcs, token types, parameters, equations, scenarios, metrics, subnets and component instances. Code and expressions are left out: lambda, kernel, equation and metric code, parameter overrides, component parameter values, and scenario initial states other than the shape of an ad-hoc one. Canvas positions, visual settings and host metadata are left out too. Returns { title, definition, extensions }.",
   structure:
     "Read the current net's structure with every core property, including lambda, kernel, equation, scenario and metric code. Canvas positions, visualizer code, icons, colours and host metadata are left out. Returns { title, definition, extensions }.",
 };
@@ -36,7 +36,48 @@ export const isNetObservationTool = (toolName: string): boolean =>
   toolName === getLatestNetDefinitionToolName ||
   netReaderLevelOf(toolName) !== undefined;
 
-const presentationalKeys: ReadonlySet<string> = new Set([
+type Projection = (value: unknown) => unknown;
+
+/** How one named field is copied: left out, or projected. */
+type FieldRule = "omit" | Projection;
+
+type FieldRules = Readonly<Record<string, FieldRule>>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** Copies an object applying `rules` to its own fields; other fields pass through. */
+const projectObject = (value: unknown, rules: FieldRules): unknown =>
+  isRecord(value)
+    ? Object.fromEntries(
+        Object.entries(value).flatMap(([key, member]) => {
+          const rule = Object.hasOwn(rules, key) ? rules[key] : undefined;
+          if (rule === "omit") return [];
+          return [[key, rule ? rule(member) : member]];
+        }),
+      )
+    : value;
+
+const eachItem =
+  (project: Projection): Projection =>
+  (value) =>
+    Array.isArray(value) ? value.map(project) : value;
+
+/** Projects every value of a record whose keys are user or entity names. */
+const eachValue =
+  (project: Projection): Projection =>
+  (value) =>
+    isRecord(value)
+      ? Object.fromEntries(
+          Object.entries(value).map(([key, member]) => [key, project(member)]),
+        )
+      : value;
+
+const omitAll = (keys: readonly string[]): FieldRules =>
+  Object.fromEntries(keys.map((key) => [key, "omit"]));
+
+/** Left out of the net and of each item in its collections, never deeper. */
+const presentationalRules = omitAll([
   "x",
   "y",
   "visualizerCode",
@@ -46,25 +87,97 @@ const presentationalKeys: ReadonlySet<string> = new Set([
   "metadata",
 ]);
 
-const isCodeKey = (key: string) => key === "code" || key.endsWith("Code");
+const adHocBoundsOutline = (settings: unknown) =>
+  projectObject(settings, omitAll(["min", "max", "step"]));
+
+/** An `AdHocValue`, or a Variable or net parameter built on one, without its expressions. */
+const adHocValueOutline = (value: unknown) =>
+  projectObject(value, {
+    expression: "omit",
+    optimize: adHocBoundsOutline,
+    retainedOptimize: adHocBoundsOutline,
+  });
+
+const adHocRowOutline = (row: unknown) =>
+  projectObject(row, {
+    cells: eachItem(adHocValueOutline),
+    count: adHocValueOutline,
+    retainedCount: adHocValueOutline,
+  });
+
+const adHocPlaceOutline = (place: unknown) =>
+  projectObject(place, {
+    variables: eachItem(adHocValueOutline),
+    rows: eachItem(adHocRowOutline),
+    count: adHocValueOutline,
+    sharedColumns: eachValue(adHocValueOutline),
+    retainedSharedColumns: eachValue(adHocValueOutline),
+  });
+
+const adHocStateOutline = (state: unknown) =>
+  projectObject(state, {
+    variables: eachItem(adHocValueOutline),
+    netParameters: eachItem(adHocValueOutline),
+    places: eachValue(adHocPlaceOutline),
+  });
+
+/** Ad-hoc states keep their shape; code and per-place states keep only their type. */
+const initialStateOutline = (state: unknown) => {
+  switch (isRecord(state) ? state.type : undefined) {
+    case "adhoc":
+      return projectObject(state, { content: adHocStateOutline });
+    case "code":
+    case "per_place":
+      return projectObject(state, { content: "omit" });
+    default:
+      return state;
+  }
+};
+
+/** Item collections of a net or subnet, apart from `subnets` themselves. */
+const itemCollections = [
+  "places",
+  "transitions",
+  "types",
+  "differentialEquations",
+  "parameters",
+  "scenarios",
+  "metrics",
+  "componentInstances",
+] as const;
+
+/** Code and expression fields the outline also leaves out, by collection. */
+const outlineItemRules: Partial<
+  Record<(typeof itemCollections)[number], FieldRules>
+> = {
+  transitions: omitAll(["lambdaCode", "transitionKernelCode"]),
+  differentialEquations: omitAll(["code"]),
+  scenarios: { parameterOverrides: "omit", initialState: initialStateOutline },
+  metrics: omitAll(["code"]),
+  componentInstances: omitAll(["parameterValues"]),
+};
 
 /**
- * Drop presentational fields at every depth; the outline also drops code.
- * Everything else the definition carries passes through, so new core fields
- * appear without changes here.
+ * Drop presentational fields from the net, its subnets and the items of their
+ * collections; the outline also drops code and expressions. Fields are matched
+ * by their place in the net, so user-named keys such as an ad-hoc scenario's
+ * shared columns are never mistaken for them, and fields not named here pass
+ * through, so new core fields appear without changes here.
  */
 export const projectNetDefinition = (
   value: unknown,
   level: NetReaderLevel,
-): unknown => {
-  if (Array.isArray(value))
-    return value.map((entry) => projectNetDefinition(entry, level));
-  if (typeof value !== "object" || value === null) return value;
-  return Object.fromEntries(
-    Object.entries(value).flatMap(([key, entry]) =>
-      presentationalKeys.has(key) || (level === "outline" && isCodeKey(key))
-        ? []
-        : [[key, projectNetDefinition(entry, level)]],
+): unknown =>
+  projectObject(value, {
+    ...presentationalRules,
+    ...Object.fromEntries(
+      itemCollections.map((collection) => {
+        const itemRules: FieldRules = {
+          ...presentationalRules,
+          ...(level === "outline" ? outlineItemRules[collection] : {}),
+        };
+        return [collection, eachItem((item) => projectObject(item, itemRules))];
+      }),
     ),
-  );
-};
+    subnets: eachItem((subnet) => projectNetDefinition(subnet, level)),
+  });
