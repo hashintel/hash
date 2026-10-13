@@ -14,9 +14,10 @@ use crate::def::DefId;
 /// ```
 /// use hashql_mir::{def::DefId, interpret::value::Ptr};
 ///
-/// let ptr = Ptr::new(DefId::DICT_INSERT);
-/// assert_eq!(ptr.def(), DefId::DICT_INSERT);
-/// assert_eq!(ptr.to_string(), format!("*{}", DefId::DICT_INSERT));
+/// let def = DefId::new(0);
+/// let ptr = Ptr::new(def);
+/// assert_eq!(ptr.def(), def);
+/// assert_eq!(ptr.to_string(), format!("*{def}"));
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ptr {
@@ -31,8 +32,9 @@ impl Ptr {
     /// ```
     /// use hashql_mir::{def::DefId, interpret::value::Ptr};
     ///
-    /// let ptr = Ptr::new(DefId::DICT_INSERT);
-    /// assert_eq!(ptr.def(), DefId::DICT_INSERT);
+    /// let def = DefId::new(0);
+    /// let ptr = Ptr::new(def);
+    /// assert_eq!(ptr.def(), def);
     /// ```
     #[inline]
     #[must_use]
@@ -47,8 +49,9 @@ impl Ptr {
     /// ```
     /// use hashql_mir::{def::DefId, interpret::value::Ptr};
     ///
-    /// let ptr = Ptr::from(DefId::DICT_INSERT);
-    /// assert_eq!(ptr.def(), DefId::DICT_INSERT);
+    /// let def = DefId::new(0);
+    /// let ptr = Ptr::from(def);
+    /// assert_eq!(ptr.def(), def);
     /// ```
     #[inline]
     #[must_use]
