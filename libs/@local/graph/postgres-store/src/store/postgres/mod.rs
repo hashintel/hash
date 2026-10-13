@@ -48,7 +48,10 @@ use hash_graph_store::{
         WebRetrievalError, WebUpdateError,
     },
     error::{InsertionError, UpdateError},
-    filter::protection::PropertyProtectionFilterConfig,
+    filter::{
+        Filter,
+        protection::{PropertyProtectionFilterConfig, transform_filter},
+    },
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -60,7 +63,7 @@ use tokio_postgres::{Client, GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     Valid,
-    knowledge::entity::{EntityId, id::EntityEditionId},
+    knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
         OntologyTemporalMetadata,
         data_type::{ClosedDataType, DataType, DataTypeUuid, schema::DataTypeResolveData},
@@ -655,6 +658,40 @@ where
     C: AsClient,
     S: TransactionState,
 {
+    fn should_apply_filter_protection(&self, policy_components: &PolicyComponents) -> bool {
+        !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin()
+    }
+
+    /// Rewrites protected property filters using the actor's ownership constraints.
+    ///
+    /// Callers must check [`Self::should_apply_filter_protection`] before applying protection.
+    fn apply_filter_protection<'p>(
+        &self,
+        filter: Filter<'p, Entity>,
+        policy_components: &PolicyComponents,
+    ) -> Filter<'p, Entity> {
+        transform_filter(
+            filter,
+            &self.settings.filter_protection,
+            0,
+            policy_components.actor_id(),
+        )
+    }
+
+    /// Applies protection when configured for actors without instance admin privileges,
+    /// otherwise returns the original filter.
+    fn maybe_apply_filter_protection<'p>(
+        &self,
+        filter: Filter<'p, Entity>,
+        policy_components: &PolicyComponents,
+    ) -> Filter<'p, Entity> {
+        if self.should_apply_filter_protection(policy_components) {
+            self.apply_filter_protection(filter, policy_components)
+        } else {
+            filter
+        }
+    }
+
     async fn get_policy_from_database(
         &self,
         id: PolicyId,

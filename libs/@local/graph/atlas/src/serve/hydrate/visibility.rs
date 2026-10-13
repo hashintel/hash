@@ -122,11 +122,7 @@ where
         instance_admin: policy_components.is_instance_admin(),
     };
 
-    let policy_filter = Filter::<Entity>::for_policies(
-        policy_components.extract_filter_policies(ActionName::ViewEntity),
-        policy_components.actor_id(),
-        policy_components.optimization_data(ActionName::ViewEntity),
-    );
+    let policy_filter = Filter::<Entity>::for_view_entity(&policy_components);
 
     if admits_every_row(filter, &policy_filter) {
         return Ok(VisibilityMask::full(actor));
