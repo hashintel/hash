@@ -1,4 +1,5 @@
 use alloc::{string::String, vec::Vec};
+use core::{mem, ptr};
 
 use error_stack::{ResultExt as _, TryReportIteratorExt as _, TryReportTupleExt as _};
 use serde_saphyr::Spanned;
@@ -12,6 +13,7 @@ use crate::{
         Accessor, Action, BranchStep, Branches, Coercion, EntitySink, InvalidBranches, Properties,
         Step, StepKind,
     },
+    variant_name::VariantName,
     yaml::syntax::{
         AccessorFields, AccessorSyntax, BranchesSyntax, CoercionSyntax, EndpointSyntax,
         EntityPipelineSyntax, LinkPipelineSyntax, LinkStepSyntax, PipelinesSyntax, SinkSyntax,
@@ -140,8 +142,12 @@ impl SinkSyntax {
     }
 }
 
-/// What a step does, named by its one key: `sql`, `checkpoint`, `sink` or `branches`.
+/// What a step does, named by its one key.
+///
+/// The keys are the variant names in camelCase. The variants have no explicit discriminants,
+/// because [`name`](Self::name) reads the discriminant as the variant's position.
 #[derive(Clone, Copy)]
+#[repr(u8)]
 enum StepKindSyntax<'syntax> {
     Sql(&'syntax Spanned<String>),
     Checkpoint(&'syntax Spanned<String>),
@@ -150,32 +156,34 @@ enum StepKindSyntax<'syntax> {
 }
 
 impl StepKindSyntax<'_> {
-    const NAMES: &'static [&'static str] = &["sql", "checkpoint", "sink", "branches"];
+    /// The key of every kind, in declaration order.
+    const NAMES: [&'static str; mem::variant_count::<StepKindSyntax<'static>>()] =
+        VariantName::as_strs(&Self::VARIANT_NAMES);
+    const VARIANT_NAMES: [VariantName; mem::variant_count::<StepKindSyntax<'static>>()] =
+        VariantName::camel_case::<StepKindSyntax<'static>, _>();
 
+    #[expect(
+        unsafe_code,
+        reason = "reads the discriminant that `repr(u8)` places in the first byte"
+    )]
     const fn name(self) -> &'static str {
-        match self {
-            Self::Sql(_) => "sql",
-            Self::Checkpoint(_) => "checkpoint",
-            Self::Sink(_) => "sink",
-            Self::Branches(_) => "branches",
-        }
+        // SAFETY: `repr(u8)` places the discriminant in the first byte, and the implicit
+        // discriminants count from 0 in declaration order.
+        let index = unsafe { *ptr::from_ref(&self).cast::<u8>() };
+        Self::NAMES[index as usize]
     }
 
-    fn action(self, lowering: &mut Lowering, path: &DefinitionPath) -> LoweredResult<Action> {
+    fn to_action(self, lowering: &mut Lowering, path: &DefinitionPath) -> LoweredResult<Action> {
+        let path = path.clone().field(self.name());
         match self {
-            Self::Sql(query) => lowering
-                .query(query, &path.clone().field("sql"))
-                .map(Action::Sql),
-            Self::Checkpoint(checkpoint) => lowering
-                .name(checkpoint, &path.clone().field("checkpoint"))
-                .map(Action::Checkpoint),
-            Self::Sink(sink) => sink
-                .lower(lowering, &path.clone().field("sink"))
-                .map(Action::Sink),
+            Self::Sql(query) => lowering.query(query, &path).map(Action::Sql),
+            Self::Checkpoint(checkpoint) => {
+                lowering.name(checkpoint, &path).map(Action::Checkpoint)
+            }
+            Self::Sink(sink) => sink.lower(lowering, &path).map(Action::Sink),
             Self::Branches(branches) => {
-                let branches_path = path.clone().field("branches");
-                lowering.record_location(&branches_path, SourceLocation::from_spanned(branches));
-                Err(lowering.report(branches_path, IssueKind::NestedBranch))
+                lowering.record_location(&path, SourceLocation::from_spanned(branches));
+                Err(lowering.report(path, IssueKind::NestedBranch))
             }
         }
     }
@@ -201,7 +209,7 @@ impl StepSyntax {
             (None, _) => Err(lowering.report(
                 path.clone(),
                 IssueKind::MissingKind {
-                    expected: StepKindSyntax::NAMES,
+                    expected: &StepKindSyntax::NAMES,
                 },
             )),
             (Some(_), Some(_)) => Err(lowering.report(
@@ -222,7 +230,7 @@ impl StepSyntax {
         let id = lowering.name::<StepId>(&self.id, &path.clone().field("id"));
         let action = self
             .kind(lowering, path)
-            .and_then(|kind| kind.action(lowering, path));
+            .and_then(|kind| kind.to_action(lowering, path));
 
         let (id, action) = (id, action).try_collect()?;
         Ok(BranchStep { id, action })
@@ -243,7 +251,7 @@ impl StepSyntax {
             }
             kind @ (StepKindSyntax::Sql(_)
             | StepKindSyntax::Checkpoint(_)
-            | StepKindSyntax::Sink(_)) => kind.action(lowering, path).map(StepKind::Action),
+            | StepKindSyntax::Sink(_)) => kind.to_action(lowering, path).map(StepKind::Action),
         });
 
         let (id, kind) = (id, kind).try_collect()?;

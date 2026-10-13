@@ -10,7 +10,7 @@
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![feature(ascii_char, ascii_char_variants)]
+#![feature(ascii_char, ascii_char_variants, type_info, variant_count)]
 
 extern crate alloc;
 
@@ -22,6 +22,7 @@ mod pipeline;
 mod source;
 mod step;
 mod unit_map;
+mod variant_name;
 mod yaml;
 
 pub use self::{
