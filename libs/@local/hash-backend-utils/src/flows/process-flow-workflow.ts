@@ -7,6 +7,7 @@ import {
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
@@ -33,6 +34,7 @@ import type {
   ProxyFlowActivity,
 } from "./action-types.js";
 import type { EntityUuid } from "@blockprotocol/type-system";
+import type { FlowActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   BaseRunFlowWorkflowParams,
   RunFlowWorkflowResponse,
@@ -411,7 +413,7 @@ const processFlow = async <
       );
 
       let actionResponse: Status<{
-        outputs: StepOutput[];
+        outputs: FlowActionStepOutput<FlowActionDefinitionId>[];
       }>;
 
       try {
@@ -455,11 +457,50 @@ const processFlow = async <
         return;
       }
 
-      const { outputs } = actionResponse.contents[0]!;
+      /*
+       * An output that takes its kind from an input is typed as any kind that input accepts, here, outside the action,
+       * where TypeScript can no longer check that its kind and value match. It checked that in the action, which is
+       * generic over the kind it is given (see `FlowActionActivity`).
+       */
+      const outputs: StepOutput[] = actionResponse.contents[0]!.outputs.map(
+        ({ outputName, payload }) => ({
+          outputName,
+          payload: asPayload(payload),
+        }),
+      );
 
       log(
         `Step ${currentStepId}: obtained ${outputs.length} outputs from "${currentStep.actionDefinitionId}" action`,
       );
+
+      /*
+       * An output that takes its kind from an input (`kindFrom`) is only typed as any kind that input accepts, so check
+       * the action returned the kind it was given.
+       */
+      for (const outputDefinition of actionDefinitions[
+        currentStep.actionDefinitionId
+      ].outputs) {
+        if (!("kindFrom" in outputDefinition)) {
+          continue;
+        }
+
+        const outputKind = outputs.find(
+          ({ outputName }) => outputName === outputDefinition.name,
+        )?.payload.kind;
+
+        const inputKind = currentStep.inputs?.find(
+          ({ inputName }) => inputName === outputDefinition.kindFrom,
+        )?.payload.kind;
+
+        if (outputKind !== undefined && outputKind !== inputKind) {
+          processStepErrors[currentStepId] = {
+            code: StatusCode.Internal,
+            message: `Action ${currentStep.actionDefinitionId} returned output "${outputDefinition.name}" of kind ${outputKind}, but it must have the kind of input "${outputDefinition.kindFrom}" (${inputKind ?? "not given"})`,
+          };
+
+          return;
+        }
+      }
 
       currentStep.outputs = outputs;
 
