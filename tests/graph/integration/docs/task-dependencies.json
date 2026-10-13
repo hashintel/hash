@@ -47,9 +47,7 @@
         "hash-graph",
         "hash-graph-api",
         "hash-graph-atlas",
-        "hash-graph-authentication",
         "hash-graph-type-fetcher",
-        "hash-middleware",
         "hashql-ast",
         "hashql-core",
         "hashql-diagnostics",
@@ -57,8 +55,7 @@
         "hashql-hir",
         "hashql-macros",
         "hashql-mir",
-        "hashql-syntax-jexpr",
-        "problematic"
+        "hashql-syntax-jexpr"
       ]
     }
   }
