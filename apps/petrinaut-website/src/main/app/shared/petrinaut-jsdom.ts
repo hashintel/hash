@@ -34,6 +34,26 @@ export const installPetrinautDomShims = () => {
       escape: (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "\\$&"),
     },
   });
+  // jsdom reads as a WebKit web view, so once loaded, Monaco writes to the
+  // clipboard on every click and keydown. It cancels each write's pending
+  // item on the next event; `write` awaits the items so that rejection
+  // reaches Monaco's own `catch`.
+  class ClipboardItem {
+    constructor(readonly items: Record<string, unknown>) {}
+  }
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: {
+      write: (items: readonly ClipboardItem[]) =>
+        Promise.all(items.flatMap((item) => Object.values(item.items))).then(
+          () => undefined,
+        ),
+    },
+  });
+  Object.defineProperty(globalThis, "ClipboardItem", {
+    configurable: true,
+    value: ClipboardItem,
+  });
 };
 
 /**

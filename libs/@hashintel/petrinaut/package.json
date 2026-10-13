@@ -24,6 +24,13 @@
   ],
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
+  "typesVersions": {
+    "*": {
+      "ui/plugin": [
+        "dist/ui/plugin.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/main.d.ts",
@@ -36,6 +43,10 @@
     "./ui": {
       "types": "./dist/ui.d.ts",
       "default": "./dist/ui.js"
+    },
+    "./ui/plugin": {
+      "types": "./dist/ui/plugin.d.ts",
+      "default": "./dist/ui/plugin.js"
     },
     "./preview": {
       "types": "./dist/preview.d.ts",

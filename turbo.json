@@ -39,10 +39,12 @@
       "dependsOn": ["^manifest"]
     },
     "compile": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^manifest"]
     },
     "compile:release": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^manifest"]
     },
     // Run commands
     "start:migrate": {
