@@ -24,9 +24,9 @@
  * backoff, and the two failures that end a session replace it once and retry, as
  * in {@link fetchTile}: a `404`, meaning the pinned generation is no longer
  * served, and an authority renewal the server refuses (see
- * {@link canReplaceAtlasSession}, which also decides whether this caller is
- * still the one entitled to replace it). A locate `404` may instead be
- * `unknown-entity` — the retry then re-throws it.
+ * {@link withAtlasSession}, which also decides whether this caller replaces the
+ * session or joins a replacement a concurrent caller already made). A locate
+ * `404` may instead be `unknown-entity` — the retry then re-throws it.
  *
  * ## Source id
  *

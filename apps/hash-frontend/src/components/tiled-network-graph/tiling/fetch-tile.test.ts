@@ -1449,6 +1449,79 @@ describe("the atlas authority token", () => {
     unsubscribe();
   });
 
+  it("retries every concurrent caller of an ended session under the one replacement", async () => {
+    const generation = genHex(0x94);
+    // A session never ends for one request alone: both tile fetches below are refused with the same
+    // dead token and share the one renewal whose refusal ends the session. The renewal is held until
+    // both refusals are in, so the second caller is provably waiting on the first's renewal — the
+    // shape a token invalidation really has — rather than racing its own.
+    const gate = held();
+    let minted = TOKEN_A;
+    let admitted = TOKEN_A;
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: (request) =>
+        request.authority === null
+          ? manifest(generation, 16, minted)
+          : gate.promise,
+      [`/atlas/tile/${generation}/plain/1/1/0`]: (request) =>
+        request.authority === admitted
+          ? saltile(tileBytes(0x94, 1, 1, 0))
+          : unauthorized(),
+      [`/atlas/tile/${generation}/plain/1/0/1`]: (request) =>
+        request.authority === admitted
+          ? saltile(tileBytes(0x94, 1, 0, 1))
+          : unauthorized(),
+    });
+
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
+    const before = getAtlasSessionRevision();
+    const settled = seen.length;
+
+    minted = TOKEN_B;
+    admitted = TOKEN_B;
+
+    const tiles = Promise.all([
+      fetchTile(u64(1), u64(1), { baseUrl: BASE, retry: 0 }),
+      fetchTile(u64(1), u64(2), { baseUrl: BASE, retry: 0 }),
+    ]);
+    // Both refusals and the shared renewal are in flight before the refusal is released.
+    await vi.waitFor(() => {
+      expect(dataRoutes(seen.slice(settled))).toHaveLength(2);
+      expect(manifestFetches(seen.slice(settled))).toHaveLength(1);
+    });
+    gate.release(unauthorized());
+
+    // Both callers see painted tiles: the first replaced the session, and the second retried under
+    // that replacement instead of failing for having acted second.
+    const [first, second] = await tiles;
+    expect(first.nodes).toHaveLength(3);
+    expect(second.nodes).toHaveLength(3);
+
+    // One recovery, not one per caller: the binding moved once, one bootstrap re-pinned, and the one
+    // manifest fetch past the bootstraps is the shared renewal that presented the dead token.
+    expect(getAtlasSessionRevision()).toBe(before + 1);
+    const recovery = seen.slice(settled);
+    expect(
+      recovery.filter((request) => request.path.endsWith("/current")),
+    ).toHaveLength(1);
+    expect(
+      manifestFetches(recovery).map((request) => request.authority),
+    ).toEqual([TOKEN_A, null]);
+    // Each caller was refused with the dead token and retried with the successor's.
+    expect(dataRoutes(recovery).map((request) => request.authority)).toEqual([
+      TOKEN_A,
+      TOKEN_A,
+      TOKEN_B,
+      TOKEN_B,
+    ]);
+    expect(
+      recovery
+        .filter((request) => request.path.endsWith("/1/0/1"))
+        .map((request) => request.authority),
+    ).toEqual([TOKEN_A, TOKEN_B]);
+  });
+
   it("replaces the session once: a refusal after the fresh bootstrap is terminal", async () => {
     const generation = genHex(0x92);
     const seen = stubAuthorityTransport({
@@ -1626,8 +1699,9 @@ describe("the atlas authority token", () => {
 
   it("names the moved cut as its own failure when the replacement is not available", async () => {
     const generation = genHex(0x64);
-    // The class is the assertion. A superseded caller cannot replace the session, so the error it
-    // raised travels intact rather than being reported as a decode mismatch or a refusal — which is
+    // The class is the assertion. The session was dropped from outside the recovery, so the
+    // superseded caller may replace nothing and finds no replacement to retry under — the error it
+    // raised travels intact rather than being reported as a decode mismatch or a refusal, which is
     // what lets the session's owner tell a successful renewal at a moved cut from a refused one.
     let corpus = false;
     const seen = stubAuthorityTransport({

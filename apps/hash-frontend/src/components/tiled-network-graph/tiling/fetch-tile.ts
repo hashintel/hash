@@ -41,7 +41,7 @@
  * `404`, meaning the pinned generation is no longer served, a renewal the
  * server refuses, and a renewal that succeeds at a different delivery cut than the
  * session decodes against — share one session replacement in {@link fetchTile} (see
- * {@link canReplaceAtlasSession}).
+ * {@link withAtlasSession}).
  */
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
@@ -236,7 +236,7 @@ export const ATLAS_RETIRED_GENERATION_PROBLEM =
  * re-bootstrap would buy a wasted round trip and discard live rows. This error, by contrast, means the renewal
  * itself was refused, where an expiry would have been forgiven, so the session's authority is not
  * one the server will admit again and the session cannot be continued at all (see
- * {@link canReplaceAtlasSession}, its only consumer).
+ * {@link endsAtlasSession}, its only consumer).
  *
  * It is minted at the one place that can tell the two apart — the caller of
  * {@link renewAtlasAuthority} — so no route decides, and a route that forgot to would get the
@@ -265,7 +265,7 @@ export class AtlasAuthorityEndedError extends FetchTileError {}
  * does not reconstruct the producer's run schedule.
  *
  * Minted inside {@link renewAtlasAuthority}, which is the only place holding both numbers, and
- * consumed only by {@link canReplaceAtlasSession}.
+ * consumed only by {@link endsAtlasSession}.
  */
 export class AtlasDeliveryCutChangedError extends FetchTileError {}
 
@@ -813,7 +813,7 @@ const requestManifest = (
  * A document this side cannot read is not evidence that the cut moved: it fails the renewal, which
  * fails the request that needed it, and destroys nothing. The session survives an unreadable answer
  * for the same reason an unreadable refusal never authorises a drop (see
- * {@link canReplaceAtlasSession}).
+ * {@link endsAtlasSession}).
  *
  * A `404` is not a failed renewal but a re-pin: the pinned generation is no longer served. It
  * travels to the caller as the refusal, where the pre-existing generation-refresh path (see
@@ -824,7 +824,7 @@ const requestManifest = (
  * session rather than the request: authority that its own renewal refuses cannot be continued, only
  * replaced. This function does not replace it.
  * The refusal travels to the caller, where the session's owner drops it and re-bootstraps (see
- * {@link canReplaceAtlasSession}) — the same door, in the same order, that a `404` re-pin already
+ * {@link withAtlasSession}) — the same door, in the same order, that a `404` re-pin already
  * uses, so the two recoveries stay one recovery. Recovering here would be the wrong site twice over:
  * this layer holds no session promise to check its own staleness against, and a renewal deliberately
  * outlives its callers' signals, so a refusal can land after everything it addressed was dropped.
@@ -838,7 +838,7 @@ const requestManifest = (
  * @throws the manifest's own refusal, which {@link requestAtlas} turns into an
  *   {@link AtlasAuthorityEndedError} for the session's owner, or an
  *   {@link AtlasDeliveryCutChangedError} where the renewal succeeded at a cut this session does not
- *   decode against — both doors of {@link canReplaceAtlasSession}, reached from opposite outcomes.
+ *   decode against — both doors of {@link endsAtlasSession}, reached from opposite outcomes.
  */
 const renewAtlasAuthority = async (url: string): Promise<boolean> => {
   const authority = authorityFor(url);
@@ -1149,7 +1149,7 @@ const fetchSaltileSession = async (
 /**
  * Memoized session promise per origin. A session outlives every viewport that uses it, so this is
  * held until something ends it: a `404` saying the pinned generation is no longer served, a refused
- * renewal saying its authority is no longer admitted (both through {@link canReplaceAtlasSession}),
+ * renewal saying its authority is no longer admitted (both through {@link withAtlasSession}),
  * or a direct {@link clearAtlasSessionCache}. Caching the promise (not the resolved value) also
  * collapses the concurrent first-callers of a fresh viewport into a single bootstrap, and gives every
  * caller a name for the population it belongs to.
@@ -1160,7 +1160,7 @@ const sessionCache = new Map<string, Promise<SaltileSession>>();
  * The memoized SALTILE session for `baseUrl`, bootstrapping it on first use.
  * Shared by the tile and edges transports so both bind to one generation; a
  * session either transport finds unusable is replaced through
- * {@link clearAtlasSessionCache} (see {@link canReplaceAtlasSession}).
+ * {@link clearAtlasSessionCache} (see {@link withAtlasSession}).
  */
 export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
   const cached = sessionCache.get(baseUrl);
@@ -1173,8 +1173,8 @@ export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
       // bootstrap superseded during its manifest round trip resolves after its promise left the
       // cache, and the session it resolved answers for a view — a filter, a principal, a
       // generation — that is no longer the live one, so its depth must not bound the live camera.
-      // Identity rather than a flag, for the same reason as {@link canReplaceAtlasSession}: the
-      // memoized promise is the population's name.
+      // Identity rather than a flag, for the same reason as {@link withAtlasSession}'s pinned
+      // comparison: the memoized promise is the population's name.
       if (sessionCache.get(baseUrl) === pending) {
         publishAtlasTileMaxZoom(session.tileMaxZoom);
       }
@@ -1192,15 +1192,16 @@ export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
 };
 
 /**
- * Whether `error` ends the session `pinned` resolved, and this caller may replace it.
+ * Whether `error` ends the session it arose under.
  *
  * Two failures end a session, arriving from opposite directions. A `404` naming
  * {@link ATLAS_RETIRED_GENERATION_PROBLEM} says the generation this session pinned is no longer
  * served — a re-pin. An {@link AtlasAuthorityEndedError} says its own renewal was refused, and an
  * expiry is forgiven at that renewal, so the authority is one the server will not admit again.
  * Neither is recoverable in place: the recovery for both is to drop the session and bootstrap a new
- * one without a token, then retry once. A refusal after that is terminal — a bootstrap presenting no
- * token cannot be refused for authority.
+ * one without a token, then retry once (see {@link withAtlasSession}, which also decides *who* may
+ * drop it). A refusal after that is terminal — a bootstrap presenting no token cannot be refused for
+ * authority.
  *
  * The status alone will not do, and reading it alone was wrong: the atlas answers `404` for a locate
  * whose source names no visible node too, so searching for an entity outside the current generation
@@ -1218,28 +1219,29 @@ export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
  * A plain `401` is deliberately absent from this set: it means a data route refused a token the manifest
  * had just minted, so nothing is stale, a re-bootstrap cannot help, and taking one would discard live
  * rows for a refusal that will recur.
- *
- * **`pinned` is the promise the caller awaited, not the session it resolved, and comparing it against
- * the cache is what makes the recovery non-destructive.** A bootstrap and a renewal both outlive their
- * callers' signals on purpose, so a refusal can land after the session it addressed was dropped and
- * replaced — by a principal transition, say. An unconditional clear would then erase a successor's
- * session, token and painted rows on the word of a request that never addressed them. A caller whose
- * pinned session is no longer the cached one has been superseded: it fails, and touches nothing.
- *
- * The check is an identity comparison rather than a remembered flag because the memoized promise is
- * already the population's name: it is replaced exactly when the population is.
  */
-const canReplaceAtlasSession = (
-  error: unknown,
-  baseUrl: string,
-  pinned: Promise<SaltileSession>,
-): boolean =>
-  (error instanceof AtlasAuthorityEndedError ||
-    error instanceof AtlasDeliveryCutChangedError ||
-    (error instanceof FetchTileError &&
-      error.status === 404 &&
-      error.problem === ATLAS_RETIRED_GENERATION_PROBLEM)) &&
-  sessionCache.get(baseUrl) === pinned;
+const endsAtlasSession = (error: unknown): boolean =>
+  error instanceof AtlasAuthorityEndedError ||
+  error instanceof AtlasDeliveryCutChangedError ||
+  (error instanceof FetchTileError &&
+    error.status === 404 &&
+    error.problem === ATLAS_RETIRED_GENERATION_PROBLEM);
+
+/**
+ * The successor each recovery installed, keyed by the pinned session promise it dropped.
+ *
+ * Written only by {@link withAtlasSession}'s replacing caller, in the same breath as the clear and
+ * the re-bootstrap, so a caller that lost the replacement race can tell "my session ended and the
+ * recovery already replaced it" — join the recorded successor — from "my session was dropped by a
+ * principal transition or a view rebind" — no entry, so its failure travels and it touches nothing.
+ * The two are otherwise indistinguishable from the loser's seat: both leave the cache holding a
+ * promise that is not its pinned one. Weakly keyed, so an entry lives exactly as long as some caller
+ * still holds the dropped promise it answers for.
+ */
+const sessionReplacements = new WeakMap<
+  Promise<SaltileSession>,
+  Promise<SaltileSession>
+>();
 
 /**
  * Monotonic name for the session binding the memoized sessions carry: dropping a pinned session moves
@@ -1376,19 +1378,39 @@ export const setAtlasViewFilter = (
  *
  * Every route that binds to a session goes through here, and this is the only place the recovery
  * exists. `operation` receives the session to use and is called at most twice: once under the pinned
- * session, and once more under a freshly bootstrapped one when the first attempt failed in a way that
- * ends the session (see {@link canReplaceAtlasSession}). Anything derived from the session belongs
- * inside `operation` — the second call receives the successor, so a value read off the session is
- * re-read against it rather than carried across the replacement.
+ * session, and once more under its successor when the first attempt failed in a way that ends the
+ * session (see {@link endsAtlasSession}). Anything derived from the session belongs inside
+ * `operation` — the second call receives the successor, so a value read off the session is re-read
+ * against it rather than carried across the replacement.
+ *
+ * **`pinned` is the promise this caller awaited, not the session it resolved, and comparing it
+ * against the cache is what keeps the recovery non-destructive.** A bootstrap and a renewal both
+ * outlive their callers' signals on purpose, so a refusal can land after the session it addressed
+ * was dropped and replaced — by a principal transition, say. An unconditional clear would then erase
+ * a successor's session, token and painted rows on the word of a request that never addressed them.
+ * So only the caller whose pinned promise is still the cached one replaces it; the check is an
+ * identity comparison rather than a remembered flag because the memoized promise is already the
+ * population's name — it is replaced exactly when the population is.
  *
  * Ordering, and it is the reason the replacement is safe: the clear runs before the new session is
  * requested and it moves the session revision synchronously, so every holder of decoded rows has
  * discarded them before a successor token exists. A fresh view is never adopted beside rows painted
  * under the session it replaced.
  *
- * A caller whose pinned session is no longer the cached one is superseded and touches nothing — its
- * failure travels instead. A refusal at the second attempt travels too: a bootstrap presenting no
- * token cannot be refused for authority, so there is no third state to recover into.
+ * One caller replaces; every sibling of the same ended session retries under that replacement. A
+ * session never ends for one request alone — a viewport's worth of tiles, its edges and a locate all
+ * share the one renewal whose refusal ends it (see {@link renewAtlasAuthority}), so the refusal
+ * lands on all of them in the same breath, and only the first can find its pinned promise still
+ * cached. The first replaces and records the successor against the promise it dropped (see
+ * {@link sessionReplacements}); the rest find the record and retry under that successor — rather
+ * than each failing for want of acting first, which surfaced the one real failure as a burst of
+ * refusals to every caller but one. A caller whose ended session has *no* recorded replacement was
+ * dropped from outside the recovery — a principal transition or a view rebind, after which its
+ * consumers have discarded their rows and nothing awaits a retry — and its failure travels, touching
+ * nothing.
+ *
+ * A refusal at the second attempt travels too: a bootstrap presenting no token cannot be refused for
+ * authority, so there is no third state to recover into.
  *
  * Deliberately not here: retries, backoff, abort handling and every route's own semantics. Those are
  * the transport's, per request; this decides one thing, which is whether the session a request bound
@@ -1403,11 +1425,22 @@ export const withAtlasSession = async <T>(
   try {
     return await operation(await pinned);
   } catch (error) {
-    if (!canReplaceAtlasSession(error, baseUrl, pinned)) {
+    if (!endsAtlasSession(error)) {
       throw error;
     }
-    clearAtlasSessionCache(baseUrl);
-    return await operation(await getSaltileSession(baseUrl));
+    if (sessionCache.get(baseUrl) === pinned) {
+      // No await between the check, the clear and the successor's install: a sibling reaching this
+      // line in a later microtask must already see the successor, never a half-made replacement.
+      clearAtlasSessionCache(baseUrl);
+      const successor = getSaltileSession(baseUrl);
+      sessionReplacements.set(pinned, successor);
+      return await operation(await successor);
+    }
+    const successor = sessionReplacements.get(pinned);
+    if (successor === undefined) {
+      throw error;
+    }
+    return await operation(await successor);
   }
 };
 
@@ -1433,7 +1466,7 @@ export const withAtlasSession = async <T>(
  * rather than tidy. Liveness heals itself: the retained token names the old principal's actor, so the
  * new principal's first data request is refused, its renewal presents the same token and is refused
  * too, and the session's owner then drops the session and bootstraps a fresh one (see
- * {@link canReplaceAtlasSession}) — the graph loads either way. What cannot heal is the interval
+ * {@link withAtlasSession}) — the graph loads either way. What cannot heal is the interval
  * before that: recovery is driven by a refusal, so it begins at the first response, while the rows
  * resolved for the previous principal are resident and compositable from the moment the new one is
  * published, and a request can be issued in between. Attribution has to be right before the first
