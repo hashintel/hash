@@ -1,30 +1,22 @@
-import {
-  createFileRoute,
-  useNavigate,
-  useSearch,
-} from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { validateSharedExampleSearch } from "../examples/example-search";
-import { LocalStorageDemoApp } from "../main/app/local-storage-demo/local-storage-demo-app";
-import { BrowserOptimizationProvider } from "../main/app/optimization-demo/browser-optimization-provider";
+import { latestOrNewNetInStorage } from "../main/app/local-storage-demo/use-local-storage-sdcpns";
+import { StorageErrorPage } from "./-storage-error-page";
 
-function IndexRoute() {
-  const navigate = useNavigate({ from: "/" });
-  const search = useSearch({ from: "/" });
-
-  return (
-    <BrowserOptimizationProvider>
-      <LocalStorageDemoApp
-        onSearchChange={(nextSearch, history) => {
-          void navigate({ replace: history === "replace", search: nextSearch });
-        }}
-        search={search}
-      />
-    </BrowserOptimizationProvider>
-  );
-}
-
+// `/` renders nothing: it opens the most recently edited net at its own URL,
+// starting one when the browser holds none. The redirect replaces, so Back
+// skips the route.
 export const Route = createFileRoute("/")({
-  component: IndexRoute,
+  beforeLoad: ({ search }) => {
+    const net = latestOrNewNetInStorage(window.localStorage);
+    throw redirect({
+      to: "/local/$netId",
+      params: { netId: net.id },
+      search,
+      replace: true,
+    });
+  },
+  errorComponent: StorageErrorPage,
   validateSearch: validateSharedExampleSearch,
 });

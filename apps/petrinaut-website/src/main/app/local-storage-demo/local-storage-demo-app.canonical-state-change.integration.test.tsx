@@ -30,7 +30,7 @@ import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
 import type { FlueClient } from "@flue/sdk";
 import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
@@ -62,7 +62,6 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
     await importOriginal<typeof import("@hashintel/petrinaut/ui")>();
   return {
     ...actual,
-    WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
     Petrinaut: (props: ComponentProps<typeof actual.Petrinaut>) => {
       fixture.handle = props.handle;
       return <actual.Petrinaut {...props} />;
@@ -194,6 +193,10 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
   try {
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     localStorage.setItem(
+      "petrinaut:plugin:website.walkthrough",
+      JSON.stringify({ showOnInit: false }),
+    );
+    localStorage.setItem(
       "petrinaut-sdcpn",
       JSON.stringify({
         [documentId]: {
@@ -206,7 +209,12 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       }),
     );
     ({ unmount } = render(
-      <LocalStorageDemoApp search={{}} onSearchChange={() => {}} />,
+      <LocalStorageDemoApp
+        netId={documentId}
+        onOpenNet={() => {}}
+        search={{}}
+        onSearchChange={() => {}}
+      />,
     ));
     const showPanel = await screen.findByRole("button", {
       name: "Show AI assistant",
