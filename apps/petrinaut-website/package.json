@@ -43,7 +43,6 @@
     "@earendil-works/pi-ai": "0.83.0",
     "@fast-check/vitest": "0.4.1",
     "@flue/runtime": "2.0.3",
-    "@local/brunch-provider-admission": "workspace:*",
     "@local/brunch-testing": "workspace:*",
     "@local/pi-faux-providers": "workspace:*",
     "@tanstack/router-generator": "1.167.32",

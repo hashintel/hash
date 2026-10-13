@@ -36,7 +36,6 @@
     "@flue/sdk": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
-    "@local/brunch-provider-admission": "workspace:*",
     "@local/flue-aisdk-transport": "workspace:*",
     "@local/hash-backend-utils": "workspace:*",
     "@opentelemetry/api": "1.9.1",

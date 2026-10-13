@@ -3,20 +3,17 @@ import {
   fauxProvider,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
-import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, beforeAll, expect, test } from "vitest";
 
 import {
   agentOwnershipHeaders,
+  brunchEnv,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent";
-import {
-  claimModelStreamIdleRetry,
-  withBufferedToolAdmission,
-} from "@local/brunch-provider-admission";
 import { loadBuiltBrunchApplication } from "@local/brunch-testing/load-built-application";
+import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 import {
   createNativeOpenaiToolStall,
   nativeOpenaiProvider,
@@ -47,6 +44,11 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
   process.env.BRUNCH_CHAT_MODEL = "openai/gpt-5.6-sol";
   process.env.BRUNCH_CHAT_THINKING = "low";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
+  process.env.NODE_ENV = "test";
+  process.env[brunchEnv.modelStreamCancellationTimeoutMs] = "100";
+  process.env[brunchEnv.modelStreamFirstEventTimeoutMs] = "3000";
+  process.env[brunchEnv.modelStreamIdleTimeoutMs] = "500";
+  process.env[brunchEnv.modelStreamReasoningStartTimeoutMs] = "3000";
   const faux = fauxProvider({
     models: [{ id: "gpt-5.6-sol", reasoning: true }],
     provider: "openai",
@@ -60,28 +62,15 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
     ),
   ]);
 
-  const application = await loadBuiltBrunchApplication();
-  const retryScope = { idleRetryAvailable: true };
-  setProvider(
-    withBufferedToolAdmission(
-      nativeOpenaiProvider(
-        faux.provider,
-        requests,
-        async () => {},
-        (input) =>
-          input.requestIndex === 0 ? undefined : stall.response(input),
-      ),
-      () => true,
-      new Set(),
-      {
-        cancellationTimeoutMs: 100,
-        claimRetry: () => claimModelStreamIdleRetry(retryScope),
-        firstEventTimeoutMs: 3_000,
-        idleTimeoutMs: 500,
-        reasoningStartTimeoutMs: 3_000,
-      },
+  installFauxProvider(
+    nativeOpenaiProvider(
+      faux.provider,
+      requests,
+      async () => {},
+      (input) => (input.requestIndex === 0 ? undefined : stall.response(input)),
     ),
   );
+  const application = await loadBuiltBrunchApplication();
   const identity = {
     conversationId: `live-pending-${crypto.randomUUID()}`,
     principalKey: "live-pending-principal",

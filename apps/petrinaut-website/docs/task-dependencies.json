@@ -6,7 +6,6 @@
     "@hashintel/ds-helpers",
     "@hashintel/petrinaut",
     "@hashintel/petrinaut-core",
-    "@local/brunch-provider-admission",
     "@local/brunch-testing",
     "@local/flue-aisdk-transport",
     "@local/pi-faux-providers"
@@ -19,7 +18,6 @@
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "codegen",
         "examples:generate"
@@ -41,7 +39,6 @@
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "codegen",
         "examples:generate"
@@ -56,7 +53,6 @@
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build"
       ]
     },
@@ -67,7 +63,6 @@
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/brunch-provider-admission#build",
         "@local/eslint#build",
         "@local/flue-aisdk-transport#build",
         "codegen"
@@ -80,7 +75,6 @@
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/brunch-provider-admission#build",
         "@local/eslint#build",
         "@local/flue-aisdk-transport#build",
         "codegen"
@@ -96,7 +90,6 @@
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "codegen",
         "examples:generate"
@@ -110,7 +103,6 @@
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "codegen",
         "examples:generate"
@@ -155,7 +147,6 @@
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
-        "@local/brunch-provider-admission#build",
         "@local/flue-aisdk-transport#build",
         "codegen",
         "examples:generate"
