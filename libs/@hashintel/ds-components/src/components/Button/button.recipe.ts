@@ -25,7 +25,7 @@ export const styles = sva({
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
       paddingY: "var(--form-padding-y)",
       minWidth:
-        "[calc(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2)]",
+        "[calc(round(var(--form-line-height) * var(--leading-factor, 1), 1px) + var(--form-padding-y) * 2 + var(--form-border-width) * 2)]",
       "&:focus-visible": {
         outlineWidth: "2px",
         outlineStyle: "solid",

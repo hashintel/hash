@@ -56,7 +56,7 @@ export const styles = sva({
       // Pin a real line-height: `font: inherit` would otherwise pull it from an
       // ancestor, and the Tooltip trigger wrapper sets `line-height: 0`, which
       // would collapse the label (overflow: hidden) to zero height.
-      lineHeight: "[1.2]",
+      lineHeight: "[round(1em * 1.2, 1px)]",
       // The hover-fill pill is the element's own padded box (padding is set
       // per size variant, cancelled in layout by equal negative margins), so
       // popovers anchored to the crumb align with the pill automatically.
