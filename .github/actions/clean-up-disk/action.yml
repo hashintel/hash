@@ -4,7 +4,7 @@ description: Frees disk space when the runner has less than the job needs, by de
 inputs:
   required_free_gib:
     description: Free space on `/` the job needs, in GiB. Space will only be freed if the runner has less than the specified amount of free space.
-    default: "40"
+    default: "20"
 
 runs:
   using: composite
