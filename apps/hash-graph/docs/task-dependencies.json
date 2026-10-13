@@ -32,7 +32,12 @@
     },
     "compile": {
       "dependsOn": [],
-      "cache": false,
+      "env": [
+        "CARGO_PROFILE_*",
+        "RUNNER_ARCH",
+        "RUNNER_OS",
+        "RUSTFLAGS"
+      ],
       "affectedBy": [
         "darwin-kperf-codegen",
         "error-stack-macros"
