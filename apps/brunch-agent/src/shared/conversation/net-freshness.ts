@@ -53,14 +53,13 @@ export const createNetViewTracker = () => {
   };
 };
 
-export const netViewTracker = createNetViewTracker();
-
 export const noNetViewRefusal = `Not started: no current view of the net is in your context, either because none was read or because it was compacted away. Read the net (readNetOutline, readNetStructure or ${getLatestNetDefinitionToolName}), then make the change.`;
 
 /**
  * The revision of the latest net result before `toolCallId` that the model
  * can still see. Reads carry the revision they observed; a change carries the
- * revision it produced.
+ * revision it produced, with the net read back. A change that left the
+ * document as it was carries no read-back, so it shows the model nothing.
  */
 export const expectedNetRevision = (
   snapshot: FlueConversationSnapshot,
@@ -89,7 +88,10 @@ export const expectedNetRevision = (
       const observed = parseClientToolResultMetadata(
         part.output.metadata,
       )?.documentRevision;
-      revision = observed?.after ?? observed?.before ?? revision;
+      revision =
+        (browserToolMutatesDocument(part.toolName)
+          ? observed?.after
+          : observed?.before) ?? revision;
     }
   }
   throw new Error(

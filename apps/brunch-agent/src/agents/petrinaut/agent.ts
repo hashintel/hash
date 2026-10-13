@@ -31,8 +31,8 @@ import { createBrunchContextProjection } from "../../shared/context-projection.t
 import { issueBrowserCall } from "../../shared/conversation/browser-call-rendezvous.ts";
 import { latestCanonicalNetReadBefore } from "../../shared/conversation/net-changes.ts";
 import {
+  createNetViewTracker,
   expectedNetRevision,
-  netViewTracker,
 } from "../../shared/conversation/net-freshness.ts";
 import { usePetrinautTools } from "../../shared/petrinaut-tools.ts";
 import { ping } from "../../shared/ping.ts";
@@ -51,6 +51,9 @@ const chatModelOptions = {
     ? {}
     : { compaction: testCompactionConfig }),
 };
+
+/** Instance IDs are unique only within an agent name, so each copy keeps its own. */
+const netViewTracker = createNetViewTracker();
 
 export function PetrinautAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();

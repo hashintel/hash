@@ -124,6 +124,29 @@ test("a change is expected at the revision of the latest net result the model ca
   });
 });
 
+test("a change that left the document unchanged does not count as a view of the net", () => {
+  const history = snapshot([
+    {
+      toolCallId: "read",
+      toolName: "getLatestNetDefinition",
+      revision: { before: "r1" },
+    },
+    {
+      toolCallId: "no-op",
+      toolName: "updatePlace",
+      revision: { before: "r1" },
+    },
+    { toolCallId: "next", toolName: "addPlace", state: "input-available" },
+  ]);
+  // The read was compacted away; only the unchanged result is left.
+  expect(expectedNetRevision(history, "next", new Set(["no-op"]))).toEqual({
+    refusal: noNetViewRefusal,
+  });
+  expect(
+    expectedNetRevision(history, "next", new Set(["read", "no-op"])),
+  ).toEqual({ revision: "r1" });
+});
+
 test("a change with no net result left in context is refused before it is issued", () => {
   const history = snapshot([
     {
