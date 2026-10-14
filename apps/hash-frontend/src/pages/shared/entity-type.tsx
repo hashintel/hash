@@ -13,6 +13,7 @@ import {
   getEntityTypeFromFormData,
   getFormDataFromEntityType,
   useEntityTypeForm,
+  useEntityTypeFormWatch,
 } from "@hashintel/type-editor";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
@@ -172,7 +173,7 @@ export const EntityType = ({
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { allOf: [], properties: [], links: [], inverse: {} },
   });
-  const { handleSubmit: wrapHandleSubmit, reset, watch } = formMethods;
+  const { control, handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
   useEffect(() => {
     if (draftEntityType) {
@@ -201,7 +202,8 @@ export const EntityType = ({
 
   const entityType = remoteEntityType ?? draftEntityType;
 
-  const parentRefs = formMethods.watch("allOf");
+  const parentRefs = useEntityTypeFormWatch({ control, name: "allOf" });
+  const icon = useEntityTypeFormWatch({ control, name: "icon" });
   const { isLink, isFile, isImage } = useIsSpecialEntityType({
     allOf: atLeastOne(parentRefs.map((id) => ({ $ref: id }))),
     $id: entityType?.schema.$id,
@@ -421,8 +423,6 @@ export const EntityType = ({
       throw new Error("Could not publish changes");
     }
   });
-
-  const icon = watch("icon");
 
   const isLatest = !requestedVersion || requestedVersion === latestVersion;
 
