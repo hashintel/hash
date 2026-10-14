@@ -14,13 +14,13 @@ import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
 import {
-  Expression,
+  Type as Alias,
   Import,
   Let,
-  Module,
   Newtype,
-  Program,
-} from "../src/main.js";
+  withPrelude,
+} from "../src/do/index.js";
+import { Expression, Module, Program } from "../src/main.js";
 
 import type {
   Inputs,
@@ -100,7 +100,7 @@ const temporal = Result.getOrThrow(
 );
 
 // A prelude seeds the environments without emitting imports. `$.query` offers `entities` because the value environment holds a graph-returning `entities`.
-const { Do } = Program.withPrelude({
+const { Do } = withPrelude({
   modules: { kernel, profile },
   values: {
     entities: head.values.entities,
@@ -198,7 +198,7 @@ describe("declarations", () => {
       // Select names, and rename some of them. An alias of `"_"` keeps the original name.
       Import((_, { kernel }) => kernel, { Integer: "Int", String: "_" }),
       // A type alias preserves the underlying semantic type.
-      Program.Type("Count", (_, { Int }) => Int),
+      Alias("Count", (_, { Int }) => Int),
       ($, _values, { Count, String }) => {
         expectTypeOf(Count).toEqualTypeOf<typeof kernel.types.Integer>();
         expectTypeOf(String).toEqualTypeOf<typeof kernel.types.String>();

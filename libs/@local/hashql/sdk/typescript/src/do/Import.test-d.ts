@@ -1,10 +1,11 @@
 import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
-import { Import, Module, Program } from "../main.js";
+import { Module } from "../main.js";
+import { Do as EmptyDo, Import, withPrelude } from "./index.js";
 
 import type { Expression, Inputs, Type } from "../main.js";
-import type * as ProgramError from "./ProgramError.js";
+import type * as ProgramError from "../program/ProgramError.js";
 // oxlint-disable hash/naming-conventions -- examples preserve HashQL type and constructor names in separate callback arguments
 
 type Uuid = Type.Opaque<"::core::uuid::Uuid", Type.PrimitiveString>;
@@ -19,7 +20,7 @@ const uuid = Result.getOrThrow(
   }),
 );
 const core = Result.getOrThrow(Module.define("::core", { modules: { uuid } }));
-const { Do } = Program.withPrelude({ modules: { uuid, core } });
+const { Do } = withPrelude({ modules: { uuid, core } });
 
 describe("import_types", () => {
   test("named_exports", () => {
@@ -56,13 +57,13 @@ describe("import_types", () => {
   });
 
   test("invalid_exports", () => {
-    expectTypeOf(Program.withPrelude);
+    expectTypeOf(withPrelude);
     // @ts-expect-error Values must be expression handles.
-    Program.withPrelude({ values: { host: 1 } });
+    withPrelude({ values: { host: 1 } });
     // @ts-expect-error Modules must be module declarations.
-    Program.withPrelude({ modules: { uuid: uuid.values.Uuid } });
+    withPrelude({ modules: { uuid: uuid.values.Uuid } });
     // @ts-expect-error Types cannot be value handles.
-    Program.withPrelude({ types: { Uuid: uuid.values.Uuid } });
+    withPrelude({ types: { Uuid: uuid.values.Uuid } });
     // @ts-expect-error An import selects a module.
     Import(() => ({ Uuid: uuid.values.Uuid }));
     // @ts-expect-error Selected names must exist in an export universe.
@@ -72,7 +73,7 @@ describe("import_types", () => {
   });
 
   test("literal_types", () => {
-    Program.Do(($) => {
+    EmptyDo(($) => {
       expectTypeOf($.integer(1)).toEqualTypeOf<
         Expression.Expression<Type.PrimitiveInteger, Inputs.Empty>
       >();

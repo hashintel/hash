@@ -1,6 +1,6 @@
-import type * as Expression from "../Expression.js";
-import type * as Module from "../Module.js";
-import type * as TypeExpression from "../TypeExpression.js";
+import type * as Expression from "./Expression.js";
+import type * as Module from "./Module.js";
+import type * as TypeExpression from "./TypeExpression.js";
 import type { ReadonlyRecord } from "effect/Record";
 
 /** An inspectable namespace without fixing its concrete key set. */

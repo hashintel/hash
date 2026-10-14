@@ -1,7 +1,8 @@
 import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
-import { Expression, Module, Program } from "../main.js";
+import { Do as EmptyDo, withPrelude } from "../do/index.js";
+import { Expression, Module } from "../main.js";
 
 import type { Inputs, Type } from "../main.js";
 
@@ -165,7 +166,7 @@ describe("primitive_requirements", () => {
   test("conditional_branches", () => {
     const count = Expression.input("count", kernel.types.Integer);
     const expression = Result.getOrThrow(
-      Program.Do(($) =>
+      EmptyDo(($) =>
         $.if(
           true,
           () => count,
@@ -180,7 +181,7 @@ describe("primitive_requirements", () => {
       >
     >();
     const numeric = Result.getOrThrow(
-      Program.Do(($) =>
+      EmptyDo(($) =>
         $.if(
           true,
           () => 1,
@@ -199,7 +200,7 @@ describe("primitive_requirements", () => {
       "::graph::Graph",
       Type.Struct<{ readonly "'marker": Vertex }>
     >;
-    const { Do } = Program.withPrelude({
+    const { Do } = withPrelude({
       values: {
         entities: Expression.fromJExpr<
           Type.Function<readonly [Type.PrimitiveNumber], Graph>,

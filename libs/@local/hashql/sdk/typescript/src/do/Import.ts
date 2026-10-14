@@ -1,18 +1,18 @@
 // oxlint-disable import/max-dependencies -- an import updates the module, type and value universes together
 import { Result } from "effect";
 
-import { isReadonlyArray } from "../../internal/array.js";
-import * as JExpr from "../../jexpr/index.js";
-import * as AST from "../ast/index.js";
-import * as Expression from "../Expression.js";
-import * as Module from "../Module.js";
-import * as ProgramError from "../ProgramError.js";
-import * as TypeExpression from "../TypeExpression.js";
+import { isReadonlyArray } from "../internal/array.js";
+import * as JExpr from "../jexpr/index.js";
+import * as AST from "../program/ast/index.js";
+import * as Expression from "../program/Expression.js";
+import * as Module from "../program/Module.js";
+import * as ProgramError from "../program/ProgramError.js";
+import * as Scope from "../program/Scope.js";
+import * as TypeExpression from "../program/TypeExpression.js";
 import * as Node from "./Node.js";
-import * as Scope from "./Scope.js";
 
-import type * as Inputs from "../Inputs.js";
-import type { Utilities } from "../Utilities.js";
+import type * as Inputs from "../program/Inputs.js";
+import type { Utilities } from "./Utilities.js";
 import type { ReadonlyRecord } from "effect/Record";
 
 type Name<M extends Module.Any> = Extract<

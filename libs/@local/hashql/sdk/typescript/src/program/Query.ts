@@ -8,7 +8,7 @@ import * as ProgramError from "./ProgramError.js";
 import type * as Type from "../type/index.js";
 import type { ArgumentInputs, Arguments } from "./ExpressionType.js";
 import type * as Inputs from "./Inputs.js";
-import type * as IR from "./ir/index.js";
+import type * as Scope from "./Scope.js";
 
 type Graph<Vertex extends Type.Any> = Type.Opaque<
   "::graph::Graph",
@@ -41,7 +41,7 @@ export type Query<
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- a scope without an entities declaration has no query entry point
 type Empty = Record<never, never>;
 
-export type Context<S extends IR.Scope.Scope> = S["values"] extends {
+export type Context<S extends Scope.Scope> = S["values"] extends {
   readonly entities: Expression.Handle<
     Type.Function<infer Parameters, infer Returns>,
     infer Requirements
@@ -137,7 +137,7 @@ const chain = <T extends Type.Any, Vertex extends Type.Any, Requirements>(
   return proxy as Query<T, Vertex, Requirements>;
 };
 
-export const make = <S extends IR.Scope.Scope>(scope: S): Context<S> => {
+export const make = <S extends Scope.Scope>(scope: S): Context<S> => {
   const entities = scope.values["entities"];
   if (entities === undefined) {
     // SAFETY: no entities declaration means this context has no query entry point.

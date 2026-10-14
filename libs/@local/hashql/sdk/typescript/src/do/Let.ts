@@ -1,14 +1,14 @@
 import { Result } from "effect";
 
-import * as Ident from "../../jexpr/Ident.js";
-import * as Binding from "../ast/Binding.js";
-import { Let as AstLet } from "../ast/Let.js";
-import * as Expression from "../Expression.js";
+import * as Ident from "../jexpr/Ident.js";
+import * as Binding from "../program/ast/Binding.js";
+import { Let as AstLet } from "../program/ast/Let.js";
+import * as Expression from "../program/Expression.js";
+import * as Scope from "../program/Scope.js";
 import * as Node from "./Node.js";
-import * as Scope from "./Scope.js";
 
-import type * as Type from "../../type/index.js";
-import type { Utilities } from "../Utilities.js";
+import type * as Type from "../type/index.js";
+import type { Utilities } from "./Utilities.js";
 import type { ReadonlyRecord } from "effect/Record";
 
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a declaration step

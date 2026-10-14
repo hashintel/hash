@@ -3,10 +3,10 @@
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
+import { Type as Alias, Do as EmptyDo, Newtype } from "../do/index.js";
 import * as JExpr from "../jexpr/index.js";
 import * as TypeSyntax from "../jexpr/type/index.js";
 import * as Expression from "./Expression.js";
-import * as Program from "./index.js";
 import * as Module from "./Module.js";
 import * as TypeExpression from "./TypeExpression.js";
 
@@ -261,12 +261,12 @@ describe("type_application", () => {
       called = true;
       return Expression.integer(1);
     };
-    const alias = Program.Do(
-      Program.Type("Alias", () => invalid),
+    const alias = EmptyDo(
+      Alias("Alias", () => invalid),
       body,
     );
-    const nominal = Program.Do(
-      Program.Newtype("Nominal", identity, () => invalid),
+    const nominal = EmptyDo(
+      Newtype("Nominal", identity, () => invalid),
       body,
     );
     expect(alias).toStrictEqual(TypeExpression.toType(invalid));

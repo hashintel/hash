@@ -1,7 +1,8 @@
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { Expression, JExpr, Module, Program } from "../main.js";
+import { Do as EmptyDo, withPrelude } from "../do/index.js";
+import { Expression, JExpr, Module } from "../main.js";
 
 import type { Inputs, Type } from "../main.js";
 
@@ -77,7 +78,7 @@ describe("primitive_failures", () => {
 
   test("both_branches", () => {
     expect.hasAssertions();
-    const result = Program.Do(($) =>
+    const result = EmptyDo(($) =>
       $.if(
         true,
         () => 1,
@@ -108,7 +109,7 @@ describe("primitive_query", () => {
       "::graph::Graph",
       Type.Struct<{ readonly "'marker": Vertex }>
     >;
-    const { Do } = Program.withPrelude({
+    const { Do } = withPrelude({
       values: {
         entities: Expression.fromJExpr<
           Type.Function<readonly [Type.PrimitiveNumber], Graph>,

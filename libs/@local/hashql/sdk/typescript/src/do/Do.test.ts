@@ -4,24 +4,17 @@
 import { Result } from "effect";
 import { assert, describe, expect, test } from "vitest";
 
-import {
-  Expression,
-  Import,
-  Let,
-  Module,
-  Newtype,
-  Program,
-  program,
-} from "../main.js";
-import { Expr } from "./ast/Expr.js";
-import { If } from "./ast/If.js";
-import { Import as AstImport } from "./ast/Import.js";
-import { Let as AstLet } from "./ast/Let.js";
-import { Newtype as AstNewtype } from "./ast/Newtype.js";
-import { Type as AstType } from "./ast/Type.js";
+import { Expression, Module, Program, program } from "../main.js";
+import { Expr } from "../program/ast/Expr.js";
+import { If } from "../program/ast/If.js";
+import { Import as AstImport } from "../program/ast/Import.js";
+import { Let as AstLet } from "../program/ast/Let.js";
+import { Newtype as AstNewtype } from "../program/ast/Newtype.js";
+import { Type as AstType } from "../program/ast/Type.js";
+import { Do as EmptyDo, Import, Let, Newtype, withPrelude } from "./index.js";
 
 import type { Inputs, Type } from "../main.js";
-import type { Node } from "./ast/Node.js";
+import type { Node } from "../program/ast/Node.js";
 
 const initialValue = 7;
 const fractionalValue = 1.5;
@@ -30,14 +23,14 @@ const kernel = Result.getOrThrow(
     types: { Integer: Module.type<Type.PrimitiveInteger>() },
   }),
 );
-const { Do, Type: Alias } = Program.withPrelude({ modules: { kernel } });
+const { Do, Type: Alias } = withPrelude({ modules: { kernel } });
 const identity: unique symbol = Symbol("Id");
 
 describe("construction", () => {
   test("sequential_tree", () => {
     expect.hasAssertions();
     const calls: string[] = [];
-    const root = Program.Do(
+    const root = EmptyDo(
       Let("value", ($) => {
         calls.push("value");
         return $.integer(initialValue);
@@ -111,7 +104,7 @@ describe("block_errors", () => {
   test("missing_body", () => {
     expect.hasAssertions();
     // @ts-expect-error Exercise the runtime boundary without a terminal callback.
-    const result = Program.Do();
+    const result = EmptyDo();
     expect(result).toMatchObject({
       _tag: "Failure",
       failure: {
@@ -123,7 +116,7 @@ describe("block_errors", () => {
 
   test("misplaced_body", () => {
     expect.hasAssertions();
-    const result = Program.Do(
+    const result = EmptyDo(
       // @ts-expect-error An expression callback cannot precede the terminal callback.
       () => Expression.integer(1),
       ($) => $.integer(2),
@@ -140,7 +133,7 @@ describe("block_errors", () => {
   test("invalid_body_result", () => {
     expect.hasAssertions();
     // @ts-expect-error Exercise the runtime boundary with a host value.
-    const result = Program.Do(() => "not an expression");
+    const result = EmptyDo(() => "not an expression");
     expect(result).toMatchObject({
       _tag: "Failure",
       failure: {
@@ -152,7 +145,7 @@ describe("block_errors", () => {
 
   test("binding_reason", () => {
     expect.hasAssertions();
-    const result = Program.Do(
+    const result = EmptyDo(
       Let("bad name", ($) => $.integer(1)),
       ($) => $.integer(2),
     );
@@ -175,7 +168,7 @@ describe("validation", () => {
   test("declaration_short_circuit", () => {
     expect.hasAssertions();
     const calls: string[] = [];
-    const result = Program.Do(
+    const result = EmptyDo(
       Let("bad name", ($) => $.integer(1)),
       Let("later", ($) => {
         calls.push("later");
@@ -214,7 +207,7 @@ describe("validation", () => {
     "invalid_integer: %s",
     (value) => {
       expect.hasAssertions();
-      expect(Result.isFailure(Program.Do(($) => $.integer(value)))).toBe(true);
+      expect(Result.isFailure(EmptyDo(($) => $.integer(value)))).toBe(true);
     },
   );
 });
@@ -223,7 +216,7 @@ describe("nested_validation", () => {
   test.each([true, false])("branch_failure: %s", (condition) => {
     expect.hasAssertions();
     const calls: string[] = [];
-    const result = Program.Do(($) =>
+    const result = EmptyDo(($) =>
       $.if(
         $.literal(condition),
         () => {
@@ -250,7 +243,7 @@ describe("nested_validation", () => {
 
   test("alternate_failure", () => {
     expect.hasAssertions();
-    const result = Program.Do(($) =>
+    const result = EmptyDo(($) =>
       $.if(
         $.literal(true),
         () => $.integer(1),
@@ -265,7 +258,7 @@ describe("nested_validation", () => {
 
   test("nested_argument_failure", () => {
     expect.hasAssertions();
-    const result = Program.Do(($) => {
+    const result = EmptyDo(($) => {
       const consume = Expression.fromJExpr<
         Type.Function<readonly [Type.PrimitiveInteger], Type.PrimitiveInteger>,
         Inputs.Empty
@@ -344,7 +337,7 @@ describe("branches", () => {
 
   test("nested_conditionals", () => {
     expect.hasAssertions();
-    const root = Program.Do(($) =>
+    const root = EmptyDo(($) =>
       $.if(
         $.literal(true),
         () =>
@@ -382,7 +375,7 @@ describe("branches", () => {
 describe("expressions", () => {
   test("quoted_binding", () => {
     expect.hasAssertions();
-    const root = Program.Do(
+    const root = EmptyDo(
       Let("%", ($) => $.integer(initialValue)),
       (_, values) => values["%"],
     );
@@ -396,7 +389,7 @@ describe("expressions", () => {
     ]);
     expect(
       Result.isFailure(
-        Program.Do(
+        EmptyDo(
           Let("not a name", ($) => $.integer(1)),
           ($) => $.integer(2),
         ),
@@ -406,7 +399,7 @@ describe("expressions", () => {
 
   test("expression_leaf", () => {
     expect.hasAssertions();
-    const root = Program.Do(($) => $.integer(initialValue));
+    const root = EmptyDo(($) => $.integer(initialValue));
     expect(
       Result.getOrThrow(Result.flatMap(root, Expression.toNode)),
     ).toBeInstanceOf(Expr);
@@ -419,7 +412,7 @@ describe("expressions", () => {
     expect.hasAssertions();
     const failure = new Error("branch construction");
     expect(() =>
-      Program.Do(($) =>
+      EmptyDo(($) =>
         $.if(
           $.literal(false),
           () => {

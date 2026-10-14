@@ -4,7 +4,8 @@
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { Expression, Program } from "../main.js";
+import { Do as EmptyDo, withPrelude } from "../do/index.js";
+import { Expression } from "../main.js";
 
 import type { Inputs, Type } from "../main.js";
 
@@ -13,7 +14,7 @@ type Graph = Type.Opaque<
   "::graph::Graph",
   Type.Struct<{ readonly "'marker": Vertex }>
 >;
-const { Do } = Program.withPrelude({
+const { Do } = withPrelude({
   values: {
     entities: Expression.fromJExpr<
       Type.Function<readonly [], Graph>,
@@ -93,7 +94,7 @@ describe("fluent", () => {
       Type.Struct<{ readonly $: Type.PrimitiveBoolean }>,
       Inputs.Empty
     >("record");
-    const result = Program.Do(() => record.$project("$").$.isTrue());
+    const result = EmptyDo(() => record.$project("$").$.isTrue());
     expect(
       Result.getOrThrow(Result.flatMap(result, Expression.toJExpr)),
     ).toStrictEqual([

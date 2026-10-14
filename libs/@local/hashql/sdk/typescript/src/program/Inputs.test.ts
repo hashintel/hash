@@ -1,7 +1,8 @@
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { Expression, JExpr, Let, Module, Program } from "../main.js";
+import { Do as EmptyDo, Let } from "../do/index.js";
+import { Expression, JExpr, Module } from "../main.js";
 
 import type { Type } from "../main.js";
 
@@ -18,9 +19,9 @@ describe("input_composition", () => {
   test("snippet_reuse", () => {
     expect.hasAssertions();
     const snippet = Expression.input("count", integer, Expression.integer(7));
-    const first = Result.getOrThrow(Program.Do(() => snippet));
+    const first = Result.getOrThrow(EmptyDo(() => snippet));
     const second = Result.getOrThrow(
-      Program.Do(($) => snippet.$.eq($.input("other", integer))),
+      EmptyDo(($) => snippet.$.eq($.input("other", integer))),
     );
     expect(compile(first)).toBe(
       '["::kernel::special_form::input","count","::kernel::type::Integer",{"#literal":7}]',
@@ -34,7 +35,7 @@ describe("input_composition", () => {
   test("discarded_input", () => {
     expect.hasAssertions();
     const expression = Result.getOrThrow(
-      Program.Do(($) => {
+      EmptyDo(($) => {
         $.input("discarded", integer);
         return $.integer(1);
       }),
@@ -45,7 +46,7 @@ describe("input_composition", () => {
   test("unused_initializer", () => {
     expect.hasAssertions();
     const expression = Result.getOrThrow(
-      Program.Do(
+      EmptyDo(
         Let("unused", ($) => $.input("retained", integer)),
         ($) => $.integer(1),
       ),

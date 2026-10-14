@@ -9,7 +9,8 @@
  */
 import { Result } from "effect";
 
-import { Import, Module, Program, program } from "../src/main.js";
+import { Do as EmptyDo, Import, withPrelude } from "../src/do/index.js";
+import { Module, Program, program } from "../src/main.js";
 
 import type { Expression, Type } from "../src/main.js";
 import type * as ProgramError from "../src/program/ProgramError.js";
@@ -121,7 +122,7 @@ const temporary = Result.getOrThrow(
   }),
 );
 
-const { Let, Do } = Program.withPrelude({
+const { Let, Do } = withPrelude({
   values: {
     createUuid: uuid.values.Uuid,
     createEntityUuid: entity.values.EntityUuid,
@@ -160,7 +161,7 @@ const allEntities = example(
       "libs/@local/hashql/hir/tests/ui/lower/checking/minimal-graph.jsonc",
     before: `["::graph::tail::collect", ["::graph::head::entities", ["::graph::tmp::decision_time_now"]]]`,
   },
-  Program.Do(
+  EmptyDo(
     Import(() => head, ["entities"]),
     Import(() => temporary, { decision_time_now: "now" }),
     ($, { now }) => $.query.entities(now()).collect(),

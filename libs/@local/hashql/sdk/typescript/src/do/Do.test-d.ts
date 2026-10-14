@@ -1,10 +1,11 @@
 import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
-import { Expression, Import, Let, Module, Newtype, Program } from "../main.js";
+import { Expression, Module } from "../main.js";
+import { Do as EmptyDo, Import, Let, Newtype, withPrelude } from "./index.js";
 
 import type { Inputs, Type, TypeExpression } from "../main.js";
-import type * as ProgramError from "./ProgramError.js";
+import type * as ProgramError from "../program/ProgramError.js";
 // oxlint-disable hash/naming-conventions -- examples preserve HashQL type and constructor names in separate callback arguments
 
 const initialValue = 7;
@@ -16,7 +17,7 @@ const kernel = Result.getOrThrow(
     },
   }),
 );
-const { Do, Type: Alias } = Program.withPrelude({ modules: { kernel } });
+const { Do, Type: Alias } = withPrelude({ modules: { kernel } });
 const firstIdentity: unique symbol = Symbol("first");
 const secondIdentity: unique symbol = Symbol("second");
 
@@ -63,7 +64,7 @@ describe("universe_types", () => {
   });
 
   test("sequential_shadow", () => {
-    const result = Program.Do(
+    const result = EmptyDo(
       Let("value", ($) => $.integer(initialValue)),
       Let("copy", (_, { value }) => value),
       Let("value", ($) => $.literal("new")),
@@ -162,7 +163,7 @@ describe("branch_types", () => {
 
 describe("composition_types", () => {
   test("eight_steps", () => {
-    const result = Program.Do(
+    const result = EmptyDo(
       Let("first", ($) => $.integer(1)),
       Let("second", (_, { first }) => first),
       Let("third", (_, { second }) => second),

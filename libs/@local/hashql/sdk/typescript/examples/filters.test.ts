@@ -23,15 +23,15 @@ const normalize = (
     if (value[0] === "::kernel::special_form::use") {
       const [, path, selection, body] = value;
       const imported = new Map(imports);
-      if (selection["#tuple"] !== undefined) {
-        for (const name of selection["#tuple"]) {
-          imported.set(name, `${path}::${name}`);
-        }
-      } else {
+      if (selection["#tuple"] === undefined) {
         for (const [name, alias] of Object.entries(selection["#struct"])) {
           if (typeof alias === "string") {
             imported.set(alias === "_" ? name : alias, `${path}::${name}`);
           }
+        }
+      } else {
+        for (const name of selection["#tuple"]) {
+          imported.set(name, `${path}::${name}`);
         }
       }
       return normalize(body, imported);

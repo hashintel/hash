@@ -2,11 +2,13 @@
 
 The SDK constructs HashQL query syntax. TypeScript checks the authoring API. The HashQL compiler resolves names and checks the emitted program. `JExpr` provides the low-level expression builders and serializer. Construction does not execute the query.
 
+Import shared types, expressions and `Program` from `@local/hashql`, and Do authoring calls from `@local/hashql/do`. The shared `program` constructor wraps the resulting expression.
+
 Start with the [authoring guide](docs/authoring.md). It provides a complete construction example, focused API examples and rules for developers and coding agents.
 
-## Programs
+## Do authoring
 
-A program has separate module, value and type environments. A value and a type can have the same name. Each step receives `$` plus the environments it needs:
+Do authoring uses separate module, value and type environments. A value and a type can have the same name. Each step receives `$` plus the environments it needs:
 
 | Step             | Callback arguments | Introduces                                       |
 | ---------------- | ------------------ | ------------------------------------------------ |
@@ -21,6 +23,7 @@ A program has separate module, value and type environments. A value and a type c
 ```ts
 import { Result } from "effect";
 import { Module, Program, program } from "@local/hashql";
+import { withPrelude } from "@local/hashql/do";
 import type { Type as Semantic } from "@local/hashql";
 
 const userId: unique symbol = Symbol("UserId");
@@ -29,7 +32,7 @@ const query = Result.gen(function* () {
     types: { Integer: Module.type<Semantic.PrimitiveInteger>() },
   });
 
-  const { Do, Let, Type, Newtype, Import } = Program.withPrelude({
+  const { Do, Let, Type, Newtype, Import } = withPrelude({
     modules: { kernel },
   });
 
@@ -57,7 +60,7 @@ const query = Result.gen(function* () {
 
 `Import` emits a HashQL `use` expression and introduces local references. `Import((_, { math }) => math)` imports every exported name. A second argument selects names, such as `["cmp"]`, or renames them, such as `{ cmp: "compare" }`. An alias of `"_"` retains the original name. Each selected name enters every environment in which the module exports it, including a same-named type and constructor. Imported child modules expose references beneath their local module name.
 
-`Program.Do` starts with empty environments. `Program.withPrelude` accepts optional `modules`, `values` and `types` records without emitting imports. The positional `Do` overloads support up to eight declaration steps and a final expression. Chained nested blocks have no fixed step count.
+`Do` from `@local/hashql/do` starts with empty environments. `withPrelude` from the same subpath accepts optional `modules`, `values` and `types` records without emitting imports. The positional `Do` overloads support up to eight declaration steps and a final expression. Chained nested blocks have no fixed step count.
 
 ## Conditional blocks
 
@@ -65,9 +68,10 @@ Each branch of `$.if` returns an expression. A branch needing declarations uses 
 
 ```ts
 import { Result } from "effect";
-import { Let, Program, program } from "@local/hashql";
+import { Program, program } from "@local/hashql";
+import { Do, Let } from "@local/hashql/do";
 
-const conditional = Program.Do(
+const conditional = Do(
   Let("outer", ($) => $.integer(7)),
   ($, { outer }) =>
     $.if(
@@ -111,6 +115,7 @@ Value operations live under `expression.$`: `eq`, `ne`, Boolean `and`, `or`, `is
 ```ts
 import { Result } from "effect";
 import { Expression, Module, Program } from "@local/hashql";
+import { Do } from "@local/hashql/do";
 import type { Type } from "@local/hashql";
 
 const query = Result.gen(function* () {
@@ -125,7 +130,7 @@ const query = Result.gen(function* () {
 
   const nonzero = count.$.ne(0n);
 
-  const expression = yield* Program.Do(($) =>
+  const expression = yield* Do(($) =>
     nonzero.$.and($.input("enabled", kernel.types.Boolean, true)),
   );
 

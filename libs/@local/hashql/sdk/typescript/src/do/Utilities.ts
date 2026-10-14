@@ -2,17 +2,21 @@
 // oxlint-disable unicorn/no-array-method-this-argument -- Result.map and Result.flatMap are not array methods
 import { Result } from "effect";
 
-import * as Expression from "./Expression.js";
-import * as IR from "./ir/index.js";
-import * as ProgramError from "./ProgramError.js";
-import * as Query from "./Query.js";
+import * as Expression from "../program/Expression.js";
+import * as ProgramError from "../program/ProgramError.js";
+import * as Query from "../program/Query.js";
+import { Import } from "./Import.js";
+import { Let } from "./Let.js";
+import { Newtype } from "./Newtype.js";
+import * as Node from "./Node.js";
+import { Type as DeclareType } from "./Type.js";
 
+import type * as Input from "../program/Inputs.js";
+import type * as Scope from "../program/Scope.js";
+import type { TypeExpression } from "../program/TypeExpression.js";
 import type * as Type from "../type/index.js";
-import type * as Input from "./Inputs.js";
-import type { Imported, Selection } from "./ir/Import.js";
-import type { Exports } from "./ir/Newtype.js";
-import type * as Scope from "./ir/Scope.js";
-import type { TypeExpression } from "./TypeExpression.js";
+import type { Imported, Selection } from "./Import.js";
+import type { Exports } from "./Newtype.js";
 import type { ReadonlyRecord } from "effect/Record";
 
 export type Body<S extends Scope.Scope, T extends Type.Any, Inputs> = (
@@ -21,9 +25,9 @@ export type Body<S extends Scope.Scope, T extends Type.Any, Inputs> = (
   types: S["types"],
 ) => Expression.Expression<T, Inputs>;
 
-type Wrap = IR.Node.Transition<Scope.Scope>["wrap"];
+type Wrap = Node.Transition<Scope.Scope>["wrap"];
 
-export type BuildStep = IR.Node.Any | Body<Scope.Scope, Type.Any, never>;
+export type BuildStep = Node.Any | Body<Scope.Scope, Type.Any, never>;
 
 /** An unfinished nested block must end with an expression. */
 export class Block<S extends Scope.Scope, Inputs> {
@@ -44,7 +48,7 @@ export class Block<S extends Scope.Scope, Inputs> {
     this.#state = state;
   }
 
-  #append(step: IR.Node.Any): Block<Scope.Scope, never> {
+  #append(step: Node.Any): Block<Scope.Scope, never> {
     return new Block(
       Result.flatMap(this.#state, ({ scope, parents }) => {
         const input: Scope.Scope = scope;
@@ -58,7 +62,7 @@ export class Block<S extends Scope.Scope, Inputs> {
   }
 
   #step<Out extends Scope.Scope, AddedInputs>(
-    step: IR.Node.Node<S, Out, AddedInputs>,
+    step: Node.Node<S, Out, AddedInputs>,
   ): Block<Out, Input.Merge<Inputs, AddedInputs>> {
     // oxlint-disable-next-line typescript/no-restricted-types -- this is the heterogeneous driver boundary
     const output: unknown = this.#append(step);
@@ -78,7 +82,7 @@ export class Block<S extends Scope.Scope, Inputs> {
     >,
     Input.Merge<Inputs, AddedInputs>
   > {
-    return this.#step(IR.Let(name, initializer));
+    return this.#step(Let(name, initializer));
   }
 
   Type<const Name extends string, T extends Type.Any>(
@@ -91,7 +95,7 @@ export class Block<S extends Scope.Scope, Inputs> {
     Scope.Merge<S, { types: ReadonlyRecord<Name, TypeExpression<T>> }>,
     Inputs
   > {
-    return this.#step(IR.Type(name, definition));
+    return this.#step(DeclareType(name, definition));
   }
 
   Newtype<
@@ -107,7 +111,7 @@ export class Block<S extends Scope.Scope, Inputs> {
     ) => TypeExpression<T>,
   ): Block<Scope.Merge<S, Exports<Name, Identity, T>>, Inputs> {
     return this.#step(
-      IR.Newtype<S, Name, Identity, T>(name, identity, definition),
+      Newtype<S, Name, Identity, T>(name, identity, definition),
     );
   }
 
@@ -131,10 +135,10 @@ export class Block<S extends Scope.Scope, Inputs> {
     | Block<Scope.Merge<S, M>, Inputs>
     | Block<Scope.Merge<S, Imported<M, Imports>>, Inputs> {
     if (imports === undefined) {
-      return this.#step(IR.Import(select));
+      return this.#step(Import(select));
     }
 
-    return this.#step(IR.Import(select, imports));
+    return this.#step(Import(select, imports));
   }
 
   Expr<T extends Type.Any, BodyInputs>(
@@ -203,7 +207,7 @@ export class Block<S extends Scope.Scope, Inputs> {
         typeof step !== "object" ||
         // oxlint-disable-next-line typescript/no-unnecessary-condition -- JavaScript callers may pass null despite the overloads
         step === null ||
-        !(IR.Node.TypeId in step)
+        !(Node.TypeId in step)
       ) {
         return Result.fail(
           new ProgramError.Construction({

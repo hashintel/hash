@@ -2,6 +2,8 @@
 
 The `@local/hashql` package builds HashQL programs from TypeScript. You describe the HashQL modules a program uses and compose expressions from typed handles. The SDK then serializes the result to J-Expr, the JSON syntax the HashQL compiler reads. The SDK neither runs nor compiles a query. It gives you typed composition and a syntax tree, and the HashQL compiler decides whether that tree is a valid program.
 
+Shared types, expressions and `Program` come from `@local/hashql`. Import Do authoring calls from `@local/hashql/do`. The resulting expressions use the same shared representation.
+
 This guide starts with one complete program and then works through each part of the API with focused examples. The [authoring rules](#authoring-rules) at the end condense it into rules that a person or a coding agent can follow while writing a program.
 
 ## What checks a program
@@ -22,7 +24,8 @@ This program declares the two modules it uses, binds an optional `page` input an
 
 ```ts
 import { Result } from "effect";
-import { Import, Let, Module, Program, program } from "@local/hashql";
+import { Module, Program, program } from "@local/hashql";
+import { Import, Let, withPrelude } from "@local/hashql/do";
 import type { Type } from "@local/hashql";
 
 type IntegerOperation = Type.Function<
@@ -40,7 +43,7 @@ const built = Result.gen(function* () {
   });
 
   // Make the modules visible to the program's steps.
-  const { Do } = Program.withPrelude({ modules: { kernel, math } });
+  const { Do } = withPrelude({ modules: { kernel, math } });
 
   const root = yield* Do(
     Import((_, { math }) => math, ["add"]),
@@ -66,7 +69,7 @@ Result.match(compiled, {
 The program has five parts.
 
 1. `Module.define` binds TypeScript descriptions of HashQL types to absolute paths. It returns a `Result` because a path or export name can be invalid. The program yields that `Result` inside `Result.gen`.
-2. `Program.withPrelude` makes the modules available to every step without emitting any HashQL import.
+2. `withPrelude` makes the modules available to every step without emitting any HashQL import.
 3. `Do` takes declaration steps followed by one final callback. `Import` emits a HashQL `use` and brings `add` into the value environment. `Let` binds `page` to an input. The final callback returns the program's result expression.
 4. `program(root)` wraps the result expression, and `Program.compile` serializes it to a J-Expr string. Both `Do` and `Program.compile` return a `Result`.
 5. The caller handles both outcomes. A failure is a `ProgramError.Construction` with a tagged `reason`.
@@ -100,14 +103,15 @@ The remaining examples are shorter. Each assumes the imports and declarations be
 
 ```ts
 import { Result } from "effect";
+import { Expression, Module, Program } from "@local/hashql";
 import {
-  Expression,
+  Do as EmptyDo,
   Import,
   Let,
-  Module,
   Newtype,
-  Program,
-} from "@local/hashql";
+  Type as Alias,
+  withPrelude,
+} from "@local/hashql/do";
 import type { Inputs, Type } from "@local/hashql";
 
 const kernel = Result.getOrThrow(
@@ -137,7 +141,7 @@ const math = Result.getOrThrow(
   }),
 );
 
-const { Do } = Program.withPrelude({ modules: { kernel, math } });
+const { Do } = withPrelude({ modules: { kernel, math } });
 ```
 
 These declarations never change and construct successfully, so the examples unwrap them with `Result.getOrThrow`. It throws if a declaration fails. In application code, prefer yielding each `Result` inside `Result.gen` as the first program does.
@@ -166,7 +170,7 @@ Each step's callback receives `$` first, followed by the environments that step 
 - `$.query` starts a graph query, when the value environment holds an `entities` function.
 - `$.Let`, `$.Type`, `$.Newtype`, `$.Import` and `$.Expr` start a nested block.
 
-`Program.Do` starts with empty environments. `Program.withPrelude` accepts optional `modules`, `values` and `types` records and returns `Do` together with `Let`, `Type`, `Newtype` and `Import`. The prelude only seeds the environments. It emits no HashQL. The package also exports `Let`, `Newtype` and `Import` directly. `Type` is available as `Program.Type` or from `withPrelude`, because the top-level `Type` export names the namespace of type descriptors.
+`Do` from `@local/hashql/do` starts with empty environments. The imports above alias it as `EmptyDo` to distinguish it from the prelude-bound `Do`. `withPrelude` accepts optional `modules`, `values` and `types` records and returns `Do` together with `Let`, `Type`, `Newtype` and `Import`. The prelude only seeds the environments. It emits no HashQL. The same subpath exports all four declaration builders directly. The imports above alias the declaration builder `Type` as `Alias`, because `Type` from `@local/hashql` names the namespace of type descriptors.
 
 ## Declaring modules
 
@@ -280,7 +284,7 @@ const shadowedId = Do(
 
 Give each `Newtype` its own `unique symbol`, including declarations that share a HashQL name. A symbol widened to plain `symbol` can't tell declarations apart, and TypeScript rejects it.
 
-`Type` declares an alias instead. An alias keeps the underlying type, so `Type("Count", (_, { Integer }) => Integer)` produces a type that TypeScript treats as Integer. `Type` and `Newtype` currently declare concrete types only, without type parameters.
+`Type` declares an alias instead. An alias keeps the underlying type, so `Alias("Count", (_, { Integer }) => Integer)` produces a type that TypeScript treats as Integer. `Type` and `Newtype` currently declare concrete types only, without type parameters.
 
 ## Imports and renaming
 
@@ -307,7 +311,7 @@ Importing a child module adds it to the module environment under its local name.
 // Uses: math.
 const core = Result.getOrThrow(Module.define("::core", { modules: { math } }));
 
-const viaChild = Program.withPrelude({ modules: { core } }).Do(
+const viaChild = withPrelude({ modules: { core } }).Do(
   Import((_, { core }) => core, { math: "m" }),
   ($) => $.ref.m.values.add(7n, 2n),
 );
@@ -337,7 +341,7 @@ const profiles = Result.getOrThrow(
   }),
 );
 
-const label = Program.withPrelude({ modules: { profiles } }).Do(
+const label = withPrelude({ modules: { profiles } }).Do(
   Import((_, { profiles }) => profiles, ["Profile"]),
   Let("profile", ($, _values, { Profile }) => $.input("profile", Profile)),
   (_, { profile }) => profile.labels.$index(profile.name),
@@ -434,7 +438,7 @@ const temporal = Result.getOrThrow(
   }),
 );
 
-const graph = Program.withPrelude({
+const graph = withPrelude({
   modules: { kernel },
   values: {
     entities: head.values.entities,
@@ -675,7 +679,7 @@ Expected construction failures arrive as a `Result` holding a `ProgramError.Cons
 
 ```ts
 // Uses: the shared imports.
-const invalid = Program.Do(
+const invalid = EmptyDo(
   Let("not a name", ($) => $.integer(1)),
   ($) => $.integer(2),
 );

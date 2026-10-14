@@ -1,14 +1,14 @@
 import { Result } from "effect";
 
-import * as Binding from "../ast/Binding.js";
-import { Type as AstType } from "../ast/Type.js";
-import * as TypeExpression from "../TypeExpression.js";
+import * as Binding from "../program/ast/Binding.js";
+import { Type as AstType } from "../program/ast/Type.js";
+import * as Scope from "../program/Scope.js";
+import * as TypeExpression from "../program/TypeExpression.js";
 import * as Node from "./Node.js";
-import * as Scope from "./Scope.js";
 
-import type * as Semantic from "../../type/index.js";
-import type { Empty } from "../Inputs.js";
-import type { Utilities } from "../Utilities.js";
+import type { Empty } from "../program/Inputs.js";
+import type * as Semantic from "../type/index.js";
+import type { Utilities } from "./Utilities.js";
 import type { ReadonlyRecord } from "effect/Record";
 
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a type declaration step

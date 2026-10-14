@@ -12,6 +12,10 @@
     ".": {
       "types": "./dist/main.d.ts",
       "default": "./dist/main.js"
+    },
+    "./do": {
+      "types": "./dist/do/index.d.ts",
+      "default": "./dist/do/index.js"
     }
   },
   "scripts": {

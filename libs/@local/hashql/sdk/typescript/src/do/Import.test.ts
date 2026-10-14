@@ -5,14 +5,8 @@
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
-import {
-  Expression,
-  Import,
-  Let,
-  Module,
-  Program,
-  TypeExpression,
-} from "../main.js";
+import { Expression, Module, TypeExpression } from "../main.js";
+import { Import, Let, withPrelude } from "./index.js";
 
 import type { Type } from "../main.js";
 
@@ -28,7 +22,7 @@ const uuid = Result.getOrThrow(
   }),
 );
 const core = Result.getOrThrow(Module.define("::core", { modules: { uuid } }));
-const { Do } = Program.withPrelude({ modules: { uuid, core } });
+const { Do } = withPrelude({ modules: { uuid, core } });
 
 const use = "::kernel::special_form::use";
 const shadowValue = 7;
@@ -202,7 +196,7 @@ describe("import_scope", () => {
         types: { Integer: Module.type<Type.PrimitiveInteger>() },
       }),
     );
-    const root = Program.withPrelude(kernel).Do(($, _, { Integer }) =>
+    const root = withPrelude(kernel).Do(($, _, { Integer }) =>
       $.input("count", Integer, $.integer(0)),
     );
     expect(

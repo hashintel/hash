@@ -1,9 +1,9 @@
 import { identity } from "effect";
 
-import type { Node as AstNode } from "../ast/Node.js";
-import type * as ProgramError from "../ProgramError.js";
-import type { Utilities } from "../Utilities.js";
-import type { Scope } from "./Scope.js";
+import type { Node as AstNode } from "../program/ast/Node.js";
+import type * as ProgramError from "../program/ProgramError.js";
+import type { Scope } from "../program/Scope.js";
+import type { Utilities } from "./Utilities.js";
 import type { Result, Types } from "effect";
 
 export interface Variance<In, Out> {
@@ -11,7 +11,7 @@ export interface Variance<In, Out> {
   readonly _Out: Types.Invariant<Out>;
 }
 
-export const TypeId = "~hashql/program/ir/Node";
+export const TypeId = "~hashql/do/Node";
 
 export interface Transition<Out extends Scope> {
   readonly scope: Out;
@@ -46,6 +46,7 @@ export const make = <In extends Scope, Out extends Scope, Inputs>(
   const erased: unknown = elaborate;
   return {
     [TypeId]: {
+      // oxlint-disable-next-line typescript/strict-void-return -- only used for variance
       inputs: identity,
       modules: { _In: identity, _Out: identity },
       values: { _In: identity, _Out: identity },

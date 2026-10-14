@@ -1,7 +1,8 @@
 import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
-import { Expression, Let, Module, Program } from "../main.js";
+import { Do as EmptyDo, Let, withPrelude } from "../do/index.js";
+import { Expression, Module, Program } from "../main.js";
 
 import type { Inputs, Type } from "../main.js";
 
@@ -178,9 +179,9 @@ describe("snippet_requirements", () => {
   test("reusable_snippet", () => {
     const count = Expression.input("count", integer);
     const snippet = count.$.ne(Expression.integer(0));
-    const first = Result.getOrThrow(Program.Do(() => snippet));
+    const first = Result.getOrThrow(EmptyDo(() => snippet));
     const second = Result.getOrThrow(
-      Program.Do(($) => snippet.$.and($.input("enabled", boolean))),
+      EmptyDo(($) => snippet.$.and($.input("enabled", boolean))),
     );
     const program = Program.program(second);
     expectTypeOf<Expression.Inputs<typeof first>>().toEqualTypeOf<{
@@ -194,7 +195,7 @@ describe("snippet_requirements", () => {
 
   test("discarded_expression", () => {
     const expression = Result.getOrThrow(
-      Program.Do(($) => {
+      EmptyDo(($) => {
         $.input("unused", integer);
         return $.integer(1);
       }),
@@ -206,7 +207,7 @@ describe("snippet_requirements", () => {
 
   test("unused_and_shadowed_declarations", () => {
     const expression = Result.getOrThrow(
-      Program.Do(
+      EmptyDo(
         Let("value", ($) => $.input("first", integer)),
         Let("value", ($) => $.input("second", integer)),
         ($) => $.integer(1),
@@ -220,7 +221,7 @@ describe("snippet_requirements", () => {
 
   test("nested_branches", () => {
     const expression = Result.getOrThrow(
-      Program.Do(($) =>
+      EmptyDo(($) =>
         $.if(
           $.input("condition", boolean),
           () =>
@@ -241,7 +242,7 @@ describe("snippet_requirements", () => {
 
 describe("builder_requirements", () => {
   test("query_dependencies", () => {
-    const { Do } = Program.withPrelude({
+    const { Do } = withPrelude({
       values: {
         entities: Expression.fromJExpr<
           Type.Function<readonly [Type.PrimitiveInteger], Graph>,
@@ -266,11 +267,7 @@ describe("builder_requirements", () => {
   });
 
   test("declaration_preservation", () => {
-    const {
-      Do,
-      Type: Alias,
-      Import,
-    } = Program.withPrelude({ modules: { kernel } });
+    const { Do, Type: Alias, Import } = withPrelude({ modules: { kernel } });
     const expression = Result.getOrThrow(
       Do(
         Import((_, { kernel }) => kernel),

@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, test } from "vitest";
 
-import { Expression, Program } from "../main.js";
+import { Do as EmptyDo, withPrelude } from "../do/index.js";
+import { Expression } from "../main.js";
 
 import type { Type } from "../main.js";
 import type * as Inputs from "./Inputs.js";
@@ -15,7 +16,7 @@ type Graph = Type.Opaque<
 
 describe("fluent_types", () => {
   test("graph_vertex", () => {
-    const { Do } = Program.withPrelude({
+    const { Do } = withPrelude({
       values: {
         entities: Expression.fromJExpr<
           Type.Function<readonly [], Graph>,
@@ -50,7 +51,7 @@ describe("fluent_types", () => {
   });
 
   test("operation_domains", () => {
-    Program.Do(($) => {
+    EmptyDo(($) => {
       const integer = $.integer(1);
       expectTypeOf(integer).toEqualTypeOf<
         Expression.Expression<Type.PrimitiveInteger, Inputs.Empty>
