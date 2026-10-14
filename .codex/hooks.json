@@ -4,7 +4,7 @@
       {
         "hooks": [
           {
-            "command": "lefthook run ai-format",
+            "command": "lefthook run format",
             "type": "command"
           }
         ]

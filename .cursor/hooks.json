@@ -2,7 +2,7 @@
   "hooks": {
     "stop": [
       {
-        "command": "lefthook run ai-format"
+        "command": "lefthook run format"
       }
     ]
   },
