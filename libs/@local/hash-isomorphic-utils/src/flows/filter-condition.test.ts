@@ -63,6 +63,21 @@ describe("validateCondition", () => {
     },
   );
 
+  it("rejects an operator the subject's kind doesn't support, in its type and when validated", () => {
+    // @ts-expect-error -- text can't be ordered
+    const leaf: FilterLeaf = {
+      kind: "condition",
+      subject: { kind: "input", payloadKind: "Text" },
+      operator: "greaterThan",
+      value: { kind: "Text", value: "b" },
+    };
+    expect(validateCondition(all(leaf), "Text")).toEqual({
+      status: "error",
+      code: "invalidCondition",
+      message: "Operator greaterThan does not support Text.",
+    });
+  });
+
   it("rejects field subjects on primitive input kinds", () => {
     expect(validateCondition(all(scoreCondition), "Number")).toMatchObject({
       status: "error",
@@ -78,7 +93,7 @@ describe("validateCondition", () => {
           subject: { kind: "input", payloadKind: "Date" },
           operator: "equals",
           value: { kind: "Text", value: "2026-10-08" },
-        }),
+        } as never),
         "Date",
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });
@@ -192,7 +207,7 @@ describe("validateCondition", () => {
       name: "an invalid leaf deep in the tree",
       condition: all(
         activeCondition,
-        any(not({ ...scoreCondition, operator: "contains" })),
+        any(not({ ...scoreCondition, operator: "contains" } as never)),
       ),
       message: "Operator contains does not support Number",
     },
@@ -304,7 +319,7 @@ describe("validateCondition", () => {
   it("rejects a missing operand, wrong input kind, and an operand on presence checks", () => {
     expect(
       validateCondition(
-        all({ ...scoreCondition, value: undefined }),
+        all({ ...scoreCondition, value: undefined } as never),
         "WebPage",
       ),
     ).toMatchObject({ status: "error" });
@@ -319,7 +334,7 @@ describe("validateCondition", () => {
     ).toMatchObject({ status: "error" });
     expect(
       validateCondition(
-        all({ ...scoreCondition, operator: "isEmpty" }),
+        all({ ...scoreCondition, operator: "isEmpty" } as never),
         "WebPage",
       ),
     ).toMatchObject({ status: "error" });

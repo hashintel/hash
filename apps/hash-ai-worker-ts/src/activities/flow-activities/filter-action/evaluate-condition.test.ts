@@ -127,7 +127,7 @@ describe("evaluateCondition", () => {
           subject: { kind: "input", payloadKind: input.kind },
           operator,
           value: operand,
-        }),
+        } as FilterLeaf),
         input,
       ),
     ).toEqual({ status: "success", matches });
@@ -227,7 +227,7 @@ describe("evaluateCondition", () => {
           subject: { kind: "field", path: ["type"], payloadKind: "Text" },
           operator: "isOfType",
           value: { kind: "VersionedUrl", value: companyType },
-        }),
+        } as never),
         { kind: "WebPage", value: {} },
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });
@@ -530,7 +530,7 @@ describe("evaluateCondition", () => {
           ...scoreCondition,
           operator: "contains",
           value: { kind: "Number", value: 1 },
-        }),
+        } as never),
         { kind: "WebPage", value: {} },
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });

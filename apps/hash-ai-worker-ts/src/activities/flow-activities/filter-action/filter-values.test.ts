@@ -62,7 +62,7 @@ describe("evaluateIf", () => {
   it("does not choose a branch for invalid conditions", () => {
     const result = evaluateIf(
       { kind: "Number", value: 6 },
-      all({ ...leaf, operator: "contains" }),
+      all({ ...leaf, operator: "contains" } as never),
     );
     expect(result).toMatchObject({ status: "error", code: "invalidCondition" });
     expect(result).not.toHaveProperty("outputName");
@@ -120,7 +120,7 @@ describe("filterList", () => {
     expect(
       filterList(
         { kind: "Number", value: [] },
-        all({ ...leaf, operator: "contains" }),
+        all({ ...leaf, operator: "contains" } as never),
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });
   });

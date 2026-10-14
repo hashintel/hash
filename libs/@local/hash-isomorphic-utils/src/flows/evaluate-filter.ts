@@ -5,26 +5,38 @@ export type FilterValue = {
   [Kind in ScalarKind]: { kind: Kind; value: PayloadKindValues[Kind] };
 }[ScalarKind];
 
-/** Operators that compare the value with an operand. */
-export const binaryFilterOperators = [
-  "equals",
-  "notEquals",
-  "contains",
-  "startsWith",
-  "endsWith",
+const equalityOperators = ["equals", "notEquals"] as const;
+
+const orderingOperators = [
+  ...equalityOperators,
   "greaterThan",
   "greaterThanOrEqual",
   "lessThan",
   "lessThanOrEqual",
 ] as const;
 
+/** The operators that compare a value of each scalar kind with an operand. */
+const binaryFilterOperatorsByKind = {
+  ActorType: equalityOperators,
+  Boolean: equalityOperators,
+  Date: orderingOperators,
+  EntityId: equalityOperators,
+  GoogleAccountId: equalityOperators,
+  Number: orderingOperators,
+  Text: [...equalityOperators, "contains", "startsWith", "endsWith"],
+  VersionedUrl: equalityOperators,
+} as const satisfies Record<ScalarKind, readonly string[]>;
+
+export type BinaryFilterOperator<Kind extends ScalarKind = ScalarKind> =
+  (typeof binaryFilterOperatorsByKind)[Kind][number];
+
 /** Operators that take no operand. */
 export const unaryFilterOperators = ["isEmpty", "isNotEmpty"] as const;
 
+export type UnaryFilterOperator = (typeof unaryFilterOperators)[number];
+
 export type ScalarFilterCondition = {
-  operator:
-    | (typeof binaryFilterOperators)[number]
-    | (typeof unaryFilterOperators)[number];
+  operator: BinaryFilterOperator | UnaryFilterOperator;
   operand?: PayloadKindValues[ScalarKind];
 };
 
@@ -55,7 +67,8 @@ const isIsoDate = (value: string): boolean => {
  * for missing-value semantics, subject resolution and groups. This helper treats
  * empty text literally (for example, equals("", "") matches).
  * Text comparisons are case-sensitive. Only an empty string is empty: whitespace,
- * zero and false are values. Entity IDs support equality, inequality and presence only.
+ * zero and false are values. Only text supports contains, startsWith and endsWith, and
+ * only numbers and dates can be ordered: see binaryFilterOperatorsByKind.
  * Dates are ISO calendar dates (YYYY-MM-DD), not timestamps. An empty Date is
  * accepted only for emptiness checks. Numbers must be finite.
  * Operands must have the input's scalar type; unary operators ignore the operand.
@@ -85,20 +98,10 @@ export const evaluateFilter = ({
 
   const isUnary = operator === "isEmpty" || operator === "isNotEmpty";
   if (
-    (value.kind === "EntityId" &&
-      operator !== "equals" &&
-      operator !== "notEquals" &&
-      !isUnary) ||
-    ((operator === "contains" ||
-      operator === "startsWith" ||
-      operator === "endsWith") &&
-      value.kind !== "Text") ||
-    ((operator === "greaterThan" ||
-      operator === "lessThan" ||
-      operator === "greaterThanOrEqual" ||
-      operator === "lessThanOrEqual") &&
-      value.kind !== "Number" &&
-      value.kind !== "Date")
+    !isUnary &&
+    !(binaryFilterOperatorsByKind[value.kind] as readonly string[]).includes(
+      operator,
+    )
   ) {
     return {
       status: "error",

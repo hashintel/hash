@@ -1,33 +1,55 @@
 import { typedKeys } from "@local/advanced-types/typed-entries";
 
-import { binaryFilterOperators, evaluateFilter } from "./evaluate-filter.js";
+import { evaluateFilter } from "./evaluate-filter.js";
 import { allPayloadKinds } from "./types.js";
 
 import type {
+  BinaryFilterOperator,
   FilterResult,
   FilterValue,
-  ScalarFilterCondition,
+  UnaryFilterOperator,
 } from "./evaluate-filter.js";
 import type { PayloadKind } from "./types.js";
 import type { ActionStepCheck } from "./validate-flow-definition.js";
 import type { BaseUrl } from "@blockprotocol/type-system";
 
-export type ConditionSubject =
-  | { kind: "input"; payloadKind: PayloadKind }
-  | { kind: "field"; path: readonly string[]; payloadKind: PayloadKind }
+type SubjectOfKind<Kind extends PayloadKind> =
+  | { kind: "input"; payloadKind: Kind }
+  | { kind: "field"; path: readonly string[]; payloadKind: Kind }
   | {
       kind: "entityProperty";
       propertyTypeBaseUrl: BaseUrl;
-      payloadKind: PayloadKind;
-    }
+      payloadKind: Kind;
+    };
+
+export type ConditionSubject =
+  | SubjectOfKind<PayloadKind>
   | { kind: "entityType" };
 
-export type FilterLeaf = {
-  kind: "condition";
-  subject: ConditionSubject;
-  operator: ScalarFilterCondition["operator"] | "isOfType";
-  value?: FilterValue;
-};
+/** Compares a subject with a value of its kind, using an operator that kind supports. */
+type ComparisonLeaf = {
+  [Kind in ScalarKind]: {
+    kind: "condition";
+    subject: SubjectOfKind<Kind>;
+    operator: BinaryFilterOperator<Kind>;
+    value: Extract<FilterValue, { kind: Kind }>;
+  };
+}[ScalarKind];
+
+export type FilterLeaf =
+  | ComparisonLeaf
+  | {
+      kind: "condition";
+      subject: ConditionSubject;
+      operator: UnaryFilterOperator;
+      value?: undefined;
+    }
+  | {
+      kind: "condition";
+      subject: { kind: "entityType" };
+      operator: "isOfType";
+      value: Extract<FilterValue, { kind: "VersionedUrl" }>;
+    };
 
 /**
  * A boolean tree of leaf conditions. `not` is plain logical negation of its
@@ -61,8 +83,6 @@ const invalidCondition = (message: string): ConditionError => ({
   code: "invalidCondition",
   message,
 });
-
-const scalarOperators: readonly string[] = binaryFilterOperators;
 
 /**
  * What a condition can read from a payload of a kind:
@@ -253,6 +273,7 @@ const validateLeaf = (
       return invalidCondition("Unknown subject kind.");
   }
   if (operator === "isEmpty" || operator === "isNotEmpty") {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.
     if (value !== undefined) {
       return invalidCondition(
         "Presence operators do not accept a comparison value.",
@@ -263,6 +284,7 @@ const validateLeaf = (
   if (subject.kind === "entityType") {
     if (
       operator !== "isOfType" ||
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.
       value?.kind !== "VersionedUrl" ||
       !/^https?:\/\/.+\/v\/[1-9]\d*$/.test(value.value)
     ) {
@@ -274,7 +296,6 @@ const validateLeaf = (
   }
   if (
     operator === "isOfType" ||
-    !scalarOperators.includes(operator) ||
     !scalarKinds.includes(subject.payloadKind) ||
     !value ||
     value.kind !== subject.payloadKind
