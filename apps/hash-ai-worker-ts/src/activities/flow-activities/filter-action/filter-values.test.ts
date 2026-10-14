@@ -138,7 +138,7 @@ describe("filterList", () => {
     });
   });
 
-  it.each(["FailedEntityProposal", "VersionedUrl"] as const)(
+  it.each(["FailedEntityProposal", "FilterCondition"] as const)(
     "rejects %s items, even for a condition that fits them",
     (kind) => {
       expect(filterList({ kind, value: [] }, isPresent(kind))).toMatchObject({

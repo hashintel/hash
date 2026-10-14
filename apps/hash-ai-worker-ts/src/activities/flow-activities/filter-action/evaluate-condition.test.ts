@@ -107,6 +107,18 @@ describe("evaluateCondition", () => {
       operand: { kind: "Date", value: "2026-10-07" },
       matches: false,
     },
+    {
+      input: { kind: "VersionedUrl", value: companyType },
+      operator: "equals",
+      operand: { kind: "VersionedUrl", value: companyType },
+      matches: true,
+    },
+    {
+      input: { kind: "ActorType", value: "user" },
+      operator: "equals",
+      operand: { kind: "ActorType", value: "machine" },
+      matches: false,
+    },
   ])("$operator for $input", ({ input, operator, operand, matches }) => {
     expect(
       evaluateCondition(

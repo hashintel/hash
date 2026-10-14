@@ -1,9 +1,9 @@
 import { isEntityId } from "@blockprotocol/type-system";
+import { evaluateFilter } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
 import {
-  evaluateFilter,
-  filterPayloadKinds,
-} from "@local/hash-isomorphic-utils/flows/evaluate-filter";
-import { validateCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
+  scalarKinds,
+  validateCondition,
+} from "@local/hash-isomorphic-utils/flows/filter-condition";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { FilterValue } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
@@ -31,8 +31,6 @@ export type ConditionInput = { kind: PayloadKind; value: unknown };
 export type ConditionResult =
   | { status: "success"; matches: boolean }
   | ConditionError;
-
-const scalarKinds: readonly PayloadKind[] = filterPayloadKinds;
 
 const isEmptyValue = (value: unknown): boolean =>
   value === undefined || value === null || value === "";
@@ -114,16 +112,18 @@ const asScalarValue = (
   value: unknown,
 ): FilterValue | undefined => {
   switch (kind) {
-    case "Text":
-    case "Date":
-      return typeof value === "string" ? { kind, value } : undefined;
     case "Number":
       return typeof value === "number" ? { kind, value } : undefined;
     case "Boolean":
       return typeof value === "boolean" ? { kind, value } : undefined;
+    case "ActorType":
+    case "Date":
     case "EntityId":
+    case "GoogleAccountId":
+    case "Text":
+    case "VersionedUrl":
       return typeof value === "string"
-        ? { kind, value: value as EntityId }
+        ? ({ kind, value } as FilterValue)
         : undefined;
     default:
       return undefined;

@@ -1,19 +1,9 @@
-import type { PayloadKind, PayloadKindValues } from "./types.js";
-
-/** The payload kinds scalar operators compare. */
-export const filterPayloadKinds = [
-  "Text",
-  "Number",
-  "Boolean",
-  "Date",
-  "EntityId",
-] as const satisfies readonly PayloadKind[];
-
-type FilterPayloadKind = (typeof filterPayloadKinds)[number];
+import type { ScalarKind } from "./filter-condition.js";
+import type { PayloadKindValues } from "./types.js";
 
 export type FilterValue = {
-  [Kind in FilterPayloadKind]: { kind: Kind; value: PayloadKindValues[Kind] };
-}[FilterPayloadKind];
+  [Kind in ScalarKind]: { kind: Kind; value: PayloadKindValues[Kind] };
+}[ScalarKind];
 
 /** Operators that compare the value with an operand. */
 export const binaryFilterOperators = [
@@ -35,7 +25,7 @@ export type ScalarFilterCondition = {
   operator:
     | (typeof binaryFilterOperators)[number]
     | (typeof unaryFilterOperators)[number];
-  operand?: PayloadKindValues[FilterPayloadKind];
+  operand?: PayloadKindValues[ScalarKind];
 };
 
 export type FilterResult =

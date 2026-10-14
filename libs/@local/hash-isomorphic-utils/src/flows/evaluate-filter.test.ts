@@ -16,6 +16,12 @@ const values: FilterValue[] = [
   { kind: "Boolean", value: true },
   { kind: "Date", value: "2026-10-07" },
   { kind: "EntityId", value: entityId },
+  { kind: "ActorType", value: "user" },
+  { kind: "GoogleAccountId", value: "account" },
+  {
+    kind: "VersionedUrl",
+    value: "https://example.com/types/entity-type/company/v/1",
+  },
 ];
 
 describe("evaluateFilter", () => {
@@ -194,6 +200,15 @@ describe("evaluateFilter", () => {
   });
 
   describe.each(values)("invalid conditions for $kind", (value) => {
+    const nonEqualityOperators: ScalarFilterCondition["operator"][] = [
+      "contains",
+      "startsWith",
+      "endsWith",
+      "greaterThan",
+      "lessThan",
+      "greaterThanOrEqual",
+      "lessThanOrEqual",
+    ];
     const unsupportedOperators: Record<
       FilterValue["kind"],
       ScalarFilterCondition["operator"][]
@@ -205,25 +220,12 @@ describe("evaluateFilter", () => {
         "lessThanOrEqual",
       ],
       Number: ["contains", "startsWith", "endsWith"],
-      Boolean: [
-        "contains",
-        "startsWith",
-        "endsWith",
-        "greaterThan",
-        "lessThan",
-        "greaterThanOrEqual",
-        "lessThanOrEqual",
-      ],
+      Boolean: nonEqualityOperators,
       Date: ["contains", "startsWith", "endsWith"],
-      EntityId: [
-        "contains",
-        "startsWith",
-        "endsWith",
-        "greaterThan",
-        "lessThan",
-        "greaterThanOrEqual",
-        "lessThanOrEqual",
-      ],
+      EntityId: nonEqualityOperators,
+      ActorType: nonEqualityOperators,
+      GoogleAccountId: nonEqualityOperators,
+      VersionedUrl: nonEqualityOperators,
     };
 
     it.each(unsupportedOperators[value.kind])("rejects %s", (operator) => {

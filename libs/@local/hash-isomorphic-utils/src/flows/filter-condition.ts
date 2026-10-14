@@ -1,8 +1,6 @@
-import {
-  binaryFilterOperators,
-  evaluateFilter,
-  filterPayloadKinds,
-} from "./evaluate-filter.js";
+import { typedKeys } from "@local/advanced-types/typed-entries";
+
+import { binaryFilterOperators, evaluateFilter } from "./evaluate-filter.js";
 import { allPayloadKinds } from "./types.js";
 
 import type {
@@ -12,7 +10,7 @@ import type {
 } from "./evaluate-filter.js";
 import type { PayloadKind } from "./types.js";
 import type { ActionStepCheck } from "./validate-flow-definition.js";
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 export type ConditionSubject =
   | { kind: "input"; payloadKind: PayloadKind }
@@ -24,15 +22,11 @@ export type ConditionSubject =
     }
   | { kind: "entityType" };
 
-export type ConditionValue =
-  | FilterValue
-  | { kind: "VersionedUrl"; value: VersionedUrl };
-
 export type FilterLeaf = {
   kind: "condition";
   subject: ConditionSubject;
   operator: ScalarFilterCondition["operator"] | "isOfType";
-  value?: ConditionValue;
+  value?: FilterValue;
 };
 
 /**
@@ -70,41 +64,63 @@ const invalidCondition = (message: string): ConditionError => ({
 
 const scalarOperators: readonly string[] = binaryFilterOperators;
 
-const scalarKinds: readonly PayloadKind[] = filterPayloadKinds;
+/**
+ * What a condition can read from a payload of a kind:
+ * - `scalar`: the value itself, with an operator such as `equals`
+ * - `object`: its fields, with a `field` subject
+ * - `entity`: its entity's properties and types, with an `entityProperty` or `entityType` subject
+ */
+type FilterCapability = "scalar" | "object" | "entity";
 
-/** The payload kinds If and Filter list accept: a condition can compare them or their fields. */
-export const filterableKinds = [
-  "Boolean",
-  "Date",
-  "EntityId",
-  "FormattedText",
-  "GoogleSheet",
-  "Number",
-  "PersistedEntityMetadata",
-  "ProposedEntity",
-  "ProposedEntityWithResolvedLinks",
-  "Text",
-  "WebPage",
-  "WebSearchResult",
-] as const satisfies readonly PayloadKind[];
+/** The capabilities of each payload kind. A kind with none can't be filtered. */
+const filterCapabilities = {
+  ActorType: ["scalar"],
+  Boolean: ["scalar"],
+  Date: ["scalar"],
+  EntityId: ["scalar", "entity"],
+  FailedEntityProposal: [],
+  FilterCondition: [],
+  FormattedText: ["object"],
+  GoogleAccountId: ["scalar"],
+  GoogleSheet: ["object"],
+  Number: ["scalar"],
+  PersistedEntityMetadata: ["object"],
+  ProposedEntity: ["object", "entity"],
+  ProposedEntityWithResolvedLinks: ["object", "entity"],
+  Text: ["scalar"],
+  VersionedUrl: ["scalar"],
+  WebPage: ["object"],
+  WebSearchResult: ["object"],
+} as const satisfies Record<PayloadKind, readonly FilterCapability[]>;
 
-export type FilterableKind = (typeof filterableKinds)[number];
+type KindWith<Capability extends FilterCapability> = {
+  [Kind in PayloadKind]: Capability extends (typeof filterCapabilities)[Kind][number]
+    ? Kind
+    : never;
+}[PayloadKind];
 
-const entityKinds: readonly PayloadKind[] = [
-  "EntityId",
-  "ProposedEntity",
-  "ProposedEntityWithResolvedLinks",
-];
+const kindsWith = (capability: FilterCapability): readonly PayloadKind[] =>
+  typedKeys(filterCapabilities).filter((kind) =>
+    (filterCapabilities[kind] as readonly FilterCapability[]).includes(
+      capability,
+    ),
+  );
 
-const objectKinds: readonly PayloadKind[] = [
-  "FormattedText",
-  "GoogleSheet",
-  "PersistedEntityMetadata",
-  "ProposedEntity",
-  "ProposedEntityWithResolvedLinks",
-  "WebPage",
-  "WebSearchResult",
-];
+/** The payload kinds a scalar operator compares. */
+export type ScalarKind = KindWith<"scalar">;
+
+export const scalarKinds = kindsWith("scalar");
+
+const objectKinds = kindsWith("object");
+
+const entityKinds = kindsWith("entity");
+
+export type FilterableKind = KindWith<FilterCapability>;
+
+/** The payload kinds If and Filter list accept: those a condition can read something from. */
+export const filterableKinds = typedKeys(filterCapabilities).filter(
+  (kind): kind is FilterableKind => filterCapabilities[kind].length > 0,
+);
 
 /**
  * The leaves of a tree in document order. Call it only on a condition that
@@ -261,8 +277,7 @@ const validateLeaf = (
     !scalarOperators.includes(operator) ||
     !scalarKinds.includes(subject.payloadKind) ||
     !value ||
-    value.kind !== subject.payloadKind ||
-    value.kind === "VersionedUrl"
+    value.kind !== subject.payloadKind
   ) {
     return invalidCondition(
       `A scalar operator requires a subject of kind ${scalarKinds.join(", ")} and a comparison value of the same kind.`,
