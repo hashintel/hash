@@ -840,6 +840,22 @@ export class TileCache {
     detail: Detail.Detail,
   ): void {
     const existing = this.#entries.get(key);
+    // Never downgrade a resident entry. Two fetches of one tile can settle in
+    // either order — a detailed required load overtakes an older compact
+    // prefetch in the pool's required lane, so the poorer response landing
+    // last is the common ordering, not the rare one. A tile's content is
+    // immutable within this cache's lifetime (a session replacement recreates
+    // the whole cache) and an auxiliary response strictly supersets the
+    // minimal one, so a store the resident detail already covers—without
+    // covering the resident in return—adds nothing and would only shed the
+    // labels a later detailed viewport comes back for.
+    if (
+      existing &&
+      detailServes(existing.detail, detail) &&
+      !detailServes(detail, existing.detail)
+    ) {
+      return;
+    }
     // Rebuilt rather than stored as-received, so an entry holds exactly the
     // fields its recorded `detail` promises (labels and icons ride auxiliary
     // responses only) and nothing undeclared survives into the budget.
@@ -1190,6 +1206,17 @@ export const getViewportNodes = async (
         : next;
   }
 
+  // Rate-limited: speculation yields first. The empty batch also cancels
+  // in-flight prefetches, returning their budget to the required loads. Ahead
+  // of the total-failure throw deliberately: a viewport that lost every load
+  // to a drained budget is exactly when the standing speculation must go, and
+  // an exit that skipped the cancel would leave it spending the budget the
+  // pause exists to return.
+  const speculationPaused = isAtlasSpeculationPaused();
+  if (speculationPaused) {
+    cache.prefetchBatch([]);
+  }
+
   if (attempted > 0 && failures === attempted) {
     throw new ViewportTilesError(
       `all ${failures} tile fetch(es) failed for the viewport`,
@@ -1200,11 +1227,7 @@ export const getViewportNodes = async (
   // Record movement and speculate in every detail mode: the prefetch rides the
   // viewport's own mode, so a later required load consumes it either way.
   cache.recordHistory(rect, targetDepth);
-  if (isAtlasSpeculationPaused()) {
-    // Rate-limited: speculation yields first. The empty batch also cancels
-    // in-flight prefetches, returning their budget to the required loads.
-    cache.prefetchBatch([]);
-  } else {
+  if (!speculationPaused) {
     schedulePrefetch(cache, requiredKeys, detail);
   }
 

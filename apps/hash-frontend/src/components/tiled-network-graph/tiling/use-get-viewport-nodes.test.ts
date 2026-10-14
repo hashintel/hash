@@ -540,6 +540,47 @@ describe("getViewportNodes", () => {
     expect(cache.prefetchStats.cancelled).toBeGreaterThan(0);
     expect(cache.prefetchStats.issued).toBe(issuedBeforePause);
   });
+
+  it("cancels in-flight prefetches even when every load of the paused pass fails", async () => {
+    // Prefetches hang until aborted; minimal required loads resolve; detailed
+    // required loads fail — the budget died between the passes, and a detail
+    // switch refetches even cache-resident tiles, so the pass loses every
+    // load and throws. The cancel must run ahead of that throw.
+    const splitFetcher: TileFetcher = (zoom, tileIndex, controls) => {
+      if (controls?.priority === "low") {
+        return new Promise<FetchedTile>((_resolve, reject) => {
+          controls.signal?.addEventListener(
+            "abort",
+            () => reject(new Error("aborted")),
+            { once: true },
+          );
+        });
+      }
+      if (controls?.detail === "auxiliary") {
+        return Promise.reject(new Error("budget drained"));
+      }
+      return Promise.resolve({
+        nodes: [{ id: Number(zoom) * 1_000 + Number(tileIndex), x: 0, y: 0 }],
+        complete: false,
+      });
+    };
+    const cache = new TileCache({
+      fetcher: splitFetcher,
+      edgesFetcher: noEdges,
+    });
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache); // ring fires
+    expect(cache.prefetchStats.issued).toBeGreaterThan(0);
+
+    noteAtlasRateLimited(30_000);
+    await expect(
+      getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache, {
+        detail: "auxiliary",
+      }),
+    ).rejects.toBeInstanceOf(ViewportTilesError);
+
+    expect(cache.prefetchStats.cancelled).toBeGreaterThan(0);
+  });
 });
 
 describe("getViewportNodes edges", () => {
@@ -780,6 +821,41 @@ describe("getViewportNodes detailed data", () => {
     expect((await cache.load(coordinate, "auxiliary"))[0]?.label).toBe(
       "retained",
     );
+  });
+
+  it("does not let a late compact settle downgrade a resident detailed entry", async () => {
+    const pending: { detail: string; resolve: (tile: FetchedTile) => void }[] =
+      [];
+    const fetcher: TileFetcher = (_zoom, _tileIndex, controls) =>
+      new Promise((resolve) => {
+        pending.push({ detail: controls?.detail ?? "minimal", resolve });
+      });
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+    const coordinate = { z: u64(0), x: u64(0), y: u64(0) };
+
+    const compact = cache.load(coordinate);
+    const detailed = cache.load(coordinate, "auxiliary");
+    expect(pending.map((request) => request.detail)).toEqual([
+      "minimal",
+      "auxiliary",
+    ]);
+
+    // The detailed fetch settles first — the pool's required lane overtakes
+    // an older queued compact fetch, so this is the common ordering...
+    pending[1]?.resolve({
+      nodes: [{ id: 1, x: 0, y: 0, label: "kept" }],
+      complete: true,
+    });
+    expect((await detailed)[0]?.label).toBe("kept");
+    // ...and the stale compact response lands after it.
+    pending[0]?.resolve({ nodes: [{ id: 1, x: 0, y: 0 }], complete: true });
+    expect((await compact)[0]?.label).toBeUndefined();
+
+    // The resident entry kept its detail: a detailed re-read serves from
+    // cache with labels intact (a refetch would hang on these single-shot
+    // resolvers), and no third fetch was issued.
+    expect((await cache.load(coordinate, "auxiliary"))[0]?.label).toBe("kept");
+    expect(pending).toHaveLength(2);
   });
 
   it("refetches a resident compact tile with detail on entering the detailed view", async () => {
