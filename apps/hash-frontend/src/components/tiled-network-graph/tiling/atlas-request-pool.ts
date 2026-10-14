@@ -32,7 +32,10 @@
  * reports, pacing is free and the pool behaves as before.
  */
 
-import { takeAtlasRequestToken } from "./atlas-backpressure";
+import {
+  refundAtlasRequestToken,
+  takeAtlasRequestToken,
+} from "./atlas-backpressure";
 
 /** Concurrent data-route requests; queued beyond this. */
 const ATLAS_DATA_REQUEST_LIMIT = 6;
@@ -164,7 +167,16 @@ export const createAtlasRequestPool = (
   return {
     run: async (lane, operation, signal) => {
       await paceAtlasRequest(lane, signal);
-      await acquire(lane, signal);
+      // The pacing token is spent, but the request has not reached the server
+      // yet: an abort landing in the slot queue must give the token back, or
+      // a cancelled burst would throttle its successors for budget the server
+      // never saw (see `refundAtlasRequestToken`).
+      try {
+        await acquire(lane, signal);
+      } catch (error) {
+        refundAtlasRequestToken();
+        throw error;
+      }
       try {
         return await operation();
       } finally {

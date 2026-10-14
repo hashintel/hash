@@ -154,6 +154,35 @@ describe("createAtlasRequestPool", () => {
       expect(operation).not.toHaveBeenCalled();
     });
 
+    it("refunds the pacing token when an abort lands in the slot queue", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+      // Two tokens at ten per second; a phantom spend would cost ~100ms.
+      noteAtlasBudget('"gate";q=10;w=1', '"gate";r=2');
+      const pool = createAtlasRequestPool(1);
+      const gate = deferred<void>();
+
+      const occupant = pool.run("required", () => gate.promise);
+      await vi.advanceTimersByTimeAsync(0); // occupant spends, holds the slot
+      const controller = new AbortController();
+      const abortedOperation = vi.fn(() => Promise.resolve("never"));
+      const queued = pool.run("required", abortedOperation, controller.signal);
+      await vi.advanceTimersByTimeAsync(0); // spends, parks in the slot queue
+      controller.abort(new Error("superseded"));
+      await expect(queued).rejects.toThrow("superseded");
+      expect(abortedOperation).not.toHaveBeenCalled();
+
+      // The aborted request's token came back: once the slot frees, the next
+      // required load dispatches without waiting out a phantom spend.
+      gate.resolve();
+      await occupant;
+      const operation = vi.fn(() => Promise.resolve("ok"));
+      const next = pool.run("required", operation);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(operation).toHaveBeenCalledTimes(1);
+      await expect(next).resolves.toBe("ok");
+    });
+
     it("does not pace when no budget was ever reported", async () => {
       const pool = createAtlasRequestPool(1);
       await expect(

@@ -284,6 +284,26 @@ export const takeAtlasRequestToken = (
 };
 
 /**
+ * Returns one spent token to every live pacing model.
+ *
+ * For a request that took its token and then never reached the server — an
+ * abort while it still sat in the pool's slot queue. The sync in
+ * {@link noteAtlasBudget} only moves the estimate *down* (an in-flight spend
+ * is absent from an older report's count), which is what makes this refund
+ * both necessary and safe: a phantom spend would throttle later requests for
+ * budget the server never saw and no report could ever restore, while an
+ * over-generous refund — the model replaced between spend and refund, say —
+ * is pulled back by the very next report. Capped at the burst, like refill.
+ */
+export const refundAtlasRequestToken = (): void => {
+  const now = Date.now();
+  for (const model of budgetModels.values()) {
+    model.tokens = Math.min(model.capacity, projectedTokens(model, now) + 1);
+    model.projectedAt = now;
+  }
+};
+
+/**
  * Records a rate-limited response. `retryAfterMs` is the server's stated wait
  * when the response carried a readable `Retry-After`; the pause is that wait
  * clamped to `[2s, 5min]`. Deadlines only extend — a shorter wait landing

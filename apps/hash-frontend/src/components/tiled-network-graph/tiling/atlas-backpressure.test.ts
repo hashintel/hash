@@ -5,6 +5,7 @@ import {
   noteAtlasBudget,
   noteAtlasRateLimited,
   parseAtlasBudgets,
+  refundAtlasRequestToken,
   resetAtlasBackpressure,
   takeAtlasRequestToken,
 } from "./atlas-backpressure";
@@ -252,5 +253,23 @@ describe("takeAtlasRequestToken", () => {
     expect(takeAtlasRequestToken("speculative")).toBeGreaterThan(0);
     vi.setSystemTime(5 * 60_000 + 1);
     expect(takeAtlasRequestToken("speculative")).toBe(0);
+  });
+
+  it("restores a refunded token", () => {
+    noteAtlasBudget('"gate";q=10;w=1', '"gate";r=1');
+    expect(takeAtlasRequestToken("required")).toBe(0);
+    expect(takeAtlasRequestToken("required")).toBeGreaterThan(0);
+
+    refundAtlasRequestToken();
+    expect(takeAtlasRequestToken("required")).toBe(0);
+  });
+
+  it("caps a refund at the burst", () => {
+    noteAtlasBudget('"gate";q=2;w=1', '"gate";r=2');
+    refundAtlasRequestToken();
+    // Still two tokens, not three: the refund cannot mint past the burst.
+    expect(takeAtlasRequestToken("required")).toBe(0);
+    expect(takeAtlasRequestToken("required")).toBe(0);
+    expect(takeAtlasRequestToken("required")).toBeGreaterThan(0);
   });
 });
