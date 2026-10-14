@@ -903,14 +903,20 @@ pub trait EntityStore {
 
     /// Get the latest edition of the [`Entity`], or the one live at the given timestamps.
     ///
-    /// [`None`] reads as the public actor.
+    /// An `actor_id` of [`None`] reads as the public actor. Returns [`None`] if the actor may not
+    /// view the entity or no edition of it is live at `transaction_time` and `decision_time`, each
+    /// of which defaults to now.
+    ///
+    /// # Errors
+    ///
+    /// - [`QueryError`] if the store cannot be queried
     fn get_entity_by_id(
         &self,
         actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> impl Future<Output = Result<Entity, Report<QueryError>>> + Send;
+    ) -> impl Future<Output = Result<Option<Entity>, Report<QueryError>>> + Send;
 
     fn patch_entity(
         &mut self,
@@ -986,7 +992,11 @@ pub trait EntityStore {
                     params.first_transaction_time,
                     params.first_decision_time,
                 )
-                .await?;
+                .await?
+                .ok_or_else(|| {
+                    Report::new(QueryError)
+                        .attach(format!("entity `{}` was not found", params.first_entity_id))
+                })?;
             let second_entity = self
                 .get_entity_by_id(
                     Some(actor_id),
@@ -994,7 +1004,13 @@ pub trait EntityStore {
                     params.second_transaction_time,
                     params.second_decision_time,
                 )
-                .await?;
+                .await?
+                .ok_or_else(|| {
+                    Report::new(QueryError).attach(format!(
+                        "entity `{}` was not found",
+                        params.second_entity_id
+                    ))
+                })?;
 
             let property_diff = first_entity
                 .properties

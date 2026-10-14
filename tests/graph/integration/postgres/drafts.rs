@@ -78,7 +78,8 @@ fn charles() -> PropertyObject {
 async fn check_entity_exists(api: &DatabaseApi<'_>, id: EntityId) -> bool {
     api.get_entity_by_id(Some(api.account_id), id, None, None)
         .await
-        .is_ok()
+        .expect("should query the entity")
+        .is_some()
 }
 
 #[tokio::test]

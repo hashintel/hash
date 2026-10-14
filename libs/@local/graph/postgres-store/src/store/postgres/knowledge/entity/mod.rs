@@ -1980,7 +1980,7 @@ where
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> Result<Entity, Report<QueryError>> {
+    ) -> Result<Option<Entity>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
@@ -2000,13 +2000,14 @@ where
         }
         .resolve();
 
-        Read::<Entity>::read_one(
+        let entities = Read::<Entity>::read(
             self,
             &filters,
             Some(&temporal_axes),
             entity_id.draft_id.is_some(),
         )
-        .await
+        .await?;
+        core::pin::pin!(entities).try_next().await
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
