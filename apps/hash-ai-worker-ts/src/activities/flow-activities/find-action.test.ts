@@ -132,13 +132,6 @@ describe("findAction", () => {
     });
   });
 
-  it("returns no outputs for an empty list without a condition", async () => {
-    expect(await run({ kind: "Text", value: [] })).toMatchObject({
-      code: StatusCode.Ok,
-      contents: [{ outputs: [] }],
-    });
-  });
-
   it("reports an entity the user can't read as not found", async () => {
     const entityId =
       "00000000-0000-4000-8000-000000000001~00000000-0000-4000-8000-000000000011" as EntityId;

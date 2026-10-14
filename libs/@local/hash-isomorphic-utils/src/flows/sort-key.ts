@@ -1,4 +1,4 @@
-import { filterableKinds, validateSubject } from "./filter-condition.js";
+import { validateSubject } from "./filter-condition.js";
 
 import type { ConditionSubject } from "./filter-condition.js";
 import type { ActionStepCheck, PayloadKind } from "./types.js";
@@ -49,9 +49,6 @@ export const validateSortKey = (
     return invalidSortKey(
       'A sort key\'s direction must be "ascending" or "descending".',
     );
-  }
-  if (!(filterableKinds as readonly PayloadKind[]).includes(itemKind)) {
-    return invalidSortKey(`${itemKind} payloads cannot be sorted.`);
   }
   const subjectError = validateSubject(subject, itemKind);
   if (subjectError) {

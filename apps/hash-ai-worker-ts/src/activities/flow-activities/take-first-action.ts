@@ -9,7 +9,6 @@ import { validateTakeCount } from "@local/hash-isomorphic-utils/flows/take-count
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
-import { takeFirst } from "./filter-action/take-first.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 
@@ -21,7 +20,7 @@ export const takeFirstAction: FlowActionActivity<"takeFirst"> = async ({
     actionType: "takeFirst",
   });
 
-  /* Checked before anything else, so that an invalid count fails even when the list is short enough to keep whole. */
+  /* Checked first, so that an invalid count fails even when the list is short enough to keep whole. */
   const countError = validateTakeCount(count);
 
   if (countError) {
@@ -47,18 +46,10 @@ export const takeFirstAction: FlowActionActivity<"takeFirst"> = async ({
 
   const storageProvider = getStorageProvider();
 
-  const result = takeFirst(
-    await resolveInputPayload({ storageProvider, workflowId }, items),
-    count,
+  const resolvedItems = await resolveInputPayload(
+    { storageProvider, workflowId },
+    items,
   );
-
-  if (result.status === "error") {
-    return {
-      code: StatusCode.InvalidArgument,
-      message: result.message,
-      contents: [],
-    };
-  }
 
   const payload = await prepareOutputPayload({
     storageProvider,
@@ -66,7 +57,10 @@ export const takeFirstAction: FlowActionActivity<"takeFirst"> = async ({
     runId,
     stepId,
     outputName: "items",
-    payload: result.items,
+    payload: {
+      kind: resolvedItems.kind,
+      value: resolvedItems.value.slice(0, count),
+    },
   });
 
   return {

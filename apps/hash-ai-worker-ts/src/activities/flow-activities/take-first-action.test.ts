@@ -93,12 +93,24 @@ describe("takeFirstAction", () => {
     ).toEqual([entities[0], entities[1]]);
   });
 
-  it("passes a stored list it keeps whole on unchanged, without fetching or storing it", async () => {
+  it("keeps nothing for a count of 0", async () => {
+    expect(
+      (await run({ kind: "Text", value: ["a", "b"] }, 0)).contents,
+    ).toEqual([
+      {
+        outputs: [
+          { outputName: "items", payload: { kind: "Text", value: [] } },
+        ],
+      },
+    ]);
+  });
+
+  it("passes a stored list on unchanged for a count past its end, without fetching or storing it", async () => {
     const items = await storedEntities();
     uploadDirect.mockClear();
     downloadDirect.mockClear();
 
-    const result = await run(items, 3);
+    const result = await run(items, 5);
 
     expect(result.contents[0]?.outputs[0]?.payload).toBe(items);
     expect(uploadDirect).not.toHaveBeenCalled();

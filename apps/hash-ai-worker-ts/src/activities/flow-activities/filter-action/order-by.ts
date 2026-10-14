@@ -29,13 +29,6 @@ type SortValue = string | number | boolean;
 /** Fixed, so that the order doesn't depend on the locale of the worker. */
 const textCollator = new Intl.Collator("en");
 
-const sortValueDescriptions: Record<SortKeyKind, string> = {
-  Text: "text",
-  Number: "a finite number",
-  Date: "an ISO calendar date (YYYY-MM-DD)",
-  Boolean: "true or false",
-};
-
 const isSortValue = (kind: SortKeyKind, value: unknown): value is SortValue => {
   switch (kind) {
     case "Text":
@@ -113,7 +106,7 @@ export const orderBy = <Kind extends PayloadKind>(
       return {
         status: "error",
         code: "invalidValue",
-        message: `The value to sort by must be ${sortValueDescriptions[kind]}.`,
+        message: `The value to sort by does not have kind ${kind}.`,
       };
     }
   }

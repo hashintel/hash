@@ -154,7 +154,7 @@ describe("orderBy", () => {
     {
       name: "a subject of a kind that can't be sorted",
       kind: "EntityId",
-      sortKey: byItem("EntityId" as "Text"),
+      sortKey: byItem("EntityId"),
     },
     {
       name: "a subject that doesn't fit the items",
