@@ -1,14 +1,18 @@
 //! The definition format as serde types.
 //!
 //! The types follow the format field by field, reject unknown fields, and keep the source location
-//! of the keys and values that lowering checks.
+//! of the keys and values that lowering checks, except a short-form accessor's column.
 
 mod lower;
 mod spanned_map;
 
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
+use core::fmt;
 
-use serde::Deserialize;
+use serde::{
+    Deserialize,
+    de::{Deserializer, MapAccess, Visitor, value::MapAccessDeserializer},
+};
 use serde_saphyr::Spanned;
 
 use self::spanned_map::SpannedMap;
@@ -38,6 +42,140 @@ struct SourceSyntax {
     coverage: Option<CoverageSyntax>,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum CoercionSyntax {
+    Date,
+    Time,
+    Boolean,
+    Number,
+    Integer,
+    Year,
+    Trim,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct AccessorFields {
+    column: Option<Spanned<String>>,
+    coerce: Option<CoercionSyntax>,
+    amount: Option<Spanned<String>>,
+    unit: Option<Spanned<String>>,
+    unit_map: Option<Spanned<String>>,
+}
+
+/// A property accessor: a column name, or a mapping describing a coercion or a measure.
+#[derive(Debug)]
+enum AccessorSyntax {
+    Column(String),
+    Fields(Box<AccessorFields>),
+}
+
+struct AccessorVisitor;
+
+impl<'de> Visitor<'de> for AccessorVisitor {
+    type Value = AccessorSyntax;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a column name or an accessor mapping")
+    }
+
+    fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
+        Ok(AccessorSyntax::Column(String::from(value)))
+    }
+
+    fn visit_string<E: serde::de::Error>(self, value: String) -> Result<Self::Value, E> {
+        Ok(AccessorSyntax::Column(value))
+    }
+
+    fn visit_map<A: MapAccess<'de>>(self, map: A) -> Result<Self::Value, A::Error> {
+        AccessorFields::deserialize(MapAccessDeserializer::new(map))
+            .map(|fields| AccessorSyntax::Fields(Box::new(fields)))
+    }
+}
+
+impl<'de> Deserialize<'de> for AccessorSyntax {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_any(AccessorVisitor)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct SinkSyntax {
+    entity_type: Spanned<String>,
+    entity_id: Spanned<String>,
+    #[serde(default)]
+    properties: SpannedMap<AccessorSyntax>,
+}
+
+/// A step. Exactly one of `sql`, `checkpoint`, `sink` and `branches` names what it does.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StepSyntax {
+    id: Spanned<String>,
+    sql: Option<Spanned<String>>,
+    checkpoint: Option<Spanned<String>>,
+    sink: Option<SinkSyntax>,
+    branches: Option<Spanned<BranchesSyntax>>,
+}
+
+/// The branches of a branch step, each a list of steps.
+#[derive(Debug, Deserialize)]
+#[serde(transparent)]
+struct BranchesSyntax(Vec<Spanned<Vec<StepSyntax>>>);
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct EntityPipelineSyntax {
+    source: Spanned<String>,
+    #[serde(default)]
+    depends_on: Vec<Spanned<String>>,
+    #[serde(default)]
+    inputs: SpannedMap<Spanned<String>>,
+    #[serde(default)]
+    steps: Vec<StepSyntax>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct EndpointSyntax {
+    entity_type: Spanned<String>,
+    column: Spanned<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LinkStepSyntax {
+    id: Spanned<String>,
+    sql: Spanned<String>,
+}
+
+/// A link pipeline. Exactly one of `checkpoint` and `inputs` names what it reads.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct LinkPipelineSyntax {
+    id: Spanned<String>,
+    checkpoint: Option<Spanned<String>>,
+    inputs: Option<Spanned<SpannedMap<Spanned<String>>>>,
+    #[serde(default)]
+    steps: Vec<LinkStepSyntax>,
+    from: EndpointSyntax,
+    to: EndpointSyntax,
+    link_type: Spanned<String>,
+    #[serde(default)]
+    properties: SpannedMap<AccessorSyntax>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PipelinesSyntax {
+    #[serde(default)]
+    entities: Vec<EntityPipelineSyntax>,
+    #[serde(default)]
+    links: Vec<LinkPipelineSyntax>,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub(super) struct Document {
@@ -48,4 +186,6 @@ pub(super) struct Document {
     unit_maps: SpannedMap<UnitMapSyntax>,
     #[serde(default)]
     sources: SpannedMap<SourceSyntax>,
+    #[serde(default)]
+    pipelines: PipelinesSyntax,
 }

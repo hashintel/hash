@@ -1,0 +1,14 @@
+# Invalid names are all reported, each where it is written.
+connector: Demo Data
+sources:
+  order-lines/2024:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: order-lines/2024
+      inputs:
+        input: demo/orders
+      steps:
+        - id: -shape
+          sql: SELECT * FROM input
