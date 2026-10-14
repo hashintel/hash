@@ -1,0 +1,114 @@
+---
+source: libs/@local/hashql/eval/src/postgres/authorization/tests.rs
+expression: report
+---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
+    let %2: ?
+    let %3: ?
+    let %4: Boolean
+
+    bb0(): {
+        %2 = %1.properties.name
+        %3 = input LOAD expected
+        %4 = %2 == %3
+
+        return %4
+    }
+}
+===================================== SQL ======================================
+
+SELECT
+    ("continuation_0_0"."row")."block" AS "continuation_0_0_block",
+    ("continuation_0_0"."row")."locals" AS "continuation_0_0_locals",
+    ("continuation_0_0"."row")."values" AS "continuation_0_0_values"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_0_2"
+    ON
+        "entity_edition_cache_0_0_2"."entity_edition_id"
+        = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+CROSS JOIN LATERAL (
+    SELECT
+        "ee"."entity_edition_id" AS "entity_edition_id",
+        (
+            "ee"."properties"
+            - (
+                CASE
+                    WHEN
+                        (
+                            "entity_temporal_metadata_0_0_0"."entity_uuid" = $8
+                        ) IS NOT FALSE
+                        THEN ARRAY[$9]::text []
+                    ELSE ARRAY[]::text []
+                END
+            )
+        ) AS "properties",
+        "ee"."archived" AS "archived",
+        "ee"."confidence" AS "confidence",
+        "ee"."provenance" AS "provenance",
+        jsonb_set(
+            "ee"."property_metadata",
+            $10,
+            coalesce("ee"."property_metadata" -> 'value', jsonb_build_object())
+            - (
+                CASE
+                    WHEN
+                        (
+                            "entity_temporal_metadata_0_0_0"."entity_uuid" = $8
+                        ) IS NOT FALSE
+                        THEN ARRAY[$9]::text []
+                    ELSE ARRAY[]::text []
+                END
+            )
+        ) AS "property_metadata",
+        "ee"."created_by_id" AS "created_by_id"
+    FROM "entity_editions" AS "ee"
+    WHERE
+        "ee"."entity_edition_id"
+        = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+) AS "entity_editions_0_0_1"
+CROSS JOIN LATERAL
+    (
+        SELECT
+            (
+                row(
+                    coalesce(
+                        (
+                            (to_jsonb(jsonb_extract_path("entity_editions_0_0_1"."properties", ((($3::text))::text))) = to_jsonb(($4::jsonb)))::bool
+                        ),
+                        FALSE
+                    ),
+                    NULL,
+                    NULL,
+                    NULL
+                )::continuation
+            ) AS "row"
+    ) AS "continuation_0_0"
+WHERE
+    (
+        (
+            (
+                ("entity_temporal_metadata_0_0_0"."entity_uuid" = $5)
+                OR ("entity_temporal_metadata_0_0_0"."web_id" = $6)
+            )
+        )
+        AND (NOT (($7 = any("entity_edition_cache_0_0_2"."versioned_urls"))))
+    )
+    AND (
+        ("entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange))
+        AND (
+            "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange)
+        )
+        AND (("continuation_0_0"."row")."filter" IS NOT FALSE)
+    )
+
+============================= Compiled Parameters ==============================
+
+$1: TemporalAxis(Transaction)
+$2: TemporalAxis(Decision)
+$3: Symbol(name)
+$4: Input(expected)
+============================= Auxiliary Parameters =============================
+
+AuxiliaryParameters { initial_offset: 4, parameters: [EntityUuid(11111111-1111-1111-1111-111111111111), WebId(ActorGroupEntityUuid(EntityUuid(33333333-3333-3333-3333-333333333333))), VersionedUrl { base_url: "https://hash.ai/@h/types/entity-type/restricted/", version: OntologyTypeVersion { major: OntologyTypeMajorVersion(1), pre_release: None } }, User(UserId(ActorEntityUuid(EntityUuid(aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa)))), "https://hash.ai/@h/types/property-type/email/", ["value"]] }

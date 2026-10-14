@@ -20,6 +20,14 @@ pub enum Function {
     /// [`JsonExtractAsText`](Self::JsonExtractAsText).
     JsonExtract(Box<Expression>, PathToken<'static>),
     JsonExtractPath(Vec<Expression>),
+    /// Replaces a JSON value at a `text[]` path, creating the final entry if absent.
+    ///
+    /// Transpiles to `jsonb_set(<target>, <path>, <value>)`. Earlier path steps must exist.
+    JsonSet {
+        target: Box<Expression>,
+        path: Box<Expression>,
+        value: Box<Expression>,
+    },
     JsonContains(Box<Expression>, Box<Expression>),
     /// The type of a `jsonb` value, as text.
     ///
@@ -69,6 +77,11 @@ pub enum Function {
     /// [`BinaryOperator::HammingDistance`]: super::BinaryOperator::HammingDistance
     BinaryQuantize(Box<Expression>),
     Unnest(Vec<Expression>),
+    /// Returns all subscript positions where the array element equals the given value.
+    ///
+    /// Transpiles to `array_positions(<array>, <value>)` in PostgreSQL.
+    /// Returns an integer array (e.g. `{1,3}`) or an empty array if no match.
+    ArrayPositions(Box<Expression>, Box<Expression>),
     /// The `row_number` window function: the 1-based position of the row within its window.
     ///
     /// Transpiles to `row_number()`. Wrap the resulting expression in [`Expression::Window`] to
@@ -175,7 +188,8 @@ impl Function {
         visitor: &mut impl FnMut(&Expression) -> ControlFlow<B>,
     ) -> ControlFlow<B> {
         match self {
-            Self::Min(expr)
+            Self::Count(Some(expr))
+            | Self::Min(expr)
             | Self::Max(expr)
             | Self::JsonAgg(expr)
             | Self::JsonExtractText(expr)
@@ -202,6 +216,7 @@ impl Function {
             | Self::CharLength(expr)
             | Self::Subvector { vector: expr, .. } => visitor(expr),
             Self::JsonContains(lhs, rhs)
+            | Self::ArrayPositions(lhs, rhs)
             | Self::JsonPathQueryFirst(lhs, rhs)
             | Self::JsonPathQueryArray(lhs, rhs)
             | Self::Coalesce(lhs, rhs)
@@ -220,6 +235,11 @@ impl Function {
                 string,
                 pattern,
                 replacement,
+            }
+            | Self::JsonSet {
+                target: string,
+                path: pattern,
+                value: replacement,
             } => {
                 visitor(string)?;
                 visitor(pattern)?;
@@ -265,13 +285,7 @@ impl Function {
                 }
                 ControlFlow::Continue(())
             }
-            Self::Count(expr) => {
-                if let Some(expr) = expr {
-                    visitor(expr)?;
-                }
-                ControlFlow::Continue(())
-            }
-            Self::Now | Self::RowNumber => ControlFlow::Continue(()),
+            Self::Count(None) | Self::Now | Self::RowNumber => ControlFlow::Continue(()),
         }
     }
 
@@ -280,7 +294,8 @@ impl Function {
         visitor: &mut impl FnMut(&mut Expression) -> ControlFlow<B>,
     ) -> ControlFlow<B> {
         match self {
-            Self::Min(expr)
+            Self::Count(Some(expr))
+            | Self::Min(expr)
             | Self::Max(expr)
             | Self::JsonAgg(expr)
             | Self::JsonExtractText(expr)
@@ -307,6 +322,7 @@ impl Function {
             | Self::CharLength(expr)
             | Self::Subvector { vector: expr, .. } => visitor(expr),
             Self::JsonContains(lhs, rhs)
+            | Self::ArrayPositions(lhs, rhs)
             | Self::JsonPathQueryFirst(lhs, rhs)
             | Self::JsonPathQueryArray(lhs, rhs)
             | Self::Coalesce(lhs, rhs)
@@ -325,6 +341,11 @@ impl Function {
                 string,
                 pattern,
                 replacement,
+            }
+            | Self::JsonSet {
+                target: string,
+                path: pattern,
+                value: replacement,
             } => {
                 visitor(string)?;
                 visitor(pattern)?;
@@ -370,13 +391,7 @@ impl Function {
                 }
                 ControlFlow::Continue(())
             }
-            Self::Count(expr) => {
-                if let Some(expr) = expr {
-                    visitor(expr)?;
-                }
-                ControlFlow::Continue(())
-            }
-            Self::Now | Self::RowNumber => ControlFlow::Continue(()),
+            Self::Count(None) | Self::Now | Self::RowNumber => ControlFlow::Continue(()),
         }
     }
 }
@@ -436,6 +451,19 @@ impl Transpile for Function {
                     PathToken::Field(field) => write!(fmt, "->'{field}'"),
                     PathToken::Index(index) => write!(fmt, "->{index}"),
                 }
+            }
+            Self::JsonSet {
+                target,
+                path,
+                value,
+            } => {
+                fmt.write_str("jsonb_set(")?;
+                target.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                path.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                value.transpile(fmt)?;
+                fmt.write_char(')')
             }
             Self::JsonContains(json, value) => {
                 fmt.write_str("jsonb_contains(")?;
@@ -637,6 +665,13 @@ impl Transpile for Function {
                 vector.transpile(fmt)?;
                 write!(fmt, ", {start}, {count})")
             }
+            Self::ArrayPositions(array, value) => {
+                fmt.write_str("array_positions(")?;
+                array.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                value.transpile(fmt)?;
+                fmt.write_char(')')
+            }
             Self::JsonPathQueryFirst(target, path) => {
                 fmt.write_str("jsonb_path_query_first(")?;
                 target.transpile(fmt)?;
@@ -674,5 +709,40 @@ impl Transpile for Function {
                 fmt.write_str("[]")
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::ops::ControlFlow;
+
+    use super::Function;
+    use crate::store::postgres::query::{Expression, Transpile as _};
+
+    #[test]
+    fn json_set_parameters() {
+        let mut expression = Expression::from(Function::JsonSet {
+            target: Box::new(Expression::Parameter(1)),
+            path: Box::new(Expression::Parameter(2)),
+            value: Box::new(Expression::Parameter(3)),
+        });
+        let mut parameters = Vec::new();
+        let visited: ControlFlow<()> = expression.visit(&mut |child| {
+            if let Expression::Parameter(index) = child {
+                parameters.push(*index);
+            }
+            ControlFlow::Continue(())
+        });
+        assert_eq!(visited, ControlFlow::Continue(()));
+        assert_eq!(parameters, [1, 2, 3]);
+
+        let rewritten: ControlFlow<()> = expression.visit_mut(&mut |child| {
+            if let Expression::Parameter(index) = child {
+                *index += 3;
+            }
+            ControlFlow::Continue(())
+        });
+        assert_eq!(rewritten, ControlFlow::Continue(()));
+        assert_eq!(expression.transpile_to_string(), "jsonb_set($4, $5, $6)");
     }
 }

@@ -1,0 +1,503 @@
+use alloc::{alloc::Global, borrow::Cow};
+use std::path::PathBuf;
+
+use hash_graph_postgres_store::store::postgres::query::Transpile as _;
+use hash_graph_store::filter::{
+    Parameter,
+    protection::{
+        PropertyFilter, PropertyFilterEntityQueryPath, PropertyFilterExpression,
+        PropertyFilterExpressionList, PropertyProtectionFilterConfig,
+    },
+};
+use insta::{Settings, assert_snapshot};
+use type_system::ontology::BaseUrl;
+
+use super::{
+    lower_filter, lower_property_filter, resolve_expression, resolve_operands, resolve_path,
+};
+use crate::postgres::{
+    authorization::tests::{ACTOR_UUID, Fixture, policy_components, policy_components_admin},
+    parameters::AuxiliaryParameters,
+};
+
+fn snapshot_with_params(sql: &str, parameters: &AuxiliaryParameters<Global>) -> String {
+    format!("{sql}\n\nparameters: {parameters:?}")
+}
+
+fn base_url(url: &str) -> BaseUrl {
+    BaseUrl::new(url.to_owned()).expect("valid base URL")
+}
+
+fn snapshot_settings() -> Settings {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let mut settings = Settings::clone_current();
+    settings.set_snapshot_path(manifest_dir.join("tests/ui/postgres/authorization/protection"));
+    settings.set_prepend_module_to_snapshot(false);
+    settings
+}
+
+#[test]
+fn resolve_path_uuid() {
+    let mut fixture = Fixture::new();
+    let expr = resolve_path(
+        &mut fixture.protection(),
+        PropertyFilterEntityQueryPath::Uuid,
+    );
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{:?}", PropertyFilterEntityQueryPath::Uuid));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "resolve_path_uuid",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn resolve_path_type_base_urls() {
+    let mut fixture = Fixture::new();
+    let expr = resolve_path(
+        &mut fixture.protection(),
+        PropertyFilterEntityQueryPath::TypeBaseUrls,
+    );
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{:?}", PropertyFilterEntityQueryPath::TypeBaseUrls));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "resolve_path_type_base_urls",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn resolve_expression_text_parameter() {
+    let mut fixture = Fixture::new();
+    let param = PropertyFilterExpression::Parameter {
+        parameter: Parameter::Text(Cow::Borrowed("hello")),
+    };
+    let expr = resolve_expression(&mut fixture.protection(), &param)
+        .expect("should resolve a text parameter");
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{param:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "resolve_expression_text",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn resolve_expression_actor_id() {
+    let mut fixture = Fixture::new();
+    let expr = resolve_expression(
+        &mut fixture.protection(),
+        &PropertyFilterExpression::ActorId,
+    )
+    .expect("should resolve the authenticated actor");
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!(
+        "ActorId, actor = {:?}",
+        fixture.protection().actor_id
+    ));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "resolve_expression_actor_id",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn lower_filter_equal() {
+    let mut fixture = Fixture::new();
+    let filter = PropertyFilter::Equal(
+        PropertyFilterExpression::Path {
+            path: PropertyFilterEntityQueryPath::Uuid,
+        },
+        PropertyFilterExpression::ActorId,
+    );
+    let expr = lower_filter(&mut fixture.protection(), &filter);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{filter:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "lower_filter_equal",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn lower_filter_not_equal() {
+    let mut fixture = Fixture::new();
+    let filter = PropertyFilter::NotEqual(
+        PropertyFilterExpression::Path {
+            path: PropertyFilterEntityQueryPath::Uuid,
+        },
+        PropertyFilterExpression::ActorId,
+    );
+    let expr = lower_filter(&mut fixture.protection(), &filter);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{filter:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "lower_filter_not_equal",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn lower_filter_in() {
+    let mut fixture = Fixture::new();
+    let filter = PropertyFilter::In(
+        PropertyFilterExpression::Parameter {
+            parameter: Parameter::Text(Cow::Borrowed("https://hash.ai/@h/types/entity-type/user/")),
+        },
+        PropertyFilterExpressionList::Path {
+            path: PropertyFilterEntityQueryPath::TypeBaseUrls,
+        },
+    );
+    let expr = lower_filter(&mut fixture.protection(), &filter);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{filter:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "lower_filter_in",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn lower_filter_nested_all() {
+    let mut fixture = Fixture::new();
+    let filter = PropertyFilter::All(vec![
+        PropertyFilter::In(
+            PropertyFilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed(
+                    "https://hash.ai/@h/types/entity-type/user/",
+                )),
+            },
+            PropertyFilterExpressionList::Path {
+                path: PropertyFilterEntityQueryPath::TypeBaseUrls,
+            },
+        ),
+        PropertyFilter::NotEqual(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::ActorId,
+        ),
+    ]);
+    let expr = lower_filter(&mut fixture.protection(), &filter);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{filter:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "lower_filter_nested_all",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn lower_property_filter_case_when() {
+    let mut fixture = Fixture::new();
+    let filter = PropertyFilter::Equal(
+        PropertyFilterExpression::Path {
+            path: PropertyFilterEntityQueryPath::Uuid,
+        },
+        PropertyFilterExpression::ActorId,
+    );
+    let url = base_url("https://hash.ai/@h/types/property-type/email/");
+    let expr = lower_property_filter(&mut fixture.protection(), url, &filter);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("property: email/, filter: {filter:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "lower_property_filter_case_when",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn transpile_empty_config_returns_none() {
+    let mut fixture = Fixture::new();
+    let policy = policy_components(None, vec![]);
+    let config = PropertyProtectionFilterConfig::new();
+    let result = fixture.protection().transpile(&policy, &config);
+    assert!(result.keys_to_remove.is_none());
+    assert_eq!(
+        fixture.parameters.len(),
+        0,
+        "empty config should not allocate parameters",
+    );
+}
+
+#[test]
+fn transpile_instance_admin_returns_none() {
+    let mut fixture = Fixture::new();
+    let actor = Some(type_system::principal::actor::ActorId::User(
+        type_system::principal::actor::UserId::new(ACTOR_UUID),
+    ));
+    let admin_policy = policy_components_admin(actor, vec![]);
+    let normal_policy = policy_components(actor, vec![]);
+
+    assert!(
+        admin_policy.is_instance_admin(),
+        "admin policy should be instance admin",
+    );
+    assert!(
+        !normal_policy.is_instance_admin(),
+        "normal policy should not be instance admin",
+    );
+
+    let mut config = PropertyProtectionFilterConfig::new();
+    config.protect_property(
+        base_url("https://hash.ai/@h/types/property-type/email/"),
+        PropertyFilter::Equal(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::ActorId,
+        ),
+    );
+
+    let admin_result = fixture.protection().transpile(&admin_policy, &config);
+    assert!(
+        admin_result.keys_to_remove.is_none(),
+        "instance admin should bypass protection",
+    );
+    assert_eq!(
+        fixture.parameters.len(),
+        0,
+        "instance admin bypass should not allocate parameters",
+    );
+
+    let normal_result = fixture.protection().transpile(&normal_policy, &config);
+    assert!(
+        normal_result.keys_to_remove.is_some(),
+        "non-admin should produce a mask",
+    );
+}
+
+#[test]
+fn transpile_hash_default_config() {
+    let mut fixture = Fixture::new();
+    let actor = Some(type_system::principal::actor::ActorId::User(
+        type_system::principal::actor::UserId::new(ACTOR_UUID),
+    ));
+    let policy = policy_components(actor, vec![]);
+    let config = PropertyProtectionFilterConfig::hash_default();
+    let result = fixture.protection().transpile(&policy, &config);
+    let expr = result.keys_to_remove.expect("should produce a mask");
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{config:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "transpile_hash_default",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn resolve_operands_failure_preserves_prefix() {
+    let mut fixture = Fixture::new();
+    fixture.parameters.push("retained");
+    fixture.projections.entity_edition_cache();
+    let parameters = format!("{:?}", fixture.parameters);
+    let projection = fixture.projections.entity_edition_cache;
+    let parameter = PropertyFilterExpression::Parameter {
+        parameter: Parameter::Text(Cow::Borrowed("discarded")),
+    };
+
+    let mut unit = fixture.protection();
+    unit.actor_id = None;
+    let result = resolve_operands(&mut unit, [&parameter, &PropertyFilterExpression::ActorId]);
+
+    assert!(result.is_none(), "should discard an unresolved comparison");
+    assert_eq!(
+        format!("{:?}", fixture.parameters),
+        parameters,
+        "should retain exactly the parameters from before the comparison",
+    );
+    assert_eq!(
+        fixture.projections.entity_edition_cache, projection,
+        "should retain the join requested before the comparison",
+    );
+}
+
+#[test]
+fn lower_property_filter_anonymous_operands() {
+    let mut fixture = Fixture::new();
+    let parameter = PropertyFilterExpression::Parameter {
+        parameter: Parameter::Text(Cow::Borrowed("unused")),
+    };
+    let path = PropertyFilterExpression::Path {
+        path: PropertyFilterEntityQueryPath::TypeBaseUrls,
+    };
+    let filter = PropertyFilter::Any(vec![
+        PropertyFilter::Equal(parameter.clone(), PropertyFilterExpression::ActorId),
+        PropertyFilter::Equal(PropertyFilterExpression::ActorId, parameter.clone()),
+        PropertyFilter::NotEqual(parameter.clone(), PropertyFilterExpression::ActorId),
+        PropertyFilter::NotEqual(PropertyFilterExpression::ActorId, parameter),
+        PropertyFilter::Equal(path, PropertyFilterExpression::ActorId),
+        PropertyFilter::In(
+            PropertyFilterExpression::ActorId,
+            PropertyFilterExpressionList::Path {
+                path: PropertyFilterEntityQueryPath::TypeBaseUrls,
+            },
+        ),
+        PropertyFilter::Equal(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::Parameter {
+                parameter: Parameter::Uuid(ACTOR_UUID),
+            },
+        ),
+    ]);
+
+    let mut unit = fixture.protection();
+    unit.actor_id = None;
+    let expr = lower_property_filter(
+        &mut unit,
+        base_url("https://hash.ai/@h/types/property-type/email/"),
+        &filter,
+    );
+
+    assert_eq!(
+        fixture.parameters.len(),
+        2,
+        "should bind only the surviving comparison and mask URL"
+    );
+    assert!(
+        fixture.projections.entity_edition_cache.is_none(),
+        "should not join columns used only in absent-actor comparisons"
+    );
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "lower_property_filter_anonymous_operands",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn transpile_hash_default_anonymous() {
+    let mut fixture = Fixture::new();
+    let policy = policy_components(None, vec![]);
+    let config = PropertyProtectionFilterConfig::hash_default();
+    let mut unit = fixture.protection();
+    unit.actor_id = None;
+    let result = unit.transpile(&policy, &config);
+    let expr = result
+        .keys_to_remove
+        .expect("should mask protected properties for anonymous requests");
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "transpile_hash_default_anonymous",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn lower_filter_any_disjunction() {
+    let mut fixture = Fixture::new();
+    let filter = PropertyFilter::Any(vec![
+        PropertyFilter::Equal(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::ActorId,
+        ),
+        PropertyFilter::In(
+            PropertyFilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed(
+                    "https://hash.ai/@h/types/entity-type/user/",
+                )),
+            },
+            PropertyFilterExpressionList::Path {
+                path: PropertyFilterEntityQueryPath::TypeBaseUrls,
+            },
+        ),
+    ]);
+    let expr = lower_filter(&mut fixture.protection(), &filter);
+
+    let mut settings = snapshot_settings();
+    settings.set_description(format!("{filter:?}"));
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!(
+        "lower_filter_any_disjunction",
+        snapshot_with_params(&expr.transpile_to_string(), &fixture.parameters),
+    );
+}
+
+#[test]
+fn transpile_multiple_protected_properties() {
+    let mut fixture = Fixture::new();
+    let actor = Some(type_system::principal::actor::ActorId::User(
+        type_system::principal::actor::UserId::new(ACTOR_UUID),
+    ));
+    let policy = policy_components(actor, vec![]);
+    let mut config = PropertyProtectionFilterConfig::new();
+    config.protect_property(
+        base_url("https://hash.ai/@h/types/property-type/email/"),
+        PropertyFilter::Equal(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::ActorId,
+        ),
+    );
+    config.protect_property(
+        base_url("https://hash.ai/@h/types/property-type/phone/"),
+        PropertyFilter::NotEqual(
+            PropertyFilterExpression::Path {
+                path: PropertyFilterEntityQueryPath::Uuid,
+            },
+            PropertyFilterExpression::ActorId,
+        ),
+    );
+    let result = fixture.protection().transpile(&policy, &config);
+    let expr = result.keys_to_remove.expect("should produce a mask");
+
+    let sql = expr.transpile_to_string();
+    let params = format!("{:?}", fixture.parameters);
+
+    // Two properties produce concatenated CASE expressions.
+    assert!(
+        sql.contains("||"),
+        "multiple properties should be concatenated with ||: {sql}",
+    );
+    // Each property contributes one actor UUID param and one property URL param.
+    assert_eq!(
+        fixture.parameters.len(),
+        4,
+        "expected 4 params (2 per property): {params}",
+    );
+
+    // Both property URLs must appear in the params (order-independent).
+    assert!(
+        params.contains("email"),
+        "params should contain email property URL: {params}",
+    );
+    assert!(
+        params.contains("phone"),
+        "params should contain phone property URL: {params}",
+    );
+
+    // Both operator shapes must appear (= for email, != for phone).
+    assert!(
+        sql.contains("= $") && sql.contains("!= $"),
+        "should contain both = and != operators: {sql}",
+    );
+}

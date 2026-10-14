@@ -2,12 +2,15 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import {
   createJsonDocHandle,
+  generatePetrinautId,
   type PetrinautDocHandle,
   type MinimalNetMetadata,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
 import { Petrinaut, type PetrinautAiAssistant } from "./petrinaut";
+
+import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -26,6 +29,9 @@ type StoredNet = {
 
 type HandlesByNetId = Record<string, PetrinautDocHandle>;
 
+/** Every story net reports the time the story loaded as its last update. */
+const storyLoadedAt = new Date().toISOString();
+
 /**
  * Self-contained wrapper around {@link Petrinaut} that manages a small
  * in-memory net registry, mirroring the shape of the demo-site's `DevApp`.
@@ -35,6 +41,7 @@ type HandlesByNetId = Record<string, PetrinautDocHandle>;
  */
 export const PetrinautStoryProvider = ({
   aiAssistant,
+  plugins,
   initialTitle = "New Process",
   initialDefinition = emptySDCPN,
   hideNetManagementControls,
@@ -42,21 +49,27 @@ export const PetrinautStoryProvider = ({
   children,
 }: {
   aiAssistant?: PetrinautAiAssistant;
+  plugins?: readonly PetrinautPlugin[];
   initialTitle?: string;
   initialDefinition?: SDCPN;
   hideNetManagementControls?: "all" | "except-title";
   readonly?: boolean;
   children?: ReactNode;
 }) => {
-  const [nets, setNets] = useState<Record<string, StoredNet>>(() => {
-    const id = "net-1";
-    return {
-      [id]: { id, title: initialTitle, sdcpn: initialDefinition },
-    };
-  });
-  const [currentNetId, setCurrentNetId] = useState<string>("net-1");
+  const [initialNetId] = useState(generatePetrinautId);
+  const [nets, setNets] = useState<Record<string, StoredNet>>(() => ({
+    [initialNetId]: {
+      id: initialNetId,
+      title: initialTitle,
+      sdcpn: initialDefinition,
+    },
+  }));
+  const [currentNetId, setCurrentNetId] = useState<string>(initialNetId);
   const [handlesByNetId, setHandlesByNetId] = useState<HandlesByNetId>(() => ({
-    "net-1": createJsonDocHandle({ id: "net-1", initial: initialDefinition }),
+    [initialNetId]: createJsonDocHandle({
+      id: initialNetId,
+      initial: initialDefinition,
+    }),
   }));
 
   // Track which handles have an active subscription so adding a new net only
@@ -94,14 +107,14 @@ export const PetrinautStoryProvider = ({
   const existingNets: MinimalNetMetadata[] = Object.values(nets).map((net) => ({
     netId: net.id,
     title: net.title,
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: storyLoadedAt,
   }));
 
   const createNewNet = (params: {
     petriNetDefinition: SDCPN;
     title: string;
   }) => {
-    const id = `net-${Date.now()}`;
+    const id = generatePetrinautId();
     const handle = createJsonDocHandle({
       id,
       initial: params.petriNetDefinition,
@@ -143,6 +156,7 @@ export const PetrinautStoryProvider = ({
       <Petrinaut
         aiAssistant={aiAssistant}
         handle={handle}
+        plugins={plugins}
         existingNets={existingNets}
         createNewNet={createNewNet}
         hideNetManagementControls={hideNetManagementControls}

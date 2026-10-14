@@ -19,7 +19,8 @@ pub(super) const REVALIDATE: &str = "private, no-cache";
 /// names are, and header matching is case-insensitive either way.
 pub(super) const AUTHORITY: &str = "atlas-authority";
 
-/// The same header in its canonical spelling, for the documents that name it.
+/// The same header in its canonical spelling, for the documents that name it, and the scheme of
+/// the `WWW-Authenticate` challenge a refused authority token answers with.
 ///
 /// People and generators that echo them verbatim read the OpenAPI parameter and header keys. The
 /// document carries the canonical form while the wire carries [`AUTHORITY`].
@@ -90,6 +91,29 @@ pub(super) fn authority() -> openapi::ReferenceOr<openapi::Header> {
         deprecated: None,
         format: openapi::ParameterSchemaOrContent::Schema(openapi::SchemaObject {
             json_schema: schemars::json_schema!({"type": "string", "pattern": "^[0-9a-f]+$"}),
+            example: None,
+            external_docs: None,
+        }),
+        example: None,
+        examples: Default::default(),
+        extensions: Default::default(),
+    })
+}
+
+/// Documents the `WWW-Authenticate` header a `401` carries, with `description` naming its schemes.
+#[expect(
+    clippy::default_trait_access,
+    reason = "examples and extensions are collection types this module never names elsewhere, and \
+              default() avoids importing them only to spell that name"
+)]
+pub(super) fn www_authenticate(description: &str) -> openapi::ReferenceOr<openapi::Header> {
+    openapi::ReferenceOr::Item(openapi::Header {
+        description: Some(description.to_owned()),
+        style: openapi::HeaderStyle::Simple,
+        required: true,
+        deprecated: None,
+        format: openapi::ParameterSchemaOrContent::Schema(openapi::SchemaObject {
+            json_schema: schemars::json_schema!({"type": "string"}),
             example: None,
             external_docs: None,
         }),

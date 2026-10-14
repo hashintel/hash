@@ -1,8 +1,8 @@
 import { useRouter } from "next/router";
 
 import { getLayoutWithSidebar } from "../../../../shared/layout";
-import { FlowDefinitionsContextProvider } from "../../../shared/flow-definitions-context";
-import { FlowRunsContextProvider } from "../../../shared/flow-runs-context";
+import { FlowDefinitionsContextProvider } from "../../../shared/flow-definitions-context-provider";
+import { FlowRunsContextProvider } from "../../../shared/flow-runs-context-provider";
 import { FlowVisualizer } from "../shared/flow-visualizer";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";

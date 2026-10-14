@@ -9,7 +9,7 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getHistoricalArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
-import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
@@ -17,7 +17,7 @@ import { heartbeatTimeoutSeconds } from "../../../shared/heartbeats.js";
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 import { aviationProposedEntityToFlowProposedEntity } from "./get-scheduled-flights-action.js";
 
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
@@ -54,7 +54,7 @@ const validateDateRange = (startDate: string, endDate: string): void => {
  * Fetches historical arrival flights from AeroAPI for a given airport and date range
  * and returns them as ProposedEntity objects.
  */
-export const getHistoricalFlightArrivalsAction: IntegrationFlowActionActivity<
+export const getHistoricalFlightArrivalsAction: FlowActionActivity<
   "getHistoricalFlightArrivals"
 > = async ({ inputs }) => {
   const secondsBetweenHeartbeats = heartbeatTimeoutSeconds - 5;
@@ -64,11 +64,10 @@ export const getHistoricalFlightArrivalsAction: IntegrationFlowActionActivity<
   }, secondsBetweenHeartbeats * 1000);
 
   try {
-    const { airportIcao, startDate, endDate } =
-      getSimplifiedIntegrationFlowActionInputs({
-        inputs,
-        actionType: "getHistoricalFlightArrivals",
-      });
+    const { airportIcao, startDate, endDate } = getSimplifiedFlowActionInputs({
+      inputs,
+      actionType: "getHistoricalFlightArrivals",
+    });
 
     // Validate inputs
     validateEndDate(endDate);

@@ -418,6 +418,8 @@ describe("transition logic availability", () => {
 
     const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
 
+    expect(Object.hasOwn(sanitized, "description")).toBe(false);
+    expect(Object.hasOwn(sanitized, "metadata")).toBe(false);
     expect(Object.hasOwn(sanitized, "scenarios")).toBe(false);
     expect(Object.hasOwn(sanitized, "metrics")).toBe(false);
     expect(Object.hasOwn(sanitized, "subnets")).toBe(false);
@@ -445,6 +447,47 @@ describe("transition logic availability", () => {
     expect(Object.hasOwn(sanitized.subnets![0]!, "componentInstances")).toBe(
       false,
     );
+    expect(Object.hasOwn(sanitized.subnets![0]!, "description")).toBe(false);
+    expect(Object.hasOwn(sanitized.subnets![0]!, "metadata")).toBe(false);
+  });
+
+  it("keeps the description and metadata of the net and its subnets", () => {
+    const sdcpn: SDCPN = {
+      ...createSDCPN(),
+      description: "An SIR model",
+      metadata: { source: { app: "host", tags: ["sir"] } },
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Subnet 1",
+          description: "A reusable stage",
+          metadata: { owner: "host" },
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      ],
+    };
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
+
+    expect(sanitized.description).toBe("An SIR model");
+    expect(sanitized.metadata).toEqual(sdcpn.metadata);
+    expect(sanitized.metadata).not.toBe(sdcpn.metadata);
+    expect(sanitized.subnets?.[0]).toMatchObject({
+      description: "A reusable stage",
+      metadata: { owner: "host" },
+    });
+
+    const persisted = JSON.parse(JSON.stringify(sanitized)) as SDCPN;
+    expect(
+      isSDCPNEqual(
+        sanitizeSDCPNForExtensions(persisted, allEnabled),
+        persisted,
+      ),
+    ).toBe(true);
   });
 
   it("leaves a freshly loaded net comparing equal to its persisted form", () => {

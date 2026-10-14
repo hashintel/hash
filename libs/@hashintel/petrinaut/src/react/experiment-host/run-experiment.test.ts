@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createReadableStore,
   DEFAULT_PETRINAUT_EXTENSIONS,
+  toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
 import { sweepCellObjective } from "../experiments/sweep-cell-objective";
@@ -22,6 +23,9 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { PetrinautExperimentRequest } from "@hashintel/petrinaut-core/experiments";
 
+const scenarioEntityId = toPetrinautId("scenario");
+const metricEntityId = toPetrinautId("metric");
+
 const makeDefinition = (): SDCPN => ({
   places: [],
   transitions: [],
@@ -30,7 +34,7 @@ const makeDefinition = (): SDCPN => ({
   differentialEquations: [],
   scenarios: [
     {
-      id: "scenario",
+      id: scenarioEntityId,
       name: "Scenario",
       scenarioParameters: [
         { identifier: "rate", type: "real", default: 0.5 },
@@ -41,12 +45,12 @@ const makeDefinition = (): SDCPN => ({
       initialState: { type: "per_place", content: {} },
     },
   ],
-  metrics: [{ id: "metric", name: "Metric", code: "return 1;" }],
+  metrics: [{ id: metricEntityId, name: "Metric", code: "return 1;" }],
 });
 
 const makeRequest = (optimize = false): PetrinautExperimentRequest => ({
   name: "Requested experiment",
-  scenarioId: "scenario",
+  scenarioId: scenarioEntityId,
   scenarioParameterValues: {
     count: { mode: "fixed", value: 7 },
     ...(optimize ? { rate: { mode: "range" as const, min: 0, max: 1 } } : {}),
@@ -55,11 +59,11 @@ const makeRequest = (optimize = false): PetrinautExperimentRequest => ({
   seed: 1,
   dt: 1,
   maxTime: 10,
-  metricIds: ["metric"],
+  metricIds: [metricEntityId],
   execution: optimize
     ? {
         mode: "optimize",
-        objectiveMetricId: "metric",
+        objectiveMetricId: metricEntityId,
         direction: "maximize",
         steps: 2,
         runsPerStep: 4,
@@ -71,7 +75,7 @@ const makeRecord = (optimize = false): ExperimentRecord => ({
   id: "experiment",
   name: "Requested experiment",
   createdAt: 0,
-  scenarioId: "scenario",
+  scenarioId: scenarioEntityId,
   scenarioName: "Scenario",
   scenario: makeDefinition().scenarios![0]!,
   scenarioParameterValues: {},
@@ -294,7 +298,7 @@ describe("runExperiment", () => {
     );
     expect(harness.released).toBe(false);
     const frame: MonteCarloUserDefinedMetricFrame = {
-      metricId: "metric",
+      metricId: metricEntityId,
       label: "Metric",
       outputType: "distribution",
       frameNumber: 10,
@@ -328,7 +332,7 @@ describe("runExperiment", () => {
       status: "complete",
       experimentId: "experiment",
       runsCompleted: 25,
-      metrics: [{ id: "metric", value: 5 }],
+      metrics: [{ id: metricEntityId, value: 5 }],
     });
     expect(harness.released).toBe(true);
     expect(onProgress).toHaveBeenCalledWith(
@@ -385,7 +389,7 @@ describe("runExperiment", () => {
     expect(settled).toBe(false);
     expect(harness.released).toBe(false);
     const refinedFrame: MonteCarloUserDefinedMetricFrame = {
-      metricId: "metric",
+      metricId: metricEntityId,
       label: "Metric",
       outputType: "distribution",
       frameNumber: 10,
@@ -406,14 +410,16 @@ describe("runExperiment", () => {
     harness.refinement.resolve({
       position: { rate: 13 },
       runsCompleted: 25,
-      means: { metric: sweepCellObjective([refinedFrame], "metric")! },
-      sampleCounts: { metric: 25 },
+      means: {
+        [metricEntityId]: sweepCellObjective([refinedFrame], metricEntityId)!,
+      },
+      sampleCounts: { [metricEntityId]: 25 },
     });
     expect(harness.experiments.get()[0]?.metricFrames).toEqual([refinedFrame]);
     expect(await pending).toMatchObject({
       status: "complete",
       runsCompleted: 25,
-      metrics: [{ id: "metric", value: 8 }],
+      metrics: [{ id: metricEntityId, value: 8 }],
       optimization: {
         parameters: { rate: 0.26, count: 7, enabled: false },
         objectiveValue: 8,

@@ -97,7 +97,7 @@ Content-Type: application/json
 %}
 
 ### Session token authenticates as the provisioned account
-GET http://127.0.0.1:4000/actors/machine/identifier/h
+GET http://127.0.0.1:4000/_api/authenticated-caller
 Content-Type: application/json
 Authorization: <omit>
 X-Session-Token: {{session_token}}
@@ -106,21 +106,30 @@ X-Session-Token: {{session_token}}
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
   });
+  client.test("actor", function() {
+    client.assert(
+      response.body.actor.id === client.global.get("user_id"),
+      `Unexpected actor: ${JSON.stringify(response.body.actor)}`
+    );
+  });
 %}
 
-### Session actor is subject to user policies
-POST http://127.0.0.1:4000/actors/user
+### Session does not authenticate on the legacy routes
+# The legacy routes serve the services, which delegate with the service secret.
+GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
 Authorization: <omit>
 X-Session-Token: {{session_token}}
 
-{
-  "registrationComplete": false
-}
-
 > {%
   client.test("status", function() {
-    client.assert(response.status === 403, "Response status is not 403");
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("detail", function() {
+    client.assert(
+      response.body.detail === "no credentials provided",
+      `Unexpected detail: ${response.body.detail}`
+    );
   });
 %}
 
@@ -164,7 +173,7 @@ X-Session-Token: {{session_token}}
 ### Invalid session token reads as anonymous
 # The verified rejection degrades to anonymous, so an endpoint requiring an actor answers as it
 # would a request without credentials — not with the invalid-session text.
-GET http://127.0.0.1:4000/actors/machine/identifier/h
+GET http://127.0.0.1:4000/_api/authenticated-caller
 Content-Type: application/json
 Authorization: <omit>
 X-Session-Token: invalid-session-token
@@ -182,7 +191,7 @@ X-Session-Token: invalid-session-token
 %}
 
 ### Invalid session token does not fall back to the actor-ID header
-GET http://127.0.0.1:4000/actors/machine/identifier/h
+GET http://127.0.0.1:4000/_api/authenticated-caller
 Content-Type: application/json
 Authorization: <omit>
 X-Session-Token: invalid-session-token
@@ -248,7 +257,7 @@ Content-Type: application/json
 %}
 
 ### Session of an unprovisioned identity is rejected
-GET http://127.0.0.1:4000/actors/machine/identifier/h
+GET http://127.0.0.1:4000/_api/authenticated-caller
 Content-Type: application/json
 Authorization: <omit>
 X-Session-Token: {{unprovisioned_session_token}}
@@ -322,7 +331,7 @@ Content-Type: application/json
 %}
 
 ### Session provisioned for an unknown actor is rejected
-GET http://127.0.0.1:4000/actors/machine/identifier/h
+GET http://127.0.0.1:4000/_api/authenticated-caller
 Content-Type: application/json
 Authorization: <omit>
 X-Session-Token: {{unknown_actor_session_token}}

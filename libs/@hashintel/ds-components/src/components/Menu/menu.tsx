@@ -2,6 +2,7 @@ import { Menu as ArkMenu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { cloneElement, useMemo } from "react";
 
+import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
   SelectableList,
@@ -10,39 +11,12 @@ import {
 } from "../../util/SelectableList/selectable-list";
 import {
   getEventHighlightedId,
-  getItemId,
-  isGroup,
   useLoopSelection,
 } from "../../util/SelectableList/selectable-list-util";
 import { type Position } from "../Tooltip/tooltip";
+import { collectSelectedIds } from "./menu-util";
 
 export type MenuItem = Item & { selected?: boolean };
-
-export const collectSelectedIds = (
-  entries: Array<ItemOrGroup<MenuItem>>,
-): string[] => {
-  const result: string[] = [];
-  const visit = (entry: ItemOrGroup<MenuItem>) => {
-    if (isGroup(entry)) {
-      for (const child of entry.items) {
-        visit(child);
-      }
-      return;
-    }
-    if (entry.selected) {
-      result.push(getItemId(entry));
-    }
-    if (entry.subItems) {
-      for (const child of entry.subItems) {
-        visit(child);
-      }
-    }
-  };
-  for (const entry of entries) {
-    visit(entry);
-  }
-  return result;
-};
 
 export const Menu = ({
   items,
@@ -105,6 +79,7 @@ export const Menu = ({
             </ArkMenu.Trigger>
             <Portal container={portalContainerRef}>
               <ArkMenu.Positioner
+                className={parkedPopperPositioner}
                 onKeyDownCapture={(event) => {
                   handleLoopKeyDown(event, menu);
                   onKeyDown?.(event, getEventHighlightedId(event, menu));

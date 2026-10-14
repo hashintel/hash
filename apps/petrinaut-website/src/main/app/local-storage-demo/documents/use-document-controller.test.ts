@@ -10,7 +10,6 @@ import type { DocumentRecord, DocumentRepository } from "./document-repository";
 
 const record: DocumentRecord = {
   documentId: "local-document",
-  incarnationId: "local-incarnation",
   revisionId: "local-revision",
   title: "Local",
   definition: {
@@ -47,7 +46,10 @@ beforeEach(() => {
 
 test("creates through the local repository before opening", () => {
   const { result } = renderHook(() =>
-    useDocumentController({ onOpenDocument: vi.fn() }),
+    useDocumentController({
+      documentId: record.documentId,
+      onOpenDocument: vi.fn(),
+    }),
   );
 
   act(() => {

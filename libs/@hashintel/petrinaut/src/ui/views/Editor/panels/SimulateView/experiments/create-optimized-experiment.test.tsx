@@ -4,6 +4,8 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { toPetrinautId } from "@hashintel/petrinaut-core";
+
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
@@ -166,7 +168,7 @@ describe("useCreateOptimizedExperiment", () => {
           recovery_days: { kind: "optimize", domain: { kind: "integer" } },
         },
       },
-      objective: { metricId: "peak", direction: "minimize" },
+      objective: { metricId: toPetrinautId("peak"), direction: "minimize" },
       execution: { seedsPerTrial: 8 },
       study: { trials: 12 },
     });

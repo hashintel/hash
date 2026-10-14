@@ -1,5 +1,6 @@
 import { analyzeEntityDataAction } from "./flow-activities/analyze-entity-data-action.js";
 import { answerQuestionAction } from "./flow-activities/answer-question-action.js";
+import { filterListAction } from "./flow-activities/filter-list-action.js";
 import { generateChartConfigAction } from "./flow-activities/generate-chart-config-action.js";
 import { generateFlowRunName } from "./flow-activities/generate-flow-run-name-activity.js";
 import { generateStructuralQueryAction } from "./flow-activities/generate-structural-query-action.js";
@@ -7,6 +8,7 @@ import { generateWebQueriesAction } from "./flow-activities/generate-web-queries
 import { getFileFromUrlAction } from "./flow-activities/get-file-from-url-action.js";
 import { getWebPageByUrlAction } from "./flow-activities/get-web-page-by-url-action.js";
 import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-action.js";
+import { ifAction } from "./flow-activities/if-action.js";
 import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action.js";
 import { inferMetadataFromDocumentAction } from "./flow-activities/infer-metadata-from-document-action.js";
 import { persistEntitiesAction } from "./flow-activities/persist-entities-action.js";
@@ -27,12 +29,14 @@ export const createFlowActionActivities: CreateFlowActivities<
   analyzeEntityDataAction,
   generateStructuralQueryAction,
   answerQuestionAction,
+  filterListAction,
   generateChartConfigAction,
   planDashboardRefinementAction,
   generateWebQueriesAction,
   getFileFromUrlAction,
   getWebPageByUrlAction,
   getWebPageSummaryAction,
+  ifAction,
   inferEntitiesFromContentAction,
   inferMetadataFromDocumentAction,
   persistEntitiesAction,

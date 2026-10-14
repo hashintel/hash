@@ -33,11 +33,13 @@ export const directionToggle = cva({
     padding: "0",
     transition: "[background 0.1s ease, color 0.1s ease]",
     "&:hover": {
-      background: "neutral.a50",
+      background:
+        "[oklch(from var(--item-bg, {colors.white}) calc(l - 0.1 * sign(l - 0.5)) c h)]",
       color: "neutral.s120",
     },
     "&:focus": {
-      background: "neutral.a50",
+      background:
+        "[oklch(from var(--item-bg, {colors.white}) calc(l - 0.1 * sign(l - 0.5)) c h)]",
       color: "neutral.s120",
     },
   },
@@ -120,7 +122,8 @@ export const triggerDirectionToggle = cva({
     margin: "[-3px]",
     transition: "[background 0.1s ease]",
     "&:hover": {
-      background: "neutral.a50",
+      background:
+        "[oklch(from var(--button-bg, {colors.neutral.s00}) calc(l - 0.1 * sign(l - 0.5)) c h)]",
     },
   },
   variants: {

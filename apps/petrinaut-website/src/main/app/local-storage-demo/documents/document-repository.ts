@@ -5,7 +5,6 @@ export type RecordRevisionId = string;
 
 export interface DocumentRecord {
   readonly documentId: string;
-  readonly incarnationId: string;
   readonly revisionId: RecordRevisionId;
   readonly title: string;
   readonly definition: SDCPN;
@@ -34,7 +33,6 @@ export interface DocumentRepository {
   };
   persistRevision(change: {
     readonly documentId: string;
-    readonly incarnationId: string;
     readonly definition: SDCPN;
     readonly previousRevisionId: RecordRevisionId;
     readonly revisionId: RecordRevisionId;

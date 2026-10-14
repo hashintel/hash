@@ -5,14 +5,21 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 
 import {
+  canonicalizePetrinautIds,
+  isPetrinautId,
+  toPetrinautId,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+
+import {
   createLocalStorageNetRecord,
   emptySDCPN,
+  latestOrNewNetInStorage,
+  saveNetInStorage,
   type SDCPNInLocalStorage,
   startEmptyNetInStorage,
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
-
-import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
@@ -28,8 +35,12 @@ const createStorage = (initial?: string): Storage => {
     clear: () => values.clear(),
     getItem: (key: string) => values.get(key) ?? null,
     key: (index: number) => [...values.keys()][index] ?? null,
-    removeItem: (key: string) => void values.delete(key),
-    setItem: (key: string, value: string) => void values.set(key, value),
+    removeItem: (key: string) => {
+      values.delete(key);
+    },
+    setItem: (key: string, value: string) => {
+      values.set(key, value);
+    },
   };
 };
 
@@ -54,10 +65,13 @@ const drawnNet: SDCPN = {
   ],
 };
 
-const storedNet = (id: string, sdcpn: SDCPN): [string, SDCPNInLocalStorage] => [
-  id,
-  { id, title: id, sdcpn, lastUpdated: new Date(0).toISOString() },
-];
+const storedNet = (
+  id: string,
+  sdcpn: SDCPN,
+  lastUpdated = new Date(0).toISOString(),
+): [string, SDCPNInLocalStorage] => [id, { id, title: id, sdcpn, lastUpdated }];
+
+const drawnNetId = toPetrinautId("net-drawn");
 
 /** An entry whose `sdcpn` this version of the editor cannot read as a net. */
 const foreignEntry = {
@@ -68,15 +82,13 @@ const foreignEntry = {
 };
 
 describe("createLocalStorageNetRecord", () => {
-  test("assigns incarnation and document revision identities at creation", () => {
+  test("assigns net and revision identities at creation", () => {
     const net = createLocalStorageNetRecord({
       petriNetDefinition: emptySDCPN,
       title: "New Process",
     });
 
-    expect(net.incarnationId).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu,
-    );
+    expect(isPetrinautId(net.id)).toBe(true);
     expect(net.revisionId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu,
     );
@@ -95,22 +107,23 @@ describe("startEmptyNetInStorage", () => {
 
   test("keeps the nets the visitor has drawn", () => {
     const storage = createStorage(
-      JSON.stringify(Object.fromEntries([storedNet("net-drawn", drawnNet)])),
+      JSON.stringify(Object.fromEntries([storedNet(drawnNetId, drawnNet)])),
     );
 
     const net = startEmptyNetInStorage(storage);
 
     expect(Object.keys(readNets(storage)).sort()).toStrictEqual(
-      ["net-drawn", net.id].sort(),
+      [drawnNetId, net.id].sort(),
     );
   });
 
-  test("drops the empty nets an earlier visit left behind", () => {
+  test("keeps the empty nets an earlier visit left behind, so their links still open", () => {
+    const emptyId = toPetrinautId("net-empty");
     const storage = createStorage(
       JSON.stringify(
         Object.fromEntries([
-          storedNet("net-empty", emptySDCPN),
-          storedNet("net-drawn", drawnNet),
+          storedNet(emptyId, emptySDCPN),
+          storedNet(drawnNetId, drawnNet),
         ]),
       ),
     );
@@ -118,11 +131,21 @@ describe("startEmptyNetInStorage", () => {
     const net = startEmptyNetInStorage(storage);
 
     expect(Object.keys(readNets(storage)).sort()).toStrictEqual(
-      ["net-drawn", net.id].sort(),
+      [drawnNetId, emptyId, net.id].sort(),
     );
   });
 
-  test("opens the new net, which is the most recently modified one", () => {
+  test("gives each new net its own id", () => {
+    const storage = createStorage();
+
+    const first = startEmptyNetInStorage(storage);
+    const second = startEmptyNetInStorage(storage);
+
+    expect(first.id).not.toBe(second.id);
+    expect(Object.keys(readNets(storage))).toHaveLength(2);
+  });
+
+  test("dates the new net after every stored one, so `/` opens it next", () => {
     const storage = createStorage(
       JSON.stringify(
         Object.fromEntries([
@@ -140,19 +163,14 @@ describe("startEmptyNetInStorage", () => {
     );
 
     const net = startEmptyNetInStorage(storage);
-    const nets = Object.values(readNets(storage));
-    const mostRecent = nets.sort(
-      (a, b) =>
-        new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
-    )[0];
 
-    expect(mostRecent?.id).toBe(net.id);
+    expect(latestOrNewNetInStorage(storage).id).toBe(net.id);
   });
 
   test("keeps an entry it does not recognize as a net", () => {
     const storage = createStorage(
       JSON.stringify({
-        ...Object.fromEntries([storedNet("net-drawn", drawnNet)]),
+        ...Object.fromEntries([storedNet(drawnNetId, drawnNet)]),
         "net-foreign": foreignEntry,
       }),
     );
@@ -161,7 +179,7 @@ describe("startEmptyNetInStorage", () => {
 
     const nets = readNets(storage);
     expect(Object.keys(nets).sort()).toStrictEqual(
-      ["net-drawn", "net-foreign", net.id].sort(),
+      [drawnNetId, "net-foreign", net.id].sort(),
     );
     expect(nets["net-foreign"]).toStrictEqual(foreignEntry);
   });
@@ -183,6 +201,50 @@ describe("startEmptyNetInStorage", () => {
   });
 });
 
+describe("saveNetInStorage", () => {
+  test("throws when the browser refuses the write, leaving storage as it was", () => {
+    const storage = createStorage();
+    const failure = new DOMException("Storage full", "QuotaExceededError");
+    storage.setItem = () => {
+      throw failure;
+    };
+
+    expect(() =>
+      saveNetInStorage(storage, {
+        petriNetDefinition: drawnNet,
+        title: "Copy",
+      }),
+    ).toThrow(failure);
+    expect(storage.getItem(rootLocalStorageKey)).toBeNull();
+  });
+});
+
+describe("latestOrNewNetInStorage", () => {
+  test("returns the most recently edited net without writing another", () => {
+    const olderId = toPetrinautId("net-older");
+    const storage = createStorage(
+      JSON.stringify(
+        Object.fromEntries([
+          storedNet(olderId, drawnNet, new Date(0).toISOString()),
+          storedNet(drawnNetId, drawnNet, new Date(1_000).toISOString()),
+        ]),
+      ),
+    );
+
+    expect(latestOrNewNetInStorage(storage).id).toBe(drawnNetId);
+    expect(Object.keys(readNets(storage))).toHaveLength(2);
+  });
+
+  test("starts an empty net when the browser holds none", () => {
+    const storage = createStorage();
+
+    const net = latestOrNewNetInStorage(storage);
+
+    expect(readNets(storage)).toStrictEqual({ [net.id]: net });
+    expect(net.sdcpn).toStrictEqual(emptySDCPN);
+  });
+});
+
 describe("useLocalStorageSDCPNs", () => {
   afterEach(() => localStorage.clear());
 
@@ -190,7 +252,7 @@ describe("useLocalStorageSDCPNs", () => {
     localStorage.setItem(
       rootLocalStorageKey,
       JSON.stringify({
-        ...Object.fromEntries([storedNet("net-drawn", drawnNet)]),
+        ...Object.fromEntries([storedNet(drawnNetId, drawnNet)]),
         "net-foreign": foreignEntry,
       }),
     );
@@ -199,11 +261,10 @@ describe("useLocalStorageSDCPNs", () => {
 
     expect(result.current.ready).toBe(true);
     expect(Object.keys(result.current.storedSDCPNs)).toStrictEqual([
-      "net-drawn",
+      drawnNetId,
     ]);
     const written = readNets(localStorage);
-    expect(written["net-drawn"]?.incarnationId).toBeTypeOf("string");
-    expect(written["net-drawn"]?.revisionId).toBeTypeOf("string");
+    expect(written[drawnNetId]?.revisionId).toBeTypeOf("string");
     expect(written["net-foreign"]).toStrictEqual(foreignEntry);
   });
 
@@ -230,5 +291,81 @@ describe("useLocalStorageSDCPNs", () => {
       "net-foreign": foreignEntry,
       [net.id]: net,
     });
+  });
+});
+
+describe("legacy net ids", () => {
+  afterEach(() => localStorage.clear());
+
+  const subnetNet: SDCPN = {
+    ...emptySDCPN,
+    subnets: [{ ...emptySDCPN, id: "subnet__a", name: "Subnet" }],
+    componentInstances: [
+      {
+        id: "instance-1",
+        name: "Instance",
+        subnetId: "subnet__a",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      },
+    ],
+  };
+
+  test("moves a legacy record to its net id together with its subnet ids", () => {
+    localStorage.setItem(
+      rootLocalStorageKey,
+      JSON.stringify(Object.fromEntries([storedNet("net-1", subnetNet)])),
+    );
+
+    const { result } = renderHook(() => useLocalStorageSDCPNs());
+
+    const netId = toPetrinautId("net-1");
+    const written = readNets(localStorage);
+    expect(Object.keys(written)).toStrictEqual([netId]);
+    expect(written[netId]?.id).toBe(netId);
+    expect(written[netId]?.sdcpn.subnets?.[0]?.id).toBe(
+      toPetrinautId("subnet__a"),
+    );
+    expect(result.current.storedSDCPNs).toStrictEqual(written);
+  });
+
+  test("keeps the later record when a legacy and a canonical id name one net", () => {
+    const netId = toPetrinautId("net-1");
+    localStorage.setItem(
+      rootLocalStorageKey,
+      JSON.stringify(
+        Object.fromEntries([
+          storedNet(netId, drawnNet, new Date(1_000).toISOString()),
+          storedNet("net-1", emptySDCPN, new Date(2_000).toISOString()),
+        ]),
+      ),
+    );
+
+    renderHook(() => useLocalStorageSDCPNs());
+
+    const written = readNets(localStorage);
+    expect(Object.keys(written)).toStrictEqual([netId]);
+    expect(written[netId]?.title).toBe("net-1");
+    expect(written[netId]?.sdcpn).toStrictEqual(emptySDCPN);
+  });
+
+  test("keeps the canonical record when both were written at once", () => {
+    const netId = toPetrinautId("net-1");
+    localStorage.setItem(
+      rootLocalStorageKey,
+      JSON.stringify(
+        Object.fromEntries([
+          storedNet("net-1", emptySDCPN),
+          storedNet(netId, drawnNet),
+        ]),
+      ),
+    );
+
+    renderHook(() => useLocalStorageSDCPNs());
+
+    expect(readNets(localStorage)[netId]?.sdcpn).toStrictEqual(
+      canonicalizePetrinautIds(drawnNet),
+    );
   });
 });

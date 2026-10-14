@@ -8,7 +8,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_postgres_store::store::PostgresStorePool;
 use hash_middleware::{
     authentication::{
-        AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
+        AuthenticationLayer, AuthenticationMetrics, Challenge, provider::AuthenticationProvider,
     },
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimitConfig, RateLimiters},
     telemetry::HttpTracingLayer,
@@ -26,7 +26,6 @@ use crate::{
         generation::{Download, DownloadOptions, DownloadTask, GenerationRoot},
         storage::{Storage, path::FilePath},
     },
-    integrity::SecretString,
     serve::{
         authorization::authority::Authority,
         delta::EmbeddingWorkflow,
@@ -75,8 +74,6 @@ const STATUS_PATH: &str = "/status";
 pub struct ServeOptions<P> {
     /// The credential verifier chain resolving request headers to actors.
     pub provider: Arc<P>,
-    /// The delegation secret internal services use to bypass request budgets.
-    pub service_secret: SecretString,
     /// Address and caller request budgets.
     pub rate_limit: RateLimitConfig,
     /// Shared connections for feeds, visibility resolution and document hydration.
@@ -189,7 +186,6 @@ impl ServeCommand {
         self,
         ServeOptions {
             provider,
-            service_secret,
             rate_limit,
             pool,
             visibility,
@@ -210,7 +206,7 @@ impl ServeCommand {
                 .change_context(ServeError::Download)?;
         }
 
-        let authority = Authority::new(self.secret.as_ref(), visibility.hard, SysRng)
+        let authority = Authority::new(self.secret.expose(), visibility.hard, SysRng)
             .change_context(ServeError::Authority)?;
         let feed = (!self.delta.no_delta).then(|| FeedOptions {
             task: self.delta.into(),
@@ -239,7 +235,6 @@ impl ServeCommand {
 
         let meter = opentelemetry::global::meter("hash-graph-atlas");
         let limiters = RateLimiters::start(&rate_limit, &meter);
-        let service_secret = service_secret.into_unguarded();
 
         let router = api::router(
             Arc::clone(manager.registry()),
@@ -254,15 +249,15 @@ impl ServeCommand {
                 .layer(IntoProblemLayer)
                 .layer(AuthenticationLayer::<_, ActorId> {
                     provider,
-                    service_secret: Arc::clone(&service_secret),
                     metrics: Arc::new(AuthenticationMetrics::new(&meter)),
-                    bootstrap_route: |_path| false,
+                    bootstrap: None,
+                    challenge: Challenge::Session,
                     caller: core::marker::PhantomData,
                 })
                 .layer(IntoProblemLayer)
                 .layer(CallerLimitLayer {
                     limiters: Arc::clone(&limiters),
-                    service_secret: Arc::clone(&service_secret),
+                    service_secret: None,
                 }),
         )
         .layer(
@@ -270,7 +265,7 @@ impl ServeCommand {
                 .layer(IntoProblemLayer)
                 .layer(IpGateLayer {
                     limiters,
-                    service_secret,
+                    service_secret: None,
                 }),
         )
         .route(

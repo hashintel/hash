@@ -3,10 +3,7 @@
 import { act, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  useSharedSearchNavigation,
-  withClearedSharedLocation,
-} from "./use-shared-search-navigation";
+import { useSharedSearchNavigation } from "./use-shared-search-navigation";
 
 import type { SharedExampleSearch } from "./example-search";
 import type {
@@ -18,6 +15,7 @@ const Probe = ({
   initialState,
   onController,
   onSearchChange,
+  resetKey,
   search,
 }: {
   initialState?: Partial<
@@ -28,10 +26,14 @@ const Probe = ({
     search: SharedExampleSearch,
     history: "push" | "replace",
   ) => void;
+  resetKey?: string;
   search: SharedExampleSearch;
 }) => {
   onController(
-    useSharedSearchNavigation(search, onSearchChange, { initialState }),
+    useSharedSearchNavigation(search, onSearchChange, {
+      initialState,
+      resetKey,
+    }),
   );
   return null;
 };
@@ -131,9 +133,6 @@ describe("useSharedSearchNavigation", () => {
       id: "transition-results",
     });
     expect(onSearchChange).toHaveBeenCalledOnce();
-    expect(
-      withClearedSharedLocation(controller.state).expandedSubView,
-    ).toBeNull();
   });
   it.each(["experiment", "scenario"] as const)(
     "records the open %s and restores drawer/fullscreen with Back and Forward",
@@ -371,5 +370,32 @@ describe("useSharedSearchNavigation", () => {
 
     expect(controller.state.scenarioId).toBe("scenario-1");
     expect(controller.state.mode).toBe("actual");
+  });
+  it("starts the location over when the reset key names another document", () => {
+    let controller!: PetrinautNavigationController;
+    const onController = (value: PetrinautNavigationController) => {
+      controller = value;
+    };
+    const props = { onController, onSearchChange: vi.fn(), search: {} };
+    const view = render(<Probe {...props} resetKey="net-a" />);
+    act(() =>
+      controller.onNavigate(
+        (current) => ({
+          ...current,
+          selection: [
+            { type: "place", id: "place-1" },
+            { type: "place", id: "place-2" },
+          ],
+        }),
+        { history: "push", intent: { cause: "user", action: "selection" } },
+      ),
+    );
+    // A multi-item selection projects to an empty search, so the URL alone
+    // cannot clear it.
+    view.rerender(<Probe {...props} resetKey="net-a" />);
+    expect(controller.state.selection).toHaveLength(2);
+
+    view.rerender(<Probe {...props} resetKey="net-b" />);
+    expect(controller.state.selection).toEqual([]);
   });
 });

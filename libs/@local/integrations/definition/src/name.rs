@@ -17,12 +17,20 @@ pub enum InvalidName {
     Empty,
     #[display("name is {length} bytes; the maximum is {maximum}")]
     TooLong { length: usize, maximum: usize },
-    #[display("name must be ASCII letters, digits, `-` and `_`, starting with a letter or digit")]
+    #[display(
+        "name must be lowercase ASCII letters, digits, `-` and `_`, starting with a letter or \
+         digit"
+    )]
     InvalidCharacters,
     #[display("each `/`-separated segment of a checkpoint name must be a name")]
     InvalidSegment,
-    #[display("name must be an ASCII letter or `_`, followed by letters, digits and `_`")]
+    #[display(
+        "alias must be a lowercase ASCII letter or `_`, followed by lowercase ASCII letters, \
+         digits and `_`"
+    )]
     NotSqlIdentifier,
+    #[display("variable name must be an ASCII letter or `_`, followed by letters, digits and `_`")]
+    InvalidVariableName,
     #[display("`{name}` is reserved")]
     Reserved { name: &'static str },
 }
@@ -40,30 +48,36 @@ const fn check_length(value: &str, maximum: usize) -> Result<(), InvalidName> {
     Ok(())
 }
 
-/// Returns whether `value` is ASCII letters, digits, `-` and `_`, starting with a letter or digit.
+/// Returns whether `value` is lowercase ASCII letters, digits, `-` and `_`, starting with a letter
+/// or digit.
 ///
-/// This is the pattern `[a-zA-Z0-9][a-zA-Z0-9_-]*`, so the empty string is not a name.
+/// This is the pattern `[a-z0-9][a-z0-9_-]*`, so the empty string is not a name.
 ///
 /// A name is safe as a single storage path component and as a quoted SQL identifier.
 pub(crate) fn is_name(value: &str) -> bool {
     value.as_ascii().is_some_and(|chars| {
-        chars.first().is_some_and(|first| first.is_alphanumeric())
+        chars
+            .first()
+            .is_some_and(|first| first.is_lowercase() || first.is_digit())
             && chars.iter().all(|char| {
-                char.is_alphanumeric() || matches!(char, Char::HyphenMinus | Char::LowLine)
+                char.is_lowercase()
+                    || char.is_digit()
+                    || matches!(char, Char::HyphenMinus | Char::LowLine)
             })
     })
 }
 
-/// Returns whether `value` is an ASCII letter or `_`, followed by letters, digits and `_`.
+/// Returns whether `value` is a lowercase ASCII letter or `_`, followed by lowercase ASCII letters,
+/// digits and `_`.
 // TODO: reject SQL keywords such as `select`, which a query can only reference when quoted.
 fn is_sql_identifier(value: &str) -> bool {
     value.as_ascii().is_some_and(|chars| {
         chars
             .first()
-            .is_some_and(|first| first.is_alphabetic() || *first == Char::LowLine)
+            .is_some_and(|first| first.is_lowercase() || *first == Char::LowLine)
             && chars
                 .iter()
-                .all(|char| char.is_alphanumeric() || *char == Char::LowLine)
+                .all(|char| char.is_lowercase() || char.is_digit() || *char == Char::LowLine)
     })
 }
 
@@ -176,7 +190,8 @@ impl FromStr for CheckpointName {
 
 /// Names a checkpoint as a table in a pipeline's SQL.
 ///
-/// An alias is an ASCII letter or `_`, followed by letters, digits and `_`, in at most 64 bytes.
+/// An alias is a lowercase ASCII letter or `_`, followed by lowercase ASCII letters, digits and
+/// `_`, in at most 64 bytes.
 /// `input` is reserved for the pipeline's own input table.
 #[derive(
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
@@ -236,8 +251,15 @@ impl FromStr for VariableName {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         check_length(value, MAX_NAME_BYTES)?;
-        if !is_sql_identifier(value) {
-            return Err(InvalidName::NotSqlIdentifier);
+        if !value.as_ascii().is_some_and(|chars| {
+            chars
+                .first()
+                .is_some_and(|first| first.is_alphabetic() || *first == Char::LowLine)
+                && chars
+                    .iter()
+                    .all(|char| char.is_alphanumeric() || *char == Char::LowLine)
+        }) {
+            return Err(InvalidName::InvalidVariableName);
         }
         Ok(Self(value.into()))
     }
@@ -285,6 +307,19 @@ mod tests {
     use super::{CheckpointName, InputAlias, InvalidName, MAX_NAME_BYTES, SourceName};
 
     #[test]
+    fn name_uppercase() {
+        SourceName::from_str("2orders_archive-2026")
+            .expect("lowercase names with digits and separators should be valid");
+        for value in ["Orders", "orDers", "ordersZ", "ORDERS"] {
+            assert_eq!(
+                SourceName::from_str(value),
+                Err(InvalidName::InvalidCharacters),
+                "`{value}` should be rejected because names require lowercase letters"
+            );
+        }
+    }
+
+    #[test]
     fn name_leading_separator() {
         for value in ["-orders", "_orders"] {
             assert_eq!(
@@ -316,6 +351,8 @@ mod tests {
             "/aviation",
             "aviation//aircraft",
             "aviation/",
+            "Aviation/aircraft",
+            "aviation/Aircraft",
             &long_segment,
         ] {
             assert_eq!(
@@ -328,23 +365,28 @@ mod tests {
 
     #[test]
     fn alias_reserved() {
-        for value in ["input", "INPUT", "Input"] {
-            assert_eq!(
-                InputAlias::from_str(value),
-                Err(InvalidName::Reserved { name: "input" }),
-                "`{value}` should be reserved in any case"
-            );
-        }
+        assert_eq!(
+            InputAlias::from_str("input"),
+            Err(InvalidName::Reserved { name: "input" }),
+            "`input` should be reserved"
+        );
     }
 
     #[test]
     fn alias_sql_identifier() {
         InputAlias::from_str("_airfields2").expect("an SQL identifier should be a valid alias");
-        for value in ["2airfields", "air-fields"] {
+        for value in [
+            "2airfields",
+            "air-fields",
+            "Airfields",
+            "airFields",
+            "INPUT",
+            "Input",
+        ] {
             assert_eq!(
                 InputAlias::from_str(value),
                 Err(InvalidName::NotSqlIdentifier),
-                "`{value}` should not be an unquoted SQL identifier"
+                "`{value}` should be rejected because aliases require lowercase SQL identifiers"
             );
         }
     }

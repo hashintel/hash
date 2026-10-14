@@ -11,19 +11,19 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
 
 import {
+  brunchEvaluationConversationIdFrom,
+  ordinaryConstructionConversationIdFrom,
+} from "../plugins/brunch/conversation/brunch-conversation-id";
+import {
+  createCanonicalPetrinautHostTools,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+} from "../plugins/brunch/tools/brunch-petrinaut-tools";
+import {
   InProcessLspWorker,
   NoopResizeObserver,
   preloadMonaco,
 } from "../shared/petrinaut-jsdom";
 import { assistantSelectionStorageKey } from "./assistant-selection";
-import {
-  brunchEvaluationConversationIdFrom,
-  ordinaryConstructionConversationIdFrom,
-} from "./brunch-conversation-id";
-import {
-  createCanonicalPetrinautHostTools,
-  EMPTY_CANONICAL_PETRINAUT_REPLAY,
-} from "./brunch-petrinaut-tools";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
 import type {
@@ -31,30 +31,11 @@ import type {
   DocumentRecord,
 } from "./documents/document-repository";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
-import type { ReactNode } from "react";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
     await import("../shared/petrinaut-jsdom");
   installPetrinautDomShims();
-  class ClipboardItem {
-    constructor(readonly items: Record<string, Blob | Promise<Blob>>) {}
-  }
-  Object.defineProperty(navigator, "clipboard", {
-    configurable: true,
-    value: {
-      write: (items: ClipboardItem[]) =>
-        Promise.all(
-          items.flatMap((item) =>
-            Object.values(item.items).map((value) => Promise.resolve(value)),
-          ),
-        ).then(() => undefined),
-    },
-  });
-  Object.defineProperty(window, "ClipboardItem", {
-    configurable: true,
-    value: ClipboardItem,
-  });
 });
 
 const fixture = vi.hoisted(() => ({
@@ -62,12 +43,10 @@ const fixture = vi.hoisted(() => ({
   controller: null as DocumentController | null,
   binding: null as {
     documentId: string;
-    incarnationId: string;
     conversationId: string;
   } | null,
   baseBinding: null as {
     documentId: string;
-    incarnationId: string;
     conversationId: string;
   } | null,
 }));
@@ -84,10 +63,6 @@ vi.mock(
     };
   },
 );
-vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@hashintel/petrinaut/ui")>()),
-  WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
-}));
 vi.mock("@flue/sdk", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/sdk")>()),
   createFlueClient: () => {
@@ -95,13 +70,13 @@ vi.mock("@flue/sdk", async (importOriginal) => ({
     return fixture.client;
   },
 }));
-vi.mock("./brunch-preview-config", () => ({
+vi.mock("../plugins/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
     chatEndpoint: "/agents/chat",
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("./brunch-principal", () => ({
+vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
 vi.mock("./documents/use-document-controller", () => ({
@@ -111,7 +86,7 @@ vi.mock("./documents/use-document-controller", () => ({
     return { controller: fixture.controller };
   },
 }));
-vi.mock("./assistants/brunch/use-process-agent-binding", () => ({
+vi.mock("../plugins/brunch/conversation/use-process-agent-binding", () => ({
   useProcessAgentBinding: () => {
     if (!fixture.baseBinding)
       throw new Error("Missing test process agent binding");
@@ -172,28 +147,33 @@ test.each(["Dismiss", "Run"] as const)(
     // Only the browser Worker boundary is emulated; Petrinaut and its assistant panel are real.
     vi.stubGlobal("Worker", InProcessLspWorker);
     vi.stubGlobal("ResizeObserver", NoopResizeObserver);
+    // Brunch is the chosen assistant and the welcome guide was dismissed.
+    const stored = new Map([
+      [assistantSelectionStorageKey, "brunch"],
+      [
+        "petrinaut:plugin:website.walkthrough",
+        JSON.stringify({ showOnInit: false }),
+      ],
+    ]);
     vi.stubGlobal("localStorage", {
       get length() {
         return 0;
       },
       clear() {},
-      getItem: (key: string) =>
-        key === assistantSelectionStorageKey ? "brunch" : null,
+      getItem: (key: string) => stored.get(key) ?? null,
       key: () => null,
       removeItem() {},
       setItem() {},
     } satisfies Storage);
-    const baseId = ordinaryConstructionConversationIdFrom("incarnation");
+    const baseId = ordinaryConstructionConversationIdFrom("document");
     const binding = {
       conversationId: brunchEvaluationConversationIdFrom(baseId),
       documentId: "document",
-      incarnationId: "incarnation",
     };
     fixture.binding = binding;
     fixture.baseBinding = { ...binding, conversationId: baseId };
     const documentRecord: DocumentRecord = {
       documentId: binding.documentId,
-      incarnationId: binding.incarnationId,
       revisionId: "initial-revision",
       title: "Queue",
       definition,
@@ -408,7 +388,14 @@ test.each(["Dismiss", "Run"] as const)(
       }),
     } as unknown as FlueClient;
     fixture.client = client;
-    render(<LocalStorageDemoApp search={{}} onSearchChange={() => {}} />);
+    render(
+      <LocalStorageDemoApp
+        netId={binding.documentId}
+        onOpenNet={() => {}}
+        search={{}}
+        onSearchChange={() => {}}
+      />,
+    );
     const showPanel = await screen.findByRole("button", {
       name: "Show AI assistant",
     });

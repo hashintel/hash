@@ -9,6 +9,7 @@
       "dependsOn": [
         "@local/hash-isomorphic-utils#build",
         "@hashintel/ds-components#build",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build"
       ]
     },

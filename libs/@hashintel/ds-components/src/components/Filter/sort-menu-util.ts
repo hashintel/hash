@@ -23,8 +23,11 @@ const directionIconsBySortIcon: Record<
   SortIcon,
   Record<SortDirection, IconName>
 > = {
-  alphabetical: { ASCENDING: "sortUpAZ", DESCENDING: "sortDownAZ" },
-  numeric: { ASCENDING: "sortUp19", DESCENDING: "sortDown19" },
+  alphabetical: {
+    ASCENDING: "sortDownAlphabetical",
+    DESCENDING: "sortUpAlphabetical",
+  },
+  numeric: { ASCENDING: "sortDownNumeric", DESCENDING: "sortUpNumeric" },
   generic: { ASCENDING: "sortUp", DESCENDING: "sortDown" },
 };
 

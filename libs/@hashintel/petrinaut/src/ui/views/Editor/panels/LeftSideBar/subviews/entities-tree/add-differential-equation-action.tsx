@@ -1,8 +1,10 @@
 import { use } from "react";
-import { v4 as uuidv4 } from "uuid";
 
 import { Button } from "@hashintel/ds-components";
-import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "@hashintel/petrinaut-core";
+import {
+  DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+  generatePetrinautId,
+} from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
@@ -42,7 +44,7 @@ export const AddDifferentialEquationAction: React.FC = () => {
       iconName="plus"
       onClick={() => {
         const name = `Equation ${differentialEquations.length + 1}`;
-        const id = uuidv4();
+        const id = generatePetrinautId();
         addDifferentialEquation({
           id,
           name,

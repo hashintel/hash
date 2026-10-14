@@ -10,6 +10,7 @@ use axum::{
     body::{Body, to_bytes},
     response::Response,
 };
+use hash_middleware::authentication::Challenge;
 use http::Request;
 use serde_json::Value;
 use tower::ServiceExt as _;
@@ -49,6 +50,7 @@ impl OperationInput for NoCredentials {}
 
 impl Credentials for NoCredentials {
     const AUDIENCE: Audience = Audience::Public;
+    const CHALLENGE: Challenge = Challenge::Bearer;
 
     fn schemes() -> impl IntoIterator<Item = (&'static str, SecurityScheme)> {
         core::iter::empty()

@@ -2,16 +2,14 @@ import { SvgIcon } from "@mui/material";
 import clsx from "clsx";
 import { forwardRef } from "react";
 
+import { fontAwesomeIconClasses } from "./fontawesome-icon-classes";
+
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import type { SvgIconProps } from "@mui/material";
 
 type FontAwesomeIconProps = {
   icon: Pick<IconDefinition, "icon">;
 } & SvgIconProps;
-
-export const fontAwesomeIconClasses = {
-  icon: "FontAwesomeIcon",
-};
 
 // gotten from https://mui.com/components/icons/#font-awesome
 export const FontAwesomeIcon = forwardRef<SVGSVGElement, FontAwesomeIconProps>(

@@ -40,15 +40,17 @@ const linkStyle: CSSProperties = {
   fontWeight: 600,
 };
 
+const defaultHomeLink = (style: CSSProperties) => (
+  <a href="/" style={style}>
+    Back to Petrinaut
+  </a>
+);
+
 /** A full-page notice with a way back to the Petrinaut home page. */
 export const StatusPage = ({
   body,
   detail,
-  homeLink = (style) => (
-    <a href="/" style={style}>
-      Back to Petrinaut
-    </a>
-  ),
+  homeLink = defaultHomeLink,
   title,
 }: {
   body: string;

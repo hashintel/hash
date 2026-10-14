@@ -25,6 +25,31 @@ const EditableNet = ({ children }: { children: ReactNode }) => {
 
 afterEach(cleanup);
 
+describe("new net command", () => {
+  it("is listed only when the host can start a net, and starts one", () => {
+    const registry = createCommandRegistry();
+    const onNewNet = vi.fn();
+    const view = render(
+      <CommandRegistryProvider registry={registry}>
+        <EditorCommands />
+      </CommandRegistryProvider>,
+      { wrapper: EditableNet },
+    );
+    const isListed = () =>
+      registry.list().some((command) => command.id === "petrinaut.net.new");
+    expect(isListed()).toBe(false);
+
+    view.rerender(
+      <CommandRegistryProvider registry={registry}>
+        <EditorCommands onNewNet={onNewNet} />
+      </CommandRegistryProvider>,
+    );
+    expect(isListed()).toBe(true);
+    registry.execute("petrinaut.net.new");
+    expect(onNewNet).toHaveBeenCalledOnce();
+  });
+});
+
 describe("auto-layout shortcut", () => {
   it.each(["metaKey", "ctrlKey"])(
     "shows the binding in the palette and runs the same layout-and-fit action with %s",

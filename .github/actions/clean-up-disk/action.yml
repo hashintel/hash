@@ -1,61 +1,49 @@
 name: Clean up disk
-description: "Cleans up disk space by removing unnecessary files"
+description: Frees disk space when the runner has less than the job needs, by deleting the preinstalled SDKs no job uses.
+
+inputs:
+  required_free_gib:
+    description: Free space on `/` the job needs, in GiB. Space will only be freed if the runner has less than the specified amount of free space.
+    default: "20"
 
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - name: Check disk space before cleanup
+    - name: Check free disk space
+      id: free
       shell: bash
+      env:
+        REQUIRED_FREE_GIB: ${{ inputs.required_free_gib }}
       run: |
-        df -h
+        df -h /
+        required_kib=$((REQUIRED_FREE_GIB * 1024 * 1024))
+        available_kib=$(df --output=avail --block-size=1K / | tail -n 1 | tr -d ' ')
 
-        # Uncomment the following lines to see the largest directories before cleanup
-        # This is commented out as this step is slow
+        if ((available_kib < required_kib)); then
+          needed=true
+        else
+          needed=false
+          echo "$((available_kib / 1024 / 1024)) GiB free, more than the minimum required $REQUIRED_FREE_GIB GiB."
+          echo "Skipping cleanup."
+        fi
 
-        # echo "Finding largest directories (depth=3, parallel scan):"
-        # # Scan multiple paths in parallel for speed
-        # {
-        #   du -h --max-depth=3 /usr 2>/dev/null &
-        #   du -h --max-depth=3 /opt 2>/dev/null &
-        #   du -h --max-depth=3 /var 2>/dev/null &
-        #   wait
-        # } | awk '$1 ~ /[0-9.]+G|[5-9][0-9][0-9]M/' | head -n 40 || true
-        # echo
+        echo "needed=$needed" >>"$GITHUB_OUTPUT"
 
-    - name: Remove unused files
+    - name: Delete preinstalled directories
+      if: steps.free.outputs.needed == 'true'
       shell: bash
-      run: |
-        echo "Deleting large directories..."
-        mkdir -p /tmp/empty
-
-        # rsync --delete is 10-100x faster than rm -rf for directories with many small files
-        for dir in \
-          /usr/share/dotnet \
-          /usr/share/swift \
-          /usr/lib/jvm \
-          /usr/local/.ghcup \
-          /usr/local/lib/android \
-          /usr/local/share/powershell \
-        ; do
-          if [ -d "$dir" ]; then
-            size=$(du -sh "$dir" 2>/dev/null | cut -f1)
-            echo "  → $dir ($size)"
-            (sudo rsync -a --delete /tmp/empty/ "$dir/" && sudo rmdir "$dir") &
-          fi
-        done
-
-        wait
-        rmdir /tmp/empty
-        echo "✓ Deletion complete"
+      env:
+        REQUIRED_FREE_GIB: ${{ inputs.required_free_gib }}
+      run: '"$GITHUB_ACTION_PATH/delete.sh"'
 
     - name: Remove unused packages
+      if: steps.free.outputs.needed == 'true'
       shell: bash
       run: |
-        echo "Removing unused packages..."
         sudo apt-get autoremove -y
         sudo apt-get autoclean -y
-        echo
 
     - name: Check disk space after cleanup
+      if: steps.free.outputs.needed == 'true'
       shell: bash
-      run: df -h
+      run: df -h /

@@ -1,8 +1,7 @@
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import { getFlowRuns } from "@local/hash-backend-utils/flows";
 import {
-  automaticBrowserInferenceFlowDefinition,
-  manualBrowserInferenceFlowDefinition,
+  automaticBrowserInferenceFlow,
+  manualBrowserInferenceFlow,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 
 import { FlowRunStatus } from "../../graphql/api-types.gen";
@@ -15,18 +14,11 @@ import type {
   AutomaticInferenceWebsocketRequestMessage,
   ManualInferenceWebsocketRequestMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type {
-  AutomaticInferenceTriggerInputName,
-  AutomaticInferenceTriggerInputs,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
+import type { AutomaticInferenceInputs } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
-import type {
-  FlowTrigger,
-  StepOutput,
-} from "@local/hash-isomorphic-utils/flows/types";
 import type { Client } from "@temporalio/client";
 
 export const handleInferEntitiesRequest = async ({
@@ -48,21 +40,13 @@ export const handleInferEntitiesRequest = async ({
 }) => {
   const {
     requestUuid,
-    payload: { webId, ...triggerOutputs },
+    payload: { webId, ...flowInputs },
   } = message;
 
-  const flowDefinition =
+  const { flowDefinition, flowDefinitionId } =
     message.type === "manual-inference-request"
-      ? manualBrowserInferenceFlowDefinition
-      : automaticBrowserInferenceFlowDefinition;
-
-  const flowTrigger: FlowTrigger = {
-    triggerDefinitionId: flowDefinition.trigger.triggerDefinitionId,
-    outputs: typedEntries(triggerOutputs).map(([outputName, payload]) => ({
-      outputName,
-      payload,
-    })),
-  };
+      ? manualBrowserInferenceFlow
+      : automaticBrowserInferenceFlow;
 
   if (message.type === "automatic-inference-request") {
     const openFlowRuns = await getFlowRuns({
@@ -70,8 +54,8 @@ export const handleInferEntitiesRequest = async ({
       filters: {
         executionStatus: FlowRunStatus.Running,
         flowDefinitionIds: [
-          automaticBrowserInferenceFlowDefinition.flowDefinitionId,
-          manualBrowserInferenceFlowDefinition.flowDefinitionId,
+          automaticBrowserInferenceFlow.flowDefinitionId,
+          manualBrowserInferenceFlow.flowDefinitionId,
         ],
       },
       graphApiClient,
@@ -81,17 +65,11 @@ export const handleInferEntitiesRequest = async ({
     });
 
     for (const flowRun of openFlowRuns.flowRuns) {
-      const flowIsAlreadyRunningOnPage = (
-        flowRun.inputs[0].flowTrigger.outputs as StepOutput<
-          AutomaticInferenceTriggerInputs[AutomaticInferenceTriggerInputName]
-        >[]
-      ).some(
-        (triggerOutput) =>
-          triggerOutput.outputName ===
-            ("visitedWebPage" satisfies AutomaticInferenceTriggerInputName) &&
-          triggerOutput.payload.value.url ===
-            triggerOutputs.visitedWebPage.value.url,
-      );
+      const runInputs = flowRun.flowInputs as Partial<AutomaticInferenceInputs>;
+
+      const flowIsAlreadyRunningOnPage =
+        runInputs.visitedWebPage?.value.url ===
+        flowInputs.visitedWebPage.value.url;
 
       if (flowIsAlreadyRunningOnPage) {
         return true;
@@ -116,13 +94,14 @@ export const handleInferEntitiesRequest = async ({
           },
         },
         flowDefinition,
-        flowTrigger,
+        flowDefinitionId,
+        flowInputs,
         userAuthentication: { actorId: user.accountId },
         webId,
       },
     ],
     memo: {
-      flowDefinitionId: flowDefinition.flowDefinitionId,
+      flowDefinitionId,
       userAccountId: user.accountId,
       webId,
     },

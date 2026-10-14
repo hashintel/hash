@@ -1,0 +1,97 @@
+import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
+import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
+import { typedValues } from "@local/advanced-types/typed-entries";
+import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
+
+import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { DataTypesContext } from "./data-types-context";
+
+import type {
+  QueryDataTypeSubgraphQuery,
+  QueryDataTypeSubgraphQueryVariables,
+} from "../../graphql/api-types.gen";
+import type {
+  BaseUrl,
+  DataTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { PropsWithChildren } from "react";
+
+export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
+  const { data, loading, refetch } = useQuery<
+    QueryDataTypeSubgraphQuery,
+    QueryDataTypeSubgraphQueryVariables
+  >(queryDataTypeSubgraphQuery, {
+    fetchPolicy: "cache-first",
+    variables: {
+      request: {
+        filter: { all: [] },
+        temporalAxes: fullTransactionTimeAxis,
+        graphResolveDepths: {
+          inheritsFrom: 255,
+          constrainsValuesOn: 255,
+        },
+        traversalPaths: [],
+      },
+    },
+  });
+
+  const { dataTypes, latestDataTypes } = useMemo(() => {
+    if (!data) {
+      return {
+        dataTypes: null,
+        latestDataTypes: null,
+      };
+    }
+
+    const all: Record<VersionedUrl, DataTypeWithMetadata> = {};
+    const latest: Record<BaseUrl, DataTypeWithMetadata> = {};
+
+    const subgraph = deserializeQueryDataTypeSubgraphResponse(
+      data.queryDataTypeSubgraph,
+    ).subgraph;
+
+    for (const versionToVertexMap of Object.values(subgraph.vertices)) {
+      let highestVersion: DataTypeWithMetadata | null = null;
+
+      for (const dataTypeVertex of typedValues(versionToVertexMap)) {
+        if (dataTypeVertex.kind === "dataType") {
+          if (
+            !highestVersion ||
+            compareOntologyTypeVersions(
+              dataTypeVertex.inner.metadata.recordId.version,
+              highestVersion.metadata.recordId.version,
+            ) > 0
+          ) {
+            highestVersion = dataTypeVertex.inner;
+          }
+          all[dataTypeVertex.inner.schema.$id] = dataTypeVertex.inner;
+        }
+      }
+
+      if (highestVersion) {
+        latest[highestVersion.metadata.recordId.baseUrl] = highestVersion;
+      }
+    }
+
+    return { dataTypes: all, latestDataTypes: latest };
+  }, [data]);
+
+  const value = useMemo(() => {
+    return {
+      dataTypes,
+      latestDataTypes,
+      loading,
+      refetch,
+    };
+  }, [dataTypes, latestDataTypes, loading, refetch]);
+
+  return (
+    <DataTypesContext.Provider value={value}>
+      {children}
+    </DataTypesContext.Provider>
+  );
+};

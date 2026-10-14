@@ -13,7 +13,8 @@ const unsupportedPayloadKinds = [
   "ActorType",
   /** @todo support EntityId – requires updating the EntitySelector */
   "EntityId",
-  "PersistedEntitiesMetadata",
+  "FailedEntityProposal",
+  "FilterCondition",
   "PersistedEntityMetadata",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",
@@ -65,8 +66,8 @@ export type LocalPayload = {
 }[LocalPayloadKind];
 
 export type FormState = {
-  [outputName: string]: {
-    outputName: string;
+  [inputName: string]: {
+    inputName: string;
     payload: LocalPayload;
   };
 };

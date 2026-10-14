@@ -1,6 +1,7 @@
 import { Box, Skeleton, Stack, Typography } from "@mui/material";
 
-import { GoalRow, goalRowSx } from "./goal-list-section/goal-row";
+import { GoalRow } from "./goal-list-section/goal-row";
+import { goalRowSx } from "./goal-list-section/goal-row-sx";
 
 import type { GoalSummary } from "./goal-list-section/goal-row";
 

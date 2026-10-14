@@ -103,7 +103,7 @@ export const SupplierTable = ({
                   applySort(sortFromMenu(key, direction))
                 }
                 align="right"
-                variant="ghost"
+                position="bottom-end"
                 size="xs"
               />
             </div>

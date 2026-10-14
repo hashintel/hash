@@ -5,7 +5,7 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 
 import { getWebPageSummaryAction } from "./get-web-page-summary-action.js";
 
-import type { InputNameForAiFlowAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { InputNameForFlowAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 
 test(
@@ -20,7 +20,7 @@ test(
       inputs: [
         {
           inputName:
-            "url" satisfies InputNameForAiFlowAction<"getWebPageSummary">,
+            "url" satisfies InputNameForFlowAction<"getWebPageSummary">,
           payload: { kind: "Text", value: url },
         },
         ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(

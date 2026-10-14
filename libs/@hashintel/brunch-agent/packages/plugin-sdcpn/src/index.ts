@@ -5,6 +5,11 @@ export {
 } from "./browser-metadata";
 export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./construction-tool-names";
 export {
+  PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
+  parsePetrinautUserMessageBody,
+  petrinautContextualUserMessageBody,
+} from "./contextual-user-message";
+export {
   browserToolMutatesDocument,
   netElementKinds,
   petrinautToolEffects,

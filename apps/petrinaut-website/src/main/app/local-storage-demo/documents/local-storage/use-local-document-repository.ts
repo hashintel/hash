@@ -1,10 +1,9 @@
 import { castDraft, produce } from "immer";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 
 import {
   createLocalStorageNetRecord,
-  emptySDCPN,
-  isEmptySDCPN,
+  holdsNetInStorage,
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "../../use-local-storage-sdcpns";
@@ -24,17 +23,9 @@ export interface LocalDocumentRepositoryAdapter {
   ) => void;
 }
 
-const mostRecentDocumentId = (documents: StoredDocuments): string | undefined =>
-  Object.values(documents).toSorted(
-    (leftDocument, rightDocument) =>
-      new Date(rightDocument.lastUpdated).getTime() -
-      new Date(leftDocument.lastUpdated).getTime(),
-  )[0]?.id;
-
 const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
   return {
     documentId: stored.id,
-    incarnationId: stored.incarnationId ?? crypto.randomUUID(),
     revisionId: stored.revisionId ?? crypto.randomUUID(),
     title: stored.title,
     definition: stored.sdcpn,
@@ -42,68 +33,25 @@ const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
   };
 };
 
-const createDefaultDocument = (): SDCPNInLocalStorage => ({
-  id: "net-1",
-  title: "New Process",
-  sdcpn: emptySDCPN,
-  lastUpdated: new Date(0).toISOString(),
-  incarnationId: crypto.randomUUID(),
-  revisionId: crypto.randomUUID(),
-});
-
 export const useLocalDocumentRepository = (input: {
-  readonly onOpen: () => void;
+  /** The open document. The host owns the choice, usually through the URL. */
+  readonly documentId: string;
+  /** Asks the host to open another document, by passing it back as `documentId`. */
+  readonly onOpen: (documentId: string) => void;
 }): LocalDocumentRepositoryAdapter => {
-  const { onOpen } = input;
+  const { documentId: currentDocumentId, onOpen } = input;
   const {
     ready: storageReady,
     storedSDCPNs,
     setStoredSDCPNs,
   } = useLocalStorageSDCPNs();
-  const [defaultDocument] = useState(createDefaultDocument);
-  const documents = useMemo(
-    () =>
-      storageReady && Object.keys(storedSDCPNs).length === 0
-        ? { [defaultDocument.id]: defaultDocument }
-        : storedSDCPNs,
-    [defaultDocument, storageReady, storedSDCPNs],
-  );
-  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
-    null,
-  );
-  if (storageReady && currentDocumentId === null) {
-    const initialDocumentId = mostRecentDocumentId(documents);
-    if (initialDocumentId !== undefined)
-      setCurrentDocumentId(initialDocumentId);
-  }
 
   const records = useMemo(
-    () => Object.values(documents).map((stored) => toDocumentRecord(stored)),
-    [documents],
+    () => Object.values(storedSDCPNs).map((stored) => toDocumentRecord(stored)),
+    [storedSDCPNs],
   );
   const current =
-    records.find(({ documentId }) => documentId === currentDocumentId) ??
-    records[0] ??
-    null;
-
-  useEffect(() => {
-    if (current === null) return;
-    const stored = storedSDCPNs[current.documentId];
-    if (
-      stored?.incarnationId === current.incarnationId &&
-      stored.revisionId === current.revisionId
-    ) {
-      return;
-    }
-    setStoredSDCPNs((previous) => ({
-      ...previous,
-      [current.documentId]: {
-        ...(previous[current.documentId] ?? defaultDocument),
-        incarnationId: current.incarnationId,
-        revisionId: current.revisionId,
-      },
-    }));
-  }, [current, defaultDocument, setStoredSDCPNs, storedSDCPNs]);
+    records.find(({ documentId }) => documentId === currentDocumentId) ?? null;
 
   const updateStoredDocuments = useCallback(
     (update: (previous: StoredDocuments) => StoredDocuments) => {
@@ -112,41 +60,11 @@ export const useLocalDocumentRepository = (input: {
     [setStoredSDCPNs],
   );
 
-  const removeEmptyCurrentDocument = useCallback(
-    (nextDocumentId: string) => {
-      if (
-        current === null ||
-        current.documentId === nextDocumentId ||
-        !isEmptySDCPN(current.definition)
-      ) {
-        return;
-      }
-      setStoredSDCPNs((previous) => {
-        const stored = previous[current.documentId];
-        if (stored === undefined || !isEmptySDCPN(stored.sdcpn))
-          return previous;
-        const next = { ...previous };
-        delete next[current.documentId];
-        return next;
-      });
-    },
-    [current, setStoredSDCPNs],
-  );
-
   const open = useCallback(
     (documentId: string) => {
-      if (!documents[documentId]) return;
-      removeEmptyCurrentDocument(documentId);
-      if (documentId !== currentDocumentId) onOpen();
-      setCurrentDocumentId(documentId);
+      if (documentId !== currentDocumentId) onOpen(documentId);
     },
-    [
-      currentDocumentId,
-      documents,
-      onOpen,
-      removeEmptyCurrentDocument,
-      setCurrentDocumentId,
-    ],
+    [currentDocumentId, onOpen],
   );
 
   const create = useCallback(
@@ -161,13 +79,23 @@ export const useLocalDocumentRepository = (input: {
         petriNetDefinition: definition,
         title,
       });
-      removeEmptyCurrentDocument(stored.id);
+      // Added like any other change, so edits the browser refused earlier are
+      // kept. That write swallows a refusal, and nothing may open a net the
+      // browser does not hold: a refused net is taken back out.
       setStoredSDCPNs((previous) => ({ ...previous, [stored.id]: stored }));
-      setCurrentDocumentId(stored.id);
-      onOpen();
+      if (!holdsNetInStorage(localStorage, stored.id)) {
+        setStoredSDCPNs((previous) =>
+          Object.fromEntries(
+            Object.entries(previous).filter(([id]) => id !== stored.id),
+          ),
+        );
+        throw new Error(
+          "Couldn't save the new net: browser storage is full or blocked",
+        );
+      }
       return toDocumentRecord(stored);
     },
-    [onOpen, removeEmptyCurrentDocument, setCurrentDocumentId, setStoredSDCPNs],
+    [setStoredSDCPNs],
   );
 
   const rename = useCallback(
@@ -194,36 +122,21 @@ export const useLocalDocumentRepository = (input: {
 
   const persistRevision: DocumentRepository["persistRevision"] = useCallback(
     async (change) => {
-      // Predecessor and incarnation are checked against the very store the
+      // The predecessor is checked against the very store the
       // write lands in: `setStoredSDCPNs` re-reads storage when another tab
       // has written since this tab last did, so a check made outside the
       // updater could pass on a revision the store no longer holds and then
       // overwrite the other tab's work.
       const refusal: { error: Error | null } = { error: null };
       setStoredSDCPNs((previous) => {
-        const stored =
-          previous[change.documentId] ?? documents[change.documentId];
+        const stored = previous[change.documentId];
         if (stored === undefined) {
           refusal.error = new Error(
             `Local document ${change.documentId} is not available.`,
           );
           return previous;
         }
-        // A stored entry predating incarnation tracking takes the identity
-        // its record was given until the mirroring effect stamps it.
-        const record = records.find(
-          ({ documentId }) => documentId === change.documentId,
-        );
-        const storedIncarnationId =
-          stored.incarnationId ?? record?.incarnationId;
-        const storedRevisionId = stored.revisionId ?? record?.revisionId;
-        if (storedIncarnationId !== change.incarnationId) {
-          refusal.error = new Error(
-            `Local document ${change.documentId} has a different incarnation.`,
-          );
-          return previous;
-        }
-        if (storedRevisionId !== change.previousRevisionId) {
+        if (stored.revisionId !== change.previousRevisionId) {
           refusal.error = new Error(
             `Local document ${change.documentId} revision does not follow its predecessor.`,
           );
@@ -231,7 +144,6 @@ export const useLocalDocumentRepository = (input: {
         }
         const next: SDCPNInLocalStorage = {
           ...stored,
-          incarnationId: change.incarnationId,
           revisionId: change.revisionId,
           sdcpn: change.definition,
           lastUpdated: new Date().toISOString(),
@@ -242,7 +154,7 @@ export const useLocalDocumentRepository = (input: {
       });
       if (refusal.error !== null) throw refusal.error;
     },
-    [documents, records, setStoredSDCPNs],
+    [setStoredSDCPNs],
   );
 
   const repository = useMemo<DocumentRepository>(

@@ -1910,7 +1910,8 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
     /// Configures property masking for Entity queries.
     ///
     /// When enabled, protected properties (e.g., email) will be removed from the
-    /// properties JSONB in SELECT statements, unless the actor is the entity owner.
+    /// properties JSONB and from the property metadata in SELECT statements, unless the actor is
+    /// the entity owner.
     ///
     /// This method automatically adds the necessary table joins and determines
     /// the correct aliases internally.
@@ -1931,29 +1932,28 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
         );
         self.column_hooks.insert(
             Column::EntityEditions(EntityEditions::PropertyMetadata),
-            Self::remove_property_keys_for_column,
+            Self::remove_property_metadata_keys_for_column,
         );
     }
 
-    fn remove_property_keys_for_column(compiler: &mut Self, column: Expression) -> Expression {
+    /// Returns the `text[]` of protected property keys to remove, if masking is configured.
+    fn property_keys_to_remove(&mut self) -> Option<Expression> {
         // Build masking expression lazily on first use
-        if compiler.property_keys_to_remove.is_none()
-            && let Some(filter) = compiler.property_protection_filter
+        if self.property_keys_to_remove.is_none()
+            && let Some(filter) = self.property_protection_filter
         {
-            compiler.property_keys_to_remove = Some(Expression::concatenate(
+            self.property_keys_to_remove = Some(Expression::concatenate(
                 filter
                     .iter()
                     .map(|(property_url, filter)| {
                         // Compile the condition - this will bind all necessary parameters
-                        let condition = compiler
-                            .compile_filter(filter)
-                            .expect("filter should compile");
+                        let condition = self.compile_filter(filter).expect("filter should compile");
 
                         Expression::CaseWhen {
                             conditions: vec![(
                                 condition,
                                 Expression::Function(Function::ArrayLiteral {
-                                    elements: vec![compiler.compile_parameter(property_url).0],
+                                    elements: vec![self.compile_parameter(property_url).0],
                                     element_type: PostgresType::Text,
                                 }),
                             )],
@@ -1969,7 +1969,11 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
             ));
         }
 
-        if let Some(keys) = compiler.property_keys_to_remove.clone() {
+        self.property_keys_to_remove.clone()
+    }
+
+    fn remove_property_keys_for_column(compiler: &mut Self, column: Expression) -> Expression {
+        if let Some(keys) = compiler.property_keys_to_remove() {
             // Wrap in parens so that subsequent JSON operators (-> / ->>) bind to the
             // result of the subtraction, not to `keys`. In PostgreSQL, -> has higher
             // precedence than -, so `col - keys -> 'f'` would parse as `col - (keys -> 'f')`.
@@ -1977,6 +1981,30 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
         } else {
             column
         }
+    }
+
+    /// Removes the protected keys from the per-property metadata under `value`.
+    fn remove_property_metadata_keys_for_column(
+        compiler: &mut Self,
+        column: Expression,
+    ) -> Expression {
+        const VALUE_PATH: &[&str] = &["value"];
+
+        let Some(keys) = compiler.property_keys_to_remove() else {
+            return column;
+        };
+
+        let values = Expression::Function(Function::JsonExtract(
+            Box::new(column.clone()),
+            PathToken::Field(Cow::Borrowed("value")),
+        ))
+        .coalesce(Function::JsonBuildObject(Vec::new()));
+
+        Expression::Function(Function::JsonSet {
+            target: Box::new(column),
+            path: Box::new(compiler.add_parameter(&VALUE_PATH)),
+            value: Box::new(values.subtract(keys)),
+        })
     }
 
     /// Restricts the embeddings join at `alias` to one embedding space.

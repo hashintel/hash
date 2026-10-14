@@ -2650,6 +2650,43 @@ mod property_masking {
     }
 
     #[test]
+    fn property_metadata_masking() {
+        let config = PropertyProtectionFilterConfig::hash_default();
+
+        let mut compiler = SelectCompiler::<Entity>::new(None, false);
+
+        let property_filter = config.to_property_protection_filter(None);
+        compiler.with_property_masking(&property_filter);
+
+        let _: usize = compiler.add_selection_path(&EntityQueryPath::PropertyMetadata(None));
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT jsonb_set("entity_editions_0_1_0"."property_metadata", $3,
+                COALESCE("entity_editions_0_1_0"."property_metadata"->'value', jsonb_build_object())
+                    - (CASE WHEN
+                        "entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$1]::text[]
+                        THEN ARRAY[$2]::text[]
+                        ELSE ARRAY[]::text[] END))
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+                ON "entity_editions_0_1_0"."entity_edition_id" =
+                    "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+                ON "entity_edition_cache_0_1_0"."entity_edition_id" =
+                    "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+            "#,
+            &[
+                &"https://hash.ai/@h/types/entity-type/user/",
+                &"https://hash.ai/@h/types/property-type/email/",
+                &["value"].as_slice(),
+            ],
+        );
+    }
+
+    #[test]
     fn multiple_property_masking_with_array_concat() {
         let mut config = PropertyProtectionFilterConfig::hash_default();
         // Add second protected property using the same filter as email

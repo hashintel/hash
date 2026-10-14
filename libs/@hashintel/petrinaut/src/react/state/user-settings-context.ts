@@ -55,13 +55,6 @@ export type UserSettings = {
   partialSelection: boolean;
   enableNetComponents: boolean;
   /**
-   * Persisted preference controlling whether the product walkthrough opens
-   * automatically the next time the app initializes. The live open state is
-   * held as component state seeded from this value, so toggling the preference
-   * only takes effect at the next init — not the current session.
-   */
-  showWalkthroughOnInit: boolean;
-  /**
    * Shows the Compilation tab in the bottom panel, which reports how the net's
    * user code lowered to HIR and what the GPU backend can take.
    *
@@ -69,12 +62,8 @@ export type UserSettings = {
    * only useful when you are debugging why something did not compile.
    */
   showCompilationOutput: boolean;
-  /**
-   * Shows a host's Brunch demo affordances, such as the demo site's
-   * prepared-fixture selector. Toggled from a palette command the host
-   * registers; the settings dialog has no control for it.
-   */
-  brunchDemoMode: boolean;
+  /** Plugins the user switched off in the Plugins section, by id. */
+  disabledPluginIds: readonly string[];
   subViewPanels: SubViewPanelsSettings;
   /** Where each document's canvas was last left, keyed by document id. */
   canvasViewports: Record<string, SavedCanvasViewport>;
@@ -100,9 +89,8 @@ export type UserSettingsActions = {
   setHighlightOnHover: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
-  setShowWalkthroughOnInit: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
-  setBrunchDemoMode: (value: boolean) => void;
+  setPluginEnabled: (pluginId: string, enabled: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -133,9 +121,8 @@ export const defaultUserSettings: UserSettings = {
   highlightOnHover: true,
   partialSelection: true,
   enableNetComponents: false,
-  showWalkthroughOnInit: true,
   showCompilationOutput: false,
-  brunchDemoMode: false,
+  disabledPluginIds: [],
   subViewPanels: {},
   canvasViewports: {},
 };
@@ -165,9 +152,8 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setHighlightOnHover: () => {},
   setPartialSelection: () => {},
   setEnableNetComponents: () => {},
-  setShowWalkthroughOnInit: () => {},
   setShowCompilationOutput: () => {},
-  setBrunchDemoMode: () => {},
+  setPluginEnabled: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},
 };

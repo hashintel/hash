@@ -1,13 +1,15 @@
 //! Assembly of the Graph HTTP APIs and their shared middleware.
 
 use alloc::sync::Arc;
+use core::pin::Pin;
 
 use axum::{Extension, Router};
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::PostgresStorePool;
-use hash_graph_store::pool::StorePool;
+use hash_graph_store::{api_token::ApiTokenStore, pool::StorePool};
 use hash_middleware::{authentication::AuthenticationMetrics, rate_limit::RateLimiters};
+use hash_secret::Secret;
 use hash_temporal_client::TemporalClient;
 use opentelemetry::metrics::Meter;
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
@@ -15,7 +17,8 @@ use tower::ServiceBuilder;
 use type_system::ontology::json_schema::DomainValidator;
 
 use super::{
-    authentication, documentation,
+    authentication::{self, api_token::ApiTokenRejection},
+    documentation,
     legacy::{self, ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext, hashql},
     middleware::{self, Middleware},
     probe, rate_limit, telemetry,
@@ -30,8 +33,8 @@ pub struct Dependencies<S> {
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
     pub session_auth: authentication::KratosSessionConfig,
-    pub cloudflare_access: Option<authentication::CloudflareAccessConfig>,
-    pub service_secret: String,
+    pub service_secret: Pin<Arc<Secret<str>>>,
+    pub api_tokens: Option<Arc<authentication::api_token::ApiTokenIssuer>>,
     pub rate_limit: rate_limit::RateLimitConfig,
     pub meter: Meter,
     pub compiler: Arc<hashql::CompilerContext>,
@@ -48,29 +51,25 @@ pub struct Dependencies<S> {
 pub fn router<S>(dependencies: Dependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore + ApiTokenStore,
 {
-    let environment = Arc::new(
-        dependencies
-            .cloudflare_access
-            .map(|config| authentication::build_environment_provider(config, &dependencies.store)),
-    );
-    let explicit = || {
-        authentication::build_explicit_providers(
-            dependencies.service_secret.clone(),
-            &dependencies.store,
-        )
-    };
-    let public_provider = Arc::new((explicit(), Arc::clone(&environment)));
+    let public_provider = Arc::new(authentication::build_api_token_provider(
+        dependencies.api_tokens.clone(),
+        &dependencies.store,
+    ));
     let internal_provider = Arc::new((
-        explicit(),
-        (
-            authentication::build_session_providers(
-                dependencies.session_auth,
-                &dependencies.store,
-                &dependencies.meter,
-            ),
-            environment,
+        ApiTokenRejection,
+        authentication::build_session_providers(
+            dependencies.session_auth,
+            &dependencies.store,
+            &dependencies.meter,
+        ),
+    ));
+    let legacy_provider = Arc::new((
+        ApiTokenRejection,
+        authentication::build_explicit_providers(
+            Pin::clone(&dependencies.service_secret),
+            &dependencies.store,
         ),
     ));
     let rate_limit_config =
@@ -78,7 +77,8 @@ where
     let middleware = Middleware {
         public_provider,
         internal_provider,
-        service_secret: Arc::from(dependencies.service_secret),
+        legacy_provider,
+        service_secret: dependencies.service_secret,
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&dependencies.meter)),
         rate_limiters: RateLimiters::start(&rate_limit_config, &dependencies.meter),
     };
@@ -101,6 +101,7 @@ where
         .layer(Extension(dependencies.embedding_client))
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
+        .layer(Extension(dependencies.api_tokens))
         .layer(Extension(dependencies.compiler))
         .layer(Extension(dependencies.clustering));
 
@@ -112,17 +113,23 @@ where
 }
 
 /// Merges the health probe after the layers, so it carries no budget, no span, and no extensions.
+///
+/// The probe carries the default `Cache-Control` like every other response.
 fn merge_probe(router: Router) -> Router {
-    // Axum sets the method-not-allowed fallback only on routes without one, which leaves the probe.
-    router
-        .merge(probe::router())
-        .method_not_allowed_fallback(middleware::method_not_allowed)
+    router.merge(
+        probe::router()
+            .method_not_allowed_fallback(middleware::method_not_allowed)
+            .layer(middleware::default_cache_control()),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use axum::{Router, body::Body};
-    use http::{Method, Request, StatusCode, header::CONTENT_TYPE};
+    use http::{
+        Method, Request, StatusCode,
+        header::{CACHE_CONTROL, CONTENT_TYPE},
+    };
     use tower::ServiceExt as _;
 
     use super::merge_probe;
@@ -151,5 +158,30 @@ mod tests {
             "application/problem+json",
             "the probe should answer the same problem document as the APIs"
         );
+    }
+
+    /// The probe's answer and its `405` carry the default `Cache-Control` like every other
+    /// response.
+    #[tokio::test]
+    async fn probe_cache_control() {
+        for method in [Method::GET, Method::POST] {
+            let request = Request::builder()
+                .method(&method)
+                .uri(HEALTH_PATH)
+                .body(Body::empty())
+                .expect("the request should build");
+
+            let response = merge_probe(Router::new())
+                .oneshot(request)
+                .await
+                .expect("the router should answer");
+
+            assert_eq!(
+                response.headers().get(CACHE_CONTROL),
+                Some(&http::HeaderValue::from_static("private, no-store")),
+                "the probe's {} to {method} should carry the default",
+                response.status()
+            );
+        }
     }
 }

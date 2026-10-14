@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
 import { createPetrinautOptimizerClient } from "@local/petrinaut-optimizer-client";
 
 import { createPetrinautOptimizationRunHandler } from "./create-petrinaut-optimization-run-handler";
@@ -155,8 +156,9 @@ describe("createPetrinautOptimizationRunHandler", () => {
     );
     expect(upstreamRequest?.accountId).toBe("user-1");
     expect(upstreamRequest?.requestId).toBe("request-id-1");
+    // The handler forwards the parsed manifest, whose ids are converted.
     expect(JSON.parse(upstreamRequest?.body ?? "null")).toEqual(
-      validOptimizationInput,
+      petrinautOptimizationInputSchema.parse(validOptimizationInput),
     );
     expect(entries).toEqual([
       {
