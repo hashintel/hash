@@ -23,8 +23,11 @@
  * model (see `takeAtlasRequestToken` in `atlas-backpressure.ts`), waiting out
  * a dry budget in the client's queue instead of sending a request the server
  * would refuse. Pacing runs *before* the slot is held, so a long budget
- * drought never parks the whole pool behind sleeping occupants. Absent budget
- * reports, pacing is free and the pool behaves as before.
+ * drought never parks the whole pool behind sleeping occupants, and admission
+ * is lane-blind — a required load may be riding an in-flight prefetch's
+ * promise, so a stricter speculative gate would become a required load's gate
+ * (see `takeAtlasRequestToken` for the full argument). Absent budget reports,
+ * pacing is free and the pool behaves as before.
  */
 
 import {
@@ -88,16 +91,17 @@ const sleep = (ms: number, signal: AbortSignal | undefined): Promise<void> =>
   });
 
 /**
- * Waits until the pacing model admits one `lane` request (see
- * `takeAtlasRequestToken`); each ask is bounded, so a drought is re-checked
- * rather than slept through, and an abort lands between asks.
+ * Waits until the pacing model admits one request (see
+ * `takeAtlasRequestToken` — admission is lane-blind by design; the lane
+ * decides slot priority below, not budget access); each ask is bounded, so a
+ * drought is re-checked rather than slept through, and an abort lands
+ * between asks.
  */
 const paceAtlasRequest = async (
-  lane: AtlasRequestLane,
   signal: AbortSignal | undefined,
 ): Promise<void> => {
   for (;;) {
-    const waitMs = takeAtlasRequestToken(lane);
+    const waitMs = takeAtlasRequestToken();
     if (waitMs <= 0) {
       return;
     }
@@ -162,7 +166,7 @@ export const createAtlasRequestPool = (
 
   return {
     run: async (lane, operation, signal) => {
-      await paceAtlasRequest(lane, signal);
+      await paceAtlasRequest(signal);
       // The pacing token is spent, but the request has not reached the server
       // yet: an abort landing in the slot queue must give the token back, or
       // a cancelled burst would throttle its successors for budget the server

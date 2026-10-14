@@ -243,19 +243,26 @@ export const noteAtlasBudget = (
  *
  * Returns `0` after spending one token from every live pacing model — the
  * request may go to the wire — or the milliseconds to wait before asking
- * again, bounded to `[25ms, 30s]` per ask. A `speculative` request spends
- * only when every budget would still hold the reserve afterwards, so
- * speculation never paces its way into the headroom required loads need.
+ * again, bounded to `[25ms, 30s]` per ask.
+ *
+ * Admission is deliberately lane-blind: one token admits a speculative
+ * request exactly as it admits a required one. The reserve is enforced where
+ * speculation is *issued* — {@link isAtlasSpeculationPaused} gates every
+ * batch, and a paused pass cancels the in-flight ones — never here, because a
+ * required load can *ride* an in-flight prefetch the cache registered before
+ * the pacer admitted it (see `TileCache.load`). A stricter speculative
+ * admission would be inherited by that required load, which holds no abort
+ * signal, and a viewport would stall for as long as other required traffic
+ * kept the budget under the reserve. The exposure this trades away is
+ * bounded: at most one already-issued batch can be mid-pace when a budget
+ * crashes, and the next viewport pass cancels its unclaimed members.
  *
  * With no live models — no budget reported yet, reports without a readable
  * policy, or every model past its TTL — dispatch is free: pacing degrades to
  * the `429` path rather than inventing a rate.
  */
-export const takeAtlasRequestToken = (
-  lane: "required" | "speculative",
-): number => {
+export const takeAtlasRequestToken = (): number => {
   const now = Date.now();
-  const need = lane === "speculative" ? SPECULATION_RESERVE_REQUESTS + 1 : 1;
   let waitMs = 0;
   for (const [name, model] of budgetModels) {
     if (now - model.reportedAt > MODEL_TTL_MS) {
@@ -263,8 +270,8 @@ export const takeAtlasRequestToken = (
       continue;
     }
     const tokens = projectedTokens(model, now);
-    if (tokens < need) {
-      waitMs = Math.max(waitMs, (need - tokens) / model.ratePerMs);
+    if (tokens < 1) {
+      waitMs = Math.max(waitMs, (1 - tokens) / model.ratePerMs);
     }
   }
   if (waitMs > 0) {

@@ -113,6 +113,30 @@ describe("withAtlasRetry", () => {
     }
   });
 
+  it("retries a 5xx whatever wait its Retry-After names", async () => {
+    // A 429's long wait is bucket arithmetic and terminal; a 503's is an
+    // advisory hint, so a brief outage must not become missing tiles.
+    const operation = flaky(
+      1,
+      new FetchTileError("maintenance", { status: 503, retryAfterMs: 60_000 }),
+      "ok",
+    );
+    vi.useFakeTimers();
+    try {
+      const result = withAtlasRetry(operation, FAST);
+
+      // The honoured floor is capped, not the full sixty-second hint.
+      await vi.advanceTimersByTimeAsync(4_999);
+      expect(operation).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(result).resolves.toBe("ok");
+      expect(operation).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not retry a non-HTTP error (e.g. a decode failure)", async () => {
     const error = new Error("decode mismatch");
     const operation = vi.fn(() => Promise.reject(error));

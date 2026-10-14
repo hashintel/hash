@@ -268,7 +268,7 @@ const RETRY_AFTER_TERMINAL_MS = 5_000;
  * Whether a failure is worth retrying.
  *
  * Retried: a transport error (no HTTP status reached us) or the server asking us
- * to try again (`429`, `5xx`) — unless its stated wait exceeds
+ * to try again (`429`, `5xx`) — except a `429` whose stated wait exceeds
  * {@link RETRY_AFTER_TERMINAL_MS}, where retrying within a load's lifetime can
  * only be refused again. Terminal failures — `4xx` (including the `404`
  * that signals a re-pin) and non-HTTP errors such as a decode mismatch — are
@@ -279,6 +279,7 @@ const isRetryableError = (error: unknown): boolean => {
     return false;
   }
   if (
+    error.status === 429 &&
     error.retryAfterMs !== undefined &&
     error.retryAfterMs > RETRY_AFTER_TERMINAL_MS
   ) {
@@ -353,8 +354,13 @@ export const withAtlasRetry = async <T>(
       if (attempt >= retries || signal?.aborted || !isRetryableError(error)) {
         throw error;
       }
+      // A `429`'s stated wait floors the backoff in full (anything longer was
+      // terminal above); a `5xx`'s is an advisory hint a required load must
+      // not sleep minutes on, so the floor is capped.
       const statedWaitMs =
-        error instanceof FetchTileError ? (error.retryAfterMs ?? 0) : 0;
+        error instanceof FetchTileError
+          ? Math.min(error.retryAfterMs ?? 0, RETRY_AFTER_TERMINAL_MS)
+          : 0;
       await sleep(
         Math.max(
           backoffDelayMs(attempt, baseDelayMs, maxDelayMs),
