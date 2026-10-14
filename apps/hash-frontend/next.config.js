@@ -61,6 +61,11 @@ const apiUrl = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:5001";
 
 const apiDomain = new URL(apiUrl).hostname;
 
+// The ingest prototype proxies to a Mastra API that only runs locally, so its
+// routes exist only when an origin is configured (e.g. http://localhost:4111)
+const mastraApiOrigin = process.env.MASTRA_API_ORIGIN;
+process.env.NEXT_PUBLIC_INGEST_ENABLED = mastraApiOrigin ? "true" : "";
+
 /**
  * @todo: import the page `entityTypeId` from `@local/hash-isomorphic-utils/ontology-types`
  * when the `next.config.js` supports imports from modules
@@ -78,6 +83,27 @@ export default withSentryConfig(
     {
       async rewrites() {
         return [
+          ...(mastraApiOrigin
+            ? [
+                {
+                  source: "/api/ingest",
+                  destination: `${mastraApiOrigin}/ingest-runs`,
+                },
+                {
+                  source: "/api/ingest/:path*",
+                  destination: `${mastraApiOrigin}/ingest-runs/:path*`,
+                },
+                {
+                  source: "/api/ingest-fixtures/:path*",
+                  destination: `${mastraApiOrigin}/ingest-fixtures/:path*`,
+                },
+                // Page images are referenced as /artifacts/... in ingest view data
+                {
+                  source: "/artifacts/:path*",
+                  destination: `${mastraApiOrigin}/artifacts/:path*`,
+                },
+              ]
+            : []),
           {
             source: "/pages",
             destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeBaseUrl}`,

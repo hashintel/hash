@@ -1,0 +1,105 @@
+/**
+ * Evidence resolver: selection → highlighted block IDs + target page.
+ *
+ * Pure functions. No I/O, no React.
+ */
+import type {
+  AssertionWindow,
+  Block,
+  ExtractedClaim,
+  MentionContextPlan,
+} from "../shared/types";
+
+// ---------------------------------------------------------------------------
+// Selection types
+// ---------------------------------------------------------------------------
+
+export type Selection =
+  | { kind: "claim"; claim: ExtractedClaim }
+  | { kind: "assertion"; window: AssertionWindow }
+  | null;
+
+// ---------------------------------------------------------------------------
+// Evidence resolution
+// ---------------------------------------------------------------------------
+
+export interface EvidenceResult {
+  blockIds: string[];
+  targetPage: number | null;
+}
+
+export const getAssertionWindowKey = (
+  assertionWindow: AssertionWindow,
+): string =>
+  `${assertionWindow.blockId}:${assertionWindow.windowStart}:${assertionWindow.windowEnd}:${assertionWindow.mentionStart}:${assertionWindow.mentionEnd}`;
+
+export const resolveEvidence = (
+  selection: Selection,
+  blocks: Block[],
+): EvidenceResult => {
+  if (!selection) {
+    return { blockIds: [], targetPage: null };
+  }
+
+  const blockIds =
+    selection.kind === "claim"
+      ? [
+          ...new Set(
+            selection.claim.evidenceRefs.flatMap((ref) => ref.blockIds),
+          ),
+        ]
+      : [selection.window.blockId];
+
+  let targetPage: number | null = null;
+  for (const block of blocks) {
+    if (!blockIds.includes(block.blockId)) {
+      continue;
+    }
+    for (const anchor of block.anchors) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Anchor union may expand
+      if (anchor.kind === "file_page_bbox") {
+        if (targetPage === null || anchor.page < targetPage) {
+          targetPage = anchor.page;
+        }
+      }
+    }
+  }
+
+  return { blockIds, targetPage };
+};
+
+// ---------------------------------------------------------------------------
+// Assertion window collection per entity
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-compute a map of rosterEntryId → AssertionWindow[] for all entities.
+ */
+export const buildEntityAssertionMap = (
+  mentionContexts: MentionContextPlan[],
+): Map<string, AssertionWindow[]> => {
+  const map = new Map<string, Map<string, AssertionWindow>>();
+
+  for (const context of mentionContexts) {
+    if (context.mode !== "assertion_windows") {
+      continue;
+    }
+    for (const assertionWindow of context.assertionWindows) {
+      const windowKey = getAssertionWindowKey(assertionWindow);
+      for (const participant of assertionWindow.participants) {
+        const existing =
+          map.get(participant.rosterEntryId) ??
+          new Map<string, AssertionWindow>();
+        existing.set(windowKey, assertionWindow);
+        map.set(participant.rosterEntryId, existing);
+      }
+    }
+  }
+
+  return new Map(
+    [...map.entries()].map(([rosterEntryId, windows]) => [
+      rosterEntryId,
+      [...windows.values()],
+    ]),
+  );
+};
