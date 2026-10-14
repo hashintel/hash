@@ -225,15 +225,16 @@ const projectQuestion = (
         address,
     )
     .join(", ");
+  const concerns = names === "" ? "" : ` Concerns: ${names}.`;
   if (claim.status === "conflicted")
     return {
       claim,
       prompt: claim.text,
-      context: `Accounts disagree and nobody has said which holds. Concerns: ${names}.`,
+      context: `Accounts disagree and nobody has said which holds.${concerns}`,
     };
   return {
     claim,
     prompt: claim.text,
-    context: `It matters and nobody knows yet. Concerns: ${names}.`,
+    context: `It matters and nobody knows yet.${concerns}`,
   };
 };

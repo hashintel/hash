@@ -111,7 +111,7 @@ export const vLedgerAppend = v.pipe(
     ),
   }),
   v.description(
-    "One append-only Ledger batch. The system supplies new record IDs, turns and change provenance. Address updates by their system-issued ID in the route; use existing IDs or $index references in relationship fields. Earlier records remain in the Ledger.",
+    "One append-only Ledger batch. The system supplies new record IDs, turns and change provenance. Address updates by their system-issued ID in the route; use existing IDs or $index references in relationship fields. Every committed batch stays in the Ledger's log; its map shows the current records.",
   ),
 );
 

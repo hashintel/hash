@@ -15,7 +15,7 @@ export const vClaim = v.pipe(
     entities: v.pipe(
       v.array(vEntityReference),
       v.description(
-        "References to the entities this claim is about: existing entity IDs or $index references to entity entries in this call.",
+        "References to the entities this claim is about: existing entity IDs or $index references to entity entries in this call. At least one, unless the claim is open or conflicted; the map shows any other claim only under its entities.",
       ),
     ),
     origin: vOrigin,
@@ -24,7 +24,7 @@ export const vClaim = v.pipe(
       v.pipe(
         v.array(vClaimReference),
         v.description(
-          "References to earlier claims this entry replaces: existing claim IDs or $index references to earlier claim entries in this queue. Omit for an additional claim; earlier records remain in the Ledger.",
+          "References to earlier claims this entry replaces: existing claim IDs or $index references to earlier claim entries in this queue. Omit for an additional claim. A superseded claim stays in the Ledger's log and leaves the current map; under an entity, the map shows it struck through beneath the claim that replaces it.",
         ),
       ),
     ),

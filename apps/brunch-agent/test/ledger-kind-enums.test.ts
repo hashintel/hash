@@ -401,6 +401,179 @@ test("the fold rejects a commit whose recorded receipt disagrees with its input"
   expect(tampered.state.entities).toEqual([]);
 });
 
+test("a rejected commit keeps its IDs reserved and does not derail later commits", () => {
+  const resource = (name: string) =>
+    toBatch([
+      [
+        "entity/create",
+        { name, kind: "resource", origin: "stated", status: "confirmed" },
+      ],
+    ]);
+  const rejectSecond = (
+    label: string,
+    reject: (part: MutableToolPart) => Partial<MutableToolPart>,
+  ) => {
+    const history = settledHistory([
+      resource("Dryer"),
+      resource("Oven"),
+      resource("Fridge"),
+    ]);
+    const second = history.messages[3]?.parts[0] as MutableToolPart | undefined;
+    if (second === undefined) throw new Error("Missing second commit part");
+    Object.assign(second, reject(second));
+    const folded = foldCommits(history);
+    expect(
+      {
+        commits: folded.commits.map(({ commitId }) => commitId),
+        rejected: folded.rejected,
+        revision: folded.revision,
+        entities: folded.state.entities.map(
+          ({ address, name }) => `${address} ${name}`,
+        ),
+      },
+      label,
+    ).toEqual({
+      commits: ["commit-1", "commit-3"],
+      rejected: ["commit-2"],
+      revision: 2,
+      entities: ["e1 Dryer", "e3 Fridge"],
+    });
+    const entries = resource("Mixer");
+    const next: LedgerHistory = {
+      messages: [
+        ...history.messages,
+        { id: "turn-4", role: "user", parts: [] },
+        {
+          id: "response-4",
+          role: "assistant",
+          parts: [commitPart("commit-4", entries)],
+        },
+      ],
+    };
+    expect(
+      prepareAppend({ history: next, toolCallId: "commit-4", entries }),
+      label,
+    ).toMatchObject({ status: "recorded", revision: 3, ids: ["e4"] });
+  };
+  // A receipt that no longer matches its input: the input's derivation holds.
+  rejectSecond("tampered receipt", (part) => ({
+    output: { ...(part.output as object), ids: ["e9"] },
+  }));
+  // An input that today's schema no longer accepts: the receipt's IDs hold.
+  rejectSecond("input no longer valid", () => ({
+    input: {
+      entries: [
+        [
+          "entity/create",
+          {
+            name: "Oven",
+            kind: "retired-kind",
+            origin: "stated",
+            status: "confirmed",
+          },
+        ],
+      ],
+    },
+  }));
+});
+
+test("a commit whose own call is missing from history throws", () => {
+  const entries = toBatch([
+    [
+      "entity/create",
+      {
+        name: "Dryer",
+        kind: "resource",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ]);
+  const history: LedgerHistory = {
+    messages: [
+      { id: "turn-1", role: "user", parts: [] },
+      {
+        id: "response-1",
+        role: "assistant",
+        parts: [commitPart("commit-1", entries)],
+      },
+    ],
+  };
+  expect(() =>
+    prepareAppend({ history, toolCallId: "commit-2", entries }),
+  ).toThrow("Conversation history does not contain ledger_commit commit-2.");
+});
+
+test("a claim that only renders under an entity is refused without one", async () => {
+  const claim = (status: string) =>
+    toBatch([
+      [
+        "claim/create",
+        { text: "Drying is slow.", entities: [], origin: "stated", status },
+      ],
+    ]);
+  const commitWith = async (status: string) => ({
+    status,
+    receipt: await runCommit([], claim(status)),
+  });
+  const refused = await Promise.all(
+    ["confirmed", "tentative", "out-of-scope"].map(commitWith),
+  );
+  for (const { status, receipt } of refused)
+    expect(receipt, status).toEqual({
+      status: "refused",
+      applied: false,
+      code: "claim-without-entity",
+      message: `Claim $0 is ${status} but names no entity, so the Ledger map would never show it. Reference the entities it is about, or record an unresolved gap as an open claim.`,
+      revision: 0,
+    });
+  const recorded = await Promise.all(["open", "conflicted"].map(commitWith));
+  for (const { status, receipt } of recorded)
+    expect(receipt, status).toMatchObject({
+      status: "recorded",
+      ids: ["c1"],
+    });
+});
+
+test("an entity update keeps the turn the entity was created in", () => {
+  const { state } = foldCommits(
+    settledHistory([
+      toBatch([
+        [
+          "entity/create",
+          {
+            name: "dryer",
+            kind: "resource",
+            origin: "assumed",
+            status: "tentative",
+          },
+        ],
+      ]),
+      toBatch([
+        [
+          "entity/update/e1",
+          {
+            name: "Dryer",
+            kind: "resource",
+            origin: "stated",
+            status: "confirmed",
+          },
+        ],
+      ]),
+    ]),
+  );
+  expect(state.entities).toEqual([
+    {
+      address: "e1",
+      name: "Dryer",
+      kind: "resource",
+      origin: "stated",
+      status: "confirmed",
+      turn: "turn-1",
+    },
+  ]);
+});
+
 test("ledger_compile renders the committed state as the agent-skin map", async () => {
   const history = settledHistory([
     toBatch([

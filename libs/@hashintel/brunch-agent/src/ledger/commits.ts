@@ -81,6 +81,7 @@ const ledgerCalls = (history: LedgerHistory): LedgerCall[] => {
 export const ledgerAppendRefusalCodes = [
   "unknown-address",
   "concurrent-commit",
+  "claim-without-entity",
 ] as const;
 
 export const ledgerAppendOutputSchema = v.variant("status", [
@@ -141,6 +142,85 @@ const highestAddress = (records: readonly { address: string }[]) =>
     0,
   );
 
+/** The highest address issued per record type. */
+interface AddressCounters {
+  readonly entity: number;
+  readonly claim: number;
+  readonly reflection: number;
+  readonly obligation: number;
+}
+
+const noReservedAddresses: AddressCounters = {
+  entity: 0,
+  claim: 0,
+  reflection: 0,
+  obligation: 0,
+};
+
+const countersOf = (
+  state: LedgerState,
+  reserved: AddressCounters,
+): AddressCounters => ({
+  entity: Math.max(highestAddress(state.entities), reserved.entity),
+  claim: Math.max(highestAddress(state.claims), reserved.claim),
+  reflection: Math.max(highestAddress(state.reflections), reserved.reflection),
+  obligation: Math.max(highestAddress(state.obligations), reserved.obligation),
+});
+
+const counterOf = (address: string): keyof AddressCounters | undefined => {
+  switch (address.charAt(0)) {
+    case "e":
+      return "entity";
+    case "c":
+      return "claim";
+    case "r":
+      return "reflection";
+    case "o":
+      return "obligation";
+    default:
+      return undefined;
+  }
+};
+
+/**
+ * Reserve the addresses a rejected commit occupied, so later commits keep the
+ * IDs they were issued and no ID is issued twice. Only an address that
+ * continues its type's sequence counts, so no receipt reserves past what an
+ * honest commit could have issued.
+ */
+const reserveAddresses = (
+  counters: AddressCounters,
+  ids: readonly string[],
+): AddressCounters => {
+  const next = { ...counters };
+  for (const id of ids) {
+    const counter = counterOf(id);
+    if (counter !== undefined && id.slice(1) === String(next[counter] + 1))
+      next[counter] += 1;
+  }
+  return next;
+};
+
+/** Statuses the map lists as questions, which need no entity to be shown. */
+const entityFreeClaimStatuses: ReadonlySet<string> = new Set([
+  "open",
+  "conflicted",
+]);
+
+/** Why a new claim would never be shown, if one would not. */
+const claimWithoutEntity = (
+  entries: LedgerAppend["entries"],
+): string | undefined => {
+  for (const [index, [route, payload]] of entries.entries())
+    if (
+      route === "claim/create" &&
+      payload.entities.length === 0 &&
+      !entityFreeClaimStatuses.has(payload.status)
+    )
+      return `Claim $${index} is ${payload.status} but names no entity, so the Ledger map would never show it. Reference the entities it is about, or record an unresolved gap as an open claim.`;
+  return undefined;
+};
+
 type Derivation =
   | { readonly ids: string[]; readonly state: LedgerState }
   | { readonly refusal: { code: "unknown-address"; message: string } };
@@ -148,20 +228,16 @@ type Derivation =
 /**
  * Assign queue-aligned addresses and resolve every reference against the
  * state before this batch plus the batch's own records. Addresses are
- * deterministic from prior state, so re-deriving an interrupted commit
- * yields the same IDs.
+ * deterministic from prior state and the addresses rejected commits reserve,
+ * so re-deriving an interrupted commit yields the same IDs.
  */
 const deriveBatch = (
   state: LedgerState,
   entries: LedgerAppend["entries"],
   turn: string,
+  reserved: AddressCounters,
 ): Derivation => {
-  const counters = {
-    entity: highestAddress(state.entities),
-    claim: highestAddress(state.claims),
-    reflection: highestAddress(state.reflections),
-    obligation: highestAddress(state.obligations),
-  };
+  const counters = { ...countersOf(state, reserved) };
   const addressed = entries.map((entry) => {
     const [route] = entry;
     let address: string;
@@ -299,11 +375,13 @@ const deriveBatch = (
       if (route === "entity/create") {
         newEntities.push(record);
       } else {
-        if (!priorEntities.has(address))
+        const prior = priorEntities.get(address);
+        if (!prior)
           return refusal(
             `Unknown entity ${address}; entity/update addresses an existing record.`,
           );
-        entityUpdates.set(address, record);
+        // The entity keeps the turn it was created in; the log keeps the update's.
+        entityUpdates.set(address, { ...record, turn: prior.turn });
       }
     }
   }
@@ -335,43 +413,52 @@ export interface FoldedLedger {
   readonly state: LedgerState;
   readonly commits: readonly AcceptedCommit[];
   readonly revision: number;
+  /** Calls whose receipt says recorded but which the fold rejects, in order. */
+  readonly rejected: readonly string[];
 }
 
-/**
- * Fold accepted commits in canonical order. A call counts only when its
- * recorded input and successful output agree on the call identity and on the
- * IDs the input yields after the commits before it. Pending, refused, failed,
- * malformed and disagreeing calls contribute nothing. `before` stops at the
- * named call without including it.
- */
-export const foldCommits = (
+const foldWithReservations = (
   history: LedgerHistory,
   before?: string,
-): FoldedLedger => {
+): FoldedLedger & { readonly reserved: AddressCounters } => {
   let state = emptyState();
+  let reserved = noReservedAddresses;
   const commits: AcceptedCommit[] = [];
+  const rejected: string[] = [];
   for (const call of ledgerCalls(history)) {
     if (call.part.toolCallId === before) break;
     if (call.part.state !== "output-available") continue;
-    const input = v.safeParse(vLedgerAppend, call.part.input);
     const output = v.safeParse(ledgerAppendOutputSchema, call.part.output);
-    if (!input.success || !output.success) continue;
+    if (!output.success) continue;
     const recorded = output.output;
     if (
       recorded.status !== "recorded" ||
       recorded.commitId !== call.part.toolCallId
     )
       continue;
-    const derived = deriveBatch(
-      state,
-      input.output.entries,
-      call.afterMessageId ?? "",
-    );
-    if ("refusal" in derived) continue;
+    const input = v.safeParse(vLedgerAppend, call.part.input);
+    const derived = input.success
+      ? deriveBatch(
+          state,
+          input.output.entries,
+          call.afterMessageId ?? "",
+          reserved,
+        )
+      : undefined;
+    const derivedIds =
+      derived === undefined || "refusal" in derived ? undefined : derived.ids;
     const agrees =
-      recorded.ids.length === derived.ids.length &&
-      derived.ids.every((id, index) => recorded.ids[index] === id);
-    if (!agrees) continue;
+      derivedIds !== undefined &&
+      recorded.ids.length === derivedIds.length &&
+      derivedIds.every((id, index) => recorded.ids[index] === id);
+    if (!agrees || derived === undefined || "refusal" in derived) {
+      rejected.push(call.part.toolCallId);
+      reserved = reserveAddresses(countersOf(state, reserved), [
+        ...(derivedIds ?? []),
+        ...recorded.ids,
+      ]);
+      continue;
+    }
     commits.push({
       commitId: call.part.toolCallId,
       revision: commits.length + 1,
@@ -382,7 +469,27 @@ export const foldCommits = (
     });
     state = derived.state;
   }
-  return { state, commits, revision: commits.length };
+  return { state, commits, revision: commits.length, rejected, reserved };
+};
+
+/**
+ * Fold accepted commits in canonical order. A call counts only when its
+ * recorded input and successful output agree on the call identity and on the
+ * IDs the input yields after the commits before it. Pending, refused, failed
+ * and malformed calls contribute nothing. A call whose receipt says recorded
+ * but which the fold rejects adds no records, but keeps the IDs it occupied
+ * reserved, so later commits still fold and no ID is issued twice. `before`
+ * stops at the named call without including it.
+ */
+export const foldCommits = (
+  history: LedgerHistory,
+  before?: string,
+): FoldedLedger => {
+  const { state, commits, revision, rejected } = foldWithReservations(
+    history,
+    before,
+  );
+  return { state, commits, revision, rejected };
 };
 
 /** Record one batch, or refuse it; deterministic over the same history. */
@@ -394,8 +501,15 @@ export const prepareAppend = (call: {
   const own = ledgerCalls(call.history).find(
     (candidate) => candidate.part.toolCallId === call.toolCallId,
   );
-  const { state, revision } = foldCommits(call.history, call.toolCallId);
-  if (own?.followsUnsettledCall)
+  if (own === undefined)
+    throw new Error(
+      `Conversation history does not contain ledger_commit ${call.toolCallId}.`,
+    );
+  const { state, revision, reserved } = foldWithReservations(
+    call.history,
+    call.toolCallId,
+  );
+  if (own.followsUnsettledCall)
     return {
       status: "refused",
       applied: false,
@@ -404,7 +518,21 @@ export const prepareAppend = (call: {
         "An earlier ledger_commit in this response has not settled; wait for its result.",
       revision,
     };
-  const derived = deriveBatch(state, call.entries, own?.afterMessageId ?? "");
+  const unshownClaim = claimWithoutEntity(call.entries);
+  if (unshownClaim !== undefined)
+    return {
+      status: "refused",
+      applied: false,
+      code: "claim-without-entity",
+      message: unshownClaim,
+      revision,
+    };
+  const derived = deriveBatch(
+    state,
+    call.entries,
+    own.afterMessageId ?? "",
+    reserved,
+  );
   if ("refusal" in derived)
     return {
       status: "refused",
@@ -423,7 +551,7 @@ export const prepareAppend = (call: {
     commitId: call.toolCallId,
     revision: revision + 1,
     ids: derived.ids,
-    exchanges: exchangesThrough(call.history, own?.afterMessageId),
+    exchanges: exchangesThrough(call.history, own.afterMessageId),
     openQuestions: projectLedger(derived.state).questions.length,
     ...(owed.length > 0 ? { owed } : {}),
     ...(notes.length > 0 ? { notes } : {}),

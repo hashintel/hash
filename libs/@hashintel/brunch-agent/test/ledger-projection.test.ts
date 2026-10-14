@@ -71,3 +71,26 @@ test("a multi-entity claim repeats under each entity it references", () => {
   const matches = user.match(/Staffing is a whole number of agents/gu) ?? [];
   expect(matches.length).toBe(2);
 });
+
+test("a question that names no entity drops its concerns clause", () => {
+  const rendered = renderLedgerMarkdown(
+    projectLedger({
+      ...supportDeskLedger,
+      claims: [
+        {
+          address: "c99",
+          text: "Who owns the overnight queue?",
+          entities: [],
+          origin: "stated",
+          status: "open",
+          turn: "msg-05",
+        },
+      ],
+    }),
+    "user",
+  );
+  expect(rendered).toContain(
+    "- Who owns the overnight queue?\n  - It matters and nobody knows yet.\n",
+  );
+  expect(rendered).not.toContain("Concerns: .");
+});

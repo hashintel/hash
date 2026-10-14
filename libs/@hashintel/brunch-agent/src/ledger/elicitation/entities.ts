@@ -156,7 +156,7 @@ export const vEntity = v.pipe(
     status: vStatus,
   }),
   v.description(
-    "An entity record. Origin and status describe its inclusion in the modelled account, independently of claims about it. Under entity/create the system assigns the ID; under entity/update the route addresses the entity and this payload replaces every field. Earlier records remain in the Ledger.",
+    "An entity record. Origin and status describe its inclusion in the modelled account, independently of claims about it. Under entity/create the system assigns the ID; under entity/update the route addresses the entity and this payload replaces every field, and the entity keeps the turn it was created in. The Ledger's log keeps the earlier version; its map shows only the current one.",
   ),
 );
 
