@@ -1988,7 +1988,7 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
         compiler: &mut Self,
         column: Expression,
     ) -> Expression {
-        static VALUE_PATH: &[&str] = &["value"];
+        const VALUE_PATH: &[&str] = &["value"];
 
         let Some(keys) = compiler.property_keys_to_remove() else {
             return column;
