@@ -57,12 +57,13 @@ export const uploadTestFileAndGetUrl = async (page: Page, file: TestFile) => {
 /**
  * Changes the "File URL" value in the properties table without saving the
  * entity. The table draws its cells on a canvas, so the value cell is focused
- * through the grid's accessibility table.
+ * through the grid's accessibility table. The canvas is focused first: its
+ * focus handler would otherwise move the selection back to the first cell.
  */
 export const editFileUrl = async (page: Page, fileUrl: string) => {
-  await page
-    .getByTestId("data-grid-canvas")
-    .first()
+  const grid = page.getByTestId("data-grid-canvas").first();
+  await grid.focus();
+  await grid
     .locator("tr")
     .filter({ has: page.locator("td", { hasText: /^File URL$/ }) })
     .locator("td")
