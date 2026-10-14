@@ -132,7 +132,7 @@ test("the DOCX preview runs and loads nothing from a hostile document", async ({
   });
 
   const outsideRequests: string[] = [];
-  page.on("request", (request) => {
+  page.context().on("request", (request) => {
     if (new URL(request.url()).hostname !== "localhost") {
       outsideRequests.push(request.url());
     }
@@ -158,10 +158,17 @@ test("the DOCX preview runs and loads nothing from a hostile document", async ({
     preview.locator("[onerror], [onload], [onclick], [onmouseover]"),
   ).toHaveCount(0);
 
-  await page.locator(".layout-page", { hasText: "javascript link" }).click();
-  await page.locator(".layout-page", { hasText: "data link" }).click();
+  const popup = page
+    .context()
+    .waitForEvent("page", { timeout: 1_000 })
+    .catch(() => null);
+
+  const documentPage = page.locator(".layout-page");
+  await documentPage.getByText("javascript link", { exact: true }).click();
+  await documentPage.getByText("data link", { exact: true }).click();
 
   expect(dialogs).toEqual([]);
+  expect(await popup).toBeNull();
   expect(outsideRequests).toEqual([]);
 });
 
