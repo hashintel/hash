@@ -29,7 +29,6 @@ interface QueryPool extends QueryClient {
 }
 
 interface ConnectionOptions {
-  readonly onIamToken?: () => void;
   readonly onPoolError?: (error: Error) => void;
   readonly readTlsCa?: (path: string) => string;
   readonly signerFactory?: (
@@ -111,11 +110,7 @@ export function createPostgresPoolConfig(
   });
   return {
     ...common,
-    password: async () => {
-      const token = await signer.getAuthToken();
-      options.onIamToken?.();
-      return token;
-    },
+    password: async () => signer.getAuthToken(),
   };
 }
 
@@ -225,74 +220,3 @@ export const createPostgresRunner = (
   afterClose?: () => Promise<void>,
 ): PostgresRunner =>
   createPostgresRunnerFromPool(createPostgresPool(config), afterClose);
-
-export interface RdsIamProbeResult {
-  readonly distinctBackendConnections: boolean;
-  readonly tokenRequests: number;
-}
-
-interface RdsIamProbeClient {
-  query<T>(text: string): Promise<{ rows: T[] }>;
-  release(): void;
-}
-
-interface RdsIamProbePool {
-  connect(): Promise<RdsIamProbeClient>;
-  end(): Promise<void>;
-}
-
-interface RdsIamProbeOptions {
-  readonly createPool?: (
-    config: PostgresDatabaseConfig,
-    onIamToken: () => void,
-  ) => RdsIamProbePool;
-}
-
-/**
- * Verify that task credentials can open two independent TLS connections and
- * that node-postgres requests a fresh IAM token for each physical connection.
- */
-export async function probeRdsIam(
-  config: PostgresDatabaseConfig,
-  options: RdsIamProbeOptions = {},
-): Promise<RdsIamProbeResult> {
-  if (config.auth.mode !== "iam") {
-    throw new Error("The RDS IAM probe requires IAM authentication mode.");
-  }
-
-  let tokenRequests = 0;
-  const onIamToken = () => {
-    tokenRequests += 1;
-  };
-  const pool =
-    options.createPool?.(config, onIamToken) ??
-    createPostgresPool(config, { onIamToken });
-  const clients: RdsIamProbeClient[] = [];
-  try {
-    clients.push(await pool.connect());
-    clients.push(await pool.connect());
-    const results = await Promise.all(
-      clients.map((client) =>
-        client.query<{ backendProcessId: number }>(
-          'SELECT pg_backend_pid() AS "backendProcessId"',
-        ),
-      ),
-    );
-    const backendProcessIds = results.map(
-      (result) => result.rows[0]?.backendProcessId,
-    );
-    return {
-      distinctBackendConnections:
-        backendProcessIds.length === 2 &&
-        backendProcessIds[0] !== undefined &&
-        backendProcessIds[1] !== undefined &&
-        backendProcessIds[0] !== backendProcessIds[1],
-      tokenRequests,
-    };
-  } finally {
-    for (const client of clients) {
-      client.release();
-    }
-    await pool.end();
-  }
-}

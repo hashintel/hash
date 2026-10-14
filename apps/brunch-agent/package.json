@@ -14,7 +14,6 @@
     "lint:tsc": "tsgo --noEmit",
     "persona": "node --experimental-strip-types evals/petrinaut/persona/launch.ts",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
-    "probe:rds-iam": "node --experimental-strip-types src/server/rds-iam-probe.ts",
     "probe:turn": "node --experimental-strip-types evals/petrinaut/turn-probe.ts",
     "proof:manifest": "node --experimental-strip-types evals/petrinaut/persona/refresh-proof-manifest.ts",
     "smoke:deployment": "node --experimental-strip-types src/server/deployment-smoke.ts",

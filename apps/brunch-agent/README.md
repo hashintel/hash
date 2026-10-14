@@ -121,12 +121,7 @@ and rate-limit gates.
 `DATABASE_URL`, `BRUNCH_DEV_DB_PATH`, and `BRUNCH_CHAT_DB_PATH` are rejected in production.
 TLS verification is always enabled, and connection acquisition fails after 10 seconds rather than
 waiting indefinitely. IAM mode uses the task credential chain and asks the RDS signer for a fresh
-token whenever `pg` opens a physical connection. Run the real two-connection probe from the
-selected task role and RDS network boundary:
-
-```sh
-yarn workspace @apps/brunch-agent probe:rds-iam
-```
+token whenever `pg` opens a physical connection.
 
 The application exports Flue traces, logs, and metrics through HASH's shared OpenTelemetry setup
 (`@local/hash-backend-utils/opentelemetry`) with Flue content capture disabled: prompts, responses,
