@@ -112,7 +112,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity<
   const processBeginTime = currentTimestamp();
 
   const status = await inferEntitiesFromWebPageActivity({
-    webPage: content,
+    webPage: content.value,
     relevantEntitiesPrompt,
     model,
     entityTypes,
@@ -130,13 +130,13 @@ export const inferEntitiesFromContentAction: FlowActionActivity<
   webPageInferenceState = status.contents[0]!;
 
   const source: SourceProvenance =
-    typeof content === "object"
+    content.kind === "WebPage"
       ? {
           type: "webpage",
           loadedAt: processBeginTime,
           location: {
-            uri: content.url,
-            name: content.title,
+            uri: content.value.url,
+            name: content.value.title,
           },
         }
       : { type: "document", loadedAt: processBeginTime };

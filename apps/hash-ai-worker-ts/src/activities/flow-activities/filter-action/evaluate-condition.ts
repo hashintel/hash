@@ -40,7 +40,11 @@ const ownProperty = (value: unknown, key: string): unknown =>
     ? (value as Record<string, unknown>)[key]
     : undefined;
 
-const resolveSubject = (
+/**
+ * Reads a subject's value from an input: the input itself, one of its fields, or a property of the entity it is or
+ * names, which must be in `context`. A multi-valued property is returned as an array.
+ */
+export const resolveSubject = (
   subject: ConditionSubject,
   input: ConditionInput,
   context: ConditionContext,

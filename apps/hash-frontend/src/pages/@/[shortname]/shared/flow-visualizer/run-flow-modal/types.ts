@@ -11,6 +11,7 @@ import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-type
 const unsupportedPayloadKinds = [
   /** @todo support ActorType to vary Sheet output formatting */
   "ActorType",
+  "Aggregation",
   /** @todo support EntityId – requires updating the EntitySelector */
   "EntityId",
   "FailedEntityProposal",
@@ -18,6 +19,7 @@ const unsupportedPayloadKinds = [
   "PersistedEntityMetadata",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",
+  "SortKey",
   "FormattedText",
   "WebPage",
   "WebSearchResult",

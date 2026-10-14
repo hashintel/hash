@@ -7,7 +7,10 @@ import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { evaluateIf } from "./filter-action/filter-values.js";
-import { getConditionContext } from "./filter-action/get-condition-context.js";
+import {
+  getConditionContext,
+  getConditionSubjects,
+} from "./filter-action/get-condition-context.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 
@@ -30,7 +33,7 @@ export const ifAction: FlowActionActivity<"if"> = async ({ inputs }) => {
     condition,
     await getConditionContext({
       authentication: userAuthentication,
-      condition,
+      subjects: getConditionSubjects(condition, resolvedValue.kind),
       kind: resolvedValue.kind,
       values: [resolvedValue.value],
     }),

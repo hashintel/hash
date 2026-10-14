@@ -2,9 +2,13 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { filterableKinds } from "@local/hash-isomorphic-utils/flows/filter-condition";
 
-import { evaluateIf, filterList } from "./filter-values.js";
+import { evaluateIf, filterList, find } from "./filter-values.js";
 
-import type { FilterListResult, IfResult } from "./filter-values.js";
+import type {
+  FilterListResult,
+  FindResult,
+  IfResult,
+} from "./filter-values.js";
 import type { Url } from "@blockprotocol/type-system";
 import type {
   ConditionNode,
@@ -155,5 +159,59 @@ describe("filterList", () => {
     );
     expect(result).toMatchObject({ status: "error", code: "invalidValue" });
     expect(result).not.toHaveProperty("matching");
+  });
+});
+
+describe("find", () => {
+  it("returns the first match in input order", () => {
+    const result = find({ kind: "Number", value: [1, 7, 9, 6] }, condition);
+    expectTypeOf(result).toEqualTypeOf<FindResult<"Number">>();
+    expect(result).toStrictEqual({
+      status: "success",
+      match: { kind: "Number", value: 7 },
+    });
+  });
+
+  it("returns the first item when there is no condition", () => {
+    expect(find({ kind: "Number", value: [1, 7] })).toStrictEqual({
+      status: "success",
+      match: { kind: "Number", value: 1 },
+    });
+  });
+
+  it.each([
+    { name: "no item matches", values: [1, 5] },
+    { name: "the list is empty", values: [] },
+  ])("returns no match when $name", ({ values }) => {
+    expect(find({ kind: "Number", value: values }, condition)).toStrictEqual({
+      status: "success",
+    });
+  });
+
+  it("returns no match for an empty list without a condition", () => {
+    expect(find({ kind: "Number", value: [] })).toStrictEqual({
+      status: "success",
+    });
+  });
+
+  it("stops at the first match, without evaluating the items after it", () => {
+    expect(
+      find({ kind: "Number", value: [7, Number.NaN] }, condition),
+    ).toStrictEqual({ status: "success", match: { kind: "Number", value: 7 } });
+  });
+
+  it("fails on an invalid item before the first match", () => {
+    expect(
+      find({ kind: "Number", value: [Number.NaN, 7] }, condition),
+    ).toMatchObject({ status: "error", code: "invalidValue" });
+  });
+
+  it("validates the condition even when there are no items", () => {
+    expect(
+      find(
+        { kind: "Number", value: [] },
+        all({ ...leaf, operator: "contains" } as never),
+      ),
+    ).toMatchObject({ status: "error", code: "invalidCondition" });
   });
 });

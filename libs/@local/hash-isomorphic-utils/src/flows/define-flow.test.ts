@@ -17,7 +17,7 @@ import {
 } from "./define-flow.js";
 import { allPayloadKinds } from "./types.js";
 
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * One table of connections, checked against both halves of the connection rule: `canConnect` at runtime,
@@ -698,6 +698,194 @@ describe("Filter List and If steps", () => {
         },
       },
     });
+  });
+
+  it("keep the top items of a filtered list, by Filter List, Order By and Take First", () => {
+    const marketCapUrl =
+      "https://example.com/types/property-type/market-cap/" as BaseUrl;
+
+    const { flowDefinition } = defineFlow(
+      {
+        flowDefinitionId: "top-companies",
+        name: "Top companies",
+        description: "Persist the ten companies with the largest market cap",
+        inputs: {
+          prompt: flowInput("Text"),
+          entityTypeIds: flowInput("VersionedUrl", { array: true }),
+        },
+      },
+      ({ inputs, step }) => {
+        const research = step("research", actions.researchEntities, {
+          description: "Research entities",
+          inputs: {
+            prompt: inputs.prompt,
+            entityTypeIds: inputs.entityTypeIds,
+          },
+        });
+
+        const companies = step("companies", actions.filterList, {
+          description: "Keep the companies",
+          inputs: {
+            items: research.outputs.proposedEntities.consume(),
+            condition: constant("FilterCondition", {
+              kind: "all",
+              conditions: [
+                {
+                  kind: "condition",
+                  subject: { kind: "entityType" },
+                  operator: "isOfType",
+                  value: { kind: "VersionedUrl", value: companyType },
+                },
+              ],
+            }),
+          },
+        });
+
+        const byMarketCap = step("byMarketCap", actions.orderBy, {
+          description: "Sort the companies by market cap, largest first",
+          inputs: {
+            items: companies.outputs.matching,
+            sortBy: constant("SortKey", {
+              subject: {
+                kind: "entityProperty",
+                propertyTypeBaseUrl: marketCapUrl,
+                payloadKind: "Number",
+              },
+              direction: "descending",
+            }),
+          },
+        });
+
+        expectTypeOf(byMarketCap.outputs.items).toEqualTypeOf<
+          Ref<"ProposedEntity", true, true>
+        >();
+
+        const top = step("top", actions.takeFirst, {
+          description: "Keep the first ten",
+          inputs: {
+            items: byMarketCap.outputs.items,
+            count: constant("Number", 10),
+          },
+        });
+
+        expectTypeOf(top.outputs.items).toEqualTypeOf<
+          Ref<"ProposedEntity", true, true>
+        >();
+
+        const persist = step("persist", actions.persistEntities, {
+          description: "Persist the top companies",
+          inputs: { proposedEntities: top.outputs.items },
+        });
+
+        return { outputs: { persisted: persist.outputs.persistedEntities } };
+      },
+    );
+
+    expect(flowDefinition.steps.slice(2, 4)).toMatchObject([
+      {
+        actionDefinitionId: "orderBy",
+        inputs: {
+          items: {
+            kind: "step-output",
+            stepId: "companies",
+            outputName: "matching",
+          },
+        },
+      },
+      {
+        actionDefinitionId: "takeFirst",
+        inputs: {
+          items: {
+            kind: "step-output",
+            stepId: "byMarketCap",
+            outputName: "items",
+          },
+          count: { kind: "constant", payload: { kind: "Number", value: 10 } },
+        },
+      },
+    ]);
+  });
+
+  it("branch on how many items a list has, by Aggregate and If", () => {
+    const { flowDefinition } = defineFlow(
+      {
+        flowDefinitionId: "many-companies",
+        name: "Many companies",
+        description: "Check whether research found more than ten entities",
+        inputs: {
+          prompt: flowInput("Text"),
+          entityTypeIds: flowInput("VersionedUrl", { array: true }),
+        },
+      },
+      ({ inputs, step }) => {
+        const research = step("research", actions.researchEntities, {
+          description: "Research entities",
+          inputs: {
+            prompt: inputs.prompt,
+            entityTypeIds: inputs.entityTypeIds,
+          },
+        });
+
+        const counted = step("count", actions.aggregate, {
+          description: "Count the entities",
+          inputs: {
+            items: research.outputs.proposedEntities,
+            aggregation: constant("Aggregation", { operation: "count" }),
+          },
+        });
+
+        expectTypeOf(counted.outputs.result).toEqualTypeOf<
+          Ref<"Number", false, false>
+        >();
+
+        const isMany = step("isMany", actions.if, {
+          description: "Check for more than ten",
+          inputs: {
+            value: counted.outputs.result.orSkip(),
+            condition: constant("FilterCondition", {
+              kind: "all",
+              conditions: [
+                {
+                  kind: "condition",
+                  subject: { kind: "input", payloadKind: "Number" },
+                  operator: "greaterThan",
+                  value: { kind: "Number", value: 10 },
+                },
+              ],
+            }),
+          },
+        });
+
+        expectTypeOf(isMany.outputs.true).toEqualTypeOf<
+          Ref<"Number", false, false>
+        >();
+
+        return { outputs: {} };
+      },
+    );
+
+    expect(flowDefinition.steps.slice(1)).toMatchObject([
+      {
+        actionDefinitionId: "aggregate",
+        inputs: {
+          aggregation: {
+            kind: "constant",
+            payload: { kind: "Aggregation", value: { operation: "count" } },
+          },
+        },
+      },
+      {
+        actionDefinitionId: "if",
+        inputs: {
+          value: {
+            kind: "step-output",
+            stepId: "count",
+            outputName: "result",
+            whenMissing: "skip",
+          },
+        },
+      },
+    ]);
   });
 
   it("run the steps after an If step only on the branch it takes", () => {

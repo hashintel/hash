@@ -51,7 +51,7 @@ const testActionDefinitions = Object.fromEntries(
         ],
       },
       {
-        actionDefinitionId: "find",
+        actionDefinitionId: "findOne",
         inputs: [
           {
             name: "items",
@@ -182,7 +182,7 @@ describe("outputs that take their kind from an input", () => {
     const flow = flowWith([
       step("research", "research"),
       step("filter", "filter", { items: outputOf("research", "entities") }),
-      step("find", "find", { items: outputOf("filter", "matches") }),
+      step("find", "findOne", { items: outputOf("filter", "matches") }),
     ]);
 
     const shapes = createStepShapeResolver(flow, testActionDefinitions);
@@ -244,7 +244,7 @@ describe("outputs that take their kind from an input", () => {
       diagnosticsOf(
         flowWith([
           step("research", "research"),
-          step("find", "find", { items: outputOf("research", "entities") }),
+          step("find", "findOne", { items: outputOf("research", "entities") }),
           step("echo", "echo", {
             text: { ...outputOf("find", "match"), whenMissing: "skip" },
           }),
@@ -309,7 +309,7 @@ describe("inputs that take their kind from another input", () => {
         flowWith([
           step("research", "research"),
           step("first", "pick", { items: outputOf("research", "entities") }),
-          step("find", "find", {
+          step("find", "findOne", {
             items: outputOf("research", "entities"),
             fallback: outputOf("first", "first"),
           }),
@@ -321,7 +321,7 @@ describe("inputs that take their kind from another input", () => {
       diagnosticsOf(
         flowWith([
           step("research", "research"),
-          step("find", "find", {
+          step("find", "findOne", {
             items: outputOf("research", "entities"),
             fallback: {
               kind: "constant",

@@ -14,31 +14,47 @@ import type {
 } from "./evaluate-condition.js";
 import type { EntityId, UserId } from "@blockprotocol/type-system";
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
-import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
+import type {
+  ConditionSubject,
+  FilterCondition,
+} from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
 
 /** The most entities one condition context loads. More fails the step, rather than leaving some out. */
 const maxConditionEntities = 100_000;
 
 /**
- * Fetches the entities whose properties or types a condition reads, as the user running the flow. Each EntityId
- * loads exactly the edition it names: the draft for one with a draftId, otherwise the live edition. An entity they
- * can't read is left out, so a condition on it fails rather than matching. Empty and malformed EntityIds aren't
+ * The subjects a condition reads from an item of `kind`: none for an invalid condition, whose evaluation reports the
+ * error.
+ */
+export const getConditionSubjects = (
+  condition: FilterCondition,
+  kind: PayloadKind,
+): ConditionSubject[] =>
+  validateCondition(condition, kind)
+    ? []
+    : conditionLeaves(condition).map(({ subject }) => subject);
+
+/**
+ * Fetches the entities whose properties or types the given subjects read, as the user running the flow. Each
+ * EntityId loads exactly the edition it names: the draft for one with a draftId, otherwise the live edition. An
+ * entity they can't read is left out, so reading it fails rather than matching. Empty and malformed EntityIds aren't
  * queried: evaluation treats the former as empty and rejects the latter.
+ *
+ * The subjects must have been validated against `kind`.
  */
 export const getConditionContext = async (params: {
   authentication: { actorId: UserId };
-  condition: FilterCondition;
+  subjects: readonly ConditionSubject[];
   kind: PayloadKind;
   values: readonly unknown[];
 }): Promise<ConditionContext> => {
-  const { authentication, condition, kind, values } = params;
+  const { authentication, subjects, kind, values } = params;
 
   if (
     kind !== "EntityId" ||
-    validateCondition(condition, kind) !== undefined ||
-    !conditionLeaves(condition).some(
-      ({ subject }) =>
+    !subjects.some(
+      (subject) =>
         subject.kind === "entityProperty" || subject.kind === "entityType",
     )
   ) {

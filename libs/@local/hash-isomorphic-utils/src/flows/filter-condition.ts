@@ -98,6 +98,7 @@ type FilterCapability = "scalar" | "object" | "entity";
 /** The capabilities of each payload kind. A kind with none can't be filtered. */
 const filterCapabilities = {
   ActorType: ["scalar"],
+  Aggregation: [],
   Boolean: ["scalar"],
   Date: ["scalar"],
   EntityId: ["scalar", "entity"],
@@ -110,6 +111,7 @@ const filterCapabilities = {
   PersistedEntityMetadata: ["object"],
   ProposedEntity: ["object", "entity"],
   ProposedEntityWithResolvedLinks: ["object", "entity"],
+  SortKey: [],
   Text: ["scalar"],
   VersionedUrl: ["scalar"],
   WebPage: ["object"],
@@ -175,23 +177,8 @@ const validateStructure = (
     return invalidCondition("A condition must be an object.");
   }
   switch (node.kind) {
-    case "condition": {
-      const { subject } = node;
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.
-      if (typeof subject !== "object" || subject === null) {
-        return invalidCondition("A condition's subject must be an object.");
-      }
-      if (
-        subject.kind === "field" &&
-        (!Array.isArray(subject.path) ||
-          subject.path.some((segment) => typeof segment !== "string"))
-      ) {
-        return invalidCondition(
-          "A field subject's path must be an array of strings.",
-        );
-      }
+    case "condition":
       return undefined;
-    }
     case "not":
       return validateStructure(node.condition, depth + 1);
     case "all":
@@ -217,19 +204,31 @@ const validateStructure = (
   }
 };
 
-const validateLeaf = (
-  { subject, operator, value }: FilterLeaf,
+/**
+ * Checks that a subject is well formed and can be read from an item of `inputKind`, returning why not. Shared by
+ * condition leaves and sort keys.
+ */
+export const validateSubject = (
+  subject: ConditionSubject,
   inputKind: PayloadKind,
-): ConditionError | undefined => {
+): string | undefined => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.
+  if (typeof subject !== "object" || subject === null) {
+    return "A subject must be an object.";
+  }
   switch (subject.kind) {
     case "input":
       if (subject.payloadKind !== inputKind) {
-        return invalidCondition(
-          "The input subject kind must match the input payload kind.",
-        );
+        return "The input subject kind must match the input payload kind.";
       }
-      break;
+      return undefined;
     case "field":
+      if (
+        !Array.isArray(subject.path) ||
+        subject.path.some((segment) => typeof segment !== "string")
+      ) {
+        return "A field subject's path must be an array of strings.";
+      }
       if (
         !objectKinds.includes(inputKind) ||
         subject.path.length === 0 ||
@@ -239,41 +238,41 @@ const validateLeaf = (
             ["__proto__", "constructor", "prototype"].includes(segment),
         )
       ) {
-        return invalidCondition(
-          "A field subject requires an object input and nonempty, safe own-property names.",
-        );
+        return "A field subject requires an object input and nonempty, safe own-property names.";
       }
       if (!allPayloadKinds.includes(subject.payloadKind)) {
-        return invalidCondition(
-          "A field subject requires a known payload kind.",
-        );
+        return "A field subject requires a known payload kind.";
       }
-      break;
+      return undefined;
     case "entityProperty":
     case "entityType":
       if (!entityKinds.includes(inputKind)) {
-        return invalidCondition(
-          "Entity subjects require an EntityId or proposed entity input.",
-        );
+        return "Entity subjects require an EntityId or proposed entity input.";
       }
       if (subject.kind === "entityProperty") {
         if (
           typeof subject.propertyTypeBaseUrl !== "string" ||
           validateBaseUrl(subject.propertyTypeBaseUrl).type !== "Ok"
         ) {
-          return invalidCondition(
-            "An entity property subject requires a property type base URL.",
-          );
+          return "An entity property subject requires a property type base URL.";
         }
         if (!allPayloadKinds.includes(subject.payloadKind)) {
-          return invalidCondition(
-            "An entity property subject requires a known payload kind.",
-          );
+          return "An entity property subject requires a known payload kind.";
         }
       }
-      break;
+      return undefined;
     default:
-      return invalidCondition("Unknown subject kind.");
+      return "Unknown subject kind.";
+  }
+};
+
+const validateLeaf = (
+  { subject, operator, value }: FilterLeaf,
+  inputKind: PayloadKind,
+): ConditionError | undefined => {
+  const subjectError = validateSubject(subject, inputKind);
+  if (subjectError) {
+    return invalidCondition(subjectError);
   }
   if (operator === "isEmpty" || operator === "isNotEmpty") {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.

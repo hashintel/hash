@@ -6,7 +6,9 @@ import type {
   AiFlowActionDefinitionId,
   IntegrationFlowActionDefinitionId,
 } from "./action-definitions.js";
+import type { Aggregation } from "./aggregation.js";
 import type { FilterCondition } from "./filter-condition.js";
+import type { SortKey } from "./sort-key.js";
 import type {
   ActorEntityUuid,
   EntityId,
@@ -97,6 +99,7 @@ export type WebSearchResult = Pick<WebPage, "title" | "url">;
 
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
+  Aggregation: Aggregation;
   Boolean: boolean;
   Date: string; // e.g. "2025-01-01"
   EntityId: EntityId;
@@ -109,6 +112,7 @@ export type PayloadKindValues = {
   PersistedEntityMetadata: PersistedEntityMetadata;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
+  SortKey: SortKey;
   Text: string;
   VersionedUrl: VersionedUrl;
   WebPage: WebPage;
@@ -119,6 +123,7 @@ export type PayloadKind = keyof PayloadKindValues;
 
 const payloadKindsRecord: Record<PayloadKind, true> = {
   ActorType: true,
+  Aggregation: true,
   Boolean: true,
   Date: true,
   EntityId: true,
@@ -131,6 +136,7 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
   PersistedEntityMetadata: true,
   ProposedEntity: true,
   ProposedEntityWithResolvedLinks: true,
+  SortKey: true,
   Text: true,
   VersionedUrl: true,
   WebPage: true,
