@@ -25,6 +25,7 @@ import {
   AtlasAuthorityEndedError,
   ATLAS_AUTHORITY_HEADER,
   AtlasDeliveryCutChangedError,
+  ATLAS_RETIRED_GENERATION_PROBLEM,
   clearAtlasSessionCache,
   fetchTile,
   FetchTileError,
@@ -34,6 +35,7 @@ import {
   subscribeToAtlasSessionRevision,
   subscribeToAtlasTileMaxZoom,
   withAtlasRetry,
+  withAtlasSession,
 } from "./fetch-tile";
 
 // Zero-delay backoff keeps the retry tests fast while still exercising the loop.
@@ -2232,5 +2234,72 @@ describe("the atlas tile max-zoom", () => {
     await superseded;
 
     expect(getAtlasTileMaxZoom()).toBe(9);
+  });
+});
+
+describe("withAtlasSession", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearAtlasSessionCache();
+  });
+
+  it("fails a sibling closed when an external drop lands after the recovery", async () => {
+    const generation = genHex(0x21);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+    });
+    const retired = (): FetchTileError =>
+      new FetchTileError("generation retired", {
+        status: 404,
+        problem: ATLAS_RETIRED_GENERATION_PROBLEM,
+      });
+    const settle = async (): Promise<void> => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    };
+
+    // Two callers pin the same session; both operations are left hanging.
+    let rejectFirst!: (error: Error) => void;
+    let firstCalls = 0;
+    const first = withAtlasSession(BASE, () => {
+      firstCalls += 1;
+      if (firstCalls === 1) {
+        return new Promise<string>((_resolve, reject) => {
+          rejectFirst = reject;
+        });
+      }
+      return Promise.resolve("recovered");
+    });
+    let rejectSibling!: (error: Error) => void;
+    let siblingCalls = 0;
+    const sibling = withAtlasSession(BASE, () => {
+      siblingCalls += 1;
+      if (siblingCalls === 1) {
+        return new Promise<string>((_resolve, reject) => {
+          rejectSibling = reject;
+        });
+      }
+      return Promise.resolve("retried under a dead lineage");
+    });
+    await settle();
+
+    // The first caller recovers: drops the session, installs the successor,
+    // records it for its siblings.
+    rejectFirst(retired());
+    await expect(first).resolves.toBe("recovered");
+
+    // An external drop — a view rebind, a principal change — invalidates the
+    // lineage the record points into.
+    clearAtlasSessionCache(BASE);
+
+    // The sibling must fail closed rather than retry under the recorded,
+    // no-longer-live successor.
+    rejectSibling(retired());
+    await expect(sibling).rejects.toMatchObject({
+      problem: ATLAS_RETIRED_GENERATION_PROBLEM,
+    });
+    expect(siblingCalls).toBe(1);
   });
 });

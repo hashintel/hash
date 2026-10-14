@@ -594,7 +594,11 @@ export class TileCache {
       return cached.nodes;
     }
     const inFlight = this.#inflight.get(key);
-    if (inFlight && detailServes(inFlight.detail, detail)) {
+    if (
+      inFlight &&
+      detailServes(inFlight.detail, detail) &&
+      inFlight.signal?.aborted !== true
+    ) {
       // A required load riding an in-flight prefetch claims it: a later batch
       // must not abort a fetch this viewport now depends on, and the prefetch
       // counts as a hit once it lands (marked when it settles, since the tile
@@ -772,9 +776,13 @@ export class TileCache {
   ): void {
     const key = atlasTileKey(coordinate);
     const cached = this.#entries.get(key);
+    // Only a *live* in-flight fetch suppresses a prefetch — an aborted one
+    // still awaiting its settlement is no data on the way (see the matching
+    // guard in {@link load}).
+    const inFlight = this.#inflight.get(key);
     if (
       (cached && detailServes(cached.detail, detail)) ||
-      this.#inflight.has(key)
+      (inFlight !== undefined && inFlight.signal?.aborted !== true)
     ) {
       return;
     }
@@ -1145,6 +1153,18 @@ export const getViewportNodes = async (
     }
     cache.pin(requiredKeys);
 
+    // Yield speculation ahead of each level's required loads, not only when
+    // the descent ends: a pause already standing when the pass starts — the
+    // previous pass's late prefetch or edges responses — must free its slots
+    // for this very wave, and one raised by a level's own responses is
+    // caught before the next level dispatches. Safe immediately before the
+    // loads: a load finding its tile's just-cancelled prefetch still in
+    // flight refetches rather than riding it (see {@link TileCache.load}).
+    // Repeats are free — once cancelled, the controller map is empty.
+    if (isAtlasSpeculationPaused()) {
+      cache.prefetchBatch([]);
+    }
+
     // Catch each rejection into an outcome tagged with its coordinate, so a
     // failure never rejects the batch and does not stop the other branches.
     const loads = await Promise.all(
@@ -1202,7 +1222,11 @@ export const getViewportNodes = async (
   }
 
   // Rate-limited: speculation yields first. The empty batch also cancels
-  // in-flight prefetches, returning their budget to the required loads.
+  // in-flight prefetches, returning their budget to the required loads. The
+  // per-level yield above covers the descent; this final check catches a
+  // pause raised by the last level's responses, and runs ahead of the
+  // total-failure throw below so even a viewport that lost every load
+  // cancels the standing speculation.
   const speculationPaused = isAtlasSpeculationPaused();
   if (speculationPaused) {
     cache.prefetchBatch([]);

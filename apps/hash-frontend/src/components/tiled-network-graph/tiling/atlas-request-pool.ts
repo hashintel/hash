@@ -166,6 +166,14 @@ export const createAtlasRequestPool = (
 
   return {
     run: async (lane, operation, signal) => {
+      // Deliberately lane-blind: a required load may be riding an in-flight
+      // prefetch's promise (see `TileCache.load`), so any pacing disadvantage
+      // given to speculative dispatch here would be inherited by required
+      // traffic that holds no abort signal — the stall `takeAtlasRequestToken`
+      // documents. The lane buys slot priority below instead; what bounds
+      // speculative token spending is issuance, where batches are gated and
+      // cancelled per descent level under backpressure, so at most one
+      // already-issued batch competes, for at most one level's round trip.
       await paceAtlasRequest(signal);
       // The pacing token is spent, but the request has not reached the server
       // yet: an abort landing in the slot queue must give the token back, or

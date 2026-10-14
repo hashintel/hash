@@ -1397,8 +1397,15 @@ export const withAtlasSession = async <T>(
       sessionReplacements.set(pinned, successor);
       return await operation(await successor);
     }
+    // The record is honoured only while its successor is still the origin's
+    // cached population. An external drop between the recovery and this
+    // sibling's failure — a principal transition, a view rebind — invalidated
+    // the whole lineage: consumers discarded their rows, and a retry under
+    // the recorded successor would act under a session that is no longer
+    // live. Failing closed here is the behaviour the drop's own consumers
+    // already assumed.
     const successor = sessionReplacements.get(pinned);
-    if (successor === undefined) {
+    if (successor === undefined || sessionCache.get(baseUrl) !== successor) {
       throw error;
     }
     return await operation(await successor);
