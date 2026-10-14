@@ -1,4 +1,7 @@
-import { validateVersionedUrl } from "@blockprotocol/type-system";
+import {
+  validateBaseUrl,
+  validateVersionedUrl,
+} from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 
 import { evaluateFilter } from "./evaluate-filter.js";
@@ -256,7 +259,7 @@ const validateLeaf = (
       if (subject.kind === "entityProperty") {
         if (
           typeof subject.propertyTypeBaseUrl !== "string" ||
-          !subject.propertyTypeBaseUrl
+          validateBaseUrl(subject.propertyTypeBaseUrl).type !== "Ok"
         ) {
           return invalidCondition(
             "An entity property subject requires a property type base URL.",

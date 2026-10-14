@@ -302,6 +302,24 @@ describe("validateCondition", () => {
       message: "property type base URL",
     },
     {
+      name: "an entity property subject with a base URL without a trailing slash",
+      subject: {
+        kind: "entityProperty",
+        propertyTypeBaseUrl: "https://example.com/types/property-type/score",
+        payloadKind: "Number",
+      },
+      message: "property type base URL",
+    },
+    {
+      name: "an entity property subject with a base URL that isn't a URL",
+      subject: {
+        kind: "entityProperty",
+        propertyTypeBaseUrl: "score/",
+        payloadKind: "Number",
+      },
+      message: "property type base URL",
+    },
+    {
       name: "an entity property subject with an unknown payload kind",
       subject: {
         kind: "entityProperty",
