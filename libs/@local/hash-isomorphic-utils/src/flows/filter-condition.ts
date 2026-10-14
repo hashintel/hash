@@ -1,3 +1,4 @@
+import { validateVersionedUrl } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 
 import { evaluateFilter } from "./evaluate-filter.js";
@@ -285,7 +286,8 @@ const validateLeaf = (
       operator !== "isOfType" ||
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.
       value?.kind !== "VersionedUrl" ||
-      !/^https?:\/\/.+\/v\/[1-9]\d*$/.test(value.value)
+      typeof value.value !== "string" ||
+      validateVersionedUrl(value.value).type !== "Ok"
     ) {
       return invalidCondition(
         "Entity type conditions require isOfType and a versioned type URL.",

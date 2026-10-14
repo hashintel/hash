@@ -78,6 +78,41 @@ describe("validateCondition", () => {
     });
   });
 
+  it.each([
+    { value: "https://example.com/types/entity-type/company/v/1", valid: true },
+    { value: "https://example.com/types/entity-type/company/", valid: false },
+    {
+      value: "https://example.com/types/entity-type/company/v/0",
+      valid: false,
+    },
+    { value: 1, valid: false },
+    { value: undefined, valid: false },
+  ])(
+    "checks that $value is a versioned entity type URL",
+    ({ value, valid }) => {
+      expect(
+        validateCondition(
+          all({
+            kind: "condition",
+            subject: { kind: "entityType" },
+            operator: "isOfType",
+            value: { kind: "VersionedUrl", value },
+          } as never),
+          "ProposedEntity",
+        ),
+      ).toEqual(
+        valid
+          ? undefined
+          : {
+              status: "error",
+              code: "invalidCondition",
+              message:
+                "Entity type conditions require isOfType and a versioned type URL.",
+            },
+      );
+    },
+  );
+
   it("rejects field subjects on primitive input kinds", () => {
     expect(validateCondition(all(scoreCondition), "Number")).toMatchObject({
       status: "error",
