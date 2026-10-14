@@ -1,3 +1,8 @@
+/**
+ * Do block construction, declaration ordering and runtime validation tests.
+ *
+ * @module
+ */
 // oxlint-disable unicorn/no-array-method-this-argument -- Result.map and Result.flatMap are not array methods
 // oxlint-disable vitest/prefer-to-be-truthy -- these checks assert exact Boolean results
 // oxlint-disable hash/naming-conventions -- examples preserve HashQL type and constructor names in separate callback arguments
@@ -109,7 +114,7 @@ describe("block_errors", () => {
       _tag: "Failure",
       failure: {
         _tag: "ProgramConstructionError",
-        reason: { _tag: "InvalidBlock" },
+        reason: { _tag: "MissingBlockBody" },
       },
     });
   });
@@ -125,7 +130,7 @@ describe("block_errors", () => {
       _tag: "Failure",
       failure: {
         _tag: "ProgramConstructionError",
-        reason: { _tag: "InvalidBlock" },
+        reason: { _tag: "MisplacedBlockBody" },
       },
     });
   });
@@ -138,8 +143,21 @@ describe("block_errors", () => {
       _tag: "Failure",
       failure: {
         _tag: "ProgramConstructionError",
-        reason: { _tag: "InvalidBlock" },
+        reason: { _tag: "InvalidBodyResult" },
       },
+    });
+  });
+
+  test("invalid_step", () => {
+    expect.hasAssertions();
+    const result = EmptyDo(
+      // @ts-expect-error A plain object is not a declaration step.
+      {},
+      ($) => $.integer(2),
+    );
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "InvalidBlockStep" } },
     });
   });
 

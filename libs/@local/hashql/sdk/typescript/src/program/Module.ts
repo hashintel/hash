@@ -5,7 +5,7 @@
  *
  * @module
  */
-import { Result } from "effect";
+import { Predicate, Result } from "effect";
 
 import * as JExpr from "../jexpr/index.js";
 import * as Expression from "./Expression.js";
@@ -73,7 +73,7 @@ export interface Module<Shape extends Definition> {
 /** Recognizes a module assembled by this SDK. */
 // oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
 export const isModule = (value: unknown): value is Any =>
-  typeof value === "object" && value !== null && TypeId in value;
+  Predicate.hasProperty(value, TypeId);
 
 /** Declares a value with trusted semantic type information. */
 export const value = <T extends Type.Any>(): Declaration<

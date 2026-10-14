@@ -1,0 +1,102 @@
+/**
+ * Runtime checks for structural normalization and constructor metadata forwarding.
+ *
+ * @module
+ */
+import { Result } from "effect";
+import { describe, expect, test } from "vitest";
+
+import * as JExpr from "../jexpr/index.js";
+import * as TypeSyntax from "../jexpr/type/index.js";
+import * as Structural from "./Structural.js";
+import * as TypeExpression from "./TypeExpression.js";
+
+import type * as Type from "../type/index.js";
+
+interface Dictionary extends Type.TypeConstructor {
+  readonly arity: 2;
+  readonly type: this["Target"] extends readonly [
+    infer K extends Type.Any,
+    infer V extends Type.Any,
+  ]
+    ? Type.Dict<K, V>
+    : Type.Never;
+}
+
+const path = Result.getOrThrow(JExpr.Path.decodeResult("::kernel::type::Dict"));
+const declaration = Result.getOrThrow(
+  TypeExpression.constructor<Dictionary>(path, 2),
+);
+const dictionary = Structural.constructor(declaration);
+
+const compile = (definition: TypeExpression.Any): string =>
+  TypeSyntax.compile(Result.getOrThrow(TypeExpression.toType(definition)));
+
+describe("structural_constructor", () => {
+  test("mixed_arguments", () => {
+    expect.hasAssertions();
+    expect(compile(dictionary(String, { count: BigInt }))).toBe(
+      "::kernel::type::Dict<::kernel::type::String, (count: ::kernel::type::Integer)>",
+    );
+  });
+
+  test("forwarded_metadata", () => {
+    expect.hasAssertions();
+    const forwarded = new Proxy(declaration, { ownKeys: (): string[] => [] });
+    const adapted = Structural.constructor(forwarded);
+    expect(adapted).toSatisfy(TypeExpression.isConstructor);
+    expect(compile(adapted(String, Number))).toBe(
+      "::kernel::type::Dict<::kernel::type::String, ::kernel::type::Number>",
+    );
+  });
+
+  test("invalid_nested_name", () => {
+    expect.hasAssertions();
+    const result = dictionary(String, { "": BigInt }).syntax;
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "InvalidBindingName", name: "" } },
+    });
+  });
+
+  test("unspecialized_type", () => {
+    expect.hasAssertions();
+    // @ts-expect-error An unapplied constructor is not a type definition.
+    const result = Structural.type(declaration).syntax;
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        reason: { _tag: "UnspecializedTypeConstructor" },
+        message: "A generic type must be specialized before use",
+      },
+    });
+  });
+
+  test("unsupported_constructor", () => {
+    expect.hasAssertions();
+    // @ts-expect-error Date is outside the supported primitive shorthand.
+    const result = Structural.type(Date).syntax;
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        reason: { _tag: "UnsupportedTypeConstructor", name: "Date" },
+        message: 'Unsupported primitive type constructor: "Date"',
+      },
+    });
+  });
+
+  test("dynamic_arity", () => {
+    expect.hasAssertions();
+    const dynamic = Structural.constructor(
+      Result.getOrThrow(
+        TypeExpression.constructor<Type.TypeConstructor>(path, 2),
+      ),
+    );
+    expect(dynamic(String).syntax).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        reason: { _tag: "TypeArgumentCount", expected: 2, received: 1 },
+      },
+    });
+  });
+});

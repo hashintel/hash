@@ -54,7 +54,10 @@ export type Context<S extends Scope.Scope> = S["values"] extends {
         ) => Query<
           Returns,
           Vertex,
-          Inputs.Merge<Requirements, ArgumentInputs<Values>>
+          Inputs.Merge<
+            Inputs.Conservative<Requirements>,
+            ArgumentInputs<Values>
+          >
         >;
       }
     : Empty

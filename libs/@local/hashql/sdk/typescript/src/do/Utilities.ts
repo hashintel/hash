@@ -1,3 +1,10 @@
+/**
+ * Sequential declaration blocks for the Do authoring API.
+ *
+ * Each step extends the typed scope and records how to wrap the final expression. Nested bodies inherit the scope without repeating the declarations that introduced it. {@link Block} retains construction failures until the caller completes the body.
+ *
+ * @module
+ */
 // oxlint-disable import/max-dependencies -- block construction composes the declaration steps and expression helpers
 // oxlint-disable unicorn/no-array-method-this-argument -- Result.map and Result.flatMap are not array methods
 import { Result } from "effect";
@@ -154,14 +161,7 @@ export class Block<S extends Scope.Scope, Inputs> {
           scope.types,
         );
         if (!Expression.isExpression(expression)) {
-          return Result.fail(
-            new ProgramError.Construction({
-              reason: ProgramError.Reason.InvalidBlock({
-                message:
-                  "An expression callback must return a HashQL expression",
-              }),
-            }),
-          );
+          return Result.fail(ProgramError.Construction.invalidBodyResult());
         }
         return Result.map(Expression.toNode(expression), (node) => {
           let root = node;
@@ -183,24 +183,12 @@ export class Block<S extends Scope.Scope, Inputs> {
     );
     const body = steps.at(-1);
     if (typeof body !== "function" || Expression.isExpression(body)) {
-      return Result.fail(
-        new ProgramError.Construction({
-          reason: ProgramError.Reason.InvalidBlock({
-            message: "A Do block must end with an expression callback",
-          }),
-        }),
-      );
+      return Result.fail(ProgramError.Construction.missingBlockBody());
     }
 
     for (const step of steps.slice(0, -1)) {
       if (typeof step === "function") {
-        return Result.fail(
-          new ProgramError.Construction({
-            reason: ProgramError.Reason.InvalidBlock({
-              message: "Only the last step may be an expression callback",
-            }),
-          }),
-        );
+        return Result.fail(ProgramError.Construction.misplacedBlockBody());
       }
 
       if (
@@ -209,14 +197,7 @@ export class Block<S extends Scope.Scope, Inputs> {
         step === null ||
         !(Node.TypeId in step)
       ) {
-        return Result.fail(
-          new ProgramError.Construction({
-            reason: ProgramError.Reason.InvalidBlock({
-              message:
-                "A Do block expects declaration steps before its expression callback",
-            }),
-          }),
-        );
+        return Result.fail(ProgramError.Construction.invalidBlockStep());
       }
       block = block.#append(step);
     }
