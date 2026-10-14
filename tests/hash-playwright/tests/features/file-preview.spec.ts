@@ -1,5 +1,7 @@
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { getUser, uploadFile } from "../shared/api-queries";
 import {
@@ -10,6 +12,8 @@ import {
 import { generateTestPdf } from "../shared/generate-test-pdf";
 import { expect, test } from "../shared/runtime";
 import {
+  otherTestDocumentPages,
+  otherTestDocumentSearchWord,
   testDocumentPages,
   testDocumentSearchWord,
 } from "../shared/test-document";
@@ -17,28 +21,39 @@ import {
 import type { Page } from "../shared/runtime";
 
 const [firstPage, secondPage, thirdPage] = testDocumentPages;
+const [otherDocumentPage] = otherTestDocumentPages;
 
 const getPdfPage = (page: Page) => page.locator(".react-pdf-page");
 
 const getDocxPage = (page: Page, heading: string) =>
   page.locator(".layout-page", { hasText: heading });
 
+/**
+ * The page and zoom labels. The DOCX preview also announces the page in a
+ * status element, so the label is told apart by its role.
+ */
+const getLabel = (page: Page, text: string) =>
+  page.getByRole("paragraph").and(page.getByText(text, { exact: true }));
+
 const docxMimeType =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-const uploadAndOpenFile = async (
-  page: Page,
-  file: { contents: Buffer; mimeType: string; name: string },
-) => {
+type TestFile = { contents: Buffer; mimeType: string; name: string };
+
+const uploadTestFile = async (page: Page, file: TestFile) => {
   const user = await getUser(page.request);
   if (!user) {
     throw new Error("Cannot upload a file without an authenticated user");
   }
 
-  const fileEntity = await uploadFile(page.request, {
+  return uploadFile(page.request, {
     ...file,
     webId: extractWebIdFromEntityId(user.metadata.recordId.entityId),
   });
+};
+
+const uploadAndOpenFile = async (page: Page, file: TestFile) => {
+  const fileEntity = await uploadTestFile(page, file);
 
   await page.goto(
     generateEntityPath({
@@ -47,6 +62,74 @@ const uploadAndOpenFile = async (
       shortname: "alice",
     }),
   );
+};
+
+const uploadTestFileAndGetUrl = async (page: Page, file: TestFile) => {
+  const fileEntity = await uploadTestFile(page, file);
+
+  return simplifyProperties(fileEntity.properties).fileUrl;
+};
+
+/**
+ * Changes the "File URL" value in the properties table without saving the
+ * entity. The table draws its cells on a canvas, so the cell is reached with
+ * the keyboard from the first row.
+ */
+const editFileUrl = async (page: Page, fileUrl: string) => {
+  const fileUrlLabelTestId = await page
+    .locator(".dvn-underlay > canvas:first-of-type")
+    .first()
+    .locator('[data-testid^="glide-cell-0-"]', { hasText: /^File URL$/ })
+    .getAttribute("data-testid");
+  const fileUrlRowIndex = Number(fileUrlLabelTestId?.split("-").at(-1));
+
+  await page
+    .locator(".dvn-scroller")
+    .first()
+    .click({ position: { x: 20, y: gridRowHeight * 1.5 } });
+  for (let rowIndex = 0; rowIndex < fileUrlRowIndex; rowIndex++) {
+    await page.keyboard.press("ArrowDown");
+  }
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Enter");
+
+  const valueInput = page.getByPlaceholder("Start typing...");
+  await valueInput.fill(fileUrl);
+  await valueInput.press("Enter");
+};
+
+/**
+ * Zooms in, searches for `testDocumentSearchWord` and moves to page 2, then
+ * changes the file URL to a one-page file that does not hold that word.
+ */
+const zoomSearchAndEditFileUrl = async (page: Page, otherFileUrl: string) => {
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await expect(getLabel(page, "120%")).toBeVisible();
+
+  await page.getByRole("button", { name: "Show search" }).click();
+  await page
+    .getByPlaceholder("Search the document...")
+    .fill(testDocumentSearchWord);
+  await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Next page" }).click();
+  await expect(getLabel(page, "2 of 3")).toBeVisible();
+
+  await editFileUrl(page, otherFileUrl);
+};
+
+const expectStateOfOtherFile = async (page: Page) => {
+  await expect(getLabel(page, "1 of 1")).toBeVisible();
+  await expect(getLabel(page, "100%")).toBeVisible();
+
+  const searchInput = page.getByPlaceholder("Search the document...");
+  await expect(searchInput).toHaveValue("");
+  await expect(page.getByRole("button", { name: "Next result" })).toBeHidden();
+
+  await searchInput.fill(otherTestDocumentSearchWord);
+  await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Next result" }).click();
+  await expect(page.getByText("2 of 2", { exact: true })).toBeVisible();
 };
 
 test.describe("PDF preview", () => {
@@ -119,6 +202,23 @@ test.describe("PDF preview", () => {
     const searchInput = page.getByPlaceholder("Search the document...");
     await searchInput.press("ControlOrMeta+V");
     await expect(searchInput).toHaveValue(firstPage.heading);
+  });
+
+  test("editing the file URL shows the new file's pages, zoom and search state", async ({
+    page,
+  }) => {
+    const otherFileUrl = await uploadTestFileAndGetUrl(page, {
+      contents: generateTestPdf(otherTestDocumentPages),
+      mimeType: "application/pdf",
+      name: `file-preview-other-${Date.now()}.pdf`,
+    });
+
+    await zoomSearchAndEditFileUrl(page, otherFileUrl);
+
+    await expect(
+      getPdfPage(page).getByText(otherDocumentPage.heading, { exact: true }),
+    ).toBeVisible();
+    await expectStateOfOtherFile(page);
   });
 });
 
@@ -194,6 +294,21 @@ test.describe("DOCX preview", () => {
     await page.keyboard.press("Delete");
 
     await expect(docxPage).toHaveText(textBefore);
+  });
+
+  test("editing the file URL shows the new file's pages, zoom and search state", async ({
+    page,
+  }) => {
+    const otherFileUrl = await uploadTestFileAndGetUrl(page, {
+      contents: await generateTestDocx(otherTestDocumentPages),
+      mimeType: docxMimeType,
+      name: `file-preview-other-${Date.now()}.docx`,
+    });
+
+    await zoomSearchAndEditFileUrl(page, otherFileUrl);
+
+    await expect(getDocxPage(page, otherDocumentPage.heading)).toBeVisible();
+    await expectStateOfOtherFile(page);
   });
 
   test("text selected on a page copies exactly", async ({ page }) => {

@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 
-import { testDocumentPages } from "./test-document";
+import { type PageContent, testDocumentPages } from "./test-document";
 
 type ZipEntry = { name: string; contents: string };
 
@@ -63,10 +63,12 @@ const paragraph = (text: string) =>
 
 const pageBreak = `<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
 
-/** Renders `testDocumentPages` as a DOCX, one page per entry. */
-export const generateTestDocx = (): Promise<Buffer> =>
+/** Renders `pages`, by default `testDocumentPages`, as a DOCX, one page per entry. */
+export const generateTestDocx = (
+  pages: readonly PageContent[] = testDocumentPages,
+): Promise<Buffer> =>
   writeDocx({
-    body: testDocumentPages
+    body: pages
       .map(({ heading, body }) => `${paragraph(heading)}${paragraph(body)}`)
       .join(pageBreak),
   });

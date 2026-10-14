@@ -366,6 +366,7 @@ export const FilePreviewSection = () => {
           </FullScreen>
         ) : isPdf ? (
           <PdfPreview
+            key={fileUrl}
             setShowSearch={setShowSearch}
             showSearch={showSearch}
             showThumbnails={showThumbnails}
@@ -373,6 +374,7 @@ export const FilePreviewSection = () => {
           />
         ) : isDocx ? (
           <DocxPreview
+            key={fileUrl}
             onUnavailable={markDocxUnavailable}
             setShowSearch={setShowSearch}
             showSearch={showSearch}
