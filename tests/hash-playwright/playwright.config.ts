@@ -26,6 +26,9 @@ const browsers = [
 const config: PlaywrightTestConfig = {
   forbidOnly: ci,
   globalSetup: "./global-setup",
+  // The default is half the CPU cores, which is 2 on a 4-CPU CI runner. The tests mostly wait
+  // on the app and the graph, so more workers than that can still run at once.
+  workers: ci ? 4 : undefined,
   projects: [
     // Browser-matrix projects generated from flows × browsers.
     ...browsers.flatMap(({ suffix, device }) =>
