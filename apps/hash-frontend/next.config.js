@@ -5,8 +5,6 @@ import webpack from "webpack";
 
 // eslint-disable-next-line import/extensions
 import { buildStamp } from "./buildstamp.js";
-// eslint-disable-next-line import/extensions
-import { folioSingleProseMirrorRule } from "./folio-single-prosemirror-rule.js";
 
 const { DefinePlugin } = webpack;
 const withBundleAnalyzer = bundleAnalyzer({
@@ -269,8 +267,6 @@ export default withSentryConfig(
           test: /\.(wasm)$/,
           type: "asset/resource",
         });
-
-        webpackConfig.module.rules.push(folioSingleProseMirrorRule());
 
         // eslint-disable-next-line no-param-reassign
         webpackConfig.resolve.extensionAlias = {
