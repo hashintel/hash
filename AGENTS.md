@@ -125,6 +125,8 @@ cargo test --package <package-name> --doc  # For doc tests
 cargo clippy --all-features --package <package-name>
 ```
 
+`turbo` is the version mise pins in `.config/mise/config.toml`; running it through `npx` bypasses the pin. Its configuration, task behavior, and CLI change between versions and may differ from your training data, so before changing Turborepo configuration or commands, read the docs bundled with the pinned version, starting at `$(mise where npm:turbo)/node_modules/turbo/docs/README.md`, and heed deprecation notices.
+
 For Rust packages, you can add features as needed with `--all-features`, specific features like `--features=foo,bar`, or use `cargo-hack` with `--feature-powerset` for comprehensive feature testing.
 
 ### Monorepo wiring for Rust crates

@@ -11,18 +11,31 @@ use aide::{
     transform::{TransformOpenApi, TransformOperation},
     util::iter_operations_mut,
 };
+use hash_middleware::{authentication::Challenge, rate_limit};
 
 use super::{headers, problem::Problem};
 
 /// The `401` the authentication middleware answers before any route runs.
-const UNAUTHENTICATED: &str = "`unauthenticated`: the call names no valid actor";
+const UNAUTHENTICATED: &str = "`unauthenticated`: the call presents no valid session";
+
+/// The `WWW-Authenticate` challenges of an operation that answers both `401`s.
+fn both_challenges() -> String {
+    format!(
+        "`{}` when the call presents no valid session, `{}` when it presents no valid authority \
+         token, each with `realm=\"{}\"`",
+        Challenge::Session.scheme(),
+        headers::AUTHORITY_DOCUMENTED,
+        Challenge::REALM
+    )
+}
 
 /// States on every operation what the middleware in front of the router answers.
 ///
 /// The request budgets and the authentication layer wrap the whole router. Their `429` and
-/// `401` belong to every operation. This helper states them once for the router. An
-/// operation that documents a `401` of its own keeps it and gains the middleware's cause beside
-/// it, because one operation documents one `401`.
+/// `401` belong to every operation, and the budgets' `RateLimit-Policy` and `RateLimit` fields
+/// to every response. This helper states them once for the router. An operation that documents a
+/// `401` of its own keeps it and gains the middleware's cause beside it, because one operation
+/// documents one `401`.
 pub(super) fn middleware(mut api: TransformOpenApi<'_>) -> TransformOpenApi<'_> {
     let Some(paths) = api.inner_mut().paths.as_mut() else {
         return api;
@@ -42,21 +55,32 @@ pub(super) fn middleware(mut api: TransformOpenApi<'_>) -> TransformOpenApi<'_> 
                 Some(openapi::ReferenceOr::Item(response)) => {
                     response.description =
                         format!("{UNAUTHENTICATED}, or {}", response.description);
+                    response.headers.insert(
+                        "WWW-Authenticate".to_owned(),
+                        headers::www_authenticate(&both_challenges()),
+                    );
                 }
                 Some(openapi::ReferenceOr::Reference { .. }) => {}
                 None => {
-                    let _: TransformOperation<'_> = operation.with(unauthenticated);
+                    operation = operation.with(unauthenticated);
                 }
             }
+            rate_limit::document_fields(operation.inner_mut());
         }
     }
     api
 }
 
-/// States the middleware's `401` on an operation that documents no `401` of its own.
+/// States the middleware's `401` on an operation that documents no `401` of its own, with the
+/// `WWW-Authenticate` header it carries.
 fn unauthenticated(operation: TransformOperation<'_>) -> TransformOperation<'_> {
-    operation
-        .response_with::<401, Problem<'static>, _>(|response| response.description(UNAUTHENTICATED))
+    operation.response_with::<401, Problem<'static>, _>(|mut response| {
+        response.inner().headers.insert(
+            "WWW-Authenticate".to_owned(),
+            headers::www_authenticate(&Challenge::Session.description()),
+        );
+        response.description(UNAUTHENTICATED)
+    })
 }
 
 /// States the `429` the request budgets answer, with the `Retry-After` header it carries.
@@ -144,7 +168,7 @@ mod tests {
         transform::{TransformOpenApi, TransformOperation},
     };
 
-    use super::{UNAUTHENTICATED, middleware, unauthorized};
+    use super::{UNAUTHENTICATED, both_challenges, middleware, unauthorized};
 
     /// Builds a fixture document transformed by [`middleware`].
     ///
@@ -213,14 +237,43 @@ mod tests {
         }
     }
 
+    /// [`middleware`] documents the budgets' fields on every response, including the `401` it
+    /// inserts.
+    #[test]
+    fn rate_limit_fields_on_every_response() {
+        let api = document();
+        for (method, status) in [("get", 401), ("get", 429), ("post", 401), ("post", 429)] {
+            let response =
+                response(&api, method, status).expect("the fixture should state the response");
+            for field in ["RateLimit-Policy", "RateLimit"] {
+                assert!(
+                    response.headers.contains_key(field),
+                    "{method} {status}: the response should document `{field}`"
+                );
+            }
+        }
+    }
+
     /// [`middleware`] inserts a `401` on a method that declared none of its own.
     ///
-    /// The inserted response carries [`UNAUTHENTICATED`]'s description.
+    /// The inserted response carries [`UNAUTHENTICATED`]'s description and the `WWW-Authenticate`
+    /// header.
     #[test]
     fn unauthenticated_inserted_where_absent() {
         let api = document();
         let response = response(&api, "get", 401).expect("a route with no 401 gains one");
         assert_eq!(response.description, UNAUTHENTICATED);
+        let challenge = response.headers["WWW-Authenticate"]
+            .as_item()
+            .expect("the inserted 401 should document its WWW-Authenticate header inline");
+        assert!(
+            challenge
+                .description
+                .as_ref()
+                .is_some_and(|description| description.contains("`Session`")),
+            "the inserted 401 should name the session challenge, not {:?}",
+            challenge.description
+        );
     }
 
     /// [`middleware`] appends [`UNAUTHENTICATED`]'s text to a method's own `401`.
@@ -236,6 +289,18 @@ mod tests {
                 "{UNAUTHENTICATED}, or `unauthorized`: no valid authority token; re-fetch the \
                  manifest"
             )
+        );
+        let challenge = response.headers["WWW-Authenticate"]
+            .as_item()
+            .expect("the merged 401 should document its WWW-Authenticate header inline");
+        assert_eq!(
+            challenge.description,
+            Some(both_challenges()),
+            "the merged 401 should name both challenges"
+        );
+        assert!(
+            both_challenges().starts_with("`Session`"),
+            "the merged 401 should name the session challenge first"
         );
     }
 }

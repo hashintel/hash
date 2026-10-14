@@ -34,6 +34,7 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { UtteranceJudgmentMode } from "../../../../../shared/live-utterance-judgment";
 import type { VoiceMediationHistory } from "../history/voice-mediation-history";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { ToolApprovalState } from "../live/live-brunch-bridge";
@@ -140,6 +141,7 @@ export interface OpenAIVoiceConfig {
   readonly available: true;
   readonly connectionTimeoutMs: number;
   readonly provider?: "realtime" | "live";
+  readonly utteranceJudgment?: Exclude<UtteranceJudgmentMode, "off">;
 }
 
 export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
@@ -277,6 +279,9 @@ export const loadOpenAIVoiceConfig = async (
       ...(body.provider === undefined
         ? {}
         : { provider: body.provider as "realtime" | "live" }),
+      ...(body.provider === "live" && body.utteranceJudgment === "log"
+        ? { utteranceJudgment: body.utteranceJudgment }
+        : {}),
     };
   } catch {
     return null;
@@ -704,6 +709,7 @@ const PinnedVoiceInterviewControl = ({
         toolApprovalState={toolApprovalState}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
+        utteranceJudgment={sessionConfig.utteranceJudgment}
         isDisclosureAcknowledged={isLiveVoiceInterviewDisclosureAcknowledged}
         registerVoiceModeSessionControls={
           context.registerVoiceModeSessionControls

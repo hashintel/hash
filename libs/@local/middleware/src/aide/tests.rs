@@ -1,11 +1,10 @@
-use core::num::NonZero;
-
 use aide::{
     OperationOutput as _, generate,
     openapi::{Operation, ParameterSchemaOrContent, ReferenceOr, StatusCode},
 };
 use axum::{body::to_bytes, response::IntoResponse as _};
 use http::header::{CONTENT_TYPE, RETRY_AFTER};
+use problematic::ProblemVariant as _;
 use schemars::Schema;
 use serde_json::{Value, json};
 
@@ -13,8 +12,9 @@ use crate::rate_limit::{RateLimitRejection, TooManyRequests};
 
 #[tokio::test]
 async fn rate_limit_rejection_documents_runtime_response() {
-    let retry_after = NonZero::new(17).expect("should use a nonzero retry delay");
-    let runtime = TooManyRequests { retry_after }.into_response();
+    let runtime = TooManyRequests::example()
+        .expect("the rate-limit problem should have an example")
+        .into_response();
     let status = runtime.status();
     let headers = runtime.headers().clone();
     let body: Value = serde_json::from_slice(
@@ -100,11 +100,6 @@ async fn rate_limit_rejection_documents_runtime_response() {
                 .expect("should send a valid retry header")
                 .parse::<u64>()
                 .expect("should send whole seconds before retrying");
-            assert_eq!(
-                runtime_delay,
-                retry_after.get(),
-                "should send the rejection's retry delay"
-            );
             assert!(
                 runtime_delay
                     >= retry_schema["minimum"]

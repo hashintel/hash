@@ -4,7 +4,7 @@ import { memo, useMemo, useState } from "react";
 
 import { InfinityLightIcon } from "@hashintel/design-system";
 import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 import { getLayoutWithSidebar } from "../shared/layout";
 import { Link } from "../shared/ui/link";
@@ -136,12 +136,14 @@ const FlowsPageContent = () => {
 
   const flowDefinitionRows = useMemo<VirtualizedTableRow<FlowSummary>[]>(() => {
     const rowData: VirtualizedTableRow<FlowSummary>[] = allFlowDefinitions
-      .filter((def) => !goalFlowDefinitionIds.includes(def.flowDefinitionId))
-      .map((flowDefinition) => {
+      .filter(
+        ({ flowDefinitionId }) => !isGoalFlowDefinitionId(flowDefinitionId),
+      )
+      .map(({ flowDefinitionId, flowDefinition }) => {
         let lastRunStartedAt = null;
         for (const flowRun of flowRuns) {
           if (
-            flowRun.flowDefinitionId === flowDefinition.flowDefinitionId &&
+            flowRun.flowDefinitionId === flowDefinitionId &&
             (!lastRunStartedAt || flowRun.startedAt > lastRunStartedAt)
           ) {
             lastRunStartedAt = flowRun.startedAt;
@@ -149,7 +151,7 @@ const FlowsPageContent = () => {
         }
 
         return {
-          id: flowDefinition.flowDefinitionId,
+          id: flowDefinitionId,
           data: {
             web: {
               avatarUrl: "/hash-logo-black.png",
@@ -158,11 +160,7 @@ const FlowsPageContent = () => {
               isOrg: true,
             },
             name: flowDefinition.name,
-            /**
-             * Flow definitions will have their own uuid once we start storing them in the db, this is a placeholder
-             * while we only have hardcoded definitions
-             */
-            uuid: flowDefinition.flowDefinitionId,
+            uuid: flowDefinitionId,
             description: flowDefinition.description,
             lastRunStartedAt,
           },

@@ -14,7 +14,7 @@ use axum::{
 use super::{
     AppState, clause,
     extract::Body,
-    problem::Problem,
+    problem::{Problem, ProblemResponse},
     saltile::{DocumentResponse, Saltile, spawn},
     visibility::Visibility,
 };
@@ -112,7 +112,7 @@ pub(super) async fn handler<R>(
     State(state): State<AppState<R>>,
     visibility: Visibility,
     Body(request): Body<EdgesRequest>,
-) -> Result<Response, Problem<'static>> {
+) -> Result<Response, ProblemResponse<'static>> {
     let detail = request.detail.into_document_level();
     let limits = state.limits.edges;
     let resolver = Arc::clone(&state.type_urls);
@@ -121,7 +121,7 @@ pub(super) async fn handler<R>(
     // both. `EdgesDocument` borrows the scene `visibility.scene()` resolves. Neither can outlive
     // this closure. `AssertUnwindSafe` covers the cached resolver's interior mutability.
     let (bytes, content_type) = spawn(AssertUnwindSafe(
-        move || -> Result<(Vec<u8>, &'static str), Problem<'static>> {
+        move || -> Result<(Vec<u8>, &'static str), ProblemResponse<'static>> {
             let scene = visibility.scene()?;
             let document = EdgesDocument::new(
                 scene,

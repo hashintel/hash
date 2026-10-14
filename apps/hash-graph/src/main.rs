@@ -1,43 +1,8 @@
-//! # HASH Graph
-//!
-//! ## Workspace dependencies
-#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![forbid(unsafe_code)]
-#![expect(
-    unreachable_pub,
-    reason = "This is a binary but as we want to document this crate as well this should be a \
-              warning instead"
-)]
-
-extern crate alloc;
-
-mod args;
-mod error;
-mod subcommand;
-
-use error_stack::Report;
-use hash_graph_postgres_store::load_env;
-use hash_telemetry::traces::sentry::{init, release_name};
-
-use self::{args::Args, error::GraphError};
-
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
-fn main() -> Result<(), Report<GraphError>> {
-    load_env(None);
-
-    let Args {
-        subcommand,
-        tracing_config,
-        worker_threads,
-    } = Args::parse_args();
-
-    if let Some(result) = subcommand.healthcheck() {
-        return result;
-    }
-
-    let _sentry_guard = init(&tracing_config.sentry, release_name!());
-
-    subcommand.execute(tracing_config, worker_threads)
+/// Run the HASH Graph binary.
+///
+/// # Errors
+///
+/// The process was unable to recover from an error.
+pub fn main() -> Result<(), Box<dyn core::error::Error + Send + Sync>> {
+    hash_graph::exec()
 }

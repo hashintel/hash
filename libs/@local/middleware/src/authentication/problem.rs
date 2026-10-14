@@ -3,10 +3,13 @@
 use alloc::borrow::Cow;
 
 use error_stack::Report;
-use http::StatusCode;
-use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Variant};
+use http::{HeaderMap, StatusCode, header::WWW_AUTHENTICATE};
+use problematic::{Answer, Header, Problem, ProblemType, ProblemVariant, Variant};
 
-use super::request::{AuthenticationError, AuthenticationErrorKind};
+use super::{
+    challenge::Challenge,
+    request::{AuthenticationError, AuthenticationErrorKind},
+};
 use crate::problem::InternalServerError;
 
 /// The public problems of a request that failed authentication.
@@ -21,22 +24,46 @@ impl Problem for AuthenticationProblem {
     ];
 }
 
-impl Expose<AuthenticationProblem> for Report<AuthenticationError> {
-    fn expose(&self) -> Answer<'_, AuthenticationProblem> {
-        let kind = self.current_context().kind();
+/// The public problems of a request that failed authentication against a chain without service
+/// delegation, which reads no actor header.
+#[cfg(feature = "aide")]
+pub(crate) struct UndelegatedAuthenticationProblem;
+
+#[cfg(feature = "aide")]
+impl Problem for UndelegatedAuthenticationProblem {
+    const VARIANTS: &'static [Variant] = &[
+        Variant::of::<Unauthorized<'static>>(),
+        Variant::of::<ServiceUnavailable<'static>>(),
+        Variant::of::<InternalServerError>(),
+    ];
+}
+
+impl AuthenticationProblem {
+    /// The answer to a request rejected with `report`.
+    ///
+    /// A `401` answer carries `challenge` in its `WWW-Authenticate` header.
+    #[must_use]
+    pub fn answer(report: &Report<AuthenticationError>, challenge: Challenge) -> Answer<'_, Self> {
+        let kind = report.current_context().kind();
         match kind {
-            AuthenticationErrorKind::MalformedCredential
-            | AuthenticationErrorKind::InvalidActorIdHeader => Answer::new(BadRequest { kind }),
+            AuthenticationErrorKind::InvalidActorIdHeader => Answer::new(BadRequest { kind }),
             AuthenticationErrorKind::MissingCredentials
             | AuthenticationErrorKind::MissingServiceSecret
             | AuthenticationErrorKind::InvalidServiceSecret
             | AuthenticationErrorKind::MissingDelegatedActor
             | AuthenticationErrorKind::InvalidSession
             | AuthenticationErrorKind::InvalidAccessToken
+            | AuthenticationErrorKind::InvalidApiToken
+            | AuthenticationErrorKind::ApiTokenOtherEnvironment
+            | AuthenticationErrorKind::NonBearerApiToken
+            | AuthenticationErrorKind::UnverifiableApiToken
+            | AuthenticationErrorKind::ApiTokenNotAccepted
             | AuthenticationErrorKind::IdentityWithoutActor
             | AuthenticationErrorKind::NotProvisioned { .. }
             | AuthenticationErrorKind::ActorNotFound { .. }
-            | AuthenticationErrorKind::NotAUser { .. } => Answer::new(Unauthorized { kind }),
+            | AuthenticationErrorKind::NotAUser { .. } => {
+                Answer::new(Unauthorized { kind, challenge })
+            }
             AuthenticationErrorKind::ProviderUnreachable | AuthenticationErrorKind::StoreError => {
                 Answer::new(ServiceUnavailable { kind })
             }
@@ -57,7 +84,6 @@ impl Expose<AuthenticationProblem> for Report<AuthenticationError> {
 const fn detail(kind: &AuthenticationErrorKind) -> &'static str {
     match kind {
         AuthenticationErrorKind::MissingCredentials => "no credentials provided",
-        AuthenticationErrorKind::MalformedCredential => "credentials are malformed",
         AuthenticationErrorKind::InvalidActorIdHeader => {
             "`X-Authenticated-User-Actor-Id` header is not a valid UUID"
         }
@@ -66,12 +92,19 @@ const fn detail(kind: &AuthenticationErrorKind) -> &'static str {
         }
         AuthenticationErrorKind::InvalidSession => "session is invalid or expired",
         AuthenticationErrorKind::InvalidAccessToken => "access token is invalid or expired",
+        AuthenticationErrorKind::InvalidApiToken => "API token is invalid, expired or revoked",
+        AuthenticationErrorKind::ApiTokenOtherEnvironment => {
+            "API token belongs to another environment"
+        }
+        AuthenticationErrorKind::NonBearerApiToken => "API tokens use the `Bearer` scheme",
+        AuthenticationErrorKind::ApiTokenNotAccepted => "this API does not accept API tokens",
         AuthenticationErrorKind::MissingServiceSecret
         | AuthenticationErrorKind::InvalidServiceSecret
         | AuthenticationErrorKind::IdentityWithoutActor
         | AuthenticationErrorKind::NotProvisioned { .. }
         | AuthenticationErrorKind::ActorNotFound { .. }
-        | AuthenticationErrorKind::NotAUser { .. } => "credentials are not accepted",
+        | AuthenticationErrorKind::NotAUser { .. }
+        | AuthenticationErrorKind::UnverifiableApiToken => "credentials are not accepted",
         AuthenticationErrorKind::ProviderUnreachable
         | AuthenticationErrorKind::ProviderRejection
         | AuthenticationErrorKind::InvalidProviderResponse
@@ -79,7 +112,7 @@ const fn detail(kind: &AuthenticationErrorKind) -> &'static str {
     }
 }
 
-/// The credentials are malformed.
+/// The `X-Authenticated-User-Actor-Id` header is not a valid UUID.
 #[derive(derive_more::Display, serde::Serialize, schemars::JsonSchema)]
 #[display("{}", detail(kind))]
 struct BadRequest<'r> {
@@ -96,7 +129,7 @@ impl ProblemVariant for BadRequest<'_> {
 
     fn example() -> Option<Self> {
         Some(Self {
-            kind: &AuthenticationErrorKind::MalformedCredential,
+            kind: &AuthenticationErrorKind::InvalidActorIdHeader,
         })
     }
 }
@@ -107,18 +140,33 @@ impl ProblemVariant for BadRequest<'_> {
 struct Unauthorized<'r> {
     #[serde(skip)]
     kind: &'r AuthenticationErrorKind,
+    #[serde(skip)]
+    challenge: Challenge,
 }
 
 impl ProblemVariant for Unauthorized<'_> {
+    const HEADERS: &'static [Header] = &[Header::new::<String>(
+        "WWW-Authenticate",
+        "The scheme to authenticate with.",
+    )];
     const TYPE: ProblemType = ProblemType {
         type_uri: Cow::Borrowed("about:blank"),
         title: Cow::Borrowed("Unauthorized"),
         status: StatusCode::UNAUTHORIZED,
     };
 
+    fn headers(&self, headers: &mut HeaderMap) {
+        headers.insert(
+            WWW_AUTHENTICATE,
+            self.challenge
+                .header_value(self.kind, detail(self.kind), &Self::TYPE.type_uri),
+        );
+    }
+
     fn example() -> Option<Self> {
         Some(Self {
             kind: &AuthenticationErrorKind::MissingCredentials,
+            challenge: Challenge::Bearer,
         })
     }
 }
@@ -148,16 +196,18 @@ impl ProblemVariant for ServiceUnavailable<'_> {
 #[cfg(test)]
 mod tests {
     use error_stack::Report;
-    use http::StatusCode;
-    use problematic::Expose;
+    use http::{HeaderMap, StatusCode, header::WWW_AUTHENTICATE};
     use type_system::principal::actor::ActorEntityUuid;
     use uuid::Uuid;
 
-    use super::AuthenticationProblem;
-    use crate::authentication::request::{AuthenticationErrorKind, every_error};
+    use super::{AuthenticationProblem, detail};
+    use crate::authentication::{
+        challenge::Challenge,
+        request::{AuthenticationError, AuthenticationErrorKind, every_error},
+    };
 
     #[test]
-    fn expose_failed_exchange_internal() {
+    fn answer_failed_exchange_internal() {
         for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
             let exchange_failed = matches!(
                 error.kind(),
@@ -167,12 +217,117 @@ mod tests {
             let message = error.to_string();
             let report = Report::new(error);
             assert_eq!(
-                Expose::<AuthenticationProblem>::expose(&report)
+                AuthenticationProblem::answer(&report, Challenge::Service)
                     .details()
                     .status
                     == StatusCode::INTERNAL_SERVER_ERROR,
                 exchange_failed,
                 "`{message}` should be internal only if the exchange with the provider failed"
+            );
+        }
+    }
+
+    #[test]
+    fn answer_unauthorized_challenge() {
+        for challenge in [Challenge::Bearer, Challenge::Service] {
+            for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
+                let message = error.to_string();
+                let report = Report::new(error);
+                let answer = AuthenticationProblem::answer(&report, challenge);
+                let mut headers = HeaderMap::new();
+                answer.headers(&mut headers);
+
+                assert_eq!(
+                    headers.contains_key(WWW_AUTHENTICATE),
+                    answer.details().status == StatusCode::UNAUTHORIZED,
+                    "`{message}` should carry a challenge exactly when it is answered with 401"
+                );
+            }
+        }
+    }
+
+    /// Every `detail` is a valid RFC 6750 `error_description`: spaces and visible ASCII, without
+    /// `"` or `\`.
+    #[test]
+    fn detail_fits_error_description() {
+        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
+            let text = detail(error.kind());
+            assert!(
+                text.bytes()
+                    .all(|byte| matches!(byte, 0x20..=0x21 | 0x23..=0x5B | 0x5D..=0x7E)),
+                "`{text}` should only hold characters an `error_description` allows"
+            );
+        }
+    }
+
+    /// A refused API token names a problem type other than `about:blank` as `error_uri`.
+    #[test]
+    fn challenge_error_uri() {
+        assert_eq!(
+            Challenge::Bearer.header_value(
+                &AuthenticationErrorKind::InvalidApiToken,
+                "refused",
+                "https://example.com/problems/refused",
+            ),
+            r#"Bearer realm="HASH", error="invalid_token", error_description="refused", error_uri="https://example.com/problems/refused""#,
+            "the challenge should link the problem type"
+        );
+    }
+
+    #[test]
+    fn answer_challenge_value() {
+        for (challenge, kind, expected) in [
+            (
+                Challenge::Bearer,
+                AuthenticationErrorKind::InvalidApiToken,
+                r#"Bearer realm="HASH", error="invalid_token", error_description="API token is invalid, expired or revoked""#,
+            ),
+            (
+                Challenge::Bearer,
+                AuthenticationErrorKind::ApiTokenOtherEnvironment,
+                r#"Bearer realm="HASH", error="invalid_token", error_description="API token belongs to another environment""#,
+            ),
+            (
+                Challenge::Bearer,
+                AuthenticationErrorKind::UnverifiableApiToken,
+                r#"Bearer realm="HASH", error="invalid_token", error_description="credentials are not accepted""#,
+            ),
+            (
+                Challenge::Bearer,
+                AuthenticationErrorKind::InvalidAccessToken,
+                r#"Bearer realm="HASH""#,
+            ),
+            (
+                Challenge::Bearer,
+                AuthenticationErrorKind::MissingCredentials,
+                r#"Bearer realm="HASH""#,
+            ),
+            (
+                Challenge::Bearer,
+                AuthenticationErrorKind::NonBearerApiToken,
+                r#"Bearer realm="HASH""#,
+            ),
+            (
+                Challenge::Session,
+                AuthenticationErrorKind::InvalidSession,
+                r#"Session realm="HASH""#,
+            ),
+            (
+                Challenge::Service,
+                AuthenticationErrorKind::InvalidApiToken,
+                r#"HASH-Service realm="HASH""#,
+            ),
+        ] {
+            let report = Report::new(AuthenticationError::new(kind.clone()));
+            let mut headers = HeaderMap::new();
+            AuthenticationProblem::answer(&report, challenge).headers(&mut headers);
+
+            assert_eq!(
+                headers
+                    .get(WWW_AUTHENTICATE)
+                    .and_then(|value| value.to_str().ok()),
+                Some(expected),
+                "`{kind}` under the {challenge:?} challenge should challenge with `{expected}`"
             );
         }
     }

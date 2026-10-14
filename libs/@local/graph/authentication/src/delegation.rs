@@ -108,14 +108,13 @@ mod tests {
 
     use error_stack::Report;
     use hash_middleware::authentication::{
-        AuthenticationProblem,
+        AuthenticationProblem, Challenge,
         provider::{AuthenticationProvider as _, Caller, expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
     };
     use hash_secret::Secret;
     use http::HeaderMap;
-    use problematic::Expose;
     use type_system::principal::actor::{ActorEntityUuid, ActorId};
     use uuid::Uuid;
 
@@ -243,7 +242,7 @@ mod tests {
             AuthenticationErrorKind::ActorNotFound { .. },
             "a delegated actor that does not exist should be rejected"
         );
-        let answer = Expose::<AuthenticationProblem>::expose(&*report);
+        let answer = AuthenticationProblem::answer(&report, Challenge::Service);
         let problem = answer.details();
         assert_eq!(problem.status, 401);
         assert_eq!(
