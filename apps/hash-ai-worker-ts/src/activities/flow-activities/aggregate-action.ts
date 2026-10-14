@@ -13,23 +13,14 @@ import { aggregate } from "./filter-action/aggregate.js";
 import { getConditionContext } from "./filter-action/get-condition-context.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
-import type { FilterableKind } from "@local/hash-isomorphic-utils/flows/filter-condition";
-import type { PayloadWithKind } from "@local/hash-isomorphic-utils/flows/types";
 
 export const aggregateAction: FlowActionActivity<"aggregate"> = async ({
   inputs,
 }) => {
-  const { aggregation } = getSimplifiedFlowActionInputs({
+  const { items, aggregation } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "aggregate",
   });
-
-  /*
-   * Read as the payload it was given, whose kind says how to read a subject from each item: no output takes its kind
-   * from `items`, so getSimplifiedFlowActionInputs would give its bare value.
-   */
-  const items = inputs.find(({ inputName }) => inputName === "items")
-    ?.payload as PayloadWithKind<FilterableKind, true>;
 
   /* Checked first, so that an invalid aggregation reads nothing. */
   const aggregationError = validateAggregation(aggregation, items.kind);
