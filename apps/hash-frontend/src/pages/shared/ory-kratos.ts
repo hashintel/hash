@@ -59,6 +59,9 @@ export type FlowValues = Flows[FlowNames][0];
  *   `next.config.js` redirects browser requests for them to the matching
  *   `uiPath`, and `redirect_browser_to` values are rewritten here. Keep both
  *   in sync.
+ * - `kratosReturnPath`: where Kratos sends the browser back to after a
+ *   re-authentication, with the flow ID in `?flow=`. Handled like
+ *   `kratosBrowserPath`.
  */
 const _flowMetadata = {
   login: {
@@ -76,6 +79,7 @@ const _flowMetadata = {
   settings: {
     uiPath: "/settings/security",
     kratosBrowserPath: "/self-service/settings/browser",
+    kratosReturnPath: "/self-service/settings",
   },
   verification: {
     uiPath: "/verification",
@@ -90,14 +94,13 @@ export const flowMetadata = {
   settingsWithPassword: _flowMetadata.settings,
 } as const satisfies Record<
   FlowNames,
-  { uiPath: string; kratosBrowserPath: string }
+  { uiPath: string; kratosBrowserPath: string; kratosReturnPath?: string }
 >;
 
 /**
- * Look up the UI route for a `redirect_browser_to` URL that points at a
- * Kratos self-service browser endpoint. Returns `undefined` if the URL is
- * not a known Kratos browser path, letting the caller fall through to
- * following the redirect as-is.
+ * Look up the UI route for a URL that points at a Kratos self-service
+ * browser or return endpoint. Returns `undefined` if the URL is not a known
+ * Kratos path, letting the caller fall through to following it as-is.
  *
  * Query parameters are forwarded to the UI route; URL fragments are not
  * (Kratos doesn't use them, and the frontend routes don't read them).
@@ -115,7 +118,10 @@ export const uiPathForKratosBrowserRedirect = (
   }
 
   const match = Object.values(flowMetadata).find(
-    ({ kratosBrowserPath }) => kratosBrowserPath === parsed.pathname,
+    (metadata) =>
+      metadata.kratosBrowserPath === parsed.pathname ||
+      ("kratosReturnPath" in metadata &&
+        metadata.kratosReturnPath === parsed.pathname),
   );
 
   return match ? `${match.uiPath}${parsed.search}` : undefined;
