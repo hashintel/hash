@@ -88,7 +88,7 @@ export const DocxPreview = ({
     setData(null);
 
     fetchPresignedFileUrl(url)
-      .then((presignedUrl) => fetch(presignedUrl, { credentials: "omit" }))
+      .then((presignedUrl) => fetch(presignedUrl))
       .then((response) => {
         if (!response.ok) {
           throw new Error(
