@@ -1,106 +1,103 @@
+/**
+ * Input requirements carried by expressions and programs.
+ *
+ * A required use makes a name required even when another use has a default. Shared names combine their semantic descriptors through an intersection, so incompatible uses produce Type.Never rather than a JavaScript intersection of descriptor objects.
+ *
+ * Host-side alternatives retain every possible requirement. The types here cannot know which expression the host will select, and an empty alternative must not hide a branch that needs an input.
+ *
+ * @module
+ */
 import type * as Type from "../type/index.js";
 import type { Normalize } from "./ExpressionType.js";
 import type { Types } from "effect";
 
+/** An expression with no input requirements. */
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- a closed expression requires no input names
 export type Empty = Record<never, never>;
 
 declare const ErasedRequirement: unique symbol;
 
-/** Unrecoverable requirements cannot be discharged by a named input schema. */
-export type Erased = { readonly [ErasedRequirement]: Type.Unknown };
+/** Named input schemas cannot discharge unrecoverable requirements. */
+export interface Erased {
+  readonly [ErasedRequirement]: Type.Unknown;
+}
 
-type RequiredKeys<Inputs> = {
-  [Key in keyof Inputs]-?: Empty extends Pick<Inputs, Key> ? never : Key;
-}[keyof Inputs];
+type RequiredKeys<I> = {
+  [K in keyof I]-?: Empty extends Pick<I, K> ? never : K;
+}[keyof I];
 
-type At<Inputs, Key extends PropertyKey> = Key extends keyof Inputs
-  ? Exclude<Inputs[Key], undefined>
+type At<I, K extends PropertyKey> = K extends keyof I
+  ? Exclude<I[K], undefined>
   : never;
 
-type Combined<Left, Right, Key extends PropertyKey> = Key extends keyof Left
-  ? Key extends keyof Right
-    ? At<Left, Key> extends infer LeftType extends Type.Any
-      ? At<Right, Key> extends infer RightType extends Type.Any
-        ? Normalize<Type.Intersection<readonly [LeftType, RightType]>>
+type Combined<L, R, K extends PropertyKey> = K extends keyof L
+  ? K extends keyof R
+    ? At<L, K> extends infer A extends Type.Any
+      ? At<R, K> extends infer B extends Type.Any
+        ? Normalize<Type.Intersection<readonly [A, B]>>
         : never
       : never
-    : At<Left, Key>
-  : At<Right, Key>;
+    : At<L, K>
+  : At<R, K>;
 
-type Last<Alternatives> =
-  Types.UnionToIntersection<
-    Alternatives extends unknown ? () => Alternatives : never
-  > extends () => infer Member
-    ? Member
-    : never;
-
-// Invariance keeps a closed alternative from swallowing a narrower required record during Exclude.
-type InvariantAlternatives<Requirements> = Requirements extends unknown
-  ? (value: Requirements) => Requirements
-  : never;
-
-type Unwrap<Alternative> = Alternative extends (
-  value: infer Requirements,
-) => unknown
-  ? Requirements
-  : never;
-
-type CollapseAlternatives<Alternatives, Accumulated = Empty> = [
-  Alternatives,
-] extends [never]
-  ? Accumulated
-  : [Alternatives] extends [Types.UnionToIntersection<Alternatives>]
-    ? MergeRecords<Accumulated, Unwrap<Alternatives>>
-    : CollapseAlternatives<
-        Exclude<Alternatives, Last<Alternatives>>,
-        MergeRecords<Accumulated, Unwrap<Last<Alternatives>>>
-      >;
-
-/** Requires every member of a host-side alternative, preserving shared semantic constraints. */
-export type Conservative<Requirements> = [Requirements] extends [never]
-  ? Erased
-  : unknown extends Requirements
-    ? Erased
-    : CollapseAlternatives<InvariantAlternatives<Requirements>>;
-
-/** A shared input must satisfy every use, including every host-side union alternative. */
-export type Merge<Left, Right> = [keyof Conservative<Right>] extends [never]
-  ? Left
-  : typeof ErasedRequirement extends
-        | keyof Conservative<Left>
-        | keyof Conservative<Right>
-    ? never
-    : [keyof Conservative<Left>] extends [never]
-      ? Conservative<Right>
-      : MergeRecords<Conservative<Left>, Conservative<Right>>;
-
-type MergeRecords<Left, Right> = [keyof Right] extends [never]
-  ? Left
-  : [keyof Left] extends [never]
-    ? Right
+type MergeRecords<L, R> = [keyof R] extends [never]
+  ? L
+  : [keyof L] extends [never]
+    ? R
     : Types.Simplify<
         {
-          readonly [Key in RequiredKeys<Left> | RequiredKeys<Right>]: Combined<
-            Left,
-            Right,
-            Key
-          >;
+          readonly [K in RequiredKeys<L> | RequiredKeys<R>]: Combined<L, R, K>;
         } & {
-          readonly [Key in Exclude<
-            keyof Left | keyof Right,
-            RequiredKeys<Left> | RequiredKeys<Right>
-          >]?: Combined<Left, Right, Key>;
+          readonly [K in Exclude<
+            keyof L | keyof R,
+            RequiredKeys<L> | RequiredKeys<R>
+          >]?: Combined<L, R, K>;
         }
       >;
 
-/** Combines every member of a tuple, or conservatively intersects an array's member requirements. */
-// oxlint-disable-next-line typescript/no-restricted-types -- each member is an inferred input record
-export type All<Members extends readonly unknown[]> = Members extends readonly [
-  infer Head,
-  ...infer Tail,
-]
-  ? Merge<Head, All<Tail>>
-  : number extends Members["length"]
-    ? Conservative<Members[number]>
-    : Empty;
+// Intersecting call signatures selects one union member through the last overload. Each step removes whichever member inference selects.
+type Last<U> = Types.Covariant.Type<
+  Types.UnionToIntersection<U extends U ? Types.Covariant<U> : never>
+>;
+
+// Invariance keeps Empty from swallowing a required record during Exclude. A plain union of records would let the empty record remove every remaining alternative.
+type Alternatives<I> = I extends I ? Types.Invariant<I> : never;
+
+type Collapse<U, I> = [U] extends [never]
+  ? I
+  : Types.IsUnion<U> extends false
+    ? MergeRecords<I, Types.Invariant.Type<U>>
+    : Collapse<
+        Exclude<U, Last<U>>,
+        MergeRecords<I, Types.Invariant.Type<Last<U>>>
+      >;
+
+/** Requires every host-side alternative, preserving shared semantic constraints. */
+export type Conservative<I> = [I] extends [never]
+  ? Erased
+  : // oxlint-disable-next-line typescript/no-restricted-types -- this type-level check detects erased metadata rather than storing a runtime value
+    unknown extends I
+    ? Erased
+    : Collapse<Alternatives<I>, Empty>;
+
+type MergeConservative<L, R> = typeof ErasedRequirement extends
+  | keyof L
+  | keyof R
+  ? never
+  : MergeRecords<L, R>;
+
+// An input-independent builder step preserves its unresolved left type parameter. Normalizing it again would change the step's generic result type.
+type MergeRight<L, R> = [keyof R] extends [never]
+  ? L
+  : MergeConservative<Conservative<L>, R>;
+
+/** Combines shared requirements, preserving the left type when the right side needs no inputs. */
+export type Merge<L, R> = MergeRight<L, Conservative<R>>;
+
+/** Combines tuple members, retaining every possible requirement in arrays and optional positions. */
+// oxlint-disable-next-line typescript/no-restricted-types -- inferred metadata includes unknown and never; Conservative detects erasure instead of assuming a valid input record
+export type All<T extends readonly unknown[]> = T extends readonly []
+  ? Empty
+  : T extends readonly [infer H, ...infer R]
+    ? Merge<H, All<R>>
+    : Conservative<T[number]>;

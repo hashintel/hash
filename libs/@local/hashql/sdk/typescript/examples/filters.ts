@@ -10,117 +10,19 @@
 import { Result } from "effect";
 
 import { Do as EmptyDo, Import, withPrelude } from "../src/do/index.js";
-import { Module, Program, program } from "../src/main.js";
+import { Program, program } from "../src/main.js";
+import {
+  entity,
+  head,
+  kernel,
+  temporal,
+  temporary,
+  uuid,
+  web,
+} from "./filters-declarations.js";
 
 import type { Expression, Type } from "../src/main.js";
 import type * as ProgramError from "../src/program/ProgramError.js";
-
-type Uuid = Type.Opaque<"::core::uuid::Uuid", Type.PrimitiveString>;
-type ActorGroupEntityUuid = Type.Opaque<
-  "::graph::types::principal::actor_group::ActorGroupEntityUuid",
-  Uuid
->;
-type WebId = Type.Opaque<
-  "::graph::types::principal::actor_group::web::WebId",
-  ActorGroupEntityUuid
->;
-type EntityType<Name extends string, Value extends Type.Any> = Type.Opaque<
-  `::graph::types::knowledge::entity::${Name}`,
-  Value
->;
-type EntityUuid = EntityType<"EntityUuid", Uuid>;
-type DraftId = EntityType<"DraftId", Uuid>;
-type None = Type.Opaque<"::core::option::None", Type.PrimitiveNull>;
-type Draft = Type.Union<
-  readonly [None, Type.Opaque<"::core::option::Some", DraftId>]
->;
-type EntityId = EntityType<
-  "EntityId",
-  Type.Struct<{
-    readonly web_id: WebId;
-    readonly entity_uuid: EntityUuid;
-    readonly draft_id: Draft;
-  }>
->;
-type Entity = EntityType<
-  "Entity",
-  Type.Struct<{
-    readonly metadata: EntityType<
-      "EntityMetadata",
-      Type.Struct<{
-        readonly record_id: EntityType<
-          "RecordId",
-          Type.Struct<{ readonly entity_id: EntityId }>
-        >;
-        readonly archived: Type.PrimitiveBoolean;
-      }>
-    >;
-  }>
->;
-type EntityGraph = Type.Opaque<
-  "::graph::Graph",
-  Type.Struct<{ readonly "'marker": Entity }>
->;
-type TemporalAxes = Type.Union<
-  readonly [
-    Type.Opaque<
-      "::graph::temporal::PinnedTransactionTimeTemporalAxes",
-      Type.Unknown
-    >,
-    Type.Opaque<
-      "::graph::temporal::PinnedDecisionTimeTemporalAxes",
-      Type.Unknown
-    >,
-  ]
->;
-const uuid = Result.getOrThrow(
-  Module.define("::core::uuid", {
-    values: {
-      Uuid: Module.value<
-        Type.Function<readonly [Type.PrimitiveString], Uuid>
-      >(),
-    },
-  }),
-);
-const entity = Result.getOrThrow(
-  Module.define("::graph::types::knowledge::entity", {
-    types: { EntityUuid: Module.type<EntityUuid>() },
-    values: {
-      EntityUuid: Module.value<Type.Function<readonly [Uuid], EntityUuid>>(),
-    },
-  }),
-);
-const web = Result.getOrThrow(
-  Module.define("::graph::types::principal::actor_group::web", {
-    types: { WebId: Module.type<WebId>() },
-  }),
-);
-const temporal = Result.getOrThrow(
-  Module.define("::graph::temporal", {
-    types: { QueryTemporalAxes: Module.type<TemporalAxes>() },
-  }),
-);
-const kernel = Result.getOrThrow(
-  Module.define("::kernel::type", {
-    types: { Boolean: Module.type<Type.PrimitiveBoolean>() },
-  }),
-);
-const head = Result.getOrThrow(
-  Module.define("::graph::head", {
-    values: {
-      entities:
-        Module.value<Type.Function<readonly [TemporalAxes], EntityGraph>>(),
-    },
-  }),
-);
-const temporary = Result.getOrThrow(
-  Module.define("::graph::tmp", {
-    values: {
-      decision_time_now:
-        Module.value<Type.Function<readonly [], TemporalAxes>>(),
-    },
-  }),
-);
 
 const { Let, Do } = withPrelude({
   values: {

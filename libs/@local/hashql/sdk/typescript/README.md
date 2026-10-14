@@ -185,6 +185,6 @@ Serialization traverses the constructed tree rather than rerunning authoring cal
 
 The [authoring guide](docs/authoring.md) is the tutorial and API reference. The [checked examples](examples/api-tour.test-d.ts) retain exact-type assertions and `@ts-expect-error` cases in the package checks. These checks validate the SDK, not HashQL compiler acceptance or graph execution.
 
-[`examples/filters.ts`](examples/filters.ts) compares existing J-Expr queries and frontend selection predicates with typed constructions. Start at `allEntities`. These examples construct syntax without frontend integration or a graph connection. Their static module fixtures unwrap declaration results explicitly.
+[`examples/filters.ts`](examples/filters.ts) compares existing J-Expr queries and frontend selection predicates with Do constructions. [`examples/filters-draft.ts`](examples/filters-draft.ts) writes the same queries with Draft, using explicit schemas, local bindings and predicate callbacks. Both use the same [module declarations](examples/filters-declarations.ts). Start at `allEntities` in either file. These examples construct syntax without frontend integration or a graph connection. Their static module fixtures unwrap declaration results explicitly.
 
 Run the package checks with `yarn workspace @local/hashql test:unit`, `lint:tsc`, `lint:oxlint` and `build`.
