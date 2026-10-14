@@ -36,10 +36,7 @@ use hash_graph_store::{
     error::{
         CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
     },
-    filter::{
-        Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
-        protection::transform_filter,
-    },
+    filter::{Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList},
     query::{QueryResult as _, Read},
     subgraph::{
         Subgraph, SubgraphRecord as _,
@@ -586,16 +583,9 @@ where
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
-        let policy_filter = Filter::<Entity>::for_policies(
-            policy_components.extract_filter_policies(ActionName::ViewEntity),
-            policy_components.actor_id(),
-            policy_components.optimization_data(ActionName::ViewEntity),
-        );
+        let policy_filter = Filter::<Entity>::for_view_entity(policy_components);
 
-        // Apply filter protection when configured - protects sensitive properties (e.g., email)
-        // from enumeration attacks and removes them from responses for non-owners.
-        let should_apply_protection =
-            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
+        let should_apply_protection = self.should_apply_filter_protection(policy_components);
 
         let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
 
@@ -608,12 +598,8 @@ where
                 .to_property_protection_filter(policy_components.actor_id());
             compiler.with_property_masking(&property_protection_filter);
 
-            protected_filter = transform_filter(
-                params.filter.clone(),
-                &self.settings.filter_protection,
-                0,
-                policy_components.actor_id(),
-            );
+            protected_filter =
+                self.apply_filter_protection(params.filter.clone(), policy_components);
 
             &protected_filter
         } else {
@@ -1920,31 +1906,10 @@ where
             .await
             .change_context(QueryError)?;
 
-        let policy_filter = Filter::<Entity>::for_policies(
-            policy_components.extract_filter_policies(ActionName::ViewEntity),
-            policy_components.actor_id(),
-            policy_components.optimization_data(ActionName::ViewEntity),
-        );
+        let policy_filter = Filter::<Entity>::for_view_entity(&policy_components);
 
-        // Apply filter protection when configured - protects sensitive properties (e.g., email)
-        // from enumeration attacks in summarize_entities queries.
-        let should_apply_protection =
-            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
-
-        let protected_filter;
-        let filter_to_use = if should_apply_protection {
-            // Transform filter to protect against email filtering on Users
-            // Note: summarize_entities has no sorting, so only filter protection applies
-            protected_filter = transform_filter(
-                params.filter.clone(),
-                &self.settings.filter_protection,
-                0,
-                policy_components.actor_id(),
-            );
-            &protected_filter
-        } else {
-            &params.filter
-        };
+        let filter_to_use =
+            self.maybe_apply_filter_protection(params.filter.clone(), &policy_components);
 
         let temporal_axes = params.temporal_axes.resolve();
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
@@ -1952,7 +1917,7 @@ where
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
         compiler
-            .add_filter(filter_to_use)
+            .add_filter(&filter_to_use)
             .change_context(QueryError)?;
 
         let Some(summary_query) =
@@ -2023,11 +1988,7 @@ where
 
         let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
 
-        let filter = Filter::<Entity>::for_policies(
-            policy_components.extract_filter_policies(ActionName::ViewEntity),
-            policy_components.actor_id(),
-            policy_components.optimization_data(ActionName::ViewEntity),
-        );
+        let filter = Filter::<Entity>::for_view_entity(&policy_components);
         filters.push(filter);
 
         let temporal_axes = QueryTemporalAxesUnresolved::TransactionTime {

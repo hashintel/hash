@@ -10,12 +10,12 @@ sources:
   invalid:
     sql: SELECT 1 AS id
     primaryKey: [id, ""]
-  invalidRepeated:
+  invalid_repeated:
     sql: SELECT 1 AS id
     primaryKey: [id, "", id]
-  unresolvedRepeated:
+  unresolved_repeated:
     sql: SELECT 1 AS id
     primaryKey: [id, "${MISSING}", id]
-  allInvalid:
+  all_invalid:
     sql: SELECT 1 AS id
     primaryKey: ["", "${MISSING}"]

@@ -150,11 +150,8 @@ where
 
         let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
 
-        let should_apply_protection =
-            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
-
         let property_protection_filter;
-        if should_apply_protection {
+        if self.should_apply_filter_protection(policy_components) {
             // We cannot re-use the previously generated filter as the lifetimes of `Filter` are
             // invariant.
             //   see: https://linear.app/hash/issue/BE-363/refactor-filter-to-be-covariant-over-lifetime-parameters
