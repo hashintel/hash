@@ -1,6 +1,7 @@
 import { analyzeEntityDataAction } from "./flow-activities/analyze-entity-data-action.js";
 import { answerQuestionAction } from "./flow-activities/answer-question-action.js";
 import { filterListAction } from "./flow-activities/filter-list-action.js";
+import { findAction } from "./flow-activities/find-action.js";
 import { generateChartConfigAction } from "./flow-activities/generate-chart-config-action.js";
 import { generateFlowRunName } from "./flow-activities/generate-flow-run-name-activity.js";
 import { generateStructuralQueryAction } from "./flow-activities/generate-structural-query-action.js";
@@ -32,6 +33,7 @@ export const createFlowActionActivities: CreateFlowActivities<
   generateStructuralQueryAction,
   answerQuestionAction,
   filterListAction,
+  findAction,
   generateChartConfigAction,
   planDashboardRefinementAction,
   generateWebQueriesAction,

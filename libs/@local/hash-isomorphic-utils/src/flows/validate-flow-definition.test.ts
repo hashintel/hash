@@ -509,7 +509,7 @@ describe("validateFlowDefinition", () => {
     });
   });
 
-  describe("conditions of filterList and if steps", () => {
+  describe("conditions of filterList, find and if steps", () => {
     const scoreAbove = (score: number) => ({
       kind: "all",
       conditions: [
@@ -523,11 +523,11 @@ describe("validateFlowDefinition", () => {
     });
 
     const conditionStep = (
-      actionDefinitionId: "filterList" | "if",
+      actionDefinitionId: "filterList" | "find" | "if",
       condition: Record<string, unknown>,
       subject: Record<string, unknown> = {
         kind: "flow-input",
-        inputName: actionDefinitionId === "filterList" ? "pages" : "page",
+        inputName: actionDefinitionId === "if" ? "page" : "pages",
       },
     ) => ({
       kind: "action",
@@ -535,7 +535,7 @@ describe("validateFlowDefinition", () => {
       actionDefinitionId,
       description: "",
       inputs: {
-        [actionDefinitionId === "filterList" ? "items" : "value"]: subject,
+        [actionDefinitionId === "if" ? "value" : "items"]: subject,
         condition,
       },
     });
@@ -560,7 +560,7 @@ describe("validateFlowDefinition", () => {
       payload: { kind: "FilterCondition", value },
     });
 
-    it.each(["filterList", "if"] as const)(
+    it.each(["filterList", "find", "if"] as const)(
       "accepts a %s condition that fits the kind it's given",
       (actionDefinitionId) => {
         expect(
@@ -576,7 +576,7 @@ describe("validateFlowDefinition", () => {
       },
     );
 
-    it.each(["filterList", "if"] as const)(
+    it.each(["filterList", "find", "if"] as const)(
       "rejects a %s condition that doesn't fit the kind it's given",
       (actionDefinitionId) => {
         const { diagnostics } = validateFlowDefinition(

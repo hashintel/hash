@@ -23,6 +23,7 @@ export type AiFlowActionDefinitionId =
   | "analyzeEntityData"
   | "answerQuestion"
   | "filterList"
+  | "find"
   | "generateChartConfig"
   | "generateStructuralQuery"
   | "planDashboardRefinement"
@@ -866,6 +867,37 @@ const aiFlowActionDefinitionsAsConst = {
         name: "nonMatching",
         array: true,
         required: true,
+      },
+    ],
+    check: checkConditionInput("items"),
+  },
+  find: {
+    actionDefinitionId: "find",
+    name: "Find",
+    description:
+      "Find the first item of a list that matches a condition, or the first item if there is no condition.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: filterableKinds,
+        name: "items",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["FilterCondition"],
+        name: "condition",
+        required: false,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindFrom: "items",
+        name: "match",
+        description: "The first matching item, if any matches.",
+        array: false,
+        required: false,
       },
     ],
     check: checkConditionInput("items"),

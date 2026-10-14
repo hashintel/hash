@@ -52,6 +52,45 @@ export const evaluateIf = (
     : { status: "success", outputName: result.matches ? "true" : "false" };
 };
 
+export type FindResult<Kind extends PayloadKind> =
+  | {
+      status: "success";
+      match?: { kind: Kind; value: PayloadKindValues[Kind] };
+    }
+  | ConditionError;
+
+/**
+ * The first item that matches the condition, in input order, or the first item when there is no condition. Items
+ * after the match aren't evaluated. An empty list, or one where nothing matches, has no match.
+ */
+export const find = <Kind extends PayloadKind>(
+  input: FilterListPayload<Kind>,
+  condition?: FilterCondition,
+  context?: ConditionContext,
+): FindResult<Kind> => {
+  const error = condition && validateCondition(condition, input.kind);
+  if (error) {
+    return error;
+  }
+  for (const value of input.value) {
+    if (!condition) {
+      return { status: "success", match: { kind: input.kind, value } };
+    }
+    const result = evaluateValidatedCondition(
+      condition,
+      { kind: input.kind, value },
+      context,
+    );
+    if (result.status === "error") {
+      return result;
+    }
+    if (result.matches) {
+      return { status: "success", match: { kind: input.kind, value } };
+    }
+  }
+  return { status: "success" };
+};
+
 /** Stable partition. Empty inputs still validate; errors never return partial outputs. */
 export const filterList = <Kind extends PayloadKind>(
   input: FilterListPayload<Kind>,
