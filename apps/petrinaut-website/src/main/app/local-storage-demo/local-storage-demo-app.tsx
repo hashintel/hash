@@ -208,10 +208,16 @@ export const LocalStorageDemoApp = ({
           },
     [activeHandle],
   );
+  const brunchOpenDocument = useMemo(
+    () =>
+      currentNetId === null
+        ? null
+        : { documentId: currentNetId, editor: brunchEditor },
+    [currentNetId, brunchEditor],
+  );
   const brunch = useBrunchAssistant({
     selected: brunchSelected,
-    document: currentDocument,
-    editor: brunchEditor,
+    openDocument: brunchOpenDocument,
     voice: {
       enabled: voicePreferenceReady && voiceEnabled && realtimePreferenceReady,
       realtime: realtimeEnabled,

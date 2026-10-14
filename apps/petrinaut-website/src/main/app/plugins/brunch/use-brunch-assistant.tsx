@@ -125,6 +125,14 @@ export interface BrunchEditorDocument {
   readonly readTitle: () => string;
 }
 
+/** The document open in the editor. */
+export interface BrunchOpenDocument {
+  /** Its stored id, which Brunch binds the conversation to. */
+  readonly documentId: string;
+  /** Its live handle and title, or `null` while it loads. */
+  readonly editor: BrunchEditorDocument | null;
+}
+
 /** Brunch's Voice choices, as the host stores them. */
 export interface BrunchVoicePreferences {
   /** The host's Voice preference is loaded and on. */
@@ -159,22 +167,20 @@ export interface BrunchAssistant {
  */
 export const useBrunchAssistant = ({
   selected,
-  document,
-  editor,
+  openDocument,
   voice,
   plugins,
 }: {
   /** Brunch is configured and chosen as the assistant. */
   readonly selected: boolean;
   /** The open document, or `null` while none is open. */
-  readonly document: Parameters<typeof useProcessAgentBinding>[0]["document"];
-  /** The open document's live handle, or `null` while it is loading. */
-  readonly editor: BrunchEditorDocument | null;
+  readonly openDocument: BrunchOpenDocument | null;
   readonly voice: BrunchVoicePreferences;
   /** The plugins the host gives the editor. */
   readonly plugins: readonly PetrinautPlugin[];
 }): BrunchAssistant => {
-  const currentNetId = document?.documentId ?? null;
+  const currentNetId = openDocument?.documentId ?? null;
+  const editor = openDocument?.editor ?? null;
 
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
@@ -228,7 +234,7 @@ export const useBrunchAssistant = ({
     [baseConstructionConversationId],
   );
   const baseProcessAgentBinding = useProcessAgentBinding({
-    document,
+    document: openDocument,
     fixture: fixtureProcessAgentConfiguration,
   });
   const processAgentBinding = useMemo(
