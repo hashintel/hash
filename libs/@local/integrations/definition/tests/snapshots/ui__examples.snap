@@ -7,6 +7,13 @@ Definition {
     connector: ConnectorId(
         "aviation",
     ),
+    variables: Variables(
+        {
+            VariableName(
+                "TYPES",
+            ): "https://example.com/@demo/types",
+        },
+    ),
     sources: {
         SourceName(
             "aircraft",

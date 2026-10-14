@@ -10,10 +10,11 @@ pub struct EmptySqlQuery;
 
 /// The text of an SQL query that is not empty.
 ///
-/// The text is checked only for emptiness here. The engine parses it when the pipeline runs.
+/// The text is checked only for emptiness here. The engine parses it when the pipeline runs. SQL
+/// reads the definition's variables as `$NAME` parameters.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::AsRef)]
 #[as_ref(forward)]
-pub struct SqlQuery(String);
+pub struct SqlQuery(Box<str>);
 
 impl TryFrom<String> for SqlQuery {
     type Error = EmptySqlQuery;
@@ -22,7 +23,7 @@ impl TryFrom<String> for SqlQuery {
         if query.trim().is_empty() {
             return Err(EmptySqlQuery);
         }
-        Ok(Self(query))
+        Ok(Self(query.into_boxed_str()))
     }
 }
 
