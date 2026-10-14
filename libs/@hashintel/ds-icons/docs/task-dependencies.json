@@ -8,20 +8,20 @@
     "build": {
       "dependsOn": [
         "@hashintel/ds-components#build",
-        "@hashintel/ds-helpers#codegen"
+        "@hashintel/ds-components#codegen"
       ]
     },
     "fix:eslint": {
       "dependsOn": [
         "@hashintel/ds-components#build",
-        "@hashintel/ds-helpers#codegen",
+        "@hashintel/ds-components#codegen",
         "@local/eslint#build"
       ]
     },
     "lint:eslint": {
       "dependsOn": [
         "@hashintel/ds-components#build",
-        "@hashintel/ds-helpers#codegen",
+        "@hashintel/ds-components#codegen",
         "@local/eslint#build"
       ],
       "env": [
@@ -31,13 +31,13 @@
     "lint:tsc": {
       "dependsOn": [
         "@hashintel/ds-components#build",
-        "@hashintel/ds-helpers#codegen"
+        "@hashintel/ds-components#codegen"
       ]
     },
     "test:unit": {
       "dependsOn": [
         "@hashintel/ds-components#build",
-        "@hashintel/ds-helpers#codegen"
+        "@hashintel/ds-components#codegen"
       ],
       "env": [
         "TEST_COVERAGE"

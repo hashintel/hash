@@ -3,6 +3,7 @@
   "include": ["src", "scripts", "eslint.config.js", "vitest.config.ts"],
   "compilerOptions": {
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "lib": ["es2024", "esnext.collection"]
   }
 }

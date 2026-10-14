@@ -12,7 +12,7 @@
  * generator cannot check, and this version does not make claims it cannot keep.
  *
  * Tags are recognised only at the start of a line inside a doc comment — a
- * `/** ... *​/` block in TypeScript, a triple-quoted docstring in Python — so a
+ * JSDoc block in TypeScript, a triple-quoted docstring in Python — so a
  * tag named in running prose is not picked up. Python `#` comments are
  * deliberately not scanned: a layer declaration belongs in the module
  * docstring, where the module already describes itself.

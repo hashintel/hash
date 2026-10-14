@@ -17,6 +17,9 @@ inputs:
   sccache:
     description: Should sccache be installed? Can either be `"true"` or `true`
     default: "true"
+  aws_lc_profile:
+    description: Cargo profile the job's Rust builds use, `dev` or `release`, which the prebuilt AWS-LC is compiled with. Profiles inheriting from one of them, such as `test` or `bench`, use its value.
+    default: dev
 
 runs:
   using: composite
@@ -77,6 +80,14 @@ runs:
         max_attempts: 5
         retry_wait_seconds: 60
         command: ${{ github.action_path }}/install-rust.sh
+
+    # The action builds AWS-LC with tools from the checked-out revision's mise config, which a
+    # revision without the action, such as the base branch a bench compares against, lacks.
+    - name: "Install AWS-LC"
+      if: ${{ (inputs.rust == true || inputs.rust == 'true') && hashFiles('.github/actions/install-aws-lc/action.yml') != '' }}
+      uses: $/.github/actions/install-aws-lc
+      with:
+        profile: ${{ inputs.aws_lc_profile }}
 
     - name: "Install sccache"
       if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.encrypted_sccache_credentials != '' }}

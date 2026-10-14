@@ -1,0 +1,57 @@
+name: Install AWS-LC
+description: Restores a prebuilt AWS-LC from the Actions cache, building it on a miss, and makes `aws-lc-sys` link it instead of compiling AWS-LC.
+
+inputs:
+  profile:
+    description: Cargo profile the job's Rust builds use, `dev` or `release`. Profiles inheriting from one of them, such as `test` or `bench`, use its value.
+    default: dev
+
+runs:
+  using: composite
+  steps:
+    - name: Compute AWS-LC cache key
+      id: key
+      shell: bash
+      env:
+        PROFILE: ${{ inputs.profile }}
+        ACTION_FILES: ${{ hashFiles('.github/actions/install-aws-lc/**', '.config/mise/config.ci.toml', '.config/mise/mise.ci.lock') }}
+      run: |
+        package=$(cargo pkgid --locked aws-lc-sys)
+        {
+          echo "key=aws-lc-sys-${package##*@}-${ImageOS:?the runner image sets no ImageOS}-$RUNNER_ARCH-$PROFILE-$ACTION_FILES"
+          echo "prefix=$RUNNER_TEMP/aws-lc-$PROFILE"
+        } >>"$GITHUB_OUTPUT"
+
+    - name: Restore AWS-LC
+      id: restore
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ steps.key.outputs.prefix }}
+        key: ${{ steps.key.outputs.key }}
+
+    - name: Build AWS-LC
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        BUILD_PREFIX: ${{ github.action_path }}/build-prefix.sh
+        PREFIX: ${{ steps.key.outputs.prefix }}
+        PROFILE: ${{ inputs.profile }}
+      run: '"$BUILD_PREFIX" "$PREFIX" "$PROFILE"'
+
+    - name: Save AWS-LC
+      if: steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ steps.key.outputs.prefix }}
+        key: ${{ steps.key.outputs.key }}
+
+    - name: Link AWS-LC from the prefix
+      shell: bash
+      env:
+        PREFIX: ${{ steps.key.outputs.prefix }}
+      run: |
+        target=$(rustc -vV | sed -n 's/^host: //p' | tr '-' '_')
+        {
+          echo "AWS_LC_SYS_SYSTEM_DIR_${target}=$PREFIX"
+          echo "AWS_LC_SYS_STATIC_${target}=1"
+        } >>"$GITHUB_ENV"

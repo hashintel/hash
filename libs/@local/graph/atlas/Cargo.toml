@@ -33,7 +33,8 @@ error-stack                    = { workspace = true }
 hash-graph-embeddings          = { workspace = true, public = true }
 hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true }
-hash-middleware                = { workspace = true, public = true }
+hash-middleware                = { workspace = true, public = true, features = ["aide"] }
+hash-secret                    = { workspace = true, features = ["clap"] }
 problematic                    = { workspace = true }
 
 # Private third-party dependencies
@@ -76,7 +77,6 @@ simple-mermaid            = { workspace = true }
 siphasher                 = { workspace = true }
 smallvec                  = { workspace = true }
 steppe                    = { workspace = true }
-subtle                    = { workspace = true }
 tiktoken-rs               = { workspace = true }
 time                      = { workspace = true }
 tokio-util                = { workspace = true, features = ["io"] }
@@ -85,7 +85,7 @@ tracing                   = { workspace = true }
 tracing-opentelemetry     = { workspace = true }
 tracing-subscriber        = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
 unicode-segmentation      = { workspace = true }
-zeroize                   = { workspace = true, features = ["alloc"] }
+zeroize                   = { workspace = true }
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }

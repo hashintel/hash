@@ -292,12 +292,11 @@ impl TemporalClient {
     ) -> Result<T, Report<WorkflowResultError>> {
         let handle = UntypedWorkflowHandle::new(
             self.client.clone(),
-            WorkflowExecutionInfo {
-                namespace: <_ as NamespacedClient>::namespace(&self.client),
-                workflow_id: workflow_id.to_owned(),
-                run_id: Some(run_id.to_owned()),
-                first_execution_run_id: None,
-            },
+            WorkflowExecutionInfo::builder()
+                .namespace(<_ as NamespacedClient>::namespace(&self.client))
+                .workflow_id(workflow_id)
+                .run_id(run_id)
+                .build(),
         );
 
         let result = handle

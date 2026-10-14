@@ -7,6 +7,7 @@ import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 export default defineConfig(({ mode }) => {
   return {
     test: {
+      dir: "src",
       env:
         process.env.TEST_AI === "true"
           ? loadEnv(mode, monorepoRootDir, "")

@@ -36,17 +36,29 @@ drawing order and manual progress. Math, code, and AI studies offer paired
 alternatives. The page uses the same Petricon
 renderer as the editor.
 
-## Starting a new net
+## Local document URLs
 
-`/new` creates an empty net in local storage and redirects to the editable demo,
-which opens the most recently modified net. The redirect replaces, so a reload
-cannot make a second net and Back skips the route. Empty nets earlier visits
-left behind are dropped, matching the editor's own rule when a visitor switches
-away from an untouched net.
+`/local/<net id>` opens a net saved in this browser's local storage. The net id
+is the document's Petrinaut id, so the URL needs no separate key. Opening another
+net pushes its URL, and Back and Forward reopen the net each entry names. A net
+the browser does not hold shows "Local document not found".
 
-The editor chooses the initial document after saved nets load. Open tabs refresh
-their saved nets and stock-assistant messages when local storage changes, and
-updates start from the latest persisted value so another tab's documents survive.
+`/` redirects to the most recently edited net, saving an empty one for a new
+visitor. `/new` saves an empty net and redirects to its URL. Both redirects
+replace, so Back skips them, and both show an error page instead of redirecting
+when the browser refuses the write. Empty nets stay saved when the visitor
+switches away, so their URLs keep working.
+
+Published `/examples/<slug>` pages offer **Make a local copy**, which saves an
+editable copy and opens its local URL with the current view. The button, and
+the same action on the notice that explains a blocked edit, come from the
+`website.local-copy` plugin in `src/examples/local-copy-plugin.tsx`.
+When the browser refuses the write, the top bar shows "Couldn't save" next to
+the button.
+
+Open tabs refresh their saved nets and stock-assistant messages when local
+storage changes, and updates start from the latest persisted value so another
+tab's documents survive.
 
 ## Choosing the assistant
 
@@ -57,6 +69,32 @@ When Voice is enabled for Brunch, Labs also shows **Realtime mode**, off by defa
 A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch`; explicit browser-local assistant choices remain authoritative, so changing the launch fallback does not migrate existing users. With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the command palette (⌘K) continues to offer **Use Brunch** and, once switched, **Use the stock Petrinaut assistant**. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint, the Labs control remains visible but disabled, the stock assistant is the only one, and no command is offered.
 
 Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
+
+## Snapshot links
+
+**Share**, an icon in a local document's top bar, opens a dropdown with a self-contained
+`/share#v1.br.<payload>` link. The payload is the net as compact canonical JSON,
+Brotli-compressed (quality 11) and base64url-encoded, so nothing is uploaded. The
+optional current view travels in the same query parameters as the other routes.
+Example pages and snapshots offer no **Share**: their own URL is the link.
+The button is the `website.share` plugin in `src/main/app/plugins/share/`. It
+reads the net, its title and the view when the dropdown opens.
+
+A worker does the compression and decompression and is terminated when it
+finishes, is cancelled, or runs 30 seconds. Both directions cap the net at 2 MiB
+and the fragment at 16,000 characters; a larger net can be downloaded as a file
+from the same dropdown.
+
+A snapshot holds the net as it was when shared: title, layout, code,
+parameters, types, subnets, scenarios and metrics. Running simulations,
+results, assistant conversations and preferences stay behind, and later edits
+do not change a link already shared.
+
+`/share` opens the snapshot read-only and saves nothing. **Make a local copy**,
+from the same `website.local-copy` plugin as on example pages, saves it at its own
+`/local/<net id>` URL with the current view and without the fragment. Sentry
+events, transactions, spans and breadcrumbs have the fragment stripped before
+sending.
 
 ## Example embeds and oEmbed
 
@@ -90,17 +128,19 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 
 ## Environment variables
 
-| Name                               | Required         | Used by          | Notes                                                                                                            |
-| ---------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                   | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                                               |
-| `OPENAI_VOICE_API_KEY`             | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
-| `PETRINAUT_OPENAI_VOICE_ENABLED`   | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
-| `PETRINAUT_VOICE_PROVIDER`         | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
-| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the model id; the default is `stockAssistantModel` in `src/shared/stock-assistant-model.ts`.           |
-| `PETRINAUT_AI_REASONING_EFFORT`    | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `stockAssistantModel.reasoningEffort`.                            |
-| `VITE_BRUNCH_CHAT_ENDPOINT`        | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
-| `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
-| `SENTRY_DSN`                       | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                                        |
+| Name                                | Required         | Used by          | Notes                                                                                                            |
+| ----------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                    | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                                               |
+| `OPENAI_VOICE_API_KEY`              | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
+| `PETRINAUT_OPENAI_VOICE_ENABLED`    | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
+| `PETRINAUT_VOICE_PROVIDER`          | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
+| `TYPESAFE_API_KEY`                  | for judgment     | voice API        | Server-only TypeSafe key for Live utterance experiments.                                                         |
+| `PETRINAUT_LIVE_UTTERANCE_JUDGMENT` | no               | voice API        | `log` judges eligible Live transcripts alongside submission, in local development and previews. Others are off.  |
+| `PETRINAUT_AI_MODEL`                | no               | `api/chat.ts`    | Overrides the model id; the default is `stockAssistantModel` in `src/shared/stock-assistant-model.ts`.           |
+| `PETRINAUT_AI_REASONING_EFFORT`     | no               | `api/chat.ts`    | Overrides the reasoning effort; the default is `stockAssistantModel.reasoningEffort`.                            |
+| `VITE_BRUNCH_CHAT_ENDPOINT`         | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
+| `VITE_PETRINAUT_DEFAULT_ASSISTANT`  | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
+| `SENTRY_DSN`                        | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                                        |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
 
@@ -201,8 +241,8 @@ the website's generic Turbo `dev` task does not forward arbitrary shell variable
 5. End Voice mode and confirm microphone capture and speaker playback stop.
 
 Use headphones while the known phantom-input risk is investigated. Server VAD can
-split hesitation into multiple finalized items, and the existing one-waiting-input
-policy may not retain all of them. See [MISSION.md](MISSION.md) for the current
+split hesitation into multiple finalized items; items that arrive while Brunch is
+busy are merged into one turn, as described below. See [MISSION.md](MISSION.md) for the current
 acceptance limits and manual proof obligations.
 The existing unauthenticated Voice endpoint risk below also applies to Live;
 do not expose this local experiment publicly without addressing that boundary.
@@ -226,6 +266,20 @@ end of Voice mode. A delegation observed while transcription speech is pending
 is closed if that speech is later filtered, instead of shifting to the next
 answer. `delegation.deferred` and `delegation.closed` record these outcomes
 with only the delegation ID and a fixed reason.
+
+The composer holds one voice input until Brunch admits it. Speech that finalizes
+in the meantime waits in a queue instead of being dropped; once the composer is
+free, everything queued goes to Brunch as one turn, joined by blank lines in
+spoken order, up to the 32,000-character limit; whatever does not fit goes in
+the next turn. The newest delegation in the turn gets the answer, and Live is
+told the older ones were merged into it. If speech starts before an input is
+submitted, its words join the next finalized input in the same conversation;
+queued words also wait for that input. A single utterance over the limit, and
+withdrawn words that would not fit with the next input, stay in the
+conversation as an unsent message to send from the composer, as do queued words
+when Stop or a Brunch error ends the turn. `input.queued` and `input.merged` record these outcomes with input and
+delegation IDs only; `input.merged` gives `reason: "composer-busy"` or
+`reason: "speech-started"`.
 
 #### Speaker echo check — 10 minutes
 
@@ -275,6 +329,13 @@ gets through, open DevTools, enable the **Verbose** console level and filter by
   decides. An `input.ignored` line with `reason: "short-during-output"` and no
   `filter.shadow` line from this stage is speech the narrower rule would have
   sent to Brunch.
+- `filter.shadow` with `reason: "filler"` marks a transcript made only of
+  hesitation sounds, backchannels such as "mm-hmm", or thanks. Answer words such
+  as "okay", "yes" and "right" are not filler. `reason: "control"` marks one that
+  only asks Live to wait, hold on or stop. Both run in shadow, so the transcript
+  is still sent to Brunch; see
+  [log mode on previews](#log-mode-on-previews-fe-1779) for comparing them with
+  the model's judgments.
 
 On laptop speakers, on a speaker chosen in the audio settings, and on
 headphones, answer three Brunch questions and stay silent while Live speaks
@@ -297,6 +358,74 @@ non-speech sounds (a cough, typing, a chair creak, a desk tap) and give a few
 short answers such as "Yes" and "Seven". Match each `input.finalized` line to
 the conversation by order, then compare `meanLogprob`, `minLogprob` and
 `peakMicrophoneLevel` between the invented words and the real answers.
+
+#### Log-only utterance judgment (FE-1771)
+
+With `TYPESAFE_API_KEY` set, start the local experiment:
+
+```sh
+PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=live PETRINAUT_LIVE_UTTERANCE_JUDGMENT=log yarn dev:brunch
+```
+
+After the existing duplicate, empty, oversize and admission checks, each eligible
+finalized transcript gets one System One request through the same-origin
+`/api/voice/utterance-judgment` endpoint. Judgment runs alongside Brunch submission:
+it neither delays admission, rewrites text nor drops another utterance while
+waiting. The last successfully offered Brunch prose is context, not proof of
+audio playback. Both text fields are sent to TypeSafe; neither is logged.
+
+Local `[Petrinaut Live trace]` records include one `judgment.result` per request
+with `contribution`, `confidence`, `latencyMs`, a provisional `decision` at the
+0.8 threshold, and `applied: "submit"`. Failures have null contribution/confidence.
+The log-only browser measurement window is 10 seconds, with a 12-second server
+safety bound. This longer window measures results missed by the initial
+one-second cutoff; it is not an enforcement deadline and never delays submission.
+Report the successful-judgment p50 and counts completing within 500 ms, 1 second,
+and 2 seconds separately from failures/timeouts, which are not successful latency
+samples. Log mode runs in local development (`NODE_ENV=development`, no
+`VERCEL_ENV`) and on Vercel preview deployments; production keeps it off.
+Browser traces are recorded only in local development; previews rely on the
+server log described under [log mode on previews](#log-mode-on-previews-fe-1779).
+Origin checks and the per-client rate limit are not authentication.
+
+Acceptance requires a real log-only support-desk run: opening modelling request,
+"okay", a staffing range, Brunch's question repeated back, and "hang on". Retain
+the five metadata-only triples and latency p50, verify one unchanged submission
+per eligible utterance, and check `JSON.stringify(trace)` contains none of the
+spoken or offered text. Synthetic fixtures and a working endpoint do not prove
+classification quality or real latency. Log mode never enforces its decisions.
+
+#### Log mode on previews (FE-1779)
+
+Log mode also runs on Vercel preview deployments (`VERCEL_ENV=preview`), with
+the same server-side keys and Live enablement as above. Production keeps it off
+whatever the variable says. Judgments stay out of the submission path: every
+eligible transcript is submitted exactly as it would be with the mode off.
+
+The endpoint has no caller authentication. Its same-origin check stops other
+websites, not scripts, so each client IP is limited to 30 judgments a minute;
+on Vercel, requests without a resolvable client IP are rejected. The limit
+lives in function memory, resets on cold start and is not shared between
+instances, so it slows misuse of `TYPESAFE_API_KEY` rather than preventing it.
+Give previews a dedicated TypeSafe key with low usage limits and alerts, keep
+local dev servers private, and unset the variable and redeploy to end the trial.
+
+Each request that passes the mode check writes one `[Petrinaut voice]` line
+with `operation: "utterance-judgment"` to the server log (the Vite terminal
+locally, Vercel runtime logs on previews): `mode`, `outcome`, `status`,
+`durationMs`, and when known `contribution`, `confidence` and `upstreamStatus`.
+It never includes text, client IPs or provider bodies. On a preview, filter
+Vercel runtime logs by `utterance-judgment` and compare `contribution` and
+`outcome` counts with what was said.
+
+The deterministic `filler` and `control` stages run in shadow next to these
+judgments. In a local run, pair each `filter.shadow` line from those stages
+with the `judgment.result` line for the same `inputId`: filler should match
+`social_or_backchannel` or `no_content`, and control should match `control`.
+Also note judgments that withhold an input neither stage traces. If the word
+lists agree with the model on the inputs that matter, they can be switched on
+and the TypeSafe call and its rate limiter removed; if not, the disagreements
+show which phrases the lists miss.
 
 ### Brunch Voice mode
 

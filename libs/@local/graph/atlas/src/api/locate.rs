@@ -16,7 +16,7 @@ use type_system::ontology::id::VersionedUrl;
 use super::{
     AppState, clause,
     extract::Body,
-    problem::{Problem, ProblemType, unknown_entity},
+    problem::{Problem, ProblemResponse, ProblemType, unknown_entity},
     saltile::{DocumentResponse, Saltile, spawn},
     translate,
     visibility::Visibility,
@@ -125,7 +125,7 @@ pub(super) async fn handler<R>(
         row,
         colored_type_ids,
     }): Body<LocateRequest>,
-) -> Result<Response, Problem<'static>> {
+) -> Result<Response, ProblemResponse<'static>> {
     // Both/neither is the caller's own malformed request, `invalid-source`. A malformed
     // `entityId` string collapses into `unknown-entity` exactly as an unresolvable one does, since
     // an id that cannot name an entity is an entity that does not exist. An out-of-domain `row`
@@ -133,7 +133,7 @@ pub(super) async fn handler<R>(
     let source = match (entity_id.as_deref(), row) {
         (Some(id), None) => match translate::parse_entity_id(id) {
             Some(entity_id) => LocateSource::Key(entity_id),
-            None => return Err(unknown_entity()),
+            None => return Err(unknown_entity().into()),
         },
         (None, Some(row)) => LocateSource::Row(row),
         (entity, row) => {
@@ -145,7 +145,8 @@ pub(super) async fn handler<R>(
                      names the subject",
                     usize::from(entity.is_some()) + usize::from(row.is_some()),
                 ),
-            ));
+            )
+            .into());
         }
     };
 
@@ -157,7 +158,7 @@ pub(super) async fn handler<R>(
     // them can outlive this closure. `AssertUnwindSafe` covers the resolver's connection pool
     // handle.
     let (bytes, content_type) = spawn(AssertUnwindSafe(
-        move || -> Result<(Vec<u8>, &'static str), Problem<'static>> {
+        move || -> Result<(Vec<u8>, &'static str), ProblemResponse<'static>> {
             let ontology: Vec<ArchivedOntologyTypeUuid> = colored_type_ids
                 .iter()
                 .map(ArchivedOntologyTypeUuid::from_url)

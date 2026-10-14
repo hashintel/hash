@@ -74,7 +74,7 @@ pub(super) fn build<C: Credentials>(
             }
             document
                 .with(transform)
-                .with(middleware::document)
+                .with(|document| middleware::document(document, C::CHALLENGE))
                 .with(reference_responses)
         });
     assert_security_schemes_declared(&mut document);
@@ -82,6 +82,7 @@ pub(super) fn build<C: Credentials>(
     assert_read_through_extractors(&mut document);
     Api {
         audience: C::AUDIENCE,
+        challenge: C::CHALLENGE,
         prefix,
         router,
         document,

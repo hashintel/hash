@@ -53,11 +53,12 @@ export type FlowValues = Flows[FlowNames][0];
  *   when a flow expires, was intended for a different identity, etc. drops
  *   the user back into a fresh flow of the right type.
  * - `kratosBrowserPath`: the Kratos-native `/self-service/<flow>/browser`
- *   endpoint Kratos embeds in `redirect_browser_to` URLs (via the
- *   `SERVE_PUBLIC_BASE_URL` setting).
- *   Because that base URL points at the frontend origin but the frontend
- *   does not serve these paths, redirects need to be rewritten to the
- *   matching `uiPath` to avoid dead-ending on a 404.
+ *   endpoint that Kratos puts into `redirect_browser_to` URLs and into its
+ *   HTTP redirects (via the `SERVE_PUBLIC_BASE_URL` setting).
+ *   That base URL is the frontend origin, which has no such routes:
+ *   `next.config.js` redirects browser requests for them to the matching
+ *   `uiPath`, and `redirect_browser_to` values are rewritten here. Keep both
+ *   in sync.
  */
 const _flowMetadata = {
   login: {

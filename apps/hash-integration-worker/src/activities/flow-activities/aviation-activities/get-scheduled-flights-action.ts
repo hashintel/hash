@@ -9,14 +9,14 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getScheduledArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
-import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 import { splitPropertiesAndMetadata } from "../shared/split-properties-and-metadata.js";
 
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { AviationProposedEntity } from "@local/hash-backend-utils/integrations/aviation";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -67,11 +67,11 @@ export const aviationProposedEntityToFlowProposedEntity = (
 /**
  * Fetches scheduled arrival flights from AeroAPI for a given airport and date and returns them as ProposedEntity objects.
  */
-export const getScheduledFlightsAction: IntegrationFlowActionActivity<
+export const getScheduledFlightsAction: FlowActionActivity<
   "getScheduledFlights"
 > = async ({ inputs }) => {
   try {
-    const { airportIcao, date } = getSimplifiedIntegrationFlowActionInputs({
+    const { airportIcao, date } = getSimplifiedFlowActionInputs({
       inputs,
       actionType: "getScheduledFlights",
     });

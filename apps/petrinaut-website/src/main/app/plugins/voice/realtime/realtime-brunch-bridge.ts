@@ -1,4 +1,4 @@
-import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import {
   createVoiceRequestId,
@@ -15,15 +15,15 @@ import type {
 } from "./openai-realtime-session";
 import type { AgentSendResult, FlueConversationSettlement } from "@flue/sdk";
 import type {
+  PetrinautAiComposerSubmitTextResult,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
+import type {
   FlueChatAdmissionFailure,
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
   FlueChatTransportOptions,
-} from "@hashintel/brunch-agent-transport-aisdk";
-import type {
-  PetrinautAiComposerSubmitTextResult,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
+} from "@local/flue-aisdk-transport";
 
 export type VoiceSubmissionSettlement = Pick<
   FlueConversationSettlement,

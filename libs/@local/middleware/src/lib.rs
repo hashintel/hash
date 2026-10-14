@@ -40,7 +40,7 @@
 //! use error_stack::Report;
 //! use hash_middleware::{
 //!     authentication::{
-//!         AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics,
+//!         AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, Challenge,
 //!         provider::{AuthenticationProvider, Caller},
 //!         request::AuthenticationError,
 //!     },
@@ -88,24 +88,22 @@
 //!     &meter,
 //! );
 //!
-//! let service_secret: Arc<str> = Arc::from("service-secret");
-//!
 //! let router: Router = Router::new()
 //!     .route("/whoami", get(whoami))
 //!     .route_layer(CallerLimitLayer {
 //!         limiters: Arc::clone(&limiters),
-//!         service_secret: Arc::clone(&service_secret),
+//!         service_secret: None,
 //!     })
 //!     .route_layer(AuthenticationLayer::<_, ActorId> {
 //!         provider: Arc::new(Verifier),
-//!         service_secret: Arc::clone(&service_secret),
 //!         metrics: Arc::new(AuthenticationMetrics::new(&meter)),
-//!         bootstrap_route: |_path| false,
+//!         bootstrap: None,
+//!         challenge: Challenge::Bearer,
 //!         caller: PhantomData,
 //!     })
 //!     .layer(IpGateLayer {
 //!         limiters,
-//!         service_secret,
+//!         service_secret: None,
 //!     })
 //!     .layer(HttpTracingLayer::new(|path| path == "/health"));
 //!

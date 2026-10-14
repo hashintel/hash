@@ -1,56 +1,29 @@
 import type {
-  AiActionStepOutput,
-  AiFlowActionDefinitionId,
-  IntegrationActionStepOutput,
-  IntegrationFlowActionDefinitionId,
+  FlowActionInputKinds,
+  FlowActionInputs,
+  FlowActionStepOutput,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  StepInput,
-  StepOutput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
 
-export type FlowActionActivity<AdditionalParams extends object = object> = (
-  params: {
-    inputs: StepInput[];
-  } & AdditionalParams,
-) => Promise<
-  Status<{
-    outputs: StepOutput[];
-  }>
->;
-
 /**
- * A type-safe version of FlowActionActivity that properly types the outputs
- * based on the action definition.
+ * An activity that runs a flow action. Its outputs are typed by the action's definition: by default, the outputs of
+ * any action.
+ *
+ * It is generic over the kind each of the action's kind sources is given (see `InputKindsOf`), which `inputs` carries
+ * to `getSimplifiedFlowActionInputs`. So an output that takes its kind from a kind source must have the kind given,
+ * built from that input's own kind and values, and TypeScript rejects one of any other kind.
  */
-export type AiFlowActionActivity<
-  T extends AiFlowActionDefinitionId,
+export type FlowActionActivity<
+  Action extends FlowActionDefinitionId = FlowActionDefinitionId,
   AdditionalParams extends object = object,
-> = (
+> = <Kinds extends FlowActionInputKinds<Action>>(
   params: {
-    inputs: StepInput[];
+    inputs: FlowActionInputs<Kinds>;
   } & AdditionalParams,
 ) => Promise<
   Status<{
-    outputs: AiActionStepOutput<T>[];
-  }>
->;
-
-/**
- * A type-safe version of FlowActionActivity for integration actions that
- * properly types the outputs based on the action definition.
- */
-export type IntegrationFlowActionActivity<
-  T extends IntegrationFlowActionDefinitionId,
-  AdditionalParams extends object = object,
-> = (
-  params: {
-    inputs: StepInput[];
-  } & AdditionalParams,
-) => Promise<
-  Status<{
-    outputs: IntegrationActionStepOutput<T>[];
+    outputs: FlowActionStepOutput<Action, Kinds>[];
   }>
 >;
 

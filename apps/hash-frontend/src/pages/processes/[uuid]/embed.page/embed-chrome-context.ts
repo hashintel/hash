@@ -2,7 +2,10 @@ import { createContext } from "react";
 
 import type { RevisionSummary } from "../../shared/messages";
 
-/** The page state the embed's top-bar items read. */
+/**
+ * What the embed's top-bar items read: the page owns this state and provides
+ * it above the editor, so the plugin itself stays a stable module constant.
+ */
 export type EmbedChrome = {
   title: string;
   onTitleChange: (title: string) => void;

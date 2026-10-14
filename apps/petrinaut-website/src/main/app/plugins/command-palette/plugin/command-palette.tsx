@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { useCommandRegistry, useCommands } from "@hashintel/petrinaut/react";
 import { KeyboardShortcut } from "@hashintel/petrinaut/ui";
+import {
+  useCommandRegistry,
+  useCommands,
+} from "@hashintel/petrinaut/ui/plugin";
 
 import type { CSSProperties } from "react";
 
@@ -71,38 +74,14 @@ const matchesQuery = (haystack: string, query: string): boolean =>
   haystack.toLowerCase().includes(query.toLowerCase());
 
 /**
- * The demo site's command palette: host code rendered over the ambient
- * registry (Petrinaut's commands plus the demo's). Owns the ⌘K / Ctrl+K
- * opener.
+ * The demo site's command palette over the ambient registry (Petrinaut's
+ * commands plus the demo's). Mounted while open; `onClose` closes it.
  */
-export const CommandPalette = () => {
+export const CommandPalette = ({ onClose }: { onClose: () => void }) => {
   const registry = useCommandRegistry();
   const commands = useCommands();
-  const [isOpen, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        !event.shiftKey &&
-        !event.altKey &&
-        (event.metaKey || event.ctrlKey) &&
-        event.key.toLowerCase() === "k"
-      ) {
-        event.preventDefault();
-        setOpen((open) => !open);
-        setQuery("");
-        setActiveIndex(0);
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
-
-  if (!isOpen) {
-    return null;
-  }
 
   const trimmed = query.trim();
   const results = trimmed
@@ -116,23 +95,24 @@ export const CommandPalette = () => {
   const active = Math.min(activeIndex, Math.max(results.length - 1, 0));
 
   const runCommand = (id: string) => {
-    setOpen(false);
+    // Close after running, so the palette's own toggle row closes it rather than reopening it.
     registry?.execute(id);
+    onClose();
   };
 
   return (
     <div
-      className="petrinaut-root"
       style={overlayStyle}
       role="presentation"
-      onPointerDown={() => setOpen(false)}
+      onPointerDown={onClose}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.stopPropagation();
-          setOpen(false);
+          onClose();
         }
       }}
     >
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the dialog closes when focus or a pointer leaves it. */}
       <div
         role="dialog"
         aria-label="Command palette"
@@ -143,7 +123,7 @@ export const CommandPalette = () => {
             event.relatedTarget &&
             !event.currentTarget.contains(event.relatedTarget)
           ) {
-            setOpen(false);
+            onClose();
           }
         }}
       >
