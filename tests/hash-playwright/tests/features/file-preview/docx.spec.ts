@@ -51,6 +51,31 @@ test.describe("DOCX preview", () => {
       .toBeGreaterThan(widthBeforeZoom);
   });
 
+  test("the page counter follows scrolling and keeps its total after a zoom", async ({
+    page,
+  }) => {
+    const pageCount = testDocumentPages.length;
+    // folio renders its own hidden page status, which is not a paragraph.
+    const pageCounter = page.locator("p", {
+      hasText: new RegExp(`^\\d+ of ${pageCount}$`),
+    });
+
+    await expect(pageCounter).toHaveText(`1 of ${pageCount}`);
+
+    await getDocxPage(page, secondPage.heading).evaluate((element) =>
+      element.scrollIntoView({ block: "start" }),
+    );
+    await expect(pageCounter).toHaveText(`2 of ${pageCount}`);
+
+    const docxPage = getDocxPage(page, secondPage.heading);
+    const widthBeforeZoom = (await docxPage.boundingBox())?.width ?? 0;
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    await expect
+      .poll(async () => (await docxPage.boundingBox())?.width ?? 0)
+      .toBeGreaterThan(widthBeforeZoom);
+    await expect(pageCounter).toBeVisible();
+  });
+
   test("search selects a word and the next result moves to the next page holding it", async ({
     page,
   }) => {
