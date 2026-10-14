@@ -77,7 +77,7 @@ export const PlaybackGeometry = ({
   </g>
 );
 
-export type ExperimentalIconStatus = "valid" | "warning" | "error";
+export type HashIconStatus = "valid" | "warning" | "error";
 
 const diagnosticStrokes = {
   valid: [
@@ -99,7 +99,7 @@ const diagnosticStrokes = {
     { id: "trailing", x: 6, y: 18, angle: -45, length: Math.hypot(12, 12) },
   ],
 } satisfies Record<
-  ExperimentalIconStatus,
+  HashIconStatus,
   {
     id: "leading" | "trailing";
     x: number;
@@ -113,7 +113,7 @@ export const DiagnosticsGeometry = ({
   status,
   transition,
 }: {
-  status: ExperimentalIconStatus;
+  status: HashIconStatus;
   transition: string;
 }) => (
   <g fill="none">

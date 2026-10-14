@@ -4,7 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { IconMotionLayer } from "./shared/icon-motion-layer";
 
-export type ExperimentalIconBadgeVisibility = "hover" | "visible" | "hidden";
+export type HashIconBadgeVisibility = "hover" | "visible" | "hidden";
 
 const badgeVisibilityStyle = css({
   "--add-icon-badge-opacity": "0",
@@ -26,7 +26,7 @@ export const AddNodeGeometry = ({
   kind: "place" | "transition";
   filled: boolean;
   selected: boolean;
-  badge: ExperimentalIconBadgeVisibility;
+  badge: HashIconBadgeVisibility;
   transition: string;
 }) => {
   const id = useId();

@@ -1,6 +1,6 @@
-import type { ExperimentalIconName } from "../../experimental-icons";
+import type { HashIconName } from "../../hash-icon";
 
-export type PetriconHint =
+export type HashIconHint =
   | "detail"
   | "down"
   | "grow"
@@ -19,7 +19,7 @@ export type PetriconHint =
   | "turn"
   | "up";
 
-export const petriconHints = {
+export const hashIconHints = {
   infinity: "grow",
   arrowUp: "up",
   arrowDown: "down",
@@ -187,4 +187,4 @@ export const petriconHints = {
   tokenTypeTag: "detail",
   subnetNetwork: "detail",
   subnetLayers: "detail",
-} as const satisfies Record<ExperimentalIconName, PetriconHint>;
+} as const satisfies Record<HashIconName, HashIconHint>;

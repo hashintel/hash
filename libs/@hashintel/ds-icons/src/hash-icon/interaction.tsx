@@ -1,8 +1,8 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import { petriconHints } from "./shared/petricon-hints";
+import { hashIconHints } from "./shared/hints";
 
-import type { ExperimentalIconName } from "../experimental-icons";
+import type { HashIconName } from "../hash-icon";
 import type { PropsWithChildren } from "react";
 
 const interactionStyle = css({
@@ -128,7 +128,7 @@ export const IconInteraction = ({
   duration,
   children,
 }: PropsWithChildren<{
-  name: ExperimentalIconName;
+  name: HashIconName;
   enabled: boolean;
   transition: string;
   duration: number;
@@ -136,7 +136,7 @@ export const IconInteraction = ({
   <g
     className={interactionStyle}
     data-hover={enabled}
-    data-hint={petriconHints[name]}
+    data-hint={hashIconHints[name]}
     style={
       {
         transition,
