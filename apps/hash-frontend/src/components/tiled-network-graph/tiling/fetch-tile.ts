@@ -28,8 +28,7 @@
  *
  * HTTP requests are retried with exponential backoff on transient failures —
  * transport errors and `5xx`/`429` responses (see {@link withAtlasRetry}). A
- * response's `Retry-After` floors the backoff wait, and one naming a wait no
- * viewport load can sit out makes the failure terminal instead (see
+ * response's `Retry-After` floors the backoff wait (see
  * {@link isRetryableError}); every `429` also pauses speculative prefetching,
  * and every response's `RateLimit`/`RateLimit-Policy` budget report pauses it
  * pre-emptively while a budget sits below the speculation reserve (see
@@ -39,12 +38,8 @@
  * the `401` renewal path makes pooled requests depend on them.
  * Terminal failures (`4xx`, a decode mismatch) are not retried; a `401`, meaning
  * the authority token no longer admits the request, has its own one-shot token
- * renewal in {@link requestAtlas}, while the three failures that end a session — a
- * `404`, meaning the pinned generation is no longer served, a renewal the
- * server refuses, and a renewal that succeeds at a different delivery cut than the
- * session decodes against — share one session replacement in {@link fetchTile} (see
- * {@link withAtlasSession}).
- */
+ * renewal in {@link requestAtlas}.
+ * */
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
@@ -201,13 +196,6 @@ export class FetchTileError extends Error {
    * locate whose source names no visible node, and those two ask for opposite handling.
    */
   readonly problem: string | undefined;
-  /**
-   * The server's stated wait before the refusal clears, in milliseconds — the
-   * response's `Retry-After`, read as delta-seconds or an HTTP-date. Present
-   * only when the response carried a readable one, which also needs the hop to
-   * expose the header cross-origin (hash-api's atlas proxy names it in
-   * `Access-Control-Expose-Headers`; an unexposed header reads as absent).
-   */
   readonly retryAfterMs: number | undefined;
 
   constructor(message: string, options?: FetchTileErrorOptions) {
@@ -274,13 +262,6 @@ export class AtlasDeliveryCutChangedError extends FetchTileError {}
 const abortError = (signal: AbortSignal | undefined): FetchTileError =>
   new FetchTileError("Atlas request aborted", { cause: signal?.reason });
 
-/**
- * A stated `Retry-After` past this is a refusal no viewport load can usefully
- * sit out — a drained hourly budget rather than a momentary burst — so the
- * failure is terminal and the viewport partial-renders; the next movement
- * retries naturally. Deliberately above {@link RETRY_MAX_DELAY_MS}: a short
- * stated wait is worth honouring even past the backoff ceiling.
- */
 const RETRY_AFTER_TERMINAL_MS = 5_000;
 
 /**
@@ -372,10 +353,6 @@ export const withAtlasRetry = async <T>(
       if (attempt >= retries || signal?.aborted || !isRetryableError(error)) {
         throw error;
       }
-      // The server's stated wait floors the backoff — sleeping less buys a
-      // guaranteed second refusal. Retryability already bounds the floor (see
-      // {@link RETRY_AFTER_TERMINAL_MS}), and the jittered window still
-      // spreads retries whose floor has passed.
       const statedWaitMs =
         error instanceof FetchTileError ? (error.retryAfterMs ?? 0) : 0;
       await sleep(
@@ -423,8 +400,7 @@ const readErrorDetail = async (
 /**
  * The response's `Retry-After` in milliseconds: delta-seconds, or an HTTP-date
  * measured against the local clock, floored at zero. `undefined` for an absent
- * or unreadable header — which is also what a header the hop does not expose
- * cross-origin reads as (see {@link FetchTileError.retryAfterMs}).
+ * or unreadable header.
  */
 const readRetryAfterMs = (response: Response): number | undefined => {
   const header = response.headers.get("retry-after");
@@ -912,9 +888,6 @@ export const requestAtlas = async (
   retries?: number,
   priority?: RequestPriority,
 ): Promise<Response> => {
-  // Pooled per HTTP attempt — inside the retry loop, so a backoff sleep never
-  // holds a slot. The lane rides the existing priority hint: a prefetch is the
-  // one caller that states `"low"`, and it is exactly the traffic that yields.
   const lane = priority === "low" ? "speculative" : "required";
   const attempt = (): Promise<Response> =>
     withAtlasRetry(
@@ -1236,17 +1209,7 @@ const endsAtlasSession = (error: unknown): boolean =>
     error.status === 404 &&
     error.problem === ATLAS_RETIRED_GENERATION_PROBLEM);
 
-/**
- * The successor each recovery installed, keyed by the pinned session promise it dropped.
- *
- * Written only by {@link withAtlasSession}'s replacing caller, in the same breath as the clear and
- * the re-bootstrap, so a caller that lost the replacement race can tell "my session ended and the
- * recovery already replaced it" — join the recorded successor — from "my session was dropped by a
- * principal transition or a view rebind" — no entry, so its failure travels and it touches nothing.
- * The two are otherwise indistinguishable from the loser's seat: both leave the cache holding a
- * promise that is not its pinned one. Weakly keyed, so an entry lives exactly as long as some caller
- * still holds the dropped promise it answers for.
- */
+/** The successor each recovery installed, keyed by the pinned session promise it dropped. */
 const sessionReplacements = new WeakMap<
   Promise<SaltileSession>,
   Promise<SaltileSession>
@@ -1385,32 +1348,15 @@ export const setAtlasViewFilter = (
 /**
  * Runs `operation` under the session for `baseUrl`, replacing that session once if it ends.
  *
- * Every route that binds to a session goes through here, and this is the only place the recovery
- * exists. `operation` receives the session to use and is called at most twice: once under the pinned
- * session, and once more under its successor when the first attempt failed in a way that ends the
- * session (see {@link endsAtlasSession}). Anything derived from the session belongs inside
- * `operation` — the second call receives the successor, so a value read off the session is re-read
- * against it rather than carried across the replacement.
- *
  * **`pinned` is the promise this caller awaited, not the session it resolved, and comparing it
  * against the cache is what keeps the recovery non-destructive.** A bootstrap and a renewal both
  * outlive their callers' signals on purpose, so a refusal can land after the session it addressed
- * was dropped and replaced — by a principal transition, say. An unconditional clear would then erase
- * a successor's session, token and painted rows on the word of a request that never addressed them.
- * So only the caller whose pinned promise is still the cached one replaces it; the check is an
- * identity comparison rather than a remembered flag because the memoized promise is already the
- * population's name — it is replaced exactly when the population is.
- *
- * Ordering, and it is the reason the replacement is safe: the clear runs before the new session is
- * requested and it moves the session revision synchronously, so every holder of decoded rows has
- * discarded them before a successor token exists. A fresh view is never adopted beside rows painted
- * under the session it replaced.
+ * was dropped and replaced.
  *
  * One caller replaces; every sibling of the same ended session retries under that replacement. A
  * session never ends for one request alone — a viewport's worth of tiles, its edges and a locate all
- * share the one renewal whose refusal ends it (see {@link renewAtlasAuthority}), so the refusal
- * lands on all of them in the same breath, and only the first can find its pinned promise still
- * cached. The first replaces and records the successor against the promise it dropped (see
+ * share the one renewal whose refusal ends it (see {@link renewAtlasAuthority}).
+ * The first replaces and records the successor against the promise it dropped (see
  * {@link sessionReplacements}); the rest find the record and retry under that successor — rather
  * than each failing for want of acting first, which surfaced the one real failure as a burst of
  * refusals to every caller but one. A caller whose ended session has *no* recorded replacement was

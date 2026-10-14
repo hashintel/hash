@@ -3,20 +3,15 @@
  *
  * A viewport descent fans a whole frontier level out in one `Promise.all`, so
  * without a bound a cold viewport fires dozens of requests in the same tick —
- * a burst shape the atlas's per-address rate gate is exactly sized to refuse.
+ * a burst shape the atlas's per-address rate gate is sized to refuse.
  * The pool turns that burst into a bounded stream: at most {@link
  * ATLAS_DATA_REQUEST_LIMIT} requests in flight, the rest queued.
  *
  * Two lanes, strict priority: a queued `required` request always starts before
- * a queued `speculative` one, whatever order they arrived in — speculation is
- * the first traffic to yield. Within a lane, FIFO. The lane is derived from
- * the request's network priority hint (a prefetch already states `"low"`; see
- * `TileFetchControls.priority`), so no call site names it twice.
+ * a queued `speculative` one, whatever order they arrived in.
  *
  * Only the four data routes come through here. The manifest and `current`
- * requests stay unpooled: they are rare, every pooled request may depend on
- * one (the `401` renewal path), and a bootstrap queued behind the tile burst
- * it unblocks would deadlock the lot.
+ * requests stay unpooled.
  *
  * One slot spans one HTTP attempt, not one logical request: `requestAtlas`
  * acquires inside its retry loop, so a backoff sleep never holds a slot.
@@ -37,10 +32,18 @@ import {
   takeAtlasRequestToken,
 } from "./atlas-backpressure";
 
-/** Concurrent data-route requests; queued beyond this. */
-const ATLAS_DATA_REQUEST_LIMIT = 6;
+/**
+ * Concurrent data-route requests; queued beyond this.
+ *
+ * Sized for HTTP/2: twelve streams cover a typical deep level in one or two
+ * waves, while keeping the one burst no budget report has bounded yet — the
+ * first fan-out of a session, before any `RateLimit` response has seeded the
+ * pacing model — comfortably inside the server's default gate burst.
+ *
+ * On HTTP/1.1 browsers hold ~6 connections per host, so the excess waits in the browser's own queue.
+ */
+const ATLAS_DATA_REQUEST_LIMIT = 12;
 
-/** Which queue a request waits in; `required` always starts first. */
 export type AtlasRequestLane = "required" | "speculative";
 
 interface Waiter {
@@ -48,13 +51,7 @@ interface Waiter {
   readonly signal: AbortSignal | undefined;
 }
 
-/** Runs operations under one shared concurrency bound; see the module doc. */
 export interface AtlasRequestPool {
-  /**
-   * Runs `operation` once a slot is free, releasing the slot when it settles.
-   * An abort while queued rejects with the signal's reason and never starts
-   * the operation; an abort while running is the operation's own to observe.
-   */
   run<T>(
     lane: AtlasRequestLane,
     operation: () => Promise<T>,
@@ -62,7 +59,6 @@ export interface AtlasRequestPool {
   ): Promise<T>;
 }
 
-/** The abort's reason as an `Error`, for rejecting a queued acquisition. */
 const abortError = (signal: AbortSignal | undefined): Error => {
   const reason: unknown = signal?.reason;
   return reason instanceof Error

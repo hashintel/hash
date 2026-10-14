@@ -76,15 +76,6 @@ let rateLimitedUntil = 0;
 /** The latest budget report's deadline: overwritten by each fresher report. */
 let budgetReserveUntil = 0;
 
-/**
- * The client-side mirror of one reported budget, for pacing dispatch.
- *
- * `tokens` is the local estimate of the requests left: synced down to each
- * response's `r` (never up — an in-flight request this side already spent is
- * not in an older response's count), spent optimistically at dispatch, and
- * refilled at the policy's rate between syncs. The estimate drifts, in the
- * safe direction, and every response snaps it back.
- */
 interface AtlasBudgetModel {
   /** Locally projected requests left, as of {@link AtlasBudgetModel.projectedAt}. */
   tokens: number;
@@ -108,7 +99,6 @@ const projectedTokens = (model: AtlasBudgetModel, now: number): number =>
     model.tokens + (now - model.projectedAt) * model.ratePerMs,
   );
 
-/** One budget as a response reports it; `undefined` where the item omitted the number. */
 export interface AtlasBudgetReport {
   readonly name: string;
   /** Requests left (`RateLimit`'s `r`). */
@@ -122,8 +112,7 @@ export interface AtlasBudgetReport {
 /**
  * The named items of a `RateLimit`/`RateLimit-Policy` field value, tolerantly:
  * items split on `,`, a `"quoted"` name, `;`-separated `key=value` parameters.
- * Malformed items are skipped rather than failing the field — a header this
- * side cannot read must degrade to the `429` fallback, not to an error.
+ * Malformed items are skipped rather than failing the field
  */
 const parseItems = (
   header: string | null,
@@ -286,11 +275,9 @@ export const takeAtlasRequestToken = (
 /**
  * Returns one spent token to every live pacing model.
  *
- * For a request that took its token and then never reached the server — an
- * abort while it still sat in the pool's slot queue. The sync in
+ * For a request that took its token and then never reached the server the sync in
  * {@link noteAtlasBudget} only moves the estimate *down* (an in-flight spend
- * is absent from an older report's count), which is what makes this refund
- * both necessary and safe: a phantom spend would throttle later requests for
+ * is absent from an older report's count): a phantom spend would throttle later requests for
  * budget the server never saw and no report could ever restore, while an
  * over-generous refund — the model replaced between spend and refund, say —
  * is pulled back by the very next report. Capped at the burst, like refill.
