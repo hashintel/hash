@@ -57,28 +57,41 @@ const elementSchema = v.object({
 });
 type Selector = v.InferOutput<typeof elementSchema>["selector"];
 
+/** The root net and each subnet: places, transitions and their other items can sit in either. */
+const netsOf = (definition: SDCPN) => [
+  definition,
+  ...(definition.subnets ?? []),
+];
+
 const elements = (
   definition: SDCPN,
   kind: Selector["kind"],
 ): { id: string; name: string; arc?: ArcElement }[] => {
-  if (kind === "place") return definition.places;
-  if (kind === "transition") return definition.transitions;
-  if (kind === "type") return definition.types;
-  if (kind === "parameter") return definition.parameters;
-  if (kind === "differentialEquation") return definition.differentialEquations;
   if (kind === "scenario") return definition.scenarios ?? [];
   if (kind === "metric") return definition.metrics ?? [];
   if (kind === "subnet") return definition.subnets ?? [];
-  if (kind === "componentInstance") return definition.componentInstances ?? [];
+  return netsOf(definition).flatMap((net) => netElements(net, kind));
+};
+
+const netElements = (
+  net: ReturnType<typeof netsOf>[number],
+  kind: Exclude<Selector["kind"], "scenario" | "metric" | "subnet">,
+): { id: string; name: string; arc?: ArcElement }[] => {
+  if (kind === "place") return net.places;
+  if (kind === "transition") return net.transitions;
+  if (kind === "type") return net.types;
+  if (kind === "parameter") return net.parameters;
+  if (kind === "differentialEquation") return net.differentialEquations;
+  if (kind === "componentInstance") return net.componentInstances ?? [];
   if (kind === "typeElement")
-    return definition.types.flatMap((color) =>
+    return net.types.flatMap((color) =>
       color.elements.map((element) => ({
         id: element.elementId,
         name: element.name,
       })),
     );
   // An arc is identified by its transition and endpoint, not a standalone ID.
-  return definition.transitions.flatMap((transition) => {
+  return net.transitions.flatMap((transition) => {
     const arcElements = (
       arcDirection: "input" | "output",
       arcs: readonly Pick<

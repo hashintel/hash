@@ -271,3 +271,57 @@ test("query_basis returns a reflection committed this turn with its text and net
     claims: ["c1"],
   });
 });
+
+test("query_basis finds an element inside a subnet and the call that added it there", () => {
+  const [user, assistant] = snapshot.messages;
+  const [commit, add, read] = assistant?.parts ?? [];
+  const [queue] = definition.places;
+  const intoSubnet = {
+    ...add,
+    toolCallId: "add-triage",
+    input: { id: "triage", name: "Triage", targetSubnetId: "intake" },
+  };
+  const readWithSubnet = {
+    ...read,
+    output: {
+      brunchBrowserResult: true,
+      output: {
+        title: "Queue",
+        definition: {
+          ...definition,
+          subnets: [
+            {
+              id: "intake",
+              name: "Intake",
+              places: [{ ...queue, id: "triage", name: "Triage" }],
+              transitions: [],
+              types: [],
+              parameters: [],
+              differentialEquations: [],
+            },
+          ],
+        },
+      },
+      metadata: { documentRevision: { before: "revision-2" } },
+    },
+  };
+  const history = {
+    ...snapshot,
+    messages: [
+      user,
+      { ...assistant, parts: [commit, intoSubnet, readWithSubnet] },
+    ],
+  } as FlueConversationSnapshot;
+
+  expect(
+    queryBasis({
+      snapshot: history,
+      browser,
+      query: { kind: "place", name: "Triage" },
+    }),
+  ).toMatchObject({
+    disposition: "basis-absent",
+    target: { id: "triage" },
+    changes: [{ toolCallId: "add-triage", petrinautRevisionId: "revision-2" }],
+  });
+});
