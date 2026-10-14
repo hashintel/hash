@@ -729,8 +729,8 @@ __metadata:
     "@sigma/edge-curve": "patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch"
     "@sigma/node-border": "npm:3.0.0"
     "@sigma/node-image": "npm:3.0.0"
-    "@stll/folio-core": "npm:0.58.5"
-    "@stll/folio-react": "npm:0.26.0"
+    "@stll/folio-core": "npm:0.60.0"
+    "@stll/folio-react": "npm:0.28.0"
     "@svgr/webpack": "npm:8.1.0"
     "@tanstack/react-table": "npm:8.21.3"
     "@testing-library/dom": "npm:10.4.1"
@@ -796,12 +796,16 @@ __metadata:
     pdfjs-dist: "npm:4.8.69"
     prismjs: "npm:1.30.0"
     prosemirror-collab: "npm:1.3.0"
-    prosemirror-commands: "npm:1.3.1"
+    prosemirror-commands: "npm:1.7.2"
     prosemirror-dev-tools: "npm:4.3.0"
-    prosemirror-inputrules: "npm:1.2.0"
-    prosemirror-keymap: "npm:1.2.0"
+    prosemirror-dropcursor: "npm:1.8.4"
+    prosemirror-gapcursor: "npm:1.4.1"
+    prosemirror-history: "npm:1.5.1"
+    prosemirror-inputrules: "npm:1.5.1"
+    prosemirror-keymap: "npm:1.2.3"
     prosemirror-model: "npm:1.25.12"
     prosemirror-state: "npm:1.4.4"
+    prosemirror-tables: "npm:1.8.5"
     prosemirror-transform: "npm:1.12.2"
     prosemirror-view: "npm:1.42.6"
     react: "npm:19.2.6"
@@ -837,7 +841,9 @@ __metadata:
     wait-on: "npm:9.0.1"
     web-worker: "npm:1.4.1"
     webpack: "npm:5.104.1"
+    y-prosemirror: "npm:1.3.7"
     y-protocols: "npm:1.0.7"
+    yjs: "npm:13.6.33"
     zod: "npm:4.4.3"
   languageName: unknown
   linkType: soft
@@ -9944,9 +9950,9 @@ __metadata:
     lodash-es: "npm:4.18.1"
     next: "npm:15.5.27"
     pluralize: "npm:8.0.0"
-    prosemirror-commands: "npm:1.3.1"
-    prosemirror-dropcursor: "npm:1.6.1"
-    prosemirror-keymap: "npm:1.2.0"
+    prosemirror-commands: "npm:1.7.2"
+    prosemirror-dropcursor: "npm:1.8.4"
+    prosemirror-keymap: "npm:1.2.3"
     prosemirror-model: "npm:1.25.12"
     prosemirror-state: "npm:1.4.4"
     prosemirror-transform: "npm:1.12.2"
@@ -16659,9 +16665,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stll/docx-core@npm:^0.36.2":
-  version: 0.36.2
-  resolution: "@stll/docx-core@npm:0.36.2"
+"@stll/docx-core@npm:^0.37.0":
+  version: 0.37.0
+  resolution: "@stll/docx-core@npm:0.37.0"
   dependencies:
     "@nodable/entities": "npm:^3.0.0"
     "@stll/docx-utils": "npm:^0.1.0"
@@ -16669,7 +16675,7 @@ __metadata:
     fast-xml-parser: "npm:^5.10.1"
     jszip: "npm:3.10.2"
     marked: "npm:^18.0.5"
-  checksum: 10c0/9135fb0606233bf2b0c8243712ffffa359a5a0ab9366a551872788b5f16e5f8b1dd1606a553a023d33a69eaaadc89a69893f3fdee8dfef1f4a4d30412b615193
+  checksum: 10c0/6978eabec0fbeec30e49a7976a6cefb8d5478c6e84409ed52af235870736f1dabd511dbd98fc849f323e462aa980cb27a4a89c02901b86145253e97ca7fb5256
   languageName: node
   linkType: hard
 
@@ -16684,11 +16690,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stll/folio-core@npm:0.58.5, @stll/folio-core@npm:^0.58.5":
-  version: 0.58.5
-  resolution: "@stll/folio-core@npm:0.58.5"
+"@stll/folio-core@npm:0.60.0, @stll/folio-core@npm:^0.60.0":
+  version: 0.60.0
+  resolution: "@stll/folio-core@npm:0.60.0"
   dependencies:
-    "@stll/docx-core": "npm:^0.36.2"
+    "@stll/docx-core": "npm:^0.37.0"
     "@stll/docx-utils": "npm:^0.1.0"
     "@stll/template-conditions": "npm:^0.6.2"
     better-result: "npm:3.0.1"
@@ -16697,28 +16703,30 @@ __metadata:
     fast-xml-parser: "npm:^5.10.1"
     hyphen: "npm:1.14.1"
     jszip: "npm:3.10.2"
-    prosemirror-commands: "npm:^1.7.1"
-    prosemirror-dropcursor: "npm:^1.8.2"
-    prosemirror-gapcursor: "npm:^1.4.1"
-    prosemirror-history: "npm:^1.5.0"
-    prosemirror-inputrules: "npm:^1.5.0"
-    prosemirror-keymap: "npm:^1.2.3"
-    prosemirror-model: "npm:^1.25.9"
-    prosemirror-state: "npm:^1.4.4"
-    prosemirror-tables: "npm:^1.8.5"
-    prosemirror-transform: "npm:^1.12.0"
-    prosemirror-view: "npm:^1.42.6"
     utif2: "npm:^4.1.0"
     valibot: "npm:1.5.0"
-    y-prosemirror: "npm:^1.3.7"
-    yjs: "npm:^13.6.31"
-  checksum: 10c0/84ccd412b0bb316c728118f51c29ee741af54ad18f19f24264f8b9f50468a7ac67764ba838e6e013d8c9ee362c727aeca1f9b253484c898b6ebf842f983fe35d
+  peerDependencies:
+    prosemirror-commands: ^1.7.1
+    prosemirror-dropcursor: ^1.8.2
+    prosemirror-gapcursor: ^1.4.1
+    prosemirror-history: ^1.5.0
+    prosemirror-inputrules: ^1.5.0
+    prosemirror-keymap: ^1.2.3
+    prosemirror-model: ^1.25.9
+    prosemirror-state: ^1.4.4
+    prosemirror-tables: ^1.8.5
+    prosemirror-transform: ^1.12.0
+    prosemirror-view: ^1.42.6
+    y-prosemirror: ^1.3.7
+    y-protocols: ^1.0.6
+    yjs: ^13.6.31
+  checksum: 10c0/6e3a7be13ec85547ee3a342dd8937c33e748d4dc881fb9e5e5affe3187808b3e7999d35e00269dceb877d5ad08d700ce4165787eafc1f28698af69afef7cf094
   languageName: node
   linkType: hard
 
-"@stll/folio-react@npm:0.26.0":
-  version: 0.26.0
-  resolution: "@stll/folio-react@npm:0.26.0"
+"@stll/folio-react@npm:0.28.0":
+  version: 0.28.0
+  resolution: "@stll/folio-react@npm:0.28.0"
   dependencies:
     "@base-ui/react": "npm:1.8.0"
     "@fontsource/arimo": "npm:^5.2.8"
@@ -16729,21 +16737,21 @@ __metadata:
     "@fontsource/noto-sans-arabic": "npm:^5.2.7"
     "@fontsource/source-sans-3": "npm:^5.2.9"
     "@fontsource/tinos": "npm:^5.2.7"
-    "@stll/folio-core": "npm:^0.58.5"
+    "@stll/folio-core": "npm:^0.60.0"
     better-result: "npm:3.0.1"
     lucide-react: "npm:1.24.0"
-    prosemirror-history: "npm:^1.5.0"
-    prosemirror-model: "npm:^1.25.9"
-    prosemirror-state: "npm:^1.4.4"
-    prosemirror-tables: "npm:^1.8.5"
-    prosemirror-view: "npm:^1.42.6"
     react-compiler-runtime: "npm:^1.0.0"
-    yjs: "npm:^13.6.31"
   peerDependencies:
+    prosemirror-history: ^1.5.0
+    prosemirror-model: ^1.25.9
+    prosemirror-state: ^1.4.4
+    prosemirror-tables: ^1.8.5
+    prosemirror-view: ^1.42.6
     react: ^19.2.0
     react-dom: ^19.2.0
     use-intl: ">=4.0.0"
-  checksum: 10c0/7447bc22a1286c519ed75ebc2511c8e5952e1f74704e95dc7be47ab6d0ff092a79be3e88cb1cd0269ac5b9d7177a03b8eab3f7dfa8b9a93f71fa85bfaaa5dded
+    yjs: ^13.6.31
+  checksum: 10c0/37361be518a0b1ddd8b20ee7f207a1a8a9fedf1b1656cba6f85c04c79f1766cc9a4cabef9a7154de683762b270f9996de9517dd1c1ada0922b2a8b9e61c0a1ca
   languageName: node
   linkType: hard
 
@@ -38413,18 +38421,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-commands@npm:1.3.1":
-  version: 1.3.1
-  resolution: "prosemirror-commands@npm:1.3.1"
-  dependencies:
-    prosemirror-model: "npm:^1.0.0"
-    prosemirror-state: "npm:^1.0.0"
-    prosemirror-transform: "npm:^1.0.0"
-  checksum: 10c0/2de3360c9ecf03776943b776aae3a05106bca69cce68cd5be2970de88fbfd8e37a4c4a1657c9586203e76fc8f65de3737dfd42b7b4e084d3adecd7568503c724
-  languageName: node
-  linkType: hard
-
-"prosemirror-commands@npm:^1.7.1":
+"prosemirror-commands@npm:1.7.2":
   version: 1.7.2
   resolution: "prosemirror-commands@npm:1.7.2"
   dependencies:
@@ -38456,18 +38453,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-dropcursor@npm:1.6.1":
-  version: 1.6.1
-  resolution: "prosemirror-dropcursor@npm:1.6.1"
-  dependencies:
-    prosemirror-state: "npm:^1.0.0"
-    prosemirror-transform: "npm:^1.1.0"
-    prosemirror-view: "npm:^1.1.0"
-  checksum: 10c0/e4bc8bb4abd013a9aed7336c0f819aa5ecb0dd58434fc495437293e38b24d970909454ab7fa512fa4a0428919ea9473adca1b9d588619ff4948db50c1b47dc77
-  languageName: node
-  linkType: hard
-
-"prosemirror-dropcursor@npm:^1.8.2":
+"prosemirror-dropcursor@npm:1.8.4":
   version: 1.8.4
   resolution: "prosemirror-dropcursor@npm:1.8.4"
   dependencies:
@@ -38478,7 +38464,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-gapcursor@npm:^1.4.1":
+"prosemirror-gapcursor@npm:1.4.1":
   version: 1.4.1
   resolution: "prosemirror-gapcursor@npm:1.4.1"
   dependencies:
@@ -38490,7 +38476,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-history@npm:^1.5.0":
+"prosemirror-history@npm:1.5.1":
   version: 1.5.1
   resolution: "prosemirror-history@npm:1.5.1"
   dependencies:
@@ -38502,17 +38488,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-inputrules@npm:1.2.0":
-  version: 1.2.0
-  resolution: "prosemirror-inputrules@npm:1.2.0"
-  dependencies:
-    prosemirror-state: "npm:^1.0.0"
-    prosemirror-transform: "npm:^1.0.0"
-  checksum: 10c0/fd3df9077638d917d5c005afd305c104111e545f9988b7c5ecad39ecc06fd60ff4bf5b020dd7a175b6b7c984f426a63a10bf76fb7eb983bb4995af2245d72a12
-  languageName: node
-  linkType: hard
-
-"prosemirror-inputrules@npm:^1.5.0":
+"prosemirror-inputrules@npm:1.5.1":
   version: 1.5.1
   resolution: "prosemirror-inputrules@npm:1.5.1"
   dependencies:
@@ -38522,17 +38498,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-keymap@npm:1.2.0":
-  version: 1.2.0
-  resolution: "prosemirror-keymap@npm:1.2.0"
-  dependencies:
-    prosemirror-state: "npm:^1.0.0"
-    w3c-keyname: "npm:^2.2.0"
-  checksum: 10c0/6e5bf4c03efd8a529443da0279993893722fe797b7d7a124065effb6118d5a236233c6b4a25487c0a57e86987e9748b82c890e513d98a974bcde0d3d38aa6e96
-  languageName: node
-  linkType: hard
-
-"prosemirror-keymap@npm:^1.0.0, prosemirror-keymap@npm:^1.2.3":
+"prosemirror-keymap@npm:1.2.3, prosemirror-keymap@npm:^1.0.0, prosemirror-keymap@npm:^1.2.3":
   version: 1.2.3
   resolution: "prosemirror-keymap@npm:1.2.3"
   dependencies:
@@ -38562,7 +38528,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-tables@npm:^1.8.5":
+"prosemirror-tables@npm:1.8.5":
   version: 1.8.5
   resolution: "prosemirror-tables@npm:1.8.5"
   dependencies:
@@ -46282,7 +46248,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"y-prosemirror@npm:^1.3.7":
+"y-prosemirror@npm:1.3.7":
   version: 1.3.7
   resolution: "y-prosemirror@npm:1.3.7"
   dependencies:
@@ -46466,7 +46432,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yjs@npm:^13.6.31":
+"yjs@npm:13.6.33":
   version: 13.6.33
   resolution: "yjs@npm:13.6.33"
   dependencies:
