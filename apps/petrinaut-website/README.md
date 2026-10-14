@@ -70,6 +70,8 @@ A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSIS
 
 While Brunch is the assistant, **User settings → Plugins** lists **Brunch**, the `website.brunch` plugin in `src/main/app/plugins/brunch/plugin.tsx`. It has no switch: Brunch's cards read the open net, its experiments and the editor's navigation through its `api`, and render nothing without it. It leaves the list with the Brunch assistant.
 
+The Brunch code that needs the built Brunch server is tested in `tests/petrinaut-brunch-integration`. That package imports website modules by path, and `package.json` `exports` lists each one; moving or renaming one of those modules means updating that list and the tests that import it.
+
 Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 
 ## Snapshot links

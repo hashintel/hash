@@ -7,7 +7,7 @@ These tests run the Petrinaut website's Brunch code against the built Brunch ser
 - `live-pending-tool`: the website's transport bounds a stalled native OpenAI tool row without replaying completed tool work.
 - `buffered-admission`: the website's Voice code speaks only what the server's admission-controls probe approved.
 
-The tests import website modules as `@apps/petrinaut-website/src/...` and reach the server through `@apps/brunch-agent/testing/*`, which loads `apps/brunch-agent/dist/app.mjs`.
+The tests import website modules as `@apps/petrinaut-website/src/...`, each listed in the website's `package.json` `exports`, and reach the server through `@apps/brunch-agent/testing/*`, which loads `apps/brunch-agent/dist/app.mjs`.
 
 ```sh
 turbo run test:integration --filter @tests/petrinaut-brunch-integration
