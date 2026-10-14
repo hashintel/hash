@@ -1,12 +1,20 @@
 $schema: https://json.schemastore.org/lefthook.json
 
+ai:
+  claude:
+    Stop: ai-format
+  codex:
+    Stop: ai-format
+  cursor:
+    stop: ai-format
+
 pre-commit:
   parallel: true
   skip:
     - merge
     - rebase
   commands:
-    markdownlint:
+    markdownlint: &markdownlint
       tags: [frontend, style]
       glob: "*.md"
       run: markdownlint-cli2 --fix --no-globs {staged_files} || true
@@ -31,13 +39,28 @@ pre-commit:
       glob: "*.sql"
       run: sqlfluff fix {staged_files} || true
       stage_fixed: true
-    rust:
+    rust: &rust
       tags: [backend, style]
       glob: "*.rs"
       run: rustfmt {staged_files} || true
       stage_fixed: true
-    toml:
+    toml: &toml
       tags: [backend, style]
       glob: "*.toml"
       run: taplo format {staged_files} || true
       stage_fixed: true
+
+ai-format:
+  parallel: true
+  # Agent edits are not staged, so `{staged_files}` would miss them.
+  files: git diff --name-only --diff-filter=d HEAD && git ls-files --others --exclude-standard
+  commands:
+    markdownlint:
+      <<: *markdownlint
+      run: markdownlint-cli2 --fix --no-globs {files} || true
+    rust:
+      <<: *rust
+      run: rustfmt {files} || true
+    toml:
+      <<: *toml
+      run: taplo format {files} || true
