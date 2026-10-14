@@ -68,6 +68,20 @@ const apiDomain = new URL(apiUrl).hostname;
 const pageEntityTypeBaseUrl = "https://hash.ai/@h/types/entity-type/page/";
 
 /**
+ * Next.js passes these options on to `babel-plugin-react-compiler`, although
+ * its own type declares only `compilationMode` and `panicThreshold`.
+ *
+ * @type {Pick<import("babel-plugin-react-compiler").PluginOptions, "panicThreshold" | "sources">}
+ */
+const reactCompilerOptions = {
+  // Leave a component the compiler can't handle uncompiled, and keep building.
+  panicThreshold: "none",
+  // A `dist` is built output: petrinaut's is compiled already, and the others
+  // are not checked against the compiler.
+  sources: (filename) => !/[\\/]dist[\\/]/.test(filename),
+};
+
+/**
  * @todo make plugin definition cleaner - some ideas in https://github.com/cyrilwanner/next-compose-plugins/issues/59
  *    next-compose plugins itself is unmaintained and leads to 'invalid config property' warnings if used
  */
@@ -190,6 +204,12 @@ export default withSentryConfig(
       // again during `next build`, we save CI minutes and unlock more feedback.
       // Thus, we can get Playwright test results and Preview releases for WIP PRs.
       typescript: { ignoreBuildErrors: true },
+
+      // `DISABLE_REACT_COMPILER=true` builds without React Compiler.
+      reactCompiler:
+        process.env.DISABLE_REACT_COMPILER === "true"
+          ? false
+          : reactCompilerOptions,
 
       experimental: {
         esmExternals: "loose",
