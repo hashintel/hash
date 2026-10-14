@@ -1,3 +1,5 @@
+import { checkConditionInput, filterableKinds } from "./filter-condition.js";
+
 import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
   AcceptedKinds,
@@ -17,6 +19,7 @@ import type {
 export type AiFlowActionDefinitionId =
   | "analyzeEntityData"
   | "answerQuestion"
+  | "filterList"
   | "generateChartConfig"
   | "generateStructuralQuery"
   | "planDashboardRefinement"
@@ -24,6 +27,7 @@ export type AiFlowActionDefinitionId =
   | "getFileFromUrl"
   | "getWebPageByUrl"
   | "getWebPageSummary"
+  | "if"
   | "inferMetadataFromDocument"
   | "inferEntitiesFromContent"
   | "processAutomaticBrowsingSettings"
@@ -824,6 +828,80 @@ const aiFlowActionDefinitionsAsConst = {
         required: false,
       },
     ],
+  },
+  filterList: {
+    actionDefinitionId: "filterList",
+    name: "Filter List",
+    description:
+      "Split a list into the items that match a condition and those that don't, keeping their order.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: filterableKinds,
+        name: "items",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["FilterCondition"],
+        name: "condition",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindFrom: "items",
+        name: "matching",
+        array: true,
+        required: true,
+      },
+      {
+        kindFrom: "items",
+        name: "nonMatching",
+        array: true,
+        required: true,
+      },
+    ],
+    check: checkConditionInput("items"),
+  },
+  if: {
+    actionDefinitionId: "if",
+    name: "If",
+    description:
+      "Pass a value on unchanged to the true or false output, depending on whether it matches a condition.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: filterableKinds,
+        name: "value",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["FilterCondition"],
+        name: "condition",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindFrom: "value",
+        name: "true",
+        description: "The value, if it matches the condition.",
+        array: false,
+        required: false,
+      },
+      {
+        kindFrom: "value",
+        name: "false",
+        description: "The value, if it doesn't match the condition.",
+        array: false,
+        required: false,
+      },
+    ],
+    check: checkConditionInput("value"),
   },
 } as const satisfies Record<
   AiFlowActionDefinitionId,

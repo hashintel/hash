@@ -17,6 +17,8 @@ import {
 } from "./define-flow.js";
 import { allPayloadKinds } from "./types.js";
 
+import type { VersionedUrl } from "@blockprotocol/type-system";
+
 /**
  * One table of connections, checked against both halves of the connection rule: `canConnect` at runtime,
  * and the builder's `Ref` types at compile time (`TypeLevelResults` below).
@@ -627,6 +629,155 @@ describe("steps of actions with derived kinds", () => {
   };
 
   it("type outputs and inputs with derived kinds by the kind connected", () => {
+    expect(typeChecks).toBeDefined();
+  });
+});
+
+describe("Filter List and If steps", () => {
+  const companyType =
+    "https://example.com/types/entity-type/company/v/1" as VersionedUrl;
+
+  it("filter a list and pass the matching items on", () => {
+    const { flowDefinition } = defineFlow(
+      {
+        flowDefinitionId: "research-companies",
+        name: "Research companies",
+        description: "Research entities and persist the companies",
+        inputs: {
+          prompt: flowInput("Text"),
+          entityTypeIds: flowInput("VersionedUrl", { array: true }),
+        },
+      },
+      ({ inputs, step }) => {
+        const research = step("research", actions.researchEntities, {
+          description: "Research entities",
+          inputs: {
+            prompt: inputs.prompt,
+            entityTypeIds: inputs.entityTypeIds,
+          },
+        });
+
+        const companies = step("companies", actions.filterList, {
+          description: "Keep the companies",
+          inputs: {
+            items: research.outputs.proposedEntities.consume(),
+            condition: constant("FilterCondition", {
+              kind: "all",
+              conditions: [
+                {
+                  kind: "condition",
+                  subject: { kind: "entityType" },
+                  operator: "isOfType",
+                  value: { kind: "VersionedUrl", value: companyType },
+                },
+              ],
+            }),
+          },
+        });
+
+        expectTypeOf(companies.outputs.matching).toEqualTypeOf<
+          Ref<"ProposedEntity", true, true>
+        >();
+
+        const persist = step("persist", actions.persistEntities, {
+          description: "Persist the companies",
+          inputs: { proposedEntities: companies.outputs.matching },
+        });
+
+        return { outputs: { persisted: persist.outputs.persistedEntities } };
+      },
+    );
+
+    expect(flowDefinition.steps[2]).toMatchObject({
+      actionDefinitionId: "persistEntities",
+      inputs: {
+        proposedEntities: {
+          kind: "step-output",
+          stepId: "companies",
+          outputName: "matching",
+        },
+      },
+    });
+  });
+
+  it("run the steps after an If step only on the branch it takes", () => {
+    const { flowDefinition } = defineFlow(
+      {
+        flowDefinitionId: "answer-questions",
+        name: "Answer questions",
+        description: "Answer the input if it's a question",
+        inputs: { text: flowInput("Text") },
+      },
+      ({ inputs, step }) => {
+        const isQuestion = step("isQuestion", actions.if, {
+          description: "Check for a question",
+          inputs: {
+            value: inputs.text,
+            condition: constant("FilterCondition", {
+              kind: "all",
+              conditions: [
+                {
+                  kind: "condition",
+                  subject: { kind: "input", payloadKind: "Text" },
+                  operator: "endsWith",
+                  value: { kind: "Text", value: "?" },
+                },
+              ],
+            }),
+          },
+        });
+
+        expectTypeOf(isQuestion.outputs.true).toEqualTypeOf<
+          Ref<"Text", false, false>
+        >();
+
+        step("answer", actions.answerQuestion, {
+          description: "Answer the question",
+          inputs: { question: isQuestion.outputs.true.orSkip() },
+        });
+
+        return { outputs: {} };
+      },
+    );
+
+    expect(flowDefinition.steps[1]).toMatchObject({
+      inputs: {
+        question: {
+          kind: "step-output",
+          stepId: "isQuestion",
+          outputName: "true",
+          whenMissing: "skip",
+        },
+      },
+    });
+  });
+
+  it("require a branch of an If step to be skipped when it isn't taken", () => {
+    const typeChecks = (step: AddStep, text: Ref<"Text", false, true>) => {
+      const isQuestion = step("isQuestion", actions.if, {
+        description: "",
+        inputs: {
+          value: text,
+          condition: constant("FilterCondition", {
+            kind: "all",
+            conditions: [
+              {
+                kind: "condition",
+                subject: { kind: "input", payloadKind: "Text" },
+                operator: "isNotEmpty",
+              },
+            ],
+          }),
+        },
+      });
+
+      step("answer", actions.answerQuestion, {
+        description: "",
+        // @ts-expect-error -- `true` is missing when the value doesn't match
+        inputs: { question: isQuestion.outputs.true },
+      });
+    };
+
     expect(typeChecks).toBeDefined();
   });
 });
