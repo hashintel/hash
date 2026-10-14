@@ -8,10 +8,17 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 
 import { graphApiClient } from "../../shared/graph-api-client.js";
 
-import type { ConditionContext } from "./evaluate-condition.js";
+import type {
+  ConditionContext,
+  ConditionEntity,
+} from "./evaluate-condition.js";
 import type { EntityId, UserId } from "@blockprotocol/type-system";
+import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
+
+/** The most entities one condition context loads. More fails the step, rather than leaving some out. */
+const maxConditionEntities = 100_000;
 
 /**
  * Fetches the entities whose properties or types a condition reads, as the user running the flow. Each EntityId
@@ -51,40 +58,52 @@ export const getConditionContext = async (params: {
     return {};
   }
 
-  const { entities } = await queryEntities(
-    { graphApi: graphApiClient },
-    authentication,
-    {
-      filter: {
-        any: entityIds.map((entityId) => {
-          const [webId, entityUuid, draftId] = splitEntityId(entityId);
+  if (entityIds.length > maxConditionEntities) {
+    throw new Error(
+      `A condition can read at most ${maxConditionEntities} entities, but was given ${entityIds.length}.`,
+    );
+  }
 
-          return {
-            all: [
-              { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
-              { equal: [{ path: ["webId"] }, { parameter: webId }] },
-              draftId
-                ? { equal: [{ path: ["draftId"] }, { parameter: draftId }] }
-                : { not: { exists: { path: ["draftId"] } } },
-            ],
-          };
-        }),
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: true,
-      includePermissions: false,
-    },
-  );
+  const filter: Filter = {
+    any: entityIds.map((entityId) => {
+      const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
-  return {
-    entities: new Map(
-      entities.map((entity) => [
-        entity.metadata.recordId.entityId,
-        {
-          properties: entity.properties,
-          entityTypeIds: entity.metadata.entityTypeIds,
-        },
-      ]),
-    ),
+      return {
+        all: [
+          { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+          { equal: [{ path: ["webId"] }, { parameter: webId }] },
+          draftId
+            ? { equal: [{ path: ["draftId"] }, { parameter: draftId }] }
+            : { not: { exists: { path: ["draftId"] } } },
+        ],
+      };
+    }),
   };
+
+  const entities = new Map<EntityId, ConditionEntity>();
+  let cursor: EntityQueryCursor | null | undefined;
+
+  do {
+    const response = await queryEntities(
+      { graphApi: graphApiClient },
+      authentication,
+      {
+        filter,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: true,
+        includePermissions: false,
+        cursor,
+      },
+    );
+
+    for (const entity of response.entities) {
+      entities.set(entity.metadata.recordId.entityId, {
+        properties: entity.properties,
+        entityTypeIds: entity.metadata.entityTypeIds,
+      });
+    }
+    cursor = response.cursor;
+  } while (cursor);
+
+  return { entities };
 };

@@ -270,6 +270,56 @@ describe("filterListAction", () => {
     });
   });
 
+  it("loads the entities from every page of the query", async () => {
+    const draftEntityId =
+      `${validEntityId}~00000000-0000-4000-8000-000000000099` as EntityId;
+    const page = (entityId: EntityId, cursor?: string) =>
+      ({
+        entities: [
+          {
+            properties: {},
+            metadata: {
+              recordId: { entityId },
+              entityTypeIds: [companyType],
+            },
+          },
+        ],
+        cursor,
+      }) as unknown as QueryEntitiesResponse;
+
+    vi.mocked(queryEntities)
+      .mockClear()
+      .mockResolvedValueOnce(page(validEntityId, "next-page"))
+      .mockResolvedValueOnce(page(draftEntityId));
+
+    const result = await run(
+      { kind: "EntityId", value: [validEntityId, draftEntityId] },
+      isCompany,
+    );
+
+    expect(vi.mocked(queryEntities).mock.calls[1]?.[2].cursor).toBe(
+      "next-page",
+    );
+    expect(await outputValues(result)).toEqual({
+      matching: [validEntityId, draftEntityId],
+      nonMatching: [],
+    });
+  });
+
+  it("fails instead of loading more entities than a condition can read", async () => {
+    vi.mocked(queryEntities).mockClear();
+    const entityIds = Array.from(
+      { length: 100_001 },
+      (_, index) =>
+        `${webId}~00000000-0000-4000-8000-${index.toString().padStart(12, "0")}` as EntityId,
+    );
+
+    await expect(
+      run({ kind: "EntityId", value: entityIds }, isCompany),
+    ).rejects.toThrow("at most 100000 entities");
+    expect(queryEntities).not.toHaveBeenCalled();
+  });
+
   it("reports an entity the user can't read as not found", async () => {
     vi.mocked(queryEntities).mockResolvedValueOnce({
       entities: [],
