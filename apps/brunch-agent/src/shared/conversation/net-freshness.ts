@@ -5,22 +5,12 @@
  * the browser refuses it if the document has since moved by other means.
  */
 
-import {
-  browserToolMutatesDocument,
-  isNetObservationTool,
-  parseClientToolResultMetadata,
-} from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
-import { inBandBrowserToolNames } from "../tool-catalogue.ts";
+import { mayShowNet, netResultView } from "./net-view.ts";
 
 import type { ContextProjectionEntry } from "@flue/runtime";
 import type { FlueConversationSnapshot } from "@flue/sdk";
-
-/** A read of the net or a settled change to it both tell the model its state. */
-const informsNetView = (toolName: string): boolean =>
-  inBandBrowserToolNames.has(toolName) &&
-  (isNetObservationTool(toolName) || browserToolMutatesDocument(toolName));
 
 /** Tool call ids of net results present in one conversation's model context. */
 export type NetView = ReadonlySet<string>;
@@ -42,7 +32,7 @@ export const createNetViewTracker = () => {
           entries.flatMap(({ message }) =>
             message.role === "toolResult" &&
             !message.isError &&
-            informsNetView(message.toolName)
+            mayShowNet(message.toolName)
               ? [message.toolCallId]
               : [],
           ),
@@ -80,19 +70,14 @@ export const expectedNetRevision = (
       if (
         part.state !== "output-available" ||
         !view?.has(part.toolCallId) ||
-        !informsNetView(part.toolName) ||
         typeof part.output !== "object" ||
         part.output === null ||
         !("metadata" in part.output)
       )
         continue;
-      const metadata = parseClientToolResultMetadata(part.output.metadata);
-      const observed = browserToolMutatesDocument(part.toolName)
-        ? metadata?.readBack === undefined
-          ? undefined
-          : metadata.documentRevision.after
-        : metadata?.documentRevision.before;
-      revision = observed ?? revision;
+      revision =
+        netResultView(part.toolName, part.output.metadata)?.revision ??
+        revision;
     }
   }
   throw new Error(

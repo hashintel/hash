@@ -1,9 +1,4 @@
-import {
-  browserToolMutatesDocument,
-  isNetObservationTool,
-  parseClientToolResultMetadata,
-} from "@hashintel/brunch-agent";
-
+import { netResultView } from "./conversation/net-view.ts";
 import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 
 import type {
@@ -52,12 +47,9 @@ const readBackEntryIndex = (
     if (message.role !== "toolResult") continue;
     const envelope = browserEnvelope(message);
     if (!envelope) continue;
-    if (isNetObservationTool(message.toolName)) candidate = undefined;
-    else if (
-      browserToolMutatesDocument(message.toolName) &&
-      parseClientToolResultMetadata(envelope.metadata)?.readBack !== undefined
-    )
-      candidate = index;
+    const view = netResultView(message.toolName, envelope.metadata);
+    if (view?.kind === "read") candidate = undefined;
+    else if (view?.kind === "change") candidate = index;
   }
   return candidate;
 };
@@ -72,9 +64,10 @@ const projectInBandBrowserResult = (
 ): ContextProjectionEntry => {
   const envelope = browserEnvelope(entry.message);
   if (!envelope || entry.message.role !== "toolResult") return entry;
-  const readBack = withReadBack
-    ? parseClientToolResultMetadata(envelope.metadata)?.readBack
+  const view = withReadBack
+    ? netResultView(entry.message.toolName, envelope.metadata)
     : undefined;
+  const readBack = view?.kind === "change" ? view.readBack : undefined;
   return {
     ...entry,
     message: {

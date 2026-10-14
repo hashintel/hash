@@ -1,5 +1,4 @@
 import {
-  isNetObservationTool,
   type NetElementKind,
   netReaderLevelOf,
   parseClientToolResultMetadata,
@@ -16,6 +15,8 @@ import {
   petrinautAiTools,
   getLatestNetDefinitionToolName,
 } from "@hashintel/petrinaut-core/ai";
+
+import { netResultView } from "./net-view.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -39,6 +40,8 @@ export interface NetCall {
   readonly output: unknown;
   readonly revisionBefore?: string;
   readonly revisionAfter?: string;
+  /** The browser's host-only metadata, as recorded. */
+  readonly metadata: unknown;
   readonly messageIndex: number;
   readonly partIndex: number;
 }
@@ -66,9 +69,9 @@ export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
           )
             return [];
           if (!("output" in envelope)) return [];
-          const metadata = parseClientToolResultMetadata(
-            "metadata" in envelope ? envelope.metadata : undefined,
-          );
+          const recordedMetadata =
+            "metadata" in envelope ? envelope.metadata : undefined;
+          const metadata = parseClientToolResultMetadata(recordedMetadata);
           return [
             {
               toolCallId: part.toolCallId,
@@ -77,6 +80,7 @@ export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
               output: envelope.output,
               revisionBefore: metadata?.documentRevision.before,
               revisionAfter: metadata?.documentRevision.after,
+              metadata: recordedMetadata,
               messageIndex,
               partIndex,
             },
@@ -203,18 +207,23 @@ export const latestCanonicalNetReadBefore = (
   );
 };
 
+/**
+ * The net as the latest result that shows it: a net read, or a change that
+ * carries the net read back.
+ */
 export const latestNetDefinition = (
   snapshot: FlueConversationSnapshot,
 ): { readonly definition: SDCPN; readonly call: NetCall } | undefined => {
-  const call = netCalls(snapshot).findLast((entry) =>
-    isNetObservationTool(entry.toolName),
+  const call = netCalls(snapshot).findLast(
+    (entry) => netResultView(entry.toolName, entry.metadata) !== undefined,
   );
-  if (
-    !call ||
-    typeof call.output !== "object" ||
-    call.output === null ||
-    !("definition" in call.output)
-  )
-    return undefined;
-  return { definition: call.output.definition as SDCPN, call };
+  if (!call) return undefined;
+  const view = netResultView(call.toolName, call.metadata);
+  if (view?.kind === "change")
+    return { definition: view.readBack as SDCPN, call };
+  return typeof call.output === "object" &&
+    call.output !== null &&
+    "definition" in call.output
+    ? { definition: call.output.definition as SDCPN, call }
+    : undefined;
 };

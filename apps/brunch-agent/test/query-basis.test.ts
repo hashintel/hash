@@ -325,3 +325,48 @@ test("query_basis finds an element inside a subnet and the call that added it th
     changes: [{ toolCallId: "add-triage", petrinautRevisionId: "revision-2" }],
   });
 });
+
+test("query_basis answers from the read-back of a change made after the latest read", () => {
+  const [queue] = definition.places;
+  const dryer = { ...queue, id: "dryer", name: "Dryer" };
+  const build = {
+    id: "assistant-build",
+    role: "assistant",
+    purpose: "assistant",
+    display: "visible",
+    parts: [
+      {
+        type: "dynamic-tool",
+        toolName: "addPlace",
+        toolCallId: "add-dryer",
+        state: "output-available",
+        input: { id: "dryer", name: "Dryer" },
+        output: {
+          brunchBrowserResult: true,
+          output: { title: "Added place Dryer", applied: true },
+          metadata: {
+            documentRevision: { before: "revision-2", after: "revision-3" },
+            readBack: { ...definition, places: [queue, dryer] },
+          },
+        },
+      },
+    ],
+  };
+  const history = {
+    ...snapshot,
+    messages: [...snapshot.messages, build],
+  } as FlueConversationSnapshot;
+
+  expect(
+    queryBasis({
+      snapshot: history,
+      browser,
+      query: { kind: "place", name: "Dryer" },
+    }),
+  ).toMatchObject({
+    disposition: "basis-absent",
+    target: { id: "dryer" },
+    readToolCallId: "add-dryer",
+    changes: [{ toolCallId: "add-dryer", petrinautRevisionId: "revision-3" }],
+  });
+});

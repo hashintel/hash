@@ -22,7 +22,7 @@ import type { BrowserContext, LedgerState } from "@hashintel/brunch-agent";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 export const queryBasisToolDescription =
-  "Use when the USER asks why a visible net element exists, instead of answering from memory. Finds the element in the latest net read and lists the canonical calls that changed it, each with its settled document revision, the Ledger revision current at the call, and the Ledger records committed in the same turn, before or after the call, each with its ID, record type and content, including the net element addresses a reflection concerns. These are chronological associations, not semantic justification: say so, and say plainly when no call is associated. A stale-read disposition means the net changed after the latest read: read it again, then query.";
+  "Use when the USER asks why a visible net element exists, instead of answering from memory. Finds the element in the latest net read, or in the net read back after a later change, and lists the canonical calls that changed it, each with its settled document revision, the Ledger revision current at the call, and the Ledger records committed in the same turn, before or after the call, each with its ID, record type and content, including the net element addresses a reflection concerns. These are chronological associations, not semantic justification: say so, and say plainly when no call is associated. A stale-read disposition means the net changed after the latest read without being read back: read it again, then query.";
 
 const elementSchema = v.object({
   selector: v.pipe(
@@ -185,16 +185,18 @@ export const queryBasis = (input: {
   browser: BrowserContext;
   query: Selector;
 }) => {
+  // The latest read, or the latest change carrying its read-back; a change
+  // after it carried none.
   const latest = latestNetDefinition(input.snapshot);
-  const read = latest?.call;
+  const view = latest?.call;
   if (
-    read &&
+    view &&
     netCalls(input.snapshot).some(
       (call) =>
         isAppliedChange(call) &&
-        (call.messageIndex > read.messageIndex ||
-          (call.messageIndex === read.messageIndex &&
-            call.partIndex > read.partIndex)),
+        (call.messageIndex > view.messageIndex ||
+          (call.messageIndex === view.messageIndex &&
+            call.partIndex > view.partIndex)),
     )
   )
     return {
@@ -203,7 +205,7 @@ export const queryBasis = (input: {
       reason:
         "The net changed after the latest net read; read it again, then query.",
       target: undefined,
-      readToolCallId: read.toolCallId,
+      readToolCallId: view.toolCallId,
       changes: [],
     };
   const candidates = latest
