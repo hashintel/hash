@@ -23,15 +23,6 @@ export const testDocumentPages = [
   },
 ] as const satisfies PageContent[];
 
-/**
- * The text of a second generated test document, one page long, that holds
- * `otherTestDocumentSearchWord` twice and `testDocumentSearchWord` nowhere.
- */
-export const otherTestDocumentSearchWord = "wombat";
-
 export const otherTestDocumentPages = [
-  {
-    heading: "Only page",
-    body: `A ${otherTestDocumentSearchWord} and another ${otherTestDocumentSearchWord} live here.`,
-  },
+  { heading: "Only page", body: "A different document." },
 ] as const satisfies PageContent[];
