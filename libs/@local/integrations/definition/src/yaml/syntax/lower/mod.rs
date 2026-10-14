@@ -19,8 +19,11 @@ use type_system::ontology::VersionedUrl;
 use crate::{
     definition::DefinitionParts,
     issue::{DefinitionIssue, DefinitionPath, IssueKind, SourceLocation},
-    name::{ColumnName, ConnectorId, InvalidName, SourceName, UnitCode, UnitMapName, VariableName},
-    source::{Coverage, PrimaryKey, Source, SourceKind, SqlQuery},
+    name::{
+        CheckpointName, ColumnName, ConnectorId, InvalidName, SourceName, UnitCode, UnitMapName,
+        VariableName,
+    },
+    source::{Coverage, InvalidPrimaryKey, PrimaryKey, Source, SourceKind, SqlQuery},
     unit_map::UnitMap,
     yaml::{
         interpolate::Variables,
@@ -257,12 +260,22 @@ impl Lowering {
         path: &DefinitionPath,
     ) -> LoweredResult<PrimaryKey> {
         self.record_location(path, SourceLocation::from_spanned(value));
+        let mut seen = BTreeSet::new();
         let columns: Vec<ColumnName> = value
             .value
             .iter()
             .enumerate()
             .map(|(position, column)| {
-                self.name::<ColumnName>(column, &path.clone().index(position))
+                let column = self.name::<ColumnName>(column, &path.clone().index(position))?;
+                if !seen.insert(column.clone()) {
+                    return Err(self.report(
+                        path.clone(),
+                        IssueKind::InvalidPrimaryKey {
+                            reason: InvalidPrimaryKey::DuplicateColumn { column },
+                        },
+                    ));
+                }
+                Ok(column)
             })
             .try_collect_reports()?;
         PrimaryKey::new(columns)
@@ -339,21 +352,39 @@ impl SourceSyntax {
                 let ((), checkpoint) = (primary_key, checkpoint).try_collect()?;
                 SourceKind::Checkpoint { checkpoint }
             }
-            (None, None) => {
-                return Err(lowering.report(
-                    path.clone(),
-                    IssueKind::MissingKind {
-                        expected: Self::KINDS,
-                    },
-                ));
-            }
-            (Some(_), Some(_)) => {
-                return Err(lowering.report(
-                    path.clone(),
+            (None, None) | (Some(_), Some(_)) => {
+                let reason = if self.sql.is_some() {
                     IssueKind::ConflictingKinds {
                         found: Self::KINDS.into(),
-                    },
-                ));
+                    }
+                } else {
+                    IssueKind::MissingKind {
+                        expected: Self::KINDS,
+                    }
+                };
+                let kind: LoweredResult<SourceKind> = Err(lowering.report(path.clone(), reason));
+                let query = self
+                    .sql
+                    .as_ref()
+                    .map(|sql| lowering.query(sql, &path.clone().field("sql")))
+                    .transpose();
+                let checkpoint = self
+                    .checkpoint
+                    .as_ref()
+                    .map(|checkpoint| {
+                        lowering
+                            .name::<CheckpointName>(checkpoint, &path.clone().field("checkpoint"))
+                    })
+                    .transpose();
+                let primary_key = self
+                    .primary_key
+                    .as_ref()
+                    .map(|primary_key| {
+                        lowering.primary_key(primary_key, &path.clone().field("primaryKey"))
+                    })
+                    .transpose();
+                let (kind, _, _, _) = (kind, query, checkpoint, primary_key).try_collect()?;
+                kind
             }
         };
 

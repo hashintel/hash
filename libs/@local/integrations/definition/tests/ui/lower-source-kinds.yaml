@@ -1,0 +1,14 @@
+connector: demo
+sources:
+  bothEmpty:
+    sql: "  "
+    checkpoint: demo//orders
+    primaryKey: [id, id, ""]
+  bothUnresolved:
+    sql: SELECT ${MISSING}
+    checkpoint: "${UNKNOWN}"
+    primaryKey: []
+  neitherInvalid:
+    primaryKey: [id, "", id]
+  neitherEmpty:
+    primaryKey: []
