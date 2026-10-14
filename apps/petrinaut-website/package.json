@@ -3,21 +3,6 @@
   "version": "0.0.0-private",
   "private": true,
   "type": "module",
-  "exports": {
-    "./src/vite-env": "./src/vite-env.d.ts",
-    "./src/main/app/local-storage-demo/assistant-selection": "./src/main/app/local-storage-demo/assistant-selection.ts",
-    "./src/main/app/local-storage-demo/local-storage-demo-app": "./src/main/app/local-storage-demo/local-storage-demo-app.tsx",
-    "./src/main/app/plugins/_shared/testing/render-editor-with": "./src/main/app/plugins/_shared/testing/render-editor-with.tsx",
-    "./src/main/app/plugins/brunch/brunch-flue-adapter": "./src/main/app/plugins/brunch/brunch-flue-adapter.ts",
-    "./src/main/app/plugins/brunch/brunch-panel-transport": "./src/main/app/plugins/brunch/brunch-panel-transport.ts",
-    "./src/main/app/plugins/brunch/brunch-preview-config": "./src/main/app/plugins/brunch/brunch-preview-config.ts",
-    "./src/main/app/plugins/brunch/conversation/brunch-principal": "./src/main/app/plugins/brunch/conversation/brunch-principal.ts",
-    "./src/main/app/plugins/brunch/tools/brunch-tool-presentation": "./src/main/app/plugins/brunch/tools/brunch-tool-presentation.ts",
-    "./src/main/app/plugins/brunch/tools/shared/document-revision": "./src/main/app/plugins/brunch/tools/shared/document-revision.ts",
-    "./src/main/app/plugins/brunch/voice/live/canonical-speech": "./src/main/app/plugins/brunch/voice/live/canonical-speech.ts",
-    "./src/main/app/plugins/brunch/voice/realtime/realtime-brunch-bridge": "./src/main/app/plugins/brunch/voice/realtime/realtime-brunch-bridge.ts",
-    "./src/main/app/shared/petrinaut-jsdom": "./src/main/app/shared/petrinaut-jsdom.ts"
-  },
   "scripts": {
     "brunch:fixture": "node --experimental-strip-types scripts/brunch-sse-fixture.ts",
     "build": "vite build",
