@@ -1,3 +1,8 @@
+/**
+ * Type-level module checks for named exports, generic aliases and optional namespaces.
+ *
+ * @module
+ */
 // oxlint-disable unicorn/no-array-method-this-argument -- filter is a HashQL function, not Array.filter
 import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
@@ -15,35 +20,33 @@ type Graph<T extends Type.Any> = Type.Opaque<
   "::graph::Graph",
   Type.Struct<{ readonly "'marker": T }>
 >;
-type VertexOf<T> = T extends Graph<infer VertexType> ? VertexType : never;
+type VertexOf<T> = T extends Graph<infer V> ? V : never;
 
 interface Filter extends Type.FunctionSignature {
-  readonly type: this["Target"] extends readonly [infer Input, Type.Any]
+  readonly type: this["Target"] extends readonly [infer T, Type.Any]
     ? Type.Function<
         readonly [
-          Graph<VertexOf<Input>>,
-          Type.Function<readonly [VertexOf<Input>], Type.PrimitiveBoolean>,
+          Graph<VertexOf<T>>,
+          Type.Function<readonly [VertexOf<T>], Type.PrimitiveBoolean>,
         ],
-        Graph<VertexOf<Input>>
+        Graph<VertexOf<T>>
       >
     : Type.Function<readonly [never, never], Type.Never>;
 }
 
 interface List extends Type.TypeConstructor {
   readonly arity: 1;
-  readonly type: this["Target"] extends readonly [
-    infer Element extends Type.Any,
-  ]
-    ? Type.List<Element>
+  readonly type: this["Target"] extends readonly [infer T extends Type.Any]
+    ? Type.List<T>
     : Type.Never;
 }
 
 interface Equal extends Type.FunctionSignature {
   readonly type: this["Target"] extends readonly [
-    infer Left extends Type.Any,
-    infer Right extends Type.Any,
+    infer L extends Type.Any,
+    infer R extends Type.Any,
   ]
-    ? Type.Function<readonly [Left, Right], Type.PrimitiveBoolean>
+    ? Type.Function<readonly [L, R], Type.PrimitiveBoolean>
     : Type.Function<readonly [never, never], Type.Never>;
 }
 
@@ -193,6 +196,34 @@ describe("module_types", () => {
     prelude.List(integer);
     // @ts-expect-error The constructor's arity comes from its declaration.
     Module.genericType<List>(2);
+  });
+
+  test("optional_namespaces", () => {
+    const definition: {
+      readonly types?: {
+        readonly Integer: Module.Declaration<
+          TypeExpression<Type.PrimitiveInteger>
+        >;
+      };
+    } = {};
+    const optional = Result.getOrThrow(Module.define("::optional", definition));
+    expectTypeOf(optional.types.Integer).toEqualTypeOf<
+      TypeExpression<Type.PrimitiveInteger> | undefined
+    >();
+    // @ts-expect-error The entry is optional even though the namespace table always exists.
+    expectTypeOf(optional.types.Integer.syntax);
+  });
+
+  test("optional_declarations", () => {
+    const types: {
+      readonly Integer?: Module.Declaration<
+        TypeExpression<Type.PrimitiveInteger>
+      >;
+    } = {};
+    const optional = Result.getOrThrow(Module.define("::optional", { types }));
+    expectTypeOf(optional.types.Integer).toEqualTypeOf<
+      TypeExpression<Type.PrimitiveInteger> | undefined
+    >();
   });
 
   test("tree_members", () => {

@@ -1,5 +1,8 @@
-// oxlint-disable vitest/prefer-to-be-truthy -- freeze and membership checks need exact Boolean assertions
-// oxlint-disable vitest/prefer-to-be-falsy -- Reflect.set needs an exact Boolean assertion
+/**
+ * Runtime checks for module binding, alias identity and invalid export names.
+ *
+ * @module
+ */
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
@@ -80,6 +83,71 @@ const compile = (expression: Expression.Any): string =>
   JExpr.compile(Result.getOrThrow(Expression.toJExpr(expression)));
 
 describe("module_exports", () => {
+  test("prototype_named_export", () => {
+    expect.hasAssertions();
+    const name = "__proto__";
+    const exports = Result.getOrThrow(
+      Module.define("::exports", {
+        types: { [name]: Module.type<Type.PrimitiveInteger>() },
+      }),
+    );
+    expect(Object.hasOwn(exports.types, name)).toBe(true);
+    expect(Object.getPrototypeOf(exports.types)).toBe(Object.prototype);
+    expect(
+      TypeSyntax.compile(Result.getOrThrow(exports.types[name].syntax)),
+    ).toBe("::exports::__proto__");
+  });
+
+  test("nonenumerable_exports", () => {
+    expect.hasAssertions();
+    const types = { Integer: Module.type<Type.PrimitiveInteger>() };
+    const children = { math };
+    Object.defineProperty(types, "Integer", { enumerable: false });
+    Object.defineProperty(children, "math", { enumerable: false });
+    const exports = Result.getOrThrow(
+      Module.define("::exports", { types, modules: children }),
+    );
+    const tree = Result.getOrThrow(Module.root(children));
+    expect(Object.keys(exports.types)).toStrictEqual(["Integer"]);
+    expect(exports.modules.math).toBe(math);
+    expect(tree.modules.math).toBe(math);
+  });
+
+  test("symbol_export", () => {
+    expect.hasAssertions();
+    const name = Symbol("not a HashQL name");
+    const results = [
+      Module.define("::exports", {
+        types: { [name]: Module.type<Type.PrimitiveInteger>() },
+      }),
+      Module.define("::exports", {
+        values: { [name]: Module.value<Type.PrimitiveInteger>() },
+      }),
+      Module.define("::exports", { modules: { [name]: math } }),
+      Module.root({ [name]: math }),
+    ];
+    for (const result of results) {
+      expect(result).toMatchObject({
+        _tag: "Failure",
+        failure: { reason: { _tag: "SymbolExportName", name } },
+      });
+    }
+  });
+
+  test("optional_namespace", () => {
+    expect.hasAssertions();
+    const definition: {
+      readonly types?: {
+        readonly Integer: Module.Declaration<
+          TypeExpression.TypeExpression<Type.PrimitiveInteger>
+        >;
+      };
+    } = {};
+    expect(
+      Result.getOrThrow(Module.define("::exports", definition)).types,
+    ).toStrictEqual({});
+  });
+
   test("qualified_call", () => {
     expect.hasAssertions();
     expect(compile(prelude.remainder(dividend, divisor))).toBe(

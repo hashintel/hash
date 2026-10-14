@@ -5,7 +5,7 @@
  *
  * @module
  */
-import { Predicate, Result } from "effect";
+import { Predicate, Result, flow, pipe } from "effect";
 
 import * as JExpr from "../jexpr/index.js";
 import * as Expression from "./Expression.js";
@@ -20,14 +20,19 @@ const Declare: unique symbol = Symbol("~hashql/ModuleDeclaration");
 const TypeId: unique symbol = Symbol("~hashql/Module");
 
 /** A declaration waiting for the module to supply its absolute export path. */
-export interface Declaration<Export> {
+export interface Declaration<E> {
   readonly [Declare]: (
     path: JExpr.Path.Path,
-  ) => Result.Result<Export, ProgramError.Construction>;
+  ) => Result.Result<E, ProgramError.Construction>;
 }
 
 /** An inspectable export table without fixing its concrete key set. */
-interface Namespace<Export> extends ReadonlyRecord<string, Export> {}
+interface Namespace<E> extends ReadonlyRecord<string, E> {}
+
+/** Reverse mapping lets each declaration retain the type of the export it creates. */
+type Declarations<E> = {
+  readonly [K in keyof E]: Declaration<E[K]> | E[K];
+};
 
 /** A module with its concrete export names erased. */
 export interface Any {
@@ -50,25 +55,35 @@ export interface Definition {
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- an absent namespace intentionally has no known members
 type Empty = Record<never, never>;
 
-type Entries<Shape, Key extends PropertyKey> = Key extends keyof Shape
-  ? Shape[Key]
+/** Models possible namespace omission as optional members of an always-present table. */
+type Entries<S, K extends PropertyKey> = K extends keyof S
+  ? undefined extends S[K]
+    ? Partial<NonNullable<S[K]>>
+    : S[K]
   : Empty;
-type Exports<Declarations> = {
-  readonly [Name in keyof Declarations]: Declarations[Name] extends Declaration<
-    infer Export
-  >
-    ? Export
-    : Declarations[Name];
+
+/** Distributes over alternatives so an optional declaration also unwraps when present. */
+type Export<D> = D extends Declaration<infer E> ? E : D;
+
+type Exports<D> = {
+  readonly [K in keyof D]: Export<D[K]>;
 };
 
-/** An immutable module record preserving each export's concrete type. */
-export interface Module<Shape extends Definition> {
+/** Bound tables retain their key-to-export relationships independently of the source declarations. */
+interface Bound<M, T, V> {
   readonly [TypeId]: true;
   readonly path: JExpr.Path.Path;
-  readonly modules: Readonly<Entries<Shape, "modules">>;
-  readonly types: Exports<Entries<Shape, "types">>;
-  readonly values: Exports<Entries<Shape, "values">>;
+  readonly modules: Readonly<M>;
+  readonly types: Readonly<T>;
+  readonly values: Readonly<V>;
 }
+
+/** An immutable module record preserving each export's concrete type. */
+export interface Module<S extends Definition> extends Bound<
+  Entries<S, "modules">,
+  Exports<Entries<S, "types">>,
+  Exports<Entries<S, "values">>
+> {}
 
 /** Recognizes a module assembled by this SDK. */
 // oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
@@ -79,60 +94,125 @@ export const isModule = (value: unknown): value is Any =>
 export const value = <T extends Type.Any>(): Declaration<
   Expression.Expression<T, Inputs.Empty>
 > => ({
-  [Declare]: (path) =>
-    Result.succeed(
-      Expression.fromJExpr<T, Inputs.Empty>(JExpr.Path.compile(path)),
-    ),
+  [Declare]: flow(
+    JExpr.Path.compile,
+    Expression.fromJExpr<T, Inputs.Empty>,
+    Result.succeed,
+  ),
 });
 
 /** Declares a named type without expanding it into its structural representation. */
 export const type = <T extends Type.Any>(): Declaration<
   TypeExpression.TypeExpression<T>
 > => ({
-  [Declare]: (path) => Result.succeed(TypeExpression.reference<T>(path)),
+  [Declare]: flow(TypeExpression.reference<T>, Result.succeed),
 });
 
 /** Declares a named generic type with a type-level operation for its result. */
-export const genericType = <Lambda extends Type.TypeConstructor>(
-  arity: Lambda["arity"],
-): Declaration<TypeExpression.Constructor<Lambda>> => ({
-  [Declare]: (path) => TypeExpression.constructor<Lambda>(path, arity),
+export const genericType = <F extends Type.TypeConstructor>(
+  arity: F["arity"],
+): Declaration<TypeExpression.Constructor<F>> => ({
+  [Declare]: (path) => TypeExpression.constructor<F>(path, arity),
 });
 
 const memberName = (
   name: string,
 ): Result.Result<JExpr.Ident.Ident, ProgramError.Construction> =>
-  Result.mapError(
+  pipe(
     JExpr.Ident.decodeResult(name),
-    (cause) =>
-      new ProgramError.Construction({
-        reason: ProgramError.Reason.InvalidExportName({ name, cause }),
-      }),
+    Result.mapError(
+      (cause) =>
+        new ProgramError.Construction({
+          reason: ProgramError.Reason.InvalidExportName({ name, cause }),
+        }),
+    ),
   );
 
-const bind = <Export>(
-  parent: JExpr.Path.Path,
-  entries: Namespace<Declaration<Export> | Export>,
-): Result.Result<Namespace<Export>, ProgramError.Construction> =>
+/** Symbol keys cannot appear in HashQL paths and must not disappear during binding. */
+const requireStringKeys = (
+  symbols: readonly symbol[],
+): Result.Result<void, ProgramError.Construction> => {
+  const [name] = symbols;
+
+  if (name !== undefined) {
+    return Result.fail(ProgramError.Construction.symbolExportName(name));
+  }
+
+  return Result.void;
+};
+
+/**
+ * Maps each own name at its corresponding export type.
+ *
+ * The callback is generic in K: it must produce E[K] from S[K] for the same key. This preserves the relationship that a callback over an entry union would lose. The source may contain declarations, while the destination contains bound exports.
+ */
+const mapEntries = <
+  E extends Namespace<Any | TypeExpression.Export | Expression.Any>,
+  S extends Declarations<E>,
+>(
+  entries: S,
+  resolve: <K extends keyof E & string>(
+    name: K,
+    entry: S[K],
+    ident: JExpr.Ident.Ident,
+  ) => Result.Result<E[K], ProgramError.Construction>,
+): Result.Result<Readonly<E>, ProgramError.Construction> =>
   Result.gen(function* () {
-    const exports: [string, Export][] = [];
+    yield* pipe(entries, Object.getOwnPropertySymbols, requireStringKeys);
+    const exports: Partial<E> = {};
+    const member = <K extends keyof E & string>(
+      name: K,
+    ): Result.Result<E[K], ProgramError.Construction> =>
+      pipe(
+        memberName(name),
+        Result.flatMap((ident) => resolve(name, entries[name], ident)),
+      );
 
-    for (const [name, entry] of Object.entries(entries)) {
-      const ident = yield* memberName(name);
-      const path: JExpr.Path.Path = {
-        rooted: true,
-        segments: [...parent.segments, ident],
-      };
-
-      if (typeof entry === "object" && entry !== null && Declare in entry) {
-        exports.push([name, yield* entry[Declare](path)]);
-      } else {
-        exports.push([name, entry]);
-      }
+    for (const name of Object.getOwnPropertyNames(entries)) {
+      const bound = yield* member(name);
+      // Defining the property also preserves the ordinary export name __proto__.
+      Object.defineProperty(exports, name, { value: bound, enumerable: true });
     }
 
-    return Object.freeze(Object.fromEntries(exports));
+    // SAFETY: the loop fills each own string key at its original E[K] type. TypeScript cannot prove that coverage.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- completes a per-key checked Partial<E>, without changing any export type
+    return Object.freeze(exports as E);
   });
+
+const copyModules = <M extends Namespace<Any>>(
+  modules: M,
+): Result.Result<Readonly<M>, ProgramError.Construction> =>
+  mapEntries<M, M>(modules, (_name, entry) => Result.succeed(entry));
+
+const isDeclaration = <E>(entry: Declaration<E> | E): entry is Declaration<E> =>
+  Predicate.hasProperty(entry, Declare);
+
+/** Resolves each declaration without widening its semantic descriptor. */
+const bind = <E extends Namespace<TypeExpression.Export | Expression.Any>>(
+  parent: JExpr.Path.Path,
+  entries: Declarations<E> | undefined,
+): Result.Result<Readonly<E> | Empty, ProgramError.Construction> => {
+  if (entries === undefined) {
+    return Result.succeed(Object.freeze({}));
+  }
+
+  const resolve = <K extends keyof E & string>(
+    _name: K,
+    entry: Declaration<E[K]> | E[K],
+    ident: JExpr.Ident.Ident,
+  ): Result.Result<E[K], ProgramError.Construction> => {
+    if (isDeclaration<E[K]>(entry)) {
+      return entry[Declare]({
+        rooted: parent.rooted,
+        segments: [...parent.segments, ident],
+      });
+    }
+
+    return Result.succeed(entry);
+  };
+
+  return mapEntries<E, Declarations<E>>(entries, resolve);
+};
 
 /**
  * Binds new declarations and retains existing exports by identity.
@@ -142,17 +222,34 @@ const bind = <Export>(
  * Invalid paths, export names and generic arities return construction failures.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the path names the module under construction
-export const define = <const Shape extends Definition>(
+export function define<const S extends Definition>(
   name: string,
-  definition: Shape,
-): Result.Result<Module<Shape>, ProgramError.Construction> =>
-  Result.gen(function* () {
-    const path = yield* Result.mapError(
+  definition: S,
+): Result.Result<Module<S>, ProgramError.Construction>;
+export function define<
+  M extends Namespace<Any>,
+  T extends Namespace<TypeExpression.Export>,
+  V extends Namespace<Expression.Any>,
+>(
+  name: string,
+  definition: {
+    readonly modules?: M;
+    readonly types?: Declarations<T>;
+    readonly values?: Declarations<V>;
+  },
+): Result.Result<
+  Bound<M | Empty, T | Empty, V | Empty>,
+  ProgramError.Construction
+> {
+  return Result.gen(function* () {
+    const path = yield* pipe(
       JExpr.Path.decodeResult(name),
-      (cause) =>
-        new ProgramError.Construction({
-          reason: ProgramError.Reason.InvalidModulePath({ name, cause }),
-        }),
+      Result.mapError(
+        (cause) =>
+          new ProgramError.Construction({
+            reason: ProgramError.Reason.InvalidModulePath({ name, cause }),
+          }),
+      ),
     );
 
     if (!path.rooted) {
@@ -163,22 +260,20 @@ export const define = <const Shape extends Definition>(
       );
     }
 
-    for (const child of Object.keys(definition.modules ?? {})) {
-      yield* memberName(child);
+    let modules: Readonly<M> | Empty = Object.freeze({});
+    if (definition.modules !== undefined) {
+      modules = yield* copyModules(definition.modules);
     }
 
-    const module = Object.freeze({
-      [TypeId]: true,
+    return Object.freeze({
+      [TypeId]: true as const,
       path,
-      modules: Object.freeze({ ...definition.modules }),
-      types: yield* bind<TypeExpression.Export>(path, definition.types ?? {}),
-      values: yield* bind<Expression.Any>(path, definition.values ?? {}),
+      modules,
+      types: yield* bind<T>(path, definition.types),
+      values: yield* bind<V>(path, definition.values),
     });
-
-    // SAFETY: binding changes each Declaration<A> into A without changing any key or existing export.
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the heterogeneous mapping preserves each declaration result
-    return module as Module<Shape>;
   });
+}
 
 /** Rebinds a module and its exports beneath a locally imported module name. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- internal module rebinding requires both the module and its local path
@@ -192,14 +287,7 @@ export const relocate = (
     const types: [string, TypeExpression.Export][] = [];
 
     for (const [name, child] of Object.entries(module.modules)) {
-      const ident = yield* JExpr.Ident.decodeResult(name).pipe(
-        Result.mapError(
-          (cause) =>
-            new ProgramError.Construction({
-              reason: ProgramError.Reason.InvalidExportName({ name, cause }),
-            }),
-        ),
-      );
+      const ident = yield* memberName(name);
 
       modules.push([
         name,
@@ -211,14 +299,7 @@ export const relocate = (
     }
 
     for (const name of Object.keys(module.values)) {
-      const ident = yield* JExpr.Ident.decodeResult(name).pipe(
-        Result.mapError(
-          (cause) =>
-            new ProgramError.Construction({
-              reason: ProgramError.Reason.InvalidExportName({ name, cause }),
-            }),
-        ),
-      );
+      const ident = yield* memberName(name);
 
       values.push([
         name,
@@ -232,14 +313,7 @@ export const relocate = (
     }
 
     for (const [name, type] of Object.entries(module.types)) {
-      const ident = yield* JExpr.Ident.decodeResult(name).pipe(
-        Result.mapError(
-          (cause) =>
-            new ProgramError.Construction({
-              reason: ProgramError.Reason.InvalidExportName({ name, cause }),
-            }),
-        ),
-      );
+      const ident = yield* memberName(name);
 
       types.push([
         name,
@@ -260,16 +334,14 @@ export const relocate = (
   });
 
 /** Assembles already-bound modules without rebasing their references. */
-export const root = <const Modules extends Namespace<Any>>(
-  modules: Modules,
+export const root = <const M extends Namespace<Any>>(
+  modules: M,
 ): Result.Result<
-  { readonly modules: Readonly<Modules> },
+  { readonly modules: Readonly<M> },
   ProgramError.Construction
 > =>
-  Result.gen(function* () {
-    for (const name of Object.keys(modules)) {
-      yield* memberName(name);
-    }
-
-    return Object.freeze({ modules: Object.freeze({ ...modules }) });
-  });
+  pipe(
+    modules,
+    copyModules,
+    Result.map((bound) => Object.freeze({ modules: bound })),
+  );
