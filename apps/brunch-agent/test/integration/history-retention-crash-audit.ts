@@ -23,6 +23,9 @@ interface RecoveredTool {
   readonly toolCallId?: unknown;
 }
 
+/** The Ledger commit the create phase interrupts. */
+const crashCallId = "a4-crash-revision";
+
 const isJsonObject = (value: unknown): value is JsonObject =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -55,15 +58,22 @@ const loadBatches = (path: string): readonly StoreBatch[] =>
     },
   );
 
-const outcomeBatches = (
-  batches: readonly StoreBatch[],
-): readonly StoreBatch[] =>
-  batches.filter((batch) =>
-    batch.data.some(
-      (record) =>
-        record.type === "tool_outcome" &&
-        record.toolCallId === "a4-crash-revision",
-    ),
+const crashOutcomes = (records: readonly JsonObject[]): readonly JsonObject[] =>
+  records.filter(
+    (record) =>
+      record.type === "tool_outcome" && record.toolCallId === crashCallId,
+  );
+
+/** Result commitments whose `outcomeIds` name the given outcome record. */
+const commitsReferencing = (
+  records: readonly JsonObject[],
+  outcomeId: unknown,
+): readonly JsonObject[] =>
+  records.filter(
+    (record) =>
+      record.type === "tool_results_committed" &&
+      Array.isArray(record.outcomeIds) &&
+      record.outcomeIds.includes(outcomeId),
   );
 
 const expectedFaultsFor = (kind: CrashRecoveryKind): readonly string[] => {
@@ -81,6 +91,22 @@ const expectedFaultsFor = (kind: CrashRecoveryKind): readonly string[] => {
   }
 };
 
+/** What the store held when the final recovery booted. */
+const expectedStateBeforeFinalBoot = (
+  kind: CrashRecoveryKind,
+): "committed" | "outcome-without-commit" | "no-outcome" => {
+  switch (kind) {
+    case "plain":
+    case "repair-after-repair":
+      return "committed";
+    case "after-outcome":
+    case "repair-after-outcome":
+      return "outcome-without-commit";
+    case "before-outcome":
+      return "no-outcome";
+  }
+};
+
 const collectFaults = (directory: string): readonly JsonObject[] =>
   readdirSync(directory)
     .filter((name) => name.endsWith("-runtime-trace.jsonl"))
@@ -93,23 +119,70 @@ const collectFaults = (directory: string): readonly JsonObject[] =>
 
 /**
  * Read-only adjudication of a crash-recovery directory produced by
- * `history-retention-crash.integration.ts`. Replaces the former Python audit.
+ * `history-retention-crash.integration.ts`.
  */
 export const assertCrashRecovery = (
   directory: string,
   kind: CrashRecoveryKind,
 ): void => {
+  const faults = collectFaults(directory);
+  const observedFaults = faults
+    .map((event) => event.boundary)
+    .filter((boundary): boundary is string => typeof boundary === "string")
+    .sort();
+  assert.deepEqual(
+    observedFaults,
+    [...expectedFaultsFor(kind)].sort(),
+    "Exact kill boundaries, not just nonzero exits",
+  );
+  for (const event of faults.filter(
+    ({ boundary }) => boundary === "after-outcome",
+  )) {
+    const records = asArray(event.records, "fault records").map((record) =>
+      asObject(record, "fault record"),
+    );
+    assert.equal(
+      crashOutcomes(records).length,
+      1,
+      "The killed append carries the crashed call's outcome",
+    );
+    assert(
+      !records.some((record) => record.type === "tool_results_committed"),
+      "The killed append carries no result commitment: the inter-append gap",
+    );
+  }
+
+  const beforeRecovery = loadBatches(
+    join(directory, "recover-plain-store-before-boot.json"),
+  ).flatMap((batch) => batch.data);
+  const beforeOutcomes = crashOutcomes(beforeRecovery);
+  const expectedState = expectedStateBeforeFinalBoot(kind);
+  if (expectedState === "no-outcome") {
+    assert.equal(
+      beforeOutcomes.length,
+      0,
+      "No outcome was recorded before boot",
+    );
+  } else {
+    assert.equal(
+      beforeOutcomes.length,
+      1,
+      "One outcome was recorded before boot",
+    );
+    assert.equal(
+      commitsReferencing(beforeRecovery, beforeOutcomes[0]?.id).length,
+      expectedState === "committed" ? 1 : 0,
+      expectedState === "committed"
+        ? "The outcome was already committed before boot"
+        : "The outcome was durable without a result commitment before boot",
+    );
+  }
+
   const receipt = asObject(
     readJson(join(directory, "receipt.json")),
     "receipt",
   );
   const entries = asArray(receipt.entries, "receipt entries");
-  const expectedOutput = {
-    status: "recorded",
-    commitId: "a4-crash-revision",
-    revision: 1,
-    ids: ["e1", "c1"],
-  };
   const result = asObject(
     readJson(join(directory, "recover-plain-result.json")),
     "recover result",
@@ -120,10 +193,7 @@ export const assertCrashRecovery = (
   ) as RecoveredTool[];
   const nextTools = asArray(result.nextTools, "nextTools") as RecoveredTool[];
   const recovered = recoveredTools[0];
-  const nextRevision = nextTools.at(-1);
-  if (recovered === undefined || nextRevision === undefined) {
-    throw new Error("Recovery must expose the crashed commit and the next one");
-  }
+  assert(recovered, "Recovery must expose the crashed commit");
   assert.deepEqual(
     recovered.input,
     { entries },
@@ -131,9 +201,17 @@ export const assertCrashRecovery = (
   );
   assert.partialDeepStrictEqual(
     recovered.output,
-    expectedOutput,
+    {
+      status: "recorded",
+      commitId: crashCallId,
+      revision: 1,
+      ids: ["e1", "c1"],
+    },
     "Recovered tool output must carry the same host-assigned record IDs",
   );
+
+  const nextRevision = nextTools.at(-1);
+  assert(nextRevision, "Recovery must expose the next commit");
   assert.equal(
     nextRevision.toolCallId,
     "a4-next-revision",
@@ -151,48 +229,26 @@ export const assertCrashRecovery = (
   );
   assert.deepEqual(
     nextTools.map((tool) => tool.toolCallId),
-    ["a4-crash-revision", "a4-next-revision"],
+    [crashCallId, "a4-next-revision"],
     "Recovery must not reissue the completed call or reuse a commit ID",
   );
+
   const afterRecovery = loadBatches(
     join(directory, "recover-plain-store-after-recovery.json"),
+  ).flatMap((batch) => batch.data);
+  const outcomes = crashOutcomes(afterRecovery);
+  assert.equal(
+    outcomes.length,
+    1,
+    "Exactly one durable outcome record, no completed-call replay",
   );
-  const outcomes = outcomeBatches(afterRecovery);
-  if (outcomes.length !== 1) {
-    throw new Error("Exactly one durable outcome, no completed call replay");
-  }
-  const outcome = outcomes[0];
-  if (outcome === undefined) {
-    throw new Error("Exactly one durable outcome, no completed call replay");
-  }
-  if (
-    afterRecovery.some((batch) =>
-      batch.data.some((record) => record.type === "state_write"),
-    )
-  ) {
-    throw new Error(
-      "The Ledger's only authority is tool history; no state is written",
-    );
-  }
-  if (kind.startsWith("repair-") || kind === "before-outcome") {
-    if (
-      !outcome.data.some((record) => record.type === "tool_results_committed")
-    ) {
-      throw new Error(
-        "Reexecuted state/outcome/result must share the repaired canonical batch",
-      );
-    }
-  }
-  const faults = collectFaults(directory);
-  const observed = faults
-    .map((event) => event.boundary)
-    .filter((boundary): boundary is string => typeof boundary === "string")
-    .slice()
-    .sort();
-  const expectedFaults = [...expectedFaultsFor(kind)].sort();
-  assert.deepEqual(
-    observed,
-    expectedFaults,
-    "Exact kill boundaries, not just nonzero exits",
+  assert.equal(
+    commitsReferencing(afterRecovery, outcomes[0]?.id).length,
+    1,
+    "Exactly one result commitment references that outcome",
+  );
+  assert(
+    !afterRecovery.some((record) => record.type === "state_write"),
+    "The Ledger's only authority is tool history; no state is written",
   );
 };

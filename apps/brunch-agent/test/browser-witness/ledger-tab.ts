@@ -7,7 +7,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { fauxAssistantMessage, fauxText } from "@earendil-works/pi-ai";
+import {
+  fauxAssistantMessage,
+  fauxText,
+  type JsonObject,
+} from "@earendil-works/pi-ai";
 
 import { netCalls } from "../../src/shared/conversation/net-changes.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
@@ -125,7 +129,7 @@ const fixedValues = {
 /** Times one direct createExperiment on the Hillcrest net; undefined when it outlasts the cap. */
 const timeExperiment = async (
   label: string,
-  experiment: Record<string, unknown>,
+  experiment: JsonObject,
   capMs: number,
 ) => {
   const page = await fixture.openAssistant(
@@ -163,7 +167,7 @@ const timeExperiment = async (
 };
 
 const experimentTimings = async () => {
-  const cases = [
+  const cases: { label: string; experiment: JsonObject }[] = [
     {
       label: "simulate-dt1",
       experiment: {

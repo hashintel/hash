@@ -8,7 +8,9 @@ import {
   fauxAssistantMessage,
   fauxProvider,
   fauxToolCall,
-  type Context,
+  getCurrentSystemPrompt,
+  getCurrentTools,
+  type TranscriptContext,
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
@@ -31,7 +33,7 @@ delete process.env.HASH_OTLP_ENDPOINT;
 
 const faux = fauxProvider({ provider: "openai" });
 installFauxProvider(faux.provider);
-const toolResult = (context: Context, id: string) => {
+const toolResult = (context: TranscriptContext, id: string) => {
   const result = context.messages.find(
     (message) => message.role === "toolResult" && message.toolCallId === id,
   );
@@ -45,7 +47,7 @@ let completed = false;
 faux.setResponses([
   (context) => {
     assert(
-      (context.systemPrompt ?? "").includes("modelling"),
+      getCurrentSystemPrompt(context.messages).includes("modelling"),
       "The modelling skill must be discoverable before activation",
     );
     return fauxAssistantMessage(
@@ -75,7 +77,7 @@ faux.setResponses([
   },
   (context) => {
     toolResult(context, "resource");
-    const commitTool = context.tools?.find(
+    const commitTool = getCurrentTools(context.messages).find(
       ({ name }) => name === "ledger_commit",
     );
     assert(JSON.stringify(commitTool?.parameters).includes('"entity/create"'));

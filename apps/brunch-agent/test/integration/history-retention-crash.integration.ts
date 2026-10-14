@@ -10,6 +10,7 @@ import {
   fauxAssistantMessage,
   fauxProvider,
   fauxToolCall,
+  type JsonValue,
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
@@ -117,7 +118,7 @@ const nextEntries = [
     },
   ],
 ];
-const response = (id: string, commitEntries: readonly unknown[]) =>
+const response = (id: string, commitEntries: readonly JsonValue[]) =>
   fauxAssistantMessage(
     fauxToolCall("ledger_commit", { entries: commitEntries }, { id }),
     { stopReason: "toolUse" },

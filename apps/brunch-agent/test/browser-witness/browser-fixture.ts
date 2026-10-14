@@ -16,6 +16,7 @@ import {
   fauxAssistantMessage,
   fauxProvider,
   fauxToolCall,
+  type JsonObject,
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
@@ -63,11 +64,7 @@ export const installFauxOpenai = () => {
 /** OpenAI Responses tool calls carry `call_id|item_id`. */
 export const openaiCallId = (id: string) => `call_${id}|fc_${id}`;
 
-export const toolCall = (
-  name: string,
-  args: Record<string, unknown>,
-  id: string,
-) =>
+export const toolCall = (name: string, args: JsonObject, id: string) =>
   fauxAssistantMessage([fauxToolCall(name, args, { id: openaiCallId(id) })], {
     stopReason: "toolUse",
   });

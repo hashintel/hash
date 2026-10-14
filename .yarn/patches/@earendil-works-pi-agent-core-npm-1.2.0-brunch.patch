@@ -1,8 +1,8 @@
 diff --git a/README.md b/README.md
-index a4d5fdd9f68a9c158bf7a4e840b06447d2b45071..573f4f1226b950e3e63c0ba5e6d79e8ba620cb6f 100644
+index 5cb3954..c5e1ad0 100644
 --- a/README.md
 +++ b/README.md
-@@ -396,6 +396,8 @@ const agent = new Agent({
+@@ -450,6 +450,8 @@ const agent = new Agent({
  
  ## Tools
  
@@ -12,10 +12,10 @@ index a4d5fdd9f68a9c158bf7a4e840b06447d2b45071..573f4f1226b950e3e63c0ba5e6d79e8b
  
  ```typescript
 diff --git a/dist/agent-loop.js b/dist/agent-loop.js
-index 5b5da787a637df62dfd944f92a45fc9cb945eac3..48b4fcb827cb359715f0dddd37fc5ce8b16a6cca 100644
+index 77af960..d9386c4 100644
 --- a/dist/agent-loop.js
 +++ b/dist/agent-loop.js
-@@ -400,8 +400,11 @@ async function prepareToolCall(currentContext, assistantMessage, toolCall, confi
+@@ -488,8 +488,17 @@ async function prepareToolCall(currentContext, assistantMessage, toolCall, confi
          };
      }
      try {
@@ -25,15 +25,21 @@ index 5b5da787a637df62dfd944f92a45fc9cb945eac3..48b4fcb827cb359715f0dddd37fc5ce8
 +        const validatedArgs = tool.validateArguments
 +            ? await tool.validateArguments(structuredClone(preparedToolCall.arguments), { toolCallId: toolCall.id, signal })
 +            : validateToolArguments(tool, preparedToolCall);
-+        if (signal?.aborted) return { kind: "immediate", result: createErrorToolResult("Operation aborted"), isError: true };
++        if (signal?.aborted) {
++            return {
++                kind: "immediate",
++                result: createErrorToolResult("Operation aborted"),
++                isError: true,
++            };
++        }
          if (config.beforeToolCall) {
              const beforeResult = await config.beforeToolCall({
                  assistantMessage,
 diff --git a/dist/types.d.ts b/dist/types.d.ts
-index 38009ade487645493c0738dbce9d53fc74f589c6..8a434f490ff55dad40e9ae2ccfde3708f175df25 100644
+index 410fd20..5c68e6b 100644
 --- a/dist/types.d.ts
 +++ b/dist/types.d.ts
-@@ -72,7 +72,7 @@ export interface BeforeToolCallContext {
+@@ -85,7 +85,7 @@ export interface BeforeToolCallContext {
      assistantMessage: AssistantMessage;
      /** The raw tool call block from `assistantMessage.content`. */
      toolCall: AgentToolCall;
@@ -42,7 +48,7 @@ index 38009ade487645493c0738dbce9d53fc74f589c6..8a434f490ff55dad40e9ae2ccfde3708
      args: unknown;
      /** Current agent context at the time the tool call is prepared. */
      context: AgentContext;
-@@ -83,7 +83,7 @@ export interface AfterToolCallContext {
+@@ -96,7 +96,7 @@ export interface AfterToolCallContext {
      assistantMessage: AssistantMessage;
      /** The raw tool call block from `assistantMessage.content`. */
      toolCall: AgentToolCall;
@@ -51,7 +57,7 @@ index 38009ade487645493c0738dbce9d53fc74f589c6..8a434f490ff55dad40e9ae2ccfde3708
      args: unknown;
      /** The executed tool result before any `afterToolCall` overrides are applied. */
      result: AgentToolResult<any>;
-@@ -330,7 +330,7 @@ export interface AgentToolResult<T> {
+@@ -406,7 +406,7 @@ export interface AgentToolCallOutcome {
   */
  export type AgentToolUpdateCallback<T = any> = (partialResult: AgentToolResult<T>) => void;
  /** Tool definition used by the agent runtime. */
@@ -60,7 +66,7 @@ index 38009ade487645493c0738dbce9d53fc74f589c6..8a434f490ff55dad40e9ae2ccfde3708
      /** Human-readable label for UI display. */
      label: string;
      /**
-@@ -338,8 +338,13 @@ export interface AgentTool<TParameters extends TSchema = TSchema, TDetails = any
+@@ -414,6 +414,11 @@ export interface AgentTool<TParameters extends TSchema = TSchema, TDetails = any
       * Must return an object that matches `TParameters`.
       */
      prepareArguments?: (args: unknown) => Static<TParameters>;
@@ -69,9 +75,15 @@ index 38009ade487645493c0738dbce9d53fc74f589c6..8a434f490ff55dad40e9ae2ccfde3708
 +     * and execute, or throws. Implementations must honor the supplied abort signal.
 +     * The provider JSON Schema remains the representable input projection. */
 +    validateArguments?: (args: unknown, context: { toolCallId: string; signal?: AbortSignal }) => TArguments | Promise<TArguments>;
-     /** Execute the tool call. Throw on failure instead of encoding errors in `content`. */
+     /**
+      * JSON Schema of `structuredContent` in successful results. Tools that declare it should always
+      * set `structuredContent`.
+@@ -423,7 +428,7 @@ export interface AgentTool<TParameters extends TSchema = TSchema, TDetails = any
+      * Execute the tool call. Throw on failure, or return a result with `isError: true`; do not only
+      * describe the failure in `content`.
+      */
 -    execute: (toolCallId: string, params: Static<TParameters>, signal?: AbortSignal, onUpdate?: AgentToolUpdateCallback<TDetails>) => Promise<AgentToolResult<TDetails>>;
 +    execute: (toolCallId: string, params: TArguments, signal?: AbortSignal, onUpdate?: AgentToolUpdateCallback<TDetails>) => Promise<AgentToolResult<TDetails>>;
+     /** Recovery policy for an effect whose durable intent exists but whose outcome is unknown. */
+     replay?: "never" | "safe";
      /**
-      * Per-tool execution mode override.
-      * - "sequential": this tool must execute one at a time with other tool calls.

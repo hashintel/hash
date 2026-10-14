@@ -4,7 +4,7 @@ import { expect, test } from "vitest";
 
 import { projectBrunchContext } from "./context-projection";
 
-import type { ContextProjection, ContextProjectionEntry } from "@flue/runtime";
+import type { ContextProjectionEntry } from "@flue/runtime";
 
 const sidecar = {
   observation: { binding: "private-binding", sha256: "private-hash" },
@@ -89,31 +89,6 @@ test("user messages and server tool results pass through unchanged", () => {
   expect(projectBrunchContext(input)).toEqual(input);
 });
 
-test("the patched runtime leaves non-opted-in contexts unchanged", async () => {
-  // Exercise the pinned patch's boundary, not a substitute application wrapper.
-  const runtimeUrl = new URL(
-    "./dispatch-nU3cIlT-.mjs",
-    import.meta.resolve("@flue/runtime"),
-  );
-  type RuntimeEntry = {
-    message: ContextProjectionEntry["message"];
-    sourceEntry: { id: string };
-  };
-  const runtime = (await import(runtimeUrl.href)) as {
-    projectContextEntries: (
-      input: RuntimeEntry[],
-      project?: ContextProjection,
-    ) => RuntimeEntry[];
-  };
-  const input = entries().map(({ id, message }) => ({
-    message,
-    sourceEntry: { id },
-  }));
-  const before = structuredClone(input);
-  expect(runtime.projectContextEntries(input)).toEqual(before);
-  expect(
-    runtime.projectContextEntries(input, projectBrunchContext),
-  ).not.toEqual(before);
-  // An opted-in call must not change the default for a later agent.
-  expect(runtime.projectContextEntries(input)).toEqual(before);
-});
+// Runtime wiring (opt-in per agent, exact compaction slices, canonical
+// history) is exercised through the real agent loop in
+// test/flue-runtime-contracts.test.ts, not through a private runtime chunk.
