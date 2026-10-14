@@ -5,6 +5,11 @@ import type { Types } from "effect";
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- a closed expression requires no input names
 export type Empty = Record<never, never>;
 
+declare const ErasedRequirement: unique symbol;
+
+/** Unrecoverable requirements cannot be discharged by a named input schema. */
+export type Erased = { readonly [ErasedRequirement]: Type.Unknown };
+
 type RequiredKeys<Inputs> = {
   [Key in keyof Inputs]-?: Empty extends Pick<Inputs, Key> ? never : Key;
 }[keyof Inputs];
@@ -23,8 +28,54 @@ type Combined<Left, Right, Key extends PropertyKey> = Key extends keyof Left
     : At<Left, Key>
   : At<Right, Key>;
 
-/** A shared input must satisfy every use. One required use makes it required. */
-export type Merge<Left, Right> = [keyof Right] extends [never]
+type Last<Alternatives> =
+  Types.UnionToIntersection<
+    Alternatives extends unknown ? () => Alternatives : never
+  > extends () => infer Member
+    ? Member
+    : never;
+
+// Invariance keeps a closed alternative from swallowing a narrower required record during Exclude.
+type InvariantAlternatives<Requirements> = Requirements extends unknown
+  ? (value: Requirements) => Requirements
+  : never;
+
+type Unwrap<Alternative> = Alternative extends (
+  value: infer Requirements,
+) => unknown
+  ? Requirements
+  : never;
+
+type CollapseAlternatives<Alternatives, Accumulated = Empty> = [
+  Alternatives,
+] extends [never]
+  ? Accumulated
+  : [Alternatives] extends [Types.UnionToIntersection<Alternatives>]
+    ? MergeRecords<Accumulated, Unwrap<Alternatives>>
+    : CollapseAlternatives<
+        Exclude<Alternatives, Last<Alternatives>>,
+        MergeRecords<Accumulated, Unwrap<Last<Alternatives>>>
+      >;
+
+/** Requires every member of a host-side alternative, preserving shared semantic constraints. */
+export type Conservative<Requirements> = [Requirements] extends [never]
+  ? Erased
+  : unknown extends Requirements
+    ? Erased
+    : CollapseAlternatives<InvariantAlternatives<Requirements>>;
+
+/** A shared input must satisfy every use, including every host-side union alternative. */
+export type Merge<Left, Right> = [keyof Conservative<Right>] extends [never]
+  ? Left
+  : typeof ErasedRequirement extends
+        | keyof Conservative<Left>
+        | keyof Conservative<Right>
+    ? never
+    : [keyof Conservative<Left>] extends [never]
+      ? Conservative<Right>
+      : MergeRecords<Conservative<Left>, Conservative<Right>>;
+
+type MergeRecords<Left, Right> = [keyof Right] extends [never]
   ? Left
   : [keyof Left] extends [never]
     ? Right
@@ -51,5 +102,5 @@ export type All<Members extends readonly unknown[]> = Members extends readonly [
 ]
   ? Merge<Head, All<Tail>>
   : number extends Members["length"]
-    ? Types.UnionToIntersection<Members[number]>
+    ? Conservative<Members[number]>
     : Empty;

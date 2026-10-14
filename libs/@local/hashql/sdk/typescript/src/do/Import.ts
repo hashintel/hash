@@ -1,3 +1,10 @@
+/**
+ * Lexical imports shared by the Do authoring operations.
+ *
+ * The emitted import binds selected names locally. Export handles receive those local paths while retaining the module's declared types. The compiler resolves the import itself.
+ *
+ * @module
+ */
 // oxlint-disable import/max-dependencies -- an import updates the module, type and value universes together
 import { Result } from "effect";
 
@@ -127,7 +134,10 @@ export function Import<In extends Scope.Scope>(
 
         const type = module.types[name];
         if (type !== undefined) {
-          types.push([alias, yield* TypeExpression.relocate(type, path)]);
+          types.push([
+            alias,
+            yield* TypeExpression.relocate<TypeExpression.Export>(type, path),
+          ]);
         }
       }
 

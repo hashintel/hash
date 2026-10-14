@@ -1,4 +1,11 @@
-import { Result } from "effect";
+/**
+ * Query operations derived from a declared graph-producing function.
+ *
+ * The graph marker carries the vertex descriptor through filtering and collection. Both authoring APIs read that descriptor from EntityFunction rather than maintaining a separate graph schema.
+ *
+ * @module
+ */
+import { Result, pipe } from "effect";
 
 import * as JExpr from "../jexpr/index.js";
 import * as AST from "./ast/index.js";
@@ -41,27 +48,36 @@ export type Query<
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- a scope without an entities declaration has no query entry point
 type Empty = Record<never, never>;
 
-export type Context<S extends Scope.Scope> = S["values"] extends {
-  readonly entities: Expression.Handle<
-    Type.Function<infer Parameters, infer Returns>,
-    infer Requirements
-  >;
+/** Reads one function's arguments, result, requirements and graph vertex from its semantic metadata. */
+export type EntityFunction<S extends Scope.Scope> = S["values"] extends {
+  readonly entities: infer E extends Expression.Any;
 }
-  ? Returns extends Graph<infer Vertex>
-    ? {
-        readonly entities: <const Values extends Arguments<Parameters>>(
-          ...args: Values
-        ) => Query<
-          Returns,
-          Vertex,
-          Inputs.Merge<
-            Inputs.Conservative<Requirements>,
-            ArgumentInputs<Values>
-          >
-        >;
-      }
-    : Empty
-  : Empty;
+  ? Expression.TypeOf<E> extends Type.Function<infer A, infer R>
+    ? R extends Graph<infer V>
+      ? {
+          readonly args: A;
+          readonly returns: R;
+          readonly vertex: V;
+          readonly inputs: Inputs.Conservative<Expression.Inputs<E>>;
+        }
+      : never
+    : never
+  : never;
+
+type Entities<S extends Scope.Scope> = <
+  const A extends readonly Expression.AnyValue[] &
+    Arguments<EntityFunction<S>["args"]>,
+>(
+  ...args: A
+) => Query<
+  EntityFunction<S>["returns"],
+  EntityFunction<S>["vertex"],
+  Inputs.Merge<EntityFunction<S>["inputs"], ArgumentInputs<A>>
+>;
+
+export type Context<S extends Scope.Scope> = [EntityFunction<S>] extends [never]
+  ? Empty
+  : { readonly entities: Entities<S> };
 
 const chain = <T extends Type.Any, Vertex extends Type.Any, Requirements>(
   expression: Expression.Expression<T, Requirements>,
@@ -141,34 +157,37 @@ const chain = <T extends Type.Any, Vertex extends Type.Any, Requirements>(
 };
 
 export const make = <S extends Scope.Scope>(scope: S): Context<S> => {
-  const entities = scope.values["entities"];
-  if (entities === undefined) {
-    // SAFETY: no entities declaration means this context has no query entry point.
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the conditional type follows the supplied scope
-    return {} as Context<S>;
+  const declaration = scope.values["entities"];
+  if (declaration === undefined) {
+    return {};
   }
 
-  const context = {
-    entities: (
-      ...args: readonly Expression.AnyValue[]
-    ): Query<Type.Any, Type.Any, never> =>
-      chain(
-        Result.all({
-          callee: Expression.toJExpr(entities),
-          args: Result.all(args.map(Expression.toJExpr)),
-        }).pipe(
-          Result.map(
-            ({ callee, args }) => new AST.Expr(JExpr.call(callee, ...args)),
-          ),
-          Expression.fromResult,
-        ),
+  const entities: Entities<S> = <
+    const A extends readonly Expression.AnyValue[] &
+      Arguments<EntityFunction<S>["args"]>,
+  >(
+    ...args: A
+  ) =>
+    pipe(
+      {
+        callee: Expression.toJExpr(declaration),
+        args: Result.all(args.map(Expression.toJExpr)),
+      },
+      Result.all,
+      Result.map(
+        ({ callee, args: values }) =>
+          new AST.Expr(JExpr.call(callee, ...values)),
       ),
-  };
+      Expression.fromResult<
+        EntityFunction<S>["returns"],
+        Inputs.Merge<EntityFunction<S>["inputs"], ArgumentInputs<A>>
+      >,
+      chain<
+        EntityFunction<S>["returns"],
+        EntityFunction<S>["vertex"],
+        Inputs.Merge<EntityFunction<S>["inputs"], ArgumentInputs<A>>
+      >,
+    );
 
-  // oxlint-disable-next-line typescript/no-restricted-types -- the runtime driver erases each declared function signature
-  const erased: unknown = context;
-
-  // SAFETY: the declaration supplies its argument types and its graph vertex type.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- runtime scope traversal erases the declaration's signature
-  return erased as Context<S>;
+  return { entities };
 };

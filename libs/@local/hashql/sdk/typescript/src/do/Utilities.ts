@@ -122,18 +122,18 @@ export class Block<S extends Scope.Scope, Inputs> {
     );
   }
 
-  Import<M extends Scope.Scope["modules"][string]>(
+  Import<M extends NonNullable<Scope.Scope["modules"][string]>>(
     select: (utilities: Utilities<S>, modules: S["modules"]) => M,
   ): Block<Scope.Merge<S, M>, Inputs>;
   Import<
-    M extends Scope.Scope["modules"][string],
+    M extends NonNullable<Scope.Scope["modules"][string]>,
     const Imports extends Selection<M>,
   >(
     select: (utilities: Utilities<S>, modules: S["modules"]) => M,
     imports: Imports,
   ): Block<Scope.Merge<S, Imported<M, Imports>>, Inputs>;
   Import<
-    M extends Scope.Scope["modules"][string],
+    M extends NonNullable<Scope.Scope["modules"][string]>,
     const Imports extends Selection<M>,
   >(
     select: (utilities: Utilities<S>, modules: S["modules"]) => M,

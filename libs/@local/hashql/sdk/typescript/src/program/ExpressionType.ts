@@ -1,3 +1,10 @@
+/**
+ * Type-level normalization, calls and projections for symbolic values.
+ *
+ * Union projections require the field in every alternative. Intersections combine field descriptors, while index access includes Null for an absent element. These calculations retain the source expression's input requirements.
+ *
+ * @module
+ */
 import type * as Type from "../type/index.js";
 import type * as Expression from "./Expression.js";
 import type * as Input from "./Inputs.js";
@@ -291,7 +298,7 @@ type IndexOf<T extends Type.Any> = [T] extends [Type.List<infer Value>]
 type ProjectionAccessors<Fields, Inputs> = {
   readonly [Key in Exclude<
     keyof Fields,
-    "$" | "$project" | "$index" | "then" | "~hashql/Expression"
+    "$" | "$project" | "$index" | "~hashql/Expression"
   >]: Fields[Key] extends infer Field extends Type.Any
     ? Expression.Expression<Normalize<Field>, Inputs>
     : never;

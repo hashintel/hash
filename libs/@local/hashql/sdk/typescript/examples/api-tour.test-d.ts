@@ -281,10 +281,7 @@ describe("expressions", () => {
       typeof person.archived
     >();
 
-    // Limitation: direct `then` access would make every handle look like a Promise.
-    // @ts-expect-error The SDK reserves `then`.
-    expectTypeOf(person.then);
-    // Workaround: project the field explicitly.
+    expectTypeOf(person.then).toEqualTypeOf<Closed<Type.PrimitiveString>>();
     expectTypeOf(person.$project("then")).toEqualTypeOf<
       Closed<Type.PrimitiveString>
     >();

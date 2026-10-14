@@ -1,12 +1,23 @@
+/**
+ * Symbolic HashQL values with semantic types and input requirements.
+ *
+ * Handles build syntax rather than executing queries. Their descriptors select the available calls and projections. Rebinding retains those descriptors while replacing the referenced path, and construction failures remain attached to the handle.
+ *
+ * A projected field named `then` retains its HashQL meaning. Keep handles inside their construction Result rather than passing them to `await` or `Promise.resolve`.
+ *
+ * @module
+ */
 // oxlint-disable unicorn/no-array-method-this-argument -- Result.map and Result.flatMap are not array methods
-import { Predicate, Result, Schema, identity, pipe } from "effect";
+import { Function, Predicate, Result, Schema, identity, pipe } from "effect";
 
+import { Relocate } from "../internal/relocation.js";
 import * as JExpr from "../jexpr/index.js";
 import * as AST from "./ast/index.js";
 import * as Fluent from "./Fluent.js";
 import * as ProgramError from "./ProgramError.js";
 import * as TypeExpression from "./TypeExpression.js";
 
+import type { Relocatable } from "../internal/relocation.js";
 import type * as Type from "../type/index.js";
 import type {
   Accessors,
@@ -29,50 +40,64 @@ interface Variance<T, Inputs> {
 
 export type Primitive = Type.Primitive["value"];
 
-/** The semantic input descriptors required by a value, with defaults marked optional. */
-export type Inputs<E> = E extends Primitive
+type InputAlternatives<E> = E extends Primitive
   ? Input.Empty
   : E extends {
         readonly [TypeId]: {
           readonly _Inputs: Types.Contravariant<infer Requirements>;
         };
       }
-    ? { readonly [Key in keyof Requirements]: Requirements[Key] }
-    : never;
+    ? [Requirements] extends [never]
+      ? Input.Erased
+      : // oxlint-disable-next-line typescript/no-restricted-types -- detects the top type in a caller annotation without erasing a value
+        unknown extends Requirements
+        ? Input.Erased
+        : { readonly [Key in keyof Requirements]: Requirements[Key] }
+    : Input.Erased;
+
+/** The semantic input descriptors required by every host-side alternative, with defaults marked optional. */
+export type Inputs<E> = Input.Conservative<InputAlternatives<E>>;
 
 /** An expression with its semantic type erased, for syntax-only operations. */
-export interface Any {
+export interface Any extends Relocatable<Any> {
   readonly [Binding]: Result.Result<AST.Node, ProgramError.Construction>;
 }
 
 export interface Handle<T extends Type.Any, Inputs> extends Any {
   readonly [TypeId]: Variance<T, Inputs>;
+  readonly [Relocate]: Relocatable<Expression<T, Inputs>>[typeof Relocate];
 }
 
 export type AnyValue = Any | Primitive;
 
 /** Accepts an exactly typed handle or the corresponding host primitive. */
+/** Argument compatibility needs semantic metadata, not the original callable or rebinding signature. */
 export type Value<T extends Type.Any> =
-  | Handle<T, never>
+  | (Any & Pick<Handle<T, never>, typeof TypeId | typeof Binding>)
   | (T extends Type.Primitive ? T["value"] : never);
 
-/** Host numbers remain Number regardless of their emitted literal syntax. */
-export type TypeOf<V extends AnyValue> =
-  V extends Handle<infer T, never>
-    ? T
-    : V extends string
-      ? Type.PrimitiveString
-      : V extends boolean
-        ? Type.PrimitiveBoolean
-        : V extends bigint
-          ? Type.PrimitiveInteger
-          : V extends number
-            ? Type.PrimitiveNumber
-            : V extends null
-              ? Type.PrimitiveNull
-              : never;
+/**
+ * Reads semantic metadata without constraining an adapted callable to its original host signature.
+ *
+ * Host numbers remain Number regardless of their emitted literal syntax.
+ */
+export type TypeOf<V extends AnyValue> = V extends {
+  readonly [TypeId]: { readonly _T: Types.Invariant<infer T extends Type.Any> };
+}
+  ? T
+  : V extends string
+    ? Type.PrimitiveString
+    : V extends boolean
+      ? Type.PrimitiveBoolean
+      : V extends bigint
+        ? Type.PrimitiveInteger
+        : V extends number
+          ? Type.PrimitiveNumber
+          : V extends null
+            ? Type.PrimitiveNull
+            : never;
 
-class ExpressionImpl<T extends Type.Any, Inputs> implements Handle<T, Inputs> {
+class ExpressionImpl<T extends Type.Any, Inputs> {
   readonly [TypeId]: Variance<T, Inputs>;
 
   readonly #expr: Result.Result<AST.Node, ProgramError.Construction>;
@@ -146,7 +171,23 @@ const make = <T extends Type.Any, Inputs>(
           ),
         ),
       ),
-    { [TypeId]: impl[TypeId], [Binding]: impl[Binding] },
+    {
+      [TypeId]: impl[TypeId],
+      [Binding]: impl[Binding],
+      [Relocate]: (
+        path: JExpr.Path.Path,
+      ): Result.Result<Expression<T, Inputs>, ProgramError.Construction> =>
+        pipe(
+          impl[Binding],
+          Result.map(() =>
+            make(
+              new ExpressionImpl<T, Inputs>(
+                parseNode(JExpr.Path.compile(path)),
+              ),
+            ),
+          ),
+        ),
+    },
   );
 
   const proxy = new Proxy(target, {
@@ -156,11 +197,6 @@ const make = <T extends Type.Any, Inputs>(
       receiver,
     ): // oxlint-disable-next-line typescript/no-restricted-types -- proxy property reads may return arbitrary host values
     unknown {
-      // A callable projected `then` would make the handle a JavaScript thenable.
-      if (property === "then") {
-        return undefined;
-      }
-
       if (property === "$") {
         // oxlint-disable-next-line eslint/no-use-before-define -- the operation factories and expression proxy are mutually recursive
         return Fluent.make(target, { fromResult, fromJExpr, toJExpr });
@@ -219,9 +255,11 @@ const make = <T extends Type.Any, Inputs>(
     },
   });
 
-  // SAFETY: the target retains T's invariant marker, and the traps construct syntax for the typed operations.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the proxy implements the type-directed operations
-  return proxy as Expression<T, Inputs>;
+  const handle: Handle<T, Inputs> = proxy;
+
+  // SAFETY: the handle retains T and Inputs. The traps supply their type-directed operations.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot derive conditional accessors and call signatures from proxy traps
+  return handle as Expression<T, Inputs>;
 };
 
 export const fromResult = <T extends Type.Any, Inputs>(
@@ -240,6 +278,45 @@ export const fromJExpr = <T extends Type.Any, Inputs>(
 export const fromNode = <T extends Type.Any, Inputs>(
   node: AST.Node,
 ): Expression<T, Inputs> => fromResult(Result.succeed(node));
+
+/** A replacement call signature with the source expression's semantic metadata. */
+export type Adapted<T extends Type.Any, I, C> = C &
+  Pick<Handle<T, I>, typeof TypeId | typeof Binding> & {
+    readonly $: Fluent.Operations<Normalize<T>, I>;
+  } & Relocatable<Adapted<T, I, C>>;
+
+/**
+ * Adapts host arguments while preserving expression metadata and rebinding.
+ *
+ * The adapter must retain the represented function's meaning. It may accept additional host shorthand and normalize it before emitting a call. The factory receives the rebound expression on each relocation, so its calls cannot retain an earlier path. Metadata is copied explicitly because it need not be enumerable on a forwarding proxy.
+ */
+export const adaptCallable: {
+  <T extends Type.Any, I, C extends (...args: never[]) => Any>(
+    adapt: (self: Expression<T, I>) => C,
+  ): (self: Expression<T, I>) => Adapted<T, I, C>;
+  <T extends Type.Any, I, C extends (...args: never[]) => Any>(
+    self: Expression<T, I>,
+    adapt: (self: Expression<T, I>) => C,
+  ): Adapted<T, I, C>;
+} = Function.dual(
+  2,
+  <T extends Type.Any, I, C extends (...args: never[]) => Any>(
+    self: Expression<T, I>,
+    adapt: (self: Expression<T, I>) => C,
+  ): Adapted<T, I, C> =>
+    Object.assign(adapt(self), {
+      [TypeId]: self[TypeId],
+      [Binding]: self[Binding],
+      $: self.$,
+      [Relocate]: (
+        path: JExpr.Path.Path,
+      ): Result.Result<Adapted<T, I, C>, ProgramError.Construction> =>
+        pipe(
+          self[Relocate](path),
+          Result.map((moved) => adaptCallable(moved, adapt)),
+        ),
+    }),
+);
 
 /**
  * Changes the SDK's type assumption without changing the query syntax.

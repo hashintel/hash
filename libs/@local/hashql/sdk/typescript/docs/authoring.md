@@ -2,7 +2,7 @@
 
 The `@local/hashql` package builds HashQL programs from TypeScript. You describe the HashQL modules a program uses and compose expressions from typed handles. The SDK then serializes the result to J-Expr, the JSON syntax the HashQL compiler reads. The SDK neither runs nor compiles a query. It gives you typed composition and a syntax tree, and the HashQL compiler decides whether that tree is a valid program.
 
-Shared types, expressions and `Program` come from `@local/hashql`. Import Do authoring calls from `@local/hashql/do`. The resulting expressions use the same shared representation.
+Shared types, expressions, `Prelude` and `Program` come from `@local/hashql`. Import Do authoring calls from `@local/hashql/do`, or use [Draft](#draft-executed-authoring) from `@local/hashql/draft`. The resulting expressions use the same shared representation.
 
 This guide starts with one complete program and then works through each part of the API with focused examples. The [authoring rules](#authoring-rules) at the end condense it into rules that a person or a coding agent can follow while writing a program.
 
@@ -97,6 +97,105 @@ On success the program prints this J-Expr, shown here with line breaks:
 ]
 ```
 
+## Draft: executed authoring
+
+`program(inputTypes, ($, inputs) => expression)` executes its callback once and returns a construction Result. The second callback argument receives typed input expressions for the schema entries. Serialization never reruns the callback. Draft does not translate JavaScript source.
+
+```ts
+import { Result } from "effect";
+import { Prelude, Program } from "@local/hashql";
+import { program, withPrelude } from "@local/hashql/draft";
+
+const identity = Symbol("Foo");
+const built = program({ count: Prelude.builtin.types.Integer }, ($, inputs) => {
+  const Foo = $.newtype("Foo", identity, { foo: BigInt });
+  const value = $.let("value", Foo({ foo: inputs.count }));
+  return $.ifElse(
+    true,
+    (branch) => branch.let("selected", value),
+    () => value,
+  );
+});
+const compiled = Result.flatMap(built, (expression) =>
+  Program.compile(Program.program(expression)),
+);
+const custom = withPrelude({ types: { Count: Prelude.builtin.types.Integer } });
+const closed = custom.program({}, ($) => $.literal(1n));
+```
+
+`withPrelude` returns `{ program }`, preserving the supplied module, value and type keys. It replaces the default prelude rather than extending it. `$.prelude()` flattens those three namespaces. Colliding type and value exports retain both capabilities on a fresh handle. The original exports are not mutated. Callable generic types dispatch on type arguments, and callable values on value arguments. If an argument has both capabilities, the result can retain both too. `$.modules()` offers flattened module access while each module still exposes its separate `types`, `values` and `modules` records. Namespace metadata takes precedence over same-spelled direct value fields: use `$project("syntax")` for a value field colliding with type syntax, and the separate namespace records for exports whose names collide with `path`, `types`, `values` or `modules`. Exports and projected fields called `then` remain directly accessible. Keep handles inside their construction Result rather than passing them to `await` or `Promise.resolve`. Joined expressions reserve `$`, `$project` and `$index` for expression operations. Function intrinsics such as `name` and `length` do not replace module exports.
+
+### Declarations and structural shorthand
+
+- `$.let(name, expressionOrPrimitive)` emits a value binding and returns a reference. An unused binding still emits its initializer.
+- `$.type(name, definition)` emits an alias and returns its type expression.
+- `$.newtype(name, identity, definition)` emits a nominal declaration and returns its type expression together with a callable value constructor. Give each distinct declaration its own `unique symbol`, even when names coincide. The constructor returns the nominal type, not its representation.
+
+Definitions accept runtime type expressions, `BigInt`, `Number`, `String`, `Boolean`, records of definitions and tuples of definitions. The host constructors denote Integer, Number, String and Boolean respectively. Default `List` and `Dict` type constructors normalize the same shorthand: `List({ count: BigInt })` and `Dict(String, BigInt)` are valid. The kernel exports List and Dict only in its type namespace.
+
+Nominal constructors accept their exactly typed underlying expression or structural value, such as `Foo({ foo: 2n })`. Nested expressions keep their input requirements. TypeScript rejects wrong fields, missing fields and extra fields. The SDK does not widen semantic types implicitly. Shared `Structural.type(definition)` normalizes a type outside Draft, and `Structural.value<T>()(value)` constructs an exactly typed struct or tuple expression. This shorthand does not implicitly unwrap nominal values or convert arrays into lists.
+
+### Explicit input contracts
+
+The output requirement record contains **every schema entry**, even when the body never uses an input. Draft checks emitted initializers, conditional branches, predicate bodies and the final expression against that schema. External expressions are usable when the schema declares every required or optional input they carry with the same semantic type. An undeclared input in a discarded `$.let` initializer is a type error, not a closed program. Merely constructing and dropping a handle emits no syntax.
+
+Every schema entry remains required in the result, including inputs whose uses all supply defaults. A host-side union of schemas requires the entries from every alternative, even an alternative containing no entries. `{}` produces `Inputs.Empty`. Keep expression requirements inferred or explicitly typed: `Expression.Any` and `Expression.Value<T>` erase them and cannot prove a Draft input contract. Composition preserves that uncertainty rather than turning it into `Inputs.Empty`. Draft adds no runtime host-input validator. Trusted raw-syntax constructors and explicit type assertions can lie about requirements. They remain trust boundaries rather than proofs.
+
+### Branches, queries and failures
+
+Use `$.ifElse(condition, thenCallback, elseCallback)` for child declaration contexts. Both callbacks run during construction. The direct `$.ifElse(condition, { then, else })` form accepts already-built values and does not create a declaration scope around their earlier construction.
+
+A custom prelude supplies `$.query.entities` when its `entities` value returns a `::graph::Graph` opaque type with a vertex marker. Its signature determines the query arguments and vertex descriptor. The filter callback receives a predicate context first. This illustrative declaration uses an example module, not the graph service's schema:
+
+```ts
+import { Result } from "effect";
+import { Module, Structural } from "@local/hashql";
+import { withPrelude } from "@local/hashql/draft";
+import type { Type } from "@local/hashql";
+
+type Vertex = Type.Struct<{ readonly archived: Type.PrimitiveBoolean }>;
+type Graph = Type.Opaque<
+  "::graph::Graph",
+  Type.Struct<{ readonly "\'marker": Vertex }>
+>;
+const graph = Result.getOrThrow(
+  Module.define("::example::graph", {
+    values: {
+      entities:
+        Module.value<Type.Function<readonly [Type.PrimitiveInteger], Graph>>(),
+    },
+  }),
+);
+const { program } = withPrelude(graph);
+const selected = program({ axis: Structural.type(BigInt) }, ($, inputs) =>
+  $.query
+    .entities(inputs.axis)
+    .filter("vertex", (predicate, vertex) => {
+      const archived = predicate.let("archived", vertex.archived);
+      return archived.$.isFalse();
+    })
+    .collect(),
+);
+```
+
+Declarations made through `predicate` stay inside the emitted filter closure. Capturing `$` from the outer callback instead still addresses the outer context. Likewise, JavaScript can save a branch-local reference and return it elsewhere. Draft does not reject those host-reference escapes: the HashQL compiler owns lexical resolution. Keep declarations on the context of the branch or predicate that uses them. Nested and reentrant programs have independent declaration state.
+
+Expected construction failures return `ProgramError.Construction`. Invalid binding names and non-finite literal initializers fail even when the body never uses their references. Draft continues executing the synchronous callback after such a failure. A user-thrown synchronous exception propagates unchanged. Async callbacks are a type error and an unchecked async callback produces a construction failure rather than a query.
+
+### Default prelude coverage and authority
+
+`Prelude.builtin` contains representative declarations rather than a complete standard-library catalogue. Their export types derive from the declaration tables in [`Prelude.ts`](../src/program/Prelude.ts). [`PreludeTypes.ts`](../src/program/PreludeTypes.ts) supplies the nominal identities and generic semantic operations. Generated tables can use the same `Module.define` and `withPrelude` APIs. This package has no generator.
+
+| Exports                                                                     | Compiler source under `core/src/module/std_lib/` |
+| --------------------------------------------------------------------------- | ------------------------------------------------ |
+| Integer, Number, String, Boolean, Null, Unknown, Never; List and Dict types | `kernel/type.rs`                                 |
+| `eq`                                                                        | `core/cmp.rs`                                    |
+| `add`                                                                       | `core/math.rs`                                   |
+| Uuid type and constructor                                                   | `core/uuid.rs`                                   |
+| EntityUuid type and constructor                                             | `graph/types/knowledge/entity.rs`                |
+
+The free `eq` function accepts independent argument types. The receiver `.$.eq` remains an exact-type operation. `add` accepts Integer or Number arguments and returns their union, reducing equal descriptors to that descriptor. The SDK never converts Integer to Number implicitly. Module routes are `entity`, `uuid`, `cmp` and `math`. Graph queries and temporal declarations must come from a custom prelude. Do still starts with empty environments.
+
 ## Shared declarations for the examples
 
 The remaining examples are shorter. Each assumes the imports and declarations below, and states any further declarations it needs beside its own code.
@@ -185,7 +284,7 @@ These records are the only place where one JavaScript object describes more than
 
 `Module.define` returns a `Result`. A relative path, an invalid path or an invalid export name produces a construction failure. `Module.root` assembles already defined modules into a tree and also returns a `Result`. Both copy and freeze their records, so later changes to your objects don't change a module.
 
-A declaration is a trusted annotation. The package includes no standard library, so you write declarations for the parts of HashQL a program uses, including the graph functions a query needs. The compiler checks the emitted program against the real definitions. Generated declarations must take their types from the definitions they describe.
+A declaration is a trusted annotation. Beyond the bounded [Draft prelude](#default-prelude-coverage-and-authority), write declarations for the parts of HashQL a program uses. The Do examples below keep their explicit fixtures. The compiler checks the emitted program against the real definitions. Generated declarations must take their types from the definitions they describe.
 
 A module's values are expressions that refer to their absolute path. You can use them through `$.ref` without importing anything:
 

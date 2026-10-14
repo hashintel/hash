@@ -7,11 +7,16 @@
  */
 import { Predicate, Result, flow, pipe } from "effect";
 
+import {
+  Relocate,
+  relocate as relocateHandle,
+} from "../internal/relocation.js";
 import * as JExpr from "../jexpr/index.js";
 import * as Expression from "./Expression.js";
 import * as ProgramError from "./ProgramError.js";
 import * as TypeExpression from "./TypeExpression.js";
 
+import type { Relocatable } from "../internal/relocation.js";
 import type * as Type from "../type/index.js";
 import type * as Inputs from "./Inputs.js";
 import type { ReadonlyRecord } from "effect/Record";
@@ -35,7 +40,7 @@ type Declarations<E> = {
 };
 
 /** A module with its concrete export names erased. */
-export interface Any {
+export interface Any extends Relocatable<Any> {
   readonly [TypeId]: true;
   readonly path: JExpr.Path.Path;
   readonly modules: Namespace<Any>;
@@ -70,13 +75,32 @@ type Exports<D> = {
 };
 
 /** Bound tables retain their key-to-export relationships independently of the source declarations. */
-interface Bound<M, T, V> {
+interface Bound<M, T, V> extends Relocatable<Bound<M, T, V>> {
   readonly [TypeId]: true;
   readonly path: JExpr.Path.Path;
   readonly modules: Readonly<M>;
   readonly types: Readonly<T>;
   readonly values: Readonly<V>;
 }
+
+/** Each entry must retain its own rebinding result, not merely a common export type. */
+type Rebindings<E> = { readonly [K in keyof E]: Relocatable<E[K]> };
+
+/** A declared or existing export must preserve its promised capabilities when imported. */
+type Rebindable<E> =
+  E extends Declaration<infer T>
+    ? Declaration<T & Relocatable<T>>
+    : E extends undefined
+      ? undefined
+      : E & Relocatable<E>;
+
+type RebindableEntries<E> = { readonly [K in keyof E]: Rebindable<E[K]> };
+
+type RebindableDefinition<S> = {
+  readonly [K in keyof S]: K extends keyof Definition
+    ? RebindableEntries<S[K]>
+    : S[K];
+};
 
 /** An immutable module record preserving each export's concrete type. */
 export interface Module<S extends Definition> extends Bound<
@@ -214,6 +238,55 @@ const bind = <E extends Namespace<TypeExpression.Export | Expression.Any>>(
   return mapEntries<E, Declarations<E>>(entries, resolve);
 };
 
+/** Rebinds each member using the result type retained by that member's producer. */
+const rebase = <
+  E extends Namespace<Any | TypeExpression.Export | Expression.Any> &
+    Rebindings<E>,
+>(
+  path: JExpr.Path.Path,
+  entries: E,
+): Result.Result<Readonly<E>, ProgramError.Construction> => {
+  const sources: Rebindings<E> = entries;
+  const resolve = <K extends keyof E & string>(
+    name: K,
+    _entry: E[K],
+    ident: JExpr.Ident.Ident,
+  ): Result.Result<E[K], ProgramError.Construction> =>
+    relocateHandle<E[K]>(sources[name], {
+      rooted: path.rooted,
+      segments: [...path.segments, ident],
+    });
+
+  return mapEntries<E, E>(entries, resolve);
+};
+
+/** Captures typed export tables so rebinding preserves each member's result type. */
+const bound = <
+  M extends Namespace<Any> & Rebindings<M>,
+  T extends Namespace<TypeExpression.Export> & Rebindings<T>,
+  V extends Namespace<Expression.Any> & Rebindings<V>,
+>(
+  path: JExpr.Path.Path,
+  entries: { readonly modules: M; readonly types: T; readonly values: V },
+): Bound<M, T, V> =>
+  Object.freeze({
+    [TypeId]: true as const,
+    path,
+    ...entries,
+    [Relocate]: (
+      next: JExpr.Path.Path,
+    ): Result.Result<Bound<M, T, V>, ProgramError.Construction> =>
+      pipe(
+        {
+          modules: rebase<M>(next, entries.modules),
+          types: rebase<T>(next, entries.types),
+          values: rebase<V>(next, entries.values),
+        },
+        Result.all,
+        Result.map((exports) => bound<M, T, V>(next, exports)),
+      ),
+  });
+
 /**
  * Binds new declarations and retains existing exports by identity.
  *
@@ -224,12 +297,12 @@ const bind = <E extends Namespace<TypeExpression.Export | Expression.Any>>(
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the path names the module under construction
 export function define<const S extends Definition>(
   name: string,
-  definition: S,
+  definition: S & RebindableDefinition<S>,
 ): Result.Result<Module<S>, ProgramError.Construction>;
 export function define<
-  M extends Namespace<Any>,
-  T extends Namespace<TypeExpression.Export>,
-  V extends Namespace<Expression.Any>,
+  M extends Namespace<Any> & Rebindings<M>,
+  T extends Namespace<TypeExpression.Export> & Rebindings<T>,
+  V extends Namespace<Expression.Any> & Rebindings<V>,
 >(
   name: string,
   definition: {
@@ -265,9 +338,7 @@ export function define<
       modules = yield* copyModules(definition.modules);
     }
 
-    return Object.freeze({
-      [TypeId]: true as const,
-      path,
+    return bound<M | Empty, T | Empty, V | Empty>(path, {
       modules,
       types: yield* bind<T>(path, definition.types),
       values: yield* bind<V>(path, definition.values),
@@ -275,63 +346,18 @@ export function define<
   });
 }
 
-/** Rebinds a module and its exports beneath a locally imported module name. */
-// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- internal module rebinding requires both the module and its local path
-export const relocate = (
-  module: Any,
-  path: JExpr.Path.Path,
-): Result.Result<Any, ProgramError.Construction> =>
-  Result.gen(function* () {
-    const modules: [string, Any][] = [];
-    const values: [string, Expression.Any][] = [];
-    const types: [string, TypeExpression.Export][] = [];
-
-    for (const [name, child] of Object.entries(module.modules)) {
-      const ident = yield* memberName(name);
-
-      modules.push([
-        name,
-        yield* relocate(child, {
-          rooted: path.rooted,
-          segments: [...path.segments, ident],
-        }),
-      ]);
-    }
-
-    for (const name of Object.keys(module.values)) {
-      const ident = yield* memberName(name);
-
-      values.push([
-        name,
-        Expression.fromJExpr(
-          JExpr.Path.compile({
-            rooted: path.rooted,
-            segments: [...path.segments, ident],
-          }),
-        ),
-      ]);
-    }
-
-    for (const [name, type] of Object.entries(module.types)) {
-      const ident = yield* memberName(name);
-
-      types.push([
-        name,
-        yield* TypeExpression.relocate(type, {
-          rooted: path.rooted,
-          segments: [...path.segments, ident],
-        }),
-      ]);
-    }
-
-    return Object.freeze({
-      [TypeId]: true as const,
-      path,
-      modules: Object.freeze(Object.fromEntries(modules)),
-      values: Object.freeze(Object.fromEntries(values)),
-      types: Object.freeze(Object.fromEntries(types)),
-    });
-  });
+/** Rebinds a module tree while preserving each export's declared type. */
+export const relocate: {
+  (
+    path: JExpr.Path.Path,
+  ): <M extends Any>(
+    self: Any & Relocatable<M>,
+  ) => Result.Result<M, ProgramError.Construction>;
+  <M extends Any>(
+    self: Any & Relocatable<M>,
+    path: JExpr.Path.Path,
+  ): Result.Result<M, ProgramError.Construction>;
+} = relocateHandle;
 
 /** Assembles already-bound modules without rebasing their references. */
 export const root = <const M extends Namespace<Any>>(

@@ -1,10 +1,16 @@
+/**
+ * Immutable tables of module, type and value exports.
+ *
+ * Missing namespace tables introduce no names. Optional tables contribute optional names instead of an arbitrary string index. Merging retains an earlier export when its replacement is optional, and snapshots include non-enumerable own exports without freezing the caller's records.
+ *
+ * @module
+ */
 import type * as Expression from "./Expression.js";
 import type * as Module from "./Module.js";
 import type * as TypeExpression from "./TypeExpression.js";
 import type { ReadonlyRecord } from "effect/Record";
 
-/** An inspectable namespace without fixing its concrete key set. */
-interface Universe<Value> extends ReadonlyRecord<string, Value> {}
+interface Universe<V> extends ReadonlyRecord<string, V | undefined> {}
 
 export interface Scope {
   readonly modules: Universe<Module.Any>;
@@ -18,13 +24,14 @@ export interface Definition {
   readonly types?: Scope["types"];
 }
 
-// oxlint-disable-next-line typescript/no-generated-empty-object-type -- an empty universe has no names
+// oxlint-disable-next-line typescript/no-generated-empty-object-type -- an empty namespace has no names
 type EmptyNames = Record<never, never>;
 
-type Names<D extends Definition, Key extends keyof Scope> =
-  D extends ReadonlyRecord<Key, infer Exports extends Scope[Key]>
-    ? Exports
-    : EmptyNames;
+type Names<D extends Definition, K extends keyof Scope> = K extends keyof D
+  ? undefined extends D[K]
+    ? Partial<NonNullable<D[K]>>
+    : NonNullable<D[K]>
+  : EmptyNames;
 
 export interface From<D extends Definition> {
   readonly modules: Names<D, "modules">;
@@ -34,28 +41,71 @@ export interface From<D extends Definition> {
 
 export type Empty = From<EmptyNames>;
 
-export type Extend<Before, Added> = Readonly<Omit<Before, keyof Added> & Added>;
+type RequiredKeys<S> = {
+  [K in keyof S]-?: EmptyNames extends Pick<S, K> ? never : K;
+}[keyof S];
+type At<S, K extends PropertyKey> = K extends keyof S ? S[K] : undefined;
+type Overridden<B, A, K extends PropertyKey> = K extends keyof A
+  ? K extends RequiredKeys<A>
+    ? A[K]
+    : A[K] | At<B, K>
+  : At<B, K>;
 
-export interface Merge<Before extends Scope, Added extends Definition> {
-  readonly modules: Extend<Before["modules"], Names<Added, "modules">>;
-  readonly values: Extend<Before["values"], Names<Added, "values">>;
-  readonly types: Extend<Before["types"], Names<Added, "types">>;
+/** Optional replacements retain the earlier type as an alternative. */
+export type Extend<B, A> = {
+  readonly [K in RequiredKeys<B> | RequiredKeys<A>]: Overridden<B, A, K>;
+} & {
+  readonly [K in Exclude<
+    keyof B | keyof A,
+    RequiredKeys<B> | RequiredKeys<A>
+  >]?: Overridden<B, A, K>;
+};
+
+export interface Merge<B extends Scope, A extends Definition> {
+  readonly modules: Extend<B["modules"], Names<A, "modules">>;
+  readonly values: Extend<B["values"], Names<A, "values">>;
+  readonly types: Extend<B["types"], Names<A, "types">>;
 }
 
+/** Copies own exports, including non-enumerable names, without freezing the caller's table. */
+export const snapshot = <E extends Scope[keyof Scope]>(
+  entries: E,
+): Readonly<E> => {
+  const copy = { ...entries };
+
+  for (const name of Object.getOwnPropertyNames(entries)) {
+    Object.defineProperty(copy, name, {
+      value: entries[name],
+      enumerable: true,
+    });
+  }
+
+  return Object.freeze(copy);
+};
+
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- combines separate namespaces rather than transforming the first argument
-export const merge = <Before extends Scope, const Added extends Definition>(
-  before: Before,
-  added: Added,
-): Merge<Before, Added> => {
+export const merge = <B extends Scope, const A extends Definition>(
+  before: B,
+  added: A,
+): Merge<B, A> => {
   const combined = Object.freeze({
-    modules: Object.freeze({ ...before.modules, ...added.modules }),
-    values: Object.freeze({ ...before.values, ...added.values }),
-    types: Object.freeze({ ...before.types, ...added.types }),
+    modules: Object.freeze({
+      ...snapshot(before.modules),
+      ...snapshot(added.modules ?? {}),
+    }),
+    values: Object.freeze({
+      ...snapshot(before.values),
+      ...snapshot(added.values ?? {}),
+    }),
+    types: Object.freeze({
+      ...snapshot(before.types),
+      ...snapshot(added.types ?? {}),
+    }),
   });
 
-  // SAFETY: each spread copies one namespace, with later names replacing earlier ones.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- object spread erases the per-key override mapping
-  return combined as Merge<Before, Added>;
+  // SAFETY: each namespace copies all own exports, replacing an earlier value only when the later table supplies that name.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- object spread cannot express per-key optional override alternatives
+  return combined as Merge<B, A>;
 };
 
 export const empty: Empty = Object.freeze({

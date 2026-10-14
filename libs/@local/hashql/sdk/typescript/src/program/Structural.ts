@@ -22,6 +22,7 @@ import * as Expression from "./Expression.js";
 import * as ProgramError from "./ProgramError.js";
 import * as TypeExpression from "./TypeExpression.js";
 
+import type { Relocatable, Relocate } from "../internal/relocation.js";
 import type * as Type from "../type/index.js";
 import type * as Input from "./Inputs.js";
 import type { ReadonlyRecord } from "effect/Record";
@@ -122,7 +123,7 @@ export const isDefinition = (value: unknown): value is Definition => {
     return true;
   }
 
-  if (!Predicate.isObject(value) || Predicate.isFunction(value)) {
+  if (!Predicate.isObjectOrArray(value) || Predicate.isFunction(value)) {
     return false;
   }
 
@@ -151,7 +152,7 @@ export const isValue = (value: unknown): value is AnyValue => {
     return true;
   }
 
-  if (!Predicate.isObject(value) || Predicate.isFunction(value)) {
+  if (!Predicate.isObjectOrArray(value) || Predicate.isFunction(value)) {
     return false;
   }
 
@@ -270,6 +271,8 @@ type ArgumentTypes<A extends readonly Definition[]> = {
 /** A named generic type accepting the same shorthand as a local alias. */
 export interface Constructor<F extends Type.TypeConstructor>
   extends TypeExpression.AnyConstructor {
+  readonly [Relocate]: Relocatable<Constructor<F>>[typeof Relocate];
+
   <const A extends readonly Definition[]>(
     ...definitions: A & { readonly length: F["arity"] }
   ): TypeExpression.TypeExpression<Type.Apply<F, ArgumentTypes<A>>>;
@@ -278,14 +281,15 @@ export interface Constructor<F extends Type.TypeConstructor>
 /** Gives an existing generic declaration the same shorthand normalization as local aliases. */
 export const constructor = <F extends Type.TypeConstructor>(
   declaration: TypeExpression.Constructor<F>,
-): Constructor<F> => {
-  const instantiate = <const A extends readonly Definition[]>(
-    ...definitions: A & { readonly length: F["arity"] }
-  ): TypeExpression.TypeExpression<Type.Apply<F, ArgumentTypes<A>>> =>
-    declaration<ArgumentTypes<A>>(...normalize<A>(definitions));
-
-  return TypeExpression.adaptConstructor(declaration, instantiate);
-};
+): Constructor<F> =>
+  TypeExpression.adaptConstructor(
+    declaration,
+    (source) =>
+      <const A extends readonly Definition[]>(
+        ...definitions: A & { readonly length: F["arity"] }
+      ): TypeExpression.TypeExpression<Type.Apply<F, ArgumentTypes<A>>> =>
+        source<ArgumentTypes<A>>(...normalize<A>(definitions)),
+  );
 
 const valueSyntax = (
   value: AnyValue,

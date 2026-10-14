@@ -116,6 +116,24 @@ describe("structural_constructor_types", () => {
     >();
   });
 
+  test("relocated_types", () => {
+    const local = Result.getOrThrow(JExpr.Path.decodeResult("Dictionary"));
+    const moved = Result.getOrThrow(TypeExpression.relocate(dictionary, local));
+    expectTypeOf(moved).toEqualTypeOf<typeof dictionary>();
+    expectTypeOf(moved(String, { count: BigInt })).toEqualTypeOf<
+      TypeExpression.TypeExpression<Type.Dict<Type.PrimitiveString, Row>>
+    >();
+    const identity = Symbol("Item");
+    const item =
+      TypeExpression.reference<
+        Type.Opaque<typeof identity, Type.PrimitiveInteger>
+      >(local);
+    const alias = Result.getOrThrow(TypeExpression.relocate(item, local));
+    expectTypeOf(alias).toEqualTypeOf<typeof item>();
+    // @ts-expect-error Relocation preserves the constructor's arity.
+    moved(String);
+  });
+
   test("structural_requirements", () => {
     const result = Structural.value<Row>()(hostChoice(true));
     expectTypeOf(result).toEqualTypeOf<

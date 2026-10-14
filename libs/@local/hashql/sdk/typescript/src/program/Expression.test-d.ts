@@ -1,3 +1,8 @@
+/**
+ * Static checks for symbolic calls, field projections and input requirements.
+ *
+ * @module
+ */
 import { describe, expectTypeOf, test } from "vitest";
 
 import type * as Type from "../type/index.js";
@@ -394,8 +399,9 @@ describe("operation_names", () => {
     expectTypeOf(reserved.get).toEqualTypeOf<
       Expression<Type.PrimitiveBoolean, Inputs.Empty>
     >();
-    // @ts-expect-error JavaScript Promise interoperability reserves direct then access.
-    expectTypeOf(reserved.then);
+    expectTypeOf(reserved.then).toEqualTypeOf<
+      Expression<Type.PrimitiveString, Inputs.Empty>
+    >();
     expectTypeOf(reserved.$project("then")).toEqualTypeOf<
       Expression<Type.PrimitiveString, Inputs.Empty>
     >();

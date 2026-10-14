@@ -20,6 +20,8 @@ export type Reason =
       InvalidImportName: NameFailure;
       InvalidParameterName: NameFailure;
       InvalidExportName: NameFailure;
+      SymbolExportName: { readonly name: symbol };
+      SymbolInputName: { readonly name: symbol };
       InvalidExpression: { readonly cause: Schema.SchemaError };
       InvalidModulePath: NameFailure;
       RelativeModulePath: { readonly name: string };
@@ -54,6 +56,14 @@ export class Construction extends ConstructionBase<{
     return new Construction({
       reason: Reason.InvalidBindingName({ name, cause }),
     });
+  }
+
+  static symbolExportName(name: symbol): Construction {
+    return new Construction({ reason: Reason.SymbolExportName({ name }) });
+  }
+
+  static symbolInputName(name: symbol): Construction {
+    return new Construction({ reason: Reason.SymbolInputName({ name }) });
   }
 
   static invalidTypeArity(arity: number): Construction {
@@ -102,6 +112,10 @@ export class Construction extends ConstructionBase<{
         `Invalid HashQL parameter name: ${JSON.stringify(name)}`,
       InvalidExportName: ({ name }) =>
         `Invalid HashQL export name: ${JSON.stringify(name)}`,
+      SymbolExportName: ({ name }) =>
+        `A HashQL export needs a string name, received ${String(name)}`,
+      SymbolInputName: ({ name }) =>
+        `A HashQL input needs a string name, received ${String(name)}`,
       InvalidExpression: () =>
         "The expression does not have valid J-Expr structure",
       InvalidModulePath: ({ name }) =>

@@ -2,9 +2,41 @@
 
 The SDK constructs HashQL query syntax. TypeScript checks the authoring API. The HashQL compiler resolves names and checks the emitted program. `JExpr` provides the low-level expression builders and serializer. Construction does not execute the query.
 
-Import shared types, expressions and `Program` from `@local/hashql`, and Do authoring calls from `@local/hashql/do`. The shared `program` constructor wraps the resulting expression.
+Import shared types, expressions, `Prelude` and `Program` from `@local/hashql`. Import Do authoring calls from `@local/hashql/do`, or the executed Draft builder from `@local/hashql/draft`. Both produce expressions that the shared `program` constructor wraps.
 
 Start with the [authoring guide](docs/authoring.md). It provides a complete construction example, focused API examples and rules for developers and coding agents.
+
+## Draft authoring
+
+Draft executes one synchronous callback. Declarations accumulate around the returned expression, and the explicit input schema supplies the whole program's input contract, including unused entries and discarded declaration initializers.
+
+```ts
+import { Result } from "effect";
+import { Prelude, Program } from "@local/hashql";
+import { program } from "@local/hashql/draft";
+
+const identity = Symbol("Count");
+const built = program({ count: Prelude.builtin.types.Integer }, ($, inputs) => {
+  const Count = $.newtype("Count", identity, BigInt);
+  const value = $.let("value", Count(inputs.count));
+  return $.ifElse(
+    true,
+    () => value,
+    () => Count(0n),
+  );
+});
+const compiled = Result.flatMap(built, (expression) =>
+  Program.compile(Program.program(expression)),
+);
+```
+
+`$.type(name, definition)` accepts type expressions or structural shorthand. `$.newtype(name, uniqueSymbol, definition)` returns a type and callable nominal constructor together; for example, `const identity = Symbol("Foo"); const Foo = $.newtype("Foo", identity, { foo: BigInt }); Foo({ foo: 2n })`. Records describe structs, arrays describe tuples, and `List(BigInt)` and `Dict(String, BigInt)` describe collections. `number` remains Number, while `bigint` is Integer.
+
+`$.ifElse(condition, thenCallback, elseCallback)` supplies each branch its own context. The direct `{ then, else }` form accepts already-built values. Both callbacks construct syntax. HashQL chooses the runtime branch. Use the predicate context for declarations inside a filter. Capturing an outer context can place a declaration outside the vertex's scope. HashQL performs lexical resolution and rejects free references.
+
+Draft's default prelude contains primitive types, List/Dict, Uuid, EntityUuid, `eq` and `add`. It demonstrates declaration-table composition rather than mirroring the complete standard library. Draft's `withPrelude(definition)` returns `{ program }` and replaces these defaults. A custom `entities` declaration supplies the query entry point. The default has none. Do's default remains empty. See the [Draft reference](docs/authoring.md#draft-executed-authoring) for coverage and source definitions.
+
+Construction failures are Results. Synchronous user exceptions propagate unchanged. TypeScript rejects async callbacks. Draft continues executing a synchronous callback after a declaration fails and reports the accumulated failure at its end.
 
 ## Do authoring
 

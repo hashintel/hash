@@ -218,6 +218,82 @@ describe("module_exports", () => {
   });
 });
 
+describe("module_relocation", () => {
+  test("nested_exports", () => {
+    expect.hasAssertions();
+    const root = Result.getOrThrow(
+      Module.define("::source", {
+        modules: { arithmetic: math },
+        types: { Integer: prelude.Integer, Sequence: prelude.List },
+        values: { Uuid: uuid.values.Uuid },
+      }),
+    );
+    const local = Result.getOrThrow(
+      Module.relocate(
+        root,
+        Result.getOrThrow(JExpr.Path.decodeResult("local")),
+      ),
+    );
+    expect(
+      compile(local.modules.arithmetic.values.rem(dividend, divisor)),
+    ).toBe('["local::arithmetic::rem",{"#literal":7},{"#literal":3}]');
+    expect(
+      TypeSyntax.compile(
+        Result.getOrThrow(local.types.Sequence(prelude.Integer).syntax),
+      ),
+    ).toBe("local::Sequence<::kernel::type::Integer>");
+    expect(
+      TypeSyntax.compile(Result.getOrThrow(local.types.Integer.syntax)),
+    ).toBe("local::Integer");
+    expect(compile(local.values.Uuid("id"))).toBe(
+      '["local::Uuid",{"#literal":"id"}]',
+    );
+  });
+
+  test("repeated_relocation", () => {
+    expect.hasAssertions();
+    const root = Result.getOrThrow(
+      Module.define("::source", { modules: { arithmetic: math } }),
+    );
+    const local = Result.getOrThrow(
+      Module.relocate(
+        root,
+        Result.getOrThrow(JExpr.Path.decodeResult("local")),
+      ),
+    );
+    const second = Result.getOrThrow(
+      Module.relocate(
+        local,
+        Result.getOrThrow(JExpr.Path.decodeResult("second")),
+      ),
+    );
+    expect(
+      compile(second.modules.arithmetic.values.rem(dividend, divisor)),
+    ).toBe('["second::arithmetic::rem",{"#literal":7},{"#literal":3}]');
+    expect(compile(math.values.rem(dividend, divisor))).toBe(
+      '["::core::math::rem",{"#literal":7},{"#literal":3}]',
+    );
+  });
+
+  test("value_failure", () => {
+    expect.hasAssertions();
+    const invalid = Expression.number(Infinity);
+    const source = Result.getOrThrow(
+      Module.define("::source", { values: { invalid } }),
+    );
+    const result = Module.relocate(
+      source,
+      Result.getOrThrow(JExpr.Path.decodeResult("local")),
+    );
+    expect(
+      Result.match(result, {
+        onFailure: (error) => error.reason._tag,
+        onSuccess: () => null,
+      }),
+    ).toBe("InvalidExpression");
+  });
+});
+
 describe("module_construction", () => {
   test("record_snapshot", () => {
     expect.hasAssertions();

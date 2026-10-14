@@ -50,6 +50,35 @@ describe("structural_constructor", () => {
     );
   });
 
+  test("relocated_constructor", () => {
+    expect.hasAssertions();
+    const local = Result.getOrThrow(JExpr.Path.decodeResult("Dictionary"));
+    const moved = Result.getOrThrow(TypeExpression.relocate(dictionary, local));
+    expect(compile(moved(String, { count: BigInt }))).toBe(
+      "Dictionary<::kernel::type::String, (count: ::kernel::type::Integer)>",
+    );
+    const second = Result.getOrThrow(
+      TypeExpression.relocate(
+        moved,
+        Result.getOrThrow(JExpr.Path.decodeResult("Other")),
+      ),
+    );
+    expect(compile(second(Boolean, Number))).toBe(
+      "Other<::kernel::type::Boolean, ::kernel::type::Number>",
+    );
+    expect(compile(dictionary(String, Number))).toBe(
+      "::kernel::type::Dict<::kernel::type::String, ::kernel::type::Number>",
+    );
+  });
+
+  test("relocated_failure", () => {
+    expect.hasAssertions();
+    const invalid = Structural.type({ "": Number });
+    expect(TypeExpression.relocate(invalid, path)).toStrictEqual(
+      invalid.syntax,
+    );
+  });
+
   test("invalid_nested_name", () => {
     expect.hasAssertions();
     const result = dictionary(String, { "": BigInt }).syntax;

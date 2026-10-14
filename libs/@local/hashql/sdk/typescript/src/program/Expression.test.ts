@@ -1,3 +1,8 @@
+/**
+ * Runtime checks for symbolic calls and property projections.
+ *
+ * @module
+ */
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
@@ -133,16 +138,9 @@ describe("expression", () => {
     expect(compile(record.$project("then")())).toBe(
       '[["::kernel::special_form::access","record","then"]]',
     );
-    expect(Reflect.get(record, "then")).toBeUndefined();
-  });
-
-  // oxlint-disable-next-line typescript/promise-function-async -- returns Vitest’s Promise assertion directly
-  test("promise_interoperability", () => {
-    expect.hasAssertions();
-    const expression = Expression.fromJExpr<
-      Type.Function<readonly [], Type.PrimitiveInteger>,
-      Inputs.Empty
-    >("function");
-    return expect(Promise.resolve(expression)).resolves.toBe(expression);
+    const thenField = record.then;
+    expect(compile(thenField())).toBe(
+      '[["::kernel::special_form::access","record","then"]]',
+    );
   });
 });

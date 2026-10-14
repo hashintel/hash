@@ -39,6 +39,67 @@ declare const optionalDefault:
   | undefined;
 
 describe("input_requirements", () => {
+  test("host_alternatives_keep_every_requirement", () => {
+    type Alternatives =
+      | { readonly first: Type.PrimitiveInteger }
+      | { readonly second: Type.PrimitiveString };
+    expectTypeOf<
+      Inputs.Merge<Alternatives, { readonly third: Type.PrimitiveBoolean }>
+    >().toEqualTypeOf<{
+      readonly first: Type.PrimitiveInteger;
+      readonly second: Type.PrimitiveString;
+      readonly third: Type.PrimitiveBoolean;
+    }>();
+    expectTypeOf<
+      Inputs.Conservative<
+        Inputs.Empty | { readonly first: Type.PrimitiveInteger }
+      >
+    >().toEqualTypeOf<{ readonly first: Type.PrimitiveInteger }>();
+    expectTypeOf<
+      Inputs.Conservative<
+        | { readonly same: Type.PrimitiveInteger }
+        | { readonly same: Type.PrimitiveString }
+      >
+    >().toEqualTypeOf<{ readonly same: Type.Never }>();
+    const alternative =
+      Math.random() > 0.5
+        ? Expression.input("first", integer)
+        : Expression.input("second", integer);
+    const composed = Expression.ifElse(true, { then: alternative, else: 0n });
+    // @ts-expect-error an empty annotation cannot hide host-side alternatives
+    const closed: Expression.Expression<Type.PrimitiveInteger, Inputs.Empty> =
+      composed;
+    expectTypeOf(closed);
+    const choose = ():
+      | Expression.Expression<Type.PrimitiveInteger, Inputs.Empty>
+      | Expression.Expression<
+          Type.PrimitiveInteger,
+          { readonly first: Type.PrimitiveInteger }
+        > =>
+      Math.random() > 0.5
+        ? Expression.input("first", integer)
+        : Expression.integer(0);
+    const possiblyClosed = choose();
+    const combined = Expression.ifElse(true, {
+      then: possiblyClosed,
+      else: 0n,
+    });
+    // @ts-expect-error a closed alternative cannot make a required alternative disappear through contravariance
+    const hidden: Expression.Expression<Type.PrimitiveInteger, Inputs.Empty> =
+      combined;
+    expectTypeOf(hidden);
+    // Do's contextual callback requires a common record for this ambiguous host union.
+    const block = EmptyDo<
+      Type.PrimitiveInteger,
+      { readonly first: Type.PrimitiveInteger }
+    >(() => choose());
+    // @ts-expect-error a block also keeps the required alternative
+    const hiddenBlock: Expression.Expression<
+      Type.PrimitiveInteger,
+      Inputs.Empty
+    > = Result.getOrThrow(block);
+    expectTypeOf(hiddenBlock);
+  });
   test("required_and_default", () => {
     const required = Expression.input("count", integer);
     const optional = Expression.input("limit", integer, Expression.integer(10));

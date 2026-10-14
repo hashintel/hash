@@ -7,10 +7,11 @@
 import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
+import * as JExpr from "../jexpr/index.js";
+import * as Expression from "./Expression.js";
 import * as Module from "./Module.js";
 
 import type * as Type from "../type/index.js";
-import type * as Expression from "./Expression.js";
 import type * as Inputs from "./Inputs.js";
 import type { TypeExpression } from "./TypeExpression.js";
 
@@ -224,6 +225,45 @@ describe("module_types", () => {
     expectTypeOf(optional.types.Integer).toEqualTypeOf<
       TypeExpression<Type.PrimitiveInteger> | undefined
     >();
+  });
+
+  test("relocated_members", () => {
+    const local = Result.getOrThrow(JExpr.Path.decodeResult("local"));
+    const relocated = Result.getOrThrow(
+      Module.relocate(modules.modules.core, local),
+    );
+    expectTypeOf(relocated.modules.math.values.rem).toEqualTypeOf<
+      typeof prelude.rem
+    >();
+    expectTypeOf(relocated.modules.uuid.types.Uuid).toEqualTypeOf<
+      TypeExpression<Uuid>
+    >();
+    expectTypeOf(relocated.modules.uuid.values.Uuid(string)).toEqualTypeOf<
+      Expression.Expression<Uuid, Inputs.Empty>
+    >();
+    // @ts-expect-error The relocated function retains its semantic parameter types.
+    relocated.modules.math.values.rem(string, integer);
+    // @ts-expect-error Relocation does not introduce undeclared names.
+    expectTypeOf(relocated.modules.missing);
+
+    const input = Expression.input("count", prelude.Integer);
+    const source = Result.getOrThrow(
+      Module.define("::inputs", { values: { count: input } }),
+    );
+    const moved = Result.getOrThrow(Module.relocate(source, local));
+    expectTypeOf(moved.values.count).toEqualTypeOf<typeof input>();
+    // @ts-expect-error An imported reference still carries its source input requirement.
+    const closed: Expression.Expression<Type.PrimitiveInteger, Inputs.Empty> =
+      moved.values.count;
+    expectTypeOf(closed).toEqualTypeOf<
+      Expression.Expression<Type.PrimitiveInteger, Inputs.Empty>
+    >();
+  });
+
+  test("unpreserved_extension", () => {
+    const extended = Object.assign(prelude.Integer, { annotation: "extra" });
+    // @ts-expect-error The type's rebinding operation does not promise to retain caller-added properties.
+    expectTypeOf(Module.define("::extended", { types: { Integer: extended } }));
   });
 
   test("tree_members", () => {

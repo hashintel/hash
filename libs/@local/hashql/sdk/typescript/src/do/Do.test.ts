@@ -3,10 +3,8 @@
  *
  * @module
  */
-// oxlint-disable unicorn/no-array-method-this-argument -- Result.map and Result.flatMap are not array methods
-// oxlint-disable vitest/prefer-to-be-truthy -- these checks assert exact Boolean results
 // oxlint-disable hash/naming-conventions -- examples preserve HashQL type and constructor names in separate callback arguments
-import { Result } from "effect";
+import { Result, pipe } from "effect";
 import { assert, describe, expect, test } from "vitest";
 
 import { Expression, Module, Program, program } from "../main.js";
@@ -19,7 +17,6 @@ import { Type as AstType } from "../program/ast/Type.js";
 import { Do as EmptyDo, Import, Let, Newtype, withPrelude } from "./index.js";
 
 import type { Inputs, Type } from "../main.js";
-import type { Node } from "../program/ast/Node.js";
 
 const initialValue = 7;
 const fractionalValue = 1.5;
@@ -50,7 +47,11 @@ describe("construction", () => {
         return copy;
       },
     );
-    const tree = Result.getOrThrow(Result.flatMap(root, Expression.toNode));
+    const tree = pipe(
+      root,
+      Result.flatMap(Expression.toNode),
+      Result.getOrThrow,
+    );
     expect(tree).toBeInstanceOf(AstLet);
     expect(tree.compile()).toStrictEqual([
       "::kernel::special_form::let",
@@ -63,9 +64,6 @@ describe("construction", () => {
         ["::kernel::special_form::let", "value", { "#literal": "new" }, "copy"],
       ],
     ]);
-    expect(Program.compile(program(Result.getOrThrow(root)))).toStrictEqual(
-      Program.compile(program(Result.getOrThrow(root))),
-    );
     expect(calls).toStrictEqual(["value", "copy", "body"]);
     assert.instanceOf(tree, AstLet);
     expect(tree.child).toBeInstanceOf(AstLet);
@@ -80,8 +78,12 @@ describe("construction", () => {
       Let("id", ($, { Id }) => Id($.integer(initialValue))),
       (_, { id }) => id,
     );
-    const imported = Result.getOrThrow(Result.flatMap(root, Expression.toNode));
-    assert.instanceOf<AstImport<Node>>(imported, AstImport);
+    const imported = pipe(
+      root,
+      Result.flatMap(Expression.toNode),
+      Result.getOrThrow,
+    );
+    assert.instanceOf<AstImport<typeof imported>>(imported, AstImport);
     const tree = imported.child;
     expect(tree).toBeInstanceOf(AstType);
     expect(tree.compile()).toStrictEqual([
@@ -323,8 +325,12 @@ describe("branches", () => {
           },
         ),
     );
-    const imported = Result.getOrThrow(Result.flatMap(root, Expression.toNode));
-    assert.instanceOf<AstImport<Node>>(imported, AstImport);
+    const imported = pipe(
+      root,
+      Result.flatMap(Expression.toNode),
+      Result.getOrThrow,
+    );
+    assert.instanceOf<AstImport<typeof imported>>(imported, AstImport);
     const tree = imported.child;
     expect(tree.compile()).toStrictEqual([
       "::kernel::special_form::let",
@@ -370,7 +376,7 @@ describe("branches", () => {
       ),
     );
     expect(
-      Result.getOrThrow(Result.flatMap(root, Expression.toJExpr)),
+      pipe(root, Result.flatMap(Expression.toJExpr), Result.getOrThrow),
     ).toStrictEqual([
       "::kernel::special_form::if",
       { "#literal": true },
@@ -398,7 +404,7 @@ describe("expressions", () => {
       (_, values) => values["%"],
     );
     expect(
-      Result.getOrThrow(Result.flatMap(root, Expression.toJExpr)),
+      pipe(root, Result.flatMap(Expression.toJExpr), Result.getOrThrow),
     ).toStrictEqual([
       "::kernel::special_form::let",
       "`%`",
@@ -419,10 +425,16 @@ describe("expressions", () => {
     expect.hasAssertions();
     const root = EmptyDo(($) => $.integer(initialValue));
     expect(
-      Result.getOrThrow(Result.flatMap(root, Expression.toNode)),
+      pipe(root, Result.flatMap(Expression.toNode), Result.getOrThrow),
     ).toBeInstanceOf(Expr);
     expect(
-      Result.getOrThrow(Program.compile(program(Result.getOrThrow(root)))),
+      pipe(
+        root,
+        Result.getOrThrow,
+        program,
+        Program.compile,
+        Result.getOrThrow,
+      ),
     ).toBe('{"#literal":7}');
   });
 
