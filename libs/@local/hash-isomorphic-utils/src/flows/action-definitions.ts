@@ -1,4 +1,5 @@
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
+import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
 import { allPayloadKinds } from "./types.js";
 
@@ -32,6 +33,7 @@ export type AiFlowActionDefinitionId =
   | "if"
   | "inferMetadataFromDocument"
   | "inferEntitiesFromContent"
+  | "orderBy"
   | "processAutomaticBrowsingSettings"
   | "persistEntities"
   | "persistEntity"
@@ -905,6 +907,36 @@ const aiFlowActionDefinitionsAsConst = {
       },
     ],
     check: checkConditionInput("value"),
+  },
+  orderBy: {
+    actionDefinitionId: "orderBy",
+    name: "Order By",
+    description:
+      "Sort a list by the items, one of their fields or an entity property, keeping equal items in their order. Items without a value go last.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: filterableKinds,
+        name: "items",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["SortKey"],
+        name: "sortBy",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindFrom: "items",
+        name: "items",
+        array: true,
+        required: true,
+      },
+    ],
+    check: checkSortKeyInput,
   },
   takeFirst: {
     actionDefinitionId: "takeFirst",

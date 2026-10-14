@@ -7,6 +7,7 @@ import type {
   IntegrationFlowActionDefinitionId,
 } from "./action-definitions.js";
 import type { FilterCondition } from "./filter-condition.js";
+import type { SortKey } from "./sort-key.js";
 import type {
   ActorEntityUuid,
   EntityId,
@@ -109,6 +110,7 @@ export type PayloadKindValues = {
   PersistedEntityMetadata: PersistedEntityMetadata;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
+  SortKey: SortKey;
   Text: string;
   VersionedUrl: VersionedUrl;
   WebPage: WebPage;
@@ -131,6 +133,7 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
   PersistedEntityMetadata: true,
   ProposedEntity: true,
   ProposedEntityWithResolvedLinks: true,
+  SortKey: true,
   Text: true,
   VersionedUrl: true,
   WebPage: true,

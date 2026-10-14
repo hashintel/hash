@@ -651,6 +651,87 @@ describe("validateFlowDefinition", () => {
     });
   });
 
+  describe("sort keys of orderBy steps", () => {
+    const orderByDefinition = (sortBy: Record<string, unknown>) => ({
+      ...baseDefinition,
+      inputs: [
+        { name: "pages", payloadKind: "WebPage", array: true, required: true },
+        {
+          name: "sortBy",
+          payloadKind: "SortKey",
+          array: false,
+          required: true,
+        },
+      ],
+      steps: [
+        {
+          kind: "action",
+          stepId: "order",
+          actionDefinitionId: "orderBy",
+          description: "",
+          inputs: {
+            items: { kind: "flow-input", inputName: "pages" },
+            sortBy,
+          },
+        },
+      ],
+    });
+
+    const constantSortKey = (subject: Record<string, unknown>) => ({
+      kind: "constant",
+      payload: { kind: "SortKey", value: { subject, direction: "ascending" } },
+    });
+
+    it("accepts a constant sort key that fits the items, or one from elsewhere", () => {
+      for (const sortBy of [
+        constantSortKey({
+          kind: "field",
+          path: ["title"],
+          payloadKind: "Text",
+        }),
+        { kind: "flow-input", inputName: "sortBy" },
+      ]) {
+        expect(
+          diagnosticsOf(orderByDefinition(sortBy)).filter(
+            ({ severity }) => severity === "error",
+          ),
+        ).toEqual([]);
+      }
+    });
+
+    it.each([
+      {
+        name: "of a kind that can't be sorted",
+        subject: { kind: "field", path: ["url"], payloadKind: "WebPage" },
+        message:
+          "A sort key's subject must be of kind Text, Number, Date, Boolean.",
+      },
+      {
+        name: "that doesn't fit the items",
+        subject: {
+          kind: "entityProperty",
+          propertyTypeBaseUrl: "https://example.com/property-type/name/",
+          payloadKind: "Text",
+        },
+        message:
+          "Entity subjects require an EntityId or proposed entity input.",
+      },
+    ])("rejects a sort key $name", ({ subject, message }) => {
+      expect(
+        validateFlowDefinition(
+          orderByDefinition(constantSortKey(subject)),
+        ).diagnostics.filter(({ severity }) => severity === "error"),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "invalidInput",
+          message,
+          path: ["steps", 0, "inputs", "sortBy"],
+        },
+      ]);
+    });
+  });
+
   describe("counts of takeFirst steps", () => {
     const takeFirstDefinition = (count: number) => ({
       ...baseDefinition,

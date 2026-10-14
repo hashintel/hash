@@ -11,6 +11,7 @@ import { getWebPageSummaryAction } from "./flow-activities/get-web-page-summary-
 import { ifAction } from "./flow-activities/if-action.js";
 import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities-from-content-action.js";
 import { inferMetadataFromDocumentAction } from "./flow-activities/infer-metadata-from-document-action.js";
+import { orderByAction } from "./flow-activities/order-by-action.js";
 import { persistEntitiesAction } from "./flow-activities/persist-entities-action.js";
 import { persistEntityAction } from "./flow-activities/persist-entity-action.js";
 import { planDashboardRefinementAction } from "./flow-activities/plan-dashboard-refinement-action.js";
@@ -40,6 +41,7 @@ export const createFlowActionActivities: CreateFlowActivities<
   ifAction,
   inferEntitiesFromContentAction,
   inferMetadataFromDocumentAction,
+  orderByAction,
   persistEntitiesAction,
   persistEntityAction,
   processAutomaticBrowsingSettingsAction,

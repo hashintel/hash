@@ -24,6 +24,7 @@ export const payloadKindJsonTypes = {
   PersistedEntityMetadata: "object",
   ProposedEntity: "object",
   ProposedEntityWithResolvedLinks: "object",
+  SortKey: "object",
   Text: "string",
   VersionedUrl: "string",
   WebPage: "object",

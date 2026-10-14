@@ -18,6 +18,7 @@ const unsupportedPayloadKinds = [
   "PersistedEntityMetadata",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",
+  "SortKey",
   "FormattedText",
   "WebPage",
   "WebSearchResult",

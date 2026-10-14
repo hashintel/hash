@@ -53,7 +53,8 @@ export type FilterResult =
       message: string;
     };
 
-const isIsoDate = (value: string): boolean => {
+/** Whether a string is an ISO calendar date (YYYY-MM-DD) that exists, e.g. not 2025-02-30. */
+export const isIsoDate = (value: string): boolean => {
   const timestamp = Date.parse(value);
   return (
     /^\d{4}-\d{2}-\d{2}$/.test(value) &&
