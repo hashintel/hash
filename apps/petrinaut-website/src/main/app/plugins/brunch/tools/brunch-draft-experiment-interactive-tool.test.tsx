@@ -220,14 +220,13 @@ const renderWidget = ({
     },
     editor: { navigate: vi.fn() },
   };
-  const readDefinition = () => instance.handle.doc();
   const utils = render(
     <BrunchDraftExperimentWidget
       {...state}
       api={api}
       input={input}
       readTitle={() => "Support desk"}
-      readDefinition={readDefinition}
+      handle={instance.handle}
       readDraftAuthority={
         readDraftAuthority ?? (async () => revisionOfHandle(instance))
       }
@@ -241,7 +240,7 @@ const renderWidget = ({
     submit,
     claimAndSubmit,
     api,
-    readDefinition,
+    handle: instance.handle,
     net: instance.definition,
   };
 };
@@ -305,21 +304,20 @@ describe("BrunchDraftExperimentWidget", () => {
 
   it("prepares, reports drafted once, and starts nothing", async () => {
     const runExperiment = vi.fn();
-    const { submit, claimAndSubmit, rerender, api, readDefinition } =
-      renderWidget({
-        input: makeInput(makeRequest(), [
-          {
-            condition: "No more than 5% of callers abandon.",
-            reason: "The request carries no constraints.",
-            blocksRun: false,
-            reportedByMetricId: toPetrinautId("metric__abandonment_rate"),
-          },
-        ]),
-        toolCallId: "call_draft_1",
-        state: awaiting,
-        definition: createReadableStore(makeDefinition()),
-        runExperiment,
-      });
+    const { submit, claimAndSubmit, rerender, api, handle } = renderWidget({
+      input: makeInput(makeRequest(), [
+        {
+          condition: "No more than 5% of callers abandon.",
+          reason: "The request carries no constraints.",
+          blocksRun: false,
+          reportedByMetricId: toPetrinautId("metric__abandonment_rate"),
+        },
+      ]),
+      toolCallId: "call_draft_1",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment,
+    });
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     const output = submit.mock.calls[0]![0];
@@ -357,7 +355,7 @@ describe("BrunchDraftExperimentWidget", () => {
         api={api}
         input={makeInput()}
         readTitle={() => "Support desk"}
-        readDefinition={readDefinition}
+        handle={handle}
         submit={() => {}}
         claimAndSubmit={claimAndSubmit}
         toolCallId="call_draft_1"
@@ -486,7 +484,7 @@ describe("BrunchDraftExperimentWidget", () => {
   });
 
   it("checks the revision against the full document when a disabled extension hides data from `api.document.net`", async () => {
-    // The revision basis is a pending decision (see the `readDefinition` prop):
+    // The revision basis is a pending decision (see the card's `handle` prop):
     // Brunch hashes `handle.doc()`, disabled-extension data included. A JSON
     // handle drops that data itself, so this handle keeps the colour type its
     // capabilities disable, as a stored document can.

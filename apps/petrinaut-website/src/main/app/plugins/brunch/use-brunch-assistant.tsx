@@ -486,7 +486,7 @@ export const useBrunchAssistant = ({
         ? createBrunchDraftExperimentInteractiveTool({
             browserCalls: inBandBrowserTools,
             readTitle: editor.readTitle,
-            readDefinition: () => editor.handle.doc(),
+            handle: editor.handle,
             readDraftAuthority: async (toolCallId) => {
               const client = await flueClientPromise;
               return resolveDraftAuthorityFromHistory(

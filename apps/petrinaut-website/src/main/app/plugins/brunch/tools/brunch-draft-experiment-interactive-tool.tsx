@@ -260,7 +260,7 @@ const prepareOrExplain = (
 export const BrunchDraftExperimentWidget = ({
   input,
   readTitle,
-  readDefinition,
+  handle,
   readDraftAuthority,
   state,
   claimAndSubmit,
@@ -269,10 +269,11 @@ export const BrunchDraftExperimentWidget = ({
 }: WidgetProps & {
   readTitle: () => string;
   /**
-   * The open document as Brunch hashes it, disabled-extension data included.
-   * `api.document.net` leaves that data out, so it cannot check a revision.
+   * The open document's handle. Brunch hashes `handle.doc()`, disabled-extension
+   * data included; `api.document.net` leaves that data out, so it cannot check
+   * a revision. Taking the handle keeps that choice inside the card.
    */
-  readDefinition: PetrinautDocHandle["doc"];
+  handle: Pick<PetrinautDocHandle, "doc">;
   readDraftAuthority: (toolCallId: string) => Promise<string>;
   /** Claim the issued call, then submit what `prepareOutput` resolves to, so the lease covers preparation. */
   claimAndSubmit: (
@@ -311,7 +312,7 @@ export const BrunchDraftExperimentWidget = ({
   useEffect(() => {
     if (state !== "awaiting" || preparedOnceRef.current) return;
     preparedOnceRef.current = true;
-    const initialDefinition = readDefinition();
+    const initialDefinition = handle.doc();
     if (!initialDefinition) {
       // eslint-disable-next-line react/set-state-in-effect -- this effect's one live-model preparation found no document to prepare against
       setPreparationFailure({
@@ -327,7 +328,7 @@ export const BrunchDraftExperimentWidget = ({
       let outcome: ReturnType<typeof prepareOrExplain>;
       try {
         const readRevision = await readDraftAuthority(toolCallId);
-        const latestDefinition = readDefinition();
+        const latestDefinition = handle.doc();
         if (latestDefinition) definition = latestDefinition;
         outcome =
           latestDefinition &&
@@ -402,7 +403,7 @@ export const BrunchDraftExperimentWidget = ({
   }, [
     executionUnavailable,
     input,
-    readDefinition,
+    handle,
     readTitle,
     readDraftAuthority,
     editorDrafts,
@@ -784,12 +785,12 @@ const settleIssuedDraft = async (
 export const createBrunchDraftExperimentInteractiveTool = ({
   browserCalls,
   readTitle,
-  readDefinition,
+  handle,
   readDraftAuthority,
 }: {
   browserCalls: ReturnType<typeof createInBandBrowserCalls>;
   readTitle: () => string;
-  readDefinition: PetrinautDocHandle["doc"];
+  handle: Pick<PetrinautDocHandle, "doc">;
   readDraftAuthority: (toolCallId: string) => Promise<string>;
 }) =>
   definePetrinautAiInteractiveTool<
@@ -814,7 +815,7 @@ export const createBrunchDraftExperimentInteractiveTool = ({
               )
             }
             readTitle={readTitle}
-            readDefinition={readDefinition}
+            handle={handle}
             readDraftAuthority={readDraftAuthority}
           />
         )}
