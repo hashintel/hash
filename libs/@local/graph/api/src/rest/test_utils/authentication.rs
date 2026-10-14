@@ -3,7 +3,7 @@ use core::{num::NonZeroU32, ops::ControlFlow, pin::pin};
 use std::collections::HashMap;
 
 use aide::{
-    axum::{ApiRouter, routing::get},
+    axum::ApiRouter,
     openapi::{Info, ReferenceOr, SecurityScheme},
 };
 use axum::{Router, body::Body};
@@ -44,7 +44,7 @@ use super::{echo_caller, response_json};
 use crate::rest::{
     credentials::{API_TOKEN, Actor, Credentials, MaybeActor},
     middleware::Middleware,
-    openapi,
+    openapi, routing,
 };
 
 const SERVICE_SECRET: &str = "hash-svc-test-secret";
@@ -149,15 +149,27 @@ fn caller_router<C: Credentials>(
         rate_limit_actor_per_hour: NonZeroU32::MAX,
         rate_limit_actor_burst: NonZeroU32::MAX,
     };
-    let api = openapi::build::<C>(
+    let api = openapi::build::<C, _>(
         "/test",
         Info::default(),
         || {
             ApiRouter::new()
-                .api_route("/optional", get(echo_caller::<MaybeActor<C>>))
+                .api_route(
+                    "/optional",
+                    routing::get(echo_caller::<MaybeActor<C>>, |operation| {
+                        operation.id("getOptionalCaller").summary("Get the caller")
+                    }),
+                )
                 .api_route(
                     "/required",
-                    get(async |actor: Actor<C>| echo_caller(Some(actor.into())).await),
+                    routing::get(
+                        async |actor: Actor<C>| echo_caller(Some(actor.into())).await,
+                        |operation| {
+                            operation
+                                .id("getRequiredCaller")
+                                .summary("Get the authenticated caller")
+                        },
+                    ),
                 )
         },
         |document| document,

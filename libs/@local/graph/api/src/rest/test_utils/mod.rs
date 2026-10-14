@@ -1,8 +1,10 @@
 mod authentication;
 
+use alloc::sync::Arc;
+
 use aide::{
     OperationInput,
-    axum::{ApiRouter, routing::get},
+    axum::ApiRouter,
     openapi::{Info, SecurityScheme},
 };
 use axum::{
@@ -10,14 +12,20 @@ use axum::{
     body::{Body, to_bytes},
     response::Response,
 };
+use hash_graph_postgres_store::store::{
+    DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
+    PostgresStoreSettings,
+};
 use hash_middleware::authentication::Challenge;
+use hash_secret::Secret;
 use http::Request;
 use serde_json::Value;
+use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
 
 pub(super) use self::authentication::assert_authentication;
 pub(super) use super::caller::caller as echo_caller;
-use super::{Api, Audience, credentials::Credentials, openapi};
+use super::{Api, ApiState, Audience, credentials::Credentials, extract::Json, openapi, routing};
 
 pub(super) async fn request(router: &Router, path: &str) -> Response {
     router
@@ -39,8 +47,30 @@ pub(super) async fn response_json(response: Response) -> Value {
     serde_json::from_slice(&body).expect("the response body should be JSON")
 }
 
+/// The public and internal APIs, reading a store whose every `acquire` fails.
 pub(crate) fn apis() -> Vec<Api> {
-    super::apis().collect()
+    let state = ApiState::new(Arc::new(unconnected_store()), None);
+    super::apis::<PostgresStorePool>()
+        .map(|api| api.with_state(state.clone()))
+        .collect()
+}
+
+/// A store pool pointed at a Unix socket that does not exist, so every `acquire` fails.
+fn unconnected_store() -> PostgresStorePool {
+    PostgresStorePool::new(
+        &DatabaseConnectionInfo::new(
+            DatabaseType::Postgres,
+            "graph-api-test".to_owned(),
+            Secret::from_string(String::new()),
+            "/no-graph-api-test-postgres".to_owned(),
+            5432,
+            "graph-api-test".to_owned(),
+        ),
+        &DatabasePoolConfig::default(),
+        NoTls,
+        PostgresStoreSettings::default(),
+    )
+    .expect("the pool should be built without connecting")
 }
 
 /// A public credential set documenting no security scheme.
@@ -59,10 +89,18 @@ impl Credentials for NoCredentials {
 
 /// A public API answering `GET {prefix}/test`.
 pub(super) fn api(prefix: &'static str) -> Api {
-    openapi::build::<NoCredentials>(
+    openapi::build::<NoCredentials, _>(
         prefix,
         Info::default(),
-        || ApiRouter::new().api_route("/test", get(async || String::from("ok"))),
+        || {
+            ApiRouter::new().api_route(
+                "/test",
+                routing::get(
+                    async || Json::<_, 200>(String::from("ok")),
+                    |operation| operation.id("test").summary("Answer `ok`"),
+                ),
+            )
+        },
         |document| document,
     )
 }

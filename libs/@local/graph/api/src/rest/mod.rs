@@ -2,14 +2,6 @@ pub mod authentication;
 mod caller;
 mod credentials;
 mod documentation;
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        unused_imports,
-        reason = "only the tests read requests through these extractors"
-    )
-)]
 mod extract;
 mod internal;
 pub mod legacy;
@@ -19,14 +11,20 @@ pub mod probe;
 mod public;
 pub mod rate_limit;
 mod router;
+mod routing;
 pub mod telemetry;
 
 #[cfg(test)]
 pub(crate) mod test_utils;
 
+use alloc::sync::Arc;
+
 use aide::openapi::OpenApi;
 use axum::Router;
+use error_stack::Report;
+use hash_graph_store::pool::StorePool;
 use hash_middleware::authentication::Challenge;
+use hash_temporal_client::TemporalClient;
 
 pub use self::router::{Dependencies, router};
 
@@ -37,16 +35,60 @@ pub(crate) enum Audience {
     Internal,
 }
 
+/// What the handlers of the public and internal APIs read through [`State`].
+///
+/// [`State`]: axum::extract::State
+pub(crate) struct ApiState<S> {
+    store: Arc<S>,
+    temporal_client: Option<Arc<TemporalClient>>,
+}
+
+impl<S> ApiState<S> {
+    pub(crate) const fn new(store: Arc<S>, temporal_client: Option<Arc<TemporalClient>>) -> Self {
+        Self {
+            store,
+            temporal_client,
+        }
+    }
+}
+
+impl<S: StorePool> ApiState<S> {
+    /// Acquires a store from the pool.
+    ///
+    /// The store starts the workflows that follow a write, such as computing embeddings, through
+    /// the Temporal client.
+    ///
+    /// # Errors
+    ///
+    /// Returns the pool's error if no store can be acquired.
+    pub(crate) fn acquire(
+        &self,
+    ) -> impl Future<Output = Result<S::Store<'_>, Report<S::Error>>> + Send {
+        self.store.acquire(self.temporal_client.clone())
+    }
+}
+
+impl<S> Clone for ApiState<S> {
+    fn clone(&self) -> Self {
+        Self {
+            store: Arc::clone(&self.store),
+            temporal_client: self.temporal_client.clone(),
+        }
+    }
+}
+
 /// An API's routes, nested under its prefix, with the document describing them.
-pub(crate) struct Api {
+///
+/// The routes read the state `T`, which [`with_state`](Self::with_state) hands them.
+pub(crate) struct Api<T = ()> {
     audience: Audience,
     challenge: Challenge,
     prefix: &'static str,
-    router: Router,
+    router: Router<T>,
     document: OpenApi,
 }
 
-impl Api {
+impl<T> Api<T> {
     pub(crate) const fn prefix(&self) -> &'static str {
         self.prefix
     }
@@ -61,6 +103,22 @@ impl Api {
     }
 }
 
-pub(crate) fn apis() -> impl Iterator<Item = Api> {
-    public::apis().chain([internal::api()])
+impl<T: Clone + Send + Sync + 'static> Api<T> {
+    /// The API whose routes read `state`.
+    pub(crate) fn with_state(self, state: T) -> Api {
+        Api {
+            audience: self.audience,
+            challenge: self.challenge,
+            prefix: self.prefix,
+            router: self.router.with_state(state),
+            document: self.document,
+        }
+    }
+}
+
+pub(crate) fn apis<S>() -> impl Iterator<Item = Api<ApiState<S>>>
+where
+    S: StorePool + Send + Sync + 'static,
+{
+    public::apis::<S>().chain([internal::api()])
 }

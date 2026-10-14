@@ -3,7 +3,7 @@ use std::io;
 use aide::{
     axum::{
         ApiRouter,
-        routing::{get, post, post_with},
+        routing::{get, post},
     },
     openapi::{Info, OpenApi, Operation, PathItem, Response, StatusCode},
 };
@@ -17,7 +17,7 @@ use serde_json::{Value, json};
 use tower::ServiceExt as _;
 
 use super::{Json, Path, Query, json::content_status};
-use crate::rest::{openapi, test_utils::NoCredentials};
+use crate::rest::{Api, openapi, routing, test_utils::NoCredentials};
 
 #[derive(Deserialize, JsonSchema)]
 struct Subject {
@@ -500,7 +500,7 @@ async fn echo(
 /// snapshot shows how its rejections join the responses of the middleware.
 #[test]
 fn echo_document() {
-    let api = openapi::build::<NoCredentials>(
+    let api: Api = openapi::build::<NoCredentials, _>(
         "/example",
         Info {
             title: "Extractor example".to_owned(),
@@ -510,7 +510,7 @@ fn echo_document() {
         || {
             ApiRouter::new().api_route(
                 "/echo/{label}",
-                post_with(echo, |operation| {
+                routing::post(echo, |operation| {
                     operation.id("echo").summary("Echo a request").description(
                         "Returns the label from the path and the value from the body, repeated as \
                          often as the query parameter `repeat` asks.",

@@ -9,7 +9,7 @@ use hash_middleware::{
     authentication::{
         AuthenticatedActorId, AuthenticationMetrics, provider::StaticAuthenticationProvider,
     },
-    problem::InternalServerError,
+    problem::{InternalServerError, ServiceUnavailable},
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
 use hash_secret::Secret;
@@ -17,6 +17,7 @@ use http::{
     HeaderValue, Method, Request, StatusCode,
     header::{ALLOW, AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, WWW_AUTHENTICATE},
 };
+use problematic::Rejected;
 use serde_json::json;
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorId, ActorType};
@@ -517,6 +518,62 @@ async fn panic_problem_document() {
         response_json(response).await["detail"],
         json!(InternalServerError.to_string()),
         "the problem document should not describe the panic"
+    );
+}
+
+/// The entity route reads the store it was handed, and answers `500` when it cannot reach it.
+#[tokio::test]
+async fn entity_store_unreachable() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(Router::new(), apis(), Router::new());
+
+    let response = send(
+        &router,
+        "/entities/v1/8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d",
+    )
+    .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::SERVICE_UNAVAILABLE,
+        "the route should answer 503 when it cannot reach the store"
+    );
+    assert!(
+        response.extensions().get::<Rejected>().is_some(),
+        "the 503 should be the route's rejection, which a panic does not leave"
+    );
+    assert_eq!(
+        response_json(response).await["detail"],
+        json!(ServiceUnavailable.to_string()),
+        "the problem document should not name the store"
+    );
+}
+
+/// The entity route requires an actor, so an anonymous request is answered `401` before it reads
+/// the store.
+#[tokio::test]
+async fn entity_anonymous() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(Router::new(), apis(), Router::new());
+
+    let response = send(
+        &router,
+        "/entities/v1/8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d",
+    )
+    .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNAUTHORIZED,
+        "an anonymous request should be answered 401"
     );
 }
 

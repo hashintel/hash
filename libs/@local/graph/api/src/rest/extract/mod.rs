@@ -18,7 +18,12 @@ mod tests;
 use aide::openapi::Operation;
 use serde_json::Value;
 
-pub(in crate::rest) use self::{json::Json, path::Path, query::Query};
+#[cfg_attr(
+    not(test),
+    expect(unused_imports, reason = "only the tests read query parameters so far")
+)]
+pub(in crate::rest) use self::query::Query;
+pub(in crate::rest) use self::{json::Json, path::Path};
 
 /// The part of a request or response that [`Json`], [`Path`] or [`Query`] reads or writes.
 ///

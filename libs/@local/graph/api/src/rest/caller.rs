@@ -1,7 +1,4 @@
-use aide::{
-    axum::{ApiRouter, routing::get_with},
-    transform::TransformOperation,
-};
+use aide::{axum::ApiRouter, transform::TransformOperation};
 use schemars::JsonSchema;
 use serde::Serialize;
 use type_system::principal::actor::ActorId;
@@ -9,6 +6,7 @@ use type_system::principal::actor::ActorId;
 use super::{
     credentials::{Actor, Credentials, MaybeActor},
     extract::Json,
+    routing,
 };
 
 /// The resolved caller.
@@ -51,15 +49,15 @@ fn document_authenticated_caller(operation: TransformOperation<'_>) -> Transform
         .summary("Get the authenticated caller")
 }
 
-pub(super) fn routes<C: Credentials>() -> ApiRouter {
+pub(super) fn routes<C: Credentials, T: Clone + Send + Sync + 'static>() -> ApiRouter<T> {
     ApiRouter::new()
         .api_route(
             "/caller",
-            get_with(caller::<MaybeActor<C>>, document_caller),
+            routing::get(caller::<MaybeActor<C>>, document_caller),
         )
         .api_route(
             "/authenticated-caller",
-            get_with(
+            routing::get(
                 authenticated_caller::<Actor<C>>,
                 document_authenticated_caller,
             ),

@@ -2,6 +2,7 @@
 mod tests;
 
 use alloc::collections::BTreeSet;
+use core::mem;
 use std::collections::HashSet;
 
 use aide::{
@@ -19,7 +20,7 @@ use convert_case::{Case, Casing as _};
 use indexmap::IndexMap;
 use serde_json::Value;
 
-use super::{Api, credentials::Credentials, extract::MessagePart, middleware};
+use super::{Api, credentials::Credentials, extract::MessagePart, middleware, routing};
 
 /// Builds an API from its routes and generates the document describing them.
 ///
@@ -41,16 +42,19 @@ use super::{Api, credentials::Credentials, extract::MessagePart, middleware};
 ///   parameter.
 /// - The problem variants of an operation cannot be documented, such as when the status of a
 ///   variant already has a response that documents none.
+/// - An operation was registered other than through [`routing`], or shares its `operationId` with
+///   another operation of the document.
 ///
 /// [`Json`]: crate::rest::extract::Json
 /// [`Path`]: crate::rest::extract::Path
 /// [`Query`]: crate::rest::extract::Query
-pub(super) fn build<C: Credentials>(
+/// [`routing`]: crate::rest::routing
+pub(super) fn build<C: Credentials, T: Clone + Send + Sync + 'static>(
     prefix: &'static str,
     info: Info,
-    build_routes: impl FnOnce() -> ApiRouter,
+    build_routes: impl FnOnce() -> ApiRouter<T>,
     transform: impl FnOnce(TransformOpenApi<'_>) -> TransformOpenApi<'_>,
-) -> Api {
+) -> Api<T> {
     #[expect(
         clippy::wildcard_enum_match_arm,
         reason = "Every documentation error apart from the inferred-response conflicts is a \
@@ -80,6 +84,10 @@ pub(super) fn build<C: Credentials>(
     assert_security_schemes_declared(&mut document);
     assert_parameters_readable(&mut document);
     assert_read_through_extractors(&mut document);
+    // The tests of the checks above register their operations through aide directly, so this
+    // check runs after them.
+    assert_routed(&mut document);
+    remove_unreferenced_schemas(&mut document);
     Api {
         audience: C::AUDIENCE,
         challenge: C::CHALLENGE,
@@ -291,6 +299,94 @@ fn assert_read_through_extractors(document: &mut OpenApi) {
                  answers a body that fails to serialize with problem details"
             );
         }
+    }
+}
+
+/// Checks that [`routing`] registered every operation and that no two operations share an
+/// `operationId`, and removes the marks.
+///
+/// [`routing`]: crate::rest::routing
+fn assert_routed(document: &mut OpenApi) {
+    let Some(paths) = &mut document.paths else {
+        return;
+    };
+    let mut ids = HashSet::new();
+    for (path, item) in &mut paths.paths {
+        let Some(item) = item.as_item_mut() else {
+            continue;
+        };
+        for (method, operation) in iter_operations_mut(item) {
+            assert!(
+                operation
+                    .extensions
+                    .shift_remove(routing::EXTENSION)
+                    .is_some(),
+                "{method} {path} should be registered through `rest::routing`, which admits only \
+                 handlers answering with `rest::extract::Json` or a `Rejection`"
+            );
+            if let Some(id) = &operation.operation_id {
+                assert!(
+                    ids.insert(id.clone()),
+                    "{method} {path} should have an `operationId` of its own, another operation \
+                     already has `{id}`"
+                );
+            }
+        }
+    }
+}
+
+/// Removes the component schemas that nothing else in the document references, directly or
+/// through other component schemas.
+///
+/// Aide adds a component for the struct a handler reads its path or query parameters into, though
+/// the parameters inline its fields.
+fn remove_unreferenced_schemas(document: &mut OpenApi) {
+    let Some(components) = &mut document.components else {
+        return;
+    };
+    let schemas = mem::take(&mut components.schemas);
+    let mut pending = Vec::new();
+    schema_references(
+        &serde_json::to_value(&*document).expect("the document should be a JSON value"),
+        &mut pending,
+    );
+    let mut referenced = HashSet::new();
+    while let Some(name) = pending.pop() {
+        if let Some(schema) = schemas.get(name.as_str())
+            && referenced.insert(name)
+        {
+            schema_references(schema.json_schema.as_value(), &mut pending);
+        }
+    }
+    if let Some(components) = &mut document.components {
+        components.schemas = schemas
+            .into_iter()
+            .filter(|(name, _)| referenced.contains(name))
+            .collect();
+    }
+}
+
+/// Appends the name of every component schema that `value` references to `references`.
+fn schema_references(value: &Value, references: &mut Vec<String>) {
+    match value {
+        Value::Object(object) => {
+            if let Some(name) = object
+                .get("$ref")
+                .and_then(Value::as_str)
+                .and_then(|reference| reference.strip_prefix("#/components/schemas/"))
+            {
+                references.push(name.to_owned());
+            }
+            for member in object.values() {
+                schema_references(member, references);
+            }
+        }
+        Value::Array(elements) => {
+            for element in elements {
+                schema_references(element, references);
+            }
+        }
+        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => {}
     }
 }
 

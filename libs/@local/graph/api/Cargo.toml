@@ -92,6 +92,7 @@ hash-middleware           = { workspace = true, features = ["test-utils"] }
 insta                     = { workspace = true }
 rstest                    = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
+tokio-postgres            = { workspace = true }
 tower                     = { workspace = true, features = ["util"] }
 uuid                      = { workspace = true, features = ["v4"] }
 

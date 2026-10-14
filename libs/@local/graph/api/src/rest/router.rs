@@ -17,6 +17,7 @@ use tower::ServiceBuilder;
 use type_system::ontology::json_schema::DomainValidator;
 
 use super::{
+    ApiState,
     authentication::{self, api_token::ApiTokenRejection},
     documentation,
     legacy::{self, ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext, hashql},
@@ -83,7 +84,13 @@ where
         rate_limiters: RateLimiters::start(&rate_limit_config, &dependencies.meter),
     };
 
-    let apis = super::apis().collect::<Vec<_>>();
+    let state = ApiState::new(
+        Arc::clone(&dependencies.store),
+        dependencies.temporal_client.clone(),
+    );
+    let apis = super::apis::<S>()
+        .map(|api| api.with_state(state.clone()))
+        .collect::<Vec<_>>();
     let documentation = documentation::routes(&apis);
     // The tracing layer sits inside the Sentry layers: the errors it logs reach Sentry through the
     // request's hub, which attaches the request to them.
