@@ -11,7 +11,8 @@ use error_stack::Report;
 use hash_graph_authentication::{
     actor::tests::FixedActorResolver,
     api_token::{
-        ApiTokenEncryptionKey, ApiTokenIssuer, ApiTokenProvider, AuthenticateApiToken, Environment,
+        ApiTokenEncryptionKey, ApiTokenIssuer, ApiTokenProvider, ApiTokenRejection,
+        AuthenticateApiToken, Environment,
     },
     cloudflare::ACCESS_JWT_HEADER,
     delegation::ServiceDelegationProvider,
@@ -24,7 +25,7 @@ use hash_graph_store::api_token::{
 use hash_middleware::{
     authentication::{
         AuthenticationMetrics,
-        provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
+        provider::{AuthenticationProvider, Caller},
         request::{ACTOR_ID_HEADER, AuthenticationError},
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
@@ -41,8 +42,6 @@ use uuid::Uuid;
 
 use super::{echo_caller, response_json};
 use crate::rest::{
-    Audience,
-    authentication::{internal_chain, public_chain},
     credentials::{API_TOKEN, Actor, Credentials, MaybeActor},
     middleware::Middleware,
     openapi,
@@ -50,26 +49,21 @@ use crate::rest::{
 
 const SERVICE_SECRET: &str = "hash-svc-test-secret";
 
-struct HeaderProvider {
-    headers: &'static [&'static str],
+/// Resolves `actor` for any request carrying the session token header.
+struct SessionProvider {
     actor: ActorId,
 }
 
-impl<C: Caller> AuthenticationProvider<C> for HeaderProvider {
-    async fn authenticate(
+impl<C: Caller> AuthenticationProvider<C> for SessionProvider {
+    fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
-        let Some(value) = self.headers.iter().find_map(|name| headers.get(*name)) else {
-            return ControlFlow::Continue(());
-        };
-        if value == "unavailable" {
-            StaticAuthenticationProvider::Unreachable
-                .authenticate(headers)
-                .await
-        } else {
+    ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send {
+        core::future::ready(if headers.contains_key(SESSION_TOKEN_HEADER) {
             ControlFlow::Break(Ok(C::from_actor(self.actor)))
-        }
+        } else {
+            ControlFlow::Continue(())
+        })
     }
 }
 
@@ -127,28 +121,22 @@ fn caller_router<C: Credentials>(
     operator: ActorId,
     session_actor: ActorId,
 ) -> (Router, Advertised) {
-    let explicit = || {
+    let public_provider = Arc::new(ApiTokenProvider::new(
+        UnreadableTokens,
+        Some(Arc::new(issuer())),
+    ));
+    let internal_provider = Arc::new((
+        ApiTokenRejection,
+        SessionProvider {
+            actor: session_actor,
+        },
+    ));
+    let legacy_provider = Arc::new((
+        ApiTokenRejection,
         ServiceDelegationProvider::new(
             Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
             FixedActorResolver::new(HashMap::from([(operator.into(), operator)])),
-        )
-    };
-    let environment = || HeaderProvider {
-        headers: &[ACCESS_JWT_HEADER],
-        actor: operator,
-    };
-    let public_provider = Arc::new(public_chain(
-        ApiTokenProvider::new(UnreadableTokens, Some(Arc::new(issuer()))),
-        explicit(),
-        environment(),
-    ));
-    let internal_provider = Arc::new(internal_chain(
-        explicit(),
-        HeaderProvider {
-            headers: &[SESSION_TOKEN_HEADER],
-            actor: session_actor,
-        },
-        environment(),
+        ),
     ));
     let meter = opentelemetry::global::meter("test");
     let config = RateLimitConfig {
@@ -174,22 +162,27 @@ fn caller_router<C: Credentials>(
         },
         |document| document,
     );
-    let components = api.document().components.as_ref();
+    let schemes = api
+        .document()
+        .components
+        .as_ref()
+        .map(|components| &components.security_schemes);
     let advertised = Advertised {
-        session: components.is_some_and(|components| {
-            components.security_schemes.values().any(|scheme| {
+        session: schemes.is_some_and(|schemes| {
+            schemes.values().any(|scheme| {
                 matches!(
                     scheme,
-                    ReferenceOr::Item(SecurityScheme::ApiKey { name, .. }) if name == SESSION_TOKEN_HEADER
+                    ReferenceOr::Item(SecurityScheme::ApiKey { name, .. })
+                        if name == SESSION_TOKEN_HEADER
                 )
             })
         }),
-        api_token: components
-            .is_some_and(|components| components.security_schemes.contains_key(API_TOKEN)),
+        api_token: schemes.is_some_and(|schemes| schemes.contains_key(API_TOKEN)),
     };
     let middleware = Middleware {
         public_provider,
         internal_provider,
+        legacy_provider,
         service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&meter)),
         rate_limiters: RateLimiters::start(&config, &meter),
@@ -215,8 +208,9 @@ enum Outcome {
 /// `C` documents the API token scheme, a bearer API token is looked up, which the unreadable store
 /// answers with 503; elsewhere it is not accepted. An API token without the `Bearer` scheme is not
 /// accepted either way, and an API token fails the request even where anonymous callers are
-/// served. Every `401` challenges with the scheme of the audience. This ties the provider chain
-/// the audience selects to the schemes the document states.
+/// served. A service delegation and a Cloudflare Access JWT resolve as anonymous everywhere. Every
+/// `401` challenges with `C::CHALLENGE`. This ties the provider chain the audience selects to the
+/// schemes the document states.
 pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
     let operator = ActorId::new(Uuid::from_u128(1), ActorType::Machine);
     let session_actor = ActorId::new(Uuid::from_u128(2), ActorType::User);
@@ -228,28 +222,21 @@ pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
     } else {
         Outcome::Rejected(StatusCode::UNAUTHORIZED)
     };
-    let challenge = match C::AUDIENCE {
-        Audience::Public => "Bearer",
-        Audience::Internal => "HASH-Service",
-    };
+    let challenge = C::CHALLENGE.scheme();
 
     for (headers, outcome) in [
         (Vec::new(), Outcome::Caller(None)),
         (vec![(SESSION_TOKEN_HEADER, "session".to_owned())], session),
         (
             vec![(ACCESS_JWT_HEADER, "access-token".to_owned())],
-            Outcome::Caller(Some(operator)),
-        ),
-        (
-            vec![(ACCESS_JWT_HEADER, "unavailable".to_owned())],
-            Outcome::Rejected(StatusCode::SERVICE_UNAVAILABLE),
+            Outcome::Caller(None),
         ),
         (
             vec![
                 ("authorization", format!("HASH-Service {SERVICE_SECRET}")),
                 (ACTOR_ID_HEADER, operator.to_string()),
             ],
-            Outcome::Caller(Some(operator)),
+            Outcome::Caller(None),
         ),
         (
             vec![("authorization", format!("Bearer {api_token}"))],

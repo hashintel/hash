@@ -18,7 +18,12 @@ type-system = { workspace = true, public = true }
 
 # Private third-party dependencies
 derive_more    = { workspace = true, features = ["as_ref", "display", "error"] }
+serde          = { workspace = true, features = ["alloc", "derive"] }
+serde-saphyr   = { workspace = true }
 simple-mermaid = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true, features = ["glob"] }
 
 [lints]
 workspace = true

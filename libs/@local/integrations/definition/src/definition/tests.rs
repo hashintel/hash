@@ -7,15 +7,17 @@ use alloc::{
 };
 use core::{fmt::Debug, str::FromStr};
 
+use error_stack::Report;
 use type_system::ontology::VersionedUrl;
 
 use crate::{
-    Accessor, Action, BranchStep, Branches, Coverage, Definition, DefinitionParts, EntityPipeline,
-    EntitySink, IssueKind, LinkEndpoint, LinkInput, LinkInputs, LinkPipeline, LinkStep, PrimaryKey,
-    Properties, Source, SourceKind, SourceName, SqlQuery, Step, StepKind, UnitMap,
+    Accessor, Action, BranchStep, Branches, Coverage, Definition, DefinitionIssue, DefinitionParts,
+    EntityPipeline, EntitySink, IssueKind, LinkEndpoint, LinkInput, LinkInputs, LinkPipeline,
+    LinkStep, PrimaryKey, Properties, Source, SourceKind, SourceName, SqlQuery, Step, StepKind,
+    UnitMap,
 };
 
-const TYPES: &str = "https://example.test/@demo/types";
+const TYPES: &str = "https://example.com/@demo/types";
 
 fn parse<T>(value: &str) -> T
 where
@@ -161,12 +163,16 @@ fn run_order(definition: &Definition) -> Vec<String> {
         .collect()
 }
 
-/// Returns each issue of `parts` as its printed path and kind.
-fn issues(parts: DefinitionParts) -> Vec<(String, IssueKind)> {
-    let report = Definition::new(parts).expect_err("the definition should have issues");
+/// Returns the issues of `parts`.
+fn issues(parts: DefinitionParts) -> Report<[DefinitionIssue]> {
+    Definition::new(parts).expect_err("the definition should have issues")
+}
+
+/// Returns each issue in `report` as its printed path and kind.
+fn paths_and_kinds(report: &Report<[DefinitionIssue]>) -> Vec<(String, &IssueKind)> {
     report
         .current_contexts()
-        .map(|issue| (issue.path.to_string(), issue.kind.clone()))
+        .map(|issue| (issue.path().to_string(), issue.kind()))
         .collect()
 }
 
@@ -238,10 +244,10 @@ fn undeclared_source() {
     let mut parts = aviation();
     parts.sources.remove(&parse::<SourceName>("airfields"));
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.entities[1].source".to_owned(),
-            IssueKind::UndeclaredSource {
+            &IssueKind::UndeclaredSource {
                 source: parse("airfields")
             }
         )],
@@ -254,10 +260,10 @@ fn unused_source() {
     let mut parts = aviation();
     parts.sources.insert(parse("hangars"), sql_source("ID"));
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "sources.hangars".to_owned(),
-            IssueKind::UnusedSource {
+            &IssueKind::UnusedSource {
                 source: parse("hangars")
             }
         )],
@@ -275,10 +281,10 @@ fn duplicate_pipeline() {
         steps: vec![],
     });
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.entities[2].source".to_owned(),
-            IssueKind::DuplicatePipeline {
+            &IssueKind::DuplicatePipeline {
                 source: parse("airfields")
             }
         )],
@@ -293,10 +299,10 @@ fn unknown_pipeline() {
         .depends_on
         .push(parse("hangars"));
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.entities[0].dependsOn[1]".to_owned(),
-            IssueKind::UnknownPipeline {
+            &IssueKind::UnknownPipeline {
                 source: parse("hangars")
             }
         )],
@@ -311,10 +317,10 @@ fn depends_on_itself() {
         .depends_on
         .push(parse("airfields"));
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.entities[1].dependsOn[0]".to_owned(),
-            IssueKind::DependsOnItself
+            &IssueKind::DependsOnItself
         )],
         "a pipeline that depends on its own source should be reported"
     );
@@ -327,10 +333,10 @@ fn dependency_cycle() {
         .inputs
         .insert(parse("aircraft"), parse("aviation/aircraft"));
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.entities".to_owned(),
-            IssueKind::DependencyCycle {
+            &IssueKind::DependencyCycle {
                 pipelines: vec![parse("aircraft"), parse("airfields")]
             }
         )],
@@ -351,10 +357,10 @@ fn duplicate_step() {
             query: query("SELECT * FROM input"),
         });
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.links[0].steps[0].id".to_owned(),
-            IssueKind::DuplicateStep {
+            &IssueKind::DuplicateStep {
                 step: parse("sink-airfields")
             }
         )],
@@ -376,10 +382,10 @@ fn duplicate_checkpoint() {
         ),
     });
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.entities[1].steps[2].branches[0][0].checkpoint".to_owned(),
-            IssueKind::DuplicateCheckpoint {
+            &IssueKind::DuplicateCheckpoint {
                 checkpoint: parse("aviation/aircraft")
             }
         )],
@@ -396,10 +402,10 @@ fn unknown_checkpoint() {
         .expect("the link pipeline should exist")
         .input = LinkInput::Checkpoint(parse("aviation/hangars"));
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.links[0].checkpoint".to_owned(),
-            IssueKind::UnknownCheckpoint {
+            &IssueKind::UnknownCheckpoint {
                 checkpoint: parse("aviation/hangars")
             }
         )],
@@ -414,10 +420,10 @@ fn reads_own_checkpoint() {
         .inputs
         .insert(parse("previous"), parse("aviation/airfields"));
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.entities[1].inputs.previous".to_owned(),
-            IssueKind::ReadsOwnCheckpoint {
+            &IssueKind::ReadsOwnCheckpoint {
                 checkpoint: parse("aviation/airfields")
             }
         )],
@@ -430,12 +436,12 @@ fn unknown_unit_map() {
     let mut parts = aviation();
     parts.unit_maps.clear();
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             format!(
-                r#"pipelines.entities[0].steps[1].properties["{TYPES}/property-type/empty-mass/v/1"]"#
+                r#"pipelines.entities[0].steps[1].sink.properties["{TYPES}/property-type/empty-mass/v/1"]"#
             ),
-            IssueKind::UnknownUnitMap {
+            &IssueKind::UnknownUnitMap {
                 unit_map: parse("masses")
             }
         )],
@@ -458,10 +464,10 @@ fn inputs_uncombined() {
         .expect("test inputs should not be empty"),
     );
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.links[0].inputs".to_owned(),
-            IssueKind::UncombinedInputs
+            &IssueKind::UncombinedInputs
         )],
         "a link that reads several checkpoints without a step should be reported"
     );
@@ -477,10 +483,10 @@ fn duplicate_link() {
         .clone();
     parts.link_pipelines.push(link);
     assert_eq!(
-        issues(parts),
+        paths_and_kinds(&issues(parts)),
         [(
             "pipelines.links[1].id".to_owned(),
-            IssueKind::DuplicateLink {
+            &IssueKind::DuplicateLink {
                 link: parse("aircraft-based-at")
             }
         )],
@@ -499,13 +505,16 @@ fn issues_all_reported() {
         .expect("the link pipeline should exist")
         .input = LinkInput::Checkpoint(parse("aviation/hangars"));
 
-    let mut paths: Vec<_> = issues(parts).into_iter().map(|(path, _)| path).collect();
+    let mut paths: Vec<_> = issues(parts)
+        .current_contexts()
+        .map(|issue| issue.path().to_string())
+        .collect();
     paths.sort();
     assert_eq!(
         paths,
         [
             format!(
-                r#"pipelines.entities[0].steps[1].properties["{TYPES}/property-type/empty-mass/v/1"]"#
+                r#"pipelines.entities[0].steps[1].sink.properties["{TYPES}/property-type/empty-mass/v/1"]"#
             ),
             "pipelines.links[0].checkpoint".to_owned(),
             "sources.hangars".to_owned(),

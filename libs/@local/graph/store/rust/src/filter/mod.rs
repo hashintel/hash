@@ -10,7 +10,8 @@ use std::collections::HashMap;
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
 use hash_graph_authorization::policies::{
-    Effect, OptimizationData,
+    Effect, OptimizationData, PolicyComponents,
+    action::ActionName,
     resource::{
         DataTypeResourceConstraint, DataTypeResourceFilter, EntityResourceConstraint,
         EntityResourceFilter, EntityTypeResourceConstraint, EntityTypeResourceFilter,
@@ -1090,6 +1091,39 @@ impl<'p> Filter<'p, Entity> {
         }
     }
 
+    /// Creates an entity visibility filter from the policies in `policy_components`.
+    ///
+    /// The filter borrows policy constraints and optimization data from `policy_components`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if [`ActionName::ViewEntity`] was not tracked when building `policy_components`.
+    #[must_use]
+    pub fn for_view_entity(policy_components: &'p PolicyComponents) -> Self {
+        Self::for_policies(
+            policy_components.extract_filter_policies(ActionName::ViewEntity),
+            policy_components.actor_id(),
+            policy_components.optimization_data(ActionName::ViewEntity),
+        )
+    }
+
+    /// Creates one entity visibility filter per permitted access path.
+    ///
+    /// Uses [`Self::for_policy_branches`] for the view-entity policies in `policy_components`.
+    /// An empty vector means the policies deny all access.
+    ///
+    /// # Panics
+    ///
+    /// Panics if [`ActionName::ViewEntity`] was not tracked when building `policy_components`.
+    #[must_use]
+    pub fn for_view_entity_branches(policy_components: &'p PolicyComponents) -> Vec<Self> {
+        Self::for_policy_branches(
+            policy_components.extract_filter_policies(ActionName::ViewEntity),
+            policy_components.actor_id(),
+            policy_components.optimization_data(ActionName::ViewEntity),
+        )
+    }
+
     /// Creates one filter per permitted access path instead of a single disjunction.
     ///
     /// Each branch pairs one permit with the negation of every forbid, so the union of the
@@ -1503,7 +1537,7 @@ impl<'p> FilterExpression<'p, Entity> {
         actor_id: Option<ActorId>,
     ) -> Option<Self> {
         match expression {
-            PropertyFilterExpression::Path { path } => Some(Self::Path { path }),
+            PropertyFilterExpression::Path { path } => Some(Self::Path { path: path.into() }),
             PropertyFilterExpression::Parameter { parameter } => Some(Self::Parameter {
                 parameter,
                 convert: None,

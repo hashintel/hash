@@ -1,0 +1,17 @@
+# A coercion outside the known set stops parsing at the value.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id, '2024-01-01' AS placed
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: sink-orders
+          sink:
+            entityType: https://example.com/@demo/types/entity-type/order/v/1
+            entityId: id
+            properties:
+              https://example.com/@demo/types/property-type/placed/v/1:
+                { column: placed, coerce: datetime }

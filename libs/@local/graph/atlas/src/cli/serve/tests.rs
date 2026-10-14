@@ -115,7 +115,6 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
     )
     .run(ServeOptions {
         provider: Arc::new(HeaderActor),
-        service_secret: Secret::from_string("atlas-layer-test-service-secret".to_owned()).to_arc(),
         rate_limit: RateLimitConfig {
             rate_limit_mode: RateLimitMode::Enforce,
             client_ip_source: ClientIpSource::ConnectInfo,
@@ -231,6 +230,16 @@ async fn layers_actor_budget() {
     let response = send(&serving.router, request()).await;
     assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
     assert!(response.headers().contains_key(header::RETRY_AFTER));
+    let items = response
+        .headers()
+        .get_all("ratelimit")
+        .iter()
+        .map(|item| item.to_str().expect("the item should be ASCII"))
+        .collect::<Vec<_>>();
+    assert!(
+        matches!(items.as_slice(), [actor, gate] if *actor == r#""actor";r=0"# && gate.starts_with(r#""gate";"#)),
+        "the problem should report the crossed budget ahead of the gate, got {items:?}"
+    );
     let document = problem(response).await;
     assert_eq!(document["type"], "/problems/atlas/too-many-requests");
     assert_eq!(document["status"], 429);
@@ -244,8 +253,8 @@ async fn layers_without_credentials() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     assert_eq!(
         response.headers()[header::WWW_AUTHENTICATE],
-        "HASH-Service",
-        "the refusal should challenge with the service credential"
+        r#"Session realm="HASH""#,
+        "the refusal should challenge with the session"
     );
     let document = problem(response).await;
     assert_eq!(document["type"], "/problems/atlas/unauthenticated");

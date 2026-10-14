@@ -1,0 +1,42 @@
+# These less common forms are valid: a multi-column primary key, a pipeline that reads a
+# checkpoint and is declared before the pipeline that writes it, short accessors whose column
+# names look like numbers or booleans, a `column` accessor, and a link that combines two inputs
+# in a step.
+connector: demo
+vars:
+  TYPES: https://example.com/@demo/types
+sources:
+  orders:
+    sql: SELECT 1 AS id, 'EU' AS region
+    primaryKey: [id, region]
+  saved-orders:
+    checkpoint: demo/orders
+pipelines:
+  entities:
+    - source: saved-orders
+    - source: orders
+      steps:
+        - id: save-orders
+          checkpoint: demo/orders
+        - id: sink-orders
+          sink:
+            entityType: ${TYPES}/entity-type/order/v/1
+            entityId: id
+            properties:
+              ${TYPES}/property-type/year/v/1: "2024"
+              ${TYPES}/property-type/active/v/1: "true"
+              ${TYPES}/property-type/approved/v/1: y
+              ${TYPES}/property-type/shipped/v/1: yes
+              ${TYPES}/property-type/paid/v/1: on
+              ${TYPES}/property-type/region/v/1: { column: region }
+  links:
+    - id: order-to-order
+      inputs:
+        earlier: demo/orders
+        later: demo/orders
+      steps:
+        - id: pair-orders
+          sql: SELECT earlier.id AS a, later.id AS b FROM earlier, later
+      from: { entityType: "${TYPES}/entity-type/order/v/1", column: a }
+      to: { entityType: "${TYPES}/entity-type/order/v/1", column: b }
+      linkType: ${TYPES}/entity-type/follows/v/1

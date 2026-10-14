@@ -15,7 +15,7 @@ use hash_middleware::{
 use hash_secret::Secret;
 use http::{
     HeaderValue, Method, Request, StatusCode,
-    header::{ALLOW, AUTHORIZATION, CONTENT_TYPE, WWW_AUTHENTICATE},
+    header::{ALLOW, AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, WWW_AUTHENTICATE},
 };
 use serde_json::json;
 use tower::ServiceExt as _;
@@ -52,11 +52,17 @@ fn middleware(
     config: &RateLimitConfig,
     public_provider: StaticAuthenticationProvider,
     internal_provider: StaticAuthenticationProvider,
-) -> Middleware<StaticAuthenticationProvider, StaticAuthenticationProvider> {
+    legacy_provider: StaticAuthenticationProvider,
+) -> Middleware<
+    StaticAuthenticationProvider,
+    StaticAuthenticationProvider,
+    StaticAuthenticationProvider,
+> {
     let meter = opentelemetry::global::meter("test");
     Middleware {
         public_provider: Arc::new(public_provider),
         internal_provider: Arc::new(internal_provider),
+        legacy_provider: Arc::new(legacy_provider),
         service_secret: Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&meter)),
         rate_limiters: RateLimiters::start(config, &meter),
@@ -108,6 +114,7 @@ async fn documentation_skips_authentication() {
         &config(10, 10),
         StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
     )
     .assemble(Router::new(), apis, documentation);
 
@@ -138,6 +145,7 @@ async fn internal_api_answers_beside_its_reference() {
         &config(10, 10),
         StaticAuthenticationProvider::Verified(actor),
         StaticAuthenticationProvider::Verified(actor),
+        StaticAuthenticationProvider::Verified(actor),
     )
     .assemble(Router::new(), apis, documentation);
 
@@ -155,6 +163,7 @@ async fn documentation_draws_on_address_gate() {
     let documentation = documentation::routes(&apis);
     let router = middleware(
         &config(1, 10),
+        StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
     )
@@ -178,6 +187,7 @@ async fn fallback_answers_problem_document() {
         &config(10, 10),
         StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
     )
     .assemble(Router::new(), apis(), Router::new());
 
@@ -199,10 +209,93 @@ async fn fallback_answers_problem_document() {
     );
 }
 
+/// A response the address gate refuses carries the default `Cache-Control` like the one it admits.
+#[tokio::test]
+async fn cache_control_gate_rejection() {
+    let router = middleware(
+        &config(1, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), [test_utils::api("/first")], Router::new());
+
+    let mut answers = Vec::new();
+    for _ in 0..2 {
+        let response = send(&router, "/first/test").await;
+        answers.push((
+            response.status(),
+            response.headers().get(CACHE_CONTROL).cloned(),
+        ));
+    }
+    let default = Some(HeaderValue::from_static("private, no-store"));
+    assert_eq!(
+        answers,
+        [
+            (StatusCode::OK, default.clone()),
+            (StatusCode::TOO_MANY_REQUESTS, default)
+        ],
+        "both the admitted request and the gate's refusal should carry the default"
+    );
+}
+
+/// The problem documents for an unknown path and an unserved method carry the default
+/// `Cache-Control`.
+#[tokio::test]
+async fn cache_control_fallback() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), [test_utils::api("/first")], Router::new());
+
+    for request in [
+        request_to("/does-not-exist"),
+        request_with(Method::DELETE, "/first/test"),
+    ] {
+        let path = request.uri().path().to_owned();
+        let response = send_request(&router, request).await;
+        assert_eq!(
+            response.headers().get(CACHE_CONTROL),
+            Some(&HeaderValue::from_static("private, no-store")),
+            "the {} for {path} should carry the default",
+            response.status()
+        );
+    }
+}
+
+/// A route that sets its own `Cache-Control` keeps it.
+#[tokio::test]
+async fn cache_control_own_value() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(
+        Router::new().route(
+            "/cached",
+            get(async || ([(CACHE_CONTROL, "max-age=60")], "ok")),
+        ),
+        [],
+        Router::new(),
+    );
+
+    assert_eq!(
+        send(&router, "/cached").await.headers()[CACHE_CONTROL],
+        "max-age=60",
+        "the default should not replace the route's own value"
+    );
+}
+
 #[tokio::test]
 async fn fallback_draws_on_address_gate() {
     let router = middleware(
         &config(1, 10),
+        StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
     )
@@ -224,6 +317,7 @@ async fn fallback_draws_on_address_gate() {
 async fn method_not_allowed_problem_document() {
     let router = middleware(
         &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
@@ -259,6 +353,7 @@ async fn method_not_allowed_legacy_route() {
         &config(10, 10),
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
     )
     .assemble(
         Router::new().route("/legacy", get(async || ())),
@@ -283,6 +378,7 @@ async fn method_not_allowed_legacy_route() {
 async fn method_not_allowed_after_authentication() {
     let router = middleware(
         &config(10, 10),
+        StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
     )
@@ -310,6 +406,7 @@ async fn method_not_allowed_documentation_route() {
         &config(10, 10),
         StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
     )
     .assemble(
         Router::new(),
@@ -334,6 +431,7 @@ async fn method_not_allowed_documentation_route() {
 async fn method_not_allowed_draws_on_address_gate() {
     let router = middleware(
         &config(1, 10),
+        StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
     )
@@ -366,6 +464,7 @@ async fn method_not_allowed_draws_on_caller_budget() {
         &config(10, 1),
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
     )
     .assemble(Router::new(), [test_utils::api("/first")], Router::new());
 
@@ -390,6 +489,7 @@ async fn method_not_allowed_draws_on_caller_budget() {
 async fn panic_problem_document() {
     let router = middleware(
         &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
@@ -425,6 +525,7 @@ async fn apis_and_legacy_share_one_actor_budget() {
     let actor = ActorId::new(Uuid::from_u128(1), ActorType::User);
     let router = middleware(
         &config(10, 2),
+        StaticAuthenticationProvider::Verified(actor),
         StaticAuthenticationProvider::Verified(actor),
         StaticAuthenticationProvider::Verified(actor),
     )
@@ -464,6 +565,7 @@ async fn legacy_bootstrap_route_requires_service_secret() {
         &config(10, 10),
         StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Verified(actor),
+        StaticAuthenticationProvider::Verified(actor),
     )
     .assemble(
         Router::new()
@@ -498,10 +600,11 @@ async fn legacy_bootstrap_route_requires_service_secret() {
 }
 
 #[tokio::test]
-async fn legacy_routes_use_internal_provider() {
+async fn legacy_routes_use_legacy_provider() {
     let actor = ActorId::new(Uuid::from_u128(1), ActorType::User);
     let router = middleware(
         &config(10, 10),
+        StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Unreachable,
         StaticAuthenticationProvider::Verified(actor),
     )
@@ -518,7 +621,7 @@ async fn legacy_routes_use_internal_provider() {
     assert_eq!(
         response.status(),
         StatusCode::OK,
-        "legacy routes should resolve the caller through the internal provider"
+        "legacy routes should resolve the caller through the legacy provider"
     );
     assert_eq!(
         response_json(response).await,
@@ -527,11 +630,61 @@ async fn legacy_routes_use_internal_provider() {
     );
 }
 
+/// The service secret passes the caller budget on the legacy routes, which the services holding
+/// it call, and on no API.
+#[tokio::test]
+async fn service_secret_exempt_on_legacy_only() {
+    let router = middleware(
+        &config(10, 1),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(
+        Router::new().route("/legacy", get(async || "ok")),
+        [test_utils::api("/first")],
+        Router::new(),
+    );
+    let with_secret = |path: &str, peer: IpAddr| {
+        let mut request = request_from(path, peer);
+        request.headers_mut().insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("HASH-Service {SERVICE_SECRET}"))
+                .expect("the authorization header should be valid"),
+        );
+        request
+    };
+
+    for _ in 0..3 {
+        assert_eq!(
+            send_request(&router, with_secret("/legacy", client(1)))
+                .await
+                .status(),
+            StatusCode::OK,
+            "the legacy routes should not charge the service secret"
+        );
+    }
+    let mut statuses = Vec::new();
+    for _ in 0..2 {
+        statuses.push(
+            send_request(&router, with_secret("/first/test", client(2)))
+                .await
+                .status(),
+        );
+    }
+    assert_eq!(
+        statuses,
+        [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS],
+        "an API should charge the service secret's presenter like any anonymous caller"
+    );
+}
+
 #[tokio::test]
 async fn legacy_routes_challenge_service() {
     let router = middleware(
         &config(10, 10),
         StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
     .assemble(
@@ -547,7 +700,7 @@ async fn legacy_routes_challenge_service() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     assert_eq!(
         response.headers()[WWW_AUTHENTICATE],
-        "HASH-Service",
+        r#"HASH-Service realm="HASH""#,
         "legacy routes should challenge with the service secret"
     );
 }

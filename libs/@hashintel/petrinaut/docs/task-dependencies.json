@@ -3,6 +3,7 @@
   "dependencies": [
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
+    "@hashintel/ds-icons",
     "@hashintel/petrinaut-core",
     "@hashintel/refractive",
     "@local/petrinaut-optimizer-client"
@@ -12,6 +13,7 @@
       "dependsOn": [
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/petrinaut-optimizer-client#build"
@@ -27,6 +29,7 @@
       "dependsOn": [
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/petrinaut-optimizer-client#build"
@@ -38,6 +41,7 @@
       "dependsOn": [
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/eslint#build",
@@ -48,6 +52,7 @@
       "dependsOn": [
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/eslint#build",
@@ -61,6 +66,7 @@
       "dependsOn": [
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/petrinaut-optimizer-client#build"
@@ -70,6 +76,7 @@
       "dependsOn": [
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/petrinaut-optimizer-client#build"

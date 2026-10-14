@@ -1,43 +1,6 @@
 {
   "components": {
     "responses": {
-      "BadRequest": {
-        "content": {
-          "application/problem+json": {
-            "example": {
-              "detail": "`X-Authenticated-User-Actor-Id` header is not a valid UUID",
-              "status": 400,
-              "title": "Bad Request",
-              "type": "about:blank"
-            },
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                },
-                {
-                  "properties": {
-                    "status": {
-                      "const": 400
-                    },
-                    "title": {
-                      "const": "Bad Request"
-                    },
-                    "type": {
-                      "const": "about:blank"
-                    }
-                  },
-                  "required": [
-                    "type"
-                  ]
-                }
-              ],
-              "title": "Bad Request"
-            }
-          }
-        },
-        "description": "The `X-Authenticated-User-Actor-Id` header is not a valid UUID."
-      },
       "InternalServerError": {
         "content": {
           "application/problem+json": {
@@ -73,7 +36,34 @@
             }
           }
         },
-        "description": "An internal error prevented the request from completing."
+        "description": "An internal error prevented the request from completing.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       },
       "ServiceUnavailable": {
         "content": {
@@ -110,7 +100,34 @@
             }
           }
         },
-        "description": "Authentication is temporarily unavailable."
+        "description": "Authentication is temporarily unavailable.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       },
       "TooManyRequests": {
         "content": {
@@ -149,6 +166,31 @@
         },
         "description": "The request exceeded its rate-limit budget.",
         "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
           "Retry-After": {
             "description": "Whole seconds before retrying the request.",
             "required": true,
@@ -198,8 +240,33 @@
         },
         "description": "The request carries no credentials, or they do not identify a permitted caller.",
         "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
           "WWW-Authenticate": {
-            "description": "The scheme to authenticate with: `Bearer` on the public API, with `error=\"invalid_token\"` when a `Bearer` API token is refused; `HASH-Service` on the internal APIs.",
+            "description": "The scheme to authenticate with: `Session`, with `realm=\"HASH\"`.",
             "required": true,
             "schema": {
               "type": "string"
@@ -344,24 +411,6 @@
       }
     },
     "securitySchemes": {
-      "cloudflareAccess": {
-        "description": "Cloudflare Access JWT, when configured.",
-        "in": "header",
-        "name": "Cf-Access-Jwt-Assertion",
-        "type": "apiKey"
-      },
-      "delegatedActor": {
-        "description": "Delegated actor UUID, used with the service credential. The nil UUID resolves as anonymous.",
-        "in": "header",
-        "name": "X-Authenticated-User-Actor-Id",
-        "type": "apiKey"
-      },
-      "serviceSecret": {
-        "description": "Enter the complete Authorization header value: `HASH-Service <secret>`. Include the `HASH-Service` prefix; the client sends this value unchanged. Requires the `X-Authenticated-User-Actor-Id` header to name the delegated actor.",
-        "in": "header",
-        "name": "authorization",
-        "type": "apiKey"
-      },
       "sessionCookie": {
         "description": "Kratos browser session.",
         "in": "cookie",
@@ -395,10 +444,34 @@
                 }
               }
             },
-            "description": "The resolved caller."
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "The resolved caller.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -419,13 +492,6 @@
           },
           {
             "sessionCookie": []
-          },
-          {
-            "cloudflareAccess": []
-          },
-          {
-            "delegatedActor": [],
-            "serviceSecret": []
           }
         ],
         "summary": "Get the authenticated caller",
@@ -447,10 +513,34 @@
                 }
               }
             },
-            "description": "The resolved caller."
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "The resolved caller.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -472,13 +562,6 @@
           },
           {
             "sessionCookie": []
-          },
-          {
-            "cloudflareAccess": []
-          },
-          {
-            "delegatedActor": [],
-            "serviceSecret": []
           }
         ],
         "summary": "Get the caller",
