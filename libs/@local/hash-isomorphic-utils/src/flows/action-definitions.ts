@@ -1,3 +1,4 @@
+import { checkAggregationInput } from "./aggregation.js";
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
 import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
@@ -20,6 +21,7 @@ import type {
  * Activities that are registered to the 'ai' temporal task queue.
  */
 export type AiFlowActionDefinitionId =
+  | "aggregate"
   | "analyzeEntityData"
   | "answerQuestion"
   | "filterList"
@@ -834,6 +836,38 @@ const aiFlowActionDefinitionsAsConst = {
         required: false,
       },
     ],
+  },
+  aggregate: {
+    actionDefinitionId: "aggregate",
+    name: "Aggregate",
+    description:
+      "Count the items of a list, or take the sum, average, minimum or maximum of a number read from each, ignoring items without one.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: filterableKinds,
+        name: "items",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["Aggregation"],
+        name: "aggregation",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Number",
+        name: "result",
+        description:
+          "The number. Missing for an average, minimum or maximum of no values.",
+        array: false,
+        required: false,
+      },
+    ],
+    check: checkAggregationInput,
   },
   filterList: {
     actionDefinitionId: "filterList",

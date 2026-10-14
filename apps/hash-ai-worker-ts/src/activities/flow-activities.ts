@@ -1,3 +1,4 @@
+import { aggregateAction } from "./flow-activities/aggregate-action.js";
 import { analyzeEntityDataAction } from "./flow-activities/analyze-entity-data-action.js";
 import { answerQuestionAction } from "./flow-activities/answer-question-action.js";
 import { filterListAction } from "./flow-activities/filter-list-action.js";
@@ -29,6 +30,7 @@ import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flow
 export const createFlowActionActivities: CreateFlowActivities<
   AiFlowActionDefinitionId
 > = ({ vaultClient }: { vaultClient: VaultClient }) => ({
+  aggregateAction,
   analyzeEntityDataAction,
   generateStructuralQueryAction,
   answerQuestionAction,

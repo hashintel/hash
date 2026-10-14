@@ -12,6 +12,7 @@ import type {
  */
 export const payloadKindJsonTypes = {
   ActorType: "string",
+  Aggregation: "object",
   Boolean: "boolean",
   Date: "string",
   EntityId: "string",

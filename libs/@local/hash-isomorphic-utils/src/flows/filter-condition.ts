@@ -98,6 +98,7 @@ type FilterCapability = "scalar" | "object" | "entity";
 /** The capabilities of each payload kind. A kind with none can't be filtered. */
 const filterCapabilities = {
   ActorType: ["scalar"],
+  Aggregation: [],
   Boolean: ["scalar"],
   Date: ["scalar"],
   EntityId: ["scalar", "entity"],

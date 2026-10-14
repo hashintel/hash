@@ -806,6 +806,88 @@ describe("Filter List and If steps", () => {
     ]);
   });
 
+  it("branch on how many items a list has, by Aggregate and If", () => {
+    const { flowDefinition } = defineFlow(
+      {
+        flowDefinitionId: "many-companies",
+        name: "Many companies",
+        description: "Check whether research found more than ten entities",
+        inputs: {
+          prompt: flowInput("Text"),
+          entityTypeIds: flowInput("VersionedUrl", { array: true }),
+        },
+      },
+      ({ inputs, step }) => {
+        const research = step("research", actions.researchEntities, {
+          description: "Research entities",
+          inputs: {
+            prompt: inputs.prompt,
+            entityTypeIds: inputs.entityTypeIds,
+          },
+        });
+
+        const counted = step("count", actions.aggregate, {
+          description: "Count the entities",
+          inputs: {
+            items: research.outputs.proposedEntities,
+            aggregation: constant("Aggregation", { operation: "count" }),
+          },
+        });
+
+        expectTypeOf(counted.outputs.result).toEqualTypeOf<
+          Ref<"Number", false, false>
+        >();
+
+        const isMany = step("isMany", actions.if, {
+          description: "Check for more than ten",
+          inputs: {
+            value: counted.outputs.result.orSkip(),
+            condition: constant("FilterCondition", {
+              kind: "all",
+              conditions: [
+                {
+                  kind: "condition",
+                  subject: { kind: "input", payloadKind: "Number" },
+                  operator: "greaterThan",
+                  value: { kind: "Number", value: 10 },
+                },
+              ],
+            }),
+          },
+        });
+
+        expectTypeOf(isMany.outputs.true).toEqualTypeOf<
+          Ref<"Number", false, false>
+        >();
+
+        return { outputs: {} };
+      },
+    );
+
+    expect(flowDefinition.steps.slice(1)).toMatchObject([
+      {
+        actionDefinitionId: "aggregate",
+        inputs: {
+          aggregation: {
+            kind: "constant",
+            payload: { kind: "Aggregation", value: { operation: "count" } },
+          },
+        },
+      },
+      {
+        actionDefinitionId: "if",
+        inputs: {
+          value: {
+            kind: "step-output",
+            stepId: "count",
+            outputName: "result",
+            whenMissing: "skip",
+          },
+        },
+      },
+    ]);
+  });
+
   it("run the steps after an If step only on the branch it takes", () => {
     const { flowDefinition } = defineFlow(
       {

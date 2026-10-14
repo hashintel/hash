@@ -732,6 +732,108 @@ describe("validateFlowDefinition", () => {
     });
   });
 
+  describe("aggregations of aggregate steps", () => {
+    const aggregateDefinition = (aggregation: Record<string, unknown>) => ({
+      ...baseDefinition,
+      inputs: [
+        { name: "pages", payloadKind: "WebPage", array: true, required: true },
+        {
+          name: "aggregation",
+          payloadKind: "Aggregation",
+          array: false,
+          required: true,
+        },
+      ],
+      steps: [
+        {
+          kind: "action",
+          stepId: "aggregate",
+          actionDefinitionId: "aggregate",
+          description: "",
+          inputs: {
+            items: { kind: "flow-input", inputName: "pages" },
+            aggregation,
+          },
+        },
+      ],
+    });
+
+    const constantAggregation = (value: Record<string, unknown>) => ({
+      kind: "constant",
+      payload: { kind: "Aggregation", value },
+    });
+
+    it("accepts a constant aggregation that fits the items, or one from elsewhere", () => {
+      for (const aggregation of [
+        constantAggregation({ operation: "count" }),
+        constantAggregation({
+          operation: "sum",
+          subject: {
+            kind: "field",
+            path: ["wordCount"],
+            payloadKind: "Number",
+          },
+        }),
+        { kind: "flow-input", inputName: "aggregation" },
+      ]) {
+        expect(
+          diagnosticsOf(aggregateDefinition(aggregation)).filter(
+            ({ severity }) => severity === "error",
+          ),
+        ).toEqual([]);
+      }
+    });
+
+    it.each([
+      {
+        name: "a count with a subject",
+        aggregation: {
+          operation: "count",
+          subject: {
+            kind: "field",
+            path: ["wordCount"],
+            payloadKind: "Number",
+          },
+        },
+        message: "A count aggregation takes no subject.",
+      },
+      {
+        name: "a sum of a Text subject",
+        aggregation: {
+          operation: "sum",
+          subject: { kind: "field", path: ["title"], payloadKind: "Text" },
+        },
+        message: "An aggregation's subject must be of kind Number.",
+      },
+      {
+        name: "a subject that doesn't fit the items",
+        aggregation: {
+          operation: "max",
+          subject: {
+            kind: "entityProperty",
+            propertyTypeBaseUrl: "https://example.com/property-type/score/",
+            payloadKind: "Number",
+          },
+        },
+        message:
+          "Entity subjects require an EntityId or proposed entity input.",
+      },
+    ])("rejects $name", ({ aggregation, message }) => {
+      expect(
+        validateFlowDefinition(
+          aggregateDefinition(constantAggregation(aggregation)),
+        ).diagnostics.filter(({ severity }) => severity === "error"),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "invalidInput",
+          message,
+          path: ["steps", 0, "inputs", "aggregation"],
+        },
+      ]);
+    });
+  });
+
   describe("counts of takeFirst steps", () => {
     const takeFirstDefinition = (count: number) => ({
       ...baseDefinition,
