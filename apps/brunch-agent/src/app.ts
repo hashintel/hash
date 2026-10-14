@@ -10,11 +10,14 @@ import { Hono } from "hono";
 
 import { brunchEnv, brunchRoutes, brunchTools } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
+import {
+  createLiveToolBroadcaster,
+  createLiveToolObserver,
+  liveToolResponse,
+  liveToolRouteSegment,
+} from "@local/flue-aisdk-transport/server";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
-import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-broadcaster.ts";
-import { createLiveToolRoute } from "./agents/chat-agent/live/live-tool-route.ts";
-import { createLiveToolObserver } from "./agents/chat-agent/live/observe-live-tools.ts";
 import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
 import { inBandBrowserToolNames } from "./agents/chat-agent/tool-catalogue.ts";
 import { healthHandler } from "./health.ts";
@@ -184,7 +187,12 @@ app.use(
   `${chatAgentMount}/*`,
   agentOwnershipGuard(`${chatAgentMount}/`, ChatAgent.agentName),
 );
-app.get(`${chatAgentMount}/:id/live`, createLiveToolRoute(liveToolBroadcaster));
+app.get(`${chatAgentMount}/:id/${liveToolRouteSegment}`, (context) =>
+  liveToolResponse(liveToolBroadcaster, {
+    instanceId: context.req.param("id"),
+    request: context.req.raw,
+  }),
+);
 app.route(chatAgentMount, createBrowserCallRouter());
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
 

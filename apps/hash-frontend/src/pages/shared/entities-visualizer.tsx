@@ -3,31 +3,27 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { atLeastOne } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
+import { SortMenu } from "@hashintel/ds-components";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   type EntityTableSummary,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
+import { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
 import { Button } from "../../shared/ui";
-import { useMemoCompare } from "../../shared/use-memo-compare";
-import { useAuthenticatedUser } from "./auth-info-context";
-import {
-  EntitiesTable,
-  toolbarHeight,
-} from "./entities-visualizer/entities-table";
+import { DsComponentsScope } from "./ds-components-scope";
+import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/grid-view";
-import {
-  FilterRibbon,
-  QueryCount,
-  VisualizerHeader,
-  visualizerHeaderHeight,
-} from "./entities-visualizer/header";
+import { FilterRibbon } from "./entities-visualizer/header";
 import { NetworkGraphView } from "./entities-visualizer/network-graph-view";
 import { buildEntitiesFilter } from "./entities-visualizer/shared/build-filter";
 import { displaysFilesOnly } from "./entities-visualizer/shared/displays-files-only";
@@ -38,13 +34,23 @@ import {
 } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesTableQuery } from "./entities-visualizer/use-entities-table-query";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
+import {
+  defaultPillSx,
+  SearchPill,
+  useInternalWebs,
+  VisualizerHeader,
+  visualizerHeaderHeight,
+} from "./filter-bar";
+import { QueryCount } from "./query-count";
 import { useSlideStack } from "./slide-stack";
+import { sortMenuTriggerChrome } from "./sort-menu-chrome";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { visualizerViewIcons, visualizerViewLabels } from "./visualizer-views";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
 import type { ArchivableEntity } from "../../shared/is-archived";
+import type { GenerateCsvFileFunction } from "../../shared/table-header/export-to-csv-button";
 import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
@@ -59,9 +65,9 @@ import type {
   EntityId,
   PropertyObject,
   VersionedUrl,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { Sorter } from "@hashintel/ds-components";
 import type {
   EntityQueryCursor,
   EntityQuerySortingPath,
@@ -77,6 +83,19 @@ import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 // references every render.
 const EMPTY_TYPE_ID_SET: ReadonlySet<VersionedUrl> = new Set();
 const EMPTY_BASE_URL_SET: ReadonlySet<BaseUrl> = new Set();
+
+/**
+ * Property columns are deliberately omitted: sorting by a property compiles
+ * to an unindexed ORDER BY on the JSONB properties column in the graph.
+ * Property sorting can be re-enabled once properties are indexed.
+ */
+const entitySorters: ReadonlyArray<Sorter<SortableEntitiesTableColumnKey>> = [
+  { name: "Entity", sortKey: "entityLabel" },
+  { name: "Last Edited", sortKey: "lastEdited", sortIcon: "generic" },
+  { name: "Created", sortKey: "created", sortIcon: "generic" },
+  { name: "Entity Type", sortKey: "entityTypes" },
+  { name: "Archived", sortKey: "archived", sortIcon: "generic" },
+];
 
 const tableSortKeyByColumnKey = {
   entityLabel: "label",
@@ -145,36 +164,9 @@ export const EntitiesVisualizer: FunctionComponent<{
 }> = ({ entityTypeBaseUrl, entityTypeId, hideColumns }) => {
   const theme = useTheme();
 
-  const { authenticatedUser } = useAuthenticatedUser();
-
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
-  const internalWebs = useMemoCompare(
-    () => {
-      return [
-        {
-          webId: authenticatedUser.accountId as WebId,
-          name: `@${authenticatedUser.shortname}`,
-        },
-        ...authenticatedUser.memberOf.map(({ org }) => ({
-          webId: org.webId,
-          name: `@${org.shortname}`,
-        })),
-      ];
-    },
-    [authenticatedUser],
-    (oldValue, newValue) => {
-      return (
-        oldValue.length === newValue.length &&
-        oldValue.every((oldWeb) =>
-          newValue.some(
-            (newWeb) =>
-              oldWeb.webId === newWeb.webId && oldWeb.name === newWeb.name,
-          ),
-        )
-      );
-    },
-  );
+  const internalWebs = useInternalWebs();
 
   const [filterState, _setFilterState] = useState<EntitiesFilterState>(() =>
     createDefaultFilterState(internalWebs.map(({ webId }) => webId)),
@@ -221,6 +213,16 @@ export const EntitiesVisualizer: FunctionComponent<{
     [resetCursors],
   );
 
+  const isFiltered = useMemo(
+    () =>
+      filterState.web.includeOtherWebs ||
+      filterState.web.selectedInternalWebIds.size !== internalWebs.length ||
+      filterState.type.selectedTypeIds !== null ||
+      filterState.includeArchived ||
+      filterState.propertyFilters.length > 0,
+    [filterState, internalWebs],
+  );
+
   const [typeColorOverrides, setTypeColorOverrides] =
     useState<TypeColorOverrides>(() => new Map());
 
@@ -234,10 +236,18 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [view, _setView] = useState<VisualizerView>("Table");
 
+  const [showTableSearch, setShowTableSearch] = useState(false);
+  const [showGridSearch, setShowGridSearch] = useState(false);
+  const [showGraphSearch, setShowGraphSearch] = useState(false);
+
+  // The search popups are per-view, so leaving a view closes them.
   const setView = useCallback(
     (newView: VisualizerView) => {
       _setView(newView);
       resetCursors();
+      setShowTableSearch(false);
+      setShowGridSearch(false);
+      setShowGraphSearch(false);
     },
     [resetCursors],
   );
@@ -634,6 +644,7 @@ export const EntitiesVisualizer: FunctionComponent<{
 
       nextPropertyFilters = filterState.propertyFilters.filter(
         ({ baseUrl, kind }) =>
+          baseUrl === systemPropertyTypes.archived.propertyTypeBaseUrl ||
           filterablePropertyKindsByBaseUrl.get(baseUrl) === kind,
       );
     }
@@ -731,6 +742,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
   const currentlyDisplayedRowsRef = useRef<EntitiesTableRow[] | null>(null);
 
+  const generateCsvFileRef = useRef<GenerateCsvFileFunction | null>(null);
+
   const contentTopRef = useRef<HTMLDivElement>(null);
   const [contentTop, setContentTop] = useState<number | null>(null);
 
@@ -756,16 +769,32 @@ export const EntitiesVisualizer: FunctionComponent<{
       ? `${contentTop}px - ${theme.spacing(5)}`
       : `(${
           HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + visualizerHeaderHeight
-        }px + ${theme.spacing(5)} + ${theme.spacing(5)}`
+        }px + ${theme.spacing(5)} + ${theme.spacing(5)})`
   })`;
 
   const tableHeight = `min(${availableHeight}, 1000px)`;
 
-  const [showTableSearch, setShowTableSearch] = useState(false);
-
   const [selectedTableRows, setSelectedTableRows] = useState<
     EntitiesTableRow[]
   >([]);
+
+  const tableRows = tableQuery.tableData?.rows;
+
+  /**
+   * A query change that drops rows from the table drops them from the
+   * selection with it so a selected row would misreport the selection.
+   */
+  useEffect(() => {
+    if (!tableRows) {
+      return;
+    }
+    const visibleRowIds = new Set(tableRows.map((row) => row.rowId));
+    setSelectedTableRows((prev) =>
+      prev.some((row) => !visibleRowIds.has(row.rowId))
+        ? prev.filter((row) => visibleRowIds.has(row.rowId))
+        : prev,
+    );
+  }, [tableRows]);
 
   const nextPage = useCallback(() => {
     if (usesTableEndpoint) {
@@ -846,39 +875,28 @@ export const EntitiesVisualizer: FunctionComponent<{
   return (
     <Box>
       <VisualizerHeader
-        left={
-          selectedEntities.length > 0 ? (
-            <BulkActionsDropdown
-              selectedItems={selectedEntities}
-              onBulkActionCompleted={handleBulkActionCompleted}
-            />
-          ) : (
-            <FilterRibbon
-              availableEntityTypes={availableEntityTypes}
-              availableTypesLoading={availableTypesLoading}
-              propertyFilterMetadata={propertyFilterData}
-              filterState={filterState}
-              internalWebs={internalWebs}
-              isTypePinned={isTypePinned}
-              setFilterState={(updater) => setFilterState(updater)}
-              showTypeColors={view === "NetworkGraph"}
-              typeColorOverrides={typeColorOverrides}
-              setTypeColor={setTypeColor}
-              hiddenTypeIds={hiddenTypeIds}
-              hiddenPropertyBaseUrls={hiddenPropertyBaseUrls}
-            />
-          )
+        topLeft={
+          <QueryCount
+            count={totalResultCount}
+            loading={resultsLoading}
+            noun={{ singular: "entity", plural: "entities" }}
+          />
         }
-        right={
+        topRight={
           <>
-            <QueryCount count={totalResultCount} loading={resultsLoading} />
+            {view === "Table" ? (
+              <ExportToCsvButton
+                generateCsvFile={() => generateCsvFileRef.current?.() ?? null}
+                sx={{ px: 1.5, borderRadius: "4px" }}
+              />
+            ) : null}
             <TableHeaderToggle
               value={view}
               setValue={setView}
               options={(
                 [
-                  "Table",
                   ...(supportGridView ? (["Grid"] as const) : []),
+                  "Table",
                   "NetworkGraph",
                 ] as const satisfies VisualizerView[]
               ).map((optionValue) => ({
@@ -889,6 +907,83 @@ export const EntitiesVisualizer: FunctionComponent<{
             />
           </>
         }
+        bottomLeft={
+          <>
+            {selectedEntities.length > 0 && (
+              <Box
+                sx={{
+                  display: "inline-block",
+                  verticalAlign: "middle",
+                  mr: 1,
+                  my: 0.5,
+                }}
+              >
+                <BulkActionsDropdown
+                  selectedItems={selectedEntities}
+                  onBulkActionCompleted={handleBulkActionCompleted}
+                  sx={defaultPillSx}
+                />
+              </Box>
+            )}
+            <FilterRibbon
+              availableEntityTypes={availableEntityTypes}
+              availableTypesLoading={availableTypesLoading}
+              propertyFilterMetadata={propertyFilterData}
+              filterState={filterState}
+              internalWebs={internalWebs}
+              isTypePinned={isTypePinned}
+              searchControl={
+                <SearchPill
+                  title={
+                    view === "Table"
+                      ? "Search for text in visible rows"
+                      : view === "Grid"
+                        ? "Search for text in visible files"
+                        : "Search for an entity in the graph"
+                  }
+                  onClick={() => {
+                    if (view === "Table") {
+                      setShowTableSearch(!showTableSearch);
+                    } else if (view === "Grid") {
+                      setShowGridSearch(!showGridSearch);
+                    } else {
+                      setShowGraphSearch(!showGraphSearch);
+                    }
+                  }}
+                />
+              }
+              setFilterState={(updater) => setFilterState(updater)}
+              showTypeColors={view === "NetworkGraph"}
+              typeColorOverrides={typeColorOverrides}
+              setTypeColor={setTypeColor}
+              hiddenTypeIds={hiddenTypeIds}
+              hiddenPropertyBaseUrls={hiddenPropertyBaseUrls}
+            />
+          </>
+        }
+        bottomRight={
+          view === "Table" ? (
+            <DsComponentsScope>
+              <SortMenu<SortableEntitiesTableColumnKey>
+                size="xs"
+                className={sortMenuTriggerChrome}
+                position="bottom-end"
+                items={entitySorters}
+                value={{
+                  sortKey: sort.columnKey,
+                  direction:
+                    sort.direction === "asc" ? "ASCENDING" : "DESCENDING",
+                }}
+                onChange={(sortKey, direction) =>
+                  setSort({
+                    columnKey: sortKey,
+                    direction: direction === "ASCENDING" ? "asc" : "desc",
+                  })
+                }
+              />
+            </DsComponentsScope>
+          ) : undefined
+        }
       />
       <Box ref={contentTopRef} />
       {view === "NetworkGraph" ? (
@@ -898,6 +993,8 @@ export const EntitiesVisualizer: FunctionComponent<{
             typeColorOverrides={typeColorOverrides}
             filter={graphFilter}
             onOpenEntity={handleEntityClick}
+            searchOpen={showGraphSearch}
+            onSearchClose={() => setShowGraphSearch(false)}
           />
         </Box>
       ) : typeUniverseBlocksResults || queryBlocksResults ? (
@@ -960,7 +1057,12 @@ export const EntitiesVisualizer: FunctionComponent<{
           </Box>
         </Stack>
       ) : view === "Grid" ? (
-        <GridView entities={entities} onEntityClick={handleEntityClick} />
+        <GridView
+          entities={entities}
+          onEntityClick={handleEntityClick}
+          showSearch={showGridSearch}
+          onSearchClose={() => setShowGridSearch(false)}
+        />
       ) : (
         <>
           {activeError ? (
@@ -993,11 +1095,13 @@ export const EntitiesVisualizer: FunctionComponent<{
             csvFileTitle="Entities"
             currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+            generateCsvFileRef={generateCsvFileRef}
             handleEntityClick={handleEntityClick}
             hasMoreRowsAvailable={tableQuery.canLoadMore}
+            isFiltered={isFiltered}
             loading={resultsLoading}
             isViewingOnlyPages={isViewingOnlyPages}
-            maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
+            maxHeight={tableHeight}
             loadMoreRows={tableQuery.canLoadMore ? nextPage : undefined}
             setActiveConversions={setActiveConversions}
             setSelectedEntityType={handleEntityTypeClick}

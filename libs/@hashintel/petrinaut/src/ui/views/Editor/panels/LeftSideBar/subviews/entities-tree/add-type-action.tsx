@@ -1,6 +1,7 @@
 import { use } from "react";
 
 import { Button } from "@hashintel/ds-components";
+import { generatePetrinautId } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
@@ -86,7 +87,7 @@ export const AddTypeAction: React.FC = () => {
         const nextNumber = getNextTypeNumber(existingNames);
         const nextColor = getNextAvailableColor(existingColors);
 
-        const id = `type__${Date.now()}`;
+        const id = generatePetrinautId();
         const newType = {
           id,
           name: `Type ${nextNumber}`,
@@ -94,7 +95,7 @@ export const AddTypeAction: React.FC = () => {
           displayColor: nextColor,
           elements: [
             {
-              elementId: `element__${Date.now()}`,
+              elementId: generatePetrinautId(),
               name: "dimension_1",
               type: "real" as const,
             },

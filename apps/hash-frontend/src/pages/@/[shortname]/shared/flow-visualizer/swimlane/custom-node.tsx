@@ -72,6 +72,8 @@ const useStatusText = ({
         return "Cancelled";
       case "Information Required":
         return "Waiting for information from browser plugin";
+      case "Skipped":
+        return "Skipped, because a value it needs is missing";
       default:
         return "Waiting for earlier stages to finish";
     }
@@ -136,10 +138,10 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
     isoString ? getTimeAgo(isoString) : "",
   );
 
-  const isParallelizedGroup = data.kind === "parallel-group";
+  const isParallelizedGroup = data.kind === "for-each";
 
   const isParallelizedStep = data.inputSources.find(
-    (input) => input.kind === "parallel-group-input",
+    (input) => input.kind === "item",
   );
 
   const styles = statusSx[simpleStatusName];

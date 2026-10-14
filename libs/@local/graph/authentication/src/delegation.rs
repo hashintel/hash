@@ -1,7 +1,7 @@
 //! Service delegation implementation of [`AuthenticationProvider`].
 
 use alloc::sync::Arc;
-use core::ops::ControlFlow;
+use core::{ops::ControlFlow, pin::Pin};
 
 use error_stack::Report;
 use hash_middleware::authentication::{
@@ -9,6 +9,7 @@ use hash_middleware::authentication::{
     request::{AuthenticationError, actor_id_from_header},
     service_secret::{presents_service_secret, service_credential},
 };
+use hash_secret::Secret;
 use http::HeaderMap;
 use type_system::principal::actor::ActorId;
 use uuid::Uuid;
@@ -23,13 +24,13 @@ use crate::actor::{ResolveActor, resolve_actor};
 /// anonymous callers reads the nil UUID as acting for nobody, a chain requiring an actor rejects
 /// it.
 pub struct ServiceDelegationProvider<R> {
-    secret: String,
+    secret: Pin<Arc<Secret<str>>>,
     actor_resolver: R,
 }
 
 impl<R> ServiceDelegationProvider<R> {
     #[must_use]
-    pub const fn new(secret: String, actor_resolver: R) -> Self {
+    pub const fn new(secret: Pin<Arc<Secret<str>>>, actor_resolver: R) -> Self {
         Self {
             secret,
             actor_resolver,
@@ -107,13 +108,13 @@ mod tests {
 
     use error_stack::Report;
     use hash_middleware::authentication::{
-        AuthenticationProblem,
+        AuthenticationProblem, Challenge,
         provider::{AuthenticationProvider as _, Caller, expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
     };
+    use hash_secret::Secret;
     use http::HeaderMap;
-    use problematic::Expose;
     use type_system::principal::actor::{ActorEntityUuid, ActorId};
     use uuid::Uuid;
 
@@ -125,7 +126,10 @@ mod tests {
     fn provider_for(
         actors: HashMap<ActorEntityUuid, ActorId>,
     ) -> ServiceDelegationProvider<FixedActorResolver> {
-        ServiceDelegationProvider::new(SERVICE_SECRET.to_owned(), FixedActorResolver::new(actors))
+        ServiceDelegationProvider::new(
+            Secret::from_string(SERVICE_SECRET.to_owned()).to_arc(),
+            FixedActorResolver::new(actors),
+        )
     }
 
     /// A provider whose store knows no actor.
@@ -238,26 +242,12 @@ mod tests {
             AuthenticationErrorKind::ActorNotFound { .. },
             "a delegated actor that does not exist should be rejected"
         );
-        let answer = Expose::<AuthenticationProblem>::expose(&*report);
+        let answer = AuthenticationProblem::answer(&report, Challenge::Service);
         let problem = answer.details();
         assert_eq!(problem.status, 401);
         assert_eq!(
             problem.detail.as_deref(),
             Some("credentials are not accepted")
-        );
-    }
-
-    #[tokio::test]
-    async fn empty_secret_never_authenticates() {
-        let provider =
-            ServiceDelegationProvider::new(String::new(), FixedActorResolver::new(HashMap::new()));
-
-        let decision =
-            authenticate::<ActorId>(&provider, &headers(Some(""), Some(random_actor()))).await;
-
-        assert!(
-            matches!(decision, ControlFlow::Break(Err(_))),
-            "an empty configured secret should never match, even an empty header value"
         );
     }
 

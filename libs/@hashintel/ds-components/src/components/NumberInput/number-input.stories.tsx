@@ -396,7 +396,7 @@ export const Size: Story<NumberInputProps> = (args) => (
     <span key="kitchen-sink" style={subheadingStyle}>
       With items
     </span>
-    {...formInputSizes.map((size) => (
+    {formInputSizes.map((size) => (
       <ClearableInput
         key={`sink-${size}`}
         {...args}

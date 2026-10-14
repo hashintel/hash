@@ -1,12 +1,11 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText, Output } from "ai";
 
-import { petrinautAiModel } from "@hashintel/petrinaut-core/ai";
-
 import {
   createVoiceMediationHandler,
   voiceMediationInstructions,
 } from "../../src/server/voice/voice-mediation.js";
+import { stockAssistantModel } from "../../src/shared/stock-assistant-model.js";
 import {
   voiceBriefExtractionSchema,
   voiceWrapUpResponseSchema,
@@ -20,7 +19,7 @@ export default {
     generate: async (input, abortSignal) => {
       // Reuse the website's existing text-model choice and dedicated Voice key.
       const model = createOpenAI({ apiKey: process.env.OPENAI_VOICE_API_KEY })(
-        petrinautAiModel.id,
+        stockAssistantModel.id,
       );
       const options = {
         model,

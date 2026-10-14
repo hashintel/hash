@@ -17,13 +17,11 @@ import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/ls
 import { createValueStore } from "../create-value-store";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
-import { LanguageClientContext } from "./context";
-
-const EMPTY_DIAGNOSTICS_SNAPSHOT: DiagnosticsSnapshot = {
-  byUri: new Map(),
-  total: 0,
-  errorCount: 0,
-};
+import {
+  DEFAULT_LANGUAGE_CLIENT_CONTEXT,
+  EMPTY_DIAGNOSTICS_SNAPSHOT,
+  LanguageClientContext,
+} from "./context";
 
 const EMPTY_DIAGNOSTICS_STORE: ReadableStore<DiagnosticsSnapshot> = {
   get: () => EMPTY_DIAGNOSTICS_SNAPSHOT,
@@ -87,24 +85,26 @@ export const LanguageClientProvider: React.FC<{
 
   // Subscribe to diagnostics from the client. Use an empty fallback store
   // before the client is created so hook order stays stable.
-  const {
-    byUri: diagnosticsByUri,
-    total: totalDiagnosticsCount,
-    errorCount: errorDiagnosticsCount,
-  } = useStore(client?.diagnostics ?? EMPTY_DIAGNOSTICS_STORE);
+  const diagnostics = useStore(client?.diagnostics ?? EMPTY_DIAGNOSTICS_STORE);
 
   // Before the client lands (StrictMode's first effect cycle gets cleaned
-  // up before the worker is wired), fall through to LanguageClientContext's
-  // built-in no-op default so children don't have to gate on a separate
-  // "loading" branch.
+  // up before the worker is wired), provide LanguageClientContext's no-op
+  // default so children don't have to gate on a separate "loading" branch.
+  // Both branches render the provider, so the subtree stays mounted when the
+  // client lands.
   if (!client) {
-    return <>{children}</>;
+    return (
+      <LanguageClientContext value={DEFAULT_LANGUAGE_CLIENT_CONTEXT}>
+        {children}
+      </LanguageClientContext>
+    );
   }
 
   const value = {
-    diagnosticsByUri,
-    totalDiagnosticsCount,
-    errorDiagnosticsCount,
+    diagnostics,
+    diagnosticsByUri: diagnostics.byUri,
+    totalDiagnosticsCount: diagnostics.total,
+    errorDiagnosticsCount: diagnostics.errorCount,
     notifyDocumentChanged: client.notifyDocumentChanged,
     requestCompletion: client.requestCompletion,
     requestHover: client.requestHover,

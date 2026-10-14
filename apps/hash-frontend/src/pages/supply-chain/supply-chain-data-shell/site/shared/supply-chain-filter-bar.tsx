@@ -39,6 +39,13 @@ const emptyBarAlign = css({
   justifyContent: "flex-end",
 });
 
+const chipWrapper = css({
+  display: "inline-flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: "2",
+});
+
 export const SupplyChainFilterBar = ({
   view,
   filters,
@@ -154,49 +161,55 @@ export const SupplyChainFilterBar = ({
     );
   }
 
-  return (
-    <FilterGroup dismissAbandoned>
-      {filters.map((filter) => {
-        const definition = supplyChainFilterDefinition(filter.filterKey);
-        if (!definition) {
-          return null;
+  const renderFilterChip = (filter: ActiveSupplyChainFilter) => {
+    const definition = supplyChainFilterDefinition(filter.filterKey);
+    if (!definition) {
+      return null;
+    }
+    const skipped = skippedKeys?.has(filter.filterKey) ?? false;
+    const label = supplyChainFilterLabel(definition, options);
+    const chip = (
+      <Filter
+        key={filter.filterKey}
+        property={filter.filterKey}
+        propertyLabel={label}
+        operators={definition.operators(options)}
+        value={filter.value}
+        disabled={skipped}
+        autoFocus={filter.filterKey === autoFocusKey}
+        onChange={(operatorKey, committed) =>
+          setFilterValue(filter.filterKey, operatorKey, committed)
         }
-        const skipped = skippedKeys?.has(filter.filterKey) ?? false;
-        const label = supplyChainFilterLabel(definition, options);
-        const chip = (
-          <Filter
-            key={filter.filterKey}
-            property={filter.filterKey}
-            propertyLabel={label}
-            operators={definition.operators(options)}
-            value={filter.value}
-            disabled={skipped}
-            autoFocus={filter.filterKey === autoFocusKey}
-            onChange={(operatorKey, committed) =>
-              setFilterValue(filter.filterKey, operatorKey, committed)
-            }
-            removeable={{
-              onRemove: () =>
-                onFiltersChange(
-                  filters.filter(
-                    (candidate) => candidate.filterKey !== filter.filterKey,
-                  ),
-                ),
-            }}
-          />
-        );
-        if (!skipped) {
-          return chip;
-        }
-        return (
-          <Tooltip
-            key={filter.filterKey}
-            content={`"${label}" is ignored as it does not apply to this table.`}
-          >
-            {chip}
-          </Tooltip>
-        );
-      })}
+        onInput={(operatorKey, committed) => {
+          if (committed !== null) {
+            setFilterValue(filter.filterKey, operatorKey, committed);
+          }
+        }}
+        removeable={{
+          onRemove: () =>
+            onFiltersChange(
+              filters.filter(
+                (candidate) => candidate.filterKey !== filter.filterKey,
+              ),
+            ),
+        }}
+      />
+    );
+    if (!skipped) {
+      return chip;
+    }
+    return (
+      <Tooltip
+        key={filter.filterKey}
+        content={`"${label}" is ignored as it does not apply to this table.`}
+      >
+        {chip}
+      </Tooltip>
+    );
+  };
+
+  const trailingControls = (
+    <>
       {addMenuItems.length > 0 && (
         <Menu
           trigger={<FilterGroup.AddFilter renderAs="plus" />}
@@ -207,6 +220,24 @@ export const SupplyChainFilterBar = ({
       {filters.length > 1 && (
         <FilterGroup.ClearFilters onClick={() => onFiltersChange([])} />
       )}
+    </>
+  );
+
+  return (
+    <FilterGroup dismissAbandoned>
+      {filters.map((filter, index) => {
+        const chip = renderFilterChip(filter);
+        const isLast = index === filters.length - 1;
+        if (!chip && !isLast) {
+          return null;
+        }
+        return (
+          <div key={filter.filterKey} className={chipWrapper}>
+            {chip}
+            {isLast && trailingControls}
+          </div>
+        );
+      })}
     </FilterGroup>
   );
 };

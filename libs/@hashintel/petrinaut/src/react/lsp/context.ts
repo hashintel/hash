@@ -8,6 +8,7 @@ import type {
   LowerConstraintContext,
   LowerConstraintResult,
   Diagnostic,
+  DiagnosticsSnapshot,
   DocumentUri,
   LanguageClient,
   HirCompileResult,
@@ -26,6 +27,11 @@ import type {
 } from "@hashintel/petrinaut-core/workers/lsp";
 
 export interface LanguageClientContextValue {
+  /**
+   * The diagnostics snapshot the language server last pushed; the three
+   * fields below are its members. A new object only when a push changed it.
+   */
+  diagnostics: DiagnosticsSnapshot;
   /** Per-URI diagnostics pushed from the language server. */
   diagnosticsByUri: Map<DocumentUri, Diagnostic[]>;
   /** Total number of diagnostics across all documents. */
@@ -107,9 +113,17 @@ export interface LanguageClientContextValue {
   killConstraintSession: (sessionId: string) => void;
 }
 
+/** No diagnostics: the snapshot before the language client publishes one. */
+export const EMPTY_DIAGNOSTICS_SNAPSHOT: DiagnosticsSnapshot = {
+  byUri: new Map(),
+  total: 0,
+  errorCount: 0,
+};
+
 /** The inert default: no worker wired — requests resolve to empty results. */
 export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
-  diagnosticsByUri: new Map(),
+  diagnostics: EMPTY_DIAGNOSTICS_SNAPSHOT,
+  diagnosticsByUri: EMPTY_DIAGNOSTICS_SNAPSHOT.byUri,
   totalDiagnosticsCount: 0,
   errorDiagnosticsCount: 0,
   notifyDocumentChanged: () => {},

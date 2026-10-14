@@ -43,6 +43,24 @@ const isAbortError = (error: unknown): boolean =>
   (error instanceof DOMException && error.name === "AbortError") ||
   (error instanceof Error && error.name === "AbortError");
 
+/**
+ * Calls `visit` with each value of `values` until `shouldStop` returns true,
+ * then closes the iterator as a `break` would. React Compiler cannot compile
+ * a `for await` loop, so the provider iterates through this helper.
+ */
+const forEachAwaited = async <T,>(
+  values: AsyncIterable<T>,
+  visit: (value: T) => void,
+  shouldStop: () => boolean,
+): Promise<void> => {
+  for await (const value of values) {
+    if (shouldStop()) {
+      break;
+    }
+    visit(value);
+  }
+};
+
 const createOptimizationRecord = (
   id: string,
   input: PetrinautOptimizationInput,
@@ -305,29 +323,29 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       const isCancelled = () => signal.aborted;
       let lastSeq = 0;
       let best: OptimizationBest | null = null;
-      let sawTerminalEvent = false;
+      // Set by the event visitor. Typed `boolean` so TypeScript does not
+      // narrow it to its initial `false` after the loop.
+      let sawTerminalEvent = false as boolean;
       try {
-        for await (const event of capability.attachOptimizationRun(runId, {
-          cursor: lastSeq,
-          signal,
-        })) {
-          if (isCancelled()) {
-            break;
-          }
-          if (typeof event.seq === "number") {
-            if (event.seq <= lastSeq) {
-              continue;
+        await forEachAwaited(
+          capability.attachOptimizationRun(runId, { cursor: lastSeq, signal }),
+          (event) => {
+            if (typeof event.seq === "number") {
+              if (event.seq <= lastSeq) {
+                return;
+              }
+              lastSeq = event.seq;
             }
-            lastSeq = event.seq;
-          }
-          if (event.type === "trial") {
-            best = foldBestTrial(direction, best, event);
-          }
-          if (event.type === "complete" || event.type === "error") {
-            sawTerminalEvent = true;
-          }
-          applyOptimizationEvent(optimizationId, event, lastSeq, best);
-        }
+            if (event.type === "trial") {
+              best = foldBestTrial(direction, best, event);
+            }
+            if (event.type === "complete" || event.type === "error") {
+              sawTerminalEvent = true;
+            }
+            applyOptimizationEvent(optimizationId, event, lastSeq, best);
+          },
+          isCancelled,
+        );
         if (isCancelled() && !sawTerminalEvent) {
           markOptimizationCancelled(optimizationId);
         }

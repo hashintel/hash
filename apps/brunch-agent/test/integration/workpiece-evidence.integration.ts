@@ -57,7 +57,6 @@ const speak = async (body: string) => {
           binding: {
             conversationId: identity.conversationId,
             documentId: "evidence-document",
-            incarnationId: "evidence-incarnation",
           },
         },
       };

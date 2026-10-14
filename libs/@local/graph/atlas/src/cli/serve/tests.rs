@@ -28,6 +28,7 @@ use hash_middleware::{
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
+use hash_secret::Secret;
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
@@ -41,7 +42,6 @@ use crate::{
         generation::{GenerationRoot, ScratchDirectory},
         storage::error::StorageError,
     },
-    integrity::SecretString,
     math::nz,
     serve::visibility::cache::VisibilityLimits,
 };
@@ -94,7 +94,7 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
         &DatabaseConnectionInfo::new(
             DatabaseType::Postgres,
             "atlas-layer-test".to_owned(),
-            String::new(),
+            Secret::from_string(String::new()),
             "/no-atlas-layer-test-postgres".to_owned(),
             5432,
             "atlas-layer-test".to_owned(),
@@ -115,7 +115,6 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
     )
     .run(ServeOptions {
         provider: Arc::new(HeaderActor),
-        service_secret: SecretString::from("atlas-layer-test-service-secret"),
         rate_limit: RateLimitConfig {
             rate_limit_mode: RateLimitMode::Enforce,
             client_ip_source: ClientIpSource::ConnectInfo,
@@ -231,6 +230,16 @@ async fn layers_actor_budget() {
     let response = send(&serving.router, request()).await;
     assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
     assert!(response.headers().contains_key(header::RETRY_AFTER));
+    let items = response
+        .headers()
+        .get_all("ratelimit")
+        .iter()
+        .map(|item| item.to_str().expect("the item should be ASCII"))
+        .collect::<Vec<_>>();
+    assert!(
+        matches!(items.as_slice(), [actor, gate] if *actor == r#""actor";r=0"# && gate.starts_with(r#""gate";"#)),
+        "the problem should report the crossed budget ahead of the gate, got {items:?}"
+    );
     let document = problem(response).await;
     assert_eq!(document["type"], "/problems/atlas/too-many-requests");
     assert_eq!(document["status"], 429);
@@ -242,6 +251,11 @@ async fn layers_without_credentials() {
     let serving = serving.expect("should construct serving without a generation");
     let response = send(&serving.router, Request::get("/v1/atlas/current")).await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        response.headers()[header::WWW_AUTHENTICATE],
+        r#"Session realm="HASH""#,
+        "the refusal should challenge with the session"
+    );
     let document = problem(response).await;
     assert_eq!(document["type"], "/problems/atlas/unauthenticated");
     assert_eq!(document["status"], 401);

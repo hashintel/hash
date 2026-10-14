@@ -5,6 +5,7 @@ use core::{
     marker::PhantomData,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     num::NonZero,
+    pin::Pin,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
@@ -16,23 +17,25 @@ use axum::{
     routing::get,
 };
 use error_stack::Report;
+use governor::Quota;
+use hash_secret::Secret;
 use http::{
     Request, StatusCode,
     header::{CONTENT_TYPE, RETRY_AFTER},
 };
-use problematic::Answer;
+use problematic::{Answer, ProblemVariant as _, Rejection};
 use serde_json::{Value, json};
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
 use uuid::Uuid;
 
 use super::{
-    CallerLimitLayer, CallerRateLimitConfig, ClientIpSource, IpGateLayer, RateLimitConfig,
-    RateLimitMode, RateLimitProblem, RateLimiters, TooManyRequests,
+    CallerLimitLayer, CallerRateLimitConfig, ClientIpSource, IpGateLayer, Policy, RateLimitConfig,
+    RateLimitMode, RateLimitProblem, RateLimitRejection, RateLimiters, TooManyRequests,
 };
 use crate::{
     authentication::{
-        AuthenticationLayer, AuthenticationMetrics, ResolvedAuthentication,
+        AuthenticationLayer, AuthenticationMetrics, Challenge, ResolvedAuthentication,
         provider::StaticAuthenticationProvider,
         request::{AuthenticationError, AuthenticationErrorKind},
     },
@@ -41,6 +44,10 @@ use crate::{
 };
 
 const SERVICE_SECRET: &str = "hash-svc-test-secret";
+
+fn service_secret() -> Pin<Arc<Secret<str>>> {
+    Secret::from_string(SERVICE_SECRET.to_owned()).to_arc()
+}
 
 fn non_zero(value: u32) -> core::num::NonZeroU32 {
     core::num::NonZeroU32::new(value).expect("the value should be non-zero")
@@ -74,7 +81,7 @@ fn gate_router_with(limiters: &Arc<RateLimiters>) -> Router {
         .route("/entities", get(async || "ok"))
         .route_layer(IpGateLayer {
             limiters: Arc::clone(limiters),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Some(service_secret()),
         })
 }
 
@@ -91,7 +98,7 @@ fn caller_router_with(limiters: &Arc<RateLimiters>) -> Router {
         .route("/entities", get(async || "ok"))
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(limiters),
-            service_secret: Arc::from(SERVICE_SECRET),
+            service_secret: Some(service_secret()),
         })
 }
 
@@ -104,23 +111,22 @@ fn full_stack_router_with(
     limiters: &Arc<RateLimiters>,
     provider: StaticAuthenticationProvider,
 ) -> Router {
-    let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     Router::new()
         .route("/entities", get(async || "ok"))
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(limiters),
-            service_secret: Arc::clone(&service_secret),
+            service_secret: Some(service_secret()),
         })
         .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider: Arc::new(provider),
-            service_secret: Arc::clone(&service_secret),
             metrics: auth_metrics(),
-            bootstrap_route: |_path| false,
+            bootstrap: None,
+            challenge: Challenge::Service,
             caller: PhantomData,
         })
         .route_layer(IpGateLayer {
             limiters: Arc::clone(limiters),
-            service_secret,
+            service_secret: Some(service_secret()),
         })
 }
 
@@ -201,6 +207,21 @@ fn header(response: &Response, name: &str) -> Option<String> {
     })
 }
 
+/// The values of every `name` field line of `response`, in order.
+fn fields(response: &Response, name: &str) -> Vec<String> {
+    response
+        .headers()
+        .get_all(name)
+        .iter()
+        .map(|value| {
+            value
+                .to_str()
+                .expect("the field should be ASCII")
+                .to_owned()
+        })
+        .collect()
+}
+
 async fn send(router: &Router, request: Request<Body>) -> Response {
     router
         .clone()
@@ -221,13 +242,33 @@ async fn response_json(response: Response) -> Value {
 #[tokio::test]
 async fn too_many_requests_body() {
     let retry_after = NonZero::new(17).expect("should use a nonzero retry delay");
-    let answer = Answer::<RateLimitProblem>::new(TooManyRequests { retry_after });
+    let too_many_requests = TooManyRequests {
+        retry_after,
+        ..TooManyRequests::example().expect("the rate-limit problem should have an example")
+    };
+    let answer = Answer::<RateLimitProblem>::new(too_many_requests.clone());
 
     assert_eq!(
-        response_json(TooManyRequests { retry_after }.into_response()).await,
+        response_json(too_many_requests.into_response()).await,
         serde_json::to_value(answer.details()).expect("the details should serialize"),
         "the body should be the details of the answer with the actual delay"
     );
+}
+
+/// A crossed budget answered through [`Rejection`] carries every header the variant documents.
+#[tokio::test]
+async fn too_many_requests_rejection_headers() {
+    let rejection = RateLimitRejection::from(
+        TooManyRequests::example().expect("the rate-limit problem should have an example"),
+    );
+
+    let response = Rejection::<RateLimitProblem>::from(rejection).into_response();
+    for name in ["retry-after", "ratelimit-policy", "ratelimit"] {
+        assert!(
+            response.headers().contains_key(name),
+            "the 429 should carry `{name}`"
+        );
+    }
 }
 
 #[tokio::test]
@@ -364,7 +405,88 @@ async fn service_secret_bypasses_both_middlewares() {
         )
         .await;
         assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            header(&response, "ratelimit"),
+            None,
+            "a request no budget charged should report none"
+        );
     }
+}
+
+/// A gate configured without a secret charges a request presenting one like any other.
+#[tokio::test]
+async fn gate_charges_secret_without_exemption() {
+    let recorded = RecordedMetrics::new();
+    let router = Router::new()
+        .route("/entities", get(async || "ok"))
+        .route_layer(IpGateLayer {
+            limiters: RateLimiters::start(&config(1), &recorded.meter()),
+            service_secret: None,
+        });
+    let client = address("192.0.2.1");
+
+    let mut statuses = Vec::new();
+    for _ in 0..2 {
+        let response = send(
+            &router,
+            credentialed_request(client, &format!("HASH-Service {SERVICE_SECRET}")),
+        )
+        .await;
+        statuses.push(response.status());
+    }
+    assert_eq!(
+        statuses,
+        [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS],
+        "the gate should charge the secret's presenter against its address"
+    );
+    assert_eq!(
+        recorded.counter(
+            "hash.rate_limit.unchecked",
+            &[("stage", "gate"), ("reason", "service_secret")],
+        ),
+        0,
+        "no request should pass the gate by secret"
+    );
+}
+
+/// A caller limiter without the exemption charges a request the gate passed by its secret,
+/// against the client address the gate left unresolved.
+#[tokio::test]
+async fn caller_charges_secret_exempted_at_gate() {
+    let limiters = limiters(&config(1));
+    let router = Router::new()
+        .route("/entities", get(async || "ok"))
+        .route_layer(CallerLimitLayer {
+            limiters: Arc::clone(&limiters),
+            service_secret: None,
+        })
+        .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
+            provider: Arc::new(StaticAuthenticationProvider::NotRecognized),
+            metrics: auth_metrics(),
+            bootstrap: None,
+            challenge: Challenge::Bearer,
+            caller: PhantomData,
+        })
+        .route_layer(IpGateLayer {
+            limiters,
+            service_secret: Some(service_secret()),
+        });
+    let client = address("192.0.2.1");
+
+    let mut statuses = Vec::new();
+    for _ in 0..2 {
+        let response = send(
+            &router,
+            credentialed_request(client, &format!("HASH-Service {SERVICE_SECRET}")),
+        )
+        .await;
+        statuses.push(response.status());
+    }
+    assert_eq!(
+        statuses,
+        [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS],
+        "the caller limiter should charge the anonymous budget of the presenter's address"
+    );
 }
 
 #[tokio::test]
@@ -613,10 +735,8 @@ async fn observing_serves_the_request_and_reports_nothing_to_the_client() {
     let router = full_stack_router_with(&limiters, StaticAuthenticationProvider::NotRecognized);
     let client = address("192.0.2.1");
 
-    assert_eq!(
-        send(&router, request(client)).await.status(),
-        StatusCode::OK
-    );
+    let within_budget = send(&router, request(client)).await;
+    assert_eq!(within_budget.status(), StatusCode::OK);
 
     let over_budget = send(&router, request(client)).await;
     assert_eq!(
@@ -629,6 +749,15 @@ async fn observing_serves_the_request_and_reports_nothing_to_the_client() {
         None,
         "a served request should not tell a client to wait for something it already got"
     );
+    for response in [&within_budget, &over_budget] {
+        for name in ["ratelimit-policy", "ratelimit"] {
+            assert_eq!(
+                header(response, name),
+                None,
+                "a client should not throttle itself on budgets that are not applied"
+            );
+        }
+    }
 
     assert_eq!(
         recorded.counter(
@@ -680,7 +809,6 @@ async fn enforced_denials_skip_the_inner_stack() {
         rate_limit_anonymous_burst: non_zero(10),
         ..config(1)
     });
-    let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     let router = Router::new()
         .route(
             "/entities",
@@ -691,18 +819,18 @@ async fn enforced_denials_skip_the_inner_stack() {
         )
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(&limiters),
-            service_secret: Arc::clone(&service_secret),
+            service_secret: Some(service_secret()),
         })
         .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider: Arc::new(StaticAuthenticationProvider::NotRecognized),
-            service_secret: Arc::clone(&service_secret),
             metrics: auth_metrics(),
-            bootstrap_route: |_path| false,
+            bootstrap: None,
+            challenge: Challenge::Service,
             caller: PhantomData,
         })
         .route_layer(IpGateLayer {
             limiters,
-            service_secret,
+            service_secret: Some(service_secret()),
         });
     let client = address("192.0.2.1");
 
@@ -1000,19 +1128,123 @@ async fn maintenance_runs_on_its_interval() {
     );
 }
 
-#[tokio::test]
-async fn admitted_requests_carry_no_budget_headers() {
-    let router = caller_router(&config(3));
-
-    let response = send(&router, actor_request(random_actor())).await;
-    assert_eq!(response.status(), StatusCode::OK);
-    for name in ["retry-after", "ratelimit-limit", "ratelimit-remaining"] {
+/// The window is the time an exhausted budget takes to refill, rounded up to whole seconds.
+#[test]
+fn policy_window() {
+    for (quota, expected) in [
+        (
+            Quota::per_hour(non_zero(36_000)).allow_burst(non_zero(500)),
+            r#""actor";q=500;w=50"#,
+        ),
+        (
+            Quota::per_second(non_zero(3)).allow_burst(non_zero(4)),
+            r#""actor";q=4;w=2"#,
+        ),
+        (
+            Quota::per_hour(non_zero(7)).allow_burst(non_zero(2)),
+            r#""actor";q=2;w=1029"#,
+        ),
+    ] {
         assert_eq!(
-            header(&response, name),
-            None,
-            "an admitted request should carry no rate-limit field, standardised or not"
+            Policy::new("actor", quota).item,
+            expected,
+            "{quota:?} should be reported as {expected}"
         );
     }
+}
+
+/// An admitted request reports the budgets that charged it, the caller's ahead of the gate's.
+#[tokio::test]
+async fn fields_charged_budgets() {
+    let router = full_stack_router(
+        &RateLimitConfig {
+            rate_limit_gate_burst: non_zero(5),
+            rate_limit_actor_burst: non_zero(4),
+            ..config(3)
+        },
+        StaticAuthenticationProvider::Verified(random_actor()),
+    );
+
+    let response = send(&router, request(address("192.0.2.1"))).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        fields(&response, "ratelimit-policy"),
+        [r#""actor";q=4;w=14400"#, r#""gate";q=5;w=5"#],
+        "each budget should state its burst and refill time"
+    );
+    assert_eq!(
+        fields(&response, "ratelimit"),
+        [r#""actor";r=3"#, r#""gate";r=4"#],
+        "each budget should state what it has left after the request"
+    );
+}
+
+/// An anonymous request reports the budget of its address.
+#[tokio::test]
+async fn fields_anonymous_budget() {
+    let router = full_stack_router(
+        &RateLimitConfig {
+            rate_limit_anonymous_burst: non_zero(2),
+            ..config(3)
+        },
+        StaticAuthenticationProvider::NotRecognized,
+    );
+
+    let response = send(&router, request(address("192.0.2.1"))).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        fields(&response, "ratelimit-policy"),
+        [r#""anonymous";q=2;w=7200"#, r#""gate";q=3;w=3"#],
+        "an anonymous request should be reported against the anonymous budget"
+    );
+    assert_eq!(
+        fields(&response, "ratelimit"),
+        [r#""anonymous";r=1"#, r#""gate";r=2"#],
+        "the anonymous budget should state what it has left"
+    );
+}
+
+/// The gate's `429` reports the gate alone, with nothing left.
+#[tokio::test]
+async fn fields_gate_denial() {
+    let router = gate_router(&config(1));
+    let client = address("192.0.2.1");
+
+    send(&router, request(client)).await;
+    let denied = send(&router, request(client)).await;
+    assert_eq!(denied.status(), StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(
+        fields(&denied, "ratelimit-policy"),
+        [r#""gate";q=1;w=1"#],
+        "the gate's 429 should report the gate alone"
+    );
+    assert_eq!(
+        fields(&denied, "ratelimit"),
+        [r#""gate";r=0"#],
+        "the crossed budget should have nothing left"
+    );
+}
+
+/// The caller limiter's `429` reports the crossed budget, and the gate it passed adds its own.
+#[tokio::test]
+async fn fields_caller_denial() {
+    let router = full_stack_router(
+        &RateLimitConfig {
+            rate_limit_gate_burst: non_zero(10),
+            ..config(1)
+        },
+        StaticAuthenticationProvider::Verified(random_actor()),
+    );
+    let client = address("192.0.2.1");
+
+    send(&router, request(client)).await;
+    let denied = send(&router, request(client)).await;
+    assert_eq!(denied.status(), StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(
+        fields(&denied, "ratelimit"),
+        [r#""actor";r=0"#, r#""gate";r=8"#],
+        "the crossed budget should have nothing left beside the gate's remainder"
+    );
 }
 
 /// Populates all three stores, so a maintenance run that forgets one is caught.
@@ -1027,16 +1259,15 @@ async fn maintenance_releases_replenished_keys_from_every_store() {
     };
     let recorded = RecordedMetrics::new();
     let limiters = RateLimiters::start(&quotas, &recorded.meter());
-    let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     let router = Router::new()
         .route("/entities", get(async || "ok"))
         .route_layer(CallerLimitLayer {
             limiters: Arc::clone(&limiters),
-            service_secret: Arc::clone(&service_secret),
+            service_secret: Some(service_secret()),
         })
         .route_layer(IpGateLayer {
             limiters: Arc::clone(&limiters),
-            service_secret,
+            service_secret: Some(service_secret()),
         });
 
     let client = address("192.0.2.1");
@@ -1097,17 +1328,30 @@ async fn scoped_budgets_share_only_gate() {
             },
             &recorded.meter(),
         );
-        let quotas = CallerRateLimitConfig::from(&config(1));
+        let quotas = CallerRateLimitConfig {
+            anonymous_per_hour: non_zero(2),
+            actor_per_hour: non_zero(2),
+            ..CallerRateLimitConfig::from(&config(1))
+        };
         let entities = global.with_caller_limits(&quotas, "entities", &recorded.meter());
         let types = global.with_caller_limits(&quotas, "types", &recorded.meter());
         let entities_router = full_stack_router_with(&entities, provider());
         let types_router = full_stack_router_with(&types, provider());
         let client = address("192.0.2.1");
 
+        let first = send(&entities_router, request(client)).await;
         assert_eq!(
-            send(&entities_router, request(client)).await.status(),
+            first.status(),
             StatusCode::OK,
             "the first request should pass the entities budget"
+        );
+        assert_eq!(
+            fields(&first, "ratelimit-policy"),
+            [
+                format!(r#""{budget}";q=1;w=1800"#),
+                r#""gate";q=3;w=3"#.to_owned()
+            ],
+            "a scoped budget should report its own quota beside the shared gate's"
         );
         assert_eq!(
             send(&entities_router, request(client)).await.status(),

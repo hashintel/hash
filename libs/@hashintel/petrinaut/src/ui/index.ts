@@ -11,6 +11,7 @@
 
 export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
+
 export {
   ExperimentExecutionCard,
   type ExperimentExecutionCardProps,
@@ -76,9 +77,9 @@ export {
   PuzzlePieceIcon,
   RulerIcon,
   SortDownIcon,
-  SortDownAZIcon,
+  SortDownAlphabeticalIcon,
   SortUpIcon,
-  SortUpAZIcon,
+  SortUpAlphabeticalIcon,
   SquareCheckIcon,
   StarIcon,
   ThoughtBubbleIcon,
@@ -188,12 +189,12 @@ export type {
   ExperimentalIconTransition,
   ExperimentalIconChoreography,
 } from "./experimental-icons";
-export {
-  // The user-guide pages the built-in documentation read serves, so a host
-  // tool under its own name can answer with the same text.
-  petrinautDocsContent,
-  type PetrinautAiMessage,
-  type PetrinautAiMessageMetadata,
+// The user-guide pages the built-in documentation read serves, so a host
+// tool under its own name can answer with the same text.
+export { petrinautDocsContent } from "./petrinaut-docs-content";
+export type {
+  PetrinautAiMessage,
+  PetrinautAiMessageMetadata,
 } from "./views/Editor/panels/ai-assistant-panel";
 export { executePetrinautAiMutation } from "./views/Editor/panels/ai-assistant-panel/apply-petrinaut-ai-mutation";
 export type {
@@ -251,22 +252,5 @@ export { DefaultChatTransport } from "ai";
 // no-op changes outside the handle (e.g. memoising Storybook stories).
 export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 
-// Viewport action — shape consumers use to add custom buttons to the
-// viewport-controls panel. Lives in /ui because it carries `React.ReactNode`.
-export type { ViewportAction } from "./types/viewport-action";
-
 // Slots — named locations into which the host can inject arbitrary React components.
 export type { PetrinautSlots } from "./types/petrinaut-slots";
-
-// Walkthrough — first-visit product tour. Exposed so embedders can drive it
-// programmatically (e.g. trigger from their own help menu) without relying on
-// the built-in TopBar button.
-export {
-  WalkthroughContext,
-  WalkthroughProvider,
-  WalkthroughDialog,
-} from "./components/walkthrough";
-export type {
-  WalkthroughContextValue,
-  WalkthroughStep,
-} from "./components/walkthrough";

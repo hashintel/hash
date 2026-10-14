@@ -36,17 +36,15 @@ import { UserSettingsContext } from "../../../react/state/user-settings-context"
 import { VoiceSessionProvider } from "../../../react/voice-session/provider";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
-import {
-  WalkthroughContext,
-  willShowWalkthroughDialog,
-} from "../../components/walkthrough/walkthrough-context";
-import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dialog";
 import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
+import { useCanvasRegistration } from "../../plugins/plugin-editor";
+import { PluginRoots } from "../../plugins/plugin-outlets";
+import { usePluginOverlay } from "../../plugins/plugins-provider";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -54,14 +52,8 @@ import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
 import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
-import { CreateNewNetCommands } from "./editor-view/create-new-net-commands";
-import {
-  createNewNetMenuItem,
-  shouldShowBrunchCreateNew,
-} from "./editor-view/create-new-net-menu";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
-import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
 import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
@@ -78,7 +70,6 @@ import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
-import type { ViewportAction } from "../../types/viewport-action";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
@@ -168,7 +159,6 @@ const EditorViewContent = ({
   hideNetManagementControls,
   slots,
   titleEditable,
-  viewportActions,
 }: {
   aiAssistant?: PetrinautAiAssistant;
   /**
@@ -177,7 +167,6 @@ const EditorViewContent = ({
   hideNetManagementControls?: "all" | "except-title";
   slots?: PetrinautSlots;
   titleEditable: boolean;
-  viewportActions?: ViewportAction[];
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
   const navigation = usePetrinautNavigation();
@@ -199,7 +188,7 @@ const EditorViewContent = ({
     frameSceneAfterRender,
     registerController,
     requestFrameOnNextRegistration,
-  } = useCanvasControllerRegistration();
+  } = useCanvasRegistration();
   const runAutoLayoutAndFrame = () =>
     applyAutoLayoutAndFrame({ applyAutoLayout, frameSceneAfterRender });
 
@@ -228,21 +217,12 @@ const EditorViewContent = ({
   const [pendingAiInteractionMode, setPendingAiInteractionMode] =
     useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
-  const [offerStartPosture, setOfferStartPosture] = useState(false);
   const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
-  const {
-    brunchDemoMode,
-    enableExperimentalIconPack,
-    showAnimations,
-    showWalkthroughOnInit,
-    setShowWalkthroughOnInit,
-  } = use(UserSettingsContext);
-  const showBrunchCreateNew = shouldShowBrunchCreateNew({
-    brunchDemoMode,
-    hasAiAssistant: aiAssistant !== undefined,
-  });
-  const walkthrough = use(WalkthroughContext);
+  const { enableExperimentalIconPack, showAnimations } =
+    use(UserSettingsContext);
+  // A plugin covering the canvas, such as a tour, holds back the prompt.
+  const pluginOverlay = usePluginOverlay();
 
   const toggleAiAssistant = () => {
     if (isAiAssistantOpen) {
@@ -252,21 +232,6 @@ const EditorViewContent = ({
     setAiAssistantCollapsed(false);
     setAiAssistantOpen(true);
     setAiAssistantFocusRequest((request) => request + 1);
-  };
-
-  // Live open state for the walkthrough. Seeded once from the persisted
-  // "show on init" preference, so toggling that preference only takes effect
-  // on the next init rather than reopening the walkthrough mid-session.
-  const [isWalkthroughOpen, setIsWalkthroughOpen] = useState(
-    showWalkthroughOnInit,
-  );
-
-  // Dismissing the walkthrough closes it for this session and clears the
-  // "show on init" preference, so it doesn't reappear next init unless the
-  // user re-enables it from the settings dialog.
-  const closeWalkthrough = () => {
-    setIsWalkthroughOpen(false);
-    setShowWalkthroughOnInit(false);
   };
 
   const [importError, setImportError] = useState<string | null>(null);
@@ -280,22 +245,6 @@ const EditorViewContent = ({
       petriNetDefinition: emptyPetriNetDefinition,
     });
     clearSelection();
-  }
-
-  function handleStartBlank() {
-    setOfferStartPosture(false);
-    setIsAiCtaDismissed(true);
-    handleCreateEmpty();
-    if (aiAssistant !== undefined) {
-      setAiAssistantOpen(false);
-    }
-  }
-
-  function handleBuildWithBrunch() {
-    setIsAiCtaDismissed(true);
-    setOfferStartPosture(true);
-    handleCreateEmpty();
-    setAiAssistantOpen(true);
   }
 
   function handleExport(format: DocumentFormat) {
@@ -372,13 +321,7 @@ const EditorViewContent = ({
 
   const menuItems: MenuItem[] = [
     ...(showNetManagementMenuItems
-      ? [
-          createNewNetMenuItem({
-            showBrunchOptions: showBrunchCreateNew,
-            onBuildWithBrunch: handleBuildWithBrunch,
-            onStartBlank: handleStartBlank,
-          }),
-        ]
+      ? [{ id: "new", text: "New", onClick: handleCreateEmpty }]
       : []),
     ...(showNetManagementMenuItems && existingNets.length > 0
       ? [
@@ -559,7 +502,7 @@ const EditorViewContent = ({
     aiAssistant !== undefined &&
     !isAiAssistantOpen &&
     !isAiCtaDismissed &&
-    !willShowWalkthroughDialog(walkthrough, isWalkthroughOpen) &&
+    !pluginOverlay &&
     isEmptySDCPN(petriNetDefinition);
 
   return (
@@ -569,15 +512,11 @@ const EditorViewContent = ({
     >
       <EditorCommands
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
+        onNewNet={showNetManagementMenuItems ? handleCreateEmpty : undefined}
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
+      <PluginRoots />
       <UserSettings settingsLabs={slots?.settingsLabs} />
-      <CreateNewNetCommands
-        enabled={showNetManagementMenuItems}
-        showBrunchOptions={showBrunchCreateNew}
-        onBuildWithBrunch={handleBuildWithBrunch}
-        onStartBlank={handleStartBlank}
-      />
       <ImportErrorDialog
         open={importError !== null}
         onOpenChange={({ open }) => {
@@ -588,8 +527,6 @@ const EditorViewContent = ({
         errorMessage={importError ?? ""}
         onCreateEmpty={handleCreateEmpty}
       />
-
-      <WalkthroughDialog open={isWalkthroughOpen} onClose={closeWalkthrough} />
 
       {/* Top Bar - always visible */}
       <TopBar
@@ -604,7 +541,6 @@ const EditorViewContent = ({
         onRunningExperimentClick={(experiment) =>
           handleRunningExperimentClick(experiment.id)
         }
-        slots={slots}
       />
 
       {/* Voice session state is shared between the assistant panel that owns
@@ -633,10 +569,7 @@ const EditorViewContent = ({
                     <PropertiesPanel />
 
                     {/* SDCPN Visualization */}
-                    <SDCPNView
-                      onControllerChange={registerController}
-                      viewportActions={viewportActions}
-                    />
+                    <SDCPNView onControllerChange={registerController} />
 
                     {showEmptyAiHero && (
                       <AiCtaModal
@@ -708,7 +641,6 @@ const EditorViewContent = ({
               frameSceneAfterRender={frameSceneAfterRender}
               initialMessage={pendingAiAssistantMessage}
               initialInteractionMode={pendingAiInteractionMode}
-              offerStartPosture={offerStartPosture}
               onInitialMessageConsumed={() =>
                 setPendingAiAssistantMessage(null)
               }

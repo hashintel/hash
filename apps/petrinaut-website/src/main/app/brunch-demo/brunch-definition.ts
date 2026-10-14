@@ -1,5 +1,6 @@
 import {
   calculateGraphLayout,
+  canonicalizePetrinautIds,
   layoutNodeDimensions,
 } from "@hashintel/petrinaut-core";
 
@@ -47,7 +48,9 @@ const toSDCPN = (definition: BrunchNetDefinition): SDCPN => ({
 export const normalizeBrunchDefinition = async (
   definition: BrunchNetDefinition,
 ): Promise<SDCPN> => {
-  const sdcpn = toSDCPN(definition);
+  // The stream's markings and firings convert their ids when parsed, so the
+  // definition they name converts too.
+  const sdcpn = canonicalizePetrinautIds(toSDCPN(definition));
 
   if (!shouldAutoLayout(definition)) {
     return sdcpn;

@@ -9,13 +9,13 @@ import {
 } from "@blockprotocol/type-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
-import { getFileProperties } from "../../../../shared/get-file-properties";
 import { SlideStackProvider } from "../../../../shared/slide-stack";
+import { getDeliverables } from "./get-deliverables";
 import { ClaimsOutput } from "./outputs/claims-output";
 import { Deliverables } from "./outputs/deliverables";
 import { EntityResultGraph } from "./outputs/entity-result-graph";
@@ -24,12 +24,10 @@ import { outputIcons } from "./outputs/shared/icons";
 import { flowSectionBorderRadius } from "./shared/styles";
 
 import type {
-  FlowRun,
   GetClosedMultiEntityTypesQuery,
   GetClosedMultiEntityTypesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import type { SlideItem } from "../../../../shared/slide-stack/types";
-import type { DeliverableData } from "./outputs/deliverables/shared/types";
 import type { ProposedEntityOutput } from "./shared/types";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
@@ -49,64 +47,6 @@ import type {
 import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
-
-export const getDeliverables = (
-  outputs: FlowRun["outputs"] | undefined,
-  persistedEntities: HashEntity[],
-): DeliverableData[] => {
-  const flowOutputs = outputs?.[0]?.contents[0]?.outputs;
-
-  const deliverables: DeliverableData[] = [];
-
-  for (const output of flowOutputs ?? []) {
-    const { payload } = output;
-
-    if (payload.kind === "FormattedText" && !Array.isArray(payload.value)) {
-      if (payload.value.format === "Markdown") {
-        const markdown = payload.value.content;
-        deliverables.push({
-          displayName: "Markdown",
-          type: "markdown",
-          markdown,
-        });
-      }
-    }
-
-    if (
-      payload.kind === "PersistedEntityMetadata" &&
-      !Array.isArray(payload.value)
-    ) {
-      const persistedEntityId = payload.value.entityId;
-      if (!persistedEntityId) {
-        continue;
-      }
-
-      const entity = persistedEntities.find(
-        (persisted) => persisted.entityId === persistedEntityId,
-      );
-
-      if (!entity) {
-        continue;
-      }
-
-      const { displayName, fileName, fileUrl } = getFileProperties(
-        entity.properties,
-      );
-
-      if (fileUrl) {
-        deliverables.push({
-          displayName,
-          entityTypeId: entity.metadata.entityTypeIds[0],
-          fileName,
-          fileUrl,
-          type: "file",
-        });
-      }
-    }
-  }
-
-  return deliverables;
-};
 
 const SectionTabContainer = ({ children }: PropsWithChildren) => (
   <Stack
@@ -321,9 +261,7 @@ export const Outputs = ({
 
   const hasClaims =
     !!selectedFlowRun &&
-    goalFlowDefinitionIds.includes(
-      selectedFlowRun.flowDefinitionId as EntityUuid,
-    );
+    isGoalFlowDefinitionId(selectedFlowRun.flowDefinitionId as EntityUuid);
 
   const hasEntities =
     persistedEntitiesMetadata.length > 0 || proposedEntities.length > 0;

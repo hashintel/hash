@@ -7,6 +7,7 @@ The editor is organized around a central canvas where you build your net:
 - **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
 - **Canvas / Definitions** -- a compact selector floating over Canvas, or beside search in the Definitions toolbar.
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
+- **Viewport controls** (bottom right of the canvas) -- zoom, fit and viewport settings buttons. Plugins may add buttons below them; see [Plugins](visual-settings.md#plugins).
 - **Left sidebar** -- the Entities tree: every node, token type, differential equation and parameter in the net, in one hierarchy. See [Left sidebar](#left-sidebar).
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
@@ -50,7 +51,8 @@ Spans the full editor width and has three sections.
 **Left**
 
 - **Sidebar toggle** -- collapses or expands the left sidebar.
-- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**. When the host enables its experimental Brunch demo mode and provides an AI assistant, **New** opens a submenu: **Build with Brunch** starts a fresh empty net and opens the assistant with a choice of careful interview or a quick preview; **Start blank** starts a fresh empty net and keeps the assistant closed. Otherwise **New** directly starts a blank net.
+- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
+- The host application, or its plugins, may add buttons or items before the title.
 - **Net title** -- inline title for the current net. The host application decides whether the title is editable or read-only, and may hide it entirely.
 
 **Center**
@@ -61,7 +63,7 @@ Spans the full editor width and has three sections.
 
 - **Active experiments** -- a flask icon with a count (e.g. "2 active") that appears only when [Monte Carlo experiments](experiments.md) are initializing or running. Clicking it opens a popover; clicking a row jumps to that experiment in Simulate mode.
 - **Recent changes** (clock icon) -- a dropdown listing your recent undo/redo checkpoints with timestamps. Click any entry to jump to that state. This is the same history you walk via Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z.
-- The host application may add additional buttons here (login, share, ...).
+- The host application, or its plugins, may add buttons or items here (login, share, ...).
 
 ## Global modes
 
@@ -76,6 +78,8 @@ Petrinaut global modes are switched via the centre control in the top bar.
 In Simulate mode the net structure becomes read-only -- you can still manage scenarios and experiments. You cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
 
 In Actual mode the net is also read-only. It shows the Petri net supplied by the live source, with an Actual timeline and Events tab in the bottom panel when execution data is available.
+
+Dragging a node in Select mode or using an editing shortcut on a read-only net shows a brief notice saying why: Simulate and Actual mode point you back to Edit, and a running, paused or finished simulation asks you to reset it first. Selecting, panning and zooming stay available, and in Pan mode a drag that starts on a node pans the canvas. Undo and redo stay available in Simulate mode. On a document the host application opened read-only, the notice says so, and the host application's plugins may add an action to it, such as saving an editable copy.
 
 Switching modes does not stop background experiments. The active-experiments indicator remains visible in the top bar from any mode.
 
@@ -188,6 +192,8 @@ The editor has two cursor modes, toggled from the bottom toolbar dropdown:
 | **Select** | V        | Click and drag to draw a selection box around nodes.   |
 
 The canvas remembers where you left each net. Switching to another net and back, or reloading the app, brings back the same position and zoom; a net you open for the first time is fitted to the screen. Camera movement is view state: panning, zooming, and fitting the net do not create a document change or an undo/redo entry.
+
+Hold **Shift** and drag to draw a selection box in either mode. Hold **Cmd** (Ctrl on Windows/Linux) and click a node to add it to the selection, or click a selected node to remove it. A selection box drawn with Cmd held adds the nodes inside it to the selection instead of replacing it. Both work with Shift held as well, whichever key you press first.
 
 With a selection, you can:
 

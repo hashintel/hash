@@ -3,17 +3,19 @@
  */
 import { act, renderHook } from "@testing-library/react";
 import { type ReactNode } from "react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   createJsonDocHandle,
   createPetrinaut,
+  toPetrinautId,
   type Petrinaut,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautInstanceContext } from "../instance-context";
+import { NotificationsContext } from "../notifications/context";
 import { SimulationContext, type SimulationState } from "../simulation/context";
 import {
   EditorContext,
@@ -187,7 +189,7 @@ describe("usePetrinautMutations", () => {
 
       const places = instance.definition.get().places;
       expect(places).toHaveLength(1);
-      expect(places[0]!.id).toBe("p1");
+      expect(places[0]!.id).toBe(toPetrinautId("p1"));
     });
 
     test("commitNodePositions updates positions", () => {
@@ -375,8 +377,73 @@ describe("usePetrinautMutations", () => {
 
       const updated = instance.definition.get();
       expect(updated.places).toHaveLength(1);
-      expect(updated.places[0]!.id).toBe("p2");
+      expect(updated.places[0]!.id).toBe(toPetrinautId("p2"));
       expect(updated.transitions[0]!.inputArcs).toHaveLength(0);
     });
   });
+});
+
+test.each([
+  [{ readonly: true }, "This document is read-only."],
+  [{ globalMode: "simulate" }, "Switch to Edit to change this net."],
+  [{ simulationState: "Paused" }, "Reset the simulation to edit this net."],
+] satisfies [WrapperOptions, string][])(
+  "explains blocked mutations for %j",
+  (options, message) => {
+    const { Wrapper, instance } = createWrapper(options);
+    const addNotification = vi.fn(() => "notice");
+    const { result } = renderHook(usePetrinautMutations, {
+      wrapper: ({ children }) => (
+        <Wrapper>
+          <NotificationsContext
+            value={{ addNotification, dismissNotification: () => {} }}
+          >
+            {children}
+          </NotificationsContext>
+        </Wrapper>
+      ),
+    });
+    act(() =>
+      result.current.addPlace({
+        id: "blocked",
+        name: "Blocked",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      }),
+    );
+    expect(instance.definition.get().places).toHaveLength(0);
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ message, tone: "neutral" }),
+    );
+  },
+);
+
+test("allowed scenario mutations in Simulate stay quiet", () => {
+  const { Wrapper, instance } = createWrapper({ globalMode: "simulate" });
+  const addNotification = vi.fn(() => "notice");
+  const { result } = renderHook(usePetrinautMutations, {
+    wrapper: ({ children }) => (
+      <Wrapper>
+        <NotificationsContext
+          value={{ addNotification, dismissNotification: () => {} }}
+        >
+          {children}
+        </NotificationsContext>
+      </Wrapper>
+    ),
+  });
+  act(() =>
+    result.current.addScenario({
+      id: "scenario",
+      name: "Scenario",
+      scenarioParameters: [],
+      parameterOverrides: {},
+      initialState: { type: "per_place", content: {} },
+    }),
+  );
+  expect(instance.definition.get().scenarios).toHaveLength(1);
+  expect(addNotification).not.toHaveBeenCalled();
 });

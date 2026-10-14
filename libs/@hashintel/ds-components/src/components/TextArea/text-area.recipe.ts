@@ -29,7 +29,7 @@ export const textAreaRecipe = sva({
       maxWidth: "[100%]",
       minWidth: "var(--form-min-width)",
       minHeight:
-        "[calc(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2)]",
+        "[calc(round(var(--form-line-height) * var(--leading-factor, 1), 1px) + var(--form-padding-y) * 2 + var(--form-border-width) * 2)]",
       position: "relative",
       anchorName: "[--textarea-root]",
       overflow: "hidden",

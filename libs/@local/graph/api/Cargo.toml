@@ -22,6 +22,7 @@ hash-graph-postgres-store = { workspace = true, public = true, features = ["utoi
 hash-graph-type-fetcher   = { workspace = true, public = true }
 hash-graph-types          = { workspace = true, public = true, features = ["utoipa"] }
 hash-middleware           = { workspace = true, public = true, features = ["aide"] }
+hash-secret               = { workspace = true, public = true }
 hash-status               = { workspace = true, public = true }
 hash-temporal-client      = { workspace = true, public = true }
 
@@ -33,7 +34,7 @@ hashql-core     = { workspace = true, public = true }
 http            = { workspace = true, public = true }
 jsonwebtoken    = { workspace = true, public = true, features = ["aws_lc_rs"] }
 opentelemetry   = { workspace = true, public = true, features = ["metrics"] }
-tower-http      = { workspace = true, public = true, features = ["catch-panic"] }
+tower-http      = { workspace = true, public = true, features = ["catch-panic", "set-header"] }
 tracing         = { workspace = true, public = true }
 
 # Private workspace dependencies
@@ -41,7 +42,7 @@ harpc-codec                    = { workspace = true }
 harpc-system                   = { workspace = true }
 harpc-tower                    = { workspace = true }
 harpc-types                    = { workspace = true }
-hash-codec                     = { workspace = true, features = ["numeric", "utoipa"] }
+hash-codec                     = { workspace = true, features = ["numeric", "serde", "utoipa"] }
 hash-graph-store               = { workspace = true, features = ["utoipa"] }
 hash-graph-temporal-versioning = { workspace = true }
 hash-graph-validation          = { workspace = true }
@@ -62,7 +63,7 @@ bytes                = { workspace = true }
 clap                 = { workspace = true, optional = true, features = ["derive", "env"] }
 convert_case         = { workspace = true }
 derive-where         = { workspace = true }
-derive_more          = { workspace = true, features = ["display", "error"] }
+derive_more          = { workspace = true, features = ["debug", "display", "error"] }
 error-stack          = { workspace = true, features = ["futures", "spantrace", "unstable"] }
 frunk                = { workspace = true }
 futures              = { workspace = true }
@@ -89,6 +90,7 @@ uuid                 = { workspace = true }
 hash-graph-authentication = { workspace = true, features = ["test-utils"] }
 hash-middleware           = { workspace = true, features = ["test-utils"] }
 insta                     = { workspace = true }
+rstest                    = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tower                     = { workspace = true, features = ["util"] }
 uuid                      = { workspace = true, features = ["v4"] }

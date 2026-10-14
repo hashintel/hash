@@ -1,4 +1,4 @@
-use core::{error::Error, fmt, io};
+use core::{error::Error, fmt, io, pin::Pin};
 
 use aws_config::{BehaviorVersion, Region};
 use aws_credential_types::provider::error::CredentialsError;
@@ -6,8 +6,7 @@ use aws_sdk_s3::{
     Client,
     config::{Credentials, ProvideCredentials as _},
 };
-
-use crate::integrity::SecretString;
+use hash_secret::Secret;
 
 /// A failure to resolve the region or credentials for an enabled S3 backend.
 #[derive(Debug)]
@@ -86,7 +85,7 @@ pub struct S3Args {
         hide_env_values = true,
         requires = "access_key_id"
     )]
-    secret_access_key: Option<SecretString>,
+    secret_access_key: Option<Pin<Box<Secret<str>>>>,
 
     /// Session token for the explicit access-key pair.
     ///
@@ -97,7 +96,7 @@ pub struct S3Args {
         hide_env_values = true,
         requires = "access_key_id"
     )]
-    session_token: Option<SecretString>,
+    session_token: Option<Pin<Box<Secret<str>>>>,
 
     /// Service endpoint override.
     ///
@@ -158,13 +157,10 @@ impl S3Args {
         }
 
         if let (Some(access_key_id), Some(secret_access_key)) = (access_key_id, secret_access_key) {
-            let secret_access_key = secret_access_key.expose();
-            let session_token = session_token.map(|token| String::from(&**token.expose()));
-
             loader = loader.credentials_provider(Credentials::new(
                 access_key_id,
-                &**secret_access_key,
-                session_token,
+                secret_access_key.expose(),
+                session_token.map(|token| token.expose().to_owned()),
                 None,
                 "atlas-cli",
             ));

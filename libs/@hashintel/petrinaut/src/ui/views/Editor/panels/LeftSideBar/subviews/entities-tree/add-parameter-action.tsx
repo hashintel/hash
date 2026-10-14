@@ -1,7 +1,7 @@
 import { use } from "react";
-import { v4 as uuidv4 } from "uuid";
 
 import { Button } from "@hashintel/ds-components";
+import { generatePetrinautId } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
@@ -33,7 +33,7 @@ export const AddParameterAction: React.FC = () => {
       return;
     }
     const name = `param${parameters.length + 1}`;
-    const id = uuidv4();
+    const id = generatePetrinautId();
     addParameter({
       id,
       name: `Parameter ${parameters.length + 1}`,

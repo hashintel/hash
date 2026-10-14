@@ -173,6 +173,7 @@ function makeLanguageClient(): LanguageClientContextValue {
     requestDiagnostics: vi.fn(() =>
       Promise.resolve({ byUri: new Map(), total: 0, errorCount: 0 }),
     ),
+    diagnostics: { byUri: new Map(), total: 0, errorCount: 0 },
     diagnosticsByUri: new Map(),
     totalDiagnosticsCount: 0,
     errorDiagnosticsCount: 0,
@@ -300,10 +301,9 @@ const TestProviders = ({
     setSnapToGrid: () => {},
     setPartialSelection: () => {},
     setEnableNetComponents: () => {},
-    setShowWalkthroughOnInit: () => {},
     setShowCompilationOutput: () => {},
     setCanvasViewport: () => {},
-    setBrunchDemoMode: () => {},
+    setPluginEnabled: () => {},
     updateSubViewSection: () => {},
   };
 

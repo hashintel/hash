@@ -122,9 +122,9 @@ const PanelContent = ({
 
   return (
     <PanelContext value={{ title, onClose, closeDisabled }}>
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Escape from any control inside the panel closes it. */}
       <section
         ref={panelRef}
-        role="region"
         aria-label={title}
         data-simulation-panel
         data-panel-layer={layer}

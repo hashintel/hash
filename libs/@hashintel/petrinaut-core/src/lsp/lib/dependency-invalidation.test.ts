@@ -4,9 +4,12 @@ import { describe, expect, it } from "vitest";
 import { checkDefinition } from "../../diagnostics";
 import { createJsonDocHandle } from "../../handle";
 import { createPetrinaut } from "../../instance";
+import { toPetrinautId } from "../../petrinaut-id";
 import { createSDCPN } from "./helper/create-sdcpn";
 
 import type { SDCPN } from "../../types/sdcpn";
+
+const idOf = toPetrinautId;
 
 /**
  * Code that never changes can still stop compiling when something it depends
@@ -238,10 +241,10 @@ describe("removing net-level state", () => {
       mutations.removeParameter({ parameterId: "unused-rate" });
       mutations.removeType({ typeId: "pallet" });
     });
-    expect(definition.types.map(({ id }) => id)).toEqual(["item"]);
-    expect(definition.parameters.map(({ id }) => id)).toEqual(["decay"]);
+    expect(definition.types.map(({ id }) => id)).toEqual([idOf("item")]);
+    expect(definition.parameters.map(({ id }) => id)).toEqual([idOf("decay")]);
     expect(definition.differentialEquations.map(({ id }) => id)).toEqual([
-      "decay-dynamics",
+      idOf("decay-dynamics"),
     ]);
     expect(errorsOf(definition)).toEqual([]);
   });
@@ -281,7 +284,7 @@ describe("removing net-level state", () => {
     // The cascade is complete in the canonical definition: no place still
     // names the removed equation, so nothing is left half-referenced.
     expect(
-      definition.places.find(({ id }) => id === "store")
+      definition.places.find(({ id }) => id === idOf("store"))
         ?.differentialEquationId,
     ).toBeNull();
     expect(definition.differentialEquations).toEqual([]);

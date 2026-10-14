@@ -3,6 +3,9 @@ import { use } from "react";
 import { SimulationContext } from "../simulation/context";
 import { EditorContext } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
+import { simulateModeAllowedMutationNames } from "./simulate-mode-allowed-mutation-names";
+
+import type { PetrinautMutations } from "@hashintel/petrinaut-core";
 
 /**
  * Why the editor currently disallows mutations, or `null` when mutations
@@ -64,3 +67,18 @@ export const formatReadOnlyReason = (reason: ReadOnlyReason): string => {
       return `A simulation is currently ${reason.state.toLowerCase()}. Ask the user to reset the simulation before mutating.`;
   }
 };
+
+/**
+ * The reason that blocks mutation `name` now, or `null` when it may run.
+ * Scenario and metric mutations stay available in simulate mode, so only a
+ * host-readonly reason blocks them; any reason blocks every other mutation.
+ */
+export const mutationBlockedBy = (
+  name: keyof PetrinautMutations,
+  reason: ReadOnlyReason | null,
+): ReadOnlyReason | null =>
+  reason !== null &&
+  (reason.kind === "host-readonly" ||
+    !simulateModeAllowedMutationNames.has(name))
+    ? reason
+    : null;

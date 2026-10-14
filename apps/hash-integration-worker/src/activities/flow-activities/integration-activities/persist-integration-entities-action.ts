@@ -25,18 +25,17 @@ import {
   patchesFromPropertyObjects,
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   FailedEntityProposal,
-  PersistedEntitiesMetadata,
   PersistedEntityMetadata,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -669,7 +668,7 @@ export const createPersistIntegrationEntitiesAction = ({
   graphApiClient,
 }: {
   graphApiClient: GraphApi;
-}): IntegrationFlowActionActivity<"persistIntegrationEntities"> => {
+}): FlowActionActivity<"persistIntegrationEntities"> => {
   return async ({ inputs }) => {
     try {
       const {
@@ -682,13 +681,13 @@ export const createPersistIntegrationEntitiesAction = ({
       } = await getFlowContext({ graphApiClient });
 
       const { proposedEntities: proposedEntitiesInput } =
-        getSimplifiedIntegrationFlowActionInputs({
+        getSimplifiedFlowActionInputs({
           inputs,
           actionType: "persistIntegrationEntities",
         });
 
       const proposedEntities = await resolvePayloadValue(
-        getStorageProvider(),
+        { storageProvider: getStorageProvider(), workflowId },
         "ProposedEntity",
         proposedEntitiesInput,
       );
@@ -734,21 +733,28 @@ export const createPersistIntegrationEntitiesAction = ({
         ...failedLinkProposals,
       ];
 
-      const result: PersistedEntitiesMetadata = {
-        persistedEntities: allPersistedEntities,
-        failedEntityProposals: allFailedProposals,
-      };
-
-      // Store the output in S3 to avoid passing large payloads through Temporal
-      const storedRef = await storePayload({
-        storageProvider: getStorageProvider(),
-        workflowId,
-        runId,
-        stepId,
-        outputName: "persistedEntities",
-        kind: "PersistedEntitiesMetadata",
-        value: result,
-      });
+      // Store the outputs in S3 to avoid passing large payloads through Temporal
+      const [persistedEntitiesRef, failedEntityProposalsRef] =
+        await Promise.all([
+          storePayload({
+            storageProvider: getStorageProvider(),
+            workflowId,
+            runId,
+            stepId,
+            outputName: "persistedEntities",
+            kind: "PersistedEntityMetadata",
+            value: allPersistedEntities,
+          }),
+          storePayload({
+            storageProvider: getStorageProvider(),
+            workflowId,
+            runId,
+            stepId,
+            outputName: "failedEntityProposals",
+            kind: "FailedEntityProposal",
+            value: allFailedProposals,
+          }),
+        ]);
 
       const code =
         allPersistedEntities.length > 0
@@ -773,8 +779,15 @@ export const createPersistIntegrationEntitiesAction = ({
               {
                 outputName: "persistedEntities",
                 payload: {
-                  kind: "PersistedEntitiesMetadata",
-                  value: storedRef,
+                  kind: "PersistedEntityMetadata",
+                  value: persistedEntitiesRef,
+                },
+              },
+              {
+                outputName: "failedEntityProposals",
+                payload: {
+                  kind: "FailedEntityProposal",
+                  value: failedEntityProposalsRef,
                 },
               },
             ],

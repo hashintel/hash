@@ -26,6 +26,11 @@ use hash_graph_store::{
         CreateUserActorResponse, GetActorError, TeamRetrievalError, WebInsertionError,
         WebRetrievalError, WebUpdateError,
     },
+    api_token::{
+        ApiTokenAuthenticationError, ApiTokenCredential, ApiTokenId, ApiTokenInsertionError,
+        ApiTokenMetadata, ApiTokenRetrievalError, ApiTokenRevocationError, ApiTokenStore,
+        ApiTokenVerificationError, CreateApiTokenParams, WebApiTokenRevocationError,
+    },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
@@ -958,6 +963,51 @@ where
     }
 }
 
+impl<S> ApiTokenStore for FetchingStore<S>
+where
+    S: ApiTokenStore + Send + Sync,
+{
+    async fn create_api_token(
+        &mut self,
+        params: CreateApiTokenParams,
+    ) -> Result<ApiTokenMetadata, Report<ApiTokenInsertionError>> {
+        self.store.create_api_token(params).await
+    }
+
+    async fn list_api_tokens(
+        &self,
+        web_id: WebId,
+    ) -> Result<Vec<ApiTokenMetadata>, Report<ApiTokenRetrievalError>> {
+        self.store.list_api_tokens(web_id).await
+    }
+
+    async fn revoke_api_token(
+        &mut self,
+        web_id: WebId,
+        token_id: ApiTokenId,
+    ) -> Result<(), Report<ApiTokenRevocationError>> {
+        self.store.revoke_api_token(web_id, token_id).await
+    }
+
+    async fn revoke_web_api_tokens(
+        &mut self,
+        web_id: WebId,
+    ) -> Result<u64, Report<WebApiTokenRevocationError>> {
+        self.store.revoke_web_api_tokens(web_id).await
+    }
+
+    async fn authenticate_api_token<F>(
+        &mut self,
+        token_id: ApiTokenId,
+        verify: F,
+    ) -> Result<UserId, Report<ApiTokenAuthenticationError>>
+    where
+        F: FnOnce(&ApiTokenCredential) -> Result<(), ApiTokenVerificationError> + Send,
+    {
+        self.store.authenticate_api_token(token_id, verify).await
+    }
+}
+
 impl<S> AccountStore for FetchingStore<S>
 where
     S: AccountStore + Send + Sync,
@@ -1650,25 +1700,27 @@ where
         self.store.query_entities_table(actor_id, params).await
     }
 
-    async fn patch_entity(
+    async fn patch_entities(
         &mut self,
         actor_id: ActorId,
-        params: PatchEntityParams,
-    ) -> Result<Entity, Report<UpdateError>> {
-        for entity_type_id in &params.entity_type_ids {
-            self.insert_external_types_by_reference(
-                actor_id,
-                OntologyTypeReference::EntityTypeReference(&EntityTypeReference {
-                    url: entity_type_id.clone(),
-                }),
-                ConflictBehavior::Skip,
-                &HashSet::new(),
-            )
-            .await
-            .change_context(UpdateError)?;
+        params: Vec<PatchEntityParams>,
+    ) -> Result<Vec<Entity>, Report<UpdateError>> {
+        for param in &params {
+            for entity_type_id in &param.entity_type_ids {
+                self.insert_external_types_by_reference(
+                    actor_id,
+                    OntologyTypeReference::EntityTypeReference(&EntityTypeReference {
+                        url: entity_type_id.clone(),
+                    }),
+                    ConflictBehavior::Skip,
+                    &HashSet::new(),
+                )
+                .await
+                .change_context(UpdateError)?;
+            }
         }
 
-        self.store.patch_entity(actor_id, params).await
+        self.store.patch_entities(actor_id, params).await
     }
 
     async fn delete_entities(
