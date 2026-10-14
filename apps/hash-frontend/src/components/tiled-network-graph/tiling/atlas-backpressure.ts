@@ -39,6 +39,8 @@
  * rates), so a report is treated as a pacing hint, never a guarantee.
  */
 
+import { registerPrincipalScopedReset } from "../../../shared/principal-scoped-state";
+
 /** Pause on a `429` carrying no readable `Retry-After`, and the floor under one that does. */
 const SPECULATION_PAUSE_MIN_MS = 2_000;
 /**
@@ -146,6 +148,19 @@ const parseItems = (
 };
 
 /**
+ * Whether a report's policy names a usable rate: a positive burst over a
+ * positive window. A zero window would make the refill rate infinite
+ * so a `w=0` item is treated exactly like an absent policy rather than entering a model.
+ */
+const hasUsableRate = (
+  budget: AtlasBudgetReport,
+): budget is AtlasBudgetReport & { quota: number; windowSeconds: number } =>
+  budget.quota !== undefined &&
+  budget.quota > 0 &&
+  budget.windowSeconds !== undefined &&
+  budget.windowSeconds > 0;
+
+/**
  * Joins one response's `RateLimit-Policy` and `RateLimit` field values into
  * per-budget reports, matched by the item name both fields carry.
  */
@@ -188,14 +203,10 @@ export const noteAtlasBudget = (
     }
     reported = true;
 
-    // Sync the pacing model where the policy's rate is known. Downward only:
+    // Sync the pacing model where the policy's rate is usable. Downward only:
     // requests this side dispatched after the server processed this one are
     // already spent locally and absent from its count.
-    if (
-      budget.quota !== undefined &&
-      budget.quota > 0 &&
-      budget.windowSeconds !== undefined
-    ) {
+    if (hasUsableRate(budget)) {
       const capacity = budget.quota;
       const ratePerMs = capacity / (budget.windowSeconds * 1000);
       const model = budgetModels.get(budget.name);
@@ -215,12 +226,9 @@ export const noteAtlasBudget = (
     if (deficit <= 0) {
       continue;
     }
-    const refillMs =
-      budget.quota !== undefined &&
-      budget.quota > 0 &&
-      budget.windowSeconds !== undefined
-        ? deficit * ((budget.windowSeconds * 1000) / budget.quota)
-        : SPECULATION_PAUSE_MIN_MS;
+    const refillMs = hasUsableRate(budget)
+      ? deficit * ((budget.windowSeconds * 1000) / budget.quota)
+      : SPECULATION_PAUSE_MIN_MS;
     waitMs = Math.max(waitMs, Math.min(refillMs, SPECULATION_PAUSE_MAX_MS));
   }
   // A response with no readable budget items says nothing about recovery, so
@@ -310,9 +318,19 @@ export const isAtlasSpeculationPaused = (): boolean => {
   return now < rateLimitedUntil || now < budgetReserveUntil;
 };
 
-/** Clears both deadlines and every pacing model; for tests. */
+/** Clears both deadlines and every pacing model; a principal change's reset, and the tests'. */
 export const resetAtlasBackpressure = (): void => {
   rateLimitedUntil = 0;
   budgetReserveUntil = 0;
   budgetModels.clear();
 };
+
+/**
+ * Drops everything this module holds when the authenticated principal changes.
+ *
+ * Registered at module load, so the state cannot be imported without its
+ * reset (see `shared/principal-scoped-state.ts` for the placement contract).
+ */
+registerPrincipalScopedReset(() => {
+  resetAtlasBackpressure();
+});

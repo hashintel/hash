@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { enterPrincipal } from "../../../shared/principal-scoped-state";
 import {
   isAtlasSpeculationPaused,
   noteAtlasBudget,
@@ -144,6 +145,21 @@ describe("noteAtlasBudget", () => {
     expect(isAtlasSpeculationPaused()).toBe(false);
   });
 
+  it("treats a zero-window policy as unreadable", () => {
+    // w=0 would mean an infinite refill rate; as a model it would project
+    // `0 * Infinity` into a sticky NaN, and as a reserve wait it would read
+    // an empty budget as instantly refilled. Both degrade to the floor.
+    noteAtlasBudget('"gate";q=10;w=0', '"gate";r=0');
+    expect(isAtlasSpeculationPaused()).toBe(true);
+    vi.setSystemTime(1_999);
+    expect(isAtlasSpeculationPaused()).toBe(true);
+    vi.setSystemTime(2_000);
+    expect(isAtlasSpeculationPaused()).toBe(false);
+    // No pacing model was minted from the garbage rate: dispatch stays free.
+    expect(takeAtlasRequestToken("required")).toBe(0);
+    expect(takeAtlasRequestToken("speculative")).toBe(0);
+  });
+
   it("caps a slow budget's refill wait at five minutes", () => {
     // Actor refills 100 per hour: 24 tokens would take 864s uncapped.
     noteAtlasBudget('"actor";q=100;w=3600', '"actor";r=0');
@@ -271,5 +287,23 @@ describe("takeAtlasRequestToken", () => {
     expect(takeAtlasRequestToken("required")).toBe(0);
     expect(takeAtlasRequestToken("required")).toBe(0);
     expect(takeAtlasRequestToken("required")).toBeGreaterThan(0);
+  });
+
+  it("does not pace a new principal from the previous user's depleted budget", () => {
+    enterPrincipal("actor-a");
+    // Actor-a drained the slow actor budget and stood under a refusal pause.
+    noteAtlasBudget('"actor";q=100;w=3600', '"actor";r=0');
+    noteAtlasRateLimited(60_000);
+    expect(takeAtlasRequestToken("required")).toBeGreaterThan(0);
+    expect(isAtlasSpeculationPaused()).toBe(true);
+
+    enterPrincipal("actor-b");
+
+    // The successor dispatches freely and their own report seeds the model
+    // anew — the downward-only sync no longer pins actor-a's empty estimate.
+    expect(takeAtlasRequestToken("required")).toBe(0);
+    expect(isAtlasSpeculationPaused()).toBe(false);
+    noteAtlasBudget('"actor";q=100;w=3600', '"actor";r=100');
+    expect(takeAtlasRequestToken("required")).toBe(0);
   });
 });
