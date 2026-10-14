@@ -1,4 +1,4 @@
-import { filterableKinds } from "./filter-condition.js";
+import { checkConditionInput, filterableKinds } from "./filter-condition.js";
 
 import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
@@ -863,6 +863,7 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
     ],
+    check: checkConditionInput("items"),
   },
   if: {
     actionDefinitionId: "if",
@@ -900,6 +901,7 @@ const aiFlowActionDefinitionsAsConst = {
         required: false,
       },
     ],
+    check: checkConditionInput("value"),
   },
 } as const satisfies Record<
   AiFlowActionDefinitionId,

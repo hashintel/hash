@@ -26,9 +26,9 @@ export type FlowActionDefinitionId =
   | AiFlowActionDefinitionId
   | IntegrationFlowActionDefinitionId;
 
-export type DeepReadOnly<T> = {
-  readonly [key in keyof T]: DeepReadOnly<T[key]>;
-};
+export type DeepReadOnly<T> = T extends (...args: never[]) => unknown
+  ? T
+  : { readonly [key in keyof T]: DeepReadOnly<T[key]> };
 
 export type WebPage = {
   url: Url;
@@ -444,6 +444,16 @@ export type OutputDefinition<
   required: boolean;
 } & ({ payloadKind: Kind } | KindFrom);
 
+/**
+ * A check an action needs beyond the shapes of its inputs, e.g. that a constant fits the kind of another input.
+ */
+export type ActionStepCheck = (params: {
+  step: ActionStepDefinition<string>;
+  /** The kind of the value connected to an input of the step, or `null` if it isn't connected or doesn't resolve. */
+  getInputKind: (inputName: string) => PayloadKind | null;
+  report: (inputName: string, message: string) => void;
+}) => void;
+
 export type ActionDefinition<
   ActionDefinitionId extends FlowActionDefinitionId,
 > = {
@@ -453,6 +463,8 @@ export type ActionDefinition<
   description: string;
   inputs: InputDefinition[];
   outputs: OutputDefinition[];
+  /** Run when a flow is validated, for each step of the action. */
+  check?: ActionStepCheck;
 };
 
 /**

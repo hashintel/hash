@@ -9,8 +9,7 @@ import type {
   FilterValue,
   UnaryFilterOperator,
 } from "./evaluate-filter.js";
-import type { PayloadKind } from "./types.js";
-import type { ActionStepCheck } from "./validate-flow-definition.js";
+import type { ActionStepCheck, PayloadKind } from "./types.js";
 import type { BaseUrl } from "@blockprotocol/type-system";
 
 type SubjectOfKind<Kind extends PayloadKind> =
