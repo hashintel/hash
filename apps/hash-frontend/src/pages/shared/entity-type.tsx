@@ -220,7 +220,7 @@ export const EntityType = ({
     [entityType, remotePropertyTypes],
   );
 
-  const isDirty = Object.keys(formMethods.formState.dirtyFields).length > 0;
+  const { isDirty } = formMethods.formState;
   const isDraft = !!draftEntityType;
 
   const { userPermissions, loading: loadingUserPermissions } =

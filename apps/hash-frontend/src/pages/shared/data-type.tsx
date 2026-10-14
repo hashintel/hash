@@ -225,7 +225,7 @@ export const DataType = ({
 
   const dataType = remoteDataType ?? draftNewDataType;
 
-  const isDirty = Object.keys(formMethods.formState.dirtyFields).length > 0;
+  const { isDirty } = formState;
 
   const isDraft = !!draftNewDataType;
 
