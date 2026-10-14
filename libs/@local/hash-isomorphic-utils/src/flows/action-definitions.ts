@@ -1,4 +1,6 @@
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
+import { checkTakeCountInput } from "./take-count.js";
+import { allPayloadKinds } from "./types.js";
 
 import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
@@ -34,6 +36,7 @@ export type AiFlowActionDefinitionId =
   | "persistEntities"
   | "persistEntity"
   | "researchEntities"
+  | "takeFirst"
   | "webSearch"
   | "writeGoogleSheet";
 
@@ -902,6 +905,37 @@ const aiFlowActionDefinitionsAsConst = {
       },
     ],
     check: checkConditionInput("value"),
+  },
+  takeFirst: {
+    actionDefinitionId: "takeFirst",
+    name: "Take First",
+    description:
+      "Keep the first items of a list, up to a count: all of them if the list is shorter.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: allPayloadKinds,
+        name: "items",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["Number"],
+        name: "count",
+        description: "How many items to keep: a whole number, 0 or more.",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindFrom: "items",
+        name: "items",
+        array: true,
+        required: true,
+      },
+    ],
+    check: checkTakeCountInput,
   },
 } as const satisfies Record<
   AiFlowActionDefinitionId,

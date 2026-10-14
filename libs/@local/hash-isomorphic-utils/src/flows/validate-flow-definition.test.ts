@@ -650,4 +650,48 @@ describe("validateFlowDefinition", () => {
       ).toEqual([]);
     });
   });
+
+  describe("counts of takeFirst steps", () => {
+    const takeFirstDefinition = (count: number) => ({
+      ...baseDefinition,
+      inputs: [
+        { name: "pages", payloadKind: "WebPage", array: true, required: true },
+      ],
+      steps: [
+        {
+          kind: "action",
+          stepId: "take",
+          actionDefinitionId: "takeFirst",
+          description: "",
+          inputs: {
+            items: { kind: "flow-input", inputName: "pages" },
+            count: {
+              kind: "constant",
+              payload: { kind: "Number", value: count },
+            },
+          },
+        },
+      ],
+    });
+
+    it.each([0, 10])("accepts a count of %s", (count) => {
+      expect(diagnosticsOf(takeFirstDefinition(count))).toEqual([]);
+    });
+
+    it.each([-1, 2.5])(
+      "rejects a count of %s, which isn't a whole number of 0 or more",
+      (count) => {
+        expect(
+          validateFlowDefinition(takeFirstDefinition(count)).diagnostics,
+        ).toEqual([
+          {
+            severity: "error",
+            code: "invalidInput",
+            message: "The count must be a whole number, 0 or more.",
+            path: ["steps", 0, "inputs", "count"],
+          },
+        ]);
+      },
+    );
+  });
 });
