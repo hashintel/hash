@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { aggregate } from "./aggregate.js";
 
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
-import type { Aggregation } from "@local/hash-isomorphic-utils/flows/aggregation";
 import type {
   PayloadKind,
   ProposedEntity,
@@ -23,7 +22,7 @@ const entitiesWithScores = (scores: unknown[]) =>
 
 const ofScore = (
   operation: "sum" | "average" | "min" | "max",
-): Aggregation => ({
+): Parameters<typeof aggregate>[1] => ({
   operation,
   subject: {
     kind: "entityProperty",
@@ -42,15 +41,6 @@ const aggregateScores = (
   );
 
 describe("aggregate", () => {
-  it("counts every item, with or without a value", () => {
-    expect(
-      aggregate(
-        { kind: "ProposedEntity", value: entitiesWithScores([1, undefined]) },
-        { operation: "count" },
-      ),
-    ).toEqual({ status: "success", result: 2 });
-  });
-
   it.each([
     { operation: "sum", result: 2 },
     { operation: "average", result: 2 / 3 },
@@ -82,17 +72,12 @@ describe("aggregate", () => {
     ).toEqual({ status: "success", result: 3 });
   });
 
-  it.each(["count", "sum"] as const)(
-    "gives 0 for the %s of an empty list",
-    (operation) => {
-      expect(
-        aggregate(
-          { kind: "ProposedEntity", value: [] },
-          operation === "count" ? { operation } : ofScore(operation),
-        ),
-      ).toEqual({ status: "success", result: 0 });
-    },
-  );
+  it("gives 0 for the sum of no values", () => {
+    expect(aggregateScores([], "sum")).toEqual({
+      status: "success",
+      result: 0,
+    });
+  });
 
   it.each(["average", "min", "max"] as const)(
     "gives no result for the %s of no values",
@@ -161,14 +146,12 @@ describe("aggregate", () => {
       kind: "Number",
       aggregation: ofScore("sum"),
     },
-    {
-      name: "items that can't be aggregated",
-      kind: "SortKey",
-      aggregation: { operation: "count" },
-    },
   ])("rejects $name, even for an empty list", ({ kind, aggregation }) => {
     expect(
-      aggregate({ kind, value: [] }, aggregation as Aggregation),
+      aggregate(
+        { kind, value: [] },
+        aggregation as Parameters<typeof aggregate>[1],
+      ),
     ).toMatchObject({ status: "error", code: "invalidAggregation" });
   });
 });

@@ -17,22 +17,19 @@ export type AggregateResult =
   | AggregationError;
 
 /**
- * Count gives the number of items. Sum, average, min and max read a Number from each item, ignoring missing and
- * empty values (undefined, null or ""). With no values, sum gives 0, and average, min and max give no result. Errors
- * never return a result: a value that isn't a finite number, a property with several values, or an entity that isn't
- * in `context` (one the user can't read).
+ * Sum, average, min and max read a Number from each item, ignoring missing and empty values (undefined, null or "").
+ * With no values, sum gives 0, and average, min and max give no result. Errors never return a result: a value that
+ * isn't a finite number, a property with several values, or an entity that isn't in `context` (one the user can't
+ * read). The activity counts a list itself, from its length.
  */
 export const aggregate = (
   input: FilterListPayload<PayloadKind>,
-  aggregation: Aggregation,
+  aggregation: Exclude<Aggregation, { operation: "count" }>,
   context: ConditionContext = {},
 ): AggregateResult => {
   const error = validateAggregation(aggregation, input.kind);
   if (error) {
     return error;
-  }
-  if (aggregation.operation === "count") {
-    return { status: "success", result: input.value.length };
   }
   const { operation, subject } = aggregation;
 

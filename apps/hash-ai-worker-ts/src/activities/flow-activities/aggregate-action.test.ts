@@ -105,6 +105,19 @@ describe("aggregateAction", () => {
     expect(downloadDirect).not.toHaveBeenCalled();
   });
 
+  it("counts an empty list as 0, rather than giving no result", async () => {
+    expect(
+      (await run({ kind: "Number", value: [] }, { operation: "count" }))
+        .contents,
+    ).toEqual([
+      {
+        outputs: [
+          { outputName: "result", payload: { kind: "Number", value: 0 } },
+        ],
+      },
+    ]);
+  });
+
   it("sums a stored list", async () => {
     expect(
       (await run(await storedEntities([5, 9, 7]), scoreSum)).contents,

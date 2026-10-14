@@ -1,4 +1,4 @@
-import { filterableKinds, validateSubject } from "./filter-condition.js";
+import { validateSubject } from "./filter-condition.js";
 
 import type { ConditionSubject } from "./filter-condition.js";
 import type { ActionStepCheck, PayloadKind } from "./types.js";
@@ -45,9 +45,6 @@ export const validateAggregation = (
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.
   if (typeof aggregation !== "object" || aggregation === null) {
     return invalidAggregation("An aggregation must be an object.");
-  }
-  if (!(filterableKinds as readonly PayloadKind[]).includes(itemKind)) {
-    return invalidAggregation(`${itemKind} payloads cannot be aggregated.`);
   }
   if (!aggregationOperations.includes(aggregation.operation)) {
     return invalidAggregation(
