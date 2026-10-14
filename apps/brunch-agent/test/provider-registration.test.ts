@@ -1,4 +1,5 @@
 import {
+  createModels,
   fauxAssistantMessage,
   fauxProvider,
   fauxToolCall,
@@ -34,16 +35,68 @@ vi.mock("@earendil-works/pi-ai/providers/anthropic", () => ({
 vi.mock("@earendil-works/pi-ai/providers/openai", () => ({
   openaiProvider: () => openaiFaux.provider,
 }));
+// The native OpenRouter provider is kept; the spy only records the instance app.ts receives.
+vi.mock(
+  "@earendil-works/pi-ai/providers/openrouter",
+  async (importOriginal) => {
+    const native =
+      await importOriginal<
+        typeof import("@earendil-works/pi-ai/providers/openrouter")
+      >();
+    return {
+      ...native,
+      openrouterProvider: vi.fn<typeof native.openrouterProvider>(
+        native.openrouterProvider,
+      ),
+    };
+  },
+);
 beforeAll(async () => {
   await import("../src/app");
 });
 
-test("app registration admits both Anthropic and OpenAI providers", () => {
+test("app registration admits the Anthropic, OpenAI and OpenRouter providers", () => {
   const ids = vi
     .mocked(setProvider)
     .mock.calls.map(([entry]) => entry.id)
     .sort();
-  expect(ids).toEqual(["anthropic", "openai"]);
+  expect(ids).toEqual(["anthropic", "openai", "openrouter"]);
+});
+
+test("app registration admits native OpenRouter with GPT-6.1 Sol and its API-key auth", async () => {
+  const { openrouterProvider } =
+    await import("@earendil-works/pi-ai/providers/openrouter");
+  const native = vi.mocked(openrouterProvider).mock.results[0]?.value as
+    | Provider
+    | undefined;
+  expect(native).toBeDefined();
+  const provider = vi
+    .mocked(setProvider)
+    .mock.calls.map(([entry]) => entry)
+    .find((entry) => entry.id === "openrouter")!;
+  expect(provider.auth).toBe(native!.auth);
+  // The catalogue extension keeps native streams, so a different stream is the admission wrapper.
+  expect(Reflect.get(provider, "streamSimple")).not.toBe(
+    Reflect.get(native!, "streamSimple"),
+  );
+  const models = createModels();
+  models.setProvider(provider);
+  expect(models.getModel("openrouter", "openai/gpt-6.1-sol")).toMatchObject({
+    id: "openai/gpt-6.1-sol",
+    provider: "openrouter",
+    api: "openai-completions",
+    baseUrl: "https://openrouter.ai/api/v1",
+    reasoning: true,
+  });
+  vi.stubEnv("OPENROUTER_API_KEY", "synthetic-openrouter-key");
+  try {
+    expect(await models.getAuth("openrouter")).toMatchObject({
+      source: "OPENROUTER_API_KEY",
+      auth: { apiKey: "synthetic-openrouter-key" },
+    });
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });
 
 const drain = async (stream: ReturnType<Provider["streamSimple"]>) => {

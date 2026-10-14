@@ -34,6 +34,7 @@ import { agentOwnershipGuard } from "./server/http/ownership.ts";
 import { logger } from "./server/logger.ts";
 import { createTurnChronologyObserver } from "./server/observe-turn-chronology.ts";
 import { openaiProviderWithAddedModels } from "./server/openai-provider.ts";
+import { openrouterProviderWithAddedModels } from "./server/openrouter-provider.ts";
 import { createStepARequestAccounting } from "./server/provider-accounting.ts";
 import {
   claimModelStreamIdleRetry,
@@ -196,6 +197,7 @@ const registerAdmittedProvider = (provider: Provider) => {
 };
 registerAdmittedProvider(anthropicProvider());
 registerAdmittedProvider(openaiProviderWithAddedModels());
+registerAdmittedProvider(openrouterProviderWithAddedModels());
 
 const app = new Hono();
 

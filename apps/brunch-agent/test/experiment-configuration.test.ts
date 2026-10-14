@@ -11,6 +11,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { openaiProviderWithAddedModels } from "../src/server/openai-provider.ts";
+import { openrouterProviderWithAddedModels } from "../src/server/openrouter-provider.ts";
 import {
   selectChatModelSpecifier,
   selectChatThinking,
@@ -169,6 +170,7 @@ describe
       const models = createModels();
       models.setProvider(anthropicProvider());
       models.setProvider(openaiProviderWithAddedModels());
+      models.setProvider(openrouterProviderWithAddedModels());
       const specifier = selectChatModelSpecifier();
       const slash = specifier.indexOf("/");
       const model = models.getModel(

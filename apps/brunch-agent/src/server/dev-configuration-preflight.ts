@@ -20,9 +20,16 @@ const anthropicAuthVariables = [
   "ANTHROPIC_API_KEY",
 ];
 const openaiAuthVariables = ["OPENAI_API_KEY"];
+const openrouterAuthVariables = ["OPENROUTER_API_KEY"];
+/** The single API-key variable each non-Anthropic provider resolves. */
+const apiKeyVariables = new Map([
+  ["openai", "OPENAI_API_KEY"],
+  ["openrouter", "OPENROUTER_API_KEY"],
+]);
 const checkedVariables = [
   ...anthropicAuthVariables,
   ...openaiAuthVariables,
+  ...openrouterAuthVariables,
   brunchEnv.chatModel,
 ];
 const defaultRoot = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -59,6 +66,8 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
     await import("@earendil-works/pi-ai/providers/anthropic");
   const { openaiProviderWithAddedModels } =
     await import("./openai-provider.ts");
+  const { openrouterProviderWithAddedModels } =
+    await import("./openrouter-provider.ts");
   const appDirectory = join(repoRoot, "apps/brunch-agent");
   const declarations = new Map<string, string>();
   const files = envFiles.map((name) => {
@@ -85,6 +94,7 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
       : (declarations.get(variable) ?? "absent");
   const apiKeySource = source("ANTHROPIC_API_KEY");
   const openaiApiKeySource = source("OPENAI_API_KEY");
+  const openrouterApiKeySource = source("OPENROUTER_API_KEY");
   const modelSource = source(brunchEnv.chatModel);
   // Flue applyDevEnv uses loadEnv('development', server.config.envDir, '') and shell-wins injection.
   // Restrict returned variables here; parsing and interpolation still use Vite's actual loader.
@@ -94,39 +104,44 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
   const models = createModels();
   models.setProvider(anthropicProvider());
   models.setProvider(openaiProviderWithAddedModels());
+  models.setProvider(openrouterProviderWithAddedModels());
   const knownModel = models.getModel(selected.provider, selected.id);
   const model = knownModel
     ? `${knownModel.provider}/${knownModel.id}`
     : "unrecognized model; value withheld";
   const apiKeyStatus = credentialStatus(environment.ANTHROPIC_API_KEY);
   const openaiApiKeyStatus = credentialStatus(environment.OPENAI_API_KEY);
+  const openrouterApiKeyStatus = credentialStatus(
+    environment.OPENROUTER_API_KEY,
+  );
   const brunchProvider = knownModel?.provider ?? selected.provider;
+  const keyVariable = apiKeyVariables.get(brunchProvider);
   const higherPrioritySources = anthropicAuthVariables
     .slice(0, 2)
     .filter((variable) => Boolean(environment[variable]?.trim()))
     .map((variable) => ({ variable, source: source(variable) }));
   let providerSelection =
-    brunchProvider === "openai"
-      ? "incomplete; OpenAI credential not resolved"
+    keyVariable !== undefined
+      ? `incomplete; ${keyVariable} credential not resolved`
       : "incomplete; higher-priority source present; alternate credential not resolved";
-  if (brunchProvider === "openai") {
-    const previous = process.env.OPENAI_API_KEY;
+  if (keyVariable !== undefined) {
+    const previous = process.env[keyVariable];
     try {
       if (
-        process.env.OPENAI_API_KEY === undefined &&
-        environment.OPENAI_API_KEY !== undefined
+        process.env[keyVariable] === undefined &&
+        environment[keyVariable] !== undefined
       ) {
-        process.env.OPENAI_API_KEY = environment.OPENAI_API_KEY;
+        process.env[keyVariable] = environment[keyVariable];
       }
-      const auth = await models.getAuth("openai");
+      const auth = await models.getAuth(brunchProvider);
       providerSelection =
-        auth?.source === "OPENAI_API_KEY" &&
-        auth.auth.apiKey === environment.OPENAI_API_KEY
-          ? "verified: OPENAI_API_KEY matches Vite selection"
-          : "incomplete; provider did not select OPENAI_API_KEY";
+        auth?.source === keyVariable &&
+        auth.auth.apiKey === environment[keyVariable]
+          ? `verified: ${keyVariable} matches Vite selection`
+          : `incomplete; provider did not select ${keyVariable}`;
     } finally {
-      if (previous === undefined) delete process.env.OPENAI_API_KEY;
-      else process.env.OPENAI_API_KEY = previous;
+      if (previous === undefined) delete process.env[keyVariable];
+      else process.env[keyVariable] = previous;
     }
   } else if (higherPrioritySources.length === 0) {
     // Installed Flue creates Models with defaults (empty in-memory credentials, process-env context).
@@ -164,6 +179,9 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
   if (brunchProvider === "openai") {
     if (openaiApiKeyStatus !== "non-placeholder; validity untested")
       failures.push(`OPENAI_API_KEY: ${openaiApiKeyStatus}`);
+  } else if (brunchProvider === "openrouter") {
+    if (openrouterApiKeyStatus !== "non-placeholder; validity untested")
+      failures.push(`OPENROUTER_API_KEY: ${openrouterApiKeyStatus}`);
   } else if (apiKeyStatus !== "non-placeholder; validity untested") {
     failures.push(`ANTHROPIC_API_KEY: ${apiKeyStatus}`);
   }
@@ -183,6 +201,10 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
       : "absent",
     apiKey: { source: apiKeySource, status: apiKeyStatus },
     openaiApiKey: { source: openaiApiKeySource, status: openaiApiKeyStatus },
+    openrouterApiKey: {
+      source: openrouterApiKeySource,
+      status: openrouterApiKeyStatus,
+    },
     provenance:
       "File sources identify declarations; Vite owns interpolation. Root env contents not read.",
     providerSelection,
