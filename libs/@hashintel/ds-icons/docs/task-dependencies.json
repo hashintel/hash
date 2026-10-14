@@ -11,6 +11,12 @@
         "@hashintel/ds-components#codegen"
       ]
     },
+    "build:pack": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
     "fix:eslint": {
       "dependsOn": [
         "@hashintel/ds-components#build",
