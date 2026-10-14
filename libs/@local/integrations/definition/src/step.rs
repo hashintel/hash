@@ -217,7 +217,7 @@ mod tests {
     use crate::name::{CheckpointName, ColumnName, StepId};
 
     fn url(path: &str) -> VersionedUrl {
-        VersionedUrl::from_str(&format!("https://example.test/@demo/types/{path}"))
+        VersionedUrl::from_str(&format!("https://example.com/@demo/types/{path}"))
             .expect("should be a valid type URL")
     }
 

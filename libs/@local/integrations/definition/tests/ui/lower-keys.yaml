@@ -1,0 +1,21 @@
+# A value is lowered even when its key has an issue, and an entry whose key repeats an earlier
+# one is reported at that entry. Each unknown placeholder in a text is reported once. A
+# placeholder that uses an invalid `vars` name is replaced, and the name is reported at `vars`.
+connector: demo
+vars:
+  TYPES: https://example.com/@demo/types
+  ORDERS: orders
+  bad-name: x
+unitMaps:
+  masses:
+    units:
+      KG: not-a-url
+sources:
+  orders:
+    sql: SELECT ${FIRST}, ${SECOND}, ${FIRST}, ${bad-name}
+    primaryKey: [id]
+  ${ORDERS}:
+    sql: ""
+    primaryKey: [id]
+  ${MISSING}:
+    sql: ""
