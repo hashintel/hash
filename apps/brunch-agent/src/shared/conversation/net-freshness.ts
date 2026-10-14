@@ -12,12 +12,20 @@ import { mayShowNet, netResultView } from "./net-view.ts";
 import type { ContextProjectionEntry } from "@flue/runtime";
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
-/** Tool call ids of net results present in one conversation's model context. */
+/**
+ * Tool call ids of successful results, in one conversation's model context,
+ * of tools that may show the net: reads, and document changes that can carry
+ * the net read back. Membership alone does not make a result a usable view;
+ * `expectedNetRevision` checks each result's metadata.
+ */
 export type NetView = ReadonlySet<string>;
 
 /**
- * Process-local, keyed by agent instance. Every proposal is preceded by a
- * model request in the same process, whose projection records the view first.
+ * Process-local: one tracker per agent module, holding one view per
+ * conversation instance. Each model request's projection replaces that
+ * instance's view with the ids of the successful read and document-change
+ * results it carries (`mayShowNet`). Every proposal is preceded by a model
+ * request in the same process, whose projection records the view first.
  */
 export const createNetViewTracker = () => {
   const views = new Map<string, NetView>();

@@ -596,9 +596,52 @@ test("ledger_compile renders the committed state as the agent-skin map", async (
   });
   const output = v.parse(tool.output, result.output);
   expect(output.revision).toBe(1);
+  expect(output.rejected).toEqual([]);
   expect(output.map).toContain("# Ledger");
   expect(output.map).toContain("Dryer");
   expect(output.map).toContain("`e1`");
+});
+
+test("ledger_compile names recorded commits the fold rejects", async () => {
+  const resource = (name: string) =>
+    toBatch([
+      [
+        "entity/create",
+        { name, kind: "resource", origin: "stated", status: "confirmed" },
+      ],
+    ]);
+  const history = settledHistory([
+    resource("Dryer"),
+    resource("Oven"),
+    toBatch([
+      [
+        "claim/create",
+        {
+          text: "The oven runs hot.",
+          entities: ["e2"],
+          origin: "stated",
+          status: "confirmed",
+        },
+      ],
+    ]),
+    resource("Fridge"),
+  ]);
+  const second = history.messages[3]?.parts[0] as MutableToolPart | undefined;
+  if (second === undefined) throw new Error("Missing second commit part");
+  second.output = { ...(second.output as object), ids: ["e9"] };
+  const tool = createLedgerCompileTool(async () => history);
+  const result = await tool.run({
+    data: v.parse(tool.input, {}),
+    toolCallId: "compile-1",
+    log: log(),
+  });
+  const output = v.parse(tool.output, result.output);
+  expect(output.rejected).toEqual(["commit-2", "commit-3"]);
+  expect(output.revision).toBe(2);
+  expect(output.map).toContain("Dryer");
+  expect(output.map).toContain("Fridge");
+  expect(output.map).not.toContain("Oven");
+  expect(output.map).not.toContain("The oven runs hot.");
 });
 
 test("claims retain prior assertions when a later claim supersedes them", () => {

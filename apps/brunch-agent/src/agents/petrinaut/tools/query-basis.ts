@@ -22,7 +22,7 @@ import type { BrowserContext, LedgerState } from "@hashintel/brunch-agent";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 export const queryBasisToolDescription =
-  "Use when the USER asks why a visible net element exists, instead of answering from memory. Finds the element in the latest net read, or in the net read back after a later change, and lists the canonical calls that changed it, each with its settled document revision, the Ledger revision current at the call, and the Ledger records committed in the same turn, before or after the call, each with its ID, record type and content, including the net element addresses a reflection concerns. These are chronological associations, not semantic justification: say so, and say plainly when no call is associated. A stale-read disposition means the net changed after the latest read without being read back: read it again, then query.";
+  "Use when the USER asks why a visible net element exists, instead of answering from memory. Finds the element in the latest net read, or in the net read back after a later change, and lists the canonical calls that changed it, each with its settled document revision, the Ledger revision current at the call, and the Ledger records committed in the same turn, before or after the call, each with its ID, record type and content, including the net element addresses a reflection concerns. These are chronological associations, not semantic justification: say so, and say plainly when no call is associated. A stale-read disposition means the net changed after the latest net view, a read or a change's read-back, without a later read-back: read it again, then query.";
 
 const elementSchema = v.object({
   selector: v.pipe(
@@ -203,7 +203,7 @@ export const queryBasis = (input: {
       binding: input.browser.binding,
       disposition: "stale-read" as const,
       reason:
-        "The net changed after the latest net read; read it again, then query.",
+        "The net changed after the latest net view without a subsequent read-back; read it again, then query.",
       target: undefined,
       readToolCallId: view.toolCallId,
       changes: [],
@@ -243,7 +243,7 @@ export const queryBasis = (input: {
     disposition: target ? ("basis-absent" as const) : ("not-found" as const),
     reason: target
       ? "No declared basis exists; these are chronological call associations, not semantic justification."
-      : "The named element is absent or ambiguous in the latest net read.",
+      : "The named element is absent or ambiguous in the latest net view.",
     target,
     readToolCallId: latest?.call.toolCallId,
     changes,
