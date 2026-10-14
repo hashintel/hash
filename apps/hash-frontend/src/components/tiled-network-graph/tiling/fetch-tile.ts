@@ -30,8 +30,10 @@
  * transport errors and `5xx`/`429` responses (see {@link withAtlasRetry}). A
  * response's `Retry-After` floors the backoff wait, and one naming a wait no
  * viewport load can sit out makes the failure terminal instead (see
- * {@link isRetryableError}); every `429` also pauses speculative prefetching
- * (see `atlas-backpressure.ts`). The data routes run under a shared
+ * {@link isRetryableError}); every `429` also pauses speculative prefetching,
+ * and every response's `RateLimit`/`RateLimit-Policy` budget report pauses it
+ * pre-emptively while a budget sits below the speculation reserve (see
+ * `atlas-backpressure.ts`). The data routes run under a shared
  * concurrency pool in which speculative loads yield to required ones (see
  * `atlas-request-pool.ts`); the manifest and `current` stay unpooled because
  * the `401` renewal path makes pooled requests depend on them.
@@ -58,7 +60,7 @@ import * as Option from "../atlas-decode/option";
 import * as Record from "../atlas-decode/record";
 import * as Result from "../atlas-decode/result";
 import * as TileDocument from "../atlas-decode/tile-document";
-import { noteAtlasRateLimited } from "./atlas-backpressure";
+import { noteAtlasBudget, noteAtlasRateLimited } from "./atlas-backpressure";
 import { atlasRequestPool } from "./atlas-request-pool";
 import {
   atlasTileAtIndex,
@@ -691,6 +693,13 @@ const requestAtlasOnce = async (
   } catch (cause) {
     throw new FetchTileError(`Atlas request to ${url} failed`, { cause });
   }
+  // Every enforced response — success or refusal — reports the budgets the
+  // request was checked against; feeding the report forward lets speculation
+  // pause before the first refusal rather than after it.
+  noteAtlasBudget(
+    response.headers.get("ratelimit-policy"),
+    response.headers.get("ratelimit"),
+  );
   if (!response.ok) {
     const { detail, problem } = await readErrorDetail(response);
     const retryAfterMs = readRetryAfterMs(response);

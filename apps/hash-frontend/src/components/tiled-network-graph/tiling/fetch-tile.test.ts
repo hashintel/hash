@@ -455,6 +455,48 @@ describe("fetchTile", () => {
     ).toHaveLength(1);
   });
 
+  it("pauses speculation pre-emptively when a success reports a thin budget", async () => {
+    const generation = genHex(0x18);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () =>
+        new Response(tileBytes(0x18, 3, 5, 1), {
+          status: 200,
+          headers: {
+            "content-type": SALTILE_MEDIA_TYPE,
+            "ratelimit-policy": '"gate";q=50;w=5',
+            ratelimit: '"gate";r=5',
+          },
+        }),
+    });
+
+    const { nodes } = await fetchTile(u64(3), u64(13), { baseUrl: BASE });
+    expect(nodes).toHaveLength(3);
+    // No refusal happened, but the reported budget sits under the reserve.
+    expect(isAtlasSpeculationPaused()).toBe(true);
+  });
+
+  it("leaves speculation running when a success reports ample budget", async () => {
+    const generation = genHex(0x17);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () =>
+        new Response(tileBytes(0x17, 3, 5, 1), {
+          status: 200,
+          headers: {
+            "content-type": SALTILE_MEDIA_TYPE,
+            "ratelimit-policy": '"gate";q=50;w=5',
+            ratelimit: '"gate";r=46',
+          },
+        }),
+    });
+
+    await fetchTile(u64(3), u64(13), { baseUrl: BASE });
+    expect(isAtlasSpeculationPaused()).toBe(false);
+  });
+
   it("serves a restricted caller, whose cut carries the manifest's k", async () => {
     // A nonzero delivery offset is a normal restricted view, not a reason
     // to refuse its otherwise valid tile response.

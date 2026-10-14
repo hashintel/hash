@@ -20,7 +20,19 @@
  *
  * One slot spans one HTTP attempt, not one logical request: `requestAtlas`
  * acquires inside its retry loop, so a backoff sleep never holds a slot.
+ *
+ * Concurrency alone does not bound *rate* — six slots over fast local
+ * responses sustain hundreds of requests a second against a budget that
+ * refills tens — so dispatch is also paced by the server's own reported
+ * budgets: before taking a slot, a request spends a token from the pacing
+ * model (see `takeAtlasRequestToken` in `atlas-backpressure.ts`), waiting out
+ * a dry budget in the client's queue instead of sending a request the server
+ * would refuse. Pacing runs *before* the slot is held, so a long budget
+ * drought never parks the whole pool behind sleeping occupants. Absent budget
+ * reports, pacing is free and the pool behaves as before.
  */
+
+import { takeAtlasRequestToken } from "./atlas-backpressure";
 
 /** Concurrent data-route requests; queued beyond this. */
 const ATLAS_DATA_REQUEST_LIMIT = 6;
@@ -53,6 +65,45 @@ const abortError = (signal: AbortSignal | undefined): Error => {
   return reason instanceof Error
     ? reason
     : new DOMException("Atlas request aborted while queued", "AbortError");
+};
+
+/** A `setTimeout` that also settles (rejecting) the moment `signal` aborts. */
+const sleep = (ms: number, signal: AbortSignal | undefined): Promise<void> =>
+  new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError(signal));
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onAbort = (): void => {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+      reject(abortError(signal));
+    };
+    timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+
+/**
+ * Waits until the pacing model admits one `lane` request (see
+ * `takeAtlasRequestToken`); each ask is bounded, so a drought is re-checked
+ * rather than slept through, and an abort lands between asks.
+ */
+const paceAtlasRequest = async (
+  lane: AtlasRequestLane,
+  signal: AbortSignal | undefined,
+): Promise<void> => {
+  for (;;) {
+    const waitMs = takeAtlasRequestToken(lane);
+    if (waitMs <= 0) {
+      return;
+    }
+    await sleep(waitMs, signal);
+  }
 };
 
 export const createAtlasRequestPool = (
@@ -112,6 +163,7 @@ export const createAtlasRequestPool = (
 
   return {
     run: async (lane, operation, signal) => {
+      await paceAtlasRequest(lane, signal);
       await acquire(lane, signal);
       try {
         return await operation();
