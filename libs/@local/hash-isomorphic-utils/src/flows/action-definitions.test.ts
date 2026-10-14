@@ -97,4 +97,17 @@ describe("getPayloadInputNames", () => {
       new Set(["items", "fallback"]),
     );
   });
+
+  it("reads other inputs that accept more than one kind as payloads", () => {
+    expect(
+      getPayloadInputNames({
+        ...findAction,
+        inputs: findAction.inputs.map((input) =>
+          input.name === "criterion"
+            ? { ...input, oneOfPayloadKinds: ["Text", "Number"] }
+            : input,
+        ),
+      }),
+    ).toEqual(new Set(["items", "fallback", "criterion"]));
+  });
 });
