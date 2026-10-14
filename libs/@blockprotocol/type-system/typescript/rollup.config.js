@@ -62,15 +62,20 @@ const rolls = (fmt, env) => ({
         for (const file of fs.readdirSync(path.resolve("src/generated"))) {
           // `Real` is the only type the generated declarations pull from another crate. Inlining
           // it keeps the published package free of a dependency on the unpublished `hash-codec`.
-          fs.writeFileSync(
-            path.join(generatedDir, file),
-            fs
-              .readFileSync(path.resolve("src/generated", file), "utf8")
-              .replace(
-                'import type { Real } from "@local/hash-codec/types";',
-                "type Real = number;",
-              ),
-          );
+          const content = fs
+            .readFileSync(path.resolve("src/generated", file), "utf8")
+            .replace(
+              'import type { Real } from "@local/hash-codec/types";',
+              "type Real = number;",
+            );
+
+          if (content.includes('from "@local/')) {
+            this.error(
+              `${file} imports from an unpublished \`@local/\` package`,
+            );
+          }
+
+          fs.writeFileSync(path.join(generatedDir, file), content);
         }
       },
     },
