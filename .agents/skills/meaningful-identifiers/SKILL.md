@@ -2,16 +2,6 @@
 name: meaningful-identifiers
 description: Naming guidance for callback parameters and local variables in TypeScript. Use when writing or refactoring loops, array callbacks (map/filter/find/reduce), or local accumulators.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: low
-    keywords:
-      - naming
-      - rename
-      - identifier
-      - variable name
 ---
 
 # Meaningful identifiers

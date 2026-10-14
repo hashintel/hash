@@ -2,22 +2,6 @@
 name: handling-rust-errors
 description: HASH error handling patterns using error-stack crate. Use when working with Result types, Report types, defining custom errors, propagating errors with change_context, adding context with attach, implementing Error trait, or documenting error conditions in Rust code.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - error
-      - Result
-      - Report
-      - error-stack
-      - change_context
-      - attach
-      - ResultExt
-    intent-patterns:
-      - "\\b(handle|create|define|propagate|convert)\\b.*?\\berror\\b"
-      - "\\bReport<.*>\\b"
 ---
 
 # Rust Error-Stack Patterns

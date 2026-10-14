@@ -2,22 +2,6 @@
 name: writing-hashql-diagnostics
 description: HashQL diagnostic writing patterns using hashql-diagnostics crate. Use when creating error messages, warnings, Labels, Messages, Severity levels, Patches, Suggestions, or improving diagnostic quality in HashQL code.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - diagnostic
-      - hashql-diagnostics
-      - Label
-      - Message
-      - Severity
-      - Patch
-      - Suggestions
-    intent-patterns:
-      - "\\b(create|write|add|improve)\\b.*?\\bdiagnostic\\b"
-      - "\\b(error|warning)\\b.*?\\bmessage\\b"
 ---
 
 # HashQL Diagnostic Writing

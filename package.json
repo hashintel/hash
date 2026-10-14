@@ -12,7 +12,6 @@
       "!**/node_modules",
       "!**/pkg",
       "!**/.venv",
-      ".claude/hooks",
       "apps/**",
       "libs/**",
       "tests/**"
@@ -75,7 +74,6 @@
   },
   "devDependencies": {
     "@changesets/cli": "patch:@changesets/cli@npm%3A3.0.3#~/.yarn/patches/@changesets-cli-npm-3.0.3-37da92ed6c.patch",
-    "@local/claude-hooks": "workspace:*",
     "@yarnpkg/types": "^4.0.1",
     "lefthook": "2.0.0",
     "npm-run-all2": "8.0.4",

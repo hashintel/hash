@@ -2,19 +2,6 @@
 name: rust-testing-strategy
 description: HASH Rust testing strategy. Use when writing Rust unit, integration, or snapshot tests, or choosing assertion and test-organization patterns.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - rust test
-      - cargo nextest
-      - insta
-      - similar_asserts
-    intent-patterns:
-      - "\\b(write|add|run|fix)\\b.*?\\b(rust|cargo)\\b.*?\\btest"
-      - "\\b(nextest|snapshot test|insta)\\b"
 ---
 
 # Rust Testing Strategy
