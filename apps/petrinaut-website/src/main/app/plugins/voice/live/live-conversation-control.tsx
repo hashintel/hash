@@ -22,9 +22,13 @@ import {
   type LiveConversationState,
 } from "./live-conversation";
 import { LiveSpeechCaptions } from "./live-speech-captions";
+import { createUtteranceJudgmentRequester } from "./request-utterance-judgment";
 
 import type { InterviewBudgetLevel } from "../../../../../shared/interview-budget";
-import type { VoiceInterviewControl } from "../session/voice-interview-control";
+import type {
+  OpenAIVoiceConfig,
+  VoiceInterviewControl,
+} from "../session/voice-interview-control";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 type LiveControlsContext = PetrinautAiVoiceModeContext &
@@ -49,6 +53,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     >[0]["submit"];
     readonly connectionTimeoutMs: number;
     readonly isDisclosureAcknowledged: () => boolean;
+    readonly utteranceJudgment?: OpenAIVoiceConfig["utteranceJudgment"];
   };
 
 const prepareVoice = async (
@@ -100,6 +105,7 @@ export const LiveConversationControl = ({
   setVoiceActive,
   setInputMode,
   connectionTimeoutMs,
+  utteranceJudgment,
   submit,
   messages,
   status,
@@ -393,6 +399,10 @@ export const LiveConversationControl = ({
       speechPending: next.speechPending,
       toolApprovalState: (toolCallId) =>
         latest.current.toolApprovalState?.(toolCallId) ?? null,
+      judge:
+        utteranceJudgment === "log"
+          ? createUtteranceJudgmentRequester(globalThis.fetch.bind(globalThis))
+          : undefined,
     });
     bridge.current.update(latest.current.chat);
     session.current = next;
@@ -405,6 +415,7 @@ export const LiveConversationControl = ({
     phase,
     setVoiceActive,
     interviewBudgetLevel,
+    utteranceJudgment,
   ]);
   useEffect(() => {
     session.current?.setInterviewBudgetLevel(interviewBudgetLevel);

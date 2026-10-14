@@ -3,14 +3,14 @@ import { cva } from "@hashintel/ds-helpers/css";
 export const summaryRow = cva({
   base: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "baseline",
     paddingX: "[0.5px]",
     marginBottom:
       "[calc(-0.25 * var(--selectable-list-header-footer-padding-y))]",
     // One step below the text size inherited from the list's footer slot,
     // like the list's group labels sit below its item text
     fontSize: "[0.85em]",
-    lineHeight: "[1.334]",
+    lineHeight: "[round(1em * 1.334, 1px)]",
     gap: "[0.67em]",
   },
 });
@@ -35,7 +35,7 @@ export const summaryAction = cva({
     cursor: "pointer",
     borderRadius: "sm",
     whiteSpace: "nowrap",
-    lineHeight: "[1]",
+    lineHeight: "[round(1em, 1px)]",
     _hover: {
       color: "neutral.s110",
       textDecoration: "underline",

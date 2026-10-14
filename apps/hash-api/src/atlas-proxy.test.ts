@@ -11,9 +11,9 @@ import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 
 /**
- * The header the atlas reads as a delegated actor statement - its own vocabulary, not this
- * module's: the proxy exports no constant for it because it neither states nor strips it. The
- * spelling is pinned upstream as `ACTOR_ID_HEADER` in the authentication middleware.
+ * The header a Graph service names its delegated actor in. The atlas accepts no delegation and
+ * ignores it, and the proxy exports no constant for it because it neither states nor strips it.
+ * The spelling is pinned upstream as `ACTOR_ID_HEADER` in the authentication middleware.
  */
 const ACTOR_ID_HEADER = "X-Authenticated-User-Actor-Id";
 
@@ -206,9 +206,9 @@ describe("the caller's identity", () => {
 
   it("states no actor of its own", async () => {
     // The pin on the deletion: the proxy used to write the actor header from this API's session
-    // resolution, and the atlas ignored it every time - a bare actor statement without its paired
-    // service secret is refused upstream. A request that arrives without the header must leave
-    // without it, so a regression re-adding the injection fails here.
+    // resolution, and the atlas ignored it every time, because it resolves the caller from the
+    // session alone. A request that arrives without the header must leave without it, so a
+    // regression re-adding the injection fails here.
     const api = await startApi();
     received.length = 0;
 
@@ -222,9 +222,8 @@ describe("the caller's identity", () => {
 
   it("passes a caller's actor header through, which impersonates nobody", async () => {
     // The proxy neither states nor strips the actor header, so a caller's spelling of it crosses
-    // the hop like any other header. The defence is the atlas's own and is pinned there:
-    // `bare_actor_id_header_does_not_impersonate` holds that without the paired service secret the
-    // header is ignored and the request resolves from its session credential alone.
+    // the hop like any other header. The defence is the atlas's own: it accepts no service
+    // delegation, so the header is ignored and the request resolves from its session alone.
     const api = await startApi();
     received.length = 0;
 
@@ -301,20 +300,31 @@ describe("a request body", () => {
   });
 });
 
+/** The header names a cross-origin response exposes to script. */
+const exposedHeaders = (response: globalThis.Response) =>
+  (response.headers.get("access-control-expose-headers") ?? "")
+    .split(",")
+    .map((name) => name.trim());
+
 describe("the authority token's path back to the browser", () => {
   // Without the expose header the whole token round trip no-ops silently: a cross-origin response
   // hands script only the CORS-safelisted headers, so a contract-perfect client reads `null` for
   // the minted token, sends nothing back, and takes a uniform 401 on every data route - a refusal
   // that reads as authority working. `CORS_CONFIG` states no `exposedHeaders`, and the `cors`
   // package emits the header not at all when the option is unset.
-  it("exposes the authority header so the caller's own script can read it", async () => {
+  it("exposes the authority header and the rate-limit fields to the caller's own script", async () => {
     const api = await startApi();
     received.length = 0;
 
     const response = await fetch(`${api.url}/atlas/current`);
 
-    expect(response.headers.get("access-control-expose-headers")).toBe(
-      ATLAS_AUTHORITY_HEADER,
+    expect(exposedHeaders(response)).toEqual(
+      expect.arrayContaining([
+        ATLAS_AUTHORITY_HEADER,
+        "RateLimit-Policy",
+        "RateLimit",
+        "Retry-After",
+      ]),
     );
 
     await close(api.server);
@@ -338,9 +348,7 @@ describe("the authority token's path back to the browser", () => {
     expect(received[0]!.body).toBe("");
     expect(response.headers.get(ATLAS_AUTHORITY_HEADER)).toBe(MINTED_TOKEN);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
-    expect(response.headers.get("access-control-expose-headers")).toBe(
-      ATLAS_AUTHORITY_HEADER,
-    );
+    expect(exposedHeaders(response)).toContain(ATLAS_AUTHORITY_HEADER);
 
     await close(api.server);
   });

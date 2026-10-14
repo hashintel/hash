@@ -68,6 +68,10 @@ impl AuxiliaryProjections {
         }
     }
 
+    pub(crate) const fn entity_edition_alias(&self) -> Option<Alias> {
+        self.base.entity_editions
+    }
+
     /// Requests the cached type assignments for an entity edition.
     ///
     /// Registers a separate join from the base projections' type-ID aggregate, which does not

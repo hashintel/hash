@@ -6,13 +6,27 @@ import {
   getArrayPayloadLength,
 } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 
-import { resolvePayloadValue, storePayload } from "./payload-storage.js";
+import {
+  resolveInputPayload,
+  resolvePayloadValue,
+  prepareOutputPayload,
+  storePayload,
+} from "./payload-storage.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
+import type { EntityId } from "@blockprotocol/type-system";
+import type {
+  ActionDefinitionTypes,
+  InputKindsOf,
+  SimplifiedInputsOf,
+  StepOutputOf,
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ArrayStoredPayloadRef,
+  PersistedEntityMetadata,
   ProposedEntity,
   SingularStoredPayloadRef,
+  StoredItemRef,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
@@ -193,22 +207,31 @@ describe("stored arrays", () => {
   it("resolves item references inside an inline array", async () => {
     const { storageProvider } = createMemoryStorageProvider();
 
-    const ref = await storeEntities(storageProvider, "persist", [
-      entity(0),
-      entity(1),
-    ]);
+    const persisted: PersistedEntityMetadata[] = [
+      { entityId: "web~entity-0" as EntityId, operation: "create" },
+      { entityId: "web~entity-1" as EntityId, operation: "create" },
+    ];
 
+    const ref = await storePayload({
+      storageProvider,
+      workflowId,
+      runId: `run-${Math.random()}`,
+      stepId: "persist",
+      outputName: "persistedEntities",
+      kind: "PersistedEntityMetadata",
+      value: persisted,
+    });
+
+    /* A for-each branch puts its item into an array for an input that takes one. */
     const [, secondItem] = getArrayPayloadItems(ref);
 
-    /*
-     * A for-each branch puts its item into an array for an input that takes one. No stored kind can hold this
-     * shape in its types yet, so the value is cast.
-     */
     await expect(
-      resolvePayloadValue({ storageProvider, workflowId }, "ProposedEntity", [
-        secondItem,
-      ] as unknown as ArrayStoredPayloadRef<"ProposedEntity">),
-    ).resolves.toEqual([entity(1)]);
+      resolvePayloadValue(
+        { storageProvider, workflowId },
+        "PersistedEntityMetadata",
+        [secondItem as StoredItemRef<"PersistedEntityMetadata">],
+      ),
+    ).resolves.toEqual([persisted[1]]);
   });
 
   it("fails to resolve an item that isn't in its array", async () => {
@@ -377,5 +400,218 @@ describe("stored arrays", () => {
     ).rejects.toThrow("is not an output of workflow another-workflow");
 
     expect(getDownloadCount()).toBe(0);
+  });
+});
+
+describe("payloads whose kind is only known when an action runs", () => {
+  const output = (
+    storageProvider: FileStorageProvider,
+    outputName: string,
+  ) => ({
+    storageProvider,
+    workflowId,
+    runId: `run-${Math.random()}`,
+    stepId: "generic",
+    outputName,
+  });
+
+  it("stores an output only if its kind requires it", async () => {
+    const { storageProvider } = createMemoryStorageProvider();
+
+    const persisted = {
+      entityId: "web~entity-0" as EntityId,
+      operation: "create",
+    } as const;
+
+    const [proposed, persistedArray, persistedSingle, texts] =
+      await Promise.all([
+        prepareOutputPayload({
+          ...output(storageProvider, "proposed"),
+          payload: { kind: "ProposedEntity", value: entity(0) },
+        }),
+        prepareOutputPayload({
+          ...output(storageProvider, "persistedArray"),
+          payload: { kind: "PersistedEntityMetadata", value: [persisted] },
+        }),
+        prepareOutputPayload({
+          ...output(storageProvider, "persistedSingle"),
+          payload: { kind: "PersistedEntityMetadata", value: persisted },
+        }),
+        prepareOutputPayload({
+          ...output(storageProvider, "texts"),
+          payload: { kind: "Text", value: ["a", "b"] },
+        }),
+      ]);
+
+    /* A stored kind is always stored, and a stored-array kind only as an array. */
+    expect(proposed.value).toMatchObject({ __stored: true, array: false });
+    expect(persistedArray.value).toMatchObject({
+      __stored: true,
+      array: true,
+      length: 1,
+    });
+    expect(persistedSingle).toEqual({
+      kind: "PersistedEntityMetadata",
+      value: persisted,
+    });
+    expect(texts).toEqual({ kind: "Text", value: ["a", "b"] });
+  });
+
+  /*
+   * `find` and `filter` as actions implement them, generic over the kind their items are given. What this checks is
+   * mostly that they compile without a cast, and that a mistake in the kind they return doesn't.
+   */
+  type ItemsInput = {
+    readonly name: "items";
+    readonly oneOfPayloadKinds: readonly ["Text", "ProposedEntity"];
+    readonly array: true;
+    readonly required: true;
+  };
+
+  type FindAction = {
+    readonly inputs: readonly [ItemsInput];
+    readonly outputs: readonly [
+      {
+        readonly name: "match";
+        readonly kindFrom: "items";
+        readonly array: false;
+        readonly required: false;
+      },
+    ];
+  };
+
+  type FilterAction = {
+    readonly inputs: readonly [ItemsInput];
+    readonly outputs: readonly [
+      {
+        readonly name: "matches";
+        readonly kindFrom: "items";
+        readonly array: true;
+        readonly required: true;
+      },
+    ];
+  };
+
+  type Implementation<Definition extends ActionDefinitionTypes> = <
+    Kinds extends InputKindsOf<Definition>,
+  >(
+    inputs: SimplifiedInputsOf<Definition, Kinds>,
+  ) => Promise<StepOutputOf<Definition, Kinds>[]>;
+
+  const find =
+    (
+      storageProvider: FileStorageProvider,
+      isMatch: (item: unknown) => boolean,
+    ): Implementation<FindAction> =>
+    async ({ items }) => {
+      const resolved = await resolveInputPayload(
+        { storageProvider, workflowId },
+        items,
+      );
+
+      const match = resolved.value.find(isMatch);
+
+      return match === undefined
+        ? []
+        : [
+            {
+              outputName: "match",
+              payload: await prepareOutputPayload({
+                ...output(storageProvider, "match"),
+                payload: { kind: resolved.kind, value: match },
+              }),
+            },
+          ];
+    };
+
+  const filter =
+    (
+      storageProvider: FileStorageProvider,
+      isMatch: (item: unknown) => boolean,
+    ): Implementation<FilterAction> =>
+    async ({ items }) => {
+      const resolved = await resolveInputPayload(
+        { storageProvider, workflowId },
+        items,
+      );
+
+      return [
+        {
+          outputName: "matches",
+          payload: await prepareOutputPayload({
+            ...output(storageProvider, "matches"),
+            payload: {
+              kind: resolved.kind,
+              value: resolved.value.filter(isMatch),
+            },
+          }),
+        },
+      ];
+    };
+
+  it("lets an action return items of the kind its input was given", async () => {
+    const { storageProvider } = createMemoryStorageProvider();
+
+    const entities = await storeEntities(storageProvider, "persist", [
+      entity(0),
+      entity(1),
+    ]);
+
+    const isEntityOne = (item: unknown) =>
+      (item as ProposedEntity).localEntityId === "entity-1";
+
+    const [found] = await find(
+      storageProvider,
+      isEntityOne,
+    )({ items: { kind: "ProposedEntity", value: entities } });
+
+    expect(found?.payload.kind).toBe("ProposedEntity");
+    await expect(
+      resolveInputPayload({ storageProvider, workflowId }, found!.payload),
+    ).resolves.toEqual({ kind: "ProposedEntity", value: entity(1) });
+
+    await expect(
+      find(
+        storageProvider,
+        () => false,
+      )({ items: { kind: "ProposedEntity", value: entities } }),
+    ).resolves.toEqual([]);
+
+    await expect(
+      filter(
+        storageProvider,
+        (item) => item !== "b",
+      )({ items: { kind: "Text", value: ["a", "b", "c"] } }),
+    ).resolves.toEqual([
+      { outputName: "matches", payload: { kind: "Text", value: ["a", "c"] } },
+    ]);
+  });
+
+  it("rejects an output of another kind, or of values not of its kind", () => {
+    const storageProvider = createMemoryStorageProvider().storageProvider;
+
+    // @ts-expect-error -- the output takes its kind from `items`, which may not be `Text`
+    const _anotherKind: Implementation<FilterAction> = async () => [
+      {
+        outputName: "matches",
+        payload: await prepareOutputPayload({
+          ...output(storageProvider, "matches"),
+          payload: { kind: "Text", value: ["a"] },
+        }),
+      },
+    ];
+
+    const _valuesOfAnotherKind: Implementation<FilterAction> = async ({
+      items,
+    }) => [
+      {
+        outputName: "matches",
+        payload: await prepareOutputPayload({
+          ...output(storageProvider, "matches"),
+          // @ts-expect-error -- strings are only values of `items`' kind if it's `Text`
+          payload: { kind: items.kind, value: ["a"] },
+        }),
+      },
+    ];
   });
 });

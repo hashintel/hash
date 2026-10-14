@@ -25,16 +25,11 @@ import { CustomEdge } from "./swimlane/custom-edge";
 import { CustomNode } from "./swimlane/custom-node";
 import { edgeColor } from "./swimlane/shared/edge-styles";
 
-import type {
-  CustomNodeType,
-  GroupWithEdgesAndNodes,
-  UngroupedEdgesAndNodes,
-} from "./shared/types";
+import type { CustomNodeType, EdgesAndNodes } from "./shared/types";
 
 const nodeTypes = {
   action: CustomNode,
-  "parallel-group": CustomNode,
-  trigger: CustomNode,
+  "for-each": CustomNode,
 };
 
 const edgeTypes = {
@@ -75,7 +70,7 @@ const flattedNodesToElkNodes = (
   return parents.map((parentNode) => ({
     ...parentNode,
     layoutOptions:
-      parentNode.data.kind === "parallel-group"
+      parentNode.data.kind === "for-each"
         ? parentGroupLayoutOptions
         : undefined,
     children: flattedNodesToElkNodes(
@@ -92,16 +87,10 @@ const elkGraphToFlattenedPositionedNodes = (nodes: ElkNode[]): ElkNode[] => {
   ]);
 };
 
-type SwimlaneProps = (UngroupedEdgesAndNodes | GroupWithEdgesAndNodes) & {
-  isOnlySwimlane: boolean;
-};
-
 export const Swimlane = ({
-  group,
   nodes: initialNodes,
   edges: initialEdges,
-  isOnlySwimlane,
-}: SwimlaneProps) => {
+}: EdgesAndNodes) => {
   const { fitView } = useReactFlow();
 
   const { selectedFlowRun } = useFlowRunsContext();
@@ -116,7 +105,7 @@ export const Swimlane = ({
     );
 
     const graph: ElkNode = {
-      id: group?.groupId.toString() ?? "root",
+      id: "root",
       // @ts-expect-error –– mismatch between Elk and ReactFlow types
       children: childrenForElk,
       // @ts-expect-error –– mismatch between Elk and ReactFlow types
@@ -142,7 +131,7 @@ export const Swimlane = ({
 
         // window.requestAnimationFrame(() => fitView());
       });
-  }, [fitView, group, initialEdges, initialNodes, setNodes, setEdges]);
+  }, [fitView, initialEdges, initialNodes, setNodes, setEdges]);
 
   const bounds = useMemo(
     () => getNodesBounds(nodes.filter((node) => !node.parentNode)),
@@ -158,7 +147,7 @@ export const Swimlane = ({
     useStatusForSteps(stepsWithIds) ?? {};
 
   const statusToDisplay = useMemo(() => {
-    if (selectedFlowRun && isOnlySwimlane) {
+    if (selectedFlowRun) {
       /**
        * If this is the only swimlane in the view, we want to show an error if the flow run is in an errored state
        * – it may have errored before any steps in the swimlane have been processed.
@@ -170,7 +159,7 @@ export const Swimlane = ({
       }
     }
     return groupStatus;
-  }, [groupStatus, isOnlySwimlane, selectedFlowRun]);
+  }, [groupStatus, selectedFlowRun]);
 
   /**
    * We need to specify the markerEnd for each edge when they are passed into ReactFlow,
@@ -230,7 +219,7 @@ export const Swimlane = ({
             color: palette.gray[50],
           })}
         >
-          {group?.description ?? "Flow"}
+          Flow
         </Typography>
       </Stack>
       <Box
@@ -240,7 +229,6 @@ export const Swimlane = ({
         }}
       >
         <ReactFlow
-          key={group?.groupId ?? "root"}
           nodes={nodes}
           nodeTypes={nodeTypes}
           edges={edgesWithLatestStatus}

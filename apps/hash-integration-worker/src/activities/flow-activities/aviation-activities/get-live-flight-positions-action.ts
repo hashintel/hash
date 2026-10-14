@@ -114,16 +114,13 @@ export const createGetLiveFlightPositionsAction = ({
           actionType: "getLiveFlightPositions",
         });
 
-      // The input is a stored reference - resolve it
       const persistedEntities = await resolvePayloadValue(
         { storageProvider: getStorageProvider(), workflowId },
-        "PersistedEntitiesMetadata",
+        "PersistedEntityMetadata",
         persistedEntitiesInput,
       );
 
-      const flightEntityIds = persistedEntities.persistedEntities.map(
-        ({ entityId }) => entityId,
-      );
+      const flightEntityIds = persistedEntities.map(({ entityId }) => entityId);
 
       if (flightEntityIds.length === 0) {
         const emptyStoredRef = await storePayload({
