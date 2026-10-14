@@ -1,4 +1,4 @@
-import { type PageContent, testDocumentPages } from "./test-document";
+import type { PageContent } from "./test-document";
 
 const pageHeight = 842;
 
@@ -39,7 +39,7 @@ const buildContentStream = ({ heading, body }: PageContent) =>
  *
  * @see https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf#page=708
  */
-const generatePdf = (pages: readonly PageContent[]): Buffer => {
+export const generatePdf = (pages: readonly PageContent[]): Buffer => {
   // After the catalog, page tree and font
   const firstPageObjectNumber = 4;
 
@@ -82,8 +82,3 @@ const generatePdf = (pages: readonly PageContent[]): Buffer => {
 
   return Buffer.from(pdf);
 };
-
-/** Renders `pages`, by default the test document's, as a PDF. */
-export const generateTestPdf = (
-  pages: readonly PageContent[] = testDocumentPages,
-): Buffer => generatePdf(pages);

@@ -4,8 +4,8 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 
 import { getUser, uploadFile } from "../api-queries";
 import { expect } from "../runtime";
-import { generateTestDocx } from "./generate-test-docx";
-import { generateTestPdf } from "./generate-test-pdf";
+import { generateDocx } from "./generate-test-docx";
+import { generatePdf } from "./generate-test-pdf";
 import { otherTestDocumentPages, testDocumentPages } from "./test-document";
 
 import type { Locator, Page } from "../runtime";
@@ -78,14 +78,14 @@ export const editFileUrl = async (page: Page, fileUrl: string) => {
 
 type FileFormat = {
   extension: string;
-  generate: (pages?: readonly PageContent[]) => Buffer | Promise<Buffer>;
+  generate: (pages: readonly PageContent[]) => Buffer | Promise<Buffer>;
   mimeType: string;
   pageWithHeading: (page: Page, heading: string) => Locator;
 };
 
 export const pdf: FileFormat = {
   extension: "pdf",
-  generate: generateTestPdf,
+  generate: generatePdf,
   mimeType: "application/pdf",
   pageWithHeading: (page, heading) =>
     getPdfPage(page).getByText(heading, { exact: true }),
@@ -93,7 +93,7 @@ export const pdf: FileFormat = {
 
 export const docx: FileFormat = {
   extension: "docx",
-  generate: generateTestDocx,
+  generate: generateDocx,
   mimeType: docxMimeType,
   pageWithHeading: getDocxPage,
 };

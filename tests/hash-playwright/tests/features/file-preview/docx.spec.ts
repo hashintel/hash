@@ -1,6 +1,6 @@
 import {
   generateHostileTestDocx,
-  generateTestDocx,
+  generateDocx,
   generateUndrawableTestDocx,
 } from "../../shared/file-preview/generate-test-docx";
 import {
@@ -21,7 +21,7 @@ const [firstPage, secondPage, thirdPage] = testDocumentPages;
 test.describe("DOCX preview", () => {
   test.beforeEach(async ({ page }) => {
     await uploadAndOpenFile(page, {
-      contents: await generateTestDocx(),
+      contents: await generateDocx(testDocumentPages),
       mimeType: docxMimeType,
       name: `file-preview-${Date.now()}.docx`,
     });

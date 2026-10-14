@@ -1,4 +1,4 @@
-import { generateTestPdf } from "../../shared/file-preview/generate-test-pdf";
+import { generatePdf } from "../../shared/file-preview/generate-test-pdf";
 import {
   testDocumentPages,
   testDocumentSearchWord,
@@ -16,7 +16,7 @@ const [firstPage, secondPage, thirdPage] = testDocumentPages;
 test.describe("PDF preview", () => {
   test.beforeEach(async ({ page }) => {
     await uploadAndOpenFile(page, {
-      contents: generateTestPdf(),
+      contents: generatePdf(testDocumentPages),
       mimeType: "application/pdf",
       name: `file-preview-${Date.now()}.pdf`,
     });
