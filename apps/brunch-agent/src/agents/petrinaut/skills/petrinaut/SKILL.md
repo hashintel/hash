@@ -70,6 +70,8 @@ Describe this result as tool-schema accepted, not valid, runnable or simulated.
 
 Lambda, kernel, and dynamics code is a plain function body ending in `return` — no module, no `export default`, no wrapper — with the input object and `parameters` available ambiently. (The legacy `export default Lambda((input, parameters) => …)` / `TransitionKernel(…)` / `Dynamics(…)` module form is still accepted, but write new code as a bare body.)
 
+Every code surface except visualizers accepts only a small TypeScript subset: `const` bindings, destructuring, guard-style `if … return`, ternaries, arithmetic, comparison and logic, `Math.*`, `.length`, `.map(...)`, record and array literals, and in metrics also `.reduce(...)` and `.concat(...)`. Loops, `let` and `var`, mutation such as `.push(...)`, spread and other helper calls are rejected. To build `n` tokens, write `Array.from({ length: n }, (_, index) => ({ … }))` instead of a loop.
+
 ### Code surfaces
 
 The exact shapes the runtime expects:

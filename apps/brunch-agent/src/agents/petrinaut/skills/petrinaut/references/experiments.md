@@ -27,6 +27,8 @@ Call `draft_petrinaut_experiment` once with `{ experiment, declarations, unsuppo
 
 The tool drafts a proposal in this editor's memory and returns `{ status, summary, diagnostics }`. It does not run anything, save anything with the document or navigate. Say "drafted for review, not run", not "added to the model". A redraft supersedes the earlier card. If `status` is `invalid`, repair from the diagnostics against a fresh read and redraft; do not ask the USER to fix identifiers.
 
+Draft after the net changes the experiment depends on. A card checks the net it was drafted against, so any later change, including one meant only as a demonstration, makes it report that the model changed. After changing the net, read it again and redraft.
+
 The USER runs a drafted proposal from the card's Run action. Approval of a draft in conversation is not a request to execute it: point them to the card. Run and Dismiss happen later in the card and are not reported to the conversation, nor is eventual completion, so do not infer any of those events or describe them as observed.
 
 ## Running
