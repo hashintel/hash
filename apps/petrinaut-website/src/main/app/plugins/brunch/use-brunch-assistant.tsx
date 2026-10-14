@@ -34,9 +34,9 @@ import {
   type FixtureProcessAgentConfiguration,
   type ProcessAgentBinding,
 } from "./conversation/use-process-agent-binding";
+import { brunchPlugin, WithBrunchEditorApi } from "./editor-api-plugin";
 import { foldBrunchLedgerHistory } from "./ledger/brunch-ledger-history";
 import { BrunchLedgerPane } from "./ledger/brunch-ledger-pane";
-import { brunchPlugin, WithBrunchEditorApi } from "./plugin";
 import {
   brunchPetrinautClientToolNames,
   canonicalPetrinautClientToolNames,
@@ -147,7 +147,7 @@ export interface BrunchAssistant {
   /**
    * The host's plugins, with Brunch's added while it is the assistant. Pass
    * this list to `<Petrinaut plugins>`: Brunch's cards read the editor through
-   * its plugin and render nothing without it.
+   * its plugin and, without it, show a notice in place of each card.
    */
   readonly plugins: readonly PetrinautPlugin[];
 }

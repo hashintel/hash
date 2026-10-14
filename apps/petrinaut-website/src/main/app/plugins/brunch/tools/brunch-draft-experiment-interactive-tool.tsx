@@ -23,7 +23,10 @@ import {
 } from "@hashintel/petrinaut/ui";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
-import { WithBrunchEditorApi, type BrunchEditorApi } from "../plugin";
+import {
+  WithBrunchEditorApi,
+  type BrunchEditorApi,
+} from "../editor-api-plugin";
 import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 import {
   describeBudget,

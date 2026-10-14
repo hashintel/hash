@@ -7,7 +7,7 @@ import {
   type EditorDraft,
 } from "./shared/brunch-draft-experiment-drafts";
 
-import type { BrunchEditorApi } from "../plugin";
+import type { BrunchEditorApi } from "../editor-api-plugin";
 import type { PetrinautAiComposerControlContext } from "@hashintel/petrinaut/ui";
 
 const sendResults = (

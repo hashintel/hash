@@ -15,7 +15,10 @@ import {
 } from "@hashintel/petrinaut/ui";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
-import { WithBrunchEditorApi, type BrunchEditorApi } from "../plugin";
+import {
+  WithBrunchEditorApi,
+  type BrunchEditorApi,
+} from "../editor-api-plugin";
 
 import type { InBandBrowserCallAdmission } from "./in-band-browser-call";
 
