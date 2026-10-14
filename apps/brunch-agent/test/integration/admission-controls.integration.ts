@@ -330,7 +330,6 @@ const run = async () => {
       buffering,
       question,
       wire,
-      voice: { question, buffering },
     };
   } finally {
     await application.stop();

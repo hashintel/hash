@@ -8,14 +8,12 @@ import {
 import { selectCanonicalSpeech } from "@apps/petrinaut-website/src/main/app/plugins/brunch/voice/live/canonical-speech";
 import { RealtimeBrunchBridge } from "@apps/petrinaut-website/src/main/app/plugins/brunch/voice/realtime/realtime-brunch-bridge";
 
-type AdmissionVoiceEvidence = AdmissionControlsResult["voice"];
-
-let result: AdmissionVoiceEvidence;
+let result: AdmissionControlsResult;
 beforeAll(async () => {
-  result = (await runAdmissionControls()).result.voice;
+  ({ result } = await runAdmissionControls());
 });
 const speechFrom = (
-  messages: AdmissionVoiceEvidence["buffering"][number]["projectedAfter"],
+  messages: AdmissionControlsResult["buffering"][number]["projectedAfter"],
 ) =>
   // The mounted runtime also emits core server tools absent from the editor's
   // static tool type. Retain every actual part in this controlled fixture: the
