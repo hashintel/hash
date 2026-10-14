@@ -798,10 +798,10 @@ __metadata:
     prosemirror-dev-tools: "npm:4.3.0"
     prosemirror-inputrules: "npm:1.2.0"
     prosemirror-keymap: "npm:1.2.0"
-    prosemirror-model: "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch"
-    prosemirror-state: "npm:1.4.3"
-    prosemirror-transform: "npm:1.7.0"
-    prosemirror-view: "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch"
+    prosemirror-model: "npm:1.25.12"
+    prosemirror-state: "npm:1.4.4"
+    prosemirror-transform: "npm:1.12.2"
+    prosemirror-view: "npm:1.42.6"
     react: "npm:19.2.6"
     react-beautiful-dnd: "npm:13.1.1"
     react-dom: "npm:19.2.6"
@@ -9803,10 +9803,10 @@ __metadata:
     prosemirror-commands: "npm:1.3.1"
     prosemirror-dropcursor: "npm:1.6.1"
     prosemirror-keymap: "npm:1.2.0"
-    prosemirror-model: "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch"
-    prosemirror-state: "npm:1.4.3"
-    prosemirror-transform: "npm:1.7.0"
-    prosemirror-view: "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch"
+    prosemirror-model: "npm:1.25.12"
+    prosemirror-state: "npm:1.4.4"
+    prosemirror-transform: "npm:1.12.2"
+    prosemirror-view: "npm:1.42.6"
     react: "npm:19.2.6"
     rimraf: "npm:6.1.3"
     serialize-error: "npm:12.0.0"
@@ -38102,72 +38102,43 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prosemirror-model@npm:1.18.2":
-  version: 1.18.2
-  resolution: "prosemirror-model@npm:1.18.2"
+"prosemirror-model@npm:1.25.12":
+  version: 1.25.12
+  resolution: "prosemirror-model@npm:1.25.12"
   dependencies:
     orderedmap: "npm:^2.0.0"
-  checksum: 10c0/cb7d49611a938257824c18d312fd48fc96456c80f19c57a0a96b4a32506dca89119c14cb2416c482253a77f576c3d78749a24e029f63d3dc74be85b4117af3b9
+  checksum: 10c0/cec7505351ba635d9bcc4645b52f3a4499cceb8ba736ee092b1d81e74a6aa1ac9bedee21cbfe2f2647b4614579a97e86fdd1a2c5bda319a1d7028e7cbaa8ec9c
   languageName: node
   linkType: hard
 
-"prosemirror-model@patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch":
-  version: 1.18.2
-  resolution: "prosemirror-model@patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch::version=1.18.2&hash=e4ac95"
-  dependencies:
-    orderedmap: "npm:^2.0.0"
-  checksum: 10c0/0e4ac5612a67c8ae795d04607a7e1196a92218aa9170ddd4181d1071893a7c7144ae96a25cc2e0e02e0e72d42147575a40229d36498a1555d4af4c62eb716575
-  languageName: node
-  linkType: hard
-
-"prosemirror-state@npm:1.4.3, prosemirror-state@npm:>=1.0.0, prosemirror-state@npm:^1.0.0":
-  version: 1.4.3
-  resolution: "prosemirror-state@npm:1.4.3"
+"prosemirror-state@npm:1.4.4":
+  version: 1.4.4
+  resolution: "prosemirror-state@npm:1.4.4"
   dependencies:
     prosemirror-model: "npm:^1.0.0"
     prosemirror-transform: "npm:^1.0.0"
     prosemirror-view: "npm:^1.27.0"
-  checksum: 10c0/e34dc9b1a6b23c23265569b2c246aaef4a61353a5fd33e933b62528917603382271d9f7d5212094e8928dee9bb4827e25a583104d43745e6ab3b8cbde12170f5
+  checksum: 10c0/1428636a37c127afe0d11a4f4eb44d75a7f16717940405082bd16fa4c28cfeef9375d49f48e411e5f0fa26f3e5798af7f270edc9bc9b0e647df8bb79983bcd59
   languageName: node
   linkType: hard
 
-"prosemirror-transform@npm:1.7.0":
-  version: 1.7.0
-  resolution: "prosemirror-transform@npm:1.7.0"
-  dependencies:
-    prosemirror-model: "npm:^1.0.0"
-  checksum: 10c0/0d127eeccdda21537e91483892a2fdeeab7d26a088e69b4895af5407a7fdd2531a780f0975b33482003bfe5d6957bf8bfae2347a0c7b66b0aa0461aed451923d
-  languageName: node
-  linkType: hard
-
-"prosemirror-transform@npm:^1.0.0, prosemirror-transform@npm:^1.1.0":
-  version: 1.10.2
-  resolution: "prosemirror-transform@npm:1.10.2"
+"prosemirror-transform@npm:1.12.2":
+  version: 1.12.2
+  resolution: "prosemirror-transform@npm:1.12.2"
   dependencies:
     prosemirror-model: "npm:^1.21.0"
-  checksum: 10c0/4b63879bab3faf4e266a58ae00760f20d87e1fc9a342788276cccba6bdd6cb7b5cfd089f17d975200c0715e07b503126aa752ffe42e8c50761369dc6ff920b05
+  checksum: 10c0/94c7f19e6324afdf4e3868aeb018c8a6fbabf21bcf84455e6bcdceaae3b1adf5a0715f54d841e1229311083a3fed58b1a6dde6a5668e3137162f6f29b83c5560
   languageName: node
   linkType: hard
 
-"prosemirror-view@npm:1.29.1":
-  version: 1.29.1
-  resolution: "prosemirror-view@npm:1.29.1"
+"prosemirror-view@npm:1.42.6":
+  version: 1.42.6
+  resolution: "prosemirror-view@npm:1.42.6"
   dependencies:
-    prosemirror-model: "npm:^1.16.0"
+    prosemirror-model: "npm:^1.25.12"
     prosemirror-state: "npm:^1.0.0"
     prosemirror-transform: "npm:^1.1.0"
-  checksum: 10c0/ea37ace40d06ccd1063e7dd56464ef8419470006e680db4a47c8f1e2e4d99c51d177c7b353428973bc527614d27334da977205728742c3b6341e73ad39e9a1b0
-  languageName: node
-  linkType: hard
-
-"prosemirror-view@patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch":
-  version: 1.29.1
-  resolution: "prosemirror-view@patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch::version=1.29.1&hash=019be2"
-  dependencies:
-    prosemirror-model: "npm:^1.16.0"
-    prosemirror-state: "npm:^1.0.0"
-    prosemirror-transform: "npm:^1.1.0"
-  checksum: 10c0/27c2392db8ea68c24ff59828b7ccd16c848eac5a844486750823339d02daa97fbe4a5eec065839d2ec63eaa24ba232b4763c187a5e61b6ada447fb76ce44f5e2
+  checksum: 10c0/2e3d2092bc0b7dd7fb34192c8f698e52205b7065a6513315520d7095154af76b6eb258d74587042e1f8a1c8d403c165ea6dbdd66c3eb9b90f327e009ced4e123
   languageName: node
   linkType: hard
 
