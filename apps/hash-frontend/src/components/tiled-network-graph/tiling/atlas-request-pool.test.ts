@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { enterPrincipal } from "../../../shared/principal-scoped-state";
 import { noteAtlasBudget, resetAtlasBackpressure } from "./atlas-backpressure";
-import { createAtlasRequestPool } from "./atlas-request-pool";
+import { atlasRequestPool, createAtlasRequestPool } from "./atlas-request-pool";
 
 /** A promise with its settle handles exposed. */
 const deferred = <T>(): {
@@ -188,6 +189,81 @@ describe("createAtlasRequestPool", () => {
       await expect(
         pool.run("required", () => Promise.resolve("ok")),
       ).resolves.toBe("ok");
+    });
+  });
+
+  describe("flush", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+      resetAtlasBackpressure();
+    });
+
+    it("rejects queued waiters without dispatching, leaving the occupant undisturbed", async () => {
+      const pool = createAtlasRequestPool(1);
+      const gate = deferred<void>();
+      const occupant = pool.run("required", () => gate.promise);
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+
+      const requiredOperation = vi.fn(() => Promise.resolve("required"));
+      const speculativeOperation = vi.fn(() => Promise.resolve("speculative"));
+      const controller = new AbortController();
+      const queuedRequired = pool.run("required", requiredOperation);
+      const queuedSpeculative = pool.run(
+        "speculative",
+        speculativeOperation,
+        controller.signal,
+      );
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+
+      pool.flush();
+      await expect(queuedRequired).rejects.toThrow(
+        "superseded before dispatch",
+      );
+      await expect(queuedSpeculative).rejects.toThrow(
+        "superseded before dispatch",
+      );
+      expect(requiredOperation).not.toHaveBeenCalled();
+      expect(speculativeOperation).not.toHaveBeenCalled();
+
+      gate.resolve();
+      await occupant;
+      await expect(
+        pool.run("required", () => Promise.resolve("after")),
+      ).resolves.toBe("after");
+    });
+
+    it("rejects a budget-paced request", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+      noteAtlasBudget('"gate";q=10;w=1', '"gate";r=0');
+      const pool = createAtlasRequestPool(1);
+      const operation = vi.fn(() => Promise.resolve("never"));
+
+      const paced = pool.run("required", operation);
+      await vi.advanceTimersByTimeAsync(0);
+      pool.flush();
+
+      await expect(paced).rejects.toThrow("superseded before dispatch");
+      expect(operation).not.toHaveBeenCalled();
+    });
+
+    it("a principal change flushes the shared pool", async () => {
+      enterPrincipal("pool-actor-a");
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
+      noteAtlasBudget('"gate";q=10;w=1', '"gate";r=0');
+      const operation = vi.fn(() => Promise.resolve("never"));
+
+      const paced = atlasRequestPool.run("required", operation);
+      await vi.advanceTimersByTimeAsync(0);
+      enterPrincipal("pool-actor-b");
+
+      await expect(paced).rejects.toThrow("superseded before dispatch");
+      expect(operation).not.toHaveBeenCalled();
     });
   });
 });

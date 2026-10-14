@@ -30,6 +30,7 @@
  * pacing is free and the pool behaves as before.
  */
 
+import { registerPrincipalScopedReset } from "../../../shared/principal-scoped-state";
 import {
   refundAtlasRequestToken,
   takeAtlasRequestToken,
@@ -51,6 +52,8 @@ export type AtlasRequestLane = "required" | "speculative";
 
 interface Waiter {
   readonly start: () => void;
+  /** Rejects the waiting acquisition without starting it; for {@link AtlasRequestPool.flush}. */
+  readonly cancel: (error: Error) => void;
   readonly signal: AbortSignal | undefined;
 }
 
@@ -60,6 +63,11 @@ export interface AtlasRequestPool {
     operation: () => Promise<T>,
     signal?: AbortSignal,
   ): Promise<T>;
+  /**
+   * Rejects every request still waiting — budget-paced or slot-queued —
+   * without dispatching it; operations already running finish undisturbed.
+   */
+  flush(reason?: Error): void;
 }
 
 const abortError = (signal: AbortSignal | undefined): Error => {
@@ -69,52 +77,72 @@ const abortError = (signal: AbortSignal | undefined): Error => {
     : new DOMException("Atlas request aborted while queued", "AbortError");
 };
 
-/** A `setTimeout` that also settles (rejecting) the moment `signal` aborts. */
-const sleep = (ms: number, signal: AbortSignal | undefined): Promise<void> =>
-  new Promise<void>((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(abortError(signal));
-      return;
-    }
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const onAbort = (): void => {
-      if (timer !== undefined) {
-        clearTimeout(timer);
-      }
-      reject(abortError(signal));
-    };
-    timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
-      resolve();
-    }, ms);
-    signal?.addEventListener("abort", onAbort, { once: true });
-  });
-
-/**
- * Waits until the pacing model admits one request (see
- * `takeAtlasRequestToken` — admission is lane-blind by design; the lane
- * decides slot priority below, not budget access); each ask is bounded, so a
- * drought is re-checked rather than slept through, and an abort lands
- * between asks.
- */
-const paceAtlasRequest = async (
-  signal: AbortSignal | undefined,
-): Promise<void> => {
-  for (;;) {
-    const waitMs = takeAtlasRequestToken();
-    if (waitMs <= 0) {
-      return;
-    }
-    await sleep(waitMs, signal);
-  }
-};
-
 export const createAtlasRequestPool = (
   limit: number = ATLAS_DATA_REQUEST_LIMIT,
 ): AtlasRequestPool => {
   let active = 0;
   const required: Waiter[] = [];
   const speculative: Waiter[] = [];
+  /** Rejection hooks of the budget-paced sleeps in flight; for {@link flush}. */
+  const pacing = new Set<(error: Error) => void>();
+
+  /** A `setTimeout` that also settles (rejecting) on abort or a pool flush. */
+  const paceSleep = (
+    ms: number,
+    signal: AbortSignal | undefined,
+  ): Promise<void> =>
+    new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(abortError(signal));
+        return;
+      }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      // Assigned below, once the listeners it detaches exist; the stable
+      // hooks added to `pacing` and the abort event close over it.
+      let settle: (error?: Error) => void = () => {};
+      const cancel = (error: Error): void => {
+        settle(error);
+      };
+      const onAbort = (): void => {
+        settle(abortError(signal));
+      };
+      settle = (error?: Error): void => {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+        }
+        signal?.removeEventListener("abort", onAbort);
+        pacing.delete(cancel);
+        if (error === undefined) {
+          resolve();
+        } else {
+          reject(error);
+        }
+      };
+      pacing.add(cancel);
+      timer = setTimeout(() => {
+        settle();
+      }, ms);
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
+
+  /**
+   * Waits until the pacing model admits one request (see
+   * `takeAtlasRequestToken` — admission is lane-blind by design; the lane
+   * decides slot priority below, not budget access); each ask is bounded, so
+   * a drought is re-checked rather than slept through, and an abort or a
+   * flush lands between asks.
+   */
+  const paceAtlasRequest = async (
+    signal: AbortSignal | undefined,
+  ): Promise<void> => {
+    for (;;) {
+      const waitMs = takeAtlasRequestToken();
+      if (waitMs <= 0) {
+        return;
+      }
+      await paceSleep(waitMs, signal);
+    }
+  };
 
   const admit = (): void => {
     while (active < limit) {
@@ -156,6 +184,10 @@ export const createAtlasRequestPool = (
           signal?.removeEventListener("abort", onAbort);
           resolve();
         },
+        cancel: (error) => {
+          signal?.removeEventListener("abort", onAbort);
+          reject(error);
+        },
       });
     });
 
@@ -191,8 +223,42 @@ export const createAtlasRequestPool = (
         release();
       }
     },
+    flush: (
+      reason = new DOMException(
+        "Atlas request superseded before dispatch",
+        "AbortError",
+      ),
+    ) => {
+      for (const cancel of [...pacing]) {
+        cancel(reason);
+      }
+      for (const waiter of [...required.splice(0), ...speculative.splice(0)]) {
+        if (waiter.signal?.aborted !== true) {
+          waiter.cancel(reason);
+        }
+      }
+    },
   };
 };
 
 /** The shared pool every atlas data route runs under. */
 export const atlasRequestPool: AtlasRequestPool = createAtlasRequestPool();
+
+/**
+ * Flushes the shared pool when the authenticated principal changes.
+ *
+ * Everything still waiting was enqueued for the previous principal's
+ * viewport: its consumers are discarded by the same transition, so
+ * dispatching it would spend the successor's budget and slots on requests
+ * nothing can attribute — and the slot-queued entries already spent pacing
+ * tokens that the backpressure reset's cleared models make unrefundable,
+ * which the flush path's refund then correctly no-ops. Requests already on
+ * the wire are left to finish: the transport's incarnation guards refuse
+ * their publications, and cutting a socket frees nothing the pool controls.
+ *
+ * Registered at module load, so the pool cannot be imported without its
+ * reset (see `shared/principal-scoped-state.ts` for the placement contract).
+ */
+registerPrincipalScopedReset(() => {
+  atlasRequestPool.flush();
+});
