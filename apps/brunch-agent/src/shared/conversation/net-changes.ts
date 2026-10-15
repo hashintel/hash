@@ -124,7 +124,7 @@ const hasId = (value: unknown, id: string, underIdKey = false): boolean => {
 };
 
 /** The ID Petrinaut generates for an arc, which `deleteItemsByIds` uses. */
-const generatedArcId = (arc: ArcElement): string => {
+export const generatedArcId = (arc: ArcElement): string => {
   const place = getArcEndpointKey(placeArcEndpoint(arc.placeId));
   return arc.arcDirection === "input"
     ? generateArcId({ inputId: place, outputId: arc.transitionId })
