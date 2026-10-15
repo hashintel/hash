@@ -3,9 +3,12 @@ import { Box, CircularProgress } from "@mui/material";
 import { DocxEditor, hashFolioAIBlockText } from "@stll/folio-react";
 import { getFolioMessages } from "@stll/folio-react/messages";
 import escapeRegExp from "lodash/escapeRegExp";
-import { useCallback, useEffect, useImperativeHandle, useRef } from "react";
+import { useCallback, useImperativeHandle, useRef } from "react";
 import { IntlProvider } from "use-intl";
 
+import { useReportedPages } from "./folio-document/use-reported-pages";
+
+import type { DocxDocumentPages } from "./folio-document/use-reported-pages";
 import type { DocxEditorRef, FolioAIEditSnapshot } from "@stll/folio-react";
 import type { Ref } from "react";
 
@@ -23,7 +26,7 @@ export type DocxDocumentControls = {
   showHit: (index: number) => void;
 };
 
-export type DocxDocumentPages = { current: number; total: number };
+export type { DocxDocumentPages };
 
 type SearchHit = Parameters<DocxEditorRef["showInDocument"]>[0];
 
@@ -46,38 +49,12 @@ export const FolioDocument = ({
 }: FolioDocumentProps) => {
   const editorRef = useRef<DocxEditorRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const reportedPages = useRef<DocxDocumentPages>({ current: 0, total: 0 });
   const searchResult = useRef<{
     hits: SearchHit[];
     snapshot: FolioAIEditSnapshot | null;
   }>({ hits: [], snapshot: null });
 
-  const reportPages = useCallback(() => {
-    const editor = editorRef.current;
-    if (!editor) {
-      return;
-    }
-    const pages = {
-      current: editor.getCurrentPage(),
-      total: editor.getTotalPages(),
-    };
-    if (
-      pages.current !== reportedPages.current.current ||
-      pages.total !== reportedPages.current.total
-    ) {
-      reportedPages.current = pages;
-      onPagesChange(pages);
-    }
-  }, [onPagesChange]);
-
-  /**
-   * folio lays pages out in the background and has no event for a finished
-   * layout, so the page count is polled.
-   */
-  useEffect(() => {
-    const interval = setInterval(reportPages, 500);
-    return () => clearInterval(interval);
-  }, [reportPages]);
+  const reportPages = useReportedPages(editorRef, onPagesChange);
 
   /** Collapses the selection `showHit` made, so no earlier hit stays marked. */
   const clearShownHit = useCallback(() => {
