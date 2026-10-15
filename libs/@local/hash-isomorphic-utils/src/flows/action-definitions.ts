@@ -1,5 +1,9 @@
 import { checkAggregationInput } from "./aggregation.js";
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
+import {
+  checkQueryEntitiesInputs,
+  maxQueryEntities,
+} from "./query-entities.js";
 import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
 import { allPayloadKinds } from "./types.js";
@@ -40,6 +44,7 @@ export type AiFlowActionDefinitionId =
   | "processAutomaticBrowsingSettings"
   | "persistEntities"
   | "persistEntity"
+  | "queryEntities"
   | "researchEntities"
   | "takeFirst"
   | "webSearch"
@@ -1003,6 +1008,46 @@ const aiFlowActionDefinitionsAsConst = {
       },
     ],
     check: checkSortKeyInput,
+  },
+  queryEntities: {
+    actionDefinitionId: "queryEntities",
+    name: "Query Entities",
+    description:
+      "Get the latest version of the entities in the web that match a filter on their types and properties, optionally sorted and limited. Drafts and archived entities are left out.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["FilterCondition"],
+        name: "filter",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["SortKey"],
+        name: "sort",
+        description:
+          "Entity properties to sort by, in order of precedence. Entities without a value go last.",
+        required: false,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["Number"],
+        name: "limit",
+        description: `The most entities to return: a whole number from 1 to ${maxQueryEntities.toLocaleString("en")}.`,
+        required: false,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "EntityId",
+        name: "entities",
+        description: "The matching entities. Empty if none match.",
+        array: true,
+        required: true,
+      },
+    ],
+    check: checkQueryEntitiesInputs,
   },
   takeFirst: {
     actionDefinitionId: "takeFirst",

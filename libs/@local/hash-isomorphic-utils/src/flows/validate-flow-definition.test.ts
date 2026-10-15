@@ -732,6 +732,161 @@ describe("validateFlowDefinition", () => {
     });
   });
 
+  describe("inputs of queryEntities steps", () => {
+    const nameUrl = "https://example.com/property-type/name/";
+
+    const nameCondition = (operator: string, value?: unknown) => ({
+      kind: "condition",
+      subject: {
+        kind: "entityProperty",
+        propertyTypeBaseUrl: nameUrl,
+        payloadKind: "Text",
+      },
+      operator,
+      value,
+    });
+
+    const queryDefinition = (inputs: Record<string, unknown>) => ({
+      ...baseDefinition,
+      inputs: [
+        {
+          name: "filter",
+          payloadKind: "FilterCondition",
+          array: false,
+          required: true,
+        },
+        { name: "limit", payloadKind: "Number", array: false, required: true },
+      ],
+      steps: [
+        {
+          kind: "action",
+          stepId: "query",
+          actionDefinitionId: "queryEntities",
+          description: "",
+          inputs,
+        },
+      ],
+    });
+
+    const constant = (kind: string, value: unknown) => ({
+      kind: "constant",
+      payload: { kind, value },
+    });
+
+    const startsWithAcme = constant("FilterCondition", {
+      kind: "all",
+      conditions: [
+        nameCondition("startsWith", { kind: "Text", value: "Acme" }),
+      ],
+    });
+
+    const errorsOf = (inputs: Record<string, unknown>) =>
+      validateFlowDefinition(queryDefinition(inputs)).diagnostics.filter(
+        ({ severity }) => severity === "error",
+      );
+
+    it("accepts a constant filter, sort and limit that fit, or a limit from elsewhere", () => {
+      for (const limit of [
+        constant("Number", 100_000),
+        { kind: "flow-input", inputName: "limit" },
+      ]) {
+        expect(
+          errorsOf({
+            filter: startsWithAcme,
+            sort: constant("SortKey", [
+              {
+                subject: {
+                  kind: "entityProperty",
+                  propertyTypeBaseUrl: nameUrl,
+                  payloadKind: "Text",
+                },
+                direction: "descending",
+              },
+            ]),
+            limit,
+          }),
+        ).toEqual([]);
+      }
+    });
+
+    it.each([
+      {
+        name: "an empty filter",
+        inputs: {
+          filter: constant("FilterCondition", { kind: "all", conditions: [] }),
+        },
+        inputName: "filter",
+        message: "A group requires at least one condition.",
+      },
+      {
+        name: "an operator that doesn't suit the property's kind",
+        inputs: {
+          filter: constant("FilterCondition", {
+            kind: "any",
+            conditions: [
+              nameCondition("greaterThan", { kind: "Text", value: "Acme" }),
+            ],
+          }),
+        },
+        inputName: "filter",
+        message: "Operator greaterThan does not support Text.",
+      },
+      {
+        name: "a condition on the entity ID rather than on its types or properties",
+        inputs: {
+          filter: constant("FilterCondition", {
+            kind: "all",
+            conditions: [
+              {
+                kind: "condition",
+                subject: { kind: "input", payloadKind: "EntityId" },
+                operator: "isNotEmpty",
+              },
+            ],
+          }),
+        },
+        inputName: "filter",
+        message: "A query can only filter on an entity's types and properties.",
+      },
+      {
+        name: "a filter from elsewhere",
+        inputs: { filter: { kind: "flow-input", inputName: "filter" } },
+        inputName: "filter",
+        message: "The filter must be a constant for now",
+      },
+      {
+        name: "a sort key that doesn't read a property",
+        inputs: {
+          filter: startsWithAcme,
+          sort: constant("SortKey", [
+            {
+              subject: { kind: "field", path: ["name"], payloadKind: "Text" },
+              direction: "ascending",
+            },
+          ]),
+        },
+        inputName: "sort",
+        message:
+          "A field subject requires an object input and nonempty, safe own-property names.",
+      },
+      ...[0, 2.5, 100_001].map((limit) => ({
+        name: `a limit of ${limit}`,
+        inputs: { filter: startsWithAcme, limit: constant("Number", limit) },
+        inputName: "limit",
+        message: "The limit must be a whole number from 1 to 100,000.",
+      })),
+    ])("rejects $name", ({ inputs, inputName, message }) => {
+      expect(errorsOf(inputs)).toEqual([
+        {
+          severity: "error",
+          code: "invalidInput",
+          message,
+          path: ["steps", 0, "inputs", inputName],
+        },
+      ]);
+    });
+  });
+
   describe("aggregations of aggregate steps", () => {
     const aggregateDefinition = (aggregation: Record<string, unknown>) => ({
       ...baseDefinition,
