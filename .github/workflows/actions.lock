@@ -14,7 +14,7 @@ workflows:
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'mshick/add-pr-comment@v2.8.2'
         - 'nick-fields/retry@v3.0.2'
-        - 'rtcamp/action-slack-notify@master'
+        - 'rtcamp/action-slack-notify@v2.4.0'
     '.github/workflows/canary-release.yml':
         - 'actions/cache@v4.3.0'
         - 'actions/checkout@v6.0.2'
@@ -50,7 +50,7 @@ workflows:
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'nick-fields/retry@v3.0.2'
-        - 'rtcamp/action-slack-notify@master'
+        - 'rtcamp/action-slack-notify@v2.4.0'
     '.github/workflows/housekeeping.yml':
         - 'actions/checkout@v6.0.2'
     '.github/workflows/lint.yml':
@@ -62,7 +62,7 @@ workflows:
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'nick-fields/retry@v3.0.2'
-        - 'rtcamp/action-slack-notify@master'
+        - 'rtcamp/action-slack-notify@v2.4.0'
         - 'yuzutech/annotations-action@v0.5.0'
     '.github/workflows/preflight-target.yml':
         - 'actions/labeler@v6.0.1'
@@ -77,7 +77,7 @@ workflows:
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'nick-fields/retry@v3.0.2'
-        - 'rtcamp/action-slack-notify@master'
+        - 'rtcamp/action-slack-notify@v2.4.0'
         - 'rust-lang/crates-io-auth-action@v1.0.5'
     '.github/workflows/semgrep.yml':
         - 'actions/checkout@v6.0.2'
@@ -93,7 +93,7 @@ workflows:
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'nick-fields/retry@v3.0.2'
-        - 'rtcamp/action-slack-notify@master'
+        - 'rtcamp/action-slack-notify@v2.4.0'
     '.github/workflows/warm-up-vercel.yml': []
 dependencies:
     'actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7':
@@ -213,11 +213,6 @@ dependencies:
         commit: 'sha1-c2a87611a18de5b3828c5652fe268e992400cb5c'
         owner_id: 216188
         repo_id: 738284564
-    'lovetoknow/slackify-markdown-action@698a1d4d0ff1794152a93c03ee8ca5e03a310d4e':
-        ref: 'v1.1.1'
-        commit: 'sha1-698a1d4d0ff1794152a93c03ee8ca5e03a310d4e'
-        owner_id: 168084
-        repo_id: 271813698
     'mozilla-actions/sccache-action@v0.0.10':
         ref: 'v0.0.10'
         commit: 'sha1-9e7fa8a12102821edf02ca5dbea1acd0f89a2696'
@@ -233,13 +228,11 @@ dependencies:
         commit: 'sha1-ce71cc2ab81d554ebbe88c79ab5975992d79ba08'
         owner_id: 46869826
         repo_id: 240192823
-    'rtcamp/action-slack-notify@master':
-        ref: 'master'
-        commit: 'sha1-c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a'
+    'rtcamp/action-slack-notify@v2.4.0':
+        ref: 'v2.4.0'
+        commit: 'sha1-33ca3be66c6f378fe1610fd1d5258632dbed5e58'
         owner_id: 1128395
         repo_id: 173934970
-        uses:
-            - 'lovetoknow/slackify-markdown-action@698a1d4d0ff1794152a93c03ee8ca5e03a310d4e'
     'rust-lang/crates-io-auth-action@v1.0.5':
         ref: 'v1.0.5'
         commit: 'sha1-c6f97d42243bad5fab37ca0427f495c86d5b1a18'
