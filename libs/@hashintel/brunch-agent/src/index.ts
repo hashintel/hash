@@ -16,11 +16,6 @@ export {
 } from "./petrinaut/browser-metadata";
 export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./petrinaut/construction-tool-names";
 export {
-  PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
-  parsePetrinautUserMessageBody,
-  petrinautContextualUserMessageBody,
-} from "./petrinaut/contextual-user-message";
-export {
   isNetObservationTool,
   netReaderDescriptions,
   netReaderInputSchema,
