@@ -1,6 +1,8 @@
 import { readUIMessageStream } from "ai";
 import { describe, expect, test, vi } from "vitest";
 
+import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
+
 import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 
 import type {
@@ -79,6 +81,37 @@ const reopen = (outcome: FlueConversationSettlement["outcome"]) =>
     ],
     settlements: [{ submissionId: "submission-1", outcome }],
   })[0]?.metadata;
+
+test("reopens contextual user turns as human text, never as host framing", () => {
+  const body = petrinautContextualUserMessageBody({
+    userText: "Four agents",
+    diagnosticsContext: "",
+    submissionContext: { hostKey: { asked: 1 } },
+  });
+  const messages = canonicalBrunchFlueAdapter.reopen({
+    messages: [
+      {
+        id: "user",
+        role: "user",
+        purpose: "user",
+        display: "visible",
+        parts: [{ type: "text", text: body, state: "done" }],
+      },
+      {
+        id: "assistant",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        parts: [{ type: "text", text: body, state: "done" }],
+      },
+    ],
+  });
+
+  expect(messages.map(({ parts }) => parts)).toEqual([
+    [{ type: "text", text: "Four agents", state: "done" }],
+    [{ type: "text", text: body, state: "done" }],
+  ]);
+});
 
 describe("Brunch's stop marker through Petrinaut's metadata schema", () => {
   test("a completed response drops agent-authored `stopped` and keys Petrinaut does not render", async () => {
