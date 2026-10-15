@@ -14,7 +14,6 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit && tsgo --noEmit --project api/tsconfig.json",
     "preview": "vite preview",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:unit": "vitest run --passWithNoTests"
   },
   "dependencies": {
@@ -40,9 +39,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@earendil-works/pi-ai": "0.83.0",
     "@fast-check/vitest": "0.4.1",
-    "@flue/runtime": "2.0.3",
     "@tanstack/router-generator": "1.167.32",
     "@tanstack/router-plugin": "1.168.34",
     "@testing-library/dom": "10.4.1",

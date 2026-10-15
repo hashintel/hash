@@ -94,21 +94,17 @@ export const PetriNetPreview = ({ sdcpn }: { sdcpn: SDCPN }) => {
 
   const nodes: Node[] = useMemo(
     () => [
-      ...places.map(
-        (place): Node => ({
-          kind: "place",
-          x: place.x,
-          y: place.y,
-          colorId: place.colorId,
-        }),
-      ),
-      ...transitions.map(
-        (transition): Node => ({
-          kind: "transition",
-          x: transition.x,
-          y: transition.y,
-        }),
-      ),
+      ...places.map((place): Node => ({
+        kind: "place",
+        x: place.x,
+        y: place.y,
+        colorId: place.colorId,
+      })),
+      ...transitions.map((transition): Node => ({
+        kind: "transition",
+        x: transition.x,
+        y: transition.y,
+      })),
     ],
     [places, transitions],
   );

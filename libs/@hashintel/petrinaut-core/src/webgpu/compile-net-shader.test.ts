@@ -880,11 +880,8 @@ describe("transition kernels", () => {
     const net: SDCPN = {
       ...satellites,
       places: satellites.places.map((place) => ({ ...place, capacity: 16 })),
-      transitions: ["LaunchSatellite", "Crash"].map(
-        (name) =>
-          satellites.transitions.find(
-            (transition) => transition.name === name,
-          )!,
+      transitions: ["LaunchSatellite", "Crash"].map((name) =>
+        satellites.transitions.find((transition) => transition.name === name)!,
       ),
     };
     const compiled = compileFor(net);

@@ -20,12 +20,13 @@ import {
 import { createFlueClient } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 
+import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
+import { nativeOpenaiProvider } from "@local/pi-faux-providers/native-openai-provider";
+
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../src/shared/conversation/identity.ts";
-import { installFauxProvider } from "../install-faux-provider.ts";
-import { nativeOpenaiProvider } from "../native-openai-provider.ts";
 
 import type { BuiltBrunchApplication } from "../load-built-application.ts";
 

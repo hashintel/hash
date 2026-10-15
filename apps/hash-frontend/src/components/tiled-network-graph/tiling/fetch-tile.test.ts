@@ -15,12 +15,17 @@ import {
   u32le,
 } from "../atlas-decode/fixtures";
 import * as Num from "../atlas-decode/num";
+import {
+  isAtlasSpeculationPaused,
+  resetAtlasBackpressure,
+} from "./atlas-backpressure";
 import { WORLD_SIZE } from "./atlas-tile-coordinate";
 import {
   ATLAS_API_BASE_URL,
   AtlasAuthorityEndedError,
   ATLAS_AUTHORITY_HEADER,
   AtlasDeliveryCutChangedError,
+  ATLAS_RETIRED_GENERATION_PROBLEM,
   clearAtlasSessionCache,
   fetchTile,
   FetchTileError,
@@ -30,6 +35,7 @@ import {
   subscribeToAtlasSessionRevision,
   subscribeToAtlasTileMaxZoom,
   withAtlasRetry,
+  withAtlasSession,
 } from "./fetch-tile";
 
 // Zero-delay backoff keeps the retry tests fast while still exercising the loop.
@@ -75,6 +81,63 @@ describe("withAtlasRetry", () => {
       expect(operation).toHaveBeenCalledTimes(1);
     },
   );
+
+  it("does not retry a 429 whose stated wait exceeds the retry window", async () => {
+    const error = new FetchTileError("over budget", {
+      status: 429,
+      retryAfterMs: 6_000,
+    });
+    const operation = vi.fn(() => Promise.reject(error));
+
+    await expect(withAtlasRetry(operation, FAST)).rejects.toBe(error);
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
+  it("floors the backoff at a short stated Retry-After", async () => {
+    vi.useFakeTimers();
+    try {
+      const operation = flaky(
+        1,
+        new FetchTileError("busy", { status: 429, retryAfterMs: 1_000 }),
+        "ok",
+      );
+      const result = withAtlasRetry(operation, FAST);
+
+      // FAST's zero backoff would retry immediately; the stated wait holds it.
+      await vi.advanceTimersByTimeAsync(999);
+      expect(operation).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(result).resolves.toBe("ok");
+      expect(operation).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("retries a 5xx whatever wait its Retry-After names", async () => {
+    // A 429's long wait is bucket arithmetic and terminal; a 503's is an
+    // advisory hint, so a brief outage must not become missing tiles.
+    const operation = flaky(
+      1,
+      new FetchTileError("maintenance", { status: 503, retryAfterMs: 60_000 }),
+      "ok",
+    );
+    vi.useFakeTimers();
+    try {
+      const result = withAtlasRetry(operation, FAST);
+
+      // The honoured floor is capped, not the full sixty-second hint.
+      await vi.advanceTimersByTimeAsync(4_999);
+      expect(operation).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(result).resolves.toBe("ok");
+      expect(operation).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   it("does not retry a non-HTTP error (e.g. a decode failure)", async () => {
     const error = new Error("decode mismatch");
@@ -348,10 +411,29 @@ const stubTransport = (routes: Record<string, () => Response>): string[] => {
   return paths;
 };
 
+/** The atlas rate limiter's refusal, with its stated wait in seconds. */
+const tooManyRequests = (retryAfterSeconds: number): Response =>
+  new Response(
+    JSON.stringify({
+      type: "about:blank",
+      title: "Too Many Requests",
+      status: 429,
+      detail: "the caller is over its request budget",
+    }),
+    {
+      status: 429,
+      headers: {
+        "content-type": "application/problem+json",
+        "retry-after": `${retryAfterSeconds}`,
+      },
+    },
+  );
+
 describe("fetchTile", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     clearAtlasSessionCache();
+    resetAtlasBackpressure();
   });
 
   it("fetches a tile and maps wire positions onto the tiling world", async () => {
@@ -376,6 +458,69 @@ describe("fetchTile", () => {
     ]);
     // `children` was non-zero, so deeper tiles hold the rest.
     expect(complete).toBe(false);
+  });
+
+  it("surfaces a 429's stated wait, pausing speculation and skipping futile retries", async () => {
+    const generation = genHex(0x19);
+    const paths = stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      // Seven seconds is past the retry window, so the refusal is terminal.
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () => tooManyRequests(7),
+    });
+
+    await expect(
+      fetchTile(u64(3), u64(13), { baseUrl: BASE }),
+    ).rejects.toMatchObject({ status: 429, retryAfterMs: 7_000 });
+
+    expect(isAtlasSpeculationPaused()).toBe(true);
+    // Bootstrap (current + manifest) plus exactly one tile attempt: a wait the
+    // load cannot sit out is not retried against.
+    expect(
+      paths.filter((path) => path.startsWith("/atlas/tile/")),
+    ).toHaveLength(1);
+  });
+
+  it("pauses speculation pre-emptively when a success reports a thin budget", async () => {
+    const generation = genHex(0x18);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () =>
+        new Response(tileBytes(0x18, 3, 5, 1), {
+          status: 200,
+          headers: {
+            "content-type": SALTILE_MEDIA_TYPE,
+            "ratelimit-policy": '"gate";q=50;w=5',
+            ratelimit: '"gate";r=5',
+          },
+        }),
+    });
+
+    const { nodes } = await fetchTile(u64(3), u64(13), { baseUrl: BASE });
+    expect(nodes).toHaveLength(3);
+    // No refusal happened, but the reported budget sits under the reserve.
+    expect(isAtlasSpeculationPaused()).toBe(true);
+  });
+
+  it("leaves speculation running when a success reports ample budget", async () => {
+    const generation = genHex(0x17);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () =>
+        new Response(tileBytes(0x17, 3, 5, 1), {
+          status: 200,
+          headers: {
+            "content-type": SALTILE_MEDIA_TYPE,
+            "ratelimit-policy": '"gate";q=50;w=5',
+            ratelimit: '"gate";r=46',
+          },
+        }),
+    });
+
+    await fetchTile(u64(3), u64(13), { baseUrl: BASE });
+    expect(isAtlasSpeculationPaused()).toBe(false);
   });
 
   it("serves a restricted caller, whose cut carries the manifest's k", async () => {
@@ -1372,6 +1517,79 @@ describe("the atlas authority token", () => {
     unsubscribe();
   });
 
+  it("retries every concurrent caller of an ended session under the one replacement", async () => {
+    const generation = genHex(0x94);
+    // A session never ends for one request alone: both tile fetches below are refused with the same
+    // dead token and share the one renewal whose refusal ends the session. The renewal is held until
+    // both refusals are in, so the second caller is provably waiting on the first's renewal — the
+    // shape a token invalidation really has — rather than racing its own.
+    const gate = held();
+    let minted = TOKEN_A;
+    let admitted = TOKEN_A;
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: (request) =>
+        request.authority === null
+          ? manifest(generation, 16, minted)
+          : gate.promise,
+      [`/atlas/tile/${generation}/plain/1/1/0`]: (request) =>
+        request.authority === admitted
+          ? saltile(tileBytes(0x94, 1, 1, 0))
+          : unauthorized(),
+      [`/atlas/tile/${generation}/plain/1/0/1`]: (request) =>
+        request.authority === admitted
+          ? saltile(tileBytes(0x94, 1, 0, 1))
+          : unauthorized(),
+    });
+
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
+    const before = getAtlasSessionRevision();
+    const settled = seen.length;
+
+    minted = TOKEN_B;
+    admitted = TOKEN_B;
+
+    const tiles = Promise.all([
+      fetchTile(u64(1), u64(1), { baseUrl: BASE, retry: 0 }),
+      fetchTile(u64(1), u64(2), { baseUrl: BASE, retry: 0 }),
+    ]);
+    // Both refusals and the shared renewal are in flight before the refusal is released.
+    await vi.waitFor(() => {
+      expect(dataRoutes(seen.slice(settled))).toHaveLength(2);
+      expect(manifestFetches(seen.slice(settled))).toHaveLength(1);
+    });
+    gate.release(unauthorized());
+
+    // Both callers see painted tiles: the first replaced the session, and the second retried under
+    // that replacement instead of failing for having acted second.
+    const [first, second] = await tiles;
+    expect(first.nodes).toHaveLength(3);
+    expect(second.nodes).toHaveLength(3);
+
+    // One recovery, not one per caller: the binding moved once, one bootstrap re-pinned, and the one
+    // manifest fetch past the bootstraps is the shared renewal that presented the dead token.
+    expect(getAtlasSessionRevision()).toBe(before + 1);
+    const recovery = seen.slice(settled);
+    expect(
+      recovery.filter((request) => request.path.endsWith("/current")),
+    ).toHaveLength(1);
+    expect(
+      manifestFetches(recovery).map((request) => request.authority),
+    ).toEqual([TOKEN_A, null]);
+    // Each caller was refused with the dead token and retried with the successor's.
+    expect(dataRoutes(recovery).map((request) => request.authority)).toEqual([
+      TOKEN_A,
+      TOKEN_A,
+      TOKEN_B,
+      TOKEN_B,
+    ]);
+    expect(
+      recovery
+        .filter((request) => request.path.endsWith("/1/0/1"))
+        .map((request) => request.authority),
+    ).toEqual([TOKEN_A, TOKEN_B]);
+  });
+
   it("replaces the session once: a refusal after the fresh bootstrap is terminal", async () => {
     const generation = genHex(0x92);
     const seen = stubAuthorityTransport({
@@ -1549,8 +1767,9 @@ describe("the atlas authority token", () => {
 
   it("names the moved cut as its own failure when the replacement is not available", async () => {
     const generation = genHex(0x64);
-    // The class is the assertion. A superseded caller cannot replace the session, so the error it
-    // raised travels intact rather than being reported as a decode mismatch or a refusal — which is
+    // The class is the assertion. The session was dropped from outside the recovery, so the
+    // superseded caller may replace nothing and finds no replacement to retry under — the error it
+    // raised travels intact rather than being reported as a decode mismatch or a refusal, which is
     // what lets the session's owner tell a successful renewal at a moved cut from a refused one.
     let corpus = false;
     const seen = stubAuthorityTransport({
@@ -2015,5 +2234,72 @@ describe("the atlas tile max-zoom", () => {
     await superseded;
 
     expect(getAtlasTileMaxZoom()).toBe(9);
+  });
+});
+
+describe("withAtlasSession", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearAtlasSessionCache();
+  });
+
+  it("fails a sibling closed when an external drop lands after the recovery", async () => {
+    const generation = genHex(0x21);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+    });
+    const retired = (): FetchTileError =>
+      new FetchTileError("generation retired", {
+        status: 404,
+        problem: ATLAS_RETIRED_GENERATION_PROBLEM,
+      });
+    const settle = async (): Promise<void> => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    };
+
+    // Two callers pin the same session; both operations are left hanging.
+    let rejectFirst!: (error: Error) => void;
+    let firstCalls = 0;
+    const first = withAtlasSession(BASE, () => {
+      firstCalls += 1;
+      if (firstCalls === 1) {
+        return new Promise<string>((_resolve, reject) => {
+          rejectFirst = reject;
+        });
+      }
+      return Promise.resolve("recovered");
+    });
+    let rejectSibling!: (error: Error) => void;
+    let siblingCalls = 0;
+    const sibling = withAtlasSession(BASE, () => {
+      siblingCalls += 1;
+      if (siblingCalls === 1) {
+        return new Promise<string>((_resolve, reject) => {
+          rejectSibling = reject;
+        });
+      }
+      return Promise.resolve("retried under a dead lineage");
+    });
+    await settle();
+
+    // The first caller recovers: drops the session, installs the successor,
+    // records it for its siblings.
+    rejectFirst(retired());
+    await expect(first).resolves.toBe("recovered");
+
+    // An external drop — a view rebind, a principal change — invalidates the
+    // lineage the record points into.
+    clearAtlasSessionCache(BASE);
+
+    // The sibling must fail closed rather than retry under the recorded,
+    // no-longer-live successor.
+    rejectSibling(retired());
+    await expect(sibling).rejects.toMatchObject({
+      problem: ATLAS_RETIRED_GENERATION_PROBLEM,
+    });
+    expect(siblingCalls).toBe(1);
   });
 });

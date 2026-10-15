@@ -1,4 +1,4 @@
-import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   browserToolMutatesDocument,
@@ -13,20 +13,20 @@ import {
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  ExperimentHostContext,
-  ExperimentsContext,
   openPetrinautSimulationResource,
-  OptimizationsContext,
   prepareExperiment,
-  usePetrinautInstance,
-  usePetrinautNavigation,
 } from "@hashintel/petrinaut/react";
 import {
   definePetrinautAiInteractiveTool,
   ExperimentExecutionCard,
   type PetrinautAiInteractiveToolWidgetProps,
 } from "@hashintel/petrinaut/ui";
+import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
+import {
+  WithBrunchEditorApi,
+  type BrunchEditorApi,
+} from "../editor-api-plugin";
 import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 import {
   describeBudget,
@@ -46,9 +46,17 @@ import { documentRevisionOf } from "./shared/document-revision";
 import type { createInBandBrowserCalls } from "./in-band-browser-call";
 import type { FlueConversationState } from "@flue/sdk";
 import type {
+  PetrinautDocHandle,
   PetrinautExperimentRequest,
   SDCPN,
 } from "@hashintel/petrinaut-core";
+
+/** The part of the Brunch plugin's `api` the draft card uses. */
+export type BrunchDraftExperimentApi = {
+  readonly document: Pick<BrunchEditorApi["document"], "net">;
+  readonly experiments: BrunchEditorApi["experiments"];
+  readonly editor: Pick<BrunchEditorApi["editor"], "navigate">;
+};
 
 const containerStyle = css({
   display: "flex",
@@ -255,29 +263,36 @@ const prepareOrExplain = (
 export const BrunchDraftExperimentWidget = ({
   input,
   readTitle,
+  handle,
   readDraftAuthority,
   state,
   claimAndSubmit,
   toolCallId,
+  api,
 }: WidgetProps & {
   readTitle: () => string;
+  /**
+   * The open document's handle. Brunch hashes `handle.doc()`, disabled-extension
+   * data included; `api.document.net` leaves that data out, so it cannot check
+   * a revision. Taking the handle keeps that choice inside the card.
+   */
+  handle: Pick<PetrinautDocHandle, "doc">;
   readDraftAuthority: (toolCallId: string) => Promise<string>;
   /** Claim the issued call, then submit what `prepareOutput` resolves to, so the lease covers preparation. */
   claimAndSubmit: (
     prepareOutput: () => Promise<DraftPetrinautExperimentOutput>,
   ) => Promise<void>;
+  api: BrunchDraftExperimentApi;
 }) => {
-  const instance = usePetrinautInstance();
-  const experimentHost = use(ExperimentHostContext);
-  const { experiments } = use(ExperimentsContext);
-  const { navigate } = usePetrinautNavigation();
-  const optimizationUnavailableReason =
-    use(OptimizationsContext).optimizationUnavailableReason ?? null;
+  const experiments = useStore(api.experiments.records);
+  const optimizationUnavailableReason = useStore(
+    api.experiments.optimizationUnavailableReason,
+  );
   const executionUnavailable =
     input.experiment.execution.mode === "optimize"
       ? optimizationUnavailableReason
       : null;
-  const editorDrafts = editorDraftsFor(instance.definition);
+  const editorDrafts = editorDraftsFor(api.document.net);
   const { draft, isCurrent } = useEditorDraft(editorDrafts, toolCallId);
   const preparedOnceRef = useRef(false);
   const [reviewed, setReviewed] = useState<{
@@ -300,7 +315,7 @@ export const BrunchDraftExperimentWidget = ({
   useEffect(() => {
     if (state !== "awaiting" || preparedOnceRef.current) return;
     preparedOnceRef.current = true;
-    const initialDefinition = instance.handle.doc();
+    const initialDefinition = handle.doc();
     if (!initialDefinition) {
       // eslint-disable-next-line react/set-state-in-effect -- this effect's one live-model preparation found no document to prepare against
       setPreparationFailure({
@@ -316,7 +331,7 @@ export const BrunchDraftExperimentWidget = ({
       let outcome: ReturnType<typeof prepareOrExplain>;
       try {
         const readRevision = await readDraftAuthority(toolCallId);
-        const latestDefinition = instance.handle.doc();
+        const latestDefinition = handle.doc();
         if (latestDefinition) definition = latestDefinition;
         outcome =
           latestDefinition &&
@@ -391,7 +406,7 @@ export const BrunchDraftExperimentWidget = ({
   }, [
     executionUnavailable,
     input,
-    instance,
+    handle,
     readTitle,
     readDraftAuthority,
     editorDrafts,
@@ -401,7 +416,7 @@ export const BrunchDraftExperimentWidget = ({
   ]);
 
   const definition =
-    reviewed?.definition ?? draft?.definition ?? instance.definition.get();
+    reviewed?.definition ?? draft?.definition ?? api.document.net.get();
   const displayedPrepared = reviewed?.prepared ?? draft?.prepared ?? null;
   const request = displayedPrepared?.request ?? null;
   const blocksRun = input.unsupported.some(conditionBlocksRun);
@@ -424,7 +439,7 @@ export const BrunchDraftExperimentWidget = ({
       return;
     // Prepare again against the model as it is now: Run must start what the
     // person sees, and a changed metric or parameter is shown before any call.
-    const currentDefinition = structuredClone(instance.definition.get());
+    const currentDefinition = structuredClone(api.document.net.get());
     const current = prepareOrExplain(
       pending.prepared.request,
       currentDefinition,
@@ -463,16 +478,13 @@ export const BrunchDraftExperimentWidget = ({
       run: { phase: "running", controller, progress: null },
     });
     try {
-      const result = await experimentHost.runExperiment(
-        current.prepared.request,
-        {
-          signal: controller.signal,
-          onProgress: (progress) =>
-            editorDrafts.update(toolCallId, {
-              run: { phase: "running", controller, progress },
-            }),
-        },
-      );
+      const result = await api.experiments.run(current.prepared.request, {
+        signal: controller.signal,
+        onProgress: (progress) =>
+          editorDrafts.update(toolCallId, {
+            run: { phase: "running", controller, progress },
+          }),
+      });
       editorDrafts.update(toolCallId, {
         run:
           result.status === "error"
@@ -560,12 +572,11 @@ export const BrunchDraftExperimentWidget = ({
         onViewExperiment={
           canViewExperiment
             ? () => {
-                navigate(
+                api.editor.navigate(
                   openPetrinautSimulationResource({
                     type: "experiment",
                     id: experimentId,
                   }),
-                  { cause: "user", action: "simulation-resource" },
                 );
               }
             : undefined
@@ -777,10 +788,12 @@ const settleIssuedDraft = async (
 export const createBrunchDraftExperimentInteractiveTool = ({
   browserCalls,
   readTitle,
+  handle,
   readDraftAuthority,
 }: {
   browserCalls: ReturnType<typeof createInBandBrowserCalls>;
   readTitle: () => string;
+  handle: Pick<PetrinautDocHandle, "doc">;
   readDraftAuthority: (toolCallId: string) => Promise<string>;
 }) =>
   definePetrinautAiInteractiveTool<
@@ -792,17 +805,23 @@ export const createBrunchDraftExperimentInteractiveTool = ({
     inputSchema: draftPetrinautExperimentInputSchema,
     outputSchema: draftPetrinautExperimentOutputSchema,
     component: (props) => (
-      <BrunchDraftExperimentWidget
-        {...props}
-        claimAndSubmit={(prepareOutput) =>
-          settleIssuedDraft(
-            browserCalls,
-            { toolCallId: props.toolCallId, input: props.input },
-            prepareOutput,
-          )
-        }
-        readTitle={readTitle}
-        readDraftAuthority={readDraftAuthority}
-      />
+      <WithBrunchEditorApi>
+        {(api) => (
+          <BrunchDraftExperimentWidget
+            {...props}
+            api={api}
+            claimAndSubmit={(prepareOutput) =>
+              settleIssuedDraft(
+                browserCalls,
+                { toolCallId: props.toolCallId, input: props.input },
+                prepareOutput,
+              )
+            }
+            readTitle={readTitle}
+            handle={handle}
+            readDraftAuthority={readDraftAuthority}
+          />
+        )}
+      </WithBrunchEditorApi>
     ),
   });

@@ -149,12 +149,10 @@ export function capCheckpointsFor(lever: LeverDefinition): CapCheckpoint[] {
   ];
 
   return checkpoints
-    .map(
-      (checkpoint): CapCheckpoint => ({
-        ...checkpoint,
-        capDays: Math.max(0, checkpoint.capDays),
-      }),
-    )
+    .map((checkpoint): CapCheckpoint => ({
+      ...checkpoint,
+      capDays: Math.max(0, checkpoint.capDays),
+    }))
     .filter(
       (checkpoint) => checkpoint.key === "zero" || checkpoint.capDays > 0,
     );

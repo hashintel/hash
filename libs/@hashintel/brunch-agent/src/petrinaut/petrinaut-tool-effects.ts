@@ -91,7 +91,9 @@ export const petrinautToolEffects = {
   createExperiment: { capability: "petrinaut-experiment", targets: [] },
 } as const satisfies Record<PetrinautAiToolName, PetrinautToolEffect>;
 
-const canonicalEffectOf = (toolName: string): PetrinautToolEffect | undefined =>
+const canonicalEffectOf = (
+  toolName: string,
+): PetrinautToolEffect | undefined =>
   Object.hasOwn(petrinautToolEffects, toolName)
     ? petrinautToolEffects[toolName as PetrinautAiToolName]
     : undefined;

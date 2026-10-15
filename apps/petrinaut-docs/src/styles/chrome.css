@@ -1172,10 +1172,8 @@ mobile-starlight-toc summary {
       var(--sl-sidebar-width),
       calc(
         var(--sl-sidebar-width) +
-          (
-            100vw - var(--sl-content-inline-start) - var(--sl-content-width) -
-              var(--sl-sidebar-width)
-          ) /
+          (100vw - var(--sl-content-inline-start) - var(--sl-content-width) -
+            var(--sl-sidebar-width)) /
           2
       )
     );

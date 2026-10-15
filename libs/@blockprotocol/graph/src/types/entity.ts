@@ -155,8 +155,7 @@ type BeforeTrailingLast<
  * @todo remove this if we settle on a pattern that doesn't benefit from it
  */
 export type SimpleProperties<Properties extends PropertyObject> = {
-  [Key in keyof Properties as BeforeTrailingLast<
-    Extract<Key, string>,
-    "/"
-  >]: Properties[Key];
+  [
+    Key in keyof Properties as BeforeTrailingLast<Extract<Key, string>, "/">
+  ]: Properties[Key];
 };

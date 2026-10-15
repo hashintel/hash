@@ -30,10 +30,8 @@ export const fromNullable = <T>(value: T): Option<NonNullable<T>> =>
 export const map: {
   <T, U>(transform: (value: T) => U): (option: Option<T>) => Option<U>;
   <T, U>(option: Option<T>, transform: (value: T) => U): Option<U>;
-} = dual(
-  2,
-  <T, U>(option: Option<T>, transform: (value: T) => U): Option<U> =>
-    isSome(option) ? some(transform(option.value)) : option,
+} = dual(2, <T, U>(option: Option<T>, transform: (value: T) => U): Option<U> =>
+  isSome(option) ? some(transform(option.value)) : option,
 );
 
 /** Keeps a present value when the predicate holds, narrowing it for a refinement. Absence passes through. */
@@ -65,10 +63,8 @@ export const liftPredicate: {
   ): <Value extends T>(value: Value) => Option<Value>;
   <T, U extends T>(value: T, refinement: (value: T) => value is U): Option<U>;
   <T>(value: T, predicate: (value: T) => boolean): Option<T>;
-} = dual(
-  2,
-  <T>(value: T, predicate: (value: T) => boolean): Option<T> =>
-    predicate(value) ? some(value) : none(),
+} = dual(2, <T>(value: T, predicate: (value: T) => boolean): Option<T> =>
+  predicate(value) ? some(value) : none(),
 );
 
 /** Evaluates the handler for the selected variant. */

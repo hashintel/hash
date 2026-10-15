@@ -214,13 +214,11 @@ export const TypesFilterRibbon: FunctionComponent<{
     ...switchableFields,
   ]
     .sort(compareFieldsByLabel)
-    .map(
-      (field): MenuItem => ({
-        id: field,
-        text: typeFilterFieldLabels[field],
-        onClick: () => handleAddFilter(field),
-      }),
-    );
+    .map((field): MenuItem => ({
+      id: field,
+      text: typeFilterFieldLabels[field],
+      onClick: () => handleAddFilter(field),
+    }));
 
   const fieldMenuForFilter = (filter: TypeFilter): MenuItem[] =>
     switchableFields.map((field) => ({

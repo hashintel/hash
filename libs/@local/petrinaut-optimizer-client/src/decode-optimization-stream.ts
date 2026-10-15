@@ -304,7 +304,7 @@ export async function* decodePetrinautOptimizerStream(
     pendingEventText += fragment;
     const eventSeparator = /(?:\r\n|\r|\n)(?:\r\n|\r|\n)/g;
     let lastSeparatorEnd = 0;
-    for (let match = eventSeparator.exec(pendingEventText); match; ) {
+    for (let match = eventSeparator.exec(pendingEventText); match;) {
       lastSeparatorEnd = eventSeparator.lastIndex;
       match = eventSeparator.exec(pendingEventText);
     }

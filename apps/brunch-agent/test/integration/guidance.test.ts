@@ -2,7 +2,7 @@ import { join } from "node:path";
 
 import { expect, test } from "vitest";
 
-import { runNodeScript } from "./run-node-script";
+import { runNodeScript } from "./run-node-script.ts";
 
 test("the built app activates native skills, reads packaged resources and keeps the Ledger", async () => {
   const { exitCode, stdout, stderr } = await runNodeScript(

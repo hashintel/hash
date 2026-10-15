@@ -10,11 +10,7 @@ import type { CompareLlmResponseConfig } from "./types.js";
  */
 
 export const config: CompareLlmResponseConfig = {
-  models: [
-    /** Insert the models you want to use */
-  ],
+  models: [/** Insert the models you want to use */],
   // @ts-expect-error - the developer needs to provide the LLM parameters
-  llmParams: {
-    /** Insert the LLM parameters you want to use */
-  },
+  llmParams: {/** Insert the LLM parameters you want to use */},
 };

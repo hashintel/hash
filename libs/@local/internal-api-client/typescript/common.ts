@@ -169,14 +169,14 @@ export const createRequestFunction = function (
   BASE_PATH: string,
   configuration?: Configuration,
 ) {
-  return <T = unknown, R = AxiosResponse<T>>(
+  return <T = unknown>(
     axios: AxiosInstance = globalAxios,
     basePath: string = BASE_PATH,
-  ) => {
+  ): Promise<AxiosResponse<T>> => {
     const axiosRequestArgs = {
       ...axiosArgs.options,
       url: (configuration?.basePath || basePath) + axiosArgs.url,
     };
-    return axios.request<T, R>(axiosRequestArgs);
+    return axios.request<T>(axiosRequestArgs);
   };
 };

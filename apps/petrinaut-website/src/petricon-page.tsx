@@ -167,7 +167,9 @@ export const PetriconPage = () => (
         <p>
           Original drawings. Shared principles.
           <br />
-          <a href="https://developer.apple.com/sf-symbols/">SF Symbols</a> ·{" "}
+          <a href="https://developer.apple.com/sf-symbols/">
+            SF Symbols
+          </a> ·{" "}
           <a href="https://lucide.dev/">Lucide</a> ·{" "}
           <a href="https://www.stixfonts.org/">STIX</a>
         </p>

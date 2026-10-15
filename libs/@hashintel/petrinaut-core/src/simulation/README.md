@@ -37,12 +37,7 @@ initialization, later document mutations do not affect the active simulation.
 
 ```typescript
 type SimulationState =
-  | "Initializing"
-  | "Ready"
-  | "Running"
-  | "Paused"
-  | "Complete"
-  | "Error";
+  "Initializing" | "Ready" | "Running" | "Paused" | "Complete" | "Error";
 ```
 
 | State          | Description                                           |

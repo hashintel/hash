@@ -31,33 +31,31 @@ export type NotebookCellKind = NotebookCell["kind"];
  */
 export function buildNotebookCells(net: ActiveNetDefinition): NotebookCell[] {
   return [
-    ...net.places.map(
-      (place): NotebookCell => ({ kind: "place", id: place.id, place }),
-    ),
-    ...net.transitions.map(
-      (transition): NotebookCell => ({
-        kind: "transition",
-        id: transition.id,
-        transition,
-      }),
-    ),
-    ...net.types.map(
-      (color): NotebookCell => ({ kind: "type", id: color.id, color }),
-    ),
-    ...net.differentialEquations.map(
-      (equation): NotebookCell => ({
-        kind: "differentialEquation",
-        id: equation.id,
-        equation,
-      }),
-    ),
-    ...net.parameters.map(
-      (parameter): NotebookCell => ({
-        kind: "parameter",
-        id: parameter.id,
-        parameter,
-      }),
-    ),
+    ...net.places.map((place): NotebookCell => ({
+      kind: "place",
+      id: place.id,
+      place,
+    })),
+    ...net.transitions.map((transition): NotebookCell => ({
+      kind: "transition",
+      id: transition.id,
+      transition,
+    })),
+    ...net.types.map((color): NotebookCell => ({
+      kind: "type",
+      id: color.id,
+      color,
+    })),
+    ...net.differentialEquations.map((equation): NotebookCell => ({
+      kind: "differentialEquation",
+      id: equation.id,
+      equation,
+    })),
+    ...net.parameters.map((parameter): NotebookCell => ({
+      kind: "parameter",
+      id: parameter.id,
+      parameter,
+    })),
   ];
 }
 
@@ -448,20 +446,16 @@ export type NetGraph = { nodes: NetGraphNode[]; edges: NetGraphEdge[] };
  */
 export function buildNetGraph(net: ActiveNetDefinition): NetGraph {
   const nodes: NetGraphNode[] = [
-    ...net.places.map(
-      (place): NetGraphNode => ({
-        id: place.id,
-        name: place.name || place.id,
-        kind: "place",
-      }),
-    ),
-    ...net.transitions.map(
-      (transition): NetGraphNode => ({
-        id: transition.id,
-        name: transition.name || transition.id,
-        kind: "transition",
-      }),
-    ),
+    ...net.places.map((place): NetGraphNode => ({
+      id: place.id,
+      name: place.name || place.id,
+      kind: "place",
+    })),
+    ...net.transitions.map((transition): NetGraphNode => ({
+      id: transition.id,
+      name: transition.name || transition.id,
+      kind: "transition",
+    })),
   ];
 
   const placeIds = new Set(net.places.map(({ id }) => id));
