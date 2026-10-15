@@ -1,9 +1,7 @@
-import {
-  HashEntity,
-  HashLinkEntity,
-  queryEntities,
-} from "@local/hash-graph-sdk/entity";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -142,54 +140,50 @@ export const persistFlowActivity = async (
     );
   }
 
-  const newEntity = await HashEntity.create<FlowRun>(
-    graphApiClient,
-    userAuthentication,
+  const flowRunEntityUuid = flowRunId ?? (generateUuid() as EntityUuid);
+  const flowEntityId = entityIdFromComponents(webId, flowRunEntityUuid);
+
+  const linkFromRun = (rightEntityId: EntityId) => ({
+    webId,
+    properties: { value: {} },
+    linkData: { leftEntityId: flowEntityId, rightEntityId },
+    provenance,
+    draft: false,
+  });
+
+  /*
+   * The run and its links are created in one request, which the graph applies in one transaction, so a run is
+   * never left without its link to the definition it ran.
+   */
+  await HashEntity.createMultiple<
+    [
+      FlowRun,
+      FlowRunUsesLink["linkEntity"],
+      ...FlowRunTriggeredByLink["linkEntity"][],
+    ]
+  >(graphApiClient, userAuthentication, [
     {
-      entityUuid: flowRunId,
+      entityUuid: flowRunEntityUuid,
       webId,
       entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
       properties: flowRunProperties,
       provenance,
       draft: false,
     },
-  );
-
-  const flowEntityId = newEntity.metadata.recordId.entityId;
-
-  await Promise.all([
-    HashLinkEntity.create<FlowRunUsesLink["linkEntity"]>(
-      graphApiClient,
-      userAuthentication,
-      {
-        webId,
-        entityTypeIds: [systemLinkEntityTypes.uses.linkEntityTypeId],
-        properties: { value: {} },
-        linkData: {
-          leftEntityId: flowEntityId,
-          rightEntityId: flowDefinitionEntity.metadata.recordId.entityId,
-        },
-        provenance,
-        draft: false,
-      },
-    ),
-    flowTriggerEntityId
-      ? HashLinkEntity.create<FlowRunTriggeredByLink["linkEntity"]>(
-          graphApiClient,
-          userAuthentication,
+    {
+      ...linkFromRun(flowDefinitionEntity.metadata.recordId.entityId),
+      entityTypeIds: [systemLinkEntityTypes.uses.linkEntityTypeId],
+    },
+    ...(flowTriggerEntityId
+      ? [
           {
-            webId,
-            entityTypeIds: [systemLinkEntityTypes.triggeredBy.linkEntityTypeId],
-            properties: { value: {} },
-            linkData: {
-              leftEntityId: flowEntityId,
-              rightEntityId: flowTriggerEntityId,
-            },
-            provenance,
-            draft: false,
+            ...linkFromRun(flowTriggerEntityId),
+            entityTypeIds: [
+              systemLinkEntityTypes.triggeredBy.linkEntityTypeId,
+            ] as FlowRunTriggeredByLink["linkEntity"]["entityTypeIds"],
           },
-        )
-      : null,
+        ]
+      : []),
   ]);
 
   return { flowEntityId };
