@@ -1,3 +1,12 @@
+/**
+ * Runs a flow scenario end to end through Temporal on the local stack, checks its expectations and writes a run
+ * report. See README.md.
+ *
+ *   yarn workspace @apps/hash-ai-worker-ts run-flow-scenario <scenario.ts> [--dry-run] [--timeout <seconds>]
+ *
+ * Exit codes: 0 every expectation was met, 1 an expectation failed, 2 the scenario couldn't be run.
+ */
+
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
@@ -9,6 +18,7 @@ import {
 } from "node:fs";
 import { hostname } from "node:os";
 import path from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual, parseArgs } from "node:util";
 
@@ -19,14 +29,6 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
-/**
- * Runs a flow scenario end to end through Temporal on the local stack, checks its expectations and writes a run
- * report. See README.md.
- *
- *   yarn workspace @apps/hash-ai-worker-ts run-flow-scenario <scenario.ts> [--dry-run] [--timeout <seconds>]
- *
- * Exit codes: 0 every expectation was met, 1 an expectation failed, 2 the scenario couldn't be run.
- */
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getFlowRunFromTemporalWorkflowId } from "@local/hash-backend-utils/flows/get-flow-run-details";
 import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
@@ -39,10 +41,7 @@ import {
 } from "@local/hash-backend-utils/temporal";
 import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
-import {
-  getFlowDefinitionFromEntity,
-  mapFlowDefinitionToEntityProperties,
-} from "@local/hash-isomorphic-utils/flows/mappings";
+import { mapFlowDefinitionToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { assertValidFlowDefinition } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -51,6 +50,7 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { StatusCode } from "@local/status";
 
 import type { FlowScenario } from "./scenario.js";
@@ -63,20 +63,25 @@ import type {
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
-import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowDefinitionWithId,
+  ResolvedPayload,
+} from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
 
 type FlowRun = Awaited<ReturnType<typeof getFlowRunFromTemporalWorkflowId>>;
-type Payload = { kind: string; value: unknown };
+type StepRun = FlowRun["steps"][number];
+type ExpectationResult = { label: string; failure?: string };
 
 const scriptDirectory = import.meta.dirname;
-const repoRoot = execFileSync("git", ["rev-parse", "--show-toplevel"], {
-  cwd: scriptDirectory,
-  encoding: "utf8",
-}).trim();
+
+const git = (...args: string[]) =>
+  execFileSync("git", args, { cwd: scriptDirectory, encoding: "utf8" }).trim();
+
+const repoRoot = realpathSync(git("rev-parse", "--show-toplevel"));
 
 const temporalUiUrl = (workflowId: string) =>
-  `http://localhost:3100/namespaces/${temporalNamespace}/workflows/${workflowId}`;
+  `http://localhost:${process.env.HASH_TEMPORAL_UI_PORT ?? "3100"}/namespaces/${temporalNamespace}/workflows/${workflowId}`;
 
 /** An error that means the scenario couldn't be run, shown without a stack trace. */
 class SetupError extends Error {}
@@ -86,10 +91,29 @@ const truncate = (text: string, length = 140) =>
 
 const formatValue = (value: unknown) => truncate(String(JSON.stringify(value)));
 
-const formatPayload = ({ kind, value }: Payload) =>
+const formatPayload = ({ kind, value }: ResolvedPayload) =>
   Array.isArray(value)
     ? `${value.length} × ${kind} ${formatValue(value)}`
     : `${kind} ${formatValue(value)}`;
+
+const loadScenario = async (scenarioArgument: string) => {
+  /** Yarn runs the script from the workspace, so a relative path starts there. */
+  const scenarioPath = path.resolve(scenarioArgument);
+  if (!existsSync(scenarioPath)) {
+    throw new SetupError(
+      `No scenario at ${scenarioPath}. Relative paths start from apps/hash-ai-worker-ts.`,
+    );
+  }
+
+  const { scenario } = (await import(pathToFileURL(scenarioPath).href)) as {
+    scenario?: FlowScenario;
+  };
+  if (!scenario) {
+    throw new SetupError(`${scenarioArgument} doesn't export a \`scenario\``);
+  }
+
+  return { scenario, scenarioPath };
+};
 
 const newestModificationTime = (directory: string, extension: string) => {
   let newest = 0;
@@ -131,12 +155,34 @@ const isProcessRunning = (pid: number) => {
   }
 };
 
+/** The working directory of a process on this machine, if it can be found. */
+const getProcessDirectory = (pid: string) => {
+  try {
+    const cwdLine = execFileSync(
+      "lsof",
+      ["-a", "-d", "cwd", "-p", pid, "-Fn"],
+      {
+        encoding: "utf8",
+      },
+    )
+      .split("\n")
+      .find((line) => line.startsWith("n"));
+
+    return cwdLine ? realpathSync(cwdLine.slice(1)) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 /**
- * The workers polling a task queue, with the working directory of those on this machine, so that a worker started
- * from another checkout is caught before its code produces a misleading result. Temporal lists a stopped worker for
- * a while after it stops, so local workers whose process has exited are left out.
+ * Stops before a worker started from another checkout produces a misleading result. Temporal identifies workers as
+ * `pid@host`, and lists a stopped worker for a while after it stops, so local workers whose process has exited are
+ * ignored.
  */
-const getWorkers = async (client: TemporalClient, taskQueue: string) => {
+const assertWorkerRunsThisCheckout = async (
+  client: TemporalClient,
+  taskQueue: string,
+) => {
   const { pollers } = await client.workflowService.describeTaskQueue({
     namespace: temporalNamespace,
     taskQueue: { name: taskQueue },
@@ -144,36 +190,34 @@ const getWorkers = async (client: TemporalClient, taskQueue: string) => {
       proto.temporal.api.enums.v1.TaskQueueType.TASK_QUEUE_TYPE_ACTIVITY,
   });
 
-  return pollers.flatMap(({ identity }) => {
+  const workers = pollers.flatMap(({ identity }) => {
     const [pid, host] = (identity ?? "").split("@");
+    const isLocal = !!pid && host === hostname();
 
-    if (!pid || host !== hostname()) {
-      return [{ identity, directory: undefined }];
-    }
-
-    if (!isProcessRunning(Number(pid))) {
+    if (isLocal && !isProcessRunning(Number(pid))) {
       return [];
     }
 
-    try {
-      const cwdLine = execFileSync(
-        "lsof",
-        ["-a", "-d", "cwd", "-p", pid, "-Fn"],
-        { encoding: "utf8" },
-      )
-        .split("\n")
-        .find((line) => line.startsWith("n"));
-
-      return [
-        {
-          identity,
-          directory: cwdLine ? realpathSync(cwdLine.slice(1)) : undefined,
-        },
-      ];
-    } catch {
-      return [{ identity, directory: undefined }];
-    }
+    return [
+      { identity, directory: isLocal ? getProcessDirectory(pid) : undefined },
+    ];
   });
+
+  if (workers.length === 0) {
+    throw new SetupError(
+      `No worker is polling the "${taskQueue}" task queue. Start it with \`yarn workspace @apps/hash-${
+        taskQueue === "ai" ? "ai-worker-ts" : "integration-worker"
+      } dev\`.`,
+    );
+  }
+
+  for (const { identity, directory } of workers) {
+    if (directory && !directory.startsWith(repoRoot)) {
+      throw new SetupError(
+        `The "${taskQueue}" worker ${identity} runs from ${directory}, not this checkout (${repoRoot}). Stop it and start the worker here.`,
+      );
+    }
+  }
 };
 
 const getUserIdByShortname = async (graphApi: GraphApi, shortname: string) => {
@@ -266,17 +310,24 @@ const ensureFlowDefinitionEntity = async ({
     return "created";
   }
 
-  let storedDefinition;
-  try {
-    storedDefinition = getFlowDefinitionFromEntity(existingEntity);
-  } catch {
-    // An invalid stored definition is replaced below.
-  }
+  const {
+    name,
+    description,
+    inputDefinition,
+    stepDefinition,
+    outputDefinition,
+  } = simplifyProperties(existingEntity.properties);
 
-  /** JSON drops `undefined` values, as storing the definition does. */
+  /** Compared as stored, which drops `undefined` values. */
   if (
     isDeepStrictEqual(
-      storedDefinition,
+      {
+        name,
+        description,
+        inputs: inputDefinition,
+        steps: stepDefinition,
+        outputs: outputDefinition,
+      },
       JSON.parse(JSON.stringify(flowDefinition)),
     )
   ) {
@@ -291,20 +342,63 @@ const ensureFlowDefinitionEntity = async ({
   return "updated";
 };
 
-/** The payload of each output from a step's last attempt, by output name. */
-const getOutputs = (outputs: FlowRun["outputs"]) => {
-  const lastAttempt = outputs?.at(-1);
-  const payloads = (lastAttempt?.contents[0]?.outputs ?? []) as {
-    outputName: string;
-    payload: Payload;
-  }[];
+/** Started like the `startFlow` resolver starts a run. */
+const startRun = async ({
+  client,
+  scenario: { flow, inputs },
+  taskQueue,
+  userId,
+}: {
+  client: TemporalClient;
+  scenario: FlowScenario;
+  taskQueue: string;
+  userId: UserId;
+}) => {
+  const workflowId = generateUuid() as EntityUuid;
+  const webId = userId as WebId;
+  const params: RunFlowWorkflowParams = {
+    ...(taskQueue === "ai"
+      ? {
+          dataSources: {
+            files: { fileEntityIds: [] },
+            internetAccess: {
+              enabled: false,
+              browserPlugin: { enabled: false, domains: [] },
+            },
+          },
+        }
+      : {}),
+    flowRunId: workflowId,
+    flowInputs: inputs,
+    flowDefinitionId: flow.flowDefinitionId,
+    userAuthentication: { actorId: userId },
+    webId,
+  };
 
-  return new Map(
-    payloads.map(({ outputName, payload }) => [outputName, payload]),
-  );
+  await client.workflow.start("runFlow", {
+    taskQueue,
+    args: [params],
+    memo: {
+      flowDefinitionId: flow.flowDefinitionId,
+      userAccountId: userId,
+      webId,
+    },
+    workflowId,
+    retry: { maximumAttempts: 1 },
+  });
+
+  return workflowId;
 };
 
-const getStepError = (step: FlowRun["steps"][number] | undefined) => {
+/** The payload of each output from the last attempt, by output name. */
+const getOutputs = (outputs: StepRun["outputs"]) =>
+  new Map(
+    (outputs?.at(-1)?.contents[0]?.outputs ?? []).map(
+      ({ outputName, payload }) => [outputName, payload],
+    ),
+  );
+
+const getStepError = (step: StepRun | undefined) => {
   const lastAttempt = step?.outputs?.at(-1);
   if (
     lastAttempt &&
@@ -317,106 +411,86 @@ const getStepError = (step: FlowRun["steps"][number] | undefined) => {
   return (step?.lastFailure as { message?: string } | undefined)?.message;
 };
 
-const checkExpectations = (scenario: FlowScenario, flowRun: FlowRun) => {
-  const results: { label: string; failure?: string }[] = [];
+const checkStatus = (
+  label: string,
+  expected: string,
+  actual: string,
+  detail: string | undefined,
+): ExpectationResult => ({
+  label: `${label} is ${expected}`,
+  failure:
+    actual === expected
+      ? undefined
+      : `${label} status: expected ${expected}, got ${actual}${detail ? ` (${detail})` : ""}`,
+});
 
-  const checkOutputs = (
-    getLabel: (outputName: string) => string,
-    expected: Record<string, unknown>,
-    actual: Map<string, Payload>,
-  ) => {
-    for (const [outputName, expectedValue] of Object.entries(expected)) {
-      const label = getLabel(outputName);
-      const payload = actual.get(outputName);
+const checkOutputs = (
+  getLabel: (outputName: string) => string,
+  expected: Record<string, unknown> | undefined,
+  actual: Map<string, ResolvedPayload>,
+): ExpectationResult[] =>
+  Object.entries(expected ?? {}).map(([outputName, expectedValue]) => {
+    const label = getLabel(outputName);
+    const payload = actual.get(outputName);
 
-      results.push({
-        label,
-        failure: !payload
-          ? `${label}: not produced`
-          : isDeepStrictEqual(expectedValue, payload.value)
-            ? undefined
-            : `${label}: expected ${formatValue(expectedValue)}, got ${formatValue(payload.value)}`,
-      });
+    if (!payload) {
+      return { label, failure: `${label}: not produced` };
     }
-  };
-
-  const expectedFlowStatus = scenario.expect.status ?? "COMPLETED";
-  results.push({
-    label: `flow is ${expectedFlowStatus}`,
-    failure:
-      String(flowRun.status) === expectedFlowStatus
-        ? undefined
-        : `flow status: expected ${expectedFlowStatus}, got ${flowRun.status}${
-            flowRun.failureMessage ? ` (${flowRun.failureMessage})` : ""
-          }`,
+    if (!isDeepStrictEqual(expectedValue, payload.value)) {
+      return {
+        label,
+        failure: `${label}: expected ${formatValue(expectedValue)}, got ${formatValue(payload.value)}`,
+      };
+    }
+    return { label };
   });
 
-  for (const [stepId, expectation] of Object.entries(
-    scenario.expect.steps ?? {},
-  )) {
+const checkExpectations = (
+  { expect }: FlowScenario,
+  flowRun: FlowRun,
+): ExpectationResult[] => [
+  checkStatus(
+    "flow",
+    expect.status ?? "COMPLETED",
+    flowRun.status,
+    flowRun.failureMessage ?? undefined,
+  ),
+  ...Object.entries(expect.steps ?? {}).flatMap(([stepId, expectation]) => {
     const step = flowRun.steps.find((run) => run.stepId === stepId);
     const outputs = getOutputs(step?.outputs);
+    const getLabel = (outputName: string) => `\`${stepId}.${outputName}\``;
 
-    const expectedStatus =
-      expectation.status ??
-      (expectation.outputs || expectation.absentOutputs
-        ? "COMPLETED"
-        : undefined);
-
-    if (expectedStatus) {
-      const actualStatus = step ? String(step.status) : "NOT RUN";
-      const error = getStepError(step);
-
-      results.push({
-        label: `\`${stepId}\` is ${expectedStatus}`,
-        failure:
-          actualStatus === expectedStatus
-            ? undefined
-            : `\`${stepId}\` status: expected ${expectedStatus}, got ${actualStatus}${
-                error ? ` (${error})` : ""
-              }`,
-      });
-    }
-
-    checkOutputs(
-      (outputName) => `\`${stepId}.${outputName}\``,
-      expectation.outputs ?? {},
-      outputs,
-    );
-
-    for (const outputName of expectation.absentOutputs ?? []) {
-      const label = `\`${stepId}.${outputName}\``;
-      const payload = outputs.get(outputName);
-
-      results.push({
-        label: `${label} not produced`,
-        failure: payload
-          ? `${label}: expected no output, got ${formatPayload(payload)}`
-          : undefined,
-      });
-    }
-  }
-
-  checkOutputs(
+    return [
+      checkStatus(
+        `\`${stepId}\``,
+        expectation.status ?? "COMPLETED",
+        step?.status ?? "NOT RUN",
+        getStepError(step),
+      ),
+      ...checkOutputs(getLabel, expectation.outputs, outputs),
+      ...(expectation.absentOutputs ?? []).map((outputName) => {
+        const payload = outputs.get(outputName);
+        return {
+          label: `${getLabel(outputName)} not produced`,
+          failure: payload
+            ? `${getLabel(outputName)}: expected no output, got ${formatPayload(payload)}`
+            : undefined,
+        };
+      }),
+    ];
+  }),
+  ...checkOutputs(
     (outputName) => `flow output \`${outputName}\``,
-    scenario.expect.outputs ?? {},
+    expect.outputs,
     getOutputs(flowRun.outputs),
-  );
+  ),
+];
 
-  return results;
-};
-
-const renderReport = ({
-  scenario,
-  flowRun,
-  results,
-  commit,
-}: {
-  scenario: FlowScenario;
-  flowRun: FlowRun;
-  results: ReturnType<typeof checkExpectations>;
-  commit: string;
-}) => {
+const renderReport = (
+  scenario: FlowScenario,
+  flowRun: FlowRun,
+  results: ExpectationResult[],
+) => {
   const failures = results.filter(({ failure }) => failure);
 
   const rows = getAllStepDefinitionsInFlowDefinition(
@@ -444,7 +518,7 @@ const renderReport = ({
     `### Flow scenario: ${scenario.name}`,
     "",
     ...(scenario.purpose ? [scenario.purpose, ""] : []),
-    `Local stack at \`${commit}\`, started through Temporal.`,
+    `Local stack at \`${git("rev-parse", "--short", "HEAD")}\`, started through Temporal.`,
     "",
     `**\`${flowRun.flowRunId}\`: ${flowRun.status}**${
       flowRun.failureMessage ? ` (${flowRun.failureMessage})` : ""
@@ -480,21 +554,7 @@ const main = async () => {
     );
   }
 
-  /** Yarn runs the script from the workspace, so a relative path starts there. */
-  const scenarioPath = path.resolve(scenarioArgument);
-  if (!existsSync(scenarioPath)) {
-    throw new SetupError(
-      `No scenario at ${scenarioPath}. Relative paths start from apps/hash-ai-worker-ts.`,
-    );
-  }
-
-  const { scenario } = (await import(pathToFileURL(scenarioPath).href)) as {
-    scenario?: FlowScenario;
-  };
-  if (!scenario) {
-    throw new SetupError(`${scenarioArgument} doesn't export a \`scenario\``);
-  }
-
+  const { scenario, scenarioPath } = await loadScenario(scenarioArgument);
   const { flowDefinition, flowDefinitionId } = scenario.flow;
   assertValidFlowDefinition(flowDefinition);
   const taskQueue = getFlowType(flowDefinition);
@@ -521,22 +581,7 @@ const main = async () => {
       `Can't reach Temporal (${(error as Error).message}). Is \`yarn compose --profile hgres up -d\` running?`,
     );
   });
-
-  const workers = await getWorkers(client, taskQueue);
-  if (workers.length === 0) {
-    throw new SetupError(
-      `No worker is polling the "${taskQueue}" task queue. Start it with \`yarn workspace @apps/hash-${
-        taskQueue === "ai" ? "ai-worker-ts" : "integration-worker"
-      } dev\`.`,
-    );
-  }
-  for (const { identity, directory } of workers) {
-    if (directory && !directory.startsWith(realpathSync(repoRoot))) {
-      throw new SetupError(
-        `The "${taskQueue}" worker ${identity} runs from ${directory}, not this checkout (${repoRoot}). Stop it and start the worker here.`,
-      );
-    }
-  }
+  await assertWorkerRunsThisCheckout(client, taskQueue);
 
   const graphApi = createGraphClient(
     new Logger({
@@ -550,8 +595,8 @@ const main = async () => {
     },
   );
 
-  const userId = await getUserIdByShortname(graphApi, scenario.user ?? "alice");
-  const webId = userId as WebId;
+  const shortname = scenario.user ?? "alice";
+  const userId = await getUserIdByShortname(graphApi, shortname);
 
   const definitionChange = await ensureFlowDefinitionEntity({
     flow: scenario.flow,
@@ -560,55 +605,24 @@ const main = async () => {
   });
   if (definitionChange !== "unchanged") {
     console.log(
-      `Flow Definition ${flowDefinitionId} ${definitionChange} in ${scenario.user ?? "alice"}'s web`,
+      `Flow Definition ${flowDefinitionId} ${definitionChange} in ${shortname}'s web`,
     );
   }
 
-  /** Started like the `startFlow` resolver starts a run. */
-  const workflowId = generateUuid() as EntityUuid;
-  const params: RunFlowWorkflowParams = {
-    ...(taskQueue === "ai"
-      ? {
-          dataSources: {
-            files: { fileEntityIds: [] },
-            internetAccess: {
-              enabled: false,
-              browserPlugin: { enabled: false, domains: [] },
-            },
-          },
-        }
-      : {}),
-    flowRunId: workflowId,
-    flowInputs: scenario.inputs,
-    flowDefinitionId,
-    userAuthentication: { actorId: userId },
-    webId,
-  };
-
-  await client.workflow.start("runFlow", {
-    taskQueue,
-    args: [params],
-    memo: { flowDefinitionId, userAccountId: userId, webId },
-    workflowId,
-    retry: { maximumAttempts: 1 },
-  });
-
+  const workflowId = await startRun({ client, scenario, taskQueue, userId });
   console.log(`Started ${workflowId}: ${temporalUiUrl(workflowId)}`);
 
-  const outcome = await Promise.race([
+  const closed = await Promise.race([
     client.workflow
       .getHandle(workflowId)
       .result()
       .then(
-        () => "closed" as const,
-        () => "closed" as const,
+        () => true,
+        () => true,
       ),
-    new Promise<"timedOut">((resolve) => {
-      setTimeout(() => resolve("timedOut"), timeoutSeconds * 1_000).unref();
-    }),
+    sleep(timeoutSeconds * 1_000, false, { ref: false }),
   ]);
-
-  if (outcome === "timedOut") {
+  if (!closed) {
     console.warn(
       `⚠ Still running after ${timeoutSeconds}s: reporting the steps so far. Is a step waiting on something?`,
     );
@@ -620,19 +634,15 @@ const main = async () => {
     name: flowDefinition.name,
     temporalClient: client,
     temporalWorkflowId: workflowId,
-    webId,
+    webId: userId as WebId,
     storageProvider: getStorageProvider(),
   });
 
   await client.connection.close();
 
-  const commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-  }).trim();
   const results = checkExpectations(scenario, flowRun);
   const failed = results.some(({ failure }) => failure);
-  const report = renderReport({ scenario, flowRun, results, commit });
+  const report = renderReport(scenario, flowRun, results);
 
   const runDirectory = path.join(
     scriptDirectory,
