@@ -32,12 +32,16 @@ export type EntityProperty = Extract<
 export const validateEntityProperty = (
   property: EntityProperty,
 ): string | undefined => {
+  /*
+   * Checked first, so that another subject isn't reported for what it lacks as that subject. Persisted definitions
+   * may be malformed.
+   */
+  if ((property as ConditionSubject | null)?.kind !== "entityProperty") {
+    return "The property to read must be an entity property subject.";
+  }
   const subjectError = validateSubject(property, "EntityId");
   if (subjectError) {
     return subjectError;
-  }
-  if ((property as ConditionSubject).kind !== "entityProperty") {
-    return "The property to read must be an entity property subject.";
   }
   if (
     !(readEntityKinds as readonly PayloadKind[]).includes(property.payloadKind)

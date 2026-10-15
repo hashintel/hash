@@ -113,6 +113,7 @@ describe("readEntityAction", () => {
 
   it.each([
     { name: "doesn't have the property", value: undefined },
+    { name: "has null for it", value: null },
     { name: "has an empty value for it", value: "" },
   ])(
     "gives no output, so later steps are skipped, when the entity $name",

@@ -839,11 +839,13 @@ describe("validateFlowDefinition", () => {
         message:
           "An entity property subject requires a property type base URL.",
       },
-      {
-        name: "a subject other than an entity property",
-        overrides: { kind: "entityType" },
-        message: "The property to read must be an entity property subject.",
-      },
+      ...[{ kind: "entityType" }, { kind: "field", path: ["email"] }].map(
+        (subject) => ({
+          name: `a subject other than an entity property: ${subject.kind}`,
+          overrides: subject,
+          message: "The property to read must be an entity property subject.",
+        }),
+      ),
       ...["EntityId", "DateTime", "Duration"].map((payloadKind) => ({
         name: `the unsupported kind ${payloadKind}`,
         overrides: { payloadKind },
