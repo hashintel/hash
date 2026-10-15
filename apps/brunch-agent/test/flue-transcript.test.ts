@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { formatFlueTranscript } from "../src/conversation/transcript";
+import { formatFlueTranscript } from "../src/shared/conversation/transcript";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 

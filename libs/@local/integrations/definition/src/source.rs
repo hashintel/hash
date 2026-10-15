@@ -1,4 +1,5 @@
 use alloc::{boxed::Box, collections::BTreeSet, string::String};
+use core::{array, mem};
 
 use crate::name::{CheckpointName, ColumnName};
 
@@ -9,10 +10,11 @@ pub struct EmptySqlQuery;
 
 /// The text of an SQL query that is not empty.
 ///
-/// The text is checked only for emptiness here. The engine parses it when the pipeline runs.
+/// The text is checked only for emptiness here. The engine parses it when the pipeline runs. SQL
+/// reads the definition's variables as `$NAME` parameters.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::AsRef)]
 #[as_ref(forward)]
-pub struct SqlQuery(String);
+pub struct SqlQuery(Box<str>);
 
 impl TryFrom<String> for SqlQuery {
     type Error = EmptySqlQuery;
@@ -21,7 +23,7 @@ impl TryFrom<String> for SqlQuery {
         if query.trim().is_empty() {
             return Err(EmptySqlQuery);
         }
-        Ok(Self(query))
+        Ok(Self(query.into_boxed_str()))
     }
 }
 
@@ -75,6 +77,7 @@ impl PrimaryKey {
 /// A run archives the entities that a complete source returned in an earlier run but not in this
 /// one. Entities that a partial source omits are kept.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
 pub enum Coverage {
     /// The source returns only some of its entities.
     Partial,
@@ -85,6 +88,23 @@ pub enum Coverage {
     Complete,
     /// The source returns all of its entities, and no rows means that every entity was removed.
     CompleteOrEmpty,
+}
+
+impl Coverage {
+    /// Every coverage, in declaration order.
+    pub const ALL: [Self; mem::variant_count::<Self>()] = array::from_fn(const |index| {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "`repr(u8)` keeps the variant count within `u8`"
+        )]
+        let discriminant = index as u8;
+        // SAFETY: `repr(u8)` gives the variants the discriminants 0 up to the variant count in
+        // declaration order, and `index` is below the variant count.
+        #[expect(unsafe_code, reason = "builds each variant from its discriminant")]
+        unsafe {
+            mem::transmute::<u8, Self>(discriminant)
+        }
+    });
 }
 
 /// Where a source reads its rows from.

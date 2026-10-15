@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { canonicalContent } from "@hashintel/brunch-agent";
 
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 
@@ -43,7 +43,7 @@ test("an unknown mutation record is submitted without failing the call", async (
   );
   const calls = createInBandBrowserCalls({
     client: Promise.resolve({
-      url: "http://brunch.local/agents/chat/instance",
+      url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
     principalKey: "principal",
     binding,
@@ -55,6 +55,7 @@ test("an unknown mutation record is submitted without failing the call", async (
         Parameters<typeof createInBandBrowserCalls>[0]["metadataFor"]
       >,
     prepareInput: () => {},
+    acceptsRevision: () => true,
   });
 
   await expect(
@@ -93,12 +94,13 @@ test("the binding matches the issued call whatever its key order", async () => {
   };
   const calls = createInBandBrowserCalls({
     client: Promise.resolve({
-      url: "http://brunch.local/agents/chat/instance",
+      url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
     principalKey: "principal",
     binding: reordered,
     metadataFor: () => undefined,
     prepareInput: () => {},
+    acceptsRevision: () => true,
   });
 
   await calls.run(
@@ -151,12 +153,13 @@ const createCalls = (
 ) =>
   createInBandBrowserCalls({
     client: Promise.resolve({
-      url: "http://brunch.local/agents/chat/instance",
+      url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
     principalKey: "principal",
     binding,
     metadataFor: () => undefined,
     prepareInput,
+    acceptsRevision: () => true,
   });
 
 test("a call that throws once executed is reported failed", async () => {
@@ -178,7 +181,7 @@ test("a call that throws once executed is reported failed", async () => {
   ).rejects.toBe(failure);
   expect(posted).toEqual([
     {
-      url: "http://brunch.local/agents/chat/instance/browser-calls/call/fail",
+      url: "http://brunch.local/agents/petrinaut/instance/browser-calls/call/fail",
       disposition: "failed",
     },
   ]);
@@ -204,7 +207,7 @@ test("a call that cannot be prepared is reported unstarted without executing", a
   expect(execute).not.toHaveBeenCalled();
   expect(posted).toEqual([
     {
-      url: "http://brunch.local/agents/chat/instance/browser-calls/call/fail",
+      url: "http://brunch.local/agents/petrinaut/instance/browser-calls/call/fail",
       disposition: "unstarted",
     },
   ]);
@@ -224,4 +227,53 @@ test("a call stopped during its claim neither executes nor reports", async () =>
   await running.catch(() => {});
   expect(execute).not.toHaveBeenCalled();
   expect(posted).toEqual([]);
+});
+
+test("a change whose expected revision the document has left is reported stale and never prepared", async () => {
+  const posted: unknown[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (_url, init) => {
+      if (init?.method === "POST") {
+        posted.push(
+          typeof init.body === "string" ? JSON.parse(init.body) : init.body,
+        );
+        return new Response(null, { status: 200 });
+      }
+      return Response.json({
+        capability: "capability",
+        binding: canonicalContent(binding),
+        toolName: "addPlace",
+        input,
+        expectedRevision: "r1",
+      });
+    }),
+  );
+  const prepareInput = vi.fn<() => void>();
+  const accepted: string[] = [];
+  const calls = createInBandBrowserCalls({
+    client: Promise.resolve({
+      url: "http://brunch.local/agents/petrinaut/instance",
+    } as FlueClient),
+    principalKey: "principal",
+    binding,
+    metadataFor: () => undefined,
+    prepareInput,
+    acceptsRevision: (expected) => {
+      accepted.push(expected);
+      return false;
+    },
+  });
+
+  const issued = await calls.claim({
+    toolCallId: "call",
+    toolName: "addPlace",
+    input,
+    signal: new AbortController().signal,
+  });
+  expect(() => issued.prepare()).toThrow(/changed by other means/u);
+  expect(accepted).toEqual(["r1"]);
+  expect(prepareInput).not.toHaveBeenCalled();
+  await issued.fail("unstarted");
+  expect(posted).toEqual([expect.objectContaining({ disposition: "stale" })]);
 });

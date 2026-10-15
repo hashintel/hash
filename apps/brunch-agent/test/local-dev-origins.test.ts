@@ -8,7 +8,7 @@ import {
   localChatListen,
   localPanelListen,
   petrinautLocalServer,
-} from "../src/http/local-origins.ts";
+} from "../src/server/http/local-origins.ts";
 
 const readAppFile = (relativePath: string): string =>
   readFileSync(new URL(`../${relativePath}`, import.meta.url), "utf8");
@@ -18,7 +18,7 @@ const importWithPorts = async (chatPort: string, panelPort: string) => {
   vi.resetModules();
   vi.stubEnv("BRUNCH_CHAT_PORT", chatPort);
   vi.stubEnv("BRUNCH_PANEL_PORT", panelPort);
-  return import("../src/http/local-origins.ts");
+  return import("../src/server/http/local-origins.ts");
 };
 
 afterEach(() => {
@@ -44,7 +44,7 @@ test("builds local panel configuration for the mounted Flue route", () => {
   expect(petrinautLocalServer(defaultChatOrigin)).toEqual({
     ...localPanelListen,
     proxy: {
-      "/agents/chat": {
+      "/agents": {
         target: defaultChatOrigin,
         changeOrigin: false,
       },

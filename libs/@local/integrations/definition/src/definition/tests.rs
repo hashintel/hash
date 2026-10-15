@@ -14,7 +14,7 @@ use crate::{
     Accessor, Action, BranchStep, Branches, Coverage, Definition, DefinitionIssue, DefinitionParts,
     EntityPipeline, EntitySink, IssueKind, LinkEndpoint, LinkInput, LinkInputs, LinkPipeline,
     LinkStep, PrimaryKey, Properties, Source, SourceKind, SourceName, SqlQuery, Step, StepKind,
-    UnitMap,
+    UnitMap, Variables,
 };
 
 const TYPES: &str = "https://example.com/@demo/types";
@@ -74,6 +74,7 @@ fn column(name: &str) -> Accessor {
 fn aviation() -> DefinitionParts {
     DefinitionParts {
         connector: parse("aviation"),
+        variables: Variables::default(),
         sources: BTreeMap::from([
             (parse("aircraft"), sql_source("TAIL")),
             (parse("airfields"), sql_source("ICAO")),

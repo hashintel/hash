@@ -220,16 +220,29 @@ impl FromStr for InputAlias {
     }
 }
 
-/// Names a variable in a definition's `vars`, which `${NAME}` placeholders refer to.
+/// Names a variable in a definition's `vars`.
 ///
-/// A variable name is an ASCII letter or `_`, followed by letters, digits and `_`, in at most 64
-/// bytes.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, derive_more::Display)]
-pub(crate) struct VariableName(Box<str>);
+/// `${NAME}` placeholders outside SQL refer to a variable, and SQL reads it as the parameter
+/// `$NAME`. A variable name is an ASCII letter or `_`, followed by letters, digits and `_`, in at
+/// most 64 bytes.
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::Display, derive_more::AsRef,
+)]
+#[as_ref(forward)]
+pub struct VariableName(Box<str>);
 
 impl Borrow<str> for VariableName {
     fn borrow(&self) -> &str {
         &self.0
+    }
+}
+
+impl VariableName {
+    /// Returns whether `name` names this variable, compared without regard to ASCII case, as SQL
+    /// compares parameter names.
+    #[must_use]
+    pub fn matches(&self, name: &str) -> bool {
+        self.0.eq_ignore_ascii_case(name)
     }
 }
 

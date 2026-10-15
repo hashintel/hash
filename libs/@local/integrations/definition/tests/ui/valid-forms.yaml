@@ -1,13 +1,14 @@
-# These less common forms are valid: a multi-column primary key, a pipeline that reads a
-# checkpoint and is declared before the pipeline that writes it, short accessors whose column
-# names look like numbers or booleans, a `column` accessor, and a link that combines two inputs
-# in a step.
+# These less common forms are valid: SQL that reads a variable as a parameter, a multi-column
+# primary key, a pipeline that reads a checkpoint and is declared before the pipeline that writes
+# it, short accessors whose column names look like numbers or booleans, a `column` accessor, and a
+# link that combines two inputs in a step.
 connector: demo
 vars:
   TYPES: https://example.com/@demo/types
+  REGION: EU
 sources:
   orders:
-    sql: SELECT 1 AS id, 'EU' AS region
+    sql: SELECT 1 AS id, $REGION AS region
     primaryKey: [id, region]
   saved-orders:
     checkpoint: demo/orders

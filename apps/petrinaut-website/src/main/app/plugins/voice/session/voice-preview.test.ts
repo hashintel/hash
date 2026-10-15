@@ -211,7 +211,7 @@ describe("controlled voice preview", () => {
     });
     const admission: AgentSendResult = {
       offset: "offset-voice-1",
-      streamUrl: "https://petrinaut.test/agents/chat/instance-1",
+      streamUrl: "https://petrinaut.test/agents/petrinaut/instance-1",
       submissionId: "submission-voice-1",
       uid: "uid-voice-1",
     };

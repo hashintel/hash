@@ -11,7 +11,7 @@ const burst = (at: number, names: string[], step: number, duration: number) =>
   names.map((name, index) => tool(at + index * step, name, duration));
 const build = [
   tool(1_500, "getLatestNetDefinition", 600),
-  tool(2_400, "mutate_workpiece", 1_200),
+  tool(2_400, "ledger_commit", 1_200),
   ...burst(
     7_000,
     [
@@ -189,9 +189,9 @@ test.each([
 });
 
 test.each([
-  "mutate_workpiece",
-  "read_workpiece",
-  "query_workpiece",
+  "ledger_commit",
+  "ledger_compile",
+  "query_basis",
   "ping",
   "unknown_tool",
 ])("%s keeps the normal running delay", (name) => {
@@ -208,9 +208,9 @@ test.each([
 test("a fast non-substrate burst after acknowledgement stays silent", () => {
   const { policy, commentary } = setup();
   for (const [index, name] of [
-    "read_workpiece",
-    "mutate_workpiece",
-    "query_workpiece",
+    "ledger_compile",
+    "ledger_commit",
+    "query_basis",
     "ping",
     "unknown_tool",
   ].entries()) {

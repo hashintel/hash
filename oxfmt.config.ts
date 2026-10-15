@@ -61,6 +61,7 @@ export default defineConfig({
     "**/LICENSE*.md",
     // Brunch Markdown is created and maintained by agents
     "libs/@hashintel/brunch-agent/**/*.md",
+    "apps/brunch-agent/evals/**/*.md",
     // While supported, it doesn't yet support the full breadth
     // of taplo configuration options that we have set
     // see: https://github.com/oxc-project/oxc/issues/18580

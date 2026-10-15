@@ -59,7 +59,7 @@ vi.hoisted(() => {
 import type {
   DraftPetrinautExperimentInput,
   DraftPetrinautExperimentOutput,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
+} from "@hashintel/brunch-agent";
 import type {
   AbortSignalLike,
   Petrinaut,

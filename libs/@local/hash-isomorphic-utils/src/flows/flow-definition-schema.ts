@@ -12,10 +12,14 @@ import type {
  */
 export const payloadKindJsonTypes = {
   ActorType: "string",
+  Aggregation: "object",
   Boolean: "boolean",
   Date: "string",
+  DateTime: "string",
+  Duration: "object",
   EntityId: "string",
   FailedEntityProposal: "object",
+  FilterCondition: "object",
   FormattedText: "object",
   GoogleAccountId: "string",
   GoogleSheet: "object",
@@ -23,6 +27,7 @@ export const payloadKindJsonTypes = {
   PersistedEntityMetadata: "object",
   ProposedEntity: "object",
   ProposedEntityWithResolvedLinks: "object",
+  SortKey: "object",
   Text: "string",
   VersionedUrl: "string",
   WebPage: "object",
