@@ -1,0 +1,361 @@
+import type * as Type from "../type/index.js";
+import type * as Expression from "./Expression.js";
+import type * as Input from "./Inputs.js";
+
+type Composition = "Union" | "Intersection";
+// oxlint-disable-next-line typescript/no-generated-empty-object-type -- the empty intersection contributes no accessor members
+type EmptyAccessors = Record<never, never>;
+
+type Same<Left, Right> = [Left] extends [Right]
+  ? [Right] extends [Left]
+    ? true
+    : false
+  : false;
+
+type Includes<
+  Members extends readonly Type.Any[],
+  Member extends Type.Any,
+> = Members extends readonly [
+  infer Head extends Type.Any,
+  ...infer Tail extends readonly Type.Any[],
+]
+  ? Same<Head, Member> extends true
+    ? true
+    : Includes<Tail, Member>
+  : false;
+
+type Unique<
+  Members extends readonly Type.Any[],
+  Result extends readonly Type.Any[],
+> = number extends Members["length"]
+  ? Members
+  : Members extends readonly [
+        infer Head extends Type.Any,
+        ...infer Tail extends readonly Type.Any[],
+      ]
+    ? Includes<Result, Head> extends true
+      ? Unique<Tail, Result>
+      : Unique<Tail, readonly [...Result, Head]>
+    : Result;
+
+type MembersOf<T extends Type.Any, Kind extends Composition> = T extends {
+  readonly _tag: Kind;
+  readonly types: infer Members extends readonly Type.Any[];
+}
+  ? Members
+  : readonly [T];
+
+type Compose<
+  Kind extends Composition,
+  Members extends readonly Type.Any[],
+> = Members extends readonly []
+  ? Kind extends "Union"
+    ? Type.Never
+    : Type.Unknown
+  : Members extends readonly [infer Member extends Type.Any]
+    ? Member
+    : Kind extends "Union"
+      ? Type.Union<Members>
+      : Type.Intersection<Members>;
+
+type Join<
+  Left extends Type.Any,
+  Right extends Type.Any,
+> = Left extends Type.Never
+  ? Right
+  : Right extends Type.Never
+    ? Left
+    : Left extends Type.Unknown
+      ? Type.Unknown
+      : Right extends Type.Unknown
+        ? Type.Unknown
+        : Compose<
+            "Union",
+            Unique<
+              readonly [
+                ...MembersOf<Left, "Union">,
+                ...MembersOf<Right, "Union">,
+              ],
+              readonly []
+            >
+          >;
+
+type PrimitiveConflict<Left extends Type.Any, Right extends Type.Any> =
+  Left extends Type.Intersection<infer Members>
+    ? true extends {
+        [Index in keyof Members]: PrimitiveConflict<Members[Index], Right>;
+      }[number]
+      ? true
+      : false
+    : Right extends Type.Intersection<infer Members>
+      ? true extends {
+          [Index in keyof Members]: PrimitiveConflict<Left, Members[Index]>;
+        }[number]
+        ? true
+        : false
+      : Left extends Type.Primitive
+        ? Right extends Type.Primitive
+          ? [Left | Right] extends [
+              Type.PrimitiveInteger | Type.PrimitiveNumber,
+            ]
+            ? false
+            : Same<Left["_tag"], Right["_tag"]> extends true
+              ? false
+              : true
+          : false
+        : false;
+
+type MeetMembers<
+  Members extends readonly Type.Any[],
+  Other extends Type.Any,
+> = {
+  readonly [Index in keyof Members]: Meet<Members[Index], Other>;
+};
+
+type Meet<
+  Left extends Type.Any,
+  Right extends Type.Any,
+> = Left extends Type.Never
+  ? Type.Never
+  : Right extends Type.Never
+    ? Type.Never
+    : Left extends Type.Unknown
+      ? Right
+      : Right extends Type.Unknown
+        ? Left
+        : Same<Left, Right> extends true
+          ? Left
+          : Left extends Type.Union<infer Members>
+            ? Reduce<"Union", MeetMembers<Members, Right>, Type.Never>
+            : Right extends Type.Union<infer Members>
+              ? Reduce<"Union", MeetMembers<Members, Left>, Type.Never>
+              : PrimitiveConflict<Left, Right> extends true
+                ? Type.Never
+                : Compose<
+                    "Intersection",
+                    Unique<
+                      readonly [
+                        ...MembersOf<Left, "Intersection">,
+                        ...MembersOf<Right, "Intersection">,
+                      ],
+                      readonly []
+                    >
+                  >;
+
+type Reduce<
+  Kind extends Composition,
+  Members extends readonly Type.Any[],
+  Result extends Type.Any,
+> = number extends Members["length"]
+  ? Kind extends "Union"
+    ? Type.Union<Members>
+    : Type.Intersection<Members>
+  : Members extends readonly [
+        infer Head extends Type.Any,
+        ...infer Tail extends readonly Type.Any[],
+      ]
+    ? Reduce<
+        Kind,
+        Tail,
+        Kind extends "Union"
+          ? Join<Result, Normalize<Head>>
+          : Meet<Result, Normalize<Head>>
+      >
+    : Result;
+
+/** Simplifies explicit unions and intersections without widening the parent expression's type. */
+export type Normalize<T extends Type.Any> = [T] extends [never]
+  ? Type.Never
+  : [T] extends [Type.Union<infer Members>]
+    ? Reduce<"Union", Members, Type.Never>
+    : [T] extends [Type.Intersection<infer Members>]
+      ? Reduce<"Intersection", Members, Type.Unknown>
+      : T;
+
+type Combine<
+  Kind extends Composition,
+  Members extends readonly Type.Any[],
+> = Reduce<Kind, Members, Kind extends "Union" ? Type.Never : Type.Unknown>;
+
+type FieldMaps<Members extends readonly Type.Any[]> = {
+  readonly [Index in keyof Members]: FieldsOf<Normalize<Members[Index]>>;
+};
+
+type ProjectMembers<
+  Members extends readonly Type.Any[],
+  Key extends PropertyKey,
+> = {
+  readonly [Index in keyof Members]: Key extends keyof FieldsOf<
+    Normalize<Members[Index]>
+  >
+    ? FieldsOf<Normalize<Members[Index]>>[Key] extends infer Field extends
+        Type.Any
+      ? Field
+      : never
+    : never;
+};
+
+/** A projection is available only when every member supports it. */
+type CombinedFields<
+  Kind extends Composition,
+  Members extends readonly Type.Any[],
+> = Members extends readonly []
+  ? EmptyAccessors
+  : {
+      readonly [Key in keyof FieldMaps<Members>[number]]: Combine<
+        Kind,
+        ProjectMembers<Members, Key>
+      >;
+    };
+
+type FieldsOf<T extends Type.Any> = [T] extends [Type.Struct<infer Fields>]
+  ? {
+      readonly [Field in Extract<keyof Fields, string | number>]: Fields[Field];
+    }
+  : [T] extends [Type.Tuple.Any]
+    ? {
+        readonly [Index in Extract<
+          keyof T["fields"],
+          `${number}`
+        > as Index extends `${infer Position extends number}`
+          ? Position
+          : never]: T["fields"][Index];
+      }
+    : [T] extends [Type.Opaque<string | symbol, infer Inner>]
+      ? FieldsOf<Normalize<Inner>>
+      : [T] extends [Type.Union<infer Members>]
+        ? CombinedFields<"Union", Members>
+        : [T] extends [Type.Intersection<infer Members>]
+          ? CombinedFields<"Intersection", Members>
+          : EmptyAccessors;
+
+interface IndexDescriptor {
+  readonly key: Type.Any;
+  readonly value: Type.Any;
+}
+
+type IndexValues<Members extends readonly Type.Any[]> = {
+  readonly [Index in keyof Members]: IndexOf<
+    Normalize<Members[Index]>
+  > extends infer Descriptor extends IndexDescriptor
+    ? Descriptor["value"]
+    : never;
+};
+
+type IndexFailures<
+  Members extends readonly Type.Any[],
+  Key extends Type.Any,
+> = {
+  readonly [Index in keyof Members]: IndexOf<
+    Normalize<Members[Index]>
+  > extends infer Descriptor
+    ? [Descriptor] extends [IndexDescriptor]
+      ? Same<Descriptor["key"], Key> extends true
+        ? never
+        : Index
+      : Index
+    : Index;
+}[number];
+
+type CombinedIndex<
+  Kind extends Composition,
+  Members extends readonly Type.Any[],
+> = Members extends readonly [
+  infer Head extends Type.Any,
+  ...(readonly Type.Any[]),
+]
+  ? IndexOf<Normalize<Head>> extends infer Descriptor
+    ? [Descriptor] extends [IndexDescriptor]
+      ? [IndexFailures<Members, Descriptor["key"]>] extends [never]
+        ? {
+            readonly key: Descriptor["key"];
+            readonly value: Combine<Kind, IndexValues<Members>>;
+          }
+        : undefined
+      : undefined
+    : undefined
+  : undefined;
+
+type IndexOf<T extends Type.Any> = [T] extends [Type.List<infer Value>]
+  ? { readonly key: Type.PrimitiveInteger; readonly value: Value }
+  : [T] extends [Type.Dict<infer Key, infer Value>]
+    ? { readonly key: Key; readonly value: Value }
+    : [T] extends [Type.Opaque<string | symbol, infer Inner>]
+      ? IndexOf<Normalize<Inner>>
+      : [T] extends [Type.Union<infer Members>]
+        ? CombinedIndex<"Union", Members>
+        : [T] extends [Type.Intersection<infer Members>]
+          ? CombinedIndex<"Intersection", Members>
+          : undefined;
+
+type ProjectionAccessors<Fields, Inputs> = {
+  readonly [Key in Exclude<
+    keyof Fields,
+    "$" | "$project" | "$index" | "then" | "~hashql/Expression"
+  >]: Fields[Key] extends infer Field extends Type.Any
+    ? Expression.Expression<Normalize<Field>, Inputs>
+    : never;
+} & ([keyof Fields] extends [never]
+  ? EmptyAccessors
+  : {
+      readonly $project: <Key extends keyof Fields>(
+        key: Key,
+      ) => Fields[Key] extends infer Field extends Type.Any
+        ? Expression.Expression<Normalize<Field>, Inputs>
+        : never;
+    });
+
+type IndexAccessor<Descriptor, Inputs> = [Descriptor] extends [IndexDescriptor]
+  ? {
+      readonly $index: <const Key extends Expression.Value<Descriptor["key"]>>(
+        key: Key,
+      ) => Expression.Expression<
+        Join<Normalize<Descriptor["value"]>, Type.PrimitiveNull>,
+        Input.Merge<Inputs, Expression.Inputs<Key>>
+      >;
+    }
+  : EmptyAccessors;
+
+export type Accessors<T extends Type.Any, Inputs> = ProjectionAccessors<
+  FieldsOf<Normalize<T>>,
+  Inputs
+> &
+  IndexAccessor<IndexOf<Normalize<T>>, Inputs>;
+
+export type Arguments<Parameters extends readonly Type.Any[]> = {
+  readonly [Index in keyof Parameters]: Expression.Value<Parameters[Index]>;
+};
+
+export type ArgumentInputs<Values extends readonly Expression.AnyValue[]> =
+  Input.All<{
+    readonly [Index in keyof Values]: Expression.Inputs<Values[Index]>;
+  }>;
+
+type ArgumentTypes<Values extends readonly Expression.AnyValue[]> = {
+  readonly [Index in keyof Values]: Expression.TypeOf<Values[Index]>;
+};
+
+export type Callable<T extends Type.Any, Inputs> =
+  T extends Type.Function<infer Parameters, infer Returns>
+    ? <const Values extends Arguments<Parameters>>(
+        ...args: Values
+      ) => Expression.Expression<
+        Returns,
+        Input.Merge<Inputs, ArgumentInputs<Values>>
+      >
+    : T extends Type.GenericFunction<infer Signature>
+      ? <const Values extends readonly Expression.AnyValue[]>(
+          ...args: Values &
+            Arguments<
+              Type.Apply<Signature, ArgumentTypes<Values>>["parameters"]
+            >
+        ) => Expression.Expression<
+          Type.Apply<Signature, ArgumentTypes<Values>>["returns"],
+          Input.Merge<Inputs, ArgumentInputs<Values>>
+        >
+      : EmptyAccessors;
+
+export type Conditional<Then extends Type.Any, Else extends Type.Any> = Join<
+  Normalize<Then>,
+  Normalize<Else>
+>;

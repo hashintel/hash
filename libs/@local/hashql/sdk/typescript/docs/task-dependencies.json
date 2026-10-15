@@ -1,0 +1,32 @@
+{
+  "package": "@local/hashql",
+  "dependencies": [
+    "@local/oxlint",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "@local/oxlint#build"
+      ]
+    },
+    "lint:oxlint": {
+      "dependsOn": [
+        "@local/oxlint#build"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@local/oxlint#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@local/oxlint#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}

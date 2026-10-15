@@ -1,0 +1,433 @@
+// oxlint-disable unicorn/no-array-method-this-argument -- Result.map and Result.flatMap are not array methods
+// oxlint-disable vitest/prefer-to-be-truthy -- these checks assert exact Boolean results
+// oxlint-disable hash/naming-conventions -- examples preserve HashQL type and constructor names in separate callback arguments
+import { Result } from "effect";
+import { assert, describe, expect, test } from "vitest";
+
+import {
+  Expression,
+  Import,
+  Let,
+  Module,
+  Newtype,
+  Program,
+  program,
+} from "../main.js";
+import { Expr } from "./ast/Expr.js";
+import { If } from "./ast/If.js";
+import { Import as AstImport } from "./ast/Import.js";
+import { Let as AstLet } from "./ast/Let.js";
+import { Newtype as AstNewtype } from "./ast/Newtype.js";
+import { Type as AstType } from "./ast/Type.js";
+
+import type { Inputs, Type } from "../main.js";
+import type { Node } from "./ast/Node.js";
+
+const initialValue = 7;
+const fractionalValue = 1.5;
+const kernel = Result.getOrThrow(
+  Module.define("::kernel::type", {
+    types: { Integer: Module.type<Type.PrimitiveInteger>() },
+  }),
+);
+const { Do, Type: Alias } = Program.withPrelude({ modules: { kernel } });
+const identity: unique symbol = Symbol("Id");
+
+describe("construction", () => {
+  test("sequential_tree", () => {
+    expect.hasAssertions();
+    const calls: string[] = [];
+    const root = Program.Do(
+      Let("value", ($) => {
+        calls.push("value");
+        return $.integer(initialValue);
+      }),
+      Let("copy", (_, { value }) => {
+        calls.push("copy");
+        return value;
+      }),
+      Let("value", ($) => $.literal("new")),
+      (_, { copy }) => {
+        calls.push("body");
+        return copy;
+      },
+    );
+    const tree = Result.getOrThrow(Result.flatMap(root, Expression.toNode));
+    expect(tree).toBeInstanceOf(AstLet);
+    expect(tree.compile()).toStrictEqual([
+      "::kernel::special_form::let",
+      "value",
+      { "#literal": { _tag: "Integer", value: "7" } },
+      [
+        "::kernel::special_form::let",
+        "copy",
+        "value",
+        ["::kernel::special_form::let", "value", { "#literal": "new" }, "copy"],
+      ],
+    ]);
+    expect(Program.compile(program(Result.getOrThrow(root)))).toStrictEqual(
+      Program.compile(program(Result.getOrThrow(root))),
+    );
+    expect(calls).toStrictEqual(["value", "copy", "body"]);
+    assert.instanceOf(tree, AstLet);
+    expect(tree.child).toBeInstanceOf(AstLet);
+  });
+
+  test("type_and_constructor", () => {
+    expect.hasAssertions();
+    const root = Do(
+      Import((_, { kernel }) => kernel),
+      Alias("Count", (_, { Integer }) => Integer),
+      Newtype("Id", identity, (_, { Count }) => Count),
+      Let("id", ($, { Id }) => Id($.integer(initialValue))),
+      (_, { id }) => id,
+    );
+    const imported = Result.getOrThrow(Result.flatMap(root, Expression.toNode));
+    assert.instanceOf<AstImport<Node>>(imported, AstImport);
+    const tree = imported.child;
+    expect(tree).toBeInstanceOf(AstType);
+    expect(tree.compile()).toStrictEqual([
+      "::kernel::special_form::type",
+      "Count",
+      "Integer",
+      [
+        "::kernel::special_form::newtype",
+        "Id",
+        "Count",
+        [
+          "::kernel::special_form::let",
+          "id",
+          ["Id", { "#literal": { _tag: "Integer", value: "7" } }],
+          "id",
+        ],
+      ],
+    ]);
+    assert.instanceOf(tree, AstType);
+    expect(tree.child).toBeInstanceOf(AstNewtype);
+  });
+});
+
+describe("block_errors", () => {
+  test("missing_body", () => {
+    expect.hasAssertions();
+    // @ts-expect-error Exercise the runtime boundary without a terminal callback.
+    const result = Program.Do();
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        _tag: "ProgramConstructionError",
+        reason: { _tag: "InvalidBlock" },
+      },
+    });
+  });
+
+  test("misplaced_body", () => {
+    expect.hasAssertions();
+    const result = Program.Do(
+      // @ts-expect-error An expression callback cannot precede the terminal callback.
+      () => Expression.integer(1),
+      ($) => $.integer(2),
+    );
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        _tag: "ProgramConstructionError",
+        reason: { _tag: "InvalidBlock" },
+      },
+    });
+  });
+
+  test("invalid_body_result", () => {
+    expect.hasAssertions();
+    // @ts-expect-error Exercise the runtime boundary with a host value.
+    const result = Program.Do(() => "not an expression");
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        _tag: "ProgramConstructionError",
+        reason: { _tag: "InvalidBlock" },
+      },
+    });
+  });
+
+  test("binding_reason", () => {
+    expect.hasAssertions();
+    const result = Program.Do(
+      Let("bad name", ($) => $.integer(1)),
+      ($) => $.integer(2),
+    );
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        _tag: "ProgramConstructionError",
+        reason: {
+          _tag: "InvalidBindingName",
+          name: "bad name",
+          // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest matchers describe expected values
+          cause: expect.any(Object),
+        },
+      },
+    });
+  });
+});
+
+describe("validation", () => {
+  test("declaration_short_circuit", () => {
+    expect.hasAssertions();
+    const calls: string[] = [];
+    const result = Program.Do(
+      Let("bad name", ($) => $.integer(1)),
+      Let("later", ($) => {
+        calls.push("later");
+        return $.integer(2);
+      }),
+      ($) => {
+        calls.push("body");
+        return $.integer(initialValue);
+      },
+    );
+    expect(Result.isFailure(result)).toBe(true);
+    expect(calls).toStrictEqual([]);
+  });
+
+  test("type_names", () => {
+    expect.hasAssertions();
+    expect(
+      Result.isFailure(
+        Do(
+          Alias("bad name", ($) => $.ref.kernel.types.Integer),
+          ($) => $.integer(1),
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      Result.isFailure(
+        Do(
+          Newtype("bad name", identity, ($) => $.ref.kernel.types.Integer),
+          ($) => $.integer(1),
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  test.each([Number.NaN, Infinity, -Infinity, fractionalValue])(
+    "invalid_integer: %s",
+    (value) => {
+      expect.hasAssertions();
+      expect(Result.isFailure(Program.Do(($) => $.integer(value)))).toBe(true);
+    },
+  );
+});
+
+describe("nested_validation", () => {
+  test.each([true, false])("branch_failure: %s", (condition) => {
+    expect.hasAssertions();
+    const calls: string[] = [];
+    const result = Program.Do(($) =>
+      $.if(
+        $.literal(condition),
+        () => {
+          calls.push("then");
+          return $.Let("bad name", ($) => $.integer(1))
+            .Let("skipped", ($) => {
+              calls.push("skipped");
+              return $.integer(2);
+            })
+            .Expr(($) => {
+              calls.push("body");
+              return $.integer(initialValue);
+            });
+        },
+        () => {
+          calls.push("else");
+          return $.integer(initialValue);
+        },
+      ),
+    );
+    expect(Result.isFailure(result)).toBe(true);
+    expect(calls).toStrictEqual(["then", "else"]);
+  });
+
+  test("alternate_failure", () => {
+    expect.hasAssertions();
+    const result = Program.Do(($) =>
+      $.if(
+        $.literal(true),
+        () => $.integer(1),
+        () =>
+          $.Let("bad name", ($) => $.integer(2)).Expr(
+            (_, values) => values["bad name"],
+          ),
+      ),
+    );
+    expect(Result.isFailure(result)).toBe(true);
+  });
+
+  test("nested_argument_failure", () => {
+    expect.hasAssertions();
+    const result = Program.Do(($) => {
+      const consume = Expression.fromJExpr<
+        Type.Function<readonly [Type.PrimitiveInteger], Type.PrimitiveInteger>,
+        Inputs.Empty
+      >("consume");
+      return consume(
+        $.Let("bad name", ($) => $.integer(1)).Expr(
+          (_, values) => values["bad name"],
+        ),
+      );
+    });
+    expect(Result.isFailure(result)).toBe(true);
+  });
+
+  test("input_default_failure", () => {
+    expect.hasAssertions();
+    const result = Do(($) =>
+      $.input("count", $.ref.kernel.types.Integer, $.integer(Number.NaN)),
+    );
+    expect(Result.isFailure(result)).toBe(true);
+  });
+});
+
+describe("branches", () => {
+  test("implicit_branches", () => {
+    expect.hasAssertions();
+    const calls: string[] = [];
+    const root = Do(
+      Import((_, { kernel }) => kernel),
+      Let("outer", ($) => $.integer(initialValue)),
+      ($, { outer }) =>
+        $.if(
+          $.literal(false),
+          () => {
+            calls.push("then");
+            return $.Type("Local", (_, { Integer }) => Integer)
+              .Let("inner", ($, { outer }, { Local }) =>
+                $.input("value", Local, outer),
+              )
+              .Expr((_, { inner }) => inner);
+          },
+          () => {
+            calls.push("else");
+            return outer;
+          },
+        ),
+    );
+    const imported = Result.getOrThrow(Result.flatMap(root, Expression.toNode));
+    assert.instanceOf<AstImport<Node>>(imported, AstImport);
+    const tree = imported.child;
+    expect(tree.compile()).toStrictEqual([
+      "::kernel::special_form::let",
+      "outer",
+      { "#literal": { _tag: "Integer", value: "7" } },
+      [
+        "::kernel::special_form::if",
+        { "#literal": false },
+        [
+          "::kernel::special_form::type",
+          "Local",
+          "Integer",
+          [
+            "::kernel::special_form::let",
+            "inner",
+            ["::kernel::special_form::input", "value", "Local", "outer"],
+            "inner",
+          ],
+        ],
+        "outer",
+      ],
+    ]);
+    tree.compile();
+    expect(calls).toStrictEqual(["then", "else"]);
+    assert.instanceOf(tree, AstLet);
+    expect(tree.child).toBeInstanceOf(If);
+  });
+
+  test("nested_conditionals", () => {
+    expect.hasAssertions();
+    const root = Program.Do(($) =>
+      $.if(
+        $.literal(true),
+        () =>
+          $.Let("local", ($) => $.integer(1)).Expr(($, { local }) =>
+            $.if(
+              $.literal(false),
+              () => local,
+              () => $.integer(2),
+            ),
+          ),
+        () => $.literal("other"),
+      ),
+    );
+    expect(
+      Result.getOrThrow(Result.flatMap(root, Expression.toJExpr)),
+    ).toStrictEqual([
+      "::kernel::special_form::if",
+      { "#literal": true },
+      [
+        "::kernel::special_form::let",
+        "local",
+        { "#literal": { _tag: "Integer", value: "1" } },
+        [
+          "::kernel::special_form::if",
+          { "#literal": false },
+          "local",
+          { "#literal": { _tag: "Integer", value: "2" } },
+        ],
+      ],
+      { "#literal": "other" },
+    ]);
+  });
+});
+
+describe("expressions", () => {
+  test("quoted_binding", () => {
+    expect.hasAssertions();
+    const root = Program.Do(
+      Let("%", ($) => $.integer(initialValue)),
+      (_, values) => values["%"],
+    );
+    expect(
+      Result.getOrThrow(Result.flatMap(root, Expression.toJExpr)),
+    ).toStrictEqual([
+      "::kernel::special_form::let",
+      "`%`",
+      { "#literal": { _tag: "Integer", value: "7" } },
+      "`%`",
+    ]);
+    expect(
+      Result.isFailure(
+        Program.Do(
+          Let("not a name", ($) => $.integer(1)),
+          ($) => $.integer(2),
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  test("expression_leaf", () => {
+    expect.hasAssertions();
+    const root = Program.Do(($) => $.integer(initialValue));
+    expect(
+      Result.getOrThrow(Result.flatMap(root, Expression.toNode)),
+    ).toBeInstanceOf(Expr);
+    expect(
+      Result.getOrThrow(Program.compile(program(Result.getOrThrow(root)))),
+    ).toBe('{"#literal":7}');
+  });
+
+  test("branch_exception", () => {
+    expect.hasAssertions();
+    const failure = new Error("branch construction");
+    expect(() =>
+      Program.Do(($) =>
+        $.if(
+          $.literal(false),
+          () => {
+            throw failure;
+          },
+          () => $.integer(1),
+        ),
+      ),
+    ).toThrow(failure);
+  });
+});
