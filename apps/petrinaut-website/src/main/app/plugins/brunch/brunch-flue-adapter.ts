@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   browserToolOutput,
+  parsePetrinautUserMessageBody,
   projectBrunchMessageMetadata,
 } from "@hashintel/brunch-agent";
 import { createFlueAiSdkAdapter } from "@local/flue-aisdk-transport";
@@ -35,6 +36,21 @@ const petrinautMessageMetadataSchema = z.object({
   z.ZodType
 >) satisfies z.ZodType<PetrinautAiMessageMetadata>;
 
+/** A reopened user turn shows the human's text, never its contextual framing. */
+const withHumanUserText = (message: PetrinautAiMessage): PetrinautAiMessage =>
+  message.role === "user"
+    ? {
+        ...message,
+        parts: message.parts.map((part) => {
+          if (part.type !== "text") return part;
+          const body = parsePetrinautUserMessageBody(part.text);
+          return body.kind === "contextual"
+            ? { ...part, text: body.userText }
+            : part;
+        }),
+      }
+    : message;
+
 /** Petrinaut's projection of one Brunch conversation, live and reopened. */
 export const createBrunchFlueAdapter = (
   tools: Pick<
@@ -45,14 +61,19 @@ export const createBrunchFlueAdapter = (
     FlueAiSdkAdapterConfig<UIMessage>,
     "onInvalidReopenedMetadata"
   > = {},
-): BrunchFlueAdapter =>
-  createFlueAiSdkAdapter<PetrinautAiMessage>({
+): BrunchFlueAdapter => {
+  const adapter = createFlueAiSdkAdapter<PetrinautAiMessage>({
     ...tools,
     ...reporting,
     mapToolOutput: browserToolOutput,
     metadataSchema: petrinautMessageMetadataSchema,
     projectMetadata: projectBrunchMessageMetadata,
   });
+  return {
+    ...adapter,
+    reopen: (history) => adapter.reopen(history).map(withHumanUserText),
+  };
+};
 
 /** The adapter for a panel that renders only Petrinaut's canonical tools. */
 export const canonicalBrunchFlueAdapter = createBrunchFlueAdapter({

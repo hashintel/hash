@@ -2286,6 +2286,7 @@ const ConversationAiAssistantPanel = ({
 
   const composerControlContext: PetrinautAiComposerControlContext = {
     conversationId,
+    inputMode: interactionMode,
     messages,
     status,
     stopped,
@@ -2294,6 +2295,10 @@ const ConversationAiAssistantPanel = ({
     reportExperimentRunning,
   };
   const composerControl = aiAssistant.renderComposerControl?.(
+    // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
+    composerControlContext,
+  );
+  const composerStatus = aiAssistant.renderComposerStatus?.(
     // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
     composerControlContext,
   );
@@ -2325,6 +2330,7 @@ const ConversationAiAssistantPanel = ({
       }
       composerFocusRequest={composerFocusRequest + focusRequest}
       composerControl={composerControl}
+      composerStatus={composerStatus}
       error={streamError ?? error}
       experimentStates={experimentStates}
       hostExperimentRunning={hostExperimentReport?.running ?? false}
@@ -2337,6 +2343,7 @@ const ConversationAiAssistantPanel = ({
       hostTabSelected={hostTabSelected}
       hiddenToolNames={hiddenAutomaticToolNames}
       messages={aiAssistant.mapMessagesForDisplay?.(messages) ?? messages}
+      renderSystemMessage={aiAssistant.renderSystemMessage}
       onClearMessages={() => {
         abortAutomaticTools();
         for (const controller of experimentControllersRef.current.values())

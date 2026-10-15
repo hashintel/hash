@@ -5,6 +5,7 @@ import {
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 import { finalUserMessage } from "@local/flue-aisdk-transport";
 
+import type { SubmissionContext } from "@hashintel/brunch-agent";
 import type { SubmittedUserMessage } from "@local/flue-aisdk-transport";
 import type { UIMessage } from "ai";
 
@@ -33,20 +34,27 @@ const submittedDiagnosticsContext = (
 };
 
 /**
- * Admit the human's turn, framing any trailing diagnostics context into its
- * body so the server can separate human evidence from host diagnostics.
+ * Admit the human's turn, framing any trailing diagnostics context and this
+ * submission's host context into its body so the server can separate human
+ * evidence from host data.
  */
 export const brunchSubmittedUserMessage = (
   messages: readonly UIMessage[],
+  submissionContext?: SubmissionContext,
 ): SubmittedUserMessage => {
   const diagnosticsContext = submittedDiagnosticsContext(messages);
-  if (diagnosticsContext === undefined) return finalUserMessage(messages);
-  const userMessage = finalUserMessage(messages.slice(0, -1));
+  if (diagnosticsContext === undefined && submissionContext === undefined) {
+    return finalUserMessage(messages);
+  }
+  const userMessage = finalUserMessage(
+    diagnosticsContext === undefined ? messages : messages.slice(0, -1),
+  );
   return {
     messageId: userMessage.messageId,
     body: petrinautContextualUserMessageBody({
       userText: userMessage.body,
-      diagnosticsContext,
+      diagnosticsContext: diagnosticsContext ?? "",
+      ...(submissionContext === undefined ? {} : { submissionContext }),
     }),
   };
 };

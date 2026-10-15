@@ -37,6 +37,39 @@ describe("brunchSubmittedUserMessage", () => {
     });
   });
 
+  test("carries submission context alongside any diagnostics", () => {
+    const submissionContext = { hostKey: { level: 2 } };
+    const context = "Petrinaut diagnostics context only; one current error.";
+    expect(
+      brunchSubmittedUserMessage([text("user-1", "Four agents")], {
+        ...submissionContext,
+      }),
+    ).toEqual({
+      messageId: "user-1",
+      body: petrinautContextualUserMessageBody({
+        userText: "Four agents",
+        diagnosticsContext: "",
+        submissionContext,
+      }),
+    });
+    expect(
+      brunchSubmittedUserMessage(
+        [
+          text("user-1", "Repair the model."),
+          text(petrinautDiagnosticsContextMessageId, context),
+        ],
+        submissionContext,
+      ),
+    ).toEqual({
+      messageId: "user-1",
+      body: petrinautContextualUserMessageBody({
+        userText: "Repair the model.",
+        diagnosticsContext: context,
+        submissionContext,
+      }),
+    });
+  });
+
   test.each([
     [
       "duplicate",
