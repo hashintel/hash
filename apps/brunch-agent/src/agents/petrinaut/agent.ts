@@ -9,6 +9,7 @@
 
 import {
   useContextProjection,
+  useDelivery,
   useInitialData,
   useTool,
   type AgentProps,
@@ -19,6 +20,9 @@ import { createFlueClient } from "@flue/sdk";
 import {
   browserToolMutatesDocument,
   canonicalContent,
+  interviewBudgetContextKey,
+  parseInterviewBudget,
+  parsePetrinautUserMessageBody,
   type SdcpnInitialData,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
@@ -57,6 +61,15 @@ const netViewTracker = createNetViewTracker();
 
 export function PetrinautAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
+  // Initial data is fixed when the conversation is created; the current
+  // delivery carries the changing allowance, and an absent or malformed one
+  // means Off.
+  const body = parsePetrinautUserMessageBody(useDelivery().body);
+  const interviewBudget = parseInterviewBudget(
+    body.kind === "contextual"
+      ? body.submissionContext?.[interviewBudgetContextKey]
+      : undefined,
+  );
   useContextProjection(
     createBrunchContextProjection({
       observe: (entries) => netViewTracker.observe(id, entries),
@@ -78,6 +91,7 @@ export function PetrinautAgent({ id }: AgentProps) {
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     history,
+    interviewBudget,
   );
   usePetrinautTools(
     initialData
