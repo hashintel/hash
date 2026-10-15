@@ -21,9 +21,9 @@
  * Transient failures retry with backoff (see {@link withAtlasRetry}). The two failures that end a
  * session replace it once and retry, as in {@link fetchTile}: a `404`, meaning the pinned generation
  * is no longer served, and an authority renewal the server refuses. Both arrive through
- * {@link canReplaceAtlasSession}, which also decides whether this caller is the one still entitled to
- * replace it — an ordinary `401` is not in that set, because a data route refusing a freshly minted
- * token says nothing is stale.
+ * {@link withAtlasSession}, which also decides whether this caller replaces the session or joins the
+ * replacement a concurrent caller already made — an ordinary `401` ends no session, because a data
+ * route refusing a freshly minted token says nothing is stale.
  */
 
 import { Decoder } from "../atlas-decode/decoder";

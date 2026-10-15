@@ -8,11 +8,11 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && tsc --build tsconfig.build.json",
-    "generate": "openapi-generator-cli generate && oxfmt --write --ignore-path /dev/null",
+    "generate": "openapi-generator-cli generate && node ../../graph/client/typescript/scripts/patch-request-function.mjs common.ts && oxfmt --write --ignore-path /dev/null",
     "validate": "openapi-generator-cli validate"
   },
   "dependencies": {
-    "axios": "1.18.0"
+    "axios": "1.20.0"
   },
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "2.40.1",
