@@ -1,7 +1,6 @@
 import {
-  interviewBudgetContextKey,
-  parseInterviewBudget,
   parsePetrinautUserMessageBody,
+  readPetrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
 
 import type { FlueConversationMessage, FlueConversationState } from "@flue/sdk";
@@ -9,13 +8,9 @@ import type { FlueConversationMessage, FlueConversationState } from "@flue/sdk";
 const closesInterview = (message: FlueConversationMessage): boolean =>
   message.parts.some((part) => {
     if (part.type !== "text") return false;
-    const body = parsePetrinautUserMessageBody(part.text);
     return (
-      parseInterviewBudget(
-        body.kind === "contextual"
-          ? body.submissionContext?.[interviewBudgetContextKey]
-          : undefined,
-      )?.remaining === 0
+      readPetrinautSubmissionContext(parsePetrinautUserMessageBody(part.text))
+        .interviewBudget?.remaining === 0
     );
   });
 

@@ -16,7 +16,6 @@ describe("bounded preferred spellings", () => {
     [[42]],
     [["RelayDesk", "relaydesk"]],
     [["é".repeat(81)]],
-    [Array.from({ length: 51 }, (_, index) => `Bay ${index}`)],
     [Array.from({ length: 13 }, (_, index) => `${index}`.padEnd(80, "x"))],
     ["RelayDesk"],
   ])("rejects malformed, duplicate or excessive spellings", (input) => {

@@ -1,9 +1,6 @@
 import { expect, test } from "vitest";
 
-import {
-  interviewBudgetContextKey,
-  petrinautContextualUserMessageBody,
-} from "@hashintel/brunch-agent";
+import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
 
 import { getInterviewBudget } from "../../../../../shared/interview-budget";
 import { canonicalBrunchFlueAdapter } from "../brunch-flue-adapter";
@@ -65,11 +62,7 @@ test("wrap-up does not spend a question when the length is raised after closing"
             userText: "Weekends too.",
             diagnosticsContext: "",
             submissionContext: {
-              [interviewBudgetContextKey]: getInterviewBudget(
-                "standard",
-                "text",
-                6,
-              ),
+              interviewBudget: getInterviewBudget("standard", "text", 6),
             },
           }),
         },
@@ -107,11 +100,7 @@ test("a closing answer that joins a busy reply makes only the host's later text 
             userText: "Weekends too.",
             diagnosticsContext: "",
             submissionContext: {
-              [interviewBudgetContextKey]: getInterviewBudget(
-                "standard",
-                "text",
-                6,
-              ),
+              interviewBudget: getInterviewBudget("standard", "text", 6),
             },
           }),
         },
@@ -155,7 +144,7 @@ test("the interview is closing only once the latest submission had no questions 
           userText: "Weekends too.",
           diagnosticsContext: "",
           submissionContext: {
-            [interviewBudgetContextKey]: getInterviewBudget(level, "text", 6),
+            interviewBudget: getInterviewBudget(level, "text", 6),
           },
         }),
       },

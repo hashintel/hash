@@ -12,10 +12,6 @@ import {
   type FlueChatResponseMessageStartedEvent,
 } from "@local/flue-aisdk-transport";
 
-import {
-  validateWords,
-  type VoiceWord,
-} from "../../../../../../shared/voice-words";
 import { reportVoiceDiagnostic } from "../../../../../../voice-diagnostics";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { LiveConversationControl } from "../live/live-conversation-control";
@@ -36,6 +32,7 @@ import {
 
 import type { InterviewBudgetLevel } from "../../../../../../shared/interview-budget";
 import type { UtteranceJudgmentMode } from "../../../../../../shared/live-utterance-judgment";
+import type { VoiceWord } from "../../../../../../shared/voice-words";
 import type { VoiceMediationHistory } from "../history/voice-mediation-history";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { ToolApprovalState } from "../live/live-brunch-bridge";
@@ -687,7 +684,7 @@ const PinnedVoiceInterviewControl = ({
   // Stable even for the legacy store constructed once. Retries keep this snapshot.
   const readSessionWords = () => {
     if (pinnedWords.current === undefined) {
-      pinnedWords.current = validateWords(wordsReader.current?.() ?? []);
+      pinnedWords.current = wordsReader.current?.() ?? [];
     }
     return pinnedWords.current;
   };

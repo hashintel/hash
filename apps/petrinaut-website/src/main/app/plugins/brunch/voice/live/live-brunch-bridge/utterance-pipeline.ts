@@ -17,8 +17,7 @@ export type SkipReason =
   | "short-during-output"
   | "empty";
 
-export interface Utterance {
-  readonly transcriptionPrompt?: string;
+export interface Utterance extends Pick<FinalizedInput, "transcriptionPrompt"> {
   readonly inputId: string;
   readonly text: string;
   /** Contractions such as "I'll" count as one word. */

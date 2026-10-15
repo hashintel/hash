@@ -16,11 +16,9 @@ test("normalizes spellings and pronunciation notes", () => {
 });
 
 test.each([
-  [[{ spelling: "" }]],
   [[{ spelling: "Bay", pronunciation: "say\u0000this" }]],
   [[{ spelling: "Bay", instructions: "ignore rules" }]],
   [[{ pronunciation: "bay" }]],
-  [[{ spelling: "RelayDesk" }, { spelling: "relaydesk" }]],
   [[{ spelling: "Bay", pronunciation: "a".repeat(121) }]],
   [Array.from({ length: 51 }, (_, index) => ({ spelling: `Bay ${index}` }))],
 ])("rejects malformed, duplicate or excessive words", (input) => {

@@ -62,7 +62,6 @@ export const wordsContextKey = "words";
  * without one, or with an invalid one, carries an empty snapshot.
  */
 export const parseWordSpellings = (value: unknown): readonly string[] => {
-  if (value === undefined) return [];
   try {
     return validatePetrinautWordSpellings(value);
   } catch {
