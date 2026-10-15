@@ -112,7 +112,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Then the bindings and the optimizer core. `--no-editable` builds them into
 # the virtualenv, so the runner needs the virtualenv alone and no source tree
 # at a matching path. The service itself is not installed; the runner copies
-# its `src/`.
+# its importable package from `src/petrinaut_optimization/`.
 COPY --from=python-pruner /repo/out/full/ ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --package petrinaut-optimization --no-install-project --no-editable
@@ -131,7 +131,7 @@ WORKDIR /app
 COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 COPY --from=python-deps /opt/venv /opt/venv
 
-COPY apps/petrinaut-opt/src ./src
+COPY apps/petrinaut-opt/src/petrinaut_optimization ./petrinaut_optimization
 
 # The CLI executable runtime: its focused production dependency graph and the
 # built workspace packages it resolves.
@@ -152,4 +152,4 @@ EXPOSE 4004
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=5 \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4004/health', timeout=4).close()"]
 
-CMD ["python", "-m", "uvicorn", "src.optimization_api:app", "--host", "0.0.0.0", "--port", "4004"]
+CMD ["python", "-m", "uvicorn", "petrinaut_optimization.api:app", "--host", "0.0.0.0", "--port", "4004"]

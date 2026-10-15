@@ -6,17 +6,15 @@ checks the cross-field rules no schema expresses: bound ordering, log-scale
 domains, duplicate identifiers, and the study limits.
 """
 
-from __future__ import annotations
-
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Literal, TypeAlias, cast
+from typing import Literal, cast
 
 MAX_STUDY_TRIALS = 1000
 
-Direction: TypeAlias = Literal["maximize", "minimize"]
-SamplerName: TypeAlias = Literal["tpe", "random"]
+type Direction = Literal["maximize", "minimize"]
+type SamplerName = Literal["tpe", "random"]
 
 DIRECTIONS: tuple[Direction, ...] = ("maximize", "minimize")
 SAMPLER_NAMES: tuple[SamplerName, ...] = ("tpe", "random")
@@ -44,7 +42,7 @@ class BooleanParameter:
     identifier: str
 
 
-Parameter: TypeAlias = FloatParameter | IntParameter | BooleanParameter
+type Parameter = FloatParameter | IntParameter | BooleanParameter
 
 
 @dataclass(frozen=True)
@@ -57,41 +55,50 @@ class StudyDescription:
 
 
 def _choice(value: object, choices: tuple[str, ...], message: str) -> str:
-    if not isinstance(value, str) or value not in choices:
+    if not isinstance(value, str):
+        raise TypeError(message)
+
+    if value not in choices:
         raise ValueError(message)
+
     return value
 
 
-def _mapping(value: object, name: str) -> Mapping[str, Any]:
+def _mapping(value: object, name: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
-        raise ValueError(f"optimization.describe {name} must be an object")
-    return cast("Mapping[str, Any]", value)
+        raise TypeError(f"optimization.describe {name} must be an object")
+
+    return cast("Mapping[str, object]", value)
 
 
 def _string(value: object, name: str) -> str:
     if not isinstance(value, str):
-        raise ValueError(f"optimization.describe {name} must be a string")
+        raise TypeError(f"optimization.describe {name} must be a string")
+
     return value
 
 
 def _integer(value: object, name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
-        raise ValueError(f"optimization.describe {name} must be an integer")
+        raise TypeError(f"optimization.describe {name} must be an integer")
+
     return value
 
 
 def _number(value: object, name: str) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError(f"optimization.describe {name} must be a number")
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise TypeError(f"optimization.describe {name} must be a number")
+
     return float(value)
 
 
-def _is_log_scale(parameter: Mapping[str, Any], identifier: str) -> bool:
+def _is_log_scale(parameter: Mapping[str, object], identifier: str) -> bool:
     scale = _choice(
         parameter.get("scale"),
         ("linear", "log"),
         f"unsupported optimization parameter scale for {identifier}: {parameter.get('scale')!r}",
     )
+
     return scale == "log"
 
 
@@ -116,6 +123,8 @@ def _parse_parameter(raw: object, index: int) -> Parameter:
             step=_integer(parameter.get("step"), f"{identifier}.step"),
             log=_is_log_scale(parameter, identifier),
         )
+    if not isinstance(kind, str):
+        raise TypeError(f"unsupported optimization parameter type: {kind!r}")
     raise ValueError(f"unsupported optimization parameter type: {kind!r}")
 
 
@@ -131,10 +140,11 @@ def _check_domain(parameter: FloatParameter | IntParameter) -> None:
         raise ValueError(f"{identifier}.step must be 1 for log scale")
 
 
-def parse_description(raw: Mapping[str, Any]) -> StudyDescription:
+def parse_description(raw: Mapping[str, object]) -> StudyDescription:
     """Validate a describe result and return it as a `StudyDescription`.
 
-    Raises `ValueError` naming the first field that breaks a rule.
+    Raises `TypeError` for a wrong field type or `ValueError` for a value
+    outside its domain, naming the first invalid field.
     """
     direction = cast(
         "Direction",
@@ -157,26 +167,20 @@ def parse_description(raw: Mapping[str, Any]) -> StudyDescription:
     if trials < 1:
         raise ValueError("optimization.describe study.trials must be at least 1")
     if trials > MAX_STUDY_TRIALS:
-        raise ValueError(
-            f"optimization.describe study.trials must not exceed {MAX_STUDY_TRIALS}"
-        )
+        raise ValueError(f"optimization.describe study.trials must not exceed {MAX_STUDY_TRIALS}")
     seed = _integer(study.get("seed"), "study.seed")
     if seed < 0:
-        raise ValueError(
-            "optimization.describe study.seed must be a non-negative integer"
-        )
+        raise ValueError("optimization.describe study.seed must be a non-negative integer")
 
     raw_parameters = raw.get("parameters")
     if not isinstance(raw_parameters, list):
-        raise ValueError("optimization.describe parameters must be an array")
+        raise TypeError("optimization.describe parameters must be an array")
     parameters: list[Parameter] = []
     identifiers: set[str] = set()
     for index, item in enumerate(cast("list[object]", raw_parameters)):
         parameter = _parse_parameter(item, index)
         if parameter.identifier in identifiers:
-            raise ValueError(
-                f'duplicate optimization parameter "{parameter.identifier}"'
-            )
+            raise ValueError(f'duplicate optimization parameter "{parameter.identifier}"')
         identifiers.add(parameter.identifier)
         if not isinstance(parameter, BooleanParameter):
             _check_domain(parameter)

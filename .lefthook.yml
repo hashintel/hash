@@ -1,29 +1,39 @@
 $schema: https://json.schemastore.org/lefthook.json
 
 pre-commit:
-  parallel: true
+  # Serialize manifest fixes, checks, final formatting and task-doc generation.
+  parallel: false
   skip:
     - merge
     - rebase
   commands:
     markdownlint:
+      priority: 1
       tags: [frontend, style]
       glob: "*.md"
       run: markdownlint-cli2 --fix --no-globs {staged_files} || true
       stage_fixed: true
     oxfmt:
+      priority: 4
       tags: [frontend, style]
       glob: "*.{cjs,css,js,json,md,mdx,mjs,scss,ts,tsx,yml}"
       run: oxfmt --write {staged_files} || true
       stage_fixed: true
     yarn:
+      priority: 2
       tags: [frontend, style]
-      glob: "{*/package.json, package.json}"
+      glob: "{package.json,**/package.json}"
       run: yarn fix:constraints && yarn fix:yarn-deduplicate
       stage_fixed: true
+    python:
+      tags: [backend, style]
+      glob: "*.py"
+      run: uv run --frozen ruff check --fix {staged_files} && uv run --frozen ruff format {staged_files}
+      stage_fixed: true
     task-dependencies:
+      priority: 6
       tags: [backend]
-      glob: "{turbo.json,**/turbo.json,package.json,**/package.json,Cargo.toml,**/Cargo.toml}"
+      glob: "{turbo.json,**/turbo.json,package.json,**/package.json,Cargo.toml,**/Cargo.toml,pyproject.toml,**/pyproject.toml}"
       # The documents are not among the staged files the command is given, so `stage_fixed` would not pick them up.
       run: turbo run //#doc:task-dependencies && git add -- ':(glob)**/docs/task-dependencies.json'
     sqlfluff:
@@ -37,6 +47,7 @@ pre-commit:
       run: rustfmt {staged_files} || true
       stage_fixed: true
     toml:
+      priority: 5
       tags: [backend, style]
       glob: "*.toml"
       run: taplo format {staged_files} || true

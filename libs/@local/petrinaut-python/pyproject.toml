@@ -3,55 +3,51 @@ name = "petrinaut-python"
 version = "0.1.0"
 description = "Python bindings for the Petrinaut CLI: run simulations and optimization studies from Python"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = "<3.15,>=3.14"
+license = "MIT or Apache-2.0"
 dependencies = [
-    "pydantic>=2.13.4",
+    "pydantic<3.0.0,>=2.13.4",
+]
+authors = [
+    { name = "HASH" },
 ]
 
 [project.optional-dependencies]
 sympy = [
-    "sympy>=1.13",
+    "sympy<2.0.0,>=1.13",
 ]
+
+
+[build-system]
+requires      = ["uv_build<0.13.0,>=0.12.16"]
+build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "datamodel-code-generator>=0.74.0",
+    "datamodel-code-generator<0.83.0,>=0.82.0",
+    "deptry<0.26,>=0.25.1",
     "pytest>=9.1.1,<10",
     "ruff<0.17,>=0.16.8",
-    "sympy>=1.13",
+    "sympy<2.0.0,>=1.13",
+    "tach<0.36,>=0.35",
+    "ty<0.0.83,>=0.0.82",
 ]
 
-[build-system]
-requires      = ["hatchling"]
-build-backend = "hatchling.build"
+[tool.uv.build-backend]
+module-name = "petrinaut"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/petrinaut"]
+[tool.tach]
+source_roots                 = ["src"]
+exclude                      = []
+exact                        = true
+forbid_circular_dependencies = true
+ignore_type_checking_imports = false
+root_module                  = "forbid"
 
-[tool.ruff]
-target-version = "py310"
+[[tool.tach.modules]]
+path       = "petrinaut"
+depends_on = []
 
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "TRY", "DTZ", "PTH"]
-ignore = [
-    # Error messages name the value that failed: the metric, the seed, the limit.
-    # This rule asks for that detail to move into exception subclasses instead.
-    "TRY003",
-    # Protocol responses are data, and data that does not conform raises
-    # ValueError. This rule reads every isinstance check as an argument-type
-    # check and asks for TypeError.
-    "TRY004",
-    # `ruff format` owns line width. What it cannot split is a long string or an
-    # `@role` annotation, which the architecture-docs extractor reads as one line.
-    "E501",
-]
-
-[tool.basedpyright]
-# Production code only. The suites lean on duck-typed doubles and on log records
-# whose fields arrive through `extra=`, which a checker cannot see; typing those
-# is tracked separately.
-include          = ["src"]
-typeCheckingMode = "strict"
-pythonVersion    = "3.10"
-venvPath         = "../../.."
-venv             = ".venv"
+[tool.tach.rules]
+require_ignore_directive_reasons = "error"
+unused_ignore_directives         = "error"

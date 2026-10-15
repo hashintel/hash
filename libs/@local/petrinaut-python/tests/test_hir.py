@@ -1,6 +1,8 @@
-"""Tests for the serialized-HIR evaluator against fixtures lowered by the
-real TypeScript frontend (`hir_fixtures.json`, generated from
-`lowerConstraint` in `@hashintel/petrinaut-core`)."""
+"""Test the serialized-HIR evaluator against lowered fixtures.
+
+The real TypeScript frontend (`hir_fixtures.json`, generated from
+`lowerConstraint` in `@hashintel/petrinaut-core`).
+"""
 
 import json
 import math
@@ -15,15 +17,14 @@ from petrinaut import (
     StateConstraint,
     evaluate_hir,
 )
+from petrinaut.hir import Value
 
 SPAN = {"start": 0, "length": 1}
 
-FIXTURES = json.loads(
-    (Path(__file__).parent / "hir_fixtures.json").read_text(encoding="utf-8")
-)
+FIXTURES = json.loads((Path(__file__).parent / "hir_fixtures.json").read_text(encoding="utf-8"))
 
 
-def constraint(name: str) -> ParameterConstraint | StateConstraint:
+def constraint(name: str) -> ParameterConstraint:
     fixture = FIXTURES[name]
     data = {
         "space": fixture["space"],
@@ -31,54 +32,60 @@ def constraint(name: str) -> ParameterConstraint | StateConstraint:
         "code": fixture["code"],
         "hir": fixture["hir"],
     }
-    if fixture["space"] == "parameters":
-        return ParameterConstraint.model_validate(data)
-    return StateConstraint.model_validate(data)
+    return ParameterConstraint.model_validate(data)
+
+
+def state_fixture(name: str) -> StateConstraint:
+    fixture = FIXTURES[name]
+    return StateConstraint.model_validate({
+        "space": fixture["space"],
+        "id": name,
+        "code": fixture["code"],
+        "hir": fixture["hir"],
+    })
 
 
 def parameter_constraint(
     id_: str, body: dict[str, object], code: str = "<inline>"
 ) -> ParameterConstraint:
-    return ParameterConstraint.model_validate(
-        {
-            "space": "parameters",
-            "id": id_,
-            "code": code,
-            "hir": {
-                "hirVersion": 1,
-                "surface": "scenario-expression",
-                "params": [],
-                "span": SPAN,
-                "body": body,
-            },
-        }
-    )
+    return ParameterConstraint.model_validate({
+        "space": "parameters",
+        "id": id_,
+        "code": code,
+        "hir": {
+            "hirVersion": 1,
+            "surface": "scenario-expression",
+            "params": [],
+            "span": SPAN,
+            "body": body,
+        },
+    })
 
 
 def state_constraint(id_: str, body: dict[str, object], param: str) -> StateConstraint:
-    return StateConstraint.model_validate(
-        {
-            "space": "state",
-            "id": id_,
-            "code": "<inline>",
-            "hir": {
-                "hirVersion": 1,
-                "surface": "metric",
-                "params": [{"name": param, "span": SPAN}],
-                "span": SPAN,
-                "body": body,
-            },
-        }
-    )
+    return StateConstraint.model_validate({
+        "space": "state",
+        "id": id_,
+        "code": "<inline>",
+        "hir": {
+            "hirVersion": 1,
+            "surface": "metric",
+            "params": [{"name": param, "span": SPAN}],
+            "span": SPAN,
+            "body": body,
+        },
+    })
 
 
 class TestParameterSpace:
-    def test_ordering(self) -> None:
+    @staticmethod
+    def test_ordering() -> None:
         ordering = constraint("ordering")
         assert ordering(scenario={"min_load": 2, "max_load": 8}) is True
         assert ordering(scenario={"min_load": 8, "max_load": 2}) is False
 
-    def test_compound_short_circuit_and_boolean(self) -> None:
+    @staticmethod
+    def test_compound_short_circuit() -> None:
         compound = constraint("compound")
         assert (
             compound(
@@ -103,38 +110,44 @@ class TestParameterSpace:
             is True
         )
 
-    def test_math_matches_ecmascript_rounding(self) -> None:
+    @staticmethod
+    def test_math_rounding() -> None:
         math_case = constraint("math")
         # |2 - 4.5| = 2.5 → Math.round gives 3 in JS (half away from
         # negative), so the constraint holds; Python's round(2.5) is 2.
         assert math_case(scenario={"min_load": 2, "max_load": 4.5}) is True
         assert math_case(scenario={"min_load": 2, "max_load": 3.4}) is False
 
-    def test_ternary(self) -> None:
+    @staticmethod
+    def test_ternary() -> None:
         ternary = constraint("ternary")
         assert ternary(scenario={"turbo": True, "max_load": 9}) is True
         assert ternary(scenario={"turbo": False, "max_load": 9}) is False
 
-    def test_strict_equality_keeps_booleans_apart(self) -> None:
+    @staticmethod
+    def test_equality_boolean_number() -> None:
         strict = constraint("strictEquality")
         assert strict(scenario={"min_load": 1}) is True
         # JS: `true === 1` is false; Python's `True == 1` must not leak in.
         assert strict(scenario={"min_load": True}) is False
 
-    def test_unknown_scenario_parameter_raises(self) -> None:
+    @staticmethod
+    def test_scenario_missing_parameter() -> None:
         ordering = constraint("ordering")
         with pytest.raises(HirEvaluationError, match="min_load"):
             ordering(scenario={"max_load": 8})
 
 
 class TestStateSpace:
-    def test_state_bound(self) -> None:
-        bound = constraint("stateBound")
+    @staticmethod
+    def test_state_bound() -> None:
+        bound = state_fixture("stateBound")
         assert bound(state={"places": {"Queue": {"count": 7}}}) is True
         assert bound(state={"places": {"Queue": {"count": 11}}}) is False
 
-    def test_state_block_with_reduce(self) -> None:
-        block = constraint("stateBlock")
+    @staticmethod
+    def test_state_reduce() -> None:
+        block = state_fixture("stateBlock")
         state = {
             "places": {"Queue": {"count": 3, "tokens": [{}, {}, {}]}},
         }
@@ -148,30 +161,34 @@ class TestStateSpace:
 
 
 class TestMargin:
-    def test_comparison_slack(self) -> None:
+    @staticmethod
+    def test_comparison_slack() -> None:
         ordering = constraint("ordering")
-        assert ordering.margin(scenario={"min_load": 2, "max_load": 8}) == 6.0
-        assert ordering.margin(scenario={"min_load": 8, "max_load": 2}) == -6.0
+        assert ordering.margin(scenario={"min_load": 2, "max_load": 8}) == 6
+        assert ordering.margin(scenario={"min_load": 8, "max_load": 2}) == -6
 
-    def test_and_takes_the_minimum(self) -> None:
+    @staticmethod
+    def test_and_minimum() -> None:
         compound = constraint("compound")
         margin = compound.margin(
             scenario={"min_load": 1, "max_load": 4, "turbo": False},
             parameters={"rate": 0.5},
         )
         # min(4 - 1, max(0.5 - 0, -inf)) = 0.5
-        assert margin == 0.5
+        assert margin.as_integer_ratio() == (1, 2)
 
-    def test_boolean_leaf_is_infinite(self) -> None:
+    @staticmethod
+    def test_boolean_leaf_infinite() -> None:
         compound = constraint("compound")
         margin = compound.margin(
             scenario={"min_load": 1, "max_load": 9, "turbo": True},
             parameters={"rate": -1.0},
         )
         # The `|| turbo` arm is +inf, so the && is bounded by 9 - 1.
-        assert margin == 8.0
+        assert margin == 8
 
-    def test_strict_boundary_is_violated(self) -> None:
+    @staticmethod
+    def test_strict_boundary_violated() -> None:
         # `min_load < max_load` at equality is false, so the margin must go
         # negative there rather than reporting a satisfied-looking zero.
         ordering = constraint("ordering")
@@ -179,7 +196,8 @@ class TestMargin:
         assert boundary < 0
         assert not ordering(scenario={"min_load": 5, "max_load": 5})
 
-    def test_sign_agrees_with_the_boolean(self) -> None:
+    @staticmethod
+    def test_margin_boolean_parity() -> None:
         for name in ("ordering", "ternary", "strictEquality"):
             case = constraint(name)
             for scenario in (
@@ -198,7 +216,8 @@ class TestStringNodes:
     def _node(kind: str, **fields: object) -> dict[str, object]:
         return {"kind": kind, "id": 0, "span": {"start": 0, "length": 1}, **fields}
 
-    def _constraint(self, body: dict[str, object]) -> ParameterConstraint:
+    @staticmethod
+    def _constraint(body: dict[str, object]) -> ParameterConstraint:
         return parameter_constraint("strings", body)
 
     def test_string_methods_evaluate(self) -> None:
@@ -212,9 +231,7 @@ class TestStringNodes:
             ("includes", "pump-3", "xyz", False),
         ):
             case = self._constraint(
-                self._node(
-                    "stringCall", fn=fn, target=lit(target), argument=lit(argument)
-                )
+                self._node("stringCall", fn=fn, target=lit(target), argument=lit(argument))
             )
             assert case(scenario={}) is expected, (fn, target, argument)
 
@@ -229,8 +246,10 @@ class TestStringNodes:
 
 
 class TestJsMathEdges:
-    """The evaluator's arithmetic must match ECMAScript at the edges Python
-    diverges: domain errors, overflow, and exponentiation."""
+    """ECMAScript arithmetic at Python's divergent edges.
+
+    Cover domain errors, overflow and exponentiation.
+    """
 
     @staticmethod
     def _num(value: float) -> dict[str, object]:
@@ -242,78 +261,78 @@ class TestJsMathEdges:
             "raw": repr(value),
         }
 
-    def _eval(self, body: dict[str, object]) -> object:
-        return evaluate_hir(
-            {
-                "hirVersion": 1,
-                "surface": "scenario-expression",
-                "params": [],
-                "span": SPAN,
-                "body": body,
-            }
-        )
+    @staticmethod
+    def _eval(body: dict[str, object]) -> float:
+        result = evaluate_hir({
+            "hirVersion": 1,
+            "surface": "scenario-expression",
+            "params": [],
+            "span": SPAN,
+            "body": body,
+        })
+        assert isinstance(result, (int, float))
+        return result
 
-    def _math(self, fn: str, *args: float) -> object:
-        return self._eval(
-            {
-                "kind": "mathCall",
-                "id": 0,
-                "span": {"start": 0, "length": 1},
-                "fn": fn,
-                "args": [self._num(argument) for argument in args],
-            }
-        )
+    def _math(self, fn: str, *args: float) -> float:
+        return self._eval({
+            "kind": "mathCall",
+            "id": 0,
+            "span": {"start": 0, "length": 1},
+            "fn": fn,
+            "args": [self._num(argument) for argument in args],
+        })
 
-    def _pow(self, base: float, exponent: float) -> object:
-        return self._eval(
-            {
-                "kind": "binary",
-                "id": 0,
-                "span": {"start": 0, "length": 1},
-                "op": "**",
-                "left": self._num(base),
-                "right": self._num(exponent),
-            }
-        )
+    def _pow(self, base: float, exponent: float) -> float:
+        return self._eval({
+            "kind": "binary",
+            "id": 0,
+            "span": {"start": 0, "length": 1},
+            "op": "**",
+            "left": self._num(base),
+            "right": self._num(exponent),
+        })
 
-    def test_log_family_matches_js(self) -> None:
+    def test_log_domain(self) -> None:
         assert self._math("log", 0) == -math.inf
-        assert math.isnan(self._math("log", -1))  # type: ignore[arg-type]
+        assert math.isnan(self._math("log", -1))
         assert self._math("log10", 0) == -math.inf
         assert self._math("log2", 0) == -math.inf
 
-    def test_overflow_grows_to_infinity(self) -> None:
+    def test_math_overflow(self) -> None:
         assert self._math("exp", 1000) == math.inf
         assert self._math("cosh", 1000) == math.inf
         assert self._math("sinh", -1000) == -math.inf
 
-    def test_pow_matches_js(self) -> None:
+    def test_power_edges(self) -> None:
         # Python raises ZeroDivisionError / OverflowError or goes complex
         # for every one of these; JS defines them all.
         assert self._pow(0, -1) == math.inf
         assert self._pow(1e308, 2) == math.inf
         assert self._pow(-1e308, 3) == -math.inf
-        assert math.isnan(self._pow(-8, 1 / 3))  # type: ignore[arg-type]
-        assert math.isnan(self._pow(1, math.inf))  # type: ignore[arg-type]
+        assert math.isnan(self._pow(-8, 1 / 3))
+        assert math.isnan(self._pow(1, math.inf))
         assert self._pow(-2, 3) == -8
         assert self._math("pow", 0, -1) == math.inf
 
-    def test_integral_functions_pass_non_finite_through(self) -> None:
+    def test_integral_nonfinite(self) -> None:
         assert self._math("ceil", math.inf) == math.inf
         assert self._math("floor", -math.inf) == -math.inf
-        assert math.isnan(self._math("round", math.nan))  # type: ignore[arg-type]
+        assert math.isnan(self._math("round", math.nan))
         assert self._math("round", math.inf) == math.inf
 
 
 class TestNanMargins:
-    """A NaN slack resolves at the comparison leaf with the boolean's sign,
-    so `min`/`max` in compounds can never drop it by argument order."""
+    """NaN slack resolves at the comparison leaf with the boolean's sign.
+
+    Compound min/max must not drop NaN by argument order.
+    """
 
     @staticmethod
     def _node(kind: str, **fields: object) -> dict[str, object]:
         return {"kind": kind, "id": 0, "span": {"start": 0, "length": 1}, **fields}
 
-    def _constraint(self, body: dict[str, object]) -> ParameterConstraint:
+    @staticmethod
+    def _constraint(body: dict[str, object]) -> ParameterConstraint:
         return parameter_constraint("nan-margins", body)
 
     def _num(self, value: float) -> dict[str, object]:
@@ -331,43 +350,39 @@ class TestNanMargins:
     def _sat_leaf(self) -> dict[str, object]:
         return self._node("binary", op="<", left=self._num(5), right=self._num(9))
 
-    def test_and_with_nan_slack_reads_unsatisfied(self) -> None:
+    def test_and_nan_unsatisfied(self) -> None:
         for left, right in (
             (self._nan_leaf(), self._sat_leaf()),
             (self._sat_leaf(), self._nan_leaf()),
         ):
-            case = self._constraint(
-                self._node("binary", op="&&", left=left, right=right)
-            )
+            case = self._constraint(self._node("binary", op="&&", left=left, right=right))
             assert case(scenario={}) is False
             assert case.margin(scenario={}) < 0
 
-    def test_or_with_nan_slack_follows_the_boolean(self) -> None:
+    def test_or_nan_rescued(self) -> None:
         rescued = self._constraint(
             self._node("binary", op="||", left=self._nan_leaf(), right=self._sat_leaf())
         )
         assert rescued(scenario={}) is True
         assert rescued.margin(scenario={}) >= 0
 
-    def test_negated_nan_comparison_reads_satisfied(self) -> None:
-        negated = self._constraint(
-            self._node("unary", op="!", operand=self._nan_leaf())
-        )
+    def test_negation_nan_satisfied(self) -> None:
+        negated = self._constraint(self._node("unary", op="!", operand=self._nan_leaf()))
         assert negated(scenario={}) is True
         assert negated.margin(scenario={}) >= 0
 
     def test_nan_equality_margins(self) -> None:
         sqrt_neg = self._node("mathCall", fn="sqrt", args=[self._num(-1)])
-        unequal = self._constraint(
-            self._node("binary", op="!=", left=sqrt_neg, right=self._num(5))
-        )
+        unequal = self._constraint(self._node("binary", op="!=", left=sqrt_neg, right=self._num(5)))
         assert unequal(scenario={}) is True
         assert unequal.margin(scenario={}) >= 0
 
 
 class TestMarginShortCircuit:
-    """`margin()` walks the same arms evaluation walks, and a slack that
-    cancels to NaN still reports the comparison's own answer."""
+    """Margin walks the same arms as evaluation.
+
+    Slack cancelling to NaN still reports the comparison's own answer.
+    """
 
     @staticmethod
     def _node(kind: str, **fields: object) -> dict[str, object]:
@@ -375,13 +390,6 @@ class TestMarginShortCircuit:
         if kind == "fieldAccess":
             node.setdefault("fieldSpan", SPAN)
         return node
-
-    def _constraint(
-        self, body: dict[str, object], params: list[str] | None = None
-    ) -> ParameterConstraint | StateConstraint:
-        if params:
-            return state_constraint("short-circuit", body, params[0])
-        return parameter_constraint("short-circuit", body)
 
     def _num(self, value: float) -> dict[str, object]:
         return self._node("numberLit", value=value, raw=repr(value))
@@ -399,28 +407,25 @@ class TestMarginShortCircuit:
         first = self._node("indexAccess", target=tokens, index=self._num(0))
         return self._node("fieldAccess", target=first, field="x")
 
-    def test_guarded_arm_is_not_walked(self) -> None:
+    def test_guard_skips_index(self) -> None:
         # `count > 0 && tokens[0].x < 5` over an empty place: evaluation
         # stops at the guard, so the margin must stop there too instead of
         # indexing a token that is not there.
-        guarded = self._constraint(
+        guarded = state_constraint(
+            "short-circuit",
             self._node(
                 "binary",
                 op="&&",
-                left=self._node(
-                    "binary", op=">", left=self._count(), right=self._num(0)
-                ),
-                right=self._node(
-                    "binary", op="<", left=self._first_token_x(), right=self._num(5)
-                ),
+                left=self._node("binary", op=">", left=self._count(), right=self._num(0)),
+                right=self._node("binary", op="<", left=self._first_token_x(), right=self._num(5)),
             ),
-            params=["state"],
+            param="state",
         )
         empty = {"places": {"Queue": {"count": 0, "tokens": []}}}
         assert guarded(state=empty) is False
         assert guarded.margin(state=empty) < 0
 
-    def test_equal_infinities_keep_the_margin_sign(self) -> None:
+    def test_infinity_margin_sign(self) -> None:
         # inf - inf is NaN, but JS says inf <= inf and inf == inf hold, so a
         # cancelled slack must not read as a violation.
         inf = self._node("mathCall", fn="exp", args=[self._num(1000)])
@@ -431,56 +436,56 @@ class TestMarginShortCircuit:
             ("<", False),
             ("!=", False),
         ):
-            case = self._constraint(self._node("binary", op=op, left=inf, right=inf))
+            case = parameter_constraint(
+                "infinities", self._node("binary", op=op, left=inf, right=inf)
+            )
             assert case(scenario={}) is satisfied, op
             assert (case.margin(scenario={}) >= 0) == satisfied, op
 
 
 class TestRejections:
-    def test_unknown_node_kind_fails_validation(self) -> None:
+    @staticmethod
+    def test_node_unknown_kind() -> None:
         with pytest.raises(ValidationError, match="mystery"):
-            evaluate_hir(
-                {
-                    "hirVersion": 1,
-                    "surface": "scenario-expression",
-                    "params": [],
-                    "span": SPAN,
-                    "body": {"kind": "mystery", "id": 0, "span": SPAN},
-                }
-            )
+            evaluate_hir({
+                "hirVersion": 1,
+                "surface": "scenario-expression",
+                "params": [],
+                "span": SPAN,
+                "body": {"kind": "mystery", "id": 0, "span": SPAN},
+            })
 
-    def test_distribution_rejected(self) -> None:
+    @staticmethod
+    def test_distribution_rejected() -> None:
         # Well-formed, so validation passes; the evaluator refuses it.
         with pytest.raises(HirEvaluationError, match="distribution"):
-            evaluate_hir(
-                {
-                    "hirVersion": 1,
-                    "surface": "scenario-expression",
-                    "params": [],
+            evaluate_hir({
+                "hirVersion": 1,
+                "surface": "scenario-expression",
+                "params": [],
+                "span": SPAN,
+                "body": {
+                    "kind": "distribution",
+                    "id": 0,
                     "span": SPAN,
-                    "body": {
-                        "kind": "distribution",
-                        "id": 0,
-                        "span": SPAN,
-                        "dist": "gaussian",
-                        "args": [],
-                    },
-                }
-            )
+                    "dist": "gaussian",
+                    "args": [],
+                },
+            })
 
-    def test_wrong_version_fails_validation(self) -> None:
+    @staticmethod
+    def test_version_rejected() -> None:
         with pytest.raises(ValidationError, match="hirVersion"):
-            evaluate_hir(
-                {
-                    "hirVersion": 2,
-                    "surface": "scenario-expression",
-                    "params": [],
-                    "span": SPAN,
-                    "body": {"kind": "boolLit", "id": 0, "span": SPAN, "value": True},
-                }
-            )
+            evaluate_hir({
+                "hirVersion": 2,
+                "surface": "scenario-expression",
+                "params": [],
+                "span": SPAN,
+                "body": {"kind": "boolLit", "id": 0, "span": SPAN, "value": True},
+            })
 
-    def test_non_boolean_constraint_result_raises(self) -> None:
+    @staticmethod
+    def test_constraint_numeric_result() -> None:
         fixture = FIXTURES["ordering"]
         # Evaluate the raw comparison fine, but a Constraint demanding a
         # boolean rejects a numeric body.
@@ -500,8 +505,10 @@ class TestRejections:
 
 
 class TestRunTimeShapeErrors:
-    """Well-formed HIR whose values do not fit at run time raises
-    HirEvaluationError, never a bare Python exception."""
+    """Runtime shape errors raise HirEvaluationError.
+
+    Well-formed HIR must not leak bare Python exceptions.
+    """
 
     @staticmethod
     def _node(kind: str, **fields: object) -> dict[str, object]:
@@ -510,7 +517,8 @@ class TestRunTimeShapeErrors:
     def _num(self, value: float) -> dict[str, object]:
         return self._node("numberLit", value=value, raw=repr(value))
 
-    def _eval(self, body: dict[str, object], **scenario: float) -> object:
+    @staticmethod
+    def _eval(body: dict[str, object], **scenario: float) -> Value:
         return evaluate_hir(
             {
                 "hirVersion": 1,
@@ -522,20 +530,18 @@ class TestRunTimeShapeErrors:
             scenario=scenario,
         )
 
-    def test_math_extrema_follow_ecmascript(self) -> None:
+    def test_math_extrema_empty(self) -> None:
         assert self._eval(self._node("mathCall", fn="max", args=[])) == -math.inf
         assert self._eval(self._node("mathCall", fn="min", args=[])) == math.inf
         assert self._eval(self._node("mathCall", fn="max", args=[self._num(5)])) == 5
 
-    def test_math_arity_is_an_evaluation_error(self) -> None:
+    def test_math_invalid_arity(self) -> None:
         with pytest.raises(HirEvaluationError, match=r"Math\.sqrt"):
-            self._eval(
-                self._node("mathCall", fn="sqrt", args=[self._num(1), self._num(2)])
-            )
+            self._eval(self._node("mathCall", fn="sqrt", args=[self._num(1), self._num(2)]))
         with pytest.raises(HirEvaluationError, match=r"Math\.atan2"):
             self._eval(self._node("mathCall", fn="atan2", args=[self._num(1)]))
 
-    def test_non_integer_index_is_an_evaluation_error(self) -> None:
+    def test_index_noninteger(self) -> None:
         array = self._node("arrayLit", elements=[self._num(1), self._num(2)])
         for index in (math.nan, math.inf, 0.9):
             with pytest.raises(HirEvaluationError, match="not an integer"):
@@ -552,21 +558,14 @@ class TestRunTimeShapeErrors:
         with pytest.raises(HirEvaluationError, match="range"):
             self._eval(self._node("rangeCall", args=[]))
         with pytest.raises(HirEvaluationError, match="range"):
-            self._eval(
-                self._node("rangeCall", args=[self._num(-1e308), self._num(1e308)])
-            )
+            self._eval(self._node("rangeCall", args=[self._num(-1e308), self._num(1e308)]))
 
-    def test_overflowing_backward_range_is_empty(self) -> None:
+    def test_range_backward_overflow(self) -> None:
         # The span underflows to -Infinity; TypeScript ceilings it to zero
         # elements, and so must the evaluator instead of calling it oversized.
-        assert (
-            self._eval(
-                self._node("rangeCall", args=[self._num(1e308), self._num(-1e308)])
-            )
-            == []
-        )
+        assert self._eval(self._node("rangeCall", args=[self._num(1e308), self._num(-1e308)])) == []
 
-    def test_huge_integers_coerce_like_js_numbers(self) -> None:
+    def test_number_integer_overflow(self) -> None:
         # An int past the double range is a valid Scalar; JS would read it
         # as Infinity, and so must the evaluator instead of overflowing.
         body = self._node(
@@ -577,17 +576,20 @@ class TestRunTimeShapeErrors:
         )
         assert self._eval(body, a=10**400) == math.inf
 
-    def test_infinite_dividend_remainder_is_nan(self) -> None:
+    def test_remainder_infinite_dividend(self) -> None:
         inf = self._node("mathCall", fn="exp", args=[self._num(1000)])
         result = self._eval(self._node("binary", op="%", left=inf, right=self._num(7)))
-        assert isinstance(result, float) and math.isnan(result)
+        assert isinstance(result, float)
+        assert math.isnan(result)
 
 
 class TestInterpreterParity:
-    """The evaluator mirrors the TypeScript interpreter (``hir/interpret.ts``)
-    where Python's own semantics disagree with ECMAScript: truthiness,
+    """Evaluator parity with the TypeScript interpreter (``hir/interpret.ts``).
+
+    Cover where Python's own semantics disagree with ECMAScript: truthiness,
     equality of composites, ``Math.min``/``Math.max``, ``Math.round``,
-    division, string length, and the operators strings are refused on."""
+    division, string length, and the operators strings are refused on.
+    """
 
     @staticmethod
     def _node(kind: str, **fields: object) -> dict[str, object]:
@@ -602,12 +604,12 @@ class TestInterpreterParity:
     def _nan(self) -> dict[str, object]:
         return self._node("constant", name="NaN")
 
+    @staticmethod
     def _eval(
-        self,
         body: dict[str, object],
         params: list[str] | None = None,
-        **locals_: object,
-    ) -> object:
+        **locals_: Value,
+    ) -> Value:
         return evaluate_hir(
             {
                 "hirVersion": 1,
@@ -632,61 +634,55 @@ class TestInterpreterParity:
         )
         assert self._eval(cond) == 2
 
-    def test_empty_composites_are_truthy(self) -> None:
+    def test_composites_truthy(self) -> None:
         assert self._eval(self._not(self._node("arrayLit", elements=[]))) is False
         assert self._eval(self._not(self._node("recordLit", entries=[]))) is False
 
-    def test_composites_compare_by_identity(self) -> None:
+    def test_composites_identity(self) -> None:
         one = self._node("arrayLit", elements=[self._num(1)])
         assert self._eval(self._node("binary", op="==", left=one, right=one)) is False
         state = self._node("localRef", name="state")
         same = self._node("binary", op="==", left=state, right=state)
         assert self._eval(same, params=["state"], state={"places": {}}) is True
 
-    def test_min_and_max_propagate_nan(self) -> None:
+    def test_extrema_nan(self) -> None:
         for fn in ("min", "max"):
             for args in ([self._num(1), self._nan()], [self._nan(), self._num(1)]):
                 result = self._eval(self._node("mathCall", fn=fn, args=args))
-                assert isinstance(result, float) and math.isnan(result), (fn, args)
+                assert isinstance(result, float), (fn, args)
+                assert math.isnan(result), (fn, args)
 
-    def test_min_and_max_order_signed_zeros(self) -> None:
+    def test_extrema_signed_zeros(self) -> None:
         negative_zero = self._node("unary", op="-", operand=self._num(0.0))
         zeros = [self._num(0.0), negative_zero]
-        assert (
-            math.copysign(1.0, self._eval(self._node("mathCall", fn="min", args=zeros)))
-            < 0
-        )
-        assert (
-            math.copysign(1.0, self._eval(self._node("mathCall", fn="max", args=zeros)))
-            > 0
-        )
+        minimum = self._eval(self._node("mathCall", fn="min", args=zeros))
+        maximum = self._eval(self._node("mathCall", fn="max", args=zeros))
+        assert isinstance(minimum, float)
+        assert isinstance(maximum, float)
+        assert math.copysign(1.0, minimum) < 0
+        assert math.copysign(1.0, maximum) > 0
 
-    def test_round_keeps_a_negative_zero(self) -> None:
+    def test_round_negative_zero(self) -> None:
         rounded = self._eval(self._node("mathCall", fn="round", args=[self._num(-0.3)]))
-        assert rounded == 0 and math.copysign(1.0, rounded) < 0
-        assert (
-            self._eval(self._node("mathCall", fn="round", args=[self._num(-2.5)])) == -2
-        )
-        assert (
-            self._eval(self._node("mathCall", fn="round", args=[self._num(2.5)])) == 3
-        )
+        assert isinstance(rounded, float)
+        assert rounded == 0
+        assert math.copysign(1.0, rounded) < 0
+        assert self._eval(self._node("mathCall", fn="round", args=[self._num(-2.5)])) == -2
+        assert self._eval(self._node("mathCall", fn="round", args=[self._num(2.5)])) == 3
         # Just under one half: `floor(x + 0.5)` would round it up.
         below_half = self._num(0.49999999999999994)
         assert self._eval(self._node("mathCall", fn="round", args=[below_half])) == 0
 
-    def test_nan_over_zero_is_nan(self) -> None:
-        result = self._eval(
-            self._node("binary", op="/", left=self._nan(), right=self._num(0))
-        )
-        assert isinstance(result, float) and math.isnan(result)
+    def test_division_nan_zero(self) -> None:
+        result = self._eval(self._node("binary", op="/", left=self._nan(), right=self._num(0)))
+        assert isinstance(result, float)
+        assert math.isnan(result)
 
-    def test_string_length_counts_utf16_units(self) -> None:
-        length = self._node(
-            "length", target=self._node("stringLit", value="\U0001f600")
-        )
+    def test_string_length_utf16(self) -> None:
+        length = self._node("length", target=self._node("stringLit", value="\U0001f600"))
         assert self._eval(length) == 2
 
-    def test_strings_are_refused_by_numeric_operators(self) -> None:
+    def test_numeric_operators_strings(self) -> None:
         # The interpreter coerces every `+` and ordering operand to a number,
         # so both readings of a constraint refuse strings alike.
         left, right = (
@@ -700,11 +696,9 @@ class TestInterpreterParity:
             with pytest.raises(HirEvaluationError, match="expects a number"):
                 parameter_constraint("strings", body).margin(scenario={})
 
-    def test_negating_a_satisfied_boundary_reads_violated(self) -> None:
+    def test_negation_satisfied_boundary(self) -> None:
         for op in ("<=", ">=", "=="):
-            boundary = self._node(
-                "binary", op=op, left=self._num(3), right=self._num(3)
-            )
+            boundary = self._node("binary", op=op, left=self._num(3), right=self._num(3))
             negated = parameter_constraint("negated-boundary", self._not(boundary))
             assert negated(scenario={}) is False, op
             assert negated.margin(scenario={}) < 0, op
