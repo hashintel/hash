@@ -7,6 +7,10 @@ This package has no React or UI dependencies, which is what lets it run
 unchanged in Node and inside workers. The visual editor package,
 `@hashintel/petrinaut`, builds on top of it.
 
+## Compiler dependency
+
+Applications using the `hir`, `compiled-model`, or `diagnostics` entry points must install the optional `@typescript/typescript6` peer dependency. The main entry does not load the compiler, and the browser language-service worker bundles the compiler with its standard-library declarations.
+
 ## Handle Creation
 
 Petrinaut reads and writes documents through `PetrinautDocHandle`. Use

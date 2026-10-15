@@ -1,8 +1,14 @@
 {
-  "extends": "astro/tsconfigs/strict",
+  "extends": [
+    "@tsconfig/bases/recommended",
+    "astro/tsconfigs/strict",
+    "@local/tsconfig/policy.json"
+  ],
   "include": [".astro/types.d.ts", "**/*", "astro.config.mjs"],
   "exclude": ["dist"],
   "compilerOptions": {
-    "checkJs": true
+    "checkJs": true,
+    // Astro's preset targets ESNext, which the policy's es2024 would lower.
+    "target": "ESNext"
   }
 }

@@ -1,8 +1,10 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "include": ["scripts"],
   "exclude": ["scripts/create-block/**/*.d.ts"],
   "compilerOptions": {
-    "lib": ["ESNext"]
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
   }
 }

@@ -3,7 +3,6 @@
   "include": ["src", "type-defs"],
   "compilerOptions": {
     "declaration": true,
-    "outDir": "dist",
-    "paths": {}
+    "outDir": "dist"
   }
 }

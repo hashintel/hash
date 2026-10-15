@@ -11,7 +11,7 @@
  * @layerRoot core.lsp.worker
  * @role Hosts the TypeScript language server off the main thread
  */
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 import {
   type CompletionItem,
   type CompletionList,

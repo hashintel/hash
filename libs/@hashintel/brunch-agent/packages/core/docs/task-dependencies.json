@@ -1,6 +1,8 @@
 {
   "package": "@hashintel/brunch-agent",
-  "dependencies": [],
+  "dependencies": [
+    "@local/tsconfig"
+  ],
   "tasks": {
     "build": {
       "dependsOn": []

@@ -1,7 +1,8 @@
 {
   "package": "@apps/petrinaut-docs",
   "dependencies": [
-    "@local/petrinaut-arch-docs"
+    "@local/petrinaut-arch-docs",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {

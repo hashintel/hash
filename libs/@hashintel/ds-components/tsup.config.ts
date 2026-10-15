@@ -25,5 +25,5 @@ export default {
   format: ["esm"],
   outDir: "dist",
   platform: "neutral",
-  tsconfig: "./tsconfig.build.json",
+  tsconfig: "./tsconfig.json",
 };
