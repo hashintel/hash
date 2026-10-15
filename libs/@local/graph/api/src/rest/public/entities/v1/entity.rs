@@ -1,9 +1,9 @@
 //! `GET /{entityId}`: one entity by its ID.
 
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, collections::BTreeSet};
 use core::error::Error;
 
-use aide::{axum::ApiRouter, transform::TransformOperation};
+use aide::transform::TransformOperation;
 use axum::extract::State;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{entity::EntityStore as _, pool::StorePool};
@@ -24,14 +24,14 @@ use crate::rest::{
     credentials::Actor,
     extract::{Json, Path},
     public::Credentials,
-    routing,
+    routing::{self, Routes},
 };
 
 /// The path of one entity.
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct EntityPath {
-    /// The ID of the entity to read.
+    /// The ID of the entity to read. An ID that names a draft is answered with `400`.
     #[serde(deserialize_with = "live_entity_id")]
     entity_id: EntityId,
 }
@@ -59,7 +59,7 @@ struct EntityMetadata {
     /// The ID of the entity.
     entity_id: EntityId,
     /// The entity types the entity is an instance of, without the types they inherit from.
-    entity_type_ids: Vec<VersionedUrl>,
+    entity_type_ids: BTreeSet<VersionedUrl>,
 }
 
 /// The entity does not exist, is archived, or the caller may not view it.
@@ -90,7 +90,7 @@ impl ProblemVariant for EntityNotFound {
     }
 }
 
-/// The ways `GET /{entityId}` refuses a request.
+/// The ways [`get_entity`] refuses a request its extractors accept.
 struct GetEntityProblem;
 
 impl Problem for GetEntityProblem {
@@ -150,17 +150,10 @@ where
         return Err(Report::new(GetEntityError::Archived(entity_id)).into());
     }
 
-    let mut entity_type_ids = entity
-        .metadata
-        .entity_type_ids
-        .into_iter()
-        .collect::<Vec<_>>();
-    entity_type_ids.sort();
-
     Ok(Json(Entity {
         metadata: EntityMetadata {
             entity_id: entity.metadata.record_id.entity_id,
-            entity_type_ids,
+            entity_type_ids: entity.metadata.entity_type_ids.into_iter().collect(),
         },
     }))
 }
@@ -169,20 +162,17 @@ fn document_get_entity(operation: TransformOperation<'_>) -> TransformOperation<
     operation
         .id("getEntity")
         .summary("Get an entity")
-        .description(
-            "Returns the current edition of the entity. Answers `404` when the entity does not \
-             exist, is archived, or the caller may not view it.",
-        )
+        .description("Returns the entity's ID and the entity types of its current edition.")
 }
 
-pub(super) fn routes<S>() -> ApiRouter<ApiState<S>>
+pub(super) fn routes<S>() -> Routes<ApiState<S>>
 where
     S: StorePool + Send + Sync + 'static,
 {
-    ApiRouter::new()
-        .api_route(
+    Routes::new()
+        .route(
             "/{entityId}",
             routing::get(get_entity::<S>, document_get_entity),
         )
-        .with_path_items(|path| path.tag("Entity"))
+        .tag("Entity")
 }

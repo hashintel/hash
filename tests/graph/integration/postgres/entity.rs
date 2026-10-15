@@ -563,8 +563,7 @@ async fn update() {
     assert_eq!(entity_v2.properties.properties(), page_v2.properties());
 }
 
-/// Seeds the organization type and creates an organization in the account's web, under no
-/// policy of its own.
+/// Creates an organization in the account's web, under no policy of its own.
 async fn create_organization(api: &mut DatabaseApi<'_>) -> EntityId {
     let organization: PropertyObject =
         serde_json::from_str(entity::ORGANIZATION_V1).expect("could not parse entity");

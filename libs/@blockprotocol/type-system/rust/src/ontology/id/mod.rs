@@ -791,7 +791,7 @@ impl JsonSchema for VersionedUrl {
             "title": "Versioned URL",
             "description": "The versioned URL of a SemType ontology type (the $id of the \
                             schema). It must be of the form `${baseUrl}v/${version}`, where \
-                            `version` is currently a major version number.",
+                            `version` is a major version number.",
             "format": "uri",
             "maxLength": 2048,
             "examples": ["https://hash.ai/@h/types/entity-type/user/v/1"],

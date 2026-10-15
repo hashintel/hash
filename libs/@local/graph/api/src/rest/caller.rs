@@ -1,7 +1,4 @@
-use aide::{
-    axum::{ApiRouter, routing::ApiMethodRouter},
-    transform::TransformOperation,
-};
+use aide::transform::TransformOperation;
 use schemars::JsonSchema;
 use serde::Serialize;
 use type_system::principal::actor::ActorId;
@@ -9,7 +6,7 @@ use type_system::principal::actor::ActorId;
 use super::{
     credentials::{Actor, AdmitsAnonymous, Credentials, MaybeActor},
     extract::Json,
-    routing,
+    routing::{self, Route, Routes},
 };
 
 /// The resolved caller.
@@ -52,35 +49,32 @@ fn document_authenticated_caller(operation: TransformOperation<'_>) -> Transform
         .summary("Get the authenticated caller")
 }
 
-fn authenticated_caller_route<C: Credentials, T: Clone + Send + Sync + 'static>()
--> ApiMethodRouter<T> {
+fn authenticated_caller_route<C: Credentials, T: Clone + Send + Sync + 'static>() -> Route<T> {
     routing::get(
         authenticated_caller::<Actor<C>>,
         document_authenticated_caller,
     )
 }
 
-/// `/caller` and `/authenticated-caller`.
-pub(super) fn routes<C: AdmitsAnonymous, T: Clone + Send + Sync + 'static>() -> ApiRouter<T> {
-    ApiRouter::new()
-        .api_route(
+pub(super) fn routes<C: AdmitsAnonymous, T: Clone + Send + Sync + 'static>() -> Routes<T> {
+    Routes::new()
+        .route(
             "/caller",
             routing::get(caller::<MaybeActor<C>>, document_caller),
         )
-        .api_route(
+        .route(
             "/authenticated-caller",
             authenticated_caller_route::<C, T>(),
         )
-        .with_path_items(|path| path.tag("Caller"))
+        .tag("Caller")
 }
 
-/// `/authenticated-caller`.
-pub(super) fn authenticated_routes<C: Credentials, T: Clone + Send + Sync + 'static>()
--> ApiRouter<T> {
-    ApiRouter::new()
-        .api_route(
+pub(super) fn authenticated_routes<C: Credentials, T: Clone + Send + Sync + 'static>() -> Routes<T>
+{
+    Routes::new()
+        .route(
             "/authenticated-caller",
             authenticated_caller_route::<C, T>(),
         )
-        .with_path_items(|path| path.tag("Caller"))
+        .tag("Caller")
 }

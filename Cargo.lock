@@ -6309,6 +6309,7 @@ dependencies = [
  "md-5 0.11.0",
  "mime",
  "opentelemetry",
+ "percent-encoding",
  "problematic",
  "reqwest 0.13.4",
  "rstest",

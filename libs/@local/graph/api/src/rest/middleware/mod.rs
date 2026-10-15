@@ -145,10 +145,7 @@ where
     I: AuthenticationProvider<Option<ActorId>> + 'static,
     L: AuthenticationProvider<Option<ActorId>> + 'static,
 {
-    /// Attaches authentication and the caller budget to `api`.
-    ///
-    /// The public APIs answer a request that carries no credential with `401` before routing it to
-    /// a handler, the internal API serves it anonymously.
+    /// Attaches authentication and the caller budget to `api`, as its [`Audience`] requires.
     fn attach_api(&self, api: Api) -> Router {
         let Api {
             audience,

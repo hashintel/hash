@@ -74,7 +74,7 @@ impl Expose<QueryProblem> for QueryRejection {
 /// [`openapi::build`]: crate::rest::openapi::build
 #[cfg_attr(
     not(test),
-    expect(dead_code, reason = "only the tests read query parameters so far")
+    expect(dead_code, reason = "only the tests read query parameters")
 )]
 pub(in crate::rest) struct Query<T>(pub T);
 

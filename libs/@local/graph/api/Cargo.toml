@@ -72,6 +72,7 @@ include_dir          = { workspace = true }
 indexmap             = { workspace = true }
 md-5                 = { workspace = true }
 mime                 = { workspace = true }
+percent-encoding     = { workspace = true, features = ["alloc"] }
 reqwest              = { workspace = true }
 scalar_api_reference = { workspace = true }
 schemars             = { workspace = true, features = ["uuid1"] }

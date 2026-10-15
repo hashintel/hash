@@ -4,7 +4,6 @@ use alloc::sync::Arc;
 
 use aide::{
     OperationInput,
-    axum::ApiRouter,
     openapi::{Info, SecurityScheme},
 };
 use axum::{
@@ -25,7 +24,13 @@ use tower::ServiceExt as _;
 
 pub(super) use self::authentication::{assert_anonymous_authentication, assert_authentication};
 pub(super) use super::caller::caller as echo_caller;
-use super::{Api, ApiState, Audience, credentials::Credentials, extract::Json, openapi, routing};
+use super::{
+    Api, ApiState, Audience,
+    credentials::Credentials,
+    extract::Json,
+    openapi,
+    routing::{self, Routes},
+};
 
 pub(super) async fn request(router: &Router, path: &str) -> Response {
     router
@@ -93,7 +98,7 @@ pub(super) fn api(prefix: &'static str) -> Api {
         prefix,
         Info::default(),
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/test",
                 routing::get(
                     async || Json::<_, 200>(String::from("ok")),

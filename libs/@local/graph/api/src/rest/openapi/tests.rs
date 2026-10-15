@@ -19,7 +19,8 @@ use super::reference_responses;
 use crate::rest::{
     Api,
     extract::{Json, Path, Query},
-    middleware, openapi, routing,
+    middleware, openapi,
+    routing::{self, Routes},
     test_utils::NoCredentials,
 };
 
@@ -40,6 +41,11 @@ struct QueryProblem;
 
 impl Problem for QueryProblem {
     const VARIANTS: &'static [Variant] = &[Variant::of::<UnsupportedQuery>()];
+}
+
+/// Gives `operation` the `operationId` and summary [`routing`] requires.
+fn named(operation: TransformOperation<'_>) -> TransformOperation<'_> {
+    operation.id("getEntities").summary("Get entities")
 }
 
 fn unsupported_query(operation: TransformOperation<'_>) -> TransformOperation<'_> {
@@ -133,12 +139,12 @@ fn build_duplicate_response() {
         "/test",
         Info::default(),
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/duplicate",
-                get_with(
-                    || async {},
+                routing::get(
+                    async || Json::<_, 200>(true),
                     |operation| {
-                        operation
+                        named(operation)
                             .response::<400, ProblemDetails<'static>>()
                             .response::<400, ProblemDetails<'static>>()
                     },
@@ -163,9 +169,12 @@ fn build_path_placeholder_undocumented() {
         "/test",
         Info::default(),
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/entities/{entity}",
-                get(async |Path((entity,)): Path<(String,)>| entity),
+                routing::get(
+                    async |Path((entity,)): Path<(String,)>| Json::<_, 200>(entity),
+                    named,
+                ),
             )
         },
         |document| document,
@@ -179,11 +188,14 @@ fn build_path_parameter_without_placeholder() {
         "/test",
         Info::default(),
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/entities/{entity}",
-                get(async |Path(DraftPath { entity, draft }): Path<DraftPath>| {
-                    format!("{entity}/{draft}")
-                }),
+                routing::get(
+                    async |Path(DraftPath { entity, draft }): Path<DraftPath>| {
+                        Json::<_, 200>(format!("{entity}/{draft}"))
+                    },
+                    named,
+                ),
             )
         },
         |document| document,
@@ -232,7 +244,7 @@ where
         "/test",
         Info::default(),
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/entities/{entity}",
                 routing::get(
                     async move |Path(parameters): Path<T>| Json::<_, 200>(read(parameters)),
@@ -323,7 +335,7 @@ where
         "/test",
         Info::default(),
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/entities",
                 routing::get(
                     async move |Query(parameters): Query<T>| Json::<_, 200>(read(parameters)),
@@ -380,12 +392,13 @@ fn build_axum_path() {
         "/test",
         Info::default(),
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/entities/{entity}",
-                get(
+                routing::get(
                     async |axum::extract::Path(NewtypePath { entity }): axum::extract::Path<
                         NewtypePath,
-                    >| entity.0,
+                    >| Json::<_, 200>(entity.0),
+                    named,
                 ),
             )
         },
@@ -400,12 +413,13 @@ fn build_axum_extra_query() {
         "/test",
         Info::default(),
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/entities",
-                get(
+                routing::get(
                     async |axum_extra::extract::Query(ValuesQuery { ids, limit }): axum_extra::extract::Query<
                         ValuesQuery,
-                    >| format!("{ids:?} {limit:?}"),
+                    >| Json::<_, 200>(format!("{ids:?} {limit:?}")),
+                    named,
                 ),
             )
         },
@@ -419,7 +433,12 @@ fn build_bytes_body() {
     let _: Api = openapi::build::<NoCredentials, _>(
         "/test",
         Info::default(),
-        || ApiRouter::new().api_route("/entities", post(async |body: bytes::Bytes| body)),
+        || {
+            Routes::new().route(
+                "/entities",
+                routing::post(async |body: bytes::Bytes| Json::<_, 200>(body.len()), named),
+            )
+        },
         |document| document,
     );
 }
@@ -429,16 +448,16 @@ fn build_with_parameter(parameter: Parameter) {
         "/test",
         Info::default(),
         move || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/entities",
-                get_with(
-                    || async {},
+                routing::get(
+                    async || Json::<_, 200>(true),
                     move |mut operation| {
                         operation
                             .inner_mut()
                             .parameters
                             .push(ReferenceOr::Item(parameter));
-                        operation
+                        named(operation)
                     },
                 ),
             )
@@ -484,36 +503,6 @@ fn build_cookie_parameter() {
 }
 
 #[test]
-#[should_panic(expected = "should answer with JSON through `rest::extract::Json`")]
-fn build_axum_json_response() {
-    let _: Api = openapi::build::<NoCredentials, _>(
-        "/test",
-        Info::default(),
-        || ApiRouter::new().api_route("/entities", get(async || axum::Json(0_u8))),
-        |document| document,
-    );
-}
-
-#[test]
-#[should_panic(expected = "should be registered through `rest::routing`")]
-fn build_unrouted() {
-    let _: Api = openapi::build::<NoCredentials, _>(
-        "/test",
-        Info::default(),
-        || {
-            ApiRouter::new().api_route(
-                "/entities",
-                get_with(
-                    async || Json::<_, 200>(0_u8),
-                    |operation| operation.id("listEntities").summary("List entities"),
-                ),
-            )
-        },
-        |document| document,
-    );
-}
-
-#[test]
 #[should_panic(
     expected = "should have an `operationId` of its own, another operation already has `getEntity`"
 )]
@@ -528,27 +517,27 @@ fn build_duplicate_operation_id() {
                     |operation| operation.id("getEntity").summary("Get an entity"),
                 )
             };
-            ApiRouter::new()
-                .api_route("/first", route())
-                .api_route("/second", route())
+            Routes::new()
+                .route("/first", route())
+                .route("/second", route())
         },
         |document| document,
     );
 }
 
-/// Path parameters with a field whose schema other schemas reference.
+/// Path parameters whose field has a component schema of its own.
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 struct EntityPath {
     entity: EntityUuid,
 }
 
-/// A response with a field whose schema other schemas reference.
+/// A response whose field has a component schema of its own.
 #[derive(serde::Serialize, schemars::JsonSchema)]
 struct EntityResponse {
     entity: EntityName,
 }
 
-/// A name the path and the response share.
+/// A name that only responses reference.
 #[derive(serde::Serialize, schemars::JsonSchema)]
 struct EntityName(String);
 
@@ -560,7 +549,7 @@ fn build_unreferenced_schemas() {
         "/test",
         Info::default(),
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/entities/{entity}",
                 routing::get(
                     async |Path(EntityPath { entity }): Path<EntityPath>| {
@@ -591,5 +580,49 @@ fn build_unreferenced_schemas() {
             "ProblemDetails"
         ]),
         "only the schemas the document references should remain"
+    );
+}
+
+/// A response whose schema name a reference has to encode.
+#[derive(serde::Serialize, schemars::JsonSchema)]
+#[schemars(rename = "Entity page/v1")]
+struct EntityPage {
+    entity: EntityName,
+}
+
+/// A schema whose name contains characters a reference encodes stays, as do the schemas it
+/// references.
+#[test]
+fn build_encoded_schema_name() {
+    let api: Api = openapi::build::<NoCredentials, _>(
+        "/test",
+        Info::default(),
+        || {
+            Routes::new().route(
+                "/entities",
+                routing::get(
+                    async || {
+                        Json::<_, 200>(EntityPage {
+                            entity: EntityName(String::new()),
+                        })
+                    },
+                    named,
+                ),
+            )
+        },
+        |document| document,
+    );
+
+    let schemas = api
+        .document()
+        .components
+        .as_ref()
+        .map_or_else(BTreeSet::new, |components| {
+            components.schemas.keys().map(String::as_str).collect()
+        });
+    assert!(
+        schemas.contains("Entity page/v1") && schemas.contains("EntityName"),
+        "the schema with the encoded name and the schemas it references should remain, got \
+         {schemas:?}"
     );
 }

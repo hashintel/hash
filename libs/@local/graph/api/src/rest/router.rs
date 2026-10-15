@@ -92,16 +92,10 @@ where
         .map(|api| api.with_state(state.clone()))
         .collect::<Vec<_>>();
     let documentation = documentation::routes(&apis);
-    // The tracing layer sits inside the Sentry layers: the errors it logs reach Sentry through the
-    // request's hub, which attaches the request to them.
-    let mut router = middleware
-        .assemble(legacy::routes::<S>(), apis, documentation)
-        .layer(telemetry::layer())
-        .layer(
-            ServiceBuilder::new()
-                .layer(NewSentryLayer::new_from_top())
-                .layer(SentryHttpLayer::default().enable_transaction()),
-        )
+
+    // Only the legacy routes read dependencies as extensions, the public and internal APIs read
+    // them through `ApiState`.
+    let mut legacy_routes = legacy::routes::<S>()
         .layer(Extension(dependencies.store))
         .layer(Extension(Arc::new(dependencies.postgres)))
         .layer(Extension(dependencies.temporal_client))
@@ -111,10 +105,20 @@ where
         .layer(Extension(dependencies.api_tokens))
         .layer(Extension(dependencies.compiler))
         .layer(Extension(dependencies.clustering));
-
     if let Some(query_logger) = dependencies.query_logger {
-        router = router.layer(Extension(query_logger));
+        legacy_routes = legacy_routes.layer(Extension(query_logger));
     }
+
+    // The tracing layer sits inside the Sentry layers: the errors it logs reach Sentry through the
+    // request's hub, which attaches the request to them.
+    let router = middleware
+        .assemble(legacy_routes, apis, documentation)
+        .layer(telemetry::layer())
+        .layer(
+            ServiceBuilder::new()
+                .layer(NewSentryLayer::new_from_top())
+                .layer(SentryHttpLayer::default().enable_transaction()),
+        );
 
     merge_probe(router)
 }

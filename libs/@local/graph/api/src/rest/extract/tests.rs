@@ -17,7 +17,11 @@ use serde_json::{Value, json};
 use tower::ServiceExt as _;
 
 use super::{Json, Path, Query, json::content_status};
-use crate::rest::{Api, openapi, routing, test_utils::NoCredentials};
+use crate::rest::{
+    Api, openapi,
+    routing::{self, Routes},
+    test_utils::NoCredentials,
+};
 
 #[derive(Deserialize, JsonSchema)]
 struct Subject {
@@ -508,7 +512,7 @@ fn echo_document() {
             ..Info::default()
         },
         || {
-            ApiRouter::new().api_route(
+            Routes::new().route(
                 "/echo/{label}",
                 routing::post(echo, |operation| {
                     operation.id("echo").summary("Echo a request").description(

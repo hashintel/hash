@@ -246,18 +246,26 @@ async fn cache_control_gate_rejection() {
 async fn cache_control_fallback() {
     let router = middleware(
         &config(10, 10),
-        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
     .assemble(Router::new(), [test_utils::api("/first")], Router::new());
 
-    for request in [
-        request_to("/does-not-exist"),
-        request_with(Method::DELETE, "/first/test"),
+    for (request, status) in [
+        (request_to("/does-not-exist"), StatusCode::NOT_FOUND),
+        (
+            request_with(Method::DELETE, "/first/test"),
+            StatusCode::METHOD_NOT_ALLOWED,
+        ),
     ] {
         let path = request.uri().path().to_owned();
         let response = send_request(&router, request).await;
+        assert_eq!(
+            response.status(),
+            status,
+            "{path} should be answered {status}"
+        );
         assert_eq!(
             response.headers().get(CACHE_CONTROL),
             Some(&HeaderValue::from_static("private, no-store")),
@@ -521,7 +529,7 @@ async fn panic_problem_document() {
     );
 }
 
-/// The entity route reads the store it was handed, and answers `500` when it cannot reach it.
+/// The entity route reads the store it was handed, and answers `503` when it cannot acquire one.
 #[tokio::test]
 async fn entity_store_unreachable() {
     let router = middleware(
@@ -553,8 +561,7 @@ async fn entity_store_unreachable() {
     );
 }
 
-/// The entity route requires an actor, so an anonymous request is answered `401` before it reads
-/// the store.
+/// An anonymous request to the entity route is answered `401` before the store is read.
 #[tokio::test]
 async fn entity_anonymous() {
     let router = middleware(

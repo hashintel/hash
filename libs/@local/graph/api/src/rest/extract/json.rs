@@ -277,7 +277,6 @@ impl<T: JsonSchema, const STATUS: u16> OperationOutput for Json<T, STATUS> {
     ) -> Option<openapi::Response> {
         // Documents the answer to a body that fails to serialize on the operation itself.
         Rejection::<JsonResponseProblem>::inferred_responses(ctx, operation);
-        MessagePart::ResponseBody.mark(operation);
         axum::Json::<T>::operation_response(ctx, operation)
     }
 

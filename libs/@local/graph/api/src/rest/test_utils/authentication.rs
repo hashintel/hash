@@ -2,10 +2,7 @@ use alloc::sync::Arc;
 use core::{num::NonZeroU32, ops::ControlFlow, pin::pin};
 use std::collections::HashMap;
 
-use aide::{
-    axum::{ApiRouter, routing::ApiMethodRouter},
-    openapi::{Info, ReferenceOr, SecurityScheme},
-};
+use aide::openapi::{Info, ReferenceOr, SecurityScheme};
 use axum::{Router, body::Body};
 use error_stack::Report;
 use hash_graph_authentication::{
@@ -44,7 +41,8 @@ use super::{echo_caller, response_json};
 use crate::rest::{
     credentials::{API_TOKEN, Actor, AdmitsAnonymous, Credentials, MaybeActor},
     middleware::Middleware,
-    openapi, routing,
+    openapi,
+    routing::{self, Route, Routes},
 };
 
 const SERVICE_SECRET: &str = "hash-svc-test-secret";
@@ -113,8 +111,8 @@ struct Advertised {
     api_token: bool,
 }
 
-/// Routes `GET` to the caller, which it reads through [`Actor`].
-fn required_route<C: Credentials>() -> ApiMethodRouter {
+/// A `GET` route answering with the caller it reads through [`Actor`].
+fn required_route<C: Credentials>() -> Route<()> {
     routing::get(
         async |actor: Actor<C>| echo_caller(Some(actor.into())).await,
         |operation| {
@@ -125,8 +123,8 @@ fn required_route<C: Credentials>() -> ApiMethodRouter {
     )
 }
 
-/// Routes `GET` to the caller, which it reads through [`MaybeActor`].
-fn optional_route<C: AdmitsAnonymous>() -> ApiMethodRouter {
+/// A `GET` route answering with the caller it reads through [`MaybeActor`].
+fn optional_route<C: AdmitsAnonymous>() -> Route<()> {
     routing::get(echo_caller::<MaybeActor<C>>, |operation| {
         operation.id("getOptionalCaller").summary("Get the caller")
     })
@@ -139,7 +137,7 @@ fn optional_route<C: AdmitsAnonymous>() -> ApiMethodRouter {
 fn caller_router<C: Credentials>(
     operator: ActorId,
     session_actor: ActorId,
-    build_routes: impl FnOnce() -> ApiRouter,
+    build_routes: impl FnOnce() -> Routes,
 ) -> (Router, Advertised) {
     let public_provider = Arc::new(ApiTokenProvider::new(
         UnreadableTokens,
@@ -214,7 +212,7 @@ enum Outcome {
 /// [`Actor`].
 pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
     assert_routes::<C>(&["/test/required"], || {
-        ApiRouter::new().api_route("/required", required_route::<C>())
+        Routes::new().route("/required", required_route::<C>())
     })
     .await;
 }
@@ -223,9 +221,9 @@ pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
 /// [`MaybeActor`], and on `/test/required`.
 pub(in crate::rest) async fn assert_anonymous_authentication<C: AdmitsAnonymous>() {
     assert_routes::<C>(&["/test/optional", "/test/required"], || {
-        ApiRouter::new()
-            .api_route("/optional", optional_route::<C>())
-            .api_route("/required", required_route::<C>())
+        Routes::new()
+            .route("/optional", optional_route::<C>())
+            .route("/required", required_route::<C>())
     })
     .await;
 }
@@ -239,7 +237,7 @@ pub(in crate::rest) async fn assert_anonymous_authentication<C: AdmitsAnonymous>
 /// served. A service delegation and a Cloudflare Access JWT resolve as anonymous everywhere, which
 /// `/test/required` answers with `401`. Every `401` challenges with `C::CHALLENGE`. This ties the
 /// provider chain the audience selects to the schemes the document states.
-async fn assert_routes<C: Credentials>(paths: &[&str], build_routes: impl FnOnce() -> ApiRouter) {
+async fn assert_routes<C: Credentials>(paths: &[&str], build_routes: impl FnOnce() -> Routes) {
     let operator = ActorId::new(Uuid::from_u128(1), ActorType::Machine);
     let session_actor = ActorId::new(Uuid::from_u128(2), ActorType::User);
     let (router, advertised) = caller_router::<C>(operator, session_actor, build_routes);
