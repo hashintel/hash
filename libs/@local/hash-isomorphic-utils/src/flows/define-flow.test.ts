@@ -1048,10 +1048,11 @@ describe("Read Entity steps", () => {
     });
   });
 
-  it("reject passing the value read to an input of another kind, or without skipping when it's missing", () => {
+  it("reject passing the value read to an input of another kind, without skipping when it's missing, or of a kind no constant declares", () => {
     const typeChecks = (
       step: AddStep,
       person: Ref<"EntityId", false, true>,
+      propertyInput: Ref<"EntityProperty", false, true>,
     ) => {
       const age = step("age", actions.readEntity, {
         description: "",
@@ -1087,6 +1088,22 @@ describe("Read Entity steps", () => {
         description: "",
         // @ts-expect-error -- the value is missing when the entity doesn't have the property
         inputs: { question: email.outputs.value },
+      });
+
+      /* The validator rejects a property that isn't a constant; the types can only say the kind is any it could be. */
+      const unknown = step("unknown", actions.readEntity, {
+        description: "",
+        inputs: { entityId: person, property: propertyInput },
+      });
+
+      expectTypeOf(unknown.outputs.value).toEqualTypeOf<
+        Ref<"Text" | "Number" | "Boolean" | "Date", false, false>
+      >();
+
+      step("answerWithUnknown", actions.answerQuestion, {
+        description: "",
+        // @ts-expect-error -- the kind isn't known
+        inputs: { question: unknown.outputs.value.orSkip() },
       });
     };
 
