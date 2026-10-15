@@ -2,6 +2,7 @@ import { isStoredPayloadRef } from "./types.js";
 
 import type {
   ArrayStoredPayloadRef,
+  FlowInputValues,
   StorablePayloadKind,
   StoredConcatRef,
   StoredItemRef,
@@ -11,6 +12,29 @@ import type {
  * Operations on stored payload references that need only their metadata, so workflow code (which can't do
  * I/O) can iterate over and combine stored arrays. Activities resolve the results.
  */
+
+/**
+ * Checks inputs given to a flow from outside it, e.g. by a user starting a run, a schedule or a trigger.
+ *
+ * Only activities create stored payload references, and a run can only resolve references to its own outputs, so a
+ * reference given to a run before it starts can never resolve, and workflow code would still trust its metadata (e.g.
+ * an array's `length`). Rejecting it up front fails the request, or the save of a schedule, instead of the run.
+ *
+ * @throws if an input's value, or an item of it, is a stored payload reference, naming the input.
+ */
+export const assertNoStoredPayloadRefsInFlowInputs = (
+  flowInputs: FlowInputValues,
+): void => {
+  for (const [inputName, { value }] of Object.entries(flowInputs)) {
+    const items: unknown[] = Array.isArray(value) ? value : [value];
+
+    if (items.some(isStoredPayloadRef)) {
+      throw new Error(
+        `Flow input "${inputName}" contains a stored payload reference, which only the flow's own steps can create`,
+      );
+    }
+  }
+};
 
 /**
  * A reference to each item of a stored array, in order. An item of a concatenation points at the part that holds
