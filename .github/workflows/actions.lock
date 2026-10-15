@@ -9,7 +9,7 @@ workflows:
         - 'actions/download-artifact@v5.0.0'
         - 'actions/upload-artifact@v4.6.2'
         - 'hashicorp/vault-action@v3.4.0'
-        - 'hashintel/actions@main'
+        - 'hashintel/actions@6385f303753ea4de0bf48599d75c2b2a21012517'
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'mshick/add-pr-comment@v2.8.2'
@@ -19,7 +19,7 @@ workflows:
         - 'actions/cache@v4.3.0'
         - 'actions/checkout@v6.0.2'
         - 'hashicorp/vault-action@v3.4.0'
-        - 'hashintel/actions@main'
+        - 'hashintel/actions@6385f303753ea4de0bf48599d75c2b2a21012517'
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'nick-fields/retry@v3.0.2'
@@ -31,7 +31,7 @@ workflows:
         - 'actions/checkout@v6.0.2'
         - 'codspeedhq/action@v4.18.5'
         - 'hashicorp/vault-action@v3.4.0'
-        - 'hashintel/actions@main'
+        - 'hashintel/actions@6385f303753ea4de0bf48599d75c2b2a21012517'
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'nick-fields/retry@v3.0.2'
@@ -46,7 +46,7 @@ workflows:
         - 'docker/login-action@v3.6.0'
         - 'docker/setup-buildx-action@v3.11.1'
         - 'hashicorp/vault-action@v3.4.0'
-        - 'hashintel/actions@main'
+        - 'hashintel/actions@6385f303753ea4de0bf48599d75c2b2a21012517'
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'nick-fields/retry@v3.0.2'
@@ -58,7 +58,7 @@ workflows:
         - 'actions/checkout@v6.0.2'
         - 'github/codeql-action@v4.32.2'
         - 'hashicorp/vault-action@v3.4.0'
-        - 'hashintel/actions@main'
+        - 'hashintel/actions@6385f303753ea4de0bf48599d75c2b2a21012517'
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'nick-fields/retry@v3.0.2'
@@ -73,7 +73,7 @@ workflows:
         - 'actions/upload-artifact@v4.6.2'
         - 'changesets/action@v1.8.0'
         - 'hashicorp/vault-action@v3.4.0'
-        - 'hashintel/actions@main'
+        - 'hashintel/actions@6385f303753ea4de0bf48599d75c2b2a21012517'
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'nick-fields/retry@v3.0.2'
@@ -89,7 +89,7 @@ workflows:
         - 'actions/upload-artifact@v4.6.2'
         - 'codecov/codecov-action@v5.5.5'
         - 'hashicorp/vault-action@v3.4.0'
-        - 'hashintel/actions@main'
+        - 'hashintel/actions@6385f303753ea4de0bf48599d75c2b2a21012517'
         - 'jdx/mise-action@v4.3.0'
         - 'mozilla-actions/sccache-action@v0.0.10'
         - 'nick-fields/retry@v3.0.2'
@@ -201,7 +201,7 @@ dependencies:
         commit: 'sha1-892a26828f195e65540a40b4768ae4571f51ebfc'
         owner_id: 761456
         repo_id: 209846629
-    'hashintel/actions@main':
+    'hashintel/actions@6385f303753ea4de0bf48599d75c2b2a21012517':
         ref: 'main'
         commit: 'sha1-6385f303753ea4de0bf48599d75c2b2a21012517'
         owner_id: 22116112
@@ -213,6 +213,11 @@ dependencies:
         commit: 'sha1-c2a87611a18de5b3828c5652fe268e992400cb5c'
         owner_id: 216188
         repo_id: 738284564
+    'lovetoknow/slackify-markdown-action@698a1d4d0ff1794152a93c03ee8ca5e03a310d4e':
+        ref: 'v1.1.1'
+        commit: 'sha1-698a1d4d0ff1794152a93c03ee8ca5e03a310d4e'
+        owner_id: 168084
+        repo_id: 271813698
     'mozilla-actions/sccache-action@v0.0.10':
         ref: 'v0.0.10'
         commit: 'sha1-9e7fa8a12102821edf02ca5dbea1acd0f89a2696'
@@ -233,6 +238,8 @@ dependencies:
         commit: 'sha1-33ca3be66c6f378fe1610fd1d5258632dbed5e58'
         owner_id: 1128395
         repo_id: 173934970
+        uses:
+            - 'lovetoknow/slackify-markdown-action@698a1d4d0ff1794152a93c03ee8ca5e03a310d4e'
     'rust-lang/crates-io-auth-action@v1.0.5':
         ref: 'v1.0.5'
         commit: 'sha1-c6f97d42243bad5fab37ca0427f495c86d5b1a18'
