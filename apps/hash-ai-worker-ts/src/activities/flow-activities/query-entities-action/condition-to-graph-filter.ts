@@ -43,7 +43,8 @@ const comparisons: Record<
 };
 
 /**
- * Whether a property has a value: it exists and isn't empty text, as in Filter.
+ * Whether a property has a value: it exists and isn't empty text, as in Filter. Unlike Filter, the graph counts JSON
+ * `null` and an empty array as values, as it compares them as JSON.
  *
  * A comparison with a missing property is unknown in the graph (SQL `NULL`), which `not` leaves unknown, so it
  * wouldn't match `not` of the comparison. Requiring the property first makes every leaf true or false.
