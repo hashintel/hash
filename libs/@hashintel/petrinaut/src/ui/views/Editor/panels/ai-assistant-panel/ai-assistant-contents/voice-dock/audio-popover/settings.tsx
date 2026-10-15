@@ -127,6 +127,7 @@ export const AudioSettings = ({
               aria-label="About voice selection"
               aria-expanded={infoOpen}
               aria-haspopup="dialog"
+              pressed={infoOpen}
               iconName="info"
               size="xs"
               variant="ghost"

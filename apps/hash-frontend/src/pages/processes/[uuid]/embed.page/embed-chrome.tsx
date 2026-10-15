@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, styled } from "@mui/material";
 import { use } from "react";
 
 import { Button, Icon, TextInput } from "@hashintel/ds-components";
@@ -17,11 +17,11 @@ import { VersionPicker } from "./version-picker";
 const BREADCRUMB_TEXT_COLOR = "#677789";
 const BREADCRUMB_CHEVRON_COLOR = "#95a5b8";
 
-const titleStyle = {
+const TitleInput = styled(TextInput)({
   color: BREADCRUMB_TEXT_COLOR,
   fontWeight: 500,
   margin: "0 8px",
-};
+});
 
 /**
  * HASH-style breadcrumbs at the start of Petrinaut's top bar, so the embed
@@ -67,19 +67,14 @@ export const EmbedBreadcrumbs = () => {
         </Button>
         <Icon name="chevronRight" size="xs" />
       </Box>
-      {/* A read-only `TextInput` renders a bare span that drops `style`. */}
-      {chrome.readonly ? (
-        <span style={titleStyle}>{chrome.title}</span>
-      ) : (
-        <TextInput
-          variant="subtle"
-          size="sm"
-          value={chrome.title}
-          onChange={chrome.onTitleChange}
-          placeholder="Process"
-          style={titleStyle}
-        />
-      )}
+      <TitleInput
+        variant="subtle"
+        size="sm"
+        value={chrome.title}
+        onChange={chrome.onTitleChange}
+        placeholder="Process"
+        readonly={chrome.readonly}
+      />
     </>
   );
 };
