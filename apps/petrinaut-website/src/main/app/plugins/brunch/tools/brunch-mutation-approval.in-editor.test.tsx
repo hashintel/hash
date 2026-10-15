@@ -46,12 +46,15 @@ afterEach(() => {
   localStorage.clear();
 });
 
+// Brunch's calls arrive as dynamic tools, which the editor leaves to the host:
+// a static `tool-deleteItemsByIds` part is one the editor runs itself.
 const pendingRemoval: PetrinautAiMessage = {
   id: "assistant-1",
   role: "assistant",
   parts: [
     {
-      type: "tool-deleteItemsByIds",
+      type: "dynamic-tool",
+      toolName: "deleteItemsByIds",
       toolCallId: "delete-1",
       state: "input-available",
       input: { items: [{ type: "place", id: "queue" }] },
@@ -59,9 +62,9 @@ const pendingRemoval: PetrinautAiMessage = {
   ],
 };
 
-// A turn that stays open, as a real one does until the user answers. A stream
-// that closes at once leaves the call still waiting, so the editor's chat sends
-// again, thousands of times a second, and starves the test's timers.
+// A turn that stays open, as a real one does while the user decides. If the
+// call ever settled without them, a stream that closed at once would let the
+// editor's chat send again in a loop that starves the test's timers.
 const openStream = () => Promise.resolve(new ReadableStream<UIMessageChunk>());
 
 /**
