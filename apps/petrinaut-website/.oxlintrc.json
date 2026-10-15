@@ -73,6 +73,18 @@
     "import/no-self-import": "error",
     "import/no-cycle": "error",
 
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "regex": "^(\\.\\./)+((apps|libs|tests|@[a-z0-9-]+)/|[^./][^/]*/(src|dist|test)/)",
+            "message": "Import another workspace package by its package name, not a relative path into it."
+          }
+        ]
+      }
+    ],
+
     "react/jsx-pascal-case": ["error", { "allowAllCaps": true }],
     "react/no-danger": "error",
     "react/jsx-no-target-blank": ["error", { "enforceDynamicLinks": "always" }],

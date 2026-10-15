@@ -176,7 +176,8 @@ impl Definition {
     /// (`<<`) are refused.
     ///
     /// Placeholders of the form `${NAME}` in string values and mapping keys outside `vars` are
-    /// replaced with the definition's `vars`. `$${` stands for a literal `${`.
+    /// replaced with the definition's `vars`. `$${` stands for a literal `${`. SQL is kept as
+    /// written, and reads a variable as the parameter `$NAME`.
     ///
     /// # Errors
     ///

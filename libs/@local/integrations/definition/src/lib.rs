@@ -10,7 +10,15 @@
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![feature(ascii_char, ascii_char_variants, type_info, variant_count)]
+#![feature(
+    ascii_char,
+    ascii_char_variants,
+    const_array,
+    const_closures,
+    const_trait_impl,
+    type_info,
+    variant_count
+)]
 
 extern crate alloc;
 
@@ -22,6 +30,7 @@ mod pipeline;
 mod source;
 mod step;
 mod unit_map;
+mod variables;
 mod variant_name;
 mod yaml;
 
@@ -31,7 +40,7 @@ pub use self::{
     link::{EmptyLinkInputs, LinkEndpoint, LinkInput, LinkInputs, LinkPipeline, LinkStep},
     name::{
         CheckpointName, ColumnName, ConnectorId, InputAlias, InvalidName, LinkId, SourceName,
-        StepId, UnitCode, UnitMapName,
+        StepId, UnitCode, UnitMapName, VariableName,
     },
     pipeline::EntityPipeline,
     source::{
@@ -42,5 +51,6 @@ pub use self::{
         InvalidBranches, Properties, Step, StepKind,
     },
     unit_map::{EmptyUnitMap, UnitMap},
+    variables::{ConflictingVariables, Variables},
     yaml::{ParseError, SyntaxError},
 };

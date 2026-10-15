@@ -3,7 +3,7 @@ import { useId } from "react";
 import { Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { OpenAIVoiceConfig } from "../plugins/voice/session/voice-interview-control";
+import type { OpenAIVoiceConfig } from "../plugins/brunch/voice/session/voice-interview-control";
 import type { AssistantSelection } from "./assistant-selection";
 
 const sectionStyle = css({

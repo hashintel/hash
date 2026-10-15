@@ -9,15 +9,15 @@ import {
   assertCrashRecovery,
   type CrashRecoveryKind,
 } from "./history-retention-crash-audit";
-import { runNodeScript } from "./run-node-script";
+import { runNodeScript } from "./run-node-script.ts";
 
 const repositoryRoot = join(import.meta.dirname, "../../../..");
 const crashScript = join(
   import.meta.dirname,
-  "../history-retention-crash.integration.ts",
+  "./history-retention-crash.integration.ts",
 );
 const runtimeHook = pathToFileURL(
-  join(import.meta.dirname, "../history-retention-runtime-hook.ts"),
+  join(import.meta.dirname, "./history-retention-runtime-hook.ts"),
 ).href;
 
 const wasKilled = (result: {

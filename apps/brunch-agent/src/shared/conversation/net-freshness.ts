@@ -1,0 +1,94 @@
+/**
+ * Whether the model still sees a current view of the bound net. The context
+ * projection reports which net results the model's next request carries; a
+ * document change is issued only against the revision of the latest one, and
+ * the browser refuses it if the document has since moved by other means.
+ */
+
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
+
+import { mayShowNet, netResultView } from "./net-view.ts";
+
+import type { ContextProjectionEntry } from "@flue/runtime";
+import type { FlueConversationSnapshot } from "@flue/sdk";
+
+/**
+ * Tool call ids of successful results, in one conversation's model context,
+ * of tools that may show the net: reads, and document changes that can carry
+ * the net read back. Membership alone does not make a result a usable view;
+ * `expectedNetRevision` checks each result's metadata.
+ */
+export type NetView = ReadonlySet<string>;
+
+/**
+ * Process-local: one tracker per agent module, holding one view per
+ * conversation instance. Each model request's projection replaces that
+ * instance's view with the ids of the successful read and document-change
+ * results it carries (`mayShowNet`). Every proposal is preceded by a model
+ * request in the same process, whose projection records the view first.
+ */
+export const createNetViewTracker = () => {
+  const views = new Map<string, NetView>();
+  return {
+    observe: (
+      instanceId: string,
+      entries: readonly ContextProjectionEntry[],
+    ): void => {
+      views.set(
+        instanceId,
+        new Set(
+          entries.flatMap(({ message }) =>
+            message.role === "toolResult" &&
+            !message.isError &&
+            mayShowNet(message.toolName)
+              ? [message.toolCallId]
+              : [],
+          ),
+        ),
+      );
+    },
+    view: (instanceId: string): NetView | undefined => views.get(instanceId),
+  };
+};
+
+export const noNetViewRefusal = `Not started: no current view of the net is in your context, either because none was read or because it was compacted away. Read the net (readNetOutline, readNetStructure or ${getLatestNetDefinitionToolName}), then make the change.`;
+
+/**
+ * The revision of the latest net result before `toolCallId` that the model
+ * can still see. Reads carry the revision they observed; a change carries the
+ * revision it produced only when it also carries the net read back, which the
+ * context projection shows. A change that left the document as it was, or
+ * whose read-back is missing, shows the model nothing.
+ */
+export const expectedNetRevision = (
+  snapshot: FlueConversationSnapshot,
+  toolCallId: string,
+  view: NetView | undefined,
+): { readonly revision: string } | { readonly refusal: string } => {
+  let revision: string | undefined;
+  for (const message of snapshot.messages) {
+    if (message.role !== "assistant" || message.purpose !== "assistant")
+      continue;
+    for (const part of message.parts) {
+      if (part.type !== "dynamic-tool") continue;
+      if (part.toolCallId === toolCallId)
+        return revision === undefined
+          ? { refusal: noNetViewRefusal }
+          : { revision };
+      if (
+        part.state !== "output-available" ||
+        !view?.has(part.toolCallId) ||
+        typeof part.output !== "object" ||
+        part.output === null ||
+        !("metadata" in part.output)
+      )
+        continue;
+      revision =
+        netResultView(part.toolName, part.output.metadata)?.revision ??
+        revision;
+    }
+  }
+  throw new Error(
+    `Conversation history does not contain browser call ${toolCallId}.`,
+  );
+};

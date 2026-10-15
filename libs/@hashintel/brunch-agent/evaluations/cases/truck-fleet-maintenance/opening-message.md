@@ -1,1 +1,0 @@
-I'm Nora Baines, fleet operations planner at Calder Ridge Carriers. We've got a predictive dashboard ranking failure risk for an eight-truck pilot, but it doesn't turn those scores into a workable weekly maintenance schedule. I'd like a simulation we can use to compare schedules.

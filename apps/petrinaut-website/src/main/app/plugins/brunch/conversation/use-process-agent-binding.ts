@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 
-import type { DocumentRecord } from "../../../local-storage-demo/documents/document-repository";
-
 export interface ProcessAgentBinding {
   readonly conversationId: string;
   readonly documentId: string;
@@ -19,7 +17,7 @@ export interface FixtureProcessAgentConfiguration {
 }
 
 export const useProcessAgentBinding = (input: {
-  readonly document: DocumentRecord | null;
+  readonly document: { readonly documentId: string } | null;
   readonly fixture: FixtureProcessAgentConfiguration | undefined;
 }): ProcessAgentBinding | null => {
   const documentId = input.document?.documentId;

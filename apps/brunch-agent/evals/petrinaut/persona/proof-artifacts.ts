@@ -1,0 +1,274 @@
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
+
+import { brunchTools } from "@hashintel/brunch-agent";
+
+import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
+
+type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
+import { formatFlueTranscript } from "../../../src/shared/conversation/transcript.ts";
+import { ledgerEvidence } from "./ledger-evidence.ts";
+
+interface ProofEventBase {
+  readonly sequence: number;
+  readonly turn: number;
+  readonly messageId: string;
+}
+
+type ProofTraceEvent =
+  | (ProofEventBase & {
+      readonly type: "user";
+      readonly text: string;
+    })
+  | (ProofEventBase & {
+      readonly type: "activate";
+      readonly toolCallId: string;
+      readonly name: string;
+      readonly outcome: "ok" | "error";
+    })
+  | (ProofEventBase & {
+      readonly type: "read";
+      readonly toolCallId: string;
+      readonly path: string;
+      readonly outcome: "ok" | "error";
+    })
+  | (ProofEventBase & {
+      readonly type: "tool";
+      readonly toolCallId: string;
+      readonly name: string;
+      /** Which side executed the call: the browser client or the server. */
+      readonly executor: "client" | "server";
+      readonly outcome: "ok" | "error";
+    })
+  | (ProofEventBase & {
+      readonly type: "text";
+      readonly text: string;
+    });
+
+export interface ProofTrace {
+  readonly conversationId: string;
+  readonly events: readonly ProofTraceEvent[];
+}
+
+type UnsequencedProofTraceEvent = ProofTraceEvent extends infer Event
+  ? Event extends ProofTraceEvent
+    ? Omit<Event, "sequence">
+    : never
+  : never;
+
+const stringInputField = (
+  part: DynamicToolPart,
+  field: string,
+): string | undefined => {
+  if (typeof part.input !== "object" || part.input === null) return undefined;
+  if (!(field in part.input)) return undefined;
+  const value = part.input[field as keyof typeof part.input];
+  return typeof value === "string" ? value : undefined;
+};
+
+const traceResourcePath = (path: string): string => {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(path);
+  } catch {
+    return path;
+  }
+  const match = /\/packaged-skills\/skill:([^/:]+):[^/]+\/(.+)$/u.exec(decoded);
+  return match?.[1] !== undefined && match[2] !== undefined
+    ? `${match[1]}/${match[2]}`
+    : path;
+};
+
+const toolOutcome = (part: DynamicToolPart): "ok" | "error" =>
+  part.state === "output-available" ? "ok" : "error";
+
+export const deriveProofTrace = (
+  snapshot: FlueConversationSnapshot,
+): ProofTrace => {
+  const events: ProofTraceEvent[] = [];
+  let turn = 0;
+
+  const append = (event: UnsequencedProofTraceEvent): ProofTraceEvent => {
+    const sequenced = {
+      ...event,
+      sequence: events.length + 1,
+    } as ProofTraceEvent;
+    events.push(sequenced);
+    return sequenced;
+  };
+
+  for (const message of snapshot.messages) {
+    if (message.display !== "visible") continue;
+
+    if (message.purpose === "user") {
+      turn += 1;
+      append({
+        type: "user",
+        turn,
+        messageId: message.id,
+        text: message.parts
+          .flatMap((part) => (part.type === "text" ? [part.text] : []))
+          .join("\n"),
+      });
+      continue;
+    }
+    if (message.purpose !== "assistant") continue;
+
+    for (const part of message.parts) {
+      if (part.type === "text") {
+        append({ type: "text", turn, messageId: message.id, text: part.text });
+        continue;
+      }
+      if (part.type !== "dynamic-tool") continue;
+
+      if (part.toolName === brunchTools.activateSkill) {
+        append({
+          type: "activate",
+          turn,
+          messageId: message.id,
+          toolCallId: part.toolCallId,
+          name: stringInputField(part, "name") ?? "<missing>",
+          outcome: toolOutcome(part),
+        });
+        continue;
+      }
+      if (part.toolName === brunchTools.readSkillResource) {
+        const path = stringInputField(part, "path");
+        append({
+          type: "read",
+          turn,
+          messageId: message.id,
+          toolCallId: part.toolCallId,
+          path: path === undefined ? "<missing>" : traceResourcePath(path),
+          outcome: toolOutcome(part),
+        });
+        continue;
+      }
+
+      append({
+        type: "tool",
+        turn,
+        messageId: message.id,
+        toolCallId: part.toolCallId,
+        name: part.toolName,
+        executor:
+          part.state === "output-available" &&
+          typeof part.output === "object" &&
+          part.output !== null &&
+          "brunchBrowserResult" in part.output &&
+          part.output.brunchBrowserResult === true
+            ? "client"
+            : "server",
+        outcome: toolOutcome(part),
+      });
+    }
+  }
+
+  return { conversationId: snapshot.conversationId, events };
+};
+
+const traceEventMarkdown = (event: ProofTraceEvent): string => {
+  const prefix = `${event.sequence}. turn ${event.turn}: `;
+  switch (event.type) {
+    case "user":
+      return `${prefix}\`user\` — message \`${event.messageId}\``;
+    case "activate":
+      return `${prefix}\`activate(${event.name}, ${event.outcome})\` — call \`${event.toolCallId}\``;
+    case "read":
+      return `${prefix}\`read(${event.path}, ${event.outcome})\` — call \`${event.toolCallId}\``;
+    case "tool":
+      return `${prefix}\`tool(${event.name}, ${event.executor}, ${event.outcome})\` — call \`${event.toolCallId}\``;
+    case "text":
+      return `${prefix}\`text\` — message \`${event.messageId}\``;
+  }
+};
+
+const formatProofTrace = (trace: ProofTrace): string =>
+  [
+    "# Canonical proof trace",
+    "",
+    `Conversation: \`${trace.conversationId}\``,
+    "",
+    ...trace.events.map(traceEventMarkdown),
+    "",
+  ].join("\n");
+
+const atomicWrite = async (path: string, content: string): Promise<void> => {
+  const temporaryPath = join(
+    dirname(path),
+    `.${basename(path)}.${randomUUID()}.tmp`,
+  );
+  await writeFile(temporaryPath, content, "utf8");
+  await rename(temporaryPath, path);
+};
+
+export interface ProofArtifactManifest {
+  readonly algorithm: "sha256";
+  readonly files: readonly {
+    readonly path: string;
+    readonly sha256: string;
+  }[];
+}
+
+export const refreshProofManifest = async (
+  directory: string,
+): Promise<ProofArtifactManifest> => {
+  const names = (await readdir(directory, { withFileTypes: true }))
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        entry.name !== "manifest.json" &&
+        !entry.name.endsWith(".tmp"),
+    )
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right));
+  const files = await Promise.all(
+    names.map(async (name) => ({
+      path: name,
+      sha256: createHash("sha256")
+        .update(await readFile(join(directory, name)))
+        .digest("hex"),
+    })),
+  );
+  const manifest: ProofArtifactManifest = { algorithm: "sha256", files };
+  await atomicWrite(
+    join(directory, "manifest.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  );
+  return manifest;
+};
+
+export const writeProofArtifacts = async (
+  directory: string,
+  snapshot: FlueConversationSnapshot,
+): Promise<void> => {
+  await mkdir(directory, { recursive: true });
+  const trace = deriveProofTrace(snapshot);
+  const ledger = ledgerEvidence(snapshot);
+  await Promise.all([
+    atomicWrite(
+      join(directory, "snapshot.json"),
+      `${JSON.stringify(snapshot, null, 2)}\n`,
+    ),
+    atomicWrite(
+      join(directory, "transcript.md"),
+      `${formatFlueTranscript(snapshot).trimEnd()}\n`,
+    ),
+    atomicWrite(
+      join(directory, "trace.json"),
+      `${JSON.stringify(trace, null, 2)}\n`,
+    ),
+    atomicWrite(join(directory, "trace.md"), formatProofTrace(trace)),
+    ...(ledger.commits.length === 0
+      ? []
+      : [
+          atomicWrite(join(directory, "ledger.md"), ledger.markdown),
+          atomicWrite(
+            join(directory, "ledger.json"),
+            `${JSON.stringify(ledger.commits, null, 2)}\n`,
+          ),
+        ]),
+  ]);
+  await refreshProofManifest(directory);
+};

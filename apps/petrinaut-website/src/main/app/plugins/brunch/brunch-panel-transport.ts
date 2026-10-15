@@ -1,4 +1,4 @@
-import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent";
 import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";

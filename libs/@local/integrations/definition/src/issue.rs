@@ -11,6 +11,7 @@ use crate::{
     name::{CheckpointName, InvalidName, LinkId, SourceName, StepId, UnitMapName, is_name},
     source::InvalidPrimaryKey,
     step::{ConflictingPropertyVersions, InvalidBranches},
+    variables::ConflictingVariables,
 };
 
 /// One step of a [`DefinitionPath`].
@@ -136,6 +137,8 @@ pub enum IssueKind {
     },
     #[display("`{key}` repeats an earlier key")]
     DuplicateKey { key: Box<str> },
+    #[display("{reason}")]
+    ConflictingVariables { reason: ConflictingVariables },
     #[display("`{value}` is not a versioned type URL: {reason}")]
     InvalidTypeUrl {
         value: Box<str>,

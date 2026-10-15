@@ -1,0 +1,117 @@
+{
+  "package": "@tests/petrinaut-brunch-integration",
+  "dependencies": [
+    "@apps/brunch-agent",
+    "@apps/petrinaut-website",
+    "@hashintel/brunch-agent",
+    "@hashintel/petrinaut",
+    "@hashintel/petrinaut-core",
+    "@local/pi-faux-providers"
+  ],
+  "tasks": {
+    "fix:eslint": {
+      "dependsOn": [
+        "@apps/brunch-agent#build",
+        "@apps/petrinaut-website#build",
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-api",
+        "hash-graph-authorization",
+        "hash-graph-store",
+        "hash-graph-temporal-versioning",
+        "hash-graph-types",
+        "hash-temporal-client",
+        "type-system"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@apps/brunch-agent#build",
+        "@apps/petrinaut-website#build",
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-api",
+        "hash-graph-authorization",
+        "hash-graph-store",
+        "hash-graph-temporal-versioning",
+        "hash-graph-types",
+        "hash-temporal-client",
+        "type-system"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@apps/brunch-agent#build",
+        "@apps/petrinaut-website#build",
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build"
+      ],
+      "affectedBy": [
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-api",
+        "hash-graph-authorization",
+        "hash-graph-store",
+        "hash-graph-temporal-versioning",
+        "hash-graph-types",
+        "hash-temporal-client",
+        "type-system"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [
+        "@apps/brunch-agent#build",
+        "@apps/petrinaut-website#build",
+        "@hashintel/brunch-agent#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-api",
+        "hash-graph-authorization",
+        "hash-graph-store",
+        "hash-graph-temporal-versioning",
+        "hash-graph-types",
+        "hash-temporal-client",
+        "type-system"
+      ]
+    }
+  }
+}

@@ -3,6 +3,7 @@ use alloc::{
     collections::{BTreeMap, btree_map},
     vec::Vec,
 };
+use core::{array, mem};
 
 use type_system::ontology::VersionedUrl;
 
@@ -13,6 +14,7 @@ use crate::{
 
 /// Converts a column's value before it is written as a property.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
 pub enum Coercion {
     /// Converts to a calendar date.
     Date,
@@ -28,6 +30,23 @@ pub enum Coercion {
     Year,
     /// Removes leading and trailing whitespace.
     Trim,
+}
+
+impl Coercion {
+    /// Every coercion, in declaration order.
+    pub const ALL: [Self; mem::variant_count::<Self>()] = array::from_fn(const |index| {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "`repr(u8)` keeps the variant count within `u8`"
+        )]
+        let discriminant = index as u8;
+        // SAFETY: `repr(u8)` gives the variants the discriminants 0 up to the variant count in
+        // declaration order, and `index` is below the variant count.
+        #[expect(unsafe_code, reason = "builds each variant from its discriminant")]
+        unsafe {
+            mem::transmute::<u8, Self>(discriminant)
+        }
+    });
 }
 
 /// Reads a property value from a row.

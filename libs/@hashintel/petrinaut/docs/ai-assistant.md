@@ -91,20 +91,17 @@ A host may also enable live history following, as the local Brunch panel does. T
 
 ### Ledger in Brunch
 
-In Brunch construction conversations, the **Ledger** tab shows the saved account as a readable document while **Chat** contains the transcript. Ledger updates when Brunch saves a revision, without covering the canvas or opening another panel. Each unseen settled revision adds to Ledger's badge while Chat is selected or the panel is closed. You can read Ledger while continuing to type in the same composer, then switch to Chat to inspect the reply; if a response completes, errors, or is stopped while Ledger is visible, Chat receives an activity dot. Closing and reopening the assistant retains the selected tab for that mounted conversation.
+In Brunch construction conversations, the **Ledger** tab shows what Brunch has recorded about your process while **Chat** contains the transcript. As the conversation proceeds, Brunch commits batches of typed entries: the parts of your process, claims about them, checks it still owes, and reflections on what it changed or ran. The Ledger is append-only: each commit adds to it, and no commit is removed. A correction to a claim is a new claim that supersedes the earlier one, which stays visible, struck through; an update to a part of your process replaces how that part is described. Ledger fills in as each commit is recorded, without covering the canvas or opening another panel, and says **Nothing is recorded in the Ledger yet.** before the first.
 
-Ledger presents the saved account without internal revision hashes, mutation ranges, or duplicate raw Markdown. A warning appears when a later Ledger revision exists than the one shown or the recorded explanation predates a newer revision. Ask Brunch to refresh the Ledger or explain the relevant model part again when you need a fresh answer. Brunch does not automatically detect direct edits after its latest model read; ask it to read the net again before relying on a current explanation.
+Ledger groups the parts of your process by section and kind, each with its origin and status and its current claims beneath; superseded claims are struck through. Open questions, checks still owed, checks met with the reflection that met each, and anything excluded from the model follow. Internal record IDs are not shown.
 
-### Prepared local demo fixture
+Each unseen commit or net change by Brunch adds to Ledger's badge while Chat is selected or the panel is closed. You can read Ledger while continuing to type in the same composer, then switch to Chat to inspect the reply; if a response completes, errors, or is stopped while Ledger is visible, Chat receives an activity dot. Closing and reopening the assistant retains the selected tab for that mounted conversation.
 
-The local Petrinaut development demo offers a labelled crew-reservation fixture when Brunch is
-configured. Opening it restores a test-authored Markdown workpiece, a non-empty final-inspection
-net, and their canonical Brunch conversation. The status panel distinguishes prepared text from
-model-produced revisions and states the fixture's non-claims.
+In Chat, each commit appears as **Recorded in the Ledger**. A commit that cannot be recorded, for example because it refers to an entry that does not exist, records nothing and appears as **Ledger commit needs correction**; expand it to read the reason. Brunch is asked to repair a refused commit before moving on. The Ledger has no revisions, so it shows no warnings about newer or older versions.
 
-The document is mirrored to browser local storage automatically; there is no separate Save action.
-Wait for the status panel to report a settled bundle before reopening the same fixture in another
-tab. A refused status leaves the previous coherent bundle selected and names the failed history, workpiece, or document check instead of claiming that partial state settled.
+Brunch changes the net only from a current view of it. If you edit the net yourself, Brunch's next change is refused as stale before it touches the document: its tool row shows an error saying the document changed by other means. Brunch is told to read the net again before retrying the change. A change is refused the same way when Brunch's earlier view of the net is no longer in its context, for example late in a long conversation.
+
+### Voice mode
 
 When the Brunch voice preview is enabled and available, an empty composer shows a waveform action
 titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic

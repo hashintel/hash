@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 
 import { brunchSubmittedUserMessage } from "./submitted-user-message";
