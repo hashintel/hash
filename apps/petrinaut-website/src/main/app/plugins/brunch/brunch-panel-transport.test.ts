@@ -32,11 +32,13 @@ test.each(interviewBudgetLevels)(
         incarnationId: "incarnation",
       },
     };
-    for (const source of ["text", "voice"] as const) {
+    for (const inputMode of ["text", "voice"] as const) {
       for (const asked of [0, 2, 9]) {
+        const tracker = new BrunchPanelConversationTracker();
+        tracker.recordInputMode(inputMode);
         const transport = createBrunchPanelTransport(
           Promise.resolve({ send } as unknown as FlueClient),
-          new BrunchPanelConversationTracker(),
+          tracker,
           {
             initialData,
             interviewBudgetLevel: level,
@@ -60,7 +62,6 @@ test.each(interviewBudgetLevels)(
               {
                 id: "answer",
                 role: "user",
-                ...(source === "voice" ? { metadata: { source } } : {}),
                 parts: [{ type: "text", text: "Four agents" }],
               },
             ],
@@ -77,7 +78,7 @@ test.each(interviewBudgetLevels)(
           );
         } else {
           const caps =
-            source === "text"
+            inputMode === "text"
               ? { quick: 3, standard: 6, thorough: 10, deep: null }
               : { quick: 2, standard: 4, thorough: 7, deep: null };
           const questionCap = caps[level];

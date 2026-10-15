@@ -421,6 +421,7 @@ test("help documents the objective and agent options", async () => {
     "--objective is fresh-run-only and is neither retained nor reapplied",
   );
   expect(stdout).toContain("--agent claude|codex|cursor-agent|pi");
+  expect(stdout).toContain("--interview-length quick|standard|thorough|deep");
   expect(stdout).toContain("{prompt}");
   expect(stdout).not.toContain("--guidance");
 });

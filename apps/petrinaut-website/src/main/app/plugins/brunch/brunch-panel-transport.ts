@@ -88,8 +88,8 @@ export class BrunchPanelConversationTracker {
 
   /**
    * The panel's input surface as reported by Voice, so a text turn sent
-   * during Voice gets the same allowance as the estimate. Until Voice
-   * reports, each message's own source decides.
+   * during Voice gets the same allowance as the estimate. Undefined until
+   * Voice first mounts, so until then every submission is text.
    */
   public get inputMode(): PetrinautAiInputMode | undefined {
     return this.#inputMode;
@@ -245,10 +245,8 @@ export const createBrunchPanelTransport = (
         const client = await clientPromise;
         const budget = getInterviewBudget(
           options?.interviewBudgetLevel ?? "off",
-          tracker.inputMode ??
-            (sendOptions.messages.at(-1)?.metadata?.source === "voice"
-              ? "voice"
-              : "text"),
+          // Voice reports its mode when it mounts, before it can submit.
+          tracker.inputMode ?? "text",
           options?.interviewRepliesAsked ?? 0,
         );
         const submissionContext =
