@@ -77,7 +77,7 @@ impl From<DraftId> for Uuid {
     }
 }
 
-/// An entity's web ID and UUID, joined by `~`, optionally followed by `~` and a draft ID.
+/// An entity's web ID and UUID, joined by `~`.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[cfg_attr(
     feature = "schemars",

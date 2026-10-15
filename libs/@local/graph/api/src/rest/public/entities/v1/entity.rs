@@ -14,6 +14,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, de};
 use type_system::{
     knowledge::entity::{EntityId, id::EntityUuid},
+    ontology::VersionedUrl,
     principal::actor_group::WebId,
 };
 use uuid::Uuid;
@@ -32,10 +33,6 @@ use crate::rest::{
 struct EntityPath {
     /// The ID of the entity to read.
     #[serde(deserialize_with = "live_entity_id")]
-    #[schemars(
-        with = "String",
-        example = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d"
-    )]
     entity_id: EntityId,
 }
 
@@ -50,10 +47,19 @@ fn live_entity_id<'de, D: Deserializer<'de>>(deserializer: D) -> Result<EntityId
 
 /// An entity the caller may view.
 #[derive(Serialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
 struct Entity {
+    /// What identifies and classifies the entity.
+    metadata: EntityMetadata,
+}
+
+/// What identifies and classifies an entity.
+#[derive(Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+struct EntityMetadata {
     /// The ID of the entity.
     entity_id: EntityId,
+    /// The entity types the entity is an instance of, without the types they inherit from.
+    entity_type_ids: Vec<VersionedUrl>,
 }
 
 /// The entity does not exist, is archived, or the caller may not view it.
@@ -74,9 +80,9 @@ impl ProblemVariant for EntityNotFound {
     fn example() -> Option<Self> {
         Some(Self {
             entity_id: EntityId {
-                web_id: WebId::new(Uuid::from_u128(0x8D86_C8C3_D66D_43D1_859B_676C_3BCA_EADC)),
+                web_id: WebId::new(Uuid::from_u128(0x8D86C8C3_D66D_43D1_859B_676C3BCAEADC)),
                 entity_uuid: EntityUuid::new(Uuid::from_u128(
-                    0xBE2C_5B2F_E3E1_4F26_A0C4_0F8B_5E9C_4A1D,
+                    0xBE2C5B2F_E3E1_4F26_A0C4_0F8B5E9C4A1D,
                 )),
                 draft_id: None,
             },
@@ -144,8 +150,18 @@ where
         return Err(Report::new(GetEntityError::Archived(entity_id)).into());
     }
 
+    let mut entity_type_ids = entity
+        .metadata
+        .entity_type_ids
+        .into_iter()
+        .collect::<Vec<_>>();
+    entity_type_ids.sort();
+
     Ok(Json(Entity {
-        entity_id: entity.metadata.record_id.entity_id,
+        metadata: EntityMetadata {
+            entity_id: entity.metadata.record_id.entity_id,
+            entity_type_ids,
+        },
     }))
 }
 
