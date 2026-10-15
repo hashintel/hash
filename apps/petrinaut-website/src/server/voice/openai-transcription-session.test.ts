@@ -2,6 +2,7 @@ import { createCustomAbortControllerSignal } from "@whatwg-node/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { voiceTranscriptionPrompt } from "../../shared/voice-transcription";
+import { encodeVoiceWords, voiceWordsHeader } from "../../shared/voice-words";
 import { createOpenAITranscriptionSessionHandler } from "./openai-transcription-session";
 
 const environment = {
@@ -614,4 +615,44 @@ describe("OpenAI transcription WebRTC session", () => {
     expect(logs).not.toContain("private-provider-error");
     expect(logs).not.toContain("server-only-secret");
   });
+});
+
+test("gives transcription only the spellings, rejecting a bad words header before calling OpenAI", async () => {
+  const fetch = vi
+    .fn<typeof globalThis.fetch>(
+      async () =>
+        new Response("v=0\r\no=answer", {
+          headers: { "content-type": "application/sdp" },
+        }),
+    )
+    .mockImplementationOnce(async () => transcriptionSecret());
+  const handler = createOpenAITranscriptionSessionHandler({
+    environment,
+    fetch,
+  });
+  const bad = request();
+  bad.headers.set(voiceWordsHeader, "not!base64");
+  expect((await handler(bad)).status).toBe(400);
+  expect(fetch).not.toHaveBeenCalled();
+  const input = request();
+  input.headers.set(
+    voiceWordsHeader,
+    encodeVoiceWords([
+      { spelling: "RelayDesk", pronunciation: "ray-lay-desk" },
+      { spelling: "Bay Three" },
+    ])!,
+  );
+  expect((await handler(input)).status).toBe(201);
+  const init = fetch.mock.calls[0]?.[1];
+  if (typeof init?.body !== "string") throw new Error("Expected JSON body");
+  const { session } = JSON.parse(init.body) as {
+    session: { audio: { input: { transcription: { prompt: string } } } };
+  };
+  expect(session.audio.input.transcription.prompt).toContain(
+    "Also expect these names: RelayDesk, Bay Three.",
+  );
+  expect(session.audio.input.transcription.prompt).not.toContain(
+    "ray-lay-desk",
+  );
+  expect(new Headers(init.headers).has(voiceWordsHeader)).toBe(false);
 });
