@@ -74,6 +74,8 @@ While Brunch is the assistant, **User settings → Plugins** lists **Brunch**, t
 
 Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 
+With Brunch selected, Labs also shows **Custom words**, off by default, for preferred spellings and pronunciation hints in Voice. See [Custom words](docs/custom-words.md).
+
 ## Snapshot links
 
 **Share**, an icon in a local document's top bar, opens a dropdown with a self-contained

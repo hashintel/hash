@@ -86,7 +86,7 @@ test("reopens contextual user turns as human text, never as host framing", () =>
   const body = petrinautContextualUserMessageBody({
     userText: "Four agents",
     diagnosticsContext: "",
-    submissionContext: { hostKey: { asked: 1 } },
+    submissionContext: { hostKey: { asked: 1 }, words: ["RelayDesk"] },
   });
   const messages = canonicalBrunchFlueAdapter.reopen({
     messages: [

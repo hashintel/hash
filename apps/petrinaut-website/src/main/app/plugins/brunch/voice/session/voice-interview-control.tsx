@@ -12,6 +12,10 @@ import {
   type FlueChatResponseMessageStartedEvent,
 } from "@local/flue-aisdk-transport";
 
+import {
+  validateWords,
+  type VoiceWord,
+} from "../../../../../../shared/voice-words";
 import { reportVoiceDiagnostic } from "../../../../../../voice-diagnostics";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { LiveConversationControl } from "../live/live-conversation-control";
@@ -303,6 +307,7 @@ const recordLatency = (event: VoiceLatencyEvent): void => {
 const AvailableVoiceInterviewControl = ({
   config,
   context,
+  readWords,
   resolveInputSubmission,
   resolveResponseSubmission,
   settlements,
@@ -314,6 +319,7 @@ const AvailableVoiceInterviewControl = ({
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
+  readWords: () => readonly VoiceWord[];
   resolveInputSubmission?: ResolveSubmission;
   resolveResponseSubmission?: ResolveSubmissions;
   settlements?: readonly VoiceSubmissionSettlement[];
@@ -338,6 +344,7 @@ const AvailableVoiceInterviewControl = ({
       navigator.mediaDevices,
     );
     const session = new OpenAIRealtimeSession({
+      readWords,
       audioSettings,
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
@@ -642,6 +649,7 @@ const AvailableVoiceInterviewControl = ({
 const PinnedVoiceInterviewControl = ({
   config,
   interviewBudgetLevel,
+  readWords,
   mediationHistory,
   onInputModeChange,
   toolApprovalState,
@@ -658,6 +666,7 @@ const PinnedVoiceInterviewControl = ({
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
   readonly interviewBudgetLevel?: InterviewBudgetLevel;
+  readonly readWords?: () => readonly VoiceWord[];
   readonly mediationHistory?: VoiceMediationHistory;
   /** Mirrors the panel's input surface; reports `text` once Voice unmounts. */
   readonly onInputModeChange?: (mode: PetrinautAiInputMode) => void;
@@ -673,7 +682,15 @@ const PinnedVoiceInterviewControl = ({
   readonly subscribeToStopRequested?: SubscribeToStopRequested;
 }) => {
   // Labs changes apply between Voice sessions, never during an active turn.
-  // The host ends the current session before returning to text mode.
+  const wordsReader = useRef(readWords);
+  const pinnedWords = useRef<readonly VoiceWord[] | undefined>(undefined);
+  // Stable even for the legacy store constructed once. Retries keep this snapshot.
+  const readSessionWords = () => {
+    if (pinnedWords.current === undefined) {
+      pinnedWords.current = validateWords(wordsReader.current?.() ?? []);
+    }
+    return pinnedWords.current;
+  };
   const [sessionConfig, setSessionConfig] = useState(config);
   useLayoutEffect(() => {
     if (!onInputModeChange) return;
@@ -687,12 +704,22 @@ const PinnedVoiceInterviewControl = ({
   ) {
     setSessionConfig(config);
   }
+  // Returning to text ends any session; closing the panel ends a Live session
+  // but only pauses Realtime, which keeps its words until it ends.
+  const sessionEnded =
+    context.inputMode === "text" ||
+    (sessionConfig.provider === "live" && !context.isAiAssistantOpen);
+  useLayoutEffect(() => {
+    wordsReader.current = readWords;
+    if (sessionEnded) pinnedWords.current = undefined;
+  }, [sessionEnded, readWords]);
   if (sessionConfig.provider === "live") {
     if (!context.registerVoiceModeSessionControls) return null;
     return (
       <LiveConversationControl
         {...context}
         interviewBudgetLevel={interviewBudgetLevel}
+        readWords={readSessionWords}
         mediationHistory={mediationHistory}
         toolApprovalState={toolApprovalState}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
@@ -727,6 +754,7 @@ const PinnedVoiceInterviewControl = ({
       key={context.conversationId}
       config={sessionConfig}
       context={context}
+      readWords={readSessionWords}
       resolveInputSubmission={resolveInputSubmission}
       resolveResponseSubmission={resolveResponseSubmission}
       settlements={settlements}

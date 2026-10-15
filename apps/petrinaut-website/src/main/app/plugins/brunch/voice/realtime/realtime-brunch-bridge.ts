@@ -46,6 +46,7 @@ interface ChatUpdate {
 }
 
 interface RealtimeBridgeSession {
+  getTranscriptionPrompt?(): string;
   speakCanonical(segments: CanonicalSpeechSegment[]): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
@@ -650,6 +651,7 @@ export class RealtimeBrunchBridge {
       const rejectionReason = classifyInterruption(
         answer,
         interruptionPlaybackText,
+        this.#session.getTranscriptionPrompt?.(),
       );
       if (rejectionReason !== null) {
         this.#reportDiagnostic({
