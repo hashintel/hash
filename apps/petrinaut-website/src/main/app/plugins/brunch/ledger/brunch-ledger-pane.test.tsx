@@ -137,7 +137,7 @@ test("never shows refused, failed, pending or unbound commits", () => {
   }
 });
 
-test("counts accepted commits and settled document changes as activity", () => {
+test("counts accepted commits as activity, not net changes or reads", () => {
   const settledChange = {
     type: "dynamic-tool",
     toolName: "addPlace",
@@ -164,7 +164,7 @@ test("counts accepted commits and settled document changes as activity", () => {
     foldBrunchLedgerHistory([
       assistant(commit("c1"), settledChange, unchangedRead),
     ]).activityIdentities,
-  ).toEqual(["c1", "canonical-call"]);
+  ).toEqual(["c1"]);
 });
 
 test("explains a selected net element from the reflection naming it, and marks the records behind it", () => {

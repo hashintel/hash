@@ -116,9 +116,7 @@ try {
     `ledger: ${commits.length} accepted commits, ${state.entities.length} entities, ${state.claims.length} claims, ${state.obligations.length} obligations`,
   );
   report(`\n--- reply ---\n${reply}`);
-  report(
-    `\n--- ledger (agent skin) ---\n${renderLedgerMarkdown(projectLedger(state), "agent")}`,
-  );
+  report(`\n--- ledger ---\n${renderLedgerMarkdown(projectLedger(state))}`);
   report(`\nhistory: ${join(directory, "history.json")}`);
 } finally {
   await application.stop();

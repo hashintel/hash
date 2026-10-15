@@ -8,89 +8,72 @@ import type {
   ProjectedQuestion,
 } from "./project-ledger";
 
-/**
- * One structure, two skins: the user skin is clean prose; the agent skin
- * carries record addresses and canonical kind tokens inline, so freeform
- * references resolve identically for both parties.
- */
-export type Skin = "user" | "agent";
-
 type ListItems = (string | ListItems)[];
 
-const tag = (skin: Skin, address: string) =>
-  skin === "agent" ? ` ${code(address)}` : "";
+const tag = (address: string) => ` ${code(address)}`;
 
-const claimLine = (skin: Skin, { record, history }: ProjectedClaim) => {
-  const line = `${record.text} \u2014 ${record.origin} \u00b7 ${record.status}${tag(skin, record.address)}`;
+const claimLine = ({ record, history }: ProjectedClaim) => {
+  const line = `${record.text} \u2014 ${record.origin} \u00b7 ${record.status}${tag(record.address)}`;
   if (history.length === 0) return [line];
   return [
     line,
     history.map(
       (ancestor) =>
-        `${strikethrough(ancestor.text)} \u2014 superseded${tag(skin, ancestor.address)}`,
+        `${strikethrough(ancestor.text)} \u2014 superseded${tag(ancestor.address)}`,
     ),
   ];
 };
 
-const entityItems = (
-  skin: Skin,
-  entity: ProjectedEntity,
-  withKind = false,
-): ListItems => {
+const entityItems = (entity: ProjectedEntity, withKind = false): ListItems => {
   const { record, claims } = entity;
   const kindNote = withKind ? `${record.kind} \u00b7 ` : "";
-  const heading = `**${record.name}** \u2014 ${kindNote}${record.origin} \u00b7 ${record.status}${tag(skin, record.address)}`;
+  const heading = `**${record.name}** \u2014 ${kindNote}${record.origin} \u00b7 ${record.status}${tag(record.address)}`;
   if (claims.length === 0) return [heading];
-  return [heading, claims.flatMap((claim) => claimLine(skin, claim))];
+  return [heading, claims.flatMap((claim) => claimLine(claim))];
 };
 
-const questionItems = (
-  skin: Skin,
-  { claim, prompt, context }: ProjectedQuestion,
-): ListItems => [`${prompt}${tag(skin, claim.address)}`, [context]];
+const questionItems = ({
+  claim,
+  prompt,
+  context,
+}: ProjectedQuestion): ListItems => [
+  `${prompt}${tag(claim.address)}`,
+  [context],
+];
 
-const obligationLine = (
-  skin: Skin,
-  { record, concerns }: ProjectedObligation,
-) => {
+const obligationLine = ({ record, concerns }: ProjectedObligation) => {
   const about = concerns.length > 0 ? ` \u2014 ${concerns.join(", ")}` : "";
   const tests =
-    skin === "agent" && (record.claims?.length ?? 0) > 0
+    (record.claims?.length ?? 0) > 0
       ? ` \u00b7 tests ${(record.claims ?? []).map((claim) => code(claim)).join(", ")}`
       : "";
-  return `${record.text}${about}${tests}${tag(skin, record.address)}`;
+  return `${record.text}${about}${tests}${tag(record.address)}`;
 };
 
-export const renderLedgerMarkdown = (
-  projection: LedgerProjection,
-  skin: Skin,
-): string => {
+/**
+ * The Ledger as Markdown for the model: the projection's structure with record
+ * addresses and canonical kind tokens inline, so freeform references resolve
+ * to records.
+ */
+export const renderLedgerMarkdown = (projection: LedgerProjection): string => {
   const blocks: string[] = [h1(projection.title)];
   for (const section of projection.sections) {
     blocks.push(h2(section.title));
     for (const group of section.kinds) {
-      // The canonical kind token is agent-facing only; users see the label.
-      const kindTag = skin === "agent" ? ` ${code(group.kind)}` : "";
-      blocks.push(h3(`${group.label}${kindTag}`));
-      blocks.push(
-        ul(group.entities.flatMap((entity) => entityItems(skin, entity))),
-      );
+      blocks.push(h3(`${group.label} ${code(group.kind)}`));
+      blocks.push(ul(group.entities.flatMap((entity) => entityItems(entity))));
     }
   }
   if (projection.questions.length > 0) {
     blocks.push(h2("Open questions"));
     blocks.push(
-      ul(
-        projection.questions.flatMap((question) =>
-          questionItems(skin, question),
-        ),
-      ),
+      ul(projection.questions.flatMap((question) => questionItems(question))),
     );
   }
   if (projection.owed.length > 0) {
     blocks.push(h2("Checks still owed"));
     blocks.push(
-      ul(projection.owed.map((obligation) => obligationLine(skin, obligation))),
+      ul(projection.owed.map((obligation) => obligationLine(obligation))),
     );
   }
   if (projection.met.length > 0) {
@@ -98,10 +81,9 @@ export const renderLedgerMarkdown = (
     blocks.push(
       ul(
         projection.met.flatMap((obligation) => [
-          obligationLine(skin, obligation),
+          obligationLine(obligation),
           obligation.dischargedBy.map(
-            (reflection) =>
-              `${reflection.text}${tag(skin, reflection.address)}`,
+            (reflection) => `${reflection.text}${tag(reflection.address)}`,
           ),
         ]),
       ),
@@ -110,11 +92,7 @@ export const renderLedgerMarkdown = (
   if (projection.excluded.length > 0) {
     blocks.push(h2("Excluded from the model"));
     blocks.push(
-      ul(
-        projection.excluded.flatMap((entity) =>
-          entityItems(skin, entity, true),
-        ),
-      ),
+      ul(projection.excluded.flatMap((entity) => entityItems(entity, true))),
     );
   }
   return blocks.join("\n\n");
