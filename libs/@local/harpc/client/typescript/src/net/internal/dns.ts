@@ -1,7 +1,7 @@
 import dns from "node:dns/promises";
 import { isIPv4, isIPv6 } from "node:net";
 
-import { Array, Cause, Data, Duration, Effect, Function } from "effect";
+import { Array, Cause, Data, Duration, Effect } from "effect";
 
 import type { NonEmptyReadonlyArray } from "effect/Array";
 
@@ -75,7 +75,7 @@ const logEnvironment = Effect.fn("logEnvironment")(function* (
 ) {
   const servers = dns.getServers();
   const records = yield* Effect.tryPromise(() => dns.resolveAny(hostname)).pipe(
-    Effect.merge,
+    Effect.catch((error) => Effect.succeed(error)),
   );
 
   yield* Effect.logTrace("resolved DNS environment").pipe(
@@ -130,22 +130,23 @@ export const resolve = Effect.fn("resolve")(function* (
     });
   }
 
-  yield* Effect.fork(logEnvironment(hostname));
+  yield* Effect.forkChild(logEnvironment(hostname));
 
-  const [excluded, satisfying] = yield* Effect.partition(
+  const results = yield* Effect.forEach(
     resolvers,
-    Function.identity,
-    {
-      concurrency: "unbounded",
-    },
+    (resolver) => Effect.result(resolver),
+    { concurrency: "unbounded" },
   );
+
+  const satisfying = Array.getSuccesses(results);
+  const excluded = Array.getFailures(results);
 
   if (satisfying.length === 0) {
     // means that excluded is non empty
 
     return yield* Effect.failCause(
       // reduce without default is save here, because we guarantee non empty satisfying array
-      excluded.map(Cause.fail).reduce(Cause.parallel),
+      excluded.map(Cause.fail).reduce(Cause.combine),
     );
   }
 
@@ -162,13 +163,11 @@ export const lookup = Effect.fn("lookup")(function* (
     catch: (cause) => new DnsError({ cause }),
   });
 
-  yield* Effect.fork(logEnvironment(hostname));
+  yield* Effect.forkChild(logEnvironment(hostname));
 
   // partition into A and AAAA records
-  const [excluded, satisfying] = Array.partition(
-    records,
-    (record) => record.family === 4,
-  );
+  const satisfying = records.filter((record) => record.family === 4);
+  const excluded = records.filter((record) => record.family !== 4);
 
   // we cannot determine the TTL of lookup records, therefore we set it to infinity
   // `getaddrinfo` (the underlying call used by dns.lookup) does not return TTLs

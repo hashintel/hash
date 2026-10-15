@@ -1,13 +1,12 @@
 import {
-  type FastCheck,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Hash,
   Inspectable,
   pipe,
   Pipeable,
   Predicate,
+  Result,
 } from "effect";
 
 import { MutableBuffer } from "../../../binary/index.js";
@@ -38,11 +37,7 @@ const ResponseFrameProto: Omit<ResponseFrame, "payload"> = {
   },
 
   [Hash.symbol](this: ResponseFrame) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.payload)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.payload)));
   },
 
   toString(this: ResponseFrame) {
@@ -69,20 +64,20 @@ const ResponseFrameProto: Omit<ResponseFrame, "payload"> = {
 export const make = (payload: Payload.Payload): ResponseFrame =>
   createProto(ResponseFrameProto, { payload });
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, frame: ResponseFrame) =>
   pipe(
     buffer,
     MutableBuffer.advance(19),
-    Either.andThen(Payload.encode(frame.payload)),
+    Result.andThen(Payload.encode(frame.payload)),
   ),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     yield* MutableBuffer.advance(buffer, 19);
     const payload = yield* Payload.decode(buffer);
 
@@ -93,5 +88,4 @@ export const decode = implDecode((buffer) =>
 export const isResponseFrame = (value: unknown): value is ResponseFrame =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  Payload.arbitrary(fc).map(make);
+export const arbitrary = Payload.arbitrary.pipe(Arbitrary.map(make));
