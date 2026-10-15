@@ -60,6 +60,8 @@ const runtimeLoaders: Record<ExampleSlug, () => Promise<{ default: unknown }>> =
     "gases-2-spn": () => import("./generated/gases-2-spn.json"),
     "gases-3-cpn": () => import("./generated/gases-3-cpn.json"),
     "gases-4-dcpn": () => import("./generated/gases-4-dcpn.json"),
+    "inventory-purchasing": () =>
+      import("./generated/inventory-purchasing.json"),
     "probabilistic-satellite-launcher": () =>
       import("./generated/probabilistic-satellite-launcher.json"),
     "production-with-machine-failure": () =>
