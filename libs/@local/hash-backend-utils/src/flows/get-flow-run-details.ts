@@ -437,6 +437,7 @@ const getFlowRunDetailedFields = async ({
 
       if (
         [
+          "getFlowDefinitionActivity",
           "persistFlowActivity",
           "generateFlowRunName",
           "userHasPermissionToRunFlowInWebActivity",
