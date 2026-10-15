@@ -306,7 +306,7 @@ const processFlow = async <
 ): Promise<RunFlowWorkflowResponse> => {
   const {
     flowDefinitionId,
-    flowRunId,
+    flowRunEntityUuid,
     flowRunName,
     flowInputs,
     flowTriggerEntityId,
@@ -387,7 +387,7 @@ const processFlow = async <
   await persistFlowActivity({
     flow,
     flowDefinitionEntityId: flowDefinitionResult.flowDefinitionEntityId,
-    flowRunId,
+    flowRunEntityUuid,
     flowTriggerEntityId,
     stepIds: ["initialize-flow"],
     userAuthentication,

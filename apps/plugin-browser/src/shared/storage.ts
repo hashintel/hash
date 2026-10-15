@@ -93,7 +93,7 @@ export type ExternalInputRequestById = {
 export type MinimalFlowRun = Pick<
   FlowRun,
   | "flowDefinitionId"
-  | "flowRunId"
+  | "flowRunEntityId"
   | "webId"
   | "closedAt"
   | "executedAt"

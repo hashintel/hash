@@ -18,7 +18,7 @@ const FlowDefinitionPage: NextPageWithLayout = () => {
     <FlowDefinitionsContextProvider
       selectedFlowDefinitionId={routeFlowDefinitionId}
     >
-      <FlowRunsContextProvider selectedFlowRunId={null}>
+      <FlowRunsContextProvider selectedFlowRunEntityId={null}>
         <FlowVisualizer />
       </FlowRunsContextProvider>
     </FlowDefinitionsContextProvider>

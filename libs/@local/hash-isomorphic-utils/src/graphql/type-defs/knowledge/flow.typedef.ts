@@ -125,10 +125,9 @@ export const flowTypedef = gql`
 
   type FlowRun {
     """
-    The uuid of the flow run.
-    This is equivalent to the EntityUuid of the Flow entity.
+    The entity id of the run's Flow Run entity. Its uuid is the id of the run's Temporal workflow.
     """
-    flowRunId: EntityUuid!
+    flowRunEntityId: EntityId!
     """
     The id of the schedule that triggered this run, if any.
     Only present for flow runs triggered by a FlowSchedule.
@@ -228,19 +227,19 @@ export const flowTypedef = gql`
       limit: Int
     ): PaginatedFlowRuns!
 
-    getFlowRunById(flowRunId: String!): FlowRun!
+    getFlowRunById(flowRunEntityId: EntityId!): FlowRun!
   }
 
   extend type Mutation {
     """
-    Start a new flow run, and return its flowRunId to allow for identifying it later.
+    Start a new flow run, and return the entity id of its Flow Run entity to allow for identifying it later.
     """
     startFlow(
       dataSources: FlowDataSources
       flowDefinitionId: EntityUuid!
       flowInputs: FlowInputValues!
       webId: WebId!
-    ): EntityUuid!
+    ): EntityId!
 
     """
     Reset a flow to a specific checkpoint, available via the 'checkpoints' field on a run
@@ -250,21 +249,25 @@ export const flowTypedef = gql`
 
     Any API usage incurred at any point will still be recorded, whether or not it is after the checkpoint.
     """
-    resetFlow(flowUuid: ID!, checkpointId: ID!, eventId: Int!): Boolean!
+    resetFlow(
+      flowRunEntityId: EntityId!
+      checkpointId: ID!
+      eventId: Int!
+    ): Boolean!
 
     """
     Cancel a flow, stopping its execution.
 
     This does _NOT_ roll back any database mutations made as part of the flow so far.
     """
-    cancelFlow(flowUuid: ID!): Boolean!
+    cancelFlow(flowRunEntityId: EntityId!): Boolean!
 
     """
     Submit a response to a request from a flow step for external input
     """
     submitExternalInputResponse(
       response: ExternalInputResponseWithoutUser!
-      flowUuid: ID!
+      flowRunEntityId: EntityId!
     ): Boolean!
 
     """

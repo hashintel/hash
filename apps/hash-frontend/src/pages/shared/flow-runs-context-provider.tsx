@@ -19,15 +19,16 @@ import type {
   FlowRunsContextType,
   FlowRunsPaginationState,
 } from "./flow-runs-context";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
 
 export const FlowRunsContextProvider = ({
   children,
   pagination,
-  selectedFlowRunId,
+  selectedFlowRunEntityId,
 }: PropsWithChildren<{
   pagination?: FlowRunsPaginationState;
-  selectedFlowRunId: string | null;
+  selectedFlowRunEntityId: EntityId | null;
 }>) => {
   const variables: GetFlowRunsQueryVariables = pagination
     ? {
@@ -49,10 +50,10 @@ export const FlowRunsContextProvider = ({
       getFlowRunById,
       {
         pollInterval: 2_000,
-        skip: !selectedFlowRunId,
-        variables: {
-          flowRunId: selectedFlowRunId ?? "",
-        },
+        skip: !selectedFlowRunEntityId,
+        variables: selectedFlowRunEntityId
+          ? { flowRunEntityId: selectedFlowRunEntityId }
+          : undefined,
       },
     );
 
@@ -81,7 +82,7 @@ export const FlowRunsContextProvider = ({
       loading: selectedFlowRunLoading || flowRunsLoading,
       pagination: pagination ?? null,
       selectedFlowRun,
-      selectedFlowRunId,
+      selectedFlowRunEntityId,
     }),
     [
       flowRuns,
@@ -91,7 +92,7 @@ export const FlowRunsContextProvider = ({
       pagination,
       selectedFlowRunLoading,
       selectedFlowRun,
-      selectedFlowRunId,
+      selectedFlowRunEntityId,
     ],
   );
 
