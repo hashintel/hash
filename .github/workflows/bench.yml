@@ -455,7 +455,7 @@ jobs:
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@master
+        uses: rtCamp/action-slack-notify@v2.4.0
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

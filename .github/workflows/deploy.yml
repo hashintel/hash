@@ -669,7 +669,7 @@ jobs:
           [[ ${{ needs.deploy.result }} =~ success|skipped ]]
 
       - name: Notify Slack on main failure
-        uses: rtCamp/action-slack-notify@master
+        uses: rtCamp/action-slack-notify@v2.4.0
         if: ${{ failure() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         env:
           SLACK_LINK_NAMES: true
@@ -681,7 +681,7 @@ jobs:
           VAULT_TOKEN: ""
 
       - name: Notify Slack on merge-queue failure
-        uses: rtCamp/action-slack-notify@master
+        uses: rtCamp/action-slack-notify@v2.4.0
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
