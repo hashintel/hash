@@ -59,14 +59,10 @@ const pendingRemoval: PetrinautAiMessage = {
   ],
 };
 
-const closedStream = () =>
-  Promise.resolve(
-    new ReadableStream<UIMessageChunk>({
-      start(controller) {
-        controller.close();
-      },
-    }),
-  );
+// A turn that stays open, as a real one does until the user answers. A stream
+// that closes at once leaves the call still waiting, so the editor's chat sends
+// again, thousands of times a second, and starves the test's timers.
+const openStream = () => Promise.resolve(new ReadableStream<UIMessageChunk>());
 
 /**
  * Opens the real editor's assistant on one destructive call waiting for
@@ -88,7 +84,7 @@ const openPendingApproval = async (plugins: readonly PetrinautPlugin[]) => {
     messages: [pendingRemoval],
     transport: {
       reconnectToStream: () => Promise.resolve(null),
-      sendMessages: closedStream,
+      sendMessages: openStream,
     },
   };
   const captureException = vi.fn();
