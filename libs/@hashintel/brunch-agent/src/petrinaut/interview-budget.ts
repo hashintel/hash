@@ -5,10 +5,18 @@ const count = v.pipe(v.number(), v.integer(), v.minValue(0));
 /** The host's submission-context key for the current allowance. */
 export const interviewBudgetContextKey = "interviewBudget";
 
+/** The levels an allowance can name; Off sends no allowance. */
+export const interviewBudgetLevels = [
+  "quick",
+  "standard",
+  "thorough",
+  "deep",
+] as const;
+
 /** A question allowance, never a clock or evidence that the model is complete. */
-export const interviewBudgetSchema = v.pipe(
+const interviewBudgetSchema = v.pipe(
   v.strictObject({
-    level: v.picklist(["quick", "standard", "thorough", "deep"]),
+    level: v.picklist(interviewBudgetLevels),
     questionCap: v.nullable(v.pipe(count, v.minValue(1))),
     asked: count,
     remaining: v.nullable(count),
@@ -32,3 +40,15 @@ export const parseInterviewBudget = (
   const result = v.safeParse(interviewBudgetSchema, value);
   return result.success ? result.output : undefined;
 };
+
+/** The allowance for a level's cap after `asked` questions; Deep has no cap. */
+export const interviewBudget = (
+  level: InterviewBudget["level"],
+  questionCap: number | null,
+  asked: number,
+): InterviewBudget => ({
+  level,
+  questionCap,
+  asked,
+  remaining: questionCap === null ? null : Math.max(0, questionCap - asked),
+});

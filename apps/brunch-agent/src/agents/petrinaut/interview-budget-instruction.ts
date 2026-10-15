@@ -17,5 +17,5 @@ export const interviewBudgetInstruction = (
         : budget.remaining === 1
           ? "Make the last question the most consequential open fact."
           : "Choose the next question according to this level.";
-  return `Interview length: the user chose ${budget.level}. Follow the Interview length section of \`eliciting\`. Record the level on the \`appetite\` entity, and supersede it when it changes without repeating settled facts. Questions asked: ${budget.asked}; cap: ${budget.questionCap ?? "none"}; remaining: ${budget.remaining ?? "unlimited"}. ${next} Never invent operational facts, ranges or units. Reaching the cap is not completion; leave unsupported facts open.`;
+  return `Interview length: the user chose ${budget.level}. Follow the Interview length section of \`eliciting\`. If the \`appetite\` entity does not record this level yet, record it; when the level changes, supersede it without repeating settled facts. Questions asked: ${budget.asked}; cap: ${budget.questionCap ?? "none"}; remaining: ${budget.remaining ?? "unlimited"}, which replaces your own estimate of turns left. ${next} Never invent operational facts, ranges or units. Reaching the cap is not completion; leave unsupported facts open.`;
 };

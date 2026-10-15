@@ -7,6 +7,8 @@ import {
   petrinautContextualUserMessageBody,
 } from "./contextual-user-message";
 
+import type { SubmissionContext } from "./contextual-user-message";
+
 test("round trips contextual user evidence and diagnostics through explicit framing", () => {
   const markerLikeText = [
     "Human-authored request containing marker-like content:",
@@ -126,7 +128,7 @@ test.each([
     petrinautContextualUserMessageBody({
       userText: "Four agents",
       diagnosticsContext: "",
-      submissionContext: submissionContext as Record<string, unknown>,
+      submissionContext: submissionContext as SubmissionContext,
     }),
   ).toThrow("The contextual user message payload is invalid or too long.");
 });

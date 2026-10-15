@@ -164,7 +164,10 @@ export type PetrinautAiAssistant = {
   mapMessagesForDisplay?: (
     messages: PetrinautAiMessage[],
   ) => PetrinautAiMessage[];
-  /** Render display-only system-note content; return undefined for the default presentation. */
+  /**
+   * Render display-only system-note content; return undefined for the default
+   * note. Only `presentation: "brunch"` shows system messages as notes.
+   */
   renderSystemMessage?: (message: PetrinautAiMessage) => ReactNode;
   /**
    * Opt into following host history while locally idle. The predicate must

@@ -14,7 +14,7 @@ import type {
   FlueClient,
   FlueConversationState,
 } from "@flue/sdk";
-import type { BrowserContext, InterviewBudget } from "@hashintel/brunch-agent";
+import type { BrowserContext } from "@hashintel/brunch-agent";
 import type {
   PetrinautAiChatTransport,
   PetrinautAiInputMode,
@@ -254,7 +254,7 @@ export const createBrunchPanelTransport = (
         const submissionContext =
           budget === undefined
             ? undefined
-            : { [interviewBudgetContextKey]: budget satisfies InterviewBudget };
+            : { [interviewBudgetContextKey]: budget };
         const transport = (
           options?.adapter ?? canonicalBrunchFlueAdapter
         ).chatTransport({

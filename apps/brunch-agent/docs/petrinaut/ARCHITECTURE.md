@@ -18,7 +18,7 @@ The website may send a question allowance with a submission, as `submissionConte
 
 ## The shared library
 
-`@hashintel/brunch-agent` holds only what both apps need: Brunch's named constants, conversation identity, the browser-tool envelope and message metadata, the Petrinaut tool contracts (tool effects, net readers, the draft schemas, contextual user messages, initial data) and the Ledger. It has one entry and is browser-safe: it never imports the Flue runtime, which `test/architecture/import-direction.test.ts` enforces. Flue tool definitions, guidance and server mechanics live in the app.
+`@hashintel/brunch-agent` holds only what both apps need: Brunch's named constants, conversation identity, the browser-tool envelope and message metadata, the Petrinaut tool contracts (tool effects, net readers, the draft schemas, contextual user messages with their submission context, the interview allowance, initial data) and the Ledger. It is browser-safe: it never imports the Flue runtime, which `test/architecture/import-direction.test.ts` enforces. Flue tool definitions, guidance and server mechanics live in the app. Besides its main entry, the leaf entry `@hashintel/brunch-agent/interview-budget` exports the interview allowance alone, for the website code its Voice server functions share, whose `nodenext` type check cannot read the main entry's source.
 
 ## Loading workspace source in dev
 
