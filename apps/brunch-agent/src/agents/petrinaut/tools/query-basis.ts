@@ -4,6 +4,7 @@ import * as v from "valibot";
 import {
   brunchTools,
   foldCommits,
+  namesId,
   netElementKinds,
   traceLedger,
 } from "@hashintel/brunch-agent";
@@ -13,7 +14,6 @@ import {
   generatedArcId,
   isAppliedChange,
   latestNetDefinition,
-  namesId,
   netCalls,
   type ArcElement,
   type NetCall,

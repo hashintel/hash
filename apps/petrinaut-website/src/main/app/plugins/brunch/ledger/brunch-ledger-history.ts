@@ -1,9 +1,8 @@
 import {
   foldCommits,
   type LedgerHistoryMessage,
+  type LedgerState,
   parseClientToolResultMetadata,
-  projectLedger,
-  renderLedgerMarkdown,
 } from "@hashintel/brunch-agent";
 
 export type BrunchLedgerHistoryMessage = LedgerHistoryMessage;
@@ -11,8 +10,8 @@ export type BrunchLedgerHistoryMessage = LedgerHistoryMessage;
 export type BrunchLedgerHistory = {
   /** Accepted commits and settled document changes, for the tab's activity badge. */
   readonly activityIdentities: readonly string[];
-  /** The compiled Ledger; absent before the first commit. */
-  readonly markdown: string | undefined;
+  /** The folded Ledger; absent before the first commit. */
+  readonly ledger: LedgerState | undefined;
 };
 
 const settledDocumentChanges = (
@@ -38,7 +37,7 @@ const settledDocumentChanges = (
       : [],
   );
 
-/** Folds only accepted commits, rendered in the user skin; refused, failed, pending and unbound calls never appear. */
+/** Folds only accepted commits; refused, failed, pending and unbound calls never appear. */
 export const foldBrunchLedgerHistory = (
   messages: readonly BrunchLedgerHistoryMessage[],
 ): BrunchLedgerHistory => {
@@ -48,9 +47,6 @@ export const foldBrunchLedgerHistory = (
       ...commits.map(({ commitId }) => commitId),
       ...settledDocumentChanges(messages),
     ],
-    markdown:
-      commits.length > 0
-        ? renderLedgerMarkdown(projectLedger(state), "user")
-        : undefined,
+    ledger: commits.length > 0 ? state : undefined,
   };
 };
