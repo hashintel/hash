@@ -281,8 +281,8 @@ const local = (id: string) => {
   if (model === undefined) throw new Error(`Missing model ${id}.`);
   return { ...model, baseUrl };
 };
-const apiKey = "sk-ant-api03-synthetic-not-a-credential";
-const oauthKey = "sk-ant-oat01-synthetic-not-a-credential";
+const anthropicCredential = "sk-ant-api03-synthetic-not-a-credential";
+const oauthCredential = "sk-ant-oat01-synthetic-not-a-credential";
 const toolNamed = (tools: WireTool[] | undefined, name: string) =>
   tools?.find((tool) => tool.name === name);
 const inlineDefinitions = (body: WireBody | undefined) =>
@@ -302,7 +302,7 @@ test.each(["stream", "streamSimple"] as const)(
     const reply = await registered[method](
       local(STEP_A_MODEL_ID),
       normalizeContext(changingTools),
-      { apiKey },
+      { apiKey: anthropicCredential },
     ).result();
 
     expect(reply.stopReason).toBe("stop");
@@ -327,7 +327,9 @@ test("native tool changes define later tools inline with complete schemas", asyn
   });
 
   const reply = await registered
-    .streamSimple(model, normalizeContext(changingTools), { apiKey })
+    .streamSimple(model, normalizeContext(changingTools), {
+      apiKey: anthropicCredential,
+    })
     .result();
 
   expect(reply.stopReason).toBe("stop");
@@ -355,7 +357,7 @@ test("OAuth tool names keep their complete schemas", async () => {
     .streamSimple(
       local(STEP_A_MODEL_ID),
       normalizeContext({ messages: [user("Hi.")], tools: [todo] }),
-      { apiKey: oauthKey },
+      { apiKey: oauthCredential },
     )
     .result();
 
@@ -375,7 +377,7 @@ test("a strict-prefer request rejected for strict limits is rebuilt without stri
         messages: [user("Hi.")],
         tools: [strictable, construct],
       }),
-      { apiKey },
+      { apiKey: anthropicCredential },
     )
     .result();
 
@@ -436,7 +438,7 @@ test.each(["stream", "streamSimple"] as const)(
         local(STEP_A_MODEL_ID),
         normalizeContext({ messages: [user("Hi.")], tools: [construct] }),
         {
-          apiKey,
+          apiKey: anthropicCredential,
           onPayload: (payload) => {
             const replacement = withMetadata(payload);
             replacements.push(replacement);
@@ -462,7 +464,10 @@ test.each(["stream", "streamSimple"] as const)(
       registered[method](
         local(STEP_A_MODEL_ID),
         normalizeContext({ messages: [user("Hi.")], tools: [construct] }),
-        { apiKey, onPayload: (payload) => withMetadata(payload, 4_096) },
+        {
+          apiKey: anthropicCredential,
+          onPayload: (payload) => withMetadata(payload, 4_096),
+        },
       ).result(),
     );
 
