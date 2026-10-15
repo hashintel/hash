@@ -2,12 +2,14 @@ import { isDeepStrictEqual } from "node:util";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { mapFlowDefinitionToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { logger } from "../../../logger";
 import { createEntity } from "../../knowledge/primitive/entity";
 import { getOrgByShortname } from "../../knowledge/system-types/org";
-import { getEntitiesByType } from "./util";
+import { queryAllEntityPages } from "./util";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import type { VersionedUrl } from "@blockprotocol/type-system";
@@ -46,7 +48,8 @@ const entityHoldsFlowDefinition = (
 /**
  * Makes the `Flow Definition` entity of each of the given flows hold its definition: creates the entity in the `h`
  * web if it doesn't exist, with the flow's id as its entity uuid, and otherwise updates it if its definition
- * differs, creating a new edition. Runs and triggers link to the entity, and runs load the definition from it.
+ * differs or it's on an earlier version of the type, creating a new edition. Runs and triggers link to the entity,
+ * and runs load the definition from it.
  *
  * Anyone can view them, through the policy migration 032 creates for flow definitions in the `h` web.
  *
@@ -70,10 +73,29 @@ export const seedFlowDefinitions: ImpureGraphFunction<
     );
   }
 
+  /*
+   * Found by the type's base URL, so that an entity on an earlier version of the type is updated rather than
+   * created again with the same uuid.
+   */
   const existingEntitiesByUuid = new Map(
     (
-      (await getEntitiesByType(context, authentication, {
-        entityTypeId: flowDefinitionEntityTypeId,
+      (await queryAllEntityPages(context, authentication, {
+        filter: {
+          all: [
+            { equal: [{ path: ["webId"] }, { parameter: hashOrg.webId }] },
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                {
+                  parameter: systemEntityTypes.flowDefinition.entityTypeBaseUrl,
+                },
+              ],
+            },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includePermissions: false,
       })) as HashEntity<FlowDefinitionEntity>[]
     ).map((entity) => [
       extractEntityUuidFromEntityId(entity.metadata.recordId.entityId),
@@ -85,7 +107,12 @@ export const seedFlowDefinitions: ImpureGraphFunction<
     const existingEntity = existingEntitiesByUuid.get(flowDefinitionId);
 
     if (existingEntity) {
-      if (entityHoldsFlowDefinition(existingEntity, flowDefinition)) {
+      if (
+        existingEntity.metadata.entityTypeIds.includes(
+          flowDefinitionEntityTypeId,
+        ) &&
+        entityHoldsFlowDefinition(existingEntity, flowDefinition)
+      ) {
         continue;
       }
 
