@@ -187,15 +187,14 @@ const fetchAndDecodeEdges = async (
       trailer?.linkTypeIds ?? Iterable.repeat(null),
     ],
     Function.spread(Iterable.zip),
-    Iterable.map(
-      ([source, target, id, label, typeId]): TileEdge =>
-        Record.omitUndefined({
-          id,
-          source,
-          target,
-          label: label ?? undefined,
-          typeId: typeId ?? undefined,
-        }),
+    Iterable.map(([source, target, id, label, typeId]): TileEdge =>
+      Record.omitUndefined({
+        id,
+        source,
+        target,
+        label: label ?? undefined,
+        typeId: typeId ?? undefined,
+      }),
     ),
     Iterable.collect(),
   );

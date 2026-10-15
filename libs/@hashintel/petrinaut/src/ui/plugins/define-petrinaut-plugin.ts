@@ -295,8 +295,9 @@ export type PluginContributions<
   D extends PluginDefinitionRef,
   M extends PetrinautPluginManifest = D["manifest"],
 > = {
-  readonly [K in DeclaredKeys<M> &
-    keyof ContributionTable<M>]: ContributionTable<M>[K];
+  readonly [
+    K in DeclaredKeys<M> & keyof ContributionTable<M>
+  ]: ContributionTable<M>[K];
 } & {
   readonly [K in Exclude<keyof ContributionTable<M>, DeclaredKeys<M>>]?: never;
 } & (M extends { readonly root: true }
@@ -421,9 +422,9 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
   (M extends { readonly commands: infer Specs }
     ? {
         readonly commands: {
-          readonly [K in keyof Specs as K extends `${string}.${string}`
-            ? K
-            : never]: never;
+          readonly [
+            K in keyof Specs as K extends `${string}.${string}` ? K : never
+          ]: never;
         };
       }
     : unknown) &

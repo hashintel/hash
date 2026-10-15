@@ -42,14 +42,12 @@ const resolveA = (hostname: string) =>
     catch: (cause) => new DnsError({ cause }),
   }).pipe(
     Effect.map(
-      Array.map(
-        ({ address, ttl }): Ipv4AddressRecord => ({
-          type: "A",
+      Array.map(({ address, ttl }): Ipv4AddressRecord => ({
+        type: "A",
 
-          address,
-          timeToLive: Duration.seconds(ttl),
-        }),
-      ),
+        address,
+        timeToLive: Duration.seconds(ttl),
+      })),
     ),
   );
 
@@ -59,14 +57,12 @@ const resolveAAAA = (hostname: string) =>
     catch: (cause) => new DnsError({ cause }),
   }).pipe(
     Effect.map(
-      Array.map(
-        ({ address, ttl }): Ipv6AddressRecord => ({
-          type: "AAAA",
+      Array.map(({ address, ttl }): Ipv6AddressRecord => ({
+        type: "AAAA",
 
-          address,
-          timeToLive: Duration.seconds(ttl),
-        }),
-      ),
+        address,
+        timeToLive: Duration.seconds(ttl),
+      })),
     ),
   );
 

@@ -142,14 +142,12 @@ const sampleItems: Array<ItemOrGroup<MultiComboboxItem>> = [
     label: "Item states & styles",
     items: [
       ...selectedStyles.flatMap((selectedStyle) =>
-        selectedTones.map(
-          (selectedTone): MultiComboboxItem => ({
-            value: `${selectedStyle}-${selectedTone}`,
-            text: `${selectedStyle} · ${selectedTone}`,
-            selectedStyle,
-            selectedTone,
-          }),
-        ),
+        selectedTones.map((selectedTone): MultiComboboxItem => ({
+          value: `${selectedStyle}-${selectedTone}`,
+          text: `${selectedStyle} · ${selectedTone}`,
+          selectedStyle,
+          selectedTone,
+        })),
       ),
       { value: "disabled-item", text: "Disabled item", disabled: true },
       { value: "custom-render-item", text: "Custom render item" },

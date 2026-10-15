@@ -141,19 +141,23 @@ type InputAcceptsInAction<
 >;
 
 export type StepInputs<Action extends ActionDefinitionShape> = {
-  [Input in Action["inputs"][number] as MustBeConnected<
-    Action,
-    Input
-  > extends true
-    ? Input["name"]
-    : never]: InputAcceptsInAction<Action, Input>;
+  [
+    Input in Action["inputs"][number] as MustBeConnected<
+      Action,
+      Input
+    > extends true
+      ? Input["name"]
+      : never
+  ]: InputAcceptsInAction<Action, Input>;
 } & {
-  [Input in Action["inputs"][number] as MustBeConnected<
-    Action,
-    Input
-  > extends true
-    ? never
-    : Input["name"]]?: InputAcceptsInAction<Action, Input>;
+  [
+    Input in Action["inputs"][number] as MustBeConnected<
+      Action,
+      Input
+    > extends true
+      ? never
+      : Input["name"]
+  ]?: InputAcceptsInAction<Action, Input>;
 };
 
 /** The kind of a ref, or `never` if there's no ref. */
@@ -164,13 +168,15 @@ type RefKind<MaybeRef> =
  * Narrows each input with a derived kind to accept only the kind of the ref given to its kind source.
  */
 type DerivedKindInputs<Action extends ActionDefinitionShape, InputRefs> = {
-  [Input in Action["inputs"][number] as Input extends {
-    readonly kindFrom: infer KindSourceName;
-  }
-    ? KindSourceName extends keyof InputRefs
-      ? Input["name"]
+  [
+    Input in Action["inputs"][number] as Input extends {
+      readonly kindFrom: infer KindSourceName;
+    }
+      ? KindSourceName extends keyof InputRefs
+        ? Input["name"]
+        : never
       : never
-    : never]?: Input extends {
+  ]?: Input extends {
     readonly kindFrom: infer KindSourceName extends keyof InputRefs;
   }
     ? Ref<
@@ -183,10 +189,9 @@ type DerivedKindInputs<Action extends ActionDefinitionShape, InputRefs> = {
 
 /** Rejects inputs the action doesn't have. */
 type NoUnknownInputs<Action extends ActionDefinitionShape, InputRefs> = {
-  [InputName in Exclude<
-    keyof InputRefs,
-    Action["inputs"][number]["name"]
-  >]: never;
+  [
+    InputName in Exclude<keyof InputRefs, Action["inputs"][number]["name"]>
+  ]: never;
 };
 
 /**

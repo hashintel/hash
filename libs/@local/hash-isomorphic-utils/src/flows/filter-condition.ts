@@ -121,7 +121,9 @@ const filterCapabilities = {
 } as const satisfies Record<PayloadKind, readonly FilterCapability[]>;
 
 type KindWith<Capability extends FilterCapability> = {
-  [Kind in PayloadKind]: Capability extends (typeof filterCapabilities)[Kind][number]
+  [
+    Kind in PayloadKind
+  ]: Capability extends (typeof filterCapabilities)[Kind][number]
     ? Kind
     : never;
 }[PayloadKind];

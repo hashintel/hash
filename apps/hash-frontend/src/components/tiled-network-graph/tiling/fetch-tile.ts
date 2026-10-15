@@ -1519,16 +1519,15 @@ const fetchAndDecodeTile = async (
       trailer?.labels ?? Iterable.repeat(null),
     ],
     Function.spread(Iterable.zip),
-    Iterable.map(
-      ([id, [x, y], type, icon, label]): TileNode =>
-        Record.omitUndefined({
-          id,
-          x: (x + 1) * scale,
-          y: (y + 1) * scale,
-          label: label ?? undefined,
-          icon: icon ?? undefined,
-          typeIndices: type ? [...type] : undefined,
-        }),
+    Iterable.map(([id, [x, y], type, icon, label]): TileNode =>
+      Record.omitUndefined({
+        id,
+        x: (x + 1) * scale,
+        y: (y + 1) * scale,
+        label: label ?? undefined,
+        icon: icon ?? undefined,
+        typeIndices: type ? [...type] : undefined,
+      }),
     ),
     Iterable.collect(),
   );

@@ -1375,8 +1375,11 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     const recorded = await append(
       "It overflowed on the night of 2 July, after the storm. The 02:00 reading said 5.1 m, the pump came on at 02:10, and by the 02:20 reading it was at 5.8 m and spilling. That's the kind of night we want the model to help us stop.",
     );
-    const caseReferences = recorded.entries.flatMap(([route, payload], index) =>
-      route === "entity/create" && payload.kind === "case" ? [`$${index}`] : [],
+    const caseReferences = recorded.entries.flatMap(
+      ([route, payload], index) =>
+        route === "entity/create" && payload.kind === "case"
+          ? [`$${index}`]
+          : [],
     );
     expect(caseReferences).not.toHaveLength(0);
     expect(

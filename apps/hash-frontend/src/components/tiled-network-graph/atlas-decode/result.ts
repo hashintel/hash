@@ -282,20 +282,16 @@ export const filter: {
 export const assert: {
   <E>(onFalse: () => E): (condition: boolean) => Result<void, E>;
   <E>(condition: boolean, onFalse: () => E): Result<void, E>;
-} = dual(
-  2,
-  <E>(condition: boolean, onFalse: () => E): Result<void, E> =>
-    condition ? ok(undefined) : err(onFalse()),
+} = dual(2, <E>(condition: boolean, onFalse: () => E): Result<void, E> =>
+  condition ? ok(undefined) : err(onFalse()),
 );
 
 /** Rejects null and undefined while retaining every other value. */
 export const fromNullable: {
   <E>(onNull: () => E): <T>(value: T) => Result<NonNullable<T>, E>;
   <T, E>(value: T, onNull: () => E): Result<NonNullable<T>, E>;
-} = dual(
-  2,
-  <T, E>(value: T, onNull: () => E): Result<NonNullable<T>, E> =>
-    value === null || value === undefined ? err(onNull()) : ok(value),
+} = dual(2, <T, E>(value: T, onNull: () => E): Result<NonNullable<T>, E> =>
+  value === null || value === undefined ? err(onNull()) : ok(value),
 );
 
 /** Rejects undefined while retaining null and every other value. */

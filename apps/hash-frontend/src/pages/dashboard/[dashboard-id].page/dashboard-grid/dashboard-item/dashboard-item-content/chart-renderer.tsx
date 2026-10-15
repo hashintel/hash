@@ -97,9 +97,8 @@ const buildEChartsOption = (
    * Preserve row indices so ECharts data indices still correspond to the
    * original data when handling clicks. Invalid rows render as empty values.
    */
-  const data = chartData.map(
-    (chartDataItem): ChartDataRow =>
-      isChartDataRow(chartDataItem) ? chartDataItem : {},
+  const data = chartData.map((chartDataItem): ChartDataRow =>
+    isChartDataRow(chartDataItem) ? chartDataItem : {},
   );
 
   // Extract category values for x-axis
