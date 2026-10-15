@@ -732,6 +732,146 @@ describe("validateFlowDefinition", () => {
     });
   });
 
+  describe("readEntity steps", () => {
+    const emailUrl = "https://example.com/types/property-type/email/";
+
+    const property = (overrides: Record<string, unknown> = {}) => ({
+      kind: "constant",
+      payload: {
+        kind: "EntityProperty",
+        value: {
+          kind: "entityProperty",
+          propertyTypeBaseUrl: emailUrl,
+          payloadKind: "Text",
+          ...overrides,
+        },
+      },
+    });
+
+    const readDefinition = (params: {
+      property: unknown;
+      /** How the value read is connected to the question of a later step, if it is. */
+      question?: Record<string, unknown>;
+    }) => ({
+      ...baseDefinition,
+      inputs: [
+        {
+          name: "person",
+          payloadKind: "EntityId",
+          array: false,
+          required: true,
+        },
+        {
+          name: "property",
+          payloadKind: "EntityProperty",
+          array: false,
+          required: true,
+        },
+      ],
+      steps: [
+        {
+          kind: "action",
+          stepId: "read",
+          actionDefinitionId: "readEntity",
+          description: "",
+          inputs: {
+            entityId: { kind: "flow-input", inputName: "person" },
+            property: params.property,
+          },
+        },
+        ...(params.question
+          ? [
+              answerStep("answer", {
+                question: {
+                  kind: "step-output",
+                  stepId: "read",
+                  outputName: "value",
+                  ...params.question,
+                },
+              }),
+            ]
+          : []),
+      ],
+    });
+
+    const errorsOf = (params: Parameters<typeof readDefinition>[0]) =>
+      validateFlowDefinition(readDefinition(params)).diagnostics.filter(
+        ({ severity }) => severity === "error",
+      );
+
+    it("gives the value the kind the property declares, which a later step skipped when it's missing can take", () => {
+      expect(
+        errorsOf({ property: property(), question: { whenMissing: "skip" } }),
+      ).toEqual([]);
+    });
+
+    it.each([
+      {
+        name: "a value that may be missing, unless the step is skipped",
+        params: { property: property(), question: {} },
+        message: "may be missing",
+      },
+      {
+        name: "a value of a kind the later step doesn't accept",
+        params: {
+          property: property({ payloadKind: "Number" }),
+          question: { whenMissing: "skip" },
+        },
+        message: "Number",
+      },
+    ])("rejects passing on $name", ({ params, message }) => {
+      expect(errorsOf(params)).toEqual([
+        expect.objectContaining({
+          code: "incompatibleConnection",
+          message: expect.stringContaining(message),
+          path: ["steps", 1, "inputs", "question"],
+        }),
+      ]);
+    });
+
+    it.each([
+      {
+        name: "a property type versioned URL rather than a base URL",
+        overrides: {
+          propertyTypeBaseUrl:
+            "https://example.com/types/property-type/email/v/1",
+        },
+        message:
+          "An entity property subject requires a property type base URL.",
+      },
+      {
+        name: "a subject other than an entity property",
+        overrides: { kind: "entityType" },
+        message: "The property to read must be an entity property subject.",
+      },
+      ...["EntityId", "DateTime", "Duration"].map((payloadKind) => ({
+        name: `the unsupported kind ${payloadKind}`,
+        overrides: { payloadKind },
+        message: "A property can only be read as Text, Number, Boolean, Date.",
+      })),
+    ])("rejects $name", ({ overrides, message }) => {
+      expect(errorsOf({ property: property(overrides) })).toEqual([
+        {
+          severity: "error",
+          code: "invalidInput",
+          message,
+          path: ["steps", 0, "inputs", "property"],
+        },
+      ]);
+    });
+
+    it("rejects a property that isn't a constant, whose kind isn't known until the flow runs", () => {
+      expect(
+        errorsOf({ property: { kind: "flow-input", inputName: "property" } }),
+      ).toEqual([
+        expect.objectContaining({
+          code: "unresolvedKind",
+          path: ["steps", 0, "inputs", "property"],
+        }),
+      ]);
+    });
+  });
+
   describe("aggregations of aggregate steps", () => {
     const aggregateDefinition = (aggregation: Record<string, unknown>) => ({
       ...baseDefinition,

@@ -1,4 +1,5 @@
 import { actionDefinitions as defaultActionDefinitions } from "./action-definitions.js";
+import { getDeclaredKind } from "./types.js";
 
 import type { ConnectionSource } from "./can-connect.js";
 import type {
@@ -21,7 +22,7 @@ export type ActionDefinitions = Record<
  *
  * Most step outputs have the shape their action declares. An output with a derived kind (see `KindFrom`) gets the
  * kind connected to its kind source, following `forEach` items, collected outputs and other derived kinds to find
- * it.
+ * it. An output whose kind an input declares (see `KindDeclaredBy`) gets the kind the constant given to it declares.
  *
  * Returns `null` for anything it can't resolve. The validator uses it to check connections, and the engine to find a
  * kind where it has no value to read the kind from.
@@ -178,6 +179,19 @@ export const createStepShapeResolver = (
         array: output.array,
         required: output.required,
       };
+    }
+
+    if ("kindDeclaredBy" in output) {
+      const source = step.inputs[output.kindDeclaredBy];
+
+      const payloadKind =
+        source?.kind === "constant"
+          ? getDeclaredKind(output, source.payload.value)
+          : null;
+
+      return payloadKind
+        ? { payloadKind, array: output.array, required: output.required }
+        : null;
     }
 
     const key = `${stepId}\u0000${outputName}`;

@@ -8,6 +8,7 @@ import type {
 } from "./action-definitions.js";
 import type { Aggregation } from "./aggregation.js";
 import type { FilterCondition } from "./filter-condition.js";
+import type { EntityProperty } from "./read-entity.js";
 import type { SortKey } from "./sort-key.js";
 import type {
   ActorEntityUuid,
@@ -125,6 +126,7 @@ export type PayloadKindValues = {
   DateTime: string;
   Duration: Duration;
   EntityId: EntityId;
+  EntityProperty: EntityProperty;
   EntityQuery: EntityQuery;
   FailedEntityProposal: FailedEntityProposal;
   FilterCondition: FilterCondition;
@@ -152,6 +154,7 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
   DateTime: true,
   Duration: true,
   EntityId: true,
+  EntityProperty: true,
   EntityQuery: true,
   FailedEntityProposal: true,
   FilterCondition: true,
@@ -466,8 +469,38 @@ export type InputDefinition = {
 } & ({ oneOfPayloadKinds: readonly PayloadKind[] } | KindFrom);
 
 /**
- * An action's output: a fixed kind, or the kind connected to one of its inputs (see `KindFrom`). A flow's outputs
- * are `FlowOutputDefinition`s.
+ * An action output whose kind a constant input declares: the `payloadKind` of the value given to the input
+ * `kindDeclaredBy`, one of `oneOfPayloadKinds`. E.g. Read entity's `value` output has the kind its `property` input
+ * says the property has.
+ *
+ * The input must be a constant, so that the kind is known when the flow is defined. The action's own check (see
+ * `ActionStepCheck`) checks that the constant declares one of `oneOfPayloadKinds`, and the engine checks that the
+ * action returns that kind.
+ */
+export type KindDeclaredBy = {
+  kindDeclaredBy: string;
+  oneOfPayloadKinds: readonly PayloadKind[];
+};
+
+/**
+ * The kind a value given to an output's declaring input declares (see `KindDeclaredBy`), or `null` if it doesn't
+ * declare one of the output's kinds.
+ */
+export const getDeclaredKind = (
+  output: KindDeclaredBy,
+  value: unknown,
+): PayloadKind | null => {
+  const declaredKind =
+    typeof value === "object" && value !== null && "payloadKind" in value
+      ? value.payloadKind
+      : undefined;
+
+  return output.oneOfPayloadKinds.find((kind) => kind === declaredKind) ?? null;
+};
+
+/**
+ * An action's output: a fixed kind, the kind connected to one of its inputs (see `KindFrom`), or the kind a constant
+ * input declares (see `KindDeclaredBy`). A flow's outputs are `FlowOutputDefinition`s.
  */
 export type OutputDefinition<
   IsArray extends boolean = boolean,
@@ -477,7 +510,7 @@ export type OutputDefinition<
   description?: string;
   array: IsArray;
   required: boolean;
-} & ({ payloadKind: Kind } | KindFrom);
+} & ({ payloadKind: Kind } | KindFrom | KindDeclaredBy);
 
 /**
  * A check an action needs beyond the shapes of its inputs, e.g. that a constant fits the kind of another input.
