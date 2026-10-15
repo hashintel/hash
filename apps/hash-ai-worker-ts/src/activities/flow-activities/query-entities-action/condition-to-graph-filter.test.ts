@@ -328,6 +328,51 @@ describe("conditionToGraphFilter", () => {
     ).toEqual([true, false, false, true, true]);
   });
 
+  it("matches what Filter matches with the type conditions a query allows, even on entities with several types", () => {
+    const isOfType = (entityTypeId: VersionedUrl): FilterLeaf => ({
+      kind: "condition",
+      subject: { kind: "entityType" },
+      operator: "isOfType",
+      value: { kind: "VersionedUrl", value: entityTypeId },
+    });
+    const named = leaf("Text", "isNotEmpty", undefined, nameUrl);
+    const scored = leaf("Number", "isNotEmpty", undefined, scoreUrl);
+    const entities = [
+      [companyType],
+      [personType],
+      [companyType, personType],
+    ].flatMap((entityTypeIds) =>
+      [{}, { [nameUrl]: "Acme" }, { [scoreUrl]: 1 }].map((properties) => ({
+        properties,
+        entityTypeIds,
+      })),
+    );
+    const agreesWithFilter = (condition: FilterCondition) =>
+      entities.every(
+        (testEntity) =>
+          queryMatches(condition, testEntity) ===
+          filterMatches(condition, testEntity),
+      );
+
+    for (const allowed of [
+      any(isOfType(companyType), isOfType(personType)),
+      all(isOfType(companyType), not(named)),
+      any(all(isOfType(companyType), named), all(isOfType(personType), scored)),
+    ]) {
+      expect(validateQueryFilter(allowed)).toBeUndefined();
+      expect(agreesWithFilter(allowed)).toBe(true);
+    }
+
+    for (const rejected of [
+      all(not(isOfType(companyType))),
+      all(isOfType(companyType), isOfType(personType)),
+      all(any(isOfType(companyType), named), any(isOfType(personType), named)),
+    ]) {
+      expect(validateQueryFilter(rejected)).toMatch(/entity type condition/);
+      expect(agreesWithFilter(rejected)).toBe(false);
+    }
+  });
+
   it("matches an entity type's exact version among the entity's own types", () => {
     const isCompany = all({
       kind: "condition",

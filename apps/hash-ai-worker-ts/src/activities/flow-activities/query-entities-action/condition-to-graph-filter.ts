@@ -19,8 +19,9 @@ const directTypePath: PathExpression = {
  * Entities of this exact type version, as in Filter: not those of another version of it, nor of a type that inherits
  * from it.
  *
- * The graph matches an entity's own types by joining them, a row per type, so an entity with several types matches
- * `not` of one of them through the others, and never matches `all` of two of them.
+ * The graph matches an entity's own types by joining them, a row per type, so an entity with several types would
+ * match `not` of one of them through the others, and never match `all` of two of them. `validateQueryFilter` rejects
+ * both.
  */
 export const isOfTypeFilter = (entityTypeId: VersionedUrl): Filter => ({
   equal: [directTypePath, { parameter: entityTypeId }],

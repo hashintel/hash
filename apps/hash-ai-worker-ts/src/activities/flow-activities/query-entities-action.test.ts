@@ -131,6 +131,7 @@ describe("queryEntitiesAction", () => {
     expect(request).toMatchObject({
       includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
+      sortingPaths: [{ path: ["uuid"], ordering: "ascending", nulls: "last" }],
     });
 
     const { all: [webScope, scoped] = [] } = request?.filter as {

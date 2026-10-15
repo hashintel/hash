@@ -1,12 +1,36 @@
 import { conditionLeaves, validateCondition } from "./filter-condition.js";
 import { validateSortKey } from "./sort-key.js";
 
-import type { FilterCondition } from "./filter-condition.js";
+import type { ConditionNode, FilterCondition } from "./filter-condition.js";
 import type { SortKey } from "./sort-key.js";
 import type { ActionStepCheck } from "./types.js";
 
 /** The most entities a Query entities step returns, and the most it reads to sort them. */
 export const maxQueryEntities = 100_000;
+
+const hasTypeCondition = (node: ConditionNode) =>
+  conditionLeaves(node).some(({ operator }) => operator === "isOfType");
+
+/**
+ * Whether a node requires at most one entity type at a time, and never the absence of one. The graph matches an
+ * entity's own types one at a time, so it can't tell that an entity has two types, nor that it lacks one when it has
+ * others.
+ */
+const requiresOneTypeAtATime = (node: ConditionNode): boolean => {
+  switch (node.kind) {
+    case "condition":
+      return true;
+    case "not":
+      return !hasTypeCondition(node.condition);
+    case "any":
+      return node.conditions.every(requiresOneTypeAtATime);
+    case "all":
+      return (
+        node.conditions.every(requiresOneTypeAtATime) &&
+        node.conditions.filter(hasTypeCondition).length <= 1
+      );
+  }
+};
 
 /**
  * Checks the filter of a Query entities step: a condition on an entity's types and properties, so that it can be
@@ -26,6 +50,9 @@ export const validateQueryFilter = (
     )
   ) {
     return "A query can only filter on an entity's types and properties.";
+  }
+  if (!requiresOneTypeAtATime(filter)) {
+    return 'A query can\'t negate an entity type condition, or require two in an "all" group. Use "any" to match one of several types.';
   }
   return undefined;
 };

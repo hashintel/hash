@@ -849,6 +849,31 @@ describe("validateFlowDefinition", () => {
         message: "A query can only filter on an entity's types and properties.",
       },
       {
+        name: "a negated entity type condition",
+        inputs: {
+          filter: constant("FilterCondition", {
+            kind: "all",
+            conditions: [
+              {
+                kind: "not",
+                condition: {
+                  kind: "condition",
+                  subject: { kind: "entityType" },
+                  operator: "isOfType",
+                  value: {
+                    kind: "VersionedUrl",
+                    value: "https://example.com/types/entity-type/company/v/1",
+                  },
+                },
+              },
+            ],
+          }),
+        },
+        inputName: "filter",
+        message:
+          'A query can\'t negate an entity type condition, or require two in an "all" group. Use "any" to match one of several types.',
+      },
+      {
         name: "a filter from elsewhere",
         inputs: { filter: { kind: "flow-input", inputName: "filter" } },
         inputName: "filter",

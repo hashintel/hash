@@ -26,9 +26,11 @@ import type { EntityQueryCursor } from "@local/hash-graph-client";
 
 /**
  * Gets the latest live version of the entities in the flow's web that match the filter and that the user running the
- * flow can read, sorted by the sort keys in turn. The graph can't sort by a property, so sorting reads every match,
- * and fails if there are more than `maxQueryEntities`. So does a query without a limit; with one and no sort, the step
- * stops reading once it has enough, in the graph's order (the most recently edited first).
+ * flow can read, sorted by the sort keys in turn.
+ *
+ * The graph can't sort by a property, so a sorted query reads every match, and fails if more than `maxQueryEntities`
+ * match, as does a query without a limit. An unsorted query with a limit stops reading once it has enough, in the
+ * order of the entities' UUIDs.
  */
 export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
   inputs,
@@ -79,6 +81,14 @@ export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
       userAuthentication,
       {
         filter: graphFilter,
+        /*
+         * Each page reads the latest versions, so pages are ordered by something an edit doesn't change. In the graph's
+         * default order, the most recently edited first, an entity edited while paging would jump to before the
+         * cursor, and be skipped.
+         */
+        sortingPaths: [
+          { path: ["uuid"], ordering: "ascending", nulls: "last" },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,
