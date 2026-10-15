@@ -80,6 +80,7 @@ export const NumberInput = ({
   | "onChange"
   | "width"
   | "inputElementProps"
+  | "style"
 > & {
   value: number | null | undefined;
   // maxNumber sets the width to be equal to the width of the max value if set, assuming that stepper is hidden
@@ -100,18 +101,15 @@ export const NumberInput = ({
     );
   }
 
-  let style;
+  let style: React.CSSProperties | undefined;
   if (
     width === "maxNumber" &&
     !(max === Number.MAX_SAFE_INTEGER && step === "any")
   ) {
     const charCount = getMaxNumberCharCount(max, step);
     style = {
-      ...props.style,
       width: `calc(${charCount}ch +${props.variant === "subtle" ? "" : " 2 * var(--base-input-padding-x) +"} ${charCount}px)`,
     };
-  } else {
-    style = props.style;
   }
 
   return (
