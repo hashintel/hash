@@ -92,6 +92,7 @@ type Submit = ConstructorParameters<
  */
 const delegationOnSkip: Readonly<Record<SkipReason, "decline" | "leave">> = {
   // Shadow stages never skip, so these apply once the stage is switched on.
+  "prompt-regurgitation": "leave",
   echo: "leave",
   "doubtful-short-during-output": "leave",
   // Live answers a request to wait or stop itself; filler gets nothing from Brunch.

@@ -4,6 +4,12 @@ import {
   type InterviewBudgetLevel,
 } from "../../../../../../shared/interview-budget";
 import { voicePreferenceHeader } from "../../../../../../shared/voice-settings";
+import { buildVoiceTranscriptionPrompt } from "../../../../../../shared/voice-transcription";
+import {
+  encodeVoiceWords,
+  voiceWordsHeader,
+  type VoiceWord,
+} from "../../../../../../shared/voice-words";
 import { logLiveDiagnostic } from "../shared/live-diagnostic";
 import {
   createOutputEchoTrace,
@@ -38,6 +44,8 @@ export interface LiveConversationState {
 }
 
 export interface FinalizedInput {
+  /** Exact session prompt for shadow-only prompt-echo classification. Never traced. */
+  readonly transcriptionPrompt?: string;
   readonly id: string;
   readonly text: string;
   readonly superseded?: boolean;
@@ -78,7 +86,10 @@ export const createLiveConversation = (
     readonly closed: () => void;
   },
   initialBudgetLevel: InterviewBudgetLevel = "off",
+  readWords?: () => readonly VoiceWord[],
 ) => {
+  let wordsHeader: string | undefined;
+  let transcriptionPrompt: string | undefined;
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
   const echoTrace = createOutputEchoTrace(sessionId);
@@ -413,6 +424,7 @@ export const createLiveConversation = (
         sendInterviewBudgetNote();
         onFinalizedInput({
           ...input,
+          ...(transcriptionPrompt === undefined ? {} : { transcriptionPrompt }),
           ...(latestSpeechItem && latestSpeechItem !== itemId
             ? { superseded: true }
             : {}),
@@ -844,6 +856,9 @@ export const createLiveConversation = (
       method: "POST",
       headers: {
         "content-type": "application/sdp",
+        ...(wordsHeader === undefined
+          ? {}
+          : { [voiceWordsHeader]: wordsHeader }),
         ...(kind === "live"
           ? {
               [voicePreferenceHeader]: voice,
@@ -905,6 +920,11 @@ export const createLiveConversation = (
       connectionTimeoutMs,
     );
     try {
+      const words = readWords?.() ?? [];
+      wordsHeader = encodeVoiceWords(words);
+      // Mirrors the prompt the transcription-session handler sends for this
+      // snapshot, so the shadow echo guard compares against what was pinned.
+      transcriptionPrompt = buildVoiceTranscriptionPrompt(words);
       audio = new Audio();
       audio.autoplay = true;
       audio.muted = speakerMuted;

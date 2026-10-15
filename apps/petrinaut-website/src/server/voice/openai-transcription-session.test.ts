@@ -1,6 +1,7 @@
 import { createCustomAbortControllerSignal } from "@whatwg-node/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { voiceTranscriptionPrompt } from "../../shared/voice-transcription";
 import { createOpenAITranscriptionSessionHandler } from "./openai-transcription-session";
 
 const environment = {
@@ -139,7 +140,11 @@ describe("OpenAI transcription WebRTC session", () => {
         audio: {
           input: {
             noise_reduction: { type: "far_field" },
-            transcription: { model: "gpt-4o-transcribe", language: "en" },
+            transcription: {
+              model: "gpt-4o-transcribe",
+              language: "en",
+              prompt: voiceTranscriptionPrompt,
+            },
             turn_detection: { type: "semantic_vad", eagerness: "medium" },
           },
         },

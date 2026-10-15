@@ -1,4 +1,8 @@
-import { voiceTranscriptionPrompt } from "../../shared/voice-transcription.js";
+import { buildVoiceTranscriptionPrompt } from "../../shared/voice-transcription.js";
+import {
+  pronunciationInstructions,
+  type VoiceWord,
+} from "../../shared/voice-words.js";
 
 export const OPENAI_REALTIME_CONNECTION_TIMEOUT_MS = 15_000;
 export const OPENAI_REALTIME_POLICY_VERSION = "brunch-control-plane-v3";
@@ -46,14 +50,17 @@ When Petrinaut supplies response_text, speak only those strings, in array order 
  * interrupting playback, and the Realtime model has no tools with which to
  * manufacture an answer.
  */
-export const createOpenAIRealtimeSession = (voice = "marin") => ({
+export const createOpenAIRealtimeSession = (
+  voice = "marin",
+  words: readonly VoiceWord[] = [],
+) => ({
   type: "realtime" as const,
   model: "gpt-realtime-2",
   output_modalities: ["audio"] as const,
   reasoning: { effort: "low" as const },
   parallel_tool_calls: false,
   tool_choice: "none" as const,
-  instructions: REALTIME_INSTRUCTIONS,
+  instructions: REALTIME_INSTRUCTIONS + pronunciationInstructions(words),
   tools: [] as const,
   audio: {
     input: {
@@ -61,7 +68,7 @@ export const createOpenAIRealtimeSession = (voice = "marin") => ({
       transcription: {
         model: "gpt-4o-transcribe",
         language: "en",
-        prompt: voiceTranscriptionPrompt,
+        prompt: buildVoiceTranscriptionPrompt(words),
       },
       turn_detection: {
         type: "semantic_vad" as const,

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import {
   browserToolOutput,
-  parsePetrinautUserMessageBody,
+  petrinautUserMessageText,
   projectBrunchMessageMetadata,
 } from "@hashintel/brunch-agent";
 import { createFlueAiSdkAdapter } from "@local/flue-aisdk-transport";
@@ -36,18 +36,16 @@ const petrinautMessageMetadataSchema = z.object({
   z.ZodType
 >) satisfies z.ZodType<PetrinautAiMessageMetadata>;
 
-/** A reopened user turn shows the human's text, never its contextual framing. */
+/** A reopened user turn shows the human's text, never its host framing. */
 const withHumanUserText = (message: PetrinautAiMessage): PetrinautAiMessage =>
   message.role === "user"
     ? {
         ...message,
-        parts: message.parts.map((part) => {
-          if (part.type !== "text") return part;
-          const body = parsePetrinautUserMessageBody(part.text);
-          return body.kind === "contextual"
-            ? { ...part, text: body.userText }
-            : part;
-        }),
+        parts: message.parts.map((part) =>
+          part.type === "text"
+            ? { ...part, text: petrinautUserMessageText(part.text) }
+            : part,
+        ),
       }
     : message;
 

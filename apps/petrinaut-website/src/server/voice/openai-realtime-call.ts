@@ -3,6 +3,10 @@ import {
   voicePreferenceHeader,
 } from "../../shared/voice-settings.js";
 import {
+  decodeVoiceWords,
+  voiceWordsHeader,
+} from "../../shared/voice-words.js";
+import {
   voiceErrorMessage,
   type VoiceDiagnosticReporter,
   type VoiceErrorCode,
@@ -157,7 +161,13 @@ export const createOpenAIRealtimeCallHandler =
         return diagnostics.respond(sdp);
       }
 
-      const session = createOpenAIRealtimeSession(voice);
+      let words;
+      try {
+        words = decodeVoiceWords(request.headers.get(voiceWordsHeader));
+      } catch {
+        return diagnostics.respond(response("Invalid voice words.", 400));
+      }
+      const session = createOpenAIRealtimeSession(voice, words);
       const form = new FormData();
       form.set("sdp", sdp);
       form.set("session", JSON.stringify(session));
