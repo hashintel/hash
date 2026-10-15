@@ -147,7 +147,6 @@ export const Button = (props: ButtonProps) => {
   const isIconOnly =
     ((suffixHasIcon && !prefixHasIcon) || (prefixHasIcon && !suffixHasIcon)) &&
     !children;
-  const isPressed = !!pressed || !!rest["aria-pressed"];
   const triggerPressed = useContext(TriggerPressedContext);
 
   const classes = styles({
@@ -157,7 +156,7 @@ export const Button = (props: ButtonProps) => {
     tone,
     isLoading: loading,
     isDisabled: disabled || loading,
-    isPressed: isPressed || triggerPressed,
+    isPressed: !!pressed || !!rest["aria-pressed"] || triggerPressed,
     hasIcon,
     hasIconLeft: prefixHasIcon,
     hasIconRight: suffixHasIcon,
@@ -212,7 +211,6 @@ export const Button = (props: ButtonProps) => {
     // Exposes the resolved variant so containers (e.g. ButtonGroup) can style
     // based on a child's variant. Mirrors the recipe's `solid` default.
     "data-variant": variant ?? "solid",
-    "aria-pressed": isPressed,
     "aria-busy": loading,
     "aria-live": loading ? ("polite" as const) : undefined,
     "aria-disabled": disabled || loading || undefined,

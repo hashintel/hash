@@ -208,10 +208,10 @@ export const AudioPopover = ({
                     {actions.setSpeakerMuted && (
                       <Button
                         aria-label={speakerMuteLabel}
+                        aria-pressed={speakerMuted}
                         disabled={speakerControlsDisabled}
                         onClick={() => actions.setSpeakerMuted?.(!speakerMuted)}
                         prefix={<SpeakerIcon muted={speakerMuted} />}
-                        pressed={speakerMuted}
                         size="sm"
                         tooltip={speakerMuteLabel}
                         type="button"
