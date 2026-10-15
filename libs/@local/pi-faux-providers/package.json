@@ -1,0 +1,32 @@
+{
+  "name": "@local/pi-faux-providers",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Test doubles for pi-ai model providers: swap a provider factory, or drive the native OpenAI provider with synthetic responses.",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "exports": {
+    "./install-faux-provider": {
+      "types": "./src/install-faux-provider.ts",
+      "default": "./src/install-faux-provider.ts"
+    },
+    "./native-openai-provider": {
+      "types": "./src/native-openai-provider.ts",
+      "default": "./src/native-openai-provider.ts"
+    }
+  },
+  "scripts": {
+    "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "lint:tsc": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "0.83.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.13",
+    "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "oxlint": "1.86.0",
+    "oxlint-tsgolint": "7.0.2003"
+  }
+}

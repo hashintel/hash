@@ -5,6 +5,10 @@
   "description": "Remote Brunch server and local Petrinaut development loop.",
   "license": "AGPL-3.0",
   "type": "module",
+  "exports": {
+    "./testing/admission-controls": "./test/integration/run-admission-controls.ts",
+    "./testing/load-built-application": "./test/load-built-application.ts"
+  },
   "scripts": {
     "build": "vite build && vite build --config vite.client.config.ts",
     "build:docker": "docker buildx build --tag brunch-agent --file docker/Dockerfile ../../ --load",
@@ -23,6 +27,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:manual:browser": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/petrinaut VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/petrinaut-panel.ts",
     "test:manual:browser:ledger-tab": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/petrinaut VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/ledger-tab.ts",
+    "test:manual:browser:persona": "VITE_BRUNCH_CHAT_ENDPOINT=${VITE_BRUNCH_CHAT_ENDPOINT:-/agents/petrinaut} VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/persona-turn.ts",
     "test:unit": "vitest run --config vitest.config.ts",
     "transcript": "node --experimental-strip-types src/server/transcript-cli.ts"
   },
@@ -50,6 +55,7 @@
   "devDependencies": {
     "@earendil-works/pi-tui": "0.84.3",
     "@flue/vite": "2.0.3",
+    "@local/pi-faux-providers": "workspace:*",
     "@playwright/test": "1.58.2",
     "@types/node": "22.18.13",
     "@types/pg": "8.23.1",

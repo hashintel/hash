@@ -415,8 +415,8 @@ const callsAfterStreamLoss = async () => {
       binding.documentId,
     );
     assert.deepEqual(
-      stored?.sdcpn.places.map(({ id }) => id),
-      ["queue"],
+      stored?.sdcpn.places.map(({ name }) => name),
+      ["Queue"],
     );
   } finally {
     fixture.restoreStreams();

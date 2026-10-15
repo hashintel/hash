@@ -4,7 +4,8 @@
     "@hashintel/brunch-agent",
     "@hashintel/petrinaut-core",
     "@local/flue-aisdk-transport",
-    "@local/hash-backend-utils"
+    "@local/hash-backend-utils",
+    "@local/pi-faux-providers"
   ],
   "tasks": {
     "build": {

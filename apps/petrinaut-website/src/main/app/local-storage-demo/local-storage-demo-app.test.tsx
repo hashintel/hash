@@ -36,8 +36,8 @@ import {
   canonicalPetrinautClientToolNames,
   brunchPetrinautClientToolNames,
 } from "../plugins/brunch/tools/brunch-client-tools";
+import { OpenAIRealtimeSession } from "../plugins/brunch/voice/realtime/openai-realtime-session";
 import { demoPlugins } from "../plugins/demo-plugins";
-import { OpenAIRealtimeSession } from "../plugins/voice/realtime/openai-realtime-session";
 import {
   assistantSelectionStorageKey,
   defaultAssistantSelection,
@@ -2122,6 +2122,24 @@ describe("assistant selection", () => {
     expect(
       renderedPetrinaut.commandRegistry?.list().map(({ id }) => id),
     ).toEqual(["demo.assistant.switch"]);
+  });
+
+  test("adds the Brunch plugin only while Brunch is the assistant", async () => {
+    seedStoredNet();
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    flueClientMock.current = flueHistoryClient();
+    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() =>
+      expect(
+        editorProps.current?.plugins?.map(({ manifest }) => manifest.id),
+      ).toEqual([
+        ...demoPlugins.map(({ manifest }) => manifest.id),
+        "website.brunch",
+      ]),
+    );
+
+    switchAssistant(/Use the stock Petrinaut assistant/);
+    await waitFor(() => expect(editorProps.current?.plugins).toBe(demoPlugins));
   });
 
   test("without a configured Brunch endpoint there is no choice to make", () => {

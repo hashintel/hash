@@ -23,7 +23,7 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { brunchHeaders } from "@hashintel/brunch-agent";
 
-import { loadBuiltBrunchApplication } from "../load-built-application";
+import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 const DEV_APP = fileURLToPath(new URL("../..", import.meta.url)).replace(
   /[/\\]$/u,
@@ -271,6 +271,6 @@ describe("the emitted client bundle", () => {
   });
 });
 
-// The production asset route is tested in `apps/brunch-agent/test/assets.test.ts`,
+// The production asset route is tested in `apps/brunch-agent/src/server/http/assets.test.ts`,
 // against the handler module directly: the emitted server bundle targets
 // Node (`node:sqlite`), so the handler test isolates the asset policy.

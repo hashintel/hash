@@ -2,7 +2,7 @@ import { join } from "node:path";
 
 import { expect, test } from "vitest";
 
-import { runNodeScript } from "./run-node-script";
+import { runNodeScript } from "./run-node-script.ts";
 
 test("the Ledger is reconstructed from canonical history within a turn and after a restart", async () => {
   const { exitCode, stdout, stderr } = await runNodeScript(

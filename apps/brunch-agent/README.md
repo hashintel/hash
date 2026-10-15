@@ -43,7 +43,18 @@ To try a candidate, copy `src/agents/petrinaut/` to `src/agents/petrinaut-alt-<i
 
 Neither `test:unit` nor `test:integration` needs anything running. `test:integration` checks the built app, starting it as a server and loading it in process with scripted OpenAI responses on the default model.
 
+The app exports its harness for the built server under `@apps/brunch-agent/testing/*` (`test/load-built-application.ts` and `test/integration/run-admission-controls.ts`). Its one consumer is `tests/petrinaut-brunch-integration`, which runs the Petrinaut website's Brunch code against the built app.
+
 The `test:manual:*` scripts are not part of either suite and do not run in CI. `test:manual:browser` builds the website and drives it in the local macOS Chrome against the built app.
+
+`test:manual:browser:persona` exercises the persona helper through that same browser boundary, using only synthetic model responses. It checks opening and subsequent admissions, current-turn approvals, and an unanswered approval left visible by a transport failure. Run it once for each supported endpoint:
+
+```sh
+yarn workspace @apps/brunch-agent test:manual:browser:persona
+VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn workspace @apps/brunch-agent test:manual:browser:persona
+```
+
+The transport-failure case starts with an unanswered ordinary composer turn. It reproduces the stale-panel failure at the persona helper's entrypoint; it does not claim that a sequence made exclusively of persona turns reaches that starting state.
 
 ## Local Postgres
 

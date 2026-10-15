@@ -113,11 +113,9 @@ export const submitPersonaBrowserTurn = async (
     "",
     "Refusing to overwrite an existing browser draft",
   );
+  // Match the mounted route, including aliases and evaluation candidates.
   // Only the conversation POST admits work; /abort is a control request.
-  const admissionPath = new RegExp(
-    `^${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}/[^/]+$`,
-    "u",
-  );
+  const admissionPath = new RegExp(`^${brunchRoutes.agents}/[^/]+/[^/]+$`, "u");
   const isAdmission = (response: BrowserResponse) =>
     response.request().method() === "POST" &&
     admissionPath.test(new URL(response.url()).pathname);
@@ -136,13 +134,7 @@ export const submitPersonaBrowserTurn = async (
   };
   signal?.addEventListener("abort", cancel, { once: true });
   let turnSettled = false;
-  const allowing = allowDestructiveEdits(
-    page,
-    () => turnSettled,
-    options.onAllowedEdit,
-  );
-  // Raced while the turn runs, awaited once it ends.
-  void allowing.catch(() => {});
+  let allowing: Promise<void> | undefined;
   try {
     await composer.fill(message);
     signal?.throwIfAborted();
@@ -197,7 +189,16 @@ export const submitPersonaBrowserTurn = async (
       headers: agentOwnershipHeaders(session),
     });
     await options.onAdmission?.(session, admission);
-    if (signal?.aborted) cancel();
+    signal?.throwIfAborted();
+    // Submission revokes earlier approvals before its POST. Wait for the
+    // receipt and utterance log before watching for this turn's approvals.
+    allowing = allowDestructiveEdits(
+      page,
+      () => turnSettled,
+      options.onAllowedEdit,
+    );
+    // Raced while the turn runs, awaited once it ends.
+    void allowing.catch(() => {});
     await Promise.race([
       stop.waitFor({ state: "hidden", timeout: 0 }),
       aborted.promise,
@@ -263,6 +264,6 @@ export const submitPersonaBrowserTurn = async (
   } finally {
     signal?.removeEventListener("abort", cancel);
     turnSettled = true;
-    await allowing.catch(() => {});
+    await allowing?.catch(() => {});
   }
 };
