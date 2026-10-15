@@ -29,7 +29,7 @@ Copy [`scenarios/array-actions.scenario.ts`](scenarios/array-actions.scenario.ts
 - `expect`:
   - `status`: the run's status, `COMPLETED` by default.
   - `outputs`: the flow's output values by name, without the `{ kind, value }` wrapper.
-  - `steps`: by step id, the step's `status` (`COMPLETED`, `FAILED`, `SKIPPED`…), its `outputs`, and
+  - `steps`: by step id, the step's `status` (`COMPLETED` by default; `FAILED`, `SKIPPED`…), its `outputs`, and
     `absentOutputs` it must not produce, such as the branch an If didn't take.
 - `user`: the shortname to run as, in their own web. `alice` by default.
 

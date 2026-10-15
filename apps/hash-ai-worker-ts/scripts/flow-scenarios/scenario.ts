@@ -8,7 +8,7 @@ import type {
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 export type StepExpectation = {
-  /** Defaults to `COMPLETED` when `outputs` or `absentOutputs` is given. */
+  /** The step's status. Defaults to `COMPLETED`. */
   status?: `${FlowStepStatus}`;
   /** Expected payload values (the `value`, not the `{ kind, value }` wrapper) by output name, compared exactly. */
   outputs?: Record<string, unknown>;
