@@ -20,20 +20,16 @@ import {
 } from "@flue/sdk";
 
 import {
+  agentOwnershipHeaders,
   browserToolOutput,
   brunchTools,
   projectBrunchMessageMetadata,
 } from "@hashintel/brunch-agent";
 import { createFlueAiSdkAdapter } from "@local/flue-aisdk-transport";
+import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../src/shared/conversation/identity.ts";
-import { installFauxProvider } from "../install-faux-provider.ts";
+import { flueConversationId } from "../../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
-
-import type { AdmissionVoiceEvidence } from "../admission-voice-evidence.ts";
 
 const directory =
   process.env.A2_OUTPUT_DIRECTORY ?? mkdtempSync(join(tmpdir(), "admission-"));
@@ -122,9 +118,7 @@ const run = async () => {
       },
     };
     const client = createFlueClient({
-      url: `http://brunch.local/agents/petrinaut/${flueConversationIdFrom(
-        identity,
-      )}`,
+      url: `http://brunch.local/agents/petrinaut/${flueConversationId(identity)}`,
       headers: agentOwnershipHeaders(identity),
       fetch: async (input, init) =>
         application.fetch(
@@ -330,8 +324,13 @@ const run = async () => {
         privateMarkdown,
       });
     }
-    const voice: AdmissionVoiceEvidence = { question, buffering };
-    return { observations, refusals, buffering, question, wire, voice };
+    return {
+      observations,
+      refusals,
+      buffering,
+      question,
+      wire,
+    };
   } finally {
     await application.stop();
     unobserve();

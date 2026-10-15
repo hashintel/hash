@@ -431,7 +431,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apps/brunch-agent@workspace:apps/brunch-agent":
+"@apps/brunch-agent@workspace:*, @apps/brunch-agent@workspace:apps/brunch-agent":
   version: 0.0.0-use.local
   resolution: "@apps/brunch-agent@workspace:apps/brunch-agent"
   dependencies:
@@ -448,6 +448,7 @@ __metadata:
     "@hashintel/petrinaut-core": "workspace:*"
     "@local/flue-aisdk-transport": "workspace:*"
     "@local/hash-backend-utils": "workspace:*"
+    "@local/pi-faux-providers": "workspace:*"
     "@opentelemetry/api": "npm:1.9.1"
     "@playwright/test": "npm:1.58.2"
     "@types/node": "npm:22.18.13"
@@ -915,9 +916,7 @@ __metadata:
   resolution: "@apps/petrinaut-website@workspace:apps/petrinaut-website"
   dependencies:
     "@ai-sdk/openai": "npm:3.0.114"
-    "@earendil-works/pi-ai": "npm:0.83.0"
     "@fast-check/vitest": "npm:0.4.1"
-    "@flue/runtime": "npm:2.0.3"
     "@flue/sdk": "npm:2.0.3"
     "@hashintel/brunch-agent": "workspace:*"
     "@hashintel/ds-components": "workspace:*"
@@ -10012,6 +10011,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@local/pi-faux-providers@workspace:*, @local/pi-faux-providers@workspace:libs/@local/pi-faux-providers":
+  version: 0.0.0-use.local
+  resolution: "@local/pi-faux-providers@workspace:libs/@local/pi-faux-providers"
+  dependencies:
+    "@earendil-works/pi-ai": "npm:0.83.0"
+    "@types/node": "npm:22.18.13"
+    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    oxlint: "npm:1.86.0"
+    oxlint-tsgolint: "npm:7.0.2003"
+  languageName: unknown
+  linkType: soft
+
 "@local/repo-chores@workspace:libs/@local/repo-chores/node":
   version: 0.0.0-use.local
   resolution: "@local/repo-chores@workspace:libs/@local/repo-chores/node"
@@ -17547,6 +17558,36 @@ __metadata:
     js-yaml: "npm:4.3.2"
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
+  languageName: unknown
+  linkType: soft
+
+"@tests/petrinaut-brunch-integration@workspace:tests/petrinaut-brunch-integration":
+  version: 0.0.0-use.local
+  resolution: "@tests/petrinaut-brunch-integration@workspace:tests/petrinaut-brunch-integration"
+  dependencies:
+    "@apps/brunch-agent": "workspace:*"
+    "@apps/petrinaut-website": "workspace:*"
+    "@earendil-works/pi-ai": "npm:0.83.0"
+    "@flue/runtime": "npm:2.0.3"
+    "@flue/sdk": "npm:2.0.3"
+    "@hashintel/brunch-agent": "workspace:*"
+    "@hashintel/petrinaut": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
+    "@local/pi-faux-providers": "workspace:*"
+    "@testing-library/dom": "npm:10.4.1"
+    "@testing-library/react": "npm:16.3.2"
+    "@types/node": "npm:22.18.13"
+    "@types/react": "npm:19.2.14"
+    "@types/react-dom": "npm:19.2.3"
+    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    ai: "npm:6.0.286"
+    jsdom: "npm:24.1.3"
+    oxlint: "npm:1.86.0"
+    oxlint-tsgolint: "npm:7.0.2003"
+    react: "npm:19.2.6"
+    react-dom: "npm:19.2.6"
+    vite: "npm:8.2.2"
+    vitest: "npm:4.1.11"
   languageName: unknown
   linkType: soft
 

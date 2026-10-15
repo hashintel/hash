@@ -22,12 +22,12 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import { foldCommits } from "@hashintel/brunch-agent";
+import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../src/shared/conversation/identity.ts";
-import { installFauxProvider } from "../install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 const directory =
