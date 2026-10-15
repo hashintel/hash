@@ -1,6 +1,8 @@
 import {
   extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
   type ActorEntityUuid,
+  type EntityId,
   type EntityUuid,
 } from "@blockprotocol/type-system";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
@@ -19,24 +21,27 @@ export type FlowRunLinks = {
 };
 
 /**
- * The links of each of the given flow runs, by flow run id, fetched in one query.
+ * The links of each of the given flow runs, by the run's entity id, fetched in one query.
+ *
+ * Only links in the run's own web count. Anyone who can view a run can link from it in a web of their own, and such
+ * a link mustn't change which flow or trigger the run is shown as belonging to.
  */
 export const getFlowRunLinks = async (params: {
-  flowRunIds: EntityUuid[];
+  flowRunEntityIds: EntityId[];
   graphApiClient: GraphApi;
   userAuthentication: { actorId: ActorEntityUuid };
-}): Promise<Map<EntityUuid, FlowRunLinks>> => {
-  const { flowRunIds, graphApiClient, userAuthentication } = params;
+}): Promise<Map<EntityId, FlowRunLinks>> => {
+  const { flowRunEntityIds, graphApiClient, userAuthentication } = params;
 
-  const linksByFlowRunId = new Map<EntityUuid, FlowRunLinks>(
-    flowRunIds.map((flowRunId) => [
-      flowRunId,
+  const linksByFlowRunEntityId = new Map<EntityId, FlowRunLinks>(
+    flowRunEntityIds.map((flowRunEntityId) => [
+      flowRunEntityId,
       { flowDefinitionId: null, flowTriggerId: null },
     ]),
   );
 
-  if (flowRunIds.length === 0) {
-    return linksByFlowRunId;
+  if (flowRunEntityIds.length === 0) {
+    return linksByFlowRunEntityId;
   }
 
   const { entities: linkEntities } = await queryEntities(
@@ -54,10 +59,10 @@ export const getFlowRunLinks = async (params: {
             })),
           },
           {
-            any: flowRunIds.map((flowRunId) => ({
+            any: flowRunEntityIds.map((flowRunEntityId) => ({
               equal: [
                 { path: ["leftEntity", "uuid"] },
-                { parameter: flowRunId },
+                { parameter: extractEntityUuidFromEntityId(flowRunEntityId) },
               ],
             })),
           },
@@ -76,11 +81,13 @@ export const getFlowRunLinks = async (params: {
       continue;
     }
 
-    const links = linksByFlowRunId.get(
-      extractEntityUuidFromEntityId(linkData.leftEntityId),
-    );
+    const links = linksByFlowRunEntityId.get(linkData.leftEntityId);
 
-    if (!links) {
+    if (
+      !links ||
+      extractWebIdFromEntityId(linkEntity.metadata.recordId.entityId) !==
+        extractWebIdFromEntityId(linkData.leftEntityId)
+    ) {
       continue;
     }
 
@@ -102,5 +109,5 @@ export const getFlowRunLinks = async (params: {
     }
   }
 
-  return linksByFlowRunId;
+  return linksByFlowRunEntityId;
 };

@@ -98,13 +98,15 @@ export async function getFlowRunById({
       "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
     ];
 
+  const flowRunEntityId = existingFlowEntity.metadata.recordId.entityId;
+
   const links = (
     await getFlowRunLinks({
-      flowRunIds: [entityUuid],
+      flowRunEntityIds: [flowRunEntityId],
       graphApiClient,
       userAuthentication,
     })
-  ).get(entityUuid);
+  ).get(flowRunEntityId);
 
   if (!links?.flowDefinitionId) {
     /* A run from before flow runs linked to their definition: it can't be shown. */
@@ -271,9 +273,9 @@ export async function getFlowRuns({
   const temporalWorkflowIdToFlowDetails: Record<string, MinimalFlowMetadata> =
     {};
 
-  const linksByFlowRunId = await getFlowRunLinks({
-    flowRunIds: queryResult.entities.map((entity) =>
-      extractEntityUuidFromEntityId(entity.metadata.recordId.entityId),
+  const linksByFlowRunEntityId = await getFlowRunLinks({
+    flowRunEntityIds: queryResult.entities.map(
+      (entity) => entity.metadata.recordId.entityId,
     ),
     graphApiClient,
     userAuthentication: authentication,
@@ -284,10 +286,21 @@ export async function getFlowRuns({
       entity.metadata.recordId.entityId,
     );
 
-    const links = linksByFlowRunId.get(entityUuid);
+    const links = linksByFlowRunEntityId.get(entity.metadata.recordId.entityId);
 
     if (!links?.flowDefinitionId) {
       /* A run from before flow runs linked to their definition: it can't be shown. */
+      continue;
+    }
+
+    /*
+     * The query's filter matches a `Uses` link in any web, so a run is only kept if the link in its own web is to
+     * one of the requested definitions. A page can then hold fewer runs than its limit.
+     */
+    if (
+      filters.flowDefinitionIds &&
+      !filters.flowDefinitionIds.includes(links.flowDefinitionId)
+    ) {
       continue;
     }
 
