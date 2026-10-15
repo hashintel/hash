@@ -6,7 +6,7 @@
  * @internal
  */
 import { Schema } from "effect";
-import { memoize } from "effect/Function";
+import { dual, memoize } from "effect/Function";
 
 /** Expands a character pattern into Unicode ranges for arbitrary generation. */
 export const characterClass: (pattern: Readonly<RegExp>) => string = memoize(
@@ -40,18 +40,24 @@ export const characterClass: (pattern: Readonly<RegExp>) => string = memoize(
 );
 
 /** Requires the entire value to match a pattern, with separate generation hints. */
-export const exactly = (
-  pattern: string,
-  generatePattern: () => string = () => pattern,
-): Schema.String =>
-  Schema.String.check(
-    // `$` also matches before a final line terminator. The lookahead requires end of input.
-    Schema.isPattern(new RegExp(`^(?:${pattern})(?![\\s\\S])`, "u"), {
-      arbitraryConstraint: {
-        // expansion runs only during arbitrary derivation, using the same Unicode tables as validation
-        get patterns(): readonly [Schema.Annotations.ToArbitrary.Pattern] {
-          return [{ source: `^(?:${generatePattern()})$`, flags: "u" }];
+export const exactly: {
+  (generatePattern?: () => string): (pattern: string) => Schema.String;
+  (pattern: string, generatePattern?: () => string): Schema.String;
+} = dual(
+  (args) => typeof args[0] === "string",
+  (
+    pattern: string,
+    generatePattern: () => string = () => pattern,
+  ): Schema.String =>
+    Schema.String.check(
+      // `$` also matches before a final line terminator. The lookahead requires end of input.
+      Schema.isPattern(new RegExp(`^(?:${pattern})(?![\\s\\S])`, "u"), {
+        arbitraryConstraint: {
+          // expansion runs only during arbitrary derivation, using the same Unicode tables as validation
+          get patterns(): readonly [Schema.Annotations.ToArbitrary.Pattern] {
+            return [{ source: `^(?:${generatePattern()})$`, flags: "u" }];
+          },
         },
-      },
-    }),
-  );
+      }),
+    ),
+);

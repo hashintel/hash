@@ -3,7 +3,6 @@ import { Schema } from "effect";
 import * as Ident from "../Ident.js";
 import * as Path from "../Path.js";
 
-// oxlint-disable-next-line no-redeclare -- `TypeRefType` is a bit silly
 type TypeRef = Schema.suspend<Schema.Codec<Type, TypeEncoded>>;
 const TypeRef: TypeRef = Schema.suspend(
   // oxlint-disable-next-line no-use-before-define -- recursive schema
@@ -108,7 +107,6 @@ export interface ReferenceEncoded extends Schema.Codec.Encoded<
   typeof Reference
 > {}
 
-// oxlint-disable-next-line no-redeclare -- `TypeType` is a bit silly
 export const Type: Schema.toTaggedUnion<
   "_tag",
   readonly [

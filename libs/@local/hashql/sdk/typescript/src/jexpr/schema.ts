@@ -6,7 +6,6 @@ import type { SchemaAST } from "effect";
 import type { ReadonlyRecord } from "effect/Record";
 
 /** A deferred reference that permits expressions to contain other expressions. */
-// oxlint-disable-next-line no-redeclare -- redecl of type is required to make sure that the cycle is broken
 type ExpressionRef = Schema.suspend<
   Schema.Codec<ExpressionType, ExpressionEncoded>
 >;

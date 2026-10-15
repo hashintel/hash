@@ -1,6 +1,4 @@
 // oxlint-disable unicorn/no-array-method-this-argument -- Result.map and Result.flatMap are not array methods
-// oxlint-disable vitest/prefer-to-be-truthy -- these checks assert exact Boolean results
-// oxlint-disable vitest/prefer-to-be-falsy -- these checks assert exact Boolean results
 // oxlint-disable hash/naming-conventions -- examples preserve HashQL type and constructor names in separate callback arguments
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
