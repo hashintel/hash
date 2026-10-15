@@ -60,7 +60,7 @@ runs:
     # `retry_on_exit_code` retries, then fails. Without this, an older run hitting
     # a 5xx here would read an empty revision and move the tag backwards.
     - name: Resolve current ${{ inputs.mutable-tag }} revision
-      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      uses: nick-fields/retry@v3.0.2
       env:
         REF: ${{ inputs.image }}:${{ inputs.mutable-tag }}
       with:
@@ -114,7 +114,7 @@ runs:
 
     - name: Advance ${{ inputs.mutable-tag }} to ${{ inputs.source-tag }}
       if: steps.decide.outputs.advanced == 'true'
-      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      uses: nick-fields/retry@v3.0.2
       env:
         IMAGE: ${{ inputs.image }}
         MUTABLE_TAG: ${{ inputs.mutable-tag }}

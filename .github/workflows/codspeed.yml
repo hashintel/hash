@@ -21,7 +21,7 @@ jobs:
       packages: ${{ steps.packages.outputs.packages }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 2
 
@@ -47,7 +47,7 @@ jobs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Mint sccache credentials
         id: mint
@@ -76,7 +76,7 @@ jobs:
         run: echo "$MATRIX"
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 2
 
@@ -103,7 +103,7 @@ jobs:
         run: turbo run build:codspeed --filter=${{ matrix.name }}
 
       - name: Run the benchmark
-        uses: CodSpeedHQ/action@f99becdce5e5d51fd556489ebef684f4ecfd6286 # v4.18.5
+        uses: CodSpeedHQ/action@v4.18.5
         with:
           mode: simulation
           run: turbo run test:codspeed --filter=${{ matrix.name }}

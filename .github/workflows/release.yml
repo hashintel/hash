@@ -21,11 +21,11 @@ jobs:
       encrypted-sccache-credentials: ${{ steps.mint-sccache.outputs.encrypted_credentials }}
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v6.0.2
 
       - name: Get token
         id: app-token
-        uses: hashintel/actions/.github/actions/github-app-token@64725589943d84fea5ba36a7740e254236a922dc # main
+        uses: hashintel/actions/.github/actions/github-app-token@6385f303753ea4de0bf48599d75c2b2a21012517 # main
         with:
           vault-address: ${{ vars.VAULT_PROD_ADDR }}
           vault-role: ci-hash-release
@@ -38,7 +38,7 @@ jobs:
       # GitHub drops masked values from job outputs, so only ciphertext can cross.
       - name: Encrypt token
         id: encrypt
-        uses: hashintel/actions/.github/actions/encrypt-secret@64725589943d84fea5ba36a7740e254236a922dc # main
+        uses: hashintel/actions/.github/actions/encrypt-secret@6385f303753ea4de0bf48599d75c2b2a21012517 # main
         with:
           value: ${{ steps.app-token.outputs.token }}
           encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
@@ -63,17 +63,17 @@ jobs:
       id-token: write # npm trusted publishing
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v6.0.2
 
       # Directly after checkout, so the plaintext is masked before anything else runs.
       - name: Decrypt token
         id: app-token
-        uses: hashintel/actions/.github/actions/decrypt-secret@64725589943d84fea5ba36a7740e254236a922dc # main
+        uses: hashintel/actions/.github/actions/decrypt-secret@6385f303753ea4de0bf48599d75c2b2a21012517 # main
         with:
           encrypted_value: ${{ needs.mint-token.outputs.encrypted-github-token }}
           encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v6.0.2
         with:
           token: ${{ steps.app-token.outputs.value }}
 
@@ -95,7 +95,7 @@ jobs:
           npm --version
 
       - name: Create Release Pull Request or Publish to npm
-        uses: changesets/action@63a615b9cd06ba9a3e6d13796c7fbcb080a60a0b # v1.8.0
+        uses: changesets/action@v1.8.0
         with:
           publish: yarn changeset:publish
           version: yarn changeset:version
@@ -171,7 +171,7 @@ jobs:
           echo "Created #${created_number}."
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
+        uses: rtCamp/action-slack-notify@v2.4.0
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true
@@ -197,7 +197,7 @@ jobs:
 
       - name: Upload debug logs
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: release-debug-logs
           path: |
@@ -214,7 +214,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 2
 
@@ -257,7 +257,7 @@ jobs:
       - name: Authenticate with crates.io
         id: auth
         if: steps.crates.outputs.packages != ''
-        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+        uses: rust-lang/crates-io-auth-action@v1.0.5
 
       - name: Publish
         if: steps.crates.outputs.packages != ''
