@@ -45,7 +45,7 @@ export const selectRecipe = sva({
       // select's middle at every size
       "--select-clear-size": "round(0.625em, 2px)",
       "--select-clear-padding": "round(0.3125em, 1px)",
-      "--select-icon-gap": "0.8em",
+      "--select-icon-gap": "0.625em",
       // Icon boxes carry their own margin around the ink
       "--select-spinner-gap": "calc(var(--select-icon-gap) - 0.15em)",
     },
