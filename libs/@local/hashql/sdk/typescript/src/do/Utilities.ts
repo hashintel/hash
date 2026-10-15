@@ -7,8 +7,9 @@
  */
 // oxlint-disable import/max-dependencies -- block construction composes the declaration steps and expression helpers
 // oxlint-disable unicorn/no-array-method-this-argument -- Result.map and Result.flatMap are not array methods
-import { Result } from "effect";
+import { Cause, Result, identity, pipe } from "effect";
 
+import { If as AstIf } from "../program/ast/If.js";
 import * as Expression from "../program/Expression.js";
 import * as Operators from "../program/Operators.js";
 import * as ProgramError from "../program/ProgramError.js";
@@ -19,6 +20,7 @@ import { Newtype } from "./Newtype.js";
 import * as Node from "./Node.js";
 import { Type as DeclareType } from "./Type.js";
 
+import type { Node as AstNode } from "../program/ast/Node.js";
 import type { Rebindable } from "../program/Import.js";
 import type * as Input from "../program/Inputs.js";
 import type * as Scope from "../program/Scope.js";
@@ -61,10 +63,20 @@ export class Block<S extends Scope.Scope, Inputs> {
     return new Block(
       Result.flatMap(this.#state, ({ scope, parents }) => {
         const input: Scope.Scope = scope;
-        return Result.map(
-          // oxlint-disable-next-line eslint/no-use-before-define -- block steps receive utilities that can create further blocks
-          step.elaborate(makeUtilities(input), input),
-          ({ scope, wrap }) => ({ scope, parents: [...parents, wrap] }),
+        return pipe(
+          Result.try({
+            // oxlint-disable-next-line eslint/no-use-before-define -- block steps receive utilities that can create further blocks
+            try: () => step.elaborate(makeUtilities(input), input),
+            catch: (error) =>
+              ProgramError.Construction.callbackException(
+                new Cause.UnknownError(error),
+              ),
+          }),
+          Result.flatMap(identity),
+          Result.map(({ scope, wrap }) => ({
+            scope,
+            parents: [...parents, wrap],
+          })),
         );
       }),
     );
@@ -165,12 +177,25 @@ export class Block<S extends Scope.Scope, Inputs> {
     return Expression.fromResult(
       Result.flatMap(this.#state, ({ scope, parents }) => {
         // A nested block inherits names, never the wrappers that introduced them outside it.
-        const expression = body(
-          // oxlint-disable-next-line eslint/no-use-before-define -- block bodies receive utilities that can create further blocks
-          makeUtilities(scope),
-          scope.values,
-          scope.types,
-        );
+        const evaluated = Result.try({
+          try: () =>
+            body(
+              // oxlint-disable-next-line eslint/no-use-before-define -- block bodies receive utilities that can create further blocks
+              makeUtilities(scope),
+              scope.values,
+              scope.types,
+            ),
+          catch: (error) =>
+            ProgramError.Construction.callbackException(
+              new Cause.UnknownError(error),
+            ),
+        });
+
+        if (Result.isFailure(evaluated)) {
+          return Result.fail(evaluated.failure);
+        }
+
+        const expression = evaluated.success;
         if (!Expression.isExpression(expression)) {
           return Result.fail(ProgramError.Construction.invalidBodyResult());
         }
@@ -218,6 +243,20 @@ export class Block<S extends Scope.Scope, Inputs> {
   }
 }
 
+const evaluateBranch = (
+  body: () => Expression.AnyValue,
+): Result.Result<AstNode, ProgramError.Construction> =>
+  pipe(
+    Result.try({
+      try: body,
+      catch: (error) =>
+        ProgramError.Construction.callbackException(
+          new Cause.UnknownError(error),
+        ),
+    }),
+    Result.flatMap(Expression.toNode),
+  );
+
 const conditional = <
   const Condition extends Expression.Value<Type.PrimitiveBoolean>,
   const Then extends Expression.AnyValue,
@@ -233,8 +272,24 @@ const conditional = <
     Input.Merge<Expression.Inputs<Then>, Expression.Inputs<Else>>
   >
 > =>
-  // oxlint-disable-next-line unicorn/no-thenable -- these are query branches, not a Promise implementation
-  Expression.ifElse(condition, { then: consequent(), else: alternate() });
+  pipe(
+    {
+      condition: Expression.toNode(condition),
+      consequent: evaluateBranch(consequent),
+      alternate: evaluateBranch(alternate),
+    },
+    Result.all,
+    Result.map(
+      (nodes) => new AstIf(nodes.condition, nodes.consequent, nodes.alternate),
+    ),
+    Expression.fromResult<
+      Expression.Conditional<Expression.TypeOf<Then>, Expression.TypeOf<Else>>,
+      Input.Merge<
+        Expression.Inputs<Condition>,
+        Input.Merge<Expression.Inputs<Then>, Expression.Inputs<Else>>
+      >
+    >,
+  );
 
 export interface Utilities<S extends Scope.Scope>
   extends Block<S, Input.Empty>, Operators.Operations {

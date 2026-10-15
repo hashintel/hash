@@ -437,20 +437,4 @@ describe("expressions", () => {
       ),
     ).toBe('{"#literal":7}');
   });
-
-  test("branch_exception", () => {
-    expect.hasAssertions();
-    const failure = new Error("branch construction");
-    expect(() =>
-      EmptyDo(($) =>
-        $.if(
-          $.literal(false),
-          () => {
-            throw failure;
-          },
-          () => $.integer(1),
-        ),
-      ),
-    ).toThrow(failure);
-  });
 });

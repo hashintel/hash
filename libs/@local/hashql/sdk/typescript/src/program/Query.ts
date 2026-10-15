@@ -5,7 +5,7 @@
  *
  * @module
  */
-import { Result, pipe } from "effect";
+import { Cause, Result, pipe } from "effect";
 
 import * as JExpr from "../jexpr/index.js";
 import * as AST from "./ast/index.js";
@@ -109,9 +109,14 @@ const chain = <T extends Type.Any, Vertex extends Type.Any, Requirements>(
           );
 
           const parameter = JExpr.Ident.compile(ident);
-          const body = yield* Expression.toJExpr(
-            predicate(Expression.fromJExpr(parameter)),
-          );
+          const condition = yield* Result.try({
+            try: () => predicate(Expression.fromJExpr(parameter)),
+            catch: (error) =>
+              ProgramError.Construction.callbackException(
+                new Cause.UnknownError(error),
+              ),
+          });
+          const body = yield* Expression.toJExpr(condition);
 
           return new AST.Expr(
             JExpr.call(
