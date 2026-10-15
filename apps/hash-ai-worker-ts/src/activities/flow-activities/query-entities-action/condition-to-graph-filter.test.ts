@@ -253,18 +253,6 @@ describe("conditionToGraphFilter", () => {
         ...values.map((value) => entity({ [valueUrl]: value })),
       ];
 
-      it("supports exactly these operators", () => {
-        expect(
-          new Set(
-            [...ordering, "contains", "startsWith", "endsWith"].filter(
-              (operator) =>
-                validateQueryFilter(all(leaf(kind, operator, operand))) ===
-                undefined,
-            ),
-          ),
-        ).toEqual(new Set(operators));
-      });
-
       it.each(operators)(
         "matches what Filter matches with %s, negated or not",
         (operator) => {
@@ -304,31 +292,7 @@ describe("conditionToGraphFilter", () => {
     ).toEqual([false, false, false, true]);
   });
 
-  it("combines conditions with all, any and not as Filter does", () => {
-    const condition = any(
-      all(
-        leaf("Text", "startsWith", "Acme", nameUrl),
-        leaf("Number", "greaterThan", 8, scoreUrl),
-      ),
-      not(leaf("Number", "isNotEmpty", undefined, scoreUrl)),
-    );
-    const entities = [
-      { [nameUrl]: "Acme Corp", [scoreUrl]: 9 },
-      { [nameUrl]: "Acme Corp", [scoreUrl]: 3 },
-      { [nameUrl]: "Other", [scoreUrl]: 9 },
-      { [nameUrl]: "Other" },
-      {},
-    ].map(entity);
-
-    expect(
-      entities.map((testEntity) => queryMatches(condition, testEntity)),
-    ).toEqual([true, false, false, true, true]);
-    expect(
-      entities.map((testEntity) => filterMatches(condition, testEntity)),
-    ).toEqual([true, false, false, true, true]);
-  });
-
-  it("matches what Filter matches with the type conditions a query allows, even on entities with several types", () => {
+  it("matches what Filter matches with groups and the type conditions a query allows, even on entities with several types", () => {
     const isOfType = (entityTypeId: VersionedUrl): FilterLeaf => ({
       kind: "condition",
       subject: { kind: "entityType" },

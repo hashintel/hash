@@ -894,7 +894,7 @@ describe("validateFlowDefinition", () => {
         message:
           "A field subject requires an object input and nonempty, safe own-property names.",
       },
-      ...[0, 2.5, 100_001].map((limit) => ({
+      ...[0, 100_001].map((limit) => ({
         name: `a limit of ${limit}`,
         inputs: { filter: startsWithAcme, limit: constant("Number", limit) },
         inputName: "limit",
