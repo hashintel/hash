@@ -1,11 +1,11 @@
 /**
  * Shared names with separate module, type and value capabilities.
  *
- * A flattened name can be a value, a type constructor and a module at once. Type metadata wins property collisions, followed by module exports and then value projections. Expression operations remain available through `$`, `$project` and `$index`. Rebinding a joined name moves every capability, rather than following property-lookup precedence.
+ * A flattened name can be a value, a type constructor and a module at once. Type metadata wins property collisions, followed by module exports and then value projections. Explicit projection and indexing remain available through `$project` and `$index`. Rebinding a joined name moves every capability, rather than following property-lookup precedence.
  *
  * @module
  */
-import { Function, Predicate, Result, pipe } from "effect";
+import { Function, Result, pipe } from "effect";
 
 import { Relocate } from "../internal/relocation.js";
 import * as Expression from "./Expression.js";
@@ -60,7 +60,7 @@ type Metadata<M, T, V> = Omit<
 > &
   Present<T>;
 
-type ExpressionReserved = "$" | "$project" | "$index" | "~hashql/Expression";
+type ExpressionReserved = "$project" | "$index" | "~hashql/Expression";
 
 /** Removes shadowed projections without discarding generic call signatures. */
 type WithMetadata<V, M> = V extends Expression.Any
@@ -74,10 +74,6 @@ type WithMetadata<V, M> = V extends Expression.Any
             Omit<
               Accessors<Expression.TypeOf<V>, Expression.Inputs<V>>,
               Exclude<keyof M, ExpressionReserved>
-            > &
-            Pick<
-              Expression.Expression<Expression.TypeOf<V>, Expression.Inputs<V>>,
-              "$"
             >)
   : M & V;
 
@@ -142,9 +138,12 @@ export type Flatten<S extends Scope.Scope> = {
   >;
 };
 
-export type Modules<S extends Scope.Scope> = {
-  readonly [K in keyof S["modules"]]: Viewed<S["modules"][K]>;
-};
+interface ModuleScope<S extends Scope.Scope> {
+  readonly modules: S["modules"];
+  readonly types: Empty;
+  readonly values: Empty;
+}
+export type Modules<S extends Scope.Scope> = Flatten<ModuleScope<S>>;
 
 const combinedHandles = new WeakMap<
   Capability,
@@ -182,7 +181,6 @@ const hasExport = (candidate: Capability, key: PropertyKey): boolean => {
 };
 
 const expressionReserved = new Set<PropertyKey>([
-  "$",
   "$project",
   "$index",
   "~hashql/Expression",
@@ -486,24 +484,9 @@ export const flatten = <S extends Scope.Scope>(
 /** Keeps only module names, with their child exports available directly. */
 export const modules = <S extends Scope.Scope>(
   scope: S & Pick<Rebindable<S>, "modules">,
-): Modules<S> => {
-  const entries: Partial<Modules<S>> = {};
-  const sources: S["modules"] = scope.modules;
-
-  // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- K ties the module producer to its destination view
-  const resolve = <K extends keyof S["modules"] & string>(name: K): void => {
-    const view = viewOptional<S["modules"][K]>(sources[name]);
-
-    if (Predicate.isNotUndefined(view)) {
-      define<Modules<S>, K>(entries, name, view);
-    }
-  };
-
-  for (const name of Object.getOwnPropertyNames(scope.modules)) {
-    resolve(name);
-  }
-
-  // SAFETY: the loop checks each own module name at Modules<S>[K].
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- completes the per-key module table
-  return Object.freeze(entries) as Modules<S>;
-};
+): Modules<S> =>
+  flattenScope<ModuleScope<S>>({
+    modules: scope.modules,
+    types: {},
+    values: {},
+  });

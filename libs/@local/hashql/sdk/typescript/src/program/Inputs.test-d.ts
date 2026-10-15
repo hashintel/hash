@@ -3,6 +3,7 @@ import { describe, expectTypeOf, test } from "vitest";
 
 import { Do as EmptyDo, Let, withPrelude } from "../do/index.js";
 import { Expression, Module, Program } from "../main.js";
+import * as Operators from "./Operators.js";
 
 import type { Inputs, Type } from "../main.js";
 
@@ -210,11 +211,11 @@ describe("input_requirements", () => {
       Expression.literal(true),
     );
     const required = Expression.input("enabled", boolean);
-    const both = optional.$.and(required);
+    const both = Operators.and(optional, required);
     expectTypeOf<Expression.Inputs<typeof both>>().toEqualTypeOf<{
       readonly enabled: Type.PrimitiveBoolean;
     }>();
-    const defaults = optional.$.or(optional);
+    const defaults = Operators.or(optional, optional);
     expectTypeOf<Expression.Inputs<typeof defaults>>().toEqualTypeOf<{
       readonly enabled?: Type.PrimitiveBoolean;
     }>();
@@ -239,9 +240,10 @@ describe("operation_requirements", () => {
     const left = Expression.input("left", integer);
     const right = Expression.input("right", integer);
     const enabled = Expression.input("enabled", boolean);
-    const predicate = left.$.eq(right)
-      .$.and(enabled.$.isTrue())
-      .$.or(enabled.$.isFalse());
+    const predicate = Operators.or(
+      Operators.and(Operators.eq(left, right), Operators.isTrue(enabled)),
+      Operators.isFalse(enabled),
+    );
     expectTypeOf<Expression.Inputs<typeof predicate>>().toEqualTypeOf<{
       readonly left: Type.PrimitiveInteger;
       readonly right: Type.PrimitiveInteger;
@@ -303,10 +305,10 @@ describe("operation_requirements", () => {
 describe("snippet_requirements", () => {
   test("reusable_snippet", () => {
     const count = Expression.input("count", integer);
-    const snippet = count.$.ne(Expression.integer(0));
+    const snippet = Operators.ne(count, Expression.integer(0));
     const first = Result.getOrThrow(EmptyDo(() => snippet));
     const second = Result.getOrThrow(
-      EmptyDo(($) => snippet.$.and($.input("enabled", boolean))),
+      EmptyDo(($) => Operators.and(snippet, $.input("enabled", boolean))),
     );
     const program = Program.program(second);
     expectTypeOf<Expression.Inputs<typeof first>>().toEqualTypeOf<{
@@ -380,7 +382,7 @@ describe("builder_requirements", () => {
         $.query
           .entities($.input("at", integer))
           .filter("vertex", (vertex) =>
-            vertex.enabled.$.eq($.input("enabled", boolean)),
+            Operators.eq(vertex.enabled, $.input("enabled", boolean)),
           )
           .collect(),
       ),

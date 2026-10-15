@@ -105,7 +105,7 @@ describe("namespace", () => {
     expect("then" in joined).toBe(true);
     expect(Namespace.modules(source).Both.then).toBe(child.values.then);
     expect(joined.values.$).toBe(child.values.$);
-    expect(Expression.isExpression(joined.$)).toBe(false);
+    expect(joined.$).toBe(child.values.$);
   });
 
   test("function_intrinsics", () => {

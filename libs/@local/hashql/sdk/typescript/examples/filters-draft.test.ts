@@ -42,11 +42,11 @@ const comparisons = pipe(
 );
 
 describe("draft_filters", () => {
-  test("query_without_imports", () => {
+  test("query_with_import", () => {
     expect.hasAssertions();
     expect(examples).toHaveLength(originals.length);
     expect(compile(allEntities)).toBe(
-      '["::graph::tail::collect",["::graph::head::entities",["::graph::tmp::decision_time_now"]]]',
+      '["::kernel::special_form::use","::graph::tmp",{"#struct":{"decision_time_now":"now"}},["::graph::tail::collect",["::graph::head::entities",["now"]]]]',
     );
   });
 

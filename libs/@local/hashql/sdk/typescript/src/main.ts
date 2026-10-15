@@ -1,6 +1,7 @@
 export * as JExpr from "./jexpr/index.js";
 export * as Expression from "./program/Expression.js";
 export * as Module from "./program/Module.js";
+export * as Operators from "./program/Operators.js";
 export * as Prelude from "./program/Prelude.js";
 export * as Structural from "./program/Structural.js";
 export * as Program from "./program/index.js";

@@ -88,10 +88,9 @@ const entityByUuid = example(
     $.query
       .entities(now())
       .filter("vertex", (vertex) =>
-        vertex.metadata.record_id.entity_id.entity_uuid.$.eq(
-          createEntityUuid(
-            createUuid($.literal("e2851dbb-7376-4959-9bca-f72cafc4448f")),
-          ),
+        $.eq(
+          vertex.metadata.record_id.entity_id.entity_uuid,
+          createEntityUuid(createUuid("e2851dbb-7376-4959-9bca-f72cafc4448f")),
         ),
       )
       .collect(),
@@ -115,10 +114,9 @@ const suppliedTimeAxis = example(
     $.query
       .entities($.input("axis", temporal.types.QueryTemporalAxes))
       .filter("vertex", (vertex) =>
-        vertex.metadata.record_id.entity_id.entity_uuid.$.eq(
-          createEntityUuid(
-            createUuid($.literal("e2851dbb-7376-4959-9bca-f72cafc4448f")),
-          ),
+        $.eq(
+          vertex.metadata.record_id.entity_id.entity_uuid,
+          createEntityUuid(createUuid("e2851dbb-7376-4959-9bca-f72cafc4448f")),
         ),
       )
       .collect(),
@@ -143,7 +141,7 @@ const predicateLocalBinding = example(
       .entities(now())
       .filter("vertex", () =>
         $.Let("foo", ($) => $.literal(false)).Expr(($, { foo }) =>
-          $.literal(true).$.and($.literal(true).$.or(foo)),
+          $.and(true, $.or(true, foo)),
         ),
       )
       .collect(),
@@ -173,9 +171,10 @@ const publishedEntityById = example(
         .entities(now())
         .filter("vertex", (vertex) => {
           const id = vertex.metadata.record_id.entity_id;
-          return id.web_id.$.eq(webId)
-            .$.and(id.entity_uuid.$.eq(entityUuid))
-            .$.and(id.draft_id.$.isNone());
+
+          return $.eq(id.web_id, webId)
+            .and($.eq(id.entity_uuid, entityUuid))
+            .and($.isNone(id.draft_id));
         })
         .collect(),
   ),
@@ -201,12 +200,11 @@ const sidebarSelection = example(
       $.query
         .entities(now())
         .filter("vertex", (vertex) =>
-          vertex.metadata.record_id.entity_id.web_id.$.eq(webId),
+          $.eq(vertex.metadata.record_id.entity_id.web_id, webId),
         )
         .filter("vertex", (vertex) =>
-          vertex.metadata.archived.$.isFalse().$.and(
-            vertex.metadata.record_id.entity_id.draft_id.$.isNone(),
-          ),
+          $.isFalse(vertex.metadata.archived) //
+            .and($.isNone(vertex.metadata.record_id.entity_id.draft_id)),
         )
         .collect(),
   ),
@@ -231,12 +229,15 @@ const anyOfEntityIds = example(
       .filter("vertex", (vertex) => {
         let matches = $.literal(false);
         for (const entityUuid of selectedIds) {
-          matches = matches.$.or(
-            vertex.metadata.record_id.entity_id.entity_uuid.$.eq(
+          matches = $.or(
+            matches,
+            $.eq(
+              vertex.metadata.record_id.entity_id.entity_uuid,
               createEntityUuid(createUuid($.literal(entityUuid))),
             ),
           );
         }
+
         return matches;
       })
       .collect(),
@@ -260,8 +261,8 @@ const optionalDrafts = example(
         .filter("vertex", (vertex) =>
           $.if(
             includeDrafts,
-            () => $.literal(true),
-            () => vertex.metadata.record_id.entity_id.draft_id.$.isNone(),
+            () => true,
+            () => $.isNone(vertex.metadata.record_id.entity_id.draft_id),
           ),
         )
         .collect(),

@@ -21,6 +21,7 @@ import {
   withPrelude,
 } from "../src/do/index.js";
 import { Expression, Module, Program } from "../src/main.js";
+import * as Operators from "../src/program/Operators.js";
 
 import type {
   Inputs,
@@ -121,12 +122,9 @@ describe("reusable_expressions", () => {
   test("inputs_and_defaults", () => {
     // An expression is a value you can store and reuse. Its second type parameter records the host inputs it needs.
     const count = Expression.input("count", kernel.types.Integer);
-    const nonzero = count.$.ne(0n);
+    const nonzero = Operators.ne(count, 0n);
     expectTypeOf(nonzero).toEqualTypeOf<
-      Expression.Expression<
-        Type.PrimitiveBoolean,
-        { readonly count: Type.PrimitiveInteger }
-      >
+      Operators.Predicate<{ readonly count: Type.PrimitiveInteger }>
     >();
 
     // A default makes the input optional for the host.
@@ -137,7 +135,9 @@ describe("reusable_expressions", () => {
 
     // A program that reuses `nonzero` inherits its requirement.
     const root = Result.getOrThrow(
-      Do(($) => nonzero.$.and($.input("enabled", kernel.types.Boolean, true))),
+      Do(($) =>
+        Operators.and(nonzero, $.input("enabled", kernel.types.Boolean, true)),
+      ),
     );
     const program = Program.program(root);
     expectTypeOf<Program.Inputs<typeof program>>().toEqualTypeOf<{
@@ -154,7 +154,9 @@ describe("reusable_expressions", () => {
       Type.PrimitiveBoolean,
       Expression.Inputs<typeof nonzero>
     > = nonzero;
-    expectTypeOf(named).toEqualTypeOf(nonzero);
+    expectTypeOf<Expression.Inputs<typeof named>>().toEqualTypeOf<
+      Expression.Inputs<typeof nonzero>
+    >();
 
     // @ts-expect-error The default for an Integer input cannot be a Boolean.
     Expression.input("count", kernel.types.Integer, true);
@@ -332,14 +334,14 @@ describe("expressions", () => {
   test("query_composition", () => {
     // Keep a predicate as an ordinary function and reuse it across queries.
     const active = (vertex: Closed<Person>): Closed<Type.PrimitiveBoolean> =>
-      vertex.archived.$.isFalse();
+      Operators.isFalse(vertex.archived);
 
     const built = Do(($, { now }) =>
       $.query
         .entities(now())
         .filter("person", active)
         .filter("person", (vertex) =>
-          vertex.name.$.eq($.input("name", kernel.types.String)),
+          Operators.eq(vertex.name, $.input("name", kernel.types.String)),
         )
         .collect(),
     );
@@ -479,7 +481,7 @@ describe("queries_and_let", () => {
       Let("people", ($, { axes }) =>
         $.query
           .entities(axes)
-          .filter("person", (vertex) => vertex.archived.$.isFalse())
+          .filter("person", (vertex) => Operators.isFalse(vertex.archived))
           .collect(),
       ),
       (_, { people }) => people.$index(0n),

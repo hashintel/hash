@@ -298,7 +298,7 @@ type IndexOf<T extends Type.Any> = [T] extends [Type.List<infer Value>]
 type ProjectionAccessors<Fields, Inputs> = {
   readonly [Key in Exclude<
     keyof Fields,
-    "$" | "$project" | "$index" | "~hashql/Expression"
+    "$project" | "$index" | "~hashql/Expression"
   >]: Fields[Key] extends infer Field extends Type.Any
     ? Expression.Expression<Normalize<Field>, Inputs>
     : never;

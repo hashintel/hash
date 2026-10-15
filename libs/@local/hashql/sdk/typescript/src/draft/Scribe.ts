@@ -5,20 +5,22 @@
  *
  * @module
  */
-import { Result, pipe } from "effect";
+import { Data, Result, pipe } from "effect";
 
 import {
   Expression,
   JExpr,
+  Operators,
   ProgramError,
   Structural,
   TypeExpression,
 } from "../main.js";
 import * as AST from "../program/ast/index.js";
+import * as Import from "../program/Import.js";
 import * as Namespace from "../program/Namespace.js";
 
 import type * as Syntax from "../jexpr/type/index.js";
-import type { Inputs, Type } from "../main.js";
+import type { Inputs, Module, Type } from "../main.js";
 import type { ArgumentInputs, Arguments } from "../program/ExpressionType.js";
 import type * as Scope from "../program/Scope.js";
 import type * as Body from "./Body.js";
@@ -85,6 +87,11 @@ const nominal = <N extends symbol, T extends Type.Any>(
   >(value, type);
 };
 
+/** Stops a callback when an import cannot supply its promised handles. User exceptions pass through. */
+const ConstructionFailure = Data.TaggedError("DraftConstructionFailure")<{
+  readonly failure: ProgramError.Construction;
+}>;
+
 class ContextImpl<S extends Scope.Scope> implements Context.Context<S> {
   readonly #scope: S & Namespace.Rebindable<S>;
   readonly #prelude: Namespace.Flatten<S>;
@@ -96,6 +103,14 @@ class ContextImpl<S extends Scope.Scope> implements Context.Context<S> {
   readonly number = Expression.number;
   readonly assume = Expression.assume;
   readonly input = Expression.input;
+  readonly eq = Operators.eq;
+  readonly ne = Operators.ne;
+  readonly and = Operators.and;
+  readonly or = Operators.or;
+  readonly not = Operators.not;
+  readonly isTrue = Operators.isTrue;
+  readonly isFalse = Operators.isFalse;
+  readonly isNone = Operators.isNone;
 
   constructor(scope: S & Namespace.Rebindable<S>) {
     this.#scope = scope;
@@ -109,6 +124,33 @@ class ContextImpl<S extends Scope.Scope> implements Context.Context<S> {
   }
   modules(): Namespace.Modules<S> {
     return this.#modules;
+  }
+
+  import<M extends Module.Any>(
+    module: M & Import.Rebindable<M>,
+  ): Namespace.Flatten<Import.Imported<M, "*">>;
+  import<M extends Module.Any, const I extends Import.Selection<M>>(
+    module: M & Import.Rebindable<M>,
+    selection: I,
+  ): Namespace.Flatten<Import.Imported<M, I>>;
+  import<M extends Module.Any, const I extends Import.Selection<M>>(
+    module: M & Import.Rebindable<M>,
+    // oxlint-disable-next-line hash/prefer-options-object -- the optional argument is the import selection itself
+    selection: I | "*" = "*",
+  ): Namespace.Flatten<Import.Imported<M, I | "*">> {
+    const declaration = Import.bind<M, I | "*">(module, selection);
+    this.#wrappers.push(
+      pipe(
+        declaration,
+        Result.map((imported) => imported.wrap),
+      ),
+    );
+    // Keep the failure in the collector even if host code catches the private control-flow exception.
+    const imported = Result.getOrThrowWith(
+      declaration,
+      (failure) => new ConstructionFailure({ failure }),
+    );
+    return Namespace.flatten<Import.Imported<M, I | "*">>(imported.scope);
   }
 
   let<const E extends Expression.AnyValue>(
@@ -365,32 +407,40 @@ class ContextImpl<S extends Scope.Scope> implements Context.Context<S> {
   build(
     body: ($: Context.Context<S>) => Expression.AnyValue,
   ): Result.Result<AST.Node, ProgramError.Construction> {
-    const expression = body(this);
-    if (
-      !Expression.isExpression(expression) &&
-      !(
-        expression === null ||
-        ["string", "number", "bigint", "boolean"].includes(typeof expression)
-      )
-    ) {
-      return Result.fail(ProgramError.Construction.invalidBodyResult());
+    try {
+      const expression = body(this);
+      if (
+        !Expression.isExpression(expression) &&
+        !(
+          expression === null ||
+          ["string", "number", "bigint", "boolean"].includes(typeof expression)
+        )
+      ) {
+        return Result.fail(ProgramError.Construction.invalidBodyResult());
+      }
+
+      return pipe(
+        {
+          wrappers: Result.all(this.#wrappers),
+          node: Expression.toNode(expression),
+        },
+        Result.all,
+        Result.map(({ wrappers, node }) => {
+          let root = node;
+          for (const wrap of wrappers.toReversed()) {
+            root = wrap(root);
+          }
+
+          return root;
+        }),
+      );
+    } catch (error) {
+      if (error instanceof ConstructionFailure) {
+        return Result.fail(error.failure);
+      }
+
+      throw error;
     }
-
-    return pipe(
-      {
-        wrappers: Result.all(this.#wrappers),
-        node: Expression.toNode(expression),
-      },
-      Result.all,
-      Result.map(({ wrappers, node }) => {
-        let root = node;
-        for (const wrap of wrappers.toReversed()) {
-          root = wrap(root);
-        }
-
-        return root;
-      }),
-    );
   }
 }
 

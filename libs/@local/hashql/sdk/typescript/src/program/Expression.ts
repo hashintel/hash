@@ -13,18 +13,12 @@ import { Function, Predicate, Result, Schema, identity, pipe } from "effect";
 import { Relocate } from "../internal/relocation.js";
 import * as JExpr from "../jexpr/index.js";
 import * as AST from "./ast/index.js";
-import * as Fluent from "./Fluent.js";
 import * as ProgramError from "./ProgramError.js";
 import * as TypeExpression from "./TypeExpression.js";
 
 import type { Relocatable } from "../internal/relocation.js";
 import type * as Type from "../type/index.js";
-import type {
-  Accessors,
-  Callable,
-  Conditional,
-  Normalize,
-} from "./ExpressionType.js";
+import type { Accessors, Callable, Conditional } from "./ExpressionType.js";
 import type * as Input from "./Inputs.js";
 import type { Types } from "effect";
 
@@ -119,7 +113,7 @@ class ExpressionImpl<T extends Type.Any, Inputs> {
 /** A symbolic HashQL value with type-directed projection, indexing and calls. */
 export type Expression<T extends Type.Any, Inputs> = Handle<T, Inputs> &
   Accessors<T, Inputs> &
-  Callable<T, Inputs> & { readonly $: Fluent.Operations<Normalize<T>, Inputs> };
+  Callable<T, Inputs>;
 
 /** Recognizes expression handles without checking their semantic types. */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
@@ -197,11 +191,6 @@ const make = <T extends Type.Any, Inputs>(
       receiver,
     ): // oxlint-disable-next-line typescript/no-restricted-types -- proxy property reads may return arbitrary host values
     unknown {
-      if (property === "$") {
-        // oxlint-disable-next-line eslint/no-use-before-define -- the operation factories and expression proxy are mutually recursive
-        return Fluent.make(target, { fromResult, fromJExpr, toJExpr });
-      }
-
       if (property === "$index") {
         return (key: AnyValue) => {
           const expr = Result.map(
@@ -281,9 +270,8 @@ export const fromNode = <T extends Type.Any, Inputs>(
 
 /** A replacement call signature with the source expression's semantic metadata. */
 export type Adapted<T extends Type.Any, I, C> = C &
-  Pick<Handle<T, I>, typeof TypeId | typeof Binding> & {
-    readonly $: Fluent.Operations<Normalize<T>, I>;
-  } & Relocatable<Adapted<T, I, C>>;
+  Pick<Handle<T, I>, typeof TypeId | typeof Binding> &
+  Relocatable<Adapted<T, I, C>>;
 
 /**
  * Adapts host arguments while preserving expression metadata and rebinding.
@@ -307,7 +295,6 @@ export const adaptCallable: {
     Object.assign(adapt(self), {
       [TypeId]: self[TypeId],
       [Binding]: self[Binding],
-      $: self.$,
       [Relocate]: (
         path: JExpr.Path.Path,
       ): Result.Result<Adapted<T, I, C>, ProgramError.Construction> =>

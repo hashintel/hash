@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import { Do as EmptyDo, withPrelude } from "../do/index.js";
 import { Expression, JExpr, Module } from "../main.js";
+import * as Operators from "./Operators.js";
 
 import type { Inputs, Type } from "../main.js";
 
@@ -54,7 +55,7 @@ describe("primitive_lowering", () => {
   test("default_and_boolean_operand", () => {
     expect.hasAssertions();
     const number = Expression.input("number", kernel.types.Number, 1);
-    expect(compile(number.$.eq(2).$.and(true))).toBe(
+    expect(compile(Operators.and(Operators.eq(number, 2), true))).toBe(
       '["::core::bool::and",["::core::cmp::eq",["::kernel::special_form::input","number","::kernel::type::Number",{"#literal":1}],{"#literal":2}],{"#literal":true}]',
     );
   });
@@ -66,7 +67,7 @@ describe("primitive_failures", () => {
     const number = Expression.input("number", kernel.types.Number);
     for (const expression of [
       Expression.literal(value),
-      number.$.eq(value),
+      Operators.eq(number, value),
       Expression.input("default", kernel.types.Number, value),
     ]) {
       const failure = Result.getOrThrow(

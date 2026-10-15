@@ -3,6 +3,7 @@ import { describe, expectTypeOf, test } from "vitest";
 
 import { Do as EmptyDo, withPrelude } from "../do/index.js";
 import { Expression, Module } from "../main.js";
+import * as Operators from "./Operators.js";
 
 import type { Inputs, Type } from "../main.js";
 
@@ -53,28 +54,28 @@ describe("primitive_types", () => {
   test("exact_operands", () => {
     const integer = Expression.literal(1n);
     const number = Expression.literal(1);
-    expectTypeOf(integer.$.eq(2n)).toEqualTypeOf<
-      Expression.Expression<Type.PrimitiveBoolean, Inputs.Empty>
+    expectTypeOf(Operators.eq(integer, 2n)).toEqualTypeOf<
+      Operators.Predicate<Inputs.Empty>
     >();
-    number.$.eq(2);
+    Operators.eq(number, 2);
     // @ts-expect-error A host number does not become Integer through its value.
-    integer.$.eq(2);
+    Operators.eq(integer, 2);
     // @ts-expect-error Integer does not implicitly widen to Number.
-    number.$.eq(2n);
+    Operators.eq(number, 2n);
     // @ts-expect-error Expression handles do not implicitly widen either.
-    number.$.eq(integer);
-    number.$.eq(Expression.assume<Type.PrimitiveNumber>()(integer));
+    Operators.eq(number, integer);
+    Operators.eq(number, Expression.assume<Type.PrimitiveNumber>()(integer));
     expectTypeOf(Expression.assume<Type.PrimitiveNumber>()(1n)).toEqualTypeOf<
       Expression.Expression<Type.PrimitiveNumber, Inputs.Empty>
     >();
     // @ts-expect-error Boolean operations reject numeric truthiness.
-    Expression.literal(true).$.and(1);
+    Operators.and(Expression.literal(true), 1);
     const id = Expression.fromJExpr<
       Type.Opaque<"Id", Type.PrimitiveString>,
       Inputs.Empty
     >("id");
     // @ts-expect-error Strings do not stand in for nominal values.
-    id.$.eq("id");
+    Operators.eq(id, "id");
   });
 });
 
@@ -140,7 +141,10 @@ describe("primitive_requirements", () => {
   test("defaults_and_operations", () => {
     const count = Expression.input("count", kernel.types.Integer, 1n);
     const enabled = Expression.input("enabled", kernel.types.Boolean);
-    const result = count.$.eq(2n).$.and(enabled).$.or(false);
+    const result = Operators.or(
+      Operators.and(Operators.eq(count, 2n), enabled),
+      false,
+    );
     expectTypeOf<Expression.Inputs<typeof result>>().toEqualTypeOf<{
       readonly count?: Type.PrimitiveInteger;
       readonly enabled: Type.PrimitiveBoolean;

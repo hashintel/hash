@@ -123,7 +123,34 @@ const custom = withPrelude({ types: { Count: Prelude.builtin.types.Integer } });
 const closed = custom.program({}, ($) => $.literal(1n));
 ```
 
-`withPrelude` returns `{ program }`, preserving the supplied module, value and type keys. It replaces the default prelude rather than extending it. `$.prelude()` flattens those three namespaces. Colliding type and value exports retain both capabilities on a fresh handle. The original exports are not mutated. Callable generic types dispatch on type arguments, and callable values on value arguments. If an argument has both capabilities, the result can retain both too. `$.modules()` offers flattened module access while each module still exposes its separate `types`, `values` and `modules` records. Namespace metadata takes precedence over same-spelled direct value fields: use `$project("syntax")` for a value field colliding with type syntax, and the separate namespace records for exports whose names collide with `path`, `types`, `values` or `modules`. Exports and projected fields called `then` remain directly accessible. Keep handles inside their construction Result rather than passing them to `await` or `Promise.resolve`. Joined expressions reserve `$`, `$project` and `$index` for expression operations. Function intrinsics such as `name` and `length` do not replace module exports.
+`withPrelude` returns `{ program }`, preserving the supplied module, value and type keys. It replaces the default prelude rather than extending it. `$.prelude()` flattens those three namespaces. Colliding type and value exports retain both capabilities on a fresh handle. The original exports are not mutated. Callable generic types dispatch on type arguments, and callable values on value arguments. If an argument has both capabilities, the result can retain both too. `$.modules()` offers flattened module access while each module still exposes its separate `types`, `values` and `modules` records. Namespace metadata takes precedence over same-spelled direct value fields: use `$project("syntax")` for a value field colliding with type syntax, and the separate namespace records for exports whose names collide with `path`, `types`, `values` or `modules`. Exports and projected fields called `then` remain directly accessible. Keep handles inside their construction Result rather than passing them to `await` or `Promise.resolve`. Joined expressions reserve `$project` and `$index` for explicit access. A field or export named `$` is an ordinary value. Function intrinsics such as `name` and `length` do not replace module exports.
+
+### Operators and imports
+
+Operators are explicit constructors on `$`, not methods attached to every expression. `$.eq(left, right)` returns a Boolean expression with `.and`, `.or` and `.not` methods. The same operations support data-last composition through `pipe`. A `$.let` binding returns a plain expression. Use an operator to compose it again. Standalone code can import `Operators` from `@local/hashql` and use the same constructors.
+
+```ts
+import { pipe } from "effect";
+import { program } from "@local/hashql/draft";
+
+const selection = program({}, ($) => {
+  const match = $.eq(1n, 1n).and($.not(false));
+  const saved = $.let("saved", match);
+  return pipe(saved, $.or(false));
+});
+```
+
+`$.import(module)` emits a lexical import and returns its typed local exports. Pass a name list or an alias record to select exports. An alias of `"_"` keeps the source name. Type and value exports sharing a name remain joined, and generic constructors retain their call signatures. Imports inside a branch or predicate belong to that child callback. They do not change the type or contents of `$.prelude()` or add entries to `$.query`.
+
+```ts
+import { program } from "@local/hashql/draft";
+
+const comparison = program({}, ($) => {
+  const { cmp } = $.modules();
+  const { equal } = $.import(cmp, { eq: "equal" });
+  return $.and(equal(1n, 1n), true);
+});
+```
 
 ### Declarations and structural shorthand
 
@@ -172,7 +199,7 @@ const selected = program({ axis: Structural.type(BigInt) }, ($, inputs) =>
     .entities(inputs.axis)
     .filter("vertex", (predicate, vertex) => {
       const archived = predicate.let("archived", vertex.archived);
-      return archived.$.isFalse();
+      return predicate.isFalse(archived);
     })
     .collect(),
 );
@@ -180,7 +207,7 @@ const selected = program({ axis: Structural.type(BigInt) }, ($, inputs) =>
 
 Declarations made through `predicate` stay inside the emitted filter closure. Capturing `$` from the outer callback instead still addresses the outer context. Likewise, JavaScript can save a branch-local reference and return it elsewhere. Draft does not reject those host-reference escapes: the HashQL compiler owns lexical resolution. Keep declarations on the context of the branch or predicate that uses them. Nested and reentrant programs have independent declaration state.
 
-Expected construction failures return `ProgramError.Construction`. Invalid binding names and non-finite literal initializers fail even when the body never uses their references. Draft continues executing the synchronous callback after such a failure. A user-thrown synchronous exception propagates unchanged. Async callbacks are a type error and an unchecked async callback produces a construction failure rather than a query.
+Expected construction failures return `ProgramError.Construction`. Invalid binding names and non-finite literal initializers fail even when the body never uses their references. Those failures remain on the constructed handles, so the callback can continue. An invalid import cannot supply its promised handles and stops the current callback instead. Its failure still returns through the construction Result, even if host code catches the internal interruption. A user-thrown synchronous exception propagates unchanged. Async callbacks are a type error and an unchecked async callback produces a construction failure rather than a query.
 
 ### Default prelude coverage and authority
 
@@ -194,7 +221,7 @@ Expected construction failures return `ProgramError.Construction`. Invalid bindi
 | Uuid type and constructor                                                   | `core/uuid.rs`                                   |
 | EntityUuid type and constructor                                             | `graph/types/knowledge/entity.rs`                |
 
-The free `eq` function accepts independent argument types. The receiver `.$.eq` remains an exact-type operation. `add` accepts Integer or Number arguments and returns their union, reducing equal descriptors to that descriptor. The SDK never converts Integer to Number implicitly. Module routes are `entity`, `uuid`, `cmp` and `math`. Graph queries and temporal declarations must come from a custom prelude. Do still starts with empty environments.
+The declared prelude `eq` function accepts independent argument types. The operator `$.eq` checks equal semantic descriptors instead. `add` accepts Integer or Number arguments and returns their union, reducing equal descriptors to that descriptor. The SDK never converts Integer to Number implicitly. Module routes are `entity`, `uuid`, `cmp` and `math`. The default prelude has no graph or temporal declarations. Import declared modules in the body or supply them through a custom prelude. `$.query.entities` requires an `entities` declaration in the prelude. Do still starts with empty environments.
 
 ## Shared declarations for the examples
 
@@ -202,7 +229,7 @@ The remaining examples are shorter. Each assumes the imports and declarations be
 
 ```ts
 import { Result } from "effect";
-import { Expression, Module, Program } from "@local/hashql";
+import { Expression, Module, Operators, Program } from "@local/hashql";
 import {
   Do as EmptyDo,
   Import,
@@ -312,7 +339,7 @@ const ordered = Do(
   Let("Integer", ($) => $.literal("a value named Integer")),
   ($, { limit, previous }, { Integer }) =>
     $.if(
-      limit.$.eq("ten"),
+      Operators.eq(limit, "ten"),
       () => previous,
       () => $.input("fallback", Integer),
     ),
@@ -354,7 +381,7 @@ const owner = Do(
     // @ts-expect-error The representation 2n doesn't have the nominal type.
     $.input("id", types.UserId, 2n);
     return $.if(
-      owner.$.eq(UserId(1n)),
+      Operators.eq(owner, UserId(1n)),
       () => $.input("id", types.UserId, UserId(2n)),
       () => owner,
     );
@@ -375,7 +402,7 @@ const shadowedId = Do(
   Newtype("Id", accountId, (_, { Integer }) => Integer),
   (_, { first, Id }) => {
     // @ts-expect-error The later `Id` is a different nominal type.
-    first.$.eq(Id(2n));
+    Operators.eq(first, Id(2n));
     return first;
   },
 );
@@ -551,14 +578,15 @@ A query starts at `$.query.entities(...)`, adds filters and ends with `collect()
 ```ts
 // Uses: the graph fixtures above.
 const isLive = (entity: Expression.Expression<Entity, Inputs.Empty>) =>
-  entity.metadata.archived.$.isFalse();
+  Operators.isFalse(entity.metadata.archived);
 
 const live = graph.Do(($, { now }) =>
   $.query
     .entities(now())
     .filter("entity", isLive)
     .filter("entity", (entity) =>
-      entity.metadata.archived.$.eq(
+      Operators.eq(
+        entity.metadata.archived,
         $.input("archived", $.ref.kernel.types.Boolean, false),
       ),
     )
@@ -592,11 +620,11 @@ An expression handle has two types: the HashQL type of its value, and a record o
 ```ts
 // Uses: kernel, Do.
 const count = Expression.input("count", kernel.types.Integer);
-const nonzero = count.$.ne(0n);
+const nonzero = Operators.ne(count, 0n);
 // Expression.Expression<Type.PrimitiveBoolean, { readonly count: Type.PrimitiveInteger }>
 
 const enabled = Do(($) =>
-  nonzero.$.and($.input("enabled", $.ref.kernel.types.Boolean, true)),
+  Operators.and(nonzero, $.input("enabled", $.ref.kernel.types.Boolean, true)),
 );
 
 export type EnabledInputs = Expression.Inputs<
@@ -753,7 +781,7 @@ const message = (verbose: boolean) =>
     const detail = verbose ? "count equals the target" : "equal";
     // HashQL compares `count` with 30 when the query runs.
     return $.if(
-      count.$.eq(BigInt(target)),
+      Operators.eq(count, BigInt(target)),
       () => detail,
       () => "different",
     );

@@ -7,6 +7,7 @@ import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
 import { Expression, Module, Structural, TypeExpression } from "../main.js";
+import * as Operators from "../program/Operators.js";
 import * as Draft from "./index.js";
 
 import type { Type } from "../main.js";
@@ -59,8 +60,8 @@ describe("draft_namespace", () => {
       expect(Both.then).toBe(child.values.then);
       expect($.modules().Both.then).toBe(child.values.then);
       expect(Both.values.$).toBe(child.values.$);
-      expect(Expression.isExpression(Both.$)).toBe(false);
-      return Both.$.eq(1n);
+      expect(Both.$).toBe(child.values.$);
+      return Operators.eq(Both, 1n);
     });
     expect(result).toSatisfy(Result.isSuccess);
   });

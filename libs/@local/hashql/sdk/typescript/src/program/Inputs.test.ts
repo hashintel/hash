@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import { Do as EmptyDo, Let } from "../do/index.js";
 import { Expression, JExpr, Module } from "../main.js";
+import * as Operators from "./Operators.js";
 
 import type { Type } from "../main.js";
 
@@ -21,7 +22,7 @@ describe("input_composition", () => {
     const snippet = Expression.input("count", integer, Expression.integer(7));
     const first = Result.getOrThrow(EmptyDo(() => snippet));
     const second = Result.getOrThrow(
-      EmptyDo(($) => snippet.$.eq($.input("other", integer))),
+      EmptyDo(($) => Operators.eq(snippet, $.input("other", integer))),
     );
     expect(compile(first)).toBe(
       '["::kernel::special_form::input","count","::kernel::type::Integer",{"#literal":7}]',

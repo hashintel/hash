@@ -2,6 +2,7 @@ import { describe, expectTypeOf, test } from "vitest";
 
 import { Do as EmptyDo, withPrelude } from "../do/index.js";
 import { Expression } from "../main.js";
+import * as Operators from "./Operators.js";
 
 import type { Type } from "../main.js";
 import type * as Inputs from "./Inputs.js";
@@ -14,7 +15,7 @@ type Graph = Type.Opaque<
   Type.Struct<{ readonly "'marker": Vertex }>
 >;
 
-describe("fluent_types", () => {
+describe("query_types", () => {
   test("graph_vertex", () => {
     const { Do } = withPrelude({
       values: {
@@ -31,7 +32,7 @@ describe("fluent_types", () => {
           expectTypeOf(item).toEqualTypeOf<
             Expression.Expression<Vertex, Inputs.Empty>
           >();
-          return item.enabled.$.isFalse();
+          return Operators.isFalse(item.enabled);
         })
         .collect(),
     );
@@ -56,15 +57,13 @@ describe("fluent_types", () => {
       expectTypeOf(integer).toEqualTypeOf<
         Expression.Expression<Type.PrimitiveInteger, Inputs.Empty>
       >();
-      // @ts-expect-error Boolean operations do not belong to an integer.
-      expectTypeOf(integer.$.and);
-      // @ts-expect-error Graph operations do not belong to an integer.
-      expectTypeOf(integer.$.collect);
+      expectTypeOf(integer).not.toHaveProperty("$");
+      expectTypeOf(integer).not.toHaveProperty("collect");
       // @ts-expect-error An integer is not optional.
-      expectTypeOf(integer.$.isNone);
+      Operators.isNone(integer);
       // @ts-expect-error A Boolean conjunction needs a Boolean operand.
-      $.literal(true).$.and(integer);
-      return integer.$.eq($.integer(2));
+      Operators.and($.literal(true), integer);
+      return Operators.eq(integer, $.integer(2));
     });
   });
 });

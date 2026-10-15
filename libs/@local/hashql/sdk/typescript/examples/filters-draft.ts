@@ -40,7 +40,7 @@ const { program } = withPrelude({
 });
 
 const allEntities = program({}, ($) => {
-  const { now } = $.prelude();
+  const { now } = $.import(temporary, { decision_time_now: "now" });
   return $.query.entities(now()).collect();
 });
 
@@ -49,7 +49,8 @@ const entityByUuid = program({}, ($) => {
   return $.query
     .entities(now())
     .filter("vertex", (_, vertex) =>
-      vertex.metadata.record_id.entity_id.entity_uuid.$.eq(
+      $.eq(
+        vertex.metadata.record_id.entity_id.entity_uuid,
         createEntityUuid(createUuid("e2851dbb-7376-4959-9bca-f72cafc4448f")),
       ),
     )
@@ -63,7 +64,8 @@ const suppliedTimeAxis = program(
     return $.query
       .entities(axis)
       .filter("vertex", (_, vertex) =>
-        vertex.metadata.record_id.entity_id.entity_uuid.$.eq(
+        $.eq(
+          vertex.metadata.record_id.entity_id.entity_uuid,
           createEntityUuid(createUuid("e2851dbb-7376-4959-9bca-f72cafc4448f")),
         ),
       )
@@ -77,7 +79,7 @@ const predicateLocalBinding = program({}, ($) => {
     .entities(now())
     .filter("vertex", ($) => {
       const foo = $.let("foo", false);
-      return $.literal(true).$.and($.literal(true).$.or(foo));
+      return $.and(true, $.or(true, foo));
     })
     .collect();
 });
@@ -92,9 +94,9 @@ const publishedEntityById = program(
       .entities(now())
       .filter("vertex", (_, vertex) => {
         const id = vertex.metadata.record_id.entity_id;
-        return id.web_id.$.eq(webId)
-          .$.and(id.entity_uuid.$.eq(entityUuid))
-          .$.and(id.draft_id.$.isNone());
+        return $.eq(id.web_id, webId)
+          .and($.eq(id.entity_uuid, entityUuid))
+          .and($.isNone(id.draft_id));
       })
       .collect();
   },
@@ -106,11 +108,11 @@ const sidebarSelection = program({ web_id: web.types.WebId }, ($, inputs) => {
   return $.query
     .entities(now())
     .filter("vertex", (_, vertex) =>
-      vertex.metadata.record_id.entity_id.web_id.$.eq(webId),
+      $.eq(vertex.metadata.record_id.entity_id.web_id, webId),
     )
     .filter("vertex", (_, vertex) =>
-      vertex.metadata.archived.$.isFalse().$.and(
-        vertex.metadata.record_id.entity_id.draft_id.$.isNone(),
+      $.isFalse(vertex.metadata.archived).and(
+        $.isNone(vertex.metadata.record_id.entity_id.draft_id),
       ),
     )
     .collect();
@@ -130,8 +132,10 @@ const anyOfEntityIds = program({}, ($) => {
         selectedIds,
         // oxlint-disable-next-line unicorn/no-array-reduce -- this is Effect's typed fold, not a native array method
         Array.reduce($.literal(false), (matches, entityUuid) =>
-          matches.$.or(
-            vertex.metadata.record_id.entity_id.entity_uuid.$.eq(
+          $.or(
+            matches,
+            $.eq(
+              vertex.metadata.record_id.entity_id.entity_uuid,
               createEntityUuid(createUuid(entityUuid)),
             ),
           ),
@@ -156,7 +160,7 @@ const optionalDrafts = program(
         $.ifElse(
           includeDrafts,
           () => true,
-          () => vertex.metadata.record_id.entity_id.draft_id.$.isNone(),
+          () => $.isNone(vertex.metadata.record_id.entity_id.draft_id),
         ),
       )
       .collect();

@@ -6,15 +6,20 @@
  * @module
  */
 import type { Relocatable, Relocate } from "../internal/relocation.js";
-import type * as Expression from "../program/Expression.js";
+import type {
+  Expression,
+  Inputs,
+  Module,
+  Operators,
+  Type,
+  TypeExpression,
+} from "../main.js";
 import type { ArgumentInputs, Arguments } from "../program/ExpressionType.js";
-import type * as Inputs from "../program/Inputs.js";
+import type * as Import from "../program/Import.js";
 import type * as Namespace from "../program/Namespace.js";
 import type * as QueryTypes from "../program/Query.js";
 import type * as Scope from "../program/Scope.js";
 import type * as Structural from "../program/Structural.js";
-import type * as TypeExpression from "../program/TypeExpression.js";
-import type * as Type from "../type/index.js";
 
 export type NominalCall<N extends symbol, T extends Type.Any> = <
   const V extends Structural.Value<T> & Structural.AnyValue,
@@ -25,10 +30,6 @@ export type NominalCall<N extends symbol, T extends Type.Any> = <
 /** Each constructor has one rebinding result rather than an intersection of recursive overloads. */
 export interface NominalValue<N extends symbol, T extends Type.Any>
   extends Expression.Any, NominalCall<N, T> {
-  readonly $: Expression.Expression<
-    Type.Function<readonly [T], Type.Opaque<N, T>>,
-    Inputs.Empty
-  >["$"];
   readonly "~hashql/Expression": Expression.Handle<
     Type.Function<readonly [T], Type.Opaque<N, T>>,
     Inputs.Empty
@@ -99,9 +100,18 @@ export type Conditional<
   >
 >;
 
-export interface Context<S extends Scope.Scope> {
+export interface Context<S extends Scope.Scope> extends Operators.Operations {
   readonly prelude: () => Namespace.Flatten<S>;
   readonly modules: () => Namespace.Modules<S>;
+  readonly import: {
+    <M extends Module.Any>(
+      module: M & Import.Rebindable<M>,
+    ): Namespace.Flatten<Import.Imported<M, "*">>;
+    <M extends Module.Any, const I extends Import.Selection<M>>(
+      module: M & Import.Rebindable<M>,
+      selection: I,
+    ): Namespace.Flatten<Import.Imported<M, I>>;
+  };
   readonly literal: typeof Expression.literal;
   readonly integer: typeof Expression.integer;
   readonly number: typeof Expression.number;

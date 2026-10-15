@@ -3,6 +3,7 @@ import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
 import { Expression, Module, Prelude, Structural } from "../main.js";
+import * as Operators from "../program/Operators.js";
 import * as Fixtures from "./fixtures.js";
 import * as Draft from "./index.js";
 
@@ -80,7 +81,7 @@ describe("draft_requirements", () => {
     const defaulted = Expression.input("defaulted", integer, erasedValue);
     const erasedReceiver: Expression.Expression<Type.PrimitiveInteger, never> =
       outside;
-    const receiverCall = erasedReceiver.$.eq(outside);
+    const receiverCall = Operators.eq(erasedReceiver, outside);
     const erasedCallee: Expression.Expression<
       Expression.TypeOf<typeof Prelude.builtin.values.add>,
       never
@@ -247,8 +248,8 @@ describe("draft_requirements", () => {
     }).program({ outside: integer }, ($) => {
       const { Both } = $.prelude();
       const thenValue = Both.then;
-      // @ts-expect-error the fluent operation object is not a module value
-      const dollarValue: Expression.Any = Both.$;
+      const dollarValue = Both.$;
+      expectTypeOf(dollarValue).toEqualTypeOf<typeof child.values.$>();
       expectTypeOf(Both).not.toHaveProperty("$project");
       expectTypeOf(Both).not.toHaveProperty("$index");
       expectTypeOf($.modules().Both.then).toEqualTypeOf<

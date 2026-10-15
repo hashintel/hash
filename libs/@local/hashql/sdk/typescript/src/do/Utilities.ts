@@ -10,6 +10,7 @@
 import { Result } from "effect";
 
 import * as Expression from "../program/Expression.js";
+import * as Operators from "../program/Operators.js";
 import * as ProgramError from "../program/ProgramError.js";
 import * as Query from "../program/Query.js";
 import { Import } from "./Import.js";
@@ -18,6 +19,7 @@ import { Newtype } from "./Newtype.js";
 import * as Node from "./Node.js";
 import { Type as DeclareType } from "./Type.js";
 
+import type { Rebindable } from "../program/Import.js";
 import type * as Input from "../program/Inputs.js";
 import type * as Scope from "../program/Scope.js";
 import type { TypeExpression } from "../program/TypeExpression.js";
@@ -123,29 +125,38 @@ export class Block<S extends Scope.Scope, Inputs> {
   }
 
   Import<M extends NonNullable<Scope.Scope["modules"][string]>>(
-    select: (utilities: Utilities<S>, modules: S["modules"]) => M,
-  ): Block<Scope.Merge<S, M>, Inputs>;
+    select: (
+      utilities: Utilities<S>,
+      modules: S["modules"],
+    ) => M & Rebindable<M>,
+  ): Block<Scope.Merge<S, Imported<M, "*">>, Inputs>;
   Import<
     M extends NonNullable<Scope.Scope["modules"][string]>,
     const Imports extends Selection<M>,
   >(
-    select: (utilities: Utilities<S>, modules: S["modules"]) => M,
+    select: (
+      utilities: Utilities<S>,
+      modules: S["modules"],
+    ) => M & Rebindable<M>,
     imports: Imports,
   ): Block<Scope.Merge<S, Imported<M, Imports>>, Inputs>;
   Import<
     M extends NonNullable<Scope.Scope["modules"][string]>,
     const Imports extends Selection<M>,
   >(
-    select: (utilities: Utilities<S>, modules: S["modules"]) => M,
+    select: (
+      utilities: Utilities<S>,
+      modules: S["modules"],
+    ) => M & Rebindable<M>,
     imports?: Imports,
   ):
-    | Block<Scope.Merge<S, M>, Inputs>
+    | Block<Scope.Merge<S, Imported<M, "*">>, Inputs>
     | Block<Scope.Merge<S, Imported<M, Imports>>, Inputs> {
     if (imports === undefined) {
-      return this.#step(Import(select));
+      return this.#step(Import<S, M>(select));
     }
 
-    return this.#step(Import(select, imports));
+    return this.#step(Import<S, M, Imports>(select, imports));
   }
 
   Expr<T extends Type.Any, BodyInputs>(
@@ -225,10 +236,8 @@ const conditional = <
   // oxlint-disable-next-line unicorn/no-thenable -- these are query branches, not a Promise implementation
   Expression.ifElse(condition, { then: consequent(), else: alternate() });
 
-export interface Utilities<S extends Scope.Scope> extends Block<
-  S,
-  Input.Empty
-> {
+export interface Utilities<S extends Scope.Scope>
+  extends Block<S, Input.Empty>, Operators.Operations {
   readonly literal: typeof Expression.literal;
   readonly integer: typeof Expression.integer;
   readonly number: typeof Expression.number;
@@ -243,6 +252,7 @@ const makeUtilities = <S extends Scope.Scope>(scope: S): Utilities<S> =>
   Object.assign(
     new Block<S, Input.Empty>(Result.succeed({ scope, parents: [] })),
     {
+      ...Operators.operations,
       literal: Expression.literal,
       integer: Expression.integer,
       number: Expression.number,

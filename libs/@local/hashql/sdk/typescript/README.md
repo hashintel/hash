@@ -90,6 +90,8 @@ const query = Result.gen(function* () {
 
 ## Imports
 
+In Draft, `$.import(module, selection?)` emits a lexical import and returns the selected local handles. A selection can be a name list or alias record. Types and values sharing a name keep both capabilities. Use the context of the branch or predicate that should own the import. Importing does not mutate `$.prelude()` or add query entry points.
+
 `Import` emits a HashQL `use` expression and introduces local references. `Import((_, { math }) => math)` imports every exported name. A second argument selects names, such as `["cmp"]`, or renames them, such as `{ cmp: "compare" }`. An alias of `"_"` retains the original name. Each selected name enters every environment in which the module exports it, including a same-named type and constructor. Imported child modules expose references beneath their local module name.
 
 `Do` from `@local/hashql/do` starts with empty environments. `withPrelude` from the same subpath accepts optional `modules`, `values` and `types` records without emitting imports. The positional `Do` overloads support up to eight declaration steps and a final expression. Chained nested blocks have no fixed step count.
@@ -130,7 +132,7 @@ The package does not include a generated standard-library bundle.
 
 Type applications preserve the declared semantic result and retain construction failures. `TypeExpression.toType` returns the underlying type syntax as a `Result`. A type expression is not itself raw `JExpr.Type` syntax.
 
-Expression handles support typed projections, `$project`, `$index` and function calls. Direct `then` access returns `undefined` to prevent Promise assimilation. Use `$project("then")` for that field. Generic function declarations use `Semantic.GenericFunction<Signature>` with a `Semantic.FunctionSignature` mapping argument descriptors to a function signature.
+Expression handles support typed projections, `$project`, `$index` and function calls. A `then` field remains directly accessible. Keep handles inside their construction Result rather than passing them to `await` or `Promise.resolve`. Generic function declarations use `Semantic.GenericFunction<Signature>` with a `Semantic.FunctionSignature` mapping argument descriptors to a function signature.
 
 `$.literal` accepts JavaScript primitives other than `undefined` and symbols. A `number` produces `Semantic.PrimitiveNumber`, and a `bigint` produces `Semantic.PrimitiveInteger`. This distinction follows the host type, not the value: `1` remains Number even when the serializer emits integer literal syntax. Use `$.number` to construct Number explicitly or `$.integer` for checked integer construction. Non-finite numbers produce construction failures.
 
@@ -138,7 +140,7 @@ Compatible primitives also work as function arguments, index keys, input default
 
 `$.input(name, type, defaultValue?)` selects its default only when the host omits the input. The SDK checks matching semantic descriptors rather than general HashQL subtyping. A Number parameter rejects Integer handles and bigints. `$.assume<T>()(expression)` changes the SDK annotation while preserving input requirements. It emits no conversion or HashQL type assertion, and does not prove the new annotation.
 
-Value operations live under `expression.$`: `eq`, `ne`, Boolean `and`, `or`, `isTrue`, `isFalse`, and optional-value `isNone`. Query operations chain directly through `$.query.entities(now()).filter("vertex", predicate).collect()`. The `entities` declaration in the value environment determines the query's argument and vertex types. A filter emits a closure with the supplied parameter name. A query stored in a `Let` binding loses its query-chain methods intentionally, matching a compiler restriction. Complete the chain before binding its collected result.
+Operators start on `$`: `eq`, `ne`, Boolean `and`, `or`, `not`, `isTrue`, `isFalse`, and optional-value `isNone`. Their results support `.and(...)`, `.or(...)` and `.not()` directly. Binary operators also support data-last composition, such as `pipe(predicate, $.and(other))`. Standalone code uses the same constructors through `Operators`. Ordinary expressions have no operator methods. Binding a predicate returns a plain Boolean expression. Query operations chain directly through `$.query.entities(now()).filter("vertex", predicate).collect()`. The `entities` declaration in the value environment determines the query's argument and vertex types. A filter emits a closure with the supplied parameter name. A query stored in a `Let` binding loses its query-chain methods intentionally, matching a compiler restriction. Complete the chain before binding its collected result.
 
 ## Reusable expressions and inputs
 
@@ -146,7 +148,7 @@ Value operations live under `expression.$`: `eq`, `ne`, Boolean `and`, `or`, `is
 
 ```ts
 import { Result } from "effect";
-import { Expression, Module, Program } from "@local/hashql";
+import { Expression, Module, Operators, Program } from "@local/hashql";
 import { Do } from "@local/hashql/do";
 import type { Type } from "@local/hashql";
 
@@ -160,10 +162,10 @@ const query = Result.gen(function* () {
 
   const count = Expression.input("count", kernel.types.Integer);
 
-  const nonzero = count.$.ne(0n);
+  const nonzero = Operators.ne(count, 0n);
 
   const expression = yield* Do(($) =>
-    nonzero.$.and($.input("enabled", kernel.types.Boolean, true)),
+    $.and(nonzero, $.input("enabled", kernel.types.Boolean, true)),
   );
 
   return Program.program(expression);
