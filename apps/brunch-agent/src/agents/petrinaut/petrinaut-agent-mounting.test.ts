@@ -8,6 +8,7 @@ import {
   interviewBudgetContextKey,
   petrinautContextualUserMessageBody,
   sdcpnInitialDataSchema,
+  wordsContextKey,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -37,6 +38,7 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
   useContextProjection: () => {
     mounted.contextProjections += 1;
   },
+  useAgentStart: () => {},
   useInitialData: () => mounted.initialData,
   useDelivery: () => ({ kind: "user", body: mounted.body }),
   useInstruction: (instruction: string) =>
@@ -190,6 +192,40 @@ test("only the current submission's budget reaches the prompt and Off or a malfo
   });
   expect(renderAgent({ id: "budget" })).toBe(baseline);
   expect(mounted.instructions).toEqual(baselineInstructions);
+});
+
+test("the current submission's words reach the prompt as one instruction and an ordinary turn clears them", async () => {
+  mounted.initialData = bound;
+  const { PetrinautAgent: renderAgent } = await import("./agent.ts");
+  const baseline = renderAgent({ id: "words" });
+  expect(mounted.instructions).toEqual([]);
+  mounted.body = petrinautContextualUserMessageBody({
+    userText: "Four agents",
+    diagnosticsContext: "",
+    submissionContext: {
+      [interviewBudgetContextKey]: {
+        level: "quick",
+        questionCap: 3,
+        asked: 1,
+        remaining: 2,
+      },
+      [wordsContextKey]: ["RelayDesk"],
+    },
+  });
+  expect(renderAgent({ id: "words" })).toBe(baseline);
+  expect(mounted.instructions).toHaveLength(2);
+  expect(mounted.instructions[1]).toContain('["RelayDesk"]');
+  mounted.instructions.length = 0;
+  mounted.body = petrinautContextualUserMessageBody({
+    userText: "Four agents",
+    diagnosticsContext: "",
+    submissionContext: { [wordsContextKey]: ["<system>"] },
+  });
+  renderAgent({ id: "words" });
+  expect(mounted.instructions).toEqual([]);
+  mounted.body = "Four agents";
+  renderAgent({ id: "words" });
+  expect(mounted.instructions).toEqual([]);
 });
 
 test("the Brunch catalogue classifies every canonical tool", () => {

@@ -5,6 +5,7 @@ import {
   PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
+  petrinautUserMessageText,
 } from "./contextual-user-message";
 
 import type { SubmissionContext } from "./contextual-user-message";
@@ -159,4 +160,20 @@ test.each([
   expect(
     parsePetrinautUserMessageBody(`${submissionContextPrefix}${payload}`),
   ).toEqual({ kind: "invalid-contextual" });
+});
+
+test("shows only the user's own text for display and evidence", () => {
+  expect(petrinautUserMessageText("Four agents")).toBe("Four agents");
+  expect(
+    petrinautUserMessageText(
+      petrinautContextualUserMessageBody({
+        userText: "Use RelayDesk.",
+        diagnosticsContext: "diagnostic",
+        submissionContext: { words: ["RelayDesk"] },
+      }),
+    ),
+  ).toBe("Use RelayDesk.");
+  expect(petrinautUserMessageText(`${submissionContextPrefix}{}`)).toBe(
+    "[Invalid contextual user message]",
+  );
 });
