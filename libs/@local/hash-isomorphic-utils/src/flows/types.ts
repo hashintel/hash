@@ -97,11 +97,20 @@ export type GoogleSheet = { spreadsheetId: string } | { newSheetName: string };
 
 export type WebSearchResult = Pick<WebPage, "title" | "url">;
 
+/** A length of time. Every unit has a fixed length: a day is 24 hours and a week is 7 days. */
+export type Duration = {
+  amount: number;
+  unit: "seconds" | "minutes" | "hours" | "days" | "weeks";
+};
+
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Aggregation: Aggregation;
   Boolean: boolean;
   Date: string; // e.g. "2025-01-01"
+  /** An ISO 8601 instant with `Z` or an offset, e.g. "2026-10-16T14:00:00Z" */
+  DateTime: string;
+  Duration: Duration;
   EntityId: EntityId;
   FailedEntityProposal: FailedEntityProposal;
   FilterCondition: FilterCondition;
@@ -126,6 +135,8 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
   Aggregation: true,
   Boolean: true,
   Date: true,
+  DateTime: true,
+  Duration: true,
   EntityId: true,
   FailedEntityProposal: true,
   FilterCondition: true,
