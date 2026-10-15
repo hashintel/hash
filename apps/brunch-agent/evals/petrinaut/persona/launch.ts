@@ -56,6 +56,7 @@ import {
 } from "./launch/bridge-log.ts";
 import { writePersonaBrief, writePersonaResumeBrief } from "./launch/brief.ts";
 import { openPersonaConversation } from "./launch/browser.ts";
+import { interviewLengthStorage } from "./launch/interview-length.ts";
 import {
   openRetainedPersonaBrowser,
   readPersonaResume,
@@ -277,6 +278,8 @@ type PersonaLaunchOptions = {
   readonly objective?: string;
   readonly route?: string;
   readonly initialNetPath?: string;
+  /** A level for the website's Interview length; omitted leaves it off. */
+  readonly interviewLength?: string;
   readonly resume?: Awaited<ReturnType<typeof readPersonaResume>>;
   readonly roles?: PersonaRoleSettings;
   /** Undefined on resume reuses the original run's agent. */
@@ -294,6 +297,7 @@ const launchPersona = async ({
   objective,
   route = "/",
   initialNetPath,
+  interviewLength,
   resume,
   roles = resolvePersonaRoleSettings(),
   agent,
@@ -322,6 +326,10 @@ const launchPersona = async ({
       `Resume requires the original panel origin ${resume.config.panelOrigin}; set ${brunchEnv.panelPort} accordingly`,
     );
   const env = personaEnvironment(settings);
+  const interviewLengthEntries =
+    interviewLength === undefined
+      ? undefined
+      : interviewLengthStorage(interviewLength);
   const initialNet =
     initialNetPath === undefined
       ? undefined
@@ -368,6 +376,7 @@ const launchPersona = async ({
           initialNetPath,
           initialNetSha256: initialNet?.sourceSha256,
         }),
+    ...(interviewLength === undefined ? {} : { interviewLength }),
     createdAt: new Date().toISOString(),
     ...resume?.config,
     ...(resume ? { personaAgent: agentSettings } : {}),
@@ -526,6 +535,12 @@ const launchPersona = async ({
           storageKey: "petrinaut-sdcpn",
         },
       );
+    }
+    if (interviewLengthEntries !== undefined) {
+      await page.addInitScript((entries) => {
+        for (const [key, value] of Object.entries(entries))
+          localStorage.setItem(key, value);
+      }, interviewLengthEntries);
     }
     const personaPage = page;
     const recordingPause = async () => {
@@ -796,6 +811,7 @@ if (
       "list-cases": { type: "boolean" },
       objective: { type: "string" },
       "initial-net": { type: "string" },
+      "interview-length": { type: "string" },
       route: { type: "string" },
       "brunch-model": { type: "string" },
       "brunch-thinking": { type: "string" },
@@ -810,7 +826,7 @@ if (
   });
   if (values.help) {
     report(
-      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
+      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--interview-length quick|standard|thorough|deep] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --interview-length turns on the website's Interview length at that level for the whole run; without it the run has none. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
     );
     report(
       `Agent options:\n  --agent ${personaAgentPresets.join("|")}   Start that agent with the persona brief.\n  --agent-command '<shell command with {prompt}>'   Start any other agent; {prompt} becomes the quoted launch prompt.\n  --persona-model <model>   Passed to the --agent preset's own model flag.\n  --persona-thinking <level>   Passed to pi's --thinking (only with --agent pi).\nThe agent runs in a Herdr pane when HERDR_ENV=1, otherwise in this terminal. Without an agent option the launcher prints the launch prompt for you to give any agent. The agent talks to Brunch through <run>/bin/persona (say, transcript, state, end, rpc).`,
@@ -852,6 +868,7 @@ if (
         values.objective ||
         values.route ||
         values["initial-net"] ||
+        values["interview-length"] ||
         values["brunch-model"] ||
         values["brunch-thinking"]
       )
@@ -879,6 +896,7 @@ if (
               values["initial-net"],
             )
           : undefined,
+        interviewLength: values["interview-length"],
         roles: resolvePersonaRoleSettings({
           brunchModel: values["brunch-model"],
           brunchThinking: values["brunch-thinking"],
