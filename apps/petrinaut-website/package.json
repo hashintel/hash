@@ -21,7 +21,6 @@
     "@ai-sdk/openai": "3.0.114",
     "@flue/sdk": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
-    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*",
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",

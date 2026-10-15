@@ -33,7 +33,7 @@ pub(super) struct Check<'parts> {
 
 impl<'parts> Check<'parts> {
     fn report(&mut self, path: DefinitionPath, kind: IssueKind) {
-        self.issues.capture(DefinitionIssue { path, kind });
+        self.issues.capture(DefinitionIssue::new(path, kind));
     }
 
     fn pipeline_sources(&mut self) {
@@ -114,7 +114,10 @@ impl<'parts> Check<'parts> {
                 ),
             },
             Action::Sink(sink) => {
-                self.properties(&sink.properties, &path.clone().field("properties"));
+                self.properties(
+                    &sink.properties,
+                    &path.clone().field("sink").field("properties"),
+                );
             }
         }
     }
@@ -274,16 +277,16 @@ impl<'parts> Check<'parts> {
         }
 
         dependencies.run_order().map_err(|blocked| {
-            Report::new(DefinitionIssue {
-                path: entities,
-                kind: IssueKind::DependencyCycle {
+            Report::new(DefinitionIssue::new(
+                entities,
+                IssueKind::DependencyCycle {
                     pipelines: blocked
                         .into_iter()
                         .filter_map(|index| self.parts.entity_pipelines.get(index))
                         .map(|pipeline| pipeline.source.clone())
                         .collect(),
                 },
-            })
+            ))
         })
     }
 

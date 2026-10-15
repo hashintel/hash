@@ -1,0 +1,22 @@
+# Placeholders resolve against `vars` only. Unknown and unterminated placeholders are reported, and
+# so are variable names that differ only in case.
+connector: demo
+vars:
+  TYPES: https://example.com/@demo/types
+  LIMIT: "10"
+  Limit: "20"
+sources:
+  orders:
+    sql: SELECT 1 AS id
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: orders
+      steps:
+        - id: sink-orders
+          sink:
+            entityType: ${TYPE}/entity-type/order/v/1
+            entityId: id
+            properties:
+              ${TYPES/property-type/id/v/1: id
+              ${HOME}/property-type/note/v/1: id

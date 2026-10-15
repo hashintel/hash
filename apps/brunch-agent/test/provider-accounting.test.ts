@@ -17,9 +17,9 @@ import {
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { afterEach, expect, test } from "vitest";
 
-import { createStepARequestAccounting } from "../src/provider-accounting.ts";
-import { RequestLedger } from "../src/provider-accounting/request-ledger.ts";
-import { withBufferedToolAdmission } from "../src/provider-admission.ts";
+import { createStepARequestAccounting } from "../src/server/provider-accounting.ts";
+import { RequestLedger } from "../src/server/provider-accounting/request-ledger.ts";
+import { withBufferedToolAdmission } from "../src/server/provider-admission.ts";
 
 const native: Provider = anthropicProvider();
 const model = native
@@ -705,7 +705,7 @@ test("accepted unknown uses the larger observed hold and never waives journalPen
 test("two real processes cannot interleave ledger transactions; a stale guard is never stolen", async () => {
   const fixture = setup();
   const source = new URL(
-    "../src/provider-accounting/request-ledger.ts",
+    "../src/server/provider-accounting/request-ledger.ts",
     import.meta.url,
   ).href;
   // Child pauses inside the real transaction's read. This is test-only scheduling,

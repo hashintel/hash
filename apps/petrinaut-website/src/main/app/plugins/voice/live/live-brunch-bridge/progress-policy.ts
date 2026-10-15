@@ -1,7 +1,6 @@
-import { petrinautToolEffects } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { brunchTools } from "@hashintel/brunch-agent/constants";
+import { brunchTools, petrinautToolEffects } from "@hashintel/brunch-agent";
 
-import type { PetrinautToolCapability } from "@hashintel/brunch-agent-plugin-sdcpn";
+import type { PetrinautToolCapability } from "@hashintel/brunch-agent";
 
 type Capability =
   | "read"

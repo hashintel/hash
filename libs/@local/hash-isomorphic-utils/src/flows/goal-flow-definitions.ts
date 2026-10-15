@@ -1,270 +1,95 @@
-import {
-  googleSheetDeliverable,
-  googleSheetStep,
-  googleSheetTriggerInputs,
-} from "./goal-flow-definitions/google-sheets.js";
-import {
-  markdownReportDeliverable,
-  markdownReportResearchEntitiesStepInput,
-  markdownReportStep,
-  markdownReportTriggerInputs,
-} from "./goal-flow-definitions/markdown-report.js";
+import { typedActionDefinitions as actions } from "./action-definitions.js";
+import { constant, defineFlow, flowInput } from "./define-flow.js";
 
-import type {
-  AiFlowActionDefinitionId,
-  InputNameForFlowAction,
-  OutputNameForFlowAction,
-} from "./action-definitions.js";
-import type { FlowDefinition } from "./types.js";
-import type { EntityUuid } from "@blockprotocol/type-system";
-
-export type GoalFlowTriggerInput =
-  | "Research guidance"
-  | "Entity Types"
-  | "Create as draft";
-
-export const goalFlowDefinition = {
-  name: "Research and save to HASH",
-  type: "ai",
-  flowDefinitionId: "research-goal" as EntityUuid,
-  description:
-    "Discover entities according to a research brief, save them to HASH",
-  trigger: {
-    triggerDefinitionId: "userTrigger",
+const goalFlowInputs = {
+  researchGuidance: flowInput("Text", { label: "Research guidance" }),
+  entityTypes: flowInput("VersionedUrl", {
+    array: true,
+    label: "Entity Types",
+  }),
+  draft: flowInput("Boolean", { label: "Create as draft" }),
+  reportSpecification: flowInput("Text", {
+    label: "Report specification",
+    required: false,
     description:
-      "User provides research specification and entity types to discover",
-    kind: "trigger",
-    outputs: [
-      {
-        payloadKind: "Text",
-        name: "Research guidance" satisfies GoalFlowTriggerInput,
-        array: false,
-        required: true,
-      },
-      {
-        payloadKind: "VersionedUrl",
-        name: "Entity Types" satisfies GoalFlowTriggerInput,
-        array: true,
-        required: true,
-      },
-      {
-        payloadKind: "Boolean",
-        name: "Create as draft" satisfies GoalFlowTriggerInput,
-        array: false,
-        required: true,
-      },
-    ],
+      "What the report should cover. Without one, the flow writes no report.",
+  }),
+  googleAccount: flowInput("GoogleAccountId", {
+    label: "Google Account",
+    required: false,
+  }),
+  googleSheet: flowInput("GoogleSheet", {
+    label: "Google Sheet",
+    required: false,
+    description:
+      "The spreadsheet to write the discovered entities to. Without one (or a Google account), the flow writes no spreadsheet.",
+  }),
+};
+
+/** The names of the goal flow's inputs. */
+export type GoalFlowInputName = keyof typeof goalFlowInputs;
+
+/**
+ * Researches entities according to a goal and persists them, optionally writing a report and a Google Sheet:
+ * each deliverable is skipped when the inputs it needs aren't provided.
+ */
+export const goalFlow = defineFlow(
+  {
+    /* research-goal */
+    flowDefinitionId: "ea4ac27d-7fe2-5400-ac72-ab4b41de9f67",
+    name: "Research goal",
+    description:
+      "Discover entities according to a research brief and save them to HASH, optionally writing a report and saving the entities to a Google Sheet",
+    inputs: goalFlowInputs,
   },
-  groups: [
-    {
-      groupId: 1,
-      description: "Research and persist entities",
-    },
-  ],
-  steps: [
-    {
-      stepId: "1",
-      kind: "action",
-      groupId: 1,
-      actionDefinitionId: "researchEntities",
+  ({ inputs, step }) => {
+    const research = step("1", actions.researchEntities, {
       description:
         "Discover entities according to research specification, using public web sources",
-      inputSources: [
-        {
-          inputName:
-            "prompt" satisfies InputNameForFlowAction<"researchEntities">,
-          kind: "step-output",
-          sourceStepId: "trigger",
-          sourceStepOutputName:
-            "Research guidance" satisfies GoalFlowTriggerInput,
-        },
-        {
-          inputName:
-            "entityTypeIds" satisfies InputNameForFlowAction<"researchEntities">,
-          kind: "step-output",
-          sourceStepId: "trigger",
-          sourceStepOutputName: "Entity Types" satisfies GoalFlowTriggerInput,
-        },
-      ],
-    },
-    {
-      stepId: "2",
-      kind: "action",
-      groupId: 1,
+      inputs: {
+        prompt: inputs.researchGuidance,
+        entityTypeIds: inputs.entityTypes,
+        reportSpecification: inputs.reportSpecification,
+      },
+    });
+
+    const persist = step("2", actions.persistEntities, {
       description: "Save discovered entities and relationships to HASH graph",
-      actionDefinitionId: "persistEntities",
-      inputSources: [
-        {
-          inputName:
-            "proposedEntities" satisfies InputNameForFlowAction<"persistEntities">,
-          kind: "step-output",
-          sourceStepId: "1",
-          sourceStepOutputName:
-            "proposedEntities" satisfies OutputNameForFlowAction<"researchEntities">,
-        },
-        {
-          inputName:
-            "draft" satisfies InputNameForFlowAction<"persistEntities">,
-          kind: "step-output",
-          sourceStepId: "trigger",
-          sourceStepOutputName:
-            "Create as draft" satisfies GoalFlowTriggerInput,
-        },
-      ],
-    },
-  ],
-  outputs: [],
-} satisfies FlowDefinition<AiFlowActionDefinitionId>;
+      inputs: {
+        proposedEntities: research.outputs.proposedEntities,
+        draft: inputs.draft,
+      },
+    });
 
-export const goalFlowDefinitionWithSpreadsheetDeliverable: FlowDefinition<AiFlowActionDefinitionId> =
-  {
-    ...goalFlowDefinition,
-    type: "ai",
-    name: "Research and save entities to Google Sheets",
-    flowDefinitionId: "goal-with-spreadsheet" as EntityUuid,
-    description:
-      "Discover entities according to a research brief, save them to HASH and to a Google Sheet",
-    groups: [
-      {
-        groupId: 1,
-        description: "Research and persist entities",
+    const report = step("3", actions.answerQuestion, {
+      description: "Write report based on the research specification",
+      inputs: {
+        question: inputs.reportSpecification.orSkip(),
+        entities: persist.outputs.persistedEntities,
       },
-      {
-        groupId: 2,
-        description: "Deliver Google Sheet",
-      },
-    ],
-    trigger: {
-      ...goalFlowDefinition.trigger,
-      outputs: [
-        ...goalFlowDefinition.trigger.outputs,
-        ...googleSheetTriggerInputs,
-      ],
-    },
-    steps: [
-      ...goalFlowDefinition.steps,
-      {
-        ...googleSheetStep,
-        groupId: 2,
-        stepId: "3",
-      },
-    ],
-    outputs: [
-      {
-        ...googleSheetDeliverable,
-        stepId: "3",
-      },
-    ],
-  };
+    });
 
-export const goalFlowDefinitionWithReportDeliverable: FlowDefinition<AiFlowActionDefinitionId> =
-  {
-    ...goalFlowDefinition,
-    type: "ai",
-    name: "Research and write a report",
-    flowDefinitionId: "goal-with-report" as EntityUuid,
-    description: "Write a report based on a research specification",
-    groups: [
-      {
-        groupId: 1,
-        description: "Research and persist entities",
+    const sheet = step("4", actions.writeGoogleSheet, {
+      description: "Save discovered entities to Google Sheet",
+      inputs: {
+        audience: constant("ActorType", "user"),
+        googleAccountId: inputs.googleAccount.orSkip(),
+        googleSheet: inputs.googleSheet.orSkip(),
+        persistedEntities: persist.outputs.persistedEntities,
       },
-      {
-        groupId: 2,
-        description: "Write report",
-      },
-    ],
-    trigger: {
-      ...goalFlowDefinition.trigger,
-      outputs: [
-        ...goalFlowDefinition.trigger.outputs,
-        ...markdownReportTriggerInputs,
-      ],
-    },
-    steps: [
-      {
-        ...goalFlowDefinition.steps[0]!,
-        inputSources: [
-          ...goalFlowDefinition.steps[0]!.inputSources,
-          markdownReportResearchEntitiesStepInput,
-        ],
-      },
-      goalFlowDefinition.steps[1]!,
-      {
-        ...markdownReportStep,
-        groupId: 2,
-        stepId: "3",
-      },
-    ],
-    outputs: [
-      {
-        ...markdownReportDeliverable,
-        stepId: "3",
-      },
-    ],
-  };
+    });
 
-export const goalFlowDefinitionWithReportAndSpreadsheetDeliverable: FlowDefinition<AiFlowActionDefinitionId> =
-  {
-    ...goalFlowDefinition,
-    type: "ai",
-    name: "Research and write a report, save entities to Google Sheets",
-    flowDefinitionId: "goal-with-report-and-sheet" as EntityUuid,
-    description:
-      "Write a report based on a research specification, save discovered entities to a Google Sheet",
-    groups: [
-      {
-        groupId: 1,
-        description: "Research and persist entities",
+    return {
+      outputs: {
+        report: report.outputs.answer,
+        googleSheetEntity: sheet.outputs.googleSheetEntity,
       },
-      {
-        groupId: 2,
-        description: "Produce deliverables",
-      },
-    ],
-    trigger: {
-      ...goalFlowDefinition.trigger,
-      outputs: [
-        ...goalFlowDefinition.trigger.outputs,
-        ...markdownReportTriggerInputs,
-        ...googleSheetTriggerInputs,
-      ],
-    },
-    steps: [
-      {
-        ...goalFlowDefinition.steps[0]!,
-        inputSources: [
-          ...goalFlowDefinition.steps[0]!.inputSources,
-          markdownReportResearchEntitiesStepInput,
-        ],
-      },
-      goalFlowDefinition.steps[1]!,
-      {
-        ...markdownReportStep,
-        groupId: 2,
-        stepId: "3",
-      },
-      {
-        ...googleSheetStep,
-        groupId: 2,
-        stepId: "4",
-      },
-    ],
-    outputs: [
-      {
-        ...markdownReportDeliverable,
-        stepId: "3",
-      },
-      {
-        ...googleSheetDeliverable,
-        stepId: "4",
-      },
-    ],
-  };
+    };
+  },
+);
 
-export const goalFlowDefinitionIds: string[] = [
-  goalFlowDefinition.flowDefinitionId,
-  goalFlowDefinitionWithSpreadsheetDeliverable.flowDefinitionId,
-  goalFlowDefinitionWithReportDeliverable.flowDefinitionId,
-  goalFlowDefinitionWithReportAndSpreadsheetDeliverable.flowDefinitionId,
-];
+/**
+ * Whether a run or definition is of the goal flow.
+ */
+export const isGoalFlowDefinitionId = (flowDefinitionId: string) =>
+  flowDefinitionId === goalFlow.flowDefinitionId;

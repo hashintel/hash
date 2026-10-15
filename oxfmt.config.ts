@@ -61,6 +61,7 @@ export default defineConfig({
     "**/LICENSE*.md",
     // Brunch Markdown is created and maintained by agents
     "libs/@hashintel/brunch-agent/**/*.md",
+    "apps/brunch-agent/evals/**/*.md",
     // While supported, it doesn't yet support the full breadth
     // of taplo configuration options that we have set
     // see: https://github.com/oxc-project/oxc/issues/18580
@@ -72,5 +73,8 @@ export default defineConfig({
     "**/openapi.json",
     "**/*.aux.mir",
     "**/docs/task-dependencies.json",
+    // Parser test inputs: the snapshots record their exact lines and columns, and some are
+    // invalid YAML on purpose
+    "libs/@local/integrations/definition/tests/ui/**",
   ],
 });

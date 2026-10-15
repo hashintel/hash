@@ -6,6 +6,8 @@ Authentication and rate-limit rejections return `application/problem+json`.
 The problems use `about:blank`, the HTTP status phrase as `title`, and a client-safe explanation as `detail`.
 The kind of an `AuthenticationError` decides its problem, and a kind that stays internal produces a generic internal server error.
 Rate-limit responses carry the delay before retrying in the `Retry-After` header.
+While the budgets are enforced, a response carries a `RateLimit-Policy` and a `RateLimit` item for each budget the request was checked against, as [draft-ietf-httpapi-ratelimit-headers-11](https://www.ietf.org/archive/id/draft-ietf-httpapi-ratelimit-headers-11.html) defines them.
+An authentication `401` carries a `WWW-Authenticate` challenge.
 
 HASH treats replacing `about:blank` with a specific problem type URI as a non-breaking API change.
 Clients should handle unrecognized problem types using the HTTP status code.

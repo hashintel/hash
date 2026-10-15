@@ -28,7 +28,7 @@ use hash_graph_store::{
     error::QueryError,
     filter::{
         Filter, FilterExpression, FilterExpressionList, JsonPath, Parameter, ParameterList,
-        PathToken, protection::transform_filter,
+        PathToken,
     },
     query::CursorField,
     subgraph::{
@@ -384,13 +384,7 @@ where
             };
         let temporal_axes = instant_axes(transaction_time, decision_time);
 
-        // TODO(BE-707): assemble the view-entity policy filter through a shared
-        //  entry point instead of repeating the extraction on every read path.
-        let policy_filter = Filter::<Entity>::for_policies(
-            policy_components.extract_filter_policies(ActionName::ViewEntity),
-            policy_components.actor_id(),
-            policy_components.optimization_data(ActionName::ViewEntity),
-        );
+        let policy_filter = Filter::<Entity>::for_view_entity(&policy_components);
 
         let type_selection = params.filter.entity_type_ids.clone();
 
@@ -398,8 +392,7 @@ where
         // read path applies: the responses mask them, and the user's filters
         // are rewritten so they cannot be probed through row presence or the
         // count.
-        let should_apply_protection =
-            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
+        let should_apply_protection = self.should_apply_filter_protection(&policy_components);
 
         let scope_filter = scope_filter(&params);
         let mut property_filter = property_filters_filter(&params.filter.property_filters);
@@ -412,14 +405,8 @@ where
                 .change_context(QueryError)?;
         }
         if should_apply_protection {
-            property_filter = property_filter.map(|filter| {
-                transform_filter(
-                    filter,
-                    &self.settings.filter_protection,
-                    0,
-                    policy_components.actor_id(),
-                )
-            });
+            property_filter = property_filter
+                .map(|filter| self.apply_filter_protection(filter, &policy_components));
         }
 
         // Only a first page derives a universe: a continuation's token already

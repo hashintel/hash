@@ -4,7 +4,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { canonicalContent } from "@hashintel/brunch-agent";
 import {
   createJsonDocHandle,
   createPetrinaut,
@@ -302,13 +302,14 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     const prepareInput = vi.fn();
     const calls = createInBandBrowserCalls({
       client: Promise.resolve({
-        url: "http://brunch.local/agents/chat/instance",
+        url: "http://brunch.local/agents/petrinaut/instance",
       } as FlueClient),
       principalKey: "principal",
       binding,
       metadataFor: () => undefined,
       prepareInput,
       admit: createBrunchMutationAdmission(coordinator),
+      acceptsRevision: () => true,
     });
     return { calls, coordinator, posted, prepareInput };
   };

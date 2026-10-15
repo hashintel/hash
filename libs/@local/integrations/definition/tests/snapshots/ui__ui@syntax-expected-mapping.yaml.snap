@@ -1,0 +1,6 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/syntax-expected-mapping.yaml
+---
+3:10: expected a mapping

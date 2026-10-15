@@ -1,8 +1,7 @@
-/** Revision recovery safety through the built mount and original local store.
+/** Ledger commit recovery safety through the built mount and original local store.
  * Spawned by `test/integration/history-retention-crash.test.ts`. Fault injection is process-local only.
  */
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -17,8 +16,8 @@ import { createFlueClient } from "@flue/sdk";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
+} from "../src/shared/conversation/identity.ts";
+import { installFauxProvider } from "./install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 
 import type { AgentSendResult, FlueConversationSnapshot } from "@flue/sdk";
@@ -85,23 +84,48 @@ installFauxProvider({
     return faux.provider.streamSimple(model, context, options);
   },
 });
-const markdown =
-  "# A4 synthetic revision\n\nCrash-boundary diagnostic, not elicited testimony. Preserve exact source.\n";
-const nextMarkdown = `${markdown}\n## Recovery continuation\n\nNext synthetic diagnostic revision.\n`;
-const response = (id: string, content: string, baseRevisionId: string | null) =>
+const entries = [
+  [
+    "entity/create",
+    {
+      name: "Crash boundary",
+      kind: "thing",
+      origin: "inferred",
+      status: "confirmed",
+    },
+  ],
+  [
+    "claim/create",
+    {
+      text: "Crash-boundary diagnostic, not elicited testimony. Preserve exact source.",
+      entities: ["$0"],
+      origin: "inferred",
+      status: "confirmed",
+    },
+  ],
+];
+const nextEntries = [
+  [
+    "claim/create",
+    {
+      text: "Next synthetic diagnostic commit after recovery.",
+      entities: ["e1"],
+      origin: "inferred",
+      status: "confirmed",
+      supersedes: ["c1"],
+    },
+  ],
+];
+const response = (id: string, commitEntries: readonly unknown[]) =>
   fauxAssistantMessage(
-    fauxToolCall(
-      "mutate_workpiece",
-      { markdown: content, baseRevisionId },
-      { id },
-    ),
+    fauxToolCall("ledger_commit", { entries: commitEntries }, { id }),
     { stopReason: "toolUse" },
   );
 faux.setResponses(
   phase === "create"
     ? [
-        response("a4-crash-revision", markdown, null),
-        fauxAssistantMessage("Synthetic revision acknowledged."),
+        response("a4-crash-revision", entries),
+        fauxAssistantMessage("Synthetic commit acknowledged."),
       ]
     : Array.from({ length: 6 }, () =>
         fauxAssistantMessage("Recovered diagnostic continuation only."),
@@ -109,7 +133,7 @@ faux.setResponses(
 );
 const application = await loadBuiltBrunchApplication();
 const client = createFlueClient({
-  url: `http://a4.in-process/agents/chat/${flueConversationIdFrom(identity)}`,
+  url: `http://a4.in-process/agents/petrinaut/${flueConversationIdFrom(identity)}`,
   headers: agentOwnershipHeaders(identity),
   fetch: async (input, init) =>
     application.fetch(
@@ -120,78 +144,23 @@ const tools = (snapshot: FlueConversationSnapshot) =>
   snapshot.messages
     .flatMap((message) => message.parts)
     .filter((part) => part.type === "dynamic-tool");
-const assertRevision = (
+const assertCommit = (
   snapshot: FlueConversationSnapshot,
-  revisionId: string,
-  content: string,
-  ordinal: number,
-  previous: {
-    readonly revisionId: string;
-    readonly markdown: string;
-  } | null,
+  commitId: string,
+  commitEntries: readonly unknown[],
+  output: Record<string, unknown>,
 ) => {
-  const pointer = {
-    revisionId,
-    sha256: createHash("sha256").update(content).digest("hex"),
-    ordinal,
-  };
-  const before = previous?.markdown ?? "";
-  let commonPrefixUtf16 = 0;
-  while (
-    commonPrefixUtf16 < before.length &&
-    commonPrefixUtf16 < content.length &&
-    before[commonPrefixUtf16] === content[commonPrefixUtf16]
-  )
-    commonPrefixUtf16 += 1;
-  let commonSuffixUtf16 = 0;
-  while (
-    commonSuffixUtf16 < before.length - commonPrefixUtf16 &&
-    commonSuffixUtf16 < content.length - commonPrefixUtf16 &&
-    before[before.length - commonSuffixUtf16 - 1] ===
-      content[content.length - commonSuffixUtf16 - 1]
-  )
-    commonSuffixUtf16 += 1;
-  const removedEnd = before.length - commonSuffixUtf16;
-  const insertedEnd = content.length - commonSuffixUtf16;
-  const removed = before.slice(commonPrefixUtf16, removedEnd);
-  const inserted = content.slice(commonPrefixUtf16, insertedEnd);
-  const tool = tools(snapshot).find((part) => part.toolCallId === revisionId);
+  const tool = tools(snapshot).find((part) => part.toolCallId === commitId);
   assert(tool?.state === "output-available");
   assert.deepEqual(
     tool.input,
-    { markdown: content, baseRevisionId: previous?.revisionId ?? null },
+    { entries: commitEntries },
     "Raw call input survives",
   );
-  assert.deepEqual(
+  assert.partialDeepStrictEqual(
     tool.output,
-    {
-      disposition: "applied",
-      applied: true,
-      ...pointer,
-      mutation: {
-        baseRevisionId: previous?.revisionId ?? null,
-        beforeSha256:
-          previous === null
-            ? null
-            : createHash("sha256").update(previous.markdown).digest("hex"),
-        afterSha256: pointer.sha256,
-        commonPrefixUtf16,
-        commonSuffixUtf16,
-        removed: {
-          start: commonPrefixUtf16,
-          end: removedEnd,
-          utf16Length: removed.length,
-          sha256: createHash("sha256").update(removed).digest("hex"),
-        },
-        inserted: {
-          start: commonPrefixUtf16,
-          end: insertedEnd,
-          utf16Length: inserted.length,
-          sha256: createHash("sha256").update(inserted).digest("hex"),
-        },
-      },
-    },
-    "Stable call/result identity, ordinal, and pointer-only receipt",
+    { status: "recorded", commitId, ...output },
+    "Stable call identity and host-assigned record IDs",
   );
 };
 try {
@@ -206,13 +175,13 @@ try {
       },
       message: {
         kind: "user",
-        body: "Record the explicitly synthetic crash diagnostic revision.",
+        body: "Record the explicitly synthetic crash diagnostic commit.",
       },
     });
     writeFileSync(
       join(directory, "receipt.json"),
       `${JSON.stringify(
-        { receipt, pid: process.pid, identity, markdown },
+        { receipt, pid: process.pid, identity, entries },
         null,
         2,
       )}\n`,
@@ -232,20 +201,20 @@ try {
     assert.notEqual(process.pid, original.pid);
     await client.read(original.receipt, { signal: AbortSignal.timeout(60000) });
     save("store-after-recovery", inspect());
-    // The recovered state is observed at the product boundary: the next
-    // settlement must carry ordinal 2 and the recovered revision as previous.
+    // The recovered Ledger is observed at the product boundary: the next
+    // commit must supersede the recovered Note under the next address.
     const recovered = await client.history();
     save("history", recovered);
     faux.setResponses([
-      response("a4-next-revision", nextMarkdown, "a4-crash-revision"),
-      fauxAssistantMessage("Next revision acknowledged."),
+      response("a4-next-revision", nextEntries),
+      fauxAssistantMessage("Next commit acknowledged."),
     ]);
     await client.read(
       await client.send({
         uid: original.receipt.uid,
         message: {
           kind: "user",
-          body: "Record the next synthetic revision to expose the recovered ordinal.",
+          body: "Record the next synthetic commit to expose the recovered Ledger.",
         },
       }),
       { signal: AbortSignal.timeout(30000) },
@@ -260,18 +229,21 @@ try {
       nextTools: tools(next),
       providerCalls: faux.state.callCount,
     });
-    // Persist both observations before asserting, so failures retain the next ordinal too.
-    assertRevision(recovered, "a4-crash-revision", markdown, 1, null);
-    assertRevision(next, "a4-next-revision", nextMarkdown, 2, {
-      revisionId: "a4-crash-revision",
-      markdown,
+    // Persist both observations before asserting, so failures retain the next commit too.
+    assertCommit(recovered, "a4-crash-revision", entries, {
+      revision: 1,
+      ids: ["e1", "c1"],
+    });
+    assertCommit(next, "a4-next-revision", nextEntries, {
+      revision: 2,
+      ids: ["c2"],
     });
     assert.deepEqual(
       tools(next).map((part) => part.toolCallId),
       ["a4-crash-revision", "a4-next-revision"],
-      "Recovery must not reissue the completed call or reuse a revision ID",
+      "Recovery must not reissue the completed call or reuse a commit ID",
     );
-    save("safety", { verdict: "Pass", exactState: true, nextOrdinal: 2 });
+    save("safety", { verdict: "Pass", exactLedger: true, nextRevision: 2 });
   }
 } finally {
   await application.stop();

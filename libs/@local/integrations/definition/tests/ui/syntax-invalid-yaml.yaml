@@ -1,0 +1,3 @@
+# Text that is not YAML stops parsing at the first error.
+connector: "demo
+sources: {}

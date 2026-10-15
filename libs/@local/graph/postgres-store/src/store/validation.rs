@@ -603,11 +603,7 @@ where
         let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
 
         if let Some(policy_components) = &self.policy_components {
-            let filter = Filter::<Entity>::for_policies(
-                policy_components.extract_filter_policies(ActionName::ViewEntity),
-                policy_components.actor_id(),
-                policy_components.optimization_data(ActionName::ViewEntity),
-            );
+            let filter = Filter::<Entity>::for_view_entity(policy_components);
             filters.push(filter);
         }
 

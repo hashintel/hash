@@ -14,18 +14,19 @@ import { resolvePayloadValue } from "./payload-storage.js";
 import type { FileStorageProvider } from "../file-storage.js";
 import type { ResolvePayloadContext } from "./payload-storage.js";
 import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
   CheckpointLog,
   DetailedFlowField,
   ExternalInputRequest,
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
-  FlowInputs,
   FlowSignalType,
   ProgressLogSignal,
   ResolvedPayload,
   ResolvedStepOutput,
   ResolvedStepRunOutput,
+  SkippedStep,
   SparseFlowRun,
   StepOutput,
   StepRunOutput,
@@ -219,9 +220,11 @@ const getFlowRunDetailedFields = async ({
         .EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
   )?.workflowExecutionStartedEventAttributes;
 
-  const workflowInputs = parseHistoryItemPayload(
-    workflowExecutionStartedEventAttributes?.input,
-  ) as FlowInputs | undefined;
+  /* `runFlow` takes one argument: its params. */
+  const [workflowParams] =
+    (parseHistoryItemPayload(workflowExecutionStartedEventAttributes?.input) as
+      | [RunFlowWorkflowParams]
+      | undefined) ?? [];
 
   /**
    * If this workflow run has been started after the original was reset or 'continue-as-new'd,
@@ -637,8 +640,27 @@ const getFlowRunDetailedFields = async ({
     }
   }
 
-  if (!workflowInputs) {
+  if (!workflowParams) {
     throw new Error("No workflow inputs found");
+  }
+
+  /**
+   * A skipped step runs no activity, so it isn't in the history: the engine records it in the memo instead.
+   */
+  const skippedSteps =
+    (workflow.memo?.skippedSteps as SkippedStep[] | undefined) ?? [];
+
+  for (const { stepId, stepType, skippedAt } of skippedSteps) {
+    unresolvedStepMap[stepId] = {
+      stepId,
+      stepType,
+      scheduledAt: skippedAt,
+      closedAt: skippedAt,
+      attempt: 0,
+      inputs: [],
+      logs: [],
+      status: FlowStepStatus.Skipped,
+    };
   }
 
   for (const step of Object.values(unresolvedStepMap)) {
@@ -687,8 +709,6 @@ const getFlowRunDetailedFields = async ({
   );
 
   // Resolve stored payload references in workflow outputs for consistency with step outputs.
-  // Workflow outputs may reference the same S3 locations as step outputs, so we use the same
-  // cache to avoid redundant downloads.
   let resolvedWorkflowOutputs: ResolvedStepRunOutput[] | undefined;
   if (workflowOutputs && Array.isArray(workflowOutputs)) {
     resolvedWorkflowOutputs = await Promise.all(
@@ -718,7 +738,13 @@ const getFlowRunDetailedFields = async ({
 
   return {
     failureMessage: workflowFailureMessage,
-    inputs: workflowInputs,
+    /**
+     * A run started before flows declared inputs was given a trigger instead, so it has no input values to show.
+     */
+    flowInputs:
+      (workflowParams as Partial<RunFlowWorkflowParams>).flowInputs ?? {},
+    dataSources:
+      "dataSources" in workflowParams ? workflowParams.dataSources : undefined,
     outputs: resolvedWorkflowOutputs ?? workflowOutputs,
     inputRequests: Object.values(inputRequestsById),
     steps,

@@ -83,11 +83,10 @@ const parseAndResolveCoordinatorInputs = async (params: {
 
   const { userAuthentication, workflowId } = await getFlowContext();
 
-  // Resolve the stored ref to get the array of PersistedEntitiesMetadata
   const inputExistingEntities = existingEntitiesInput
     ? await resolvePayloadValue(
         { storageProvider: getStorageProvider(), workflowId },
-        "PersistedEntitiesMetadata",
+        "PersistedEntityMetadata",
         existingEntitiesInput,
       )
     : undefined;

@@ -8,7 +8,7 @@ export const styles = sva({
       width: "[fit-content]",
       gap: "[6px]",
       cursor: "pointer",
-      lineHeight: "[1.2]",
+      lineHeight: "[round(1em * 1.2, 1px)]",
       "&[data-disabled]": {
         cursor: "unset",
         color: "neutral.s75",

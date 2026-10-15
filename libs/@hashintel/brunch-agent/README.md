@@ -1,26 +1,9 @@
-# Brunch agent
+# `@hashintel/brunch-agent`
 
-Brunch is the elicitation agent used by Petrinaut to build and explain operational-process models. This directory groups its reusable packages, runtime guidance, and persona-test cases; it is not itself a package workspace.
+What the Brunch agent app (`apps/brunch-agent`) and the Petrinaut website (`apps/petrinaut-website`) share: Brunch's named constants, conversation identity, the browser-tool envelope and message metadata, the Petrinaut tool contracts, and the Ledger with its projection. It has one entry and is browser-safe; it never imports the Flue runtime. Code that only one app needs belongs in that app.
 
-## Packages
-
-- [`packages/core/`](./packages/core/) — `@hashintel/brunch-agent`: the core prompt, elicitation skill, workpiece contracts, and Flue contribution.
-- [`packages/plugin-sdcpn/`](./packages/plugin-sdcpn/) — the mounted SDCPN/Petrinaut plugin, including its prompt, modelling skill, and construction tools.
-
-The AI SDK transport over a Flue conversation, including the live tool-input channel, is the product-neutral [`@local/flue-aisdk-transport`](../../@local/flue-aisdk-transport/). Brunch supplies its browser-tool envelope and message-metadata projection to it through core's browser-safe slices, and the SDCPN plugin supplies Petrinaut's contextual-message framing.
-
-The server and composition point live in [`apps/brunch-agent/`](../../../apps/brunch-agent/). Petrinaut’s browser-side integration lives in [`apps/petrinaut-website/`](../../../apps/petrinaut-website/).
-
-## Development
-
-From the repository root:
+The agents themselves, their guidance, Flue tools and evaluations live in [`apps/brunch-agent`](../../../apps/brunch-agent/README.md). The Petrinaut agent's architecture, including the Ledger and the browser boundary, is in [`apps/brunch-agent/docs/petrinaut/ARCHITECTURE.md`](../../../apps/brunch-agent/docs/petrinaut/ARCHITECTURE.md).
 
 ```sh
-yarn dev:brunch
-yarn workspace @apps/brunch-agent test:unit
 yarn workspace @hashintel/brunch-agent test:unit
 ```
-
-Run other checks through the owning workspace or Turbo. The repository root owns dependency resolution and the lockfile.
-
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for implemented boundaries and invariants, and [`EVALUATIONS.md`](./EVALUATIONS.md) for the retained persona-testing surface.

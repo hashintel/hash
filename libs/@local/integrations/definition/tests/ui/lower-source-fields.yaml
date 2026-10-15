@@ -1,0 +1,14 @@
+# An SQL source needs a primary key, and a checkpoint source cannot have one.
+connector: demo
+sources:
+  orders:
+    sql: SELECT 1 AS id
+  copies:
+    checkpoint: demo/orders
+    primaryKey: [id]
+  lines:
+    sql: SELECT 1 AS id
+    primaryKey: [id, id]
+  empty:
+    sql: "  "
+    primaryKey: [id]

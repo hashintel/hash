@@ -19,7 +19,7 @@ use hash_graph_api::{
     rest::{
         self,
         authentication::{
-            CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig,
+            KratosSessionConfig, SessionCacheConfig,
             api_token::{self, ApiTokenEncryptionKey, ApiTokenIssuer},
         },
         legacy::{
@@ -664,7 +664,6 @@ where
 /// Resolved authentication configuration for the REST and admin routers.
 pub(crate) struct AuthenticationSetup {
     pub session_auth: KratosSessionConfig,
-    pub cloudflare_access: Option<CloudflareAccessConfig>,
     pub service_secret: Pin<Arc<Secret<str>>>,
     pub api_tokens: Option<Arc<ApiTokenIssuer>>,
 }
@@ -716,7 +715,6 @@ where
         query_logger,
         api_config: config.api_config,
         session_auth: authentication.session_auth,
-        cloudflare_access: authentication.cloudflare_access,
         service_secret: authentication.service_secret,
         api_tokens: authentication.api_tokens,
         rate_limit: config.rate_limit,
@@ -741,7 +739,11 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
     // Validate the configuration before connecting anywhere, so a misconfigured server fails
     // without tearing down established connections.
     let session_auth = args.config.session_auth.clone().into_provider_config()?;
-    let cloudflare_access = cloudflare_access_config(&args.admin)?;
+    let admin_cloudflare_access = if args.embed_admin {
+        cloudflare_access_config(&args.admin)?
+    } else {
+        None
+    };
     let service_secret = require_service_secret(args.config.service_secret.take())?;
     let api_tokens = args.config.api_tokens.issuer()?.map(Arc::new);
 
@@ -786,6 +788,7 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
         start_admin_server(
             pool.clone(),
             args.admin,
+            admin_cloudflare_access,
             Pin::clone(&service_secret),
             telemetry.meter("Graph Admin API"),
             &lifecycle,
@@ -850,7 +853,6 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
         args.config,
         AuthenticationSetup {
             session_auth,
-            cloudflare_access,
             service_secret,
             api_tokens,
         },

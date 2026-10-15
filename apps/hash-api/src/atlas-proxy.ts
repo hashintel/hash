@@ -16,6 +16,18 @@ import type { Express, Request, Response } from "express";
 export const ATLAS_AUTHORITY_HEADER = "Atlas-Authority";
 
 /**
+ * The rate-limit fields the atlas answers with, which the caller's script paces its requests by.
+ *
+ * None of them is CORS-safelisted, so each is named in `Access-Control-Expose-Headers` like
+ * {@link ATLAS_AUTHORITY_HEADER}.
+ */
+export const ATLAS_RATE_LIMIT_HEADERS = [
+  "RateLimit-Policy",
+  "RateLimit",
+  "Retry-After",
+] as const;
+
+/**
  * The path this API mounts the atlas surface at.
  */
 export const ATLAS_MOUNT_PATH = "/atlas";
@@ -57,11 +69,12 @@ const atlasTarget = () => {
  * `fixRequestBody` writes nothing and the unread stream is piped through as it arrived.
  *
  * Payloads therefore cross the hop byte for byte; the mount's one addition is to the CORS envelope -
- * `Atlas-Authority` is exposed so the caller's own script can read the token it was just handed.
+ * `Atlas-Authority` is exposed so the caller's own script can read the token it was just handed,
+ * and {@link ATLAS_RATE_LIMIT_HEADERS} so it can pace its requests.
  * The saltile media types, the `Cache-Control: private, no-store` posture, and RFC 9457
  * `application/problem+json` bodies all arrive verbatim. Request caps are the atlas's own and its
- * generation manifest publishes them. Rate limiting belongs to whatever fronts this API; the route
- * applies none.
+ * generation manifest publishes them. The atlas enforces its own request budgets; this route adds
+ * none.
  *
  * Without the expose line the token never reaches the caller's script, and nothing reports it: the frontend reaches this
  * mount cross-origin (`apiOrigin` is a different origin from `frontendUrl` by default and by
@@ -80,7 +93,10 @@ export const setupAtlasProxy = (app: Express, logger: Logger) => {
     // Stated before the hop rather than in `proxyRes`: the value does not depend on the upstream
     // response, and a header set here survives the proxy's own header copying.
     (_req, res, next) => {
-      res.setHeader("Access-Control-Expose-Headers", ATLAS_AUTHORITY_HEADER);
+      res.setHeader(
+        "Access-Control-Expose-Headers",
+        [ATLAS_AUTHORITY_HEADER, ...ATLAS_RATE_LIMIT_HEADERS].join(", "),
+      );
       next();
     },
     createProxyMiddleware<Request, Response>({

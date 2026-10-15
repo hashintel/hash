@@ -19,18 +19,18 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
-import { brunchTools } from "@hashintel/brunch-agent";
 import {
   browserToolOutput,
+  brunchTools,
   projectBrunchMessageMetadata,
-} from "@hashintel/brunch-agent/client-tools";
+} from "@hashintel/brunch-agent";
 import { createFlueAiSdkAdapter } from "@local/flue-aisdk-transport";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../../src/conversation/identity.ts";
-import { installFauxProvider } from "../../src/evaluations/install-faux-provider.ts";
+} from "../../src/shared/conversation/identity.ts";
+import { installFauxProvider } from "../install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 import type { AdmissionVoiceEvidence } from "../admission-voice-evidence.ts";
@@ -87,13 +87,24 @@ installFauxProvider({
   },
 } satisfies Provider);
 const question = "What remains unknown?";
-const privateMarkdown =
-  "# Workpiece payload must not be spoken\nUnknown timing.";
-const makeCall = (name: string, baseRevisionId: string | null) =>
+const privateMarkdown = "Ledger payload must not be spoken. Unknown timing.";
+const ledgerChanges = (content: string) => ({
+  entries: [
+    [
+      "entity/create",
+      { name: "Timing", kind: "thing", origin: "inferred", status: "open" },
+    ],
+    [
+      "claim/create",
+      { text: content, entities: ["$0"], origin: "inferred", status: "open" },
+    ],
+  ],
+});
+const makeCall = (name: string) =>
   fauxToolCall(
     name,
-    name === brunchTools.mutateWorkpiece
-      ? { markdown: privateMarkdown, baseRevisionId }
+    name === brunchTools.ledgerCommit
+      ? ledgerChanges(privateMarkdown)
       : { question },
     { id: `${caseId}-${name}` },
   );
@@ -111,7 +122,7 @@ const run = async () => {
       },
     };
     const client = createFlueClient({
-      url: `http://brunch.local/agents/chat/${flueConversationIdFrom(
+      url: `http://brunch.local/agents/petrinaut/${flueConversationIdFrom(
         identity,
       )}`,
       headers: agentOwnershipHeaders(identity),
@@ -144,11 +155,8 @@ const run = async () => {
       fauxAssistantMessage(
         [
           fauxToolCall(
-            brunchTools.mutateWorkpiece,
-            {
-              markdown: "# Synthetic settled account\nUnknown timing.",
-              baseRevisionId: null,
-            },
+            brunchTools.ledgerCommit,
+            ledgerChanges("Synthetic settled account. Unknown timing."),
             { id: revisionId },
           ),
         ],
@@ -175,7 +183,7 @@ const run = async () => {
       caseId = names.join("-");
       const conversation = clientFor();
       const requestStart = requests.length;
-      const generated = names.map((name) => makeCall(name, null));
+      const generated = names.map((name) => makeCall(name));
       faux.setResponses([
         fauxAssistantMessage(generated, { stopReason: "toolUse" }),
         fauxAssistantMessage([fauxText(question)]),
@@ -192,16 +200,14 @@ const run = async () => {
         providerCalls: requests.length - requestStart,
       });
     }
-    caseId = brunchTools.mutateWorkpiece;
+    caseId = brunchTools.ledgerCommit;
     const conversation = clientFor();
-    const baseRevisionId = `${caseId}-old-revision`;
-    const seeding = await seedRevision(conversation, baseRevisionId);
+    const seeding = await seedRevision(conversation, `${caseId}-old-revision`);
     const requestStart = requests.length;
     faux.setResponses([
-      fauxAssistantMessage(
-        [makeCall(brunchTools.mutateWorkpiece, baseRevisionId)],
-        { stopReason: "toolUse" },
-      ),
+      fauxAssistantMessage([makeCall(brunchTools.ledgerCommit)], {
+        stopReason: "toolUse",
+      }),
       fauxAssistantMessage([fauxText(question)]),
     ]);
     const attempt = await conversation.send({
@@ -249,7 +255,7 @@ const run = async () => {
       const message = fauxAssistantMessage(
         [
           fauxText(text),
-          makeCall(abort ? "addType" : brunchTools.mutateWorkpiece, null),
+          makeCall(abort ? "addType" : brunchTools.ledgerCommit),
         ],
         { stopReason: "toolUse" },
       );

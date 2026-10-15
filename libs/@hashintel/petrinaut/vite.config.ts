@@ -7,6 +7,7 @@ const declarationFilePattern = /\.d\.[cm]?ts$/;
 const externalDependencies = [
   "@hashintel/ds-components",
   "@hashintel/ds-helpers",
+  /^@hashintel\/ds-icons(\/.*)?$/,
   /^@hashintel\/petrinaut-core(\/.*)?$/,
   /^react(\/.*)?$/,
   /^react-dom(\/.*)?$/,

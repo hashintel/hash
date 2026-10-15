@@ -19,7 +19,7 @@ const appRoot = fileURLToPath(new URL(".", import.meta.url));
 
 // Resolve Brunch workspace packages to their TypeScript source while serving;
 // builds keep dist. See "Loading workspace source in dev" in
-// libs/@hashintel/brunch-agent/ARCHITECTURE.md.
+// apps/brunch-agent/docs/petrinaut/ARCHITECTURE.md.
 const workspaceSourceCondition = "@dev/source";
 
 const loadServerEnv = (mode: string) => {
@@ -39,6 +39,7 @@ const apiModules = [
   ["/api/voice/realtime-call", "/api/voice/realtime-call.ts"],
   ["/api/voice/live-session", "/api/voice/live-session.ts"],
   ["/api/voice/mediation", "/api/voice/mediation.ts"],
+  ["/api/voice/utterance-judgment", "/api/voice/utterance-judgment.ts"],
   ["/api/voice/transcription-session", "/api/voice/transcription-session.ts"],
 ] as const;
 

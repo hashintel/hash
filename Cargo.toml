@@ -251,7 +251,6 @@ napi-build                         = { version = "2.3.2", default-features = fal
 napi-derive                        = { version = "3.5.6", default-features = false, features = ["type-def"] }
 nextest-filtering                  = { version = "0.21.0", default-features = false }
 nextest-metadata                   = { version = "0.14.0", default-features = false }
-nodejs_package_json                = { version = "0.4.4" }
 opendata-common                    = { package = "opendata-common", version = ">=0.1.17, <0.1.18", default-features = false }                                                                      # 0.1.18 requires `slatedb` 0.14, but `opendata-log` 1.0.0 requires 0.13. `package` names the crate `opendata_common` in code; its library target is `common`
 opendata-log                       = { package = "opendata-log", version = "1.0.0", default-features = false }                                                                                     # `package` names the crate `opendata_log` in code; its library target is `log`
 opentelemetry                      = { version = "0.32.0", default-features = false }
@@ -272,6 +271,7 @@ prettyplease                       = { version = "0.2.37", default-features = fa
 proc-macro2                        = { version = "1.0.103", default-features = false }
 prometheus-client                  = { version = "0.24.0", default-features = false }
 proptest                           = { version = "1.7.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
+proptest-derive                    = { version = "0.8.0", default-features = false }
 quote                              = { version = "1.0.41", default-features = false }
 railroad                           = { version = "0.3.9", default-features = false }
 rancor                             = { version = "0.1.2", default-features = false }
@@ -302,6 +302,7 @@ sentry                             = { version = "0.48.0", default-features = fa
 sentry-core                        = { version = "0.48.0", default-features = false }
 sentry-types                       = { version = "0.48.0", default-features = false }
 serde                              = { version = "1.0.229", default-features = false }
+serde-saphyr                       = { version = "1.3.0", default-features = false, features = ["deserialize"] }
 serde_core                         = { version = "1.0.229", default-features = false }
 serde_json                         = { version = "1.0.145" }
 serde_plain                        = { version = "1.0.2", default-features = false }

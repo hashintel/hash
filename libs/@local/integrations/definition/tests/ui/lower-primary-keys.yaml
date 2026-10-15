@@ -1,0 +1,21 @@
+# Primary keys need at least one column, each column once, and valid column names.
+connector: demo
+sources:
+  empty:
+    sql: SELECT 1 AS id
+    primaryKey: []
+  repeated:
+    sql: SELECT 1 AS id, 'EU' AS region
+    primaryKey: [id, region, id]
+  invalid:
+    sql: SELECT 1 AS id
+    primaryKey: [id, ""]
+  invalid_repeated:
+    sql: SELECT 1 AS id
+    primaryKey: [id, "", id]
+  unresolved_repeated:
+    sql: SELECT 1 AS id
+    primaryKey: [id, "${MISSING}", id]
+  all_invalid:
+    sql: SELECT 1 AS id
+    primaryKey: ["", "${MISSING}"]

@@ -52,7 +52,9 @@ use hash_graph_store::{
 };
 #[cfg(feature = "unsafe-dev-endpoints")]
 use hash_middleware::authentication::ServiceSecretLayer;
-use hash_middleware::authentication::{AuthenticationLayer, provider::AuthenticationProvider};
+use hash_middleware::authentication::{
+    AuthenticationLayer, Challenge, provider::AuthenticationProvider,
+};
 use hash_secret::Secret;
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
@@ -99,6 +101,14 @@ pub struct ExternalServicesConfig {
 pub fn routes<P>(
     store_pool: Arc<PostgresStorePool>,
     authentication_provider: Arc<P>,
+    #[cfg_attr(
+        not(feature = "unsafe-dev-endpoints"),
+        expect(
+            unused_variables,
+            clippy::needless_pass_by_value,
+            reason = "only the unsafe dev endpoints check the secret"
+        )
+    )]
     service_secret: Pin<Arc<Secret<str>>>,
     authentication_metrics: Arc<authentication::AuthenticationMetrics>,
     external_services: ExternalServicesConfig,
@@ -117,15 +127,15 @@ where
 
     #[cfg(feature = "unsafe-dev-endpoints")]
     let secret_layer = ServiceSecretLayer {
-        service_secret: Pin::clone(&service_secret),
+        service_secret,
         metrics: Arc::clone(&authentication_metrics),
     };
 
     let router = probe::router().merge(protected.route_layer(AuthenticationLayer::<_, ActorId> {
         provider: authentication_provider,
-        service_secret,
         metrics: authentication_metrics,
-        bootstrap_route: super::is_bootstrap_route,
+        bootstrap: None,
+        challenge: Challenge::Service,
         caller: core::marker::PhantomData,
     }));
 
@@ -393,7 +403,8 @@ async fn delete_user(
         let code = match report.current_context() {
             UserDeletionError::UserLookup => StatusCode::Unavailable,
             UserDeletionError::MissingKratosIdentityId => StatusCode::FailedPrecondition,
-            UserDeletionError::EntityDeletion
+            UserDeletionError::ApiTokenRevocation
+            | UserDeletionError::EntityDeletion
             | UserDeletionError::KratosDeletion
             | UserDeletionError::UnknownIdentity
             | UserDeletionError::HydraLoginRevocation

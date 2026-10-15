@@ -11,12 +11,17 @@ import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-type
 const unsupportedPayloadKinds = [
   /** @todo support ActorType to vary Sheet output formatting */
   "ActorType",
+  "Aggregation",
+  "DateTime",
+  "Duration",
   /** @todo support EntityId – requires updating the EntitySelector */
   "EntityId",
-  "PersistedEntitiesMetadata",
+  "FailedEntityProposal",
+  "FilterCondition",
   "PersistedEntityMetadata",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",
+  "SortKey",
   "FormattedText",
   "WebPage",
   "WebSearchResult",
@@ -65,8 +70,8 @@ export type LocalPayload = {
 }[LocalPayloadKind];
 
 export type FormState = {
-  [outputName: string]: {
-    outputName: string;
+  [inputName: string]: {
+    inputName: string;
     payload: LocalPayload;
   };
 };

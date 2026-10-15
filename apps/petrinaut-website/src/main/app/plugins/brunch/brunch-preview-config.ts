@@ -1,4 +1,4 @@
-import { previewConversationIdPrefix } from "@hashintel/brunch-agent/constants";
+import { previewConversationIdPrefix } from "@hashintel/brunch-agent";
 
 export const resolveBrunchPreviewConfig = (endpoint: string | undefined) => {
   const configuredEndpoint = endpoint?.trim();

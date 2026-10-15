@@ -58,9 +58,10 @@ export default defineConfig({
 
   /**
    * Styles used inside ds-components itself, plus Petrinaut's shipped style
-   * usage, plus this app's own sources that author Panda `css()` calls
-   * against the ds-components preset tokens: the supply-chain tool and its
-   * route pages, and the tiled network graph.
+   * usage and that of the ds-icons set it renders, plus this app's own
+   * sources that author Panda `css()` calls against the ds-components preset
+   * tokens: the supply-chain tool and its route pages, and the tiled network
+   * graph.
    */
   include: [
     resolvePandaBuildInfoPath(
@@ -69,6 +70,10 @@ export default defineConfig({
     ),
     resolvePandaBuildInfoPath(
       "@hashintel/petrinaut/panda.buildinfo.json",
+      require.resolve,
+    ),
+    resolvePandaBuildInfoPath(
+      "@hashintel/ds-icons/panda.buildinfo.json",
       require.resolve,
     ),
     "./src/pages/supply-chain/**/*.{ts,tsx}",

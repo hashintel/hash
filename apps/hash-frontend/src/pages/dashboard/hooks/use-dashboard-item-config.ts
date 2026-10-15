@@ -6,8 +6,8 @@ import {
   normalizeStructuralQuery,
 } from "@local/hash-isomorphic-utils/dashboard-types";
 import {
-  configureDashboardItemFlowDefinition,
-  refineDashboardItemFlowDefinition,
+  configureDashboardItemFlow,
+  refineDashboardItemFlow,
 } from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -603,20 +603,14 @@ export const useDashboardItemConfig = ({
       // Start the flow
       const { data } = await startFlow({
         variables: {
-          flowDefinition: configureDashboardItemFlowDefinition,
-          flowTrigger: {
-            triggerDefinitionId: "userTrigger",
-            outputs: [
-              {
-                outputName: "userGoal",
-                payload: {
-                  kind: "Text",
-                  value: state.userGoal,
-                },
-              },
-            ],
+          flowDefinition: configureDashboardItemFlow.flowDefinition,
+          flowDefinitionId: configureDashboardItemFlow.flowDefinitionId,
+          flowInputs: {
+            userGoal: {
+              kind: "Text",
+              value: state.userGoal,
+            },
           },
-          flowType: "ai",
           webId,
           dataSources: {
             files: { fileEntityIds: [] },
@@ -728,43 +722,31 @@ export const useDashboardItemConfig = ({
 
         const { data } = await startFlow({
           variables: {
-            flowDefinition: refineDashboardItemFlowDefinition,
-            flowTrigger: {
-              triggerDefinitionId: "userTrigger",
-              outputs: [
-                {
-                  outputName: "userGoal",
-                  payload: { kind: "Text", value: initialGoal },
-                },
-                {
-                  outputName: "refinementInstruction",
-                  payload: { kind: "Text", value: refinementInstruction },
-                },
-                {
-                  outputName: "existingStructuralQuery",
-                  payload: {
-                    kind: "Text",
-                    value: JSON.stringify(initialValues.structuralQuery),
-                  },
-                },
-                {
-                  outputName: "existingPythonScript",
-                  payload: { kind: "Text", value: initialValues.pythonScript },
-                },
-                {
-                  outputName: "existingChartType",
-                  payload: { kind: "Text", value: initialValues.chartType },
-                },
-                {
-                  outputName: "existingChartConfig",
-                  payload: {
-                    kind: "Text",
-                    value: JSON.stringify(initialValues.chartConfig),
-                  },
-                },
-              ],
+            flowDefinition: refineDashboardItemFlow.flowDefinition,
+            flowDefinitionId: refineDashboardItemFlow.flowDefinitionId,
+            flowInputs: {
+              userGoal: { kind: "Text", value: initialGoal },
+              refinementInstruction: {
+                kind: "Text",
+                value: refinementInstruction,
+              },
+              existingStructuralQuery: {
+                kind: "Text",
+                value: JSON.stringify(initialValues.structuralQuery),
+              },
+              existingPythonScript: {
+                kind: "Text",
+                value: initialValues.pythonScript,
+              },
+              existingChartType: {
+                kind: "Text",
+                value: initialValues.chartType,
+              },
+              existingChartConfig: {
+                kind: "Text",
+                value: JSON.stringify(initialValues.chartConfig),
+              },
             },
-            flowType: "ai",
             webId,
             dataSources: {
               files: { fileEntityIds: [] },
