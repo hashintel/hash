@@ -1,7 +1,7 @@
 /**
  * The filter gallery written with synchronous Draft callbacks.
  *
- * These programs correspond, in order, to filters.ts. Each schema supplies the callback's second argument, and $.let introduces a named HashQL binding. Native loops and functions run during construction. $.ifElse emits a query-time branch.
+ * These programs correspond, in order, to filters.ts. Each schema supplies the callback's second argument, and $.let introduces a named HashQL binding. Native loops and functions run during construction. $.if emits a query-time branch.
  *
  * The shared declarations cover only the graph exports used here. Construction emits J-Expr without executing against a graph service.
  *
@@ -157,7 +157,7 @@ const optionalDrafts = program(
     return $.query
       .entities(now())
       .filter("vertex", ($, vertex) =>
-        $.ifElse(
+        $.if(
           includeDrafts,
           () => true,
           () => $.isNone(vertex.metadata.record_id.entity_id.draft_id),

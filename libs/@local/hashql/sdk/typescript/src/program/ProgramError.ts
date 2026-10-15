@@ -7,7 +7,7 @@
  */
 import { Data } from "effect";
 
-import type { Schema, SchemaIssue } from "effect";
+import type { Cause, Schema, SchemaIssue } from "effect";
 
 interface NameFailure {
   readonly name: string;
@@ -23,6 +23,7 @@ export type Reason =
       SymbolExportName: { readonly name: symbol };
       SymbolInputName: { readonly name: symbol };
       InvalidExpression: { readonly cause: Schema.SchemaError };
+      CallbackException: { readonly cause: Cause.UnknownError };
       InvalidModulePath: NameFailure;
       RelativeModulePath: { readonly name: string };
       InvalidTypeArity: { readonly arity: number };
@@ -102,6 +103,10 @@ export class Construction extends ConstructionBase<{
     return new Construction({ reason: Reason.InvalidBodyResult() });
   }
 
+  static callbackException(cause: Cause.UnknownError): Construction {
+    return new Construction({ reason: Reason.CallbackException({ cause }) });
+  }
+
   override get message(): string {
     return Reason.$match(this.reason, {
       InvalidBindingName: ({ name }) =>
@@ -118,6 +123,7 @@ export class Construction extends ConstructionBase<{
         `A HashQL input needs a string name, received ${String(name)}`,
       InvalidExpression: () =>
         "The expression does not have valid J-Expr structure",
+      CallbackException: () => "A program callback threw an exception",
       InvalidModulePath: ({ name }) =>
         `Invalid HashQL module path: ${JSON.stringify(name)}`,
       RelativeModulePath: ({ name }) =>

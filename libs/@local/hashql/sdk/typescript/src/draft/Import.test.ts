@@ -81,7 +81,7 @@ describe("draft_import", () => {
   test("branch_scope", () => {
     expect.hasAssertions();
     const result = Draft.program({}, ($) =>
-      $.ifElse(
+      $.if(
         true,
         ($) => {
           const { Whole } = $.import(declarations, { Whole: "_" });
@@ -227,11 +227,15 @@ describe("draft_import", () => {
   test("host_exception", () => {
     expect.hasAssertions();
     const error = new Error("host callback");
-    expect(() =>
-      Draft.program({}, ($) => {
-        $.import(declarations);
-        throw error;
-      }),
-    ).toThrow(error);
+    const result = Draft.program({}, ($) => {
+      $.import(declarations);
+      throw error;
+    });
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        reason: { _tag: "CallbackException", cause: { cause: error } },
+      },
+    });
   });
 });

@@ -177,8 +177,8 @@ describe("draft_requirements", () => {
       // @ts-expect-error nominal initializers retain erased requirements
       $.let("nominal", nominal);
       // @ts-expect-error direct branches cannot accept erased values
-      $.ifElse(true, { then: erasedValue, else: 1n });
-      $.ifElse(
+      $.if(true, { then: erasedValue, else: 1n });
+      $.if(
         true,
         // @ts-expect-error callback branches cannot accept erased values
         () => erasedValue,
@@ -206,7 +206,7 @@ describe("draft_requirements", () => {
       readonly outside: Type.PrimitiveInteger;
     }>();
     const branch = Draft.program(chooseSchema(), ($) =>
-      $.ifElse(
+      $.if(
         true,
         (child) => child.let("outside", outside),
         () => 1n,

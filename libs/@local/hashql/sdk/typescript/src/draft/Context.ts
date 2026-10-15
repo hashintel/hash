@@ -134,7 +134,7 @@ export interface Context<S extends Scope.Scope> extends Operators.Operations {
     identity: symbol extends N ? never : N,
     definition: D,
   ) => Nominal<N, Structural.TypeOf<D>>;
-  readonly ifElse: <
+  readonly if: <
     const C extends Expression.Value<Type.PrimitiveBoolean>,
     const T extends Expression.AnyValue,
     const E extends Expression.AnyValue,

@@ -89,7 +89,7 @@ describe("draft", () => {
     expect.hasAssertions();
     const visits: string[] = [];
     const result = Draft.program({}, ($) =>
-      $.ifElse(
+      $.if(
         false,
         (branch) => {
           visits.push("then");
@@ -112,7 +112,7 @@ describe("draft", () => {
     );
     expect(
       // oxlint-disable-next-line unicorn/no-thenable -- then is the HashQL conditional-branch key
-      compile(Draft.program({}, ($) => $.ifElse(true, { then: 1n, else: 2n }))),
+      compile(Draft.program({}, ($) => $.if(true, { then: 1n, else: 2n }))),
     ).toStrictEqual(
       call("::kernel::special_form::if", literal(true), literal(1), literal(2)),
     );
@@ -126,10 +126,10 @@ describe("draft", () => {
       expect(compile(inner)).toStrictEqual(
         call("::kernel::special_form::let", "inner", literal(2), "inner"),
       );
-      return $.ifElse(
+      return $.if(
         true,
         (branch) =>
-          branch.ifElse(
+          branch.if(
             false,
             (child) => child.let("deep", outer),
             () => outer,
@@ -399,7 +399,7 @@ describe("draft", () => {
         return $.literal(true);
       }),
       Draft.program({}, ($) =>
-        $.ifElse(
+        $.if(
           true,
           () => 1n,
           (branch) => {
@@ -411,12 +411,7 @@ describe("draft", () => {
     ]) {
       expect(result._tag).toBe("Failure");
     }
-    const thrown = new Error("user exception");
-    expect(() =>
-      Draft.program({}, () => {
-        throw thrown;
-      }),
-    ).toThrow(thrown);
+
     // @ts-expect-error exercise an unchecked JavaScript caller
     const asynchronous = Draft.program({}, asynchronousBody);
     expect(Result.isFailure(asynchronous)).toBe(true);

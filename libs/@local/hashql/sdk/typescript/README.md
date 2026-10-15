@@ -19,7 +19,7 @@ const identity = Symbol("Count");
 const built = program({ count: Prelude.builtin.types.Integer }, ($, inputs) => {
   const Count = $.newtype("Count", identity, BigInt);
   const value = $.let("value", Count(inputs.count));
-  return $.ifElse(
+  return $.if(
     true,
     () => value,
     () => Count(0n),
@@ -32,11 +32,11 @@ const compiled = Result.flatMap(built, (expression) =>
 
 `$.type(name, definition)` accepts type expressions or structural shorthand. `$.newtype(name, uniqueSymbol, definition)` returns a type and callable nominal constructor together; for example, `const identity = Symbol("Foo"); const Foo = $.newtype("Foo", identity, { foo: BigInt }); Foo({ foo: 2n })`. Records describe structs, arrays describe tuples, and `List(BigInt)` and `Dict(String, BigInt)` describe collections. `number` remains Number, while `bigint` is Integer.
 
-`$.ifElse(condition, thenCallback, elseCallback)` supplies each branch its own context. The direct `{ then, else }` form accepts already-built values. Both callbacks construct syntax. HashQL chooses the runtime branch. Use the predicate context for declarations inside a filter. Capturing an outer context can place a declaration outside the vertex's scope. HashQL performs lexical resolution and rejects free references.
+`$.if(condition, thenCallback, elseCallback)` supplies each branch its own context. The direct `{ then, else }` form accepts already-built values. Both callbacks construct syntax. HashQL chooses the runtime branch. Use the predicate context for declarations inside a filter. Capturing an outer context can place a declaration outside the vertex's scope. HashQL performs lexical resolution and rejects free references.
 
 Draft's default prelude contains primitive types, List/Dict, Uuid, EntityUuid, `eq` and `add`. It demonstrates declaration-table composition rather than mirroring the complete standard library. Draft's `withPrelude(definition)` returns `{ program }` and replaces these defaults. A custom `entities` declaration supplies the query entry point. The default has none. Do's default remains empty. See the [Draft reference](docs/authoring.md#draft-executed-authoring) for coverage and source definitions.
 
-Construction failures are Results. Synchronous user exceptions propagate unchanged. TypeScript rejects async callbacks. Draft continues executing a synchronous callback after a declaration fails and reports the accumulated failure at its end.
+Draft returns construction failures as Results. Synchronous callback exceptions become `ProgramError.Construction` with a `CallbackException` reason. Its `Cause.UnknownError` retains the thrown value as its cause. TypeScript rejects async callbacks. Failed declarations remain in the collector, while an invalid import stops its callback because it cannot supply the promised handles.
 
 ## Do authoring
 

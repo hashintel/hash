@@ -59,14 +59,14 @@ describe("draft_types", () => {
       $.let("lost", outside);
       // @ts-expect-error the schema must include optional external inputs
       $.let("optional", optional);
-      $.ifElse(
+      $.if(
         true,
         // @ts-expect-error child final expression contains an undeclared input
         () => outside,
         () => 1n,
       );
       // @ts-expect-error direct branch contains an undeclared input
-      $.ifElse(true, { then: outside, else: 1n });
+      $.if(true, { then: outside, else: 1n });
       return $.literal(true);
     });
     Draft.program({ outside: integer }, ($) => $.let("allowed", outside));

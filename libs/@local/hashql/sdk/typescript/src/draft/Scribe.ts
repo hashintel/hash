@@ -1,11 +1,11 @@
 /**
  * Collects declarations while a synchronous callback constructs an expression.
  *
- * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. A child collector prevents branch and predicate declarations from escaping their lexical body. Host exceptions propagate unchanged. Expected construction failures remain Results.
+ * Handles retain semantic parameters until conversion to syntax. Only the declaration wrappers are heterogeneous: each is already an AST operation, so their collection needs no type recovery. A child collector prevents branch and predicate declarations from escaping their lexical body. Callback exceptions retain their original cause inside construction failures.
  *
  * @module
  */
-import { Data, Result, pipe } from "effect";
+import { Cause, Data, Result, pipe } from "effect";
 
 import {
   Expression,
@@ -87,7 +87,7 @@ const nominal = <N extends symbol, T extends Type.Any>(
   >(value, type);
 };
 
-/** Stops a callback when an import cannot supply its promised handles. User exceptions pass through. */
+/** Stops a callback when an import cannot supply its promised handles. */
 const ConstructionFailure = Data.TaggedError("DraftConstructionFailure")<{
   readonly failure: ProgramError.Construction;
 }>;
@@ -244,7 +244,7 @@ class ContextImpl<S extends Scope.Scope> implements Context.Context<S> {
     return nominal<N, Structural.TypeOf<D>>(binding);
   };
 
-  ifElse<
+  if<
     const C extends Expression.Value<Type.PrimitiveBoolean>,
     const T extends Expression.AnyValue,
     const E extends Expression.AnyValue,
@@ -439,7 +439,11 @@ class ContextImpl<S extends Scope.Scope> implements Context.Context<S> {
         return Result.fail(error.failure);
       }
 
-      throw error;
+      return Result.fail(
+        ProgramError.Construction.callbackException(
+          new Cause.UnknownError(error),
+        ),
+      );
     }
   }
 }

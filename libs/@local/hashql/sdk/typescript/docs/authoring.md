@@ -110,7 +110,7 @@ const identity = Symbol("Foo");
 const built = program({ count: Prelude.builtin.types.Integer }, ($, inputs) => {
   const Foo = $.newtype("Foo", identity, { foo: BigInt });
   const value = $.let("value", Foo({ foo: inputs.count }));
-  return $.ifElse(
+  return $.if(
     true,
     (branch) => branch.let("selected", value),
     () => value,
@@ -170,7 +170,7 @@ Every schema entry remains required in the result, including inputs whose uses a
 
 ### Branches, queries and failures
 
-Use `$.ifElse(condition, thenCallback, elseCallback)` for child declaration contexts. Both callbacks run during construction. The direct `$.ifElse(condition, { then, else })` form accepts already-built values and does not create a declaration scope around their earlier construction.
+Use `$.if(condition, thenCallback, elseCallback)` for child declaration contexts. Both callbacks run during construction. The direct `$.if(condition, { then, else })` form accepts already-built values and does not create a declaration scope around their earlier construction.
 
 A custom prelude supplies `$.query.entities` when its `entities` value returns a `::graph::Graph` opaque type with a vertex marker. Its signature determines the query arguments and vertex descriptor. The filter callback receives a predicate context first. This illustrative declaration uses an example module, not the graph service's schema:
 
@@ -207,7 +207,7 @@ const selected = program({ axis: Structural.type(BigInt) }, ($, inputs) =>
 
 Declarations made through `predicate` stay inside the emitted filter closure. Capturing `$` from the outer callback instead still addresses the outer context. Likewise, JavaScript can save a branch-local reference and return it elsewhere. Draft does not reject those host-reference escapes: the HashQL compiler owns lexical resolution. Keep declarations on the context of the branch or predicate that uses them. Nested and reentrant programs have independent declaration state.
 
-Expected construction failures return `ProgramError.Construction`. Invalid binding names and non-finite literal initializers fail even when the body never uses their references. Those failures remain on the constructed handles, so the callback can continue. An invalid import cannot supply its promised handles and stops the current callback instead. Its failure still returns through the construction Result, even if host code catches the internal interruption. A user-thrown synchronous exception propagates unchanged. Async callbacks are a type error and an unchecked async callback produces a construction failure rather than a query.
+Expected construction failures return `ProgramError.Construction`. Invalid binding names and non-finite literal initializers fail even when the body never uses their references. Those failures remain on the constructed handles, so the callback can continue. An invalid import cannot supply its promised handles and stops the current callback instead. Its failure still returns through the construction Result, even if host code catches the internal interruption. A synchronous callback exception returns a construction failure with a `CallbackException` reason. Its `Cause.UnknownError` retains the original thrown value as its cause. Async callbacks are a type error and an unchecked async callback produces a construction failure rather than a query.
 
 ### Default prelude coverage and authority
 
@@ -860,7 +860,7 @@ Follow these rules when you write HashQL with the SDK, whether by hand or as a c
 3. Refer to declarations through handles from callback environments, `Import` and `$.ref`. A string is always a literal.
 4. Return an expression handle from every `Do`, `Let` and `Expr` callback. Lift host values with `$.literal`, `$.integer` or `$.number`.
 5. Declare one name per `Let`, `Type` or `Newtype` step. Records that list declarations belong in `Module.define`.
-6. Handle every `Result`. Yield inside `Result.gen` in application code. Callback exceptions propagate unchanged rather than becoming construction Results.
+6. Handle every `Result`. Yield inside `Result.gen` in application code. Draft wraps callback exceptions as construction failures. Do callback exceptions propagate unchanged.
 7. Preserve input requirements. Let TypeScript infer handle types, use `assume` rather than raw syntax round trips, and state every input when you wrap raw syntax with `Expression.fromJExpr`.
 8. Don't treat TypeScript annotations or `assume` as compiler validation. A program that type-checks still needs the HashQL compiler.
 9. Keep references in their HashQL lexical scope. Take each handle from the callback arguments of the block that uses it, and don't store local bindings in outer variables.

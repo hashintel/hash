@@ -93,14 +93,14 @@ type QueryContext<S extends Scope.Scope, I> = [EntityFunction<S>] extends [
 /** A restricted view that the unrestricted constructor implements. */
 export interface Context<S extends Scope.Scope, I> extends Omit<
   Construction.Context<S>,
-  "let" | "ifElse" | "query"
+  "let" | "if" | "query"
 > {
   readonly let: <const E extends Expression.AnyValue>(
     name: string,
     value: E & Accept<I, E>,
   ) => Expression.Expression<Expression.TypeOf<E>, Expression.Inputs<E>>;
   readonly query: QueryContext<S, I>;
-  readonly ifElse: {
+  readonly if: {
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
       const T extends Expression.AnyValue,
