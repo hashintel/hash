@@ -1,0 +1,266 @@
+import { expect, test } from "vitest";
+
+import { buildRunPacket, type StreamEvent } from "./build-run-packet.ts";
+
+import type { SubmissionChronology } from "../../../src/server/observe-turn-chronology.ts";
+
+const t0 = Date.parse("2026-10-15T10:00:00.000Z");
+
+const event = (
+  type: string,
+  offsetMs: number,
+  payload: Record<string, unknown> = {},
+  submissionId = "sub-1",
+): StreamEvent => ({
+  type,
+  at: t0 + offsetMs,
+  submissionId,
+  payload: {
+    type,
+    timestamp: new Date(t0 + offsetMs).toISOString(),
+    ...payload,
+  },
+});
+
+const placeResult = {
+  brunchBrowserResult: true,
+  output: { applied: true },
+  metadata: {
+    documentRevision: { before: "a", after: "b" },
+    readBack: {
+      places: [{ id: "p1" }, { id: "p2" }],
+      transitions: [{ id: "t1", inputArcs: [{}], outputArcs: [{}] }],
+    },
+  },
+};
+
+// Step 1 builds and commits; step 2 replies.
+const events: StreamEvent[] = [
+  event("user_message", 0, {
+    content: [{ type: "text", text: "We run  two\nbays." }],
+  }),
+  event("agent_start_run", 100),
+  event("assistant_message_started", 1_100, { turnId: "turn-1" }),
+  event("assistant_tool_call", 9_000, {
+    turnId: "turn-1",
+    toolCallId: "call-place",
+    name: "addPlace",
+    arguments: { name: "Bay" },
+  }),
+  event("assistant_tool_call", 9_000, {
+    turnId: "turn-1",
+    toolCallId: "call-commit",
+    name: "ledger_commit",
+    arguments: { entities: [] },
+  }),
+  event("assistant_message_completed", 9_100, {
+    turnId: "turn-1",
+    usage: {
+      input: 3,
+      output: 200,
+      cacheRead: 1_000,
+      cacheWrite: 50,
+      reasoning: 120,
+      cost: { total: 0.01 },
+    },
+  }),
+  event("tool_outcome", 9_400, {
+    toolCallId: "call-place",
+    toolName: "addPlace",
+    isError: false,
+    durationMs: 250,
+    output: placeResult,
+  }),
+  event("tool_outcome", 9_150, {
+    toolCallId: "call-commit",
+    toolName: "ledger_commit",
+    isError: false,
+    durationMs: 5,
+    output: { status: "recorded", ids: ["e1", "e2", "c1"] },
+  }),
+  event("tool_results_committed", 9_500, { turnId: "turn-1" }),
+  event("assistant_message_started", 10_500, { turnId: "turn-2" }),
+  event("assistant_reasoning_started", 11_000, { blockId: "r1" }),
+  event("assistant_reasoning_completed", 13_000, { blockId: "r1" }),
+  event("assistant_text_started", 15_500, { blockId: "x1" }),
+  event("assistant_text_completed", 17_500, { blockId: "x1" }),
+  event("assistant_message_completed", 17_600, {
+    turnId: "turn-2",
+    usage: { input: 2, output: 80, cacheRead: 1_200, cacheWrite: 0 },
+  }),
+  event("submission_settled", 17_800, { outcome: "completed" }),
+];
+
+const chronology: SubmissionChronology = {
+  submissionId: "sub-1",
+  outcome: "completed",
+  turns: [
+    {
+      turnId: "turn-1",
+      purpose: "agent",
+      timeToFirstEventMs: 1_000,
+      durationMs: 9_000,
+      terminal: "turn",
+      isError: false,
+      inputTokens: 3,
+      cacheReadTokens: 1_000,
+      outputTokens: 200,
+      requestShape: null,
+      responseShape: null,
+      toolCalls: [
+        {
+          toolCallId: "call-place",
+          toolName: "addPlace",
+          firstDeltaMs: 6_000,
+          lastDeltaMs: 6_500,
+          deltaCount: 10,
+          argumentChars: 40,
+          maxGapMs: 100,
+          lastDeltaToTerminalMs: 0,
+        },
+        {
+          toolCallId: "call-commit",
+          toolName: "ledger_commit",
+          firstDeltaMs: 6_600,
+          lastDeltaMs: 8_900,
+          deltaCount: 300,
+          argumentChars: 3_600,
+          maxGapMs: 100,
+          lastDeltaToTerminalMs: 0,
+        },
+      ],
+    },
+  ],
+};
+
+const input = {
+  label: "run-test",
+  metadata: null,
+  submissions: [
+    { submissionId: "sub-1", acceptedAt: t0, settledAt: t0 + 18_000 },
+    { submissionId: "sub-2", acceptedAt: t0 + 30_000, settledAt: t0 + 31_000 },
+  ],
+  events: [
+    ...events,
+    event("agent_start_run", 30_000, {}, "sub-2"),
+    event("assistant_message_started", 30_200, { turnId: "turn-3" }, "sub-2"),
+    event(
+      "assistant_tool_call",
+      30_400,
+      {
+        toolCallId: "call-approve",
+        name: "applyAutoLayout",
+        arguments: { askUserFirst: true },
+      },
+      "sub-2",
+    ),
+    event("assistant_message_completed", 30_500, { turnId: "turn-3" }, "sub-2"),
+    event(
+      "tool_outcome",
+      30_900,
+      {
+        toolCallId: "call-approve",
+        isError: false,
+        durationMs: 45_000,
+      },
+      "sub-2",
+    ),
+    event("tool_results_committed", 30_900, {}, "sub-2"),
+  ],
+  chronology: new Map([["sub-1", chronology]]),
+  finalLedger: null,
+  finalNet: null,
+};
+
+test("an exchange's wall time splits into hidden reasoning, argument streaming, reply text and tool phases", () => {
+  const packet = buildRunPacket(input);
+  const [exchange] = packet.exchanges;
+
+  expect(exchange).toMatchObject({
+    index: 1,
+    userExcerpt: "We run two bays.",
+    outcome: "completed",
+    wallMs: 18_000,
+    untilFirstTextMs: 15_500,
+    toolPhaseMs: 400,
+    stepShape: ["ledger+net-change", "reply"],
+  });
+  expect(exchange?.steps).toMatchObject([
+    {
+      durationMs: 9_000,
+      // The first argument delta, 6 s after the request.
+      beforeOutputMs: 6_000,
+      argumentStreamingMs: 2_900,
+      toolPhaseMs: 400,
+    },
+    {
+      durationMs: 8_100,
+      beforeOutputMs: 6_000,
+      reasoningSummaryMs: 2_000,
+      textMs: 2_000,
+      argumentStreamingMs: null,
+      toolPhaseMs: 0,
+    },
+  ]);
+  expect(exchange?.modelMs).toBe(17_100);
+  expect(exchange?.otherMs).toBe(500);
+});
+
+test("tool calls are categorised, and Ledger commits counted with their argument size", () => {
+  const [exchange] = buildRunPacket(input).exchanges;
+
+  expect(exchange?.categories.ledger).toEqual({
+    calls: 1,
+    executionMs: 5,
+    argumentChars: 3_600,
+  });
+  expect(exchange?.categories["net-change"].calls).toBe(1);
+  expect(exchange?.ledger).toEqual({
+    commits: 1,
+    recorded: 1,
+    refused: 0,
+    recordsAdded: 3,
+    argumentChars: 3_600,
+  });
+  expect(exchange?.netChanges).toBe(1);
+  expect(exchange?.netAfter).toEqual({ places: 2, transitions: 1, arcs: 2 });
+  expect(exchange?.usage).toMatchObject({
+    outputTokens: 280,
+    cacheWriteTokens: 50,
+    costUsd: 0.01,
+  });
+});
+
+test("an approval wait is kept out of Brunch's active time", () => {
+  const packet = buildRunPacket(input);
+  const second = packet.exchanges[1];
+
+  expect(second).toMatchObject({
+    thinkTimeBeforeMs: 12_000,
+    longToolCalls: [{ name: "applyAutoLayout", executionMs: 45_000 }],
+    approvalWaitMs: 400,
+    activeMs: 600,
+    // Net size carries over from the exchange that last showed it.
+    netAfter: { places: 2, transitions: 1, arcs: 2 },
+  });
+  expect(packet.summary).toMatchObject({
+    exchanges: 2,
+    wallMs: 19_000,
+    activeMs: 18_600,
+    steps: 3,
+    stepsByToolCount: { none: 1, one: 1, several: 1 },
+    ledgerCommits: 1,
+    longToolCalls: 1,
+  });
+});
+
+test("without a chronology, argument streaming is unknown rather than zero", () => {
+  const packet = buildRunPacket({ ...input, chronology: new Map() });
+
+  expect(packet.sources.chronology).toBe(false);
+  expect(packet.summary.argumentStreamingMs).toBeNull();
+  expect(packet.exchanges[0]?.steps[0]?.argumentStreamingMs).toBeNull();
+  // The db's tool calls arrive with the completed message, so the step's
+  // output is only known to start at its end.
+  expect(packet.exchanges[0]?.steps[0]?.beforeOutputMs).toBe(9_000);
+});

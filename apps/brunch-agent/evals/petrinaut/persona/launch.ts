@@ -32,6 +32,7 @@ import {
   DEFAULT_CHAT_THINKING,
 } from "../../../src/shared/chat-model.ts";
 import { agentOwnershipHeaders } from "../../../src/shared/conversation/identity.ts";
+import { writeRunPacket } from "../run-packet.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import {
   PersonaBrowserTurnError,
@@ -773,6 +774,16 @@ const launchPersona = async ({
         }
       } finally {
         stopStartedServices();
+        // After the services stop, the server log and conversation store are final.
+        await writeRunPacket(run)
+          .then(() => refreshProofManifest(join(run, "evidence")))
+          .then(
+            () => report(`Run packet: ${join(run, "evidence", "packet.md")}`),
+            (error: unknown) =>
+              process.stderr.write(
+                `Could not write the run packet (retry with \`yarn workspace @apps/brunch-agent packet:run ${run}\`): ${String(error)}\n`,
+              ),
+          );
         report(`Retained run: ${run}`);
       }
       if (agentProcess?.kind === "foreground" && !lifecycle.agentExited) {

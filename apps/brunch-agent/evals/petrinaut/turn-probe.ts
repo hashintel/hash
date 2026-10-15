@@ -2,7 +2,7 @@
  * One real Brunch turn through the built app, with no browser and no persona.
  * Sends a case's opening message in a conversation with no document binding,
  * so only the guidance and Ledger tools are mounted, then reports the reply,
- * the tool calls and what the Ledger recorded.
+ * the tool calls and what the Ledger recorded, and writes a run packet.
  *
  *   yarn workspace @apps/brunch-agent probe:turn [case] [provider/model] [thinking]
  *
@@ -32,6 +32,7 @@ import {
   flueConversationIdFrom,
 } from "../../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "../../test/load-built-application.ts";
+import { writeRunPacket } from "./run-packet.ts";
 
 const [
   caseName = "pharma-cold-chain",
@@ -118,3 +119,5 @@ try {
 } finally {
   await application.stop();
 }
+await writeRunPacket(directory);
+report(`packet: ${join(directory, "evidence", "packet.md")}`);
