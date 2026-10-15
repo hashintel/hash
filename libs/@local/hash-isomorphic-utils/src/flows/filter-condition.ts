@@ -113,6 +113,7 @@ const filterCapabilities = {
   GoogleSheet: ["object"],
   Number: ["scalar"],
   PersistedEntityMetadata: ["object"],
+  PropertyValues: [],
   ProposedEntity: ["object", "entity"],
   ProposedEntityWithResolvedLinks: ["object", "entity"],
   SortKey: [],

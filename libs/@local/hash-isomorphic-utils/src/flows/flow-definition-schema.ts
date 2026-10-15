@@ -27,6 +27,7 @@ export const payloadKindJsonTypes = {
   GoogleSheet: "object",
   Number: "number",
   PersistedEntityMetadata: "object",
+  PropertyValues: "object",
   ProposedEntity: "object",
   ProposedEntityWithResolvedLinks: "object",
   SortKey: "object",

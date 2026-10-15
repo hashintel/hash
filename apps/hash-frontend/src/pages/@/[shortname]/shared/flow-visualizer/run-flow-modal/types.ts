@@ -21,6 +21,7 @@ const unsupportedPayloadKinds = [
   "FailedEntityProposal",
   "FilterCondition",
   "PersistedEntityMetadata",
+  "PropertyValues",
   "ProposedEntity",
   "ProposedEntityWithResolvedLinks",
   "SortKey",
