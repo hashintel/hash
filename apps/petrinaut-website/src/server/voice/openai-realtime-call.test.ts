@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { encodeVoiceWords, voiceWordsHeader } from "../../shared/voice-words";
 import {
   VOICE_ERROR_CODE_HEADER,
   VOICE_REQUEST_ID_HEADER,
@@ -444,4 +445,47 @@ describe("OpenAI Realtime call handler", () => {
       "private network diagnostics",
     );
   });
+});
+
+test("gives Realtime spellings for transcription and pronunciation notes for speech, rejecting a bad words header first", async () => {
+  const fetch = vi.fn<typeof globalThis.fetch>(
+    async () =>
+      new Response("v=0\r\no=answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+  );
+  const handler = createOpenAIRealtimeCallHandler({
+    environment: enabledEnvironment,
+    fetch,
+  });
+  const bad = createRequest();
+  bad.headers.set(voiceWordsHeader, "not!base64");
+  expect((await handler(bad)).status).toBe(400);
+  expect(fetch).not.toHaveBeenCalled();
+  const input = createRequest();
+  input.headers.set(
+    voiceWordsHeader,
+    encodeVoiceWords([
+      { spelling: "RelayDesk", pronunciation: "ray-lay-desk" },
+      { spelling: "Bay Three" },
+    ])!,
+  );
+  expect((await handler(input)).status).toBe(200);
+  const init = fetch.mock.calls[0]?.[1];
+  const serialized =
+    init?.body instanceof FormData ? init.body.get("session") : null;
+  if (typeof serialized !== "string") throw new Error("Expected a session");
+  const session = JSON.parse(serialized) as {
+    instructions: string;
+    audio: { input: { transcription: { prompt: string } } };
+  };
+  expect(session.audio.input.transcription.prompt).toContain(
+    "Also expect these names: RelayDesk, Bay Three.",
+  );
+  expect(session.audio.input.transcription.prompt).not.toContain(
+    "ray-lay-desk",
+  );
+  expect(session.instructions).toContain("ray-lay-desk");
+  expect(session.instructions).not.toContain("Bay Three");
+  expect(new Headers(init?.headers).has(voiceWordsHeader)).toBe(false);
 });

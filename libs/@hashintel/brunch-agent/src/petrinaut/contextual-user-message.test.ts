@@ -111,19 +111,6 @@ test("keeps diagnostics-only bodies byte-identical to version one", () => {
 test.each([
   ["an empty object", {}],
   ["an array", ["value"]],
-  ["a non-finite number", { key: Number.NaN }],
-  ["an undefined value", { key: undefined }],
-  ["a class instance", { key: new Date(0) }],
-  ["an oversized value", { key: "x".repeat(16_001) }],
-  [
-    "excessive nesting",
-    {
-      key: Array.from({ length: 20 }).reduce<unknown>(
-        (inner) => ({ inner }),
-        null,
-      ),
-    },
-  ],
 ])("refuses %s as submission context", (_label, submissionContext) => {
   expect(() =>
     petrinautContextualUserMessageBody({

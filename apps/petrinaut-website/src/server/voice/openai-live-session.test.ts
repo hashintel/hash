@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { encodeVoiceWords, voiceWordsHeader } from "../../shared/voice-words";
 import { createOpenAILiveSessionHandler } from "./openai-live-session";
 import { createOpenAIVoiceConfigHandler } from "./openai-voice-config";
 
@@ -423,4 +424,35 @@ describe("Live configuration and session creation", () => {
     expect(response.status).toBe(502);
     expect(fetch).not.toHaveBeenCalled();
   });
+});
+
+test("gives Live pronunciation notes, and rejects a bad words header before calling OpenAI", async () => {
+  const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+    Response.json({
+      session: { id: "session" },
+      transport: { type: "webrtc", sdp: "v=0\r\no=answer" },
+    }),
+  );
+  const handler = createOpenAILiveSessionHandler({ environment, fetch });
+  const bad = request();
+  bad.headers.set(voiceWordsHeader, "not!base64");
+  expect((await handler(bad)).status).toBe(400);
+  expect(fetch).not.toHaveBeenCalled();
+  const input = request();
+  input.headers.set(
+    voiceWordsHeader,
+    encodeVoiceWords([
+      { spelling: "RelayDesk", pronunciation: "ray-lay-desk" },
+      { spelling: "Bay Three" },
+    ])!,
+  );
+  expect((await handler(input)).status).toBe(201);
+  const init = fetch.mock.lastCall?.[1];
+  if (typeof init?.body !== "string") throw new Error("Expected JSON body");
+  const { session } = JSON.parse(init.body) as {
+    session: { instructions: string };
+  };
+  expect(session.instructions).toContain("ray-lay-desk");
+  expect(session.instructions).not.toContain("Bay Three");
+  expect(new Headers(init.headers).has(voiceWordsHeader)).toBe(false);
 });
