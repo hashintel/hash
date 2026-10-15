@@ -105,15 +105,11 @@ describe("API tokens", () => {
       { name: "public API in integration test" },
     );
 
-    const response = await requestWithToken(
-      "/entities/v1/authenticated-caller",
-      token,
-    );
+    const entityId = owner.entity.metadata.recordId.entityId;
+    const response = await requestWithToken(`/entities/v1/${entityId}`, token);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      actor: { actorType: "user", id: owner.accountId },
-    });
+    expect(await response.json()).toMatchObject({ metadata: { entityId } });
   });
 
   it("rejects a revoked token instead of serving the request anonymously", async () => {
@@ -128,7 +124,10 @@ describe("API tokens", () => {
       apiToken.tokenId,
     );
 
-    const response = await requestWithToken("/entities/v1/caller", token);
+    const response = await requestWithToken(
+      `/entities/v1/${owner.entity.metadata.recordId.entityId}`,
+      token,
+    );
 
     expect(response.status).toBe(401);
     expect(response.headers.get("content-type")).toBe(

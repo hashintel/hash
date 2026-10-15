@@ -77,6 +77,13 @@ impl<C: Credentials> OperationInput for Actor<C> {
     }
 }
 
+/// Credentials of an API that serves a request without a credential anonymously.
+///
+/// Only such an API reads its caller through [`MaybeActor`]. The public APIs answer a request
+/// without a credential with `401` before a handler runs, so an optional caller would document
+/// access they refuse.
+pub(super) trait AdmitsAnonymous: Credentials {}
+
 pub(super) struct MaybeActor<C>(Option<ActorId>, PhantomData<fn() -> C>);
 
 impl<C> From<MaybeActor<C>> for Option<ActorId> {
@@ -85,7 +92,7 @@ impl<C> From<MaybeActor<C>> for Option<ActorId> {
     }
 }
 
-impl<S: Sync, C> FromRequestParts<S> for MaybeActor<C> {
+impl<S: Sync, C: AdmitsAnonymous> FromRequestParts<S> for MaybeActor<C> {
     type Rejection = AuthenticationRejection;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
@@ -95,7 +102,7 @@ impl<S: Sync, C> FromRequestParts<S> for MaybeActor<C> {
     }
 }
 
-impl<C: Credentials> OperationInput for MaybeActor<C> {
+impl<C: AdmitsAnonymous> OperationInput for MaybeActor<C> {
     fn operation_input(ctx: &mut GenContext, operation: &mut Operation) {
         let _: TransformOperation<'_> =
             TransformOperation::new(operation).security_requirement_multi([]);

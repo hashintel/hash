@@ -23,7 +23,7 @@ use serde_json::Value;
 use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
 
-pub(super) use self::authentication::assert_authentication;
+pub(super) use self::authentication::{assert_anonymous_authentication, assert_authentication};
 pub(super) use super::caller::caller as echo_caller;
 use super::{Api, ApiState, Audience, credentials::Credentials, extract::Json, openapi, routing};
 

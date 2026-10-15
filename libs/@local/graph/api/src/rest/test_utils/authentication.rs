@@ -3,7 +3,7 @@ use core::{num::NonZeroU32, ops::ControlFlow, pin::pin};
 use std::collections::HashMap;
 
 use aide::{
-    axum::ApiRouter,
+    axum::{ApiRouter, routing::ApiMethodRouter},
     openapi::{Info, ReferenceOr, SecurityScheme},
 };
 use axum::{Router, body::Body};
@@ -42,7 +42,7 @@ use uuid::Uuid;
 
 use super::{echo_caller, response_json};
 use crate::rest::{
-    credentials::{API_TOKEN, Actor, Credentials, MaybeActor},
+    credentials::{API_TOKEN, Actor, AdmitsAnonymous, Credentials, MaybeActor},
     middleware::Middleware,
     openapi, routing,
 };
@@ -113,13 +113,33 @@ struct Advertised {
     api_token: bool,
 }
 
-/// Assembles `/test/optional` and `/test/required` behind the credentials `C`, with the provider
-/// chains the router composes.
+/// Routes `GET` to the caller, which it reads through [`Actor`].
+fn required_route<C: Credentials>() -> ApiMethodRouter {
+    routing::get(
+        async |actor: Actor<C>| echo_caller(Some(actor.into())).await,
+        |operation| {
+            operation
+                .id("getRequiredCaller")
+                .summary("Get the authenticated caller")
+        },
+    )
+}
+
+/// Routes `GET` to the caller, which it reads through [`MaybeActor`].
+fn optional_route<C: AdmitsAnonymous>() -> ApiMethodRouter {
+    routing::get(echo_caller::<MaybeActor<C>>, |operation| {
+        operation.id("getOptionalCaller").summary("Get the caller")
+    })
+}
+
+/// Assembles the routes `build_routes` returns under `/test` behind the credentials `C`, with the
+/// provider chains the router composes.
 ///
 /// Returns the router and the schemes the generated document advertises.
 fn caller_router<C: Credentials>(
     operator: ActorId,
     session_actor: ActorId,
+    build_routes: impl FnOnce() -> ApiRouter,
 ) -> (Router, Advertised) {
     let public_provider = Arc::new(ApiTokenProvider::new(
         UnreadableTokens,
@@ -149,31 +169,7 @@ fn caller_router<C: Credentials>(
         rate_limit_actor_per_hour: NonZeroU32::MAX,
         rate_limit_actor_burst: NonZeroU32::MAX,
     };
-    let api = openapi::build::<C, _>(
-        "/test",
-        Info::default(),
-        || {
-            ApiRouter::new()
-                .api_route(
-                    "/optional",
-                    routing::get(echo_caller::<MaybeActor<C>>, |operation| {
-                        operation.id("getOptionalCaller").summary("Get the caller")
-                    }),
-                )
-                .api_route(
-                    "/required",
-                    routing::get(
-                        async |actor: Actor<C>| echo_caller(Some(actor.into())).await,
-                        |operation| {
-                            operation
-                                .id("getRequiredCaller")
-                                .summary("Get the authenticated caller")
-                        },
-                    ),
-                )
-        },
-        |document| document,
-    );
+    let api = openapi::build::<C, _>("/test", Info::default(), build_routes, |document| document);
     let schemes = api
         .document()
         .components
@@ -214,19 +210,39 @@ enum Outcome {
     Rejected(StatusCode),
 }
 
-/// Sends each credential to the caller routes of `C` and checks the resolved actor.
+/// Checks the resolved actor of each credential on `/test/required`, which reads it through
+/// [`Actor`].
+pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
+    assert_routes::<C>(&["/test/required"], || {
+        ApiRouter::new().api_route("/required", required_route::<C>())
+    })
+    .await;
+}
+
+/// Checks the resolved actor of each credential on `/test/optional`, which reads it through
+/// [`MaybeActor`], and on `/test/required`.
+pub(in crate::rest) async fn assert_anonymous_authentication<C: AdmitsAnonymous>() {
+    assert_routes::<C>(&["/test/optional", "/test/required"], || {
+        ApiRouter::new()
+            .api_route("/optional", optional_route::<C>())
+            .api_route("/required", required_route::<C>())
+    })
+    .await;
+}
+
+/// Sends each credential to `paths` behind `C` and checks the resolved actor.
 ///
 /// A session token resolves an actor exactly when `C` documents the session token header. Where
 /// `C` documents the API token scheme, a bearer API token is looked up, which the unreadable store
 /// answers with 503; elsewhere it is not accepted. An API token without the `Bearer` scheme is not
 /// accepted either way, and an API token fails the request even where anonymous callers are
-/// served. A service delegation and a Cloudflare Access JWT resolve as anonymous everywhere. Every
-/// `401` challenges with `C::CHALLENGE`. This ties the provider chain the audience selects to the
-/// schemes the document states.
-pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
+/// served. A service delegation and a Cloudflare Access JWT resolve as anonymous everywhere, which
+/// `/test/required` answers with `401`. Every `401` challenges with `C::CHALLENGE`. This ties the
+/// provider chain the audience selects to the schemes the document states.
+async fn assert_routes<C: Credentials>(paths: &[&str], build_routes: impl FnOnce() -> ApiRouter) {
     let operator = ActorId::new(Uuid::from_u128(1), ActorType::Machine);
     let session_actor = ActorId::new(Uuid::from_u128(2), ActorType::User);
-    let (router, advertised) = caller_router::<C>(operator, session_actor);
+    let (router, advertised) = caller_router::<C>(operator, session_actor, build_routes);
     let session = Outcome::Caller(advertised.session.then_some(session_actor));
     let api_token = api_token();
     let bearer_api_token = if advertised.api_token {
@@ -259,7 +275,7 @@ pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
             Outcome::Rejected(StatusCode::UNAUTHORIZED),
         ),
     ] {
-        for path in ["/test/optional", "/test/required"] {
+        for &path in paths {
             let mut request = Request::builder().uri(path);
             for (name, value) in &headers {
                 request = request.header(*name, value);

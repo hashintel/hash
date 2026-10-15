@@ -15,7 +15,7 @@ use axum::{Router, response::Response};
 use hash_middleware::{
     authentication::{
         AuthenticationLayer, AuthenticationMetrics, Bootstrap, Challenge,
-        provider::AuthenticationProvider,
+        provider::{AuthenticationProvider, Caller},
     },
     problem::InternalServerError,
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimiters},
@@ -141,10 +141,14 @@ pub(super) struct Middleware<P, I, L> {
 
 impl<P, I, L> Middleware<P, I, L>
 where
-    P: AuthenticationProvider<Option<ActorId>> + 'static,
+    P: AuthenticationProvider<ActorId> + 'static,
     I: AuthenticationProvider<Option<ActorId>> + 'static,
     L: AuthenticationProvider<Option<ActorId>> + 'static,
 {
+    /// Attaches authentication and the caller budget to `api`.
+    ///
+    /// The public APIs answer a request that carries no credential with `401` before routing it to
+    /// a handler, the internal API serves it anonymously.
     fn attach_api(&self, api: Api) -> Router {
         let Api {
             audience,
@@ -153,8 +157,12 @@ where
             ..
         } = api;
         match audience {
-            Audience::Public => self.attach(router, &self.public_provider, None, challenge),
-            Audience::Internal => self.attach(router, &self.internal_provider, None, challenge),
+            Audience::Public => {
+                self.attach::<_, ActorId>(router, &self.public_provider, None, challenge)
+            }
+            Audience::Internal => {
+                self.attach::<_, Option<ActorId>>(router, &self.internal_provider, None, challenge)
+            }
         }
     }
 
@@ -178,7 +186,7 @@ where
         apis: impl IntoIterator<Item = Api>,
         documentation: Router,
     ) -> Router {
-        let mut router = self.attach(
+        let mut router = self.attach::<_, Option<ActorId>>(
             legacy_routes,
             &self.legacy_provider,
             Some(Bootstrap {
@@ -211,7 +219,7 @@ where
     ///
     /// The bootstrap secret also exempts its presenters from the caller budget, which a bootstrap
     /// request naming no actor can pass only by that exemption.
-    fn attach<A>(
+    fn attach<A, C>(
         &self,
         routes: Router,
         provider: &Arc<A>,
@@ -219,7 +227,8 @@ where
         challenge: Challenge,
     ) -> Router
     where
-        A: AuthenticationProvider<Option<ActorId>> + 'static,
+        A: AuthenticationProvider<C> + 'static,
+        C: Caller + 'static,
     {
         // `route_layer` panics on a router without routes.
         if !routes.has_routes() {
@@ -236,7 +245,7 @@ where
                     .as_ref()
                     .map(|bootstrap| Pin::clone(&bootstrap.service_secret)),
             })
-            .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
+            .route_layer(AuthenticationLayer::<_, C> {
                 provider: Arc::clone(provider),
                 metrics: Arc::clone(&self.authentication_metrics),
                 bootstrap,

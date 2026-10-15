@@ -215,7 +215,7 @@ async fn fallback_answers_problem_document() {
 async fn cache_control_gate_rejection() {
     let router = middleware(
         &config(1, 10),
-        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
@@ -318,7 +318,7 @@ async fn fallback_draws_on_address_gate() {
 async fn method_not_allowed_problem_document() {
     let router = middleware(
         &config(10, 10),
-        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
@@ -463,7 +463,7 @@ async fn method_not_allowed_draws_on_address_gate() {
 async fn method_not_allowed_draws_on_caller_budget() {
     let router = middleware(
         &config(10, 1),
-        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
@@ -574,6 +574,34 @@ async fn entity_anonymous() {
         response.status(),
         StatusCode::UNAUTHORIZED,
         "an anonymous request should be answered 401"
+    );
+}
+
+/// A public API answers a request without a credential with `401` even on a route that reads no
+/// caller.
+#[tokio::test]
+async fn public_api_anonymous() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), [test_utils::api("/first")], Router::new());
+
+    let response = send(&router, "/first/test").await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNAUTHORIZED,
+        "an anonymous request should be answered 401"
+    );
+    assert!(
+        response
+            .headers()
+            .get(WWW_AUTHENTICATE)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.starts_with("Bearer")),
+        "the 401 should challenge with `Bearer`"
     );
 }
 
@@ -730,7 +758,7 @@ async fn service_secret_exempt_on_legacy_only() {
     )
     .assemble(
         Router::new().route("/legacy", get(async || "ok")),
-        [test_utils::api("/first")],
+        [internal::api()],
         Router::new(),
     );
     let with_secret = |path: &str, peer: IpAddr| {
@@ -752,10 +780,11 @@ async fn service_secret_exempt_on_legacy_only() {
             "the legacy routes should not charge the service secret"
         );
     }
+    let caller = format!("{}/caller", internal::PREFIX);
     let mut statuses = Vec::new();
     for _ in 0..2 {
         statuses.push(
-            send_request(&router, with_secret("/first/test", client(2)))
+            send_request(&router, with_secret(&caller, client(2)))
                 .await
                 .status(),
         );
@@ -763,7 +792,7 @@ async fn service_secret_exempt_on_legacy_only() {
     assert_eq!(
         statuses,
         [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS],
-        "an API should charge the service secret's presenter like any anonymous caller"
+        "the internal API should charge the service secret's presenter like any anonymous caller"
     );
 }
 

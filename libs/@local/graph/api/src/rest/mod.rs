@@ -31,7 +31,9 @@ pub use self::router::{Dependencies, router};
 /// The callers an API admits, which selects the provider chain authenticating its requests.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Audience {
+    /// Callers presenting an API token. A request without a credential is answered `401`.
     Public,
+    /// The HASH frontend and services. A request without a credential is served anonymously.
     Internal,
 }
 

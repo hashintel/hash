@@ -196,39 +196,81 @@
       "ServiceUnavailable": {
         "content": {
           "application/problem+json": {
-            "example": {
-              "detail": "authentication is temporarily unavailable",
-              "status": 503,
-              "title": "Service Unavailable",
-              "type": "about:blank"
+            "examples": {
+              "about:blank": {
+                "summary": "Service Unavailable: The service is temporarily unavailable.",
+                "value": {
+                  "detail": "The service is temporarily unavailable.",
+                  "status": 503,
+                  "title": "Service Unavailable",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (2)": {
+                "summary": "Service Unavailable: Authentication is temporarily unavailable.",
+                "value": {
+                  "detail": "authentication is temporarily unavailable",
+                  "status": 503,
+                  "title": "Service Unavailable",
+                  "type": "about:blank"
+                }
+              }
             },
             "schema": {
-              "allOf": [
+              "anyOf": [
                 {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "title": {
+                          "const": "Service Unavailable"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Service Unavailable: The service is temporarily unavailable."
                 },
                 {
-                  "properties": {
-                    "status": {
-                      "const": 503
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
                     },
-                    "title": {
-                      "const": "Service Unavailable"
-                    },
-                    "type": {
-                      "const": "about:blank"
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "title": {
+                          "const": "Service Unavailable"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
                     }
-                  },
-                  "required": [
-                    "type"
-                  ]
+                  ],
+                  "title": "Service Unavailable: Authentication is temporarily unavailable."
                 }
-              ],
-              "title": "Service Unavailable"
+              ]
             }
           }
         },
-        "description": "Authentication is temporarily unavailable.",
+        "description": "- Service Unavailable: The service is temporarily unavailable.\n- Service Unavailable: Authentication is temporarily unavailable.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -405,105 +447,6 @@
       }
     },
     "schemas": {
-      "ActorId": {
-        "description": "An actor's type and UUID.",
-        "oneOf": [
-          {
-            "properties": {
-              "actorType": {
-                "const": "user",
-                "type": "string"
-              },
-              "id": {
-                "description": "The UUID of a user.",
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "actorType",
-              "id"
-            ],
-            "title": "User",
-            "type": "object"
-          },
-          {
-            "properties": {
-              "actorType": {
-                "const": "machine",
-                "type": "string"
-              },
-              "id": {
-                "description": "The UUID of a machine actor.",
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "actorType",
-              "id"
-            ],
-            "title": "Machine",
-            "type": "object"
-          },
-          {
-            "properties": {
-              "actorType": {
-                "const": "ai",
-                "type": "string"
-              },
-              "id": {
-                "description": "The UUID of an AI agent.",
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "actorType",
-              "id"
-            ],
-            "title": "AI",
-            "type": "object"
-          }
-        ]
-      },
-      "AuthenticatedCallerResponse": {
-        "description": "The resolved caller.",
-        "properties": {
-          "actor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ActorId"
-              }
-            ],
-            "description": "The resolved actor."
-          }
-        },
-        "required": [
-          "actor"
-        ],
-        "type": "object"
-      },
-      "CallerResponse": {
-        "description": "The resolved caller.",
-        "properties": {
-          "actor": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ActorId"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "The resolved actor, or `null` for an anonymous request."
-          }
-        },
-        "required": [
-          "actor"
-        ],
-        "type": "object"
-      },
       "Entity": {
         "description": "An entity the caller may view.",
         "properties": {
@@ -612,138 +555,6 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/entities/v1/authenticated-caller": {
-      "get": {
-        "operationId": "getAuthenticatedCaller",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthenticatedCallerResponse"
-                }
-              }
-            },
-            "description": "The resolved caller.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
-                "example": "private, no-store",
-                "required": true,
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit": {
-                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
-                "example": "\"actor\";r=499",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit-Policy": {
-                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
-                "example": "\"actor\";q=500;w=50",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ServiceUnavailable"
-          }
-        },
-        "security": [
-          {
-            "apiToken": []
-          }
-        ],
-        "summary": "Get the authenticated caller",
-        "tags": [
-          "Caller"
-        ]
-      }
-    },
-    "/entities/v1/caller": {
-      "get": {
-        "description": "Returns the resolved actor, or `actor: null` for an anonymous request.",
-        "operationId": "getCaller",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CallerResponse"
-                }
-              }
-            },
-            "description": "The resolved caller.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
-                "example": "private, no-store",
-                "required": true,
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit": {
-                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
-                "example": "\"actor\";r=499",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit-Policy": {
-                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
-                "example": "\"actor\";q=500;w=50",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ServiceUnavailable"
-          }
-        },
-        "security": [
-          {},
-          {
-            "apiToken": []
-          }
-        ],
-        "summary": "Get the caller",
-        "tags": [
-          "Caller"
-        ]
-      }
-    },
     "/entities/v1/{entityId}": {
       "get": {
         "description": "Returns the current edition of the entity. Answers `404` when the entity does not exist, is archived, or the caller may not view it.",
@@ -815,110 +626,7 @@
             "$ref": "#/components/responses/InternalServerError"
           },
           "503": {
-            "content": {
-              "application/problem+json": {
-                "examples": {
-                  "about:blank": {
-                    "summary": "Service Unavailable: The service is temporarily unavailable.",
-                    "value": {
-                      "detail": "The service is temporarily unavailable.",
-                      "status": 503,
-                      "title": "Service Unavailable",
-                      "type": "about:blank"
-                    }
-                  },
-                  "about:blank (2)": {
-                    "summary": "Service Unavailable: Authentication is temporarily unavailable.",
-                    "value": {
-                      "detail": "authentication is temporarily unavailable",
-                      "status": 503,
-                      "title": "Service Unavailable",
-                      "type": "about:blank"
-                    }
-                  }
-                },
-                "schema": {
-                  "anyOf": [
-                    {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/ProblemDetails"
-                        },
-                        {
-                          "properties": {
-                            "status": {
-                              "const": 503
-                            },
-                            "title": {
-                              "const": "Service Unavailable"
-                            },
-                            "type": {
-                              "const": "about:blank"
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ]
-                        }
-                      ],
-                      "title": "Service Unavailable: The service is temporarily unavailable."
-                    },
-                    {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/ProblemDetails"
-                        },
-                        {
-                          "properties": {
-                            "status": {
-                              "const": 503
-                            },
-                            "title": {
-                              "const": "Service Unavailable"
-                            },
-                            "type": {
-                              "const": "about:blank"
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ]
-                        }
-                      ],
-                      "title": "Service Unavailable: Authentication is temporarily unavailable."
-                    }
-                  ]
-                }
-              }
-            },
-            "description": "- Service Unavailable: The service is temporarily unavailable.\n- Service Unavailable: Authentication is temporarily unavailable.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
-                "example": "private, no-store",
-                "required": true,
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit": {
-                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
-                "example": "\"actor\";r=499",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit-Policy": {
-                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
-                "example": "\"actor\";q=500;w=50",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              }
-            }
+            "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
         "security": [

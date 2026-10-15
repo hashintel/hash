@@ -3,7 +3,7 @@ mod entity;
 use aide::openapi::Info;
 use hash_graph_store::pool::StorePool;
 
-use crate::rest::{Api, ApiState, caller, documentation, openapi, public};
+use crate::rest::{Api, ApiState, documentation, openapi, public};
 
 pub(super) fn api<S>() -> Api<ApiState<S>>
 where
@@ -17,7 +17,7 @@ where
             description: Some(documentation::OVERVIEW.to_owned()),
             ..Info::default()
         },
-        || caller::routes::<public::Credentials, _>().merge(entity::routes::<S>()),
+        entity::routes::<S>,
         public::document,
     )
 }

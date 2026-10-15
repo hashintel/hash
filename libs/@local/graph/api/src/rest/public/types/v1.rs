@@ -11,7 +11,7 @@ pub(super) fn api<T: Clone + Send + Sync + 'static>() -> Api<T> {
             description: Some(documentation::OVERVIEW.to_owned()),
             ..Info::default()
         },
-        caller::routes::<public::Credentials, T>,
+        caller::authenticated_routes::<public::Credentials, T>,
         public::document,
     )
 }
