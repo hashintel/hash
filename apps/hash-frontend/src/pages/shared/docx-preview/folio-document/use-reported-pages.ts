@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 import type { DocxEditorRef } from "@stll/folio-react";
 import type { RefObject } from "react";
@@ -15,7 +15,7 @@ export const useReportedPages = (
 ) => {
   const reportedPages = useRef<DocxDocumentPages>({ current: 0, total: 0 });
 
-  const reportPages = useCallback(() => {
+  const reportPages = () => {
     const editor = editorRef.current;
     if (!editor) {
       return;
@@ -31,13 +31,15 @@ export const useReportedPages = (
       reportedPages.current = pages;
       onPagesChange(pages);
     }
-  }, [editorRef, onPagesChange]);
+  };
+
+  const pollPages = useEffectEvent(reportPages);
 
   /** folio has no event for a page change, so the pages are polled. */
   useEffect(() => {
-    const interval = setInterval(reportPages, 500);
+    const interval = setInterval(() => pollPages(), 500);
     return () => clearInterval(interval);
-  }, [reportPages]);
+  }, []);
 
   return reportPages;
 };
