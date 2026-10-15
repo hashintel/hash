@@ -17,7 +17,6 @@ import {
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
-  inventoryPurchasing,
   probabilisticSatellitesSDCPN,
   productionMachines,
   sirModel,
@@ -445,14 +444,6 @@ const EditorViewContent = ({
                 text: "Supply Chain with Disruption",
                 onClick: () => {
                   createNewNet(supplyChainWithDisruption);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-inventory-purchasing",
-                text: "Inventory Purchasing",
-                onClick: () => {
-                  createNewNet(inventoryPurchasing);
                   clearSelection();
                 },
               },

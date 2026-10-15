@@ -45,6 +45,7 @@ const modelFileLoaders: Record<
   "gases-2-spn": () => import("./models/gases-2-spn.json"),
   "gases-3-cpn": () => import("./models/gases-3-cpn.json"),
   "gases-4-dcpn": () => import("./models/gases-4-dcpn.json"),
+  "inventory-purchasing": () => import("./models/inventory-purchasing.json"),
   "semiconductor-fab-drift": () =>
     import("./models/semiconductor-fab-drift.json"),
   "truck-fleet-predictive-maintenance": () =>

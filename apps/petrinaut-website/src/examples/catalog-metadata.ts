@@ -120,7 +120,7 @@ const catalog = [
   {
     slug: "inventory-purchasing",
     title: "Inventory Purchasing",
-    source: coreExample("inventoryPurchasing"),
+    source: modelFile,
     parameterBounds: {
       demand_sigma: { min: 0, max: 6, step: 0.1 },
       forecast_weight: { min: 0, max: 1, step: 0.05 },

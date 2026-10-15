@@ -1,6 +1,6 @@
 # Examples
 
-Petrinaut includes several built-in example nets accessible from the **hamburger menu** (top-left) under **Load example**. The SIR model is the simplest starting point; the Supply Chain with Disruption net is the most complex, and Inventory Purchasing is the largest.
+Petrinaut includes several built-in example nets accessible from the **hamburger menu** (top-left) under **Load example**. The SIR model is the simplest starting point; the Supply Chain with Disruption net is the most complex.
 
 Bundled scenarios use the [ad-hoc scenario form](ad-hoc-scenarios.md), so you can edit their Variables, parameter overrides, and initial-state tables. Dynamic rows keep generated machine fleets and satellite constellations linked to their scenario parameters.
 
@@ -87,26 +87,6 @@ An end-to-end manufacturing and distribution network (loaded from the **Supply C
 **Key concepts:** [types](petri-net-extensions.md#typed-vs-untyped-places), [distributions](petri-net-extensions.md#distributions), [competing transitions](useful-patterns.md#competing-transitions--routing), [inhibitor arcs](petri-net-extensions.md#inhibitor-arcs), [visualizers](petri-net-extensions.md#visualizer).
 
 <img width="1439" height="747" alt="suppy-chain-with-disruption" src="https://github.com/user-attachments/assets/7ae913db-cfbd-4dd9-bd50-1672c17f2444" />
-
-## Inventory Purchasing
-
-A manufacturer's purchasing problem at full scale (loaded from the **Inventory Purchasing** menu item): two ingredients bought from three suppliers, one product made from them, and contract and spot customers served from finished stock. Ingredient A is single-sourced from a slow supplier; Ingredient B has a primary supplier, a top-up supplier for urgent shortages, and a paid switch to the top-up supplier while the primary is out of stock. With 38 places and 45 transitions it is the largest built-in net.
-
-**Demonstrates:**
-
-- **A reorder-point, order-up-to policy** -- each ingredient has an `InventoryPosition` place (on hand + at supplier + in transit − committed) that ordering transitions read and update, with minimum order quantities and rounding applied in the kernels.
-- **Lots that carry their history** -- `Stock` tokens hold material, supplier, quantity, remaining shelf life, accrued holding cost, unit price, and dispatch and transit clocks, and move through the order book, transit, customs holds, quality quarantine, the shelves and the finished-goods store.
-- **Stochastic differential equations** -- demand and the raw-material price index are Ornstein–Uhlenbeck processes: [differential equations](petri-net-extensions.md#differential-equations-dynamics) integrate the drift, and a predicate transition injects `Distribution.Gaussian` noise every `diffusion_step` weeks.
-- **Many competing risks** -- supplier outages, shipment loss and delay, QC rejection and scrap, recalls, shelf-life expiry, and spot customers whose cancellation hazard grows with waiting time.
-- **Make-to-forecast production** -- a plan clock schedules batches whose size blends a fixed plan with forecast demand (`forecast_weight`), consuming both ingredients through a bill of materials with a first-expiry-first-out bias.
-- **[Metrics](simulation.md) that compose a cost objective** -- 45 metrics, led by **Policy cost** (spend, holding, lost margin, production delay, late penalties, switching fees and disposal) and **Fill rate**.
-- **Ten built-in scenarios** -- _Baseline policy_, _Calm market_, _Volatile market_, _Demand surge_, _Fragile supply_, _Depleted start_, _Shipment delays_, _Volatile prices_, _Recall wave_, and _Optimise policy_.
-
-**Suggested initial state:** pick _Baseline policy_ and press Play, then watch the ingredient inventory positions saw-tooth between their reorder points and targets. Try _Fragile supply_ to see substitute orders appear for Ingredient B, while Ingredient A has no second source to fall back on. For search, create an experiment on _Optimise policy_, which exposes the reorder points, order-up-to targets, top-up threshold and quantity, and forecast weight: minimise **Policy cost (EUR)** and keep an eye on **Fill rate**.
-
-**Key concepts:** [types](petri-net-extensions.md#typed-vs-untyped-places), [distributions](petri-net-extensions.md#distributions), [differential equations](petri-net-extensions.md#differential-equations-dynamics), [competing transitions](useful-patterns.md#competing-transitions--routing), [scenarios](scenarios.md), [experiments](experiments.md).
-
-<!-- TODO: add a screenshot of the Inventory Purchasing example net. -->
 
 ## Supply Chain Profit
 
