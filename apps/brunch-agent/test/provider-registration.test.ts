@@ -34,15 +34,20 @@ vi.mock("@earendil-works/pi-ai/providers/anthropic", () => ({
 vi.mock("@earendil-works/pi-ai/providers/openai", () => ({
   openaiProvider: () => openaiFaux.provider,
 }));
+
+let registeredProviders: Parameters<typeof setProvider>[0][] = [];
+let instrumentations: Parameters<typeof instrument>[0][] = [];
+
 beforeAll(async () => {
   await import("../src/app");
+  registeredProviders = vi
+    .mocked(setProvider)
+    .mock.calls.map(([entry]) => entry);
+  instrumentations = vi.mocked(instrument).mock.calls.map(([entry]) => entry);
 });
 
 test("app registration admits both Anthropic and OpenAI providers", () => {
-  const ids = vi
-    .mocked(setProvider)
-    .mock.calls.map(([entry]) => entry.id)
-    .sort();
+  const ids = registeredProviders.map((entry) => entry.id).sort();
   expect(ids).toEqual(["anthropic", "openai"]);
 });
 
@@ -54,16 +59,15 @@ const drain = async (stream: ReturnType<Provider["streamSimple"]>) => {
 };
 
 test("app registration scopes admission to ChatAgent execution, isolating concurrent agents and delegated tasks", async () => {
-  const registration = vi
-    .mocked(instrument)
-    .mock.calls.find(
-      ([entry]) => entry.key === Symbol.for("brunch.buffered-tool-admission"),
-    )?.[0];
+  const registration = instrumentations.find(
+    (entry) => entry.key === Symbol.for("brunch.buffered-tool-admission"),
+  );
+
   expect(registration).toBeDefined();
-  const provider = vi
-    .mocked(setProvider)
-    .mock.calls.map(([entry]) => entry)
-    .find((entry) => entry.id === "anthropic")!;
+  const provider = registeredProviders.find(
+    (entry) => entry.id === "anthropic",
+  )!;
+
   expect(provider.auth).toBe(faux.provider.auth);
   expect(provider.getModels()).toEqual(faux.provider.getModels());
   const model = provider.getModels()[0]!;
