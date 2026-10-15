@@ -1,3 +1,5 @@
+import { extractBaseUrl } from "@blockprotocol/type-system";
+
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   Filter,
@@ -10,21 +12,21 @@ import type {
   FilterLeaf,
 } from "@local/hash-isomorphic-utils/flows/filter-condition";
 
-/** The entity's own types: not the types they inherit from. */
+/** The base URL of the entity's own types: not the types they inherit from. */
 const directTypePath: PathExpression = {
-  path: ["type(inheritanceDepth = 0)", "versionedUrl"],
+  path: ["type(inheritanceDepth = 0)", "baseUrl"],
 };
 
 /**
- * Entities of this exact type version, as in Filter: not those of another version of it, nor of a type that inherits
- * from it.
+ * Entities of any version of this type, so that entities not yet upgraded to the latest version aren't missed, but not
+ * those of a type that inherits from it. Filter matches the exact version.
  *
  * The graph matches an entity's own types by joining them, a row per type, so an entity with several types would
  * match `not` of one of them through the others, and never match `all` of two of them. `validateQueryFilter` rejects
  * both.
  */
 export const isOfTypeFilter = (entityTypeId: VersionedUrl): Filter => ({
-  equal: [directTypePath, { parameter: entityTypeId }],
+  equal: [directTypePath, { parameter: extractBaseUrl(entityTypeId) }],
 });
 
 const comparisons: Record<

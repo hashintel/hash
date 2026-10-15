@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { validateQueryFilter } from "@local/hash-isomorphic-utils/flows/query-entities";
 
 import { evaluateCondition } from "../filter-action/evaluate-condition.js";
@@ -37,8 +38,8 @@ const evaluateGraphFilter = (
     if (token === "properties") {
       return row.properties[field as string];
     }
-    if (token === "type(inheritanceDepth = 0)" && field === "versionedUrl") {
-      return row.type;
+    if (token === "type(inheritanceDepth = 0)" && field === "baseUrl") {
+      return extractBaseUrl(row.type);
     }
     throw new Error(`Unexpected path ${expression.path.join(".")}`);
   };
@@ -337,7 +338,7 @@ describe("conditionToGraphFilter", () => {
     }
   });
 
-  it("matches an entity type's exact version among the entity's own types", () => {
+  it("matches any version of an entity type among the entity's own types", () => {
     const isCompany = all({
       kind: "condition",
       subject: { kind: "entityType" },
@@ -349,8 +350,8 @@ describe("conditionToGraphFilter", () => {
       all: [
         {
           equal: [
-            { path: ["type(inheritanceDepth = 0)", "versionedUrl"] },
-            { parameter: companyType },
+            { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+            { parameter: "https://example.com/types/entity-type/company/" },
           ],
         },
       ],
@@ -361,9 +362,12 @@ describe("conditionToGraphFilter", () => {
         [personType, companyType],
         [personType],
         ["https://example.com/types/entity-type/company/v/2" as VersionedUrl],
+        [
+          "https://example.com/types/entity-type/company-branch/v/1" as VersionedUrl,
+        ],
       ].map((entityTypeIds) =>
         queryMatches(isCompany, { properties: {}, entityTypeIds }),
       ),
-    ).toEqual([true, true, false, false]);
+    ).toEqual([true, true, false, true, false]);
   });
 });
