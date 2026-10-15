@@ -29,7 +29,7 @@ jobs:
       publish-rust: ${{ steps.packages.outputs.publish-rust }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 2
 
@@ -89,7 +89,7 @@ jobs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Mint sccache credentials
         id: mint
@@ -117,7 +117,7 @@ jobs:
         run: echo "$MATRIX"
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk
@@ -165,7 +165,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+      - uses: codecov/codecov-action@v5.5.5
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -224,7 +224,7 @@ jobs:
         run: echo "$MATRIX"
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk
@@ -259,7 +259,7 @@ jobs:
 
       - name: Install playwright
         if: matrix.name == '@tests/hash-playwright'
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 3
           timeout_minutes: 2
@@ -274,7 +274,7 @@ jobs:
         # individual runners (e.g. "failed to receive status: rpc error: code =
         # Unavailable desc = error reading from server: EOF"), failing the job
         # before any test runs. See https://linear.app/hash/issue/SRE-803
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 3
           timeout_minutes: 15
@@ -319,7 +319,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+      - uses: codecov/codecov-action@v5.5.5
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -338,13 +338,13 @@ jobs:
 
       - name: Upload artifact playwright-report
         if: matrix.name == '@tests/hash-playwright' && (success() || failure())
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_report
           path: tests/hash-playwright/playwright-report
 
       - name: Upload logs
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@v4.6.2
         if: success() || failure()
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
@@ -359,7 +359,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk
@@ -399,7 +399,7 @@ jobs:
           [[ ${{ needs.publish-rust.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
+        uses: rtCamp/action-slack-notify@master
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

@@ -25,7 +25,7 @@ jobs:
       packages: ${{ steps.packages.outputs.packages }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 2
 
@@ -53,7 +53,7 @@ jobs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Mint sccache credentials
         id: mint
@@ -82,7 +82,7 @@ jobs:
         run: echo "$MATRIX"
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 2
 
@@ -199,7 +199,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@45cbd0c69e560cd9e7cd7f8c32362050c9b7ded2 # v4.32.2
+        uses: github/codeql-action/upload-sarif@v4.32.2
         if: always() && matrix['lint:clippy'] != null
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
@@ -236,7 +236,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk
@@ -432,7 +432,7 @@ jobs:
         run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json --annotation-level failure --nofail
 
       - name: Annotate
-        uses: yuzutech/annotations-action@0e061a6e3ac848299310b6429b60d67cafd4e7f8 # v0.5.0
+        uses: yuzutech/annotations-action@v0.5.0
         if: failure() && github.event.pull_request.head.repo.full_name == github.repository
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
@@ -459,7 +459,7 @@ jobs:
           [[ ${{ needs.global.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
+        uses: rtCamp/action-slack-notify@master
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

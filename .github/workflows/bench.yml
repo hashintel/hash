@@ -34,7 +34,7 @@ jobs:
       integration: ${{ steps.packages.outputs.integration }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 2
 
@@ -65,7 +65,7 @@ jobs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Mint sccache credentials
         id: mint
@@ -95,7 +95,7 @@ jobs:
 
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
@@ -130,14 +130,14 @@ jobs:
 
       - name: Checkout head branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
         if: github.event_name != 'pull_request'
@@ -178,7 +178,7 @@ jobs:
       - name: Authenticate Vault
         id: secrets
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        uses: hashicorp/vault-action@v3.4.0
         with:
           url: ${{ env.VAULT_ADDR }}
           method: jwt
@@ -194,7 +194,7 @@ jobs:
 
       - name: Upload benchmark summary
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: /tmp/${{ env.TRIMMED_PACKAGE_NAME }}.md
@@ -218,7 +218,7 @@ jobs:
 
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
@@ -256,7 +256,7 @@ jobs:
         # individual runners (e.g. "failed to receive status: rpc error: code =
         # Unavailable desc = error reading from server: EOF"), failing the job
         # before any test runs. See https://linear.app/hash/issue/SRE-803
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 3
           timeout_minutes: 15
@@ -312,14 +312,14 @@ jobs:
 
       - name: Checkout head branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
         if: github.event_name != 'pull_request'
@@ -350,7 +350,7 @@ jobs:
         # individual runners (e.g. "failed to receive status: rpc error: code =
         # Unavailable desc = error reading from server: EOF"), failing the job
         # before any test runs. See https://linear.app/hash/issue/SRE-803
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 3
           timeout_minutes: 15
@@ -399,7 +399,7 @@ jobs:
       - name: Authenticate Vault
         id: secrets
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        uses: hashicorp/vault-action@v3.4.0
         with:
           url: ${{ env.VAULT_ADDR }}
           method: jwt
@@ -415,7 +415,7 @@ jobs:
 
       - name: Upload benchmark summary
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: /tmp/${{ env.TRIMMED_PACKAGE_NAME }}.md
@@ -426,7 +426,7 @@ jobs:
         run: docker compose --profile dev logs --timestamps
 
       - name: Upload background tasks logs
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@v4.6.2
         if: success() || failure()
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
@@ -455,7 +455,7 @@ jobs:
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
+        uses: rtCamp/action-slack-notify@master
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
@@ -468,11 +468,11 @@ jobs:
 
       - name: Checkout
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Download reports' artifacts
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@v5.0.0
         with:
           path: downloads
 
@@ -484,7 +484,7 @@ jobs:
           cat /tmp/summary.md
 
       - name: Post comment
-        uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
+        uses: mshick/add-pr-comment@v2.8.2
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success' && github.event.pull_request.head.repo.full_name == github.repository
         with:
           message-path: /tmp/summary.md

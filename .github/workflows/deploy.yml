@@ -52,7 +52,7 @@ jobs:
       backend-staging: ${{ steps.packages.outputs.backend-staging }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 2
 
@@ -280,7 +280,7 @@ jobs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Mint sccache credentials
         id: mint
@@ -320,7 +320,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        uses: hashicorp/vault-action@v3.4.0
         with:
           # Named per tier so each value lives once, at the organization. The
           # condition repeats the one on `environment` above, and a mismatch
@@ -338,7 +338,7 @@ jobs:
             ci/data/sentry/sourcemaps auth_token | SENTRY_AUTH_TOKEN
 
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@v6.0.2
 
       - name: Install tools
         uses: $/.github/actions/install-tools
@@ -378,7 +378,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v6.0.2
 
       # Tag-list assembly. The dynamic matrix already filtered the (service,
       # arch) entries to what should build, so this step only decides whether
@@ -447,7 +447,7 @@ jobs:
 
       - name: Configure AWS credentials (ECR push)
         if: steps.targets.outputs.push_ecr == 'true'
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        uses: aws-actions/configure-aws-credentials@v4.3.1
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -479,7 +479,7 @@ jobs:
 
       - name: Upload GHCR digest
         if: steps.targets.outputs.push_ghcr == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: digest-${{ matrix.service }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/digests/*
@@ -504,13 +504,13 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v6.0.2
         with:
           # tag-if-newer needs full history for `git merge-base --is-ancestor`.
           fetch-depth: 0
 
       - name: Configure AWS credentials (ECR push)
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        uses: aws-actions/configure-aws-credentials@v4.3.1
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -519,7 +519,7 @@ jobs:
         uses: $/.github/actions/docker-ecr-login
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@v3.11.1
 
       # ECR images are single-arch. Advance :staging onto this commit's
       # immutable sha tag only if it is newer than the one currently tagged.
@@ -548,23 +548,23 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v6.0.2
         with:
           # tag-if-newer (the :latest guard) needs full history.
           fetch-depth: 0
 
       - name: Login to GHCR
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        uses: docker/login-action@v3.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        uses: docker/setup-buildx-action@v3.11.1
 
       - name: Download per-arch digests
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@v5.0.0
         with:
           path: ${{ runner.temp }}/digests
           pattern: digest-${{ matrix.service }}-*
@@ -574,7 +574,7 @@ jobs:
       # per-arch digests this run pushed — no tag readback, so no Frankenstein
       # manifest even if a parallel run is mid-push.
       - name: Assemble :sha-<sha> manifest
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        uses: nick-fields/retry@v3.0.2
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}
           SHA: ${{ github.sha }}
@@ -618,10 +618,10 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v6.0.2
 
       - name: Configure AWS credentials (ECS deploy)
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        uses: aws-actions/configure-aws-credentials@v4.3.1
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_DEPLOY_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_DEPLOY_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -669,7 +669,7 @@ jobs:
           [[ ${{ needs.deploy.result }} =~ success|skipped ]]
 
       - name: Notify Slack on main failure
-        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
+        uses: rtCamp/action-slack-notify@master
         if: ${{ failure() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         env:
           SLACK_LINK_NAMES: true
@@ -681,7 +681,7 @@ jobs:
           VAULT_TOKEN: ""
 
       - name: Notify Slack on merge-queue failure
-        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
+        uses: rtCamp/action-slack-notify@master
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
