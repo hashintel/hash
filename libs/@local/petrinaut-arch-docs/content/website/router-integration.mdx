@@ -72,20 +72,45 @@ only the contract part.
 
 ## Which routes speak the contract
 
-Every page that mounts Petrinaut does: the editable demo at `/`, the Brunch
-stream at `/brunch`, and the example pages at `/examples/$slug` and
-`/embed/examples/$slug`.
+Every page that mounts Petrinaut does: the editable demo at `/local/$netId`,
+the Brunch stream at `/brunch`, the example pages at `/examples/$slug` and
+`/embed/examples/$slug`, and snapshots at `/share`.
 
-They differ in whether the URL also names the model. The editable demo holds
-its nets in local storage, so a link there names a location inside whatever
-net the visitor has open. `/brunch` names its model with the stream keys it
-carries over, so a copied URL reproduces the run. The example pages name the
-model in the path.
+Each also names its model in the URL. The editable demo names a net saved in
+this browser's local storage by its id, so the link opens that net only in the
+browser that saved it. The demo takes the id as a prop and asks the route to
+open another net, so Back and Forward move between nets. The demo passes the
+net id as the hook's `resetKey`, so opening another net starts the location
+over from the URL, as a fresh page would. `/brunch` names its
+model with the stream keys it carries over, so a copied URL reproduces the
+run. The example pages name the model in the path. `/share` carries the whole
+net in its fragment, `#v1.br.<payload>`, which the browser does not send to
+the server. The route keeps the fragment when the view changes, and keys the
+snapshot page by it, so Back and Forward between snapshots open each one
+afresh.
 
-`/new` and `/examples` mount nothing and speak no contract. Both redirect from
-`beforeLoad`: `/examples` sends the visitor to the editable demo, and `/new`
-starts an empty net in local storage first, which the demo then opens as the
-most recently modified one.
+**Make a local copy**, in the top bar of `/examples/$slug` or `/share` or on
+the notice that explains a blocked edit, saves the document as a new local net
+and opens it at its `/local/$netId` URL. The search it passes is
+`navigationStateToSharedSearch` of the editor's location when clicked, so the
+copy opens at the same location. It passes no fragment, so a copy made on
+`/share` opens without the snapshot's payload.
+
+**Share**, in the editable demo's top bar, builds the `/share` link from the
+net and `navigationStateToSharedSearch` of the editor's location when its
+dropdown opens. "Include current view" decides whether that search goes into
+the link.
+
+`/`, `/new` and `/examples` mount nothing. All three redirect from
+`beforeLoad` and replace the history entry:
+
+- `/` opens the most recently edited net, saving an empty one when the browser
+  holds none, and passes its search on.
+- `/new` saves an empty net and opens it.
+- `/examples` sends the visitor to `/`.
+
+`/` and `/new` show an error page instead of redirecting when the browser
+refuses the write.
 
 ## What a URL carries, and what it does not
 
@@ -99,6 +124,10 @@ means the user explicitly chose no scenario, and any other value names one. The
 oEmbed endpoint drops an explicit `none` when it builds the embed URL, because
 an embed with no scenario has nothing to run. The embed route itself honours
 `none`, so a hand-written embed URL can still ask for no scenario.
+
+Ids in a URL are the net's UUIDs. A link made before ids were converted names
+items by their older ids; the editor resolves each one to its converted id and
+replaces the URL once, so the link opens the same scenario and item.
 
 ## Hosting Petrinaut without a router
 

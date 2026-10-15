@@ -25,6 +25,7 @@ use hash_middleware::{
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
+use hash_secret::Secret;
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 use type_system::principal::actor::{ActorId, UserId};
@@ -34,7 +35,6 @@ use crate::{
     cli::{ServeCommand, ServeOptions},
     file::{generation::GenerationRoot, storage::Storage},
     identity::NodeRowId,
-    integrity::SecretString,
     serve::{
         tests::fixture::{TamperFixture, secret},
         visibility::cache::VisibilityLimits,
@@ -86,7 +86,7 @@ async fn pool(database: &str) -> Arc<PostgresStorePool> {
             &DatabaseConnectionInfo::new(
                 DatabaseType::Postgres,
                 "postgres".to_owned(),
-                "postgres".to_owned(),
+                Secret::from_string("postgres".to_owned()),
                 "localhost".to_owned(),
                 5432,
                 database.to_owned(),
@@ -244,7 +244,6 @@ impl RouteFixture {
                 let serving = ServeCommand::for_integration(root, secret())
                     .run(ServeOptions {
                         provider: Arc::new(HeaderDelegation),
-                        service_secret: SecretString::from("route-test-service-secret"),
                         rate_limit: RateLimitConfig {
                             rate_limit_mode: RateLimitMode::Observe,
                             client_ip_source: ClientIpSource::ConnectInfo,

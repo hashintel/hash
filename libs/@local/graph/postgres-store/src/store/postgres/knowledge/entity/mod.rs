@@ -36,10 +36,7 @@ use hash_graph_store::{
     error::{
         CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
     },
-    filter::{
-        Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
-        protection::transform_filter,
-    },
+    filter::{Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList},
     query::{QueryResult as _, Read},
     subgraph::{
         Subgraph, SubgraphRecord as _,
@@ -586,16 +583,9 @@ where
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
     ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
-        let policy_filter = Filter::<Entity>::for_policies(
-            policy_components.extract_filter_policies(ActionName::ViewEntity),
-            policy_components.actor_id(),
-            policy_components.optimization_data(ActionName::ViewEntity),
-        );
+        let policy_filter = Filter::<Entity>::for_view_entity(policy_components);
 
-        // Apply filter protection when configured - protects sensitive properties (e.g., email)
-        // from enumeration attacks and removes them from responses for non-owners.
-        let should_apply_protection =
-            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
+        let should_apply_protection = self.should_apply_filter_protection(policy_components);
 
         let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
 
@@ -608,12 +598,8 @@ where
                 .to_property_protection_filter(policy_components.actor_id());
             compiler.with_property_masking(&property_protection_filter);
 
-            protected_filter = transform_filter(
-                params.filter.clone(),
-                &self.settings.filter_protection,
-                0,
-                policy_components.actor_id(),
-            );
+            protected_filter =
+                self.apply_filter_protection(params.filter.clone(), policy_components);
 
             &protected_filter
         } else {
@@ -1920,31 +1906,10 @@ where
             .await
             .change_context(QueryError)?;
 
-        let policy_filter = Filter::<Entity>::for_policies(
-            policy_components.extract_filter_policies(ActionName::ViewEntity),
-            policy_components.actor_id(),
-            policy_components.optimization_data(ActionName::ViewEntity),
-        );
+        let policy_filter = Filter::<Entity>::for_view_entity(&policy_components);
 
-        // Apply filter protection when configured - protects sensitive properties (e.g., email)
-        // from enumeration attacks in summarize_entities queries.
-        let should_apply_protection =
-            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
-
-        let protected_filter;
-        let filter_to_use = if should_apply_protection {
-            // Transform filter to protect against email filtering on Users
-            // Note: summarize_entities has no sorting, so only filter protection applies
-            protected_filter = transform_filter(
-                params.filter.clone(),
-                &self.settings.filter_protection,
-                0,
-                policy_components.actor_id(),
-            );
-            &protected_filter
-        } else {
-            &params.filter
-        };
+        let filter_to_use =
+            self.maybe_apply_filter_protection(params.filter.clone(), &policy_components);
 
         let temporal_axes = params.temporal_axes.resolve();
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
@@ -1952,7 +1917,7 @@ where
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
         compiler
-            .add_filter(filter_to_use)
+            .add_filter(&filter_to_use)
             .change_context(QueryError)?;
 
         let Some(summary_query) =
@@ -2023,11 +1988,7 @@ where
 
         let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
 
-        let filter = Filter::<Entity>::for_policies(
-            policy_components.extract_filter_policies(ActionName::ViewEntity),
-            policy_components.actor_id(),
-            policy_components.optimization_data(ActionName::ViewEntity),
-        );
+        let filter = Filter::<Entity>::for_view_entity(&policy_components);
         filters.push(filter);
 
         let temporal_axes = QueryTemporalAxesUnresolved::TransactionTime {
@@ -2050,207 +2011,98 @@ where
 
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn patch_entity(
+    async fn patch_entities(
         &mut self,
         actor_id: ActorId,
-        mut params: PatchEntityParams,
-    ) -> Result<Entity, Report<UpdateError>> {
+        params: Vec<PatchEntityParams>,
+    ) -> Result<Vec<Entity>, Report<UpdateError>> {
         let transaction_time = Timestamp::now().remove_nanosecond();
-        let decision_time = params
-            .decision_time
-            .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
-
         let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
-        let locked_row = transaction
-            .lock_entity_edition(params.entity_id, transaction_time, decision_time)
-            .await?
-            .ok_or_else(|| {
-                Report::new(EntityDoesNotExist)
-                    .attach_opaque(StatusCode::NotFound)
-                    .attach(params.entity_id)
-                    .change_context(UpdateError)
-            })?;
-        let ClosedTemporalBound::Inclusive(locked_transaction_time) =
-            *locked_row.transaction_time.start();
-        let ClosedTemporalBound::Inclusive(locked_decision_time) =
-            *locked_row.decision_time.start();
-        let previous_entity = Read::<Entity>::read_one(
-            &transaction,
-            &[Filter::Equal(
-                FilterExpression::Path {
-                    path: EntityQueryPath::EditionId,
-                },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
-                    convert: None,
-                },
-            )],
-            Some(&QueryTemporalAxes::DecisionTime {
-                pinned: PinnedTemporalAxis::new(locked_transaction_time),
-                variable: VariableTemporalAxis::new(
-                    TemporalBound::Inclusive(locked_decision_time),
-                    LimitedTemporalBound::Inclusive(locked_decision_time),
-                ),
-            }),
-            true,
-        )
-        .await
-        .change_context(EntityDoesNotExist)
-        .attach_opaque(params.entity_id)
-        .change_context(UpdateError)?;
+        let mut patched_entities = Vec::with_capacity(params.len());
+        let mut embedding_entity_ids = Vec::new();
 
-        let policy_components = PolicyComponents::builder(&transaction, Some(actor_id))
-            .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
-            .with_entity_type_ids(&params.entity_type_ids)
-            .with_actions(
-                [
-                    ActionName::Instantiate,
-                    ActionName::UpdateEntity,
-                    ActionName::ArchiveEntity,
-                ],
-                MergePolicies::No,
-            )
-            .with_actions(
-                [
-                    ActionName::ViewEntity,
-                    ActionName::ViewEntityType,
-                    ActionName::ViewPropertyType,
-                    ActionName::ViewDataType,
-                ],
-                MergePolicies::Yes,
+        for (index, mut params) in params.into_iter().enumerate() {
+            let decision_time = params
+                .decision_time
+                .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
+
+            let locked_row = transaction
+                .lock_entity_edition(params.entity_id, transaction_time, decision_time)
+                .await?
+                .ok_or_else(|| {
+                    Report::new(EntityDoesNotExist)
+                        .attach_opaque(StatusCode::NotFound)
+                        .attach(params.entity_id)
+                        .change_context(UpdateError)
+                })?;
+            let ClosedTemporalBound::Inclusive(locked_transaction_time) =
+                *locked_row.transaction_time.start();
+            let ClosedTemporalBound::Inclusive(locked_decision_time) =
+                *locked_row.decision_time.start();
+            let previous_entity = Read::<Entity>::read_one(
+                &transaction,
+                &[Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EditionId,
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
+                        convert: None,
+                    },
+                )],
+                Some(&QueryTemporalAxes::DecisionTime {
+                    pinned: PinnedTemporalAxis::new(locked_transaction_time),
+                    variable: VariableTemporalAxis::new(
+                        TemporalBound::Inclusive(locked_decision_time),
+                        LimitedTemporalBound::Inclusive(locked_decision_time),
+                    ),
+                }),
+                true,
             )
             .await
+            .change_context(EntityDoesNotExist)
+            .attach_opaque(params.entity_id)
             .change_context(UpdateError)?;
 
-        let policy_set = policy_components
-            .build_policy_set([
-                ActionName::Instantiate,
-                ActionName::UpdateEntity,
-                ActionName::ArchiveEntity,
-            ])
-            .change_context(UpdateError)?;
-
-        if params.is_update() {
-            match policy_set
-                .evaluate(
-                    &Request {
-                        actor: policy_components.actor_id(),
-                        action: ActionName::UpdateEntity,
-                        resource: &ResourceId::Entity(params.entity_id.entity_uuid),
-                        context: RequestContext::default(),
-                    },
-                    policy_components.context(),
+            let policy_components = PolicyComponents::builder(&transaction, Some(actor_id))
+                .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
+                .with_entity_type_ids(&params.entity_type_ids)
+                .with_actions(
+                    [
+                        ActionName::Instantiate,
+                        ActionName::UpdateEntity,
+                        ActionName::ArchiveEntity,
+                    ],
+                    MergePolicies::No,
                 )
-                .change_context(UpdateError)?
-            {
-                Authorized::Always => {}
-                Authorized::Never => {
-                    return Err(Report::new(UpdateError)
-                        .attach_opaque(StatusCode::PermissionDenied)
-                        .attach("The actor does not have permission to update the entity")
-                        .attach(
-                            previous_entity
-                                .metadata
-                                .entity_type_ids
-                                .iter()
-                                .map(VersionedUrl::to_string)
-                                .collect::<Vec<_>>()
-                                .join(", "),
-                        ));
-                }
-            }
-        }
-
-        if let Some(archive) = params.archived {
-            match policy_set
-                .evaluate(
-                    &Request {
-                        actor: policy_components.actor_id(),
-                        action: ActionName::ArchiveEntity,
-                        resource: &ResourceId::Entity(params.entity_id.entity_uuid),
-                        context: RequestContext::default(),
-                    },
-                    policy_components.context(),
-                )
-                .change_context(UpdateError)?
-            {
-                Authorized::Always => {}
-                Authorized::Never => {
-                    return Err(Report::new(UpdateError)
-                        .attach_opaque(StatusCode::PermissionDenied)
-                        .attach(format!(
-                            "The actor does not have permission to {} the entity",
-                            if archive { "archive" } else { "publish" },
-                        )));
-                }
-            }
-        }
-
-        let validator_provider = StoreProvider::new(&transaction, &policy_components);
-
-        let mut first_non_draft_created_at_decision_time = previous_entity
-            .metadata
-            .provenance
-            .first_non_draft_created_at_decision_time;
-        let mut first_non_draft_created_at_transaction_time = previous_entity
-            .metadata
-            .provenance
-            .first_non_draft_created_at_transaction_time;
-
-        let was_draft_before = previous_entity
-            .metadata
-            .record_id
-            .entity_id
-            .draft_id
-            .is_some();
-        let draft = params.draft.unwrap_or(was_draft_before);
-        let archived = params.archived.unwrap_or(previous_entity.metadata.archived);
-        let (entity_type_ids, affected_type_ids) = if params.entity_type_ids.is_empty() {
-            (previous_entity.metadata.entity_type_ids, Vec::new())
-        } else {
-            let added_types = previous_entity
-                .metadata
-                .entity_type_ids
-                .difference(&params.entity_type_ids);
-            let removed_types = params
-                .entity_type_ids
-                .difference(&previous_entity.metadata.entity_type_ids);
-
-            let mut affected_type_id_set = HashSet::new();
-            for entity_type_id in added_types.chain(removed_types) {
-                let entity_type = OntologyTypeProvider::<ClosedEntityType>::provide_type(
-                    &validator_provider,
-                    entity_type_id,
+                .with_actions(
+                    [
+                        ActionName::ViewEntity,
+                        ActionName::ViewEntityType,
+                        ActionName::ViewPropertyType,
+                        ActionName::ViewDataType,
+                    ],
+                    MergePolicies::Yes,
                 )
                 .await
                 .change_context(UpdateError)?;
 
-                if !affected_type_id_set.contains(&entity_type.id) {
-                    affected_type_id_set.insert(entity_type.id.clone());
-                    for parent in &entity_type.all_of {
-                        if !affected_type_id_set.contains(&parent.id) {
-                            affected_type_id_set.insert(parent.id.clone());
-                        }
-                    }
-                }
-            }
+            let policy_set = policy_components
+                .build_policy_set([
+                    ActionName::Instantiate,
+                    ActionName::UpdateEntity,
+                    ActionName::ArchiveEntity,
+                ])
+                .change_context(UpdateError)?;
 
-            (
-                params.entity_type_ids,
-                affected_type_id_set.into_iter().collect(),
-            )
-        };
-
-        if !affected_type_ids.is_empty() {
-            let mut forbidden_instantiations = Vec::new();
-            for entity_type_id in &affected_type_ids {
+            if params.is_update() {
                 match policy_set
                     .evaluate(
                         &Request {
                             actor: policy_components.actor_id(),
-                            action: ActionName::Instantiate,
-                            resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
+                            action: ActionName::UpdateEntity,
+                            resource: &ResourceId::Entity(params.entity_id.entity_uuid),
                             context: RequestContext::default(),
                         },
                         policy_components.context(),
@@ -2259,302 +2111,419 @@ where
                 {
                     Authorized::Always => {}
                     Authorized::Never => {
-                        forbidden_instantiations.push(entity_type_id);
+                        return Err(Report::new(UpdateError)
+                            .attach_opaque(StatusCode::PermissionDenied)
+                            .attach("The actor does not have permission to update the entity")
+                            .attach(
+                                previous_entity
+                                    .metadata
+                                    .entity_type_ids
+                                    .iter()
+                                    .map(VersionedUrl::to_string)
+                                    .collect::<Vec<_>>()
+                                    .join(", "),
+                            ));
                     }
                 }
             }
 
-            if !forbidden_instantiations.is_empty() {
-                return Err(Report::new(UpdateError)
-                    .attach_opaque(StatusCode::PermissionDenied)
-                    .attach(
-                        "The actor does not have permission to instantiate one or more entity \
-                         types",
+            if let Some(archive) = params.archived {
+                match policy_set
+                    .evaluate(
+                        &Request {
+                            actor: policy_components.actor_id(),
+                            action: ActionName::ArchiveEntity,
+                            resource: &ResourceId::Entity(params.entity_id.entity_uuid),
+                            context: RequestContext::default(),
+                        },
+                        policy_components.context(),
                     )
-                    .attach(
-                        forbidden_instantiations
-                            .into_iter()
-                            .map(ToString::to_string)
-                            .collect::<Vec<_>>()
-                            .join(", "),
-                    ));
-            }
-        }
-
-        let previous_properties = previous_entity.properties.clone();
-        let previous_property_metadata = previous_entity.metadata.properties.clone();
-
-        let mut properties_with_metadata = PropertyWithMetadata::from_parts(
-            Property::Object(previous_entity.properties),
-            Some(PropertyMetadata::Object(PropertyObjectMetadata {
-                value: previous_entity.metadata.properties.value,
-                metadata: previous_entity.metadata.properties.metadata,
-            })),
-        )
-        .change_context(UpdateError)?;
-        properties_with_metadata
-            .patch(params.properties)
-            .change_context(UpdateError)?;
-
-        let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
-            stream::iter(&entity_type_ids)
-                .then(|entity_type_url| async {
-                    OntologyTypeProvider::<ClosedEntityType>::provide_type(
-                        &validator_provider,
-                        entity_type_url,
-                    )
-                    .await
-                    .map(|entity_type| (*entity_type).clone())
-                })
-                .try_collect::<Vec<ClosedEntityType>>()
-                .await
-                .change_context(UpdateError)?,
-        )
-        .change_context(UpdateError)?;
-
-        let mut validation_components = if draft {
-            ValidateEntityComponents::draft()
-        } else {
-            ValidateEntityComponents::full()
-        };
-        validation_components.link_validation = transaction.settings.validate_links;
-
-        let mut validation_report = EntityValidationReport::default();
-        let (properties, property_metadata) =
-            if let PropertyWithMetadata::Object(mut object) = properties_with_metadata {
-                let mut preprocessor = EntityPreprocessor {
-                    components: validation_components,
-                    convert_values: true,
-                };
-                if let Err(property_validation) = preprocessor
-                    .visit_object(&entity_type, &mut object, &validator_provider)
-                    .await
+                    .change_context(UpdateError)?
                 {
-                    validation_report.properties = property_validation.properties;
+                    Authorized::Always => {}
+                    Authorized::Never => {
+                        return Err(Report::new(UpdateError)
+                            .attach_opaque(StatusCode::PermissionDenied)
+                            .attach(format!(
+                                "The actor does not have permission to {} the entity",
+                                if archive { "archive" } else { "publish" },
+                            )));
+                    }
                 }
-
-                let (properties, property_metadata) = object.into_parts();
-                (properties, property_metadata)
-            } else {
-                unreachable!("patching should not change the property type");
-            };
-
-        #[expect(clippy::needless_collect, reason = "Will be used later")]
-        let diff = previous_properties
-            .diff(&properties, &mut PropertyPath::default())
-            .collect::<Vec<_>>();
-
-        if diff.is_empty()
-            && was_draft_before == draft
-            && archived == previous_entity.metadata.archived
-            && affected_type_ids.is_empty()
-            && previous_property_metadata == property_metadata
-            && params.confidence == previous_entity.metadata.confidence
-        {
-            // No changes were made to the entity.
-            return Ok(Entity {
-                properties: previous_properties,
-                link_data: previous_entity.link_data,
-                metadata: EntityMetadata {
-                    record_id: previous_entity.metadata.record_id,
-                    temporal_versioning: previous_entity.metadata.temporal_versioning,
-                    entity_type_ids,
-                    provenance: previous_entity.metadata.provenance,
-                    archived,
-                    read_only: previous_entity.metadata.read_only,
-                    confidence: previous_entity.metadata.confidence,
-                    properties: property_metadata,
-                },
-            });
-        }
-
-        let link_data = previous_entity.link_data;
-
-        let edition_provenance = EntityEditionProvenance {
-            created_by_id: ActorEntityUuid::from(actor_id),
-            archived_by_id: None,
-            provided: params.provenance,
-        };
-        let stored_provenance = SqlEntityEditionProvenance::from(edition_provenance);
-        let edition_id = transaction
-            .insert_entity_edition(
-                archived,
-                &entity_type_ids,
-                &properties,
-                params.confidence,
-                &stored_provenance,
-                &property_metadata,
-            )
-            .await
-            .change_context(UpdateError)?;
-        let edition_provenance = EntityEditionProvenance::from(stored_provenance);
-
-        let temporal_versioning = match (was_draft_before, draft) {
-            (true, true) | (false, false) => {
-                // regular update
-                transaction
-                    .update_temporal_metadata(
-                        locked_row,
-                        transaction_time,
-                        decision_time,
-                        edition_id,
-                        false,
-                    )
-                    .await?
             }
-            (false, true) => {
-                let draft_id = DraftId::new(Uuid::new_v4());
-                transaction
-                    .as_client()
-                    .query(
-                        "
-                        INSERT INTO entity_drafts (
-                            web_id,
-                            entity_uuid,
-                            draft_id
-                        ) VALUES ($1, $2, $3);",
-                        &[
-                            &params.entity_id.web_id,
-                            &params.entity_id.entity_uuid,
-                            &draft_id,
-                        ],
+
+            let validator_provider = StoreProvider::new(&transaction, &policy_components);
+
+            let mut first_non_draft_created_at_decision_time = previous_entity
+                .metadata
+                .provenance
+                .first_non_draft_created_at_decision_time;
+            let mut first_non_draft_created_at_transaction_time = previous_entity
+                .metadata
+                .provenance
+                .first_non_draft_created_at_transaction_time;
+
+            let was_draft_before = previous_entity
+                .metadata
+                .record_id
+                .entity_id
+                .draft_id
+                .is_some();
+            let draft = params.draft.unwrap_or(was_draft_before);
+            let archived = params.archived.unwrap_or(previous_entity.metadata.archived);
+            let (entity_type_ids, affected_type_ids) = if params.entity_type_ids.is_empty() {
+                (previous_entity.metadata.entity_type_ids, Vec::new())
+            } else {
+                let added_types = previous_entity
+                    .metadata
+                    .entity_type_ids
+                    .difference(&params.entity_type_ids);
+                let removed_types = params
+                    .entity_type_ids
+                    .difference(&previous_entity.metadata.entity_type_ids);
+
+                let mut affected_type_id_set = HashSet::new();
+                for entity_type_id in added_types.chain(removed_types) {
+                    let entity_type = OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                        &validator_provider,
+                        entity_type_id,
                     )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
                     .await
                     .change_context(UpdateError)?;
-                params.entity_id.draft_id = Some(draft_id);
-                transaction
-                    .insert_temporal_metadata(
-                        params.entity_id,
-                        edition_id,
-                        transaction_time,
-                        decision_time,
-                    )
-                    .await
-                    .change_context(UpdateError)?
-            }
-            (true, false) => {
-                // Publish a draft
-                params.entity_id.draft_id = None;
 
-                if first_non_draft_created_at_decision_time.is_none() {
+                    if !affected_type_id_set.contains(&entity_type.id) {
+                        affected_type_id_set.insert(entity_type.id.clone());
+                        for parent in &entity_type.all_of {
+                            if !affected_type_id_set.contains(&parent.id) {
+                                affected_type_id_set.insert(parent.id.clone());
+                            }
+                        }
+                    }
+                }
+
+                (
+                    params.entity_type_ids,
+                    affected_type_id_set.into_iter().collect(),
+                )
+            };
+
+            if !affected_type_ids.is_empty() {
+                let mut forbidden_instantiations = Vec::new();
+                for entity_type_id in &affected_type_ids {
+                    match policy_set
+                        .evaluate(
+                            &Request {
+                                actor: policy_components.actor_id(),
+                                action: ActionName::Instantiate,
+                                resource: &ResourceId::EntityType(Cow::Borrowed(
+                                    entity_type_id.into(),
+                                )),
+                                context: RequestContext::default(),
+                            },
+                            policy_components.context(),
+                        )
+                        .change_context(UpdateError)?
+                    {
+                        Authorized::Always => {}
+                        Authorized::Never => {
+                            forbidden_instantiations.push(entity_type_id);
+                        }
+                    }
+                }
+
+                if !forbidden_instantiations.is_empty() {
+                    return Err(Report::new(UpdateError)
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach(
+                            "The actor does not have permission to instantiate one or more entity \
+                             types",
+                        )
+                        .attach(
+                            forbidden_instantiations
+                                .into_iter()
+                                .map(ToString::to_string)
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                        ));
+                }
+            }
+
+            let previous_properties = previous_entity.properties.clone();
+            let previous_property_metadata = previous_entity.metadata.properties.clone();
+
+            let mut properties_with_metadata = PropertyWithMetadata::from_parts(
+                Property::Object(previous_entity.properties),
+                Some(PropertyMetadata::Object(PropertyObjectMetadata {
+                    value: previous_entity.metadata.properties.value,
+                    metadata: previous_entity.metadata.properties.metadata,
+                })),
+            )
+            .change_context(UpdateError)?;
+            properties_with_metadata
+                .patch(params.properties)
+                .change_context(UpdateError)?;
+
+            let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
+                stream::iter(&entity_type_ids)
+                    .then(|entity_type_url| async {
+                        OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                            &validator_provider,
+                            entity_type_url,
+                        )
+                        .await
+                        .map(|entity_type| (*entity_type).clone())
+                    })
+                    .try_collect::<Vec<ClosedEntityType>>()
+                    .await
+                    .change_context(UpdateError)?,
+            )
+            .change_context(UpdateError)?;
+
+            let mut validation_components = if draft {
+                ValidateEntityComponents::draft()
+            } else {
+                ValidateEntityComponents::full()
+            };
+            validation_components.link_validation = transaction.settings.validate_links;
+
+            let mut validation_report = EntityValidationReport::default();
+            let (properties, property_metadata) =
+                if let PropertyWithMetadata::Object(mut object) = properties_with_metadata {
+                    let mut preprocessor = EntityPreprocessor {
+                        components: validation_components,
+                        convert_values: true,
+                    };
+                    if let Err(property_validation) = preprocessor
+                        .visit_object(&entity_type, &mut object, &validator_provider)
+                        .await
+                    {
+                        validation_report.properties = property_validation.properties;
+                    }
+
+                    let (properties, property_metadata) = object.into_parts();
+                    (properties, property_metadata)
+                } else {
+                    unreachable!("patching should not change the property type");
+                };
+
+            #[expect(clippy::needless_collect, reason = "Will be used later")]
+            let diff = previous_properties
+                .diff(&properties, &mut PropertyPath::default())
+                .collect::<Vec<_>>();
+
+            if diff.is_empty()
+                && was_draft_before == draft
+                && archived == previous_entity.metadata.archived
+                && affected_type_ids.is_empty()
+                && previous_property_metadata == property_metadata
+                && params.confidence == previous_entity.metadata.confidence
+            {
+                // No changes were made to the entity.
+                patched_entities.push(Entity {
+                    properties: previous_properties,
+                    link_data: previous_entity.link_data,
+                    metadata: EntityMetadata {
+                        record_id: previous_entity.metadata.record_id,
+                        temporal_versioning: previous_entity.metadata.temporal_versioning,
+                        entity_type_ids,
+                        provenance: previous_entity.metadata.provenance,
+                        archived,
+                        read_only: previous_entity.metadata.read_only,
+                        confidence: previous_entity.metadata.confidence,
+                        properties: property_metadata,
+                    },
+                });
+                continue;
+            }
+
+            let link_data = previous_entity.link_data;
+
+            let edition_provenance = EntityEditionProvenance {
+                created_by_id: ActorEntityUuid::from(actor_id),
+                archived_by_id: None,
+                provided: params.provenance,
+            };
+            let stored_provenance = SqlEntityEditionProvenance::from(edition_provenance);
+            let edition_id = transaction
+                .insert_entity_edition(
+                    archived,
+                    &entity_type_ids,
+                    &properties,
+                    params.confidence,
+                    &stored_provenance,
+                    &property_metadata,
+                )
+                .await
+                .change_context(UpdateError)?;
+            let edition_provenance = EntityEditionProvenance::from(stored_provenance);
+
+            let temporal_versioning = match (was_draft_before, draft) {
+                (true, true) | (false, false) => {
+                    // regular update
+                    transaction
+                        .update_temporal_metadata(
+                            locked_row,
+                            transaction_time,
+                            decision_time,
+                            edition_id,
+                            false,
+                        )
+                        .await?
+                }
+                (false, true) => {
+                    let draft_id = DraftId::new(Uuid::new_v4());
                     transaction
                         .as_client()
                         .query(
                             "
-                            UPDATE entity_ids
-                            SET provenance = provenance || JSONB_BUILD_OBJECT(
-                                'firstNonDraftCreatedAtTransactionTime', $1::TIMESTAMPTZ,
-                                'firstNonDraftCreatedAtDecisionTime', $2::TIMESTAMPTZ
-                            )
-                            WHERE web_id = $3
-                              AND entity_uuid = $4;
-                            ",
+                            INSERT INTO entity_drafts (
+                                web_id,
+                                entity_uuid,
+                                draft_id
+                            ) VALUES ($1, $2, $3);",
                             &[
-                                &transaction_time,
-                                &decision_time,
                                 &params.entity_id.web_id,
                                 &params.entity_id.entity_uuid,
+                                &draft_id,
                             ],
                         )
                         .instrument(tracing::info_span!(
-                            "UPDATE",
+                            "INSERT",
                             otel.kind = "client",
                             db.system = "postgresql",
                             peer.service = "Postgres"
                         ))
                         .await
                         .change_context(UpdateError)?;
-
-                    first_non_draft_created_at_transaction_time = Some(transaction_time);
-                    first_non_draft_created_at_decision_time = Some(decision_time);
-                }
-
-                if let Some(previous_live_entity) = transaction
-                    .lock_entity_edition(params.entity_id, transaction_time, decision_time)
-                    .await?
-                {
+                    params.entity_id.draft_id = Some(draft_id);
                     transaction
-                        .archive_entity(
-                            actor_id,
-                            previous_live_entity,
+                        .insert_temporal_metadata(
+                            params.entity_id,
+                            edition_id,
                             transaction_time,
                             decision_time,
                         )
-                        .await?;
+                        .await
+                        .change_context(UpdateError)?
                 }
-                transaction
-                    .update_temporal_metadata(
-                        locked_row,
-                        transaction_time,
-                        decision_time,
-                        edition_id,
-                        true,
-                    )
-                    .await?
-            }
-        };
+                (true, false) => {
+                    // Publish a draft
+                    params.entity_id.draft_id = None;
 
-        let entity_metadata = EntityMetadata {
-            record_id: EntityRecordId {
-                entity_id: params.entity_id,
-                edition_id,
-            },
-            temporal_versioning,
-            entity_type_ids,
-            provenance: EntityProvenance {
-                first_non_draft_created_at_transaction_time,
-                first_non_draft_created_at_decision_time,
-                edition: edition_provenance,
-                ..previous_entity.metadata.provenance
-            },
-            confidence: params.confidence,
-            properties: property_metadata,
-            archived,
-            read_only: previous_entity.metadata.read_only,
-        };
-        let entities = [Entity {
-            properties,
-            link_data,
-            metadata: entity_metadata.clone(),
-        }];
+                    if first_non_draft_created_at_decision_time.is_none() {
+                        transaction
+                            .as_client()
+                            .query(
+                                "
+                                UPDATE entity_ids
+                                SET provenance = provenance || JSONB_BUILD_OBJECT(
+                                    'firstNonDraftCreatedAtTransactionTime', $1::TIMESTAMPTZ,
+                                    'firstNonDraftCreatedAtDecisionTime', $2::TIMESTAMPTZ
+                                )
+                                WHERE web_id = $3
+                                  AND entity_uuid = $4;
+                                ",
+                                &[
+                                    &transaction_time,
+                                    &decision_time,
+                                    &params.entity_id.web_id,
+                                    &params.entity_id.entity_uuid,
+                                ],
+                            )
+                            .instrument(tracing::info_span!(
+                                "UPDATE",
+                                otel.kind = "client",
+                                db.system = "postgresql",
+                                peer.service = "Postgres"
+                            ))
+                            .await
+                            .change_context(UpdateError)?;
 
-        let post_validation_report = entities[0]
-            .validate(&entity_type, validation_components, &validator_provider)
-            .await;
-        validation_report.link = post_validation_report.link;
-        validation_report.metadata.properties = post_validation_report.property_metadata;
+                        first_non_draft_created_at_transaction_time = Some(transaction_time);
+                        first_non_draft_created_at_decision_time = Some(decision_time);
+                    }
 
-        ensure!(
-            validation_report.is_valid(),
-            Report::new(UpdateError).attach_opaque(HashMap::from([(0_usize, validation_report)]))
-        );
+                    if let Some(previous_live_entity) = transaction
+                        .lock_entity_edition(params.entity_id, transaction_time, decision_time)
+                        .await?
+                    {
+                        transaction
+                            .archive_entity(
+                                actor_id,
+                                previous_live_entity,
+                                transaction_time,
+                                decision_time,
+                            )
+                            .await?;
+                    }
+                    transaction
+                        .update_temporal_metadata(
+                            locked_row,
+                            transaction_time,
+                            decision_time,
+                            edition_id,
+                            true,
+                        )
+                        .await?
+                }
+            };
+
+            let entity_metadata = EntityMetadata {
+                record_id: EntityRecordId {
+                    entity_id: params.entity_id,
+                    edition_id,
+                },
+                temporal_versioning,
+                entity_type_ids,
+                provenance: EntityProvenance {
+                    first_non_draft_created_at_transaction_time,
+                    first_non_draft_created_at_decision_time,
+                    edition: edition_provenance,
+                    ..previous_entity.metadata.provenance
+                },
+                confidence: params.confidence,
+                properties: property_metadata,
+                archived,
+                read_only: previous_entity.metadata.read_only,
+            };
+            let entities = [Entity {
+                properties,
+                link_data,
+                metadata: entity_metadata.clone(),
+            }];
+
+            let post_validation_report = entities[0]
+                .validate(&entity_type, validation_components, &validator_provider)
+                .await;
+            validation_report.link = post_validation_report.link;
+            validation_report.metadata.properties = post_validation_report.property_metadata;
+
+            ensure!(
+                validation_report.is_valid(),
+                Report::new(UpdateError).attach_opaque(HashMap::from([(index, validation_report)]))
+            );
+
+            let [entity] = entities;
+            embedding_entity_ids.push(entity.metadata.record_id.entity_id);
+            patched_entities.push(entity);
+        }
 
         transaction.commit().await.change_context(UpdateError)?;
 
-        if !self.settings.skip_embedding_creation
+        if !embedding_entity_ids.is_empty()
+            && !self.settings.skip_embedding_creation
             && let Some(temporal_client) = &self.temporal_client
         {
-            let entity_ids: Vec<EntityId> = entities
-                .iter()
-                .map(|entity| entity.metadata.record_id.entity_id)
-                .collect();
             temporal_client
                 .start_update_entity_embeddings_workflow(
                     ActorEntityUuid::from(actor_id),
-                    &entity_ids,
+                    &embedding_entity_ids,
                     self.settings.filter_protection.embedding_exclusions(),
                 )
                 .await
                 .change_context(UpdateError)?;
         }
-        let [entity] = entities;
-        Ok(entity)
+        Ok(patched_entities)
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -3441,14 +3410,14 @@ where
                     entity_edition_id,
                     decision_time,
                     transaction_time
-                ) VALUES (
+                ) SELECT
                     $1,
                     $2,
                     $3,
                     $4,
                     $5,
                     tstzrange(lower($6::tstzrange), $7, '[)')
-                );",
+                WHERE lower($6::tstzrange) < $7::timestamptz;",
                 &[
                     &locked_row.entity_id.web_id,
                     &locked_row.entity_id.entity_uuid,
@@ -3479,14 +3448,14 @@ where
                     entity_edition_id,
                     transaction_time,
                     decision_time
-                ) VALUES (
+                ) SELECT
                     $1,
                     $2,
                     $3,
                     $4,
                     tstzrange($6, NULL, '[)'),
                     tstzrange(lower($5::tstzrange), $7, '[)')
-                );",
+                WHERE lower($5::tstzrange) < $7::timestamptz;",
                 &[
                     &locked_row.entity_id.web_id,
                     &locked_row.entity_id.entity_uuid,
@@ -3520,11 +3489,37 @@ where
         locked_row: LockedEntityEdition,
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
-    ) -> Result<EntityTemporalMetadata, Report<UpdateError>> {
-        let row = if let Some(draft_id) = locked_row.entity_id.draft_id {
+    ) -> Result<(), Report<UpdateError>> {
+        // Closing at the start would leave an empty decision interval
+        if locked_row.decision_time.start() == &ClosedTemporalBound::Inclusive(decision_time) {
+            self.as_client()
+                .query(
+                    "DELETE FROM entity_temporal_metadata
+                     WHERE web_id = $1
+                       AND entity_uuid = $2
+                       AND draft_id IS NOT DISTINCT FROM $3
+                       AND transaction_time @> $4::timestamptz
+                       AND decision_time @> $5::timestamptz;",
+                    &[
+                        &locked_row.entity_id.web_id,
+                        &locked_row.entity_id.entity_uuid,
+                        &locked_row.entity_id.draft_id,
+                        &transaction_time,
+                        &decision_time,
+                    ],
+                )
+                .instrument(tracing::info_span!(
+                    "DELETE",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres",
+                ))
+                .await
+                .change_context(UpdateError)?;
+        } else if let Some(draft_id) = locked_row.entity_id.draft_id {
             self.client
                 .as_client()
-                .query_one(
+                .query(
                     "
                 UPDATE entity_temporal_metadata
                 SET transaction_time = tstzrange($4::timestamptz, NULL, '[)'),
@@ -3533,8 +3528,7 @@ where
                   AND entity_temporal_metadata.entity_uuid = $2
                   AND entity_temporal_metadata.draft_id = $3
                   AND entity_temporal_metadata.transaction_time @> $4::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $5::timestamptz
-                RETURNING decision_time, transaction_time;",
+                  AND entity_temporal_metadata.decision_time @> $5::timestamptz;",
                     &[
                         &locked_row.entity_id.web_id,
                         &locked_row.entity_id.entity_uuid,
@@ -3550,11 +3544,11 @@ where
                     peer.service = "Postgres"
                 ))
                 .await
-                .change_context(UpdateError)?
+                .change_context(UpdateError)?;
         } else {
             self.client
                 .as_client()
-                .query_one(
+                .query(
                     "
                 UPDATE entity_temporal_metadata
                 SET transaction_time = tstzrange($3::timestamptz, NULL, '[)'),
@@ -3563,8 +3557,7 @@ where
                   AND entity_temporal_metadata.entity_uuid = $2
                   AND entity_temporal_metadata.draft_id IS NULL
                   AND entity_temporal_metadata.transaction_time @> $3::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
-                RETURNING decision_time, transaction_time;",
+                  AND entity_temporal_metadata.decision_time @> $4::timestamptz;",
                     &[
                         &locked_row.entity_id.web_id,
                         &locked_row.entity_id.entity_uuid,
@@ -3579,8 +3572,8 @@ where
                     peer.service = "Postgres"
                 ))
                 .await
-                .change_context(UpdateError)?
-        };
+                .change_context(UpdateError)?;
+        }
 
         self.client
             .as_client()
@@ -3593,14 +3586,14 @@ where
                     entity_edition_id,
                     transaction_time,
                     decision_time
-                ) VALUES (
+                ) SELECT
                     $1,
                     $2,
                     $3,
                     $4,
                     tstzrange(lower($6::tstzrange), $7, '[)'),
                     $5
-                );",
+                WHERE lower($6::tstzrange) < $7::timestamptz;",
                 &[
                     &locked_row.entity_id.web_id,
                     &locked_row.entity_id.entity_uuid,
@@ -3639,10 +3632,7 @@ where
             .await
             .change_context(UpdateError)?;
 
-        Ok(EntityTemporalMetadata {
-            decision_time: row.get(0),
-            transaction_time: row.get(1),
-        })
+        Ok(())
     }
 }
 

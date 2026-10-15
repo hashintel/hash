@@ -23,27 +23,11 @@ beforeEach(() => {
   }
 });
 
-const DemoModeProbe = ({ name }: { name: string }) => {
-  const { brunchDemoMode, setBrunchDemoMode } = use(UserSettingsContext);
-  return (
-    <button type="button" onClick={() => setBrunchDemoMode(!brunchDemoMode)}>
-      {name}: {brunchDemoMode ? "on" : "off"}
-    </button>
-  );
-};
-
-/** Reads a persisted setting and writes another, so a write happens on demand. */
-const WalkthroughProbe = () => {
-  const { showWalkthroughOnInit, brunchDemoMode, setBrunchDemoMode } =
-    use(UserSettingsContext);
-  return (
-    <button type="button" onClick={() => setBrunchDemoMode(!brunchDemoMode)}>
-      walkthrough: {showWalkthroughOnInit ? "on" : "off"}
-    </button>
-  );
-};
-
-const ArcConnectionsProbe = () => {
+const ArcConnectionsProbe = ({
+  name = "Automatic arcs",
+}: {
+  name?: string;
+}) => {
   const { enableAutomaticArcConnections, setEnableAutomaticArcConnections } =
     use(UserSettingsContext);
   return (
@@ -53,7 +37,7 @@ const ArcConnectionsProbe = () => {
         setEnableAutomaticArcConnections(!enableAutomaticArcConnections)
       }
     >
-      Automatic arcs: {enableAutomaticArcConnections ? "on" : "off"}
+      {name}: {enableAutomaticArcConnections ? "on" : "off"}
     </button>
   );
 };
@@ -102,20 +86,8 @@ describe("UserSettingsProvider", () => {
     });
   });
 
-  it("starts with Brunch demo mode off and toggles it", () => {
-    render(
-      <UserSettingsProvider>
-        <DemoModeProbe name="probe" />
-      </UserSettingsProvider>,
-    );
-
-    const probe = screen.getByRole("button", { name: "probe: off" });
-    fireEvent.click(probe);
-    expect(screen.getByRole("button", { name: "probe: on" })).toBe(probe);
-  });
-
   it.each([false, true])(
-    "drops retired simulation flags from saved settings (legacy value=%s)",
+    "drops retired flags from saved settings (legacy value=%s)",
     (enabled) => {
       // An in-memory store: some Node versions expose a global `localStorage`
       // whose methods are missing, so the test owns the storage it inspects.
@@ -125,11 +97,13 @@ describe("UserSettingsProvider", () => {
           JSON.stringify({
             enableAdHocScenarios: true,
             enableNotebookView: enabled,
+            brunchDemoMode: enabled,
             webGpuEnabled: enabled,
             enableParameterSweeps: enabled,
             enableInBrowserOptimization: enabled,
             computeBackend: "webgpu",
-            showWalkthroughOnInit: false,
+            showWalkthroughOnInit: enabled,
+            showAnimations: false,
           }),
         ],
       ]);
@@ -140,15 +114,7 @@ describe("UserSettingsProvider", () => {
       });
 
       try {
-        render(
-          <UserSettingsProvider>
-            <WalkthroughProbe />
-          </UserSettingsProvider>,
-        );
-
-        fireEvent.click(
-          screen.getByRole("button", { name: "walkthrough: off" }),
-        );
+        render(<UserSettingsProvider />);
 
         const persisted = JSON.parse(entries.get(storageKey) ?? "{}") as Record<
           string,
@@ -157,29 +123,69 @@ describe("UserSettingsProvider", () => {
         for (const key of [
           "enableAdHocScenarios",
           "enableNotebookView",
+          "brunchDemoMode",
           "webGpuEnabled",
           "enableParameterSweeps",
           "enableInBrowserOptimization",
           "computeBackend",
+          "showWalkthroughOnInit",
         ]) {
           expect(key in persisted).toBe(false);
         }
-        expect(persisted.showWalkthroughOnInit).toBe(false);
-        expect(persisted.brunchDemoMode).toBe(true);
+        expect(persisted.showAnimations).toBe(false);
       } finally {
         vi.unstubAllGlobals();
       }
     },
   );
 
+  it("records a plugin switched off once and forgets it when switched on", () => {
+    const PluginSwitch = () => {
+      const { disabledPluginIds, setPluginEnabled } = use(UserSettingsContext);
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setPluginEnabled("test.plugin", false)}
+          >
+            off
+          </button>
+          <button
+            type="button"
+            onClick={() => setPluginEnabled("test.plugin", true)}
+          >
+            on
+          </button>
+          <output>{disabledPluginIds.join(",")}</output>
+        </>
+      );
+    };
+    render(
+      <UserSettingsProvider>
+        <PluginSwitch />
+      </UserSettingsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "off" }));
+    fireEvent.click(screen.getByRole("button", { name: "off" }));
+    expect(screen.getByRole("status").textContent).toBe("test.plugin");
+    expect(JSON.parse(localStorage.getItem(storageKey) ?? "{}")).toMatchObject({
+      disabledPluginIds: ["test.plugin"],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "on" }));
+    expect(screen.getByRole("status").textContent).toBe("");
+  });
+
   it("reuses an ancestor provider, so a host and the editor share one state", () => {
     // The host mounts the provider above the editor and reads the settings
     // in its own components; the editor's own provider must not fork them.
     render(
       <UserSettingsProvider>
-        <DemoModeProbe name="host" />
+        <ArcConnectionsProbe name="host" />
         <UserSettingsProvider>
-          <DemoModeProbe name="editor" />
+          <ArcConnectionsProbe name="editor" />
         </UserSettingsProvider>
       </UserSettingsProvider>,
     );

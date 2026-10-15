@@ -16,6 +16,9 @@ const checkedPetrinautPandaPreset: Preset = petrinautPandaPreset;
 export const DS_COMPONENTS_BUILD_INFO_SUBPATH =
   "@hashintel/ds-components/panda.buildinfo.json";
 
+export const DS_ICONS_BUILD_INFO_SUBPATH =
+  "@hashintel/ds-icons/panda.buildinfo.json";
+
 export const createNodeSpecifierResolver = (moduleLocation: string | URL) => {
   const require = createRequire(moduleLocation);
 
@@ -24,6 +27,7 @@ export const createNodeSpecifierResolver = (moduleLocation: string | URL) => {
 
 export const createPetrinautPandaConfig = (
   dsComponentsBuildInfoPath: string,
+  dsIconsBuildInfoPath: string,
 ) => {
   const scopedConfig = scopedThemeConfig(".petrinaut-root");
 
@@ -44,6 +48,7 @@ export const createPetrinautPandaConfig = (
     include: [
       "./src/**/*.{js,jsx,ts,tsx}",
       dsComponentsBuildInfoPath,
+      dsIconsBuildInfoPath,
       "./.storybook/**/*.{js,jsx,ts,tsx}",
     ],
 

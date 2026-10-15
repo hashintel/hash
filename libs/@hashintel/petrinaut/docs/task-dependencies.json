@@ -3,6 +3,7 @@
   "dependencies": [
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
+    "@hashintel/ds-icons",
     "@hashintel/petrinaut-core",
     "@hashintel/refractive",
     "@local/petrinaut-optimizer-client"
@@ -11,6 +12,8 @@
     "build": {
       "dependsOn": [
         "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/petrinaut-optimizer-client#build"
@@ -19,6 +22,8 @@
     "dev": {
       "dependsOn": [
         "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/petrinaut-optimizer-client#build"
@@ -29,6 +34,8 @@
     "fix:eslint": {
       "dependsOn": [
         "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/eslint#build",
@@ -38,6 +45,8 @@
     "lint:eslint": {
       "dependsOn": [
         "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/eslint#build",
@@ -50,6 +59,8 @@
     "lint:tsc": {
       "dependsOn": [
         "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/petrinaut-optimizer-client#build"
@@ -58,6 +69,8 @@
     "test:unit": {
       "dependsOn": [
         "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/petrinaut-optimizer-client#build"

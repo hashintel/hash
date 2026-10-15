@@ -9,11 +9,8 @@ import {
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import { Link } from "../../../../shared/ui/link";
-import {
-  FlowStatusChip,
-  flowTableCellSx,
-  FlowTableChip,
-} from "../../../shared/flow-tables";
+import { FlowStatusChip, FlowTableChip } from "../../../shared/flow-tables";
+import { goalRowSx } from "./goal-row-sx";
 
 import type { SimpleFlowRunStatus } from "../../../shared/flow-tables";
 import type { EntityUuid } from "@blockprotocol/type-system";
@@ -29,14 +26,6 @@ export type GoalSummary = {
     name: string;
     shortname: string;
   };
-};
-
-export const goalRowSx = {
-  ...flowTableCellSx,
-  display: "flex",
-  alignItems: "center",
-  height: 46,
-  px: 2.5,
 };
 
 export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {

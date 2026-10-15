@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createPetrinaut } from "../../instance";
+import { isPetrinautId, toPetrinautId } from "../../petrinaut-id";
 import { createReadableStore } from "../../store";
 import { createJsonDocHandle } from "./create-json-doc-handle";
 
@@ -68,6 +69,18 @@ describe("createJsonDocHandle", () => {
     expect(handle.doc()).toEqual(empty());
   });
 
+  it("defaults to a random Petrinaut id", () => {
+    expect(isPetrinautId(createJsonDocHandle({ initial: empty() }).id)).toBe(
+      true,
+    );
+  });
+
+  it("converts a non-UUID id with toPetrinautId", () => {
+    expect(createJsonDocHandle({ id: "net-1", initial: empty() }).id).toBe(
+      toPetrinautId("net-1"),
+    );
+  });
+
   it.each([undefined, null, 0, 3])(
     "preserves capacity %s through canonical initialization and JSON reopening",
     (capacity) => {
@@ -75,7 +88,7 @@ describe("createJsonDocHandle", () => {
         ...empty(),
         places: [
           {
-            id: "p1",
+            id: toPetrinautId("p1"),
             name: "Capacity",
             colorId: null,
             dynamicsEnabled: false,

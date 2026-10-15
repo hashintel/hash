@@ -15,23 +15,25 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { OverflowRow } from "../../util/OverflowRow/overflow-row";
+import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
+import { renderAdornment } from "../../util/render-adornment";
+import { hasMultiItemSuffix } from "../../util/SelectableList/has-multi-item-suffix";
 import {
   type Item,
   type ItemOrGroup,
   SelectableList,
-  isCustomItem,
 } from "../../util/SelectableList/selectable-list";
+import { MultiItemSuffix } from "../../util/SelectableList/selectable-list-multi-suffix";
 import {
-  hasMultiItemSuffix,
-  MultiItemSuffix,
-} from "../../util/SelectableList/selectable-list-multi-suffix";
-import { getItemId } from "../../util/SelectableList/selectable-list-util";
-import { Chip, type ChipSize } from "../Chip/chip";
+  getItemId,
+  isCustomItem,
+} from "../../util/SelectableList/selectable-list-util";
+import { Chip } from "../Chip/chip";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
-import { BaseInput, renderAdornment } from "../TextInput/base-input";
+import { BaseInput } from "../TextInput/base-input";
 import { baseInputRecipe } from "../TextInput/base-input.recipe";
 import { InputConnector } from "../TextInput/input-connector";
 import {
@@ -42,6 +44,7 @@ import {
 } from "./combobox.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
+import type { ChipSize } from "../Chip/chip-util";
 import type { TextInput } from "../TextInput/text-input";
 
 export type ComboboxItem<TValue extends string = string> = {
@@ -1175,7 +1178,7 @@ export const Combobox = <TValue extends string>({
   const dropdown = (
     <ArkCombobox.RootProvider value={combobox} lazyMount unmountOnExit asChild>
       <Portal container={portalContainerRef}>
-        <ArkCombobox.Positioner>
+        <ArkCombobox.Positioner className={parkedPopperPositioner}>
           <SelectableList
             as="Combobox"
             className={comboboxDropdownRecipe({ variant })}

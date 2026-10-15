@@ -1,9 +1,19 @@
+import { checkAggregationInput } from "./aggregation.js";
+import { checkConditionInput, filterableKinds } from "./filter-condition.js";
+import { checkSortKeyInput } from "./sort-key.js";
+import { checkTakeCountInput } from "./take-count.js";
+import { allPayloadKinds } from "./types.js";
+
 import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
+  AcceptedKinds,
   ActionDefinition,
   DeepReadOnly,
+  FlowActionDefinitionId,
+  InputDefinition,
   PayloadKind,
   PayloadValue,
+  PayloadWithKind,
   StepInput,
 } from "./types.js";
 
@@ -11,8 +21,11 @@ import type {
  * Activities that are registered to the 'ai' temporal task queue.
  */
 export type AiFlowActionDefinitionId =
+  | "aggregate"
   | "analyzeEntityData"
   | "answerQuestion"
+  | "filterList"
+  | "find"
   | "generateChartConfig"
   | "generateStructuralQuery"
   | "planDashboardRefinement"
@@ -20,12 +33,15 @@ export type AiFlowActionDefinitionId =
   | "getFileFromUrl"
   | "getWebPageByUrl"
   | "getWebPageSummary"
+  | "if"
   | "inferMetadataFromDocument"
   | "inferEntitiesFromContent"
+  | "orderBy"
   | "processAutomaticBrowsingSettings"
   | "persistEntities"
   | "persistEntity"
   | "researchEntities"
+  | "takeFirst"
   | "webSearch"
   | "writeGoogleSheet";
 
@@ -373,9 +389,17 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntitiesMetadata",
+        payloadKind: "PersistedEntityMetadata",
         name: "persistedEntities",
-        array: false,
+        description: "The entities that were created or updated",
+        array: true,
+        required: true,
+      },
+      {
+        payloadKind: "FailedEntityProposal",
+        name: "failedEntityProposals",
+        description: "The proposed entities that could not be persisted",
+        array: true,
         required: true,
       },
     ],
@@ -446,10 +470,10 @@ const aiFlowActionDefinitionsAsConst = {
        * @todo make this do something / rethink it as needed
        */
       {
-        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
         name: "existingEntities",
         required: false,
-        array: false,
+        array: true,
       },
     ],
     outputs: [
@@ -535,10 +559,10 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
         name: "entities",
         required: false,
-        array: false,
+        array: true,
       },
     ],
     outputs: [
@@ -778,16 +802,20 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: [
-          "FormattedText",
-          "PersistedEntitiesMetadata",
-          "EntityId",
-        ],
+        oneOfPayloadKinds: ["FormattedText", "EntityId"],
         description:
-          "The data to write to the Google Sheet, as one of: CSV-formatted text; entities; or the id of a query to retrieve the data via.",
+          "The data to write to the Google Sheet, as either CSV-formatted text or the id of a query to retrieve the data via. Provide either this or `persistedEntities`.",
         name: "dataToWrite",
-        required: true,
+        required: false,
         array: false,
+      },
+      {
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
+        description:
+          "Entities to write to the Google Sheet. Provide either this or `dataToWrite`.",
+        name: "persistedEntities",
+        required: false,
+        array: true,
       },
       {
         oneOfPayloadKinds: ["ActorType"],
@@ -808,6 +836,204 @@ const aiFlowActionDefinitionsAsConst = {
         required: false,
       },
     ],
+  },
+  aggregate: {
+    actionDefinitionId: "aggregate",
+    name: "Aggregate",
+    description:
+      "Count the items of a list, or take the sum, average, minimum or maximum of a number read from each, ignoring items without one.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: filterableKinds,
+        name: "items",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["Aggregation"],
+        name: "aggregation",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Number",
+        name: "result",
+        description:
+          "The number. Missing for an average, minimum or maximum of no values.",
+        array: false,
+        required: false,
+      },
+    ],
+    check: checkAggregationInput,
+  },
+  filterList: {
+    actionDefinitionId: "filterList",
+    name: "Filter List",
+    description:
+      "Split a list into the items that match a condition and those that don't, keeping their order.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: filterableKinds,
+        name: "items",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["FilterCondition"],
+        name: "condition",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindFrom: "items",
+        name: "matching",
+        array: true,
+        required: true,
+      },
+      {
+        kindFrom: "items",
+        name: "nonMatching",
+        array: true,
+        required: true,
+      },
+    ],
+    check: checkConditionInput("items"),
+  },
+  find: {
+    actionDefinitionId: "find",
+    name: "Find",
+    description:
+      "Find the first item of a list that matches a condition, or the first item if there is no condition.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: filterableKinds,
+        name: "items",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["FilterCondition"],
+        name: "condition",
+        required: false,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindFrom: "items",
+        name: "match",
+        description: "The first matching item, if any matches.",
+        array: false,
+        required: false,
+      },
+    ],
+    check: checkConditionInput("items"),
+  },
+  if: {
+    actionDefinitionId: "if",
+    name: "If",
+    description:
+      "Pass a value on unchanged to the true or false output, depending on whether it matches a condition.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: filterableKinds,
+        name: "value",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["FilterCondition"],
+        name: "condition",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindFrom: "value",
+        name: "true",
+        description: "The value, if it matches the condition.",
+        array: false,
+        required: false,
+      },
+      {
+        kindFrom: "value",
+        name: "false",
+        description: "The value, if it doesn't match the condition.",
+        array: false,
+        required: false,
+      },
+    ],
+    check: checkConditionInput("value"),
+  },
+  orderBy: {
+    actionDefinitionId: "orderBy",
+    name: "Order By",
+    description:
+      "Sort a list by the items, one of their fields or an entity property, keeping equal items in their order. Items without a value go last.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: filterableKinds,
+        name: "items",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["SortKey"],
+        name: "sortBy",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindFrom: "items",
+        name: "items",
+        array: true,
+        required: true,
+      },
+    ],
+    check: checkSortKeyInput,
+  },
+  takeFirst: {
+    actionDefinitionId: "takeFirst",
+    name: "Take First",
+    description:
+      "Keep the first items of a list, up to a count: all of them if the list is shorter.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: allPayloadKinds,
+        name: "items",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["Number"],
+        name: "count",
+        description: "How many items to keep: a whole number, 0 or more.",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindFrom: "items",
+        name: "items",
+        array: true,
+        required: true,
+      },
+    ],
+    check: checkTakeCountInput,
   },
 } as const satisfies Record<
   AiFlowActionDefinitionId,
@@ -865,12 +1091,12 @@ const integrationFlowActionDefinitionsAsConst = {
     kind: "action",
     inputs: [
       {
-        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntityMetadata"],
         name: "persistedEntities",
         description:
           "The persisted flight entities to check for live positions",
         required: true,
-        array: false,
+        array: true,
       },
     ],
     outputs: [
@@ -934,11 +1160,17 @@ const integrationFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntitiesMetadata",
+        payloadKind: "PersistedEntityMetadata",
         name: "persistedEntities",
-        description:
-          "The result of persisting the entities, including any failures",
-        array: false,
+        description: "The entities that were created or updated",
+        array: true,
+        required: true,
+      },
+      {
+        payloadKind: "FailedEntityProposal",
+        name: "failedEntityProposals",
+        description: "The proposed entities that could not be persisted",
+        array: true,
         required: true,
       },
     ],
@@ -965,150 +1197,286 @@ export const actionDefinitions = {
   ...integrationActionDefinitions,
 };
 
-export type InputNameForAiFlowAction<
-  T extends keyof typeof aiFlowActionDefinitionsAsConst,
-> = (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number]["name"];
-
-export type OutputNameForAiFlowAction<
-  T extends keyof typeof aiFlowActionDefinitionsAsConst,
-> = (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number]["name"];
-
-export type InputPayloadKindForAiFlowAction<
-  T extends AiFlowActionDefinitionId,
-  N extends InputNameForAiFlowAction<T>,
-> = Extract<
-  (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-  { name: N }
->["oneOfPayloadKinds"][number];
-
-export type InputNameForIntegrationFlowAction<
-  T extends keyof typeof integrationFlowActionDefinitionsAsConst,
-> =
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number]["name"];
-
-export type OutputNameForIntegrationFlowAction<
-  T extends keyof typeof integrationFlowActionDefinitionsAsConst,
-> =
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["outputs"][number]["name"];
-
-export type InputPayloadKindForIntegrationFlowAction<
-  T extends IntegrationFlowActionDefinitionId,
-  N extends InputNameForIntegrationFlowAction<T>,
-> = Extract<
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-  { name: N }
->["oneOfPayloadKinds"][number];
-
-export type OutputPayloadKindForAiFlowAction<
-  T extends AiFlowActionDefinitionId,
-  N extends OutputNameForAiFlowAction<T>,
-> = Extract<
-  (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number],
-  { name: N }
->["payloadKind"];
-
-type AiFlowInputPayloadType<
-  T extends AiFlowActionDefinitionId,
-  N extends InputNameForAiFlowAction<T>,
-> =
-  Extract<
-    (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-    { name: N }
-  > extends { required: true; array: true }
-    ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true>
-    : Extract<
-          (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-          { name: N }
-        > extends { required: false; array: true }
-      ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true> | undefined
-      : Extract<
-            (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-            { name: N }
-          > extends { required: true; array: false }
-        ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
-        :
-            | PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
-            | undefined;
-
-type SimplifiedActionInputsObject<T extends AiFlowActionDefinitionId> = {
-  [N in InputNameForAiFlowAction<T>]: AiFlowInputPayloadType<T, N>;
+/**
+ * Every action definition with its literal types preserved: input and output names, payload kinds, and the
+ * `array`, `required` and `default` flags. Use this where the types matter (e.g. the typed flow builder), and
+ * {@link actionDefinitions} for lookups by an id that is only known at runtime.
+ */
+export const typedActionDefinitions = {
+  ...aiFlowActionDefinitionsAsConst,
+  ...integrationFlowActionDefinitionsAsConst,
 };
 
-export const getSimplifiedAiFlowActionInputs = <
-  T extends AiFlowActionDefinitionId,
->(params: {
-  inputs: StepInput[];
-  actionType: T;
-}): SimplifiedActionInputsObject<T> => {
-  const { inputs } = params;
+export type TypedActionDefinitions = typeof typedActionDefinitions;
 
-  return inputs.reduce((acc, input) => {
-    const inputName = input.inputName as InputNameForAiFlowAction<T>;
+/**
+ * The types of an action definition's inputs and outputs: an entry of `typedActionDefinitions`, or an action
+ * defined in a test.
+ */
+export type ActionDefinitionTypes = DeepReadOnly<
+  Pick<ActionDefinition<FlowActionDefinitionId>, "inputs" | "outputs">
+>;
 
-    acc[inputName] = input.payload.value as AiFlowInputPayloadType<
-      T,
-      typeof inputName
-    >;
+type InputDefinitionOf<Definition extends ActionDefinitionTypes> =
+  Definition["inputs"][number];
 
-    return acc;
-  }, {} as SimplifiedActionInputsObject<T>);
-};
+type OutputDefinitionOf<Definition extends ActionDefinitionTypes> =
+  Definition["outputs"][number];
 
-type IntegrationFlowInputPayloadType<
-  T extends IntegrationFlowActionDefinitionId,
-  N extends InputNameForIntegrationFlowAction<T>,
-> =
-  Extract<
-    (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-    { name: N }
-  > extends { required: true; array: true }
-    ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
-    : Extract<
-          (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-          { name: N }
-        > extends { required: false; array: true }
-      ?
-          | PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
-          | undefined
-      : Extract<
-            (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-            { name: N }
-          > extends { required: true; array: false }
-        ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, false>
-        :
-            | PayloadValue<
-                InputPayloadKindForIntegrationFlowAction<T, N>,
-                false
-              >
-            | undefined;
+type InputDefinitionForFlowAction<Action extends FlowActionDefinitionId> =
+  InputDefinitionOf<TypedActionDefinitions[Action]>;
 
-type SimplifiedIntegrationActionInputsObject<
-  T extends IntegrationFlowActionDefinitionId,
-> = {
-  [N in InputNameForIntegrationFlowAction<T>]: IntegrationFlowInputPayloadType<
-    T,
-    N
+type OutputDefinitionForFlowAction<Action extends FlowActionDefinitionId> =
+  OutputDefinitionOf<TypedActionDefinitions[Action]>;
+
+export type InputNameForFlowAction<Action extends FlowActionDefinitionId> =
+  InputDefinitionForFlowAction<Action>["name"];
+
+export type OutputNameForFlowAction<Action extends FlowActionDefinitionId> =
+  OutputDefinitionForFlowAction<Action>["name"];
+
+/** The names of the action's kind sources: the inputs that others take their kind from (see `KindFrom`). */
+type KindSourceNameOf<Definition extends ActionDefinitionTypes> = Extract<
+  InputDefinitionOf<Definition> | OutputDefinitionOf<Definition>,
+  { kindFrom: string }
+>["kindFrom"];
+
+/**
+ * The kinds each of the action's kind sources accepts, by input name.
+ *
+ * An action's implementation is generic over the kind each kind source is given (see `FlowActionActivity`), within
+ * these. So TypeScript checks that the implementation returns that kind, where an output takes its kind from it.
+ */
+export type InputKindsOf<Definition extends ActionDefinitionTypes> = {
+  [SourceName in KindSourceNameOf<Definition>]: AcceptedKinds<
+    InputDefinitionOf<Definition>,
+    Extract<InputDefinitionOf<Definition>, { name: SourceName }>
   >;
 };
 
-export const getSimplifiedIntegrationFlowActionInputs = <
-  T extends IntegrationFlowActionDefinitionId,
+export type FlowActionInputKinds<Action extends FlowActionDefinitionId> =
+  InputKindsOf<TypedActionDefinitions[Action]>;
+
+/**
+ * The kind given to the kind source named `SourceName`, out of `Kinds` (see `InputKindsOf`).
+ *
+ * A conditional type, rather than `Kinds[SourceName]`: TypeScript lets any kind `Kinds`' constraint allows be
+ * assigned to that indexed type, but nothing other than the kind given to this one.
+ */
+type GivenKind<Kinds, SourceName> = SourceName extends keyof Kinds
+  ? Kinds[SourceName] & PayloadKind
+  : never;
+
+declare const inputKinds: unique symbol;
+
+/**
+ * A step's inputs, as an action's implementation receives them.
+ *
+ * `Kinds` is the kind each of the action's kind sources was given (see `InputKindsOf`). It is only in the type, for
+ * `getSimplifiedFlowActionInputs` to type those inputs with.
+ */
+export type FlowActionInputs<Kinds> = StepInput[] & {
+  readonly [inputKinds]?: Kinds;
+};
+
+/** Whether `Type` is a union of more than one member. */
+type IsUnion<Type, Whole = Type> = Type extends unknown
+  ? [Whole] extends [Type]
+    ? false
+    : true
+  : never;
+
+/** A payload of any one of `Kind`: a union with a member per kind, so checking `kind` narrows `value`. */
+type PayloadOfEachKind<
+  Kind extends PayloadKind,
+  IsArray extends boolean,
+> = Kind extends PayloadKind ? PayloadWithKind<Kind, IsArray> : never;
+
+/**
+ * The type of an input as an action's implementation reads it (see `getSimplifiedFlowActionInputs`): a payload of
+ * the kind given, for a kind source or an input that takes its kind from one; a payload of any of its kinds, for
+ * another input that accepts more than one; and a bare value otherwise.
+ */
+type InputValueOf<Definition extends ActionDefinitionTypes, Kinds, InputName> =
+  Extract<
+    InputDefinitionOf<Definition>,
+    { name: InputName }
+  > extends infer Input
+    ? Input extends {
+        array: infer IsArray extends boolean;
+        required: infer IsRequired extends boolean;
+      }
+      ?
+          | (Input extends { kindFrom: infer SourceName }
+              ? PayloadWithKind<GivenKind<Kinds, SourceName>, IsArray>
+              : InputName extends KindSourceNameOf<Definition>
+                ? PayloadWithKind<GivenKind<Kinds, InputName>, IsArray>
+                : IsUnion<
+                      AcceptedKinds<InputDefinitionOf<Definition>, Input>
+                    > extends true
+                  ? PayloadOfEachKind<
+                      AcceptedKinds<InputDefinitionOf<Definition>, Input>,
+                      IsArray
+                    >
+                  : PayloadValue<
+                      AcceptedKinds<InputDefinitionOf<Definition>, Input>,
+                      IsArray
+                    >)
+          | (IsRequired extends true ? never : undefined)
+      : never
+    : never;
+
+/** A kind source, with the inputs and outputs that take their kind from it. */
+export type KindSource = {
+  input: Extract<
+    InputDefinition,
+    { oneOfPayloadKinds: readonly PayloadKind[] }
+  >;
+  derived: { name: string; of: "input" | "output" }[];
+};
+
+/**
+ * Finds an action's kind sources, keyed by input name, each with the inputs and outputs that take their kind
+ * from it.
+ *
+ * The validator uses it to report a kind source that isn't connected. `getPayloadInputNames` uses it to decide which
+ * inputs an implementation receives as payloads.
+ *
+ * @throws if a `kindFrom` names an input the action doesn't have, or one that has a derived kind itself; if a
+ *   required output takes its kind from an optional input, which may not be given; or if a kind source or a derived
+ *   input has a default, whose kind is fixed.
+ */
+export const getKindSources = (
+  actionDefinition: Pick<
+    ActionDefinition<FlowActionDefinitionId>,
+    "actionDefinitionId" | "inputs" | "outputs"
+  >,
+): Map<string, KindSource> => {
+  const kindSources = new Map<string, KindSource>();
+
+  for (const { definition, of } of [
+    ...actionDefinition.inputs.map((input) => ({
+      definition: input,
+      of: "input" as const,
+    })),
+    ...actionDefinition.outputs.map((output) => ({
+      definition: output,
+      of: "output" as const,
+    })),
+  ]) {
+    if (!("kindFrom" in definition)) {
+      continue;
+    }
+
+    const input = actionDefinition.inputs.find(
+      ({ name }) => name === definition.kindFrom,
+    );
+
+    const subject = `The ${of} "${definition.name}" of action "${actionDefinition.actionDefinitionId}"`;
+
+    if (!input || !("oneOfPayloadKinds" in input)) {
+      throw new Error(
+        `${subject} takes its kind from input "${definition.kindFrom}", which the action doesn't have, or which takes its own kind from another`,
+      );
+    }
+
+    if (of === "output" && definition.required && !input.required) {
+      throw new Error(
+        `${subject} is required, but takes its kind from input "${input.name}", which is optional: when it isn't given, the output has no kind`,
+      );
+    }
+
+    if (
+      ("default" in definition && definition.default !== undefined) ||
+      input.default !== undefined
+    ) {
+      throw new Error(
+        `${subject} takes its kind from input "${input.name}", so neither can have a default: a default has a fixed kind`,
+      );
+    }
+
+    const kindSource = kindSources.get(input.name) ?? { input, derived: [] };
+
+    kindSource.derived.push({ name: definition.name, of });
+    kindSources.set(input.name, kindSource);
+  }
+
+  return kindSources;
+};
+
+/**
+ * The names of the inputs an action's implementation receives as payloads, which carry their kind, rather than as
+ * bare values: its kind sources, its inputs with a derived kind, and its other inputs that accept more than one kind.
+ *
+ * The implementation only learns those inputs' kinds when it runs, so it needs the kind with the value.
+ */
+export const getPayloadInputNames = (
+  actionDefinition: Parameters<typeof getKindSources>[0],
+): Set<string> =>
+  new Set([
+    ...[...getKindSources(actionDefinition)].flatMap(
+      ([sourceName, { derived }]) => [
+        sourceName,
+        ...derived.flatMap(({ name, of }) => (of === "input" ? [name] : [])),
+      ],
+    ),
+    ...actionDefinition.inputs.flatMap((input) =>
+      "oneOfPayloadKinds" in input && input.oneOfPayloadKinds.length > 1
+        ? [input.name]
+        : [],
+    ),
+  ]);
+
+/**
+ * The record of inputs an action's implementation reads, keyed by input name, given the kind each kind source was
+ * given (see `getSimplifiedFlowActionInputs`).
+ */
+export type SimplifiedInputsOf<
+  Definition extends ActionDefinitionTypes,
+  Kinds = InputKindsOf<Definition>,
+> = {
+  [InputName in InputDefinitionOf<Definition>["name"]]: InputValueOf<
+    Definition,
+    Kinds,
+    InputName
+  >;
+};
+
+type SimplifiedFlowActionInputsObject<
+  Action extends FlowActionDefinitionId,
+  Kinds,
+> = SimplifiedInputsOf<TypedActionDefinitions[Action], Kinds>;
+
+/**
+ * Turns a step's inputs into the record an action implementation reads, keyed by input name.
+ *
+ * Each input is its bare value, except those `getPayloadInputNames` returns, which stay payloads: of the kind each
+ * kind source was given, which `inputs` carries in its type (see `FlowActionInputs`), or of any kind another input
+ * accepts.
+ */
+export const getSimplifiedFlowActionInputs = <
+  Action extends FlowActionDefinitionId,
+  Kinds extends FlowActionInputKinds<Action> = FlowActionInputKinds<Action>,
 >(params: {
-  inputs: StepInput[];
-  actionType: T;
-}): SimplifiedIntegrationActionInputsObject<T> => {
-  const { inputs } = params;
+  inputs: FlowActionInputs<Kinds>;
+  actionType: Action;
+}): SimplifiedFlowActionInputsObject<Action, Kinds> => {
+  const { inputs, actionType } = params;
 
-  return inputs.reduce((acc, input) => {
-    const inputName = input.inputName as InputNameForIntegrationFlowAction<T>;
+  const payloadInputNames = getPayloadInputNames(actionDefinitions[actionType]);
 
-    acc[inputName] = input.payload.value as IntegrationFlowInputPayloadType<
-      T,
-      typeof inputName
-    >;
+  return inputs.reduce(
+    (acc, input) => {
+      const inputName = input.inputName as InputNameForFlowAction<Action>;
 
-    return acc;
-  }, {} as SimplifiedIntegrationActionInputsObject<T>);
+      acc[inputName] = (
+        payloadInputNames.has(inputName) ? input.payload : input.payload.value
+      ) as SimplifiedFlowActionInputsObject<Action, Kinds>[typeof inputName];
+
+      return acc;
+    },
+    {} as SimplifiedFlowActionInputsObject<Action, Kinds>,
+  );
 };
 
 /**
@@ -1119,40 +1487,43 @@ export const getSimplifiedIntegrationFlowActionInputs = <
  * Helper type to get a single StepOutput for a specific output definition.
  * If the output is an array, the payload value will be an array type.
  *
- * Uses a distributive conditional type to ensure that when OutputDef is a union,
+ * Uses a distributive conditional type to ensure that when Output is a union,
  * each member is processed individually, creating a proper discriminated union
  * where outputName and payload are correctly paired.
+ *
+ * An output with a derived kind is typed as a payload of the kind its kind source was given, out of `Kinds` (see
+ * `InputKindsOf`). Where `Kinds` holds every kind each kind source accepts, as it does outside the action, the engine
+ * checks the kind when the action returns.
  */
-type ActionStepOutput<
-  OutputDef extends {
-    name: string;
-    payloadKind: PayloadKind;
-    array: boolean;
-  },
-> = OutputDef extends {
-  name: infer N extends string;
-  payloadKind: infer K extends PayloadKind;
-  array: infer A extends boolean;
+type ActionStepOutput<Output, Kinds> = Output extends {
+  name: infer OutputName extends string;
+  array: infer IsArray extends boolean;
 }
-  ? {
-      outputName: N;
-      payload: { kind: K; value: PayloadValue<K, A> };
-    }
+  ? Output extends { payloadKind: infer Kind extends PayloadKind }
+    ? {
+        outputName: OutputName;
+        payload: PayloadWithKind<Kind, IsArray>;
+      }
+    : Output extends { kindFrom: infer KindSourceName extends string }
+      ? {
+          outputName: OutputName;
+          payload: PayloadWithKind<GivenKind<Kinds, KindSourceName>, IsArray>;
+        }
+      : never
   : never;
 
 /**
- * Get the union of all typed StepOutput types for a given AI flow action.
+ * The union of the outputs an action's implementation returns, given the kind each kind source was given.
  */
-export type AiActionStepOutput<T extends AiFlowActionDefinitionId> =
-  ActionStepOutput<
-    (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number]
-  >;
+export type StepOutputOf<
+  Definition extends ActionDefinitionTypes,
+  Kinds = InputKindsOf<Definition>,
+> = ActionStepOutput<OutputDefinitionOf<Definition>, Kinds>;
 
 /**
- * Get the union of all typed StepOutput types for a given integration flow action.
+ * Get the union of all typed StepOutput types for a given flow action.
  */
-export type IntegrationActionStepOutput<
-  T extends IntegrationFlowActionDefinitionId,
-> = ActionStepOutput<
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["outputs"][number]
->;
+export type FlowActionStepOutput<
+  Action extends FlowActionDefinitionId,
+  Kinds = FlowActionInputKinds<Action>,
+> = StepOutputOf<TypedActionDefinitions[Action], Kinds>;

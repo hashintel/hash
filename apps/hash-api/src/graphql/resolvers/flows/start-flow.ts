@@ -1,4 +1,3 @@
-import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import {
@@ -6,6 +5,7 @@ import {
   type ResolverFn,
 } from "../../api-types.gen";
 import * as Error from "../../error";
+import { getRunnableFlowDefinition } from "./shared/get-runnable-flow-definition";
 
 import type { LoggedInGraphQLContext } from "../../context";
 import type { EntityUuid } from "@blockprotocol/type-system";
@@ -21,16 +21,21 @@ export const startFlow: ResolverFn<
   MutationStartFlowArgs
 > = async (
   _,
-  { dataSources, flowTrigger, flowDefinition, flowType, webId },
+  {
+    dataSources,
+    flowDefinition: flowDefinitionInput,
+    flowDefinitionId,
+    flowInputs,
+    webId,
+  },
   graphQLContext,
 ) => {
   const { temporal, user } = graphQLContext;
 
-  if (flowType === "ai" && !user.enabledFeatureFlags.includes("ai")) {
-    throw Error.forbidden("AI flows are not enabled for this user");
-  }
-
-  validateFlowDefinition(flowDefinition, flowType);
+  const { flowDefinition, flowType } = getRunnableFlowDefinition(
+    graphQLContext,
+    flowDefinitionInput,
+  );
 
   const workflowId = generateUuid() as EntityUuid;
 
@@ -41,8 +46,9 @@ export const startFlow: ResolverFn<
   const params: RunFlowWorkflowParams = {
     ...(flowType === "ai" ? { dataSources } : {}),
     flowRunId: workflowId,
-    flowTrigger,
+    flowInputs,
     flowDefinition,
+    flowDefinitionId,
     userAuthentication: { actorId: user.accountId },
     webId,
   };
@@ -53,7 +59,7 @@ export const startFlow: ResolverFn<
     taskQueue: flowType,
     args: [params],
     memo: {
-      flowDefinitionId: flowDefinition.flowDefinitionId,
+      flowDefinitionId,
       userAccountId: user.accountId,
       webId,
     },

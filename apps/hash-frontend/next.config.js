@@ -112,6 +112,36 @@ export default withSentryConfig(
             destination: "/notifications",
             permanent: false,
           },
+          // Kratos sends browsers to its `/self-service/<flow>/browser` endpoints
+          // on this origin, because `SERVE_PUBLIC_BASE_URL` points here, but the
+          // frontend has no such routes. Next.js passes the query through, so
+          // `aal`, `refresh` and `return_to` reach the UI route. Keep in sync with
+          // `flowMetadata` in `src/pages/shared/ory-kratos.ts`.
+          {
+            source: "/self-service/login/browser",
+            destination: "/signin",
+            permanent: false,
+          },
+          {
+            source: "/self-service/recovery/browser",
+            destination: "/recovery",
+            permanent: false,
+          },
+          {
+            source: "/self-service/registration/browser",
+            destination: "/signup",
+            permanent: false,
+          },
+          {
+            source: "/self-service/settings/browser",
+            destination: "/settings/security",
+            permanent: false,
+          },
+          {
+            source: "/self-service/verification/browser",
+            destination: "/verification",
+            permanent: false,
+          },
         ];
       },
       async headers() {

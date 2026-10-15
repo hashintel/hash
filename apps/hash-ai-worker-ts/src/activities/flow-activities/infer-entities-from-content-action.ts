@@ -8,7 +8,7 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { StatusCode } from "@local/status";
 
@@ -32,10 +32,10 @@ import type {
   SourceProvenance,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
-export const inferEntitiesFromContentAction: AiFlowActionActivity<
+export const inferEntitiesFromContentAction: FlowActionActivity<
   "inferEntitiesFromContent"
 > = async ({ inputs }) => {
   const {
@@ -43,7 +43,7 @@ export const inferEntitiesFromContentAction: AiFlowActionActivity<
     entityTypeIds,
     model: modelAlias,
     relevantEntitiesPrompt,
-  } = getSimplifiedAiFlowActionInputs({
+  } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "inferEntitiesFromContent",
   });
@@ -112,7 +112,7 @@ export const inferEntitiesFromContentAction: AiFlowActionActivity<
   const processBeginTime = currentTimestamp();
 
   const status = await inferEntitiesFromWebPageActivity({
-    webPage: content,
+    webPage: content.value,
     relevantEntitiesPrompt,
     model,
     entityTypes,
@@ -130,13 +130,13 @@ export const inferEntitiesFromContentAction: AiFlowActionActivity<
   webPageInferenceState = status.contents[0]!;
 
   const source: SourceProvenance =
-    typeof content === "object"
+    content.kind === "WebPage"
       ? {
           type: "webpage",
           loadedAt: processBeginTime,
           location: {
-            uri: content.url,
-            name: content.title,
+            uri: content.value.url,
+            name: content.value.title,
           },
         }
       : { type: "document", loadedAt: processBeginTime };

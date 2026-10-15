@@ -49,6 +49,7 @@ members = [
     "libs/@local/integrations/engine",
     "libs/@local/middleware",
     "libs/@local/repo-chores/rust",
+    "libs/@local/secret",
     "libs/@local/status/rust",
     "libs/@local/telemetry",
     "libs/@local/temporal-client",
@@ -113,6 +114,7 @@ hash-integrations-definition.path   = "libs/@local/integrations/definition"
 hash-integrations-engine.path       = "libs/@local/integrations/engine"
 hash-middleware.path                = "libs/@local/middleware"
 hash-repo-chores.path               = "libs/@local/repo-chores/rust"
+hash-secret.path                    = "libs/@local/secret"
 hash-status.path                    = "libs/@local/status/rust"
 hash-telemetry.path                 = "libs/@local/telemetry"
 hash-temporal-client.path           = "libs/@local/temporal-client"
@@ -141,6 +143,7 @@ arc-swap                           = { version = "1.9.1", default-features = fal
 async-scoped                       = { version = "0.9.0", default-features = false }
 aws-config                         = { version = "1.12.0" }
 aws-credential-types               = { version = "1.3.0", default-features = false }
+aws-lc-rs                          = { version = "1.18.1", default-features = false, features = ["non-fips"] }
 aws-sdk-s3                         = { version = "1.146.0", default-features = false }
 aws-smithy-runtime-api             = { version = "1.16.0", default-features = false }
 aws-smithy-types                   = { version = "1.6.3", default-features = false }
@@ -251,7 +254,6 @@ napi-build                         = { version = "2.3.2", default-features = fal
 napi-derive                        = { version = "3.5.6", default-features = false, features = ["type-def"] }
 nextest-filtering                  = { version = "0.21.0", default-features = false }
 nextest-metadata                   = { version = "0.14.0", default-features = false }
-nodejs_package_json                = { version = "0.4.4" }
 opendata-common                    = { package = "opendata-common", version = ">=0.1.17, <0.1.18", default-features = false }                                                                      # 0.1.18 requires `slatedb` 0.14, but `opendata-log` 1.0.0 requires 0.13. `package` names the crate `opendata_common` in code; its library target is `common`
 opendata-log                       = { package = "opendata-log", version = "1.0.0", default-features = false }                                                                                     # `package` names the crate `opendata_log` in code; its library target is `log`
 opentelemetry                      = { version = "0.32.0", default-features = false }
@@ -321,14 +323,13 @@ sqruff-lib                         = { version = "0.37.3" }
 sqruff-lib-core                    = { version = "0.37.3" }
 stacker                            = { version = "0.1.22", default-features = false }
 steppe                             = { version = "0.4.1", default-features = false }
-subtle                             = { version = "2.6.1", default-features = false }
 supports-color                     = { version = "3.0.2", default-features = false }
 supports-unicode                   = { version = "3.0.0", default-features = false }
 syn                                = { version = "2.0.108", default-features = false }
 tachyonix                          = { version = "0.3.1", default-features = false }
 tempfile                           = { version = "3.27.0", default-features = false }
-temporalio-client                  = { version = "0.5.0", default-features = false, features = ["core-based-sdk", "tls-ring"] }
-temporalio-common                  = { version = "0.5.0", default-features = false }
+temporalio-client                  = { version = "1.1.0", default-features = false, features = ["core-based-sdk", "tls-ring"] }
+temporalio-common                  = { version = "1.1.0", default-features = false }
 test-log                           = { version = "0.2.18", default-features = false }
 test-strategy                      = { version = "0.4.3", default-features = false }
 testcontainers                     = { version = "0.27.1", default-features = false }

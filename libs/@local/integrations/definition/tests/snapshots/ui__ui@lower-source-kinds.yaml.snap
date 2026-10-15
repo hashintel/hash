@@ -1,0 +1,18 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-source-kinds.yaml
+---
+3:3: sources.both_empty: `sql`, `checkpoint` cannot be used together
+4:10: sources.both_empty.sql: SQL query is empty
+5:17: sources.both_empty.checkpoint: `demo//orders` is not a valid name: each `/`-separated segment of a checkpoint name must be a name
+6:17: sources.both_empty.primaryKey: primary key lists `id` more than once
+6:26: sources.both_empty.primaryKey[2]: `` is not a valid name: name is empty
+7:3: sources.both_unresolved: `sql`, `checkpoint` cannot be used together
+9:17: sources.both_unresolved.checkpoint: `${UNKNOWN}` is not declared in `vars`
+10:17: sources.both_unresolved.primaryKey: primary key has no columns
+11:3: sources.neither_invalid: needs one of `sql`, `checkpoint`
+12:17: sources.neither_invalid.primaryKey: primary key lists `id` more than once
+12:22: sources.neither_invalid.primaryKey[1]: `` is not a valid name: name is empty
+13:3: sources.neither_empty: needs one of `sql`, `checkpoint`
+14:17: sources.neither_empty.primaryKey: primary key has no columns

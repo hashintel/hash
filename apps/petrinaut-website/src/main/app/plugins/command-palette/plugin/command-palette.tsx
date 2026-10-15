@@ -1,0 +1,178 @@
+import { useState } from "react";
+
+import { KeyboardShortcut } from "@hashintel/petrinaut/ui";
+import {
+  useCommandRegistry,
+  useCommands,
+} from "@hashintel/petrinaut/ui/plugin";
+
+import type { CSSProperties } from "react";
+
+const overlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "center",
+  paddingTop: "12vh",
+  backgroundColor: "rgba(15, 18, 24, 0.08)",
+  zIndex: "var(--z-index-modal, 1400)",
+};
+
+const paletteStyle: CSSProperties = {
+  width: 540,
+  maxWidth: "90vw",
+  maxHeight: "60vh",
+  display: "flex",
+  flexDirection: "column",
+  backgroundColor: "#fff",
+  color: "#1d2129",
+  borderRadius: 10,
+  border: "1px solid #d8dade",
+  boxShadow: "0 16px 48px rgba(0, 0, 0, 0.25)",
+  overflow: "hidden",
+  fontSize: 14,
+  fontFamily: "'Inter Variable', system-ui, sans-serif",
+};
+
+const inputStyle: CSSProperties = {
+  font: "inherit",
+  fontSize: 15,
+  border: "none",
+  outline: "none",
+  padding: "14px 16px",
+  borderBottom: "1px solid #e4e6ea",
+};
+
+const listStyle: CSSProperties = {
+  overflowY: "auto",
+  padding: 6,
+  display: "flex",
+  flexDirection: "column",
+};
+
+const rowStyle = (isActive: boolean): CSSProperties => ({
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "8px 10px",
+  borderRadius: 6,
+  textAlign: "left",
+  backgroundColor: isActive ? "#dbe4ff" : "transparent",
+  border: "none",
+  cursor: "pointer",
+  font: "inherit",
+});
+
+const categoryStyle: CSSProperties = {
+  color: "#5a6270",
+  fontSize: 12,
+  minWidth: 64,
+};
+
+const matchesQuery = (haystack: string, query: string): boolean =>
+  haystack.toLowerCase().includes(query.toLowerCase());
+
+/**
+ * The demo site's command palette over the ambient registry (Petrinaut's
+ * commands plus the demo's). Mounted while open; `onClose` closes it.
+ */
+export const CommandPalette = ({ onClose }: { onClose: () => void }) => {
+  const registry = useCommandRegistry();
+  const commands = useCommands();
+  const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const trimmed = query.trim();
+  const results = trimmed
+    ? commands.filter((command) =>
+        matchesQuery(
+          `${command.label} ${command.category ?? ""} ${(command.keywords ?? []).join(" ")}`,
+          trimmed,
+        ),
+      )
+    : commands;
+  const active = Math.min(activeIndex, Math.max(results.length - 1, 0));
+
+  const runCommand = (id: string) => {
+    // Close after running, so the palette's own toggle row closes it rather than reopening it.
+    registry?.execute(id);
+    onClose();
+  };
+
+  return (
+    <div
+      style={overlayStyle}
+      role="presentation"
+      onPointerDown={onClose}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onClose();
+        }
+      }}
+    >
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the dialog closes when focus or a pointer leaves it. */}
+      <div
+        role="dialog"
+        aria-label="Command palette"
+        style={paletteStyle}
+        onPointerDown={(event) => event.stopPropagation()}
+        onBlur={(event) => {
+          if (
+            event.relatedTarget &&
+            !event.currentTarget.contains(event.relatedTarget)
+          ) {
+            onClose();
+          }
+        }}
+      >
+        <input
+          ref={(element) => element?.focus()}
+          style={inputStyle}
+          placeholder="Type a command…"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setActiveIndex(0);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setActiveIndex(Math.min(active + 1, results.length - 1));
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              setActiveIndex(Math.max(active - 1, 0));
+            } else if (event.key === "Enter" && results[active]) {
+              event.preventDefault();
+              runCommand(results[active].id);
+            }
+          }}
+        />
+        <div style={listStyle}>
+          {results.length === 0 ? (
+            <div style={{ padding: 16, color: "#5a6270" }}>
+              No matching commands
+            </div>
+          ) : (
+            results.map((command, index) => (
+              <button
+                key={command.id}
+                type="button"
+                style={rowStyle(index === active)}
+                onPointerEnter={() => setActiveIndex(index)}
+                onClick={() => runCommand(command.id)}
+              >
+                <span style={categoryStyle}>{command.category ?? ""}</span>
+                <span style={{ flex: 1 }}>{command.label}</span>
+                {command.shortcut ? (
+                  <KeyboardShortcut shortcut={command.shortcut} />
+                ) : null}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

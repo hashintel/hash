@@ -3,7 +3,6 @@ use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _};
 use futures::TryStreamExt as _;
-use hash_graph_authorization::policies::action::ActionName;
 use hash_graph_store::{
     entity::EntityQueryPath,
     error::QueryError,
@@ -254,11 +253,7 @@ where
                 // TODO: Ideally, we'd incorporate the filter in the above query, but that's
                 //       not easily possible as the query above uses features that the query
                 //       compiler does not support yet.
-                let permission_filter = Filter::<Entity>::for_policies(
-                    policy_components.extract_filter_policies(ActionName::ViewEntity),
-                    policy_components.actor_id(),
-                    policy_components.optimization_data(ActionName::ViewEntity),
-                );
+                let permission_filter = Filter::<Entity>::for_view_entity(policy_components);
                 compiler
                     .add_filter(&permission_filter)
                     .change_context(QueryError)?;

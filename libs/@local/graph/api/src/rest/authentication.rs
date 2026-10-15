@@ -1,24 +1,29 @@
 //! Authentication providers shared by the Graph HTTP APIs.
 //!
-//! A router composes them as a chain that consults the explicit credential first, then a session,
-//! then what the environment stamps onto the request: `(ExplicitProviders, (SessionProviders,
-//! EnvironmentProviders))`, or without sessions `(ExplicitProviders, EnvironmentProviders)`.
+//! Only the first credential found in a request is checked. The public APIs accept API tokens.
+//! The internal APIs and Atlas accept Kratos sessions. The legacy routes accept service
+//! delegation. The admin API accepts service delegation and, when configured, Cloudflare Access
+//! JWTs. Every API but the public ones rejects a request that carries an API token.
 
 use alloc::sync::Arc;
+use core::pin::Pin;
 
 use hash_graph_authentication::{
     actor::StorePoolActorResolver,
+    api_token::{ApiTokenIssuer, ApiTokenProvider, StorePoolApiTokenAuthenticator},
     delegation::ServiceDelegationProvider,
     kratos::{KratosEmailActorResolver, KratosSessionProvider},
 };
 pub use hash_graph_authentication::{
+    api_token,
     cloudflare::CloudflareAccessProvider,
     jwt::{JwtValidator, JwtValidatorConfig},
     kratos::{KratosAdminConfig, KratosSessionConfig, SessionCacheConfig},
 };
 use hash_graph_authorization::policies::store::PrincipalStore;
-use hash_graph_store::pool::StorePool;
+use hash_graph_store::{api_token::ApiTokenStore, pool::StorePool};
 pub use hash_middleware::authentication::{AuthenticatedActorId, AuthenticationMetrics};
+use hash_secret::Secret;
 
 /// Configuration for Cloudflare Access authentication.
 #[derive(Debug, Clone)]
@@ -35,13 +40,28 @@ pub type ExplicitProviders<S> = ServiceDelegationProvider<StorePoolActorResolver
 /// The credentials a browser carries: the Kratos session.
 pub type SessionProviders<S> = KratosSessionProvider<StorePoolActorResolver<S>>;
 
-/// The credentials the infrastructure stamps onto a request: the Cloudflare Access JWT, when
-/// configured.
-pub type EnvironmentProviders<S> =
-    Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>;
+/// Builds the [`ApiTokenProvider`], which verifies tokens with `issuer`.
+///
+/// Without an issuer, every bearer token that parses is rejected as unverifiable.
+pub fn build_api_token_provider<S>(
+    issuer: Option<Arc<ApiTokenIssuer>>,
+    store: &Arc<S>,
+) -> ApiTokenProvider<StorePoolApiTokenAuthenticator<S>>
+where
+    S: StorePool + Send + Sync,
+    for<'p> S::Store<'p>: ApiTokenStore,
+{
+    ApiTokenProvider::new(
+        StorePoolApiTokenAuthenticator::new(Arc::clone(store)),
+        issuer,
+    )
+}
 
 /// Builds the [`ExplicitProviders`].
-pub fn build_explicit_providers<S>(service_secret: String, store: &Arc<S>) -> ExplicitProviders<S>
+pub fn build_explicit_providers<S>(
+    service_secret: Pin<Arc<Secret<str>>>,
+    store: &Arc<S>,
+) -> ExplicitProviders<S>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -69,10 +89,7 @@ where
     )
 }
 
-/// Builds the Cloudflare Access provider of the [`EnvironmentProviders`].
-///
-/// The provider caches the JWKS it verifies against, so a process shares one instance between
-/// its routers.
+/// Builds the provider of the Cloudflare Access JWT the infrastructure stamps onto a request.
 pub fn build_environment_provider<S>(
     config: CloudflareAccessConfig,
     store: &Arc<S>,

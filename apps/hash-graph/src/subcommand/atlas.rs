@@ -4,10 +4,10 @@ use core::{net::SocketAddr, time::Duration};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::{
-    authentication::{EnvironmentProviders, build_explicit_providers, build_session_providers},
+    authentication::{api_token::ApiTokenRejection, build_session_providers},
     rate_limit::RateLimitConfig,
 };
-use hash_graph_atlas::cli::{self, PasswordString, Storage};
+use hash_graph_atlas::cli::{self, Storage};
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
@@ -83,13 +83,6 @@ pub struct AtlasServeArgs {
     #[clap(flatten)]
     pub session_auth: KratosSessionAuthConfig,
 
-    /// Shared secret internal services present to act on behalf of an actor.
-    ///
-    /// Sent as the `Authorization: HASH-Service <secret>` credential next to
-    /// `X-Authenticated-User-Actor-Id`.
-    #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
-    pub service_secret: PasswordString,
-
     #[clap(flatten)]
     pub rate_limit: RateLimitConfig,
 
@@ -156,8 +149,6 @@ async fn run_atlas(
     };
     let exclusions = filter_protection.embedding_exclusions().clone();
 
-    let service_secret = cli::SecretString::from(args.service_secret);
-
     let mut storage = Storage::in_temp_dir().await.change_context(GraphError)?;
     if let Some(s3) = args.s3.client().await.change_context(GraphError)? {
         storage.set_s3(s3);
@@ -186,20 +177,13 @@ async fn run_atlas(
             });
 
     let provider = Arc::new((
-        build_explicit_providers(
-            service_secret.clone().into_unguarded().as_ref().to_owned(),
-            &pool,
-        ),
-        (
-            build_session_providers(session_auth, &pool, &telemetry.meter),
-            EnvironmentProviders::<PostgresStorePool>::None,
-        ),
+        ApiTokenRejection,
+        build_session_providers(session_auth, &pool, &telemetry.meter),
     ));
 
     let serve = cli::ServeCommand::new(args.root, args.serve)
         .run(cli::ServeOptions {
             provider,
-            service_secret,
             rate_limit: (&args.rate_limit).into(),
             pool,
             visibility: cli::VisibilityLimits {
@@ -266,7 +250,7 @@ pub async fn atlas_fit(args: AtlasFitArgs) -> Result<(), Report<GraphError>> {
         storage.set_s3(s3);
     }
 
-    let mut client = cli::connect(&args.db_info.url())
+    let mut client = cli::connect(args.db_info.config())
         .await
         .change_context(GraphError)?;
 

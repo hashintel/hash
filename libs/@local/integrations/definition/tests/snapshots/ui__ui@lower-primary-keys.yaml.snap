@@ -6,3 +6,9 @@ input_file: libs/@local/integrations/definition/tests/ui/lower-primary-keys.yaml
 6:17: sources.empty.primaryKey: primary key has no columns
 9:17: sources.repeated.primaryKey: primary key lists `id` more than once
 12:22: sources.invalid.primaryKey[1]: `` is not a valid name: name is empty
+15:17: sources.invalid_repeated.primaryKey: primary key lists `id` more than once
+15:22: sources.invalid_repeated.primaryKey[1]: `` is not a valid name: name is empty
+18:17: sources.unresolved_repeated.primaryKey: primary key lists `id` more than once
+18:22: sources.unresolved_repeated.primaryKey[1]: `${MISSING}` is not declared in `vars`
+21:18: sources.all_invalid.primaryKey[0]: `` is not a valid name: name is empty
+21:22: sources.all_invalid.primaryKey[1]: `${MISSING}` is not declared in `vars`

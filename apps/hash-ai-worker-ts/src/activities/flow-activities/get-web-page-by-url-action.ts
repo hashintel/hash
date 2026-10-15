@@ -1,15 +1,15 @@
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { getWebPageActivity } from "../get-web-page-activity.js";
 
 import type { Url } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 
-export const getWebPageByUrlAction: AiFlowActionActivity<
+export const getWebPageByUrlAction: FlowActionActivity<
   "getWebPageByUrl"
 > = async ({ inputs }) => {
-  const { url } = getSimplifiedAiFlowActionInputs({
+  const { url } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "getWebPageByUrl",
   });

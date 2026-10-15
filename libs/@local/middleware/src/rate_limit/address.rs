@@ -52,15 +52,8 @@ impl FromStr for BucketKey {
 pub(super) enum ResolvedClientAddress {
     Bucketed(BucketKey),
     Unknown,
-}
-
-impl ResolvedClientAddress {
-    pub(super) const fn key(self) -> Option<BucketKey> {
-        match self {
-            Self::Bucketed(key) => Some(key),
-            Self::Unknown => None,
-        }
-    }
+    /// The gate passed the request by its service secret without resolving the address.
+    Unresolved,
 }
 
 /// Why the configured header could not supply the address.

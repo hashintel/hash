@@ -13,8 +13,8 @@ import { PathFinderControl } from "./graph-container/path-finder-control";
 import { SearchControl } from "./graph-container/search-control";
 import { ConfigControl } from "./graph-container/shared/config-control";
 import { FilterControl } from "./graph-container/shared/filter-control";
-import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context";
-import { GraphContextProvider } from "./graph-container/shared/graph-context";
+import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context-provider";
+import { GraphContextProvider } from "./graph-container/shared/graph-context-provider";
 import { ZoomControl } from "./graph-container/zoom-control";
 
 import type { GraphLoaderProps } from "./graph-container/graph-data-loader";
@@ -39,6 +39,8 @@ export type GraphContainerProps<
    */
   fullScreenMode?: "document" | "element";
   onRender?: () => void;
+  /** Externally controlled search panel — hides the in-graph toggle button. */
+  searchPanel?: { open: boolean; onClose: () => void };
 };
 
 const borderRadii = {
@@ -75,6 +77,7 @@ export const GraphContainer = memo(
     onEdgeClick,
     onNodeSecondClick,
     onRender,
+    searchPanel,
   }: GraphContainerProps<NodeSizing>) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -154,7 +157,7 @@ export const GraphContainer = memo(
               onRender={onRender}
             >
               <PathFinderControl nodes={nodes} />
-              <SearchControl nodes={nodes} />
+              <SearchControl nodes={nodes} externalState={searchPanel} />
               <ConfigControl />
               <FilterControl defaultFilters={defaultFilters} nodes={nodes} />
               <Stack

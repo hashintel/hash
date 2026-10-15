@@ -1,3 +1,9 @@
+import {
+  canonicalizePetrinautIds,
+  generatePetrinautId,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
+
 import { readBrowserStorage, writeBrowserStorage } from "./browser-storage";
 import { usePersistedState } from "./use-persisted-state";
 
@@ -7,8 +13,6 @@ import type { SDCPN } from "@hashintel/petrinaut-core";
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
 export type SDCPNInLocalStorage = {
-  /** Assigned when a construction-bound document is created or first opened. */
-  incarnationId?: string;
   /** The last write to this record; the next write must name it as predecessor. */
   revisionId?: RecordRevisionId;
   id: string;
@@ -33,7 +37,6 @@ const isStoredSDCPN = (value: unknown): value is SDCPN =>
 
 type StoredDocumentIngress = {
   readonly id: string;
-  readonly incarnationId?: unknown;
   readonly lastUpdated: string;
   readonly revisionId?: unknown;
   readonly sdcpn: SDCPN;
@@ -59,17 +62,6 @@ export const emptySDCPN: SDCPN = {
   differentialEquations: [],
 };
 
-export const isEmptySDCPN = (sdcpn: SDCPN) =>
-  sdcpn.places.length === 0 &&
-  sdcpn.transitions.length === 0 &&
-  sdcpn.types.length === 0 &&
-  sdcpn.parameters.length === 0 &&
-  sdcpn.differentialEquations.length === 0 &&
-  (sdcpn.subnets ?? []).length === 0 &&
-  (sdcpn.componentInstances ?? []).length === 0 &&
-  (sdcpn.scenarios ?? []).length === 0 &&
-  (sdcpn.metrics ?? []).length === 0;
-
 /**
  * Creates the localStorage record for a newly created net, keeping the generated
  * id and last-updated timestamp in sync.
@@ -81,11 +73,10 @@ export const createLocalStorageNetRecord = (params: {
   const now = new Date();
 
   return {
-    id: `net-${now.getTime()}`,
+    id: generatePetrinautId(),
     title: params.title,
     sdcpn: params.petriNetDefinition,
     lastUpdated: now.toISOString(),
-    incarnationId: crypto.randomUUID(),
     revisionId: crypto.randomUUID(),
   };
 };
@@ -126,6 +117,11 @@ const unrecognizedEntries = (
     ),
   );
 
+const serializeStore = (
+  documents: LocalStorageSDCPNsStore,
+  raw: Record<string, unknown>,
+): string => JSON.stringify({ ...unrecognizedEntries(raw), ...documents });
+
 const writeStore = (
   storage: Storage,
   documents: LocalStorageSDCPNsStore,
@@ -134,55 +130,59 @@ const writeStore = (
   writeBrowserStorage(
     storage,
     rootLocalStorageKey,
-    JSON.stringify({ ...unrecognizedEntries(raw), ...documents }),
+    serializeStore(documents, raw),
   );
 
+/**
+ * Whether a stored entry replaces the one already read under the same net id.
+ * Two entries share a net id when one was written under a legacy id; the
+ * later write wins, and on a tie the entry already keyed by its net id.
+ */
+const supersedes = (
+  candidate: { readonly documentId: string; readonly lastUpdated: string },
+  kept: SDCPNInLocalStorage | undefined,
+): boolean =>
+  kept === undefined ||
+  candidate.lastUpdated > kept.lastUpdated ||
+  (candidate.lastUpdated === kept.lastUpdated &&
+    candidate.documentId === kept.id);
+
+/**
+ * Reads every recognized document, keyed by its net id. An entry stored under
+ * a legacy id, with legacy entity ids, or without a revision id is
+ * rewritten once, so the key, the record id and the entity ids move together.
+ */
 const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
   const raw = readRawStore(storage);
   const documents: LocalStorageSDCPNsStore = {};
+  let needsNormalization = false;
   for (const [documentId, value] of Object.entries(raw)) {
     if (!isStoredDocumentIngress(value, documentId)) {
       continue;
     }
-    const incarnationId =
-      typeof value.incarnationId === "string" ? value.incarnationId : undefined;
+    const id = toPetrinautId(documentId);
+    const sdcpn = canonicalizePetrinautIds(value.sdcpn);
     const revisionId =
       typeof value.revisionId === "string" ? value.revisionId : undefined;
-    documents[documentId] = {
-      id: value.id,
+    needsNormalization ||=
+      id !== documentId || sdcpn !== value.sdcpn || revisionId === undefined;
+    if (
+      !supersedes({ documentId, lastUpdated: value.lastUpdated }, documents[id])
+    ) {
+      continue;
+    }
+    documents[id] = {
+      id,
       title: value.title,
       lastUpdated: value.lastUpdated,
-      sdcpn: value.sdcpn,
-      ...(incarnationId === undefined ? {} : { incarnationId }),
-      ...(revisionId === undefined ? {} : { revisionId }),
+      sdcpn,
+      revisionId: revisionId ?? crypto.randomUUID(),
     };
   }
-  const needsNormalization = Object.values(documents).some(
-    (document) =>
-      document.incarnationId === undefined || document.revisionId === undefined,
-  );
-  const withIdentities = Object.fromEntries(
-    Object.entries(documents).map(([documentId, document]) => {
-      if (
-        document.incarnationId !== undefined &&
-        document.revisionId !== undefined
-      ) {
-        return [documentId, document];
-      }
-      return [
-        documentId,
-        {
-          ...document,
-          incarnationId: document.incarnationId ?? crypto.randomUUID(),
-          revisionId: document.revisionId ?? crypto.randomUUID(),
-        },
-      ];
-    }),
-  );
   if (needsNormalization) {
-    writeStore(storage, withIdentities, raw);
+    writeStore(storage, documents, raw);
   }
-  return withIdentities;
+  return documents;
 };
 
 const readStoredSDCPNs = (): LocalStorageSDCPNsStore => readStore(localStorage);
@@ -191,26 +191,46 @@ const writeStoredSDCPNs = (documents: LocalStorageSDCPNsStore): void =>
   writeStore(localStorage, documents);
 
 /**
- * Adds an empty net to `storage` and returns it, dropping the empty nets earlier
- * visits left behind. The editor prunes an empty net when the visitor switches
- * away from it, so a URL that starts nets holds to the same rule.
+ * Adds a new net to `storage` and returns it. Unlike the editor's own writes,
+ * this one throws when the browser refuses it, so a caller never links to a
+ * net that was not kept.
  */
-export const startEmptyNetInStorage = (
+export const saveNetInStorage = (
   storage: Storage,
+  params: { petriNetDefinition: SDCPN; title: string },
 ): SDCPNInLocalStorage => {
-  const net = createLocalStorageNetRecord({
+  const net = createLocalStorageNetRecord(params);
+  const raw = readRawStore(storage);
+  storage.setItem(
+    rootLocalStorageKey,
+    serializeStore({ ...readStore(storage), [net.id]: net }, raw),
+  );
+  return net;
+};
+
+/** Whether `storage` holds the net `id`. */
+export const holdsNetInStorage = (storage: Storage, id: string): boolean =>
+  id in readRawStore(storage);
+
+/** Adds an empty net to `storage` and returns it. */
+export const startEmptyNetInStorage = (storage: Storage): SDCPNInLocalStorage =>
+  saveNetInStorage(storage, {
     petriNetDefinition: emptySDCPN,
     title: "New Process",
   });
 
-  const kept = Object.entries(readStore(storage)).filter(
-    ([, stored]) => !isEmptySDCPN(stored.sdcpn),
-  );
-
-  writeStore(storage, { ...Object.fromEntries(kept), [net.id]: net });
-
-  return net;
-};
+/**
+ * The most recently edited net in `storage`, or a new empty one when it holds
+ * none.
+ */
+export const latestOrNewNetInStorage = (
+  storage: Storage,
+): SDCPNInLocalStorage =>
+  Object.values(readStore(storage)).toSorted(
+    (left, right) =>
+      new Date(right.lastUpdated).getTime() -
+      new Date(left.lastUpdated).getTime(),
+  )[0] ?? startEmptyNetInStorage(storage);
 
 export const useLocalStorageSDCPNs = () => {
   const [storedSDCPNs, setStoredSDCPNs, ready] = usePersistedState({

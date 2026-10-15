@@ -122,9 +122,10 @@ export type FilterValue<ValueMap extends Record<string, unknown>> = {
 
 /**
  * Discriminated (key, value) argument pairs for the Filter-level `onChange`
- * — checking `key` in the handler narrows `value` to that operator's type.
- * The key is always a concrete operator key: clearing the inputs fires
- * `(key, null)`, and removal is signalled via `removeable.onRemove` instead.
+ * and `onInput` — checking `key` in the handler narrows `value` to that
+ * operator's type. The key is always a concrete operator key: clearing the
+ * inputs fires `(key, null)`, and removal is signalled via
+ * `removeable.onRemove` instead.
  */
 export type FilterChange<ValueMap extends Record<string, unknown>> = {
   [Key in keyof ValueMap & string]: [key: Key, value: ValueMap[Key] | null];
@@ -150,6 +151,8 @@ type LooseInputConfig = LooseFieldConfig | LooseSelectConfig;
 export type LooseOperator = {
   key: string;
   label: string;
+  renderItem?: React.ReactNode;
+  renderSelectedItem?: React.ReactNode;
   input:
     | LooseInputConfig
     | ReadonlyArray<LooseInputConfig | InputSeparator>
@@ -224,8 +227,57 @@ export const slotsForValue = (
   );
 };
 
-const isEmptySlot = (slot: SlotValue) =>
+export const isEmptySlot = (slot: SlotValue) =>
   Array.isArray(slot) ? slot.length === 0 : slot === null || slot === "";
+
+/**
+ * Two selects offer the same options only when their flattened item values
+ * match exactly — same values, same order (group structure, labels, icons and
+ * disabled flags are ignored). Lazily loaded items compare by loader
+ * identity: the resolved options are unknowable at switch time.
+ */
+const selectItemsEqual = (
+  a: LooseSelectConfig["items"],
+  b: LooseSelectConfig["items"],
+): boolean => {
+  if (typeof a === "function" || typeof b === "function") {
+    return a === b;
+  }
+  const valuesOf = (items: typeof a): string[] =>
+    items.flatMap((entry) =>
+      "items" in entry ? entry.items.map((item) => item.value) : [entry.value],
+    );
+  const aValues = valuesOf(a);
+  const bValues = valuesOf(b);
+  return (
+    aValues.length === bValues.length &&
+    aValues.every((entry, index) => entry === bValues[index])
+  );
+};
+
+export const inputShapesEqual = (
+  a: LooseOperator,
+  b: LooseOperator,
+): boolean => {
+  const aConfigs = inputConfigsOf(a);
+  const bConfigs = inputConfigsOf(b);
+  return (
+    aConfigs.length === bConfigs.length &&
+    aConfigs.every((config, index) => {
+      const other = bConfigs[index];
+      if (other === undefined || config.type !== other.type) {
+        return false;
+      }
+      if (config.type === "select" && other.type === "select") {
+        return (
+          (config.multiple ?? false) === (other.multiple ?? false) &&
+          selectItemsEqual(config.items, other.items)
+        );
+      }
+      return true;
+    })
+  );
+};
 
 export const isDraftComplete = (slots: SlotValue[]) =>
   slots.every((slot) => !isEmptySlot(slot));
@@ -324,6 +376,27 @@ export const focusWithoutRing = (
   document.addEventListener("pointerdown", lift, true);
   chipRoot.addEventListener("focusout", lift, true);
   target.focus();
+};
+
+export const focusInitialSegment = (chip: HTMLElement): void => {
+  const target =
+    chip.querySelector<HTMLElement>(
+      '[data-part="input-slot"] :is(input:enabled, [data-part="trigger"]:enabled)',
+    ) ??
+    chip.querySelector<HTMLElement>(
+      'button:enabled:not([data-part="remove"]):not([data-part="property"]), input:enabled',
+    );
+  if (!target) {
+    return;
+  }
+  focusWithoutRing(chip, target);
+  if (
+    target.matches(
+      '[data-part="input-slot"] [data-part="trigger"][data-placeholder-shown]',
+    )
+  ) {
+    target.click();
+  }
 };
 
 /** How long the group sits untouched before abandoned chips start fading. */

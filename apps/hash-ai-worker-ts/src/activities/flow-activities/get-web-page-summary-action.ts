@@ -1,7 +1,7 @@
 import dedent from "dedent";
 
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { getWebPageActivity } from "../get-web-page-activity.js";
@@ -12,7 +12,7 @@ import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
 
 import type { Url } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 
 const generateSummarizeWebPageSystemPrompt = (params: {
   numberOfSentences: number;
@@ -30,10 +30,10 @@ const generateSummarizeWebPageSystemPrompt = (params: {
     - 'The page mentions products relating to Y'
   `);
 
-export const getWebPageSummaryAction: AiFlowActionActivity<
+export const getWebPageSummaryAction: FlowActionActivity<
   "getWebPageSummary"
 > = async ({ inputs }) => {
-  const { url, model, numberOfSentences } = getSimplifiedAiFlowActionInputs({
+  const { url, model, numberOfSentences } = getSimplifiedFlowActionInputs({
     inputs,
     actionType: "getWebPageSummary",
   });

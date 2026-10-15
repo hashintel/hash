@@ -26,7 +26,7 @@ export const styles = sva({
       // Integer item boxes also make every stacked offsetTop exact in the
       // vertical layout, keeping the last item's bottom gap consistent.
       "--sc-item-height":
-        "[round(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2 - 4px, 1px)]",
+        "[round(round(var(--form-line-height) * var(--leading-factor, 1), 1px) + var(--form-padding-y) * 2 + var(--form-border-width) * 2 - 4px, 1px)]",
       "--sc-frost-bg": "[25.5]",
       _dark: {
         "--sc-frost-bg": "[0]",

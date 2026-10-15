@@ -1,7 +1,7 @@
 import { use, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { scenarioSchema } from "@hashintel/petrinaut-core";
+import { generatePetrinautId, scenarioSchema } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
@@ -29,7 +29,7 @@ const CreateScenarioContent = ({ onClose }: { onClose: () => void }) => {
   const authoring = useAdHocScenarioAuthoring({ existingScenarioNames });
 
   const save = () => {
-    const scenario = authoring.buildScenario(crypto.randomUUID());
+    const scenario = authoring.buildScenario(generatePetrinautId());
     if (!scenario) {
       return;
     }

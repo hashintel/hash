@@ -139,11 +139,7 @@ where
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
-        let policy_branches = Filter::<Entity>::for_policy_branches(
-            policy_components.extract_filter_policies(ActionName::ViewEntity),
-            policy_components.actor_id(),
-            policy_components.optimization_data(ActionName::ViewEntity),
-        );
+        let policy_branches = Filter::<Entity>::for_view_entity_branches(&policy_components);
         // The branch count is the fan-out of sequential key-reads, so a slow search with a
         // pathological policy set stays attributable.
         tracing::Span::current().record("branches", policy_branches.len());

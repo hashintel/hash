@@ -61,11 +61,10 @@ const proxyFlowActivity: ProxyFlowActivity<
 };
 
 export const runFlowWorkflow = async (
-  params: BaseRunFlowWorkflowParams<IntegrationFlowActionDefinitionId>,
+  params: BaseRunFlowWorkflowParams,
 ): Promise<RunFlowWorkflowResponse> => {
   return await processFlowWorkflow({
     ...params,
-    flowType: "integration",
     proxyFlowActivity,
   });
 };

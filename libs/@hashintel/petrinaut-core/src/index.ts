@@ -171,15 +171,6 @@ export type {
 } from "./command-schemas";
 export { mutationActionInputSchemas } from "./action-schemas";
 export {
-  executeSelectedMutationBatch,
-  selectedMutationBatchSchema,
-  selectedMutationOperationSchema,
-  type SelectedMutationAttempt,
-  type SelectedMutationEffect,
-  type SelectedMutationOperation,
-  type SelectedMutationOutcome,
-} from "./selected-mutation-batch";
-export {
   calculateGraphLayout,
   classicNodeDimensions,
   compactNodeDimensions,
@@ -207,11 +198,11 @@ export {
   getNetCompilationErrorsToolName,
   metricSchema,
   parameterSchema,
+  petrinautAiCapabilitySections,
   petrinautAiCommandTools,
-  petrinautAiModel,
   petrinautAiMutationTools,
-  petrinautAiPrompt,
   petrinautAiTools,
+  petrinautDiagnosticsContextMessageId,
   petrinautDocNames,
   petrinautDocSummaries,
   placeSchema,
@@ -408,6 +399,14 @@ export {
   generateArcId,
   type ArcIdPrefix,
 } from "./arc-id";
+export {
+  canonicalizeArcId,
+  canonicalizePetrinautIds,
+  generatePetrinautId,
+  isPetrinautId,
+  petrinautIdSchema,
+  toPetrinautId,
+} from "./petrinaut-id";
 export {
   arcEndpointsEqual,
   arcMatchesEndpoint,

@@ -39,6 +39,7 @@ const apiModules = [
   ["/api/voice/realtime-call", "/api/voice/realtime-call.ts"],
   ["/api/voice/live-session", "/api/voice/live-session.ts"],
   ["/api/voice/mediation", "/api/voice/mediation.ts"],
+  ["/api/voice/utterance-judgment", "/api/voice/utterance-judgment.ts"],
   ["/api/voice/transcription-session", "/api/voice/transcription-session.ts"],
 ] as const;
 
@@ -131,7 +132,7 @@ export default defineConfig(({ command, mode }) => {
         compiler: {
           target: "19",
           compilationMode: "infer",
-          panicThreshold: "critical_errors",
+          panicThreshold: "all_errors",
         },
       }),
     ],

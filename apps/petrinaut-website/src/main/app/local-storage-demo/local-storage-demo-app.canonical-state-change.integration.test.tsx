@@ -15,14 +15,11 @@ import {
 } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
-import {
-  petrinautAiModel,
-  type PetrinautDocHandle,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent/client-tools";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
+import { documentRevisionOf } from "../plugins/brunch/tools/shared/document-revision";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
@@ -30,10 +27,10 @@ import {
 } from "../shared/petrinaut-jsdom";
 import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
-import { documentRevisionOf } from "./shared/document-revision";
 
 import type { FlueClient } from "@flue/sdk";
-import type { ComponentProps, ReactNode } from "react";
+import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
+import type { ComponentProps } from "react";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
@@ -65,20 +62,19 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
     await importOriginal<typeof import("@hashintel/petrinaut/ui")>();
   return {
     ...actual,
-    WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
     Petrinaut: (props: ComponentProps<typeof actual.Petrinaut>) => {
       fixture.handle = props.handle;
       return <actual.Petrinaut {...props} />;
     },
   };
 });
-vi.mock("./brunch-preview-config", () => ({
+vi.mock("../plugins/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
     chatEndpoint: "/agents/chat",
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("./brunch-principal", () => ({
+vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
   getOrCreateBrunchPrincipal: () => "test-principal",
 }));
 
@@ -126,13 +122,13 @@ const scenario = {
 const metric = { id: "throughput", name: "Throughput", code: "return 1;" };
 
 test("real panel scenario and metric add/update/remove calls produce persisted revisions and a Brunch continuation", async () => {
-  delete process.env.BRUNCH_CHAT_MODEL;
-  delete process.env.BRUNCH_CHAT_THINKING;
+  process.env.BRUNCH_CHAT_MODEL = "openai/faux-model";
+  process.env.BRUNCH_CHAT_THINKING = "medium";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
   process.env.OTEL_SDK_DISABLED = "true";
   const faux = fauxProvider({
     provider: "openai",
-    models: [{ id: petrinautAiModel.id, reasoning: true }],
+    models: [{ id: "faux-model", reasoning: true }],
   });
   faux.setResponses([
     fauxAssistantMessage(
@@ -191,17 +187,20 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
   setProvider(faux.provider);
   fixture.fetch = async (input, init) =>
     server.fetch(input instanceof Request ? input : new Request(input, init));
-  const documentId = "net-1";
+  const documentId = toPetrinautId("net-1");
   const initialRevisionId = "initial-revision";
   let unmount = () => {};
   try {
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     localStorage.setItem(
+      "petrinaut:plugin:website.walkthrough",
+      JSON.stringify({ showOnInit: false }),
+    );
+    localStorage.setItem(
       "petrinaut-sdcpn",
       JSON.stringify({
         [documentId]: {
           id: documentId,
-          incarnationId: "incarnation",
           revisionId: initialRevisionId,
           title: "Queue",
           sdcpn: initialDefinition,
@@ -210,7 +209,12 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       }),
     );
     ({ unmount } = render(
-      <LocalStorageDemoApp search={{}} onSearchChange={() => {}} />,
+      <LocalStorageDemoApp
+        netId={documentId}
+        onOpenNet={() => {}}
+        search={{}}
+        onSearchChange={() => {}}
+      />,
     ));
     const showPanel = await screen.findByRole("button", {
       name: "Show AI assistant",
@@ -290,8 +294,12 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
         },
       })),
     );
-    const originalScenario = { id: scenario.id, name: scenario.name };
-    const originalMetric = { id: metric.id, name: metric.name };
+    // The model invents legacy ids; the stored document holds them converted.
+    const originalScenario = {
+      id: toPetrinautId(scenario.id),
+      name: scenario.name,
+    };
+    const originalMetric = { id: toPetrinautId(metric.id), name: metric.name };
     const updatedScenario = { ...originalScenario, name: "Updated baseline" };
     const updatedMetric = { ...originalMetric, name: "Updated throughput" };
     expect(

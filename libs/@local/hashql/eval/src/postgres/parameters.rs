@@ -22,6 +22,7 @@ use hashql_mir::{
     body::{local::Local, place::FieldIndex},
     interpret::value::Int,
 };
+use postgres_types::ToSql;
 
 id::newtype!(
     /// Index of a SQL parameter in the compiled query, rendered as `$N` by the SQL formatter.
@@ -246,6 +247,55 @@ impl<A: Allocator> fmt::Display for Parameters<'_, A> {
         }
 
         Ok(())
+    }
+}
+
+pub(crate) struct Checkpoint(usize);
+
+/// Runtime parameter values for authorization conditions, indexed after
+/// the compiled parameters (`$K+1..`).
+#[derive(Debug)]
+pub(crate) struct AuxiliaryParameters<A: Allocator> {
+    initial_offset: usize,
+    parameters: Vec<Box<dyn ToSql + Sync, A>, A>,
+}
+
+impl<A: Allocator> AuxiliaryParameters<A> {
+    pub(crate) fn new(params: &Parameters<'_, A>, alloc: A) -> Self {
+        Self {
+            initial_offset: params.len(),
+            parameters: Vec::new_in(alloc),
+        }
+    }
+
+    /// Pushes a value and returns its 1-based parameter index (`$N`).
+    pub(crate) fn push(&mut self, value: impl ToSql + Sync + 'static) -> usize
+    where
+        A: Clone,
+    {
+        let alloc = self.parameters.allocator().clone();
+        self.parameters.push(Box::new_in(value, alloc));
+
+        self.parameters.len() + self.initial_offset
+    }
+
+    /// Returns the number of auxiliary parameters allocated.
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.parameters.len()
+    }
+
+    pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = &(dyn ToSql + Sync)> {
+        self.parameters.iter().map(|param| &**param)
+    }
+
+    pub(crate) fn checkpoint(&self) -> Checkpoint {
+        Checkpoint(self.parameters.len())
+    }
+
+    #[expect(clippy::needless_pass_by_value, reason = "API contract")]
+    pub(crate) fn rollback(&mut self, checkpoint: Checkpoint) {
+        self.parameters.truncate(checkpoint.0);
     }
 }
 

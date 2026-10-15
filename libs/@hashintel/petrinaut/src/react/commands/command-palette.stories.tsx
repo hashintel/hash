@@ -165,6 +165,7 @@ const HostCommandPalette: React.FC = () => {
         }
       }}
     >
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the dialog closes when focus or a pointer leaves it. */}
       <div
         role="dialog"
         aria-label="Command palette"

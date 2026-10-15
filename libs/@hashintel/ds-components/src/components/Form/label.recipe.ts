@@ -36,7 +36,7 @@ export const styles = sva({
         height: "auto",
         aspectRatio: "1",
         fontSize: "[0.85em]",
-        lineHeight: "[1.4]",
+        lineHeight: "[round(1em * 1.4, 1px)]",
         fontWeight: "semibold",
         backgroundColor: "blue.bg.subtle",
         color: "blue.fg.muted",

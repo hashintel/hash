@@ -18,6 +18,12 @@ export type NetManagement = {
   existingNets: MinimalNetMetadata[];
   createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet: (petriNetId: string) => void;
+  /**
+   * Offered with the notice that explains a blocked edit on a document the
+   * host made read-only, e.g. saving an editable copy. `<Petrinaut>` sets it
+   * from the first running plugin that declares `readOnlyAction`.
+   */
+  readOnlyAction?: { label: string; onClick: () => void };
 };
 
 const DEFAULT_NET_MANAGEMENT: NetManagement = {

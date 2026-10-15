@@ -12,6 +12,7 @@ use aide::{
     },
     transform::TransformOperation,
 };
+use hash_middleware::authentication::Challenge;
 use problematic::{Problem, ProblemDetails, ProblemType, ProblemVariant, Rejection, Variant};
 
 use super::reference_responses;
@@ -76,7 +77,7 @@ fn shared_response_component() {
         .api_route("/second", post(|| async {}))
         .finish_api_with(&mut document, |document| {
             document
-                .with(middleware::document)
+                .with(|document| middleware::document(document, Challenge::Service))
                 .with(reference_responses)
         });
 
@@ -96,7 +97,7 @@ fn shared_response_component() {
         .description;
     for variant in [
         "The request uses an unsupported query.",
-        "The credentials are malformed.",
+        "The `X-Authenticated-User-Actor-Id` header is not a valid UUID.",
     ] {
         assert!(
             custom.contains(variant),

@@ -24,6 +24,8 @@ export default [
   {
     rules: {
       "import/no-default-export": "error",
+      // The Vite config fails on React Compiler bailouts; report them here first.
+      "react-hooks/todo": "error",
       "no-restricted-imports": [
         "error",
         {

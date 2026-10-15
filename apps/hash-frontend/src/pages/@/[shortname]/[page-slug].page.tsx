@@ -13,8 +13,8 @@ import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/en
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import { BlockLoadedProvider } from "../../../blocks/on-block-loaded";
-import { UserBlocksProvider } from "../../../blocks/user-blocks";
+import { BlockLoadedProvider } from "../../../blocks/block-loaded-provider";
+import { UserBlocksProvider } from "../../../blocks/user-blocks-provider";
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
 import { usePageComments } from "../../../components/hooks/use-page-comments";
 import { PageIcon } from "../../../components/page-icon";
@@ -22,7 +22,7 @@ import { PageLoadingState } from "../../../components/page-loading-state";
 import { CollabPositionProvider } from "../../../contexts/collab-position-context";
 import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { constructPageRelativeUrl } from "../../../lib/routes";
-import { iconVariantSizes } from "../../../shared/edit-emoji-icon-button";
+import { iconVariantSizes } from "../../../shared/icon-variant-sizes";
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { PageIconButton } from "../../../shared/page-icon-button";
@@ -34,10 +34,10 @@ import {
   getBlockCollectionContents,
   getBlockCollectionContentsStructuralQueryVariables,
 } from "../../shared/block-collection-contents";
-import { BlockCollectionContextProvider } from "../../shared/block-collection-context";
+import { BlockCollectionContextProvider } from "../../shared/block-collection-context-provider";
 import { BlockCollection } from "../../shared/block-collection/block-collection";
 import { CommentThread } from "../../shared/block-collection/comments/comment-thread";
-import { PageContextProvider } from "../../shared/block-collection/page-context";
+import { PageContextProvider } from "../../shared/block-collection/page-context-provider";
 import { PageTitle } from "../../shared/block-collection/page-title/page-title";
 import { NotFound } from "../../shared/not-found";
 import {
@@ -46,6 +46,8 @@ import {
 } from "../../shared/top-context-bar";
 import { useEnabledFeatureFlags } from "../../shared/use-enabled-feature-flags";
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
+import { isSafariBrowser } from "./[page-slug].page/is-safari-browser";
+import { getPageSectionContainerStyles } from "./[page-slug].page/page-section-container-styles";
 import { ArchiveMenuItem } from "./shared/archive-menu-item";
 
 import type { AccountPagesInfo } from "../../../components/hooks/use-account-pages";
@@ -61,38 +63,6 @@ import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { SxProps } from "@mui/material";
 import type { PropsWithChildren } from "react";
-
-/**
- * Use to check if current browser is Safari or not
- */
-export const isSafariBrowser = () =>
-  navigator.userAgent.indexOf("Safari") > -1 &&
-  navigator.userAgent.indexOf("Chrome") <= -1;
-
-export const pageContentWidth = 696;
-export const commentsWidth = 320;
-export const pageMinPadding = 48;
-
-export const getPageSectionContainerStyles = (params: {
-  pageComments?: PageThread[];
-  readonly?: boolean;
-}) => {
-  const { pageComments, readonly } = params;
-
-  const commentsContainerWidth =
-    !readonly && pageComments?.length ? commentsWidth + pageMinPadding : 0;
-
-  const paddingLeft = `max(calc((100% - ${
-    pageContentWidth + commentsContainerWidth
-  }px) / 2), ${pageMinPadding}px)`;
-  const paddingRight = `calc(100% - ${pageContentWidth}px - ${paddingLeft})`;
-
-  return {
-    paddingLeft,
-    paddingRight,
-    minWidth: `calc(${pageContentWidth}px + (${pageMinPadding}px * 2))`,
-  };
-};
 
 export interface PageSectionContainerProps {
   pageComments?: PageThread[];
