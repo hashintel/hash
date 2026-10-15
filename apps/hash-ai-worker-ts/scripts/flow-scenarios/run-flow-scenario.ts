@@ -260,7 +260,7 @@ const ensureFlowDefinitionEntity = async ({
       provenance,
     }).catch((error: unknown) => {
       throw new SetupError(
-        `Couldn't create the Flow Definition entity ${flowDefinitionId} in the user's web (${(error as Error).message}). Is another flow already using this id?`,
+        `Couldn't create the Flow Definition entity ${flowDefinitionId} in the user's web (${(error as Error).message}). Has the API run this checkout's migrations, and is the id unique?`,
       );
     });
     return "created";
