@@ -74,7 +74,7 @@ type AllowNewValueOptions = {
 
 type ComboboxBaseProps = Omit<
   React.ComponentProps<typeof TextInput>,
-  "autocomplete" | "onChange" | "value" | "style"
+  "autocomplete" | "onChange" | "value"
 > & {
   /** Called as the input's text changes, whether typed or set by a selection */
   onChangeInput?: (value: string) => void;

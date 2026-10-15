@@ -12,6 +12,8 @@ const unsupportedPayloadKinds = [
   /** @todo support ActorType to vary Sheet output formatting */
   "ActorType",
   "Aggregation",
+  "DateTime",
+  "Duration",
   /** @todo support EntityId – requires updating the EntitySelector */
   "EntityId",
   "FailedEntityProposal",

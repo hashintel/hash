@@ -234,21 +234,20 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           ? -1
           : 1,
     )
-    .map(
-      (property): MenuItem =>
-        property.filterable
-          ? {
-              id: property.baseUrl,
-              text: property.title,
-              onClick: () => handleAddPropertyFilter(property),
-            }
-          : {
-              id: property.baseUrl,
-              text: property.title,
-              disabled: true,
-              description: disabledReasonText[property.disabledReason],
-              onClick: () => {},
-            },
+    .map((property): MenuItem =>
+      property.filterable
+        ? {
+            id: property.baseUrl,
+            text: property.title,
+            onClick: () => handleAddPropertyFilter(property),
+          }
+        : {
+            id: property.baseUrl,
+            text: property.title,
+            disabled: true,
+            description: disabledReasonText[property.disabledReason],
+            onClick: () => {},
+          },
     );
 
   if (propertyItems.length === 0) {

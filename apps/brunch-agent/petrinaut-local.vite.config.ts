@@ -16,12 +16,12 @@ import {
   type UserConfig,
 } from "vite";
 
-import { brunchEnv } from "@hashintel/brunch-agent/constants";
+import { brunchEnv, brunchRoutes } from "@hashintel/brunch-agent";
 
 import {
   defaultChatOrigin,
   petrinautLocalServer,
-} from "./src/http/local-origins.ts";
+} from "./src/server/http/local-origins.ts";
 
 interface PetrinautPanelConfigOptions {
   readonly chatOrigin: string;
@@ -45,7 +45,8 @@ export default defineConfig(async (environment) => {
     throw new Error("PETRINAUT_WEBSITE_ROOT is required.");
   }
   const root = resolve(websiteRoot);
-  process.env[brunchEnv.viteChatEndpoint] ??= "/agents/chat";
+  process.env[brunchEnv.viteChatEndpoint] ??=
+    `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
   process.env.VITE_PETRINAUT_DEFAULT_ASSISTANT ??= "brunch";
   // Babel resolves the React compiler plugin from the launched project's cwd,
   // not from the imported config file. Match a native hash launch before the

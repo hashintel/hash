@@ -1,1 +1,0 @@
-I'm Mara Vos, cold-chain operations and QA lead at Virelia Biologics. We move a refrigerated clinical product from Cambridge to Warsaw, and a recent customs delay turned into a temperature investigation. I'd like a simulation that helps us decide when to hold, reroute or expedite a shipment.

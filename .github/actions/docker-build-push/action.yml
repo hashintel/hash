@@ -70,14 +70,14 @@ runs:
     # login / cache pull would abort an otherwise build-only validation run.
     - name: Login to GHCR
       if: ${{ !github.event.pull_request.head.repo.fork }}
-      uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+      uses: docker/login-action@v3.6.0
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ inputs.GITHUB_TOKEN }}
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      uses: docker/setup-buildx-action@v3.11.1
 
     # Up to two of the three invocations run per job: `validate` on non-push
     # events, or ECR (tags) and/or GHCR (by digest) on push. They share one GHCR
@@ -89,7 +89,7 @@ runs:
     # cache package — a fatal pull would otherwise abort a build-only run.
     - name: Build ${{ inputs.PLATFORM }} (validate, no push)
       if: inputs.PUSH != 'true'
-      uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+      uses: docker/build-push-action@v6.18.0
       with:
         context: ${{ inputs.CONTEXT_PATH }}
         file: ${{ inputs.DOCKERFILE_LOCATION }}
@@ -107,7 +107,7 @@ runs:
 
     - name: Build and push to ECR
       if: inputs.PUSH == 'true' && inputs.ECR_TAGS != ''
-      uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+      uses: docker/build-push-action@v6.18.0
       with:
         context: ${{ inputs.CONTEXT_PATH }}
         file: ${{ inputs.DOCKERFILE_LOCATION }}
@@ -127,7 +127,7 @@ runs:
     - name: Build and push to GHCR (by digest)
       id: ghcr
       if: inputs.PUSH == 'true' && inputs.GHCR_IMAGE != ''
-      uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+      uses: docker/build-push-action@v6.18.0
       with:
         context: ${{ inputs.CONTEXT_PATH }}
         file: ${{ inputs.DOCKERFILE_LOCATION }}

@@ -160,12 +160,10 @@ export const NetNavigationList: React.FC<{
 
   const stops: FocusStop[] = [
     { id: ROOT_STOP_ID, kind: "row" },
-    ...(subnets ?? []).map(
-      (subnet): FocusStop => ({
-        id: subnet.id,
-        kind: "row",
-      }),
-    ),
+    ...(subnets ?? []).map((subnet): FocusStop => ({
+      id: subnet.id,
+      kind: "row",
+    })),
   ];
 
   const {

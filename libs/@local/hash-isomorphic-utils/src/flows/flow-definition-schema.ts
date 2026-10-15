@@ -15,6 +15,8 @@ export const payloadKindJsonTypes = {
   Aggregation: "object",
   Boolean: "boolean",
   Date: "string",
+  DateTime: "string",
+  Duration: "object",
   EntityId: "string",
   FailedEntityProposal: "object",
   FilterCondition: "object",

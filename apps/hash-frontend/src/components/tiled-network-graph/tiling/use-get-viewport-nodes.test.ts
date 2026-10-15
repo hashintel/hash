@@ -1,8 +1,20 @@
-import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from "vitest";
 
 import { BinaryEntityId } from "../atlas-decode/binary-entity-id";
 import * as Num from "../atlas-decode/num";
 import * as Result from "../atlas-decode/result";
+import {
+  noteAtlasRateLimited,
+  resetAtlasBackpressure,
+} from "./atlas-backpressure";
 import {
   clampRectToWorld,
   rectCenterX,
@@ -205,6 +217,10 @@ describe("getViewportNodes", () => {
     fetcher = countingFetcher();
   });
 
+  afterEach(() => {
+    resetAtlasBackpressure();
+  });
+
   it("returns only the depth-0 root for a null viewport", async () => {
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
     const { nodes } = await getViewportNodes(null, cache);
@@ -350,8 +366,16 @@ describe("getViewportNodes", () => {
     expect(prefetched).toBe(true);
   });
 
-  it("does not issue unusable geometry prefetches for auxiliary viewports", async () => {
-    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+  it("prefetches auxiliary viewports at their own detail mode", async () => {
+    const details: string[] = [];
+    const detailFetcher: TileFetcher = (zoom, tileIndex, controls) => {
+      details.push(controls?.detail ?? "minimal");
+      return fetcher(zoom, tileIndex, controls);
+    };
+    const cache = new TileCache({
+      fetcher: detailFetcher,
+      edgesFetcher: noEdges,
+    });
     const options = { detail: "auxiliary" as const };
 
     await getViewportNodes(
@@ -366,7 +390,10 @@ describe("getViewportNodes", () => {
     );
     await cache.settled();
 
-    expect(cache.prefetchStats.issued).toBe(0);
+    expect(cache.prefetchStats.issued).toBeGreaterThan(0);
+    // Required and speculative loads alike ride the viewport's mode, so every
+    // prefetched tile is one the following detailed loads can consume.
+    expect(details.every((detail) => detail === "auxiliary")).toBe(true);
   });
 
   it("does not prefetch when the viewport is unchanged", async () => {
@@ -461,6 +488,230 @@ describe("getViewportNodes", () => {
     await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
     await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache); // ring fires
     await getViewportNodes(viewportAt(55_000, 55_000, 1_024, 5), cache); // jump away
+
+    expect(cache.prefetchStats.cancelled).toBeGreaterThan(0);
+  });
+
+  it("issues no prefetches while atlas speculation is paused", async () => {
+    noteAtlasRateLimited(30_000);
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+
+    // The same pan that "prefetches ahead of a detected pan" above.
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache);
+    await cache.settled();
+
+    expect(cache.prefetchStats.issued).toBe(0);
+  });
+
+  it("cancels in-flight prefetches once speculation pauses", async () => {
+    // Prefetches hang until aborted; required loads resolve at once.
+    const pendingFetcher: TileFetcher = (zoom, tileIndex, controls) => {
+      if (controls?.priority === "low") {
+        return new Promise<FetchedTile>((_resolve, reject) => {
+          controls.signal?.addEventListener(
+            "abort",
+            () => reject(new Error("aborted")),
+            { once: true },
+          );
+        });
+      }
+      return Promise.resolve({
+        nodes: [{ id: Number(zoom) * 1_000 + Number(tileIndex), x: 0, y: 0 }],
+        complete: false,
+      });
+    };
+    const cache = new TileCache({
+      fetcher: pendingFetcher,
+      edgesFetcher: noEdges,
+    });
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache); // ring fires
+    const issuedBeforePause = cache.prefetchStats.issued;
+    expect(issuedBeforePause).toBeGreaterThan(0);
+
+    noteAtlasRateLimited(30_000);
+    // Far from the pending ring: a nearby step's required loads would ride
+    // (and claim) the hanging prefetches instead of leaving them cancellable.
+    await getViewportNodes(viewportAt(55_000, 55_000, 1_024, 5), cache);
+
+    // An unpaused jump would still fire its ring; the pause cancels the old
+    // speculation and issues none of its own.
+    expect(cache.prefetchStats.cancelled).toBeGreaterThan(0);
+    expect(cache.prefetchStats.issued).toBe(issuedBeforePause);
+  });
+
+  it("cancels in-flight prefetches mid-descent, not only after the pass ends", async () => {
+    // A pause raised by an early level's own responses must free the budget
+    // for the deeper levels of the same descent — the required traffic the
+    // cancellation exists for.
+    const events: string[] = [];
+    let armRateLimit = false;
+    const recordingFetcher: TileFetcher = (zoom, _tileIndex, controls) => {
+      if (controls?.priority === "low") {
+        return new Promise<FetchedTile>((_resolve, reject) => {
+          controls.signal?.addEventListener(
+            "abort",
+            () => {
+              events.push("prefetch-aborted");
+              reject(new Error("aborted"));
+            },
+            { once: true },
+          );
+        });
+      }
+      events.push(`fetch:${zoom}`);
+      if (armRateLimit) {
+        armRateLimit = false;
+        noteAtlasRateLimited(30_000);
+      }
+      return Promise.resolve({
+        nodes: [{ id: Number(zoom) * 1_000, x: 0, y: 0 }],
+        complete: false,
+      });
+    };
+    const cache = new TileCache({
+      fetcher: recordingFetcher,
+      edgesFetcher: noEdges,
+    });
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache); // ring fires
+    expect(cache.prefetchStats.issued).toBeGreaterThan(0);
+
+    // The far viewport's first fresh level reports the rate limit; the
+    // hanging ring must be gone before the deeper levels fetch.
+    events.push("pass3");
+    armRateLimit = true;
+    await getViewportNodes(viewportAt(55_000, 55_000, 1_024, 5), cache);
+
+    const pass3 = events.slice(events.indexOf("pass3"));
+    const abortedAt = pass3.indexOf("prefetch-aborted");
+    const deepFetchAt = pass3.findIndex((event) => /^fetch:[3-5]$/.test(event));
+    expect(abortedAt).toBeGreaterThan(-1);
+    expect(deepFetchAt).toBeGreaterThan(-1);
+    expect(abortedAt).toBeLessThan(deepFetchAt);
+  });
+
+  it("cancels standing speculation before the first level dispatches", async () => {
+    // A pause raised after the previous pass ended — its late prefetch or
+    // edges responses — must free slots ahead of the next pass's first
+    // required wave. The detail switch makes level 0 itself dispatch: the
+    // resident minimal root cannot serve an auxiliary load.
+    const events: string[] = [];
+    const recordingFetcher: TileFetcher = (zoom, _tileIndex, controls) => {
+      if (controls?.priority === "low") {
+        return new Promise<FetchedTile>((_resolve, reject) => {
+          controls.signal?.addEventListener(
+            "abort",
+            () => {
+              events.push("prefetch-aborted");
+              reject(new Error("aborted"));
+            },
+            { once: true },
+          );
+        });
+      }
+      events.push(`fetch:${zoom}`);
+      return Promise.resolve({
+        nodes: [{ id: Number(zoom) * 1_000, x: 0, y: 0 }],
+        complete: false,
+      });
+    };
+    const cache = new TileCache({
+      fetcher: recordingFetcher,
+      edgesFetcher: noEdges,
+    });
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache); // ring fires
+    expect(cache.prefetchStats.issued).toBeGreaterThan(0);
+
+    noteAtlasRateLimited(30_000); // lands between passes
+    events.push("pass3");
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache, {
+      detail: "auxiliary",
+    });
+
+    const pass3 = events.slice(events.indexOf("pass3"));
+    const abortedAt = pass3.indexOf("prefetch-aborted");
+    const firstFetchAt = pass3.findIndex((event) => event.startsWith("fetch:"));
+    expect(abortedAt).toBeGreaterThan(-1);
+    expect(firstFetchAt).toBeGreaterThan(-1);
+    expect(abortedAt).toBeLessThan(firstFetchAt);
+  });
+
+  it("refetches a tile whose prefetch was cancelled in the same tick as the load", async () => {
+    // A cancelled prefetch leaves the in-flight map only when its rejection
+    // settles, a microtask later; a required load arriving in that window —
+    // the mid-descent yield followed synchronously by the next level — must
+    // issue its own fetch rather than ride the doomed promise.
+    const requests: {
+      priority: string | undefined;
+      resolve: (tile: FetchedTile) => void;
+    }[] = [];
+    const windowFetcher: TileFetcher = (_zoom, _tileIndex, controls) =>
+      new Promise((resolve, reject) => {
+        requests.push({ priority: controls?.priority, resolve });
+        controls?.signal?.addEventListener(
+          "abort",
+          () => reject(new Error("aborted")),
+          { once: true },
+        );
+      });
+    const cache = new TileCache({
+      fetcher: windowFetcher,
+      edgesFetcher: noEdges,
+    });
+    const coordinate = { z: u64(1), x: u64(1), y: u64(1) };
+
+    cache.prefetchBatch([coordinate]);
+    cache.prefetchBatch([]); // cancel lands; the rejection has not settled yet
+    const required = cache.load(coordinate);
+
+    expect(requests.map((request) => request.priority)).toEqual([
+      "low",
+      "high",
+    ]);
+    requests[1]?.resolve({ nodes: [{ id: 7, x: 0, y: 0 }], complete: true });
+    expect((await required)[0]?.id).toBe(7);
+  });
+
+  it("cancels in-flight prefetches even when every load of the paused pass fails", async () => {
+    // Prefetches hang until aborted; minimal required loads resolve; detailed
+    // required loads fail — the budget died between the passes, and a detail
+    // switch refetches even cache-resident tiles, so the pass loses every
+    // load and throws. The cancel must run ahead of that throw.
+    const splitFetcher: TileFetcher = (zoom, tileIndex, controls) => {
+      if (controls?.priority === "low") {
+        return new Promise<FetchedTile>((_resolve, reject) => {
+          controls.signal?.addEventListener(
+            "abort",
+            () => reject(new Error("aborted")),
+            { once: true },
+          );
+        });
+      }
+      if (controls?.detail === "auxiliary") {
+        return Promise.reject(new Error("budget drained"));
+      }
+      return Promise.resolve({
+        nodes: [{ id: Number(zoom) * 1_000 + Number(tileIndex), x: 0, y: 0 }],
+        complete: false,
+      });
+    };
+    const cache = new TileCache({
+      fetcher: splitFetcher,
+      edgesFetcher: noEdges,
+    });
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache); // ring fires
+    expect(cache.prefetchStats.issued).toBeGreaterThan(0);
+
+    noteAtlasRateLimited(30_000);
+    await expect(
+      getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache, {
+        detail: "auxiliary",
+      }),
+    ).rejects.toBeInstanceOf(ViewportTilesError);
 
     expect(cache.prefetchStats.cancelled).toBeGreaterThan(0);
   });
@@ -679,7 +930,7 @@ describe("getViewportNodes detailed data", () => {
     expect(fetcher.calls.every((call) => call.detailed)).toBe(true);
   });
 
-  it("keeps labels out of geometry residency after an in-flight detail fetch", async () => {
+  it("retains an in-flight detail fetch as a resident entry serving both modes", async () => {
     let resolveFetch: ((tile: FetchedTile) => void) | undefined;
     const fetcher: TileFetcher = () =>
       new Promise((resolve) => {
@@ -691,14 +942,54 @@ describe("getViewportNodes detailed data", () => {
     const auxiliary = cache.load(coordinate, "auxiliary");
     const minimal = cache.load(coordinate);
     resolveFetch?.({
-      nodes: [{ id: 1, x: 0, y: 0, label: "ephemeral" }],
+      nodes: [{ id: 1, x: 0, y: 0, label: "retained" }],
       complete: true,
     });
 
-    expect((await auxiliary)[0]?.label).toBe("ephemeral");
-    expect((await minimal)[0]?.label).toBe("ephemeral");
+    expect((await auxiliary)[0]?.label).toBe("retained");
+    expect((await minimal)[0]?.label).toBe("retained");
     expect(cache.tileCount).toBe(1);
-    expect((await cache.load(coordinate))[0]?.label).toBeUndefined();
+    // The settled entry records its auxiliary detail, so both re-reads serve
+    // from cache — the single-resolve fetcher would hang a refetch.
+    expect((await cache.load(coordinate))[0]?.label).toBe("retained");
+    expect((await cache.load(coordinate, "auxiliary"))[0]?.label).toBe(
+      "retained",
+    );
+  });
+
+  it("does not let a late compact settle downgrade a resident detailed entry", async () => {
+    const pending: { detail: string; resolve: (tile: FetchedTile) => void }[] =
+      [];
+    const fetcher: TileFetcher = (_zoom, _tileIndex, controls) =>
+      new Promise((resolve) => {
+        pending.push({ detail: controls?.detail ?? "minimal", resolve });
+      });
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+    const coordinate = { z: u64(0), x: u64(0), y: u64(0) };
+
+    const compact = cache.load(coordinate);
+    const detailed = cache.load(coordinate, "auxiliary");
+    expect(pending.map((request) => request.detail)).toEqual([
+      "minimal",
+      "auxiliary",
+    ]);
+
+    // The detailed fetch settles first — the pool's required lane overtakes
+    // an older queued compact fetch, so this is the common ordering...
+    pending[1]?.resolve({
+      nodes: [{ id: 1, x: 0, y: 0, label: "kept" }],
+      complete: true,
+    });
+    expect((await detailed)[0]?.label).toBe("kept");
+    // ...and the stale compact response lands after it.
+    pending[0]?.resolve({ nodes: [{ id: 1, x: 0, y: 0 }], complete: true });
+    expect((await compact)[0]?.label).toBeUndefined();
+
+    // The resident entry kept its detail: a detailed re-read serves from
+    // cache with labels intact (a refetch would hang on these single-shot
+    // resolvers), and no third fetch was issued.
+    expect((await cache.load(coordinate, "auxiliary"))[0]?.label).toBe("kept");
+    expect(pending).toHaveLength(2);
   });
 
   it("refetches a resident compact tile with detail on entering the detailed view", async () => {
@@ -719,7 +1010,7 @@ describe("getViewportNodes detailed data", () => {
     expect(fetcher.calls.at(-1)?.detailed).toBe(true);
   });
 
-  it("refetches detail instead of retaining it as cache-resident geometry", async () => {
+  it("serves retained detail from cache on a repeat detailed read", async () => {
     const fetcher = labellingFetcher();
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
 
@@ -728,12 +1019,14 @@ describe("getViewportNodes detailed data", () => {
 
     const second = await getViewportNodes(null, cache, { detail: "auxiliary" });
 
-    expect(fetcher.calls.length).toBe(firstDetailedCalls * 2);
+    // The detailed tile stayed resident, so the repeat pass fetches nothing.
+    expect(fetcher.calls.length).toBe(firstDetailedCalls);
     expect(second.nodes.every((node) => node.label !== undefined)).toBe(true);
     expect(cache.tileCount).toBe(1);
+    // And the retained labels ride a minimal read of the same entry.
     expect(
       (await cache.load({ z: u64(0), x: u64(0), y: u64(0) }))[0]?.label,
-    ).toBeUndefined();
+    ).toBe("n0");
   });
 });
 

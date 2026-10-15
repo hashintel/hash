@@ -23,8 +23,8 @@
 !libs/@local/graph/atlas/docs/wire.md
 # Graph embeds the API overview in its OpenAPI documents.
 !libs/@local/graph/api/src/rest/documentation/overview.md
-# Brunch packages prompts and skills through `?raw` imports in their builds.
-!libs/@hashintel/brunch-agent/packages/*/src/**/*.md
+# The Brunch agent packages its prompts and skills through `?raw` and `SKILL.md` imports in its build.
+!apps/brunch-agent/src/**/*.md
 
 ########################
 ## Same as in .gitignore

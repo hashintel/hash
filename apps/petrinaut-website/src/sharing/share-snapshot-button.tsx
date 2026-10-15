@@ -240,6 +240,7 @@ export const ShareSnapshotButton = ({
       <Button
         ref={triggerRef}
         aria-expanded={captured !== null}
+        pressed={captured !== null}
         aria-label="Share"
         prefix={<ShareIcon />}
         size="sm"

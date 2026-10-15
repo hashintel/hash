@@ -8,12 +8,17 @@ import {
   type PetrinautAiMutationToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import { usePetrinautInstance, useStore } from "@hashintel/petrinaut/react";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
 } from "@hashintel/petrinaut/ui";
+import { useStore } from "@hashintel/petrinaut/ui/plugin";
+
+import {
+  WithBrunchEditorApi,
+  type BrunchEditorApi,
+} from "../editor-api-plugin";
 
 import type { InBandBrowserCallAdmission } from "./in-band-browser-call";
 
@@ -330,8 +335,15 @@ export const createBrunchMutationApprovalWidget = (
   coordinator: BrunchMutationApprovalCoordinator,
   toolName: DestructiveToolName,
 ) => {
-  const Widget = ({ input, toolCallId }: WidgetProps) => {
-    const nameOf = nameLookupOf(useStore(usePetrinautInstance().definition));
+  const Widget = ({
+    input,
+    toolCallId,
+    net,
+  }: WidgetProps & {
+    /** The open net, which names the items being removed. */
+    readonly net: BrunchEditorApi["document"]["net"];
+  }) => {
+    const nameOf = nameLookupOf(useStore(net));
     return (
       <section
         className={containerStyle}
@@ -392,8 +404,9 @@ const passthrough = { parse: (value: unknown) => value };
 export const createBrunchMutationApprovalInteractiveTools = (
   coordinator: BrunchMutationApprovalCoordinator,
 ): readonly PetrinautAiInteractiveTool[] =>
-  destructiveToolNames.map((toolName) =>
-    definePetrinautAiInteractiveTool<unknown, unknown>({
+  destructiveToolNames.map((toolName) => {
+    const Widget = createBrunchMutationApprovalWidget(coordinator, toolName);
+    return definePetrinautAiInteractiveTool<unknown, unknown>({
       toolName,
       inputSchema: {
         parse: (value) => mutationActionInputSchemas[toolName].parse(value),
@@ -401,6 +414,10 @@ export const createBrunchMutationApprovalInteractiveTools = (
       outputSchema: passthrough,
       // Earlier rows of the same tool keep their normal presentation.
       shouldHandle: ({ toolCallId }) => coordinator.hasPending(toolCallId),
-      component: createBrunchMutationApprovalWidget(coordinator, toolName),
-    }),
-  );
+      component: (props) => (
+        <WithBrunchEditorApi>
+          {(api) => <Widget {...props} net={api.document.net} />}
+        </WithBrunchEditorApi>
+      ),
+    });
+  });

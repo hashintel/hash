@@ -118,28 +118,27 @@ const TypeFilterMenuItem: FunctionComponent<TypeFilterMenuItemProps> = ({
       },
     }}
   >
-    {color !== undefined &&
-      onColorChange && (
-        // Always reserve the swatch's space (before the checkbox via `order: -1`)
-        // so rows stay aligned; only show the swatch when the type is selected.
-        <Box
-          sx={{
-            order: -1,
-            mr: 1,
-            display: "inline-flex",
-            flexShrink: 0,
-            width: `${triggerSwatchSize}px`,
-          }}
-        >
-          {checked && (
-            <TypeColorSelector
-              entityTypeId={entityTypeId}
-              color={color}
-              onChange={onColorChange}
-            />
-          )}
-        </Box>
-      )}
+    {color !== undefined && onColorChange && (
+      // Always reserve the swatch's space (before the checkbox via `order: -1`)
+      // so rows stay aligned; only show the swatch when the type is selected.
+      <Box
+        sx={{
+          order: -1,
+          mr: 1,
+          display: "inline-flex",
+          flexShrink: 0,
+          width: `${triggerSwatchSize}px`,
+        }}
+      >
+        {checked && (
+          <TypeColorSelector
+            entityTypeId={entityTypeId}
+            color={color}
+            onChange={onColorChange}
+          />
+        )}
+      </Box>
+    )}
     <ListItemText
       primary={title}
       primaryTypographyProps={{

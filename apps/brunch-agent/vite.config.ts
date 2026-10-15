@@ -5,11 +5,11 @@ import {
   defineConfig,
 } from "vite";
 
-import { localChatListen } from "./src/http/local-origins.ts";
+import { localChatListen } from "./src/server/http/local-origins.ts";
 
 // Resolve Brunch workspace packages to their TypeScript source while serving;
 // builds keep dist. See "Loading workspace source in dev" in
-// libs/@hashintel/brunch-agent/ARCHITECTURE.md.
+// apps/brunch-agent/docs/petrinaut/ARCHITECTURE.md.
 const workspaceSourceCondition = "@dev/source";
 
 // No @vitejs/plugin-react: the flue plugin's dev controller owns the whole

@@ -370,9 +370,9 @@ export type PluginAccess = { readonly [F in PluginFamily]?: AccessLevel };
  */
 export type AccessApi<A extends PluginAccess = Record<never, never>> =
   PluginBaseApi & {
-    readonly [F in keyof A & PluginFamily as A[F] extends AccessLevel
-      ? F
-      : never]: AccessFamilies[F][A[F] & AccessLevel];
+    readonly [
+      F in keyof A & PluginFamily as A[F] extends AccessLevel ? F : never
+    ]: AccessFamilies[F][A[F] & AccessLevel];
   };
 
 /** The members `access` grants, picked from the document's families. */

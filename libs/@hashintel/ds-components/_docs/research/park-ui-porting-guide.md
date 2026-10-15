@@ -47,15 +47,9 @@ export const checkbox = defineSlotRecipe({
   slots: checkboxAnatomy.keys(),
   className: "checkbox",
   base: {
-    root: {
-      /* styles */
-    },
-    control: {
-      /* styles */
-    },
-    label: {
-      /* styles */
-    },
+    root: {/* styles */},
+    control: {/* styles */},
+    label: {/* styles */},
   },
   variants: {
     size: { sm: {}, md: {}, lg: {} },

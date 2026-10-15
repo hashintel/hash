@@ -52,6 +52,7 @@ export const MetricViewMenu = ({
         tooltip="Chart options"
         aria-haspopup="dialog"
         aria-expanded={open}
+        pressed={open}
         onClick={() => setOpen((previous) => !previous)}
       />
       {open ? (

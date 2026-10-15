@@ -4,7 +4,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { canonicalContent } from "@hashintel/brunch-agent";
 import {
   createJsonDocHandle,
   createPetrinaut,
@@ -12,7 +12,6 @@ import {
   toPetrinautId,
   type SDCPNInput,
 } from "@hashintel/petrinaut-core";
-import { PetrinautInstanceContext } from "@hashintel/petrinaut/react";
 
 import {
   createBrunchMutationAdmission,
@@ -53,8 +52,8 @@ const destructiveInput = {
   ],
 };
 
-const editorWith = (initial: SDCPNInput) =>
-  createPetrinaut({ document: createJsonDocHandle({ initial }) });
+const netWith = (initial: SDCPNInput) =>
+  createPetrinaut({ document: createJsonDocHandle({ initial }) }).definition;
 
 describe("Brunch destructive edit approval", () => {
   test("covers every destructive canonical tool and no constructive one", () => {
@@ -75,7 +74,7 @@ describe("Brunch destructive edit approval", () => {
       signal: new AbortController().signal,
     });
     // The equation is missing from the document, so its row shows the id.
-    const editor = editorWith({
+    const net = netWith({
       places: [{ id: "queue", name: "Queue", x: 0, y: 0 }],
       transitions: [
         {
@@ -94,15 +93,14 @@ describe("Brunch destructive edit approval", () => {
     );
     const submit = vi.fn();
     render(
-      <PetrinautInstanceContext value={editor}>
-        <ApprovalWidget
-          input={destructiveInput}
-          state="awaiting"
-          submit={submit}
-          submitAndWait={vi.fn()}
-          toolCallId="delete-1"
-        />
-      </PetrinautInstanceContext>,
+      <ApprovalWidget
+        input={destructiveInput}
+        net={net}
+        state="awaiting"
+        submit={submit}
+        submitAndWait={vi.fn()}
+        toolCallId="delete-1"
+      />,
     );
 
     expect(screen.getByText("Remove place — Queue")).not.toBeNull();
@@ -255,17 +253,14 @@ describe("Brunch destructive edit approval", () => {
       "deleteItemsByIds",
     );
     render(
-      <PetrinautInstanceContext
-        value={editorWith({ places: [], transitions: [] })}
-      >
-        <ApprovalWidget
-          input={destructiveInput}
-          state="awaiting"
-          submit={vi.fn()}
-          submitAndWait={vi.fn()}
-          toolCallId="historical-call"
-        />
-      </PetrinautInstanceContext>,
+      <ApprovalWidget
+        input={destructiveInput}
+        net={netWith({ places: [], transitions: [] })}
+        state="awaiting"
+        submit={vi.fn()}
+        submitAndWait={vi.fn()}
+        toolCallId="historical-call"
+      />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Allow" }));
     expect(coordinator.hasPending("historical-call")).toBe(false);
@@ -302,13 +297,14 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     const prepareInput = vi.fn();
     const calls = createInBandBrowserCalls({
       client: Promise.resolve({
-        url: "http://brunch.local/agents/chat/instance",
+        url: "http://brunch.local/agents/petrinaut/instance",
       } as FlueClient),
       principalKey: "principal",
       binding,
       metadataFor: () => undefined,
       prepareInput,
       admit: createBrunchMutationAdmission(coordinator),
+      acceptsRevision: () => true,
     });
     return { calls, coordinator, posted, prepareInput };
   };

@@ -11,7 +11,7 @@ import {
   type Context,
 } from "@earendil-works/pi-ai";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent/client-tools";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
 import {
   canonicalizePetrinautIds,
   toPetrinautId,
@@ -21,7 +21,7 @@ import {
 import {
   isAppliedChange,
   netCalls,
-} from "../../src/conversation/net-changes.ts";
+} from "../../src/shared/conversation/net-changes.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 import {
   installFauxOpenai,
@@ -415,8 +415,8 @@ const callsAfterStreamLoss = async () => {
       binding.documentId,
     );
     assert.deepEqual(
-      stored?.sdcpn.places.map(({ id }) => id),
-      ["queue"],
+      stored?.sdcpn.places.map(({ name }) => name),
+      ["Queue"],
     );
   } finally {
     fixture.restoreStreams();

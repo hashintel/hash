@@ -13,19 +13,11 @@ import { describe, expect, test } from "vitest";
 
 const repoRoot = fileURLToPath(new URL("../../../..", import.meta.url));
 const appRoot = "apps/brunch-agent";
-const packagesRoot = "libs/@hashintel/brunch-agent/packages";
+const libraryRoot = "libs/@hashintel/brunch-agent";
 
-const packageSourceRoots = readdirSync(`${repoRoot}/${packagesRoot}`, {
-  withFileTypes: true,
-}).flatMap((entry) => {
-  if (!entry.isDirectory()) {
-    return [];
-  }
-
-  return ["src", "test"]
-    .map((directory) => `${packagesRoot}/${entry.name}/${directory}`)
-    .filter((directory) => existsSync(`${repoRoot}/${directory}`));
-});
+const librarySourceRoots = ["src", "test"]
+  .map((directory) => `${libraryRoot}/${directory}`)
+  .filter((directory) => existsSync(`${repoRoot}/${directory}`));
 
 const appConfigFiles = readdirSync(`${repoRoot}/${appRoot}`)
   .filter((fileName) => fileName.endsWith(".config.ts"))
@@ -35,7 +27,7 @@ const sourceRoots = [
   `${appRoot}/src`,
   `${appRoot}/test`,
   ...appConfigFiles,
-  ...packageSourceRoots,
+  ...librarySourceRoots,
 ];
 
 interface PackageManifest {
@@ -51,43 +43,29 @@ interface PackageAlias {
   readonly onlyModule: true;
 }
 
-const packageAliases = readdirSync(`${repoRoot}/${packagesRoot}`, {
-  withFileTypes: true,
-}).flatMap((entry): PackageAlias[] => {
-  if (!entry.isDirectory()) {
-    return [];
-  }
+const libraryManifest = JSON.parse(
+  readFileSync(join(repoRoot, libraryRoot, "package.json"), "utf8"),
+) as PackageManifest;
 
-  const packageRoot = join(repoRoot, packagesRoot, entry.name);
-  const manifestPath = join(packageRoot, "package.json");
-  if (!existsSync(manifestPath)) {
-    return [];
-  }
+const packageAliases = Object.entries(libraryManifest.exports ?? {}).flatMap(
+  ([subpath, target]): PackageAlias[] => {
+    const typesPath = typeof target === "string" ? target : target.types;
+    if (typesPath === undefined) {
+      return [];
+    }
 
-  const manifest = JSON.parse(
-    readFileSync(manifestPath, "utf8"),
-  ) as PackageManifest;
-
-  return Object.entries(manifest.exports ?? {}).flatMap(
-    ([subpath, target]): PackageAlias[] => {
-      const typesPath = typeof target === "string" ? target : target.types;
-      if (typesPath === undefined) {
-        return [];
-      }
-
-      return [
-        {
-          alias: join(packageRoot, typesPath),
-          name:
-            subpath === "."
-              ? manifest.name
-              : `${manifest.name}${subpath.slice(1)}`,
-          onlyModule: true,
-        },
-      ];
-    },
-  );
-});
+    return [
+      {
+        alias: join(repoRoot, libraryRoot, typesPath),
+        name:
+          subpath === "."
+            ? libraryManifest.name
+            : `${libraryManifest.name}${subpath.slice(1)}`,
+        onlyModule: true,
+      },
+    ];
+  },
+);
 
 interface ImportEdge {
   readonly source: string;
@@ -115,24 +93,6 @@ const importEdge = (
   dependency: { couldNotResolve, module, resolved },
 });
 
-const brunchPackageFrom = (modulePath: string): string | undefined => {
-  const pathMatch = /libs\/@hashintel\/brunch-agent\/packages\/([^/]+)\//u.exec(
-    modulePath,
-  );
-  if (pathMatch?.[1] !== undefined) {
-    return pathMatch[1];
-  }
-
-  if (
-    modulePath === "@hashintel/brunch-agent" ||
-    modulePath.startsWith("@hashintel/brunch-agent/")
-  ) {
-    return "core";
-  }
-
-  return /^@hashintel\/brunch-agent-([^/]+)(?:\/|$)/u.exec(modulePath)?.[1];
-};
-
 const targetsOf = ({ dependency }: ImportEdge): readonly string[] => [
   dependency.module,
   dependency.resolved,
@@ -148,11 +108,16 @@ const someTarget = (
 
 const isSourceModule = (modulePath: string): boolean =>
   modulePath.startsWith(`${appRoot}/src/`) ||
-  /^libs\/@hashintel\/brunch-agent\/packages\/[^/]+\/src\//u.test(modulePath);
+  modulePath.startsWith(`${libraryRoot}/src/`);
 
 const isTestModule = (modulePath: string): boolean =>
   modulePath.startsWith(`${appRoot}/test/`) ||
-  /^libs\/@hashintel\/brunch-agent\/packages\/[^/]+\/test\//u.test(modulePath);
+  modulePath.startsWith(`${libraryRoot}/test/`);
+
+const isFlueRuntime = (modulePath: string): boolean =>
+  modulePath === "@flue/runtime" ||
+  modulePath.startsWith("@flue/runtime/") ||
+  modulePath.includes("/node_modules/@flue/runtime/");
 
 const isAppModule = (modulePath: string): boolean =>
   modulePath.startsWith("apps/") || modulePath.startsWith("@apps/");
@@ -160,16 +125,11 @@ const isAppModule = (modulePath: string): boolean =>
 const isInternalSpecifier = (modulePath: string): boolean =>
   modulePath.startsWith(".") ||
   modulePath === "@hashintel/brunch-agent" ||
-  modulePath.startsWith("@hashintel/brunch-agent-") ||
   modulePath.startsWith("@hashintel/brunch-agent/") ||
   modulePath.startsWith("@apps/");
 
 const violationsFrom = (edges: readonly ImportEdge[]): string[] =>
   edges.flatMap((edge) => {
-    const sourcePackage = brunchPackageFrom(edge.source);
-    const targetPackage = targetsOf(edge)
-      .map(brunchPackageFrom)
-      .find((packageName) => packageName !== undefined);
     const reasons: string[] = [];
 
     if (edge.source.startsWith("libs/") && someTarget(edge, isAppModule)) {
@@ -187,20 +147,10 @@ const violationsFrom = (edges: readonly ImportEdge[]): string[] =>
       reasons.push("Brunch app imports Petrinaut website source");
     }
     if (
-      sourcePackage === "core" &&
-      targetPackage !== undefined &&
-      targetPackage !== "core"
+      edge.source.startsWith(`${libraryRoot}/`) &&
+      someTarget(edge, isFlueRuntime)
     ) {
-      reasons.push("core imports a sibling Brunch package");
-    }
-    if (
-      sourcePackage !== undefined &&
-      sourcePackage !== "core" &&
-      targetPackage !== undefined &&
-      targetPackage !== sourcePackage &&
-      targetPackage !== "core"
-    ) {
-      reasons.push("Brunch extension imports a sibling extension");
+      reasons.push("browser-safe library imports the Flue runtime");
     }
     if (isSourceModule(edge.source) && someTarget(edge, isTestModule)) {
       reasons.push("production source imports test code");
@@ -244,8 +194,8 @@ describe("Brunch import direction", () => {
     {
       rule: "library imports application",
       edge: importEdge(
-        `${packagesRoot}/plugin-sdcpn/src/index.ts`,
-        "../../../../../../apps/brunch-agent/src/db-path.ts",
+        `${libraryRoot}/src/index.ts`,
+        "../../../../apps/brunch-agent/src/db-path.ts",
         `${appRoot}/src/db-path.ts`,
       ),
     },
@@ -258,27 +208,19 @@ describe("Brunch import direction", () => {
       ),
     },
     {
-      rule: "core imports a sibling Brunch package",
+      rule: "browser-safe library imports the Flue runtime",
       edge: importEdge(
-        `${packagesRoot}/core/src/index.ts`,
-        "@hashintel/brunch-agent-plugin-sdcpn",
-        `${packagesRoot}/plugin-sdcpn/src/index.ts`,
-      ),
-    },
-    {
-      rule: "Brunch extension imports a sibling extension",
-      edge: importEdge(
-        `${packagesRoot}/plugin-example/src/index.ts`,
-        "@hashintel/brunch-agent-plugin-sdcpn",
-        `${packagesRoot}/plugin-sdcpn/src/index.ts`,
+        `${libraryRoot}/src/ledger.ts`,
+        "@flue/runtime",
+        "node_modules/@flue/runtime/dist/index.mjs",
       ),
     },
     {
       rule: "production source imports test code",
       edge: importEdge(
-        `${packagesRoot}/core/src/index.ts`,
+        `${libraryRoot}/src/index.ts`,
         "../test/client-tools.test.ts",
-        `${packagesRoot}/core/test/client-tools.test.ts`,
+        `${libraryRoot}/test/client-tools.test.ts`,
       ),
     },
     {

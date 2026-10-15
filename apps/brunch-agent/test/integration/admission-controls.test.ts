@@ -1,34 +1,23 @@
-import { join } from "node:path";
-
 import { isToolUIPart, type UIMessageChunk } from "ai";
 import { beforeAll, expect, test } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import { createFlueUiStream } from "@local/flue-aisdk-transport";
 
-import { runNodeScript } from "./run-node-script";
-
-import type { AdmissionControlsResult } from "./admission-controls.integration";
+import {
+  runAdmissionControls,
+  type AdmissionControlsResult,
+} from "./run-admission-controls.ts";
 
 let result: AdmissionControlsResult;
 let serverOutput: string;
 let localDiagnosticOutput: string;
 beforeAll(async () => {
-  const { exitCode, stdout, stderr } = await runNodeScript(
-    join(import.meta.dirname, "admission-controls.integration.ts"),
-    join(import.meta.dirname, "../../../.."),
-    { NODE_ENV: "development" },
-  );
-  if (exitCode !== 0) throw new Error(stderr || stdout);
-  serverOutput = stdout;
-  localDiagnosticOutput = stderr;
-  const line = stdout
-    .split("\n")
-    .find((entry) => entry.startsWith("ADMISSION_CONTROLS "));
-  if (line === undefined) throw new Error(stdout);
-  result = JSON.parse(
-    line.slice("ADMISSION_CONTROLS ".length),
-  ) as AdmissionControlsResult;
+  ({
+    result,
+    stdout: serverOutput,
+    stderr: localDiagnosticOutput,
+  } = await runAdmissionControls({ NODE_ENV: "development" }));
 });
 
 test("production rejects every mixed proposal outside the allowlist before publishing or partially executing it", () => {
@@ -129,20 +118,24 @@ test("every failed submission is attributable from the server output by stage, s
   }
 });
 
-test("production still settles server-side revisions without browser results", () => {
+test("production still records server-side Ledger commits without browser results", () => {
   const observation = result.observations.find(
-    (entry) => entry.caseId === brunchTools.mutateWorkpiece,
+    (entry) => entry.caseId === brunchTools.ledgerCommit,
   )!;
   expect(observation.seed.error).toBeNull();
-  const revision = observation.seeded.messages
+  const commit = observation.seeded.messages
     .flatMap((message) => message.parts)
     .find(
       (part) =>
         part.type === "dynamic-tool" &&
-        part.toolName === brunchTools.mutateWorkpiece,
+        part.toolName === brunchTools.ledgerCommit,
     );
-  expect(revision).toMatchObject({
-    output: { revisionId: `${observation.caseId}-old-revision`, ordinal: 1 },
+  expect(commit).toMatchObject({
+    output: {
+      status: "recorded",
+      commitId: `${observation.caseId}-old-revision`,
+      revision: 1,
+    },
   });
   expect(observation.attempt.error).toBeNull();
   expect(observation.providerCallsBeforeClientResult).toBe(2);
