@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { expect, test, vi } from "vitest";
 
-import { healthHandler } from "../src/health.ts";
+import { healthHandler } from "../src/server/health.ts";
 
 test("health reports liveness without consulting dependencies", async () => {
   const dependency = vi.fn<() => void>();

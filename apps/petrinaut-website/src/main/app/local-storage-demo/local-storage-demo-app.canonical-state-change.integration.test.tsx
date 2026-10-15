@@ -15,7 +15,7 @@ import {
 } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent/client-tools";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { loadBuiltBrunchApplication } from "../../../../../brunch-agent/test/load-built-application";
@@ -70,7 +70,7 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
 });
 vi.mock("../plugins/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
-    chatEndpoint: "/agents/chat",
+    chatEndpoint: "/agents/petrinaut",
     isBrunchConfigured: true,
   }),
 }));
@@ -88,7 +88,7 @@ beforeAll(async () => {
       resource instanceof Request ? resource : new Request(resource, options);
     if (
       fixture.fetch &&
-      new URL(request.url).pathname.startsWith("/agents/chat/")
+      new URL(request.url).pathname.startsWith("/agents/petrinaut/")
     )
       return fixture.fetch(request);
     return Promise.reject(new Error("External fetch forbidden"));
@@ -131,6 +131,11 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
     models: [{ id: "faux-model", reasoning: true }],
   });
   faux.setResponses([
+    // A change starts only from a view of the net in the model's context.
+    fauxAssistantMessage(
+      [fauxToolCall("readNetOutline", {}, { id: "outline-call" })],
+      { stopReason: "toolUse" },
+    ),
     fauxAssistantMessage(
       [fauxToolCall("addScenario", scenario, { id: "scenario-call" })],
       { stopReason: "toolUse" },
@@ -286,7 +291,7 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
       })),
     );
     await waitFor(() => expect(changes).toHaveLength(6));
-    expect(deliveries.map(({ metadata }) => metadata)).toEqual(
+    expect(deliveries.map(({ metadata }) => metadata)).toMatchObject(
       changes.map((change, index) => ({
         documentRevision: {
           before: index === 0 ? initialRevision : changes[index - 1]?.revision,
@@ -294,6 +299,21 @@ test("real panel scenario and metric add/update/remove calls produce persisted r
         },
       })),
     );
+    expect(
+      deliveries.every(
+        ({ metadata }) =>
+          typeof metadata === "object" &&
+          metadata !== null &&
+          "readBack" in metadata,
+      ),
+    ).toBe(true);
+    const outline = clientToolHistoryFrom(history.messages).results.find(
+      ({ toolCallId }) => toolCallId === "outline-call",
+    );
+    expect(outline?.metadata).toEqual({
+      documentRevision: { before: initialRevision },
+    });
+    expect(JSON.stringify(outline?.output)).not.toMatch(/"x":|"y":/u);
     // The model invents legacy ids; the stored document holds them converted.
     const originalScenario = {
       id: toPetrinautId(scenario.id),

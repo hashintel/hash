@@ -3,13 +3,13 @@ import { expect, test } from "vitest";
 
 import { brunchRoutes } from "@hashintel/brunch-agent";
 
+import { agentOwnershipGuard } from "../src/server/http/ownership.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation/identity.ts";
-import { agentOwnershipGuard } from "../src/http/ownership.ts";
+} from "../src/shared/conversation/identity.ts";
 
-const mount = `/agents/${brunchRoutes.chatAgent}`;
+const mount = `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
 const app = new Hono();
 app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, "test-agent"));
 app.all(`${mount}/*`, (context) => context.text("admitted"));

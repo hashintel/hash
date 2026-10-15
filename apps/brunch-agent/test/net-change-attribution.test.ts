@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { callsForElement } from "../src/conversation/net-changes.ts";
+import { callsForElement } from "../src/shared/conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 

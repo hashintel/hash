@@ -2,17 +2,17 @@
 
 ## Run the Petrinaut panel locally
 
-Brunch runs `DEFAULT_CHAT_MODEL` from `src/chat-model.ts` unless a deployment overrides it with `BRUNCH_CHAT_MODEL` and `BRUNCH_CHAT_THINKING`. An overriding `BRUNCH_CHAT_MODEL` runs without a thinking level unless `BRUNCH_CHAT_THINKING` sets one. From the repository root, make `OPENAI_API_KEY` available and run:
+Brunch runs `DEFAULT_CHAT_MODEL` from `src/shared/chat-model.ts` unless a deployment overrides it with `BRUNCH_CHAT_MODEL` and `BRUNCH_CHAT_THINKING`. An overriding `BRUNCH_CHAT_MODEL` runs without a thinking level unless `BRUNCH_CHAT_THINKING` sets one. From the repository root, make `OPENAI_API_KEY` available and run:
 
 ```sh
 yarn dev:brunch
 ```
 
-The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/chat/*` to Brunch without changing the request origin or Flue protocol. Local development loads `apps/brunch-agent/.env.development`, selecting `openai/gpt-5.6-sol` with low reasoning by default, like the persona launcher. An explicit process environment or app-local `.env.local` can override these values; deployment model settings are separate and not established by this dev default. A configured credential does not authorize a paid run. When Brunch is selected, the typed panel and Voice mode bind the conversation to the open document: Brunch composes its prompt, SDCPN skill, elicitation, Ledger, document-revision attribution, and explanation with Petrinaut-owned capability guidance and the complete canonical `petrinautAiTools` catalogue. Petrinaut retains canonical schemas, execution, and model-visible outputs.
+The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at `http://127.0.0.1:4915`. The website proxies `/agents/*` to Brunch without changing the request origin or Flue protocol. Local development loads `apps/brunch-agent/.env.development`, selecting `openai/gpt-5.6-sol` with low reasoning by default, like the persona launcher. An explicit process environment or app-local `.env.local` can override these values; deployment model settings are separate and not established by this dev default. A configured credential does not authorize a paid run. When Brunch is selected, the typed panel and Voice mode bind the conversation to the open document: Brunch mounts its system prompt, its `eliciting`, `modelling` and `petrinaut` skills, the Ledger tools (`ledger_commit`, `ledger_compile`), the `readNetOutline` and `readNetStructure` net readers, the reviewed experiment draft, `query_basis`, and the complete canonical `petrinautAiTools` catalogue. It mounts no instruction besides the system prompt; Petrinaut, runtime and experiment guidance live in its skills and tool descriptions. Petrinaut retains canonical schemas, execution, and model-visible outputs.
 
 Native Stock remains a separate assistant choice; `VITE_PETRINAUT_DEFAULT_ASSISTANT` selects native Stock or Brunch.
 
-For browser-visible persona testing, use the [persona launcher and operator guide](src/evaluations/persona/README.md):
+For browser-visible persona testing, use the [persona launcher and operator guide](evals/petrinaut/persona/README.md):
 
 ```sh
 yarn brunch:persona --list-cases
@@ -23,7 +23,7 @@ The launcher opens a dedicated Chrome window, pauses for recording readiness, th
 
 By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Flue history is the conversation log. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
 
-The mounted Flue URL `/agents/chat/:instanceId` requires the principal and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
+The mounted Flue URL `/agents/petrinaut/:instanceId` requires the principal and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
 
 Provider admission bounds a dispatch with no model event at 60 seconds and bounds both newly opened and active reasoning silence at 120 seconds. These phase-specific limits tolerate supported reasoning models that legitimately pause for tens of seconds: an observed valid continuation exceeded the former 15-second first-reasoning-delta limit, then its sole retry exceeded the former 10-second between-delta limit. On expiry Brunch cancels the invocation, requires cancellation acknowledgement within two seconds, and permits at most one retry only before any tool call completed; completed tool work is never replayed. Tests may shorten these bounds with `BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS`, `BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS`, `BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS`, and `BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS`; non-test deployments always use the production policy.
 
@@ -32,6 +32,12 @@ Print a human-readable transcript of one conversation from that same Flue histor
 ```sh
 yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
 ```
+
+## Agents
+
+Each agent lives in its own directory under `src/agents/` and is registered in `src/agents/index.ts`, which `src/app.ts` mounts under `/agents/<route>`. The Petrinaut agent, `src/agents/petrinaut/`, holds everything its model reads and every Ledger tool: `prompts/`, `skills/`, `tools/`, `guidance.ts` and `agent.ts`. Mechanics every agent calls (the Petrinaut browser tools, net freshness, the browser-call rendezvous, the context projection) live in `src/shared/`, and server plumbing in `src/server/`; Flue finds `src/app.ts` and `src/db.ts` at the source root.
+
+To try a candidate, copy `src/agents/petrinaut/` to `src/agents/petrinaut-alt-<idea>/`, give its agent a new `agentName` (conversation storage keys on it), and register it with `route: "petrinaut-alt-<idea>"` and `devOnly: true`, which keeps it off a production server. Its persona evaluations live in `evals/petrinaut/`. The architecture of the Petrinaut agent, its Ledger and its browser boundary is in [`docs/petrinaut/ARCHITECTURE.md`](docs/petrinaut/ARCHITECTURE.md).
 
 ## Tests
 
@@ -115,12 +121,7 @@ and rate-limit gates.
 `DATABASE_URL`, `BRUNCH_DEV_DB_PATH`, and `BRUNCH_CHAT_DB_PATH` are rejected in production.
 TLS verification is always enabled, and connection acquisition fails after 10 seconds rather than
 waiting indefinitely. IAM mode uses the task credential chain and asks the RDS signer for a fresh
-token whenever `pg` opens a physical connection. Run the real two-connection probe from the
-selected task role and RDS network boundary:
-
-```sh
-yarn workspace @apps/brunch-agent probe:rds-iam
-```
+token whenever `pg` opens a physical connection.
 
 The application exports Flue traces, logs, and metrics through HASH's shared OpenTelemetry setup
 (`@local/hash-backend-utils/opentelemetry`) with Flue content capture disabled: prompts, responses,
@@ -130,9 +131,10 @@ Postgres runner, whose close hook shuts the OpenTelemetry providers down; a 60-s
 force-exits. Give the ECS task a stop timeout above 60 seconds.
 
 Brunch does not mount the retired `/api/chat` path; requests to it return 404.
-`/agents/chat/:instanceId` is the product door required by Petrinaut. Restricted product traffic
-is that Flue mount: allow `/agents/*` on the Brunch service so the current `chat` name and the
-accepted later `/agents/process-sdcpn/:id` name both fit. Keep `GET /health` as a process-local /
+`/agents/petrinaut/:instanceId` is the product door required by Petrinaut; `/agents/chat/:instanceId`
+serves the same agent until the deployed website's `VITE_BRUNCH_CHAT_ENDPOINT` names the new route.
+Restricted product traffic is the Flue mounts: allow `/agents/*` on the Brunch service so every
+registered agent route fits. Keep `GET /health` as a process-local /
 load-balancer-private probe, not a public hostname path. Deny `/` and `/assets/*`. Stock
 Petrinaut `/api/chat` stays on the website; the accepted later website path is `/api/brunch/:id`.
 Releasing `/agents/*` to production browser ingress requires separate authentication,
@@ -157,7 +159,7 @@ BRUNCH_SMOKE_MODE=history yarn workspace @apps/brunch-agent smoke:deployment
 ```
 
 `smoke:deployment` still posts to `/api/chat`. That matches today's `main` image and will fail
-against this branch's image until a Mission 8 successor retargets it to `/agents/chat/:instanceId`.
+against this branch's image until a Mission 8 successor retargets it to `/agents/petrinaut/:instanceId`.
 
 ## Panel and Voice conversation route
 
@@ -165,7 +167,7 @@ Voice is a second input modality over the panel's conversation. It is not a Voic
 
 |               |                                                                                                                                   |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| URL           | `/agents/chat/:instanceId`, called through the public Flue browser client and the same-origin local proxy                         |
+| URL           | `/agents/petrinaut/:instanceId`, called through the public Flue browser client and the same-origin local proxy                    |
 | Identity      | `x-brunch-principal` plus `x-brunch-conversation`; the server verifies that their hash matches the mounted instance id            |
 | Initial turn  | One `FlueClient.send()` carrying `{ kind: "user", body }`                                                                         |
 | Browser tools | A document-bound conversation awaits browser results over HTTP within the server tool call; no follow-up submission is sent       |

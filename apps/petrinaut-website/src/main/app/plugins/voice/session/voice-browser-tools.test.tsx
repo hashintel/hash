@@ -100,7 +100,7 @@ test.each([
         submissionId: `submission-${send.mock.calls.length}`,
         uid: "uid",
         offset: "0",
-        streamUrl: "http://local.test/agents/chat/test/stream",
+        streamUrl: "http://local.test/agents/petrinaut/test/stream",
       }),
     );
     const wait = vi.fn<FlueClient["wait"]>(async (admission, options) => {

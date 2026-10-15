@@ -2,14 +2,14 @@ import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   browserToolMutatesDocument,
+  brunchTools,
   canonicalContent,
   type DraftPetrinautExperimentInput,
   draftPetrinautExperimentInputSchema,
   type DraftPetrinautExperimentOutput,
   draftPetrinautExperimentOutputSchema,
   parseClientToolResultMetadata,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
-import { brunchTools } from "@hashintel/brunch-agent/constants";
+} from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {

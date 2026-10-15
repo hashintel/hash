@@ -2,16 +2,15 @@ import { describe, expect, test, vi } from "vitest";
 
 import { brunchEnv } from "@hashintel/brunch-agent";
 
-import { type PostgresDatabaseConfig } from "../src/database-config.ts";
+import { type PostgresDatabaseConfig } from "../src/server/database-config.ts";
 import {
   createPostgresPool,
   createPostgresPoolConfig,
   createPostgresRunnerFromPool,
   POSTGRES_CONNECTION_TIMEOUT_MS,
   POSTGRES_QUERY_TIMEOUT_MS,
-  probeRdsIam,
-} from "../src/postgres.ts";
-import { diagnostics } from "../src/runtime-diagnostics.ts";
+} from "../src/server/postgres.ts";
+import { diagnostics } from "../src/server/runtime-diagnostics.ts";
 
 interface TestQueryResult {
   readonly rows: Record<string, unknown>[];
@@ -32,14 +31,12 @@ describe("Postgres connection configuration", () => {
       .fn<() => Promise<string>>()
       .mockResolvedValueOnce("token-one")
       .mockResolvedValueOnce("token-two");
-    const onIamToken = vi.fn<() => void>();
     const config: PostgresDatabaseConfig = {
       ...commonConfig,
       auth: { mode: "iam", region: "eu-central-1" },
     };
 
     const poolConfig = createPostgresPoolConfig(config, {
-      onIamToken,
       readTlsCa: () => "test-ca",
       signerFactory: () => ({ getAuthToken }),
     });
@@ -60,7 +57,6 @@ describe("Postgres connection configuration", () => {
     await expect(password()).resolves.toBe("token-one");
     await expect(password()).resolves.toBe("token-two");
     expect(getAuthToken).toHaveBeenCalledTimes(2);
-    expect(onIamToken).toHaveBeenCalledTimes(2);
   });
 
   test("uses the injected password without a signer", () => {
@@ -144,37 +140,6 @@ describe("Postgres connection configuration", () => {
     } finally {
       report.mockRestore();
     }
-  });
-});
-
-describe("RDS IAM probe", () => {
-  test("releases a checked-out client when the next connection fails", async () => {
-    const connectionFailure = new Error("second connection failed");
-    const release = vi.fn<() => void>();
-    const firstClient = {
-      query: async <T>(): Promise<{ rows: T[] }> => ({ rows: [] }),
-      release,
-    };
-    const pool = {
-      connect: vi
-        .fn<() => Promise<typeof firstClient>>()
-        .mockResolvedValueOnce(firstClient)
-        .mockRejectedValueOnce(connectionFailure),
-      end: vi.fn<() => Promise<void>>(async () => undefined),
-    };
-
-    await expect(
-      probeRdsIam(
-        {
-          ...commonConfig,
-          auth: { mode: "iam", region: "eu-central-1" },
-        },
-        { createPool: () => pool },
-      ),
-    ).rejects.toBe(connectionFailure);
-
-    expect(release).toHaveBeenCalledOnce();
-    expect(pool.end).toHaveBeenCalledOnce();
   });
 });
 

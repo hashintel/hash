@@ -4,11 +4,11 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { checkDevConfiguration } from "../src/server/dev-configuration-preflight.ts";
 import {
   selectChatModelSpecifier,
   selectChatThinking,
-} from "../src/chat-model.ts";
-import { checkDevConfiguration } from "../src/dev-configuration-preflight.ts";
+} from "../src/shared/chat-model.ts";
 
 const syntheticKey = "synthetic-config-fixture-not-a-real-credential";
 let root: string;
@@ -25,6 +25,7 @@ beforeEach(() => {
     "ANTHROPIC_OAUTH_TOKEN",
     "BRUNCH_CHAT_MODEL",
     "OPENAI_API_KEY",
+    "OPENROUTER_API_KEY",
   ]) {
     vi.stubEnv(variable, undefined);
   }
@@ -181,6 +182,34 @@ describe("development configuration preflight (synthetic only)", () => {
       source: "apps/brunch-agent/.env.local",
       status: "placeholder rejected",
     });
+  });
+
+  it("verifies OpenRouter GPT-6.1 Sol selection and its key source", async () => {
+    writeFileSync(
+      join(app, ".env.local"),
+      `OPENROUTER_API_KEY=${syntheticKey}\nBRUNCH_CHAT_MODEL=openrouter/openai/gpt-6.1-sol\n`,
+    );
+    const report = await check();
+    expect(report.status).toBe("PASS");
+    expect(report.model.actual).toBe("openrouter/openai/gpt-6.1-sol");
+    expect(report.openrouterApiKey).toEqual({
+      source: "apps/brunch-agent/.env.local",
+      status: "non-placeholder; validity untested",
+    });
+    expect(report.providerSelection).toBe(
+      "verified: OPENROUTER_API_KEY matches Vite selection",
+    );
+    expect(process.env.OPENROUTER_API_KEY).toBeUndefined();
+  });
+
+  it("rejects a missing OpenRouter key when Brunch is OpenRouter", async () => {
+    writeFileSync(
+      join(app, ".env.local"),
+      `OPENAI_API_KEY=${syntheticKey}\nBRUNCH_CHAT_MODEL=openrouter/openai/gpt-6.1-sol\n`,
+    );
+    const report = await check();
+    expect(report.status).toBe("FAIL");
+    expect(report.failures).toContain("OPENROUTER_API_KEY: missing/empty");
   });
 
   it("refuses DEBUG before Vite can expose configuration", async () => {

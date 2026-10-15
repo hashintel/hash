@@ -1,4 +1,4 @@
-import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
+import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent";
 import type {
   PetrinautExperimentProgress,
   PetrinautExperimentResult,

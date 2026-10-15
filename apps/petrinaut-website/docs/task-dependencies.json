@@ -2,7 +2,6 @@
   "package": "@apps/petrinaut-website",
   "dependencies": [
     "@hashintel/brunch-agent",
-    "@hashintel/brunch-agent-plugin-sdcpn",
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
     "@hashintel/petrinaut",
@@ -13,7 +12,6 @@
     "build": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -35,7 +33,6 @@
     "dev": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -50,7 +47,6 @@
     "examples:generate": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -61,7 +57,6 @@
     "fix:eslint": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -74,7 +69,6 @@
     "lint:eslint": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -90,7 +84,6 @@
     "lint:tsc": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -104,7 +97,6 @@
       "dependsOn": [
         "@apps/brunch-agent#build",
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -149,7 +141,6 @@
     "test:unit": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",

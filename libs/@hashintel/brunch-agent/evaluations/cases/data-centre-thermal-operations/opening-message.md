@@ -1,1 +1,0 @@
-I'm Asha Mercer, facilities and capacity engineer at Northbank Quay DC-2. We're at peak AI load with one chiller in maintenance and another just tripped. I need a reliable way to test our thermal margins, maintenance windows and redundancy choices, and to see what-ifs before we commit to them.
