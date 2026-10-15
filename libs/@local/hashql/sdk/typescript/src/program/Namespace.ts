@@ -3,8 +3,11 @@
  *
  * A flattened name can be a value, a type constructor and a module at once. Type metadata wins property collisions, followed by module exports and then value projections. Explicit projection and indexing remain available through `$project` and `$index`. Rebinding a joined name moves every capability, rather than following property-lookup precedence.
  *
+ * Draft's `$.prelude()`, `$.modules()` and `$.import(...)` return these flattened views, while the Do API keeps the value and type tables apart. A name that only optional entries supply is optional, and a module also exposes its child exports directly, beside its own `modules`, `types` and `values` tables.
+ *
  * @module
  */
+// oxlint-disable max-lines -- capability joining and scope flattening share producer tracking, export lookup and rebinding machinery
 import { Function, Result, pipe } from "effect";
 
 import { Relocate } from "../internal/relocation.js";
@@ -24,7 +27,11 @@ interface Capability extends Relocatable<Capability> {}
 
 type RebindableEntry<E> = E extends Capability ? Relocatable<E> : E;
 
-/** Scope exports need string names and producers that preserve their properties during rebinding. */
+/**
+ * Scope exports need string names and producers that preserve their properties during rebinding.
+ *
+ * Draft's `withPrelude` requires this of a custom prelude. An export extended through `Object.assign` fails it, because rebinding would drop the added properties.
+ */
 export type Rebindable<S extends Scope.Definition> = {
   readonly [N in keyof S]: N extends keyof Scope.Scope
     ? {
@@ -86,7 +93,11 @@ type Combined<L, R> = WithMetadata<
   >
 >;
 
-/** The last relocation signature returns the whole joined capability set. */
+/**
+ * One name carrying the capabilities of two exports, such as a value constructor and the type it constructs.
+ *
+ * Property reads follow the precedence the module introduction states. A call with type arguments reaches the type constructor, and a call with value arguments reaches the value. The last relocation signature returns the whole joined capability set.
+ */
 export type Joined<L, R> = Combined<L, R> & {
   readonly [Components]: readonly [L, R];
 } & Relocatable<Joined<L, R>>;
@@ -120,7 +131,11 @@ type RequiredNames<S extends Scope.Scope> =
   | RequiredKeys<S["types"]>
   | RequiredKeys<S["values"]>;
 
-/** A guaranteed export in any namespace makes the flattened name required. */
+/**
+ * The single-object view of a scope, in which each name joins its module, type and value exports.
+ *
+ * A guaranteed export in any namespace makes the flattened name required. A name that only optional entries supply is optional. A module also exposes its child exports directly, beside its own `modules`, `types` and `values` tables.
+ */
 export type Flatten<S extends Scope.Scope> = {
   readonly [K in Keys<S> as K extends RequiredNames<S> ? K : never]: Member<
     Lookup<S["modules"], K>,
@@ -143,6 +158,7 @@ interface ModuleScope<S extends Scope.Scope> {
   readonly types: Empty;
   readonly values: Empty;
 }
+/** The flattened view of a scope's modules alone, each exposing its child exports directly. */
 export type Modules<S extends Scope.Scope> = Flatten<ModuleScope<S>>;
 
 const combinedHandles = new WeakMap<

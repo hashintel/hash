@@ -20,9 +20,9 @@ export interface Encoded extends Defs.FloatEncoded {}
 type MakeIn = (typeof Schema)["~type.make.in"];
 
 /**
- * Checks the spelling of a float literal.
+ * Checks that `value` is a float in JSON number syntax, such as `1.0` or `1e3`.
  *
- * Validates by default. `options.disableChecks` skips schema checks. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * The text needs a fraction or exponent, so `1` and `1.` fail. `_tag` may be omitted, and the result supplies it. `options.disableChecks` skips the spelling check and keeps only the object's shape. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
  * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
@@ -30,14 +30,14 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Float =
   SchemaParser.make(Schema);
 
-/** Runs {@link make} validation with schema issues in the effect's error channel. */
+/** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Float, SchemaIssue.Issue> = SchemaParser.makeEffect(Schema);
 
-/** Runs {@link make} validation, returning `None` for a schema failure. */
+/** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

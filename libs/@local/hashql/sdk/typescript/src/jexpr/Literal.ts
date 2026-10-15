@@ -10,7 +10,7 @@ export const Schema: typeof Defs.Literal = Defs.Literal;
 /**
  * A primitive value in a `#literal` constructor.
  *
- * Numeric values use {@link Defs.Integer} or {@link Defs.Float} to preserve their source text. Strings, booleans and `null` appear directly under `#literal`.
+ * Numeric values are tagged `JExpr.Integer` or `JExpr.Float` objects that preserve their source text. Strings, booleans and `null` appear directly under `#literal`, and a string here is a string value rather than a name. `#type` holds optional annotation text.
  */
 export interface Literal extends Defs.LiteralType {}
 /** The schema-encoded representation of {@link Literal}. */
@@ -20,9 +20,9 @@ export interface Encoded extends Defs.LiteralEncoded {}
 type MakeIn = (typeof Schema)["~type.make.in"];
 
 /**
- * Checks a literal and an optional type annotation.
+ * Checks a literal's value and an optional type annotation.
  *
- * Validates by default. `options.disableChecks` skips schema checks. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * A string, boolean or `null` value is accepted as is. A numeric value must be a tagged integer or float object with valid spelling, and its `_tag` may be omitted. `#type` can be any text. `options.disableChecks` skips the numeric spelling check. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
  * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
@@ -30,7 +30,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Literal =
   SchemaParser.make(Schema);
 
-/** Runs {@link make} validation with schema issues in the effect's error channel. */
+/** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
@@ -38,7 +38,7 @@ export const makeEffect: (
 ) => Effect.Effect<Literal, SchemaIssue.Issue> =
   SchemaParser.makeEffect(Schema);
 
-/** Runs {@link make} validation, returning `None` for a schema failure. */
+/** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

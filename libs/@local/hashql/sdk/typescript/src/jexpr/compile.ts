@@ -56,18 +56,20 @@ const isPositional = (
   !Object.keys(argument).every((key) => key.startsWith(":"));
 
 /**
- * Renders an expression tree as compact J-Expr JSON.
+ * Writes an expression tree as compact J-Expr JSON text.
  *
- * Numeric literals keep their stored spelling: an integer retains its full precision and an integral float retains its fraction or exponent. `JSON.stringify` would serialize the SDK's tagged numeric objects instead.
+ * Each numeric literal is written from its stored text, so an integer keeps every digit and a float keeps its fraction or exponent. `JSON.stringify` would write the SDK's tagged numeric objects instead, which HashQL rejects because a `#literal` value must be a JSON primitive. Strings are JSON-escaped, and object keys follow each object's own enumerable string-key order. A call argument whose keys all start with `:` is written as a labeled argument.
  *
- * Validation is separate. Use `JExpr.make` on the tree before compiling it when you need schema checks.
+ * Serialization does not validate. A literal that `JExpr.make` would reject keeps its stored text, so the output can contain non-JSON text such as `NaN`. An object without a constructor key throws a `TypeError`. Check a tree from an untrusted source with `JExpr.make` before compiling it.
  *
- * @example
+ * @example <caption>Serialize exact numbers, unlike JSON.stringify.</caption>
  * ```ts
- * import * as JExpr from "./index.js";
+ * import assert from "node:assert/strict";
+ * import { JExpr } from "@local/hashql";
  *
- * JExpr.compile(JExpr.list(JExpr.float(1), JExpr.float(2.5)));
- * // => '{"#list":[{"#literal":1.0},{"#literal":2.5}]}'
+ * const values = JExpr.tuple(JExpr.integer(2n ** 64n), JExpr.float(1), JExpr.float(2.5));
+ * assert.equal(JExpr.compile(values), '{"#tuple":[{"#literal":18446744073709551616},{"#literal":1.0},{"#literal":2.5}]}');
+ * assert.equal(JSON.stringify(JExpr.integer(1)), '{"#literal":{"_tag":"Integer","value":"1"}}');
  * ```
  */
 export const compile = (expression: Expression): string => {

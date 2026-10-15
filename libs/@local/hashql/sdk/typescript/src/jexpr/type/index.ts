@@ -1,9 +1,9 @@
 /**
- * Builds HashQL type expressions for J-Expr queries.
+ * Builds HashQL type syntax for J-Expr queries.
  *
- * A {@link Type} describes type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. {@link compile} renders the result as a J-Expr type expression.
+ * A {@link Type} is tagged type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. The syntax has two J-Expr spellings. {@link compile} writes annotation text for a `#type` field, and {@link toExpression} writes the constructor syntax that `as`, `input`, `fn`, `type` and `newtype` emit.
  *
- * {@link reference} and {@link struct} return an {@link Option.Option}: an invalid name produces `None`. Name resolution and type checking belong to the HashQL compiler.
+ * {@link reference} and {@link struct} return an {@link Option.Option}: an invalid name produces `None`. The other builders accept their members without checks. Name resolution and type checking belong to the HashQL compiler.
  *
  * @module
  */
@@ -36,16 +36,16 @@ export * as Union from "./Union.js";
 export const Schema: typeof Defs.Type = Defs.Type;
 
 /**
- * A HashQL type expression with validated identifiers.
+ * Tagged HashQL type syntax, as accepted by `JExpr.input`, `JExpr.as`, `JExpr.typed` and the other builders that take a type.
  *
- * The `_tag` discriminant selects the type's syntactic form. {@link compile} renders the expression without resolving its names or checking relationships between types.
+ * The `_tag` discriminant selects the form. `Reference` names a type by path with optional generics, `Struct` and `Tuple` list named or positional members, and `Union` and `Intersection` combine member types. Paths and member names are decoded identifier objects. `TypeExpression.toType` extracts this syntax from a declared type expression. Nothing validates an object written directly until {@link make} checks its names, and the HashQL compiler resolves those names and checks the type.
  */
 export type Type = Defs.Type;
 
 /**
- * The tagged object representation of a {@link Type}, with unbranded identifiers.
+ * The schema-encoded form of a {@link Type}, which writes each path and member name as source text.
  *
- * {@link Schema} encodes and decodes this representation. Use {@link compile} for a J-Expr type expression.
+ * A reference's path becomes text such as `"::core::List"`, and a struct member name becomes text such as `` "`+`" ``. The rest keeps its tagged objects. {@link Schema} encodes and decodes this form, and neither form is J-Expr. Use {@link compile} or {@link toExpression} for J-Expr.
  */
 export type Encoded = Defs.TypeEncoded;
 
@@ -53,13 +53,13 @@ export type Encoded = Defs.TypeEncoded;
 type MakeIn = (typeof Schema)["~type.make.in"];
 
 /**
- * Constructs a type from its tagged object representation.
+ * Checks a tagged type object, including its decoded paths and names, and returns a new value.
  *
- * Validates the input against {@link Schema} by default. `options.disableChecks` skips schema checks. {@link makeOption} returns `None` for validation failures, and {@link makeEffect} preserves the issue in its error channel.
+ * Validates the input against {@link Schema} by default. `options.disableChecks` skips the identifier checks but still requires the tagged structure. {@link makeOption} returns `None` for validation failures, and {@link makeEffect} preserves the issue in its error channel.
  *
  * @throws {Error} If construction fails. A schema-validation error carries a {@link SchemaIssue.Issue} in its `cause`.
  *
- * @example
+ * @example <caption>Construct and check tagged type syntax.</caption>
  * ```ts
  * import { Effect, Option } from "effect";
  * import * as Type from "./index.js";
@@ -117,7 +117,7 @@ export const makeOption: (
  *
  * Preserves member order, duplicates and nested unions. Use {@link or} to combine types while flattening union operands.
  *
- * @example
+ * @example <caption>Build a union without flattening.</caption>
  * ```ts
  * import { Option } from "effect";
  * import * as Type from "./index.js";
@@ -137,7 +137,7 @@ export const union = (
  *
  * Preserves member order, duplicates and nested intersections. Use {@link and} to combine types while flattening intersection operands.
  *
- * @example
+ * @example <caption>Build an intersection.</caption>
  * ```ts
  * import { Option } from "effect";
  * import * as Type from "./index.js";
@@ -157,9 +157,9 @@ const asReadonlyUnsafe = <T>(input: T): Readonly<T> => input;
 /**
  * Creates a type with named fields.
  *
- * Returns `None` if any field name is not a valid identifier according to {@link Ident.decodeResult}. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
+ * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
  *
- * @example
+ * @example <caption>Build a struct type and reject an invalid field name.</caption>
  * ```ts
  * import { Option } from "effect";
  * import * as Type from "./index.js";
@@ -199,7 +199,7 @@ export const struct = (
  *
  * An empty tuple compiles to `()`. A single-member tuple keeps a trailing comma to distinguish it from a parenthesized type.
  *
- * @example
+ * @example <caption>Build empty, single-member and pair tuples.</caption>
  * ```ts
  * import { Option } from "effect";
  * import * as Type from "./index.js";
@@ -218,11 +218,11 @@ export const tuple = (...members: readonly Type[]): Defs.TupleType => ({
 /**
  * Refers to a named type with optional generic arguments or bounds.
  *
- * `path` uses path syntax, such as `Integer`, `core::math::add` or `::core::math::+`. Returns `None` if {@link Path.parse} rejects it. Validation checks syntax only. The HashQL compiler resolves the name and checks its generic arguments.
+ * `path` uses path syntax, such as `Integer`, `core::math::add` or `::core::math::+`. Returns `None` if `Path.decodeResult` rejects it, including text with generic arguments such as `List<Integer>`. Validation checks syntax only. The HashQL compiler resolves the name and checks its generic arguments.
  *
- * A plain {@link Type} supplies a positional generic argument. An explicit {@link Defs.GenericType} preserves its argument or named-bound form. Generic order follows the argument list.
+ * A plain {@link Type} supplies a positional generic argument. An explicit `GenericArgument` or `GenericBound` object from the `Generic` module keeps its form. Generic order follows the argument list.
  *
- * @example
+ * @example <caption>Refer to generic, bounded and rooted types.</caption>
  * ```ts
  * import { Option } from "effect";
  * import * as Generic from "./Generic.js";
@@ -286,7 +286,7 @@ const intersectionMembers = (type: Type): NonEmptyReadonlyArray<Type> => {
  *
  * Members of `self` precede members of `that`. Duplicates remain. Chained calls produce a flat union when the initial operands have no nested unions. Use {@link union} to preserve nesting.
  *
- * @example
+ * @example <caption>Chain unions with flattening.</caption>
  * ```ts
  * import { Option } from "effect";
  * import { pipe } from "effect/Function";
@@ -316,7 +316,7 @@ export const or: {
  *
  * An intersection operand contributes its immediate members. Members of `self` precede members of `that`. Duplicates remain. Chained calls produce a flat intersection when the initial operands have no nested intersections. Use {@link intersection} to preserve nesting.
  *
- * @example
+ * @example <caption>Chain intersections with flattening.</caption>
  * ```ts
  * import { Option } from "effect";
  * import { pipe } from "effect/Function";
@@ -369,7 +369,7 @@ const compileGeneric: (generic: Defs.GenericType) => Identifier =
  *
  * Unions and intersections with more than one member always retain parentheses to preserve grouping in nested expressions. A single-member union or intersection compiles as its member. Empty structs use `(:)`, empty tuples use `()`, and single-member tuples retain a trailing comma.
  *
- * @example
+ * @example <caption>Compile a nested type.</caption>
  * ```ts
  * import { Option } from "effect";
  * import * as Type from "./index.js";

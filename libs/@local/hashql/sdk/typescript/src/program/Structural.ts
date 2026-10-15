@@ -29,7 +29,11 @@ import type { ReadonlyRecord } from "effect/Record";
 
 interface Fields extends ReadonlyRecord<string, Definition> {}
 
-/** Runtime type syntax, host primitive constructors, or structural shorthand. */
+/**
+ * A type handle, a supported host primitive constructor, a tuple of definitions or a record of field definitions.
+ *
+ * `BigInt`, `Number`, `String` and `Boolean` denote their HashQL primitive types. Arrays denote tuples, not lists. Use a declared generic type constructor for lists and dictionaries. See {@link type} for normalization.
+ */
 export type Definition =
   | TypeExpression.Any
   | BigIntConstructor
@@ -68,7 +72,11 @@ type TupleValues<T extends readonly Type.Any[]> = {
   readonly [K in keyof T]: Value<T[K]>;
 };
 
-/** Structural host values do not implicitly unwrap nominal types. */
+/**
+ * A value accepted for descriptor `T`, including recursive record and tuple shorthand.
+ *
+ * Nominal descriptors require a matching handle rather than their underlying host representation. Lists and dictionaries likewise require expressions. A host array always denotes a tuple.
+ */
 export type Value<T extends Type.Any> =
   | Expression.Value<T>
   | (T extends Type.Struct<infer F>
@@ -79,6 +87,7 @@ export type Value<T extends Type.Any> =
 
 interface FieldValues extends ReadonlyRecord<string, AnyValue> {}
 
+/** Expressions and host primitives, recursively nested in tuples or field records. */
 export type AnyValue = Expression.AnyValue | readonly AnyValue[] | FieldValues;
 
 /**
@@ -107,7 +116,11 @@ type RequirementAlternatives<V extends AnyValue> = V extends Expression.AnyValue
           : Input.Conservative<{ [K in keyof V]: Requirements<V[K]> }[keyof V]>
         : Input.Empty;
 
-/** Recognizes recursive type shorthand without confusing primitive values with constructors. */
+/**
+ * Recognizes recursive type shorthand without confusing primitive values with constructors.
+ *
+ * This dispatch check examines enumerable own string-keyed values and the SDK type marker. It does not validate field names or stored type syntax. Empty records and arrays qualify. Host objects must be acyclic.
+ */
 // oxlint-disable-next-line typescript/no-restricted-types -- overload dispatch must distinguish arbitrary host arguments before normalization
 export const isDefinition = (value: unknown): value is Definition => {
   if (TypeExpression.isExport(value)) {
@@ -130,7 +143,11 @@ export const isDefinition = (value: unknown): value is Definition => {
   return Object.values(value).every(isDefinition);
 };
 
-/** Recognizes structural value arguments, including expressions with type capabilities too. */
+/**
+ * Recognizes structural value arguments, including expressions with type capabilities too.
+ *
+ * This dispatch check traverses enumerable own string-keyed values without validating field names or stored syntax. Non-finite numbers pass this check too. Validation belongs to {@link value} or {@link toJExpr}. Host objects must be acyclic.
+ */
 // oxlint-disable-next-line typescript/no-restricted-types -- overload dispatch must distinguish arbitrary host arguments before normalization
 export const isValue = (value: unknown): value is AnyValue => {
   if (Expression.isExpression(value)) {
@@ -245,7 +262,25 @@ const typeSyntax = (
   );
 };
 
-/** Normalizes shorthand while retaining invalid names in the construction result. */
+/**
+ * Constructs a type expression from primitive, tuple and record shorthand.
+ *
+ * The descriptor retains each tuple position and record field. Runtime records contribute enumerable own string keys. Invalid field names and failed nested type handles remain construction failures in the returned handle's `syntax` Result. The resulting type description provides no runtime validator for host values.
+ *
+ * @example <caption>Describe a record with a nested tuple.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { Expression, JExpr, Structural } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const account = Structural.type({ name: String, location: [Number, Number] });
+ * const input = Expression.input("account", account);
+ * assert.equal(
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(input))),
+ *   '["::kernel::special_form::input","account",{"#struct":{"name":"::kernel::type::String","location":{"#tuple":["::kernel::type::Number","::kernel::type::Number"]}}}]',
+ * );
+ * ```
+ */
 export const type = <const D extends Definition>(
   definition: D,
 ): TypeExpression.TypeExpression<TypeOf<D>> =>
@@ -278,7 +313,11 @@ export interface Constructor<F extends Type.TypeConstructor>
   ): TypeExpression.TypeExpression<Type.Apply<F, ArgumentTypes<A>>>;
 }
 
-/** Gives an existing generic declaration the same shorthand normalization as local aliases. */
+/**
+ * Adapts a generic type declaration to accept {@link Definition} shorthand at each argument position.
+ *
+ * The original constructor still checks arity and retains failed type arguments. Relocation rebuilds the adapter around the new declaration path. Apply the returned constructor before using it as a type.
+ */
 export const constructor = <F extends Type.TypeConstructor>(
   declaration: TypeExpression.Constructor<F>,
 ): Constructor<F> =>
@@ -342,7 +381,7 @@ export type ValueType<V extends AnyValue> = V extends Expression.AnyValue
       ? Type.Struct<{ readonly [K in keyof V]: ValueType<V[K]> }>
       : never;
 
-/** Checking only the value against T would discard additional fields from the reported type. */
+/** Accepts `V` only when its inferred structural descriptor and `T` are mutually assignable, preventing extra fields from disappearing from the reported type. */
 export type Exact<T extends Type.Any, V extends AnyValue> = [T] extends [
   ValueType<V>,
 ]
@@ -351,7 +390,30 @@ export type Exact<T extends Type.Any, V extends AnyValue> = [T] extends [
     : never
   : never;
 
-/** Encodes a structural value whose descriptor exactly matches the caller's requested type. */
+/**
+ * Constructs a value whose inferred structural descriptor matches the requested type.
+ *
+ * Supply the semantic descriptor first, then a value with matching fields and tuple positions. This exactness is a TypeScript constraint, not runtime semantic validation. Syntax validation returns failures through the resulting expression. Every nested expression contributes input requirements, including every alternative of a host-side union.
+ *
+ * Arrays encode tuples. Records encode enumerable own string keys; inherited, non-enumerable and symbol properties are not emitted. Host objects must be acyclic.
+ *
+ * @example <caption>Construct a typed record from host values.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { Expression, Structural } from "@local/hashql";
+ * import type { Type } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * type Account = Type.Struct<{
+ *   readonly name: Type.PrimitiveString;
+ *   readonly active: Type.PrimitiveBoolean;
+ * }>;
+ * const account = Structural.value<Account>()({ name: "Ada", active: true });
+ * assert.deepEqual(Result.getOrThrow(Expression.toJExpr(account)), {
+ *   "#struct": { name: { "#literal": "Ada" }, active: { "#literal": true } },
+ * });
+ * ```
+ */
 export const value =
   <T extends Type.Any>() =>
   <const V extends Value<T> & AnyValue>(
@@ -364,7 +426,11 @@ export const value =
       Expression.fromResult<T, Requirements<V>>,
     );
 
-/** Internal syntax conversion shared by nominal constructors. */
+/**
+ * Converts structural host values to validated J-Expr syntax without assigning a semantic descriptor.
+ *
+ * Arrays encode tuples and records encode enumerable own string keys, as in {@link value}. Invalid nested syntax returns a construction failure. Existing handles contribute their stored failures unchanged. Use {@link value} when the result needs a typed expression handle.
+ */
 export const toJExpr = (
   value: AnyValue,
 ): Result.Result<JExpr.Expression, ProgramError.Construction> =>

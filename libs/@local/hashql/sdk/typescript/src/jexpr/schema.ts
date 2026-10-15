@@ -59,7 +59,7 @@ const LabelKey: Schema.TemplateLiteral<readonly [":", Schema.String]> =
 /**
  * A labeled call argument, such as `{":name": value}`.
  *
- * A labeled argument is positional: it occupies its place in the argument list like any other argument.
+ * It can appear anywhere after the function in a call array. HashQL's parser gathers labeled arguments into their own list, so a labeled argument takes no positional slot.
  */
 export const LabeledArgument: Schema.$Record<typeof LabelKey, ExpressionRef> =
   Schema.Record(LabelKey, ExpressionRef).check(

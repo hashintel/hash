@@ -1,20 +1,22 @@
 /**
- * Builds HashQL queries as J-Expr expression trees.
+ * Builds, checks and serializes raw HashQL J-Expr syntax.
  *
- * A string such as `"user"` refers to a value by name. Use {@link literal} for data: `literal("user")` is the string value `"user"`. Arrays represent calls, while objects with keys such as `#list` or `#struct` construct data.
+ * J-Expr is HashQL's JSON notation. Arrays are calls, objects keyed by `#literal`, `#struct`, `#tuple`, `#list` or `#dict` construct data, and strings are source text that HashQL parses as a name, path or type. The string `"user"` therefore refers to a value by name. Use {@link literal} for data: `literal("user")` is the string value `"user"`.
  *
- * @example
+ * The builders return the SDK's {@link Expression} tree, not J-Expr text. The tree stores each numeric literal as tagged source text, such as `{ _tag: "Integer", value: "42" }`, to keep integers beyond JavaScript's precision and the distinction between `1` and `1.0`. {@link compile} writes the tree as J-Expr JSON, where those literals become bare JSON numbers. `JSON.stringify` and {@link Schema} encoding keep the tagged objects, so neither produces J-Expr.
+ *
+ * Builders such as {@link literal}, {@link struct} and {@link call} assemble syntax without validating it, and nothing in this module executes a query. {@link make} checks a finished tree against {@link Schema} and throws on failure. {@link makeEffect} keeps the issue in an Effect, and {@link makeOption} returns `None`. The schema checks structure, identifier-named fields and labels, and numeric spelling. It does not parse string expressions or `#type` annotations, resolve names or check types. The HashQL compiler does that when it receives the program.
+ *
+ * Builders that take a type, such as {@link input} and {@link typed}, accept type syntax, which `TypeExpression.toType` extracts from a declared type expression. `Ident` and `Path` decode and print single identifiers and paths. Each constructor also has a namespace, such as `Literal` or `Call`, holding its schema, value type and checked `make` functions.
+ *
+ * @example <caption>Bind a value, check the tree and serialize it.</caption>
  * ```ts
- * import * as JExpr from "./index.js";
+ * import assert from "node:assert/strict";
+ * import { JExpr } from "@local/hashql";
  *
- * const query = JExpr.let("name", JExpr.literal("Alice"), "name");
- * JExpr.compile(JExpr.make(query));
- * // => '["let","name",{"#literal":"Alice"},"name"]'
+ * const query = JExpr.make(JExpr.let("name", JExpr.literal("Alice"), "name"));
+ * assert.equal(JExpr.compile(query), '["::kernel::special_form::let","name",{"#literal":"Alice"},"name"]');
  * ```
- *
- * The helpers assemble expressions without validating them. Use {@link make} to check the finished tree and {@link compile} to produce JSON text. {@link makeEffect} retains validation issues in an Effect, and {@link makeOption} returns only success or failure. The schema checks the tree's structure. Parsing strings as paths or types, resolving names and type checking belong to the HashQL compiler.
- *
- * Use {@link compile} even when the tree looks like ordinary JSON. Numeric literals retain their source text to preserve large integers and the distinction between `1` and `1.0`.
  *
  * @module
  */
@@ -49,13 +51,17 @@ export * as Path from "./Path.js";
 export { compile } from "./compile.js";
 
 /**
- * Schema for the SDK's expression-tree representation.
+ * Effect schema for the SDK's {@link Expression} tree.
  *
- * Encoding produces {@link Encoded}, including tagged numeric literals. Use {@link compile} to produce J-Expr JSON text.
+ * Decoding and {@link make} check the tree's structure, identifier-named struct fields and labels, and numeric literal spelling. They accept any string expression and any `#type` text. The encoded form, {@link Encoded}, keeps the tagged numeric literals, so use {@link compile} to produce J-Expr JSON text.
  */
 export const Schema: typeof Defs.Expression = Defs.Expression;
 
-/** A J-Expr expression: a call, a data constructor or a string. */
+/**
+ * An SDK expression tree: a call array, a data constructor object or a string expression.
+ *
+ * A string is source text that HashQL parses, such as `"user"`, `"entity.properties"` or the placeholder `"_"`, rather than a string value. Numeric literals hold tagged source text, so serialize a tree with {@link compile} rather than `JSON.stringify`.
+ */
 export type Expression = Defs.ExpressionType;
 
 /** The schema-encoded tree, with the same tagged numeric literals as {@link Expression}. */
@@ -65,21 +71,24 @@ export type Encoded = Defs.ExpressionEncoded;
 type MakeIn = (typeof Schema)["~type.make.in"];
 
 /**
- * Checks an expression tree against {@link Schema}.
+ * Checks an expression tree against {@link Schema} and returns the checked tree.
  *
- * Validates by default. `options.disableChecks` skips schema checks. Use {@link makeOption} when only validity matters, or {@link makeEffect} to inspect a {@link SchemaIssue.Issue} with the failing node's location.
+ * The result is a new tree without keys outside the matched constructor. Numeric literal objects may omit `_tag`, which the result supplies. `options.disableChecks` skips the identifier, label and numeric-spelling checks but still requires the tree's structure. `options.parseOptions` passes Effect parse options, such as `onExcessProperty: "error"` to reject unknown keys. Use {@link makeOption} when only validity matters, or {@link makeEffect} to inspect a {@link SchemaIssue.Issue} with the failing node's location.
  *
  * @throws {Error} If validation fails. The error carries a {@link SchemaIssue.Issue} in its `cause`.
  *
- * @example
+ * @example <caption>Check a struct and detect an invalid field name.</caption>
  * ```ts
+ * import assert from "node:assert/strict";
+ * import { JExpr } from "@local/hashql";
  * import { Option } from "effect";
- * import * as JExpr from "./index.js";
  *
- * const query = JExpr.make(JExpr.struct({ name: JExpr.literal("Alice") }));
- * JExpr.compile(query); // => '{"#struct":{"name":{"#literal":"Alice"}}}'
+ * const person = JExpr.make(JExpr.struct({ name: JExpr.literal("Alice") }));
+ * assert.equal(JExpr.compile(person), '{"#struct":{"name":{"#literal":"Alice"}}}');
  *
- * Option.isNone(JExpr.makeOption(JExpr.struct({ "not an ident": "x" }))); // => true
+ * const invalid = JExpr.struct({ "not an ident": JExpr.literal("x") });
+ * assert.ok(Option.isNone(JExpr.makeOption(invalid)));
+ * assert.throws(() => JExpr.make(invalid), { message: "Schema validation failed" });
  * ```
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
@@ -88,7 +97,7 @@ export const make: (
   options?: $Schema.MakeOptions,
 ) => Expression = SchemaParser.make(Schema);
 
-/** Checks a tree with {@link make}'s options, retaining schema issues in the effect's error channel. */
+/** Checks a tree like {@link make}, failing the synchronous effect with the {@link SchemaIssue.Issue} instead of throwing. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
@@ -96,7 +105,7 @@ export const makeEffect: (
 ) => Effect.Effect<Expression, SchemaIssue.Issue> =
   SchemaParser.makeEffect(Schema);
 
-/** Checks a tree with {@link make}'s options, returning `None` for a schema failure. */
+/** Checks a tree like {@link make}, returning `None` instead of throwing for a schema failure. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
@@ -115,9 +124,9 @@ export type Annotatable =
   | Defs.LiteralType;
 
 /**
- * Creates a whole-number literal without a size limit for `bigint` inputs.
+ * Creates an integer literal from a value's exact decimal digits.
  *
- * Use a `bigint` for integers beyond `Number.MAX_SAFE_INTEGER`. A `number` may already have lost precision before this call. It must be an integer to pass {@link make} validation. See {@link Integer.Integer} for a precision example.
+ * A `bigint` keeps every digit. A `number` is converted from its double value, so an integer beyond `Number.MAX_SAFE_INTEGER` may already have lost precision before this call, and `-0` becomes `0`. A non-integral or non-finite number is stored as its JavaScript text without an error. {@link make} rejects that literal, while {@link compile} emits the text, such as `1.5` or `NaN`. See `JExpr.Integer.Integer` for a precision example.
  */
 export const integer = (value: number | bigint): Defs.LiteralType => {
   if (typeof value === "number" && Number.isInteger(value)) {
@@ -130,7 +139,7 @@ export const integer = (value: number | bigint): Defs.LiteralType => {
 /**
  * Creates a numeric literal that HashQL parses as a float.
  *
- * A float's JSON spelling must contain a fraction or exponent. Integral values therefore retain a fraction: `float(1)` compiles to `1.0`. Negative zero compiles to `-0.0`. `NaN` and infinities fail {@link make} validation. See {@link compile} for float examples.
+ * The text is JavaScript's shortest decimal for the double, so `float(0.1 + 0.2)` compiles to `0.30000000000000004`. HashQL reads a number as a float only when its text has a fraction or exponent. Integral values therefore gain a fraction: `float(1)` compiles to `1.0` and `-0` to `-0.0`. Magnitudes that JavaScript writes in exponent form keep it, such as `1e+21`. `NaN` and infinities are stored without an error. {@link make} rejects them, and {@link compile} emits text that is not JSON. See {@link compile} for float examples.
  */
 export const float = (value: number): Defs.LiteralType => {
   if (Object.is(value, -0)) {
@@ -149,7 +158,7 @@ export const float = (value: number): Defs.LiteralType => {
 /**
  * Creates a literal from a primitive value.
  *
- * Integral numbers and `bigint` values become {@link integer} literals. Other numbers become {@link float} literals. Use {@link float} explicitly to keep `1` as `1.0` or preserve negative zero. See {@link make} for a string literal example.
+ * A string becomes a string value, unlike a bare string expression. Every `bigint` and every integral number, including `1.0`, `-0` and `1e21`, becomes an {@link integer} literal. Other numbers become {@link float} literals. Use {@link float} explicitly to keep `1` as `1.0` or preserve negative zero. See {@link make} for a string literal example.
  */
 export const literal = (
   value: string | number | bigint | boolean | null,
@@ -172,7 +181,7 @@ export const literal = (
 /**
  * Creates a list whose elements share a type.
  *
- * HashQL infers the element type. Use {@link tuple} when each position needs its own type. See {@link compile} for a list example.
+ * HashQL infers the element type. Use {@link tuple} when each position needs its own type.
  */
 export const list = (...items: readonly Expression[]): Defs.ListType => ({
   "#list": items,
@@ -186,7 +195,7 @@ export const tuple = (...items: readonly Expression[]): Defs.TupleType => ({
 /**
  * Creates a struct with named fields.
  *
- * Field names must be identifiers, such as `name` or `` `+` ``. Each field has its own type. Use {@link dict} for arbitrary string keys. Fields follow the record's own enumerable string-key order. See {@link make} for a struct example.
+ * Field names must be identifiers, such as `name`, `+` or `` `+` ``, which {@link make} checks and this builder does not. Each field has its own type. Use {@link dict} for arbitrary string keys. Fields follow the record's own enumerable string-key order. The tree holds the given record object rather than a copy. See {@link make} for a struct example.
  */
 export const struct = (
   fields: Record.ReadonlyRecord<string, Expression>,
@@ -195,7 +204,7 @@ export const struct = (
 /**
  * Creates a dictionary from string keys or key expressions.
  *
- * Record keys are literal strings, even when they look like paths. Use `[key, value]` pairs to compute keys from expressions. See {@link Dict.Dict} for examples of both key forms.
+ * Record keys are literal strings, even when they look like paths. JavaScript puts integer-like record keys first in ascending order, and {@link compile} keeps that order. Use `[key, value]` pairs to compute keys from expressions or to control their order. The tree holds the given record or array rather than a copy. See `JExpr.Dict.Dict` for examples of both key forms.
  */
 export const dict = (
   entries:
@@ -206,17 +215,17 @@ export const dict = (
 /**
  * Sets a data constructor's type annotation.
  *
- * Replaces any existing `#type` annotation. Calls and paths cannot carry this field. Use {@link asType | as} to assert their types.
+ * Returns a shallow copy with `#type` set, replacing any existing annotation, and leaves `self` unchanged. The annotation is the type's annotation text, such as `(name: String)`, which HashQL parses and checks. Calls and paths cannot carry this field. Use {@link asType | as} to assert their types. Call it data-first as `typed(self, type)` or data-last in a pipeline.
  *
- * @example
+ * @example <caption>Annotate a literal with a declared type.</caption>
  * ```ts
- * import { Option, pipe } from "effect";
- * import * as Type from "./type/index.js";
- * import * as JExpr from "./index.js";
+ * import assert from "node:assert/strict";
+ * import { JExpr, Prelude, TypeExpression } from "@local/hashql";
+ * import { Result, pipe } from "effect";
  *
- * const float = Option.getOrThrow(Type.reference("Float"));
- * JExpr.compile(pipe(JExpr.literal(3.14), JExpr.typed(float)));
- * // => '{"#literal":3.14,"#type":"Float"}'
+ * const number = Result.getOrThrow(TypeExpression.toType(Prelude.builtin.types.Number));
+ * const annotated = pipe(JExpr.literal(3.14), JExpr.typed(number));
+ * assert.equal(JExpr.compile(annotated), '{"#literal":3.14,"#type":"::kernel::type::Number"}');
  * ```
  */
 export const typed: {
@@ -233,7 +242,7 @@ export const typed: {
 /**
  * Creates a labeled argument for {@link call}, such as `{":name": value}`.
  *
- * Give `name` without the leading `:`. It must be an identifier. The argument remains positional in the call's argument list. See {@link call} for a labeled call example.
+ * Give `name` without the leading `:`. It must be an identifier, which {@link make} checks and this builder does not. The object keeps its place in the call array. HashQL's parser gathers labeled arguments into their own list, so this one takes no positional slot. See {@link call} for a labeled call example.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 export const label = (
@@ -244,14 +253,15 @@ export const label = (
 /**
  * Builds a call to a function expression.
  *
- * `fn` can be a path or an expression that produces a function, including a closure from {@link fn}. Arguments keep their supplied order, including those created with {@link label}.
+ * `fn` can be a path or an expression that produces a function, including a closure from {@link fn}. Arguments keep their supplied order in the array, including those created with {@link label}. Neither this builder nor {@link make} checks the function's arity or argument types.
  *
- * @example
+ * @example <caption>Call a function with a positional and a labeled argument.</caption>
  * ```ts
- * import * as JExpr from "./index.js";
+ * import assert from "node:assert/strict";
+ * import { JExpr } from "@local/hashql";
  *
- * JExpr.compile(JExpr.call("greet", JExpr.label("name", JExpr.literal("Alice"))));
- * // => '["greet",{":name":{"#literal":"Alice"}}]'
+ * const greeting = JExpr.call("greet", "user", JExpr.label("style", JExpr.literal("formal")));
+ * assert.equal(JExpr.compile(greeting), '["greet","user",{":style":{"#literal":"formal"}}]');
  * ```
  */
 export const call = (
@@ -262,7 +272,7 @@ export const call = (
 /**
  * Selects a branch according to a Boolean expression.
  *
- * HashQL evaluates only the selected branch. Without `otherwise`, the query produces HashQL's `Some(then)` when the condition is true and `None` when it is false.
+ * Both branches are already built syntax, so this call runs no host code for either of them. HashQL evaluates only the selected branch when the query runs. Without `otherwise`, or with `otherwise` set to `undefined`, the expression produces HashQL's `Some(then)` when the condition is true and `None` when it is false.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 const conditional = (
@@ -282,7 +292,7 @@ export { conditional as if };
 /**
  * Binds `value` to `name` within `body`.
  *
- * Use {@link asType | as} on `value` to give it an explicit type.
+ * `name` is emitted as given, and the HashQL compiler checks that it is an identifier. Use {@link asType | as} on `value` to give it an explicit type.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 const binding = (
@@ -296,7 +306,7 @@ export { binding as let };
 /**
  * Asserts an expression's type for the HashQL type checker.
  *
- * The assertion constrains the expression's type without converting its value. Use {@link typed} to put an annotation directly on a data constructor.
+ * The assertion constrains the expression's type without converting its value. A compound type is emitted as constructor syntax, such as a `::kernel::type::Union` call or a `#struct` of types, rather than annotation text. Use {@link typed} to put an annotation directly on a data constructor.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 const asType = (value: Expression, type: Type.Type): Defs.CallType => [
@@ -310,7 +320,7 @@ export { asType as as };
 /**
  * Items to import into the body of {@link use}.
  *
- * Use `"*"` for all items or an array for named imports. For aliases, supply a record from original name to local name: `{ entities: "allEntities" }` imports `entities` as `allEntities`. The alias `"_"` keeps the original name.
+ * Use `"*"` for all items or an array for named imports. For aliases, supply a record from original name to local name: `{ entities: "allEntities" }` imports `entities` as `allEntities`. The alias `"_"` keeps the original name. An array becomes a `#tuple` of names and a record becomes a `#struct`, whose keys {@link make} checks as identifiers.
  */
 export type Imports =
   | "*"
@@ -333,7 +343,7 @@ const compileImports = (imports: Imports): Expression => {
 /**
  * Imports items from the module at `path` into `body`.
  *
- * {@link Imports} describes wildcard imports, named imports and aliases.
+ * `path` is path text, such as `::core::math`, which the HashQL compiler resolves. {@link Imports} describes wildcard imports, named imports and aliases.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 export const use = (
@@ -350,7 +360,18 @@ export const use = (
 /**
  * Reads a named query input supplied by the host.
  *
- * Without `defaultValue`, the host must supply the input. Otherwise, HashQL evaluates `defaultValue` when the input is absent.
+ * Without `defaultValue`, or with `defaultValue` set to `undefined`, the host must supply the input. Otherwise, HashQL evaluates `defaultValue`, asserted as `type`, when the input is absent. Obtain `type` from a declared type expression with `TypeExpression.toType`.
+ *
+ * @example <caption>Read an optional page size.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { JExpr, Prelude, TypeExpression } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const integer = Result.getOrThrow(TypeExpression.toType(Prelude.builtin.types.Integer));
+ * const pageSize = JExpr.input("page_size", integer, JExpr.integer(10));
+ * assert.equal(JExpr.compile(pageSize), '["::kernel::special_form::input","page_size","::kernel::type::Integer",{"#literal":10}]');
+ * ```
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 export const input = (
@@ -373,7 +394,7 @@ export const input = (
 /**
  * Selects a named field or a tuple position.
  *
- * Give a field identifier as a string or a zero-based tuple position as a number. Use {@link index} when the selector is an expression. Path strings such as `"entity.properties"` provide shorthand for named field access.
+ * Give a field identifier as a string or a zero-based tuple position as a number. A number becomes an {@link integer} literal, so a non-integral position fails {@link make}. Use {@link index} when the selector is an expression. A string expression such as `"entity.properties"` is HashQL shorthand for the same named field access.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 export const access = (
@@ -410,7 +431,7 @@ const compileName = (name: string | Reference.Reference): string => {
 /**
  * Introduces a type alias in `body`.
  *
- * The alias denotes the same type as `type`. Use {@link newtype} for a distinct nominal type with a constructor. `name` accepts type syntax such as `"Pair<T>"`, or a {@link Reference.Reference} declaring generic parameters.
+ * The alias denotes the same type as `type`. Use {@link newtype} for a distinct nominal type with a constructor. `name` is text emitted as given, such as `"Pair<T>"`, or reference type syntax, which compiles to the same form. Its generic list declares the alias's parameters, such as `T` or `T: Integer`.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 const typeAlias = (

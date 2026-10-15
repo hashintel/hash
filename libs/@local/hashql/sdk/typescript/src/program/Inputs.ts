@@ -17,7 +17,11 @@ export type Empty = Record<never, never>;
 
 declare const ErasedRequirement: unique symbol;
 
-/** Named input schemas cannot discharge unrecoverable requirements. */
+/**
+ * Marks input requirements that TypeScript could not recover.
+ *
+ * Requirement inference produces this marker when an expression's requirement record is `never` or `unknown`, or when a value lacks the SDK's requirement metadata. No input schema has the marker key, so a Draft program schema cannot satisfy an erased requirement. Merging it with a named requirement gives `never`.
+ */
 export interface Erased {
   readonly [ErasedRequirement]: Type.Unknown;
 }
@@ -72,7 +76,11 @@ type Collapse<U, I> = [U] extends [never]
         MergeRecords<I, Types.Invariant.Type<Last<U>>>
       >;
 
-/** Requires every host-side alternative, preserving shared semantic constraints. */
+/**
+ * Requires every host-side alternative, preserving shared semantic constraints.
+ *
+ * A union of requirement records becomes one record that requires each name any alternative requires. `never` and `unknown` become {@link Erased}.
+ */
 export type Conservative<I> = [I] extends [never]
   ? Erased
   : // oxlint-disable-next-line typescript/no-restricted-types -- this type-level check detects erased metadata rather than storing a runtime value
@@ -91,7 +99,42 @@ type MergeRight<L, R> = [keyof R] extends [never]
   ? L
   : MergeConservative<Conservative<L>, R>;
 
-/** Combines shared requirements, preserving the left type when the right side needs no inputs. */
+/**
+ * Combines shared requirements, preserving the left type when the right side needs no inputs.
+ *
+ * A name stays optional in the result only when every side that mentions it marks it optional. Where both sides mention a name, the result takes the intersection of its descriptors.
+ *
+ * @example <caption>Type-only: combine a defaulted use with a required use.</caption>
+ * ```ts
+ * import type { Inputs, Type } from "@local/hashql";
+ *
+ * type Equal<A, B> =
+ *   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+ *     ? true
+ *     : false;
+ *
+ * export const requiredWins: Equal<
+ *   Inputs.Merge<
+ *     { readonly limit?: Type.PrimitiveInteger },
+ *     {
+ *       readonly limit: Type.PrimitiveInteger;
+ *       readonly name: Type.PrimitiveString;
+ *     }
+ *   >,
+ *   {
+ *     readonly limit: Type.PrimitiveInteger;
+ *     readonly name: Type.PrimitiveString;
+ *   }
+ * > = true;
+ * export const conflictIsNever: Equal<
+ *   Inputs.Merge<
+ *     { readonly id: Type.PrimitiveInteger },
+ *     { readonly id: Type.PrimitiveString }
+ *   >,
+ *   { readonly id: Type.Never }
+ * > = true;
+ * ```
+ */
 export type Merge<L, R> = MergeRight<L, Conservative<R>>;
 
 /** Combines tuple members, retaining every possible requirement in arrays and optional positions. */

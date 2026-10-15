@@ -6,12 +6,12 @@ import * as Type from "./type/index.js";
 
 import type * as Defs from "./schema.js";
 
-/** The `_` placeholder, which asks the compiler to infer a type. */
+/** The `_` placeholder, which asks the HashQL compiler to infer a type in a {@link fn} signature. */
 const inferred = "_" as const;
 
 export { inferred as infer };
 
-/** An explicit type or {@link infer}, accepted by {@link fn} for parameter and return types. */
+/** An explicit type or {@link inferred | infer}, accepted by {@link fn} for parameter and return types. */
 export type TypeArgument = Type.Type | typeof inferred;
 
 /** Renders a type argument, preserving the inference placeholder. */
@@ -28,14 +28,14 @@ export interface FnOptions {
   /**
    * Type parameter names, or a record mapping each name to its bound.
    *
-   * Use {@link infer} for an unbounded parameter in a record. Defaults to no generic parameters.
+   * An array becomes a `#tuple` of unbounded names. In a record, use {@link inferred | infer} for an unbounded parameter. Defaults to no generic parameters.
    */
   readonly generics?:
     | readonly string[]
     | Record.ReadonlyRecord<string, TypeArgument>;
-  /** Parameter names and types, in argument order. Use {@link infer} for an inferred type. */
+  /** Parameter names and types, in argument order. Names must be identifiers. Use {@link inferred | infer} for an inferred type. */
   readonly params: Record.ReadonlyRecord<string, TypeArgument>;
-  /** The return type. Defaults to {@link infer}. */
+  /** The return type. Defaults to {@link inferred | infer}. */
   readonly returns?: TypeArgument;
   /** The expression that computes the closure's result. */
   readonly body: Defs.ExpressionType;
@@ -64,18 +64,21 @@ const compileGenerics = (
 /**
  * Defines a closure with named parameters.
  *
- * Parameter names are in scope in the body. Their record order determines the argument order. The return type defaults to {@link infer}.
+ * The result is the call `["fn", generics, params, returns, body]`. Parameter names are in scope in the body, and their record order determines the argument order. The return type defaults to {@link inferred | infer}. Types are written as constructor syntax, as in `JExpr.as`. The builder checks neither the body nor its use of the parameters. Call the closure with `JExpr.call` or bind it with `JExpr.let`.
  *
- * @example
+ * @example <caption>Define a predicate with an inferred parameter type.</caption>
  * ```ts
- * import * as JExpr from "./index.js";
+ * import assert from "node:assert/strict";
+ * import { JExpr } from "@local/hashql";
  *
  * const isDraft = JExpr.fn({
  *   params: { entity: JExpr.infer },
  *   body: JExpr.call("==", "entity.draft_id", JExpr.literal(null)),
  * });
- * JExpr.compile(isDraft);
- * // => '["fn",{"#tuple":[]},{"#struct":{"entity":"_"}},"_",["==","entity.draft_id",{"#literal":null}]]'
+ * assert.equal(
+ *   JExpr.compile(isDraft),
+ *   '["fn",{"#tuple":[]},{"#struct":{"entity":"_"}},"_",["==","entity.draft_id",{"#literal":null}]]',
+ * );
  * ```
  */
 export const fn = (options: FnOptions): Defs.CallType => [

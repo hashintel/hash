@@ -11,6 +11,13 @@ import type * as Type from "../type/index.js";
 import type { Utilities } from "./Utilities.js";
 import type { ReadonlyRecord } from "effect/Record";
 
+/**
+ * Declares a value binding as a Do block step.
+ *
+ * When a block elaborates the step, it calls `initializer` with the utilities, values and types visible at that point. The block emits a HashQL `let` that binds `name` to the initializer around everything after this step. Later steps see `name` in their values environment as a reference with the initializer's semantic type and input requirements. A later binding with the same name shadows this one in the values environment only.
+ *
+ * The block emits the binding even when nothing refers to it, so its initializer's inputs stay in the program. Names that need quoting, such as `%`, appear quoted in the output. An invalid HashQL identifier fails construction with `InvalidBindingName` after the initializer has run, and the block skips its remaining callbacks.
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a declaration step
 export const Let = <
   In extends Scope.Scope,

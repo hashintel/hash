@@ -22,7 +22,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks list elements and an optional type annotation.
  *
- * Validates by default. `options.disableChecks` skips schema checks. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * Each element must be an expression, and `#type` can be any text. The result is a new list. `options.disableChecks` skips the identifier, label and numeric-spelling checks inside nested values but keeps the structural requirements. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
  * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
@@ -30,14 +30,14 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => List =
   SchemaParser.make(Schema);
 
-/** Runs {@link make} validation with schema issues in the effect's error channel. */
+/** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<List, SchemaIssue.Issue> = SchemaParser.makeEffect(Schema);
 
-/** Runs {@link make} validation, returning `None` for a schema failure. */
+/** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

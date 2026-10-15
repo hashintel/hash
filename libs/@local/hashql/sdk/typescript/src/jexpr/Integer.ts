@@ -8,16 +8,17 @@ import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 export const Schema: typeof Defs.Integer = Defs.Integer;
 
 /**
- * An arbitrary-precision integer's decimal source text.
+ * An arbitrary-precision integer's decimal source text, stored in a literal's `#literal` field.
  *
- * `value` uses JSON integer syntax, such as `"-42"`. It has no fraction or exponent. Keeping the text avoids JavaScript's numeric precision limit.
+ * `value` uses JSON integer syntax, such as `"-42"`. It has no fraction or exponent. Keeping the text avoids JavaScript's numeric precision limit, but a `number` loses precision before `JExpr.integer` reads it. Pass a `bigint` for integers beyond `Number.MAX_SAFE_INTEGER`.
  *
- * @example
+ * @example <caption>Keep an integer beyond JavaScript's safe range.</caption>
  * ```ts
- * import * as JExpr from "./index.js";
+ * import assert from "node:assert/strict";
+ * import { JExpr } from "@local/hashql";
  *
- * JExpr.compile(JExpr.integer(42)); // => '{"#literal":42}'
- * JExpr.compile(JExpr.integer(2n ** 64n)); // => '{"#literal":18446744073709551616}'
+ * assert.equal(JExpr.compile(JExpr.integer(2n ** 64n)), '{"#literal":18446744073709551616}');
+ * assert.equal(JExpr.compile(JExpr.integer(2 ** 53 + 1)), '{"#literal":9007199254740992}');
  * ```
  */
 export interface Integer extends Defs.IntegerType {}
@@ -28,9 +29,9 @@ export interface Encoded extends Defs.IntegerEncoded {}
 type MakeIn = (typeof Schema)["~type.make.in"];
 
 /**
- * Checks the spelling of an integer literal.
+ * Checks that `value` is an integer in JSON number syntax, such as `-42`.
  *
- * Validates by default. `options.disableChecks` skips schema checks. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * Leading zeros, a fraction and an exponent fail. `_tag` may be omitted, and the result supplies it. `options.disableChecks` skips the spelling check and keeps only the object's shape. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
  * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
@@ -38,7 +39,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Integer =
   SchemaParser.make(Schema);
 
-/** Runs {@link make} validation with schema issues in the effect's error channel. */
+/** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
@@ -46,7 +47,7 @@ export const makeEffect: (
 ) => Effect.Effect<Integer, SchemaIssue.Issue> =
   SchemaParser.makeEffect(Schema);
 
-/** Runs {@link make} validation, returning `None` for a schema failure. */
+/** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

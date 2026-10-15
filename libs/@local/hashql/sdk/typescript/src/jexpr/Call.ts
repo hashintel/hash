@@ -20,9 +20,9 @@ export type Encoded = Defs.CallEncoded;
 type MakeIn = (typeof Schema)["~type.make.in"];
 
 /**
- * Checks a call and its arguments.
+ * Checks a call's structure and every nested expression.
  *
- * Validates by default. `options.disableChecks` skips schema checks. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * The array needs at least the function expression, and each later element must be an expression or a labeled argument. The result is a new array. `options.disableChecks` skips the identifier, label and numeric-spelling checks inside nested values but keeps the structural requirements. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
  * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
@@ -30,14 +30,14 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Call =
   SchemaParser.make(Schema);
 
-/** Runs {@link make} validation with schema issues in the effect's error channel. */
+/** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Call, SchemaIssue.Issue> = SchemaParser.makeEffect(Schema);
 
-/** Runs {@link make} validation, returning `None` for a schema failure. */
+/** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

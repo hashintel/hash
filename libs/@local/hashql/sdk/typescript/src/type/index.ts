@@ -1,7 +1,33 @@
 /**
  * Compile-time descriptions of HashQL types.
  *
- * Use {@link Any} to constrain a generic without losing its concrete type arguments. Use {@link All} to inspect a type whose arguments are unknown and narrow it by `_tag`. Each generic type has corresponding `Any` and `All` forms.
+ * A descriptor is a TypeScript type that stands for a HashQL type, such as `Type.Struct<{ readonly name: Type.PrimitiveString }>`. Expressions and type expressions carry descriptors so that TypeScript can check calls, projections, indexing and input requirements while the SDK builds syntax. The package exports this module as types alone: no descriptor value exists at runtime, and nothing compares a descriptor with the HashQL declaration it annotates. Declarations such as `Module.value<T>()` and `Module.type<T>()` take the descriptor on trust, and the HashQL compiler still checks the emitted program.
+ *
+ * Type parameters accept descriptors rather than JavaScript value types, so TypeScript rejects `Type.List<string>` and accepts `Type.List<Type.PrimitiveString>`. Use {@link Any} to constrain a generic without losing its concrete type arguments. Use {@link All} to inspect a type whose arguments are unknown and narrow it by `_tag`. Each generic type has corresponding `Any` and `All` forms. A descriptor with an erased child, such as `Type.List<Type.Any>`, satisfies `Any` but not `All`.
+ *
+ * @example <caption>Type-only: describe a record and read its parts.</caption>
+ * ```ts
+ * import type { Type } from "@local/hashql";
+ *
+ * type Equal<A, B> =
+ *   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+ *     ? true
+ *     : false;
+ *
+ * type User = Type.Struct<{
+ *   readonly id: Type.Opaque<"example::UserId", Type.PrimitiveInteger>;
+ *   readonly names: Type.List<Type.PrimitiveString>;
+ * }>;
+ *
+ * export const elementIsString: Equal<
+ *   User["fields"]["names"]["element"],
+ *   Type.PrimitiveString
+ * > = true;
+ * export const idIsNominal: Equal<
+ *   User["fields"]["id"]["name"],
+ *   "example::UserId"
+ * > = true;
+ * ```
  *
  * @module
  */
@@ -61,10 +87,18 @@ export declare namespace Intersection {
   export interface All extends Intersection<readonly AllTypes[]> {}
 }
 
-/** A nominal type distinguished by its name and underlying type. */
+/**
+ * A nominal type distinguished by its name and underlying type.
+ *
+ * TypeScript accepts an opaque descriptor only where both the name and the underlying type match. A parameter of type `Type.PrimitiveInteger` or `Type.Opaque<"PostId", Type.PrimitiveInteger>` rejects `Type.Opaque<"UserId", Type.PrimitiveInteger>`. Projections and indexing on an expression of an opaque type still reach the fields and elements of the underlying type.
+ *
+ * The name exists only in TypeScript. Emitted syntax names the declaration that introduced the type, such as `::core::uuid::Uuid`, rather than this name. Declarations that share a name and an underlying type are therefore interchangeable to TypeScript even when they emit different HashQL types. The built-in declarations use the absolute HashQL path as the name. The Do and Draft newtype operations require a `unique symbol`, which cannot coincide with a string name.
+ */
 export interface Opaque<Name extends string | symbol, T extends Any> {
   readonly _tag: "Opaque";
+  /** The identity TypeScript compares, a string literal or a symbol type. */
   readonly name: Name;
+  /** The underlying representation. */
   readonly type: T;
 }
 
@@ -94,7 +128,7 @@ export declare namespace Struct {
 /**
  * A fixed-length sequence with a type for each position.
  *
- * `T` must be a tuple of required elements. Arrays, optional elements and open-ended rest elements fail the constraint. {@link Tuple.Any} and {@link Tuple.All} erase the length for code that handles arbitrary tuple types.
+ * `T` must be a tuple of required elements. Arrays, optional elements and open-ended rest elements fail the constraint. `Tuple.Any` and `Tuple.All` erase the length for code that handles arbitrary tuple types.
  */
 export interface Tuple<
   T extends readonly Any[] & {
@@ -157,31 +191,104 @@ export interface Function<
 }
 
 export declare namespace Function {
+  /** A function with erased parameter and result types. */
   export interface Any {
     readonly _tag: "Function";
     readonly parameters: readonly AnyType[];
     readonly returns: AnyType;
   }
+  /** A function whose parameter and result types support discriminant narrowing. */
   export interface All extends Function<readonly AllTypes[], AllTypes> {}
 }
 
-/** A type-level operation whose input is a tuple of semantic types. */
+/**
+ * A type-level operation whose input is a tuple of semantic types.
+ *
+ * An implementation reads its arguments from `this["Target"]` and computes the descriptor in `type`. This is Effect's `HKT.TypeLambda` encoding with the result constrained to a descriptor. {@link TypeConstructor} and {@link FunctionSignature} are the two kinds the SDK applies.
+ */
 export interface TypeLambda extends HKT.TypeLambda {
   readonly type: Any;
 }
 
-/** Applies a declaration's type-level operation without a runtime type interpreter. */
+/**
+ * Computes the descriptor a {@link TypeLambda} produces for an argument tuple.
+ *
+ * TypeScript evaluates the operation during checking. The SDK has no runtime type interpreter, so the result is a static annotation on the syntax a call emits.
+ */
 export type Apply<
   Lambda extends TypeLambda,
   Arguments extends readonly Any[],
 > = HKT.Kind<Lambda, never, never, never, Arguments>;
 
-/** A generic type declaration with a fixed number of positional type arguments. */
+/**
+ * A generic type declaration with a fixed number of positional type arguments.
+ *
+ * Declare `arity` as a numeric literal. TypeScript checks that the arity argument to `Module.genericType` or `TypeExpression.constructor` equals that literal. A constructor call must supply exactly that many type arguments. The `type` member maps the argument descriptors in `this["Target"]` to the resulting type.
+ *
+ * @example <caption>Type-only: declare the result of a two-argument generic type.</caption>
+ * ```ts
+ * import type { Type } from "@local/hashql";
+ *
+ * type Equal<A, B> =
+ *   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+ *     ? true
+ *     : false;
+ *
+ * interface Pair extends Type.TypeConstructor {
+ *   readonly arity: 2;
+ *   readonly type: this["Target"] extends readonly [
+ *     infer L extends Type.Any,
+ *     infer R extends Type.Any,
+ *   ]
+ *     ? Type.Tuple<readonly [L, R]>
+ *     : Type.Never;
+ * }
+ *
+ * export const applied: Equal<
+ *   Type.Apply<Pair, readonly [Type.PrimitiveString, Type.PrimitiveInteger]>,
+ *   Type.Tuple<readonly [Type.PrimitiveString, Type.PrimitiveInteger]>
+ * > = true;
+ * ```
+ */
 export interface TypeConstructor extends TypeLambda {
+  /** The number of type arguments every application supplies. */
   readonly arity: number;
 }
 
-/** Computes a function signature from the types of its call arguments. */
+/**
+ * Computes a function signature from the types of its call arguments.
+ *
+ * A call to an expression of type {@link GenericFunction} applies the signature to the descriptors of the actual arguments. TypeScript then checks each argument against the resulting `parameters` and types the call as `returns`. When the arguments do not fit the operation, return a function type whose parameters no argument satisfies, as the built-in signatures do with {@link Never}.
+ *
+ * @example <caption>Declare a generic function and call it.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { Expression, JExpr, Module } from "@local/hashql";
+ * import type { Inputs, Type } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * interface First extends Type.FunctionSignature {
+ *   readonly type: this["Target"] extends readonly [
+ *     infer L extends Type.Any,
+ *     infer R extends Type.Any,
+ *   ]
+ *     ? Type.Function<readonly [L, R], L>
+ *     : Type.Function<readonly [Type.Never, Type.Never], Type.Never>;
+ * }
+ *
+ * const pairs = Result.getOrThrow(
+ *   Module.define("::example::pairs", {
+ *     values: { first: Module.value<Type.GenericFunction<First>>() },
+ *   }),
+ * );
+ * const call: Expression.Expression<Type.PrimitiveString, Inputs.Empty> =
+ *   pairs.values.first("left", 1n);
+ * assert.equal(
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(call))),
+ *   '["::example::pairs::first",{"#literal":"left"},{"#literal":1}]',
+ * );
+ * ```
+ */
 export interface FunctionSignature extends TypeLambda {
   readonly type: Function.Any;
 }
@@ -189,21 +296,32 @@ export interface FunctionSignature extends TypeLambda {
 /** A function whose parameter and result types depend on its call arguments. */
 export interface GenericFunction<Signature extends FunctionSignature> {
   readonly _tag: "GenericFunction";
+  /** The operation that derives the signature of each call. */
   readonly signature: Signature;
 }
 
 export declare namespace GenericFunction {
+  /** A generic function with its signature operation erased. */
   export type Any = GenericFunction<FunctionSignature>;
+  /** A generic function, identical to {@link GenericFunction.Any} because its signature is an operation rather than an inspectable descriptor. */
   export interface All extends GenericFunction<FunctionSignature> {}
 }
 
-/** An arbitrary-precision integer. */
+/**
+ * An arbitrary-precision integer.
+ *
+ * A `bigint` stands for this type in builder arguments. A JavaScript `number` stands for {@link PrimitiveNumber} even when its value is integral.
+ */
 export interface PrimitiveInteger {
   readonly _tag: "Integer";
   readonly value: bigint;
 }
 
-/** A number, including integer values. */
+/**
+ * A number, including integer values.
+ *
+ * TypeScript does not widen {@link PrimitiveInteger} to this type, so a parameter of this type rejects an Integer expression or a `bigint`.
+ */
 export interface PrimitiveNumber {
   readonly _tag: "Number";
   readonly value: number;
@@ -227,6 +345,11 @@ export interface PrimitiveNull {
   readonly value: null;
 }
 
+/**
+ * The primitive types.
+ *
+ * Each `value` member names the host JavaScript value type that builders accept in place of an expression of that type, such as `"text"` for {@link PrimitiveString} or `null` for {@link PrimitiveNull}.
+ */
 export type Primitive =
   | PrimitiveInteger
   | PrimitiveNumber

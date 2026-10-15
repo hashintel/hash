@@ -61,6 +61,7 @@ const suppliedTimeAxis = program(
   { axis: temporal.types.QueryTemporalAxes },
   ($, { axis }) => {
     const { createEntityUuid, createUuid } = $.prelude();
+
     return $.query
       .entities(axis)
       .filter("vertex", (_, vertex) =>
@@ -79,6 +80,7 @@ const predicateLocalBinding = program({}, ($) => {
     .entities(now())
     .filter("vertex", ($) => {
       const foo = $.let("foo", false);
+
       return $.and(true, $.or(true, foo));
     })
     .collect();
@@ -90,6 +92,7 @@ const publishedEntityById = program(
     const { now } = $.prelude();
     const webId = $.let("webId", inputs.web_id);
     const entityUuid = $.let("entityUuid", inputs.entity_uuid);
+
     return $.query
       .entities(now())
       .filter("vertex", (_, vertex) => {
@@ -105,6 +108,7 @@ const publishedEntityById = program(
 const sidebarSelection = program({ web_id: web.types.WebId }, ($, inputs) => {
   const { now } = $.prelude();
   const webId = $.let("webId", inputs.web_id);
+
   return $.query
     .entities(now())
     .filter("vertex", (_, vertex) =>
@@ -154,6 +158,7 @@ const optionalDrafts = program(
       "includeDrafts",
       $.input("include_drafts", kernel.types.Boolean, false),
     );
+
     return $.query
       .entities(now())
       .filter("vertex", ($, vertex) =>

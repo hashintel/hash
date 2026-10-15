@@ -1,7 +1,7 @@
 /**
  * Query operations derived from a declared graph-producing function.
  *
- * The graph marker carries the vertex descriptor through filtering and collection. Both authoring APIs read that descriptor from EntityFunction rather than maintaining a separate graph schema.
+ * Authoring contexts expose `query.entities` when their value declarations contain an `entities` function returning the recognized graph descriptor. The graph marker carries the vertex type through filtering and collection. These operations construct query syntax without contacting a graph service.
  *
  * @module
  */
@@ -22,11 +22,48 @@ type Graph<Vertex extends Type.Any> = Type.Opaque<
   Type.Struct<{ readonly "'marker": Vertex }>
 >;
 
+/**
+ * A graph expression with filtering and collection operations that retain its vertex descriptor.
+ *
+ * Binding gives an ordinary expression without query methods. Complete filtering and collection before binding the result. The vertex descriptor comes from the declared `entities` function, not from inspecting stored graph data.
+ *
+ * @example <caption>Build a filtered collection with a declared graph function.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { Expression } from "@local/hashql";
+ * import type { Inputs, Type } from "@local/hashql";
+ * import { withPrelude } from "@local/hashql/do";
+ * import { Result } from "effect";
+ *
+ * type Vertex = Type.Struct<{ readonly active: Type.PrimitiveBoolean }>;
+ * type Graph = Type.Opaque<
+ *   "::graph::Graph",
+ *   Type.Struct<{ readonly "'marker": Vertex }>
+ * >;
+ * const { Do } = withPrelude({ values: {
+ *   entities: Expression.fromJExpr<Type.Function<readonly [], Graph>, Inputs.Empty>("entities"),
+ * } });
+ * let calls = 0;
+ * const result = Do(($) => $.query.entities().filter("item", (item) => {
+ *   calls += 1;
+ *   return item.active;
+ * }).collect());
+ * const syntax = Result.getOrThrow(Result.flatMap(result, Expression.toJExpr));
+ * assert.equal(calls, 1);
+ * assert.ok(Array.isArray(syntax));
+ * assert.equal(syntax[0], "::graph::tail::collect");
+ * ```
+ */
 export type Query<
   T extends Type.Any,
   Vertex extends Type.Any,
   Requirements,
 > = Expression.Expression<T, Requirements> & {
+  /**
+   * Adds a named predicate callback, invoked once during successful construction rather than once per stored vertex.
+   *
+   * An invalid graph expression or parameter name skips the callback. A synchronous callback exception becomes a `CallbackException` construction failure. Captured expressions contribute their input requirements. The name identifies the emitted HashQL function's parameter. The compiler owns lexical resolution.
+   */
   readonly filter: <
     const Predicate extends Expression.Value<Type.PrimitiveBoolean>,
   >(
@@ -39,6 +76,7 @@ export type Query<
     Vertex,
     Inputs.Merge<Requirements, Expression.Inputs<Predicate>>
   >;
+  /** Constructs collection into a list of vertices, retaining query inputs and construction failures without executing it. */
   readonly collect: () => Expression.Expression<
     Type.List<Vertex>,
     Requirements
@@ -48,7 +86,7 @@ export type Query<
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- a scope without an entities declaration has no query entry point
 type Empty = Record<never, never>;
 
-/** Reads one function's arguments, result, requirements and graph vertex from its semantic metadata. */
+/** Reads the declared `entities` function's arguments, result, requirements and graph vertex, or resolves to `never` when its descriptor does not match. */
 export type EntityFunction<S extends Scope.Scope> = S["values"] extends {
   readonly entities: infer E extends Expression.Any;
 }
@@ -75,6 +113,7 @@ type Entities<S extends Scope.Scope> = <
   Inputs.Merge<EntityFunction<S>["inputs"], ArgumentInputs<A>>
 >;
 
+/** Query entry points available from a scope's declared graph function, or an empty type for an absent or incompatible declaration. */
 export type Context<S extends Scope.Scope> = [EntityFunction<S>] extends [never]
   ? Empty
   : { readonly entities: Entities<S> };

@@ -1,7 +1,11 @@
 /**
  * Typed declarations bound to absolute HashQL paths.
  *
+ * A module record describes exports that the HashQL environment provides under one path. Defining it emits no syntax and creates nothing in HashQL. Its declarations emit references beneath that path for the HashQL compiler to resolve, and importing a module emits a `use` of its path.
+ *
  * Modules keep type and value exports separate because a type and its constructor can share a name. Existing exports are aliases: selecting or regrouping one never changes its reference. Declarations supply trusted type information. The HashQL compiler checks the emitted query.
+ *
+ * Expected construction failures, such as an invalid path or export name, arrive in a `Result`.
  *
  * @module
  */
@@ -24,7 +28,11 @@ import type { ReadonlyRecord } from "effect/Record";
 const Declare: unique symbol = Symbol("~hashql/ModuleDeclaration");
 const TypeId: unique symbol = Symbol("~hashql/Module");
 
-/** A declaration waiting for the module to supply its absolute export path. */
+/**
+ * A declaration waiting for the module to supply its absolute export path.
+ *
+ * {@link value}, {@link type} and {@link genericType} create declarations. {@link define} binds each one to the export `E` it describes.
+ */
 export interface Declaration<E> {
   readonly [Declare]: (
     path: JExpr.Path.Path,
@@ -39,16 +47,28 @@ type Declarations<E> = {
   readonly [K in keyof E]: Declaration<E[K]> | E[K];
 };
 
-/** A module with its concrete export names erased. */
+/**
+ * A module with its concrete export names erased.
+ *
+ * The type and value tables are separate namespaces, so one name can hold both a type and its value constructor.
+ */
 export interface Any extends Relocatable<Any> {
   readonly [TypeId]: true;
+  /** The path under which the module binds its exports. */
   readonly path: JExpr.Path.Path;
+  /** Child modules by local name. */
   readonly modules: Namespace<Any>;
+  /** Type expressions and generic type constructors by export name. */
   readonly types: Namespace<TypeExpression.Export>;
+  /** Value expressions by export name. */
   readonly values: Namespace<Expression.Any>;
 }
 
-/** Named declarations and existing exports to assemble into a module. */
+/**
+ * Named declarations and existing exports to assemble into a module.
+ *
+ * Each table is optional. The type and value tables accept declarations or existing exports, and the module table accepts modules that are already bound.
+ */
 export interface Definition {
   readonly modules?: Namespace<Any>;
   readonly types?: Namespace<
@@ -57,6 +77,7 @@ export interface Definition {
   readonly values?: Namespace<Declaration<Expression.Any> | Expression.Any>;
 }
 
+/** A table with no names. */
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- an absent namespace intentionally has no known members
 type Empty = Record<never, never>;
 
@@ -70,6 +91,7 @@ type Entries<S, K extends PropertyKey> = K extends keyof S
 /** Distributes over alternatives so an optional declaration also unwraps when present. */
 type Export<D> = D extends Declaration<infer E> ? E : D;
 
+/** Replaces each declaration in a table with the export it binds to. */
 type Exports<D> = {
   readonly [K in keyof D]: Export<D[K]>;
 };
@@ -77,9 +99,13 @@ type Exports<D> = {
 /** Bound tables retain their key-to-export relationships independently of the source declarations. */
 interface Bound<M, T, V> extends Relocatable<Bound<M, T, V>> {
   readonly [TypeId]: true;
+  /** The path under which the module binds its exports. */
   readonly path: JExpr.Path.Path;
+  /** Child modules by local name. */
   readonly modules: Readonly<M>;
+  /** Type expressions and generic type constructors by export name. */
   readonly types: Readonly<T>;
+  /** Value expressions by export name. */
   readonly values: Readonly<V>;
 }
 
@@ -94,27 +120,41 @@ type Rebindable<E> =
       ? undefined
       : E & Relocatable<E>;
 
+/** Applies the rebinding requirement to every entry of a table. */
 type RebindableEntries<E> = { readonly [K in keyof E]: Rebindable<E[K]> };
 
+/** Requires every table of a module definition to hold rebindable entries. */
 type RebindableDefinition<S> = {
   readonly [K in keyof S]: K extends keyof Definition
     ? RebindableEntries<S[K]>
     : S[K];
 };
 
-/** An immutable module record preserving each export's concrete type. */
+/**
+ * An immutable module record preserving each export's concrete type.
+ *
+ * An omitted table becomes an empty table, and the names of an optional table become optional exports.
+ */
 export interface Module<S extends Definition> extends Bound<
   Entries<S, "modules">,
   Exports<Entries<S, "types">>,
   Exports<Entries<S, "values">>
 > {}
 
-/** Recognizes a module assembled by this SDK. */
+/**
+ * Recognizes a module assembled by this SDK.
+ *
+ * The guard checks for the module marker property. A joined namespace name that includes a module also passes, while the record {@link root} returns does not.
+ */
 // oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
 export const isModule = (value: unknown): value is Any =>
   Predicate.hasProperty(value, TypeId);
 
-/** Declares a value with trusted semantic type information. */
+/**
+ * Declares a value with trusted semantic type information.
+ *
+ * The bound export emits its absolute path, such as `::core::math::rem`, and requires no inputs. `T` decides which calls, projections and indexing TypeScript accepts, and a function descriptor makes the export callable. Nothing checks that the HashQL value has this type.
+ */
 export const value = <T extends Type.Any>(): Declaration<
   Expression.Expression<T, Inputs.Empty>
 > => ({
@@ -125,14 +165,22 @@ export const value = <T extends Type.Any>(): Declaration<
   ),
 });
 
-/** Declares a named type without expanding it into its structural representation. */
+/**
+ * Declares a named type without expanding it into its structural representation.
+ *
+ * Once bound, the export emits a reference to its absolute path, such as `::core::uuid::Uuid`. TypeScript takes its descriptor `T` on trust.
+ */
 export const type = <T extends Type.Any>(): Declaration<
   TypeExpression.TypeExpression<T>
 > => ({
   [Declare]: flow(TypeExpression.reference<T>, Result.succeed),
 });
 
-/** Declares a named generic type with a type-level operation for its result. */
+/**
+ * Declares a named generic type with a type-level operation for its result.
+ *
+ * TypeScript requires `arity` to equal `F["arity"]`. Binding returns an `InvalidTypeArity` failure for an arity that is not a non-negative safe integer. The bound constructor emits applications of the export's path and checks the argument count of each call.
+ */
 export const genericType = <F extends Type.TypeConstructor>(
   arity: F["arity"],
 ): Declaration<TypeExpression.Constructor<F>> => ({
@@ -290,9 +338,43 @@ const bound = <
 /**
  * Binds new declarations and retains existing exports by identity.
  *
- * Child modules retain their own paths, including when mounted under an alias. Copying and freezing the records prevents caller mutations from adding or replacing exports afterward.
+ * `name` must be an absolute path such as `::core::math`. Each declaration binds to that path extended by its key, so a value declared as `rem` emits `::core::math::rem`. An existing type expression, expression or module keeps its identity and the syntax it already emits. Child modules retain their own paths, including when mounted under an alias. Copying and freezing the records prevents caller mutations from adding or replacing exports afterward. The caller's tables are not frozen.
  *
- * Invalid paths, export names and generic arities return construction failures.
+ * Every own string key becomes an export, including non-enumerable keys and `__proto__`. A key must be a HashQL identifier. Emitted paths quote an operator name such as `%`, as in `` ::core::math::`%` ``.
+ *
+ * Invalid paths, export names and generic arities return construction failures. A malformed path returns `InvalidModulePath`, a relative path `RelativeModulePath`, a key that is not an identifier `InvalidExportName`, a symbol key `SymbolExportName` and an invalid generic arity `InvalidTypeArity`. Binding stops at the first failure, checking the module, type and value tables in that order.
+ *
+ * TypeScript keeps the namespaces apart: a value declaration cannot enter `types`, and a type declaration cannot enter `values`. Each existing export must rebind to its own type. TypeScript rejects a handle extended through `Object.assign`, because rebinding would drop the added properties.
+ *
+ * @example <caption>Declare a type and its value constructor under one name.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { Expression, JExpr, Module } from "@local/hashql";
+ * import type { Type } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * type Uuid = Type.Opaque<"::core::uuid::Uuid", Type.PrimitiveString>;
+ *
+ * const uuid = Result.getOrThrow(
+ *   Module.define("::core::uuid", {
+ *     types: { Uuid: Module.type<Uuid>() },
+ *     values: {
+ *       Uuid: Module.value<
+ *         Type.Function<readonly [Type.PrimitiveString], Uuid>
+ *       >(),
+ *     },
+ *   }),
+ * );
+ * const id = Expression.input("id", uuid.types.Uuid, uuid.values.Uuid("fallback"));
+ * assert.equal(
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(id))),
+ *   '["::kernel::special_form::input","id","::core::uuid::Uuid",["::core::uuid::Uuid",{"#literal":"fallback"}]]',
+ * );
+ *
+ * const relative = Module.define("core::uuid", {});
+ * assert.ok(Result.isFailure(relative));
+ * assert.equal(relative.failure.reason._tag, "RelativeModulePath");
+ * ```
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the path names the module under construction
 export function define<const S extends Definition>(
@@ -346,7 +428,43 @@ export function define<
   });
 }
 
-/** Rebinds a module tree while preserving each export's declared type. */
+/**
+ * Rebinds a module tree while preserving each export's declared type.
+ *
+ * Every export becomes a reference to its name under `path`, including aliases of exports from other modules. Child modules are rebound recursively beneath it. The path can be relative, as it is when an import binds a module under a local name. Each export keeps its descriptor and input requirements even though its syntax becomes a reference. The original module keeps its paths. The first export that cannot be rebound, such as a value whose construction failed, returns its failure. It accepts the module first or last.
+ *
+ * @example <caption>Rebind an alias and a child module.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { Expression, JExpr, Module } from "@local/hashql";
+ * import type { Type } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const compile = (value: Expression.Any): string =>
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(value)));
+ * const config = Result.getOrThrow(
+ *   Module.define("::core::config", {
+ *     values: { limit: Module.value<Type.PrimitiveInteger>() },
+ *   }),
+ * );
+ * const app = Result.getOrThrow(
+ *   Module.define("::app", {
+ *     modules: { settings: config },
+ *     values: { maximum: config.values.limit },
+ *   }),
+ * );
+ * assert.equal(compile(app.values.maximum), '"::core::config::limit"');
+ *
+ * const local = Result.getOrThrow(
+ *   Module.relocate(app, Result.getOrThrow(JExpr.Path.decodeResult("local"))),
+ * );
+ * assert.equal(compile(local.values.maximum), '"local::maximum"');
+ * assert.equal(
+ *   compile(local.modules.settings.values.limit),
+ *   '"local::settings::limit"',
+ * );
+ * ```
+ */
 export const relocate: {
   (
     path: JExpr.Path.Path,
@@ -359,7 +477,11 @@ export const relocate: {
   ): Result.Result<M, ProgramError.Construction>;
 } = relocateHandle;
 
-/** Assembles already-bound modules without rebasing their references. */
+/**
+ * Assembles already-bound modules without rebasing their references.
+ *
+ * The result is a frozen `{ modules }` record keyed by the supplied names. It is not a module: it has no path, and {@link isModule} rejects it. Each child keeps its identity and its own path. The record fits any parameter that takes a scope definition, such as a Do or Draft prelude. Names follow the rules and failures of the module table of {@link define}.
+ */
 export const root = <const M extends Namespace<Any>>(
   modules: M,
 ): Result.Result<

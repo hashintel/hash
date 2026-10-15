@@ -323,16 +323,23 @@ type IndexAccessor<Descriptor, Inputs> = [Descriptor] extends [IndexDescriptor]
     }
   : EmptyAccessors;
 
+/**
+ * Projection and indexing operations selected by an expression's semantic descriptor.
+ *
+ * Struct fields and tuple positions support property access and `$project`. For unions and intersections, a projected field must exist in every member. `$project` also accepts operation names such as `$index` when they name actual fields. List and dictionary `$index` calls merge the key's inputs and include Null in the result for an absent element. Opaque descriptors expose the operations of their underlying type.
+ */
 export type Accessors<T extends Type.Any, Inputs> = ProjectionAccessors<
   FieldsOf<Normalize<T>>,
   Inputs
 > &
   IndexAccessor<IndexOf<Normalize<T>>, Inputs>;
 
+/** Host arguments accepted at each semantic parameter position, including corresponding primitive shorthand. */
 export type Arguments<Parameters extends readonly Type.Any[]> = {
   readonly [Index in keyof Parameters]: Expression.Value<Parameters[Index]>;
 };
 
+/** Combined input requirements of a call's argument tuple, retaining requirements from optional positions. */
 export type ArgumentInputs<Values extends readonly Expression.AnyValue[]> =
   Input.All<{
     readonly [Index in keyof Values]: Expression.Inputs<Values[Index]>;
@@ -342,6 +349,11 @@ type ArgumentTypes<Values extends readonly Expression.AnyValue[]> = {
   readonly [Index in keyof Values]: Expression.TypeOf<Values[Index]>;
 };
 
+/**
+ * Host call signatures that construct calls to fixed or generic HashQL functions.
+ *
+ * Fixed signatures constrain each argument by its declared descriptor. Generic signatures apply the argument descriptors to the declared type-level function. Both forms merge the callee's input requirements with those of every argument. Non-function descriptors contribute no call signature.
+ */
 export type Callable<T extends Type.Any, Inputs> =
   T extends Type.Function<infer Parameters, infer Returns>
     ? <const Values extends Arguments<Parameters>>(
@@ -362,6 +374,7 @@ export type Callable<T extends Type.Any, Inputs> =
         >
       : EmptyAccessors;
 
+/** The normalized union of two conditional branch descriptors, retaining a single descriptor when both are equal. */
 export type Conditional<Then extends Type.Any, Else extends Type.Any> = Join<
   Normalize<Then>,
   Normalize<Else>

@@ -3,6 +3,8 @@
  *
  * Export types derive from the bound declarations, without a second list of semantic annotations. Generated declarations can supply the same module, type and value tables to Draft.withPrelude. This default includes primitive types, List, Dict, UUID identities, equality and addition. It is not a complete standard-library binding.
  *
+ * Draft's `program` constructs with {@link builtin}. The default `Do` of the Do API starts with an empty scope, and `withPrelude(Prelude.builtin)` from that API supplies these names. This module also re-exports the semantic types of the declarations, such as `Prelude.Uuid` and the `Prelude.Arithmetic` signature.
+ *
  * @module
  */
 import { Result, pipe } from "effect";
@@ -107,7 +109,11 @@ const math: Module.Module<typeof arithmeticDeclarations> = pipe(
   Result.getOrThrow,
 );
 
-/** Derives exports from declaration tables without repeating their semantic annotations. */
+/**
+ * The scope type of {@link builtin}.
+ *
+ * It derives the export types from the declaration tables without repeating their semantic annotations.
+ */
 export type Builtin = Scope.From<{
   readonly modules: {
     readonly entity: typeof entity;
@@ -126,6 +132,55 @@ export type Builtin = Scope.From<{
     typeof math.values;
 }>;
 
+/**
+ * The built-in declarations as module, type and value tables.
+ *
+ * - `types` holds `Integer`, `Number`, `String`, `Boolean`, `Null`, `Unknown`, `Never` and the generic `List` and `Dict`, all under `::kernel::type`. It also holds `Uuid` at `::core::uuid::Uuid` and `EntityUuid` at `::graph::types::knowledge::entity::EntityUuid`.
+ * - `values` holds the constructors `Uuid` and `EntityUuid` at the same paths as their types, `eq` at `::core::cmp::eq` and `add` at `::core::math::add`.
+ * - `modules` holds `uuid` at `::core::uuid`, `entity` at `::graph::types::knowledge::entity`, `cmp` at `::core::cmp` and `math` at `::core::math`. The `::kernel::type` module that declares the primitive types is not among them.
+ *
+ * `List` and `Dict` accept structural shorthand as well as type expressions, so `List(String)` and `List(Prelude.builtin.types.String)` emit the same type. `eq` accepts operands of any two types, which need not match. `add` accepts Integer and Number operands, as `Prelude.Arithmetic` describes. The SDK takes these signatures on trust, and the HashQL compiler checks the emitted calls.
+ *
+ * Draft's `program` constructs with these declarations, while the default `Do` of the Do API starts with none. Draft's `$.prelude()` joins the three tables into one object. There `Uuid` is both the type and its constructor, and the module `cmp` exposes `eq` directly.
+ *
+ * @example <caption>Use built-in types and functions outside a program callback.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { Expression, JExpr, Prelude } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const { types, values } = Prelude.builtin;
+ * const compile = (value: Expression.AnyValue): string =>
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(value)));
+ *
+ * assert.equal(
+ *   compile(Expression.input("names", types.List(String))),
+ *   '["::kernel::special_form::input","names","::kernel::type::List<::kernel::type::String>"]',
+ * );
+ * assert.equal(
+ *   compile(values.add(Expression.input("offset", types.Integer), 1n)),
+ *   '["::core::math::add",["::kernel::special_form::input","offset","::kernel::type::Integer"],{"#literal":1}]',
+ * );
+ * ```
+ *
+ * @example <caption>Use one flattened name as a type and as a value constructor.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { Expression, JExpr, Prelude } from "@local/hashql";
+ * import { program } from "@local/hashql/draft";
+ * import { Result } from "effect";
+ *
+ * const nil = "00000000-0000-0000-0000-000000000000";
+ * const result = program({ id: Prelude.builtin.types.Uuid }, ($) => {
+ *   const { Uuid, cmp } = $.prelude();
+ *   return cmp.eq($.input("id", Uuid), Uuid(nil));
+ * });
+ * assert.equal(
+ *   JExpr.compile(Result.getOrThrow(Result.flatMap(result, Expression.toJExpr))),
+ *   `["::core::cmp::eq",["::kernel::special_form::input","id","::core::uuid::Uuid"],["::core::uuid::Uuid",{"#literal":"${nil}"}]]`,
+ * );
+ * ```
+ */
 export const builtin: Builtin = Scope.merge(Scope.empty, {
   modules: { entity, uuid, cmp, math },
   types: {

@@ -11,6 +11,13 @@ import type * as Semantic from "../type/index.js";
 import type { Utilities } from "./Utilities.js";
 import type { ReadonlyRecord } from "effect/Record";
 
+/**
+ * Declares a type alias as a Do block step.
+ *
+ * When a block elaborates the step, it calls `definition` with the utilities and the types visible at that point. The block emits a HashQL `type` declaration around everything after this step. Later steps see `name` in their types environment as a reference to the alias, carrying the definition's semantic type, so TypeScript treats the alias as that type. Use `Newtype` for a distinct nominal type. A value or module with the same name stays visible.
+ *
+ * A name that is not a valid HashQL identifier fails construction with `InvalidBindingName`, and the block skips its remaining callbacks.
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a type declaration step
 export const Type = <
   In extends Scope.Scope,

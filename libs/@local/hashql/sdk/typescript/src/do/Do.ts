@@ -7,7 +7,11 @@ import type * as Node from "./Node.js";
 import type { Body } from "./Utilities.js";
 import type { Result } from "effect";
 
-/** Contextual overloads propagate the output universes and accumulate every declaration's inputs. */
+/**
+ * The call signatures of a Do block constructor whose blocks start in the scope `Initial`.
+ *
+ * Each overload threads the scope through zero to eight declaration steps, so every step and the final body see the names the earlier steps introduced. The result's input requirements combine those of every step with the body's. For more than eight steps, continue in a nested block started from a callback's `$`.
+ */
 export interface Do<Initial extends Scope.Scope> {
   <T extends Type.Any, Inputs>(
     body: Body<Initial, T, Inputs>,

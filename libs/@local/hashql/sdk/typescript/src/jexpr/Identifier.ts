@@ -10,7 +10,7 @@ export const Schema: typeof Defs.Identifier = Defs.Identifier;
 /**
  * Source text interpreted as a path, type or argument shorthand.
  *
- * The schema accepts any string. HashQL parses it according to its position in the expression. For example, `"user"` is a path and `":user"` is a labeled-argument shorthand in a call.
+ * The schema accepts any string, including the empty string. HashQL parses it according to its position in the expression. In an expression position, `"user"` is a path, `"user.name"` and `"items[0]"` access a field and an element, and `"_"` is a placeholder. In a call argument, `":user"` is shorthand for the labeled argument `{":user": "user"}`. A type position reads the text as type syntax. For a single identifier object, see `JExpr.Ident`.
  */
 export type Identifier = Defs.IdentifierType;
 /** The schema-encoded representation of {@link Identifier}. */
@@ -20,9 +20,9 @@ export type Encoded = Defs.IdentifierEncoded;
 type MakeIn = (typeof Schema)["~type.make.in"];
 
 /**
- * Accepts source text for a string expression.
+ * Accepts any string as a string expression.
  *
- * Validates by default. `options.disableChecks` skips schema checks. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * The schema has no checks, so this confirms only that the input is a string. HashQL parses the text when it compiles the program. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
  * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
@@ -32,7 +32,7 @@ export const make: (
   options?: $Schema.MakeOptions,
 ) => Identifier = SchemaParser.make(Schema);
 
-/** Runs {@link make} validation with schema issues in the effect's error channel. */
+/** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
@@ -40,7 +40,7 @@ export const makeEffect: (
 ) => Effect.Effect<Identifier, SchemaIssue.Issue> =
   SchemaParser.makeEffect(Schema);
 
-/** Runs {@link make} validation, returning `None` for a schema failure. */
+/** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,

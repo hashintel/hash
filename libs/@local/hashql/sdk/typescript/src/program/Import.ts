@@ -18,15 +18,52 @@ import type * as Module from "./Module.js";
 import type * as Namespace from "./Namespace.js";
 import type { ReadonlyRecord } from "effect/Record";
 
+/** The string export names of a module across its three tables. */
 type Name<M extends Module.Any> = Extract<
   keyof M["modules"] | keyof M["values"] | keyof M["types"],
   string
 >;
+
+/**
+ * The exports an import brings into scope and the local names they take.
+ *
+ * - `"*"` imports every own name in the module's three tables.
+ * - An array of export names imports those names unchanged.
+ * - A record maps export names to local aliases. The alias `"_"` keeps the export's own name.
+ *
+ * One name selects the module, type and value exports that share it. Each imported export emits its local name, and the import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier, or a symbol key in the record, fails construction with `InvalidImportName`.
+ *
+ * @example <caption>Import a built-in function under another name.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { Expression, JExpr, Prelude } from "@local/hashql";
+ * import { program } from "@local/hashql/draft";
+ * import { Result } from "effect";
+ *
+ * const { math } = Prelude.builtin.modules;
+ * const result = program({}, ($) => {
+ *   const { plus } = $.import(math, { add: "plus" });
+ *   return plus(1n, 2n);
+ * });
+ * assert.equal(
+ *   JExpr.compile(Result.getOrThrow(Result.flatMap(result, Expression.toJExpr))),
+ *   '["::kernel::special_form::use","::core::math",{"#struct":{"add":"plus"}},["plus",{"#literal":1},{"#literal":2}]]',
+ * );
+ *
+ * const invalid = program({}, ($) => {
+ *   $.import(math, { add: "not an identifier" });
+ *   return $.literal(true);
+ * });
+ * assert.ok(Result.isFailure(invalid));
+ * assert.equal(invalid.failure.reason._tag, "InvalidImportName");
+ * ```
+ */
 export type Selection<M extends Module.Any> =
   | "*"
   | readonly Name<M>[]
   | Partial<ReadonlyRecord<Name<M>, string>>;
 
+/** Filters and renames one table according to a selection. */
 type Selected<E, I> = I extends "*"
   ? E
   : I extends readonly string[]
@@ -41,6 +78,7 @@ type Selected<E, I> = I extends "*"
           : never]: E[K];
       };
 
+/** The tables an import adds to a scope, keyed by local name and keeping each selected export's type. */
 export interface Imported<M extends Module.Any, I> {
   readonly modules: Selected<M["modules"], I>;
   readonly values: Selected<M["values"], I>;
@@ -146,6 +184,7 @@ const plan = (
 interface Capability extends Relocatable<Capability> {}
 type Rebindings<E> = { readonly [K in keyof E]: Relocatable<E[K]> };
 
+/** A module whose exports each rebind to their own type, as an import requires. */
 export interface Rebindable<M extends Module.Any> {
   readonly modules: M["modules"] & Rebindings<M["modules"]>;
   readonly types: M["types"] & Rebindings<M["types"]>;

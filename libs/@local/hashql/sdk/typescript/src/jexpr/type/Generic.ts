@@ -40,9 +40,7 @@ export const argument = (type: Defs.Type): Defs.GenericArgumentType => ({
 /**
  * Creates a named generic constraint: the `T: Integer` in `Foo<T: Integer>`.
  *
- * Returns `None` if `name` is not a valid identifier according to
- * {@link Ident.decodeResult}. Without a bound, it compiles to the bare name, which
- * the backend reads as a generic argument.
+ * Returns `None` if `name` is not a valid identifier according to `Ident.decodeResult`. Without a bound, it compiles to the bare name, which HashQL parses as a generic argument. A declaration name such as `Pair<T>` reads that bare name as an unbounded parameter.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const bound = (
