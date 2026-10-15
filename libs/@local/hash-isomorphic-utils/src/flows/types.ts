@@ -177,7 +177,10 @@ export type StoredPayloadKind = (typeof storedPayloadKinds)[number];
  * Payload kinds whose singular values are small enough to pass inline, but whose arrays are stored in S3,
  * because they can grow without bound.
  */
-export const storedArrayPayloadKinds = ["PersistedEntityMetadata"] as const;
+export const storedArrayPayloadKinds = [
+  "EntityId",
+  "PersistedEntityMetadata",
+] as const;
 
 export type StoredArrayPayloadKind = (typeof storedArrayPayloadKinds)[number];
 

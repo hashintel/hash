@@ -1,5 +1,8 @@
+import { randomUUID } from "node:crypto";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { resolvePayloadValue } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { maxQueryEntities } from "@local/hash-isomorphic-utils/flows/query-entities";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -8,6 +11,7 @@ import { StatusCode } from "@local/status";
 import { queryEntitiesAction } from "./query-entities-action.js";
 
 import type { BaseUrl, EntityId, WebId } from "@blockprotocol/type-system";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Filter } from "@local/hash-graph-client";
 import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
@@ -15,13 +19,24 @@ import type { SortKey } from "@local/hash-isomorphic-utils/flows/sort-key";
 import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 
 const webId = "00000000-0000-4000-8000-000000000001" as WebId;
+const workflowId = "workflow";
+const objects = new Map<string, string>();
+const storageProvider = {
+  uploadDirect: ({ key, body }: { key: string; body: string }) => {
+    objects.set(key, body);
+    return Promise.resolve();
+  },
+  downloadDirect: ({ key }: { key: string }) =>
+    Promise.resolve(Buffer.from(objects.get(key) ?? "null")),
+} as unknown as FileStorageProvider;
 
 vi.mock("../shared/graph-api-client.js", () => ({ graphApiClient: {} }));
 vi.mock("../shared/get-flow-context.js", () => ({
   getFlowContext: () =>
     Promise.resolve({
-      workflowId: "workflow",
-      runId: "run",
+      workflowId,
+      /* A run of its own, so that outputs stored by one test aren't read back from the download cache by another. */
+      runId: randomUUID(),
       stepId: "query",
       userAuthentication: { actorId: "user" },
       webId,
@@ -31,7 +46,7 @@ vi.mock(
   "@local/hash-backend-utils/flows/payload-storage",
   async (importOriginal) => ({
     ...(await importOriginal<object>()),
-    getStorageProvider: () => ({}),
+    getStorageProvider: () => storageProvider,
   }),
 );
 vi.mock("@local/hash-graph-sdk/entity", () => ({ queryEntities: vi.fn() }));
@@ -112,8 +127,17 @@ const mockPages = (...pages: Record<string, unknown>[][]) => {
   }
 };
 
-const outputOf = (result: Awaited<ReturnType<typeof run>>) =>
-  result.contents[0]?.outputs[0]?.payload.value;
+const outputOf = async (result: Awaited<ReturnType<typeof run>>) => {
+  const output = result.contents[0]?.outputs[0];
+  return (
+    output &&
+    resolvePayloadValue(
+      { storageProvider, workflowId },
+      output.payload.kind,
+      output.payload.value,
+    )
+  );
+};
 
 describe("queryEntitiesAction", () => {
   beforeEach(() => {
@@ -154,7 +178,10 @@ describe("queryEntitiesAction", () => {
     const result = await run();
 
     expect(result.code).toBe(StatusCode.Ok);
-    expect(outputOf(result)).toEqual([]);
+    expect(result.contents[0]?.outputs).toMatchObject([
+      { outputName: "entities", payload: { value: { __stored: true } } },
+    ]);
+    expect(await outputOf(result)).toEqual([]);
   });
 
   it("reads every page", async () => {
@@ -165,7 +192,7 @@ describe("queryEntitiesAction", () => {
     expect(
       vi.mocked(queryEntities).mock.calls.map(([, , { cursor }]) => cursor),
     ).toEqual([undefined, [{ page: 0 }], [{ page: 1 }]]);
-    expect(outputOf(result)).toEqual([0, 1, 2, 3, 4].map(entityIdOf));
+    expect(await outputOf(result)).toEqual([0, 1, 2, 3, 4].map(entityIdOf));
   });
 
   it("stops reading once it has the first entities up to the limit", async () => {
@@ -174,7 +201,7 @@ describe("queryEntitiesAction", () => {
     const result = await run({ limit: 3 });
 
     expect(queryEntities).toHaveBeenCalledTimes(2);
-    expect(outputOf(result)).toEqual([0, 1, 2].map(entityIdOf));
+    expect(await outputOf(result)).toEqual([0, 1, 2].map(entityIdOf));
   });
 
   it("sorts every match by each key in turn, with missing values last, before limiting", async () => {
@@ -199,7 +226,7 @@ describe("queryEntitiesAction", () => {
     });
 
     expect(queryEntities).toHaveBeenCalledTimes(2);
-    expect(outputOf(result)).toEqual([3, 2, 4, 0].map(entityIdOf));
+    expect(await outputOf(result)).toEqual([3, 2, 4, 0].map(entityIdOf));
   });
 
   it("fails rather than leave out entities when there are too many to read", async () => {
