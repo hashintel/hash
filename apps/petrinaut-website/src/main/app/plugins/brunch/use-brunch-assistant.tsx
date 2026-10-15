@@ -36,7 +36,7 @@ import {
 } from "./conversation/use-process-agent-binding";
 import { brunchPlugin, WithBrunchEditorApi } from "./editor-api-plugin";
 import { foldBrunchLedgerHistory } from "./ledger/brunch-ledger-history";
-import { BrunchLedgerPane } from "./ledger/brunch-ledger-pane";
+import { BrunchLedgerTab } from "./ledger/brunch-ledger-tab";
 import {
   brunchPetrinautClientToolNames,
   canonicalPetrinautClientToolNames,
@@ -511,7 +511,7 @@ export const useBrunchAssistant = ({
             label: "Ledger",
             activityIdentities,
             content: (
-              <BrunchLedgerPane
+              <BrunchLedgerTab
                 messages={flueHistory.snapshot?.messages ?? []}
               />
             ),

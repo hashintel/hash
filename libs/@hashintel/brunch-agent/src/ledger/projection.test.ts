@@ -94,3 +94,16 @@ test("a question that names no entity drops its concerns clause", () => {
   );
   expect(rendered).not.toContain("Concerns: .");
 });
+
+test("each entity carries the reflections naming it or one of its current claims", () => {
+  const reflectionsOf = (address: string) =>
+    projection.sections
+      .flatMap(({ kinds }) => kinds)
+      .flatMap(({ entities }) => entities)
+      .find(({ record }) => record.address === address)
+      ?.reflections.map((reflection) => reflection.address);
+  // e9 is named directly; e6 only through claim c8, which r2 addresses.
+  expect(reflectionsOf("e9")).toEqual(["r1"]);
+  expect(reflectionsOf("e6")).toEqual(["r2"]);
+  expect(user).not.toContain(supportDeskLedger.reflections[0]?.text);
+});

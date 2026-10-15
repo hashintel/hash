@@ -1,15 +1,14 @@
 import {
   type NetElementKind,
+  namesId,
   netReaderLevelOf,
   parseClientToolResultMetadata,
   petrinautToolTargets,
 } from "@hashintel/brunch-agent";
 import {
-  canonicalizeArcId,
   generateArcId,
   getArcEndpointKey,
   placeArcEndpoint,
-  toPetrinautId,
 } from "@hashintel/petrinaut-core";
 import {
   petrinautAiTools,
@@ -97,17 +96,6 @@ export const isAppliedChange = (call: NetCall): boolean =>
     "applied" in call.output &&
     call.output.applied === false
   );
-
-/**
- * Whether `written` names `id`: as written, or as the converted id the
- * document stores for an id the model invented. Flue keeps the model's raw
- * arguments, while ids read from the document are converted.
- */
-export const namesId = (written: unknown, id: string): boolean =>
-  typeof written === "string" &&
-  (written === id ||
-    toPetrinautId(written) === id ||
-    canonicalizeArcId(written) === id);
 
 /** Only values under an id key (`id` or `...Id`) are converted; names and code compare exactly. */
 const hasId = (value: unknown, id: string, underIdKey = false): boolean => {

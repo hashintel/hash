@@ -2,8 +2,8 @@
  * The Ledger's projection: committed records folded into a sectioned
  * structure and rendered to markdown in two skins over one shape. The agent
  * skin carries record addresses and kind tokens inline; the user skin is clean
- * prose. `ledger_compile` renders the agent skin, the website's Ledger tab the
- * user skin.
+ * prose. `ledger_compile` renders the agent skin; the website's Ledger tab
+ * renders the projection itself, in the user skin's wording.
  */
 
 export type {

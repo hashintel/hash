@@ -26,6 +26,11 @@ export {
   type NetReaderLevel,
 } from "./petrinaut/net-readers";
 export {
+  namesId,
+  namesSelectionItem,
+  netElementSelectionItem,
+} from "./petrinaut/net-element-ids";
+export {
   browserToolMutatesDocument,
   netElementKinds,
   petrinautToolTargets,
