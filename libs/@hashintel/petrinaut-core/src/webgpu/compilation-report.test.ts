@@ -89,12 +89,10 @@ describe("analyzeCompilation", () => {
 
   it("accepts every bundled example except the one multi-place consumer", () => {
     // With derived capacities, calibrated histogram windows, forwarded
-    // kernel tokens, and the tiling-aware state gate, the GPU declines two
-    // examples. Production Machines' `Start Repair` consumes typed tokens
-    // from two places, a cross-product enumeration the shader does not scan
-    // yet (the weight > 2 family). Inventory Purchasing is refused before
-    // emission: its lots and ledgers carry `string` attributes (material,
-    // supplier, record kind), which 32-bit WebGPU integers cannot hold.
+    // kernel tokens, and the tiling-aware state gate, the only example the
+    // GPU still declines is Production Machines — its \`Start Repair\`
+    // consumes typed tokens from two places, a cross-product enumeration
+    // the shader does not scan yet (the weight > 2 family).
     // Deliberately exhaustive over the examples namespace: adding an example
     // MUST extend this matrix, so its GPU verdict is a decision, not an
     // accident.
@@ -115,7 +113,6 @@ describe("analyzeCompilation", () => {
       dronePatrol: true,
       supplyChainWithDisruption: true,
       supplyChainProfit: true,
-      inventoryPurchasing: false,
       vaccinationCampaign: true,
     });
     const production = analyze(
@@ -124,12 +121,6 @@ describe("analyzeCompilation", () => {
     expect(production.shaderFailure).toMatch(
       /consumes typed tokens from 2 places/,
     );
-    const inventory = analyze(
-      allExamples.inventoryPurchasing.petriNetDefinition,
-    );
-    expect(
-      new Set(inventory.eligibilityReasons.map((reason) => reason.code)),
-    ).toStrictEqual(new Set(["unsupported-attribute-type"]));
   });
 
   it("reports the satellites example GPU-ready with derived capacities", () => {
@@ -347,57 +338,6 @@ describe("analyzeCompilation", () => {
       supplyChainProfit: {
         metric_service_level: "gpu-ready",
         metric_profit: "gpu-ready",
-      },
-      // Refused before emission (string attributes), so every metric is
-      // `not-attempted` except those that fail translation on their own:
-      // three read a string attribute, and Policy cost joins places with
-      // `.concat`.
-      inventoryPurchasing: {
-        metric__demand_rate: "not-attempted",
-        metric__backlog: "not-attempted",
-        metric__fulfilled: "not-attempted",
-        metric__lead_time_sum: "not-attempted",
-        metric__lost_sales: "not-attempted",
-        metric__raw_units_ingredient_a: "not-attempted",
-        metric__raw_units_ingredient_b: "not-attempted",
-        metric__on_order_units: "not-attempted",
-        metric__fg_units: "not-attempted",
-        metric__expired_units: "not-attempted",
-        metric__scrapped: "not-attempted",
-        metric__orders_placed: "not-attempted",
-        metric__spend: "not-attempted",
-        metric__switches: "not-attempted",
-        metric__lost_shipments: "not-attempted",
-        metric__lost_shipment_value: "not-attempted",
-        metric__switch_fees: "not-attempted",
-        metric__in_transit_ingredient_a: "cpu-only",
-        metric__fulfilled_contract: "cpu-only",
-        metric__tardiness: "not-attempted",
-        metric__late_penalties: "not-attempted",
-        metric__delays: "not-attempted",
-        metric__delayed_units: "not-attempted",
-        metric__price_level: "not-attempted",
-        metric__at_vendor_units: "not-attempted",
-        metric__at_vendor_ingredient_a: "cpu-only",
-        metric__holding_banked: "not-attempted",
-        metric__holding_raw1: "not-attempted",
-        metric__holding_raw2: "not-attempted",
-        metric__holding_fg: "not-attempted",
-        metric__units_sold: "not-attempted",
-        metric__units_lost: "not-attempted",
-        metric__backlog_units: "not-attempted",
-        metric__schedule_waiting: "not-attempted",
-        metric__position_1: "not-attempted",
-        metric__position_2: "not-attempted",
-        metric__quarantine_units: "not-attempted",
-        metric__rejected_units: "not-attempted",
-        metric__recalled_units: "not-attempted",
-        metric__disposal_costs: "not-attempted",
-        metric__lost_margin: "not-attempted",
-        metric__shortage_banked: "not-attempted",
-        metric__shortage_live: "not-attempted",
-        metric__policy_cost: "cpu-only",
-        metric__fill_rate: "not-attempted",
       },
       vaccinationCampaign: {
         metric__total_cost: "gpu-ready",
