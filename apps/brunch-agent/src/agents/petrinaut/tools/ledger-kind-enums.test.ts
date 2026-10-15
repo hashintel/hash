@@ -574,7 +574,7 @@ test("an entity update keeps the turn the entity was created in", () => {
   ]);
 });
 
-test("ledger_compile renders the committed state as the agent-skin map", async () => {
+test("ledger_compile renders the committed state as the Markdown map", async () => {
   const history = settledHistory([
     toBatch([
       [
@@ -968,7 +968,6 @@ test("an obligation stays owed until a reflection discharges it", async () => {
   expect(
     renderLedgerMarkdown(
       projectLedger(foldCommits(settledHistory([owing])).state),
-      "agent",
     ),
   ).toContain(
     "## Checks still owed\n\n- A run at the current settings reproduces the 2 July overflow. \u2014 The 2 July overflow `o1`",
@@ -1008,7 +1007,6 @@ test("an obligation stays owed until a reflection discharges it", async () => {
   expect(
     renderLedgerMarkdown(
       projectLedger(foldCommits(settledHistory([owing, discharging])).state),
-      "agent",
     ),
   ).not.toContain("Checks still owed");
 });
@@ -1158,7 +1156,7 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     const ledger =
       prior.length === 0
         ? "There are no existing entities or claims, so use only create routes."
-        : `The ledger already holds the records below; reference them by their IDs and use create routes for new records.\n\n${renderLedgerMarkdown(projectLedger(foldCommits(settledHistory(prior)).state), "agent")}\n\n`;
+        : `The ledger already holds the records below; reference them by their IDs and use create routes for new records.\n\n${renderLedgerMarkdown(projectLedger(foldCommits(settledHistory(prior)).state))}\n\n`;
     const models = createModels();
     models.setProvider(anthropicProvider());
     models.setProvider(openaiProviderWithAddedModels());

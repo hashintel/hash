@@ -35,7 +35,7 @@ export interface ProjectedEntity {
   /**
    * Reflections on how the net represents this entity: those naming it or one
    * of its current claims, in recording order. Renderers choose whether to
-   * show them; the Markdown skins do not.
+   * show them; the model's Markdown does not.
    */
   reflections: ReflectionRecord[];
 }

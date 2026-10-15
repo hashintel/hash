@@ -26,7 +26,7 @@ The Ledger is the ordered sequence of accepted `ledger_commit` calls in the conv
 
 A running commit reads history, folds the accepted commits before its own call and decides from them alone, so an interrupted durable call re-runs to the same IDs. A commit counts only when its recorded output agrees with the IDs its input yields. Flue folds a response's steps into one message and may run a proposal's calls concurrently: a commit that runs while an earlier commit in the same response is unsettled is refused. Its receipt returns the IDs, how many user messages have passed, how many questions are open, the obligations still owed and notes on consequences to weigh.
 
-`ledger_compile` renders the folded Ledger in the agent skin, which carries record IDs and kind tokens inline. The website's Ledger tab renders the same projection as a document with the user skin's wording, marking each record occurrence with its address so a canvas selection can highlight the records `traceLedger` reaches, and persona evidence (`ledger.md`, `ledger.json`) uses the agent skin.
+`ledger_compile` renders the folded Ledger's projection as Markdown, with record IDs and kind tokens inline; persona evidence (`ledger.md`, `ledger.json`) uses the same Markdown. The website's Ledger tab renders the projection as a document, without IDs, marking each record occurrence with its address so a canvas selection can highlight the records `traceLedger` reaches.
 
 ## Browser and conversation boundary
 
