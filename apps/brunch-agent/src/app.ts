@@ -1,5 +1,7 @@
 /** The app's route map — one ownership-guarded Flue conversation door. */
 
+// Installs telemetry before anything else evaluates; the named import below only reads its shutdown.
+// oxlint-disable-next-line import/no-duplicates
 import "./telemetry-bootstrap.ts";
 import { readFile } from "node:fs/promises";
 
@@ -20,6 +22,7 @@ import {
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
 import { inBandBrowserToolNames } from "./agents/chat-agent/tool-catalogue.ts";
+import { verifyChatModel } from "./chat-model-configuration.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
 import { createBrowserCallRouter } from "./http/browser-calls.ts";
@@ -35,6 +38,8 @@ import {
   withBufferedToolAdmission,
 } from "./provider-admission.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
+import { shutdownBrunchTelemetry } from "./telemetry-bootstrap.ts";
+import { recordOperationalFailure } from "./telemetry.ts";
 
 import type { Provider } from "@earendil-works/pi-ai";
 
@@ -170,8 +175,38 @@ const registerAdmittedProvider = (provider: Provider) => {
     ),
   );
 };
-registerAdmittedProvider(anthropicProvider());
-registerAdmittedProvider(openaiProviderWithAddedModels());
+const chatProviders = [anthropicProvider(), openaiProviderWithAddedModels()];
+for (const provider of chatProviders) registerAdmittedProvider(provider);
+
+// Production refuses to start without a usable chat model, as it does without
+// database configuration; otherwise every chat fails at its first model call.
+// A provider outage only warns, so it cannot keep replacement tasks down.
+if (process.env.NODE_ENV === "production") {
+  try {
+    const verification = await verifyChatModel(chatProviders);
+    if (!verification.verified) {
+      diagnostics.note("model.configuration", {
+        verified: false,
+        reason: verification.reason,
+      });
+    } else if (verification.shutdownDate) {
+      diagnostics.note("model.configuration", {
+        verified: true,
+        shutdownDate: verification.shutdownDate,
+      });
+    }
+  } catch (error) {
+    diagnostics.report("model.configuration", error);
+    // The process exits right after this, so flush the failure span first.
+    await recordOperationalFailure("model_configuration", error);
+    try {
+      await shutdownBrunchTelemetry();
+    } catch {
+      // The model configuration failure remains the authoritative startup cause.
+    }
+    throw error;
+  }
+}
 
 const app = new Hono();
 
