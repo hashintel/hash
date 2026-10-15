@@ -156,3 +156,11 @@ export const parsePetrinautUserMessageBody = (
   }
   return { kind: "contextual", ...result };
 };
+
+/** The user's own text, without host context or diagnostics, for display and evidence. */
+export const petrinautUserMessageText = (body: string): string => {
+  const parsed = parsePetrinautUserMessageBody(body);
+  return parsed.kind === "invalid-contextual"
+    ? "[Invalid contextual user message]"
+    : parsed.userText;
+};

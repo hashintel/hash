@@ -5,6 +5,7 @@ import { expect, test } from "vitest";
 import {
   interviewBudgetContextKey,
   petrinautContextualUserMessageBody,
+  wordsContextKey,
 } from "@hashintel/brunch-agent";
 
 import { projectBrunchContext } from "./context-projection";
@@ -102,6 +103,7 @@ test("shows the model each user turn as it would read without submission context
       asked: 1,
       remaining: 2,
     },
+    [wordsContextKey]: ["RelayDesk"],
   };
   const diagnosed = petrinautContextualUserMessageBody({
     userText: "Two suppliers.",
@@ -144,6 +146,7 @@ test("shows the model each user turn as it would read without submission context
     { role: "user", content: diagnosed },
   ]);
   expect(JSON.stringify(projected)).not.toContain(interviewBudgetContextKey);
+  expect(JSON.stringify(projected)).not.toContain("RelayDesk");
 });
 
 // Runtime wiring (opt-in per agent, exact compaction slices, canonical

@@ -19,6 +19,7 @@ export {
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
+  petrinautUserMessageText,
   type SubmissionContext,
 } from "./petrinaut/contextual-user-message";
 export {
@@ -26,6 +27,13 @@ export {
   parseInterviewBudget,
   type InterviewBudget,
 } from "./petrinaut/interview-budget";
+export {
+  normalizePetrinautWordLiteral,
+  parseWordSpellings,
+  petrinautWordSpellingLimits,
+  validatePetrinautWordSpellings,
+  wordsContextKey,
+} from "./petrinaut/words";
 export {
   isNetObservationTool,
   netReaderDescriptions,

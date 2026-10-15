@@ -23,8 +23,10 @@ import {
   interviewBudgetContextKey,
   parseInterviewBudget,
   parsePetrinautUserMessageBody,
+  parseWordSpellings,
   type SdcpnInitialData,
   sdcpnInitialDataSchema,
+  wordsContextKey,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -41,6 +43,7 @@ import {
 import { usePetrinautTools } from "../../shared/petrinaut-tools.ts";
 import { ping } from "../../shared/ping.ts";
 import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
+import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
 
 const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
@@ -61,14 +64,25 @@ const netViewTracker = createNetViewTracker();
 
 export function PetrinautAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
-  // Initial data is fixed when the conversation is created; the current
-  // delivery carries the changing allowance, and an absent or malformed one
-  // means Off.
-  const body = parsePetrinautUserMessageBody(useDelivery().body);
+  // Initial data is fixed when the conversation is created; the current user
+  // delivery carries the changing host context. An absent or malformed
+  // allowance means Off, and absent or malformed words an empty snapshot.
+  const delivery = useDelivery();
+  const submission =
+    delivery.kind === "user"
+      ? parsePetrinautUserMessageBody(delivery.body)
+      : undefined;
+  const submissionContext =
+    submission?.kind === "contextual"
+      ? submission.submissionContext
+      : undefined;
   const interviewBudget = parseInterviewBudget(
-    body.kind === "contextual"
-      ? body.submissionContext?.[interviewBudgetContextKey]
-      : undefined,
+    submissionContext?.[interviewBudgetContextKey],
+  );
+  const words = useWords(
+    submission === undefined
+      ? undefined
+      : parseWordSpellings(submissionContext?.[wordsContextKey]),
   );
   useContextProjection(
     createBrunchContextProjection({
@@ -91,7 +105,7 @@ export function PetrinautAgent({ id }: AgentProps) {
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     history,
-    interviewBudget,
+    { interviewBudget, words },
   );
   usePetrinautTools(
     initialData
