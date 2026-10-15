@@ -20,13 +20,10 @@ import { createFlueClient } from "@flue/sdk";
 import {
   browserToolMutatesDocument,
   canonicalContent,
-  interviewBudgetContextKey,
-  parseInterviewBudget,
   parsePetrinautUserMessageBody,
-  parseWordSpellings,
+  readPetrinautSubmissionContext,
   type SdcpnInitialData,
   sdcpnInitialDataSchema,
-  wordsContextKey,
 } from "@hashintel/brunch-agent";
 
 import {
@@ -68,22 +65,13 @@ export function PetrinautAgent({ id }: AgentProps) {
   // delivery carries the changing host context. An absent or malformed
   // allowance means Off, and absent or malformed words an empty snapshot.
   const delivery = useDelivery();
-  const submission =
+  const submitted =
     delivery.kind === "user"
-      ? parsePetrinautUserMessageBody(delivery.body)
+      ? readPetrinautSubmissionContext(
+          parsePetrinautUserMessageBody(delivery.body),
+        )
       : undefined;
-  const submissionContext =
-    submission?.kind === "contextual"
-      ? submission.submissionContext
-      : undefined;
-  const interviewBudget = parseInterviewBudget(
-    submissionContext?.[interviewBudgetContextKey],
-  );
-  const words = useWords(
-    submission === undefined
-      ? undefined
-      : parseWordSpellings(submissionContext?.[wordsContextKey]),
-  );
+  const words = useWords(submitted?.words);
   useContextProjection(
     createBrunchContextProjection({
       observe: (entries) => netViewTracker.observe(id, entries),
@@ -105,7 +93,7 @@ export function PetrinautAgent({ id }: AgentProps) {
     CHAT_MODEL_SPECIFIER,
     chatModelOptions,
     history,
-    { interviewBudget, words },
+    { interviewBudget: submitted?.interviewBudget, words },
   );
   usePetrinautTools(
     initialData

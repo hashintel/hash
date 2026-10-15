@@ -2,11 +2,7 @@ import assert from "node:assert/strict";
 
 import { expect, test } from "vitest";
 
-import {
-  interviewBudgetContextKey,
-  petrinautContextualUserMessageBody,
-  wordsContextKey,
-} from "@hashintel/brunch-agent";
+import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
 
 import { projectBrunchContext } from "./context-projection";
 
@@ -97,13 +93,13 @@ test("user messages and server tool results pass through unchanged", () => {
 
 test("shows the model each user turn as it would read without submission context", () => {
   const submissionContext = {
-    [interviewBudgetContextKey]: {
+    interviewBudget: {
       level: "quick",
       questionCap: 3,
       asked: 1,
       remaining: 2,
     },
-    [wordsContextKey]: ["RelayDesk"],
+    words: ["RelayDesk"],
   };
   const diagnosed = petrinautContextualUserMessageBody({
     userText: "Two suppliers.",
@@ -145,7 +141,7 @@ test("shows the model each user turn as it would read without submission context
     { role: "user", content: [{ type: "text", text: diagnosed }] },
     { role: "user", content: diagnosed },
   ]);
-  expect(JSON.stringify(projected)).not.toContain(interviewBudgetContextKey);
+  expect(JSON.stringify(projected)).not.toContain("interviewBudget");
   expect(JSON.stringify(projected)).not.toContain("RelayDesk");
 });
 

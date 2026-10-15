@@ -51,24 +51,36 @@ export const validateWords = (input: unknown): readonly VoiceWord[] => {
 
 export const voiceWordsHeader = "x-petrinaut-voice-words";
 
-/** ASCII-only HTTP header; no user text enters headers unencoded. */
-export const encodeVoiceWords = (
-  input: readonly VoiceWord[],
-): string | undefined => {
-  const entries = validateWords(input);
-  if (entries.length === 0) return undefined;
-  const bytes = new TextEncoder().encode(
-    JSON.stringify({ version: 1, entries }),
-  );
-  const encoded = btoa(String.fromCharCode(...bytes))
+const voiceWordsBudget = 4_096;
+
+const toVoiceWordsHeader = (entries: readonly VoiceWord[]): string =>
+  btoa(
+    String.fromCharCode(
+      ...new TextEncoder().encode(JSON.stringify({ version: 1, entries })),
+    ),
+  )
     .replace(/\+/gu, "-")
     .replace(/\//gu, "_")
     .replace(/=+$/u, "");
-  if (encoded.length > 4_096)
+
+/** Refuse a list whose Voice header would exceed the 4 KiB budget. */
+export const assertVoiceWordsBudget = (words: readonly VoiceWord[]): void => {
+  if (words.length > 0 && toVoiceWordsHeader(words).length > voiceWordsBudget)
     throw new Error(
       "Words and pronunciation notes exceed the 4 KiB voice budget. Shorten the list or notes.",
     );
-  return encoded;
+};
+
+/**
+ * ASCII-only HTTP header for words already validated by `validateWords`; no
+ * user text enters headers unencoded.
+ */
+export const encodeVoiceWords = (
+  words: readonly VoiceWord[],
+): string | undefined => {
+  if (words.length === 0) return undefined;
+  assertVoiceWordsBudget(words);
+  return toVoiceWordsHeader(words);
 };
 
 export const decodeVoiceWords = (
@@ -77,7 +89,7 @@ export const decodeVoiceWords = (
   if (header === null) return [];
   if (
     header.length === 0 ||
-    header.length > 4_096 ||
+    header.length > voiceWordsBudget ||
     !/^[A-Za-z0-9_-]+$/u.test(header)
   )
     throw new Error("Invalid voice words.");

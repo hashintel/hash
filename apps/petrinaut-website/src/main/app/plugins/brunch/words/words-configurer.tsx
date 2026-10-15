@@ -10,7 +10,10 @@ import {
   maxWords,
 } from "../../../../../shared/voice-words";
 
-import type { ConversationWord } from "./conversation-words";
+import type {
+  ConversationWord,
+  useConversationWords,
+} from "./conversation-words";
 
 const stackStyle = css({
   display: "flex",
@@ -38,11 +41,11 @@ export const WordsConfigurer = ({
   notice,
   save,
   onClose,
-}: {
-  entries: readonly ConversationWord[];
-  notice: string | null;
-  save: (entries: readonly ConversationWord[]) => void;
-  onClose: () => void;
+}: Pick<
+  ReturnType<typeof useConversationWords>,
+  "entries" | "notice" | "save"
+> & {
+  readonly onClose: () => void;
 }) => {
   const id = useId();
   const addButton = useRef<HTMLButtonElement>(null);

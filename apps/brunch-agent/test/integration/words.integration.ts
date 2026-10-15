@@ -16,7 +16,7 @@ import { createFlueClient } from "@flue/sdk";
 import {
   brunchTools,
   petrinautContextualUserMessageBody,
-  wordsContextKey,
+  petrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 
@@ -58,17 +58,19 @@ const check = (context: Context, expected: readonly string[]) => {
   else assert(!system.includes("Preferred literal spellings"));
   const history = JSON.stringify(context.messages);
   assert(!history.includes("petrinaut-contextual-user-message:v2"));
-  assert(!history.includes(`\\"${wordsContextKey}\\"`));
+  assert(!history.includes('\\"words\\"'));
   checked++;
 };
 const speak = async (words?: readonly string[]) => {
+  const submissionContext =
+    words === undefined ? undefined : petrinautSubmissionContext({ words });
   const body =
-    words === undefined
+    submissionContext === undefined
       ? "Continue."
       : petrinautContextualUserMessageBody({
           userText: "Continue.",
           diagnosticsContext: "",
-          submissionContext: { [wordsContextKey]: words },
+          submissionContext,
         });
   await client.wait(await client.send({ message: { kind: "user", body } }));
 };

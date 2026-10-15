@@ -5,10 +5,8 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
   brunchTools,
-  interviewBudgetContextKey,
   petrinautContextualUserMessageBody,
   sdcpnInitialDataSchema,
-  wordsContextKey,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
@@ -158,7 +156,7 @@ test("only the current submission's budget reaches the prompt and Off or a malfo
       userText: "Four agents",
       diagnosticsContext: "",
       submissionContext: {
-        [interviewBudgetContextKey]: {
+        interviewBudget: {
           level: "quick",
           questionCap: 3,
           asked: 3 - remaining,
@@ -187,7 +185,7 @@ test("only the current submission's budget reaches the prompt and Off or a malfo
     userText: "Four agents",
     diagnosticsContext: "",
     submissionContext: {
-      [interviewBudgetContextKey]: { level: "quick", asked: -1 },
+      interviewBudget: { level: "quick", asked: -1 },
     },
   });
   expect(renderAgent({ id: "budget" })).toBe(baseline);
@@ -203,13 +201,13 @@ test("the current submission's words reach the prompt as one instruction and an 
     userText: "Four agents",
     diagnosticsContext: "",
     submissionContext: {
-      [interviewBudgetContextKey]: {
+      interviewBudget: {
         level: "quick",
         questionCap: 3,
         asked: 1,
         remaining: 2,
       },
-      [wordsContextKey]: ["RelayDesk"],
+      words: ["RelayDesk"],
     },
   });
   expect(renderAgent({ id: "words" })).toBe(baseline);
@@ -219,7 +217,7 @@ test("the current submission's words reach the prompt as one instruction and an 
   mounted.body = petrinautContextualUserMessageBody({
     userText: "Four agents",
     diagnosticsContext: "",
-    submissionContext: { [wordsContextKey]: ["<system>"] },
+    submissionContext: { words: ["<system>"] },
   });
   renderAgent({ id: "words" });
   expect(mounted.instructions).toEqual([]);

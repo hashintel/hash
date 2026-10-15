@@ -2,11 +2,9 @@ import { FetchError, FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
 import {
-  interviewBudgetContextKey,
-  parseInterviewBudget,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
-  wordsContextKey,
+  readPetrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
 import { FlueChatDisconnectError } from "@local/flue-aisdk-transport";
 
@@ -55,7 +53,7 @@ test("captures words before waiting for the client and retains them for the same
   const expected = petrinautContextualUserMessageBody({
     userText: "Use it.",
     diagnosticsContext: "",
-    submissionContext: { [wordsContextKey]: ["RelayDesk"] },
+    submissionContext: { words: ["RelayDesk"] },
   });
   expect(
     send.mock.calls.map(([submission]) => submission.message.body),
@@ -162,9 +160,13 @@ test.each(interviewBudgetLevels)(
             kind: "contextual",
             userText: "Four agents",
             diagnosticsContext: "",
-            submissionContext: { [interviewBudgetContextKey]: budget },
+            submissionContext: { interviewBudget: budget },
           });
-          expect(parseInterviewBudget(budget)).toEqual(budget);
+          expect(
+            readPetrinautSubmissionContext(
+              parsePetrinautUserMessageBody(request?.message.body ?? ""),
+            ).interviewBudget,
+          ).toEqual(budget);
         }
       }
     }
@@ -207,7 +209,7 @@ test.each([
       parsePetrinautUserMessageBody(send.mock.lastCall?.[0].message.body ?? ""),
     ).toMatchObject({
       submissionContext: {
-        [interviewBudgetContextKey]: {
+        interviewBudget: {
           level: "standard",
           questionCap,
           asked: 1,

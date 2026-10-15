@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import {
-  encodeVoiceWords,
+  assertVoiceWordsBudget,
   validateWords,
   type VoiceWord,
 } from "../../../../../shared/voice-words";
@@ -34,7 +34,7 @@ const validateEntries = (input: unknown): readonly ConversationWord[] => {
     return { id, word };
   });
   const words = validateWords(entries.map((entry) => entry.word));
-  encodeVoiceWords(words);
+  assertVoiceWordsBudget(words);
   return words.map((word, index) => {
     const id = entries[index]?.id;
     if (id === undefined) throw new Error("Invalid saved word identity.");
