@@ -1,48 +1,22 @@
-import * as v from "valibot";
 import { describe, expect, it } from "vitest";
 
-import { sdcpnInitialDataSchema } from "./initial-data";
-import {
-  interviewBudgetSchema,
-  parseInterviewBudget,
-} from "./interview-budget";
+import { interviewBudget, parseInterviewBudget } from "./interview-budget";
 
 describe("interview budget", () => {
-  it("keeps the allowance out of creation-only initial data", () => {
-    const input = {
-      binding: { conversationId: "c", documentId: "d", incarnationId: "i" },
-    };
-    expect(
-      v.parse(sdcpnInitialDataSchema, {
-        ...input,
-        interviewBudget: {
-          level: "quick",
-          questionCap: 3,
-          asked: 0,
-          remaining: 3,
-        },
-      }),
-    ).toEqual(input);
-  });
-
-  it("retains a current budget, including Deep without a cap", () => {
-    const budget = {
+  it("builds allowances the parser accepts, including Deep without a cap", () => {
+    expect(interviewBudget("quick", 3, 2)).toEqual({
       level: "quick",
       questionCap: 3,
       asked: 2,
       remaining: 1,
-    } as const;
-    expect(parseInterviewBudget(budget)).toEqual(budget);
-    expect(parseInterviewBudget({ ...budget, asked: 4, remaining: 0 })).toEqual(
-      { ...budget, asked: 4, remaining: 0 },
-    );
-    const deep = {
-      level: "deep",
-      questionCap: null,
-      asked: 14,
-      remaining: null,
-    } as const;
-    expect(parseInterviewBudget(deep)).toEqual(deep);
+    });
+    expect(interviewBudget("quick", 3, 4).remaining).toBe(0);
+    for (const budget of [
+      interviewBudget("quick", 3, 2),
+      interviewBudget("quick", 3, 4),
+      interviewBudget("deep", null, 14),
+    ])
+      expect(parseInterviewBudget(budget)).toEqual(budget);
   });
 
   it.each([
@@ -52,8 +26,7 @@ describe("interview budget", () => {
     { level: "quick", questionCap: null, asked: 0, remaining: null },
     { level: "deep", questionCap: 3, asked: 0, remaining: 3 },
     { level: "standard", questionCap: 6, asked: 5, remaining: 3 },
-  ])("rejects an invalid budget: %j", (budget) => {
-    expect(v.safeParse(interviewBudgetSchema, budget).success).toBe(false);
+  ])("reads an invalid budget as Off: %j", (budget) => {
     expect(parseInterviewBudget(budget)).toBeUndefined();
   });
 });

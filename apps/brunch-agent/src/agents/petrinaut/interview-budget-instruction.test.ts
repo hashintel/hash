@@ -17,6 +17,7 @@ describe("interview budget instruction", () => {
     expect(instruction).toContain("the user chose standard.");
     expect(instruction).toContain("cap: 6; remaining: 4");
     expect(instruction).toContain("`appetite` entity");
+    expect(instruction).toContain("replaces your own estimate of turns left");
     expect(instruction).not.toMatch(/minute/i);
   });
 

@@ -38,10 +38,6 @@ test.each([
   ["deep", "Deep · No limit"],
   ["off", "Off"],
 ] as const)("keeps the %s note free of budget wording", (level, text) => {
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn(() => ({ matches: true })),
-  );
   const { container } = render(<InterviewBudgetNote level={level} />);
   expect(container.textContent).toBe(`Interview length changed to ${text}`);
   expect(
@@ -64,25 +60,13 @@ test("opens a five-stop control with hover descriptions and keyboard-accessible 
   expect(screen.getByText("Interview length")).toBeTruthy();
   expect(screen.getByText("Focus on the main steps.")).toBeTruthy();
   expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
-  vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
-    left: 100,
-    width: 308,
-    right: 408,
-    top: 0,
-    bottom: 32,
-    height: 32,
-    x: 100,
-    y: 0,
-    toJSON: () => ({}),
-  });
-  fireEvent.mouseMove(slider, { clientX: 394 });
-  expect(screen.getByText("Deep:", { selector: "strong" })).toBeTruthy();
-  // Previewing a stop must not change the current selection in the header.
-  expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
   fireEvent.mouseEnter(screen.getByRole("button", { name: "Deep" }));
+  expect(screen.getByText("Deep:", { selector: "strong" })).toBeTruthy();
   expect(
     screen.getByText(/Keep exploring, with pauses between topics/),
   ).toBeTruthy();
+  // Previewing a stop must not change the current selection.
+  expect(slider.getAttribute("aria-valuetext")).toBe("Standard · ~10 min");
   fireEvent.mouseEnter(screen.getByRole("button", { name: "Thorough" }));
   expect(screen.getByText(/Explore details and exceptions/)).toBeTruthy();
   fireEvent.change(slider, { target: { value: "1" } });

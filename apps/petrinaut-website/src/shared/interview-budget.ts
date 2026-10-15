@@ -1,10 +1,12 @@
-export const interviewBudgetLevels = [
-  "off",
-  "quick",
-  "standard",
-  "thorough",
-  "deep",
-] as const;
+import {
+  interviewBudget,
+  interviewBudgetLevels as cappedLevels,
+  type InterviewBudget,
+} from "@hashintel/brunch-agent/interview-budget";
+
+import type { PetrinautAiInputMode } from "@hashintel/petrinaut/ui";
+
+export const interviewBudgetLevels = ["off", ...cappedLevels] as const;
 export type InterviewBudgetLevel = (typeof interviewBudgetLevels)[number];
 export const interviewBudgetHeader = "x-petrinaut-interview-budget";
 export const interviewBudgetLevelsConfig = {
@@ -48,7 +50,15 @@ export const interviewBudgetLevelsConfig = {
     voice: null,
     description: "Keep exploring, with pauses between topics.",
   },
-} as const;
+} as const satisfies Record<
+  InterviewBudgetLevel,
+  Record<PetrinautAiInputMode, number | null> & {
+    readonly name: string;
+    readonly guide: string;
+    readonly minutes: number;
+    readonly description: string;
+  }
+>;
 
 export const isInterviewBudgetLevel = (
   value: unknown,
@@ -58,22 +68,16 @@ export const isInterviewBudgetLevel = (
 
 export const getInterviewBudget = (
   level: InterviewBudgetLevel,
-  mode: "text" | "voice",
+  mode: PetrinautAiInputMode,
   asked: number,
-) => {
-  if (level === "off") return undefined;
-  const questionCap = interviewBudgetLevelsConfig[level][mode];
-  return {
-    level,
-    questionCap,
-    asked,
-    remaining: questionCap === null ? null : Math.max(0, questionCap - asked),
-  };
-};
+): InterviewBudget | undefined =>
+  level === "off"
+    ? undefined
+    : interviewBudget(level, interviewBudgetLevelsConfig[level][mode], asked);
 
 export const interviewBudgetLabel = (
   level: InterviewBudgetLevel,
-  mode: "text" | "voice",
+  mode: PetrinautAiInputMode,
   asked: number,
   { closing }: { closing: boolean },
 ): string | null => {
@@ -98,3 +102,11 @@ export const liveInterviewBudgetInstruction = (
   const config = interviewBudgetLevelsConfig[level];
   return `Interview length: ${config.name} (${config.guide}). Minutes are a guide, not a timer. Brunch decides what questions to ask and how many; you decide how to say them. ${level === "quick" ? "Keep phrasing brief and give the person room to answer." : level === "deep" || level === "thorough" ? "Give the person room to elaborate and preserve Brunch's pauses between topics." : "Use concise, natural phrasing and give the person room to finish."} Relay Brunch's closing turn faithfully; never add a question or invent missing facts, ranges or units.`;
 };
+
+/** The quiet note Live receives when the level changes mid-session. */
+export const liveInterviewBudgetUpdate = (
+  level: InterviewBudgetLevel,
+): string =>
+  level === "off"
+    ? "Interview length is now Off. Follow Brunch's ordinary interview pacing; Brunch still decides the questions. Do not speak this note."
+    : liveInterviewBudgetInstruction(level);

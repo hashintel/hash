@@ -23,7 +23,6 @@ export {
 } from "./petrinaut/contextual-user-message";
 export {
   interviewBudgetContextKey,
-  interviewBudgetSchema,
   parseInterviewBudget,
   type InterviewBudget,
 } from "./petrinaut/interview-budget";

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   PiGauge,
   PiLightning,
@@ -64,14 +64,6 @@ export const InterviewBudgetControl = ({
   const [hovered, setHovered] = useState<InterviewBudgetLevel | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
-  // Toggling `disableTooltip` remounts the trigger, so the Popover's own focus
-  // return lands on a detached button. Restore it after an Escape dismissal.
-  const refocusTrigger = useRef(false);
-  useEffect(() => {
-    if (open || !refocusTrigger.current) return;
-    refocusTrigger.current = false;
-    triggerRef.current?.focus();
-  }, [open]);
   const config = interviewBudgetLevelsConfig[level];
   const CurrentIcon = icons[level];
   const selectedIndex = interviewBudgetLevels.indexOf(level);
@@ -114,7 +106,6 @@ export const InterviewBudgetControl = ({
         aria-expanded={open}
         aria-haspopup="dialog"
         tooltip={`Interview length · ${config.name}`}
-        tooltipOptions={{ disableTooltip: open }}
         prefix={<CurrentIcon size={15} />}
         onClick={() => {
           setHovered(null);
@@ -129,13 +120,10 @@ export const InterviewBudgetControl = ({
           gapY={10}
           onClose={() => setOpen(false)}
         >
-          {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Observes Escape bubbling from the slider; Popover's onClose does not say why it closed. */}
+          {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Clears the stops' hover preview when the pointer leaves the group; no keyboard equivalent is needed. */}
           <div
             role="group"
             aria-label="Interview length"
-            onKeyDown={(event) => {
-              if (event.key === "Escape") refocusTrigger.current = true;
-            }}
             onMouseLeave={() => setHovered(null)}
             className={`${levelTheme[level]} ${css({
               width: "[324px]",
@@ -299,20 +287,6 @@ export const InterviewBudgetControl = ({
                     transform: "[scale(1.06)]",
                   },
                 })}
-                onMouseMove={(event) => {
-                  const bounds = event.currentTarget.getBoundingClientRect();
-                  const position = Math.max(
-                    0,
-                    Math.min(
-                      1,
-                      (event.clientX - bounds.left - 14) / (bounds.width - 28),
-                    ),
-                  );
-                  setHovered(
-                    interviewBudgetLevels[Math.round(position * lastStop)] ??
-                      level,
-                  );
-                }}
                 onChange={(event) => {
                   const next =
                     interviewBudgetLevels[Number(event.currentTarget.value)];
@@ -424,23 +398,10 @@ export const InterviewBudgetNote = ({
 }: {
   level: InterviewBudgetLevel;
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
   const CurrentIcon = icons[level];
   const config = interviewBudgetLevelsConfig[level];
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const animation = ref.current?.animate(
-      [
-        { opacity: 0.6, transform: "translateY(2px)" },
-        { opacity: 1, transform: "translateY(0)" },
-      ],
-      { duration: 180, easing: "ease-out" },
-    );
-    return () => animation?.cancel();
-  }, []);
   return (
     <div
-      ref={ref}
       className={`${levelTheme[level]} ${css({ display: "flex", alignItems: "center", gap: "2", paddingX: "3", paddingY: "0.5", fontSize: "[11px]", lineHeight: "[16px]", color: "var(--budget-color)" })}`}
     >
       <CurrentIcon
