@@ -7,7 +7,10 @@ import {
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
-import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
+import {
+  asPayload,
+  getDeclaredKind,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
@@ -474,13 +477,14 @@ const processFlow = async <
       );
 
       /*
-       * An output that takes its kind from an input (`kindFrom`) is only typed as any kind that input accepts, so check
-       * the action returned the kind it was given.
+       * An output that takes its kind from an input (`kindFrom`) is only typed as any kind that input accepts, and one
+       * whose kind an input declares (`kindDeclaredBy`) as any of its kinds, so check the action returned the kind it
+       * was given or declared.
        */
       for (const outputDefinition of actionDefinitions[
         currentStep.actionDefinitionId
       ].outputs) {
-        if (!("kindFrom" in outputDefinition)) {
+        if ("payloadKind" in outputDefinition) {
           continue;
         }
 
@@ -488,14 +492,24 @@ const processFlow = async <
           ({ outputName }) => outputName === outputDefinition.name,
         )?.payload.kind;
 
-        const inputKind = currentStep.inputs?.find(
-          ({ inputName }) => inputName === outputDefinition.kindFrom,
-        )?.payload.kind;
+        const inputName =
+          "kindFrom" in outputDefinition
+            ? outputDefinition.kindFrom
+            : outputDefinition.kindDeclaredBy;
 
-        if (outputKind !== undefined && outputKind !== inputKind) {
+        const inputPayload = currentStep.inputs?.find(
+          (input) => input.inputName === inputName,
+        )?.payload;
+
+        const expectedKind =
+          "kindFrom" in outputDefinition
+            ? inputPayload?.kind
+            : getDeclaredKind(outputDefinition, inputPayload?.value);
+
+        if (outputKind !== undefined && outputKind !== expectedKind) {
           processStepErrors[currentStepId] = {
             code: StatusCode.Internal,
-            message: `Action ${currentStep.actionDefinitionId} returned output "${outputDefinition.name}" of kind ${outputKind}, but it must have the kind of input "${outputDefinition.kindFrom}" (${inputKind ?? "not given"})`,
+            message: `Action ${currentStep.actionDefinitionId} returned output "${outputDefinition.name}" of kind ${outputKind}, but it must have the kind input "${inputName}" ${"kindFrom" in outputDefinition ? "has" : "declares"} (${expectedKind ?? "not given"})`,
           };
 
           return;

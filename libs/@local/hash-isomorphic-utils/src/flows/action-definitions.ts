@@ -1,6 +1,7 @@
 import { checkAggregationInput } from "./aggregation.js";
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
 import { maxEntitiesPerStep } from "./limits.js";
+import { checkReadEntityInputs, readEntityKinds } from "./read-entity.js";
 import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
 import { allPayloadKinds } from "./types.js";
@@ -42,6 +43,7 @@ export type AiFlowActionDefinitionId =
   | "persistEntities"
   | "persistEntity"
   | "queryEntities"
+  | "readEntity"
   | "researchEntities"
   | "takeFirst"
   | "webSearch"
@@ -1031,6 +1033,42 @@ const aiFlowActionDefinitionsAsConst = {
       },
     ],
   },
+  readEntity: {
+    actionDefinitionId: "readEntity",
+    name: "Read Entity",
+    description:
+      "Read one property of an entity as a plain value, e.g. a person's email address to send an email to.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "entityId",
+        description:
+          "The entity to read: the draft for an entity ID with a draft ID, otherwise the live entity.",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["EntityProperty"],
+        name: "property",
+        description: `The property to read, and its kind: ${readEntityKinds.join(", ")}.`,
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        kindDeclaredBy: "property",
+        oneOfPayloadKinds: readEntityKinds,
+        name: "value",
+        description:
+          "The property's value, of the kind its input declares. Missing if the entity doesn't have the property.",
+        array: false,
+        required: false,
+      },
+    ],
+    check: checkReadEntityInputs,
+  },
   takeFirst: {
     actionDefinitionId: "takeFirst",
     name: "Take First",
@@ -1520,7 +1558,8 @@ export const getSimplifiedFlowActionInputs = <
  *
  * An output with a derived kind is typed as a payload of the kind its kind source was given, out of `Kinds` (see
  * `InputKindsOf`). Where `Kinds` holds every kind each kind source accepts, as it does outside the action, the engine
- * checks the kind when the action returns.
+ * checks the kind when the action returns. An output whose kind an input declares (see `KindDeclaredBy`) is typed as a
+ * payload of any of its kinds, and the engine checks it has the kind declared.
  */
 type ActionStepOutput<Output, Kinds> = Output extends {
   name: infer OutputName extends string;
@@ -1536,7 +1575,15 @@ type ActionStepOutput<Output, Kinds> = Output extends {
           outputName: OutputName;
           payload: PayloadWithKind<GivenKind<Kinds, KindSourceName>, IsArray>;
         }
-      : never
+      : Output extends {
+            kindDeclaredBy: string;
+            oneOfPayloadKinds: readonly (infer Kind extends PayloadKind)[];
+          }
+        ? {
+            outputName: OutputName;
+            payload: PayloadOfEachKind<Kind, IsArray>;
+          }
+        : never
   : never;
 
 /**

@@ -47,7 +47,10 @@ export type FlowDefinitionDiagnosticCode =
   | "invalidCollect"
   | "cycle"
   | "unusedFlowInput"
-  /** An input or output with a derived kind (see `KindFrom`), whose kind source isn't connected. */
+  /**
+   * An input or output with a derived kind (see `KindFrom`), whose kind source isn't connected, or an output whose kind
+   * an input declares (see `KindDeclaredBy`), given something other than a constant.
+   */
   | "unresolvedKind"
   /** An input with a derived kind, given a value of a different kind from its kind source's. */
   | "kindMismatch"
@@ -607,6 +610,26 @@ export const validateFlowDefinition = (
             derived.length === 1 ? "takes" : "take"
           } the kind of input "${sourceName}", which isn't connected`,
           [...entry.path, "inputs"],
+        );
+      }
+    }
+
+    /*
+     * Outputs whose kind an input declares, which must be a constant for the kind to be known. A constant that doesn't
+     * declare one of the output's kinds is reported by the action's check.
+     */
+    for (const output of actionDefinition.outputs) {
+      if (!("kindDeclaredBy" in output)) {
+        continue;
+      }
+
+      const source = step.inputs[output.kindDeclaredBy];
+
+      if (source && source.kind !== "constant") {
+        report(
+          "unresolvedKind",
+          `The output "${output.name}" of action "${step.actionDefinitionId}" has the kind input "${output.kindDeclaredBy}" declares, so that input must be a constant`,
+          [...entry.path, "inputs", output.kindDeclaredBy],
         );
       }
     }
