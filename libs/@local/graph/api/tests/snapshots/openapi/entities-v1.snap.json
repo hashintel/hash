@@ -164,7 +164,7 @@
             }
           }
         },
-        "description": "The entity does not exist, or the caller may not view it.",
+        "description": "The entity does not exist, is archived, or the caller may not view it.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -711,7 +711,7 @@
     },
     "/entities/v1/{entityId}": {
       "get": {
-        "description": "Returns the current edition of the entity, or of the draft the ID names. Answers `404` both when the entity does not exist and when the caller may not view it.",
+        "description": "Returns the current edition of the entity. Answers `404` when the entity does not exist, is archived, or the caller may not view it.",
         "operationId": "getEntity",
         "parameters": [
           {
@@ -720,8 +720,11 @@
             "name": "entityId",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/EntityId",
-              "description": "The ID of the entity to read."
+              "description": "The ID of the entity to read.",
+              "examples": [
+                "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d"
+              ],
+              "type": "string"
             },
             "style": "simple"
           }

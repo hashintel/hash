@@ -11,7 +11,7 @@ use hash_middleware::problem::{InternalServerError, ServiceUnavailable};
 use http::StatusCode;
 use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use type_system::{
     knowledge::entity::{EntityId, id::EntityUuid},
     principal::actor_group::WebId,
@@ -31,7 +31,21 @@ use crate::rest::{
 #[serde(rename_all = "camelCase")]
 struct EntityPath {
     /// The ID of the entity to read.
+    #[serde(deserialize_with = "live_entity_id")]
+    #[schemars(
+        with = "String",
+        example = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d"
+    )]
     entity_id: EntityId,
+}
+
+/// Reads an entity ID that names no draft.
+fn live_entity_id<'de, D: Deserializer<'de>>(deserializer: D) -> Result<EntityId, D::Error> {
+    let entity_id = EntityId::deserialize(deserializer)?;
+    if entity_id.draft_id.is_some() {
+        return Err(de::Error::custom("the entity ID names a draft"));
+    }
+    Ok(entity_id)
 }
 
 /// An entity the caller may view.
@@ -42,7 +56,7 @@ struct Entity {
     entity_id: EntityId,
 }
 
-/// The entity does not exist, or the caller may not view it.
+/// The entity does not exist, is archived, or the caller may not view it.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
 #[display("No entity `{entity_id}` is visible to the caller.")]
 struct EntityNotFound {
@@ -85,6 +99,8 @@ impl Problem for GetEntityProblem {
 enum GetEntityError {
     #[display("no entity `{_0}` is visible to the caller")]
     NotFound(EntityId),
+    #[display("entity `{_0}` is archived")]
+    Archived(EntityId),
     #[display("no store could be acquired")]
     Unavailable,
     #[display("the store could not be read")]
@@ -96,9 +112,11 @@ impl Error for GetEntityError {}
 impl Expose<GetEntityProblem> for Report<GetEntityError> {
     fn expose(&self) -> Answer<'_, GetEntityProblem> {
         match self.current_context() {
-            GetEntityError::NotFound(entity_id) => Answer::new(EntityNotFound {
-                entity_id: *entity_id,
-            }),
+            GetEntityError::NotFound(entity_id) | GetEntityError::Archived(entity_id) => {
+                Answer::new(EntityNotFound {
+                    entity_id: *entity_id,
+                })
+            }
             GetEntityError::Unavailable => Answer::new(ServiceUnavailable),
             GetEntityError::Store => Answer::new(InternalServerError),
         }
@@ -122,6 +140,9 @@ where
         .await
         .change_context(GetEntityError::Store)?
         .ok_or_else(|| Report::new(GetEntityError::NotFound(entity_id)))?;
+    if entity.metadata.archived {
+        return Err(Report::new(GetEntityError::Archived(entity_id)).into());
+    }
 
     Ok(Json(Entity {
         entity_id: entity.metadata.record_id.entity_id,
@@ -133,8 +154,8 @@ fn document_get_entity(operation: TransformOperation<'_>) -> TransformOperation<
         .id("getEntity")
         .summary("Get an entity")
         .description(
-            "Returns the current edition of the entity, or of the draft the ID names. Answers \
-             `404` both when the entity does not exist and when the caller may not view it.",
+            "Returns the current edition of the entity. Answers `404` when the entity does not \
+             exist, is archived, or the caller may not view it.",
         )
 }
 

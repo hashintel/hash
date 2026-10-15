@@ -577,6 +577,37 @@ async fn entity_anonymous() {
     );
 }
 
+/// The entity route reads no drafts, so a draft's ID is answered `400` before it reads the store.
+#[tokio::test]
+async fn entity_draft_id() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(Router::new(), apis(), Router::new());
+
+    let response = send(
+        &router,
+        "/entities/v1/8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d~\
+         3f0c3b6e-5d2a-4c8e-9b1f-7a6d5e4c3b2a",
+    )
+    .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "a draft's ID should be answered 400"
+    );
+    let detail = response_json(response).await["detail"].clone();
+    assert!(
+        detail
+            .as_str()
+            .is_some_and(|detail| detail.contains("the entity ID names a draft")),
+        "the problem document should say that the ID names a draft, got {detail}"
+    );
+}
+
 #[tokio::test]
 async fn apis_and_legacy_share_one_actor_budget() {
     let actor = ActorId::new(Uuid::from_u128(1), ActorType::User);
