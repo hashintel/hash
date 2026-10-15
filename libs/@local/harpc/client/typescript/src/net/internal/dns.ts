@@ -104,7 +104,7 @@ export const resolve = Effect.fn("resolve")(function* (
 
           address: hostname,
           timeToLive: Duration.infinity,
-        } as DnsRecord,
+        },
       ];
     }
   }
@@ -119,7 +119,7 @@ export const resolve = Effect.fn("resolve")(function* (
 
           address: hostname,
           timeToLive: Duration.infinity,
-        } as DnsRecord,
+        },
       ];
     }
   }
@@ -174,21 +174,19 @@ export const lookup = Effect.fn("lookup")(function* (
   // `getaddrinfo` (the underlying call used by dns.lookup) does not return TTLs
   // to fix this see: https://linear.app/hash/issue/H-3785/create-typescripteffect-dns-package
   const aRecords = satisfying.map(
-    (record) =>
-      ({
-        type: "A",
-        address: record.address,
-        timeToLive: Duration.infinity,
-      }) as DnsRecord,
+    (record): DnsRecord => ({
+      type: "A",
+      address: record.address,
+      timeToLive: Duration.infinity,
+    }),
   );
 
   const aaaaRecords = excluded.map(
-    (record) =>
-      ({
-        type: "AAAA",
-        address: record.address,
-        timeToLive: Duration.infinity,
-      }) as DnsRecord,
+    (record): DnsRecord => ({
+      type: "AAAA",
+      address: record.address,
+      timeToLive: Duration.infinity,
+    }),
   );
 
   const output: DnsRecord[] = [];

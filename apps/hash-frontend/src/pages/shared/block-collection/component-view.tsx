@@ -25,7 +25,6 @@ import { BlockContext } from "./block-context";
 import { suggesterPluginKey } from "./create-suggester/create-suggester";
 
 import type { RenderPortal } from "./block-portals";
-import type { SuggesterAction } from "./create-suggester/create-suggester";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
@@ -134,7 +133,7 @@ export class ComponentView implements NodeView {
         this.editorView.state.tr.setMeta(suggesterPluginKey, {
           type: "suggestedBlock",
           payload: { position: null },
-        } as SuggesterAction),
+        }),
       );
     }
 

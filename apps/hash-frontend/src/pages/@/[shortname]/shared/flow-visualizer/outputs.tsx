@@ -33,7 +33,6 @@ import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityEditionId,
   EntityId,
-  EntityUuid,
   LeftClosedTemporalInterval,
   Timestamp,
   VersionedUrl,
@@ -261,7 +260,7 @@ export const Outputs = ({
 
   const hasClaims =
     !!selectedFlowRun &&
-    isGoalFlowDefinitionId(selectedFlowRun.flowDefinitionId as EntityUuid);
+    isGoalFlowDefinitionId(selectedFlowRun.flowDefinitionId);
 
   const hasEntities =
     persistedEntitiesMetadata.length > 0 || proposedEntities.length > 0;

@@ -34,7 +34,6 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
 
@@ -105,10 +104,7 @@ export const LoadEntityMenuContent: FunctionComponent<
        * @todo properly type this part of the DraftEntity type
        * @see https://linear.app/hash/issue/H-3000
        */
-      blockView.manager.replaceBlockChildEntity(
-        blockEntityId,
-        targetEntity as EntityStoreType,
-      );
+      blockView.manager.replaceBlockChildEntity(blockEntityId, targetEntity);
     },
     [blockView, blockEntityId],
   );
