@@ -47,6 +47,15 @@ The app exports its harness for the built server under `@apps/brunch-agent/testi
 
 The `test:manual:*` scripts are not part of either suite and do not run in CI. `test:manual:browser` builds the website and drives it in the local macOS Chrome against the built app.
 
+`test:manual:browser:persona` exercises the persona helper through that same browser boundary, using only synthetic model responses. It checks opening and subsequent admissions, current-turn approvals, and an unanswered approval left visible by a transport failure. Run it once for each supported endpoint:
+
+```sh
+yarn workspace @apps/brunch-agent test:manual:browser:persona
+VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn workspace @apps/brunch-agent test:manual:browser:persona
+```
+
+The transport-failure case starts with an unanswered ordinary composer turn. It reproduces the stale-panel failure at the persona helper's entrypoint; it does not claim that a sequence made exclusively of persona turns reaches that starting state.
+
 ## Local Postgres
 
 Set `BRUNCH_DB_KIND=postgres` explicitly to use the existing Postgres adapter and migrations locally. An unset selector defaults to SQLite outside production; `BRUNCH_DB_KIND=sqlite` also selects that lightweight path. Production always requires Postgres (selector unset or `postgres`), and rejects `sqlite`. Selector values are exact and case-sensitive; blank or unknown values fail.
