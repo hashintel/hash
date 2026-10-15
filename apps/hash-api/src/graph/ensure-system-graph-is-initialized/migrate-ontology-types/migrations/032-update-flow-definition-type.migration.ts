@@ -17,11 +17,9 @@ import {
   getCurrentHashPropertyTypeId,
   updateSystemEntityType,
   upgradeDependenciesInHashEntityType,
-  upgradeEntitiesToNewTypeVersion,
 } from "../util";
 
 import type { MigrationFunction } from "../types";
-import type { BaseUrl } from "@blockprotocol/type-system";
 
 /**
  * Separates what a flow does from how it is triggered, and relates flows, triggers and runs with links:
@@ -304,17 +302,6 @@ const migrate: MigrationFunction = async ({
   });
 
   /**
-   * Existing flow runs and schedules are left on their old types: their properties don't fit the new ones, and
-   * they are being discarded. Usage records only have new link destinations, so they can be upgraded.
-   */
-  await upgradeEntitiesToNewTypeVersion(context, authentication, {
-    entityTypeBaseUrls: [
-      systemEntityTypes.usageRecord.entityTypeBaseUrl,
-    ] as BaseUrl[],
-    migrationState,
-  });
-
-  /**
    * Step 7: Let anyone view the flow definitions in the `h` web, so that anyone can run or trigger the flows HASH
    * provides. One policy covers every flow definition seeded there, including the dev-only ones.
    */
@@ -354,8 +341,8 @@ const migrate: MigrationFunction = async ({
   }
 
   /**
-   * Step 8: Seed the flows HASH provides from this migration's snapshot, so that runs and triggers can link to them
-   * and runs can load them. Dev-only flows are seeded by the migrations that add the types they use.
+   * Step 8: Seed the flows HASH provided at the time of writing from this migration's snapshot,
+   * so that runs and triggers can link to them and runs can load them.
    */
   await seedFlowDefinitions(context, authentication, {
     flows: await readFlowDefinitionSnapshot("032"),

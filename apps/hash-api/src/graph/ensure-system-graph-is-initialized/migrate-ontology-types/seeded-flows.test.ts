@@ -1,16 +1,55 @@
 import { describe, expect, it } from "vitest";
 
+import * as browserPluginFlows from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import * as fileFlows from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
+import * as frontendFlows from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
+import { ftseInvestorsFlow } from "@local/hash-isomorphic-utils/flows/ftse-investors-flow-definition";
+import * as goalFlows from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import * as integrationFlows from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
+import { devFlows } from "./dev-flows";
 import { getLatestFlowDefinitionSnapshots } from "./flow-definition-snapshots";
 import { seededFlows, toSnapshotForm } from "./seeded-flows";
 
+import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
+
 const latestSnapshots = await getLatestFlowDefinitionSnapshots();
 
-describe("seeded flows", () => {
-  for (const { flow } of seededFlows) {
-    const { flowDefinitionId, flowDefinition } = flow;
+const isFlow = (value: unknown): value is FlowDefinitionWithId =>
+  typeof value === "object" &&
+  value !== null &&
+  "flowDefinitionId" in value &&
+  "flowDefinition" in value;
 
+/** Flows defined in code that aren't seeded anywhere: FTSE investors is a test fixture for `forEach` steps. */
+const unseededFlows = [ftseInvestorsFlow];
+
+describe("seeded flows", () => {
+  it("seeds every flow defined in code, through migrations or in development", () => {
+    const flowsInCode = Object.values({
+      ...browserPluginFlows,
+      ...fileFlows,
+      ...frontendFlows,
+      ...goalFlows,
+      ...integrationFlows,
+    }).filter(isFlow);
+
+    const listedFlowIds = new Set(
+      [...seededFlows, ...devFlows, ...unseededFlows].map(
+        ({ flowDefinitionId }) => flowDefinitionId,
+      ),
+    );
+
+    expect(
+      flowsInCode
+        .filter(({ flowDefinitionId }) => !listedFlowIds.has(flowDefinitionId))
+        .map(({ flowDefinition }) => flowDefinition.name),
+      "Add each of these flows to `seededFlows` if HASH provides it, or to `devFlows` if it only exists in development.",
+    ).toEqual([]);
+  });
+
+  for (const { flowDefinitionId, flowDefinition } of seededFlows) {
     describe(flowDefinition.name, () => {
       it("matches its latest snapshot, so migrations seed what the code defines", () => {
         expect(

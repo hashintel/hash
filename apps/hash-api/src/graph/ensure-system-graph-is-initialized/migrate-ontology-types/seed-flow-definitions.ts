@@ -50,7 +50,8 @@ const entityHoldsFlowDefinition = (
  *
  * Anyone can view them, through the policy migration 032 creates for flow definitions in the `h` web.
  *
- * Migrations call this with a snapshot (see `flow-definition-snapshots.ts`).
+ * Migrations call this with a snapshot of the flows HASH provides (see `flow-definition-snapshots.ts`).
+ * In development and tests, `migrateOntologyTypes` calls it with the dev-only flows defined in code .
  */
 export const seedFlowDefinitions: ImpureGraphFunction<
   {

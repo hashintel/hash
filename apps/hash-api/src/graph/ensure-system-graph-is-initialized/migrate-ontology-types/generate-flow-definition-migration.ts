@@ -2,7 +2,7 @@
  * Writes a migration that updates the `Flow Definition` entities of the seeded flows whose code has changed since
  * their latest snapshot, with a snapshot of their new definitions.
  *
- * Flows that only exist in development get a dev migration of their own.
+ * Flows that only exist in development aren't seeded by migrations (see `dev-flows.ts`).
  *
  * Run with `yarn workspace @apps/hash-api generate-flow-definition-migration`.
  */
@@ -15,8 +15,6 @@ import {
   getLatestFlowDefinitionSnapshots,
 } from "./flow-definition-snapshots";
 import { seededFlows, toSnapshotForm } from "./seeded-flows";
-
-import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
 
 const migrationDirectory = path.join(
   path.dirname(flowDefinitionSnapshotDirectory),
@@ -57,7 +55,7 @@ export default migrate;
 const main = async () => {
   const latestSnapshots = await getLatestFlowDefinitionSnapshots();
 
-  const changedFlows = seededFlows.flatMap(({ flow, devOnly }) => {
+  const changedFlows = seededFlows.flatMap((flow) => {
     const flowDefinition = toSnapshotForm(flow.flowDefinition);
 
     return isDeepStrictEqual(
@@ -65,7 +63,7 @@ const main = async () => {
       flowDefinition,
     )
       ? []
-      : [{ flow: { ...flow, flowDefinition }, devOnly }];
+      : [{ ...flow, flowDefinition }];
   });
 
   if (changedFlows.length === 0) {
@@ -74,61 +72,40 @@ const main = async () => {
     return;
   }
 
-  const migrationFileNames = (await readdir(migrationDirectory)).filter(
-    (fileName) => fileName.endsWith(".migration.ts"),
-  );
-
   const migrationNumberOf = (fileName: string) =>
     Number.parseInt(fileName.split("-")[0] ?? "", 10);
 
-  let nextMigrationNumber =
+  /* Numbered after the last migration that isn't a dev one: dev migrations are numbered after those. */
+  const migrationNumber = String(
     Math.max(
-      ...migrationFileNames
-        .filter((fileName) => !fileName.endsWith(".dev.migration.ts"))
+      ...(await readdir(migrationDirectory))
+        .filter(
+          (fileName) =>
+            fileName.endsWith(".migration.ts") &&
+            !fileName.endsWith(".dev.migration.ts"),
+        )
         .map(migrationNumberOf),
-    ) + 1;
+    ) + 1,
+  ).padStart(3, "0");
 
-  let nextDevMigrationNumber =
-    Math.max(...migrationFileNames.map(migrationNumberOf)) + 1;
+  const migrationFileName = `${migrationNumber}-update-flow-definitions.migration.ts`;
 
-  for (const devOnly of [false, true]) {
-    const flows: FlowDefinitionWithId[] = changedFlows
-      .filter((changedFlow) => changedFlow.devOnly === devOnly)
-      .map(({ flow }) => flow);
+  await writeFile(
+    path.join(flowDefinitionSnapshotDirectory, `${migrationNumber}.json`),
+    `${JSON.stringify(changedFlows, null, 2)}\n`,
+  );
 
-    if (flows.length === 0) {
-      continue;
-    }
+  await writeFile(
+    path.join(migrationDirectory, migrationFileName),
+    migrationSource(migrationNumber),
+  );
 
-    const migrationNumber = String(
-      devOnly ? nextDevMigrationNumber++ : nextMigrationNumber++,
-    ).padStart(3, "0");
-
-    if (!devOnly && nextMigrationNumber > nextDevMigrationNumber) {
-      nextDevMigrationNumber = nextMigrationNumber;
-    }
-
-    const migrationFileName = `${migrationNumber}-update-flow-definitions${
-      devOnly ? ".dev" : ""
-    }.migration.ts`;
-
-    await writeFile(
-      path.join(flowDefinitionSnapshotDirectory, `${migrationNumber}.json`),
-      `${JSON.stringify(flows, null, 2)}\n`,
-    );
-
-    await writeFile(
-      path.join(migrationDirectory, migrationFileName),
-      migrationSource(migrationNumber),
-    );
-
-    // eslint-disable-next-line no-console
-    console.log(
-      `Wrote ${migrationFileName} for: ${flows
-        .map(({ flowDefinition }) => flowDefinition.name)
-        .join(", ")}`,
-    );
-  }
+  // eslint-disable-next-line no-console
+  console.log(
+    `Wrote ${migrationFileName} for: ${changedFlows
+      .map(({ flowDefinition }) => flowDefinition.name)
+      .join(", ")}`,
+  );
 };
 
 await main();
