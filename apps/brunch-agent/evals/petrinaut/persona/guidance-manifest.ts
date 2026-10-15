@@ -34,6 +34,7 @@ export const guidanceManifest = async () => {
   const paths = [
     `${agent}/agent.ts`,
     `${agent}/guidance.ts`,
+    `${agent}/interview-budget-instruction.ts`,
     `${library}/src/ledger.ts`,
     "apps/brunch-agent/src/shared/petrinaut-tools.ts",
     "yarn.lock",
