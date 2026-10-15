@@ -123,6 +123,7 @@ Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-
 - `persona-brief.md`, `resume-brief.md` and `bin/persona`: the agent's private brief, latest resume notice and bridge helper.
 - `bridge-log.jsonl`: every utterance Brunch admitted, with the persona agent settings that wrote each persona utterance (empty when you started the agent yourself), used to reconcile resume; and every destructive edit the launcher allowed, with the items its approval panel listed.
 - `evidence/`: canonical snapshot and derived transcript, tool trace, compiled `ledger.md` with its `ledger.json` commits, and bound `net.json`; refreshed after completed turns and on shutdown.
+- `evidence/packet.json` and `packet.md`: the run packet, written on shutdown (see [Run packets](../README.md#run-packets)).
 - Service logs, only for services this launch started.
 
 The persistent Chrome profile lives outside the checkout; its path is in `run.json`. Older runs may also contain `pi/`, `persona-input.md`, `usage-ledger.json` or `attempt-ledger.md`; leave them untouched as historical evidence.
