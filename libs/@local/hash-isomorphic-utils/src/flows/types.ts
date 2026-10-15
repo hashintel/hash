@@ -130,37 +130,58 @@ export type PayloadKindValues = {
 
 export type PayloadKind = keyof PayloadKindValues;
 
-const payloadKindsRecord: Record<PayloadKind, true> = {
-  ActorType: true,
-  Aggregation: true,
-  Boolean: true,
-  Date: true,
-  DateTime: true,
-  Duration: true,
-  EntityId: true,
-  FailedEntityProposal: true,
-  FilterCondition: true,
-  FormattedText: true,
-  GoogleAccountId: true,
-  GoogleSheet: true,
-  Number: true,
-  PersistedEntityMetadata: true,
-  ProposedEntity: true,
-  ProposedEntityWithResolvedLinks: true,
-  SortKey: true,
-  Text: true,
-  VersionedUrl: true,
-  WebPage: true,
-  WebSearchResult: true,
-};
+/**
+ * What a payload kind's value is underneath, which decides how a condition compares it and how Order by sorts it:
+ * - `text`: a string, compared as is
+ * - `number`: a finite number
+ * - `date`: an ISO calendar date (YYYY-MM-DD), ordered as a string
+ * - `datetime`: an ISO 8601 instant with `Z` or an offset, compared as the instant it names
+ * - `boolean`: false comes before true
+ */
+export type PayloadPrimitive =
+  | "text"
+  | "number"
+  | "date"
+  | "datetime"
+  | "boolean";
+
+/**
+ * The primitive type of each payload kind, or `null` for none: a kind whose value isn't one comparable value, such
+ * as an object, can't be compared or sorted by itself.
+ */
+export const payloadKindPrimitives = {
+  ActorType: "text",
+  Aggregation: null,
+  Boolean: "boolean",
+  Date: "date",
+  DateTime: "datetime",
+  /* A duration could be compared by its length, but nothing needs that yet. */
+  Duration: null,
+  EntityId: "text",
+  FailedEntityProposal: null,
+  FilterCondition: null,
+  FormattedText: null,
+  GoogleAccountId: "text",
+  GoogleSheet: null,
+  Number: "number",
+  PersistedEntityMetadata: null,
+  ProposedEntity: null,
+  ProposedEntityWithResolvedLinks: null,
+  SortKey: null,
+  Text: "text",
+  VersionedUrl: "text",
+  WebPage: null,
+  WebSearchResult: null,
+} as const satisfies Record<PayloadKind, PayloadPrimitive | null>;
 
 /**
  * Every payload kind, for an action input that accepts any of them (e.g. the items of a `filter` action).
  *
  * Payload kinds are a known union: a new kind is added to `PayloadKindValues`, and so joins this list.
  */
-export const allPayloadKinds: readonly PayloadKind[] =
-  typedKeys(payloadKindsRecord);
+export const allPayloadKinds: readonly PayloadKind[] = typedKeys(
+  payloadKindPrimitives,
+);
 
 /**
  * Payload kinds whose values are always stored in S3, whether singular or an array, due to their potential size.

@@ -15,6 +15,7 @@ const values: FilterValue[] = [
   { kind: "Number", value: 4 },
   { kind: "Boolean", value: true },
   { kind: "Date", value: "2026-10-07" },
+  { kind: "DateTime", value: "2026-10-07T14:00:00Z" },
   { kind: "EntityId", value: entityId },
   { kind: "ActorType", value: "user" },
   { kind: "GoogleAccountId", value: "account" },
@@ -188,6 +189,7 @@ describe("evaluateFilter", () => {
     { value: { kind: "Boolean", value: false }, empty: false },
     { value: { kind: "Date", value: "" }, empty: true },
     { value: { kind: "Date", value: "2026-10-07" }, empty: false },
+    { value: { kind: "DateTime", value: "" }, empty: true },
     { value: { kind: "EntityId", value: "" as EntityId }, empty: true },
     { value: { kind: "EntityId", value: entityId }, empty: false },
   ])("emptiness for $value", ({ value, empty }) => {
@@ -200,32 +202,31 @@ describe("evaluateFilter", () => {
   });
 
   describe.each(values)("invalid conditions for $kind", (value) => {
-    const nonEqualityOperators: ScalarFilterCondition["operator"][] = [
+    const textOperators: ScalarFilterCondition["operator"][] = [
       "contains",
       "startsWith",
       "endsWith",
+    ];
+    const orderingOperators: ScalarFilterCondition["operator"][] = [
       "greaterThan",
       "lessThan",
       "greaterThanOrEqual",
       "lessThanOrEqual",
     ];
+    const notText = [...orderingOperators, "onSameDate"] as const;
     const unsupportedOperators: Record<
       FilterValue["kind"],
       ScalarFilterCondition["operator"][]
     > = {
-      Text: [
-        "greaterThan",
-        "lessThan",
-        "greaterThanOrEqual",
-        "lessThanOrEqual",
-      ],
-      Number: ["contains", "startsWith", "endsWith"],
-      Boolean: nonEqualityOperators,
-      Date: ["contains", "startsWith", "endsWith"],
-      EntityId: nonEqualityOperators,
-      ActorType: nonEqualityOperators,
-      GoogleAccountId: nonEqualityOperators,
-      VersionedUrl: nonEqualityOperators,
+      Text: [...notText],
+      Number: [...textOperators, "onSameDate"],
+      Boolean: [...textOperators, ...notText],
+      Date: [...textOperators, "onSameDate"],
+      DateTime: textOperators,
+      EntityId: [...notText],
+      ActorType: [...notText],
+      GoogleAccountId: [...notText],
+      VersionedUrl: [...notText],
     };
 
     it.each(unsupportedOperators[value.kind])("rejects %s", (operator) => {
@@ -286,6 +287,9 @@ describe("evaluateFilter", () => {
     { kind: "Date", value: "2026-13-01" },
     { kind: "Date", value: "2026-1-1" },
     { kind: "Date", value: "2026-10-07T00:00:00Z" },
+    { kind: "DateTime", value: "2026-10-07" },
+    { kind: "DateTime", value: "2026-10-07T14:00:00" },
+    { kind: "DateTime", value: "2026-02-30T14:00:00Z" },
     { kind: "Number", value: Number.NaN },
     { kind: "Number", value: Number.POSITIVE_INFINITY },
     { kind: "Number", value: Number.NEGATIVE_INFINITY },
@@ -312,7 +316,9 @@ describe("evaluateFilter", () => {
           value:
             value.kind === "Date"
               ? { kind: "Date", value: "2026-10-07" }
-              : { kind: "Number", value: 0 },
+              : value.kind === "DateTime"
+                ? { kind: "DateTime", value: "2026-10-07T14:00:00Z" }
+                : { kind: "Number", value: 0 },
           condition: { operator: "equals", operand: value.value },
         }),
       ).toEqual({
@@ -320,6 +326,86 @@ describe("evaluateFilter", () => {
         code: "invalidOperand",
         message: expect.any(String) as unknown,
       });
+    });
+  });
+
+  describe("date-times", () => {
+    const at = (value: string): FilterValue => ({ kind: "DateTime", value });
+
+    it.each([
+      { operator: "equals", branch: "matched" },
+      { operator: "notEquals", branch: "notMatched" },
+      { operator: "greaterThan", branch: "notMatched" },
+      { operator: "lessThanOrEqual", branch: "matched" },
+    ] as const)(
+      "compares the instant, not the text, for $operator: 14:00Z is 16:00+02:00",
+      ({ operator, branch }) => {
+        expect(
+          evaluateFilter({
+            value: at("2026-10-16T14:00:00Z"),
+            condition: { operator, operand: "2026-10-16T16:00:00+02:00" },
+          }),
+        ).toEqual({ status: "success", branch });
+      },
+    );
+
+    it("orders an earlier instant first even when its text sorts later", () => {
+      /* 15:00+02:00 is 13:00Z, before 14:00Z, though "15" > "14" as text. */
+      expect(
+        evaluateFilter({
+          value: at("2026-10-16T15:00:00+02:00"),
+          condition: { operator: "lessThan", operand: "2026-10-16T14:00:00Z" },
+        }),
+      ).toEqual({ status: "success", branch: "matched" });
+    });
+
+    it.each([
+      {
+        name: "a late evening west of UTC is the next UTC date",
+        value: "2026-10-16T23:30:00-02:00",
+        operand: "2026-10-17T00:00:00Z",
+        branch: "matched",
+      },
+      {
+        name: "so it isn't on the date it reads in its own offset",
+        value: "2026-10-16T23:30:00-02:00",
+        operand: "2026-10-16T12:00:00Z",
+        branch: "notMatched",
+      },
+      {
+        name: "an early morning east of UTC is the previous UTC date",
+        value: "2026-10-17T00:30:00+02:00",
+        operand: "2026-10-16T08:00:00+05:00",
+        branch: "matched",
+      },
+      {
+        name: "the last millisecond of a UTC date",
+        value: "2026-10-16T23:59:59.999Z",
+        operand: "2026-10-16T00:00:00Z",
+        branch: "matched",
+      },
+      {
+        name: "midnight UTC starts the next date",
+        value: "2026-10-17T00:00:00Z",
+        operand: "2026-10-16T23:59:59.999Z",
+        branch: "notMatched",
+      },
+    ] as const)("onSameDate uses UTC: $name", ({ value, operand, branch }) => {
+      expect(
+        evaluateFilter({
+          value: at(value),
+          condition: { operator: "onSameDate", operand },
+        }),
+      ).toEqual({ status: "success", branch });
+    });
+
+    it("rejects a calendar date as the operand", () => {
+      expect(
+        evaluateFilter({
+          value: at("2026-10-16T14:00:00Z"),
+          condition: { operator: "onSameDate", operand: "2026-10-16" },
+        }),
+      ).toMatchObject({ status: "error", code: "invalidOperand" });
     });
   });
 
