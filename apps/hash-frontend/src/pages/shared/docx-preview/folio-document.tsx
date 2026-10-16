@@ -1,7 +1,7 @@
 import "@stll/folio-react/standalone.css";
 import { Box, CircularProgress } from "@mui/material";
 import { DocxEditor } from "@stll/folio-react";
-import { getFolioMessages } from "@stll/folio-react/messages";
+import { messages as folioMessages } from "@stll/folio-react/messages/en";
 import clamp from "lodash/clamp";
 import { useImperativeHandle, useRef } from "react";
 import { IntlProvider } from "use-intl";
@@ -36,8 +36,6 @@ type FolioDocumentProps = {
   onPagesChange: (pages: DocxDocumentPages) => void;
   onZoomChange: (zoom: number) => void;
 };
-
-const folioMessages = getFolioMessages("en");
 
 const minZoom = 0.25;
 const maxZoom = 4;
