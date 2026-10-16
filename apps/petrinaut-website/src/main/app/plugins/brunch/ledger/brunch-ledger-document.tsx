@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -27,11 +29,22 @@ const documentStyle = css({
   "& h2": { fontSize: "lg" },
   "& ul": { listStyleType: "disc", paddingLeft: "5", marginBottom: "3" },
   "& ul ul": { marginBottom: "0" },
+  // While a selection is traced, records outside the trace recede.
+  "&[data-tracing] [data-ledger-address]:not([data-traced])": {
+    opacity: "[0.4]",
+  },
 });
 
 const recordStyle = css({
   borderRadius: "sm",
-  "&[data-traced]": { backgroundColor: "blue.s20" },
+  transition: "[background-color 150ms, box-shadow 150ms, opacity 150ms]",
+  "&[data-traced]": {
+    backgroundColor: "blue.s40",
+    boxShadow: "[0 0 0 2px {colors.blue.s70}]",
+    boxDecorationBreak: "clone",
+    paddingX: "0.5",
+    fontWeight: "medium",
+  },
 });
 
 const qualifierStyle = css({ color: "neutral.s90" });
@@ -200,97 +213,112 @@ export const BrunchLedgerDocument = ({
 }: {
   projection: LedgerProjection;
   options: LedgerDocumentOptions;
-}) => (
-  <article className={documentStyle} data-testid="brunch-ledger-document">
-    <h1>{projection.title}</h1>
-    {projection.sections.map((section) => (
-      <section key={section.title}>
-        <h2>{section.title}</h2>
-        {section.kinds.map((group) => (
-          <section key={group.kind}>
-            <h3>{group.label}</h3>
-            <ul>
-              {group.entities.map((entity) => (
-                <EntityItem
-                  key={entity.record.address}
-                  entity={entity}
-                  options={options}
-                />
-              ))}
-            </ul>
-          </section>
-        ))}
-      </section>
-    ))}
-    {projection.questions.length > 0 && (
-      <section>
-        <h2>Open questions</h2>
-        <ul>
-          {projection.questions.map(({ claim, prompt, context }) => (
-            <li key={claim.address}>
-              <RecordMark address={claim.address} options={options}>
-                {prompt}
-              </RecordMark>
+}) => {
+  const articleRef = useRef<HTMLElement>(null);
+  const tracedKey = [...options.traced].join(" ");
+  useEffect(() => {
+    if (tracedKey === "") return;
+    articleRef.current
+      ?.querySelector("[data-traced]")
+      ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [tracedKey]);
+  return (
+    <article
+      ref={articleRef}
+      className={documentStyle}
+      data-testid="brunch-ledger-document"
+      data-tracing={options.traced.size > 0 ? "" : undefined}
+    >
+      <h1>{projection.title}</h1>
+      {projection.sections.map((section) => (
+        <section key={section.title}>
+          <h2>{section.title}</h2>
+          {section.kinds.map((group) => (
+            <section key={group.kind}>
+              <h3>{group.label}</h3>
               <ul>
-                <li className={qualifierStyle}>{context}</li>
-              </ul>
-            </li>
-          ))}
-        </ul>
-      </section>
-    )}
-    {projection.owed.length > 0 && (
-      <section>
-        <h2>Checks still owed</h2>
-        <ul>
-          {projection.owed.map((obligation) => (
-            <ObligationItem
-              key={obligation.record.address}
-              obligation={obligation}
-              options={options}
-            />
-          ))}
-        </ul>
-      </section>
-    )}
-    {projection.met.length > 0 && (
-      <section>
-        <h2>Checks met</h2>
-        <ul>
-          {projection.met.map((obligation) => (
-            <ObligationItem
-              key={obligation.record.address}
-              obligation={obligation}
-              options={options}
-            >
-              <ul>
-                {obligation.dischargedBy.map((reflection) => (
-                  <ReflectionItem
-                    key={reflection.address}
-                    reflection={reflection}
+                {group.entities.map((entity) => (
+                  <EntityItem
+                    key={entity.record.address}
+                    entity={entity}
                     options={options}
                   />
                 ))}
               </ul>
-            </ObligationItem>
+            </section>
           ))}
-        </ul>
-      </section>
-    )}
-    {projection.excluded.length > 0 && (
-      <section>
-        <h2>Excluded from the model</h2>
-        <ul>
-          {projection.excluded.map((entity) => (
-            <EntityItem
-              key={entity.record.address}
-              entity={entity}
-              options={options}
-              withKind
-            />
-          ))}
-        </ul>
-      </section>
-    )}
-  </article>
-);
+        </section>
+      ))}
+      {projection.questions.length > 0 && (
+        <section>
+          <h2>Open questions</h2>
+          <ul>
+            {projection.questions.map(({ claim, prompt, context }) => (
+              <li key={claim.address}>
+                <RecordMark address={claim.address} options={options}>
+                  {prompt}
+                </RecordMark>
+                <ul>
+                  <li className={qualifierStyle}>{context}</li>
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {projection.owed.length > 0 && (
+        <section>
+          <h2>Checks still owed</h2>
+          <ul>
+            {projection.owed.map((obligation) => (
+              <ObligationItem
+                key={obligation.record.address}
+                obligation={obligation}
+                options={options}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+      {projection.met.length > 0 && (
+        <section>
+          <h2>Checks met</h2>
+          <ul>
+            {projection.met.map((obligation) => (
+              <ObligationItem
+                key={obligation.record.address}
+                obligation={obligation}
+                options={options}
+              >
+                <ul>
+                  {obligation.dischargedBy.map((reflection) => (
+                    <ReflectionItem
+                      key={reflection.address}
+                      reflection={reflection}
+                      options={options}
+                    />
+                  ))}
+                </ul>
+              </ObligationItem>
+            ))}
+          </ul>
+        </section>
+      )}
+      {projection.excluded.length > 0 && (
+        <section>
+          <h2>Excluded from the model</h2>
+          <ul>
+            {projection.excluded.map((entity) => (
+              <EntityItem
+                key={entity.record.address}
+                entity={entity}
+                options={options}
+                withKind
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+    </article>
+  );
+};
