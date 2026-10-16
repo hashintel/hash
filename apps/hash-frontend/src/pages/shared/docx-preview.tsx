@@ -1,6 +1,6 @@
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 import * as Sentry from "@sentry/nextjs";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import {
@@ -72,15 +72,14 @@ export const DocxPreview = ({
    * An error before any page is laid out means the document cannot be shown.
    * A later one, such as a part folio cannot draw, leaves the pages in place.
    */
-  const handleError = useCallback(
-    (error: unknown) => {
-      Sentry.captureException(error);
-      if (!controlsRef.current?.hasPages()) {
-        onUnavailable();
-      }
-    },
-    [onUnavailable],
-  );
+  const handleError = (error: unknown) => {
+    Sentry.captureException(error);
+    if (!controlsRef.current?.hasPages()) {
+      onUnavailable();
+    }
+  };
+
+  const handleDownloadError = useEffectEvent(handleError);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,14 +103,14 @@ export const DocxPreview = ({
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          handleError(error);
+          handleDownloadError(error);
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [url, handleError]);
+  }, [url]);
 
   const selectSearchHit = (index: number | null) => {
     setSelectedSearchHit(index);
