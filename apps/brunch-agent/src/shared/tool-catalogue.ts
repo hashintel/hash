@@ -78,7 +78,7 @@ const draftBrunchTool: BrunchToolCatalogueEntry = {
  */
 export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
   {
-    name: "task",
+    name: brunchTools.task,
     definitionOwner: "flue",
     executionOwner: "flue",
     capability: "substrate",

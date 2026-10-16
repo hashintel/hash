@@ -12,6 +12,7 @@ import {
 } from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 import {
   openPetrinautSimulationResource,
   prepareExperiment,
@@ -184,12 +185,12 @@ export const resolveDraftAuthorityFromHistory = async (
   const relevant = calls.filter(
     (call) =>
       canonicalPetrinautClientToolNames.has(call.toolName) &&
-      (call.toolName === "getLatestNetDefinition" ||
+      (call.toolName === getLatestNetDefinitionToolName ||
         browserToolMutatesDocument(call.toolName)),
   );
   const latest = relevant.at(-1);
   if (
-    latest?.toolName !== "getLatestNetDefinition" ||
+    latest?.toolName !== getLatestNetDefinitionToolName ||
     latest.state !== "output-available"
   )
     throw new Error(
