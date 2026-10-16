@@ -6,6 +6,9 @@ import type {
   AiFlowActionDefinitionId,
   IntegrationFlowActionDefinitionId,
 } from "./action-definitions.js";
+import type { Aggregation } from "./aggregation.js";
+import type { FilterCondition } from "./filter-condition.js";
+import type { SortKey } from "./sort-key.js";
 import type {
   ActorEntityUuid,
   EntityId,
@@ -25,9 +28,9 @@ export type FlowActionDefinitionId =
   | AiFlowActionDefinitionId
   | IntegrationFlowActionDefinitionId;
 
-export type DeepReadOnly<T> = {
-  readonly [key in keyof T]: DeepReadOnly<T[key]>;
-};
+export type DeepReadOnly<T> = T extends (...args: never[]) => unknown
+  ? T
+  : { readonly [key in keyof T]: DeepReadOnly<T[key]> };
 
 export type WebPage = {
   url: Url;
@@ -94,12 +97,23 @@ export type GoogleSheet = { spreadsheetId: string } | { newSheetName: string };
 
 export type WebSearchResult = Pick<WebPage, "title" | "url">;
 
+/** A length of time. Every unit has a fixed length: a day is 24 hours and a week is 7 days. */
+export type Duration = {
+  amount: number;
+  unit: "seconds" | "minutes" | "hours" | "days" | "weeks";
+};
+
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
+  Aggregation: Aggregation;
   Boolean: boolean;
   Date: string; // e.g. "2025-01-01"
+  /** An ISO 8601 instant with `Z` or an offset, e.g. "2026-10-16T14:00:00Z" */
+  DateTime: string;
+  Duration: Duration;
   EntityId: EntityId;
   FailedEntityProposal: FailedEntityProposal;
+  FilterCondition: FilterCondition;
   FormattedText: FormattedText;
   GoogleAccountId: string;
   GoogleSheet: GoogleSheet;
@@ -107,6 +121,7 @@ export type PayloadKindValues = {
   PersistedEntityMetadata: PersistedEntityMetadata;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
+  SortKey: SortKey;
   Text: string;
   VersionedUrl: VersionedUrl;
   WebPage: WebPage;
@@ -117,10 +132,14 @@ export type PayloadKind = keyof PayloadKindValues;
 
 const payloadKindsRecord: Record<PayloadKind, true> = {
   ActorType: true,
+  Aggregation: true,
   Boolean: true,
   Date: true,
+  DateTime: true,
+  Duration: true,
   EntityId: true,
   FailedEntityProposal: true,
+  FilterCondition: true,
   FormattedText: true,
   GoogleAccountId: true,
   GoogleSheet: true,
@@ -128,6 +147,7 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
   PersistedEntityMetadata: true,
   ProposedEntity: true,
   ProposedEntityWithResolvedLinks: true,
+  SortKey: true,
   Text: true,
   VersionedUrl: true,
   WebPage: true,
@@ -441,6 +461,16 @@ export type OutputDefinition<
   required: boolean;
 } & ({ payloadKind: Kind } | KindFrom);
 
+/**
+ * A check an action needs beyond the shapes of its inputs, e.g. that a constant fits the kind of another input.
+ */
+export type ActionStepCheck = (params: {
+  step: ActionStepDefinition<string>;
+  /** The kind of the value connected to an input of the step, or `null` if it isn't connected or doesn't resolve. */
+  getInputKind: (inputName: string) => PayloadKind | null;
+  report: (inputName: string, message: string) => void;
+}) => void;
+
 export type ActionDefinition<
   ActionDefinitionId extends FlowActionDefinitionId,
 > = {
@@ -450,6 +480,8 @@ export type ActionDefinition<
   description: string;
   inputs: InputDefinition[];
   outputs: OutputDefinition[];
+  /** Run when a flow is validated, for each step of the action. */
+  check?: ActionStepCheck;
 };
 
 /**

@@ -1,4 +1,4 @@
-import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
+import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent";
 import type {
   PetrinautExperimentProgress,
   PetrinautExperimentResult,
@@ -84,7 +84,12 @@ const createEditorDrafts = () => {
 
 // The definition store survives panel remounts, but belongs to one editor.
 // Weak keys release drafts when that editor is disposed rather than retaining
-// every model and run in a tab-wide singleton.
+// every model and run in a tab-wide singleton. Callers pass the Brunch
+// plugin's `api.document.net`: the card and the follow-up control read the
+// same `api`, whose families Petrinaut builds once per editor. Drafts outlive
+// a `readonly` toggle, which rebuilds those families, only because `net` is
+// the core instance's own definition store; if Petrinaut ever wraps it, they
+// reset on that toggle.
 let editors = new WeakMap<object, ReturnType<typeof createEditorDrafts>>();
 export const editorDraftsFor = (definitionStore: object) => {
   let drafts = editors.get(definitionStore);

@@ -4,12 +4,17 @@ import {
   createNodeSpecifierResolver,
   createPetrinautPandaConfig,
   DS_COMPONENTS_BUILD_INFO_SUBPATH,
+  DS_ICONS_BUILD_INFO_SUBPATH,
 } from "./panda.config.shared";
 
 const config = createPetrinautPandaConfig(
   resolvePandaBuildInfoPath(
     DS_COMPONENTS_BUILD_INFO_SUBPATH,
     /** Panda evaluates this config through CJS, so `__filename` is available here. */
+    createNodeSpecifierResolver(__filename),
+  ),
+  resolvePandaBuildInfoPath(
+    DS_ICONS_BUILD_INFO_SUBPATH,
     createNodeSpecifierResolver(__filename),
   ),
 );
@@ -24,8 +29,9 @@ const config = createPetrinautPandaConfig(
  *
  * Differences from the main config's `include`:
  *
- * - No ds-components build info: hosts embedding Petrinaut already include
- *   `@hashintel/ds-components/panda.buildinfo.json` directly.
+ * - No ds-components or ds-icons build info: hosts embedding Petrinaut
+ *   include `@hashintel/ds-components/panda.buildinfo.json` and
+ *   `@hashintel/ds-icons/panda.buildinfo.json` directly.
  * - No Storybook files or stories/tests: story-only styles are not part of
  *   the package's runtime surface and would bloat host stylesheets.
  */

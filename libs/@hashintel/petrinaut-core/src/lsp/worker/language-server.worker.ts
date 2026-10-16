@@ -885,31 +885,29 @@ workerRuntime.onMessage((data) => {
           ? {
               activeSignature: help.selectedItemIndex,
               activeParameter: help.argumentIndex,
-              signatures: help.items.map(
-                (item): SignatureInformation => ({
-                  label: [
-                    ...item.prefixDisplayParts,
-                    ...item.parameters.flatMap((param, idx) => [
-                      ...(idx > 0 ? item.separatorDisplayParts : []),
-                      ...param.displayParts,
-                    ]),
-                    ...item.suffixDisplayParts,
-                  ]
-                    .map((part) => part.text)
-                    .join(""),
+              signatures: help.items.map((item): SignatureInformation => ({
+                label: [
+                  ...item.prefixDisplayParts,
+                  ...item.parameters.flatMap((param, idx) => [
+                    ...(idx > 0 ? item.separatorDisplayParts : []),
+                    ...param.displayParts,
+                  ]),
+                  ...item.suffixDisplayParts,
+                ]
+                  .map((part) => part.text)
+                  .join(""),
+                documentation: {
+                  kind: MarkupKind.PlainText,
+                  value: ts.displayPartsToString(item.documentation),
+                },
+                parameters: item.parameters.map((param) => ({
+                  label: ts.displayPartsToString(param.displayParts),
                   documentation: {
                     kind: MarkupKind.PlainText,
-                    value: ts.displayPartsToString(item.documentation),
+                    value: ts.displayPartsToString(param.documentation),
                   },
-                  parameters: item.parameters.map((param) => ({
-                    label: ts.displayPartsToString(param.displayParts),
-                    documentation: {
-                      kind: MarkupKind.PlainText,
-                      value: ts.displayPartsToString(param.documentation),
-                    },
-                  })),
-                }),
-              ),
+                })),
+              })),
             }
           : null;
 

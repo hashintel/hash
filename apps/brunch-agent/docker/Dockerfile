@@ -87,7 +87,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/repo/target,sharing=locked \
     --mount=type=cache,target=/repo/.turbo/cache,sharing=locked \
     turbo run build --filter '@apps/brunch-agent' --env-mode=loose && \
-    rm -rf apps/brunch-agent/test
+    rm -rf apps/brunch-agent/src apps/brunch-agent/test
 
 
 FROM mise AS runner

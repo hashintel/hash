@@ -45,6 +45,7 @@ export const VoiceAlerts = ({
         aria-label={`Show ${countLabel}`}
         aria-haspopup="dialog"
         aria-expanded={open}
+        pressed={open}
         size="xs"
         variant="ghost"
         type="button"

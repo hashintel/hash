@@ -691,6 +691,13 @@ services:
       # The API proxies browser calls here and appends the caller's address as X-Forwarded-For.
       # Reading it keys the address limit per caller instead of on the API's own address.
       HASH_GRAPH_CLIENT_IP_SOURCE: "x-forwarded-for"
+      # Sets the local rate limits to be higher than normal to match atlas prod limits
+      # and handle burstier tile fetchin traffic patterns.
+      # Ideally we would eventually have seperate local rate limits for atlas
+      HASH_GRAPH_RATE_LIMIT_GATE_PER_SECOND: "50"
+      HASH_GRAPH_RATE_LIMIT_GATE_BURST: "250"
+      HASH_GRAPH_RATE_LIMIT_ACTOR_PER_HOUR: "36000"
+      HASH_GRAPH_RATE_LIMIT_ACTOR_BURST: "500"
       HASH_KRATOS_PUBLIC_URL: "http://kratos:4433"
       HASH_TEMPORAL_SERVER_HOST: "http://temporal"
       HASH_TEMPORAL_SERVER_PORT: "7233"

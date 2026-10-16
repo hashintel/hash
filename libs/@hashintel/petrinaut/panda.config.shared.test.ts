@@ -37,20 +37,23 @@ describe("createNodeSpecifierResolver", () => {
 });
 
 describe("createPetrinautPandaConfig", () => {
-  it("includes the shipped build-info file instead of ds-components source globs", () => {
+  it("includes the shipped build-info files instead of ds-components source globs", () => {
     const config = createPetrinautPandaConfig(
       "/virtual/ds-components/panda.buildinfo.json",
+      "/virtual/ds-icons/panda.buildinfo.json",
     );
 
     expect(config.include).toContain(
       "/virtual/ds-components/panda.buildinfo.json",
     );
+    expect(config.include).toContain("/virtual/ds-icons/panda.buildinfo.json");
     expect(config.include).not.toContain("../ds-components/src/**/*.{ts,tsx}");
   });
 
   it("includes the shared Petrinaut preset so hosts and this package compile against one theme contract", () => {
     const config = createPetrinautPandaConfig(
       "/virtual/ds-components/panda.buildinfo.json",
+      "/virtual/ds-icons/panda.buildinfo.json",
     );
 
     expect(config.presets).toContain(petrinautPandaPreset);

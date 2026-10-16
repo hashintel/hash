@@ -72,7 +72,7 @@ vi.mock("@flue/sdk", async (importOriginal) => ({
 }));
 vi.mock("../plugins/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
-    chatEndpoint: "/agents/chat",
+    chatEndpoint: "/agents/petrinaut",
     isBrunchConfigured: true,
   }),
 }));
@@ -242,7 +242,7 @@ test.each(["Dismiss", "Run"] as const)(
         },
       ],
     } as FlueConversationState;
-    const agentUrl = "http://local.test/agents/chat/instance";
+    const agentUrl = "http://local.test/agents/petrinaut/instance";
     const draftCallUrl = `${agentUrl}/browser-calls/draft-1`;
     // The server awaits the draft in band: the stream pauses until the browser
     // claims the issued call and posts its preparation.

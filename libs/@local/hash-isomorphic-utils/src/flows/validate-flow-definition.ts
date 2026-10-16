@@ -50,7 +50,9 @@ export type FlowDefinitionDiagnosticCode =
   /** An input or output with a derived kind (see `KindFrom`), whose kind source isn't connected. */
   | "unresolvedKind"
   /** An input with a derived kind, given a value of a different kind from its kind source's. */
-  | "kindMismatch";
+  | "kindMismatch"
+  /** An input its action's own check rejects (see `ActionStepCheck`). */
+  | "invalidInput";
 
 export type FlowDefinitionDiagnostic = {
   severity: "error" | "warning";
@@ -618,6 +620,13 @@ export const validateFlowDefinition = (
         );
       }
     }
+
+    actionDefinition.check?.({
+      step,
+      getInputKind: (inputName) => shapes.getInputKind(step.stepId, inputName),
+      report: (inputName, message) =>
+        report("invalidInput", message, [...entry.path, "inputs", inputName]),
+    });
   };
 
   /*

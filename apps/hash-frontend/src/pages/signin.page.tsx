@@ -78,7 +78,14 @@ const getSafeReturnToPath = (returnTo: string | undefined) => {
     );
   }
 
-  return `${redirectPath}${redirectUrl.search}${redirectUrl.hash}`;
+  /**
+   * After a re-authentication, `return_to` points at Kratos's own
+   * `/self-service/settings?flow=<id>` on this origin, which no page serves.
+   */
+  return (
+    uiPathForKratosBrowserRedirect(redirectUrl.href) ??
+    `${redirectPath}${redirectUrl.search}${redirectUrl.hash}`
+  );
 };
 
 const SigninPage: NextPageWithLayout = () => {

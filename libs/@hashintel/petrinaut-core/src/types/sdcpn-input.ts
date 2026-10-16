@@ -169,19 +169,15 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
       const normalized: SDCPN["transitions"][number] = {
         id: transition.id,
         name: transition.name,
-        inputArcs: transition.inputArcs.map(
-          (arc): InputArc => ({
-            ...arcEndpointFields(arc),
-            weight: arc.weight ?? 1,
-            type: arc.type ?? "standard",
-          }),
-        ),
-        outputArcs: transition.outputArcs.map(
-          (arc): OutputArc => ({
-            ...arcEndpointFields(arc),
-            weight: arc.weight ?? 1,
-          }),
-        ),
+        inputArcs: transition.inputArcs.map((arc): InputArc => ({
+          ...arcEndpointFields(arc),
+          weight: arc.weight ?? 1,
+          type: arc.type ?? "standard",
+        })),
+        outputArcs: transition.outputArcs.map((arc): OutputArc => ({
+          ...arcEndpointFields(arc),
+          weight: arc.weight ?? 1,
+        })),
         lambdaType: transition.lambdaType ?? "predicate",
         lambdaCode: transition.lambdaCode ?? "",
         transitionKernelCode: transition.transitionKernelCode ?? "",

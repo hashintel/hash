@@ -15,12 +15,14 @@ use crate::{
     pipeline::EntityPipeline,
     source::Source,
     unit_map::UnitMap,
+    variables::Variables,
 };
 
 /// The parts of a [`Definition`], before they are checked against each other.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DefinitionParts {
     pub connector: ConnectorId,
+    pub variables: Variables,
     pub sources: BTreeMap<SourceName, Source>,
     pub unit_maps: BTreeMap<UnitMapName, UnitMap>,
     /// Entity pipelines in declaration order.
@@ -35,6 +37,7 @@ pub struct DefinitionParts {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Definition {
     connector: ConnectorId,
+    variables: Variables,
     sources: BTreeMap<SourceName, Source>,
     unit_maps: BTreeMap<UnitMapName, UnitMap>,
     entity_pipelines: Vec<EntityPipeline>,
@@ -52,6 +55,7 @@ impl Definition {
 
         let DefinitionParts {
             connector,
+            variables,
             sources,
             unit_maps,
             entity_pipelines,
@@ -70,6 +74,7 @@ impl Definition {
 
         Ok(Self {
             connector,
+            variables,
             sources,
             unit_maps,
             entity_pipelines,
@@ -80,6 +85,12 @@ impl Definition {
     #[must_use]
     pub const fn connector(&self) -> &ConnectorId {
         &self.connector
+    }
+
+    /// Returns the values of `vars`, which SQL reads as `$NAME` parameters.
+    #[must_use]
+    pub const fn variables(&self) -> &Variables {
+        &self.variables
     }
 
     #[must_use]

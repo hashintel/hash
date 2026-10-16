@@ -2,7 +2,6 @@
   "package": "@apps/petrinaut-website",
   "dependencies": [
     "@hashintel/brunch-agent",
-    "@hashintel/brunch-agent-plugin-sdcpn",
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
     "@hashintel/petrinaut",
@@ -13,7 +12,6 @@
     "build": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -35,7 +33,6 @@
     "dev": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -50,7 +47,6 @@
     "examples:generate": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -61,7 +57,6 @@
     "fix:eslint": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -74,7 +69,6 @@
     "lint:eslint": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -90,7 +84,6 @@
     "lint:tsc": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",
@@ -98,58 +91,11 @@
         "@local/flue-aisdk-transport#build",
         "codegen",
         "examples:generate"
-      ]
-    },
-    "test:integration": {
-      "dependsOn": [
-        "@apps/brunch-agent#build",
-        "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
-        "@hashintel/ds-components#build",
-        "@hashintel/ds-components#codegen",
-        "@hashintel/petrinaut#build",
-        "@hashintel/petrinaut-core#build",
-        "@local/flue-aisdk-transport#build",
-        "codegen",
-        "examples:generate"
-      ],
-      "env": [
-        "TEST_COVERAGE"
-      ],
-      "affectedBy": [
-        "@apps/brunch-agent",
-        "@blockprotocol/graph",
-        "@blockprotocol/type-system",
-        "@local/advanced-types",
-        "@local/harpc-client",
-        "@local/hash-backend-utils",
-        "@local/hash-codec",
-        "@local/hash-graph-authorization",
-        "@local/hash-graph-client",
-        "@local/hash-graph-sdk",
-        "@local/hash-graph-store",
-        "@local/hash-isomorphic-utils",
-        "@local/internal-api-client",
-        "@local/status",
-        "error-stack",
-        "error-stack-macros",
-        "harpc-types",
-        "harpc-wire-protocol",
-        "hash-codec",
-        "hash-codegen",
-        "hash-graph-api",
-        "hash-graph-authorization",
-        "hash-graph-store",
-        "hash-graph-temporal-versioning",
-        "hash-graph-types",
-        "hash-temporal-client",
-        "type-system"
       ]
     },
     "test:unit": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
-        "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/petrinaut#build",

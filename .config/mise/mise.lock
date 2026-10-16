@@ -226,7 +226,7 @@ version = "2.11.5"
 backend = "npm:turbo"
 
 [[tools.oxfmt]]
-version = "0.50.0"
+version = "0.71.0"
 backend = "npm:oxfmt"
 
 [[tools."pipx:sqlfluff"]]

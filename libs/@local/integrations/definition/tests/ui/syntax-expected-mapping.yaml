@@ -1,0 +1,3 @@
+# A list where the format expects a mapping is refused.
+connector: demo
+sources: [orders]

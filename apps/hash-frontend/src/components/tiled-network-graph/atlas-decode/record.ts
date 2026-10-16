@@ -17,10 +17,9 @@ type UndefinedKeys<T> = {
  */
 export type OmitUndefined<T> = Simplify<
   Pick<T, Exclude<Extract<keyof T, string | number>, UndefinedKeys<T>>> & {
-    [Key in keyof Pick<
-      T,
-      Extract<UndefinedKeys<T>, string | number>
-    >]?: Exclude<T[Key], undefined>;
+    [
+      Key in keyof Pick<T, Extract<UndefinedKeys<T>, string | number>>
+    ]?: Exclude<T[Key], undefined>;
   }
 >;
 

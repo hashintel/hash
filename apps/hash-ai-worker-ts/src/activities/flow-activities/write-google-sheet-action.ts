@@ -155,11 +155,12 @@ export const writeGoogleSheetAction: FlowActionActivity<
 
   let resolvedDataToWrite:
     | NonNullable<typeof dataToWrite>
-    | { persistedEntities: PersistedEntityMetadata[] };
+    | { kind: "PersistedEntityMetadata"; value: PersistedEntityMetadata[] };
 
   if (persistedEntitiesInput) {
     resolvedDataToWrite = {
-      persistedEntities: await resolvePayloadValue(
+      kind: "PersistedEntityMetadata",
+      value: await resolvePayloadValue(
         { storageProvider: getStorageProvider(), workflowId },
         "PersistedEntityMetadata",
         persistedEntitiesInput,
@@ -176,18 +177,18 @@ export const writeGoogleSheetAction: FlowActionActivity<
     };
   }
 
-  if ("format" in resolvedDataToWrite) {
-    if (resolvedDataToWrite.format !== "CSV") {
+  if (resolvedDataToWrite.kind === "FormattedText") {
+    if (resolvedDataToWrite.value.format !== "CSV") {
       return {
         code: StatusCode.InvalidArgument,
-        message: `Invalid text format '${resolvedDataToWrite.format}' provided, must be 'CSV'.`,
+        message: `Invalid text format '${resolvedDataToWrite.value.format}' provided, must be 'CSV'.`,
         contents: [],
       };
     }
 
     try {
       sheetRequests = convertCsvToSheetRequests({
-        csvString: resolvedDataToWrite.content,
+        csvString: resolvedDataToWrite.value.content,
         format: { audience },
       });
     } catch {
@@ -199,20 +200,19 @@ export const writeGoogleSheetAction: FlowActionActivity<
     }
   } else {
     const queryFilter =
-      "persistedEntities" in resolvedDataToWrite
+      resolvedDataToWrite.kind === "PersistedEntityMetadata"
         ? {
-            any: resolvedDataToWrite.persistedEntities.map(
-              (persistedEntityMetadata) =>
-                generateEntityIdFilter({
-                  entityId: persistedEntityMetadata.entityId,
-                  includeArchived: false,
-                }),
+            any: resolvedDataToWrite.value.map((persistedEntityMetadata) =>
+              generateEntityIdFilter({
+                entityId: persistedEntityMetadata.entityId,
+                includeArchived: false,
+              }),
             ),
           }
         : await getFilterFromBlockProtocolQueryEntity({
             authentication: { actorId: userAccountId },
             graphApiClient,
-            queryEntityId: resolvedDataToWrite,
+            queryEntityId: resolvedDataToWrite.value,
           });
 
     const subgraph = await getSubgraphFromFilter({
@@ -226,7 +226,7 @@ export const writeGoogleSheetAction: FlowActionActivity<
        * @todo once we start using a Structural Query instead, it can specify the traversal depth itself (1 becomes variable)
        */
       traversalPaths:
-        "persistedEntities" in resolvedDataToWrite
+        resolvedDataToWrite.kind === "PersistedEntityMetadata"
           ? []
           : [
               {

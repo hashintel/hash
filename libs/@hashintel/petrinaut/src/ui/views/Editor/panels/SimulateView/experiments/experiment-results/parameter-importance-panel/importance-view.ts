@@ -114,13 +114,11 @@ export const importanceRows = (
     optimization;
   const identifiers = Object.keys(partitionParameterBindings(input).optimized);
   const correlations = pearsonCorrelations(trials, identifiers);
-  const rows = identifiers.map(
-    (identifier): ImportanceRow => ({
-      identifier,
-      importance: importance?.values[identifier] ?? null,
-      correlation: correlations[identifier] ?? null,
-    }),
-  );
+  const rows = identifiers.map((identifier): ImportanceRow => ({
+    identifier,
+    importance: importance?.values[identifier] ?? null,
+    correlation: correlations[identifier] ?? null,
+  }));
   rows.sort(
     (left, right) => (right.importance ?? -1) - (left.importance ?? -1),
   );

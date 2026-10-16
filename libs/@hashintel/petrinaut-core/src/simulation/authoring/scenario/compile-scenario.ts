@@ -335,12 +335,10 @@ export const prepareScenarioCompiler = (
       );
       const initialState = evaluateInitialState(bindings);
       errors.push(
-        ...initialState.errors.map(
-          (error): ScenarioCompilationError => ({
-            source: "initialState",
-            ...error,
-          }),
-        ),
+        ...initialState.errors.map((error): ScenarioCompilationError => ({
+          source: "initialState",
+          ...error,
+        })),
       );
       if (errors.length > 0) {
         return { ok: false, errors };

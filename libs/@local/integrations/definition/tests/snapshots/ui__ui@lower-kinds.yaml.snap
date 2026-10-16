@@ -1,0 +1,10 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/lower-kinds.yaml
+---
+4:3: sources.neither: needs one of `sql`, `checkpoint`
+6:3: sources.both: `sql`, `checkpoint` cannot be used together
+13:15: pipelines.entities[0].steps[0]: needs one of `sql`, `checkpoint`, `sink`, `branches`
+14:15: pipelines.entities[0].steps[1]: `sql`, `checkpoint` cannot be used together
+19:11: pipelines.links[0]: needs one of `checkpoint`, `inputs`

@@ -205,7 +205,8 @@ const OverflowRowBase = ({
 
   const measure = useCallback(() => {
     const root = rootRef.current;
-    if (!root) {
+    const measureLayer = measureRef.current;
+    if (!root || !measureLayer || count === 0) {
       return;
     }
 
@@ -221,19 +222,29 @@ const OverflowRowBase = ({
           (Number.parseFloat(inputStyle.marginLeft) || 0) +
           (Number.parseFloat(rootStyle.columnGap) || 0)
         : 0;
-    const available =
-      root.clientWidth -
-      (Number.parseFloat(rootStyle.paddingLeft) || 0) -
-      (Number.parseFloat(rootStyle.paddingRight) || 0) -
-      reserved;
+    const paddings =
+      (Number.parseFloat(rootStyle.paddingLeft) || 0) +
+      (Number.parseFloat(rootStyle.paddingRight) || 0);
+
+    const availableFor = (contentWidth: number): number => {
+      // Ceil + 1 so sub-pixel quantisation can never report content that
+      // fits as clipped.
+      const requested = Math.ceil(contentWidth + reserved + paddings) + 1;
+      const { width: previousWidth } = root.style;
+      root.style.width = `${requested}px`;
+      const granted = root.getBoundingClientRect().width;
+      root.style.width = previousWidth;
+      return granted - paddings - reserved;
+    };
 
     if (overflow === "summary") {
       const namesCell = namesCellRef.current;
       const countCell = countCellRef.current;
-      if (!namesCell || !countCell || count === 0) {
+      if (!namesCell || !countCell) {
         return;
       }
       const namesWidth = namesCell.getBoundingClientRect().width;
+      const available = availableFor(namesWidth);
       if (count > 1) {
         setShowCountLabel(namesWidth > available);
         return;
@@ -248,9 +259,8 @@ const OverflowRowBase = ({
       return;
     }
 
-    const measureLayer = measureRef.current;
     const plusCell = plusCellRef.current;
-    if (overflow !== "truncate" || !measureLayer || !plusCell || count === 0) {
+    if (overflow !== "truncate" || !plusCell) {
       return;
     }
 
@@ -266,7 +276,9 @@ const OverflowRowBase = ({
       cellEnds.push(cell.getBoundingClientRect().right - layerLeft);
     }
 
-    if (cellEnds[count - 1]! <= available) {
+    // Probed with the badge-less full row: showing everything renders none.
+    const fullRunAvailable = availableFor(cellEnds[count - 1]!);
+    if (cellEnds[count - 1]! <= fullRunAvailable) {
       setFitCount(count);
       return;
     }
@@ -283,9 +295,16 @@ const OverflowRowBase = ({
     let shown = 0;
     while (
       shown < count - 1 &&
-      cellEnds[shown]! + gap + badgeWidth <= available
+      cellEnds[shown]! + gap + badgeWidth <= fullRunAvailable
     ) {
       shown += 1;
+    }
+    while (shown > 0) {
+      const rowWidth = cellEnds[shown - 1]! + gap + badgeWidth;
+      if (rowWidth <= availableFor(rowWidth)) {
+        break;
+      }
+      shown -= 1;
     }
     setFitCount(shown);
   }, [overflow, count, hasInput]);

@@ -13,6 +13,7 @@ import {
   getEventHighlightedId,
   useLoopSelection,
 } from "../../util/SelectableList/selectable-list-util";
+import { TriggerPressedContext } from "../../util/trigger-pressed-context";
 import { type Position } from "../Tooltip/tooltip";
 import { collectSelectedIds } from "./menu-util";
 
@@ -71,12 +72,16 @@ export const Menu = ({
       <ArkMenu.Context>
         {(menu) => (
           <>
-            <ArkMenu.Trigger asChild>
-              {cloneElement(
-                trigger as React.ReactElement<{ "aria-expanded"?: boolean }>,
-                { "aria-expanded": menu.open },
-              )}
-            </ArkMenu.Trigger>
+            <TriggerPressedContext.Provider value={menu.open}>
+              <ArkMenu.Trigger asChild>
+                {cloneElement(
+                  trigger as React.ReactElement<{
+                    "aria-expanded"?: boolean;
+                  }>,
+                  { "aria-expanded": menu.open },
+                )}
+              </ArkMenu.Trigger>
+            </TriggerPressedContext.Provider>
             <Portal container={portalContainerRef}>
               <ArkMenu.Positioner
                 className={parkedPopperPositioner}

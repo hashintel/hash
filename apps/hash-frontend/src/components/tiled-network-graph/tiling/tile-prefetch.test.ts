@@ -39,17 +39,23 @@ const keysOf = (region_: ViewportRegion): Set<string> =>
 const fakeCache = (
   history: ViewportRegion[],
   options: { fullness?: number; cached?: ReadonlySet<string> } = {},
-): PrefetchCache & { readonly prefetched: TileDocument.Coordinate[] } => {
+): PrefetchCache & {
+  readonly prefetched: TileDocument.Coordinate[];
+  readonly batchDetails: (string | undefined)[];
+} => {
   const prefetched: TileDocument.Coordinate[] = [];
+  const batchDetails: (string | undefined)[] = [];
   const cached = options.cached ?? new Set<string>();
   return {
     fullness: options.fullness ?? 0,
     history,
     has: (coordinate) => cached.has(atlasTileKey(coordinate)),
-    prefetchBatch: (coordinates) => {
+    prefetchBatch: (coordinates, detail) => {
       prefetched.push(...coordinates);
+      batchDetails.push(detail);
     },
     prefetched,
+    batchDetails,
   };
 };
 
@@ -157,6 +163,16 @@ describe("schedulePrefetch", () => {
       ({ z, y }) => z === 5n && (y === 8n || y === 11n),
     );
     expect(orthogonal).toBe(true);
+  });
+
+  it("forwards the viewport's detail mode to the batch", () => {
+    const current = region(22_048, 20_000, 1_024, 5);
+    const cache = fakeCache([region(20_000, 20_000, 1_024, 5), current]);
+
+    schedulePrefetch(cache, keysOf(current), "auxiliary");
+
+    expect(cache.prefetched.length).toBeGreaterThan(0);
+    expect(cache.batchDetails).toEqual(["auxiliary"]);
   });
 
   it("still prefetches the ring on a jump (no directional prediction)", () => {

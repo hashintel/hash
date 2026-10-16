@@ -23,7 +23,7 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { brunchHeaders } from "@hashintel/brunch-agent";
 
-import { loadBuiltBrunchApplication } from "../load-built-application";
+import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 const DEV_APP = fileURLToPath(new URL("../..", import.meta.url)).replace(
   /[/\\]$/u,
@@ -147,10 +147,14 @@ describe("the emitted server bundle", () => {
     );
   });
 
-  test("serves only the guarded Flue conversation door", async () => {
+  test("serves only the guarded Flue conversation doors", async () => {
     const application = await loadBuiltBrunchApplication();
-    const [legacyResponse, flueResponse] = await Promise.all([
+    const [legacyResponse, flueResponse, aliasResponse] = await Promise.all([
       application.fetch(new Request("http://brunch.test/api/chat")),
+      application.fetch(
+        new Request("http://brunch.test/agents/petrinaut/missing-identity"),
+      ),
+      // The deployed website's endpoint until its configuration moves.
       application.fetch(
         new Request("http://brunch.test/agents/chat/missing-identity"),
       ),
@@ -158,6 +162,7 @@ describe("the emitted server bundle", () => {
 
     expect(legacyResponse.status).toBe(404);
     expect(flueResponse.status).toBe(401);
+    expect(aliasResponse.status).toBe(401);
   });
 
   test("applies route-scoped CORS before ownership", async () => {
@@ -165,7 +170,7 @@ describe("the emitted server bundle", () => {
     const [preflight, guardedResponse, bareOptions, healthResponse] =
       await Promise.all([
         application.fetch(
-          new Request("http://brunch.test/agents/chat/conversation", {
+          new Request("http://brunch.test/agents/petrinaut/conversation", {
             method: "OPTIONS",
             headers: {
               Origin: allowedCorsOrigin,
@@ -179,12 +184,12 @@ describe("the emitted server bundle", () => {
           }),
         ),
         application.fetch(
-          new Request("http://brunch.test/agents/chat/conversation", {
+          new Request("http://brunch.test/agents/petrinaut/conversation", {
             headers: { Origin: allowedCorsOrigin },
           }),
         ),
         application.fetch(
-          new Request("http://brunch.test/agents/chat/conversation", {
+          new Request("http://brunch.test/agents/petrinaut/conversation", {
             method: "OPTIONS",
           }),
         ),
@@ -217,14 +222,17 @@ describe("the emitted server bundle", () => {
 
   test("packages each mounted skill directory natively through Flue", () => {
     expect(bundle).toContain("createSkillReference(");
-    expect(bundle).toMatch(/"id": "skill:elicitation:[0-9a-f]+"/u);
-    expect(bundle).toMatch(/"id": "skill:sdcpn-modelling:[0-9a-f]+"/u);
+    for (const skill of ["eliciting", "modelling", "petrinaut"])
+      expect(bundle).toMatch(
+        new RegExp(`"id": "skill:${skill}:[0-9a-f]+"`, "u"),
+      );
     for (const resource of [
       "references/checks.md",
       "references/experiment-configuration.md",
-      "references/pn-construction.md",
-      "references/profile.md",
-      "templates/workpiece.md",
+      "references/mapping.md",
+      "references/docs.md",
+      "references/examples.md",
+      "references/experiments.md",
     ])
       expect(bundle).toContain(`"${resource}"`);
   });
@@ -263,6 +271,6 @@ describe("the emitted client bundle", () => {
   });
 });
 
-// The production asset route is tested in `apps/brunch-agent/test/assets.test.ts`,
+// The production asset route is tested in `apps/brunch-agent/src/server/http/assets.test.ts`,
 // against the handler module directly: the emitted server bundle targets
 // Node (`node:sqlite`), so the handler test isolates the asset policy.

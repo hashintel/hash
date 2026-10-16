@@ -51,7 +51,7 @@ markdownlint-cli2   = "0.22.1"
 # provenance by a legitimate maintainer (manual backfill of a failed CI release batch); content was
 # verified against the source tag. See https://linear.app/hash/issue/SRE-871
 "npm:renovate"       = { version = "43.212.4", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"] }
-oxfmt                = "0.50.0"
+oxfmt                = "0.71.0"
 "pipx:sqlfluff"      = "3.4.2"
 sentry-cli           = "2.52.0"
 taplo                = "0.10.0"
