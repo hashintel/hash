@@ -1,5 +1,51 @@
 # @hashintel/ds-components
 
+## 0.4.0
+
+### Minor Changes
+
+- `clearable` on `Select`, `TextInput` and `NumberInput` is now `boolean | { onClear }`, and `searchable` on `Select` is `boolean | { onSearch?, hideCount?, hideSelectAllToggle? }`. `Banner`'s `dismissible` is now `false | { onDismiss }`, and `removeable` on `Chip` and `Filter` is `false | { onRemove }`. These replace the previous object shapes with an inner enabled flag. ([@alex-e-leon](https://github.com/alex-e-leon), [#9646](https://github.com/hashintel/hash/pull/9646))
+
+- Per-component subpaths (`@hashintel/ds-components/<name>`) export only components: import `iconNames`, `ChipSize` and `useFieldId` from the root, and `FieldIdProvider` from `/field-id-provider` instead of `/field-id-context`. ([@CiaranMn](https://github.com/CiaranMn), [#9966](https://github.com/hashintel/hash/pull/9966))
+
+- `renderSelectedItem` now renders one selected value inside the multi select's trigger, and a string result also supplies that value's summary text. The new `renderSelectedAll` renders the whole selection, as `renderSelectedItem` did before, and `Filter` multi-select inputs accept both. ([@alex-e-leon](https://github.com/alex-e-leon), [#9684](https://github.com/hashintel/hash/pull/9684))
+
+- `Button` no longer shows a pressed state for `aria-expanded` or emits `aria-pressed`: the `pressed` prop is visual-only, and `Menu` passes pressed state to `Button` through context. ([@alex-e-leon](https://github.com/alex-e-leon), [#10024](https://github.com/hashintel/hash/pull/10024))
+
+- Remove the `style` prop from `TextInput` and `NumberInput`. ([@alex-e-leon](https://github.com/alex-e-leon), [#10031](https://github.com/hashintel/hash/pull/10031))
+
+### Patch Changes
+
+- Fix `OverflowRow` measurement inside fit-content containers, so `Filter` and the naked and multi variants of `Select` and `Combobox` show summary views more consistently. ([@alex-e-leon](https://github.com/alex-e-leon), [#10040](https://github.com/hashintel/hash/pull/10040))
+
+- Add `Combobox` component ([@alex-e-leon](https://github.com/alex-e-leon), [#9806](https://github.com/hashintel/hash/pull/9806))
+
+- Add `multiple` support to `Combobox` ([@alex-e-leon](https://github.com/alex-e-leon), [#9866](https://github.com/hashintel/hash/pull/9866))
+
+- Add `IconProvider`, which overrides named icons within a component tree and keeps the defaults for icons it omits. ([@kube](https://github.com/kube), [#9695](https://github.com/hashintel/hash/pull/9695))
+
+- `Dialog` accepts content refs and inline styles, for movable and resizable layouts. ([@kube](https://github.com/kube))
+
+- `Drawer` accepts `initialFocusRef` and `returnFocusRef` refs that start `null`, as `Popover` does. ([@kube](https://github.com/kube), [#9607](https://github.com/hashintel/hash/pull/9607))
+
+- `Filter` operators can declare select inputs, Select + Inputs handles overflowing content better, and `Select` keyboard navigation follows the APG guidelines more closely. ([@alex-e-leon](https://github.com/alex-e-leon), [#9646](https://github.com/hashintel/hash/pull/9646))
+
+- `Menu` and `SelectableList` items with `subItems` accept a `menuClassName`. ([@CiaranMn](https://github.com/CiaranMn), [#9739](https://github.com/hashintel/hash/pull/9739))
+
+- `Slider` accepts `disabled`, which dims the control and turns its input off. ([@kube](https://github.com/kube), [#9516](https://github.com/hashintel/hash/pull/9516))
+
+- `Slider` gains a `plain` variant with a small fixed-size thumb for dense rows, and its rail spans the slider's root however the root aligns its children. ([@kube](https://github.com/kube), [#9607](https://github.com/hashintel/hash/pull/9607))
+
+- `Slider` treats 0 as a value, and `useElementSize` tracks an element that mounts after the first render. ([@kube](https://github.com/kube), [#9421](https://github.com/hashintel/hash/pull/9421))
+
+- `Slider` accepts `step` and `onChangeEnd`. ([@kube](https://github.com/kube), [#9398](https://github.com/hashintel/hash/pull/9398))
+
+- Add `resolvePandaBuildInfoPath` to `@hashintel/ds-components/preset`, which turns a shipped `panda.buildinfo.json` into a path Panda's `include` accepts on every platform. ([@aacarcrash](https://github.com/aacarcrash), [#9834](https://github.com/hashintel/hash/pull/9834))
+
+- Add header and footer options to `SelectableList`, with minor UI improvements. ([@alex-e-leon](https://github.com/alex-e-leon), [#9584](https://github.com/hashintel/hash/pull/9584))
+
+- Add a `Breadcrumb` component. ([@alex-e-leon](https://github.com/alex-e-leon), [#9502](https://github.com/hashintel/hash/pull/9502))
+
 ## 0.3.1
 
 ### Patch Changes
