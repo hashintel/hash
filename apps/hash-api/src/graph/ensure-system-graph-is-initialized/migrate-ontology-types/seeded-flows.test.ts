@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import * as browserPluginFlows from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import * as fileFlows from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
 import * as frontendFlows from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
-import { ftseInvestorsFlow } from "@local/hash-isomorphic-utils/flows/ftse-investors-flow-definition";
+import * as ftseInvestorsFlows from "@local/hash-isomorphic-utils/flows/ftse-investors-flow-definition";
 import * as goalFlows from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import * as integrationFlows from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
@@ -23,7 +23,7 @@ const isFlow = (value: unknown): value is FlowDefinitionWithId =>
   "flowDefinition" in value;
 
 /** Flows defined in code that aren't seeded anywhere: FTSE investors is a test fixture for `forEach` steps. */
-const unseededFlows = [ftseInvestorsFlow];
+const unseededFlows = [ftseInvestorsFlows.ftseInvestorsFlow];
 
 describe("seeded flows", () => {
   it("seeds every flow defined in code, through migrations or in development", () => {
@@ -31,6 +31,7 @@ describe("seeded flows", () => {
       ...browserPluginFlows,
       ...fileFlows,
       ...frontendFlows,
+      ...ftseInvestorsFlows,
       ...goalFlows,
       ...integrationFlows,
     }).filter(isFlow);
