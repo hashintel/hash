@@ -109,6 +109,14 @@ export const vLedgerAppend = v.pipe(
         "An ordered queue of [route, payload] tuples. $index references the zero-based position in this entire queue, never a per-kind index. References may target any matching entry; supersedes must target an earlier claim. Empty queues are allowed.",
       ),
     ),
+    endTurn: v.optional(
+      v.pipe(
+        v.boolean(),
+        v.description(
+          "True when this call closes the exchange: once the batch is recorded, the turn ends without another response. A refused batch leaves the turn open for its repair.",
+        ),
+      ),
+    ),
   }),
   v.description(
     "One append-only Ledger batch. The system supplies new record IDs, turns and change provenance. Address updates by their system-issued ID in the route; use existing IDs or $index references in relationship fields. Every committed batch stays in the Ledger's log; its map shows the current records.",
