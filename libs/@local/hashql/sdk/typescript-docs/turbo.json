@@ -9,7 +9,7 @@
     },
     "doc:analyze": {
       "dependsOn": ["doc:declarations"],
-      "outputs": [".generated/api.json", ".generated/api-entry.d.ts"]
+      "outputs": [".generated/entry-points.json", ".generated/api/**"]
     },
     "doc:transform": {
       "dependsOn": ["doc:analyze"],

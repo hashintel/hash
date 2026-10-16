@@ -4,19 +4,31 @@ import {
   ExtractorConfig,
   ExtractorLogLevel,
 } from "@microsoft/api-extractor";
-import { Data, Effect, FileSystem, Path } from "effect";
+import {
+  Array,
+  Data,
+  Effect,
+  FileSystem,
+  Option,
+  Path,
+  Record,
+  Schema,
+  flow,
+} from "effect";
 import { Command, Flag } from "effect/cli";
+
+import * as Analysis from "./Analysis.js";
 
 import type { IConfigFile } from "@microsoft/api-extractor";
 
 const makeExtractorConfig = ({
   lib,
   entry,
-  out,
+  model,
 }: {
   lib: string;
   entry: string;
-  out: string;
+  model: string;
 }): IConfigFile => ({
   projectFolder: lib,
   mainEntryPointFilePath: entry,
@@ -28,7 +40,7 @@ const makeExtractorConfig = ({
   },
   docModel: {
     enabled: true,
-    apiJsonFilePath: `${out}/api.json`,
+    apiJsonFilePath: model,
   },
   dtsRollup: {
     enabled: false,
@@ -52,15 +64,28 @@ const makeExtractorConfig = ({
   },
 });
 
-/** API Extractor finished the analysis and reported errors. */
+/** API Extractor finished analyzing an entry point and reported errors. */
 export class ExtractionError extends Data.TaggedError("ExtractionError")<{
+  readonly subpath: string;
   readonly errorCount: number;
   readonly warningCount: number;
 }> {}
 
 export const command = Command.make("analyze", {
   lib: Flag.Directory("lib"),
-  include: Flag.File("include", { mustExist: true }).pipe(Flag.atLeast(1)),
+  entry: Flag.KeyValuePair("entry").pipe(
+    Flag.withDescription(
+      "An export subpath and the declaration file TypeScript emitted for it, such as `./draft=<file>`. The first entry's file sits at the top of the emit",
+    ),
+    // `KeyValuePair` requires a pair, though its type does not say so.
+    Flag.filterMap(
+      flow(Record.toEntries, Option.liftPredicate(Array.isArrayNonEmpty)),
+      () => "Expected at least one entry point",
+    ),
+    Flag.withSchema(
+      Schema.NonEmptyArray(Schema.Tuple([Analysis.Subpath, Schema.String])),
+    ),
+  ),
   out: Flag.Directory("out").pipe(
     Flag.withDefault(
       Effect.suspend(() =>
@@ -74,57 +99,74 @@ export const command = Command.make("analyze", {
   ),
 });
 
+// API Extractor analyzes a single entry point per run, and merging several into one module would collide where two of them export the same name.
+const extract = Effect.fnUntraced(function* ({
+  lib,
+  subpath,
+  entry,
+  model,
+}: {
+  lib: string;
+  subpath: string;
+  entry: string;
+  model: string;
+}) {
+  const path = yield* Path.Path;
+
+  // May throw when `<projectFolder>/tsdoc.json` is invalid, or when the entry is not a declaration file that exists.
+  const extractorConfig = yield* Effect.try(() =>
+    ExtractorConfig.prepare({
+      configObject: makeExtractorConfig({ lib, entry, model }),
+      configObjectFullPath: undefined,
+      packageJsonFullPath: path.join(lib, "package.json"),
+    }),
+  );
+
+  return yield* Effect.try(() =>
+    Extractor.invoke(extractorConfig, { localBuild: true }),
+  ).pipe(
+    Effect.filterOrFail(
+      ({ succeeded }) => succeeded,
+      ({ errorCount, warningCount }) =>
+        new ExtractionError({ subpath, errorCount, warningCount }),
+    ),
+  );
+});
+
 export const handler = command.pipe(
   Command.withHandler(
-    Effect.fnUntraced(function* ({ lib, include, out }) {
+    Effect.fnUntraced(function* ({ lib, entry, out }) {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
 
       const libPath = path.resolve(lib);
       const outPath = path.resolve(out);
-      const entryPath = path.join(outPath, "api-entry.d.ts");
-
-      // API Extractor only supports a single entry point, therefore we must shim multiple entry points into a single module
-      const entry = include
-        .map((file) => {
-          const specifier = path
-            .relative(outPath, path.resolve(file))
-            .replace(/\.d\.(?<format>[cm]?)ts$/u, ".$<format>js");
-
-          if (specifier.startsWith("../")) {
-            return `export * from ${JSON.stringify(specifier)};\n`;
-          }
-
-          return `export * from ${JSON.stringify(`./${specifier}`)};\n`;
-        })
-        .join("");
 
       yield* fs.makeDirectory(outPath, { recursive: true });
-      yield* fs.writeFileString(entryPath, entry);
 
-      // May throw when `<projectFolder>/tsdoc.json` is invalid.
-      const extractorConfig = yield* Effect.try(() =>
-        ExtractorConfig.prepare({
-          configObject: makeExtractorConfig({
-            lib: libPath,
-            entry: entryPath,
-            out: outPath,
-          }),
-          configObjectFullPath: undefined,
-          packageJsonFullPath: path.join(libPath, "package.json"),
+      const entryPoints = yield* Effect.forEach(
+        entry,
+        Effect.fnUntraced(function* ([subpath, file], index) {
+          const declaration = path.resolve(file);
+          const model = path.join(outPath, "api", `${index}.json`);
+
+          yield* extract({ lib: libPath, subpath, entry: declaration, model });
+
+          return {
+            subpath,
+            model: path.relative(outPath, model),
+            declaration: path.relative(outPath, declaration),
+          };
         }),
       );
 
-      const result = yield* Effect.try(() =>
-        Extractor.invoke(extractorConfig, { localBuild: true }),
+      const manifest = yield* Schema.encodeEffect(Analysis.Manifest)(
+        entryPoints,
       );
-
-      if (!result.succeeded) {
-        return yield* new ExtractionError({
-          errorCount: result.errorCount,
-          warningCount: result.warningCount,
-        });
-      }
+      yield* fs.writeFileString(
+        path.join(outPath, Analysis.manifestFile),
+        manifest,
+      );
 
       return "Ok";
     }),

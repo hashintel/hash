@@ -9,7 +9,7 @@
     "build": "next build --webpack",
     "codegen": "fumadocs-mdx",
     "dev": "next dev --webpack --hostname 127.0.0.1 --port ${PORT:-4398}",
-    "doc:analyze": "tsx src/cli.ts analyze --lib ../typescript --include .generated/declarations/main.d.ts",
+    "doc:analyze": "tsx src/cli.ts analyze --lib ../typescript --entry .=.generated/declarations/main.d.ts --entry ./draft=.generated/declarations/draft/index.d.ts --entry ./do=.generated/declarations/do/index.d.ts",
     "doc:declarations": "tsc --project tsconfig.api.json",
     "doc:transform": "tsx src/cli.ts transform --lib ../typescript && oxfmt content/docs/reference",
     "fix:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts --fix",

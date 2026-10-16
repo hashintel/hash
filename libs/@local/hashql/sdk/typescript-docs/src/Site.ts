@@ -10,6 +10,7 @@ import {
   Option,
   Path,
   Record,
+  String,
   Struct,
   flow,
   pipe,
@@ -24,9 +25,9 @@ import type { Scope } from "./Sources.js";
 import type { ApiItem } from "@microsoft/api-extractor-model";
 import type { DocDeclarationReference } from "@microsoft/tsdoc";
 
-/** A reference page for the package, or for a namespace that a module re-exports with `export * as`. */
+/** A reference page for one of the package's entry points, or for a namespace that a module re-exports with `export * as`. */
 export interface Page {
-  /** Path segments below the output directory, empty for the package page. */
+  /** Path segments below the output directory, empty for the package page and the subpath's for another entry point's. */
   readonly path: readonly string[];
   readonly title: string;
   /** The model item whose members the page documents. */
@@ -51,6 +52,8 @@ export class Site extends Context.Service<
   Site,
   {
     readonly pages: Array.NonEmptyReadonlyArray<Page>;
+    /** The entry points' pages, in the order `analyze` received them. */
+    readonly roots: Array.NonEmptyReadonlyArray<Page>;
     /** The page documenting a container's members, if it has one. */
     readonly pageOf: (container: ApiItem) => Option.Option<Page>;
     readonly url: (page: Page) => string;
@@ -309,16 +312,48 @@ const makeLinks = Effect.fnUntraced(function* (index: Index, origin: Origin) {
   const scope = yield* sources.scope(origin.module);
   const resolution: Resolution = { index, origin, scope };
 
+  // A reference's import path selects an entry point, `/draft` the one at `./draft`. Without one, it names the entry point the comment's page belongs to.
+  const entryPointOf = (
+    reference: DocDeclarationReference,
+  ): Option.Option<ApiItem> =>
+    Option.match(Option.fromNullishOr(reference.importPath), {
+      onNone: () =>
+        pipe(
+          Array.prepend(ancestors(origin.container), origin.container),
+          Array.findFirst((item) => item.kind === ApiItemKind.EntryPoint),
+        ),
+      onSome: (importPath) =>
+        pipe(
+          analysis.entryPoints,
+          Array.findFirst(({ subpath }) => subpath === `.${importPath}`),
+          Option.map(Struct.get("model")),
+        ),
+    });
+
   // Links resolve the way TypeScript resolves them in the comment's module. A reference qualified from the package resolves last.
-  const fromPackage: Lookup = (name) => members(analysis.entry, name);
-  const target = resolveIn([
-    declared(resolution),
-    imported(sources, resolution),
-    fromPackage,
-  ]);
+  const fromPackage =
+    (reference: DocDeclarationReference): Lookup =>
+    (name) =>
+      pipe(
+        entryPointOf(reference),
+        Option.map((entryPoint) => members(entryPoint, name)),
+        Option.getOrElse(Array.empty),
+      );
+  const target = (reference: DocDeclarationReference): Option.Option<ApiItem> =>
+    pipe(
+      reference,
+      namesOf,
+      Option.flatMap(
+        resolveIn([
+          declared(resolution),
+          imported(sources, resolution),
+          fromPackage(reference),
+        ]),
+      ),
+    );
 
   const shown = path.relative(
-    path.dirname(Array.headNonEmpty(analysis.roots)),
+    path.dirname(Array.headNonEmpty(analysis.entryPoints).module),
     origin.module,
   );
 
@@ -328,9 +363,8 @@ const makeLinks = Effect.fnUntraced(function* (index: Index, origin: Origin) {
         reference,
         Option.liftPredicate(
           ({ packageName }) =>
-            packageName === undefined || packageName === analysis.package.name,
+            packageName === undefined || packageName === analysis.name,
         ),
-        Option.flatMap(namesOf),
         Option.flatMap(target),
         Option.flatMap(index.itemUrl),
         Option.match({
@@ -381,16 +415,22 @@ export const layer = ({
       const analysis = yield* Analysis;
       const services = yield* Effect.context<Analysis | Sources | Path.Path>();
 
-      const root: Page = {
-        path: [],
-        title: analysis.package.displayName,
-        container: analysis.entry,
-        modules: analysis.roots,
-      };
+      // `./draft` is the page at `draft`, below the package's own.
+      const roots = Array.map(
+        analysis.entryPoints,
+        ({ subpath, model, module }): Page => ({
+          path: Array.drop(String.split(subpath, "/"), 1),
+          title: `${analysis.name}${subpath.slice(1)}`,
+          container: model,
+          modules: [module],
+        }),
+      );
       const pages = yield* pipe(
-        root,
-        discover,
-        Effect.map(Array.prepend(root)),
+        roots,
+        Effect.forEach((root) =>
+          pipe(root, discover, Effect.map(Array.prepend(root))),
+        ),
+        Effect.map(Array.flatten),
       );
       const duplicate = pipe(
         pages,
@@ -409,6 +449,7 @@ export const layer = ({
 
       return Site.of({
         pages,
+        roots,
         pageOf: index.pageOf,
         url: index.url,
         anchor: index.anchor,

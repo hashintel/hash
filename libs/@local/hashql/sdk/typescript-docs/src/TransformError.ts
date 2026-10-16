@@ -14,6 +14,11 @@ export type Reason = Data.TaggedEnum<{
     readonly file: string;
     readonly cause: Schema.SchemaError;
   };
+  /** The manifest `analyze` writes beside its models does not decode. */
+  MalformedManifest: {
+    readonly file: string;
+    readonly cause: Schema.SchemaError;
+  };
   /** API Extractor could not load the API model the analysis wrote. */
   UnreadableModel: {
     readonly file: string;
@@ -58,6 +63,12 @@ export class TransformError extends TransformErrorBase<{
   ): TransformError =>
     new TransformError({ reason: Reason.MalformedSourceMap({ file, cause }) });
 
+  static readonly malformedManifest = (
+    file: string,
+    cause: Schema.SchemaError,
+  ): TransformError =>
+    new TransformError({ reason: Reason.MalformedManifest({ file, cause }) });
+
   static readonly unreadableModel = (
     file: string,
     cause: Cause.UnknownError,
@@ -89,6 +100,7 @@ export class TransformError extends TransformErrorBase<{
       SourceSyntax: ({ file, messages }) =>
         `${file} does not parse: ${messages.join("; ")}`,
       MalformedSourceMap: ({ file, cause }) => `${file}: ${cause.message}`,
+      MalformedManifest: ({ file, cause }) => `${file}: ${cause.message}`,
       UnreadableModel: ({ file, cause }) => `${file}: ${cause.message}`,
       MalformedAnalysis: ({ detail }) => detail,
       UnsupportedComment: ({ kind }) =>

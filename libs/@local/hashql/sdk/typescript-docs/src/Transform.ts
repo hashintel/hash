@@ -18,7 +18,7 @@ import * as Site from "./Site.js";
 import * as Sources from "./Sources.js";
 import { TransformError } from "./TransformError.js";
 
-// The reference folder lists the package page first, then the module folders.
+// The reference folder lists the package page first, then its namespaces, then the other entry points in the order `analyze` received them.
 const Meta = Schema.fromJsonString(
   Schema.Struct({ title: Schema.String, pages: Schema.Array(Schema.String) }),
   { space: 2 },
@@ -75,10 +75,18 @@ const write = Effect.fnUntraced(
     const path = yield* Path.Path;
     const site = yield* Site.Site;
 
-    // Encoding a literal of the schema's own type cannot fail.
+    // Encoding a value of the schema's own type cannot fail.
     const meta = yield* Schema.encodeEffect(Meta)({
       title: "API reference",
-      pages: ["index", "..."],
+      pages: [
+        "index",
+        "...",
+        ...pipe(
+          site.roots,
+          Array.flatMap(({ path: segments }) => Array.take(segments, 1)),
+          Array.dedupe,
+        ),
+      ],
     }).pipe(Effect.orDie);
 
     yield* fs.remove(out, { recursive: true, force: true });

@@ -10,7 +10,6 @@ import {
   Layer,
   Option,
   Path,
-  Result,
   Schema,
   Struct,
   flow,
@@ -20,11 +19,7 @@ import {
 import { Sources } from "./Sources.js";
 import { TransformError } from "./TransformError.js";
 
-import type {
-  ApiEntryPoint,
-  ApiItem,
-  ApiPackage,
-} from "@microsoft/api-extractor-model";
+import type { ApiEntryPoint, ApiItem } from "@microsoft/api-extractor-model";
 import type { DocComment } from "@microsoft/tsdoc";
 
 /** The part of a declaration map that names the source TypeScript emitted the file from. */
@@ -44,15 +39,47 @@ const declarationExtensions: readonly (readonly [string, string])[] = [
   [".ts", ".d.ts"],
 ];
 
+/** A subpath that a package's `exports` names: `.` for the package itself, otherwise `./` followed by a path. A pattern with `*` names no single entry point. */
+export const Subpath = Schema.String.pipe(
+  Schema.check(Schema.isPattern(/^\.(?:\/[^/*]+)*$/u)),
+);
+
+/** The file `analyze` writes beside the models, which names each entry point it analyzed. */
+export const manifestFile = "entry-points.json";
+
+/** The entry points `analyze` analyzed, in the order it received them. Paths are relative to the manifest's directory. */
+export const Manifest = Schema.fromJsonString(
+  Schema.NonEmptyArray(
+    Schema.Struct({
+      subpath: Subpath,
+      /** API Extractor's model of the entry point. */
+      model: Schema.String,
+      /** The declaration file the model was extracted from. */
+      declaration: Schema.String,
+    }),
+  ),
+  { space: 2 },
+);
+
+/** An entry point of the analyzed package. */
+export interface EntryPoint {
+  /** The subpath the package exports it at. */
+  readonly subpath: string;
+  /** API Extractor's model of the entry point, whose members are its exports. */
+  readonly model: ApiEntryPoint;
+  /** The source module TypeScript emitted the entry point's declaration file from. */
+  readonly module: string;
+}
+
 /** The output of the `analyze` command, with what the pages need to find their way back to the sources. */
 export class Analysis extends Context.Service<
   Analysis,
   {
-    readonly package: ApiPackage;
-    readonly entry: ApiEntryPoint;
-    /** The source modules of the declaration files the analysis entry re-exports, in order. */
-    readonly roots: Array.NonEmptyReadonlyArray<string>;
-    /** The directory TypeScript emitted the declaration files into. The first root's file sits at its top, and the tree below mirrors the sources. */
+    /** The analyzed package's name. */
+    readonly name: string;
+    /** The package's entry points, in the order `analyze` received them. */
+    readonly entryPoints: Array.NonEmptyReadonlyArray<EntryPoint>;
+    /** The directory TypeScript emitted the declaration files into. The first entry point's file sits at its top, and the tree below mirrors the sources. */
     readonly declarationRoot: string;
     /** The source file that declares an item. */
     readonly sourceOf: (item: ApiItem) => Option.Option<string>;
@@ -74,7 +101,7 @@ export interface Options {
   readonly analysis: string;
 }
 
-const loadEntry = Effect.fnUntraced(function* (file: string) {
+const loadModel = Effect.fnUntraced(function* (file: string) {
   const apiPackage = yield* Effect.try(() =>
     new ApiModel().loadPackage(file),
   ).pipe(
@@ -85,7 +112,7 @@ const loadEntry = Effect.fnUntraced(function* (file: string) {
     Array.head(apiPackage.entryPoints),
     Effect.fromOption,
     Effect.mapError(() =>
-      TransformError.malformedAnalysis("The API model has no entry point"),
+      TransformError.malformedAnalysis(`${file} has no entry point`),
     ),
   );
 
@@ -131,42 +158,26 @@ const sourceOfDeclaration = Effect.fnUntraced(
   Effect.catchTag("PlatformError", TransformError.fileSystem),
 );
 
-// `analyze` writes one `export * from` for each declaration file it receives, and each file's map names its source.
-const loadRoots = Effect.fnUntraced(function* (entryFile: string) {
-  const sources = yield* Sources;
-  const declarations = yield* pipe(
-    sources.scope(entryFile),
-    Effect.map(Struct.get("wildcards")),
-    Effect.flatMap(
-      flow(
-        Array.map((specifier) =>
-          sources
-            .resolve(entryFile, specifier)
-            .pipe(
-              Result.fromOption(() =>
-                TransformError.malformedAnalysis(
-                  `${entryFile} re-exports ${specifier}, which does not exist`,
-                ),
-              ),
-            ),
-        ),
-        Result.all,
-        Effect.fromResult,
-      ),
-    ),
-  );
+const loadManifest = Effect.fnUntraced(
+  function* (analysis: string) {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
 
-  if (!Array.isReadonlyArrayNonEmpty(declarations)) {
-    return yield* TransformError.malformedAnalysis(
-      `${entryFile} re-exports no declaration file`,
+    const file = path.join(analysis, manifestFile);
+    const text = yield* fs.readFileString(file);
+
+    const manifest = yield* Schema.decodeEffect(Manifest)(text).pipe(
+      Effect.mapError((cause) => TransformError.malformedManifest(file, cause)),
     );
-  }
 
-  return {
-    declaration: Array.headNonEmpty(declarations),
-    sources: yield* Effect.forEach(declarations, sourceOfDeclaration),
-  };
-});
+    return Array.map(manifest, ({ subpath, model, declaration }) => ({
+      subpath,
+      model: path.resolve(analysis, model),
+      declaration: path.resolve(analysis, declaration),
+    }));
+  },
+  Effect.catchTag("PlatformError", TransformError.fileSystem),
+);
 
 export const layer = ({
   lib,
@@ -185,15 +196,30 @@ export const layer = ({
         FileSystem.FileSystem | Path.Path
       >();
 
-      const { apiPackage, entry } = yield* loadEntry(
-        path.join(analysis, "api.json"),
-      );
       const parser = yield* loadParser(lib);
-      const roots = yield* loadRoots(path.join(analysis, "api-entry.d.ts"));
-      const rootSource = Array.headNonEmpty(roots.sources);
-      const declarationRoot = path.dirname(roots.declaration);
+      const manifest = yield* loadManifest(analysis);
+      const loaded = yield* Effect.forEach(
+        manifest,
+        Effect.fnUntraced(function* ({ subpath, model, declaration }) {
+          const { apiPackage, entry } = yield* loadModel(model);
+          const source = yield* sourceOfDeclaration(declaration);
 
-      // The emit mirrors the source tree, so the first root locates every other declaration file, and each one's map confirms it.
+          return {
+            name: apiPackage.name,
+            declaration,
+            entryPoint: {
+              subpath,
+              model: entry,
+              module: source,
+            } satisfies EntryPoint,
+          };
+        }),
+      );
+      const first = Array.headNonEmpty(loaded);
+      const rootSource = first.entryPoint.module;
+      const declarationRoot = path.dirname(first.declaration);
+
+      // The emit mirrors the source tree, so the first entry point locates every other declaration file, and each one's map confirms it.
       const declarations = yield* Cache.make({
         capacity: Number.POSITIVE_INFINITY,
         lookup: Effect.fnUntraced(function* (source: string) {
@@ -220,9 +246,8 @@ export const layer = ({
       });
 
       return Analysis.of({
-        package: apiPackage,
-        entry,
-        roots: roots.sources,
+        name: first.name,
+        entryPoints: Array.map(loaded, Struct.get("entryPoint")),
         declarationRoot,
         sourceOf: (item) => {
           if (item instanceof ApiDeclaredItem) {
