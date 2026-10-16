@@ -41,6 +41,7 @@ export {
 export {
   generatedArcId,
   namesId,
+  storedNetElementId,
   type ArcElement,
 } from "./petrinaut/net-element-ids";
 export {

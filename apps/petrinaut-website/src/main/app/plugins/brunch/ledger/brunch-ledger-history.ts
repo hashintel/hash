@@ -4,8 +4,6 @@ import {
   type LedgerState,
 } from "@hashintel/brunch-agent";
 
-export type BrunchLedgerHistoryMessage = LedgerHistoryMessage;
-
 export type BrunchLedgerHistory = {
   /** Accepted commits, for the tab's activity badge: each is something new to read. */
   readonly activityIdentities: readonly string[];
@@ -15,7 +13,7 @@ export type BrunchLedgerHistory = {
 
 /** Folds only accepted commits; refused, failed, pending and unbound calls never appear. */
 export const foldBrunchLedgerHistory = (
-  messages: readonly BrunchLedgerHistoryMessage[],
+  messages: readonly LedgerHistoryMessage[],
 ): BrunchLedgerHistory => {
   const { commits, state } = foldCommits({ messages });
   return {

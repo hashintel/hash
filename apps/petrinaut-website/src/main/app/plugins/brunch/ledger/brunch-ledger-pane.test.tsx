@@ -13,6 +13,8 @@ import { toPetrinautId } from "@hashintel/petrinaut-core";
 import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
 import { BrunchLedgerPane } from "./brunch-ledger-pane";
 
+import type { LedgerHistoryMessage } from "@hashintel/brunch-agent";
+
 // jsdom does not implement scrolling.
 const scrollIntoView = vi.fn();
 Element.prototype.scrollIntoView = scrollIntoView;
@@ -49,14 +51,14 @@ const commit = (
   ...overrides,
 });
 
-const assistant = (...parts: unknown[]) => ({
+const assistant = (...parts: unknown[]): LedgerHistoryMessage => ({
   id: "assistant",
   role: "assistant",
   purpose: "assistant",
   parts,
 });
 
-const user = (id: string, text: string) => ({
+const user = (id: string, text: string): LedgerHistoryMessage => ({
   id,
   role: "user",
   purpose: "user",

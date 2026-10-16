@@ -29,10 +29,6 @@ export {
   vReflection,
   type NetElementAddress,
 } from "./ledger/construction/reflections";
-export {
-  namesSelectionItem,
-  netElementSelectionItem,
-} from "./ledger/construction/net-element-selection";
 export { vOrigin, vStatus } from "./ledger/shared/epistemics";
 export {
   traceLedger,
