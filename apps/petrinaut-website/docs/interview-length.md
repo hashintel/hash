@@ -14,10 +14,10 @@ Quick, Standard and Thorough allow respectively 3, 6 and 10 replies in text, or 
 
 ## Change the length or reach the cap
 
-Changing the level adds a compact note with the level's icon and colour, such as **Quick · ~5 min**, to this session's transcript. Earlier questions still count towards the new cap; Brunch applies the change on the next submission.
+Changing the level adds a compact note with the level's icon and colour, such as **Quick · ~5 min**, to this session's transcript. Changing it again before the next message updates that note instead of adding another, and changing it back removes the note. Earlier questions still count towards the new cap; Brunch applies the change on the next submission.
 
 At the cap, Brunch records the latest answer and closes with stated facts, labelled assumptions and open items. A cap does not mean the model is complete or runnable: missing facts, ranges and units remain open rather than being invented. You can choose a higher level to continue. The closing summary does not use another question: raising Standard to Thorough after six text replies and their wrap-up leaves four questions, including after reloading.
 
 ## Voice
 
-Live adjusts its voice pacing quietly when you change the level, without interrupting speech. Brunch's question limit still applies independently of Live's pacing.
+Live adjusts its voice pacing quietly at the next turn after you change the level, without interrupting speech. Brunch's question limit still applies independently of Live's pacing.

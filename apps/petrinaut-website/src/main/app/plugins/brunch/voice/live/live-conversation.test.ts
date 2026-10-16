@@ -1516,7 +1516,9 @@ test("telemetry shows activity but silence and late samples never settle or revi
   expect(fixture.onState).toHaveBeenCalledTimes(calls);
 });
 
-test("sends the startup budget once and coalesces quiet session-wide changes", async () => {
+const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+test("sends the startup level once, then one quiet note per turn with the final level", async () => {
   const fixture = setup();
   fixture.conversation.setInterviewBudgetLevel("standard");
   await connect(fixture);
@@ -1526,22 +1528,48 @@ test("sends the startup budget once and coalesces quiet session-wide changes", a
   expect(
     new Headers(startup?.[1]?.headers).get("x-petrinaut-interview-budget"),
   ).toBe("standard");
-  fixture.conversation.setInterviewBudgetLevel("standard");
-  await Promise.resolve();
+  // A drag or key presses step through levels in separate tasks.
+  for (const level of ["quick", "thorough", "deep"] as const) {
+    fixture.conversation.setInterviewBudgetLevel(level);
+    await nextTask();
+  }
   expect(fixture.sent[0]).toHaveLength(0);
-  fixture.conversation.setInterviewBudgetLevel("quick");
-  fixture.conversation.setInterviewBudgetLevel("deep");
-  await Promise.resolve();
-  expect(fixture.sent[0]).toHaveLength(1);
+  fixture.conversation.appendCommentary("What comes next?", null);
+  expect(fixture.sent[0]).toHaveLength(2);
   expect(JSON.parse(fixture.sent[0][0]!)).toMatchObject({
     type: "session.thinking.append",
     delegation_id: null,
   });
   expect(fixture.sent[0][0]).toContain("Deep (No limit)");
+  expect(JSON.parse(fixture.sent[0][1]!)).toMatchObject({
+    type: "session.commentary.append",
+  });
+  // Returning to the level Live already has sends nothing.
+  fixture.conversation.setInterviewBudgetLevel("quick");
+  fixture.conversation.setInterviewBudgetLevel("deep");
+  fixture.conversation.appendCommentary("And then?", null);
+  expect(fixture.sent[0]).toHaveLength(3);
+  expect(fixture.sent[0][2]).not.toContain("Interview length");
+  // The person finishing a turn is also a boundary.
   fixture.conversation.setInterviewBudgetLevel("off");
-  await Promise.resolve();
-  expect(fixture.sent[0]).toHaveLength(2);
-  expect(fixture.sent[0][1]).toContain("now Off");
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "answer",
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "answer",
+    previous_item_id: null,
+  });
+  fixture.emit(1, {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "answer",
+    content_index: 0,
+    transcript: "Four agents",
+  });
+  expect(fixture.onFinalizedInput).toHaveBeenCalledOnce();
+  expect(fixture.sent[0]).toHaveLength(4);
+  expect(fixture.sent[0][3]).toContain("now Off");
 });
 
 test("a failed pacing note is not retried and never interrupts speech", async () => {
@@ -1551,18 +1579,23 @@ test("a failed pacing note is not retried and never interrupts speech", async ()
     throw new Error("send unavailable");
   });
   fixture.conversation.setInterviewBudgetLevel("deep");
-  await Promise.resolve();
-  expect(fixture.onAppendResult.mock.lastCall![0]).toMatchObject({
-    kind: "thinking",
-    status: "local-failure",
-  });
-  fixture.conversation.setInterviewBudgetLevel("deep");
-  await Promise.resolve();
-  expect(fixture.sent[0]).toHaveLength(0);
+  fixture.conversation.appendCommentary("What comes next?", null);
+  expect(
+    fixture.onAppendResult.mock.calls.map(([result]) => [
+      result.kind,
+      result.status,
+    ]),
+  ).toEqual([
+    ["thinking", "local-failure"],
+    ["commentary", "unknown"],
+  ]);
+  fixture.conversation.appendCommentary("And then?", null);
+  expect(fixture.sent[0]).toHaveLength(2);
+  expect(fixture.sent[0].join("")).not.toContain("Interview length");
   fixture.conversation.setInterviewBudgetLevel("thorough");
-  await Promise.resolve();
-  expect(fixture.sent[0]).toHaveLength(1);
-  expect(fixture.sent[0][0]).toContain("Thorough");
+  fixture.conversation.appendCommentary("One more?", null);
+  expect(fixture.sent[0]).toHaveLength(4);
+  expect(fixture.sent[0][2]).toContain("Thorough");
   expect(fixture.onState.mock.lastCall![0].phase).toBe("connected");
   expect(fixture.audio.pause).not.toHaveBeenCalled();
 });

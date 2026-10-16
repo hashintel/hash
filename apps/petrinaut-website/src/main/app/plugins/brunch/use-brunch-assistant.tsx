@@ -46,6 +46,7 @@ import {
 } from "./interview-budget/interview-budget-control";
 import {
   createInterviewBudgetLevelChange,
+  recordInterviewBudgetLevelChange,
   withInterviewBudgetLevelChanges,
   type InterviewBudgetLevelChange,
 } from "./interview-budget/interview-budget-level-changes";
@@ -614,13 +615,12 @@ export const useBrunchAssistant = ({
                 const change = createInterviewBudgetLevelChange(
                   context.conversationId,
                   context.messages,
-                  level,
+                  { from: interviewBudgetLevel, to: level },
                 );
                 if (change)
-                  setInterviewBudgetLevelChanges((changes) => [
-                    ...changes,
-                    change,
-                  ]);
+                  setInterviewBudgetLevelChanges((changes) =>
+                    recordInterviewBudgetLevelChange(changes, change),
+                  );
                 setInterviewBudgetLevel(level);
               }}
             />

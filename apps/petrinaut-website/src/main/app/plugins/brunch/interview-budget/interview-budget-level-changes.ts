@@ -11,6 +11,8 @@ export interface InterviewBudgetLevelChange {
     readonly role: PetrinautAiMessage["role"];
     readonly ordinal: number;
   };
+  /** The level before this note's first change. */
+  readonly from: InterviewBudgetLevel;
   readonly level: InterviewBudgetLevel;
   readonly message: PetrinautAiMessage;
 }
@@ -25,11 +27,11 @@ const ordinalsByRole = (messages: readonly PetrinautAiMessage[]): number[] => {
   });
 };
 
-/** A note for a change to `level` after the latest message, if there is one. */
+/** A note for a change from one level to another after the latest message, if there is one. */
 export const createInterviewBudgetLevelChange = (
   conversationId: string,
   messages: readonly PetrinautAiMessage[],
-  level: InterviewBudgetLevel,
+  { from, to: level }: { from: InterviewBudgetLevel; to: InterviewBudgetLevel },
 ): InterviewBudgetLevelChange | undefined => {
   const last = messages.at(-1);
   const lastOrdinal = ordinalsByRole(messages).at(-1);
@@ -37,6 +39,7 @@ export const createInterviewBudgetLevelChange = (
   const config = interviewBudgetLevelsConfig[level];
   return {
     conversationId,
+    from,
     level,
     after: { id: last.id, role: last.role, ordinal: lastOrdinal },
     message: {
@@ -45,6 +48,32 @@ export const createInterviewBudgetLevelChange = (
       parts: [{ type: "text", text: `${config.name} · ${config.guide}` }],
     },
   };
+};
+
+/**
+ * Add a change to the recorded notes. With no message since its conversation's
+ * previous note, the change replaces that note, so stepping through levels
+ * leaves one note for the final level, and none when it returns to the level
+ * before the note.
+ */
+export const recordInterviewBudgetLevelChange = (
+  changes: readonly InterviewBudgetLevelChange[],
+  change: InterviewBudgetLevelChange,
+): InterviewBudgetLevelChange[] => {
+  const previousIndex = changes.findLastIndex(
+    ({ conversationId }) => conversationId === change.conversationId,
+  );
+  const previous = changes[previousIndex];
+  if (
+    previous === undefined ||
+    previous.after.role !== change.after.role ||
+    previous.after.ordinal !== change.after.ordinal
+  )
+    return [...changes, change];
+  const others = changes.filter((_, index) => index !== previousIndex);
+  return previous.from === change.level
+    ? others
+    : [...others, { ...change, from: previous.from }];
 };
 
 /** Insert this conversation's level-change notes after the messages they followed. */

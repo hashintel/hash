@@ -122,9 +122,8 @@ export const createLiveConversation = (
   let budgetLevel = initialBudgetLevel;
   /** The level Live last received, at session creation or in a quiet note. */
   let sentBudgetLevel = initialBudgetLevel;
-  let budgetSyncQueued = false;
-  // Assigned below `append`, which it uses; the connection handlers call it.
-  let syncInterviewBudget: () => void;
+  // Assigned below `append`, which both uses it and calls it.
+  let sendInterviewBudgetNote: () => void;
   let detachAudioSettings: (() => void) | undefined;
   let started = false;
   let playbackBlocked = false;
@@ -410,6 +409,8 @@ export const createLiveConversation = (
         echoTrace.forget(itemId);
         utteranceLevels.forget(itemId);
         const minLogprob = inputConfidence?.minLogprob;
+        // The person's turn has ended: Live hears the level before it replies.
+        sendInterviewBudgetNote();
         onFinalizedInput({
           ...input,
           ...(latestSpeechItem && latestSpeechItem !== itemId
@@ -446,7 +447,6 @@ export const createLiveConversation = (
         },
       });
     if (recoveryTimers.size === 0) onState(activeState("connected"));
-    syncInterviewBudget();
     activityTimer = setTimeout(() => {
       void sampleActivity();
     }, 100);
@@ -949,6 +949,7 @@ export const createLiveConversation = (
     { progress = false }: { progress?: boolean } = {},
   ): boolean => {
     if (stopping) return false;
+    if (kind === "commentary") sendInterviewBudgetNote();
     const result: LiveAppendResult = {
       eventId: crypto.randomUUID(),
       kind,
@@ -985,20 +986,16 @@ export const createLiveConversation = (
   };
 
   /**
-   * Send the latest level as one quiet note once both connections are ready.
-   * Changes made in the same turn coalesce; a failed note is logged with the
-   * append result and not retried.
+   * At a turn boundary, send the level chosen since Live last heard one as a
+   * single quiet note, so stepping through levels sends only the final one
+   * and returning to the sent level sends nothing. A failed note is logged
+   * with the append result and not retried.
    */
-  syncInterviewBudget = () => {
-    if (budgetSyncQueued) return;
-    budgetSyncQueued = true;
-    queueMicrotask(() => {
-      budgetSyncQueued = false;
-      if (stopping || finished || ready.size !== 2) return;
-      if (budgetLevel === sentBudgetLevel) return;
-      sentBudgetLevel = budgetLevel;
-      append("thinking", liveInterviewBudgetUpdate(budgetLevel), null);
-    });
+  sendInterviewBudgetNote = () => {
+    if (stopping || finished || ready.size !== 2) return;
+    if (budgetLevel === sentBudgetLevel) return;
+    sentBudgetLevel = budgetLevel;
+    append("thinking", liveInterviewBudgetUpdate(budgetLevel), null);
   };
 
   const setMicrophoneMuted = (muted: boolean): void => {
@@ -1024,10 +1021,9 @@ export const createLiveConversation = (
     start,
     stop,
     setInterviewBudgetLevel: (level: InterviewBudgetLevel) => {
+      // Quiet context for the next turn, never an instruction redirect and
+      // never a reason to interrupt speech.
       budgetLevel = level;
-      // Coalesce changes made in the same turn; this is quiet context, never
-      // an instruction redirect and never a reason to interrupt speech.
-      syncInterviewBudget();
     },
     setMicrophoneMuted,
     setSpeakerMuted,
