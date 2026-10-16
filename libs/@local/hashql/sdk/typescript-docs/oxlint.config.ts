@@ -25,6 +25,13 @@ export default defineConfig({
       },
     },
     {
+      files: ["*.config.mjs", "source.config.ts"],
+      rules: {
+        "effecttsgo/node-builtin-import": "allow", // Next.js and Fumadocs load these modules outside any Effect runtime that could provide FileSystem or Path.
+        "effecttsgo/schema-sync": "allow", // Next.js and Fumadocs evaluate a configuration module synchronously, and a malformed input should fail its load.
+      },
+    },
+    {
       files: ["app/**/*.tsx", "*.config.mjs"],
       rules: {
         "import/no-default-export": "allow", // Next.js and PostCSS discover default exports.
@@ -37,6 +44,7 @@ export default defineConfig({
         "react/jsx-filename-extension": ["deny", { extensions: [".tsx"] }], // This TypeScript app uses TSX.
         "react/only-export-components": "allow", // Next.js discovers metadata and static parameter exports.
         "oxc/no-async-await": "allow", // Server components await route parameters and syntax highlighting.
+        "effecttsgo/async-function": "allow", // Next.js calls server components and metadata functions as async functions.
       },
     },
     {
@@ -49,12 +57,6 @@ export default defineConfig({
       },
     },
     {
-      files: ["components/reference.tsx"],
-      rules: {
-        "react/no-multi-comp": "allow", // The reference table shares plain and highlighted type renderers.
-      },
-    },
-    {
       files: ["components/reference-trigger.tsx"],
       rules: {
         "react/jsx-props-no-spreading": "allow", // Forward Base UI's trigger events, accessibility attributes and children.
@@ -63,9 +65,9 @@ export default defineConfig({
       },
     },
     {
-      files: ["lib/reference-twoslash.ts"],
+      files: ["lib/reference-links.ts"],
       rules: {
-        "no-underscore-dangle": ["deny", { allow: ["__raw"] }], // Shiki exposes fence metadata under this public field name.
+        "no-underscore-dangle": ["deny", { allow: ["__raw"] }], // Shiki exposes a code block's meta string under this public field name.
       },
     },
     {

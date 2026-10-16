@@ -23,6 +23,12 @@ export type Reason = Data.TaggedEnum<{
   MalformedAnalysis: { readonly detail: string };
   /** A documentation comment uses TSDoc syntax the pages have no rendering for. */
   UnsupportedComment: { readonly kind: string };
+  /** A signature block's meta holds a `links` attribute that the transform did not write. */
+  UnreadableCodeBlock: {
+    readonly cause: Schema.SchemaError | Cause.UnknownError;
+  };
+  /** A signature block's code refers to a different number of names than its links cover. */
+  MisalignedCodeBlock: { readonly references: number; readonly links: number };
 }>;
 
 /** Constructors and matching helpers for the tagged {@link Reason} variants. */
@@ -64,6 +70,19 @@ export class TransformError extends TransformErrorBase<{
   static readonly unsupportedComment = (kind: string): TransformError =>
     new TransformError({ reason: Reason.UnsupportedComment({ kind }) });
 
+  static readonly unreadableCodeBlock = (
+    cause: Schema.SchemaError | Cause.UnknownError,
+  ): TransformError =>
+    new TransformError({ reason: Reason.UnreadableCodeBlock({ cause }) });
+
+  static readonly misalignedCodeBlock = (
+    references: number,
+    links: number,
+  ): TransformError =>
+    new TransformError({
+      reason: Reason.MisalignedCodeBlock({ references, links }),
+    });
+
   override get message(): string {
     return Reason.$match(this.reason, {
       FileSystem: ({ cause }) => cause.message,
@@ -74,6 +93,10 @@ export class TransformError extends TransformErrorBase<{
       MalformedAnalysis: ({ detail }) => detail,
       UnsupportedComment: ({ kind }) =>
         `Documentation comments use ${kind}, which the reference pages cannot render`,
+      UnreadableCodeBlock: ({ cause }) =>
+        `A signature block's links do not decode: ${cause.message}`,
+      MisalignedCodeBlock: ({ references, links }) =>
+        `A signature block's code refers to ${references} names, but its links cover ${links}`,
     });
   }
 }

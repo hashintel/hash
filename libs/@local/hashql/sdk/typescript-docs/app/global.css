@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+@import "fumadocs-twoslash/twoslash.css";
+
+/* A name that links to its documentation is underlined, whether or not Twoslash gives it a hover. */
+.twoslash a[href] {
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 35%, transparent);
+  text-underline-offset: 0.25em;
+}
+
+.twoslash a[href]:hover {
+  text-decoration-color: currentColor;
+}

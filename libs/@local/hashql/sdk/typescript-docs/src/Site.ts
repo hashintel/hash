@@ -10,6 +10,9 @@ import {
   Option,
   Path,
   Record,
+  String,
+  Struct,
+  flow,
   pipe,
 } from "effect";
 
@@ -39,6 +42,11 @@ export interface Origin {
   readonly container: ApiItem;
 }
 
+/** Resolves a name path, `Type` or `Type.Any`, to the URL of what it names, `None` when it names nothing on a page. */
+export type Resolve = (
+  path: Array.NonEmptyReadonlyArray<string>,
+) => Option.Option<string>;
+
 /** The pages of the reference and the links between them. */
 export class Site extends Context.Service<
   Site,
@@ -54,6 +62,11 @@ export class Site extends Context.Service<
     readonly links: (
       origin: Origin,
     ) => Effect.Effect<Links["Service"], TransformError>;
+    /** Resolves names written in the declaration file emitted from an origin's module, as TypeScript resolves them there: the module's declarations, then its imports. */
+    readonly declarationLinks: (
+      origin: Origin,
+      declaration: string,
+    ) => Effect.Effect<Resolve, TransformError>;
   }
 >()("@local/hashql-typescript-docs/Site") {}
 
@@ -68,67 +81,54 @@ const members = (container: ApiItem, name: string): readonly ApiItem[] => {
 
 const ancestors = (item: ApiItem): ApiItem[] =>
   Array.unfold(item.parent, (parent) =>
-    Option.fromNullishOr(parent).pipe(
+    pipe(
+      parent,
+      Option.fromNullishOr,
       Option.map((found) => [found, found.parent] as const),
     ),
   );
 
 const directorySegments = (path: Path.Path, directory: string): string[] =>
-  pipe(
-    directory.split(path.sep),
-    Array.filter((segment) => segment !== ""),
-  );
+  pipe(directory, String.split(path.sep), Array.filter(String.isNonEmpty));
 
 // A namespace that a module re-exports with `export * as` gets a page. A `namespace` declaration renders among its siblings.
-const pageOfNamespace = (
-  item: ApiItem,
-): Effect.Effect<
-  Option.Option<Page>,
-  TransformError,
-  Analysis | Sources | Path.Path
-> =>
-  Effect.gen(function* () {
-    const analysis = yield* Analysis;
-    const sources = yield* Sources;
-    const path = yield* Path.Path;
-    const file = analysis
-      .sourceOf(item)
-      .pipe(Option.filter(() => item.kind === ApiItemKind.Namespace));
+const pageOfNamespace = Effect.fnUntraced(function* (item: ApiItem) {
+  const analysis = yield* Analysis;
+  const sources = yield* Sources;
+  const path = yield* Path.Path;
 
-    if (Option.isNone(file)) {
-      return Option.none();
-    }
+  const file = analysis.sourceOf(item);
+  if (item.kind !== ApiItemKind.Namespace || Option.isNone(file)) {
+    return Option.none<Page>();
+  }
 
-    const specifier = Record.get(
-      (yield* sources.scope(file.value)).namespaces,
-      item.displayName,
-    );
+  const { namespaces } = yield* sources.scope(file.value);
+  const specifier = Record.get(namespaces, item.displayName);
+  if (Option.isNone(specifier)) {
+    return Option.none<Page>();
+  }
 
-    if (Option.isNone(specifier)) {
-      return Option.none();
-    }
-
-    const target = yield* Effect.fromOption(
-      sources.resolve(file.value, specifier.value),
-    ).pipe(
-      Effect.mapError(() =>
-        TransformError.malformedAnalysis(
-          `${file.value} re-exports ${specifier.value}, which does not exist`,
-        ),
+  const target = yield* pipe(
+    sources.resolve(file.value, specifier.value),
+    Effect.fromOption,
+    Effect.mapError(() =>
+      TransformError.malformedAnalysis(
+        `${file.value} re-exports ${specifier.value}, which does not exist`,
       ),
-    );
-    const directory = path.relative(
-      path.dirname(Array.headNonEmpty(analysis.roots)),
-      path.dirname(target),
-    );
+    ),
+  );
+  const directory = path.relative(
+    path.dirname(Array.headNonEmpty(analysis.roots)),
+    path.dirname(target),
+  );
 
-    return Option.some({
-      path: [...directorySegments(path, directory), item.displayName],
-      title: item.displayName,
-      container: item,
-      modules: [target],
-    });
+  return Option.some<Page>({
+    path: [...directorySegments(path, directory), item.displayName],
+    title: item.displayName,
+    container: item,
+    modules: [target],
   });
+});
 
 const discover = (
   container: ApiItem,
@@ -136,12 +136,14 @@ const discover = (
   pipe(
     container.members,
     Effect.forEach((item) =>
-      pageOfNamespace(item).pipe(
+      pipe(
+        item,
+        pageOfNamespace,
         Effect.flatMap(
           Option.match({
-            onNone: () => Effect.succeed([]),
+            onNone: () => Effect.succeed(Array.empty<Page>()),
             onSome: (page) =>
-              discover(item).pipe(Effect.map((nested) => [page, ...nested])),
+              pipe(item, discover, Effect.map(Array.prepend(page))),
           }),
         ),
       ),
@@ -161,18 +163,12 @@ interface Index {
 
 const makeIndex = (pages: readonly Page[], url: string): Index => {
   const byContainer = new Map(
-    pipe(
-      pages,
-      Array.map((page) => [page.container, page] as const),
-    ),
+    Array.map(pages, (page) => [page.container, page] as const),
   );
   const byModule = pipe(
     pages,
     Array.flatMap((page) =>
-      pipe(
-        page.modules,
-        Array.map((file) => [file, page] as const),
-      ),
+      Array.map(page.modules, (file) => [file, page] as const),
     ),
     Record.fromEntries,
   );
@@ -180,16 +176,16 @@ const makeIndex = (pages: readonly Page[], url: string): Index => {
 
   const pageOf = (container: ApiItem): Option.Option<Page> =>
     Option.fromNullishOr(byContainer.get(container));
-  const pageUrl = (page: Page): string =>
-    pipe([url, ...page.path], Array.join("/"));
+  const pageUrl = (page: Page): string => Array.join([url, ...page.path], "/");
   const enclosing = (item: ApiItem): Option.Option<ApiItem> =>
-    pipe(ancestors(item), Array.findFirst(hasPage));
+    pipe(item, ancestors, Array.findFirst(hasPage));
   const anchor = (item: ApiItem): string =>
     pipe(
-      ancestors(item),
+      item,
+      ancestors,
       Array.takeWhile((parent) => !hasPage(parent)),
       Array.reverse,
-      Array.map((parent) => parent.displayName),
+      Array.map(Struct.get("displayName")),
       Array.append(item.displayName),
       Array.join("."),
     );
@@ -201,10 +197,14 @@ const makeIndex = (pages: readonly Page[], url: string): Index => {
     anchor,
     enclosing,
     itemUrl: (item) =>
-      pageOf(item).pipe(
+      pipe(
+        item,
+        pageOf,
         Option.map(pageUrl),
         Option.orElse(() =>
-          enclosing(item).pipe(
+          pipe(
+            item,
+            enclosing,
             Option.flatMap(pageOf),
             Option.map((page) => `${pageUrl(page)}#${anchor(item)}`),
           ),
@@ -219,42 +219,46 @@ interface Resolution {
   readonly scope: Scope;
 }
 
-// The module's declarations, including those it publishes under another name with `export { local as name }`.
-const declared = (
-  { origin, scope }: Resolution,
-  name: string,
-): readonly ApiItem[] => [
-  ...members(origin.container, name),
-  ...pipe(
-    Record.toEntries(scope.reexports),
-    Array.filter(
-      ([, reexport]) =>
-        reexport.local === name && Option.isNone(reexport.specifier),
-    ),
-    Array.flatMap(([exported]) => members(origin.container, exported)),
-  ),
-];
+/** The declarations a name may refer to in one scope, empty when the scope has none. */
+type Lookup = (name: string) => readonly ApiItem[];
 
-const imported = (
-  sources: Sources["Service"],
-  { index, origin, scope }: Resolution,
-  name: string,
-): readonly ApiItem[] =>
-  pipe(
-    Record.get(scope.imports, name),
-    Option.flatMap((binding) =>
-      sources.resolve(origin.module, binding.specifier).pipe(
-        Option.flatMap(index.pageOfModule),
-        Option.map((page) =>
-          Option.match(binding.imported, {
-            onNone: () => [page.container],
-            onSome: (exported) => members(page.container, exported),
-          }),
+// The module's declarations, including those it publishes under another name with `export { local as name }`.
+const declared =
+  ({ origin, scope }: Resolution): Lookup =>
+  (name) => [
+    ...members(origin.container, name),
+    ...pipe(
+      scope.reexports,
+      Record.toEntries,
+      Array.filter(
+        ([, { local, specifier }]) =>
+          local === name && Option.isNone(specifier),
+      ),
+      Array.flatMap(([exported]) => members(origin.container, exported)),
+    ),
+  ];
+
+// Specifiers resolve from the origin's module, which the emitted declaration files mirror.
+const imported =
+  (sources: Sources["Service"], { index, origin, scope }: Resolution): Lookup =>
+  (name) =>
+    pipe(
+      scope.imports,
+      Record.get(name),
+      Option.flatMap(({ specifier, imported: exported }) =>
+        pipe(
+          sources.resolve(origin.module, specifier),
+          Option.flatMap(index.pageOfModule),
+          Option.map(({ container }) =>
+            Option.match(exported, {
+              onNone: () => [container],
+              onSome: (member) => members(container, member),
+            }),
+          ),
         ),
       ),
-    ),
-    Option.getOrElse(() => []),
-  );
+      Option.getOrElse(Array.empty),
+    );
 
 // A symbol reference such as `[Symbol.iterator]` names no member a page lists.
 const namesOf = (
@@ -266,101 +270,91 @@ const namesOf = (
       Option.fromNullishOr(part.memberIdentifier?.identifier),
     ),
     Option.all,
-    Option.flatMap(
-      Array.match({
-        onEmpty: () => Option.none(),
-        onNonEmpty: (names) => Option.some(names),
-      }),
-    ),
+    Option.filter(Array.isReadonlyArrayNonEmpty<string>),
   );
 
-// Walks the remaining names of a reference through the members of every candidate.
-const walk = (
-  candidates: readonly ApiItem[],
-  names: readonly string[],
-): readonly ApiItem[] =>
-  Array.matchLeft(names, {
-    onEmpty: () => candidates,
-    onNonEmpty: (name, rest) =>
-      walk(
-        pipe(
-          candidates,
-          Array.flatMap((parent) => members(parent, name)),
-        ),
-        rest,
-      ),
-  });
-
-interface Resolver {
-  readonly analysis: Analysis["Service"];
-  readonly sources: Sources["Service"];
-  readonly resolution: Resolution;
-}
-
-// Links resolve the way TypeScript resolves them in the comment's module: its declarations, then its imports. A reference qualified from the package resolves last.
-const target =
-  ({ analysis, sources, resolution }: Resolver) =>
-  (reference: DocDeclarationReference): Option.Option<ApiItem> =>
+// The first scope that declares the leading name decides it, and the remaining names walk the members of every declaration found there.
+const resolveIn =
+  (lookups: readonly Lookup[]) =>
+  ([
+    head,
+    ...tail
+  ]: Array.NonEmptyReadonlyArray<string>): Option.Option<ApiItem> =>
     pipe(
-      namesOf(reference),
-      Option.filter(
-        () =>
-          reference.packageName === undefined ||
-          reference.packageName === analysis.package.name,
-      ),
-      Option.flatMap(([head, ...tail]) =>
-        pipe(
-          [
-            declared(resolution, head),
-            imported(sources, resolution, head),
-            members(analysis.entry, head),
-          ],
-          Array.findFirst((found) => found.length > 0),
-          Option.map((found) => walk(found, tail)),
-          Option.flatMap(Array.head),
+      lookups,
+      Array.findFirst((lookup) =>
+        Option.liftPredicate(
+          lookup(head),
+          Array.isReadonlyArrayNonEmpty<ApiItem>,
         ),
       ),
+      Option.map((found: readonly ApiItem[]) =>
+        Array.reduce(tail, found, (candidates, name) =>
+          Array.flatMap(candidates, (parent) => members(parent, name)),
+        ),
+      ),
+      Option.flatMap(Array.head),
     );
 
-const makeLinks =
-  (index: Index) =>
-  (
-    origin: Origin,
-  ): Effect.Effect<
-    Links["Service"],
-    TransformError,
-    Analysis | Sources | Path.Path
-  > =>
-    Effect.gen(function* () {
-      const analysis = yield* Analysis;
-      const sources = yield* Sources;
-      const path = yield* Path.Path;
-      const resolution: Resolution = {
-        index,
-        origin,
-        scope: yield* sources.scope(origin.module),
-      };
-      const shown = path.relative(
-        path.dirname(Array.headNonEmpty(analysis.roots)),
-        origin.module,
-      );
+const makeLinks = Effect.fnUntraced(function* (index: Index, origin: Origin) {
+  const analysis = yield* Analysis;
+  const sources = yield* Sources;
+  const path = yield* Path.Path;
 
-      return Links.of({
-        resolve: (reference) => {
-          const resolved = target({ analysis, sources, resolution })(
-            reference,
-          ).pipe(Option.flatMap(index.itemUrl));
+  const scope = yield* sources.scope(origin.module);
+  const resolution: Resolution = { index, origin, scope };
+  // Links resolve the way TypeScript resolves them in the comment's module. A reference qualified from the package resolves last.
+  const fromPackage: Lookup = (name) => members(analysis.entry, name);
+  const target = resolveIn([
+    declared(resolution),
+    imported(sources, resolution),
+    fromPackage,
+  ]);
+  const shown = path.relative(
+    path.dirname(Array.headNonEmpty(analysis.roots)),
+    origin.module,
+  );
 
-          if (Option.isNone(resolved)) {
-            return Effect.logWarning(
-              `Unresolved link ${reference.emitAsTsdoc()} in ${shown}`,
-            ).pipe(Effect.as(resolved));
-          }
+  return Links.of({
+    resolve: (reference) =>
+      pipe(
+        reference,
+        Option.liftPredicate(
+          ({ packageName }) =>
+            packageName === undefined || packageName === analysis.package.name,
+        ),
+        Option.flatMap(namesOf),
+        Option.flatMap(target),
+        Option.flatMap(index.itemUrl),
+        Option.match({
+          onNone: () =>
+            pipe(
+              Effect.logWarning(
+                `Unresolved link ${reference.emitAsTsdoc()} in ${shown}`,
+              ),
+              Effect.as(Option.none()),
+            ),
+          onSome: flow(Option.some, Effect.succeed),
+        }),
+      ),
+  });
+});
 
-          return Effect.succeed(resolved);
-        },
-      });
-    });
+const makeDeclarationLinks = Effect.fnUntraced(function* (
+  index: Index,
+  origin: Origin,
+  declaration: string,
+) {
+  const sources = yield* Sources;
+
+  const scope = yield* sources.scope(declaration);
+  const resolution: Resolution = { index, origin, scope };
+
+  return flow(
+    resolveIn([declared(resolution), imported(sources, resolution)]),
+    Option.flatMap(index.itemUrl),
+  ) satisfies Resolve;
+});
 
 export interface Options {
   /** The URL of the package page, which every other page's URL extends. */
@@ -379,7 +373,10 @@ export const layer = ({
     Effect.gen(function* () {
       const analysis = yield* Analysis;
       const services = yield* Effect.context<Analysis | Sources | Path.Path>();
-      const pages = yield* discover(analysis.entry).pipe(
+
+      const pages = yield* pipe(
+        analysis.entry,
+        discover,
         Effect.map(
           Array.prepend<Page>({
             path: [],
@@ -390,7 +387,8 @@ export const layer = ({
         ),
       );
       const duplicate = pipe(
-        Array.groupBy(pages, (page) => pipe(page.path, Array.join("/"))),
+        pages,
+        Array.groupBy((page) => Array.join(page.path, "/")),
         Record.toEntries,
         Array.findFirst(([, group]) => group.length > 1),
       );
@@ -409,17 +407,25 @@ export const layer = ({
         url: index.url,
         anchor: index.anchor,
         origin: (item) =>
-          analysis.sourceOf(item).pipe(
-            Option.flatMap((file) =>
-              index.pageOfModule(file).pipe(
-                Option.map((page) => page.container),
+          pipe(
+            item,
+            analysis.sourceOf,
+            Option.flatMap((module) =>
+              pipe(
+                module,
+                index.pageOfModule,
+                Option.map(Struct.get("container")),
                 Option.orElse(() => index.enclosing(item)),
-                Option.map((container) => ({ module: file, container })),
+                Option.map((container) => ({ module, container })),
               ),
             ),
           ),
-        links: (origin) =>
-          makeLinks(index)(origin).pipe(Effect.provide(services)),
+        links: (origin) => Effect.provide(makeLinks(index, origin), services),
+        declarationLinks: (origin, declaration) =>
+          Effect.provide(
+            makeDeclarationLinks(index, origin, declaration),
+            services,
+          ),
       });
     }),
   );

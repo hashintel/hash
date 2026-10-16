@@ -1,7 +1,18 @@
 import { ApiDocumentedItem, ApiItemKind } from "@microsoft/api-extractor-model";
 import { StandardTags } from "@microsoft/tsdoc";
-import { Array, Effect, Filter, Option, String, identity, pipe } from "effect";
+import {
+  Array,
+  Effect,
+  Filter,
+  Option,
+  Order,
+  String,
+  Struct,
+  Tuple,
+  pipe,
+} from "effect";
 
+import * as CodeBlock from "./CodeBlock.js";
 import * as Comment from "./Comment.js";
 
 import type { TransformError } from "./TransformError.js";
@@ -14,12 +25,21 @@ import type {
 } from "@microsoft/tsdoc";
 import type { BlockContent, Heading, ListItem, PhrasingContent } from "mdast";
 
+/** The statements declaring a member, as its code block shows them. */
+export interface Signature {
+  /** The statements, as TypeScript. */
+  readonly code: string;
+  /** The rest of their declaration file, which the code block compiles them in and hides. */
+  readonly context: string;
+  /** For each name the code refers to, in order, the URL that documents it. */
+  readonly urls: readonly Option.Option<string>[];
+}
+
 /** The declarations sharing one name in a container, with their source. */
 export interface Member {
   /** Overloads in declaration order, or a merged interface and namespace. */
   readonly items: Array.NonEmptyReadonlyArray<ApiItem>;
-  /** The statements declaring the member, as TypeScript. */
-  readonly signature: string;
+  readonly signature: Signature;
   /** The anchor that links to an item on its page. */
   readonly anchor: (item: ApiItem) => string;
 }
@@ -37,6 +57,26 @@ const heading = (depth: Heading["depth"], anchor: string): BlockContent => ({
   depth,
   children: [{ type: "text", value: `${anchor} [#${anchor}]` }],
 });
+
+// Twoslash compiles the whole block for its hovers, and shows only what follows the cut.
+const code = ({
+  code: shown,
+  context,
+  urls,
+}: Signature): Effect.Effect<BlockContent> =>
+  pipe(
+    CodeBlock.meta(urls),
+    // Encoding values of the schema's own type cannot fail.
+    Effect.orDie,
+    Effect.map(
+      (meta): BlockContent => ({
+        type: "code",
+        lang: "ts",
+        meta,
+        value: `${context}\n${CodeBlock.cut}\n${shown}`,
+      }),
+    ),
+  );
 
 // A label opens the first paragraph of the content it introduces, or stands alone before a code block.
 const labelled = (
@@ -58,16 +98,16 @@ const labelled = (
   return [{ type: "paragraph", children: [label] }, ...content];
 };
 
-const commentOf = (item: ApiItem): Option.Option<DocComment> => {
-  if (item instanceof ApiDocumentedItem) {
-    return Option.fromNullishOr(item.tsdocComment);
-  }
-
-  return Option.none();
-};
-
 const comments = (items: readonly ApiItem[]): DocComment[] =>
-  Array.filterMap(items, Filter.fromPredicateOption(commentOf));
+  pipe(
+    items,
+    Array.filterMap(Filter.instanceOf(ApiDocumentedItem)),
+    Array.filterMap(
+      Filter.fromPredicateOption(({ tsdocComment }) =>
+        Option.fromNullishOr(tsdocComment),
+      ),
+    ),
+  );
 
 const kindLabels: readonly (readonly [ApiItemKind, string])[] = [
   [ApiItemKind.Function, "Functions"],
@@ -88,34 +128,32 @@ export const group = (items: Array.NonEmptyReadonlyArray<ApiItem>): string =>
     ),
     Option.map((block) => Comment.words(block.content)),
     Option.orElse(() =>
-      Array.findFirst(
+      pipe(
         kindLabels,
-        ([kind]) => kind === Array.headNonEmpty(items).kind,
-      ).pipe(Option.map(([, label]) => label)),
+        Array.findFirst(([kind]) => kind === Array.headNonEmpty(items).kind),
+        Option.map(Tuple.get(1)),
+      ),
     ),
     Option.getOrElse(() => "Other"),
   );
 
-/** Orders group headings: authored categories alphabetically, then kinds in a fixed order. */
-export const groupOrder = (labels: Iterable<string>): string[] => {
-  const present = Array.dedupe(labels);
-  const kinds = pipe(
+// An authored category ranks before every kind, so categories sort among themselves by name.
+const kindRank = (label: string): number =>
+  pipe(
     kindLabels,
-    Array.map(([, label]) => label),
+    Array.findFirstIndex(([, kind]) => kind === label),
+    Option.getOrElse(() => -1),
   );
 
-  return [
-    ...pipe(
-      present,
-      Array.filter((label) => !kinds.includes(label)),
-      Array.sortWith(identity, String.Order),
-    ),
-    ...pipe(
-      kinds,
-      Array.filter((label) => present.includes(label)),
-    ),
-  ];
-};
+const groupOrder: Order.Order<string> = Order.combine(
+  Order.mapInput(Order.Number, kindRank),
+  String.Order,
+);
+
+/** Orders groups by their heading: authored categories alphabetically, then kinds in a fixed order. */
+export const sortGroups = <A>(
+  groups: Iterable<readonly [string, A]>,
+): (readonly [string, A])[] => Array.sortWith(groups, Tuple.get(0), groupOrder);
 
 // Stability, version and internal status, each only where the comment states it.
 const markers = (comment: DocComment): BlockContent[] => {
@@ -165,7 +203,9 @@ const parameters = (
   pipe(
     collection.blocks,
     Effect.forEach((block) =>
-      Comment.section(block.content).pipe(
+      pipe(
+        block.content,
+        Comment.section,
         Effect.map(
           (content): ListItem => ({
             type: "listItem",
@@ -196,7 +236,9 @@ const labelledSections = (
   pipe(
     sections,
     Effect.forEach((content) =>
-      Comment.section(content).pipe(
+      pipe(
+        content,
+        Comment.section,
         Effect.map((blocks) => labelled(strong(label), blocks)),
       ),
     ),
@@ -226,39 +268,37 @@ const contentOf = (block: DocBlock | undefined): DocSection[] =>
 const documentation = (
   comment: DocComment,
 ): Effect.Effect<BlockContent[], TransformError, Comment.Links> =>
-  Effect.all([
-    labelledSections("Deprecated", contentOf(comment.deprecatedBlock)),
-    Effect.succeed(markers(comment)),
-    Comment.overview(comment),
-    parameters("Type parameters", comment.typeParams),
-    parameters("Parameters", comment.params),
-    labelledSections("Returns", contentOf(comment.returnsBlock)),
-    labelledSections(
-      "Throws",
-      pipe(
-        Comment.blocksTagged(comment, StandardTags.throws.tagName),
-        Array.map(({ content }) => content),
+  pipe(
+    [
+      labelledSections("Deprecated", contentOf(comment.deprecatedBlock)),
+      Effect.succeed(markers(comment)),
+      Comment.overview(comment),
+      parameters("Type parameters", comment.typeParams),
+      parameters("Parameters", comment.params),
+      labelledSections("Returns", contentOf(comment.returnsBlock)),
+      labelledSections(
+        "Throws",
+        Array.map(
+          Comment.blocksTagged(comment, StandardTags.throws.tagName),
+          Struct.get("content"),
+        ),
       ),
-    ),
-    labelledSections(
-      "See",
-      pipe(
-        comment.seeBlocks,
-        Array.map(({ content }) => content),
+      labelledSections(
+        "See",
+        Array.map(comment.seeBlocks, Struct.get("content")),
       ),
-    ),
-    pipe(
-      Comment.blocksTagged(comment, StandardTags.example.tagName),
-      Effect.forEach(Comment.example),
-      Effect.map(Array.flatMap(exampleBlocks)),
-    ),
-  ]).pipe(Effect.map(Array.flatten));
+      pipe(
+        Comment.blocksTagged(comment, StandardTags.example.tagName),
+        Effect.forEach(Comment.example),
+        Effect.map(Array.flatMap(exampleBlocks)),
+      ),
+    ],
+    Effect.all,
+    Effect.map(Array.flatten),
+  );
 
 const descendants = (items: readonly ApiItem[]): ApiItem[] =>
-  pipe(
-    items,
-    Array.flatMap((item) => [item, ...descendants(item.members)]),
-  );
+  Array.flatMap(items, (item) => [item, ...descendants(item.members)]);
 
 /** Renders a member as its heading and declarations, followed by the documentation of each declaration and of every documented nested member. */
 export const render = ({
@@ -266,32 +306,38 @@ export const render = ({
   signature,
   anchor,
 }: Member): Effect.Effect<BlockContent[], TransformError, Comment.Links> =>
-  Effect.all([
-    Effect.succeed<BlockContent[]>([
-      heading(memberDepth, anchor(Array.headNonEmpty(items))),
-      { type: "code", lang: "ts", value: signature },
-    ]),
-    pipe(
-      comments(items),
-      Effect.forEach(documentation),
-      Effect.map(Array.flatten),
-    ),
-    pipe(
-      items,
-      Array.flatMap((item) => item.members),
-      descendants,
-      Array.flatMap((nested) =>
-        pipe(
-          comments([nested]),
-          Array.map((comment) => ({ nested, comment })),
+  pipe(
+    [
+      pipe(
+        signature,
+        code,
+        Effect.map((block) => [
+          heading(memberDepth, anchor(Array.headNonEmpty(items))),
+          block,
+        ]),
+      ),
+      pipe(
+        comments(items),
+        Effect.forEach(documentation),
+        Effect.map(Array.flatten),
+      ),
+      pipe(
+        items,
+        Array.flatMap(Struct.get("members")),
+        descendants,
+        Array.flatMap((nested) =>
+          Array.map(comments([nested]), (comment) => ({ nested, comment })),
         ),
+        Effect.forEach(({ nested, comment }) =>
+          pipe(
+            comment,
+            documentation,
+            Effect.map(Array.prepend(heading(nestedDepth, anchor(nested)))),
+          ),
+        ),
+        Effect.map(Array.flatten),
       ),
-      Effect.forEach(({ nested, comment }) =>
-        Effect.all([
-          Effect.succeed([heading(nestedDepth, anchor(nested))]),
-          documentation(comment),
-        ]).pipe(Effect.map(Array.flatten)),
-      ),
-      Effect.map(Array.flatten),
-    ),
-  ]).pipe(Effect.map(Array.flatten));
+    ],
+    Effect.all,
+    Effect.map(Array.flatten),
+  );

@@ -1,4 +1,13 @@
-import { Array, Effect, Option, Record, Result, pipe } from "effect";
+import {
+  Array,
+  Effect,
+  Option,
+  Record,
+  Result,
+  String,
+  Struct,
+  pipe,
+} from "effect";
 import { stringify } from "yaml";
 
 import { Analysis } from "./Analysis.js";
@@ -8,29 +17,30 @@ import * as Signature from "./Signature.js";
 import { Site } from "./Site.js";
 import { TransformError } from "./TransformError.js";
 
-import type { Page } from "./Site.js";
+import type { Origin, Page } from "./Site.js";
 import type { ApiItem } from "@microsoft/api-extractor-model";
 import type { BlockContent, ListItem, PhrasingContent, Root } from "mdast";
 
 const withLinks = Effect.fnUntraced(function* <A>(
-  origin: { readonly module: string; readonly container: ApiItem },
+  origin: Origin,
   effect: Effect.Effect<A, TransformError, Comment.Links>,
 ) {
-  const links = yield* (yield* Site).links(origin);
+  const site = yield* Site;
+  const links = yield* site.links(origin);
 
   return yield* Effect.provideService(effect, Comment.Links, links);
 });
 
 // The modules' own comments open the page, each linking from its module.
-const overview = (
-  page: Page,
-): Effect.Effect<BlockContent[], TransformError, Analysis | Site> =>
-  pipe(
+const overview = Effect.fnUntraced(function* (page: Page) {
+  const analysis = yield* Analysis;
+
+  return yield* pipe(
     page.modules,
     Effect.forEach((file) =>
-      Effect.flatMap(Effect.service(Analysis), (analysis) =>
-        analysis.moduleComment(file),
-      ).pipe(
+      pipe(
+        file,
+        analysis.moduleComment,
         Effect.flatMap(
           Option.match({
             onNone: () => Effect.succeed([]),
@@ -45,18 +55,21 @@ const overview = (
     ),
     Effect.map(Array.flatten),
   );
+});
 
 // A child page's entry carries the first paragraph of its module's comment.
 const childEntry = Effect.fnUntraced(function* (child: Page) {
   const analysis = yield* Analysis;
   const site = yield* Site;
+
   const file = Array.headNonEmpty(child.modules);
-  const summary = yield* Option.match(yield* analysis.moduleComment(file), {
+  const comment = yield* analysis.moduleComment(file);
+  const summary = yield* Option.match(comment, {
     onNone: () => Effect.succeed([]),
-    onSome: (comment) =>
+    onSome: (found) =>
       withLinks(
         { module: file, container: child.container },
-        Comment.lead(comment),
+        Comment.lead(found),
       ),
   });
   const title: PhrasingContent = {
@@ -88,24 +101,38 @@ const member = Effect.fnUntraced(function* (
   page: Page,
   items: Array.NonEmptyReadonlyArray<ApiItem>,
 ) {
+  const analysis = yield* Analysis;
   const site = yield* Site;
+
   const first = Array.headNonEmpty(items);
-  const origin = yield* Effect.fromOption(site.origin(first)).pipe(
+  const origin = yield* pipe(
+    first,
+    site.origin,
+    Effect.fromOption,
     Effect.mapError(() =>
       TransformError.malformedAnalysis(
         `${first.getScopedNameWithinPackage()} has no source module on a page`,
       ),
     ),
   );
+  const declaration = yield* analysis.declarationOf(origin.module);
+  const signature = yield* Signature.make({
+    name: first.displayName,
+    source: origin.module,
+    declaration,
+    root: analysis.declarationRoot,
+    exporters: [origin.module, ...page.modules],
+  });
+  const resolve = yield* site.declarationLinks(origin, declaration);
   const blocks = yield* withLinks(
     origin,
     Member.render({
       items,
-      signature: yield* Signature.make({
-        name: first.displayName,
-        source: origin.module,
-        exporters: [origin.module, ...page.modules],
-      }),
+      signature: {
+        code: signature.code,
+        context: signature.context,
+        urls: Array.map(signature.references, ({ path }) => resolve(path)),
+      },
       anchor: site.anchor,
     }),
   );
@@ -141,39 +168,32 @@ const sections = (
     readonly label: string;
     readonly blocks: BlockContent[];
   }[],
-): BlockContent[] => {
-  const groups = Array.groupBy(rendered, ({ label }) => label);
-
-  return pipe(
-    Member.groupOrder(Record.keys(groups)),
-    Array.flatMap((label) => [
+): BlockContent[] =>
+  pipe(
+    rendered,
+    Array.groupBy(Struct.get("label")),
+    Record.toEntries,
+    Member.sortGroups,
+    Array.flatMap(([label, group]) => [
       heading(label),
-      ...pipe(
-        groups[label] ?? [],
-        Array.flatMap(({ blocks }) => blocks),
-      ),
+      ...Array.flatMap(group, Struct.get("blocks")),
     ]),
   );
-};
 
 /** Builds a page from its modules' overviews and the pages of its namespaces, followed by its members grouped by category or kind. */
 export const render = Effect.fnUntraced(function* (page: Page) {
   const site = yield* Site;
-  const [children, items] = pipe(
-    page.container.members,
-    Array.partition((item) =>
-      Option.match(site.pageOf(item), {
-        onSome: Result.succeed,
-        onNone: () => Result.fail(item),
-      }),
-    ),
+
+  const [children, items] = Array.partition(page.container.members, (item) =>
+    Result.fromOption(site.pageOf(item), () => item),
   );
   // Members sharing a name render as one: overloads, or an interface merged with a namespace.
   const body = yield* Effect.all([
     overview(page),
     namespaces(children),
     pipe(
-      Array.groupBy(items, (item) => item.displayName),
+      items,
+      Array.groupBy(Struct.get("displayName")),
       Record.values,
       Effect.forEach((group) => member(page, group)),
       Effect.map(sections),
@@ -183,7 +203,7 @@ export const render = Effect.fnUntraced(function* (page: Page) {
   return {
     type: "root",
     children: [
-      { type: "yaml", value: stringify({ title: page.title }).trimEnd() },
+      { type: "yaml", value: String.trimEnd(stringify({ title: page.title })) },
       ...Array.flatten(body),
     ],
   } satisfies Root;

@@ -10239,7 +10239,6 @@ __metadata:
     "@local/hashql": "workspace:*"
     "@local/oxlint": "workspace:*"
     "@local/tsconfig": "workspace:*"
-    "@microsoft/api-documenter": "npm:7.30.18"
     "@microsoft/api-extractor": "npm:7.59.4"
     "@microsoft/api-extractor-model": "npm:7.33.15"
     "@microsoft/tsdoc": "npm:0.17.1"
@@ -10253,7 +10252,6 @@ __metadata:
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
     effect: "npm:4.0.0"
-    esrap: "npm:2.4.0"
     fumadocs-core: "npm:16.16.2"
     fumadocs-mdx: "npm:15.4.6"
     fumadocs-twoslash: "npm:4.0.1"
@@ -10267,7 +10265,6 @@ __metadata:
     react-dom: "npm:19.2.6"
     remark-frontmatter: "npm:5.0.0"
     remark-mdx: "npm:3.1.1"
-    remark-parse: "npm:11.0.0"
     remark-stringify: "npm:11.0.0"
     satteri: "npm:0.10.5"
     shiki: "npm:4.5.0"
@@ -10666,23 +10663,6 @@ __metadata:
     "@types/react": ">=16"
     react: ">=16"
   checksum: 10c0/34ca98bc2a0f969894ea144dc5c8a5294690505458cd24965cd9be854d779c193ad9192bf9143c4c18438fafd1902e100d99067e045c69319288562d497558c6
-  languageName: node
-  linkType: hard
-
-"@microsoft/api-documenter@npm:7.30.18":
-  version: 7.30.18
-  resolution: "@microsoft/api-documenter@npm:7.30.18"
-  dependencies:
-    "@microsoft/api-extractor-model": "npm:7.33.15"
-    "@microsoft/tsdoc": "npm:~0.17.0"
-    "@rushstack/node-core-library": "npm:5.25.1"
-    "@rushstack/terminal": "npm:0.24.7"
-    "@rushstack/ts-command-line": "npm:5.3.17"
-    js-yaml: "npm:~4.3.2"
-    resolve: "npm:~1.22.1"
-  bin:
-    api-documenter: bin/api-documenter
-  checksum: 10c0/47277a9a10a2c916ffb6cf1d918a9a78002ea09d3743f1c9449af42855166227aad9c80d5b2bc298c71d658bfb155f0298480c5fc7c6e38637d308f5b2a116db
   languageName: node
   linkType: hard
 
@@ -34342,7 +34322,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:4.3.2, js-yaml@npm:^4.1.0, js-yaml@npm:^4.1.1, js-yaml@npm:^4.3.0, js-yaml@npm:~4.3.2":
+"js-yaml@npm:4.3.2, js-yaml@npm:^4.1.0, js-yaml@npm:^4.1.1, js-yaml@npm:^4.3.0":
   version: 4.3.2
   resolution: "js-yaml@npm:4.3.2"
   dependencies:
@@ -42213,7 +42193,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"remark-parse@npm:11.0.0, remark-parse@npm:^11.0.0":
+"remark-parse@npm:^11.0.0":
   version: 11.0.0
   resolution: "remark-parse@npm:11.0.0"
   dependencies:

@@ -7,7 +7,6 @@ import {
   Path,
   Schema,
   identity,
-  pipe,
 } from "effect";
 import { Command, Flag } from "effect/cli";
 
@@ -27,12 +26,8 @@ const Meta = Schema.fromJsonString(
 const packageDirectory = (
   ...segments: string[]
 ): Effect.Effect<string, never, Path.Path> =>
-  Effect.suspend(() =>
-    Path.Path.pipe(
-      Effect.map((path) =>
-        path.resolve(import.meta.dirname, "..", ...segments),
-      ),
-    ),
+  Effect.map(Path.Path, (path) =>
+    path.resolve(import.meta.dirname, "..", ...segments),
   );
 
 export const command = Command.make("transform", {
@@ -65,47 +60,38 @@ const fileOf = (path: Path.Path, out: string, page: Site.Page): string =>
     }),
   )}.mdx`;
 
-const write = Effect.fnUntraced(function* (out: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const { pages } = yield* Site.Site;
-  // Encoding a literal of the schema's own type cannot fail.
-  const meta = yield* Schema.encodeEffect(Meta)({
-    title: "API reference",
-    pages: ["index", "..."],
-  }).pipe(Effect.orDie);
+const write = Effect.fnUntraced(
+  function* (out: string) {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const { pages } = yield* Site.Site;
 
-  yield* fs
-    .remove(out, { recursive: true, force: true })
-    .pipe(Effect.mapError(TransformError.fileSystem));
+    // Encoding a literal of the schema's own type cannot fail.
+    const meta = yield* Schema.encodeEffect(Meta)({
+      title: "API reference",
+      pages: ["index", "..."],
+    }).pipe(Effect.orDie);
 
-  yield* pipe(
-    pages,
-    Effect.forEach((page) => {
-      const file = fileOf(path, out, page);
+    yield* fs.remove(out, { recursive: true, force: true });
+    yield* Effect.forEach(
+      pages,
+      Effect.fnUntraced(function* (page) {
+        const file = fileOf(path, out, page);
+        const tree = yield* Page.render(page);
 
-      return Page.render(page).pipe(
-        Effect.flatMap((tree) =>
-          fs
-            .makeDirectory(path.dirname(file), { recursive: true })
-            .pipe(
-              Effect.andThen(fs.writeFileString(file, Mdx.stringify(tree))),
-              Effect.mapError(TransformError.fileSystem),
-            ),
-        ),
-      );
-    }),
-  );
-
-  yield* fs
-    .writeFileString(path.join(out, "meta.json"), meta)
-    .pipe(Effect.mapError(TransformError.fileSystem));
-  yield* Effect.log(`Wrote ${pages.length} pages to ${out}`);
-});
+        yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+        yield* fs.writeFileString(file, Mdx.stringify(tree));
+      }),
+    );
+    yield* fs.writeFileString(path.join(out, "meta.json"), meta);
+    yield* Effect.log(`Wrote ${pages.length} pages to ${out}`);
+  },
+  Effect.catchTag("PlatformError", TransformError.fileSystem),
+);
 
 export const handler = command.pipe(
   Command.withHandler(({ out }) =>
-    Path.Path.pipe(Effect.flatMap((path) => write(path.resolve(out)))),
+    Effect.flatMap(Path.Path, (path) => write(path.resolve(out))),
   ),
   Command.provide(({ lib, analysis, url }) =>
     Site.layer({ url }).pipe(

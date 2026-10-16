@@ -298,7 +298,10 @@ export const example = (
 
     return {
       title: paragraphOf(opening.configuration, nodes.slice(start + 1, end)),
-      remainder: paragraphOf(opening.configuration, nodes.slice(end + 1)),
+      content: [
+        paragraphOf(opening.configuration, nodes.slice(end + 1)),
+        ...rest,
+      ],
     };
   }).pipe(
     Option.match({
@@ -308,15 +311,7 @@ export const example = (
           section,
           Effect.map((content): Example => ({ caption: [], content })),
         ),
-      onSome: ({ title, remainder }) =>
-        Effect.all({
-          caption: paragraph(title),
-          content: blocks(
-            Array.setHeadNonEmpty(
-              node.content.getChildNodes() as Array.NonEmptyArray<DocNode>,
-              remainder,
-            ),
-          ),
-        }),
+      onSome: ({ title, content }) =>
+        Effect.all({ caption: paragraph(title), content: blocks(content) }),
     }),
   );

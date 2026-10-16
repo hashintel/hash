@@ -5,32 +5,37 @@ import {
   Effect,
   FileSystem,
   Filter,
+  Function,
   Layer,
   Option,
   Record,
-  String,
+  Struct,
+  Tuple,
+  flow,
   pipe,
 } from "effect";
-import { print } from "esrap";
-import ts from "esrap/languages/ts";
 import { parseSync } from "oxc-parser";
 import { ResolverFactory } from "oxc-resolver";
 
+import {
+  boundNames,
+  declarationOf,
+  declaredNames,
+  isExportAll,
+  isExportNamed,
+  isImport,
+  specifierLiterals,
+  statementText,
+} from "./Statements.js";
 import { TransformError } from "./TransformError.js";
 
+import type { File, ScopeStatement } from "./Statements.js";
 import type {
-  BindingPattern,
   Comment,
-  Declaration,
-  ExportAllDeclaration,
-  ExportNamedDeclaration,
-  ImportDeclaration,
   ImportDeclarationSpecifier,
   ModuleExportName,
   Program,
   Statement,
-  StringLiteral,
-  TSQualifiedName,
 } from "oxc-parser";
 
 /** A name an import declaration brings into a module's scope. */
@@ -60,40 +65,41 @@ export interface Scope {
   readonly comments: readonly Comment[];
 }
 
-/** The declarations of a declaration file and the statements that publish them. */
+/** The statements of a declaration file that bring names into its scope. */
 export interface Declarations {
   /** The statements declaring each top-level name, without comments. Overloads share an entry. */
   readonly local: Record.ReadonlyRecord<
     string,
-    Array.NonEmptyReadonlyArray<string>
+    Array.NonEmptyReadonlyArray<ScopeStatement>
   >;
-  /** For each name an export specifier publishes, that specifier as an export statement of its own. */
-  readonly exports: Record.ReadonlyRecord<string, string>;
+  /** Every import and declaration, in source order. */
+  readonly statements: readonly ScopeStatement[];
 }
 
-const parse = (
-  file: string,
-  text: string,
-): Effect.Effect<
-  Pick<ReturnType<typeof parseSync>, "program" | "comments">,
-  TransformError
-> => {
-  const { program, comments, errors } = parseSync(file, text);
+/** A module's syntax tree and comments. */
+export type Parsed = Pick<ReturnType<typeof parseSync>, "program" | "comments">;
 
-  return Array.match(errors, {
-    onEmpty: () => Effect.succeed({ program, comments }),
-    onNonEmpty: (failures) =>
-      Effect.fail(
-        TransformError.sourceSyntax(
-          file,
-          pipe(
-            failures,
-            Array.map(({ message }) => message),
+/** Parses TypeScript with oxc, failing with every syntax error it reports. The file's name selects the dialect, such as a declaration file's. */
+export const parse: {
+  (file: string): (text: string) => Effect.Effect<Parsed, TransformError>;
+  (text: string, file: string): Effect.Effect<Parsed, TransformError>;
+} = Function.dual(
+  2,
+  (text: string, file: string): Effect.Effect<Parsed, TransformError> => {
+    const { program, comments, errors } = parseSync(file, text);
+
+    return Array.match(errors, {
+      onEmpty: () => Effect.succeed({ program, comments }),
+      onNonEmpty: (failures) =>
+        Effect.fail(
+          TransformError.sourceSyntax(
+            file,
+            Array.map(failures, Struct.get("message")),
           ),
         ),
-      ),
-  });
-};
+    });
+  },
+);
 
 const exportName = (name: ModuleExportName): string => {
   if (name.type === "Literal") {
@@ -117,37 +123,24 @@ const importedName = (
   return Option.none();
 };
 
-const isImport = (statement: Statement): statement is ImportDeclaration =>
-  statement.type === "ImportDeclaration";
-
-const isExportAll = (statement: Statement): statement is ExportAllDeclaration =>
-  statement.type === "ExportAllDeclaration";
-
-const isExportNamed = (
-  statement: Statement,
-): statement is ExportNamedDeclaration =>
-  statement.type === "ExportNamedDeclaration";
-
 const collectScope = (program: Program): Omit<Scope, "text" | "comments"> => {
-  const exportsAll = pipe(program.body, Array.filter(isExportAll));
+  const exportsAll = Array.filter(program.body, isExportAll);
 
   return {
     imports: pipe(
       program.body,
       Array.filter(isImport),
       Array.flatMap((statement) =>
-        pipe(
+        Array.map(
           statement.specifiers,
-          Array.map(
-            (specifier) =>
-              [
-                specifier.local.name,
-                {
-                  specifier: statement.source.value,
-                  imported: importedName(specifier),
-                },
-              ] as const,
-          ),
+          (specifier) =>
+            [
+              specifier.local.name,
+              {
+                specifier: statement.source.value,
+                imported: importedName(specifier),
+              },
+            ] as const,
         ),
       ),
       Record.fromEntries,
@@ -161,7 +154,9 @@ const collectScope = (program: Program): Omit<Scope, "text" | "comments"> => {
       exportsAll,
       Array.filterMap(
         Filter.fromPredicateOption(({ exported, source }) =>
-          Option.fromNullishOr(exported).pipe(
+          pipe(
+            exported,
+            Option.fromNullishOr,
             Option.map((name) => [exportName(name), source.value] as const),
           ),
         ),
@@ -172,18 +167,16 @@ const collectScope = (program: Program): Omit<Scope, "text" | "comments"> => {
       program.body,
       Array.filter(isExportNamed),
       Array.flatMap((statement) =>
-        pipe(
+        Array.map(
           statement.specifiers,
-          Array.map(
-            (specifier) =>
-              [
-                exportName(specifier.exported),
-                {
-                  local: exportName(specifier.local),
-                  specifier: Option.fromNullishOr(statement.source?.value),
-                },
-              ] as const,
-          ),
+          (specifier) =>
+            [
+              exportName(specifier.exported),
+              {
+                local: exportName(specifier.local),
+                specifier: Option.fromNullishOr(statement.source?.value),
+              },
+            ] as const,
         ),
       ),
       Record.fromEntries,
@@ -191,135 +184,42 @@ const collectScope = (program: Program): Omit<Scope, "text" | "comments"> => {
   };
 };
 
-const declarationTypes: ReadonlySet<string> = new Set([
-  "VariableDeclaration",
-  "FunctionDeclaration",
-  "TSDeclareFunction",
-  "ClassDeclaration",
-  "TSTypeAliasDeclaration",
-  "TSInterfaceDeclaration",
-  "TSEnumDeclaration",
-  "TSModuleDeclaration",
-] satisfies Declaration["type"][]);
-
-const isDeclaration = (statement: Statement): statement is Declaration =>
-  declarationTypes.has(statement.type);
-
-const declarationOf = (statement: Statement): Option.Option<Declaration> => {
-  if (statement.type === "ExportNamedDeclaration") {
-    return Option.fromNullishOr(statement.declaration);
-  }
-
-  return Option.liftPredicate(statement, isDeclaration);
-};
-
-// Destructuring patterns and string-named modules declare no name a member can have.
-const identifierName = (
-  node: BindingPattern | StringLiteral | TSQualifiedName | null,
-): Option.Option<string> => {
-  if (node?.type === "Identifier") {
-    return Option.some(node.name);
-  }
-
-  return Option.none();
-};
-
-const declaredNames = (declaration: Declaration): readonly string[] => {
-  if (declaration.type === "VariableDeclaration") {
-    return pipe(
-      declaration.declarations,
-      Array.filterMap(
-        Filter.fromPredicateOption(({ id }) => identifierName(id)),
-      ),
-    );
-  }
-
-  return Array.fromOption(identifierName(declaration.id));
-};
-
-// A comment alone on its lines leaves with those lines, so removing it leaves no blank line behind.
-const commentRange = (
-  text: string,
-  comment: Comment,
-): { readonly start: number; readonly end: number } => {
-  const lineStart = text.lastIndexOf("\n", comment.start - 1) + 1;
-  const lineEnd = text.indexOf("\n", comment.end);
-
-  if (
-    lineEnd !== -1 &&
-    String.isEmpty(String.trim(text.slice(lineStart, comment.start))) &&
-    String.isEmpty(String.trim(text.slice(comment.end, lineEnd)))
-  ) {
-    return { start: lineStart, end: lineEnd + 1 };
-  }
-
-  return { start: comment.start, end: comment.end };
-};
-
-// The text between the comments inside a statement.
-const statementText = (
-  text: string,
-  statement: Statement,
-  comments: readonly Comment[],
-): string => {
-  const [cursor, pieces] = pipe(
-    comments,
-    Array.filter(
-      ({ start, end }) => start >= statement.start && end <= statement.end,
-    ),
-    Array.map((comment) => commentRange(text, comment)),
-    Array.mapAccum(statement.start, (position, range) => [
-      Math.max(position, range.end),
-      text.slice(position, Math.max(position, range.start)),
-    ]),
-  );
-
-  return pipe([...pieces, text.slice(cursor, statement.end)], Array.join(""));
-};
-
 const collectDeclarations = (
   text: string,
-  program: Program,
-  comments: readonly Comment[],
-): Declarations => ({
-  local: pipe(
+  { program, comments }: Parsed,
+): Declarations => {
+  const file: File = { text, comments, literals: specifierLiterals(program) };
+  const scoped = Array.filterMap(
     program.body,
-    Array.flatMap((statement) =>
+    Filter.fromPredicateOption((statement) =>
       pipe(
-        declarationOf(statement),
-        Array.fromOption,
-        Array.flatMap(declaredNames),
-        Array.map((name) => ({
-          name,
-          source: statementText(text, statement, comments),
-        })),
+        statement,
+        boundNames,
+        Option.map((names): readonly [Statement, ScopeStatement] => [
+          statement,
+          { names, ...statementText(statement, file) },
+        ]),
       ),
     ),
-    Array.groupBy(({ name }) => name),
-    Record.map(Array.map(({ source }) => source)),
-  ),
-  exports: pipe(
-    program.body,
-    Array.filter(isExportNamed),
-    Array.flatMap((statement) =>
-      pipe(
-        statement.specifiers,
-        Array.map((specifier) => {
-          const single: ExportNamedDeclaration = {
-            ...statement,
-            specifiers: [specifier],
-          };
+  );
 
-          return [
-            exportName(specifier.exported),
-            print(single, ts({ quotes: "double" })).code,
-          ] as const;
-        }),
+  return {
+    local: pipe(
+      scoped,
+      Array.flatMap(([statement, scope]) =>
+        pipe(
+          declarationOf(statement),
+          Array.fromOption,
+          Array.flatMap(declaredNames),
+          Array.map((name) => ({ name, scope })),
+        ),
       ),
+      Array.groupBy(Struct.get("name")),
+      Record.map(Array.map(Struct.get("scope"))),
     ),
-    Record.fromEntries,
-  ),
-});
+    statements: Array.map(scoped, Tuple.get(1)),
+  };
+};
 
 /** Reads TypeScript modules with oxc, each file once per run, and resolves their specifiers. */
 export class Sources extends Context.Service<
@@ -327,7 +227,7 @@ export class Sources extends Context.Service<
   {
     /** The imports, re-exports and comments of a module. */
     readonly scope: (file: string) => Effect.Effect<Scope, TransformError>;
-    /** The declarations and export specifiers of a declaration file. */
+    /** The imports and declarations of a declaration file. */
     readonly declarations: (
       file: string,
     ) => Effect.Effect<Declarations, TransformError>;
@@ -350,48 +250,38 @@ export const layer: Layer.Layer<Sources, never, FileSystem.FileSystem> =
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
 
-      const read = (
-        file: string,
-      ): Effect.Effect<
-        Pick<ReturnType<typeof parseSync>, "program" | "comments"> & {
-          readonly text: string;
+      const read = Effect.fnUntraced(
+        function* (file: string) {
+          const text = yield* fs.readFileString(file);
+          const parsed = yield* parse(text, file);
+
+          return { ...parsed, text };
         },
-        TransformError
-      > =>
-        fs.readFileString(file).pipe(
-          Effect.mapError(TransformError.fileSystem),
-          Effect.flatMap((text) =>
-            parse(file, text).pipe(
-              Effect.map((parsed) => ({ ...parsed, text })),
-            ),
-          ),
-        );
+        Effect.catchTag("PlatformError", TransformError.fileSystem),
+      );
 
       const scopes = yield* Cache.make({
         capacity: Number.POSITIVE_INFINITY,
-        lookup: (file: string) =>
-          read(file).pipe(
-            Effect.map(
-              ({ text, program, comments }): Scope => ({
-                ...collectScope(program),
-                text,
-                comments: pipe(
-                  comments,
-                  Array.filter(({ type }) => type === "Block"),
-                ),
-              }),
-            ),
+        lookup: flow(
+          read,
+          Effect.map(
+            ({ text, program, comments }): Scope => ({
+              ...collectScope(program),
+              text,
+              comments: Array.filter(comments, ({ type }) => type === "Block"),
+            }),
           ),
+        ),
       });
 
       const declarations = yield* Cache.make({
         capacity: Number.POSITIVE_INFINITY,
-        lookup: (file: string) =>
-          read(file).pipe(
-            Effect.map(({ text, program, comments }) =>
-              collectDeclarations(text, program, comments),
-            ),
+        lookup: flow(
+          read,
+          Effect.map(({ text, ...parsed }) =>
+            collectDeclarations(text, parsed),
           ),
+        ),
       });
 
       return Sources.of({

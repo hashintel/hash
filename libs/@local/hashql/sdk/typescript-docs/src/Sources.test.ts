@@ -1,5 +1,14 @@
 import { describe, expect, layer } from "@effect/vitest";
-import { Effect, FileSystem, Layer, Option, Record } from "effect";
+import {
+  Array,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Record,
+  Struct,
+  pipe,
+} from "effect";
 
 import * as Sources from "./Sources.js";
 
@@ -25,10 +34,13 @@ const files: Record.ReadonlyRecord<string, string> = {
     "  readonly name: string;",
     "}",
   ].join("\n"),
-  "/alias.d.ts": [
-    "declare function conditional(): void;",
-    "export { conditional as if, other as unrelated };",
-    'export { ifElse as If, assume } from "./expression.js";',
+  "/statements.d.ts": [
+    'import type { Thing } from "./thing.js";',
+    'import * as Space from "../space.js";',
+    "/** Documented. */",
+    'export declare const value: import("./other.js").Other; // trailing',
+    "export { value as alias };",
+    'export * from "./everything.js";',
   ].join("\n"),
   "/broken.ts": "export const = ;",
 };
@@ -72,13 +84,20 @@ describe("sources", () => {
         const sources = yield* Sources.Sources;
         const { local } = yield* sources.declarations("/overloads.d.ts");
 
-        expect(Record.get(local, "pick")).toStrictEqual(
+        const texts = (name: string): Option.Option<readonly string[]> =>
+          pipe(
+            local,
+            Record.get(name),
+            Option.map(Array.map(Struct.get("text"))),
+          );
+
+        expect(texts("pick")).toStrictEqual(
           Option.some([
             "export declare function pick(value: string): string;",
             "export declare function pick(value: number): number;",
           ]),
         );
-        expect(Record.get(local, "Shape")).toStrictEqual(
+        expect(texts("Shape")).toStrictEqual(
           Option.some([
             [
               "export interface Shape {",
@@ -91,20 +110,38 @@ describe("sources", () => {
       }),
     );
 
-    it.effect("declarations_alias_export", () =>
+    it.effect("declarations_scope_statements", () =>
       Effect.gen(function* () {
         const sources = yield* Sources.Sources;
-        const { local, exports } = yield* sources.declarations("/alias.d.ts");
+        const { statements } = yield* sources.declarations("/statements.d.ts");
 
-        expect(Record.get(local, "conditional")).toStrictEqual(
-          Option.some(["declare function conditional(): void;"]),
-        );
-        expect(Record.get(exports, "if")).toStrictEqual(
-          Option.some("export { conditional as if };"),
-        );
-        expect(Record.get(exports, "If")).toStrictEqual(
-          Option.some('export { ifElse as If } from "./expression.js";'),
-        );
+        // Each specifier's offsets point at its quoted literal in the comment-free text.
+        expect(
+          Array.map(statements, ({ names, text, specifiers }) => ({
+            names,
+            text,
+            specifiers: Array.map(specifiers, ({ start, end, value }) => [
+              text.slice(start, end),
+              value,
+            ]),
+          })),
+        ).toStrictEqual([
+          {
+            names: ["Thing"],
+            text: 'import type { Thing } from "./thing.js";',
+            specifiers: [['"./thing.js"', "./thing.js"]],
+          },
+          {
+            names: ["Space"],
+            text: 'import * as Space from "../space.js";',
+            specifiers: [['"../space.js"', "../space.js"]],
+          },
+          {
+            names: ["value"],
+            text: 'export declare const value: import("./other.js").Other;',
+            specifiers: [['"./other.js"', "./other.js"]],
+          },
+        ]);
       }),
     );
 

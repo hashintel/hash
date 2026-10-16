@@ -52,6 +52,8 @@ export class Analysis extends Context.Service<
     readonly entry: ApiEntryPoint;
     /** The source modules of the declaration files the analysis entry re-exports, in order. */
     readonly roots: Array.NonEmptyReadonlyArray<string>;
+    /** The directory TypeScript emitted the declaration files into. The first root's file sits at its top, and the tree below mirrors the sources. */
+    readonly declarationRoot: string;
     /** The source file that declares an item. */
     readonly sourceOf: (item: ApiItem) => Option.Option<string>;
     /** The declaration file emitted from a source module. */
@@ -189,6 +191,7 @@ export const layer = ({
       const parser = yield* loadParser(lib);
       const roots = yield* loadRoots(path.join(analysis, "api-entry.d.ts"));
       const rootSource = Array.headNonEmpty(roots.sources);
+      const declarationRoot = path.dirname(roots.declaration);
 
       // The emit mirrors the source tree, so the first root locates every other declaration file, and each one's map confirms it.
       const declarations = yield* Cache.make({
@@ -201,7 +204,7 @@ export const layer = ({
           ).pipe(Option.getOrElse(() => ["", ".d.ts"] as const));
 
           const declaration = path.join(
-            path.dirname(roots.declaration),
+            declarationRoot,
             `${relative.slice(0, relative.length - extension.length)}${emitted}`,
           );
 
@@ -220,6 +223,7 @@ export const layer = ({
         package: apiPackage,
         entry,
         roots: roots.sources,
+        declarationRoot,
         sourceOf: (item) => {
           if (item instanceof ApiDeclaredItem) {
             return Option.fromNullishOr(item.fileUrlPath).pipe(
