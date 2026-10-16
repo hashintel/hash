@@ -53,9 +53,6 @@ const DocxPreview = dynamic(
   },
 );
 
-const docxMimeType =
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
 const ActionButtonsContainer = ({ children }: PropsWithChildren) => (
   <Stack
     direction="row"
@@ -194,7 +191,12 @@ export const FilePreviewSection = () => {
   const { isDirty, readonly, closedMultiEntityType, entity } =
     useEntityEditor();
 
-  const { isImage, fileUrl } = getFileProperties(entity.properties);
+  const {
+    isImage,
+    isPdf,
+    isDocx: isDocxFile,
+    fileUrl,
+  } = getFileProperties(entity.properties);
 
   const fullScreenHandle = useFullScreenHandle();
 
@@ -207,7 +209,7 @@ export const FilePreviewSection = () => {
     return null;
   }
 
-  const { description, displayName, fileName, mimeType } = simplifyProperties(
+  const { description, displayName, fileName } = simplifyProperties(
     entity.properties as FileProperties,
   );
 
@@ -216,12 +218,7 @@ export const FilePreviewSection = () => {
 
   const alt = description ?? title;
 
-  const isPdf = mimeType === "application/pdf" || fileName?.endsWith(".pdf");
-
-  const isDocx =
-    (mimeType === docxMimeType ||
-      !!fileName?.toLowerCase().endsWith(".docx")) &&
-    unavailableDocxUrl !== fileUrl;
+  const isDocx = isDocxFile && unavailableDocxUrl !== fileUrl;
 
   return (
     <SectionWrapper
