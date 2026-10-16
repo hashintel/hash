@@ -9,6 +9,7 @@ import {
   Layer,
   Option,
   Record,
+  String,
   pipe,
 } from "effect";
 import { print } from "esrap";
@@ -247,8 +248,8 @@ const commentRange = (
 
   if (
     lineEnd !== -1 &&
-    text.slice(lineStart, comment.start).trim() === "" &&
-    text.slice(comment.end, lineEnd).trim() === ""
+    String.isEmpty(String.trim(text.slice(lineStart, comment.start))) &&
+    String.isEmpty(String.trim(text.slice(comment.end, lineEnd)))
   ) {
     return { start: lineStart, end: lineEnd + 1 };
   }

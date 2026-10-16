@@ -63,6 +63,9 @@ const linkTagNames: ReadonlySet<string> = new Set([
 const isUnparsedLink = (node: DocNode): node is DocInlineTag =>
   node instanceof DocInlineTag && linkTagNames.has(node.tagName);
 
+const isParagraph = (node: DocNode | undefined): node is DocParagraph =>
+  node instanceof DocParagraph;
+
 const text = (value: string): PhrasingContent => ({ type: "text", value });
 
 const inlineCode = (value: string): PhrasingContent => ({
@@ -200,7 +203,7 @@ export const lead = (
 ): Effect.Effect<PhrasingContent[], TransformError, Links> =>
   pipe(
     Array.head(comment.summarySection.getChildNodes()),
-    Option.filter((node) => node instanceof DocParagraph),
+    Option.filter(isParagraph),
     Option.match({
       onNone: () => Effect.succeed([]),
       onSome: paragraph,
@@ -214,8 +217,12 @@ export const blocksTagged: {
 } = Function.dual(
   2,
   (comment: DocComment, tagName: string): readonly DocBlock[] =>
-    comment.customBlocks.filter(
-      ({ blockTag }) => blockTag.tagNameWithUpperCase === tagName.toUpperCase(),
+    pipe(
+      comment.customBlocks,
+      Array.filter(
+        ({ blockTag }) =>
+          blockTag.tagNameWithUpperCase === String.toUpperCase(tagName),
+      ),
     ),
 );
 
@@ -224,8 +231,8 @@ export const words = (node: DocSection): string =>
   pipe(
     node.getChildNodes(),
     Array.filterMap(Filter.instanceOf(DocParagraph)),
-    Array.flatMap((paragraph_) =>
-      DocNodeTransforms.trimSpacesInParagraph(paragraph_).getChildNodes(),
+    Array.flatMap((node) =>
+      DocNodeTransforms.trimSpacesInParagraph(node).getChildNodes(),
     ),
     Array.map((child) =>
       Match.value(child).pipe(
@@ -241,7 +248,7 @@ export const words = (node: DocSection): string =>
 // The space after a block tag and the line breaks before its content parse as text of their own.
 const isBlank = (node: DocNode): boolean =>
   node instanceof DocSoftBreak ||
-  (node instanceof DocPlainText && node.text.trim() === "");
+  (node instanceof DocPlainText && String.isEmpty(String.trim(node.text)));
 
 const paragraphOf = (
   configuration: DocParagraph["configuration"],
@@ -258,14 +265,11 @@ const isCaption =
   (node: DocNode): boolean =>
     node instanceof tag && node.name === "caption";
 
-const isParagraph = (node: DocNode | undefined): node is DocParagraph =>
-  node instanceof DocParagraph;
-
 // JSDoc's `<caption>` opens the first paragraph of an example. Everything after the caption is ordinary content.
 export const example = (
-  example_: DocBlock,
+  node: DocBlock,
 ): Effect.Effect<Example, TransformError, Links> => {
-  const [first, ...rest] = example_.content.getChildNodes();
+  const [first, ...rest] = node.content.getChildNodes();
   const caption = pipe(
     Option.liftPredicate(first, isParagraph),
     Option.flatMap((opening) => {
@@ -296,7 +300,7 @@ export const example = (
 
   return Option.match(caption, {
     onNone: () =>
-      section(example_.content).pipe(
+      section(node.content).pipe(
         Effect.map((content): Example => ({ caption: [], content })),
       ),
     onSome: ({ title, remainder }) =>
