@@ -18,7 +18,7 @@ export default defineConfig(({ command }) => ({
       compiler: {
         target: "19",
         compilationMode: "infer",
-        panicThreshold: "critical_errors",
+        panicThreshold: "all_errors",
       },
     }),
 
@@ -30,6 +30,7 @@ export default defineConfig(({ command }) => ({
       entry: {
         index: "src/main.ts",
         "panda-preset": "src/panda-preset.ts",
+        svg: "src/svg.ts",
       },
       fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],

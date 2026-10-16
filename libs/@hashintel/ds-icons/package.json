@@ -29,6 +29,10 @@
       "types": "./dist/panda-preset.d.ts",
       "default": "./dist/panda-preset.js"
     },
+    "./svg": {
+      "types": "./dist/svg.d.ts",
+      "default": "./dist/svg.js"
+    },
     "./panda.buildinfo.json": "./dist/panda.buildinfo.json"
   },
   "publishConfig": {
