@@ -4,6 +4,7 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
+    "react/memo-dependencies": "error",
     "react/static-components": "warn",
     "react/use-memo": "warn",
     "react/void-use-memo": "warn",
@@ -22,7 +23,6 @@
     "react/exhaustive-effect-dependencies": "off",
     "react/hooks": "off",
     "react/invariant": "off",
-    "react/memo-dependencies": "off",
     "react/no-deriving-state-in-effects": "off",
     "react/rule-suppression": "off",
     "react/syntax": "off"
