@@ -3,7 +3,9 @@ import { expect, it } from "vitest";
 import {
   getInterviewBudget,
   interviewBudgetLabel,
+  interviewBudgetLevels,
   liveInterviewBudgetInstruction,
+  liveInterviewBudgetUpdate,
 } from "./interview-budget";
 
 it("uses mode-specific caps and keeps already asked questions after a downgrade", () => {
@@ -61,3 +63,12 @@ it("adds no startup instruction for Off", () => {
   expect(liveInterviewBudgetInstruction("off")).toBe("");
   expect(liveInterviewBudgetInstruction("quick")).toContain("Brunch decides");
 });
+
+it.each(interviewBudgetLevels)(
+  "tells Live not to speak the %s level-change note",
+  (level) => {
+    expect(liveInterviewBudgetUpdate(level)).toMatch(
+      /Do not speak this note\.$/,
+    );
+  },
+);
