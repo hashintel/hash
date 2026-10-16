@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
 import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types";
@@ -176,9 +176,6 @@ export const useFindSearchHits = (document: DocumentCallback | null) => {
     void getPages();
   }, [document]);
 
-  return useCallback(
-    (searchString: string, ignoreCase: boolean) =>
-      findStringInPages({ pages, searchString, ignoreCase }),
-    [pages],
-  );
+  return (searchString: string, ignoreCase: boolean) =>
+    findStringInPages({ pages, searchString, ignoreCase });
 };
