@@ -4,12 +4,15 @@ import { projectLedger, type LedgerTrace } from "@hashintel/brunch-agent";
 import { Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { traceCanvasSelection, tracedAddresses } from "./brunch-ledger-canvas";
 import { BrunchLedgerDocument } from "./brunch-ledger-document";
 import {
   foldBrunchLedgerHistory,
   type BrunchLedgerHistoryMessage,
 } from "./brunch-ledger-history";
+import {
+  traceCanvasSelection,
+  tracedAddresses,
+} from "./brunch-ledger-selection";
 
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 

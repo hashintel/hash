@@ -2,7 +2,10 @@ import { expect, test } from "vitest";
 
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { namesSelectionItem, netElementSelectionItem } from "./net-element-ids";
+import {
+  namesSelectionItem,
+  netElementSelectionItem,
+} from "./net-element-selection";
 
 test("a written net element ID becomes the selection the document stores", () => {
   expect(netElementSelectionItem({ kind: "place", id: "queue" })).toEqual({

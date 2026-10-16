@@ -4,6 +4,7 @@ import * as v from "valibot";
 import {
   brunchTools,
   foldCommits,
+  generatedArcId,
   namesId,
   netElementKinds,
   traceLedger,
@@ -11,16 +12,15 @@ import {
 
 import {
   callsForElement,
-  generatedArcId,
   isAppliedChange,
   latestNetDefinition,
   netCalls,
-  type ArcElement,
   type NetCall,
 } from "../../../shared/conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type {
+  ArcElement,
   BrowserContext,
   LedgerTrace,
   NetElementAddress,

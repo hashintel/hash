@@ -39,9 +39,9 @@ export {
   type NetReaderLevel,
 } from "./petrinaut/net-readers";
 export {
+  generatedArcId,
   namesId,
-  namesSelectionItem,
-  netElementSelectionItem,
+  type ArcElement,
 } from "./petrinaut/net-element-ids";
 export {
   browserToolMutatesDocument,

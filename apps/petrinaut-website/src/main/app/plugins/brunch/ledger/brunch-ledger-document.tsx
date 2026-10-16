@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { reflectionSelection } from "./brunch-ledger-canvas";
+import { reflectionSelection } from "./brunch-ledger-selection";
 
 import type {
   LedgerProjection,
