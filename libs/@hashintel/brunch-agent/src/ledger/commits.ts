@@ -2,7 +2,7 @@ import * as v from "valibot";
 
 import { brunchTools } from "../constants";
 import { vLedgerAppend, type LedgerAppend } from "./append";
-import { owedObligations, projectLedger } from "./projection";
+import { owedObligations, projectLedger } from "./projection/project-ledger";
 import { questionStatuses, type Origin } from "./shared/epistemics";
 
 import type {
@@ -12,7 +12,7 @@ import type {
   ObligationRecord,
   ReflectionRecord,
   Turn,
-} from "./projection";
+} from "./projection/records";
 import type { FlueConversationMessage } from "@flue/sdk";
 
 /** A Flue conversation message as the fold reads it: parts stay `unknown` because the fold parses them. */
