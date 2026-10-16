@@ -2,7 +2,11 @@ import { getFlowDefinitionFromEntity } from "@local/hash-isomorphic-utils/flows/
 
 import { getFlowDefinitionEntityById } from "../../shared/get-flow-definition-entity-by-id.js";
 
-import type { ActorEntityUuid, EntityUuid } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  EntityId,
+  EntityUuid,
+} from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -12,12 +16,17 @@ export type GetFlowDefinitionActivityParams = {
 };
 
 /**
- * Loads the definition a run executes from its `Flow Definition` entity, and validates it.
+ * Loads the definition a run executes from its `Flow Definition` entity, and validates it. Returns the entity's id
+ * too, for the run to link to.
  */
 export const getFlowDefinitionActivity = async (
   params: GetFlowDefinitionActivityParams & { graphApiClient: GraphApi },
 ): Promise<
-  | { status: "ok"; flowDefinition: FlowDefinition }
+  | {
+      status: "ok";
+      flowDefinition: FlowDefinition;
+      flowDefinitionEntityId: EntityId;
+    }
   | { status: "not-found" | "invalid"; errorMessage: string }
 > => {
   const { flowDefinitionId, graphApiClient, userAuthentication } = params;
@@ -39,6 +48,7 @@ export const getFlowDefinitionActivity = async (
     return {
       status: "ok",
       flowDefinition: getFlowDefinitionFromEntity(entity),
+      flowDefinitionEntityId: entity.metadata.recordId.entityId,
     };
   } catch (error) {
     return { status: "invalid", errorMessage: (error as Error).message };

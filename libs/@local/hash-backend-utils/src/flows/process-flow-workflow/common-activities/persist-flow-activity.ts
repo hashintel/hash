@@ -9,8 +9,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { getFlowDefinitionEntityById } from "../../shared/get-flow-definition-entity-by-id.js";
-
 import type {
   ActorEntityUuid,
   EntityId,
@@ -30,6 +28,11 @@ import type {
 
 export type PersistFlowActivityParams = {
   flow: LocalFlowRun;
+  /**
+   * The `Flow Definition` entity the run executes, which the run's entity `Uses`. Only used, and required, when the
+   * run's entity is created.
+   */
+  flowDefinitionEntityId?: EntityId;
   flowRunId?: EntityUuid;
   /**
    * The `Flow Trigger` entity that started the run, if any (e.g. a `Flow Schedule`). Only used when the run's
@@ -46,6 +49,7 @@ export const persistFlowActivity = async (
 ): Promise<{ flowEntityId: EntityId }> => {
   const {
     flow,
+    flowDefinitionEntityId,
     flowRunId,
     flowTriggerEntityId,
     graphApiClient,
@@ -128,15 +132,9 @@ export const persistFlowActivity = async (
     } satisfies OriginProvenance,
   };
 
-  const flowDefinitionEntity = await getFlowDefinitionEntityById({
-    flowDefinitionId: flow.flowDefinitionId,
-    graphApiClient,
-    userAuthentication,
-  });
-
-  if (!flowDefinitionEntity) {
+  if (!flowDefinitionEntityId) {
     throw new Error(
-      `No Flow Definition entity exists for flow definition ${flow.flowDefinitionId}, so its run can't link to it`,
+      `The entity of run ${temporalWorkflowId} is created by the first persist, which must be given the Flow Definition entity it uses`,
     );
   }
 
@@ -171,7 +169,7 @@ export const persistFlowActivity = async (
       draft: false,
     },
     {
-      ...linkFromRun(flowDefinitionEntity.metadata.recordId.entityId),
+      ...linkFromRun(flowDefinitionEntityId),
       entityTypeIds: [systemLinkEntityTypes.uses.linkEntityTypeId],
     },
     ...(flowTriggerEntityId

@@ -386,6 +386,7 @@ const processFlow = async <
 
   await persistFlowActivity({
     flow,
+    flowDefinitionEntityId: flowDefinitionResult.flowDefinitionEntityId,
     flowRunId,
     flowTriggerEntityId,
     stepIds: ["initialize-flow"],
