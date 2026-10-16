@@ -284,6 +284,8 @@ type PersonaLaunchOptions = {
   readonly agent?: PersonaAgentSettings;
   /** Wait for Enter before the first message; only possible on a TTY. */
   readonly recordingPause?: boolean;
+  /** Stop the run once Brunch has replied to this many persona messages. */
+  readonly maxMessages?: number;
 };
 
 /**
@@ -299,6 +301,7 @@ const launchPersona = async ({
   roles = resolvePersonaRoleSettings(),
   agent,
   recordingPause: pauseForRecording = true,
+  maxMessages,
 }: PersonaLaunchOptions) => {
   const manifest = resume
     ? await verifyGuidanceResume(resume.config.guidance)
@@ -609,6 +612,7 @@ const launchPersona = async ({
       url: opened.session.url,
       headers: agentOwnershipHeaders(opened.session),
     });
+    let repliedMessages = 0;
     bridge = await openPersonaBrowserBridge({
       prompt: async (message, turn) => {
         await verifyGuidanceResume(manifest);
@@ -646,6 +650,13 @@ const launchPersona = async ({
               documentId,
               join(run, "evidence"),
             );
+          repliedMessages += 1;
+          if (maxMessages !== undefined && repliedMessages >= maxMessages)
+            // After the bridge has delivered this reply.
+            setImmediate(() => {
+              report(`Message limit reached: ${maxMessages} persona messages.`);
+              interrupt();
+            });
           return {
             text: result.reply.text,
             submissionIds: result.submissionIds,
@@ -819,13 +830,14 @@ if (
       "persona-model": { type: "string" },
       "persona-thinking": { type: "string" },
       "skip-recording-pause": { type: "boolean" },
+      "max-messages": { type: "string" },
       resume: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
   if (values.help) {
     report(
-      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
+      `Usage: yarn brunch:persona --case <name-or-directory> [--objective <the person's aim>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [agent options]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is a private aim for the person, phrased in their own terms; without it the person's goal comes from the case. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services, a fresh headed Chrome window and a browser bridge; on an interactive terminal, pauses for Enter before sending anything (--skip-recording-pause skips it). --max-messages <n> stops the run once Brunch has replied to the persona's nth message (the case's opening is not counted). Defaults: Brunch ${DEFAULT_CHAT_MODEL} ${DEFAULT_CHAT_THINKING}. Native usage is retained; ordinary external-agent runs have no automatic budget cutoff. Requires macOS Chrome, unused ${brunchEnv.chatPort}/${brunchEnv.panelPort}, and Brunch's provider API key. The persona stops by its own rule; Ctrl-C here or <run>/bin/persona end stops the run at any point, stopping owned resources and retaining run data.`,
     );
     report(
       `Agent options:\n  --agent ${personaAgentPresets.join("|")}   Start that agent with the persona brief.\n  --agent-command '<shell command with {prompt}>'   Start any other agent; {prompt} becomes the quoted launch prompt.\n  --persona-model <model>   Passed to the --agent preset's own model flag.\n  --persona-thinking <level>   Passed to pi's --thinking (only with --agent pi).\nThe agent runs in a Herdr pane when HERDR_ENV=1, otherwise in this terminal. Without an agent option the launcher prints the launch prompt for you to give any agent. The agent talks to Brunch through <run>/bin/persona (say, transcript, state, end, rpc).`,
@@ -861,6 +873,13 @@ if (
           })
         : undefined;
     const recordingPause = !values["skip-recording-pause"];
+    const maxMessages =
+      values["max-messages"] === undefined
+        ? undefined
+        : Number(values["max-messages"]);
+    const invalidMaxMessages =
+      maxMessages !== undefined &&
+      !(Number.isInteger(maxMessages) && maxMessages > 0);
     const resumeRun = async (resumeDirectory: string) => {
       if (
         values.case ||
@@ -881,6 +900,7 @@ if (
         resume: retained,
         agent: selectedAgent,
         recordingPause,
+        maxMessages,
       });
     };
     const freshRun = async (caseDirectory: string) =>
@@ -900,12 +920,17 @@ if (
         }),
         agent: agent() ?? {},
         recordingPause,
+        maxMessages,
       });
-    const task = values.resume
-      ? resumeRun(values.resume)
-      : directory
-        ? freshRun(directory)
-        : Promise.reject(new Error("Supply --case <name-or-directory>"));
+    const task = invalidMaxMessages
+      ? Promise.reject(
+          new Error("--max-messages takes a positive whole number"),
+        )
+      : values.resume
+        ? resumeRun(values.resume)
+        : directory
+          ? freshRun(directory)
+          : Promise.reject(new Error("Supply --case <name-or-directory>"));
     await task.catch((error: unknown) => {
       process.stderr.write(
         `${error instanceof Error ? error.message : "Persona launch failed"}\n`,
