@@ -8,7 +8,6 @@ import { Document, Page, pdfjs } from "react-pdf";
 
 import {
   ArrowDownLeftAndArrowUpRightToCenterIcon,
-  ArrowRightRegularIcon,
   ArrowUpRightAndArrowDownLeftFromCenterIcon,
   MagnifyingGlassMinusLightIcon,
   MagnifyingGlassPlusLightIcon,
@@ -16,6 +15,7 @@ import {
 import { typedKeys } from "@local/advanced-types/typed-entries";
 
 import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
+import { FilePreviewPageNavigation } from "./file-preview-page-navigation";
 import { FilePreviewSearch } from "./file-preview-search";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 import {
@@ -330,36 +330,11 @@ export const PdfPreview = ({
                     }}
                   >
                     <Stack direction="row" alignItems="center" gap={1}>
-                      <GrayToBlueIconButton
-                        aria-label="Previous page"
-                        disabled={selectedPageNumber === 1}
-                        onClick={() =>
-                          setSelectedPageNumber(selectedPageNumber - 1)
-                        }
-                      >
-                        <ArrowRightRegularIcon
-                          sx={{ transform: "rotate(180deg)" }}
-                        />
-                      </GrayToBlueIconButton>
-                      <Typography
-                        sx={{
-                          fontSize: 12,
-                          color: ({ palette }) => palette.gray[70],
-                          textAlign: "center",
-                          width: (totalPages.toString().length * 2 + 4) * 7,
-                        }}
-                      >
-                        {`${selectedPageNumber} of ${totalPages}`}
-                      </Typography>
-                      <GrayToBlueIconButton
-                        aria-label="Next page"
-                        disabled={selectedPageNumber === totalPages}
-                        onClick={() =>
-                          setSelectedPageNumber(selectedPageNumber + 1)
-                        }
-                      >
-                        <ArrowRightRegularIcon />
-                      </GrayToBlueIconButton>
+                      <FilePreviewPageNavigation
+                        currentPage={selectedPageNumber}
+                        onSelectPage={setSelectedPageNumber}
+                        totalPages={totalPages}
+                      />
                     </Stack>
                   </Stack>
                 </Stack>

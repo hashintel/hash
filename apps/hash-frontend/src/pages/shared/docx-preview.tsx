@@ -5,7 +5,6 @@ import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import {
   ArrowDownLeftAndArrowUpRightToCenterIcon,
-  ArrowRightRegularIcon,
   ArrowUpRightAndArrowDownLeftFromCenterIcon,
   MagnifyingGlassMinusLightIcon,
   MagnifyingGlassPlusLightIcon,
@@ -13,6 +12,7 @@ import {
 
 import { FolioDocument } from "./docx-preview/folio-document";
 import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
+import { FilePreviewPageNavigation } from "./file-preview-page-navigation";
 import { FilePreviewSearch } from "./file-preview-search";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 
@@ -185,30 +185,13 @@ export const DocxPreview = ({
                 zIndex: 20,
               }}
             >
-              <GrayToBlueIconButton
-                aria-label="Previous page"
-                disabled={pages.current <= 1}
-                onClick={() => controlsRef.current?.goToPage(pages.current - 1)}
-              >
-                <ArrowRightRegularIcon sx={{ transform: "rotate(180deg)" }} />
-              </GrayToBlueIconButton>
-              <Typography
-                sx={{
-                  fontSize: 12,
-                  color: ({ palette }) => palette.gray[70],
-                  textAlign: "center",
-                  width: (pages.total.toString().length * 2 + 4) * 7,
-                }}
-              >
-                {`${pages.current} of ${pages.total}`}
-              </Typography>
-              <GrayToBlueIconButton
-                aria-label="Next page"
-                disabled={pages.current >= pages.total}
-                onClick={() => controlsRef.current?.goToPage(pages.current + 1)}
-              >
-                <ArrowRightRegularIcon />
-              </GrayToBlueIconButton>
+              <FilePreviewPageNavigation
+                currentPage={pages.current}
+                onSelectPage={(pageNumber) =>
+                  controlsRef.current?.goToPage(pageNumber)
+                }
+                totalPages={pages.total}
+              />
             </Stack>
             <Stack
               alignItems="center"
