@@ -233,6 +233,19 @@ describe("net freshness", () => {
     expect(adapter.acceptsRevision(revision())).toBe(true);
   });
 
+  test("moving an element by hand leaves the model's view current", () => {
+    const { adapter, instance, revision } = setup();
+    instance.mutations.addPlace(place);
+    const seen = revision();
+    instance.mutations.updatePlacePosition({
+      placeId: toPetrinautId("queue"),
+      position: { x: 120, y: 80 },
+      targetSubnetId: null,
+    });
+    expect(instance.handle.doc()?.places[0]).toMatchObject({ x: 120, y: 80 });
+    expect(adapter.acceptsRevision(seen)).toBe(true);
+  });
+
   test("the chain survives a reload through the settled revisions in history", () => {
     const replay = {
       calls: new Map([
