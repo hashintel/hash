@@ -1,135 +1,123 @@
-// oxlint-disable effecttsgo/unstable-api-usage -- FileSystem is unstable
-// oxlint-disable effecttsgo/strict-effect-provide -- each test is an entry point that provides its own files
+import { describe, expect, layer } from "@effect/vitest";
 import { Effect, FileSystem, Layer, Option, Record } from "effect";
-import { describe, expect, test } from "vitest";
 
 import * as Sources from "./Sources.js";
 
-// Each test reads only the files it names. Any other read is a defect in the test.
-const read = <A, E>(
-  contents: Record.ReadonlyRecord<string, string>,
-  effect: (sources: Sources.Sources["Service"]) => Effect.Effect<A, E>,
-): A =>
-  Effect.flatMap(Effect.service(Sources.Sources), effect).pipe(
-    Effect.provide(
-      Sources.layer.pipe(
-        Layer.provide(
-          FileSystem.layerNoop({
-            readFileString: (path) =>
-              Effect.fromOption(Record.get(contents, path)).pipe(Effect.orDie),
-          }),
-        ),
-      ),
-    ),
-    Effect.orDie,
-    Effect.runSync,
-  );
+const files: Record.ReadonlyRecord<string, string> = {
+  "/scope.ts": [
+    'import * as Whole from "./whole.js";',
+    'import { named as renamed } from "./named.js";',
+    'import fallback from "./fallback.js";',
+    'export * from "./everything.js";',
+    'export * as Space from "./space.js";',
+    'export { remote as published } from "./remote.js";',
+    "const local = 1;",
+    "export { local as alias };",
+  ].join("\n"),
+  "/overloads.d.ts": [
+    "/** First overload. */",
+    "export declare function pick(value: string): string;",
+    "/** Second overload. */",
+    "export declare function pick(value: number): number;",
+    "export interface Shape {",
+    "  /** The side length. */",
+    "  readonly side: number; // trailing",
+    "  readonly name: string;",
+    "}",
+  ].join("\n"),
+  "/alias.d.ts": [
+    "declare function conditional(): void;",
+    "export { conditional as if, other as unrelated };",
+    'export { ifElse as If, assume } from "./expression.js";',
+  ].join("\n"),
+  "/broken.ts": "export const = ;",
+};
+
+// A read of a file the fixtures do not name is a defect in the test.
+const fixtures: Layer.Layer<Sources.Sources> = Sources.layer.pipe(
+  Layer.provide(
+    FileSystem.layerNoop({
+      readFileString: (path) =>
+        Effect.fromOption(Record.get(files, path)).pipe(Effect.orDie),
+    }),
+  ),
+);
 
 describe("sources", () => {
-  test("scope_bindings", () => {
-    expect.hasAssertions();
-    const scope = read(
-      {
-        "/module.ts": [
-          'import * as Whole from "./whole.js";',
-          'import { named as renamed } from "./named.js";',
-          'import fallback from "./fallback.js";',
-          'export * from "./everything.js";',
-          'export * as Space from "./space.js";',
-          'export { remote as published } from "./remote.js";',
-          "const local = 1;",
-          "export { local as alias };",
-        ].join("\n"),
-      },
-      (sources) => sources.scope("/module.ts"),
+  layer(fixtures)((it) => {
+    it.effect("scope_bindings", () =>
+      Effect.gen(function* () {
+        const sources = yield* Sources.Sources;
+        const scope = yield* sources.scope("/scope.ts");
+
+        expect(scope.imports).toStrictEqual({
+          Whole: { specifier: "./whole.js", imported: Option.none() },
+          renamed: { specifier: "./named.js", imported: Option.some("named") },
+          fallback: {
+            specifier: "./fallback.js",
+            imported: Option.some("default"),
+          },
+        });
+        expect(scope.wildcards).toStrictEqual(["./everything.js"]);
+        expect(scope.namespaces).toStrictEqual({ Space: "./space.js" });
+        expect(scope.reexports).toStrictEqual({
+          published: { local: "remote", specifier: Option.some("./remote.js") },
+          alias: { local: "local", specifier: Option.none() },
+        });
+      }),
     );
 
-    expect(scope.imports).toStrictEqual({
-      Whole: { specifier: "./whole.js", imported: Option.none() },
-      renamed: { specifier: "./named.js", imported: Option.some("named") },
-      fallback: {
-        specifier: "./fallback.js",
-        imported: Option.some("default"),
-      },
-    });
-    expect(scope.wildcards).toStrictEqual(["./everything.js"]);
-    expect(scope.namespaces).toStrictEqual({ Space: "./space.js" });
-    expect(scope.reexports).toStrictEqual({
-      published: { local: "remote", specifier: Option.some("./remote.js") },
-      alias: { local: "local", specifier: Option.none() },
-    });
-  });
+    it.effect("declarations_overloads", () =>
+      Effect.gen(function* () {
+        const sources = yield* Sources.Sources;
+        const { local } = yield* sources.declarations("/overloads.d.ts");
 
-  test("declarations_overloads", () => {
-    expect.hasAssertions();
-    const { local } = read(
-      {
-        "/module.d.ts": [
-          "/** First overload. */",
-          "export declare function pick(value: string): string;",
-          "/** Second overload. */",
-          "export declare function pick(value: number): number;",
-          "export interface Shape {",
-          "  /** The side length. */",
-          "  readonly side: number; // trailing",
-          "  readonly name: string;",
-          "}",
-        ].join("\n"),
-      },
-      (sources) => sources.declarations("/module.d.ts"),
+        expect(Record.get(local, "pick")).toStrictEqual(
+          Option.some([
+            "export declare function pick(value: string): string;",
+            "export declare function pick(value: number): number;",
+          ]),
+        );
+        expect(Record.get(local, "Shape")).toStrictEqual(
+          Option.some([
+            [
+              "export interface Shape {",
+              "  readonly side: number; ",
+              "  readonly name: string;",
+              "}",
+            ].join("\n"),
+          ]),
+        );
+      }),
     );
 
-    expect(Record.get(local, "pick")).toStrictEqual(
-      Option.some([
-        "export declare function pick(value: string): string;",
-        "export declare function pick(value: number): number;",
-      ]),
-    );
-    expect(Record.get(local, "Shape")).toStrictEqual(
-      Option.some([
-        [
-          "export interface Shape {",
-          "  readonly side: number; ",
-          "  readonly name: string;",
-          "}",
-        ].join("\n"),
-      ]),
-    );
-  });
+    it.effect("declarations_alias_export", () =>
+      Effect.gen(function* () {
+        const sources = yield* Sources.Sources;
+        const { local, exports } = yield* sources.declarations("/alias.d.ts");
 
-  test("declarations_alias_export", () => {
-    expect.hasAssertions();
-    const { local, exports } = read(
-      {
-        "/module.d.ts": [
-          "declare function conditional(): void;",
-          "export { conditional as if, other as unrelated };",
-          'export { ifElse as If, assume } from "./expression.js";',
-        ].join("\n"),
-      },
-      (sources) => sources.declarations("/module.d.ts"),
+        expect(Record.get(local, "conditional")).toStrictEqual(
+          Option.some(["declare function conditional(): void;"]),
+        );
+        expect(Record.get(exports, "if")).toStrictEqual(
+          Option.some("export { conditional as if };"),
+        );
+        expect(Record.get(exports, "If")).toStrictEqual(
+          Option.some('export { ifElse as If } from "./expression.js";'),
+        );
+      }),
     );
 
-    expect(Record.get(local, "conditional")).toStrictEqual(
-      Option.some(["declare function conditional(): void;"]),
-    );
-    expect(Record.get(exports, "if")).toStrictEqual(
-      Option.some("export { conditional as if };"),
-    );
-    expect(Record.get(exports, "If")).toStrictEqual(
-      Option.some('export { ifElse as If } from "./expression.js";'),
-    );
-  });
+    it.effect("syntax_error", () =>
+      Effect.gen(function* () {
+        const sources = yield* Sources.Sources;
+        const error = yield* Effect.flip(sources.scope("/broken.ts"));
 
-  test("syntax_error", () => {
-    expect.hasAssertions();
-    const error = read({ "/broken.ts": "export const = ;" }, (sources) =>
-      Effect.flip(sources.scope("/broken.ts")),
+        expect(error.reason).toMatchObject({
+          _tag: "SourceSyntax",
+          file: "/broken.ts",
+        });
+      }),
     );
-
-    expect(error.reason).toMatchObject({
-      _tag: "SourceSyntax",
-      file: "/broken.ts",
-    });
   });
 });

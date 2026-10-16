@@ -1,4 +1,3 @@
-// oxlint-disable effecttsgo/unstable-api-usage -- FileSystem is unstable
 import {
   Array,
   Cache,

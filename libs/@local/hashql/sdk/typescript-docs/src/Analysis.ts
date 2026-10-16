@@ -1,4 +1,3 @@
-// oxlint-disable effecttsgo/unstable-api-usage -- FileSystem and Path are unstable
 import { ApiDeclaredItem, ApiModel } from "@microsoft/api-extractor-model";
 import { TSDocConfiguration, TSDocParser } from "@microsoft/tsdoc";
 import { TSDocConfigFile } from "@microsoft/tsdoc-config";
@@ -11,7 +10,10 @@ import {
   Layer,
   Option,
   Path,
+  Result,
   Schema,
+  Struct,
+  flow,
   pipe,
 } from "effect";
 
@@ -71,14 +73,15 @@ export interface Options {
 }
 
 const loadEntry = Effect.fnUntraced(function* (file: string) {
-  const apiPackage = yield* Effect.try({
-    try: () => new ApiModel().loadPackage(file),
-    catch: (cause) => TransformError.malformedAnalysis(String(cause)),
-  });
-
-  const entry = yield* Effect.fromOption(
-    Array.head(apiPackage.entryPoints),
+  const apiPackage = yield* Effect.try(() =>
+    new ApiModel().loadPackage(file),
   ).pipe(
+    Effect.mapError((cause) => TransformError.unreadableModel(file, cause)),
+  );
+
+  const entry = yield* pipe(
+    Array.head(apiPackage.entryPoints),
+    Effect.fromOption,
     Effect.mapError(() =>
       TransformError.malformedAnalysis("The API model has no entry point"),
     ),
@@ -103,38 +106,50 @@ const loadParser = Effect.fnUntraced(function* (lib: string) {
   return new TSDocParser(configuration);
 });
 
-const sourceOfDeclaration = Effect.fnUntraced(function* (declaration: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const mapPath = `${declaration}.map`;
-  const text = yield* fs
-    .readFileString(mapPath)
-    .pipe(Effect.mapError(TransformError.fileSystem));
-  const map = yield* Schema.decodeEffect(DeclarationMap)(text).pipe(
-    Effect.mapError((cause) =>
-      TransformError.malformedSourceMap(mapPath, cause),
-    ),
-  );
+const sourceOfDeclaration = Effect.fnUntraced(
+  function* (declaration: string) {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
 
-  return path.resolve(
-    path.dirname(mapPath),
-    map.sourceRoot ?? "",
-    map.sources[0],
-  );
-});
+    const mapPath = `${declaration}.map`;
+    const text = yield* fs.readFileString(mapPath);
+
+    const map = yield* Schema.decodeEffect(DeclarationMap)(text).pipe(
+      Effect.mapError((cause) =>
+        TransformError.malformedSourceMap(mapPath, cause),
+      ),
+    );
+
+    return path.resolve(
+      path.dirname(mapPath),
+      map.sourceRoot ?? "",
+      map.sources[0],
+    );
+  },
+  Effect.catchTag("PlatformError", TransformError.fileSystem),
+);
 
 // `analyze` writes one `export * from` for each declaration file it receives, and each file's map names its source.
 const loadRoots = Effect.fnUntraced(function* (entryFile: string) {
   const sources = yield* Sources;
   const declarations = yield* pipe(
-    (yield* sources.scope(entryFile)).wildcards,
-    Effect.forEach((specifier) =>
-      Effect.fromOption(sources.resolve(entryFile, specifier)).pipe(
-        Effect.mapError(() =>
-          TransformError.malformedAnalysis(
-            `${entryFile} re-exports ${specifier}, which does not exist`,
-          ),
+    sources.scope(entryFile),
+    Effect.map(Struct.get("wildcards")),
+    Effect.flatMap(
+      flow(
+        Array.map((specifier) =>
+          sources
+            .resolve(entryFile, specifier)
+            .pipe(
+              Result.fromOption(() =>
+                TransformError.malformedAnalysis(
+                  `${entryFile} re-exports ${specifier}, which does not exist`,
+                ),
+              ),
+            ),
         ),
+        Result.all,
+        Effect.fromResult,
       ),
     ),
   );
@@ -147,7 +162,7 @@ const loadRoots = Effect.fnUntraced(function* (entryFile: string) {
 
   return {
     declaration: Array.headNonEmpty(declarations),
-    sources: yield* pipe(declarations, Effect.forEach(sourceOfDeclaration)),
+    sources: yield* Effect.forEach(declarations, sourceOfDeclaration),
   };
 });
 
@@ -184,12 +199,14 @@ export const layer = ({
             declarationExtensions,
             ([candidate]) => relative.endsWith(candidate),
           ).pipe(Option.getOrElse(() => ["", ".d.ts"] as const));
+
           const declaration = path.join(
             path.dirname(roots.declaration),
             `${relative.slice(0, relative.length - extension.length)}${emitted}`,
           );
 
-          if ((yield* sourceOfDeclaration(declaration)) !== source) {
+          const declSource = yield* sourceOfDeclaration(declaration);
+          if (declSource !== source) {
             return yield* TransformError.malformedAnalysis(
               `${declaration} was not emitted from ${source}`,
             );
@@ -216,10 +233,10 @@ export const layer = ({
         moduleComment: (source) =>
           sources.scope(source).pipe(
             Effect.map(({ comments, text }) =>
-              Array.findFirst(comments, (comment) =>
-                pipe(
-                  Option.some(comment),
-                  Option.filter(({ value }) => value.startsWith("*")),
+              Array.findFirst(
+                comments,
+                flow(
+                  Option.liftPredicate(({ value }) => value.startsWith("*")),
                   Option.map(
                     ({ start, end }) =>
                       parser.parseString(text.slice(start, end)).docComment,

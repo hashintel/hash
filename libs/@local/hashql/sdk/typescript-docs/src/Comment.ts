@@ -22,6 +22,8 @@ import {
   Match,
   Option,
   String,
+  Tuple,
+  flow,
   pipe,
 } from "effect";
 
@@ -84,19 +86,23 @@ const linkLabel = (tag: DocLinkTag): PhrasingContent => {
 };
 
 const destination = Effect.fnUntraced(function* (tag: DocLinkTag) {
+  const links = yield* Links;
+
   if (tag.urlDestination !== undefined) {
     return Option.some(tag.urlDestination);
   }
 
   if (tag.codeDestination !== undefined) {
-    return yield* (yield* Links).resolve(tag.codeDestination);
+    return yield* links.resolve(tag.codeDestination);
   }
 
   return Option.none<string>();
 });
 
 const link = (tag: DocLinkTag): Effect.Effect<PhrasingContent, never, Links> =>
-  destination(tag).pipe(
+  pipe(
+    tag,
+    destination,
     Effect.map(
       Option.match({
         onNone: () => linkLabel(tag),
@@ -110,10 +116,10 @@ const link = (tag: DocLinkTag): Effect.Effect<PhrasingContent, never, Links> =>
   );
 
 // TSDoc keeps the characters it could not parse as error text, and the analysis reports each at its source line.
-const phrasing = (
+const phrasing: (
   node: DocNode,
-): Effect.Effect<PhrasingContent, TransformError, Links> =>
-  Match.value(node).pipe(
+) => Effect.Effect<PhrasingContent, TransformError, Links> =
+  Match.type<DocNode>().pipe(
     Match.when(Match.instanceOf(DocPlainText), ({ text: value }) =>
       Effect.succeed(text(value)),
     ),
@@ -145,10 +151,10 @@ export const paragraph = (
     Effect.forEach(phrasing),
   );
 
-const block = (
+const block: (
   node: DocNode,
-): Effect.Effect<BlockContent[], TransformError, Links> =>
-  Match.value(node).pipe(
+) => Effect.Effect<BlockContent[], TransformError, Links> =
+  Match.type<DocNode>().pipe(
     Match.when(Match.instanceOf(DocParagraph), (child) =>
       paragraph(child).pipe(
         Effect.map((children): BlockContent[] => {
@@ -177,10 +183,12 @@ const block = (
   );
 
 /** Converts block-level TSDoc nodes to mdast blocks. */
-export const blocks = (
+export const blocks: (
   nodes: Iterable<DocNode>,
-): Effect.Effect<BlockContent[], TransformError, Links> =>
-  pipe(nodes, Effect.forEach(block), Effect.map(Array.flatten));
+) => Effect.Effect<BlockContent[], TransformError, Links> = flow(
+  Effect.forEach(block),
+  Effect.map(Array.flatten),
+);
 
 /** Converts a TSDoc section to mdast blocks. */
 export const section = (
@@ -192,17 +200,22 @@ export const section = (
 export const overview = (
   comment: DocComment,
 ): Effect.Effect<BlockContent[], TransformError, Links> =>
-  Effect.all([
-    section(comment.summarySection),
-    blocks(Array.fromNullishOr(comment.remarksBlock?.content)),
-  ]).pipe(Effect.map(Array.flatten));
+  pipe(
+    [
+      section(comment.summarySection),
+      blocks(Array.fromNullishOr(comment.remarksBlock?.content)),
+    ],
+    Effect.all,
+    Effect.map(Array.flatten),
+  );
 
 /** The first paragraph of a comment's summary, which stands for it in a list. */
 export const lead = (
   comment: DocComment,
 ): Effect.Effect<PhrasingContent[], TransformError, Links> =>
   pipe(
-    Array.head(comment.summarySection.getChildNodes()),
+    comment.summarySection.getChildNodes(),
+    Array.head,
     Option.filter(isParagraph),
     Option.match({
       onNone: () => Effect.succeed([]),
@@ -234,8 +247,8 @@ export const words = (node: DocSection): string =>
     Array.flatMap((node) =>
       DocNodeTransforms.trimSpacesInParagraph(node).getChildNodes(),
     ),
-    Array.map((child) =>
-      Match.value(child).pipe(
+    Array.map(
+      Match.type<DocNode>().pipe(
         Match.when(Match.instanceOf(DocPlainText), ({ text: value }) => value),
         Match.when(Match.instanceOf(DocCodeSpan), ({ code }) => code),
         Match.orElse(() => " "),
@@ -268,45 +281,42 @@ const isCaption =
 // JSDoc's `<caption>` opens the first paragraph of an example. Everything after the caption is ordinary content.
 export const example = (
   node: DocBlock,
-): Effect.Effect<Example, TransformError, Links> => {
-  const [first, ...rest] = node.content.getChildNodes();
-  const caption = pipe(
-    Option.liftPredicate(first, isParagraph),
-    Option.flatMap((opening) => {
-      const nodes = opening.getChildNodes();
+): Effect.Effect<Example, TransformError, Links> =>
+  Option.gen(function* () {
+    const [first, ...rest] = node.content.getChildNodes();
 
-      return Option.all({
-        start: pipe(
-          nodes,
-          Array.findFirstIndex((node) => !isBlank(node)),
-          Option.filter((index) =>
-            Array.get(nodes, index).pipe(
-              Option.exists(isCaption(DocHtmlStartTag)),
+    const opening = yield* Option.liftPredicate(first, isParagraph);
+    const nodes = opening.getChildNodes();
+
+    const start = yield* pipe(
+      nodes,
+      Array.findFirstWithIndex((node) => !isBlank(node)),
+      Option.filter(([node]) => isCaption(DocHtmlStartTag)(node)),
+      Option.map(Tuple.get(1)),
+    );
+    const end = yield* Array.findFirstIndex(nodes, isCaption(DocHtmlEndTag));
+
+    return {
+      title: paragraphOf(opening.configuration, nodes.slice(start + 1, end)),
+      remainder: paragraphOf(opening.configuration, nodes.slice(end + 1)),
+    };
+  }).pipe(
+    Option.match({
+      onNone: () =>
+        pipe(
+          node.content,
+          section,
+          Effect.map((content): Example => ({ caption: [], content })),
+        ),
+      onSome: ({ title, remainder }) =>
+        Effect.all({
+          caption: paragraph(title),
+          content: blocks(
+            Array.setHeadNonEmpty(
+              node.content.getChildNodes() as Array.NonEmptyArray<DocNode>,
+              remainder,
             ),
           ),
-        ),
-        end: pipe(nodes, Array.findFirstIndex(isCaption(DocHtmlEndTag))),
-      }).pipe(
-        Option.map(({ start, end }) => ({
-          title: paragraphOf(
-            opening.configuration,
-            nodes.slice(start + 1, end),
-          ),
-          remainder: paragraphOf(opening.configuration, nodes.slice(end + 1)),
-        })),
-      );
+        }),
     }),
   );
-
-  return Option.match(caption, {
-    onNone: () =>
-      section(node.content).pipe(
-        Effect.map((content): Example => ({ caption: [], content })),
-      ),
-    onSome: ({ title, remainder }) =>
-      Effect.all({
-        caption: paragraph(title),
-        content: blocks([remainder, ...rest]),
-      }),
-  });
-};

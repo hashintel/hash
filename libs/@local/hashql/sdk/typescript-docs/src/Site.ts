@@ -1,4 +1,3 @@
-// oxlint-disable effecttsgo/unstable-api-usage -- Path is unstable
 import {
   ApiItemContainerMixin,
   ApiItemKind,

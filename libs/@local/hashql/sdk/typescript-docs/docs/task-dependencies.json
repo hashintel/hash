@@ -7,15 +7,45 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": []
+      "dependsOn": [
+        "@local/hashql#build",
+        "@local/oxlint#build",
+        "codegen"
+      ],
+      "env": [
+        "NEXT_TELEMETRY_DISABLED"
+      ]
     },
     "codegen": {
-      "dependsOn": []
+      "dependsOn": [
+        "doc:transform"
+      ]
     },
     "dev": {
-      "dependsOn": [],
+      "dependsOn": [
+        "@local/hashql#build",
+        "@local/oxlint#build",
+        "codegen"
+      ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "NEXT_TELEMETRY_DISABLED",
+        "PORT"
+      ]
+    },
+    "doc:analyze": {
+      "dependsOn": [
+        "doc:declarations"
+      ]
+    },
+    "doc:declarations": {
+      "dependsOn": []
+    },
+    "doc:transform": {
+      "dependsOn": [
+        "doc:analyze"
+      ]
     },
     "lint:oxlint": {
       "dependsOn": [
@@ -32,9 +62,15 @@
       ]
     },
     "start": {
-      "dependsOn": [],
+      "dependsOn": [
+        "build"
+      ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "NEXT_TELEMETRY_DISABLED",
+        "PORT"
+      ]
     },
     "test:unit": {
       "dependsOn": [],

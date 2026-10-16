@@ -1,7 +1,6 @@
-// oxlint-disable effecttsgo/unstable-api-usage -- PlatformError is unstable
 import { Data } from "effect";
 
-import type { Schema } from "effect";
+import type { Cause, Schema } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 
 /** Why building the reference pages failed. */
@@ -14,6 +13,11 @@ export type Reason = Data.TaggedEnum<{
   MalformedSourceMap: {
     readonly file: string;
     readonly cause: Schema.SchemaError;
+  };
+  /** API Extractor could not load the API model the analysis wrote. */
+  UnreadableModel: {
+    readonly file: string;
+    readonly cause: Cause.UnknownError;
   };
   /** The analysis output lacks something a page needs. */
   MalformedAnalysis: { readonly detail: string };
@@ -48,6 +52,12 @@ export class TransformError extends TransformErrorBase<{
   ): TransformError =>
     new TransformError({ reason: Reason.MalformedSourceMap({ file, cause }) });
 
+  static readonly unreadableModel = (
+    file: string,
+    cause: Cause.UnknownError,
+  ): TransformError =>
+    new TransformError({ reason: Reason.UnreadableModel({ file, cause }) });
+
   static readonly malformedAnalysis = (detail: string): TransformError =>
     new TransformError({ reason: Reason.MalformedAnalysis({ detail }) });
 
@@ -60,6 +70,7 @@ export class TransformError extends TransformErrorBase<{
       SourceSyntax: ({ file, messages }) =>
         `${file} does not parse: ${messages.join("; ")}`,
       MalformedSourceMap: ({ file, cause }) => `${file}: ${cause.message}`,
+      UnreadableModel: ({ file, cause }) => `${file}: ${cause.message}`,
       MalformedAnalysis: ({ detail }) => detail,
       UnsupportedComment: ({ kind }) =>
         `Documentation comments use ${kind}, which the reference pages cannot render`,
