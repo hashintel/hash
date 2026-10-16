@@ -1,6 +1,6 @@
 import * as v from "valibot";
 
-import { vOrigin, vStatus } from "../shared/epistemics";
+import { epistemicFields, resolveStatus } from "../shared/epistemics";
 
 export const vEntityName = v.pipe(
   v.string(),
@@ -152,9 +152,9 @@ export const vEntity = v.pipe(
   v.strictObject({
     name: vEntityName,
     kind: vEntityKind,
-    origin: vOrigin,
-    status: vStatus,
+    ...epistemicFields,
   }),
+  resolveStatus(),
   v.description(
     "An entity record. Origin and status describe its inclusion in the modelled account, independently of claims about it. Under entity/create the system assigns the ID; under entity/update the route addresses the entity and this payload replaces every field, and the entity keeps the turn it was created in. The Ledger's log keeps the earlier version; its map shows only the current one.",
   ),
