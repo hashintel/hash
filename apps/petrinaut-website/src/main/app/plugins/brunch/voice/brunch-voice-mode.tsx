@@ -13,8 +13,8 @@ import type {
   PetrinautAiVoiceMode,
   PetrinautAiVoiceModeContext,
 } from "../chat/ai-assistant-composer-control";
+import type { ToolApprovalState } from "../tools/brunch-mutation-approval";
 import type { VoiceMediationHistory } from "./history/voice-mediation-history";
-import type { ToolApprovalState } from "./live/live-brunch-bridge";
 import type {
   FlueConversationSettlement,
   FlueConversationState,

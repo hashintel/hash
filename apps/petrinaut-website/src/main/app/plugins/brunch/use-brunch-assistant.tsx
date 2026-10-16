@@ -70,8 +70,8 @@ import {
   createCanonicalPetrinautHostTools,
   issuedCanonicalCallsFromHistory,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautHostToolsInput,
   type CanonicalPetrinautReplay,
-  type CanonicalPetrinautReplayReadiness,
 } from "./tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "./tools/in-band-browser-call";
@@ -92,7 +92,6 @@ import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-comp
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
 import type { SdcpnInitialData } from "@hashintel/brunch-agent";
-import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 export const brunchPreviewConfig = resolveBrunchPreviewConfig(
@@ -139,10 +138,10 @@ const useProcessAgentSession = (input: {
 };
 
 /** The open document as Brunch's browser tools reach it. */
-export interface BrunchEditorDocument {
-  readonly handle: PetrinautDocHandle;
-  readonly readTitle: () => string;
-}
+export type BrunchEditorDocument = Pick<
+  CanonicalPetrinautHostToolsInput,
+  "handle" | "readTitle"
+>;
 
 /** The document open in the editor. */
 export interface BrunchOpenDocument {
@@ -420,7 +419,7 @@ export const useBrunchAssistant = ({
     historyPhase: flueHistory.phase,
     snapshot: flueHistory.snapshot,
     derive: deriveCanonicalReplay,
-  }) satisfies CanonicalPetrinautReplayReadiness;
+  });
   const canonicalHostTools = useMemo(() => {
     if (!constructionBrowser || !editor) return undefined;
     return createCanonicalPetrinautHostTools({

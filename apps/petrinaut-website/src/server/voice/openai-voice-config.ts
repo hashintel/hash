@@ -1,7 +1,10 @@
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
 
 import type { UtteranceJudgmentMode } from "../../shared/live-utterance-judgment.js";
-import type { VoiceProvider } from "../../shared/voice-settings.js";
+import type {
+  VoiceConfigResponse,
+  VoiceProvider,
+} from "../../shared/voice-settings.js";
 
 interface VoiceEnvironment {
   readonly OPENAI_VOICE_API_KEY?: string;
@@ -65,7 +68,7 @@ export const createOpenAIVoiceConfigHandler =
         provider,
         available: availability.available && provider !== null,
         utteranceJudgment: getUtteranceJudgmentMode(environment),
-      },
+      } satisfies VoiceConfigResponse,
       {
         headers: { "cache-control": "no-store" },
       },

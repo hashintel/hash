@@ -23,7 +23,7 @@ import {
 import { createLiveConversation } from "./live-conversation";
 
 import type { PetrinautAiVoiceModeContext } from "../../chat/ai-assistant-composer-control";
-import type { ToolApprovalState } from "./live-brunch-bridge";
+import type { ToolApprovalState } from "../../tools/brunch-mutation-approval";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
 
 const liveConversationMocks = vi.hoisted(() => ({
