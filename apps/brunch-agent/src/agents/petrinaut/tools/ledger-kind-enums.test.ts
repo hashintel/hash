@@ -535,6 +535,59 @@ test("a claim that only renders under an entity is refused without one", async (
     });
 });
 
+test("only a recorded commit that sets endTurn ends the turn", async () => {
+  const terminates = async (entries: unknown, endTurn?: boolean) => {
+    const batch = toBatch(entries);
+    const history: LedgerHistory = {
+      messages: [
+        { id: "turn-1", role: "user", parts: [] },
+        {
+          id: "response-1",
+          role: "assistant",
+          parts: [commitPart("commit-1", batch)],
+        },
+      ],
+    };
+    const tool = createLedgerCommitTool(async () => history);
+    const result = await tool.run({
+      data: v.parse(tool.input, {
+        entries: batch,
+        ...(endTurn === undefined ? {} : { endTurn }),
+      }),
+      toolCallId: "commit-1",
+      log: log(),
+      step,
+    });
+    return result.terminate;
+  };
+  const entity = [
+    [
+      "entity/create",
+      {
+        name: "Dryer",
+        kind: "resource",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ];
+  const unanchored = [
+    [
+      "claim/create",
+      {
+        text: "Drying is slow.",
+        entities: [],
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ];
+  expect(await terminates(entity, true)).toBe(true);
+  expect(await terminates(entity)).toBe(false);
+  expect(await terminates(entity, false)).toBe(false);
+  expect(await terminates(unanchored, true)).toBe(false);
+});
+
 test("an entity update keeps the turn the entity was created in", () => {
   const { state } = foldCommits(
     settledHistory([
