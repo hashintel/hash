@@ -104,6 +104,7 @@ const filterCapabilities = {
   DateTime: [],
   Duration: [],
   EntityId: ["scalar", "entity"],
+  EntityQuery: [],
   FailedEntityProposal: [],
   FilterCondition: [],
   FormattedText: ["object"],

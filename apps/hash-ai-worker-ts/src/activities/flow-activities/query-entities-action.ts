@@ -1,3 +1,4 @@
+import { currentTimestamp } from "@blockprotocol/type-system";
 import {
   getStorageProvider,
   prepareOutputPayload,
@@ -5,49 +6,56 @@ import {
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
-import {
-  validateQueryFilter,
-  validateQueryLimit,
-  validateQuerySort,
-} from "@local/hash-isomorphic-utils/flows/query-entities";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { generateTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { scopeFilterToWeb } from "../shared/scope-filter-to-web.js";
-import { orderBy } from "./filter-action/order-by.js";
-import { conditionToGraphFilter } from "./query-entities-action/condition-to-graph-filter.js";
 
-import type { ConditionEntity } from "./filter-action/evaluate-condition.js";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
-import type { EntityQueryCursor } from "@local/hash-graph-client";
+import type {
+  EntityQueryCursor,
+  EntityQuerySortingRecord,
+} from "@local/hash-graph-client";
+
+const lastEditedFirst: EntityQuerySortingRecord = {
+  path: ["editionCreatedAtTransactionTime"],
+  ordering: "descending",
+  nulls: "last",
+};
+
+const byUuid: EntityQuerySortingRecord = {
+  path: ["uuid"],
+  ordering: "ascending",
+  nulls: "last",
+};
 
 /**
- * Gets the latest live version of the entities in the flow's web that match the filter and that the user running the
- * flow can read, sorted by the sort keys in turn.
+ * Gets the entities in the flow's web that match the query and that the user running the flow can read, as the graph
+ * sorts them. Archived entities are always left out.
  *
- * The graph can't sort by a property, so a sorted query reads every match, and fails if more than `maxEntitiesPerStep`
- * match, as does a query without a limit. An unsorted query with a limit stops reading once it has enough, in the
- * order of the entities' UUIDs.
+ * Every page is read as of the same instant, and ties are broken by UUID, so that the pages don't shift while they're
+ * read. Reading stops at the limit; without one, every match is read, and more than `maxEntitiesPerStep` fails the step
+ * rather than leave some out.
  */
 export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
   inputs,
 }) => {
   const {
-    filter,
-    sort = [],
-    limit,
+    query: { filter, includeDrafts, limit, sortingPaths, temporalAxes },
   } = getSimplifiedFlowActionInputs({ inputs, actionType: "queryEntities" });
 
-  const error =
-    validateQueryFilter(filter) ??
-    validateQuerySort(sort) ??
-    (limit === undefined ? undefined : validateQueryLimit(limit));
-
-  if (error) {
-    return { code: StatusCode.InvalidArgument, message: error, contents: [] };
+  if (
+    limit != null &&
+    !(Number.isInteger(limit) && limit >= 1 && limit <= maxEntitiesPerStep)
+  ) {
+    return {
+      code: StatusCode.InvalidArgument,
+      message: `The limit must be a whole number from 1 to ${maxEntitiesPerStep.toLocaleString("en")}.`,
+      contents: [],
+    };
   }
 
   const { runId, stepId, userAuthentication, webId, workflowId } =
@@ -56,23 +64,23 @@ export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
   /* The web is required outside the user's filter, so that no `any` in it can reach another web. */
   const graphFilter = scopeFilterToWeb(
     {
-      all: [
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-        conditionToGraphFilter(filter),
-      ],
+      all: [{ equal: [{ path: ["archived"] }, { parameter: false }] }, filter],
     },
     webId,
   );
 
-  /*
-   * Without a sort, the first entities up to the limit are enough. Otherwise every match is read, and one more than
-   * the most a step returns shows that there are too many.
-   */
-  const enough =
-    sort.length === 0 && limit !== undefined ? limit : maxEntitiesPerStep + 1;
+  const sorting = sortingPaths?.length ? sortingPaths : [lastEditedFirst];
+  const stableSorting = sorting.some(({ path }) => path[0] === "uuid")
+    ? sorting
+    : [...sorting, byUuid];
 
-  let entityIds: EntityId[] = [];
-  const entities = new Map<EntityId, ConditionEntity>();
+  const axes =
+    temporalAxes ?? generateTimeInstantTemporalAxes(currentTimestamp());
+
+  /* Without a limit, one more than the most a step returns shows that there are too many. */
+  const enough = limit ?? maxEntitiesPerStep + 1;
+
+  const entityIds: EntityId[] = [];
   let cursor: EntityQueryCursor | null | undefined;
 
   do {
@@ -81,58 +89,29 @@ export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
       userAuthentication,
       {
         filter: graphFilter,
-        /*
-         * Each page reads the latest versions, so pages are ordered by something an edit doesn't change. In the graph's
-         * default order, the most recently edited first, an entity edited while paging would jump to before the
-         * cursor, and be skipped.
-         */
-        sortingPaths: [
-          { path: ["uuid"], ordering: "ascending", nulls: "last" },
-        ],
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
+        sortingPaths: stableSorting,
+        temporalAxes: axes,
+        includeDrafts: includeDrafts ?? false,
         includePermissions: false,
         cursor,
       },
     );
 
     for (const entity of response.entities) {
-      const { entityId } = entity.metadata.recordId;
-      entityIds.push(entityId);
-      if (sort.length > 0) {
-        entities.set(entityId, {
-          properties: entity.properties,
-          entityTypeIds: entity.metadata.entityTypeIds,
-        });
-      }
+      entityIds.push(entity.metadata.recordId.entityId);
     }
     cursor = response.cursor;
   } while (cursor && entityIds.length < enough);
 
-  if (enough > maxEntitiesPerStep && entityIds.length > maxEntitiesPerStep) {
+  if (limit == null && entityIds.length > maxEntitiesPerStep) {
     return {
       code: StatusCode.ResourceExhausted,
-      message: `More than ${maxEntitiesPerStep.toLocaleString("en")} entities match the filter. Narrow it${sort.length > 0 ? "" : ", or set a limit"}.`,
+      message: `More than ${maxEntitiesPerStep.toLocaleString("en")} entities match the query. Narrow its filter, or set a limit.`,
       contents: [],
     };
   }
 
-  /* Sorting by each key in turn, from the last, leaves entities in the order of the first, then the next, and so on. */
-  for (const sortKey of [...sort].reverse()) {
-    const sorted = orderBy({ kind: "EntityId", value: entityIds }, sortKey, {
-      entities,
-    });
-    if (sorted.status === "error") {
-      return {
-        code: StatusCode.InvalidArgument,
-        message: sorted.message,
-        contents: [],
-      };
-    }
-    entityIds = sorted.items.value;
-  }
-
-  const matches = entityIds.slice(0, limit);
+  const matches = entityIds.slice(0, enough);
 
   const payload = await prepareOutputPayload({
     storageProvider: getStorageProvider(),

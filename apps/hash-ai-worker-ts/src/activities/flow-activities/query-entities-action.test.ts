@@ -5,18 +5,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolvePayloadValue } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { generateTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
 
 import { queryEntitiesAction } from "./query-entities-action.js";
 
-import type { BaseUrl, EntityId, WebId } from "@blockprotocol/type-system";
+import type { EntityId, Timestamp, WebId } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
-import type { Filter } from "@local/hash-graph-client";
+import type {
+  EntityQuerySortingRecord,
+  Filter,
+} from "@local/hash-graph-client";
 import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
-import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
-import type { SortKey } from "@local/hash-isomorphic-utils/flows/sort-key";
-import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  EntityQuery,
+  StepInput,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 const webId = "00000000-0000-4000-8000-000000000001" as WebId;
 const workflowId = "workflow";
@@ -51,79 +55,52 @@ vi.mock(
 );
 vi.mock("@local/hash-graph-sdk/entity", () => ({ queryEntities: vi.fn() }));
 
-const nameUrl = "https://example.com/types/property-type/name/" as BaseUrl;
-const scoreUrl = "https://example.com/types/property-type/score/" as BaseUrl;
+const nameUrl = "https://example.com/types/property-type/name/";
 
-const isAcme: FilterCondition = {
-  kind: "any",
-  conditions: [
-    {
-      kind: "condition",
-      subject: {
-        kind: "entityProperty",
-        propertyTypeBaseUrl: nameUrl,
-        payloadKind: "Text",
-      },
-      operator: "startsWith",
-      value: { kind: "Text", value: "Acme" },
-    },
-  ],
+const isAcme: Filter = {
+  equal: [{ path: ["properties", nameUrl] }, { parameter: "Acme" }],
 };
 
-const by = (
-  propertyTypeBaseUrl: BaseUrl,
-  payloadKind: "Text" | "Number",
-  direction: SortKey["direction"],
-): SortKey => ({
-  subject: { kind: "entityProperty", propertyTypeBaseUrl, payloadKind },
-  direction,
-});
+const oldestFirst: EntityQuerySortingRecord = {
+  path: ["createdAtTransactionTime"],
+  ordering: "ascending",
+  nulls: "last",
+};
 
-const run = (params: { sort?: SortKey[]; limit?: number } = {}) =>
+const byUuid: EntityQuerySortingRecord = {
+  path: ["uuid"],
+  ordering: "ascending",
+  nulls: "last",
+};
+
+const run = (query: Partial<EntityQuery> = {}) =>
   queryEntitiesAction({
     inputs: [
       {
-        inputName: "filter",
-        payload: { kind: "FilterCondition", value: isAcme },
+        inputName: "query",
+        payload: { kind: "EntityQuery", value: { filter: isAcme, ...query } },
       },
-      ...(params.sort
-        ? [
-            {
-              inputName: "sort",
-              payload: { kind: "SortKey" as const, value: params.sort },
-            },
-          ]
-        : []),
-      ...(params.limit === undefined
-        ? []
-        : [
-            {
-              inputName: "limit",
-              payload: { kind: "Number" as const, value: params.limit },
-            },
-          ]),
     ] satisfies StepInput[],
   });
+
+const requests = () =>
+  vi.mocked(queryEntities).mock.calls.map(([, , request]) => request);
 
 const entityIdOf = (index: number) =>
   `${webId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}` as EntityId;
 
-/** Answers each query with the next page, each with a cursor but the last. */
-const mockPages = (...pages: Record<string, unknown>[][]) => {
+/** Answers each query with the next page of entities, each with a cursor but the last. */
+const mockPages = (...pageSizes: number[]) => {
   let offset = 0;
-  for (const [pageIndex, page] of pages.entries()) {
+  for (const [pageIndex, pageSize] of pageSizes.entries()) {
     const firstIndex = offset;
     vi.mocked(queryEntities).mockResolvedValueOnce({
-      entities: page.map((properties, index) => ({
-        properties,
-        metadata: {
-          recordId: { entityId: entityIdOf(firstIndex + index) },
-          entityTypeIds: [],
-        },
+      entities: Array.from({ length: pageSize }, (_, index) => ({
+        metadata: { recordId: { entityId: entityIdOf(firstIndex + index) } },
       })),
-      cursor: pageIndex < pages.length - 1 ? [{ page: pageIndex }] : null,
+      cursor: pageIndex < pageSizes.length - 1 ? [{ page: pageIndex }] : null,
     } as unknown as QueryEntitiesResponse);
-    offset += page.length;
+    offset += pageSize;
   }
 };
 
@@ -144,36 +121,97 @@ describe("queryEntitiesAction", () => {
     vi.mocked(queryEntities).mockReset();
   });
 
-  it("queries the latest live entities of the web, outside any branch of the filter", async () => {
-    mockPages([]);
+  it("scopes the filter to the web's live entities, outside any branch of it", async () => {
+    mockPages(0);
 
     await run();
 
     const [[, authentication, request] = []] =
       vi.mocked(queryEntities).mock.calls;
     expect(authentication).toEqual({ actorId: "user" });
-    expect(request).toMatchObject({
-      includeDrafts: false,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      sortingPaths: [{ path: ["uuid"], ordering: "ascending", nulls: "last" }],
-    });
-
-    const { all: [webScope, scoped] = [] } = request?.filter as {
-      all?: Filter[];
-    };
-    expect(webScope).toEqual({
-      equal: [{ path: ["webId"] }, { parameter: webId }],
-    });
-    expect(scoped).toMatchObject({
+    expect(request?.filter).toEqual({
       all: [
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-        { any: [expect.anything()] },
+        { equal: [{ path: ["webId"] }, { parameter: webId }] },
+        {
+          all: [
+            { equal: [{ path: ["archived"] }, { parameter: false }] },
+            isAcme,
+          ],
+        },
       ],
     });
   });
 
+  it("defaults to the last edited first, as of one instant for every page, without drafts", async () => {
+    mockPages(1, 1);
+
+    await run();
+
+    const [first, second] = requests();
+    expect(first).toMatchObject({
+      includeDrafts: false,
+      sortingPaths: [
+        {
+          path: ["editionCreatedAtTransactionTime"],
+          ordering: "descending",
+          nulls: "last",
+        },
+        byUuid,
+      ],
+    });
+    const { start, end } = (
+      first?.temporalAxes as {
+        variable: { interval: { start: unknown; end: unknown } };
+      }
+    ).variable.interval;
+    expect(start).toMatchObject({ kind: "inclusive" });
+    expect(typeof (start as { limit?: unknown }).limit).toBe("string");
+    expect(end).toEqual(start);
+    expect(second?.temporalAxes).toEqual(first?.temporalAxes);
+  });
+
+  it("passes the query's own sorting, temporal axes and drafts through, breaking ties by UUID", async () => {
+    const temporalAxes = generateTimeInstantTemporalAxes(
+      "2026-01-01T00:00:00.000Z" as Timestamp,
+    );
+    mockPages(0);
+    mockPages(0);
+
+    await run({
+      sortingPaths: [oldestFirst],
+      temporalAxes,
+      includeDrafts: true,
+    });
+    await run({ sortingPaths: [byUuid, oldestFirst] });
+
+    expect(requests()).toMatchObject([
+      {
+        sortingPaths: [oldestFirst, byUuid],
+        temporalAxes,
+        includeDrafts: true,
+      },
+      { sortingPaths: [byUuid, oldestFirst] },
+    ]);
+  });
+
+  it("leaves out request fields that aren't part of a query", async () => {
+    mockPages(0);
+
+    await run({
+      conversions: [],
+      cursor: { page: 3 },
+      includePermissions: true,
+    } as Partial<EntityQuery>);
+
+    expect(requests()[0]).toMatchObject({
+      cursor: undefined,
+      includePermissions: false,
+    });
+    expect(requests()[0]).not.toHaveProperty("conversions");
+  });
+
   it("returns an empty list when nothing matches", async () => {
-    mockPages([]);
+    mockPages(0);
 
     const result = await run();
 
@@ -184,53 +222,31 @@ describe("queryEntitiesAction", () => {
     expect(await outputOf(result)).toEqual([]);
   });
 
-  it("reads every page", async () => {
-    mockPages([{}, {}], [{}, {}], [{}]);
+  it("reads every page, in the graph's order", async () => {
+    mockPages(2, 2, 1);
 
     const result = await run();
 
-    expect(
-      vi.mocked(queryEntities).mock.calls.map(([, , { cursor }]) => cursor),
-    ).toEqual([undefined, [{ page: 0 }], [{ page: 1 }]]);
+    expect(requests().map(({ cursor }) => cursor)).toEqual([
+      undefined,
+      [{ page: 0 }],
+      [{ page: 1 }],
+    ]);
     expect(await outputOf(result)).toEqual([0, 1, 2, 3, 4].map(entityIdOf));
   });
 
-  it("stops reading once it has the first entities up to the limit", async () => {
-    mockPages([{}, {}], [{}, {}], [{}]);
+  it("stops reading once it has the first entities up to the limit, without passing it to the graph", async () => {
+    mockPages(2, 2, 1);
 
     const result = await run({ limit: 3 });
 
     expect(queryEntities).toHaveBeenCalledTimes(2);
+    expect(requests()[0]).not.toHaveProperty("limit");
     expect(await outputOf(result)).toEqual([0, 1, 2].map(entityIdOf));
   });
 
-  it("sorts every match by each key in turn, with missing values last, before limiting", async () => {
-    mockPages(
-      [
-        { [nameUrl]: "Acme B", [scoreUrl]: 5 },
-        { [nameUrl]: "Acme C" },
-        { [nameUrl]: "Acme A", [scoreUrl]: 9 },
-      ],
-      [
-        { [nameUrl]: "Acme D", [scoreUrl]: 9 },
-        { [nameUrl]: "Acme E", [scoreUrl]: 5 },
-      ],
-    );
-
-    const result = await run({
-      sort: [
-        by(scoreUrl, "Number", "descending"),
-        by(nameUrl, "Text", "descending"),
-      ],
-      limit: 4,
-    });
-
-    expect(queryEntities).toHaveBeenCalledTimes(2);
-    expect(await outputOf(result)).toEqual([3, 2, 4, 0].map(entityIdOf));
-  });
-
-  it("fails rather than leave out entities when there are too many to read", async () => {
-    mockPages(Array.from({ length: maxEntitiesPerStep + 1 }, () => ({})));
+  it("fails rather than leave out entities when more than it can return match without a limit", async () => {
+    mockPages(maxEntitiesPerStep, 1);
 
     expect(await run()).toMatchObject({
       code: StatusCode.ResourceExhausted,
@@ -238,20 +254,13 @@ describe("queryEntitiesAction", () => {
     });
   });
 
-  it("rejects a limit or sort from an earlier step that doesn't fit, without querying", async () => {
-    expect(await run({ limit: maxEntitiesPerStep + 1 })).toMatchObject({
-      code: StatusCode.InvalidArgument,
-    });
-    expect(
-      await run({
-        sort: [
-          {
-            subject: { kind: "field", path: ["name"], payloadKind: "Text" },
-            direction: "ascending",
-          },
-        ],
-      }),
-    ).toMatchObject({ code: StatusCode.InvalidArgument });
-    expect(queryEntities).not.toHaveBeenCalled();
-  });
+  it.each([0, 1.5, maxEntitiesPerStep + 1])(
+    "rejects a limit of %s without querying",
+    async (limit) => {
+      expect(await run({ limit })).toMatchObject({
+        code: StatusCode.InvalidArgument,
+      });
+      expect(queryEntities).not.toHaveBeenCalled();
+    },
+  );
 });
