@@ -2,7 +2,7 @@
 
 Brunch upgrades Flue and Pi together. The remaining patches preserve native tool validation, model-only context projection, and complete Anthropic schemas. They do not change the default model or replace the transport's reattachment and browser-ordering contracts.
 
-The package manifests and root resolutions name the installed versions. Patch selectors must cover both direct Pi pins and the ranges Flue and agent-core request; a version bump that misses a selector can silently install an unpatched copy. `.yarnrc.yml` also supplies the Standard Schema dependency used by Flue's patched public types. An exact-release age-gate exception for this upgrade expires after the approved releases age out; keep the general seven-day gate.
+The package manifests and root resolutions name the installed versions. Patch selectors must cover both direct Pi pins and the ranges Flue and agent-core request; a version bump that misses a selector can silently install an unpatched copy, which `test/dependency-patch-resolution.test.ts` rejects. `.yarnrc.yml` also supplies the Standard Schema dependency used by Flue's patched public types. An exact-release age-gate exception for this upgrade expires after the approved releases age out; keep the general seven-day gate.
 
 ## Retained contracts
 
