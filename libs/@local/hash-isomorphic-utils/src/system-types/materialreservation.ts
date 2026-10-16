@@ -19,6 +19,9 @@ import type {
   BatchOutgoingLinksByLinkEntityTypeId,
   BatchProperties,
   BatchPropertiesWithMetadata,
+  BatchStoredAtLink,
+  BlockedStockPropertyValue,
+  BlockedStockPropertyValueWithMetadata,
   CentimetersDataType,
   CentimetersDataTypeWithMetadata,
   CityPropertyValue,
@@ -35,8 +38,6 @@ import type {
   DateDataTypeWithMetadata,
   DaysDataType,
   DaysDataTypeWithMetadata,
-  DebitCreditIndicatorPropertyValue,
-  DebitCreditIndicatorPropertyValueWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   DivisionPropertyValue,
@@ -166,10 +167,14 @@ import type {
   ProductionQuantityPropertyValueWithMetadata,
   PurchasingOrganizationPropertyValue,
   PurchasingOrganizationPropertyValueWithMetadata,
+  QualityInspectionStockPropertyValue,
+  QualityInspectionStockPropertyValueWithMetadata,
   RegionPropertyValue,
   RegionPropertyValueWithMetadata,
   ReleaseDatePropertyValue,
   ReleaseDatePropertyValueWithMetadata,
+  RestrictedUseStockPropertyValue,
+  RestrictedUseStockPropertyValueWithMetadata,
   SalesOrganizationPropertyValue,
   SalesOrganizationPropertyValueWithMetadata,
   ScheduledFinishDatePropertyValue,
@@ -195,12 +200,21 @@ import type {
   SquareMetresDataTypeWithMetadata,
   StatusPropertyValue,
   StatusPropertyValueWithMetadata,
+  StockDirectionDataType,
+  StockDirectionDataTypeWithMetadata,
+  StockDirectionPropertyValue,
+  StockDirectionPropertyValueWithMetadata,
   StockQuantityPropertyValue,
   StockQuantityPropertyValueWithMetadata,
   StorageBinPropertyValue,
   StorageBinPropertyValueWithMetadata,
   StorageLocationPropertyValue,
   StorageLocationPropertyValueWithMetadata,
+  StoredAt,
+  StoredAtOutgoingLinkAndTarget,
+  StoredAtOutgoingLinksByLinkEntityTypeId,
+  StoredAtProperties,
+  StoredAtPropertiesWithMetadata,
   StreetAddressPropertyValue,
   StreetAddressPropertyValueWithMetadata,
   TextDataType,
@@ -240,6 +254,9 @@ export type {
   BatchOutgoingLinksByLinkEntityTypeId,
   BatchProperties,
   BatchPropertiesWithMetadata,
+  BatchStoredAtLink,
+  BlockedStockPropertyValue,
+  BlockedStockPropertyValueWithMetadata,
   CentimetersDataType,
   CentimetersDataTypeWithMetadata,
   CityPropertyValue,
@@ -256,8 +273,6 @@ export type {
   DateDataTypeWithMetadata,
   DaysDataType,
   DaysDataTypeWithMetadata,
-  DebitCreditIndicatorPropertyValue,
-  DebitCreditIndicatorPropertyValueWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   DivisionPropertyValue,
@@ -387,10 +402,14 @@ export type {
   ProductionQuantityPropertyValueWithMetadata,
   PurchasingOrganizationPropertyValue,
   PurchasingOrganizationPropertyValueWithMetadata,
+  QualityInspectionStockPropertyValue,
+  QualityInspectionStockPropertyValueWithMetadata,
   RegionPropertyValue,
   RegionPropertyValueWithMetadata,
   ReleaseDatePropertyValue,
   ReleaseDatePropertyValueWithMetadata,
+  RestrictedUseStockPropertyValue,
+  RestrictedUseStockPropertyValueWithMetadata,
   SalesOrganizationPropertyValue,
   SalesOrganizationPropertyValueWithMetadata,
   ScheduledFinishDatePropertyValue,
@@ -416,12 +435,21 @@ export type {
   SquareMetresDataTypeWithMetadata,
   StatusPropertyValue,
   StatusPropertyValueWithMetadata,
+  StockDirectionDataType,
+  StockDirectionDataTypeWithMetadata,
+  StockDirectionPropertyValue,
+  StockDirectionPropertyValueWithMetadata,
   StockQuantityPropertyValue,
   StockQuantityPropertyValueWithMetadata,
   StorageBinPropertyValue,
   StorageBinPropertyValueWithMetadata,
   StorageLocationPropertyValue,
   StorageLocationPropertyValueWithMetadata,
+  StoredAt,
+  StoredAtOutgoingLinkAndTarget,
+  StoredAtOutgoingLinksByLinkEntityTypeId,
+  StoredAtProperties,
+  StoredAtPropertiesWithMetadata,
   StreetAddressPropertyValue,
   StreetAddressPropertyValueWithMetadata,
   TextDataType,
@@ -508,9 +536,9 @@ export type MaterialReservationOutgoingLinksByLinkEntityTypeId = {
  */
 export type MaterialReservationProperties = {
   "https://hash.ai/@h/types/property-type/component-quantity/"?: ComponentQuantityPropertyValue;
-  "https://hash.ai/@h/types/property-type/debit-credit-indicator/"?: DebitCreditIndicatorPropertyValue;
   "https://hash.ai/@h/types/property-type/production-order-number/"?: ProductionOrderNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/requirement-quantity/"?: RequirementQuantityPropertyValue;
+  "https://hash.ai/@h/types/property-type/stock-direction/"?: StockDirectionPropertyValue;
   "https://hash.ai/@h/types/property-type/unit-of-measure/"?: UnitOfMeasurePropertyValue;
   "https://hash.ai/@h/types/property-type/withdrawn-quantity/"?: WithdrawnQuantityPropertyValue;
 };
@@ -519,9 +547,9 @@ export type MaterialReservationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@h/types/property-type/component-quantity/"?: ComponentQuantityPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/debit-credit-indicator/"?: DebitCreditIndicatorPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/production-order-number/"?: ProductionOrderNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/requirement-quantity/"?: RequirementQuantityPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/stock-direction/"?: StockDirectionPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/unit-of-measure/"?: UnitOfMeasurePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/withdrawn-quantity/"?: WithdrawnQuantityPropertyValueWithMetadata;
   };
@@ -533,7 +561,28 @@ export type MaterialReservationPropertiesWithMetadata = {
 export type RequirementQuantityPropertyValue = KilogramsDataType;
 
 export type RequirementQuantityPropertyValueWithMetadata =
-  KilogramsDataTypeWithMetadata;
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;
 
 /**
  * The quantity already withdrawn against a requirement.
@@ -541,4 +590,25 @@ export type RequirementQuantityPropertyValueWithMetadata =
 export type WithdrawnQuantityPropertyValue = KilogramsDataType;
 
 export type WithdrawnQuantityPropertyValueWithMetadata =
-  KilogramsDataTypeWithMetadata;
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;

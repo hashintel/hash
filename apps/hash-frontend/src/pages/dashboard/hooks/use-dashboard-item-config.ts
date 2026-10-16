@@ -603,7 +603,6 @@ export const useDashboardItemConfig = ({
       // Start the flow
       const { data } = await startFlow({
         variables: {
-          flowDefinition: configureDashboardItemFlow.flowDefinition,
           flowDefinitionId: configureDashboardItemFlow.flowDefinitionId,
           flowInputs: {
             userGoal: {
@@ -722,7 +721,6 @@ export const useDashboardItemConfig = ({
 
         const { data } = await startFlow({
           variables: {
-            flowDefinition: refineDashboardItemFlow.flowDefinition,
             flowDefinitionId: refineDashboardItemFlow.flowDefinitionId,
             flowInputs: {
               userGoal: { kind: "Text", value: initialGoal },

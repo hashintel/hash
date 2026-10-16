@@ -269,13 +269,16 @@ const isRequiredFlowOutput = (
   );
 };
 
-const { persistFlowActivity, userHasPermissionToRunFlowInWebActivity } =
-  proxyActivities<ReturnType<typeof createCommonFlowActivities>>({
-    startToCloseTimeout: "60 second",
-    retry: {
-      maximumAttempts: 1,
-    },
-  });
+const {
+  getFlowDefinitionActivity,
+  persistFlowActivity,
+  userHasPermissionToRunFlowInWebActivity,
+} = proxyActivities<ReturnType<typeof createCommonFlowActivities>>({
+  startToCloseTimeout: "60 second",
+  retry: {
+    maximumAttempts: 1,
+  },
+});
 
 const processFlow = async <
   ValidActionDefinitionId extends FlowActionDefinitionId,
@@ -294,16 +297,42 @@ const processFlow = async <
   },
 ): Promise<RunFlowWorkflowResponse> => {
   const {
-    flowDefinition,
     flowDefinitionId,
     flowRunId,
     flowRunName,
     flowInputs,
+    flowTriggerEntityId,
     proxyFlowActivity,
     userAuthentication,
     webId,
     generateFlowRunName,
   } = params;
+
+  /*
+   * The run executes the definition's edition current when it starts.
+   */
+  const flowDefinitionResult = await getFlowDefinitionActivity({
+    flowDefinitionId,
+    userAuthentication,
+  });
+
+  if (flowDefinitionResult.status !== "ok") {
+    throw ApplicationFailure.create({
+      message: flowDefinitionResult.errorMessage,
+      details: [
+        {
+          code:
+            flowDefinitionResult.status === "not-found"
+              ? StatusCode.NotFound
+              : StatusCode.InvalidArgument,
+          message: flowDefinitionResult.errorMessage,
+          contents: [],
+        },
+      ],
+    });
+  }
+
+  const { flowDefinition } = flowDefinitionResult;
 
   // Ensure the user has permission to create entities in specified web
   const userHasPermissionToRunFlowInWeb =
@@ -346,6 +375,7 @@ const processFlow = async <
   await persistFlowActivity({
     flow,
     flowRunId,
+    flowTriggerEntityId,
     stepIds: ["initialize-flow"],
     userAuthentication,
     webId,

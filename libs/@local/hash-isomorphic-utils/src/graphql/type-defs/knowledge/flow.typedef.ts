@@ -58,10 +58,6 @@ export const flowTypedef = gql`
   scalar FlowInputValues
   scalar ResolvedStepRunOutput
   scalar StepProgressLog
-  # FlowActionDefinitionId is just here so that the type is generated along with the other scalars,
-  # as we need to pass it to FlowDefinition.
-  scalar FlowActionDefinitionId
-  scalar FlowDefinition
   scalar FlowDataSources
   scalar ExternalInputResponseWithoutUser
   scalar ScheduleSpec
@@ -241,7 +237,6 @@ export const flowTypedef = gql`
     """
     startFlow(
       dataSources: FlowDataSources
-      flowDefinition: FlowDefinition!
       flowDefinitionId: EntityUuid!
       flowInputs: FlowInputValues!
       webId: WebId!

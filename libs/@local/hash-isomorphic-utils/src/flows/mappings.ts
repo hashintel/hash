@@ -1,5 +1,96 @@
+import { simplifyProperties } from "../simplify-properties.js";
+import { assertValidFlowDefinition } from "./validate-flow-definition.js";
+
+import type {
+  FlowDefinition as FlowDefinitionEntity,
+  FlowDefinitionPropertiesWithMetadata,
+} from "../system-types/flowdefinition.js";
 import type { FlowRun } from "../system-types/flowrun.js";
-import type { LocalFlowRun } from "./types.js";
+import type { FlowDefinition, FlowInputValues, LocalFlowRun } from "./types.js";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+
+const toObjectArrayProperty = (values: object[]) => ({
+  value: values.map((value) => ({
+    value,
+    metadata: {
+      dataTypeId:
+        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1" as const,
+    },
+  })),
+});
+
+/**
+ * The properties of the `Flow Definition` entity that holds a flow definition. Typed against the generated entity
+ * type, so that the two can't drift apart.
+ */
+export const mapFlowDefinitionToEntityProperties = (
+  flowDefinition: FlowDefinition,
+): FlowDefinitionPropertiesWithMetadata => ({
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
+      value: flowDefinition.name,
+      metadata: {
+        dataTypeId:
+          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+      },
+    },
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+      {
+        value: flowDefinition.description,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        },
+      },
+    "https://hash.ai/@h/types/property-type/input-definition/":
+      toObjectArrayProperty(flowDefinition.inputs),
+    "https://hash.ai/@h/types/property-type/step-definition/":
+      toObjectArrayProperty(flowDefinition.steps),
+    "https://hash.ai/@h/types/property-type/output-definition/":
+      toObjectArrayProperty(flowDefinition.outputs),
+  },
+});
+
+/**
+ * The flow definition a `Flow Definition` entity holds.
+ *
+ * @throws if the entity's definition is invalid, listing every problem.
+ */
+export const getFlowDefinitionFromEntity = (
+  entity: HashEntity<FlowDefinitionEntity>,
+): FlowDefinition => {
+  const {
+    name,
+    description,
+    inputDefinition,
+    stepDefinition,
+    outputDefinition,
+  } = simplifyProperties(entity.properties);
+
+  return assertValidFlowDefinition({
+    name,
+    description,
+    inputs: inputDefinition,
+    steps: stepDefinition,
+    outputs: outputDefinition,
+  });
+};
+
+/**
+ * The `Inputs` property of a flow run or trigger: one `{ inputName, payload }` object per input given a value,
+ * like the `Outputs` property.
+ */
+export const mapFlowInputValuesToInputsProperty = (
+  flowInputs: FlowInputValues,
+): FlowRun["propertiesWithMetadata"]["value"]["https://hash.ai/@h/types/property-type/inputs/"] => ({
+  value: Object.entries(flowInputs).map(([inputName, payload]) => ({
+    value: { inputName, payload },
+    metadata: {
+      dataTypeId:
+        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+    },
+  })),
+});
 
 export const mapFlowRunToEntityProperties = (
   flowRun: LocalFlowRun,
@@ -12,13 +103,8 @@ export const mapFlowRunToEntityProperties = (
           "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
       },
     },
-    "https://hash.ai/@h/types/property-type/flow-definition-id/": {
-      value: flowRun.flowDefinitionId,
-      metadata: {
-        dataTypeId:
-          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-      },
-    },
+    "https://hash.ai/@h/types/property-type/inputs/":
+      mapFlowInputValuesToInputsProperty(flowRun.flowInputs),
     "https://hash.ai/@h/types/property-type/workflow-id/": {
       value: flowRun.temporalWorkflowId,
       metadata: {
@@ -47,33 +133,6 @@ export const mapFlowRunToEntityProperties = (
             "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
         },
       })),
-    },
-    /**
-     * The `Flow Run` entity type still requires a `Trigger`, from when flows had trigger definitions. Flows now
-     * declare inputs instead, so the run's input values are recorded as the trigger's outputs. Nothing reads this
-     * property back: the `Flow Run` type replaces it with an `Inputs` property in FE-1894.
-     */
-    "https://hash.ai/@h/types/property-type/trigger/": {
-      value: {
-        "https://hash.ai/@h/types/property-type/trigger-definition-id/": {
-          value: "userTrigger",
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-          },
-        },
-        "https://hash.ai/@h/types/property-type/outputs/": {
-          value: Object.entries(flowRun.flowInputs).map(
-            ([inputName, payload]) => ({
-              value: { outputName: inputName, payload },
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-              },
-            }),
-          ),
-        },
-      },
     },
   },
 });

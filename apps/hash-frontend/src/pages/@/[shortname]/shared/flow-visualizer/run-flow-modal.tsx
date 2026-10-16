@@ -218,7 +218,6 @@ export const RunFlowModal = ({
 
         const scheduleInput: CreateFlowScheduleInput = {
           name: scheduleName || `${flowDefinition.name} schedule`,
-          flowDefinition,
           flowDefinitionId,
           webId,
           scheduleSpec: {

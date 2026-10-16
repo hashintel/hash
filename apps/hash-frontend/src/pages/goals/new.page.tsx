@@ -286,7 +286,6 @@ const NewGoalPageContent = () => {
           },
           internetAccess: internetSettings,
         },
-        flowDefinition: goalFlow.flowDefinition,
         flowDefinitionId: goalFlow.flowDefinitionId,
         flowInputs,
         webId,

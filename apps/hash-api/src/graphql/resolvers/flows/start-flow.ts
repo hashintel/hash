@@ -21,20 +21,17 @@ export const startFlow: ResolverFn<
   MutationStartFlowArgs
 > = async (
   _,
-  {
-    dataSources,
-    flowDefinition: flowDefinitionInput,
-    flowDefinitionId,
-    flowInputs,
-    webId,
-  },
+  { dataSources, flowInputs, flowDefinitionId, webId },
   graphQLContext,
 ) => {
   const { temporal, user } = graphQLContext;
 
-  const { flowDefinition, flowType } = getRunnableFlowDefinition(
+  /*
+   * Checked here so that a bad request fails before a run starts: the run loads the definition again when it does.
+   */
+  const { flowType } = await getRunnableFlowDefinition(
     graphQLContext,
-    flowDefinitionInput,
+    flowDefinitionId,
   );
 
   const workflowId = generateUuid() as EntityUuid;
@@ -47,7 +44,6 @@ export const startFlow: ResolverFn<
     ...(flowType === "ai" ? { dataSources } : {}),
     flowRunId: workflowId,
     flowInputs,
-    flowDefinition,
     flowDefinitionId,
     userAuthentication: { actorId: user.accountId },
     webId,
