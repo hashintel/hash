@@ -51,6 +51,16 @@ test.describe("DOCX preview", () => {
       .toBeGreaterThan(widthBeforeZoom);
   });
 
+  test("ctrl+wheel leaves the zoom to the zoom buttons", async ({ page }) => {
+    await getDocxPage(page, firstPage.heading).hover();
+    await page.keyboard.down("Control");
+    await page.mouse.wheel(0, -500);
+    await page.keyboard.up("Control");
+
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    await expect(page.getByText("120%", { exact: true })).toBeVisible();
+  });
+
   test("the page counter follows scrolling and keeps its total after a zoom", async ({
     page,
   }) => {

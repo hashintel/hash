@@ -81,6 +81,7 @@ export const FolioDocument = ({
           ref={editorRef}
           autoOpenReviewSidebar={false}
           documentBuffer={data}
+          enableWheelZoom={false}
           keyboardShortcuts="none"
           loadingIndicator={<CircularProgress />}
           onError={onError}
