@@ -801,12 +801,13 @@ const ConversationAiAssistantPanel = ({
         current === report ? null : current,
       );
   }, []);
-  const abortAutomaticTools = () => {
+  // Stable: the submit and stop callbacks that call it must stay stable too.
+  const abortAutomaticTools = useCallback(() => {
     for (const controller of automaticToolAbortsRef.current) {
       controller.abort();
     }
     automaticToolAbortsRef.current.clear();
-  };
+  }, []);
   // Conversation switch remounts this panel via key; abort here, not only
   // when conversationId changes on the same instance.
   useEffect(
@@ -1470,7 +1471,7 @@ const ConversationAiAssistantPanel = ({
     setContinuationPending(false);
     setStreamError(null);
     setStopped(false);
-  }, [conversationId]);
+  }, [abortAutomaticTools, conversationId]);
   const status: PetrinautAiComposerStatus =
     chatStatus === "ready" && streamError !== null
       ? "error"
@@ -1946,7 +1947,7 @@ const ConversationAiAssistantPanel = ({
       });
       return { kind: "message", messageId };
     },
-    [composerSubmissionStateRef, reportOperationalFailure],
+    [abortAutomaticTools, composerSubmissionStateRef, reportOperationalFailure],
   );
 
   const stopStateRef = useLatest({
@@ -2084,7 +2085,7 @@ const ConversationAiAssistantPanel = ({
       return;
     }
     await stopCurrentResponse();
-  }, [reportOperationalFailure, stopStateRef]);
+  }, [abortAutomaticTools, reportOperationalFailure, stopStateRef]);
 
   const submitUserText = useCallback(
     (
