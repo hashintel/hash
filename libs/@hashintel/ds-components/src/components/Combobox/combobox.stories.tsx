@@ -115,9 +115,9 @@ const renderNoMatchMessage = (input: string): React.ReactNode => (
   </span>
 );
 
-// The TextInput kitchen sink: clearable + prefix + suffix + loading
+// The TextInput kitchen sink: prefix + suffix + loading. Single comboboxes
+// are clearable whenever they are not required; multiple ones opt in.
 const kitchenSinkProps = {
-  clearable: true,
   loading: true,
   prefix: { iconName: "search" },
   suffix: { text: "kg" },
@@ -338,6 +338,7 @@ const SizedMultiKitchenSink = ({ size }: { size: ComboboxProps["size"] }) => {
       renderItem={renderSampleItem}
       size={size}
       {...kitchenSinkProps}
+      clearable
       value={values}
       onChange={setValues}
     />

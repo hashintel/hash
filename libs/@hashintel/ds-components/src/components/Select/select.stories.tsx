@@ -121,26 +121,6 @@ const Controlled = (
   );
 };
 
-const ClearableSelect = (
-  props: Omit<SingleSelectProps, "clearable" | "onChange" | "items"> & {
-    items?: SingleSelectProps["items"];
-  },
-) => {
-  const { required: _required, ...rest } = props;
-  const [value, setValue] = useState<string | null | undefined>(
-    props.value ?? "",
-  );
-  return (
-    <Select
-      {...rest}
-      items={props.items ?? sampleItems}
-      value={value}
-      onChange={(val) => setValue(val)}
-      clearable
-    />
-  );
-};
-
 const ConnectedPair = ({
   left,
   right,
@@ -214,14 +194,12 @@ const subheadingStyle: React.CSSProperties = {
 const stateRows: Array<{
   key: string;
   label: string;
-  clearable?: boolean;
   grouped?: boolean;
   extraProps: Partial<SingleSelectProps>;
 }> = [
   { key: "disabled", label: "Disabled", extraProps: { disabled: true } },
   { key: "invalid", label: "Invalid", extraProps: { invalid: true } },
   { key: "loading", label: "Loading", extraProps: { loading: true } },
-  { key: "clearable", label: "Clearable", clearable: true, extraProps: {} },
   {
     key: "placeholder-required",
     label: "Placeholder + required",
@@ -244,6 +222,11 @@ const stateRows: Array<{
     key: "searchable",
     label: "Searchable",
     extraProps: { searchable: true },
+  },
+  {
+    key: "long-value",
+    label: "A long selected value that truncates",
+    extraProps: { width: "sm" },
   },
   {
     key: "hide-arrow",
@@ -380,17 +363,7 @@ export const Default: Story<SingleSelectProps> = (args) => (
                     ? row.label
                     : "";
               const cellKey = `${row.key}-${col.key}`;
-              return row.clearable ? (
-                <ClearableSelect
-                  key={cellKey}
-                  {...args}
-                  items={itemsForRow}
-                  value={value}
-                  variant={variant}
-                  readonly={col.readonly}
-                  {...row.extraProps}
-                />
-              ) : (
+              return (
                 <Controlled
                   key={cellKey}
                   {...args}

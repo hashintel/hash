@@ -96,6 +96,8 @@ type ComboboxSingleProps<TValue extends string> = {
   maxItems?: never;
   overflow?: never;
   clearInputOnSelect?: never;
+  /** A single combobox is clearable exactly when it is not `required` */
+  clearable?: never;
   renderSelectedAll?: never;
   items?: ReadonlyArray<ItemOrGroup<ComboboxItem<TValue>>>;
   /** Custom renderer for options in the dropdown. Defaults to the option's `text`. */
@@ -1019,9 +1021,7 @@ export const Combobox = <TValue extends string>({
 
   const clearSelection = () => {
     if (typeof clearable === "object") {
-      if (multiple) {
-        setText("");
-      }
+      setText("");
       clearable.onClear();
       return;
     }
@@ -1446,11 +1446,7 @@ export const Combobox = <TValue extends string>({
           // onInputValueChange; commits flow through onChange above.
         }}
         styledValue={resolvedStyledValue}
-        clearable={
-          clearable === undefined || clearable === false
-            ? clearable
-            : { onClear: clearSelection }
-        }
+        clearable={required === true ? undefined : { onClear: clearSelection }}
         inputElementProps={inputElementProps}
       />
       {dropdown}
