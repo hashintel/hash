@@ -27,6 +27,7 @@ import {
   documentRevisionOf,
 } from "./shared/document-revision";
 
+import type { ReplayReadiness } from "../use-brunch-assistant/use-immutable-replay-baseline";
 import type { FlueConversationState } from "@flue/sdk";
 
 type RetainedCall = Pick<ClientToolHistoryResult, "toolName"> &
@@ -38,8 +39,7 @@ export interface CanonicalPetrinautReplay {
   readonly calls: ReadonlyMap<string, RetainedCall>;
 }
 export type CanonicalPetrinautReplayReadiness =
-  | { readonly status: "pending" }
-  | { readonly status: "ready"; readonly replay: CanonicalPetrinautReplay };
+  ReplayReadiness<CanonicalPetrinautReplay>;
 export const EMPTY_CANONICAL_PETRINAUT_REPLAY: CanonicalPetrinautReplay = {
   calls: new Map(),
 };
