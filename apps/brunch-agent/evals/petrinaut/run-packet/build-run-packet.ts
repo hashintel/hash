@@ -126,7 +126,11 @@ export interface PacketExchange {
   readonly steps: readonly PacketStep[];
   readonly categories: Readonly<Record<ToolCategory, CategoryTotals>>;
   readonly skillActivations: readonly string[];
+  /** Activations of a skill already activated earlier in the run, and whether a compaction came between. */
+  readonly skillReloads: readonly { name: string; afterCompaction: boolean }[];
   readonly skillResourceReads: readonly string[];
+  /** Context compactions during the exchange, with the estimated context size that triggered each. */
+  readonly compactions: readonly { tokensBefore: number | null }[];
   readonly ledger: {
     readonly commits: number;
     readonly recorded: number;
@@ -180,7 +184,10 @@ export interface RunPacket {
     readonly toolPhaseMs: number;
     readonly categories: Readonly<Record<ToolCategory, CategoryTotals>>;
     readonly skillActivations: Readonly<Record<string, number>>;
+    readonly skillReloads: number;
+    readonly skillReloadsAfterCompaction: number;
     readonly skillResourceReads: number;
+    readonly compactions: number;
     readonly ledgerCommits: number;
     readonly ledgerRefused: number;
     readonly ledgerArgumentChars: number;
@@ -335,11 +342,16 @@ export const distributionOf = (values: readonly number[]): Distribution => {
   return { median: rank(0.5), p90: rank(0.9), max: sorted.at(-1) ?? null };
 };
 
+type TimelineEntry =
+  | { readonly at: number; readonly kind: "activation"; readonly name: string }
+  | { readonly at: number; readonly kind: "compaction" };
+
 interface MutableToolCall {
   toolCallId: string;
   name: string;
   argumentChars: number;
   arguments: unknown;
+  at: number;
   firstDeltaMs: number | null;
   lastDeltaMs: number | null;
   executionMs: number | null;
@@ -367,7 +379,10 @@ const buildExchange = (
   events: readonly StreamEvent[],
   chronology: SubmissionChronology | undefined,
   netBefore: NetSize | null,
-): PacketExchange => {
+): {
+  exchange: Omit<PacketExchange, "skillReloads">;
+  timeline: TimelineEntry[];
+} => {
   const steps: MutableStep[] = [];
   let boundary = submission.acceptedAt;
   let settledAt = submission.settledAt;
@@ -375,6 +390,8 @@ const buildExchange = (
   let userExcerpt = "";
   let firstTextAt: number | null = null;
   const callsById = new Map<string, MutableToolCall>();
+  const compactions: { tokensBefore: number | null }[] = [];
+  const timeline: TimelineEntry[] = [];
 
   for (const event of events) {
     const { payload } = event;
@@ -426,6 +443,7 @@ const buildExchange = (
           name: stringField(payload, "name") ?? "?",
           argumentChars: JSON.stringify(payload.arguments ?? {}).length,
           arguments: payload.arguments,
+          at: event.at,
           firstDeltaMs: null,
           lastDeltaMs: null,
           executionMs: null,
@@ -456,6 +474,14 @@ const buildExchange = (
         if (current) current.toolsCommittedAt = event.at;
         boundary = event.at;
         break;
+      case "compaction": {
+        const { tokensBefore } = payload;
+        compactions.push({
+          tokensBefore: typeof tokensBefore === "number" ? tokensBefore : null,
+        });
+        timeline.push({ at: event.at, kind: "compaction" });
+        break;
+      }
       case "submission_settled":
         settledAt ??= event.at;
         outcome = stringField(payload, "outcome") ?? null;
@@ -548,7 +574,9 @@ const buildExchange = (
         argumentChars: categories[category].argumentChars + argumentChars,
       };
       if (call.name === brunchTools.activateSkill) {
-        skillActivations.push(stringField(call.arguments, "name") ?? "?");
+        const name = stringField(call.arguments, "name") ?? "?";
+        skillActivations.push(name);
+        timeline.push({ at: call.at, kind: "activation", name });
       }
       if (call.name === brunchTools.readSkillResource) {
         skillResourceReads.push(
@@ -586,7 +614,7 @@ const buildExchange = (
       : 0,
   );
   const wallMs = settledAt === null ? null : settledAt - submission.acceptedAt;
-  return {
+  const exchange = {
     index,
     submissionId: submission.submissionId,
     outcome,
@@ -610,6 +638,7 @@ const buildExchange = (
     categories,
     skillActivations,
     skillResourceReads,
+    compactions,
     ledger,
     netChanges,
     netAfter,
@@ -631,6 +660,7 @@ const buildExchange = (
       zeroUsage,
     ),
   };
+  return { exchange, timeline };
 };
 
 /** A run's per-exchange turn-time and tool accounting, from its conversation stream. */
@@ -643,11 +673,13 @@ export const buildRunPacket = (input: RunPacketInput): RunPacket => {
   }
   const exchanges: PacketExchange[] = [];
   let netBefore: NetSize | null = null;
+  // Per skill: whether a compaction has come since its last activation.
+  const skillState = new Map<string, { compactedSince: boolean }>();
   input.submissions.forEach((submission, index) => {
     const events = [...(eventsBySubmission.get(submission.submissionId) ?? [])]
       // Stable: events sharing a timestamp keep stream order.
       .sort((left, right) => left.at - right.at);
-    const exchange = buildExchange(
+    const { exchange, timeline } = buildExchange(
       index + 1,
       submission,
       input.submissions[index - 1],
@@ -655,8 +687,23 @@ export const buildRunPacket = (input: RunPacketInput): RunPacket => {
       input.chronology.get(submission.submissionId),
       netBefore,
     );
+    const skillReloads: { name: string; afterCompaction: boolean }[] = [];
+    for (const entry of timeline.sort((left, right) => left.at - right.at)) {
+      if (entry.kind === "compaction") {
+        for (const state of skillState.values()) state.compactedSince = true;
+        continue;
+      }
+      const state = skillState.get(entry.name);
+      if (state) {
+        skillReloads.push({
+          name: entry.name,
+          afterCompaction: state.compactedSince,
+        });
+      }
+      skillState.set(entry.name, { compactedSince: false });
+    }
     netBefore = exchange.netAfter;
-    exchanges.push(exchange);
+    exchanges.push({ ...exchange, skillReloads });
   });
 
   const steps = exchanges.flatMap((exchange) => exchange.steps);
@@ -708,6 +755,13 @@ export const buildRunPacket = (input: RunPacketInput): RunPacket => {
       toolPhaseMs: total((exchange) => exchange.toolPhaseMs),
       categories,
       skillActivations,
+      skillReloads: total((exchange) => exchange.skillReloads.length),
+      skillReloadsAfterCompaction: total(
+        (exchange) =>
+          exchange.skillReloads.filter((reload) => reload.afterCompaction)
+            .length,
+      ),
+      compactions: total((exchange) => exchange.compactions.length),
       skillResourceReads: total(
         (exchange) => exchange.skillResourceReads.length,
       ),

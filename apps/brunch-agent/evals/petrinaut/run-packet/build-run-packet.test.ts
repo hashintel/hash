@@ -264,3 +264,46 @@ test("without a chronology, argument streaming is unknown rather than zero", () 
   // output is only known to start at its end.
   expect(packet.exchanges[0]?.steps[0]?.beforeOutputMs).toBe(9_000);
 });
+
+test("a skill activated again is a reload, marked when a compaction came between", () => {
+  const activation = (offsetMs: number, submissionId: string, id: string) => [
+    event("assistant_message_started", offsetMs, {}, submissionId),
+    event(
+      "assistant_tool_call",
+      offsetMs,
+      {
+        toolCallId: id,
+        name: "activate_skill",
+        arguments: { name: "eliciting" },
+      },
+      submissionId,
+    ),
+  ];
+  const packet = buildRunPacket({
+    ...input,
+    submissions: [
+      { submissionId: "a", acceptedAt: t0, settledAt: t0 + 10 },
+      { submissionId: "b", acceptedAt: t0 + 20, settledAt: t0 + 30 },
+      { submissionId: "c", acceptedAt: t0 + 40, settledAt: t0 + 50 },
+    ],
+    events: [
+      ...activation(1, "a", "call-a"),
+      ...activation(21, "b", "call-b"),
+      event("compaction", 41, { tokensBefore: 180_000 }, "c"),
+      ...activation(42, "c", "call-c"),
+    ],
+    chronology: new Map(),
+  });
+
+  expect(packet.exchanges.map((exchange) => exchange.skillReloads)).toEqual([
+    [],
+    [{ name: "eliciting", afterCompaction: false }],
+    [{ name: "eliciting", afterCompaction: true }],
+  ]);
+  expect(packet.exchanges[2]?.compactions).toEqual([{ tokensBefore: 180_000 }]);
+  expect(packet.summary).toMatchObject({
+    skillReloads: 2,
+    skillReloadsAfterCompaction: 1,
+    compactions: 1,
+  });
+});

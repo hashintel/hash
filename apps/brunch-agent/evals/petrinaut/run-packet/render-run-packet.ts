@@ -119,6 +119,7 @@ export const renderRunPacket = (packet: RunPacket): string => {
         .map(([name, count]) => `${name} ×${count}`)
         .join(", ") || "none"
     }; resource reads: ${summary.skillResourceReads}`,
+    `- Skill reloads: ${summary.skillReloads} (${summary.skillReloadsAfterCompaction} after a compaction); compactions: ${summary.compactions}`,
     `- Ledger: ${summary.ledgerCommits} commits (${summary.ledgerRefused} refused), ${summary.ledgerArgumentChars} argument chars`,
     `- Tool calls of ${seconds(30_000)} or more (likely approval waits): ${summary.longToolCalls}`,
     `- Tokens: ${summary.usage.inputTokens} input, ${summary.usage.cacheReadTokens} cache read, ${summary.usage.cacheWriteTokens} cache write, ${summary.usage.outputTokens} output (${summary.usage.reasoningTokens} reasoning); USD ${summary.usage.costUsd.toFixed(2)}`,
@@ -164,7 +165,10 @@ export const renderRunPacket = (packet: RunPacket): string => {
         String(exchange.ledger.argumentChars),
         netCell(exchange),
         toolMix(exchange),
-        exchange.skillActivations.join(", "),
+        [
+          ...exchange.compactions.map(() => "⟲ compaction"),
+          ...exchange.skillActivations,
+        ].join(", "),
       ]),
     ),
     "",
