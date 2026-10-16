@@ -27,8 +27,10 @@ export {
   netReaderLevelOf,
   netReaderToolNames,
   parseNetReaderInput,
+  netStructureOf,
   projectNetDefinition,
   type NetReaderLevel,
+  type NetStructure,
 } from "./petrinaut/net-readers";
 export {
   generatedArcId,

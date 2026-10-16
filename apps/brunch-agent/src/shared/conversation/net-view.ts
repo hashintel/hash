@@ -12,6 +12,8 @@ import {
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent";
 
+import type { NetStructure } from "@hashintel/brunch-agent";
+
 /** Whether a settled result of this tool can show the model the net. */
 export const mayShowNet = (toolName: string): boolean =>
   browserExecutedToolNames.has(toolName) &&
@@ -28,7 +30,7 @@ export type NetResultView =
       /** The revision the change produced. */
       readonly revision: string;
       /** The net's structure after the change. */
-      readonly readBack: object;
+      readonly readBack: NetStructure;
     };
 
 /**

@@ -5,8 +5,9 @@ import {
   type ClientToolResultMetadata,
   type NetReaderLevel,
   netReaderToolNames,
-  parseNetReaderInput,
+  netStructureOf,
   projectNetDefinition,
+  parseNetReaderInput,
 } from "@hashintel/brunch-agent";
 import {
   getLatestNetDefinitionToolName,
@@ -320,10 +321,7 @@ export const createCanonicalPetrinautHostTools = (
         },
         ...(definition
           ? {
-              readBack: projectNetDefinition(
-                structuredClone(definition),
-                "structure",
-              ) as object,
+              readBack: netStructureOf(structuredClone(definition)),
             }
           : {}),
       };

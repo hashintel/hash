@@ -7,6 +7,7 @@ import {
   namesId,
   parseClientToolResultMetadata,
   petrinautToolTargets,
+  type NetStructure,
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
@@ -171,14 +172,15 @@ export const latestCanonicalNetReadBefore = (
  */
 export const latestNetDefinition = (
   snapshot: FlueConversationSnapshot,
-): { readonly definition: SDCPN; readonly call: NetCall } | undefined => {
+):
+  | { readonly definition: NetStructure; readonly call: NetCall }
+  | undefined => {
   const call = netCalls(snapshot).findLast(
     (entry) => netResultView(entry.toolName, entry.metadata) !== undefined,
   );
   if (!call) return undefined;
   const view = netResultView(call.toolName, call.metadata);
-  if (view?.kind === "change")
-    return { definition: view.readBack as SDCPN, call };
+  if (view?.kind === "change") return { definition: view.readBack, call };
   return typeof call.output === "object" &&
     call.output !== null &&
     "definition" in call.output
