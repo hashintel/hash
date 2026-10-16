@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-Add header + footer options to selectable list + other minor ui improvements
+Add header and footer options to `SelectableList`, with minor UI improvements.

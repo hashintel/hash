@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Add an explicit `aiAssistant.presentation` option so hosts can select the Brunch conversation presentation without relying on the transcript label, while preserving the stock assistant presentation by default.
+Add `aiAssistant.presentation`, which selects the Brunch conversation layout: each turn's reasoning and tool calls group under a collapsible Activity row above the answer. The stock layout stays the default.

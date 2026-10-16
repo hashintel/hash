@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-Add Breadcrumb component
+Add a `Breadcrumb` component.

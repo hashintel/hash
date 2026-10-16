@@ -2,6 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Allow host-owned Voice sessions to report a neutral connected state and omit unsupported controls, keeping viewport controls above the collapsed dock. Contain Voice failures and explicit recovery warnings behind a warning icon with hover previews and a scrollable details popover instead of global notifications, while temporary session notices remain in the dock status.
-
-Keep voice permission content above the compact dock without moving the controls, and show Voice setup until a connection actually starts. Keep the error icon in the same dock position when expanding or collapsing a Voice session.
+During a Voice session a compact dock replaces the composer, with a live waveform, microphone mute, interruption by speaking, audio and voice settings, and errors behind a warning icon.

@@ -2,4 +2,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-The layout module exports the canvas geometry: render node dimensions (`compactNodeDimensions`, `classicNodeDimensions`, `getComponentInstanceHeight`), net bounds (`getBoundsOfCenteredBoxes`) and zoom limits (`getMinZoomForBounds`, `ZOOM_PADDING`). `layoutNodeDimensions` is now derived from the render dimensions instead of maintained by hand.
+The layout module exports canvas geometry: `compactNodeDimensions`, `classicNodeDimensions`, `getComponentInstanceHeight`, `getBoundsOfCenteredBoxes`, `getMinZoomForBounds` and `ZOOM_PADDING`. Classic places are 104 × 104 and classic transitions 180 × 60.

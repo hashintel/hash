@@ -2,4 +2,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Accept state constraint expressions with optional trailing semicolons and no explicit return while preserving existing code bodies. Report a missing return when a state constraint contains separate statements. Update the assistant's guide summaries for experiment controls and settings available without simulation feature flags.
+State constraint expressions accept a trailing semicolon and no explicit `return`, and a constraint with separate statements reports the missing `return`.

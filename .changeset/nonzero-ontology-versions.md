@@ -2,4 +2,4 @@
 "@blockprotocol/type-system": patch
 ---
 
-Reject zero major versions in versioned URLs. Require ontology version constructors to receive integers between 1 and 4294967295.
+Versioned URLs reject a zero major version, and ontology version constructors require an integer from 1 to 4294967295.

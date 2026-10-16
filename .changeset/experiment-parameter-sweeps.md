@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Experiments can sweep scenario parameters. A Sweep toggle per numeric parameter defines the values, and the results drawer gains a navigator: only the selected combination computes, in escalating run batches that stream into the charts, and visited combinations keep their results.
+Experiments can sweep numeric scenario parameters over intervals. A range-slider navigator selects a point or region, metric distributions stream in live, and a Surface plots a contour over two parameters.

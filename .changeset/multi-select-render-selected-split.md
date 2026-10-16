@@ -2,4 +2,4 @@
 "@hashintel/ds-components": minor
 ---
 
-Split the multi select's selected-value rendering: `renderSelectedItem` now renders a single selected value inside the trigger's overflow row (a plain-string result also supplies the `summary` mode's text for that value), and the new `renderSelectedAll` takes over its previous whole-selection behaviour. `Filter` multi-select inputs accept both.
+`renderSelectedItem` now renders one selected value inside the multi select's trigger, and a string result also supplies that value's summary text. The new `renderSelectedAll` renders the whole selection, as `renderSelectedItem` did before, and `Filter` multi-select inputs accept both.

@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-Allow `Menu` and `SelectableList` items that carry `subItems` to accept a `menuClassName`
+`Menu` and `SelectableList` items with `subItems` accept a `menuClassName`.

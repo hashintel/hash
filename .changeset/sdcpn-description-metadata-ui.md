@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-The place, transition, component-instance, and type properties panels display and allow editing of the element's optional `description`.
+Properties panels show and edit an element's optional `description`.

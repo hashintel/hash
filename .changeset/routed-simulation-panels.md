@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Add resizable, routed Experiment and Scenario panels with keyboard selection and fullscreen views that keep the tabs and AI assistant accessible.
+Experiment and Scenario panels are resizable, routed and keyboard-selectable, and can open fullscreen.
