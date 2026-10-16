@@ -1,0 +1,65 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "doc:declarations": {
+      "dependsOn": ["@local/hashql#manifest"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../typescript/src/**",
+        "../typescript/tsconfig.json"
+      ],
+      "outputs": [".generated/declarations/**"]
+    },
+    "doc:model": {
+      "dependsOn": ["doc:declarations"],
+      "outputs": [".generated/api-model/**"]
+    },
+    "doc:markdown": {
+      "dependsOn": ["doc:model"],
+      "outputs": [".generated/markdown/**"]
+    },
+    "doc:examples": {
+      "dependsOn": ["doc:markdown", "@local/hashql#build"],
+      "outputs": [".generated/examples/**"]
+    },
+    "doc:render": {
+      "dependsOn": ["doc:examples"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../typescript/src/**",
+        "$TURBO_ROOT$/oxfmt.config.ts"
+      ],
+      "outputs": ["content/docs/reference/**", "lib/reference-links.json"]
+    },
+    "codegen": {
+      "dependsOn": ["doc:render"],
+      "outputs": [".source/**"]
+    },
+    "build": {
+      "dependsOn": ["codegen"],
+      "env": ["NEXT_TELEMETRY_DISABLED"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "dependsOn": ["codegen"],
+      "cache": false,
+      "persistent": true,
+      "env": ["PORT", "NEXT_TELEMETRY_DISABLED"]
+    },
+    "start": {
+      "cache": false,
+      "persistent": true,
+      "env": ["PORT", "NEXT_TELEMETRY_DISABLED"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["codegen"]
+    },
+    "lint:oxlint": {
+      "dependsOn": ["codegen", "@local/oxlint#build"]
+    },
+    "test:unit": {
+      "dependsOn": ["doc:markdown"]
+    }
+  }
+}

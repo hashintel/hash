@@ -1,0 +1,7 @@
+.generated/
+.next/
+.source/
+.twoslash/
+*.tsbuildinfo
+content/docs/reference/
+lib/reference-links.json

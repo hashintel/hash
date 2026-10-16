@@ -1,0 +1,17 @@
+{
+  "extends": ["@tsconfig/bases/next", "@local/tsconfig/policy.json"],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "checkJs": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mts",
+    "**/*.mjs",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".generated", ".twoslash"]
+}
