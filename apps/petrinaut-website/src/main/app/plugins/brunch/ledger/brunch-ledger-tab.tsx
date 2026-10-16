@@ -6,14 +6,14 @@ import {
 } from "../editor-api-plugin";
 import { BrunchLedgerPane } from "./brunch-ledger-pane";
 
-import type { BrunchLedgerHistoryMessage } from "./brunch-ledger-history";
+import type { LedgerHistoryMessage } from "@hashintel/brunch-agent";
 
 const LedgerBesideCanvas = ({
   api,
   messages,
 }: {
   api: BrunchEditorApi;
-  messages: readonly BrunchLedgerHistoryMessage[];
+  messages: readonly LedgerHistoryMessage[];
 }) => {
   const { selection } = useStore(api.editor.navigation);
   return (
@@ -34,7 +34,7 @@ const LedgerBesideCanvas = ({
 export const BrunchLedgerTab = ({
   messages,
 }: {
-  messages: readonly BrunchLedgerHistoryMessage[];
+  messages: readonly LedgerHistoryMessage[];
 }) => (
   <WithBrunchEditorApi>
     {(api) => <LedgerBesideCanvas api={api} messages={messages} />}

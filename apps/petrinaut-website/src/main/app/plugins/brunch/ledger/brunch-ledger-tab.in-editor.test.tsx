@@ -18,6 +18,7 @@ import {
 import { brunchPlugin } from "../editor-api-plugin";
 import { BrunchLedgerTab } from "./brunch-ledger-tab";
 
+import type { LedgerHistoryMessage } from "@hashintel/brunch-agent";
 import type { PetrinautAiAssistant } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
 
@@ -41,7 +42,7 @@ afterEach(() => {
 const reservoirId = toPetrinautId("reservoir");
 
 /** One accepted commit: the reservoir and a reflection naming its place by the id Brunch wrote. */
-const messages = [
+const messages: LedgerHistoryMessage[] = [
   {
     id: "user-1",
     role: "user",

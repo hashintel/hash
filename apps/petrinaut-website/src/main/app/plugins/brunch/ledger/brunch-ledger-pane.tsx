@@ -1,14 +1,15 @@
 import { useId, useState } from "react";
 
-import { projectLedger, type LedgerTrace } from "@hashintel/brunch-agent";
+import {
+  projectLedger,
+  type LedgerHistoryMessage,
+  type LedgerTrace,
+} from "@hashintel/brunch-agent";
 import { Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { BrunchLedgerDocument } from "./brunch-ledger-document";
-import {
-  foldBrunchLedgerHistory,
-  type BrunchLedgerHistoryMessage,
-} from "./brunch-ledger-history";
+import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
 import {
   traceCanvasSelection,
   tracedAddresses,
@@ -89,7 +90,7 @@ export const BrunchLedgerPane = ({
   selection = [],
   onSelectNetElements,
 }: {
-  messages: readonly BrunchLedgerHistoryMessage[];
+  messages: readonly LedgerHistoryMessage[];
   /** The editor's selection, when the pane sits beside a canvas. */
   selection?: readonly SelectionItem[];
   onSelectNetElements?: (items: SelectionItem[]) => void;

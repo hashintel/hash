@@ -146,7 +146,7 @@ describe("traceLedger", () => {
 describe("turn excerpts", () => {
   const commit = (toolCallId: string, entries: unknown[], ids: string[]) => ({
     id: `assistant-${toolCallId}`,
-    role: "assistant",
+    role: "assistant" as const,
     parts: [
       {
         type: "dynamic-tool",

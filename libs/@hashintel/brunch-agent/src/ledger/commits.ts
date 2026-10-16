@@ -12,14 +12,16 @@ import type {
   ReflectionRecord,
   Turn,
 } from "./projection";
+import type { FlueConversationMessage } from "@flue/sdk";
 
-/** Structural view of a conversation history; Flue and AI SDK messages both fit. */
-export interface LedgerHistoryMessage {
-  readonly id: string;
-  readonly role: string;
-  readonly purpose?: string;
-  readonly parts: readonly unknown[];
-}
+/** A Flue conversation message as the fold reads it: parts stay `unknown` because the fold parses them. */
+export type LedgerHistoryMessage = Pick<
+  FlueConversationMessage,
+  "id" | "role"
+> &
+  Partial<Pick<FlueConversationMessage, "purpose">> & {
+    readonly parts: readonly unknown[];
+  };
 
 export interface LedgerHistory {
   readonly messages: readonly LedgerHistoryMessage[];

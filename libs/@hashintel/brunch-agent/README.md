@@ -1,6 +1,8 @@
 # `@hashintel/brunch-agent`
 
-What the Brunch agent app (`apps/brunch-agent`) and the Petrinaut website (`apps/petrinaut-website`) share: Brunch's named constants, conversation identity, the browser-tool envelope and message metadata, the Petrinaut tool contracts, and the Ledger with its projection. It has one entry and is browser-safe; it never imports the Flue runtime. Code that only one app needs belongs in that app.
+What the Brunch agent app (`apps/brunch-agent`) and the Petrinaut website (`apps/petrinaut-website`) must agree on: Brunch's named constants, conversation identity, the browser-tool envelope and message metadata, the Petrinaut tool contracts, net element identity, and the Ledger with its projection. It has one entry and is browser-safe; it never imports the Flue runtime.
+
+Code belongs here when the server and the browser must agree on it: a contract between them, a derivation from conversation history that both compute, or how an element's ID is recognised. It belongs here even when only one side calls it today. Code only one side runs, with nothing to agree on, belongs in that app. Types derive from their owner here rather than being restated in either app.
 
 The agents themselves, their guidance, Flue tools and evaluations live in [`apps/brunch-agent`](../../../apps/brunch-agent/README.md). The Petrinaut agent's architecture, including the Ledger and the browser boundary, is in [`apps/brunch-agent/docs/petrinaut/ARCHITECTURE.md`](../../../apps/brunch-agent/docs/petrinaut/ARCHITECTURE.md).
 
