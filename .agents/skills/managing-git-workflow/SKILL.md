@@ -2,23 +2,6 @@
 name: managing-git-workflow
 description: Git and pull-request workflow for HASH, including conditional Linear conventions and merge-queue diagnostics. Use when naming a branch, opening or reviewing a pull request, interpreting its checks, or diagnosing a merge-queue ejection.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - pull request
-      - branch naming
-      - Linear issue
-      - merge queue
-      - GitHub Actions
-      - branch protection
-    intent-patterns:
-      - "\\b(open|create|submit|review)\\b.*?\\b(PR|pull request)\\b"
-      - "\\b(name|naming)\\b.*?\\bbranch\\b"
-      - "\\b(FE|SRE|BE|H)-\\d+\\b"
-      - "\\b(merge queue|merge group|queue ejection)\\b"
 ---
 
 # Managing Git Workflow

@@ -2,18 +2,6 @@
 name: rust-coding-style
 description: HASH Rust coding style. Use when writing or reviewing Rust code, choosing types, imports, function arguments, or naming.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - rust coding style
-      - rustfmt
-      - clippy
-    intent-patterns:
-      - "\\b(write|add|change|fix|implement|review|refactor|style|format)\\b.*?\\brust\\b"
-      - "\\brust\\b.*?\\b(code|function|method|type|impl|trait|struct|enum|write|add|change|fix|implement|review|refactor|style|format)\\b"
 ---
 
 # Rust Coding Style
