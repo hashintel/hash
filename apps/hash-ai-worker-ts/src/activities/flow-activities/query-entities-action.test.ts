@@ -254,6 +254,39 @@ describe("queryEntitiesAction", () => {
     });
   });
 
+  it("returns each entity once when several of its editions match, counting entities toward the limit", async () => {
+    for (const [page, indices] of [
+      [0, [0, 1, 0]],
+      [1, [1, 2, 3]],
+    ] as const) {
+      vi.mocked(queryEntities).mockResolvedValueOnce({
+        entities: indices.map((index) => ({
+          metadata: { recordId: { entityId: entityIdOf(index) } },
+        })),
+        cursor: [{ page }],
+      } as unknown as QueryEntitiesResponse);
+    }
+
+    const result = await run({ limit: 3 });
+
+    expect(queryEntities).toHaveBeenCalledTimes(2);
+    expect(await outputOf(result)).toEqual([0, 1, 2].map(entityIdOf));
+  });
+
+  it("rejects a query without a filter, without querying", async () => {
+    expect(
+      await queryEntitiesAction({
+        inputs: [
+          {
+            inputName: "query",
+            payload: { kind: "EntityQuery", value: {} as EntityQuery },
+          },
+        ],
+      }),
+    ).toMatchObject({ code: StatusCode.InvalidArgument });
+    expect(queryEntities).not.toHaveBeenCalled();
+  });
+
   it.each([0, 1.5, maxEntitiesPerStep + 1])(
     "rejects a limit of %s without querying",
     async (limit) => {

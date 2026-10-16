@@ -19,6 +19,7 @@ import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
 } from "@local/hash-graph-client";
+import type { EntityQuery } from "@local/hash-isomorphic-utils/flows/types";
 
 const lastEditedFirst: EntityQuerySortingRecord = {
   path: ["editionCreatedAtTransactionTime"],
@@ -43,9 +44,19 @@ const byUuid: EntityQuerySortingRecord = {
 export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
   inputs,
 }) => {
-  const {
-    query: { filter, includeDrafts, limit, sortingPaths, temporalAxes },
-  } = getSimplifiedFlowActionInputs({ inputs, actionType: "queryEntities" });
+  const { query } = getSimplifiedFlowActionInputs({
+    inputs,
+    actionType: "queryEntities",
+  });
+  const { filter, includeDrafts, limit, sortingPaths, temporalAxes } = query;
+
+  if (!(query as Partial<EntityQuery>).filter) {
+    return {
+      code: StatusCode.InvalidArgument,
+      message: "The query requires a filter.",
+      contents: [],
+    };
+  }
 
   if (
     limit != null &&
@@ -80,7 +91,8 @@ export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
   /* Without a limit, one more than the most a step returns shows that there are too many. */
   const enough = limit ?? maxEntitiesPerStep + 1;
 
-  const entityIds: EntityId[] = [];
+  /* A query over a range of time returns each edition of an entity, so each entity is kept once, where it first appears. */
+  const entityIds = new Set<EntityId>();
   let cursor: EntityQueryCursor | null | undefined;
 
   do {
@@ -98,12 +110,12 @@ export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
     );
 
     for (const entity of response.entities) {
-      entityIds.push(entity.metadata.recordId.entityId);
+      entityIds.add(entity.metadata.recordId.entityId);
     }
     cursor = response.cursor;
-  } while (cursor && entityIds.length < enough);
+  } while (cursor && entityIds.size < enough);
 
-  if (limit == null && entityIds.length > maxEntitiesPerStep) {
+  if (limit == null && entityIds.size > maxEntitiesPerStep) {
     return {
       code: StatusCode.ResourceExhausted,
       message: `More than ${maxEntitiesPerStep.toLocaleString("en")} entities match the query. Narrow its filter, or set a limit.`,
@@ -111,7 +123,7 @@ export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
     };
   }
 
-  const matches = entityIds.slice(0, enough);
+  const matches = [...entityIds].slice(0, enough);
 
   const payload = await prepareOutputPayload({
     storageProvider: getStorageProvider(),
