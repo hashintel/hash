@@ -9,7 +9,8 @@ import {
   fauxProvider,
   fauxText,
   fauxToolCall,
-  type Context,
+  getCurrentSystemPrompt,
+  type TranscriptContext,
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
@@ -51,8 +52,8 @@ const client = createFlueClient({
     ),
 });
 let checked = 0;
-const check = (context: Context, expected: readonly string[]) => {
-  const system = context.systemPrompt ?? "";
+const check = (context: TranscriptContext, expected: readonly string[]) => {
+  const system = getCurrentSystemPrompt(context.messages);
   if (expected.length)
     assert(system.includes(JSON.stringify(expected)), system);
   else assert(!system.includes("Preferred literal spellings"));
