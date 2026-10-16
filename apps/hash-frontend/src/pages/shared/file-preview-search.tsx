@@ -109,23 +109,26 @@ export const FilePreviewSearch = ({
           value={searchText}
         />
         <Stack direction="row" gap={2} mt={0.8} justifyContent="flex-start">
-          <GrayToBlueIconButton
-            aria-label={ignoreCase ? "Match case" : "Ignore case"}
-            onClick={() => {
-              debouncedSearch(searchText, !ignoreCase);
-              setIgnoreCase(!ignoreCase);
-              inputRef.current?.focus();
-            }}
-            sx={{ "& svg": { fontSize: 13 }, p: 0.5 }}
-          >
-            <FontCaseRegularIcon
-              sx={{
-                fill: ({ palette }) =>
-                  ignoreCase ? undefined : palette.blue[70],
-                transition: ({ transitions }) => transitions.create("fill"),
+          <Tooltip title="Match case">
+            <GrayToBlueIconButton
+              aria-label="Match case"
+              aria-pressed={!ignoreCase}
+              onClick={() => {
+                debouncedSearch(searchText, !ignoreCase);
+                setIgnoreCase(!ignoreCase);
+                inputRef.current?.focus();
               }}
-            />
-          </GrayToBlueIconButton>
+              sx={{ "& svg": { fontSize: 13 }, p: 0.5 }}
+            >
+              <FontCaseRegularIcon
+                sx={{
+                  fill: ({ palette }) =>
+                    ignoreCase ? undefined : palette.blue[70],
+                  transition: ({ transitions }) => transitions.create("fill"),
+                }}
+              />
+            </GrayToBlueIconButton>
+          </Tooltip>
           <Collapse orientation="horizontal" in={!!searchText} timeout={200}>
             <Stack
               direction="row"
