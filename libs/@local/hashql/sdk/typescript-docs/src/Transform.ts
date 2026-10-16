@@ -4,9 +4,10 @@ import {
   Effect,
   FileSystem,
   Layer,
+  Option,
   Path,
   Schema,
-  identity,
+  pipe,
 } from "effect";
 import { Command, Flag } from "effect/cli";
 
@@ -50,21 +51,29 @@ export const command = Command.make("transform", {
   ),
 });
 
-// The package page is the folder's index page.
-const fileOf = (path: Path.Path, out: string, page: Site.Page): string =>
-  `${path.join(
-    out,
-    ...Array.match(page.path, {
-      onEmpty: () => ["index"],
-      onNonEmpty: identity,
-    }),
-  )}.mdx`;
+// Fumadocs lists a directory's pages under its index page, so a page with namespace pages below it, the package page among them, is its directory's index.
+const segmentsOf = (
+  site: Site.Site["Service"],
+  page: Site.Page,
+): readonly string[] => {
+  const isDirectory =
+    Array.isReadonlyArrayEmpty(page.path) ||
+    Array.some(page.container.members, (item) =>
+      Option.isSome(site.pageOf(item)),
+    );
+
+  if (isDirectory) {
+    return [...page.path, "index"];
+  }
+
+  return page.path;
+};
 
 const write = Effect.fnUntraced(
   function* (out: string) {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const { pages } = yield* Site.Site;
+    const site = yield* Site.Site;
 
     // Encoding a literal of the schema's own type cannot fail.
     const meta = yield* Schema.encodeEffect(Meta)({
@@ -73,18 +82,25 @@ const write = Effect.fnUntraced(
     }).pipe(Effect.orDie);
 
     yield* fs.remove(out, { recursive: true, force: true });
-    yield* Effect.forEach(
-      pages,
-      Effect.fnUntraced(function* (page) {
-        const file = fileOf(path, out, page);
-        const tree = yield* Page.render(page);
+    const writeMdx = Effect.fnUntraced(function* (
+      segments: readonly string[],
+      content: string,
+    ) {
+      const file = `${path.join(out, ...segments)}.mdx`;
 
-        yield* fs.makeDirectory(path.dirname(file), { recursive: true });
-        yield* fs.writeFileString(file, Mdx.stringify(tree));
-      }),
+      yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+      yield* fs.writeFileString(file, content);
+    });
+
+    yield* Effect.forEach(site.pages, (page) =>
+      pipe(
+        Page.render(page),
+        Effect.map(Mdx.stringify({ title: page.title })),
+        Effect.flatMap((content) => writeMdx(segmentsOf(site, page), content)),
+      ),
     );
     yield* fs.writeFileString(path.join(out, "meta.json"), meta);
-    yield* Effect.log(`Wrote ${pages.length} pages to ${out}`);
+    yield* Effect.log(`Wrote ${site.pages.length} pages to ${out}`);
   },
   Effect.catchTag("PlatformError", TransformError.fileSystem),
 );

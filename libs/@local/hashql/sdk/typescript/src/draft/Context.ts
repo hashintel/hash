@@ -14,12 +14,12 @@ import type {
   Type,
   TypeExpression,
 } from "../main.js";
-import type { ArgumentInputs, Arguments } from "../program/ExpressionType.js";
-import type * as Import from "../program/Import.js";
-import type * as Namespace from "../program/Namespace.js";
-import type * as QueryTypes from "../program/Query.js";
-import type * as Scope from "../program/Scope.js";
-import type * as Structural from "../program/Structural.js";
+import type { ArgumentInputs, Arguments } from "../Program/ExpressionType.js";
+import type * as Import from "../Program/Import.js";
+import type * as Namespace from "../Program/Namespace.js";
+import type * as QueryTypes from "../Program/Query.js";
+import type * as Scope from "../Program/Scope.js";
+import type * as Structural from "../Program/Structural.js";
 
 /**
  * The call signature of a Draft nominal constructor: it wraps an exactly typed value of the underlying type `T` as the nominal type.

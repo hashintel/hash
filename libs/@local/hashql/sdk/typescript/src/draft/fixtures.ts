@@ -8,7 +8,7 @@
 import { Result, pipe } from "effect";
 
 import { Module, Prelude } from "../main.js";
-import * as Scope from "../program/Scope.js";
+import * as Scope from "../Program/Scope.js";
 import * as Draft from "./index.js";
 
 import type { Expression, Inputs, Type, TypeExpression } from "../main.js";

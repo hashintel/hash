@@ -3,7 +3,7 @@ import { Result, pipe } from "effect";
 import { describe, expect, expectTypeOf, test } from "vitest";
 
 import { Do, Import } from "../do/index.js";
-import * as TypeSyntax from "../jexpr/type/index.js";
+import * as TypeSyntax from "../JExpr/Type/index.js";
 import { Expression, JExpr, Module, Prelude, TypeExpression } from "../main.js";
 import * as Draft from "./index.js";
 

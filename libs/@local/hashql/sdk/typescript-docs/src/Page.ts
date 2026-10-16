@@ -1,35 +1,16 @@
-import {
-  Array,
-  Effect,
-  Option,
-  Record,
-  Result,
-  String,
-  Struct,
-  pipe,
-} from "effect";
-import { stringify } from "yaml";
+import { Array, Effect, Option, Record, Result, Struct, pipe } from "effect";
 
 import { Analysis } from "./Analysis.js";
 import * as Comment from "./Comment.js";
+import * as Listing from "./Listing.js";
 import * as Member from "./Member.js";
 import * as Signature from "./Signature.js";
-import { Site } from "./Site.js";
+import { Site, withLinks } from "./Site.js";
 import { TransformError } from "./TransformError.js";
 
-import type { Origin, Page } from "./Site.js";
+import type { Page } from "./Site.js";
 import type { ApiItem } from "@microsoft/api-extractor-model";
-import type { BlockContent, ListItem, PhrasingContent, Root } from "mdast";
-
-const withLinks = Effect.fnUntraced(function* <A>(
-  origin: Origin,
-  effect: Effect.Effect<A, TransformError, Comment.Links>,
-) {
-  const site = yield* Site;
-  const links = yield* site.links(origin);
-
-  return yield* Effect.provideService(effect, Comment.Links, links);
-});
+import type { BlockContent, Root } from "mdast";
 
 // The modules' own comments open the page, each linking from its module.
 const overview = Effect.fnUntraced(function* (page: Page) {
@@ -55,46 +36,6 @@ const overview = Effect.fnUntraced(function* (page: Page) {
     ),
     Effect.map(Array.flatten),
   );
-});
-
-// A child page's entry carries the first paragraph of its module's comment.
-const childEntry = Effect.fnUntraced(function* (child: Page) {
-  const analysis = yield* Analysis;
-  const site = yield* Site;
-
-  const file = Array.headNonEmpty(child.modules);
-  const comment = yield* analysis.moduleComment(file);
-  const summary = yield* Option.match(comment, {
-    onNone: () => Effect.succeed([]),
-    onSome: (found) =>
-      withLinks(
-        { module: file, container: child.container },
-        Comment.lead(found),
-      ),
-  });
-  const title: PhrasingContent = {
-    type: "link",
-    url: site.url(child),
-    children: [{ type: "inlineCode", value: child.title }],
-  };
-
-  return {
-    type: "listItem",
-    spread: false,
-    children: [
-      {
-        type: "paragraph",
-        children: Array.match(summary, {
-          onEmpty: () => [title],
-          onNonEmpty: (lead) => [
-            title,
-            { type: "text", value: " — " },
-            ...lead,
-          ],
-        }),
-      },
-    ],
-  } satisfies ListItem;
 });
 
 const member = Effect.fnUntraced(function* (
@@ -149,18 +90,18 @@ const heading = (value: string): BlockContent => ({
 const namespaces = (
   children: readonly Page[],
 ): Effect.Effect<BlockContent[], TransformError, Analysis | Site> =>
-  Array.match(children, {
-    onEmpty: () => Effect.succeed([]),
-    onNonEmpty: (pages) =>
-      pipe(
-        pages,
-        Effect.forEach(childEntry),
-        Effect.map((entries): BlockContent[] => [
+  pipe(
+    Listing.namespaces(children),
+    Effect.map(
+      Array.match({
+        onEmpty: (): BlockContent[] => [],
+        onNonEmpty: (found): BlockContent[] => [
           heading("Namespaces"),
-          { type: "list", ordered: false, spread: false, children: entries },
-        ]),
-      ),
-  });
+          ...found,
+        ],
+      }),
+    ),
+  );
 
 // Rendered members under their group headings, in the groups' order.
 const sections = (
@@ -200,11 +141,5 @@ export const render = Effect.fnUntraced(function* (page: Page) {
     ),
   ]);
 
-  return {
-    type: "root",
-    children: [
-      { type: "yaml", value: String.trimEnd(stringify({ title: page.title })) },
-      ...Array.flatten(body),
-    ],
-  } satisfies Root;
+  return { type: "root", children: Array.flatten(body) } satisfies Root;
 });

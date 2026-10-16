@@ -7,16 +7,16 @@
  *
  * @module
  */
-export * as JExpr from "./jexpr/index.js";
-export * as Expression from "./program/Expression.js";
-export * as Module from "./program/Module.js";
-export * as Operators from "./program/Operators.js";
-export * as Prelude from "./program/Prelude.js";
-export * as Structural from "./program/Structural.js";
-export * as Program from "./program/index.js";
-export * as ProgramError from "./program/ProgramError.js";
-export { program } from "./program/index.js";
-export { ifElse as If, assume } from "./program/Expression.js";
-export * as TypeExpression from "./program/TypeExpression.js";
-export type * as Type from "./type/index.js";
-export type * as Inputs from "./program/Inputs.js";
+export * as JExpr from "./JExpr/index.js";
+export * as Expression from "./Program/Expression.js";
+export * as Module from "./Program/Module.js";
+export * as Operators from "./Program/Operators.js";
+export * as Prelude from "./Program/Prelude.js";
+export * as Structural from "./Program/Structural.js";
+export * as Program from "./Program/index.js";
+export * as ProgramError from "./Program/ProgramError.js";
+export { program } from "./Program/index.js";
+export { ifElse as If, assume } from "./Program/Expression.js";
+export * as TypeExpression from "./Program/TypeExpression.js";
+export type * as Type from "./Type/index.js";
+export type * as Inputs from "./Program/Inputs.js";

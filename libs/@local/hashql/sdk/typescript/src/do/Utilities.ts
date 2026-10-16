@@ -9,23 +9,23 @@
 // oxlint-disable unicorn/no-array-method-this-argument -- Result.map and Result.flatMap are not array methods
 import { Cause, Result, identity, pipe } from "effect";
 
-import { If as AstIf } from "../program/ast/If.js";
-import * as Expression from "../program/Expression.js";
-import * as Operators from "../program/Operators.js";
-import * as ProgramError from "../program/ProgramError.js";
-import * as Query from "../program/Query.js";
+import { If as AstIf } from "../Program/AST/If.js";
+import * as Expression from "../Program/Expression.js";
+import * as Operators from "../Program/Operators.js";
+import * as ProgramError from "../Program/ProgramError.js";
+import * as Query from "../Program/Query.js";
 import { Import } from "./Import.js";
 import { Let } from "./Let.js";
 import { Newtype } from "./Newtype.js";
 import * as Node from "./Node.js";
 import { Type as DeclareType } from "./Type.js";
 
-import type { Node as AstNode } from "../program/ast/Node.js";
-import type { Rebindable } from "../program/Import.js";
-import type * as Input from "../program/Inputs.js";
-import type * as Scope from "../program/Scope.js";
-import type { TypeExpression } from "../program/TypeExpression.js";
-import type * as Type from "../type/index.js";
+import type { Node as AstNode } from "../Program/AST/Node.js";
+import type { Rebindable } from "../Program/Import.js";
+import type * as Input from "../Program/Inputs.js";
+import type * as Scope from "../Program/Scope.js";
+import type { TypeExpression } from "../Program/TypeExpression.js";
+import type * as Type from "../Type/index.js";
 import type { Imported, Selection } from "./Import.js";
 import type { Exports } from "./Newtype.js";
 import type { ReadonlyRecord } from "effect/Record";

@@ -5,7 +5,7 @@ import { Expression, Module } from "../main.js";
 import { Do as EmptyDo, Import, Let, Newtype, withPrelude } from "./index.js";
 
 import type { Inputs, Type, TypeExpression } from "../main.js";
-import type * as ProgramError from "../program/ProgramError.js";
+import type * as ProgramError from "../Program/ProgramError.js";
 // oxlint-disable hash/naming-conventions -- examples preserve HashQL type and constructor names in separate callback arguments
 
 const initialValue = 7;

@@ -211,7 +211,7 @@ Expected construction failures return `ProgramError.Construction`. Invalid bindi
 
 ### Default prelude coverage and authority
 
-`Prelude.builtin` contains representative declarations rather than a complete standard-library catalogue. Their export types derive from the declaration tables in [`Prelude.ts`](../src/program/Prelude.ts). [`PreludeTypes.ts`](../src/program/PreludeTypes.ts) supplies the nominal identities and generic semantic operations. Generated tables can use the same `Module.define` and `withPrelude` APIs. This package has no generator.
+`Prelude.builtin` contains representative declarations rather than a complete standard-library catalogue. Their export types derive from the declaration tables in [`Prelude.ts`](../src/Program/Prelude.ts). [`PreludeTypes.ts`](../src/Program/PreludeTypes.ts) supplies the nominal identities and generic semantic operations. Generated tables can use the same `Module.define` and `withPrelude` APIs. This package has no generator.
 
 | Exports                                                                     | Compiler source under `core/src/module/std_lib/` |
 | --------------------------------------------------------------------------- | ------------------------------------------------ |

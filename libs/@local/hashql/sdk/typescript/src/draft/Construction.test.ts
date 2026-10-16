@@ -9,7 +9,7 @@ import {
   Structural,
   TypeExpression,
 } from "../main.js";
-import * as Namespace from "../program/Namespace.js";
+import * as Namespace from "../Program/Namespace.js";
 import * as Draft from "./index.js";
 
 const integer = Structural.type(BigInt);

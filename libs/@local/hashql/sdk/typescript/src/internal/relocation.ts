@@ -7,8 +7,8 @@
  */
 import { dual } from "effect/Function";
 
-import type * as JExpr from "../jexpr/index.js";
-import type * as ProgramError from "../program/ProgramError.js";
+import type * as JExpr from "../JExpr/index.js";
+import type * as ProgramError from "../Program/ProgramError.js";
 import type { Result } from "effect";
 
 export const Relocate: unique symbol = Symbol("~hashql/Relocate");

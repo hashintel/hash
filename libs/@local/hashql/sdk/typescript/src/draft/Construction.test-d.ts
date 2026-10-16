@@ -9,8 +9,8 @@ import {
   Structural,
   TypeExpression,
 } from "../main.js";
-import * as Namespace from "../program/Namespace.js";
-import * as Scope from "../program/Scope.js";
+import * as Namespace from "../Program/Namespace.js";
+import * as Scope from "../Program/Scope.js";
 import * as Draft from "./index.js";
 
 import type { Inputs, Type } from "../main.js";

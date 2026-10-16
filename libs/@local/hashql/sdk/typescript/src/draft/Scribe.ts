@@ -15,14 +15,14 @@ import {
   Structural,
   TypeExpression,
 } from "../main.js";
-import * as AST from "../program/ast/index.js";
-import * as Import from "../program/Import.js";
-import * as Namespace from "../program/Namespace.js";
+import * as AST from "../Program/AST/index.js";
+import * as Import from "../Program/Import.js";
+import * as Namespace from "../Program/Namespace.js";
 
-import type * as Syntax from "../jexpr/type/index.js";
+import type * as Syntax from "../JExpr/Type/index.js";
 import type { Inputs, Module, Type } from "../main.js";
-import type { ArgumentInputs, Arguments } from "../program/ExpressionType.js";
-import type * as Scope from "../program/Scope.js";
+import type { ArgumentInputs, Arguments } from "../Program/ExpressionType.js";
+import type * as Scope from "../Program/Scope.js";
 import type * as Body from "./Body.js";
 import type * as Context from "./Context.js";
 

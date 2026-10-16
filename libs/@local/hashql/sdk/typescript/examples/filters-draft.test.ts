@@ -7,7 +7,7 @@ import { examples } from "./filters-draft.js";
 import { examples as originals } from "./filters.js";
 
 import type { Type } from "../src/main.js";
-import type * as ProgramError from "../src/program/ProgramError.js";
+import type * as ProgramError from "../src/Program/ProgramError.js";
 import type {
   Entity,
   EntityUuid,

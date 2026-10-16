@@ -1,13 +1,13 @@
 import { Result } from "effect";
 
-import * as Binding from "../program/ast/Binding.js";
-import { Type as AstType } from "../program/ast/Type.js";
-import * as Scope from "../program/Scope.js";
-import * as TypeExpression from "../program/TypeExpression.js";
+import * as Binding from "../Program/AST/Binding.js";
+import { Type as AstType } from "../Program/AST/Type.js";
+import * as Scope from "../Program/Scope.js";
+import * as TypeExpression from "../Program/TypeExpression.js";
 import * as Node from "./Node.js";
 
-import type { Empty } from "../program/Inputs.js";
-import type * as Semantic from "../type/index.js";
+import type { Empty } from "../Program/Inputs.js";
+import type * as Semantic from "../Type/index.js";
 import type { Utilities } from "./Utilities.js";
 import type { ReadonlyRecord } from "effect/Record";
 

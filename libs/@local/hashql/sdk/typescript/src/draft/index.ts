@@ -27,15 +27,15 @@
  */
 import { Result, pipe } from "effect";
 
-import * as Expression from "../program/Expression.js";
-import * as Prelude from "../program/Prelude.js";
-import * as ProgramError from "../program/ProgramError.js";
-import * as Scope from "../program/Scope.js";
+import * as Expression from "../Program/Expression.js";
+import * as Prelude from "../Program/Prelude.js";
+import * as ProgramError from "../Program/ProgramError.js";
+import * as Scope from "../Program/Scope.js";
 import * as Scribe from "./Scribe.js";
 
 import type { Relocatable } from "../internal/relocation.js";
 import type { Type, TypeExpression } from "../main.js";
-import type * as Namespace from "../program/Namespace.js";
+import type * as Namespace from "../Program/Namespace.js";
 import type * as Body from "./Body.js";
 
 export type * as Context from "./Context.js";

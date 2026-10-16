@@ -1,8 +1,8 @@
-import type * as Expression from "../program/Expression.js";
-import type * as Input from "../program/Inputs.js";
-import type * as ProgramError from "../program/ProgramError.js";
-import type * as Scope from "../program/Scope.js";
-import type * as Type from "../type/index.js";
+import type * as Expression from "../Program/Expression.js";
+import type * as Input from "../Program/Inputs.js";
+import type * as ProgramError from "../Program/ProgramError.js";
+import type * as Scope from "../Program/Scope.js";
+import type * as Type from "../Type/index.js";
 import type * as Node from "./Node.js";
 import type { Body } from "./Utilities.js";
 import type { Result } from "effect";

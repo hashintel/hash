@@ -1,16 +1,16 @@
 // oxlint-disable import/max-dependencies -- nominal declarations introduce both a type and a value constructor
 import { Result } from "effect";
 
-import * as Ident from "../jexpr/Ident.js";
-import * as Binding from "../program/ast/Binding.js";
-import { Newtype as AstNewtype } from "../program/ast/Newtype.js";
-import * as Expression from "../program/Expression.js";
-import * as Scope from "../program/Scope.js";
-import * as TypeExpression from "../program/TypeExpression.js";
+import * as Ident from "../JExpr/Ident.js";
+import * as Binding from "../Program/AST/Binding.js";
+import { Newtype as AstNewtype } from "../Program/AST/Newtype.js";
+import * as Expression from "../Program/Expression.js";
+import * as Scope from "../Program/Scope.js";
+import * as TypeExpression from "../Program/TypeExpression.js";
 import * as Node from "./Node.js";
 
-import type * as Inputs from "../program/Inputs.js";
-import type * as Type from "../type/index.js";
+import type * as Inputs from "../Program/Inputs.js";
+import type * as Type from "../Type/index.js";
 import type { Utilities } from "./Utilities.js";
 import type { ReadonlyRecord } from "effect/Record";
 

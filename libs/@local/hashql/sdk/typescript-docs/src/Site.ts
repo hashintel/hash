@@ -10,7 +10,6 @@ import {
   Option,
   Path,
   Record,
-  String,
   Struct,
   flow,
   pipe,
@@ -70,6 +69,17 @@ export class Site extends Context.Service<
   }
 >()("@local/hashql-typescript-docs/Site") {}
 
+/** Runs a comment's conversion with its links resolved from the comment's origin. */
+export const withLinks = Effect.fnUntraced(function* <A>(
+  origin: Origin,
+  effect: Effect.Effect<A, TransformError, Links>,
+) {
+  const site = yield* Site;
+  const links = yield* site.links(origin);
+
+  return yield* Effect.provideService(effect, Links, links);
+});
+
 // Every declaration sharing the name, since an interface and a namespace merge under one.
 const members = (container: ApiItem, name: string): readonly ApiItem[] => {
   if (ApiItemContainerMixin.isBaseClassOf(container)) {
@@ -88,14 +98,13 @@ const ancestors = (item: ApiItem): ApiItem[] =>
     ),
   );
 
-const directorySegments = (path: Path.Path, directory: string): string[] =>
-  pipe(directory, String.split(path.sep), Array.filter(String.isNonEmpty));
-
-// A namespace that a module re-exports with `export * as` gets a page. A `namespace` declaration renders among its siblings.
-const pageOfNamespace = Effect.fnUntraced(function* (item: ApiItem) {
+// A namespace that a module re-exports with `export * as` gets a page below its parent's, so the URL nests as the names do. A `namespace` declaration renders among its siblings.
+const pageOfNamespace = Effect.fnUntraced(function* (
+  parent: Page,
+  item: ApiItem,
+) {
   const analysis = yield* Analysis;
   const sources = yield* Sources;
-  const path = yield* Path.Path;
 
   const file = analysis.sourceOf(item);
   if (item.kind !== ApiItemKind.Namespace || Option.isNone(file)) {
@@ -117,13 +126,9 @@ const pageOfNamespace = Effect.fnUntraced(function* (item: ApiItem) {
       ),
     ),
   );
-  const directory = path.relative(
-    path.dirname(Array.headNonEmpty(analysis.roots)),
-    path.dirname(target),
-  );
 
   return Option.some<Page>({
-    path: [...directorySegments(path, directory), item.displayName],
+    path: [...parent.path, item.displayName],
     title: item.displayName,
     container: item,
     modules: [target],
@@ -131,19 +136,18 @@ const pageOfNamespace = Effect.fnUntraced(function* (item: ApiItem) {
 });
 
 const discover = (
-  container: ApiItem,
-): Effect.Effect<Page[], TransformError, Analysis | Sources | Path.Path> =>
+  parent: Page,
+): Effect.Effect<Page[], TransformError, Analysis | Sources> =>
   pipe(
-    container.members,
+    parent.container.members,
     Effect.forEach((item) =>
       pipe(
-        item,
-        pageOfNamespace,
+        pageOfNamespace(parent, item),
         Effect.flatMap(
           Option.match({
             onNone: () => Effect.succeed(Array.empty<Page>()),
             onSome: (page) =>
-              pipe(item, discover, Effect.map(Array.prepend(page))),
+              pipe(page, discover, Effect.map(Array.prepend(page))),
           }),
         ),
       ),
@@ -179,6 +183,7 @@ const makeIndex = (pages: readonly Page[], url: string): Index => {
   const pageUrl = (page: Page): string => Array.join([url, ...page.path], "/");
   const enclosing = (item: ApiItem): Option.Option<ApiItem> =>
     pipe(item, ancestors, Array.findFirst(hasPage));
+
   const anchor = (item: ApiItem): string =>
     pipe(
       item,
@@ -303,6 +308,7 @@ const makeLinks = Effect.fnUntraced(function* (index: Index, origin: Origin) {
 
   const scope = yield* sources.scope(origin.module);
   const resolution: Resolution = { index, origin, scope };
+
   // Links resolve the way TypeScript resolves them in the comment's module. A reference qualified from the package resolves last.
   const fromPackage: Lookup = (name) => members(analysis.entry, name);
   const target = resolveIn([
@@ -310,6 +316,7 @@ const makeLinks = Effect.fnUntraced(function* (index: Index, origin: Origin) {
     imported(sources, resolution),
     fromPackage,
   ]);
+
   const shown = path.relative(
     path.dirname(Array.headNonEmpty(analysis.roots)),
     origin.module,
@@ -374,17 +381,16 @@ export const layer = ({
       const analysis = yield* Analysis;
       const services = yield* Effect.context<Analysis | Sources | Path.Path>();
 
+      const root: Page = {
+        path: [],
+        title: analysis.package.displayName,
+        container: analysis.entry,
+        modules: analysis.roots,
+      };
       const pages = yield* pipe(
-        analysis.entry,
+        root,
         discover,
-        Effect.map(
-          Array.prepend<Page>({
-            path: [],
-            title: analysis.package.displayName,
-            container: analysis.entry,
-            modules: analysis.roots,
-          }),
-        ),
+        Effect.map(Array.prepend(root)),
       );
       const duplicate = pipe(
         pages,

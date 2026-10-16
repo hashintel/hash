@@ -22,7 +22,7 @@ import {
 } from "./filters-declarations.js";
 
 import type { Expression, Type } from "../src/main.js";
-import type * as ProgramError from "../src/program/ProgramError.js";
+import type * as ProgramError from "../src/Program/ProgramError.js";
 
 const { Let, Do } = withPrelude({
   values: {

@@ -65,6 +65,12 @@ export default defineConfig({
       },
     },
     {
+      files: ["components/index-entry.tsx"],
+      rules: {
+        "react-perf/jsx-no-jsx-as-prop": "allow", // Fumadocs' Card takes its title as a node, which carries the count beside the name. These server components render once.
+      },
+    },
+    {
       files: ["lib/reference-links.ts"],
       rules: {
         "no-underscore-dangle": ["deny", { allow: ["__raw"] }], // Shiki exposes a code block's meta string under this public field name.

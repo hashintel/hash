@@ -21,7 +21,7 @@ import {
   withPrelude,
 } from "../src/do/index.js";
 import { Expression, Module, Program } from "../src/main.js";
-import * as Operators from "../src/program/Operators.js";
+import * as Operators from "../src/Program/Operators.js";
 
 import type {
   Inputs,

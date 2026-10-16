@@ -3,7 +3,7 @@ import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
 import { Expression, Module, Prelude, Structural } from "../main.js";
-import * as Operators from "../program/Operators.js";
+import * as Operators from "../Program/Operators.js";
 import * as Fixtures from "./fixtures.js";
 import * as Draft from "./index.js";
 

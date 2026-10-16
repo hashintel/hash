@@ -8,12 +8,12 @@ import { Result, pipe } from "effect";
 import { assert, describe, expect, test } from "vitest";
 
 import { Expression, Module, Program, program } from "../main.js";
-import { Expr } from "../program/ast/Expr.js";
-import { If } from "../program/ast/If.js";
-import { Import as AstImport } from "../program/ast/Import.js";
-import { Let as AstLet } from "../program/ast/Let.js";
-import { Newtype as AstNewtype } from "../program/ast/Newtype.js";
-import { Type as AstType } from "../program/ast/Type.js";
+import { Expr } from "../Program/AST/Expr.js";
+import { If } from "../Program/AST/If.js";
+import { Import as AstImport } from "../Program/AST/Import.js";
+import { Let as AstLet } from "../Program/AST/Let.js";
+import { Newtype as AstNewtype } from "../Program/AST/Newtype.js";
+import { Type as AstType } from "../Program/AST/Type.js";
 import { Do as EmptyDo, Import, Let, Newtype, withPrelude } from "./index.js";
 
 import type { Inputs, Type } from "../main.js";

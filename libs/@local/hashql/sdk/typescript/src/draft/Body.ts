@@ -5,12 +5,12 @@
  *
  * @module
  */
-import type * as Expression from "../program/Expression.js";
-import type { ArgumentInputs, Arguments } from "../program/ExpressionType.js";
-import type * as Input from "../program/Inputs.js";
-import type * as Scope from "../program/Scope.js";
-import type * as TypeExpression from "../program/TypeExpression.js";
-import type * as Type from "../type/index.js";
+import type * as Expression from "../Program/Expression.js";
+import type { ArgumentInputs, Arguments } from "../Program/ExpressionType.js";
+import type * as Input from "../Program/Inputs.js";
+import type * as Scope from "../Program/Scope.js";
+import type * as TypeExpression from "../Program/TypeExpression.js";
+import type * as Type from "../Type/index.js";
 import type * as Construction from "./Context.js";
 import type { ReadonlyRecord } from "effect/Record";
 

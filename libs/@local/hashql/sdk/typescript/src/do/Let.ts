@@ -1,13 +1,13 @@
 import { Result } from "effect";
 
-import * as Ident from "../jexpr/Ident.js";
-import * as Binding from "../program/ast/Binding.js";
-import { Let as AstLet } from "../program/ast/Let.js";
-import * as Expression from "../program/Expression.js";
-import * as Scope from "../program/Scope.js";
+import * as Ident from "../JExpr/Ident.js";
+import * as Binding from "../Program/AST/Binding.js";
+import { Let as AstLet } from "../Program/AST/Let.js";
+import * as Expression from "../Program/Expression.js";
+import * as Scope from "../Program/Scope.js";
 import * as Node from "./Node.js";
 
-import type * as Type from "../type/index.js";
+import type * as Type from "../Type/index.js";
 import type { Utilities } from "./Utilities.js";
 import type { ReadonlyRecord } from "effect/Record";
 

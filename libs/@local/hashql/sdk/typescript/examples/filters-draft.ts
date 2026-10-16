@@ -21,7 +21,7 @@ import {
 } from "./filters-declarations.js";
 
 import type { Expression, Inputs, Type } from "../src/main.js";
-import type * as ProgramError from "../src/program/ProgramError.js";
+import type * as ProgramError from "../src/Program/ProgramError.js";
 import type {
   Entity,
   EntityUuid,

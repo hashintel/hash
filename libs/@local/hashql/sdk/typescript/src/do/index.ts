@@ -36,15 +36,15 @@
  * @module
  */
 
-import * as Scope from "../program/Scope.js";
+import * as Scope from "../Program/Scope.js";
 import { Import } from "./Import.js";
 import { Let } from "./Let.js";
 import { Newtype } from "./Newtype.js";
 import { Type } from "./Type.js";
 import { Block as Builder } from "./Utilities.js";
 
-import type * as Expression from "../program/Expression.js";
-import type * as ProgramError from "../program/ProgramError.js";
+import type * as Expression from "../Program/Expression.js";
+import type * as ProgramError from "../Program/ProgramError.js";
 import type { Do as Block } from "./Do.js";
 import type { BuildStep } from "./Utilities.js";
 import type { Result } from "effect";

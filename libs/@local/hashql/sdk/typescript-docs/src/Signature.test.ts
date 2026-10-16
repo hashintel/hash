@@ -6,15 +6,15 @@ import * as Sources from "./Sources.js";
 
 import type { TransformError } from "./TransformError.js";
 
-const declaration = "/declarations/program/Module.d.ts";
+const declaration = "/declarations/Program/Module.d.ts";
 
 const files: Record.ReadonlyRecord<string, string> = {
-  "/src/program/Module.ts": [
+  "/src/Program/Module.ts": [
     "declare function conditional(): void;",
     "export { conditional as if };",
   ].join("\n"),
   [declaration]: [
-    'import * as Type from "../type/index.js";',
+    'import * as Type from "../Type/index.js";',
     'import type { Other } from "./Other.js";',
     'import type { Types } from "effect";',
     "/** Not exported, so it has no page. */",
@@ -54,10 +54,10 @@ const make = (
 > =>
   Signature.make({
     name,
-    source: "/src/program/Module.ts",
+    source: "/src/Program/Module.ts",
     declaration,
     root: "/declarations",
-    exporters: ["/src/program/Module.ts"],
+    exporters: ["/src/Program/Module.ts"],
   });
 
 // A reference reads as the text it spans and the path it resolves.
@@ -109,8 +109,8 @@ describe("signature", () => {
 
         expect(context).toBe(
           [
-            'import * as Type from "#declarations/type/index.js";',
-            'import type { Other } from "#declarations/program/Other.js";',
+            'import * as Type from "#declarations/Type/index.js";',
+            'import type { Other } from "#declarations/Program/Other.js";',
             'import type { Types } from "effect";',
             "interface Hidden<T> {\n    readonly value: T;\n}",
             "declare function conditional(): Types.Invariant<Other>;",

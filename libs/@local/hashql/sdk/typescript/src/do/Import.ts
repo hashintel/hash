@@ -5,15 +5,15 @@
  */
 import { Result, pipe } from "effect";
 
-import * as Imports from "../program/Import.js";
-import * as Scope from "../program/Scope.js";
+import * as Imports from "../Program/Import.js";
+import * as Scope from "../Program/Scope.js";
 import * as Node from "./Node.js";
 
-import type * as Inputs from "../program/Inputs.js";
-import type * as Module from "../program/Module.js";
+import type * as Inputs from "../Program/Inputs.js";
+import type * as Module from "../Program/Module.js";
 import type { Utilities } from "./Utilities.js";
 
-export type { Imported, Selection } from "../program/Import.js";
+export type { Imported, Selection } from "../Program/Import.js";
 
 /**
  * Imports a module's exports as a Do block step.

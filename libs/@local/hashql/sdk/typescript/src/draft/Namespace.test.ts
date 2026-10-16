@@ -7,7 +7,7 @@ import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
 import { Expression, Module, Structural, TypeExpression } from "../main.js";
-import * as Operators from "../program/Operators.js";
+import * as Operators from "../Program/Operators.js";
 import * as Draft from "./index.js";
 
 import type { Type } from "../main.js";

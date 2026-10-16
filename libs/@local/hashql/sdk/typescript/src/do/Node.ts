@@ -1,8 +1,8 @@
 import { identity } from "effect";
 
-import type { Node as AstNode } from "../program/ast/Node.js";
-import type * as ProgramError from "../program/ProgramError.js";
-import type { Scope } from "../program/Scope.js";
+import type { Node as AstNode } from "../Program/AST/Node.js";
+import type * as ProgramError from "../Program/ProgramError.js";
+import type { Scope } from "../Program/Scope.js";
 import type { Utilities } from "./Utilities.js";
 import type { Result, Types } from "effect";
 

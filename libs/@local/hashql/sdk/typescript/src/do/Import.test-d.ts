@@ -5,7 +5,7 @@ import { Module } from "../main.js";
 import { Do as EmptyDo, Import, withPrelude } from "./index.js";
 
 import type { Expression, Inputs, Type } from "../main.js";
-import type * as ProgramError from "../program/ProgramError.js";
+import type * as ProgramError from "../Program/ProgramError.js";
 // oxlint-disable hash/naming-conventions -- examples preserve HashQL type and constructor names in separate callback arguments
 
 type Uuid = Type.Opaque<"::core::uuid::Uuid", Type.PrimitiveString>;
