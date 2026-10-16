@@ -33,7 +33,7 @@ const invalidArgument = (message: string) => ({
  * list property. It updates the edition the entity ID names, as Read entity reads it: the draft for an entity ID with
  * a draft ID, which stays a draft.
  *
- * The entity must be one the user can read, and the values are checked against its types first, so that an error names
+ * The entity must be one the user can edit, and the values are checked against its types first, so that an error names
  * the property.
  */
 export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
@@ -76,6 +76,7 @@ export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
 
   const {
     entities: [existingEntity],
+    permissions,
   } = await queryEntities({ graphApi: graphApiClient }, userAuthentication, {
     filter: {
       all: [
@@ -89,13 +90,22 @@ export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: !!draftId,
-    includePermissions: false,
+    includePermissions: true,
   });
 
   if (!existingEntity) {
     return {
       code: StatusCode.NotFound,
       message: `Entity ${resolvedEntityId} doesn't exist or can't be read by the user running the flow.`,
+      contents: [],
+    };
+  }
+
+  /* The web's machine saves the update, so the user's own permission to edit the entity is checked here. */
+  if (!permissions?.[existingEntity.entityId]?.update) {
+    return {
+      code: StatusCode.PermissionDenied,
+      message: `The user running the flow can't edit entity ${resolvedEntityId}.`,
       contents: [],
     };
   }

@@ -79,11 +79,14 @@ const entityIdOf = (index: number, draft = false) =>
 
 const patch = vi.fn();
 
-/** Answers the graph query with the entity, if one is given, with the given properties. */
+/** Answers the graph query with the entity, if one is given, with the given properties, and whether the user can edit it. */
 const mockEntity = (
   entity: { entityId: EntityId; properties: Record<string, unknown> } | null,
+  { canEdit = true } = {},
 ) =>
   vi.mocked(queryEntities).mockResolvedValueOnce({
+    permissions:
+      entity && canEdit ? { [entity.entityId]: { update: ["edition"] } } : {},
     entities: entity
       ? [
           {
@@ -206,6 +209,7 @@ describe("updateEntityAction", () => {
 
     const query = vi.mocked(queryEntities).mock.calls[0]?.[2];
     expect(query?.includeDrafts).toBe(true);
+    expect(query?.includePermissions).toBe(true);
     expect(query?.filter).toMatchObject({
       all: expect.arrayContaining([
         {
@@ -297,6 +301,20 @@ describe("updateEntityAction", () => {
       message: `Entity ${entityIdOf(1)} doesn't exist or can't be read by the user running the flow.`,
       contents: [],
     });
+  });
+
+  it("fails for an entity the user can read but not edit, without updating it", async () => {
+    mockEntity({ entityId: entityIdOf(1), properties: {} }, { canEdit: false });
+
+    expect(
+      await run({ entityId: entityIdOf(1), properties: { [nameUrl]: "Ada" } }),
+    ).toEqual({
+      code: StatusCode.PermissionDenied,
+      message: `The user running the flow can't edit entity ${entityIdOf(1)}.`,
+      contents: [],
+    });
+    expect(validate).not.toHaveBeenCalled();
+    expect(patch).not.toHaveBeenCalled();
   });
 
   it("fails naming the property whose value doesn't fit the entity's types, without updating it", async () => {
