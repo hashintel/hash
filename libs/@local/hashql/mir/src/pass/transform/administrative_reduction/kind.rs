@@ -51,6 +51,9 @@ fn all_statements_trivial<'stmt, 'heap: 'stmt>(
 /// - [`ForwardingClosure`](Self::ForwardingClosure): The body is a thin wrapper that performs some
 ///   trivial setup then delegates to another function. The wrapper is eliminated, exposing the
 ///   inner call directly.
+///
+/// - [`TrivialClosure`](Self::TrivialClosure): The body performs trivial setup followed by a
+///   non-call operation and returns its result. Inlining exposes the operation at the call site.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum ReductionKind {
     /// A function with only trivial statements that immediately returns a value.
@@ -64,6 +67,16 @@ pub(crate) enum ReductionKind {
     /// Shape: single basic block, trivial prelude statements, final statement is an `Apply`,
     /// terminator returns the result of that `Apply`.
     ForwardingClosure,
+
+    /// A single-operation function whose result is returned directly.
+    ///
+    /// Shape: single basic block, trivial prelude (only `Nop`/`Load`/`Aggregate`), final
+    /// statement is any non-call assignment (`Binary`, `Unary`, `Aggregate`, `Input`, `Load`),
+    /// terminator returns the final statement's result.
+    ///
+    /// This covers compiler-synthesized wrappers (e.g. intrinsic-as-value bodies) as well as
+    /// user-written closures that happen to be a single operation.
+    TrivialClosure,
 }
 
 impl ReductionKind {
@@ -97,20 +110,24 @@ impl ReductionKind {
         None
     }
 
-    /// Attempts to classify a body as a forwarding closure.
+    /// Attempts to classify a body as a forwarding or trivial closure.
     ///
-    /// A forwarding closure has the shape:
+    /// Both have the shape:
     /// ```text
     /// bb0:
     ///     <trivial prelude statements>
-    ///     result = Apply(callee, args)
+    ///     result = <final assignment>
     ///     Return(result)
     /// ```
     ///
     /// Requirements:
     /// - Single basic block (no control flow)
-    /// - At least one statement (the call). Empty blocks are trivial thunks, not forwarders.
-    /// - Final statement must be a call assignment.
+    /// - At least one statement (the final assignment).
+    /// - Statements before the final assignment must be trivial.
+    /// - Final statement must be an assignment. An `Apply` produces a
+    ///   [`ForwardingClosure`](Self::ForwardingClosure), and any other right-hand side produces a
+    ///   [`TrivialClosure`](Self::TrivialClosure).
+    /// - Terminator must return the final assignment's result.
     fn closure(body: &Body<'_>) -> Option<Self> {
         if body.basic_blocks.len() > 1 {
             return None;
@@ -118,7 +135,6 @@ impl ReductionKind {
 
         let bb = &body.basic_blocks[BasicBlockId::START];
 
-        // Need at least one statement (the call). Empty blocks are trivial thunks, not forwarders.
         let [prelude @ .., final_stmt] = &*bb.statements else {
             return None;
         };
@@ -127,22 +143,37 @@ impl ReductionKind {
             return None;
         }
 
-        // Final statement must be a call assignment.
-        let StatementKind::Assign(Assign {
-            lhs,
-            rhs: RValue::Apply(_),
-        }) = final_stmt.kind
-        else {
+        let StatementKind::Assign(Assign { lhs, ref rhs }) = final_stmt.kind else {
             return None;
         };
 
-        // Terminator must return the call's result.
+        // The kind depends on the final statement. Both cases are beta-reduction
+        // (substituting arguments into a function body at a call site):
+        //
+        // Apply: the body forwards to another call. The wrapper (lambda x. f(x)) is an
+        // eta-expansion of the inner function; inlining at the call site is beta-reduction
+        // that exposes the inner call directly.
+        //
+        // Binary, Unary, and other primitive operations: the body computes a single result
+        // from its arguments. Inlining substitutes the arguments and exposes the primitive
+        // operation. A subsequent constant folding pass may then perform delta-reduction
+        // (evaluating the primitive when operands are known).
+        let kind = match rhs {
+            RValue::Apply(_) => Self::ForwardingClosure,
+            RValue::Aggregate(_)
+            | RValue::Binary(_)
+            | RValue::Unary(_)
+            | RValue::Input(_)
+            | RValue::Load(_) => Self::TrivialClosure,
+        };
+
+        // the terminator must return the final assignment's result.
         if bb.terminator.kind
             == TerminatorKind::Return(Return {
                 value: Operand::Place(lhs),
             })
         {
-            return Some(Self::ForwardingClosure);
+            return Some(kind);
         }
 
         None
@@ -154,7 +185,8 @@ impl ReductionKind {
     ///
     /// Classification priority:
     /// 1. Try [`TrivialThunk`](Self::TrivialThunk) first (fully inlinable, no calls)
-    /// 2. Fall back to [`ForwardingClosure`](Self::ForwardingClosure) (wrapper elimination)
+    /// 2. Fall back to [`ForwardingClosure`](Self::ForwardingClosure) or
+    ///    [`TrivialClosure`](Self::TrivialClosure), chosen by the final assignment.
     ///
     /// Bodies with multiple basic blocks (control flow) are never reducible.
     pub(crate) fn of(body: &Body<'_>) -> Option<Self> {
