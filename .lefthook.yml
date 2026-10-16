@@ -54,6 +54,9 @@ pre-commit:
 format:
   # Avoids markdownlint and oxfmt writing the same Markdown file at once.
   parallel: false
+  skip:
+    - merge
+    - rebase
   # Agent edits are not staged, so `{staged_files}` would miss them.
   files: git diff --name-only --diff-filter=d HEAD && git ls-files --others --exclude-standard
   commands:
