@@ -1,0 +1,160 @@
+---
+title: Button
+section: Controls
+description: Allow users to take actions, and make choices, with a single click.
+status: In code
+links:
+  figma: https://www.figma.com/design/WmnosvOvi4Blw0HK0jh1mG/Design-System?node-id=198-41491
+  source: ./button.tsx
+  stories: ./button.stories.tsx
+---
+
+import { Button } from "./button";
+
+export const Stage = ({ children }) => (
+  <div
+    style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 200,
+      padding: "40px 24px",
+      border: "1px solid rgba(0, 0, 0, 0.13)",
+      borderRadius: 12,
+    }}
+  >
+    {children}
+  </div>
+);
+
+# Button
+
+Allow users to take actions, and make choices, with a single click.
+
+<Stage>
+  <Button variant="solid" tone="brand" iconName="plus">
+    Create type
+  </Button>
+  <Button variant="solid">Cancel</Button>
+  <Button variant="solid" iconName="trash" tooltip="Delete" />
+  <Button variant="ghost" href="#" iconName="arrowRight" iconPosition="right">
+    View entity types
+  </Button>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Button } from "@hashintel/ds-components";
+
+export const CreateTypeButton = () => (
+  <Button variant="solid" tone="brand" iconName="plus">
+    Create type
+  </Button>
+);
+```
+
+## Use cases
+
+### Main action of a view
+
+For "Create entity type" in a page header, use the solid brand button with a
+plus icon. Set loading while the request runs. Solid for the main action of a
+view. Subtle and ghost step down in weight for secondary actions. The link and
+linkSubtle variants render as inline text for actions inside prose.
+
+<Stage>
+  <Button variant="solid">Solid</Button>
+  <Button variant="subtle">Subtle</Button>
+  <Button variant="ghost">Ghost</Button>
+  <Button variant="link">Link</Button>
+  <Button variant="linkSubtle">Link subtle</Button>
+</Stage>
+
+### Submit and cancel in a form
+
+Give the saving button `type="submit"`, and give Cancel a quieter subtle or
+ghost variant so the saving action stays the most visible.
+
+### Destructive action
+
+For deleting or archiving an entity, use the error tone: ghost in a table row,
+solid on the confirming button of a Dialog. Neutral by default. Blue is the
+brand accent. Red is for destructive actions.
+
+<Stage>
+  <Button tone="neutral">Neutral</Button>
+  <Button tone="brand">Brand</Button>
+  <Button tone="error">Delete</Button>
+</Stage>
+
+### Icon-only toolbar button
+
+In a graph or Petrinaut toolbar, pass an icon with no label and add a tooltip.
+Set pressed while the tool is active. An icon before or after the label. With
+no label, use the icon-only button and give it a tooltip, which also becomes
+its accessible name.
+
+<Stage>
+  <Button iconName="plus">Create type</Button>
+  <Button variant="subtle" iconName="download" iconPosition="right">
+    Export
+  </Button>
+  <Button variant="subtle" iconName="ellipsis" tooltip="More actions" />
+</Stage>
+
+### Link styled as a button
+
+Pass href to render the button as an anchor and navigate, for example to "View
+entity types". Add `target="_blank"` for documentation links. A disabled or
+loading link loses its href and stops responding.
+
+### Compact rows and toolbars
+
+Five sizes: xxs, xs, sm, md and lg — 20, 21, 28, 34 and 42px tall at the
+default density. Medium is the default.
+
+<Stage>
+  <Button size="xxs">xxs</Button>
+  <Button size="xs">xs</Button>
+  <Button size="sm">sm</Button>
+  <Button size="md">md</Button>
+  <Button size="lg">lg</Button>
+</Stage>
+
+### Waiting on a request
+
+A loading button is disabled and shows a spinner. Set pressed to mark a
+toggled control as active.
+
+<Stage>
+  <Button tone="brand">Default</Button>
+  <Button tone="brand">Hover</Button>
+  <Button tone="brand">Focus</Button>
+  <Button tone="brand" pressed>
+    Pressed
+  </Button>
+  <Button tone="brand" loading>
+    Loading
+  </Button>
+  <Button tone="brand" disabled>
+    Disabled
+  </Button>
+</Stage>
+
+## When not to use it
+
+- To turn a setting on or off. Use Toggle.
+- To line up many secondary actions. Keep the most used ones and put the rest
+  in a Menu.
+- As a label for an object or a status. Use Chip.
