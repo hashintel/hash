@@ -4,9 +4,10 @@ import { Effect } from "effect";
 import { Command } from "effect/cli";
 
 import * as Analyze from "./Analyze.js";
+import * as Transform from "./Transform.js";
 
 const command = Command.make("docs").pipe(
-  Command.withSubcommands([Analyze.handler]),
+  Command.withSubcommands([Analyze.handler, Transform.handler]),
 );
 
 Command.run(command, { version: "0.0.1" }).pipe(

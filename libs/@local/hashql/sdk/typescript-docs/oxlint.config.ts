@@ -2,10 +2,16 @@ import { createConfig, defineConfig } from "@local/oxlint";
 
 export default defineConfig({
   extends: [
-    createConfig({ runtime: "node", frameworks: ["react", "next", "effect"] }),
+    createConfig({ runtime: "node", frameworks: ["react", "next", "effect", "vitest"] }),
   ],
   ignorePatterns: [".next/**", ".source/**", "next-env.d.ts"],
   overrides: [
+    {
+      files: ["src/cli.ts"],
+      rules: {
+        "vitest/require-hook": "allow", // The CLI entry point runs its command when imported; it is not a test file.
+      },
+    },
     {
       files: ["src/**/*.ts"],
       rules: {

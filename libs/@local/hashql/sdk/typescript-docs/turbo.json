@@ -2,6 +2,41 @@
   "$schema": "https://turborepo.org/schema.json",
   "extends": ["//"],
   "tasks": {
-    // TODO
+    // TypeScript 7 emits a declaration file per module, which keeps each `export * as` a namespace API Extractor reads members from.
+    "doc:declarations": {
+      "dependsOn": ["^manifest"],
+      "outputs": [".generated/declarations/**"]
+    },
+    "doc:analyze": {
+      "dependsOn": ["doc:declarations"],
+      "outputs": [".generated/api.json", ".generated/api-entry.d.ts"]
+    },
+    "doc:transform": {
+      "dependsOn": ["doc:analyze"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/oxfmt.config.ts"],
+      "outputs": ["content/docs/reference/**"]
+    },
+    "codegen": {
+      "dependsOn": ["doc:transform"],
+      "outputs": [".source/**"]
+    },
+    // Twoslash type-checks the examples against the SDK's built declarations.
+    "build": {
+      "dependsOn": ["codegen", "^build"],
+      "env": ["NEXT_TELEMETRY_DISABLED"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "dependsOn": ["codegen", "^build"],
+      "cache": false,
+      "persistent": true,
+      "env": ["PORT", "NEXT_TELEMETRY_DISABLED"]
+    },
+    "start": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "persistent": true,
+      "env": ["PORT", "NEXT_TELEMETRY_DISABLED"]
+    }
   }
 }
