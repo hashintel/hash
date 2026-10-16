@@ -13,6 +13,10 @@ import { toPetrinautId } from "@hashintel/petrinaut-core";
 import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
 import { BrunchLedgerPane } from "./brunch-ledger-pane";
 
+// jsdom does not implement scrolling.
+const scrollIntoView = vi.fn();
+Element.prototype.scrollIntoView = scrollIntoView;
+
 afterEach(cleanup);
 
 const reservoir = [
@@ -180,6 +184,8 @@ test("explains a selected net element from the reflection naming it, and marks t
   expect(basis.textContent).toContain("The reservoir holds a day of supply.");
   expect(basis.textContent).toContain("“The reservoir holds a day of supply.”");
   const document = screen.getByTestId("brunch-ledger-document");
+  expect(document.hasAttribute("data-tracing")).toBe(true);
+  expect(scrollIntoView).toHaveBeenCalled();
   for (const address of ["e1", "c1"])
     expect(
       document

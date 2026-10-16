@@ -24,6 +24,7 @@ const basisStyle = css({
   lineHeight: "[1.55]",
   borderWidth: "thin",
   borderColor: "blue.s50",
+  backgroundColor: "blue.s05",
   borderRadius: "md",
   padding: "3",
   marginBottom: "4",
