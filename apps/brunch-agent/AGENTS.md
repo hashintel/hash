@@ -4,4 +4,4 @@ HASH root guidance applies. Agents, their layout and how to add a candidate are 
 
 This application composes the Flue runtime, HTTP routes, and Brunch agents. It must remain independent of Petrinaut UI (`@hashintel/petrinaut`); it may import published catalogs from `@hashintel/petrinaut-core`. `apps/petrinaut-website` meets the editor through the AI SDK/HTTP transport.
 
-The repository patches `@flue/runtime@2.0.3`, `@earendil-works/pi-agent-core@0.83.0`, and `@earendil-works/pi-ai@0.83.0`. Brunch depends on their combined context-projection, argument-validation, and complete-tool-schema behavior. Re-evaluate the full patch boundary on a Flue or Pi upgrade.
+Before changing Flue or Pi versions or patches, read [`docs/dependency-patches.md`](docs/dependency-patches.md) for the retained contracts, removed interventions and removal proofs. Upgrade the pair together and verify the built application; package-definition tests alone do not prove native validation, projection or crash recovery.

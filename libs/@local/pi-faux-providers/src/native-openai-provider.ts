@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
+import { getCurrentTools } from "@earendil-works/pi-ai";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 
 import type { AssistantMessage, Provider } from "@earendil-works/pi-ai";
@@ -265,12 +266,31 @@ export const nativeOpenaiProvider = (
           const serialized = JSON.parse(init.body) as Record<string, unknown>;
           assert.deepEqual(serialized, payload);
           assert.equal(serialized.model, model.id);
-          const tools = serialized.tools as ReturnType<
-            typeof convertResponsesTools
-          >;
-          assert.equal(tools.length, context.tools?.length);
-          for (const tool of context.tools ?? []) {
-            const sent = tools.find(
+          // Pi carries tool declarations in the transcript. A request lists
+          // them up front, and may also add later ones inline in its input.
+          type SentTools = ReturnType<typeof convertResponsesTools>;
+          const input = (serialized.input ?? []) as {
+            type?: string;
+            tools?: SentTools;
+          }[];
+          const sentTools = [
+            ...((serialized.tools ?? []) as SentTools),
+            ...input.flatMap((item) =>
+              item.type === "additional_tools" ? (item.tools ?? []) : [],
+            ),
+          ];
+          const mounted = getCurrentTools(context.messages);
+          assert.deepEqual(
+            new Set(
+              sentTools.map((entry) =>
+                "name" in entry ? entry.name : entry.type,
+              ),
+            ),
+            new Set(mounted.map((tool) => tool.name)),
+            "Sent exactly the mounted tools",
+          );
+          for (const tool of mounted) {
+            const sent = sentTools.findLast(
               (entry) => entry.type === "function" && entry.name === tool.name,
             );
             assert(

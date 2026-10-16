@@ -44,4 +44,4 @@ The server credits an applied canonical call with its settled `after` revision; 
 
 Local development and tests use Flue's SQLite store; production requires Postgres. See `src/server/database-config.ts` and `src/db.ts`.
 
-The repository patches `@flue/runtime@2.0.3`, `@earendil-works/pi-agent-core@0.83.0` and `@earendil-works/pi-ai@0.83.0` for context projection, native tool input and complete provider schemas. Re-evaluate this patch boundary together when upgrading Flue or Pi.
+The repository patches Flue and Pi for model-context projection, authoritative native tool input and complete Anthropic schemas. Stock Flue owns crash repair; tests pin stable IDs and exactly-once outcomes rather than append grouping. Ledger has no persistent hook state. The [dependency contract record](../dependency-patches.md) owns each patch's disposition and removal proof; manifests and root resolutions own version pins.

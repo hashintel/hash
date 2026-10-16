@@ -11,8 +11,10 @@ import { join } from "node:path";
 
 import {
   createAssistantMessageEventStream,
+  normalizeContext,
   type AssistantMessage,
   type Provider,
+  type StreamOptions,
 } from "@earendil-works/pi-ai";
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { afterEach, expect, test } from "vitest";
@@ -22,6 +24,7 @@ import { RequestLedger } from "./provider-accounting/request-ledger.ts";
 import { withBufferedToolAdmission } from "./provider-admission.ts";
 
 const native: Provider = anthropicProvider();
+const emptyTranscript = normalizeContext({ messages: [] });
 const model = native
   .getModels()
   .find((entry) => entry.id === "claude-sonnet-4-6")!;
@@ -100,7 +103,7 @@ const setup = () => {
   let retry = false;
   let hold = false;
   const upstream = createAssistantMessageEventStream();
-  const invoke: Provider["streamSimple"] = (_model, _context, options) => {
+  const invoke = (options: StreamOptions | undefined) => {
     starts++;
     expect(read().calls.at(-1)?.status).toBe("unknown");
     expect(options?.maxTokens).toBe(16);
@@ -120,7 +123,11 @@ const setup = () => {
     return upstream;
   };
   const metered = accounting.wrap(
-    { ...native, stream: invoke, streamSimple: invoke },
+    {
+      ...native,
+      stream: (_model, _context, options) => invoke(options),
+      streamSimple: (_model, _context, options) => invoke(options),
+    },
     () => true,
   );
   const run = (callback: () => Promise<void>, turnId = "TEST-turn") =>
@@ -187,7 +194,7 @@ for (const method of ["stream", "streamSimple"] as const) {
     await fixture.run(async () => {
       const stream = fixture.metered[method](
         model,
-        { messages: [] },
+        emptyTranscript,
         fixture.options,
       );
       await stream.result();
@@ -221,11 +228,10 @@ test("completed native usage survives cancellation after approval without publis
     new Set(),
   );
   await fixture.run(async () => {
-    const stream = admitted.streamSimple(
-      model,
-      { messages: [] },
-      { ...fixture.options, signal: controller.signal },
-    );
+    const stream = admitted.streamSimple(model, emptyTranscript, {
+      ...fixture.options,
+      signal: controller.signal,
+    });
     await stream.result();
     controller.abort();
     await expect(stream.result()).rejects.toThrow(/cancelled/);
@@ -254,12 +260,12 @@ test("no opt-in means no instrument, invalid configuration fails without printin
 test("missing runtime identity and missing ledger refuse before native invocation", async () => {
   const fixture = setup();
   expect(() =>
-    fixture.metered.streamSimple(model, { messages: [] }, fixture.options),
+    fixture.metered.streamSimple(model, emptyTranscript, fixture.options),
   ).toThrow(/accounting refused/);
   rmSync(fixture.ledgerPath);
   await expect(
     fixture.run(async () => {
-      fixture.metered.streamSimple(model, { messages: [] }, fixture.options);
+      fixture.metered.streamSimple(model, emptyTranscript, fixture.options);
     }),
   ).rejects.toThrow(/accounting refused/);
   expect(fixture.starts()).toBe(0);
@@ -277,11 +283,10 @@ test("pre-aborted admission is not invoked; local provider preparation failure i
   await fixture.run(async () => {
     await expect(
       admitted
-        .streamSimple(
-          model,
-          { messages: [] },
-          { ...fixture.options, signal: abort.signal },
-        )
+        .streamSimple(model, emptyTranscript, {
+          ...fixture.options,
+          signal: abort.signal,
+        })
         .result(),
     ).rejects.toThrow(/cancelled/);
   });
@@ -289,7 +294,7 @@ test("pre-aborted admission is not invoked; local provider preparation failure i
   fixture.failPreparation();
   await expect(
     fixture.run(async () => {
-      fixture.metered.streamSimple(model, { messages: [] }, fixture.options);
+      fixture.metered.streamSimple(model, emptyTranscript, fixture.options);
     }),
   ).rejects.toThrow(/no automatic retry/);
   expect(fixture.read().calls.at(0)).toMatchObject({
@@ -306,14 +311,14 @@ test("a provider retry cannot cross the SDK dispatch boundary a second time", as
   fixture.retry();
   await expect(
     fixture.run(async () => {
-      fixture.metered.streamSimple(model, { messages: [] }, fixture.options);
+      fixture.metered.streamSimple(model, emptyTranscript, fixture.options);
     }),
   ).rejects.toThrow(/accounting/);
   expect(fixture.dispatches()).toBe(1);
   expect(fixture.read().calls.at(0)?.status).toBe("unknown");
   await expect(
     fixture.run(async () => {
-      fixture.metered.streamSimple(model, { messages: [] }, fixture.options);
+      fixture.metered.streamSimple(model, emptyTranscript, fixture.options);
     }, "TEST-next"),
   ).rejects.toThrow(/accounting/);
   expect(fixture.starts()).toBe(1);
@@ -355,7 +360,7 @@ for (const breach of [
     fixture.respond(message);
     await fixture.run(async () => {
       await fixture.metered
-        .streamSimple(model, { messages: [] }, fixture.options)
+        .streamSimple(model, emptyTranscript, fixture.options)
         .result();
     });
     expect(fixture.read().calls.at(0)?.status).toBe("unknown");
@@ -364,7 +369,7 @@ for (const breach of [
     );
     await expect(
       fixture.run(async () => {
-        fixture.metered.streamSimple(model, { messages: [] }, fixture.options);
+        fixture.metered.streamSimple(model, emptyTranscript, fixture.options);
       }, "TEST-next"),
     ).rejects.toThrow(/accounting/);
     expect(fixture.starts()).toBe(1);
@@ -378,7 +383,7 @@ test("a failed journal append remains a durable stop after the journal becomes w
   await fixture.run(async () => {
     const stream = fixture.metered.streamSimple(
       model,
-      { messages: [] },
+      emptyTranscript,
       fixture.options,
     );
     const priorJournal = readFileSync(journalPath, "utf8");
@@ -414,7 +419,7 @@ test("a failed journal append remains a durable stop after the journal becomes w
         turnId: "TEST-next",
       },
       async () => {
-        provider.streamSimple(model, { messages: [] }, fixture.options);
+        provider.streamSimple(model, emptyTranscript, fixture.options);
       },
     ),
   ).rejects.toThrow(/accounting refused/);
@@ -428,7 +433,7 @@ test("partial usage survives a zero terminal error without summing snapshots", a
   await fixture.run(async () => {
     const stream = fixture.metered.streamSimple(
       model,
-      { messages: [] },
+      emptyTranscript,
       fixture.options,
     );
     const iterator = stream[Symbol.asyncIterator]();
@@ -465,7 +470,7 @@ test("accounting persists only identity and usage, not content or diagnostic fie
   fixture.respond(message);
   await fixture.run(async () => {
     await fixture.metered
-      .streamSimple(model, { messages: [] }, fixture.options)
+      .streamSimple(model, emptyTranscript, fixture.options)
       .result();
   });
   expect(readFileSync(fixture.ledgerPath, "utf8")).not.toContain(
@@ -484,8 +489,8 @@ test("inactive scope returns the original provider stream without touching an ab
     streamSimple: () => upstream,
   };
   const wrapped = fixture.accounting.wrap(provider, () => false);
-  expect(wrapped.stream(model, { messages: [] })).toBe(upstream);
-  expect(wrapped.streamSimple(model, { messages: [] })).toBe(upstream);
+  expect(wrapped.stream(model, emptyTranscript)).toBe(upstream);
+  expect(wrapped.streamSimple(model, emptyTranscript)).toBe(upstream);
 });
 
 for (const ceiling of ["calls", "usd"] as const) {
@@ -493,7 +498,7 @@ for (const ceiling of ["calls", "usd"] as const) {
     const fixture = setup();
     await fixture.run(async () => {
       await fixture.metered
-        .streamSimple(model, { messages: [] }, fixture.options)
+        .streamSimple(model, emptyTranscript, fixture.options)
         .result();
     });
     const ledger = fixture.read();
@@ -507,7 +512,7 @@ for (const ceiling of ["calls", "usd"] as const) {
     writeFileSync(fixture.ledgerPath, JSON.stringify(ledger));
     await expect(
       fixture.run(async () => {
-        fixture.metered.streamSimple(model, { messages: [] }, fixture.options);
+        fixture.metered.streamSimple(model, emptyTranscript, fixture.options);
       }, "TEST-next"),
     ).rejects.toThrow(/accounting refused/);
     expect(fixture.starts()).toBe(1);
@@ -533,7 +538,7 @@ test("historical five-call authority is compatible only in a disposable copy; pr
   writeFileSync(fixture.ledgerPath, JSON.stringify(historical));
   await fixture.run(async () => {
     await fixture.metered
-      .streamSimple(model, { messages: [] }, fixture.options)
+      .streamSimple(model, emptyTranscript, fixture.options)
       .result();
   });
   expect(fixture.read().calls.slice(0, 5)).toEqual(historicalCalls);
@@ -553,7 +558,7 @@ test("explicit unknown acceptance retains the call and its hold without resettin
   fixture.respond({ ...complete, stopReason: "error" });
   await fixture.run(async () => {
     await fixture.metered
-      .streamSimple(model, { messages: [] }, fixture.options)
+      .streamSimple(model, emptyTranscript, fixture.options)
       .result();
   });
   const before = fixture.read();
@@ -584,7 +589,7 @@ for (const sameRun of [false, true]) {
       fixture.respond({ ...complete, stopReason: "error" });
       await fixture.run(async () => {
         await fixture.metered
-          .streamSimple(model, { messages: [] }, fixture.options)
+          .streamSimple(model, emptyTranscript, fixture.options)
           .result();
       });
       const prior = fixture.read();

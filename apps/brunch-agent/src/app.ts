@@ -152,9 +152,8 @@ if (accounting) {
     dispose() {},
   });
 }
-// Uses the pinned 0.83.0 Anthropic schema-carriage patch: Pi still strips
-// tool parameters to `{ type, properties, required }` unless we override
-// `convertTools`. See apps/brunch-agent/AGENTS.md.
+// The Pi AI patch preserves complete Anthropic schemas independently of strict
+// generation. Retained contracts and removal proofs: docs/dependency-patches.md.
 const browserToolNames = inBandBrowserToolNames;
 const mixedToolNames = new Set([
   ...inBandBrowserToolNames,

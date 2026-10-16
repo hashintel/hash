@@ -12,12 +12,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  createAssistantMessageEventStream,
   fauxAssistantMessage,
   fauxProvider,
   fauxText,
   fauxToolCall,
+  getCurrentTools,
   type AssistantMessage,
-  type Context,
+  type JsonObject,
+  type TranscriptContext,
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
@@ -47,14 +50,48 @@ process.env.BRUNCH_DEV_DB_PATH = join(directory, "conversation.db");
 process.env.BRUNCH_TEST_KEEP_RECENT_TOKENS = "200";
 
 const faux = fauxProvider({ provider: "openai" });
-const contexts: { label: string; context: Context }[] = [];
-type Step = (context: Context) => AssistantMessage;
+const contexts: { label: string; context: TranscriptContext }[] = [];
+type Step = (context: TranscriptContext) => AssistantMessage;
 const steps: Step[] = [];
-const isSummaryRequest = (context: Context) =>
-  (context.tools ?? []).length === 0;
-installFauxProvider(faux.provider);
+// Tool declarations travel in the transcript's system messages; the
+// summarization request declares none.
+const isSummaryRequest = (context: TranscriptContext) =>
+  getCurrentTools(context.messages).length === 0;
+/** Marks a scripted reply whose provider usage reports an overflowing context. */
+const overflowingResponseId = "ledger-history-overflowing-reply";
+// The faux provider estimates usage from the prompt, so a silent overflow on a
+// successful reply is reported at the provider boundary instead.
+installFauxProvider({
+  ...faux.provider,
+  streamSimple(model, context, options) {
+    const inner = faux.provider.streamSimple(model, context, options);
+    const outer = createAssistantMessageEventStream();
+    void (async () => {
+      for await (const event of inner) {
+        if (
+          event.type === "done" &&
+          event.message.responseId === overflowingResponseId
+        ) {
+          outer.push({
+            ...event,
+            message: {
+              ...event.message,
+              usage: {
+                ...event.message.usage,
+                input: 1_000_000,
+                totalTokens: 1_000_000,
+              },
+            },
+          });
+        } else outer.push(event);
+      }
+      outer.end();
+    })();
+    return outer;
+  },
+});
 faux.setResponses(
-  Array.from({ length: 40 }, () => (context: Context) => {
+  Array.from({ length: 40 }, () => (context: TranscriptContext) => {
     if (isSummaryRequest(context)) {
       contexts.push({ label: "summary-request", context });
       return fauxAssistantMessage(
@@ -68,16 +105,19 @@ faux.setResponses(
   }),
 );
 
-const call = (id: string, name: string, args: Record<string, unknown>) =>
+const call = (id: string, name: string, args: JsonObject) =>
   fauxAssistantMessage([fauxToolCall(name, args, { id })], {
     stopReason: "toolUse",
   });
-const calls = (...entries: [string, string, Record<string, unknown>][]) =>
+const calls = (...entries: [string, string, JsonObject][]) =>
   fauxAssistantMessage(
     entries.map(([id, name, args]) => fauxToolCall(name, args, { id })),
     { stopReason: "toolUse" },
   );
-const toolOutput = (context: Context, toolCallId: string): unknown => {
+const toolOutput = (
+  context: TranscriptContext,
+  toolCallId: string,
+): unknown => {
   const result = context.messages.find(
     (message) =>
       message.role === "toolResult" && message.toolCallId === toolCallId,
@@ -92,10 +132,10 @@ const toolOutput = (context: Context, toolCallId: string): unknown => {
     return { unparsed: text, isError: result.isError };
   }
 };
-/** Report a large context so the next turn crosses the compaction threshold. */
+/** A successful reply whose usage reports an overflowing context, so it compacts. */
 const inflated = (message: AssistantMessage): AssistantMessage => ({
   ...message,
-  usage: { ...message.usage, input: 1_000_000, totalTokens: 1_000_000 },
+  responseId: overflowingResponseId,
 });
 
 const observed: Record<string, unknown> = {};
@@ -212,8 +252,14 @@ try {
       return inflated(fauxAssistantMessage([fauxText("Recorded again.")]));
     },
   );
+  const turn2Start = contexts.length;
   await speak("After the restart: there are two night crews, I think.");
   save("history-turn-2", await client.history());
+  // The final reply reports an overflowing context on a successful stop:
+  // compaction follows it, but the completed reply is never re-requested.
+  observed.turn2Requests = contexts
+    .slice(turn2Start)
+    .map(({ label }) => (label === "summary-request" ? "summary" : "agent"));
 
   steps.push(
     (context) => {
@@ -317,6 +363,16 @@ assert.deepEqual(
     { commitId: "commit-3", afterMessageId: userIds[1] },
   ],
   "The host stamps each commit with the user message it followed.",
+);
+const turn2Requests = observed.turn2Requests as string[];
+assert.deepEqual(
+  turn2Requests.filter((label) => label === "agent"),
+  ["agent", "agent", "agent"],
+  `A successful overflowing reply is compacted after, not retried: ${JSON.stringify(turn2Requests)}`,
+);
+assert(
+  turn2Requests.includes("summary"),
+  `The overflowing reply triggers compaction: ${JSON.stringify(turn2Requests)}`,
 );
 const afterCompaction = mapOf(observed.compile3);
 assert(
