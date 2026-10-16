@@ -729,6 +729,36 @@ test("a claim's source does not imply the person's agreement", () => {
   expect(v.parse(vClaim, claim)).toEqual(claim);
 });
 
+test("only an entry stated without a status defaults to confirmed", () => {
+  const claim = {
+    text: "Press 2 idles when its hopper is empty.",
+    entities: ["e2"],
+  };
+  expect(v.parse(vClaim, claim)).toEqual({
+    ...claim,
+    origin: "stated",
+    status: "confirmed",
+  });
+  expect(v.parse(vClaim, { ...claim, status: "tentative" })).toEqual({
+    ...claim,
+    origin: "stated",
+    status: "tentative",
+  });
+  const inferred = v.safeParse(vClaim, { ...claim, origin: "inferred" });
+  expect(inferred.success).toBe(false);
+  expect(inferred.issues?.[0]?.message).toMatch(/origin is inferred/);
+  expect(v.parse(vEntity, { name: "Press 2", kind: "resource" })).toMatchObject(
+    { origin: "stated", status: "confirmed" },
+  );
+  expect(
+    v.safeParse(vEntity, {
+      name: "Press 2",
+      kind: "resource",
+      origin: "assumed",
+    }).success,
+  ).toBe(false);
+});
+
 test("claim and reflection requests exclude system-owned metadata", () => {
   const claim = {
     text: "Drying always takes 20 minutes.",
@@ -1108,10 +1138,10 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                 {
                   properties: {
                     kind: anyOf(vEntityKind),
-                    origin: anyOf(vOrigin),
+                    origin: { ...anyOf(vOrigin), default: "stated" },
                     status: anyOf(vStatus),
                   },
-                  required: ["name", "kind", "origin", "status"],
+                  required: ["name", "kind"],
                 },
               ],
             },
@@ -1122,7 +1152,7 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                   pattern: "^entity\\/update\\/e(?:0|[1-9]\\d*)$",
                 },
                 {
-                  required: ["name", "kind", "origin", "status"],
+                  required: ["name", "kind"],
                 },
               ],
             },
@@ -1140,10 +1170,10 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                         ],
                       },
                     },
-                    origin: anyOf(vOrigin),
+                    origin: { ...anyOf(vOrigin), default: "stated" },
                     status: anyOf(vStatus),
                   },
-                  required: ["text", "entities", "origin", "status"],
+                  required: ["text", "entities"],
                 },
               ],
             },
