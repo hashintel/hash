@@ -22,3 +22,7 @@ export const testDocumentPages = [
     body: `Another ${testDocumentSearchWord} lives on this page.`,
   },
 ] as const satisfies PageContent[];
+
+export const otherTestDocumentPages = [
+  { heading: "Only page", body: "A different document." },
+] as const satisfies PageContent[];

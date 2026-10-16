@@ -1,26 +1,4 @@
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  Collapse,
-  outlinedInputClasses,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
-import debounce from "lodash/debounce";
-import { useEffect, useRef, useState } from "react";
-
-import {
-  ArrowDownRegularIcon,
-  ArrowUpRegularIcon,
-  FontAwesomeIcon,
-  IconButton,
-  TextField,
-} from "@hashintel/design-system";
-import { typedKeys } from "@local/advanced-types/typed-entries";
-
-import { FontCaseRegularIcon } from "../../../shared/icons/font-case-regular-icon";
-import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
+import { useEffect, useState } from "react";
 
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
 import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types";
@@ -144,31 +122,11 @@ const findStringInPages = ({
   return results;
 };
 
-type PdfSearchProps = {
-  closeSearch: () => void;
-  document: DocumentCallback | null;
-  searchHits: SearchHits;
-  setSearchHits: (hits: SearchHits) => void;
-  selectedSearchHit: SearchHit | null;
-  setSelectedSearchHit: (hit: SearchHit | null) => void;
-  showSearch: boolean;
-};
-
-export const PdfSearch = ({
-  closeSearch,
-  document,
-  searchHits,
-  setSearchHits,
-  selectedSearchHit,
-  setSelectedSearchHit,
-  showSearch,
-}: PdfSearchProps) => {
-  const [ignoreCase, setIgnoreCase] = useState(true);
-  const [searchText, setSearchText] = useState("");
-
+/**
+ * Returns a function that finds the occurrences of a string in the document.
+ */
+export const useFindSearchHits = (document: DocumentCallback | null) => {
   const [pages, setPages] = useState<Page[]>([]);
-
-  const inputRef = useRef<HTMLInputElement>(null);
 
   /**
    * Build the information we need to identify search hits within the document.
@@ -218,172 +176,6 @@ export const PdfSearch = ({
     void getPages();
   }, [document]);
 
-  const getSearchHits = debounce(
-    (currentText: string, shouldIgnoreCase: boolean) => {
-      if (!currentText) {
-        setSearchHits({ hitsByPageNumber: {}, total: 0 });
-        setSelectedSearchHit(null);
-        return;
-      }
-
-      const hits = findStringInPages({
-        pages,
-        searchString: currentText,
-        ignoreCase: shouldIgnoreCase,
-      });
-      setSearchHits(hits);
-
-      const firstPageWithHit = typedKeys(hits.hitsByPageNumber)[0];
-      const firstHit = firstPageWithHit
-        ? hits.hitsByPageNumber[firstPageWithHit]?.[0]
-        : null;
-
-      setSelectedSearchHit(firstHit ?? null);
-    },
-    300,
-  );
-
-  const { total, hitsByPageNumber } = searchHits;
-
-  useEffect(() => {
-    if (showSearch) {
-      inputRef.current?.focus();
-    }
-  }, [showSearch]);
-
-  const allHits = Object.values(hitsByPageNumber).flat();
-
-  return (
-    <Collapse orientation="horizontal" in={showSearch}>
-      <Box>
-        <TextField
-          autoFocus
-          inputRef={inputRef}
-          InputProps={{
-            endAdornment: (
-              <Tooltip title="Clear Search">
-                <IconButton
-                  onClick={() => {
-                    setSearchText("");
-                    setSelectedSearchHit(null);
-                    setSearchHits({ hitsByPageNumber: {}, total: 0 });
-                    closeSearch();
-                  }}
-                  sx={{ mr: 0.5 }}
-                  size="small"
-                  unpadded
-                >
-                  <FontAwesomeIcon icon={faXmark} />
-                </IconButton>
-              </Tooltip>
-            ),
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              if (
-                selectedSearchHit &&
-                selectedSearchHit.indexInAllHits < total - 1
-              ) {
-                setSelectedSearchHit(
-                  allHits[selectedSearchHit.indexInAllHits + 1]!,
-                );
-              }
-            }
-          }}
-          onChange={(event) => {
-            const text = event.target.value;
-            setSearchText(text);
-            getSearchHits(text, ignoreCase);
-          }}
-          placeholder="Search the document..."
-          sx={{
-            width: 200,
-            [`.${outlinedInputClasses.root} input`]: {
-              fontSize: 13,
-              py: 0.8,
-              px: 1.5,
-            },
-          }}
-          value={searchText}
-        />
-        <Stack direction="row" gap={2} mt={0.8} justifyContent="flex-start">
-          <GrayToBlueIconButton
-            aria-label={ignoreCase ? "Match case" : "Ignore case"}
-            onClick={() => {
-              getSearchHits(searchText, !ignoreCase);
-              setIgnoreCase(!ignoreCase);
-              inputRef.current?.focus();
-            }}
-            sx={{ "& svg": { fontSize: 13 }, p: 0.5 }}
-          >
-            <FontCaseRegularIcon
-              sx={{
-                fill: ({ palette }) =>
-                  ignoreCase ? undefined : palette.blue[70],
-                transition: ({ transitions }) => transitions.create("fill"),
-              }}
-            />
-          </GrayToBlueIconButton>
-          <Collapse orientation="horizontal" in={!!searchText} timeout={200}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              gap={1}
-              sx={{ height: 22 }}
-            >
-              <GrayToBlueIconButton
-                aria-label="Previous result"
-                disabled={
-                  !selectedSearchHit || selectedSearchHit.indexInAllHits === 0
-                }
-                onClick={() => {
-                  if (
-                    selectedSearchHit &&
-                    selectedSearchHit.indexInAllHits > 0
-                  ) {
-                    setSelectedSearchHit(
-                      allHits[selectedSearchHit.indexInAllHits - 1]!,
-                    );
-                  }
-                }}
-                sx={{ "& svg": { fontSize: 10 }, p: 0.6 }}
-              >
-                <ArrowUpRegularIcon />
-              </GrayToBlueIconButton>
-              <Typography
-                component="span"
-                sx={{
-                  fontSize: 12,
-                  color: ({ palette }) => palette.gray[90],
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {`${(selectedSearchHit?.indexInAllHits ?? -1) + 1} of ${total}`}
-              </Typography>
-              <GrayToBlueIconButton
-                aria-label="Next result"
-                disabled={
-                  !selectedSearchHit ||
-                  selectedSearchHit.indexInAllHits === total - 1
-                }
-                onClick={() => {
-                  if (
-                    selectedSearchHit &&
-                    selectedSearchHit.indexInAllHits < total - 1
-                  ) {
-                    setSelectedSearchHit(
-                      allHits[selectedSearchHit.indexInAllHits + 1]!,
-                    );
-                  }
-                }}
-                sx={{ "& svg": { fontSize: 10 }, p: 0.6 }}
-              >
-                <ArrowDownRegularIcon />
-              </GrayToBlueIconButton>
-            </Stack>
-          </Collapse>
-        </Stack>
-      </Box>
-    </Collapse>
-  );
+  return (searchString: string, ignoreCase: boolean) =>
+    findStringInPages({ pages, searchString, ignoreCase });
 };

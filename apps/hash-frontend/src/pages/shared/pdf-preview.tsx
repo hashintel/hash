@@ -8,12 +8,15 @@ import { Document, Page, pdfjs } from "react-pdf";
 
 import {
   ArrowDownLeftAndArrowUpRightToCenterIcon,
-  ArrowRightRegularIcon,
   ArrowUpRightAndArrowDownLeftFromCenterIcon,
   MagnifyingGlassMinusLightIcon,
   MagnifyingGlassPlusLightIcon,
 } from "@hashintel/design-system";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 
+import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
+import { FilePreviewPageNavigation } from "./file-preview-page-navigation";
+import { FilePreviewSearch } from "./file-preview-search";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 import {
   a4Ratio,
@@ -24,11 +27,12 @@ import {
 import { PageThumbnail } from "./pdf-preview/page-thumbnail";
 import { PdfPreviewSkeleton } from "./pdf-preview/pdf-preview-skeleton";
 import {
-  PdfSearch,
   type SearchHit,
   type SearchHits,
+  useFindSearchHits,
 } from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
+import { useFilePreviewMaxHeight } from "./use-file-preview-max-height";
 
 import type {
   CustomTextRenderer,
@@ -113,21 +117,7 @@ export const PdfPreview = ({
   const [url, setUrl] = useState("");
 
   useEffect(() => {
-    /**
-     * The API normally handles file downloads by:
-     * 1. Accepting a request with a cookie
-     * 2. Checking if the authenticated user can access the file
-     * 3. Automatically redirecting the request to a presigned URL to fetch the file
-     *
-     * This doesn't work for JS fetch because the request to the redirected URL will have origin: null,
-     * which the object storage's CORS headers don't permit (at least in our deployed configuration).
-     * So we instead ask the API for the presigned URL only, and pass that to react-pdf.
-     */
-    void fetch(`${initialUrl}?urlOnly=true`, { credentials: "include" })
-      .then((resp) => resp.json())
-      .then((response) => {
-        setUrl(response.url);
-      });
+    void fetchPresignedFileUrl(initialUrl).then(setUrl);
   }, [initialUrl]);
 
   const [documentProxy, setDocumentProxy] = useState<DocumentCallback | null>(
@@ -143,6 +133,36 @@ export const PdfPreview = ({
   const [selectedSearchHit, setSelectedSearchHit] = useState<SearchHit | null>(
     null,
   );
+
+  const findSearchHits = useFindSearchHits(documentProxy);
+
+  const selectSearchHit = (searchHit: SearchHit | null) => {
+    setSelectedSearchHit(searchHit);
+
+    if (searchHit) {
+      setSelectedPageNumber(searchHit.pageNumber);
+    }
+  };
+
+  const search = (text: string, ignoreCase: boolean) => {
+    if (!text) {
+      setSearchHits({ hitsByPageNumber: {}, total: 0 });
+      selectSearchHit(null);
+      return;
+    }
+
+    const hits = findSearchHits(text, ignoreCase);
+    setSearchHits(hits);
+
+    const firstPageWithHit = typedKeys(hits.hitsByPageNumber)[0];
+    const firstHit = firstPageWithHit
+      ? hits.hitsByPageNumber[firstPageWithHit]?.[0]
+      : null;
+
+    selectSearchHit(firstHit ?? null);
+  };
+
+  const allSearchHits = Object.values(searchHits.hitsByPageNumber).flat();
 
   const onDocumentLoadSuccess: OnDocumentLoadSuccess = (docProxy) => {
     setTotalPages(docProxy.numPages);
@@ -187,28 +207,11 @@ export const PdfPreview = ({
 
   const fullPageHeight = pageContainerWidth * pageWidthHeightRatio;
 
-  const [viewportHeight, setViewportHeight] = useState(
-    document.documentElement.clientHeight,
-  );
-
-  useEffect(() => {
-    const handleResize = () => {
-      setViewportHeight(document.documentElement.clientHeight);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const fullScreenHandle = useFullScreenHandle();
 
-  const viewportVerticalPadding = fullScreenHandle.active ? 0 : 120;
+  const maxHeight = useFilePreviewMaxHeight(fullScreenHandle.active);
 
-  const pageContainerHeight = Math.ceil(
-    fullPageHeight > viewportHeight - viewportVerticalPadding
-      ? viewportHeight - viewportVerticalPadding
-      : fullPageHeight,
-  );
+  const pageContainerHeight = Math.ceil(Math.min(fullPageHeight, maxHeight));
 
   const pageWidth = Math.ceil(pageContainerHeight / pageWidthHeightRatio);
 
@@ -257,20 +260,13 @@ export const PdfPreview = ({
             zIndex: 100,
           }}
         >
-          <PdfSearch
+          <FilePreviewSearch
             closeSearch={() => setShowSearch(false)}
-            document={documentProxy}
-            searchHits={searchHits}
-            setSearchHits={setSearchHits}
-            selectedSearchHit={selectedSearchHit}
-            setSelectedSearchHit={(searchHit) => {
-              setSelectedSearchHit(searchHit);
-
-              if (searchHit) {
-                setSelectedPageNumber(searchHit.pageNumber);
-              }
-            }}
+            onSearch={search}
+            onSelectHit={(index) => selectSearchHit(allSearchHits[index]!)}
+            selectedIndex={selectedSearchHit?.indexInAllHits ?? null}
             showSearch={showSearch}
+            total={searchHits.total}
           />
         </Box>
         {url ? (
@@ -311,6 +307,7 @@ export const PdfPreview = ({
                     alignItems="center"
                     sx={{
                       background: "rgba(255, 255, 255, 0.9)",
+                      borderRadius: "4px",
                       position: "sticky",
                       bottom: 0,
                       margin: "0 auto",
@@ -318,36 +315,11 @@ export const PdfPreview = ({
                     }}
                   >
                     <Stack direction="row" alignItems="center" gap={1}>
-                      <GrayToBlueIconButton
-                        aria-label="Previous page"
-                        disabled={selectedPageNumber === 1}
-                        onClick={() =>
-                          setSelectedPageNumber(selectedPageNumber - 1)
-                        }
-                      >
-                        <ArrowRightRegularIcon
-                          sx={{ transform: "rotate(180deg)" }}
-                        />
-                      </GrayToBlueIconButton>
-                      <Typography
-                        sx={{
-                          fontSize: 12,
-                          color: ({ palette }) => palette.gray[70],
-                          textAlign: "center",
-                          width: (totalPages.toString().length * 2 + 4) * 7,
-                        }}
-                      >
-                        {`${selectedPageNumber} of ${totalPages}`}
-                      </Typography>
-                      <GrayToBlueIconButton
-                        aria-label="Next page"
-                        disabled={selectedPageNumber === totalPages}
-                        onClick={() =>
-                          setSelectedPageNumber(selectedPageNumber + 1)
-                        }
-                      >
-                        <ArrowRightRegularIcon />
-                      </GrayToBlueIconButton>
+                      <FilePreviewPageNavigation
+                        currentPage={selectedPageNumber}
+                        onSelectPage={setSelectedPageNumber}
+                        totalPages={totalPages}
+                      />
                     </Stack>
                   </Stack>
                 </Stack>
