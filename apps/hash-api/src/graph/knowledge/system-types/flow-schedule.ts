@@ -1,10 +1,13 @@
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapFlowInputValuesToInputsProperty } from "@local/hash-isomorphic-utils/flows/mappings";
 import {
   defaultScheduleCatchupWindowMs,
   defaultScheduleOverlapPolicy,
   defaultSchedulePauseOnFailure,
 } from "@local/hash-isomorphic-utils/flows/schedule-types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -12,16 +15,10 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import {
-  createEntity,
-  getLatestEntityById,
-  updateEntity,
-} from "../primitive/entity";
-import { createLinkEntity } from "../primitive/link-entity";
+import { getLatestEntityById, updateEntity } from "../primitive/entity";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import type { EntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type {
   CreateFlowScheduleInput,
   UpdateFlowScheduleInput,
@@ -118,26 +115,33 @@ export const createFlowSchedule: ImpureGraphFunction<
     },
   };
 
-  const entity = await createEntity<FlowSchedule>(context, authentication, {
-    webId,
-    properties,
-    entityTypeIds: [systemEntityTypes.flowSchedule.entityTypeId],
-  });
+  const entityUuid = generateUuid() as EntityUuid;
 
-  /* A schedule is a kind of flow trigger: it `Uses` the flow definition it starts runs of. */
-  await createLinkEntity<FlowTriggerUsesLink["linkEntity"]>(
-    context,
-    authentication,
+  /*
+   * A schedule is a kind of flow trigger: it `Uses` the flow definition it starts runs of. The schedule and its link
+   * are created in one request, which the graph applies in one transaction, so a schedule is never left without it.
+   */
+  const [entity] = await HashEntity.createMultiple<
+    [FlowSchedule, FlowTriggerUsesLink["linkEntity"]]
+  >(context.graphApi, authentication, [
+    {
+      webId,
+      entityUuid,
+      properties,
+      entityTypeIds: [systemEntityTypes.flowSchedule.entityTypeId],
+      provenance: context.provenance,
+    },
     {
       webId,
       entityTypeIds: [systemLinkEntityTypes.uses.linkEntityTypeId],
       properties: { value: {} },
       linkData: {
-        leftEntityId: entity.metadata.recordId.entityId,
+        leftEntityId: entityIdFromComponents(webId, entityUuid),
         rightEntityId: flowDefinitionEntityId,
       },
+      provenance: context.provenance,
     },
-  );
+  ]);
 
   return entity;
 };
