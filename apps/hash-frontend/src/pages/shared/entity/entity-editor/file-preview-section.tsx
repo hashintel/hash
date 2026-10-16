@@ -6,7 +6,7 @@ import {
   Typography,
 } from "@mui/material";
 import dynamic from "next/dynamic";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
@@ -203,11 +203,6 @@ export const FilePreviewSection = () => {
   /** The file the DOCX preview could not show, which then gets the icon view. */
   const [unavailableDocxUrl, setUnavailableDocxUrl] = useState<string>();
 
-  const markDocxUnavailable = useCallback(
-    () => setUnavailableDocxUrl(fileUrl),
-    [fileUrl],
-  );
-
   if (!fileUrl) {
     return null;
   }
@@ -375,7 +370,7 @@ export const FilePreviewSection = () => {
         ) : isDocx ? (
           <DocxPreview
             key={fileUrl}
-            onUnavailable={markDocxUnavailable}
+            onUnavailable={() => setUnavailableDocxUrl(fileUrl)}
             setShowSearch={setShowSearch}
             showSearch={showSearch}
             url={fileUrl}
