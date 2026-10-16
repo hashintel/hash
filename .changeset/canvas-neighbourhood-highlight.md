@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-A hovered or selected node's neighbourhood is highlighted in colour, blue for what feeds it and orange for what it feeds, instead of fading the rest of the net. The highlight waits for the pointer to rest.
+Hovering or selecting a node highlights its inputs in blue and its outputs in orange, and the **Highlight on hover** setting turns the hover highlight off.

@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-`Slider` gains a `plain` variant: a small round thumb of one fixed size that never swells while dragged, for dense control rows. The rail now spans the slider's root whatever aligns the root's children.
+`Slider` gains a `plain` variant with a small fixed-size thumb for dense rows, and its rail spans the slider's root however the root aligns its children.

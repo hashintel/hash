@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-Fix OverflowRow layout measurement when inside fit-content containers. Lets Filter and naked, multi Select + Combobox variants all trigger summary views more consistently
+Fix `OverflowRow` measurement inside fit-content containers, so `Filter` and the naked and multi variants of `Select` and `Combobox` show summary views more consistently.

@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-The properties panel shows a read-only net's names, descriptions, and the single-value fields of places, arcs, differential equations and component instances as text instead of as disabled inputs. They read at full contrast, and their labels no longer grey out. Toggles, checkboxes and the list editors keep their controls.
+On read-only nets, property values show as text instead of disabled inputs, and a blocked edit shows a brief notice that a plugin can extend with an action.

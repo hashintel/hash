@@ -2,4 +2,4 @@
 "@hashintel/ds-components": minor
 ---
 
-Remove style prop from TextInput and NumberInput
+Remove the `style` prop from `TextInput` and `NumberInput`.

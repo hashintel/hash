@@ -2,4 +2,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Every entity id is a UUID: places, transitions, types, parameters, equations, scenarios, metrics and component instances with other ids get stable UUIDs when they load, and inputs that use the old ids still resolve. `petrinautIdSchema` validates and converts an id field.
+Entity, net and subnet ids are UUIDs: documents with other ids get stable UUIDs when they load, older ids still resolve, and `petrinautIdSchema` validates and converts an id field.

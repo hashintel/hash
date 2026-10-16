@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-`Filter` operators can now declare select inputs, overflowing content on Select + Inputs is improved, and keyboard navigation for Select updated to better match APG guidelines.
+`Filter` operators can declare select inputs, Select + Inputs handles overflowing content better, and `Select` keyboard navigation follows the APG guidelines more closely.

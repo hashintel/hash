@@ -3,4 +3,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Reject net identifiers that collide with `Object.prototype` member names (`__proto__`, `constructor`, ...) at file import and before simulation, and store user-authored keys in prototype-free records. Place visualizer code now runs under the same sandbox hardening as scenario code.
+Net identifiers named after `Object.prototype` members, such as `__proto__`, are rejected at import and before simulation. Place visualizer code runs under the same sandbox as scenario code.

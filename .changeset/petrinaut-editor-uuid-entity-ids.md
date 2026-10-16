@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-New places, transitions, types and component instances get plain UUID ids instead of prefixed or timestamp ids.
+New entities get UUID ids. Links, scenarios and subnet references that use older ids still resolve, and `canonicalizePetrinautIds` is re-exported.

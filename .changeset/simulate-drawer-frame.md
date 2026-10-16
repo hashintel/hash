@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-The Simulate drawers share one frame with a condensing header, a Parameters band across the body and fixed-height cards, and the Summary section folds into the header.
+Experiment and optimization drawers share one layout: a condensing header, a Parameters band, and fixed-height metric cards with a Chart options menu, an Enlarge button and faster distribution heatmaps.

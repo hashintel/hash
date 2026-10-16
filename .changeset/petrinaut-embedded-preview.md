@@ -2,6 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Add `PetrinautPreview`, a compact read-only embed surface exported from
-`@hashintel/petrinaut/preview` that reuses the editor's canvas, navigation,
-and property-inspection components.
+Add `PetrinautPreview` to `@hashintel/petrinaut/preview`: a compact read-only embed with optional Quick Simulation from precompiled HIR, and a **Full view** link from `fullViewUrl`.
