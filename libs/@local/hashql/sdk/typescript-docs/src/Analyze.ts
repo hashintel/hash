@@ -1,5 +1,9 @@
 // oxlint-disable effecttsgo/unstable-api-usage -- CLI module is unstable
-import { Extractor, ExtractorConfig } from "@microsoft/api-extractor";
+import {
+  Extractor,
+  ExtractorConfig,
+  ExtractorLogLevel,
+} from "@microsoft/api-extractor";
 import { Data, Effect, FileSystem, Path } from "effect";
 import { Command, Flag } from "effect/cli";
 
@@ -31,6 +35,20 @@ const makeExtractorConfig = ({
   },
   tsdocMetadata: {
     enabled: false,
+  },
+  // `prepare` merges no defaults into a config object, which means we need to supply it manually
+  messages: {
+    compilerMessageReporting: {
+      default: { logLevel: ExtractorLogLevel.Warning },
+    },
+    extractorMessageReporting: {
+      default: { logLevel: ExtractorLogLevel.Warning },
+      "ae-undocumented": { logLevel: ExtractorLogLevel.None },
+      "ae-wrong-input-file-type": { logLevel: ExtractorLogLevel.Error },
+    },
+    tsdocMessageReporting: {
+      default: { logLevel: ExtractorLogLevel.Warning },
+    },
   },
 });
 
@@ -66,7 +84,7 @@ export const handler = command.pipe(
       const outPath = path.resolve(out);
       const entryPath = path.join(outPath, "api-entry.d.ts");
 
-      // API Extractor analyzes one entry point, so the included declaration files are re-exported from one generated module.
+      // API Extractor only supports a single entry point, therefore we must shim multiple entry points into a single module
       const entry = include
         .map((file) => {
           const specifier = path
@@ -84,7 +102,7 @@ export const handler = command.pipe(
       yield* fs.makeDirectory(outPath, { recursive: true });
       yield* fs.writeFileString(entryPath, entry);
 
-      // Reads `<projectFolder>/tsdoc.json`, and throws when that or any configured path is invalid.
+      // May throw when `<projectFolder>/tsdoc.json` is invalid.
       const extractorConfig = yield* Effect.try(() =>
         ExtractorConfig.prepare({
           configObject: makeExtractorConfig({
