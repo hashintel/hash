@@ -5,7 +5,14 @@
  * enforces. Flue tools, guidance and server mechanics live in the app.
  */
 
-export * from "./constants";
+export {
+  brunchEnv,
+  brunchHeaders,
+  brunchRoutes,
+  brunchTools,
+  localUiPrincipal,
+  previewConversationIdPrefix,
+} from "./constants";
 export * from "./conversation-identity";
 export * from "./client-tools";
 export * from "./ledger";
@@ -37,7 +44,6 @@ export {
   isNetObservationTool,
   netReaderDescriptions,
   netReaderInputSchema,
-  netReaderLevelOf,
   netReaderToolNames,
   parseNetReaderInput,
   netStructureOf,
@@ -57,7 +63,6 @@ export {
   netElementKinds,
   petrinautToolTargets,
   petrinautToolEffects,
-  type NetElementKind,
   type PetrinautToolCapability,
 } from "./petrinaut/petrinaut-tool-effects";
 export {

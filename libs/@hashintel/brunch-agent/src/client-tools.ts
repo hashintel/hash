@@ -6,7 +6,6 @@ import { toolName } from "./conversation/naming";
 
 export {
   browserCallFailureBodySchema,
-  browserCallFailureDispositions,
   browserCallLeaseBodySchema,
   browserCallResultBodySchema,
   type BrowserCallClaim,
@@ -18,15 +17,11 @@ export {
 export {
   browserToolEnvelopeOf,
   browserToolOutput,
-  CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH,
   type BrowserToolEnvelope,
   type ClientToolResult,
 } from "./client-tools/browser-tool-result";
 export {
   clientToolHistoryFrom,
-  type ClientToolHistory,
-  type ClientToolHistoryCall,
-  type ClientToolHistoryMessage,
   type ClientToolHistoryResult,
 } from "./client-tools/client-tool-history";
 export { projectBrunchMessageMetadata } from "./client-tools/message-metadata";

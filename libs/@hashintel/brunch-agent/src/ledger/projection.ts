@@ -5,24 +5,12 @@
  * it as a document.
  */
 
-export type {
-  ClaimRecord,
-  EntityRecord,
-  LedgerState,
-  ObligationRecord,
-  ReflectionRecord,
-  Turn,
-} from "./projection/records";
+export type { LedgerState, ReflectionRecord } from "./projection/records";
 export {
-  owedObligations,
   projectLedger,
   type LedgerProjection,
   type ProjectedClaim,
   type ProjectedEntity,
-  type ProjectedKindGroup,
-  type ProjectedMetObligation,
   type ProjectedObligation,
-  type ProjectedQuestion,
-  type ProjectedSection,
 } from "./projection/project-ledger";
 export { renderLedgerMarkdown } from "./projection/render-ledger-markdown";
