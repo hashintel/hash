@@ -7,7 +7,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import debounce from "lodash/debounce";
+import throttle from "lodash/throttle";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -24,7 +24,7 @@ import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 type FilePreviewSearchProps = {
   closeSearch: () => void;
   /**
-   * Called, debounced, when the search text or the case setting changes,
+   * Called, throttled, when the search text or the case setting changes,
    * and at once with an empty `text` when the search is cleared.
    */
   onSearch: (text: string, ignoreCase: boolean) => void;
@@ -47,7 +47,7 @@ export const FilePreviewSearch = ({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const debouncedSearch = debounce(onSearch, 300);
+  const throttledSearch = throttle(onSearch, 300);
 
   const previousHitIndex =
     selectedIndex !== null && selectedIndex > 0 ? selectedIndex - 1 : null;
@@ -74,6 +74,7 @@ export const FilePreviewSearch = ({
               <Tooltip title="Clear Search">
                 <IconButton
                   onClick={() => {
+                    throttledSearch.cancel();
                     setSearchText("");
                     onSearch("", ignoreCase);
                     closeSearch();
@@ -95,7 +96,7 @@ export const FilePreviewSearch = ({
           onChange={(event) => {
             const text = event.target.value;
             setSearchText(text);
-            debouncedSearch(text, ignoreCase);
+            throttledSearch(text, ignoreCase);
           }}
           placeholder="Search the document..."
           sx={{
@@ -114,7 +115,7 @@ export const FilePreviewSearch = ({
               aria-label="Match case"
               aria-pressed={!ignoreCase}
               onClick={() => {
-                debouncedSearch(searchText, !ignoreCase);
+                throttledSearch(searchText, !ignoreCase);
                 setIgnoreCase(!ignoreCase);
                 inputRef.current?.focus();
               }}
