@@ -29,7 +29,7 @@ const graphQLContext = {
 };
 
 describe("createFlowScheduleResolver", () => {
-  it("rejects a stored payload reference in an array input before saving the schedule", async () => {
+  it("rejects a stored payload reference in the flow inputs before saving the schedule", async () => {
     const save = createFlowScheduleResolver(
       {},
       {
@@ -42,22 +42,13 @@ describe("createFlowScheduleResolver", () => {
           triggerImmediately: false,
           flowInputs: {
             entities: {
-              kind: "PersistedEntityMetadata",
-              value: [
-                {
-                  __stored: true,
-                  kind: "PersistedEntityMetadata",
-                  array: false,
-                  of: {
-                    __stored: true,
-                    kind: "PersistedEntityMetadata",
-                    storageKey: "flows/other-run/outputs/step-1",
-                    array: true,
-                    length: 1,
-                  },
-                  index: 0,
-                },
-              ],
+              kind: "ProposedEntity",
+              value: {
+                __stored: true,
+                kind: "ProposedEntity",
+                storageKey: "flows/other-run/outputs/step-1",
+                array: false,
+              },
             },
           },
         },

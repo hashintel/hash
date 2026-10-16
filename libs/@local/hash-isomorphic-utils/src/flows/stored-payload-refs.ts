@@ -14,18 +14,20 @@ import type {
  */
 
 /**
- * Checks inputs given to a flow from outside it, e.g. by a user starting a run, a schedule or a trigger.
+ * Checks inputs given to a flow from outside it, e.g. by a user, a schedule or a trigger. Only activities create
+ * stored payload references, and a run only resolves references to its own outputs, so one given as an input can
+ * never resolve.
  *
- * Only activities create stored payload references, and a run can only resolve references to its own outputs, so a
- * reference given to a run before it starts can never resolve, and workflow code would still trust its metadata (e.g.
- * an array's `length`). Rejecting it up front fails the request, or the save of a schedule, instead of the run.
- *
- * @throws if an input's value, or an item of it, is a stored payload reference, naming the input.
+ * @throws naming the input whose value, or an item of it, is a stored payload reference.
  */
 export const assertNoStoredPayloadRefsInFlowInputs = (
   flowInputs: FlowInputValues,
 ): void => {
-  for (const [inputName, { value }] of Object.entries(flowInputs)) {
+  /* Inputs from outside aren't validated yet, so a payload may not be an object. */
+  for (const [inputName, payload] of Object.entries<{ value?: unknown } | null>(
+    flowInputs,
+  )) {
+    const value = payload?.value;
     const items: unknown[] = Array.isArray(value) ? value : [value];
 
     if (items.some(isStoredPayloadRef)) {

@@ -46,13 +46,13 @@ describe("assertNoStoredPayloadRefsInFlowInputs", () => {
     );
   });
 
-  it("accepts inline values, including arrays and objects", () => {
+  it("accepts inline values, and leaves malformed payloads to other checks", () => {
     const flowInputs = {
       query: { kind: "Text", value: "a" },
       urls: { kind: "Text", value: ["https://example.com", "b"] },
-      none: { kind: "Text", value: [] },
       every: { kind: "Duration", value: { amount: 1, unit: "days" } },
-    } satisfies FlowInputValues;
+      malformed: null,
+    } as unknown as FlowInputValues;
 
     expect(() =>
       assertNoStoredPayloadRefsInFlowInputs(flowInputs),
