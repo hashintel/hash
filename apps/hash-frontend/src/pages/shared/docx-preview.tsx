@@ -15,6 +15,7 @@ import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
 import { FilePreviewPageNavigation } from "./file-preview-page-navigation";
 import { FilePreviewSearch } from "./file-preview-search";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
+import { useFilePreviewMaxHeight } from "./use-file-preview-max-height";
 
 import type {
   DocxDocumentControls,
@@ -55,18 +56,7 @@ export const DocxPreview = ({
 
   const fullScreenHandle = useFullScreenHandle();
 
-  const [viewportHeight, setViewportHeight] = useState(
-    document.documentElement.clientHeight,
-  );
-
-  useEffect(() => {
-    const handleResize = () => {
-      setViewportHeight(document.documentElement.clientHeight);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const height = useFilePreviewMaxHeight(fullScreenHandle.active);
 
   /**
    * An error before any page is laid out means the document cannot be shown.
@@ -125,10 +115,6 @@ export const DocxPreview = ({
     setSearchHitCount(hitCount);
     selectSearchHit(hitCount > 0 ? 0 : null);
   };
-
-  const height = fullScreenHandle.active
-    ? viewportHeight
-    : viewportHeight - 120;
 
   return (
     <FullScreen

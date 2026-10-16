@@ -32,6 +32,7 @@ import {
   useFindSearchHits,
 } from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
+import { useFilePreviewMaxHeight } from "./use-file-preview-max-height";
 
 import type {
   CustomTextRenderer,
@@ -206,28 +207,11 @@ export const PdfPreview = ({
 
   const fullPageHeight = pageContainerWidth * pageWidthHeightRatio;
 
-  const [viewportHeight, setViewportHeight] = useState(
-    document.documentElement.clientHeight,
-  );
-
-  useEffect(() => {
-    const handleResize = () => {
-      setViewportHeight(document.documentElement.clientHeight);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const fullScreenHandle = useFullScreenHandle();
 
-  const viewportVerticalPadding = fullScreenHandle.active ? 0 : 120;
+  const maxHeight = useFilePreviewMaxHeight(fullScreenHandle.active);
 
-  const pageContainerHeight = Math.ceil(
-    fullPageHeight > viewportHeight - viewportVerticalPadding
-      ? viewportHeight - viewportVerticalPadding
-      : fullPageHeight,
-  );
+  const pageContainerHeight = Math.ceil(Math.min(fullPageHeight, maxHeight));
 
   const pageWidth = Math.ceil(pageContainerHeight / pageWidthHeightRatio);
 
