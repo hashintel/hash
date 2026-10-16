@@ -269,11 +269,18 @@ const isRequiredFlowOutput = (
   );
 };
 
-const {
-  getFlowDefinitionActivity,
-  persistFlowActivity,
-  userHasPermissionToRunFlowInWebActivity,
-} = proxyActivities<ReturnType<typeof createCommonFlowActivities>>({
+/* Reads, which are safe to try again. */
+const { getFlowDefinitionActivity, userHasPermissionToRunFlowInWebActivity } =
+  proxyActivities<ReturnType<typeof createCommonFlowActivities>>({
+    startToCloseTimeout: "60 second",
+    retry: {
+      maximumAttempts: 3,
+    },
+  });
+
+const { persistFlowActivity } = proxyActivities<
+  ReturnType<typeof createCommonFlowActivities>
+>({
   startToCloseTimeout: "60 second",
   retry: {
     maximumAttempts: 1,
