@@ -1,6 +1,6 @@
 import {
   type ArcElement,
-  type NetElementKind,
+  type NetElementAddress,
   browserNetToolNames,
   browserToolEnvelopeOf,
   generatedArcId,
@@ -16,11 +16,7 @@ import { netResultView } from "./net-view.ts";
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-export interface NetElement {
-  readonly kind: NetElementKind;
-  readonly id: string;
-  readonly arc?: ArcElement;
-}
+export type NetElement = NetElementAddress & { readonly arc?: ArcElement };
 
 export interface NetCall {
   readonly toolCallId: string;

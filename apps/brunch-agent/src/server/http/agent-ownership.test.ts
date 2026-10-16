@@ -1,12 +1,9 @@
 import { Hono } from "hono";
 import { expect, test } from "vitest";
 
-import { brunchRoutes } from "@hashintel/brunch-agent";
+import { agentOwnershipHeaders, brunchRoutes } from "@hashintel/brunch-agent";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../shared/conversation/identity.ts";
+import { flueConversationId } from "../../shared/conversation/identity.ts";
 import { agentOwnershipGuard } from "./ownership.ts";
 
 const mount = `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
@@ -17,7 +14,7 @@ const identity = {
   principalKey: "principal-a",
   conversationId: "conversation-1",
 };
-const url = `http://brunch.test${mount}/${flueConversationIdFrom(identity)}`;
+const url = `http://brunch.test${mount}/${flueConversationId(identity)}`;
 
 test("the mounted route requires the exact owner", async () => {
   expect((await app.fetch(new Request(url))).status).toBe(401);

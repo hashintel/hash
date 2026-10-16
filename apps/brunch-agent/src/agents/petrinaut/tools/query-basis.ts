@@ -17,6 +17,7 @@ import {
   latestNetDefinition,
   netCalls,
   type NetCall,
+  type NetElement,
 } from "../../../shared/conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
@@ -64,6 +65,9 @@ const elementSchema = v.object({
 });
 type Selector = v.InferOutput<typeof elementSchema>["selector"];
 
+/** A net element the selector can match: by ID, by name, or by its arc's endpoints. */
+type ElementCandidate = Omit<NetElement, "kind"> & { readonly name: string };
+
 /** The root net and each subnet: places, transitions and their other items can sit in either. */
 const netsOf = (definition: NetStructure) => [
   definition,
@@ -73,7 +77,7 @@ const netsOf = (definition: NetStructure) => [
 const elements = (
   definition: NetStructure,
   kind: Selector["kind"],
-): { id: string; name: string; arc?: ArcElement }[] => {
+): ElementCandidate[] => {
   if (kind === "scenario") return definition.scenarios ?? [];
   if (kind === "metric") return definition.metrics ?? [];
   if (kind === "subnet") return definition.subnets ?? [];
@@ -83,7 +87,7 @@ const elements = (
 const netElements = (
   net: ReturnType<typeof netsOf>[number],
   kind: Exclude<Selector["kind"], "scenario" | "metric" | "subnet">,
-): { id: string; name: string; arc?: ArcElement }[] => {
+): ElementCandidate[] => {
   if (kind === "place") return net.places;
   if (kind === "transition") return net.transitions;
   if (kind === "type") return net.types;
@@ -142,7 +146,7 @@ const basisContent = (trace: LedgerTrace) => ({
 
 /** Whether a reflection's net element address names the target, as the document or the model wrote it. */
 const namesTarget =
-  (kind: Selector["kind"], target: { id: string; arc?: ArcElement }) =>
+  (kind: Selector["kind"], target: Omit<NetElement, "kind">) =>
   (address: NetElementAddress) =>
     address.kind === kind &&
     (namesId(address.id, target.id) ||

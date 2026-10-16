@@ -12,6 +12,7 @@ import type {
   FlueEventContext,
   FlueObservation,
   FlueObservationSubscriber,
+  LlmTurnPurpose,
 } from "@flue/runtime";
 
 type ToolCallChronology = {
@@ -45,7 +46,7 @@ type ResponseShape = {
 
 type TurnChronology = {
   readonly turnId: string;
-  readonly purpose: string;
+  readonly purpose: LlmTurnPurpose;
   /** ISO-8601 time of `turn_start`, the origin of this turn's millisecond offsets. */
   readonly startedAt: string;
   /** Milliseconds from `turn_start` to the first model event; null when none arrived. */
@@ -65,7 +66,10 @@ type TurnChronology = {
 
 export type SubmissionChronology = {
   readonly submissionId: string;
-  readonly outcome: "completed" | "failed" | "aborted";
+  readonly outcome: Extract<
+    FlueObservation,
+    { type: "submission_settled" }
+  >["outcome"];
   readonly turns: readonly TurnChronology[];
 };
 
@@ -81,7 +85,7 @@ type ToolCallState = {
 
 type TurnState = {
   turnId: string;
-  purpose: string;
+  purpose: LlmTurnPurpose;
   startedAt: number;
   firstEventAt: number | null;
   endedAt: number | null;

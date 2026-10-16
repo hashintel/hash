@@ -11,16 +11,10 @@ import {
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
+import type { JsonValue } from "@flue/runtime";
+
 /** What the bound browser settles a call with, without its correlation. */
 type BrowserToolResult = Pick<ClientToolResult, "output" | "metadata">;
-
-type CanonicalJson =
-  | string
-  | number
-  | boolean
-  | null
-  | CanonicalJson[]
-  | { [key: string]: CanonicalJson };
 
 /** Issues one call to the bound browser and resolves with its settled result. */
 export type BrowserToolExecutor = (call: {
@@ -38,7 +32,7 @@ export const browserResultEnvelope = (result: BrowserToolResult) =>
       output: result.output,
       ...(result.metadata === undefined ? {} : { metadata: result.metadata }),
     } satisfies BrowserToolEnvelope),
-  ) as BrowserToolEnvelope & CanonicalJson;
+  ) as BrowserToolEnvelope & JsonValue;
 
 /** The browser runs `getLatestNetDefinition` and returns only the requested view. */
 export const netReaderTools = (execute: BrowserToolExecutor) =>

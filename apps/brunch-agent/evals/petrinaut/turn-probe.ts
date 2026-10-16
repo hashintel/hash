@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { createFlueClient } from "@flue/sdk";
 
 import {
+  agentOwnershipHeaders,
   brunchEnv,
   foldCommits,
   projectLedger,
@@ -27,10 +28,7 @@ import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
 } from "../../src/shared/chat-model.ts";
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../src/shared/conversation/identity.ts";
+import { flueConversationId } from "../../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "../../test/load-built-application.ts";
 import { writeRunPacket } from "./run-packet.ts";
 
@@ -72,7 +70,7 @@ try {
     conversationId: `probe-${randomUUID()}`,
   };
   const client = createFlueClient({
-    url: `http://brunch.local/agents/petrinaut/${flueConversationIdFrom(identity)}`,
+    url: `http://brunch.local/agents/petrinaut/${flueConversationId(identity)}`,
     headers: agentOwnershipHeaders(identity),
     fetch: async (input, init) =>
       application.fetch(
