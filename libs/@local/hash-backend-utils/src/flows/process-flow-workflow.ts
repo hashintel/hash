@@ -6,6 +6,7 @@ import {
 } from "@temporalio/workflow";
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
 import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
@@ -341,9 +342,13 @@ const processFlow = async <
 
   const { flowDefinition } = flowDefinitionResult;
 
-  // Ensure the user has permission to create entities in specified web
+  /*
+   * Checked on every run, not only when it's requested, because a scheduled run starts later, and the definition or
+   * the user's feature flags may have changed since.
+   */
   const userHasPermissionToRunFlowInWeb =
     await userHasPermissionToRunFlowInWebActivity({
+      requiresAiFeatureFlag: getFlowType(flowDefinition) === "ai",
       userAuthentication,
       webId,
     });
