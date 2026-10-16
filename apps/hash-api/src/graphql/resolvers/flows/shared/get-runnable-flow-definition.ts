@@ -36,7 +36,10 @@ export const getRunnableFlowDefinition = async (
   try {
     flowDefinition = getFlowDefinitionFromEntity(flowDefinitionEntity);
   } catch (error) {
-    throw GraphQLError.badRequest((error as Error).message);
+    /* The definition is stored data, so an invalid one is a fault here, not in the request. */
+    throw GraphQLError.internal(
+      `Flow definition ${flowDefinitionId} is invalid: ${(error as Error).message}`,
+    );
   }
 
   const flowType = getFlowType(flowDefinition);
