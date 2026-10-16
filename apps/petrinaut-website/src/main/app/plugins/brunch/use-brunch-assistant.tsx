@@ -64,7 +64,7 @@ import { BrunchExperimentFollowUp } from "./tools/brunch-experiment-follow-up";
 import {
   createBrunchMutationAdmission,
   createBrunchMutationApprovalCoordinator,
-  createBrunchMutationApprovalInteractiveTools,
+  useBrunchMutationApprovalTools,
 } from "./tools/brunch-mutation-approval";
 import {
   createCanonicalPetrinautHostTools,
@@ -312,14 +312,19 @@ export const useBrunchAssistant = ({
         : [],
     [wordsActive, conversationWords.entries],
   );
-  // Each binding gets its own non-persisted approval authority.
-  const mutationApproval = useMemo(
-    () => ({
+  // Each binding gets its own non-persisted approval authority. This is state
+  // reset on a new binding, not a memo keyed on it: the coordinator reads
+  // nothing from the binding, so the React Compiler would create it only once.
+  const [mutationApproval, setMutationApproval] = useState(() => ({
+    binding: processAgentBinding,
+    coordinator: createBrunchMutationApprovalCoordinator(),
+  }));
+  if (mutationApproval.binding !== processAgentBinding) {
+    setMutationApproval({
       binding: processAgentBinding,
       coordinator: createBrunchMutationApprovalCoordinator(),
-    }),
-    [processAgentBinding],
-  );
+    });
+  }
   // The panel stays mounted when the binding changes, so a replaced authority
   // must settle the approvals still waiting on it.
   useEffect(() => {
@@ -327,28 +332,11 @@ export const useBrunchAssistant = ({
     coordinator.open();
     return () => coordinator.close();
   }, [mutationApproval]);
-  const allMutationApprovalTools = useMemo(
-    () =>
-      createBrunchMutationApprovalInteractiveTools(
-        mutationApproval.coordinator,
-      ),
-    [mutationApproval],
-  );
   // A registered widget replaces the tool's row, so only calls still waiting
-  // for a decision render as approvals. Refresh the registry when call identities
-  // change; shouldHandle is the single gate, including for same-name calls.
-  const approvalVersion = useSyncExternalStore(
-    mutationApproval.coordinator.subscribe,
-    mutationApproval.coordinator.getVersion,
-    mutationApproval.coordinator.getVersion,
+  // for a decision render as approvals.
+  const mutationApprovalTools = useBrunchMutationApprovalTools(
+    mutationApproval.coordinator,
   );
-  const mutationApprovalTools = useMemo(
-    () => ({
-      version: approvalVersion,
-      tools: [...allMutationApprovalTools],
-    }),
-    [allMutationApprovalTools, approvalVersion],
-  ).tools;
   const processAgentSession = useProcessAgentSession({
     binding: processAgentBinding,
     brunchSelected: selected,
