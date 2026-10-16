@@ -8,7 +8,7 @@ import { Combobox } from "./combobox";
 import type { FormInputWidth } from "../../util/form-shared";
 import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { ComboboxProps, MultiComboboxItem } from "./combobox";
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 // The multiple, no-new-values arm of the props union: `value`/`onChange` are
 // arrays scoped to the items' values.
@@ -41,7 +41,7 @@ const widths = [
 const overflowModes = ["scroll", "truncate", "summary"] as const;
 const filterAlgorithms = ["contains", "startsWith", "none"] as const;
 
-export default {
+const meta = {
   title: "Components / Combobox",
   argTypes: {
     placeholder: {
@@ -115,7 +115,11 @@ export default {
     variant: "default",
     size: "md",
   },
-} satisfies StoryDefault<MultiComboboxProps>;
+} satisfies Meta<MultiComboboxProps>;
+
+export default meta;
+
+type Story = StoryObj<MultiComboboxProps>;
 
 const selectedStyles = ["checkbox", "tick", "highlight"] as const;
 const selectedTones = ["neutral", "brand", "error"] as const;
@@ -338,7 +342,7 @@ const ControlledTags = ({
   );
 };
 
-export const Multiple: Story<MultiComboboxProps> = (args) => {
+const MultipleDemo = (args: MultiComboboxProps) => {
   const spreadArgs = args as Omit<
     MultiComboboxProps,
     "items" | "value" | "onChange" | "allowNewValue"
@@ -538,4 +542,8 @@ export const Multiple: Story<MultiComboboxProps> = (args) => {
       </div>
     </div>
   );
+};
+
+export const Multiple: Story = {
+  render: (args: MultiComboboxProps) => <MultipleDemo {...args} />,
 };

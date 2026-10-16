@@ -17,7 +17,7 @@
         "codegen"
       ]
     },
-    "build:ladle": {
+    "build:storybook": {
       "dependsOn": [
         "@local/eslint#build",
         "codegen"
@@ -40,7 +40,7 @@
       "cache": false,
       "persistent": true
     },
-    "dev:ladle": {
+    "dev:storybook": {
       "dependsOn": [
         "@local/eslint#build",
         "codegen"
@@ -79,19 +79,19 @@
         "codegen"
       ]
     },
-    "preview:ladle": {
+    "preview:storybook": {
       "dependsOn": [
-        "build:ladle"
+        "build:storybook"
       ]
     },
     "test:snapshots": {
       "dependsOn": [
-        "build:ladle"
+        "build:storybook"
       ]
     },
     "test:snapshots:update": {
       "dependsOn": [
-        "build:ladle"
+        "build:storybook"
       ]
     },
     "test:unit": {

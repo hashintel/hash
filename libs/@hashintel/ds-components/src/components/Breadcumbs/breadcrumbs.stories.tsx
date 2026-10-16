@@ -4,7 +4,7 @@ import { formInputSizes, type FormInputSize } from "../../util/form-shared";
 import { Button } from "../Button/button";
 import { BreadCrumbs } from "./breadcrumbs";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const noop = () => undefined;
 
@@ -137,7 +137,7 @@ const resizable = css({
 
 type Args = { size: FormInputSize; maxItems: number };
 
-export default {
+const meta = {
   title: "Components/BreadCrumbs",
   argTypes: {
     size: {
@@ -152,7 +152,11 @@ export default {
     size: "md",
     maxItems: undefined,
   },
-} satisfies StoryDefault<Args>;
+} satisfies Meta<Args>;
+
+export default meta;
+
+type Story = StoryObj<Args>;
 
 const Example = ({
   title,
@@ -167,135 +171,145 @@ const Example = ({
   </div>
 );
 
-export const Default: Story<Args> = ({ size, maxItems }) => (
-  <div className={column}>
-    <Example title="Regular">
-      <Trail size={size} maxItems={maxItems} />
-    </Example>
+export const Default: Story = {
+  render: ({ size, maxItems }: Args) => (
+    <div className={column}>
+      <Example title="Regular">
+        <Trail size={size} maxItems={maxItems} />
+      </Example>
 
-    <Example title="With icons">
-      <IconTrail
-        size={size}
-        maxItems={maxItems}
-        ariaLabel="Breadcrumb (icons)"
-      />
-    </Example>
-
-    <Example title="Tooltip with custom items">
-      <BreadCrumbs size={size} aria-label="Breadcrumb (tooltips)">
-        <BreadCrumbs.Item href="#home" tooltip="Go to the home page">
-          Home
-        </BreadCrumbs.Item>
-        <BreadCrumbs.Item href="#workspace" tooltip={longName}>
-          {longName}
-        </BreadCrumbs.Item>
-        <BreadCrumbs.Item href="#projects" tooltip="Browse all projects">
-          Projects
-        </BreadCrumbs.Item>
-        <BreadCrumbs.Item tooltip="An Item with Button children">
-          <Button size="xxs" variant="subtle" onClick={noop}>
-            Custom content
-          </Button>
-        </BreadCrumbs.Item>
-        <BreadCrumbs.Item onClick={noop} tooltip="You are here">
-          Current
-        </BreadCrumbs.Item>
-      </BreadCrumbs>
-    </Example>
-
-    <Example title="maxWidth = 120px (hover a truncated crumb for its full name)">
-      <BreadCrumbs size={size} aria-label="Breadcrumb (maxWidth)">
-        <BreadCrumbs.Item href="#home" maxWidth={120}>
-          Home
-        </BreadCrumbs.Item>
-        <BreadCrumbs.Item href="#workspace" maxWidth={120}>
-          {longName}
-        </BreadCrumbs.Item>
-        <BreadCrumbs.Item href="#projects" maxWidth={120}>
-          Extremely long project title
-        </BreadCrumbs.Item>
-        <BreadCrumbs.Item maxWidth={120}>Current</BreadCrumbs.Item>
-      </BreadCrumbs>
-    </Example>
-
-    <Example title="With sub-items (click a crumb with a chevron)">
-      <BreadCrumbs size={size} aria-label="Breadcrumb (subItems)">
-        <BreadCrumbs.Item href="#home">Home</BreadCrumbs.Item>
-        <BreadCrumbs.Item
-          subItems={[
-            { children: "Experiment", href: "#experiment" },
-            { children: "Analytics", href: "#analytics" },
-            { children: "Reports", onClick: noop },
-          ]}
-        >
-          Experiment
-        </BreadCrumbs.Item>
-        <BreadCrumbs.Item href="#analytics">Analytics</BreadCrumbs.Item>
-        <BreadCrumbs.Item>Overview</BreadCrumbs.Item>
-      </BreadCrumbs>
-    </Example>
-
-    <Example title="Sub-items collapsed into the ellipsis (nested submenu)">
-      <BreadCrumbs
-        size={size}
-        maxItems={2}
-        aria-label="Breadcrumb (nested subItems)"
-      >
-        <BreadCrumbs.Item href="#home">Home</BreadCrumbs.Item>
-        <BreadCrumbs.Item
-          subItems={[
-            { children: "Experiment", href: "#experiment" },
-            { children: "Analytics", href: "#analytics" },
-          ]}
-        >
-          Experiment
-        </BreadCrumbs.Item>
-        <BreadCrumbs.Item>Overview</BreadCrumbs.Item>
-      </BreadCrumbs>
-    </Example>
-
-    <Example title="maxItems = 3 (open the ellipsis: “Projects” renders a custom collapsed label)">
-      <BreadCrumbs size={size} maxItems={3} aria-label="Breadcrumb (maxItems)">
-        <BreadCrumbs.Item href="#home">Home</BreadCrumbs.Item>
-        <BreadCrumbs.Item href="#workspace">Workspace</BreadCrumbs.Item>
-        <BreadCrumbs.Item
-          href="#projects"
-          collapsedChildren={<em>All projects</em>}
-        >
-          Projects
-        </BreadCrumbs.Item>
-        <BreadCrumbs.Item href="#design-system">Design System</BreadCrumbs.Item>
-        <BreadCrumbs.Item href="#components">Components</BreadCrumbs.Item>
-        <BreadCrumbs.Item onClick={noop}>Breadcrumbs</BreadCrumbs.Item>
-      </BreadCrumbs>
-    </Example>
-
-    <Example title="Overflow on resize (drag the handle → — “Workspace” never collapses)">
-      <div className={resizable}>
-        <Trail
-          size={size}
-          maxItems={maxItems}
-          withNoCollapse
-          withCustomItems
-          ariaLabel="Breadcrumb (resizable)"
-        />
-      </div>
-    </Example>
-  </div>
-);
-
-/** Icons + `maxItems={3}` + sub-items and custom entries across every size. */
-export const Sizes: Story = () => (
-  <div className={column}>
-    {formInputSizes.map((size) => (
-      <Example key={size} title={size}>
+      <Example title="With icons">
         <IconTrail
           size={size}
-          maxItems={4}
-          withSubItems
-          ariaLabel={`Breadcrumb (${size})`}
+          maxItems={maxItems}
+          ariaLabel="Breadcrumb (icons)"
         />
       </Example>
-    ))}
-  </div>
-);
+
+      <Example title="Tooltip with custom items">
+        <BreadCrumbs size={size} aria-label="Breadcrumb (tooltips)">
+          <BreadCrumbs.Item href="#home" tooltip="Go to the home page">
+            Home
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item href="#workspace" tooltip={longName}>
+            {longName}
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item href="#projects" tooltip="Browse all projects">
+            Projects
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item tooltip="An Item with Button children">
+            <Button size="xxs" variant="subtle" onClick={noop}>
+              Custom content
+            </Button>
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item onClick={noop} tooltip="You are here">
+            Current
+          </BreadCrumbs.Item>
+        </BreadCrumbs>
+      </Example>
+
+      <Example title="maxWidth = 120px (hover a truncated crumb for its full name)">
+        <BreadCrumbs size={size} aria-label="Breadcrumb (maxWidth)">
+          <BreadCrumbs.Item href="#home" maxWidth={120}>
+            Home
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item href="#workspace" maxWidth={120}>
+            {longName}
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item href="#projects" maxWidth={120}>
+            Extremely long project title
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item maxWidth={120}>Current</BreadCrumbs.Item>
+        </BreadCrumbs>
+      </Example>
+
+      <Example title="With sub-items (click a crumb with a chevron)">
+        <BreadCrumbs size={size} aria-label="Breadcrumb (subItems)">
+          <BreadCrumbs.Item href="#home">Home</BreadCrumbs.Item>
+          <BreadCrumbs.Item
+            subItems={[
+              { children: "Experiment", href: "#experiment" },
+              { children: "Analytics", href: "#analytics" },
+              { children: "Reports", onClick: noop },
+            ]}
+          >
+            Experiment
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item href="#analytics">Analytics</BreadCrumbs.Item>
+          <BreadCrumbs.Item>Overview</BreadCrumbs.Item>
+        </BreadCrumbs>
+      </Example>
+
+      <Example title="Sub-items collapsed into the ellipsis (nested submenu)">
+        <BreadCrumbs
+          size={size}
+          maxItems={2}
+          aria-label="Breadcrumb (nested subItems)"
+        >
+          <BreadCrumbs.Item href="#home">Home</BreadCrumbs.Item>
+          <BreadCrumbs.Item
+            subItems={[
+              { children: "Experiment", href: "#experiment" },
+              { children: "Analytics", href: "#analytics" },
+            ]}
+          >
+            Experiment
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item>Overview</BreadCrumbs.Item>
+        </BreadCrumbs>
+      </Example>
+
+      <Example title="maxItems = 3 (open the ellipsis: “Projects” renders a custom collapsed label)">
+        <BreadCrumbs
+          size={size}
+          maxItems={3}
+          aria-label="Breadcrumb (maxItems)"
+        >
+          <BreadCrumbs.Item href="#home">Home</BreadCrumbs.Item>
+          <BreadCrumbs.Item href="#workspace">Workspace</BreadCrumbs.Item>
+          <BreadCrumbs.Item
+            href="#projects"
+            collapsedChildren={<em>All projects</em>}
+          >
+            Projects
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item href="#design-system">
+            Design System
+          </BreadCrumbs.Item>
+          <BreadCrumbs.Item href="#components">Components</BreadCrumbs.Item>
+          <BreadCrumbs.Item onClick={noop}>Breadcrumbs</BreadCrumbs.Item>
+        </BreadCrumbs>
+      </Example>
+
+      <Example title="Overflow on resize (drag the handle → — “Workspace” never collapses)">
+        <div className={resizable}>
+          <Trail
+            size={size}
+            maxItems={maxItems}
+            withNoCollapse
+            withCustomItems
+            ariaLabel="Breadcrumb (resizable)"
+          />
+        </div>
+      </Example>
+    </div>
+  ),
+};
+
+/** Icons + `maxItems={3}` + sub-items and custom entries across every size. */
+export const Sizes: Story = {
+  render: () => (
+    <div className={column}>
+      {formInputSizes.map((size) => (
+        <Example key={size} title={size}>
+          <IconTrail
+            size={size}
+            maxItems={4}
+            withSubItems
+            ariaLabel={`Breadcrumb (${size})`}
+          />
+        </Example>
+      ))}
+    </div>
+  ),
+};

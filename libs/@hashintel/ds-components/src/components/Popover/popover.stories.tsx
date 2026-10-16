@@ -6,7 +6,7 @@ import { Button } from "../Button/button";
 import { Tooltip } from "../Tooltip/tooltip";
 import { Popover, type PopoverProps } from "./popover";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type Point = NonNullable<PopoverProps["positionFromPoint"]>;
 
@@ -82,116 +82,120 @@ const PopoverExample = ({
  * individual panels on their own, and a kitchen sink combining a wrapping
  * title, multiple bodies, and multiple footers.
  */
-export const Default: Story = () => (
-  <div
-    style={{
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 12,
-      padding: 10,
-      alignItems: "flex-start",
-    }}
-  >
-    <PopoverExample label="Custom">
-      {() => (
-        <div className={customContent}>
-          Fully custom content — no panels, just positioning.
-        </div>
-      )}
-    </PopoverExample>
+export const Default: Story = {
+  render: () => (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 12,
+        padding: 10,
+        alignItems: "flex-start",
+      }}
+    >
+      <PopoverExample label="Custom">
+        {() => (
+          <div className={customContent}>
+            Fully custom content — no panels, just positioning.
+          </div>
+        )}
+      </PopoverExample>
 
-    <PopoverExample label="Title only">
-      {() => (
-        <Popover.Container className={panelWidth}>
-          <Popover.Header title="Account settings" />
-        </Popover.Container>
-      )}
-    </PopoverExample>
+      <PopoverExample label="Title only">
+        {() => (
+          <Popover.Container className={panelWidth}>
+            <Popover.Header title="Account settings" />
+          </Popover.Container>
+        )}
+      </PopoverExample>
 
-    <PopoverExample label="Title + no close">
-      {() => (
-        <Popover.Container className={panelWidth}>
-          <Popover.Header title="Notifications" hideCloseButton />
-        </Popover.Container>
-      )}
-    </PopoverExample>
+      <PopoverExample label="Title + no close">
+        {() => (
+          <Popover.Container className={panelWidth}>
+            <Popover.Header title="Notifications" hideCloseButton />
+          </Popover.Container>
+        )}
+      </PopoverExample>
 
-    <PopoverExample label="Body only">
-      {() => (
-        <Popover.Container className={panelWidth}>
-          <Popover.Body>
-            A popover with just a body panel — no header or footer.
-          </Popover.Body>
-        </Popover.Container>
-      )}
-    </PopoverExample>
+      <PopoverExample label="Body only">
+        {() => (
+          <Popover.Container className={panelWidth}>
+            <Popover.Body>
+              A popover with just a body panel — no header or footer.
+            </Popover.Body>
+          </Popover.Container>
+        )}
+      </PopoverExample>
 
-    <PopoverExample label="Footer only">
-      {(close) => (
-        <Popover.Container className={panelWidth}>
-          <Popover.Footer
-            actions={
-              <Button size="xs" onClick={close}>
-                Done
-              </Button>
-            }
-          />
-        </Popover.Container>
-      )}
-    </PopoverExample>
+      <PopoverExample label="Footer only">
+        {(close) => (
+          <Popover.Container className={panelWidth}>
+            <Popover.Footer
+              actions={
+                <Button size="xs" onClick={close}>
+                  Done
+                </Button>
+              }
+            />
+          </Popover.Container>
+        )}
+      </PopoverExample>
 
-    <PopoverExample label="No outside close" closeOnInteractOutside={false}>
-      {(close) => (
-        <Popover.Container className={panelWidth}>
-          <Popover.Header title="Stays open" />
-          <Popover.Body>
-            Clicking outside won&apos;t dismiss this popover — only the close
-            button or Escape will.
-          </Popover.Body>
-          <Popover.Footer
-            actions={
-              <Button size="xs" onClick={close}>
-                Close
-              </Button>
-            }
-          />
-        </Popover.Container>
-      )}
-    </PopoverExample>
+      <PopoverExample label="No outside close" closeOnInteractOutside={false}>
+        {(close) => (
+          <Popover.Container className={panelWidth}>
+            <Popover.Header title="Stays open" />
+            <Popover.Body>
+              Clicking outside won&apos;t dismiss this popover — only the close
+              button or Escape will.
+            </Popover.Body>
+            <Popover.Footer
+              actions={
+                <Button size="xs" onClick={close}>
+                  Close
+                </Button>
+              }
+            />
+          </Popover.Container>
+        )}
+      </PopoverExample>
 
-    <PopoverExample label="Kitchen sink">
-      {(close) => (
-        <Popover.Container className={panelWidth}>
-          <Popover.Header
-            title="A deliberately long popover title that wraps across multiple lines"
-            actions={
-              <Button
-                size="xxs"
-                variant="ghost"
-                iconName="gear"
-                aria-label="Settings"
-              />
-            }
-          />
-          <Popover.Body>The first body holds the primary content.</Popover.Body>
-          <Popover.Body>A second body renders as its own card.</Popover.Body>
-          <Popover.Footer
-            secondaryActions={
-              <Button size="xs" variant="ghost" onClick={close}>
-                Cancel
-              </Button>
-            }
-            actions={
-              <Button size="xs" onClick={close}>
-                Apply
-              </Button>
-            }
-          />
-        </Popover.Container>
-      )}
-    </PopoverExample>
-  </div>
-);
+      <PopoverExample label="Kitchen sink">
+        {(close) => (
+          <Popover.Container className={panelWidth}>
+            <Popover.Header
+              title="A deliberately long popover title that wraps across multiple lines"
+              actions={
+                <Button
+                  size="xxs"
+                  variant="ghost"
+                  iconName="gear"
+                  aria-label="Settings"
+                />
+              }
+            />
+            <Popover.Body>
+              The first body holds the primary content.
+            </Popover.Body>
+            <Popover.Body>A second body renders as its own card.</Popover.Body>
+            <Popover.Footer
+              secondaryActions={
+                <Button size="xs" variant="ghost" onClick={close}>
+                  Cancel
+                </Button>
+              }
+              actions={
+                <Button size="xs" onClick={close}>
+                  Apply
+                </Button>
+              }
+            />
+          </Popover.Container>
+        )}
+      </PopoverExample>
+    </div>
+  ),
+};
 
 /**
  * A trigger button that toggles its own popover open/closed on click. Because
@@ -287,84 +291,92 @@ const gridCells: Cell[] = [
   { kind: "position", position: "bottom-end" },
 ];
 
-export const Positions: Story = () => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: 12,
-      padding: 80,
-      maxWidth: 500,
-      margin: "0 auto",
-    }}
-  >
-    {gridCells.map((cell, index) => {
-      if (cell.kind === "empty") {
-        // eslint-disable-next-line react/no-array-index-key
-        return <div key={`empty-${index}`} />;
-      }
+export const Positions: Story = {
+  render: () => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: 12,
+        padding: 80,
+        maxWidth: 500,
+        margin: "0 auto",
+      }}
+    >
+      {gridCells.map((cell, index) => {
+        if (cell.kind === "empty") {
+          // eslint-disable-next-line react/no-array-index-key
+          return <div key={`empty-${index}`} />;
+        }
 
-      if (cell.kind === "point") {
+        if (cell.kind === "point") {
+          return (
+            <PopoverToggle
+              key={cell.label}
+              label={cell.label}
+              position={cell.position}
+              getPoint={cell.getPoint}
+            />
+          );
+        }
+
         return (
           <PopoverToggle
-            key={cell.label}
-            label={cell.label}
+            key={cell.position}
+            label={cell.position}
             position={cell.position}
-            getPoint={cell.getPoint}
           />
         );
-      }
-
-      return (
-        <PopoverToggle
-          key={cell.position}
-          label={cell.position}
-          position={cell.position}
-        />
-      );
-    })}
-  </div>
-);
+      })}
+    </div>
+  ),
+};
 
 /**
  * Overlays stacked three deep: a popover that opens a popover, which contains a
  * tooltip. Exercises portal + z-index layering and nested dismissal
  * (opening/clicking the inner popover must not dismiss the outer one).
  */
-export const Stacking: Story = () => (
-  <div style={{ padding: 60 }}>
-    <PopoverExample label="Popover 1">
-      {() => (
-        <Popover.Container className={panelWidth}>
-          <Popover.Header title="Popover 1" />
-          <Popover.Body>
-            <div className={css({ display: "grid", gap: "2" })}>
-              <span>Opens a second popover, stacked on top of this one.</span>
-              <PopoverExample label="Popover 2" position="right-start">
-                {() => (
-                  <Popover.Container className={panelWidth}>
-                    <Popover.Header title="Popover 2" />
-                    <Popover.Body>
-                      <div className={css({ display: "grid", gap: "2" })}>
-                        <span>Holds a tooltip.</span>
-                        <span>
-                          <Tooltip variant="light" content="Tooltip 1">
-                            <Button size="xs">Hover for tooltip 1</Button>
-                          </Tooltip>
-                        </span>
-                      </div>
-                    </Popover.Body>
-                  </Popover.Container>
-                )}
-              </PopoverExample>
-            </div>
-          </Popover.Body>
-        </Popover.Container>
-      )}
-    </PopoverExample>
-  </div>
-);
+export const Stacking: Story = {
+  render: () => (
+    <div style={{ padding: 60 }}>
+      <PopoverExample label="Popover 1">
+        {() => (
+          <Popover.Container className={panelWidth}>
+            <Popover.Header title="Popover 1" />
+            <Popover.Body>
+              <div className={css({ display: "grid", gap: "2" })}>
+                <span>Opens a second popover, stacked on top of this one.</span>
+                <PopoverExample label="Popover 2" position="right-start">
+                  {() => (
+                    <Popover.Container className={panelWidth}>
+                      <Popover.Header title="Popover 2" />
+                      <Popover.Body>
+                        <div className={css({ display: "grid", gap: "2" })}>
+                          <span>Holds a tooltip.</span>
+                          <span>
+                            <Tooltip variant="light" content="Tooltip 1">
+                              <Button size="xs">Hover for tooltip 1</Button>
+                            </Tooltip>
+                          </span>
+                        </div>
+                      </Popover.Body>
+                    </Popover.Container>
+                  )}
+                </PopoverExample>
+              </div>
+            </Popover.Body>
+          </Popover.Container>
+        )}
+      </PopoverExample>
+    </div>
+  ),
+};
 
-export default {
+const meta = {
   title: "Components/Popover",
-} satisfies StoryDefault;
+} satisfies Meta;
+
+export default meta;
+
+type Story = StoryObj;

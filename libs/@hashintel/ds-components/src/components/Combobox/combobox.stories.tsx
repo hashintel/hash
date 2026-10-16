@@ -9,7 +9,7 @@ import { Combobox } from "./combobox";
 
 import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { ComboboxItem, ComboboxProps } from "./combobox";
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 // Every example's items: ungrouped fruits, a labelled group, and a group of
 // stateful options labelled after their state. The fruits and vegetables
@@ -228,104 +228,110 @@ const DialogExample = () => {
   );
 };
 
-export default {
+const meta = {
   title: "Components / Combobox",
-} satisfies StoryDefault;
+} satisfies Meta;
 
-export const Default: Story = () => (
-  <div className={sectionStyle}>
-    <div className={groupStyle}>
-      <h3 style={headingStyle}>No value</h3>
-      <Controlled placeholder="Pick a fruit…" />
-      <h3 style={headingStyle}>Value</h3>
-      <Controlled value="banana" />
-      <h3 style={headingStyle}>Disabled</h3>
-      <Controlled value="banana" disabled />
-      <h3 style={headingStyle}>Invalid</h3>
-      <Controlled value="banana" invalid />
-      <h3 style={headingStyle}>Kitchen sink</h3>
-      <Controlled value="banana" {...kitchenSinkProps} />
-      <h3 style={headingStyle}>Readonly (kitchen sink)</h3>
-      <Controlled value="banana" {...kitchenSinkProps} readonly />
-      <h3 style={headingStyle}>Subtle (kitchen sink)</h3>
-      <Controlled value="banana" {...kitchenSinkProps} variant="subtle" />
-      <h3 style={headingStyle}>Custom render</h3>
-      <Controlled
-        value="red"
-        items={colorItems}
-        renderItem={renderColorItem}
-        renderSelectedItem={renderColorSelected}
-      />
-      <h3 style={headingStyle}>No items</h3>
-      <Controlled items={[]} placeholder="Nothing to pick…" />
-      <h3 style={headingStyle}>Custom no-match message</h3>
-      <Controlled
-        placeholder="Try “xyz”…"
-        noMatchMessage={renderNoMatchMessage}
-      />
-    </div>
+export default meta;
 
-    <div className={groupStyle} style={{ maxWidth: "none" }}>
-      <h3 style={headingStyle}>Allow new value</h3>
-      <div className={rowStyle}>
-        <div className={cellStyle}>
-          <span style={subheadingStyle}>Enabled</span>
-          <ControlledNewValue placeholder="Type anything…" />
+type Story = StoryObj;
+
+export const Default: Story = {
+  render: () => (
+    <div className={sectionStyle}>
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>No value</h3>
+        <Controlled placeholder="Pick a fruit…" />
+        <h3 style={headingStyle}>Value</h3>
+        <Controlled value="banana" />
+        <h3 style={headingStyle}>Disabled</h3>
+        <Controlled value="banana" disabled />
+        <h3 style={headingStyle}>Invalid</h3>
+        <Controlled value="banana" invalid />
+        <h3 style={headingStyle}>Kitchen sink</h3>
+        <Controlled value="banana" {...kitchenSinkProps} />
+        <h3 style={headingStyle}>Readonly (kitchen sink)</h3>
+        <Controlled value="banana" {...kitchenSinkProps} readonly />
+        <h3 style={headingStyle}>Subtle (kitchen sink)</h3>
+        <Controlled value="banana" {...kitchenSinkProps} variant="subtle" />
+        <h3 style={headingStyle}>Custom render</h3>
+        <Controlled
+          value="red"
+          items={colorItems}
+          renderItem={renderColorItem}
+          renderSelectedItem={renderColorSelected}
+        />
+        <h3 style={headingStyle}>No items</h3>
+        <Controlled items={[]} placeholder="Nothing to pick…" />
+        <h3 style={headingStyle}>Custom no-match message</h3>
+        <Controlled
+          placeholder="Try “xyz”…"
+          noMatchMessage={renderNoMatchMessage}
+        />
+      </div>
+
+      <div className={groupStyle} style={{ maxWidth: "none" }}>
+        <h3 style={headingStyle}>Allow new value</h3>
+        <div className={rowStyle}>
+          <div className={cellStyle}>
+            <span style={subheadingStyle}>Enabled</span>
+            <ControlledNewValue placeholder="Type anything…" />
+          </div>
+          <div className={cellStyle}>
+            <span style={subheadingStyle}>Always show option</span>
+            <ControlledNewValue
+              allowNewValue={{ alwaysShowOption: true }}
+              placeholder="Type anything…"
+            />
+          </div>
+          <div className={cellStyle}>
+            <span style={subheadingStyle}>Custom render</span>
+            <ControlledNewValue
+              allowNewValue={{
+                renderOption: (input) => <em>Create tag “{input}”</em>,
+              }}
+              placeholder="Type a new tag…"
+            />
+          </div>
         </div>
-        <div className={cellStyle}>
-          <span style={subheadingStyle}>Always show option</span>
-          <ControlledNewValue
-            allowNewValue={{ alwaysShowOption: true }}
-            placeholder="Type anything…"
-          />
+      </div>
+
+      <div className={groupStyle} style={{ maxWidth: "none" }}>
+        <h3 style={headingStyle}>Filter algorithms</h3>
+        <div className={rowStyle}>
+          <div className={cellStyle}>
+            <span style={subheadingStyle}>contains (default)</span>
+            <Controlled placeholder="Try “an”…" />
+          </div>
+          <div className={cellStyle}>
+            <span style={subheadingStyle}>startsWith</span>
+            <Controlled filterAlgorithm="startsWith" placeholder="Try “ba”…" />
+          </div>
+          <div className={cellStyle}>
+            <span style={subheadingStyle}>none (consumer-filtered)</span>
+            <Controlled filterAlgorithm="none" placeholder="Never filters" />
+          </div>
+          <div className={cellStyle}>
+            <span style={subheadingStyle}>custom (matches value)</span>
+            <Controlled
+              filterAlgorithm={(input, _text, optionValue) =>
+                optionValue.includes(input.toLowerCase())
+              }
+              placeholder="Filters against the value"
+            />
+          </div>
         </div>
-        <div className={cellStyle}>
-          <span style={subheadingStyle}>Custom render</span>
-          <ControlledNewValue
-            allowNewValue={{
-              renderOption: (input) => <em>Create tag “{input}”</em>,
-            }}
-            placeholder="Type a new tag…"
-          />
+      </div>
+
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Inside a dialog and autofocused</h3>
+        <div>
+          <DialogExample />
         </div>
       </div>
     </div>
-
-    <div className={groupStyle} style={{ maxWidth: "none" }}>
-      <h3 style={headingStyle}>Filter algorithms</h3>
-      <div className={rowStyle}>
-        <div className={cellStyle}>
-          <span style={subheadingStyle}>contains (default)</span>
-          <Controlled placeholder="Try “an”…" />
-        </div>
-        <div className={cellStyle}>
-          <span style={subheadingStyle}>startsWith</span>
-          <Controlled filterAlgorithm="startsWith" placeholder="Try “ba”…" />
-        </div>
-        <div className={cellStyle}>
-          <span style={subheadingStyle}>none (consumer-filtered)</span>
-          <Controlled filterAlgorithm="none" placeholder="Never filters" />
-        </div>
-        <div className={cellStyle}>
-          <span style={subheadingStyle}>custom (matches value)</span>
-          <Controlled
-            filterAlgorithm={(input, _text, optionValue) =>
-              optionValue.includes(input.toLowerCase())
-            }
-            placeholder="Filters against the value"
-          />
-        </div>
-      </div>
-    </div>
-
-    <div className={groupStyle}>
-      <h3 style={headingStyle}>Inside a dialog and autofocused</h3>
-      <div>
-        <DialogExample />
-      </div>
-    </div>
-  </div>
-);
+  ),
+};
 
 // The multiple counterpart of the kitchen sink for the Sizes story. Kept
 // unexported — every export of a stories file becomes a story of its own.
@@ -344,28 +350,30 @@ const SizedMultiKitchenSink = ({ size }: { size: ComboboxProps["size"] }) => {
   );
 };
 
-export const Sizes: Story = () => (
-  <div className={sectionStyle}>
-    <div className={groupStyle} style={{ maxWidth: "none" }}>
-      {formInputSizes.map((size) => (
-        <div key={size}>
-          <h3 style={headingStyle}>{size}</h3>
-          <div className={rowStyle}>
-            <div className={cellStyle}>
-              <span style={subheadingStyle}>single</span>
-              <ControlledNewValue
-                value="banana"
-                size={size}
-                {...kitchenSinkProps}
-              />
-            </div>
-            <div className={cellStyle}>
-              <span style={subheadingStyle}>multiple</span>
-              <SizedMultiKitchenSink size={size} />
+export const Sizes: Story = {
+  render: () => (
+    <div className={sectionStyle}>
+      <div className={groupStyle} style={{ maxWidth: "none" }}>
+        {formInputSizes.map((size) => (
+          <div key={size}>
+            <h3 style={headingStyle}>{size}</h3>
+            <div className={rowStyle}>
+              <div className={cellStyle}>
+                <span style={subheadingStyle}>single</span>
+                <ControlledNewValue
+                  value="banana"
+                  size={size}
+                  {...kitchenSinkProps}
+                />
+              </div>
+              <div className={cellStyle}>
+                <span style={subheadingStyle}>multiple</span>
+                <SizedMultiKitchenSink size={size} />
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
-);
+  ),
+};

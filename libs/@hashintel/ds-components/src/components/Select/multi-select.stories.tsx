@@ -8,7 +8,7 @@ import { Select } from "./select";
 import type { FormInputWidth } from "../../util/form-shared";
 import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { MultiSelectItem, SelectItem } from "./select";
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type SelectProps = React.ComponentProps<typeof Select>;
 type MultiSelectProps = Extract<SelectProps, { multiple: true }>;
@@ -30,7 +30,7 @@ const widths = [
   "fitContent",
 ] as const satisfies readonly FormInputWidth[];
 
-export default {
+const meta = {
   title: "Components/Select",
   argTypes: {
     placeholder: {
@@ -88,7 +88,11 @@ export default {
     size: "md",
     hideArrow: false,
   },
-} satisfies StoryDefault<MultiSelectProps>;
+} satisfies Meta<MultiSelectProps>;
+
+export default meta;
+
+type Story = StoryObj<MultiSelectProps>;
 
 const sampleItems: Array<ItemOrGroup<SelectItem>> = [
   { value: "apple", text: "Apple" },
@@ -220,7 +224,7 @@ const overflowItems: Array<MultiSelectItem> = [
   { value: "honeydew", text: "Honeydew" },
 ];
 
-export const Multiple: Story<MultiSelectProps> = (args) => {
+const MultipleDemo = (args: MultiSelectProps) => {
   const spreadArgs = args as Omit<
     MultiSelectProps,
     "items" | "value" | "onChange" | "required"
@@ -477,4 +481,8 @@ export const Multiple: Story<MultiSelectProps> = (args) => {
       </div>
     </div>
   );
+};
+
+export const Multiple: Story = {
+  render: (args: MultiSelectProps) => <MultipleDemo {...args} />,
 };

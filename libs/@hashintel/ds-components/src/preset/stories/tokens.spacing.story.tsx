@@ -4,7 +4,6 @@ import { token } from "@hashintel/ds-helpers/tokens";
 
 import type { Density, SpacingToken } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 const steps: readonly SpacingToken[] = [
   "0.5",
@@ -76,7 +75,7 @@ const DensityColumn = ({ density }: { density: Density }) => (
   </VStack>
 );
 
-export const Spacing: Story = () => (
+export const SpacingDemo = () => (
   <VStack gap="8" alignItems="flex-start" p="6">
     <VStack gap="2" alignItems="flex-start">
       <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
@@ -115,5 +114,3 @@ export const Spacing: Story = () => (
     </HStack>
   </VStack>
 );
-
-Spacing.storyName = "Spacing";

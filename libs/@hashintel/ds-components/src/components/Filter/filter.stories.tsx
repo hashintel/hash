@@ -7,12 +7,16 @@ import { FilterGroup } from "./filter-group";
 import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { MultiSelectItem, SelectItem } from "../Select/select";
 import type { FilterChange, FilterValue } from "./filter-util";
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { DistributedOmit } from "type-fest";
 
-export default {
+const meta = {
   title: "Components/Filter",
-} satisfies StoryDefault;
+} satisfies Meta;
+
+export default meta;
+
+type Story = StoryObj;
 
 type KitchenSinkValues = {
   equals: string;
@@ -403,113 +407,115 @@ const PropertyClickDemo = () => {
   );
 };
 
-export const Default: Story = () => (
-  <div style={columnStyle}>
-    <span style={stateLabelStyle}>empty</span>
-    <Demo<KitchenSinkValues>
-      property="value"
-      propertyLabel="Value"
-      operators={KitchenSinkOperators}
-    />
-    <KitchenSinkState
-      label="operator selected, no value"
-      value={{ key: "contains", value: null }}
-    />
-    <KitchenSinkState
-      label="operator and value entered"
-      value={{ key: "contains", value: "hello" }}
-    />
-    <KitchenSinkState
-      label="range operator, no values"
-      value={{ key: "between", value: null }}
-    />
-    <KitchenSinkState
-      label="range operator, all values"
-      value={{ key: "between", value: [10, 50, 90] }}
-    />
-    <KitchenSinkState
-      label="two inputs, no separator"
-      value={{ key: "near", value: [51.5074, -0.1278] }}
-    />
-    <span style={stateLabelStyle}>single operator, no value</span>
-    <Filter<SingleOperatorValues>
-      property="name"
-      propertyLabel="Name"
-      operators={SingleOperatorOperators}
-      value={null}
-      onChange={noop}
-      removeable={{ onRemove: noop }}
-    />
-    <span style={stateLabelStyle}>single operator, with value</span>
-    <Filter<SingleOperatorValues>
-      property="name"
-      propertyLabel="Name"
-      operators={SingleOperatorOperators}
-      value={{ key: "contains", value: "hello" }}
-      onChange={noop}
-      removeable={{ onRemove: noop }}
-    />
-    <span style={stateLabelStyle}>no operators</span>
-    <Filter<Record<string, never>>
-      property="archived"
-      propertyLabel="Archived"
-      operators={[]}
-      onChange={noop}
-      removeable={{ onRemove: noop }}
-    />
-    <span style={stateLabelStyle}>
-      propertyMenu — the property segment opens a menu, here switching the
-      property
-    </span>
-    <PropertyMenuDemo />
-    <span style={stateLabelStyle}>
-      propertyOnClick — the property segment is a plain button
-    </span>
-    <PropertyClickDemo />
-    <span style={stateLabelStyle}>
-      responsive, long content in a max-width container
-    </span>
-    <div style={maxWidthContainerStyle}>
-      <Filter<LongContentValues>
-        property="contactEmail"
-        propertyLabel="Organization primary contact email address"
-        operators={LongContentOperators}
-        value={{
-          key: "alphabeticallyBetween",
-          value: [
-            "aaron.alderman@extremely-long-organization-domain.example.com",
-            "zachariah.zimmermann@extremely-long-organization-domain.example.com",
-          ],
-        }}
+export const Default: Story = {
+  render: () => (
+    <div style={columnStyle}>
+      <span style={stateLabelStyle}>empty</span>
+      <Demo<KitchenSinkValues>
+        property="value"
+        propertyLabel="Value"
+        operators={KitchenSinkOperators}
+      />
+      <KitchenSinkState
+        label="operator selected, no value"
+        value={{ key: "contains", value: null }}
+      />
+      <KitchenSinkState
+        label="operator and value entered"
+        value={{ key: "contains", value: "hello" }}
+      />
+      <KitchenSinkState
+        label="range operator, no values"
+        value={{ key: "between", value: null }}
+      />
+      <KitchenSinkState
+        label="range operator, all values"
+        value={{ key: "between", value: [10, 50, 90] }}
+      />
+      <KitchenSinkState
+        label="two inputs, no separator"
+        value={{ key: "near", value: [51.5074, -0.1278] }}
+      />
+      <span style={stateLabelStyle}>single operator, no value</span>
+      <Filter<SingleOperatorValues>
+        property="name"
+        propertyLabel="Name"
+        operators={SingleOperatorOperators}
+        value={null}
         onChange={noop}
         removeable={{ onRemove: noop }}
       />
+      <span style={stateLabelStyle}>single operator, with value</span>
+      <Filter<SingleOperatorValues>
+        property="name"
+        propertyLabel="Name"
+        operators={SingleOperatorOperators}
+        value={{ key: "contains", value: "hello" }}
+        onChange={noop}
+        removeable={{ onRemove: noop }}
+      />
+      <span style={stateLabelStyle}>no operators</span>
+      <Filter<Record<string, never>>
+        property="archived"
+        propertyLabel="Archived"
+        operators={[]}
+        onChange={noop}
+        removeable={{ onRemove: noop }}
+      />
+      <span style={stateLabelStyle}>
+        propertyMenu — the property segment opens a menu, here switching the
+        property
+      </span>
+      <PropertyMenuDemo />
+      <span style={stateLabelStyle}>
+        propertyOnClick — the property segment is a plain button
+      </span>
+      <PropertyClickDemo />
+      <span style={stateLabelStyle}>
+        responsive, long content in a max-width container
+      </span>
+      <div style={maxWidthContainerStyle}>
+        <Filter<LongContentValues>
+          property="contactEmail"
+          propertyLabel="Organization primary contact email address"
+          operators={LongContentOperators}
+          value={{
+            key: "alphabeticallyBetween",
+            value: [
+              "aaron.alderman@extremely-long-organization-domain.example.com",
+              "zachariah.zimmermann@extremely-long-organization-domain.example.com",
+            ],
+          }}
+          onChange={noop}
+          removeable={{ onRemove: noop }}
+        />
+      </div>
+      <KitchenSinkState
+        label="not removeable"
+        value={{ key: "equals", value: "fixed filter" }}
+        removeable={false}
+      />
+      <KitchenSinkState
+        label="disabled"
+        value={{ key: "gt", value: 42 }}
+        disabled
+      />
+      <KitchenSinkState
+        label="with error"
+        value={{ key: "gt", value: 420 }}
+        errors={["Value must be less than 100"]}
+      />
+      <KitchenSinkState
+        label="with multiple errors"
+        value={{ key: "near", value: [200.1234, -300.5678] }}
+        errors={[
+          "Latitude must be between -90 and 90",
+          "Longitude must be between -180 and 180",
+        ]}
+      />
     </div>
-    <KitchenSinkState
-      label="not removeable"
-      value={{ key: "equals", value: "fixed filter" }}
-      removeable={false}
-    />
-    <KitchenSinkState
-      label="disabled"
-      value={{ key: "gt", value: 42 }}
-      disabled
-    />
-    <KitchenSinkState
-      label="with error"
-      value={{ key: "gt", value: 420 }}
-      errors={["Value must be less than 100"]}
-    />
-    <KitchenSinkState
-      label="with multiple errors"
-      value={{ key: "near", value: [200.1234, -300.5678] }}
-      errors={[
-        "Latitude must be between -90 and 90",
-        "Longitude must be between -180 and 180",
-      ]}
-    />
-  </div>
-);
+  ),
+};
 
 const SelectState = ({
   label,
@@ -530,68 +536,73 @@ const SelectState = ({
   </>
 );
 
-export const Selects: Story = () => (
-  <div style={columnStyle}>
-    <span style={stateLabelStyle}>
-      empty — single, multi (searchable), async and tuple select operators
-    </span>
-    <Demo<SelectValues>
-      property="status"
-      propertyLabel="Status"
-      operators={SelectOperators}
-    />
-    <SelectState
-      label="single select with value"
-      value={{ key: "is", value: "inProgress" }}
-    />
-    <SelectState
-      label="single select, no value"
-      value={{ key: "is", value: null }}
-    />
-    <SelectState
-      label="multi select with values"
-      value={{ key: "isAnyOf", value: ["bug", "docs"] }}
-    />
-    <SelectState
-      label='multi select, overflow="summary" — every option selected renders "any"'
-      value={{
-        key: "hasAllOf",
-        value: ["bug", "feature", "docs", "infra", "design"],
-      }}
-    />
-    <span style={stateLabelStyle}>
-      multi select, overflow=&quot;summary&quot; in a max-width container —
-      names fall back to &quot;x of y&quot; once they no longer fit
-    </span>
-    <div style={maxWidthContainerStyle}>
-      <Filter<SelectValues>
+export const Selects: Story = {
+  render: () => (
+    <div style={columnStyle}>
+      <span style={stateLabelStyle}>
+        empty — single, multi (searchable), async and tuple select operators
+      </span>
+      <Demo<SelectValues>
         property="status"
         propertyLabel="Status"
         operators={SelectOperators}
-        value={{ key: "hasAllOf", value: ["bug", "feature", "docs", "infra"] }}
-        onChange={noop}
-        removeable={{ onRemove: noop }}
+      />
+      <SelectState
+        label="single select with value"
+        value={{ key: "is", value: "inProgress" }}
+      />
+      <SelectState
+        label="single select, no value"
+        value={{ key: "is", value: null }}
+      />
+      <SelectState
+        label="multi select with values"
+        value={{ key: "isAnyOf", value: ["bug", "docs"] }}
+      />
+      <SelectState
+        label='multi select, overflow="summary" — every option selected renders "any"'
+        value={{
+          key: "hasAllOf",
+          value: ["bug", "feature", "docs", "infra", "design"],
+        }}
+      />
+      <span style={stateLabelStyle}>
+        multi select, overflow=&quot;summary&quot; in a max-width container —
+        names fall back to &quot;x of y&quot; once they no longer fit
+      </span>
+      <div style={maxWidthContainerStyle}>
+        <Filter<SelectValues>
+          property="status"
+          propertyLabel="Status"
+          operators={SelectOperators}
+          value={{
+            key: "hasAllOf",
+            value: ["bug", "feature", "docs", "infra"],
+          }}
+          onChange={noop}
+          removeable={{ onRemove: noop }}
+        />
+      </div>
+      <SelectState
+        label="async items (1.5s), searchable — the committed value shows while options load"
+        value={{ key: "assignedTo", value: "alex" }}
+      />
+      <SelectState
+        label="select in a tuple with a number input"
+        value={{ key: "became", value: ["done", 7] }}
+      />
+      <SelectState
+        label="single select with a long value — the chip caps at 32ch and the value ellipsifies"
+        value={{ key: "milestone", value: "q3-multiplayer" }}
+      />
+      <SelectState
+        label="disabled"
+        value={{ key: "is", value: "done" }}
+        disabled
       />
     </div>
-    <SelectState
-      label="async items (1.5s), searchable — the committed value shows while options load"
-      value={{ key: "assignedTo", value: "alex" }}
-    />
-    <SelectState
-      label="select in a tuple with a number input"
-      value={{ key: "became", value: ["done", 7] }}
-    />
-    <SelectState
-      label="single select with a long value — the chip caps at 32ch and the value ellipsifies"
-      value={{ key: "milestone", value: "q3-multiplayer" }}
-    />
-    <SelectState
-      label="disabled"
-      value={{ key: "is", value: "done" }}
-      disabled
-    />
-  </div>
-);
+  ),
+};
 
 type GroupEntry = { id: number; propertyLabel: string } & (
   | { operators: "kitchenSink"; value: FilterValue<KitchenSinkValues> | null }
@@ -728,43 +739,50 @@ const GroupDemo = ({
   );
 };
 
-export const Group: Story = () => (
-  <div style={columnStyle}>
-    <GroupDemo />
-    <span style={stateLabelStyle}>add button contents</span>
-    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-      <FilterGroup.AddFilter onClick={noop} />
-      <FilterGroup.AddFilter renderAs="plusLabel" onClick={noop} />
-      <FilterGroup.AddFilter renderAs="filterIcon" onClick={noop} />
-    </div>
-    <span style={stateLabelStyle}>
-      dismissAbandoned: the group below sets `dismissAbandoned`. Leave a chip
-      incomplete — no operator, or any input empty (including emptying an input
-      of one of the pre-filled chips) — then click or focus outside the group:
-      after 1s every incomplete chip fades out over 2s and removes itself.
-      Interacting with anything in the group — any chip and its dropdowns, the
-      buttons — rescues them. Complete chips and input-less ones (&quot;is
-      true&quot;) are never dismissed.
-    </span>
-    <GroupDemo dismissAbandoned />
-  </div>
-);
-
-export const Sizes: Story = () => (
-  <div style={columnStyle}>
-    {formInputSizes.map((size) => (
-      <div key={size} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <span style={{ width: 32, fontSize: 12, color: "#999" }}>{size}</span>
-        <Filter<KitchenSinkValues>
-          property="value"
-          propertyLabel="Value"
-          operators={KitchenSinkOperators}
-          value={{ key: "between", value: [10, 50, 90] }}
-          onChange={noop}
-          size={size}
-          removeable={{ onRemove: noop }}
-        />
+export const Group: Story = {
+  render: () => (
+    <div style={columnStyle}>
+      <GroupDemo />
+      <span style={stateLabelStyle}>add button contents</span>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <FilterGroup.AddFilter onClick={noop} />
+        <FilterGroup.AddFilter renderAs="plusLabel" onClick={noop} />
+        <FilterGroup.AddFilter renderAs="filterIcon" onClick={noop} />
       </div>
-    ))}
-  </div>
-);
+      <span style={stateLabelStyle}>
+        dismissAbandoned: the group below sets `dismissAbandoned`. Leave a chip
+        incomplete — no operator, or any input empty (including emptying an
+        input of one of the pre-filled chips) — then click or focus outside the
+        group: after 1s every incomplete chip fades out over 2s and removes
+        itself. Interacting with anything in the group — any chip and its
+        dropdowns, the buttons — rescues them. Complete chips and input-less
+        ones (&quot;is true&quot;) are never dismissed.
+      </span>
+      <GroupDemo dismissAbandoned />
+    </div>
+  ),
+};
+
+export const Sizes: Story = {
+  render: () => (
+    <div style={columnStyle}>
+      {formInputSizes.map((size) => (
+        <div
+          key={size}
+          style={{ display: "flex", gap: 8, alignItems: "center" }}
+        >
+          <span style={{ width: 32, fontSize: 12, color: "#999" }}>{size}</span>
+          <Filter<KitchenSinkValues>
+            property="value"
+            propertyLabel="Value"
+            operators={KitchenSinkOperators}
+            value={{ key: "between", value: [10, 50, 90] }}
+            onChange={noop}
+            size={size}
+            removeable={{ onRemove: noop }}
+          />
+        </div>
+      ))}
+    </div>
+  ),
+};
