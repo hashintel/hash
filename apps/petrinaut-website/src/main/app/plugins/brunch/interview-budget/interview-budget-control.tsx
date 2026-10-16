@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   PiGauge,
   PiLightning,
@@ -64,6 +64,15 @@ export const InterviewBudgetControl = ({
   const [hovered, setHovered] = useState<InterviewBudgetLevel | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
+  // The tooltip is disabled while the picker is open so it cannot cover it.
+  // Toggling `disableTooltip` remounts the trigger, so the Popover's own focus
+  // return lands on a detached button. Restore it after an Escape dismissal.
+  const refocusTrigger = useRef(false);
+  useEffect(() => {
+    if (open || !refocusTrigger.current) return;
+    refocusTrigger.current = false;
+    triggerRef.current?.focus();
+  }, [open]);
   const config = interviewBudgetLevelsConfig[level];
   const CurrentIcon = icons[level];
   const selectedIndex = interviewBudgetLevels.indexOf(level);
@@ -106,6 +115,7 @@ export const InterviewBudgetControl = ({
         aria-expanded={open}
         aria-haspopup="dialog"
         tooltip={`Interview length · ${config.name}`}
+        tooltipOptions={{ disableTooltip: open }}
         prefix={<CurrentIcon size={15} />}
         onClick={() => {
           setHovered(null);
@@ -120,10 +130,13 @@ export const InterviewBudgetControl = ({
           gapY={10}
           onClose={() => setOpen(false)}
         >
-          {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Clears the stops' hover preview when the pointer leaves the group; no keyboard equivalent is needed. */}
+          {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Observes Escape bubbling from the slider, since Popover's onClose does not say why it closed, and clears the stops' hover preview when the pointer leaves. */}
           <div
             role="group"
             aria-label="Interview length"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") refocusTrigger.current = true;
+            }}
             onMouseLeave={() => setHovered(null)}
             className={`${levelTheme[level]} ${css({
               width: "[324px]",
