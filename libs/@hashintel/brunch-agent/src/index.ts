@@ -46,6 +46,7 @@ export {
   type NetStructure,
 } from "./petrinaut/net-readers";
 export {
+  arcDirections,
   generatedArcId,
   namesId,
   storedNetElementId,

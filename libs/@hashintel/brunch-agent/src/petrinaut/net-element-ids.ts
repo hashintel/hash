@@ -7,6 +7,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import type { NetElementKind } from "./petrinaut-tool-effects";
+import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 
 /**
  * Whether `written` names `id`: as written, or as the converted id the
@@ -31,9 +32,15 @@ export const storedNetElementId = ({
 /** An arc by its endpoints, as the arc actions identify it. */
 export interface ArcElement {
   readonly transitionId: string;
-  readonly arcDirection: "input" | "output";
+  readonly arcDirection: PetrinautAiToolInput<"removeArc">["arcDirection"];
   readonly placeId: string;
 }
+
+/** Every arc direction, relative to the arc's transition. */
+export const arcDirections = [
+  "input",
+  "output",
+] as const satisfies readonly ArcElement["arcDirection"][];
 
 /** The ID Petrinaut generates for an arc, which `deleteItemsByIds` uses. */
 export const generatedArcId = (arc: ArcElement): string => {

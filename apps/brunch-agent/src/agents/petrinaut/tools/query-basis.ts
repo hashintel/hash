@@ -2,6 +2,7 @@ import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
 import {
+  arcDirections,
   brunchTools,
   foldCommits,
   generatedArcId,
@@ -46,7 +47,7 @@ const elementSchema = v.object({
       ),
       arcDirection: v.optional(
         v.pipe(
-          v.picklist(["input", "output"]),
+          v.picklist(arcDirections),
           v.description(
             "For an arc: its direction relative to the transition.",
           ),
@@ -99,7 +100,7 @@ const netElements = (
   // An arc is identified by its transition and endpoint, not a standalone ID.
   return net.transitions.flatMap((transition) => {
     const arcElements = (
-      arcDirection: "input" | "output",
+      arcDirection: ArcElement["arcDirection"],
       arcs: readonly Pick<
         (typeof transition.inputArcs)[number],
         "endpoint" | "placeId"

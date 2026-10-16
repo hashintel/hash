@@ -4,6 +4,7 @@ import {
   type EntityKind,
   type EntityStage,
 } from "../elicitation/entities";
+import { questionStatuses } from "../shared/epistemics";
 
 import type {
   ClaimRecord,
@@ -198,7 +199,7 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     .filter((section) => section.kinds.length > 0);
 
   const questions = currentClaims
-    .filter((claim) => claim.status === "open" || claim.status === "conflicted")
+    .filter((claim) => questionStatuses.has(claim.status))
     .map((claim) => projectQuestion(claim, ledger));
 
   const nameOf = (address: string) =>
