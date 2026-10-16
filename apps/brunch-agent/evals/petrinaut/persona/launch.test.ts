@@ -13,7 +13,7 @@ import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
 } from "../../../src/shared/chat-model.ts";
-import { flueConversationIdFrom } from "../../../src/shared/conversation/identity.ts";
+import { flueConversationId } from "../../../src/shared/conversation/identity.ts";
 import {
   documentIdFromInitialData,
   personaEnvironment,
@@ -167,7 +167,7 @@ test.each([false, true])(
           JSON.stringify({
             ...identity,
             uid: "TEST-uid",
-            url: `${config.panelOrigin}/agents/petrinaut/${flueConversationIdFrom(identity)}`,
+            url: `${config.panelOrigin}/agents/petrinaut/${flueConversationId(identity)}`,
             initialData: {
               binding: {
                 conversationId: identity.conversationId,
@@ -270,7 +270,7 @@ test("resume requires the bridge log that Pi-era runs lack", async () => {
         JSON.stringify({
           ...identity,
           uid: "TEST-uid",
-          url: `${panelOrigin}/agents/petrinaut/${flueConversationIdFrom(identity)}`,
+          url: `${panelOrigin}/agents/petrinaut/${flueConversationId(identity)}`,
           initialData: {
             binding: {
               conversationId: identity.conversationId,
