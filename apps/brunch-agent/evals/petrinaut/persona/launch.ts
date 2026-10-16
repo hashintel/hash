@@ -497,6 +497,10 @@ const launchPersona = async ({
       executablePath: chromeExecutable,
       headless: false,
       viewport: null,
+      // The launcher's own handlers stop the run and close the browser; Playwright's
+      // would kill it and exit 130 before cleanup retains the run.
+      handleSIGINT: false,
+      handleSIGTERM: false,
       args: [
         "--remote-debugging-address=127.0.0.1",
         "--remote-debugging-port=0",
