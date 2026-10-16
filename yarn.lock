@@ -10233,6 +10233,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/hashql-typescript-docs@workspace:libs/@local/hashql/sdk/typescript-docs"
   dependencies:
+    "@effect/platform-node": "npm:4.0.0"
     "@fumadocs/satteri": "npm:0.5.1"
     "@local/hashql": "workspace:*"
     "@local/oxlint": "workspace:*"
@@ -10256,6 +10257,7 @@ __metadata:
     fumadocs-twoslash: "npm:4.0.1"
     fumadocs-ui: "npm:16.16.2"
     next: "npm:16.3.8"
+    oxc-parser: "npm:0.152.0"
     oxfmt: "npm:0.71.0"
     oxlint: "catalog:"
     react: "npm:19.2.6"

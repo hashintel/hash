@@ -1,0 +1,46 @@
+{
+  "package": "@local/hashql-typescript-docs",
+  "dependencies": [
+    "@local/hashql",
+    "@local/oxlint",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": []
+    },
+    "codegen": {
+      "dependsOn": []
+    },
+    "dev": {
+      "dependsOn": [],
+      "cache": false,
+      "persistent": true
+    },
+    "lint:oxlint": {
+      "dependsOn": [
+        "@local/hashql#build",
+        "@local/oxlint#build",
+        "codegen"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@local/hashql#build",
+        "@local/oxlint#build",
+        "codegen"
+      ]
+    },
+    "start": {
+      "dependsOn": [],
+      "cache": false,
+      "persistent": true
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}

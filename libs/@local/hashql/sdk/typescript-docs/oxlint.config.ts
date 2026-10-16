@@ -1,9 +1,20 @@
 import { createConfig, defineConfig } from "@local/oxlint";
 
 export default defineConfig({
-  extends: [createConfig({ runtime: "node", frameworks: ["react", "next"] })],
+  extends: [
+    createConfig({ runtime: "node", frameworks: ["react", "next", "effect"] }),
+  ],
   ignorePatterns: [".next/**", ".source/**", "next-env.d.ts"],
   overrides: [
+    {
+      files: ["src/**/*.ts"],
+      rules: {
+        "unicorn/filename-case": [
+          "deny", // filename casing follows Effect style
+          { cases: { pascalCase: true, kebabCase: true } },
+        ],
+      },
+    },
     {
       files: ["app/**/*.tsx", "*.config.mjs"],
       rules: {

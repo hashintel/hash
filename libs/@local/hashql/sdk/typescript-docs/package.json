@@ -9,11 +9,6 @@
     "build": "next build --webpack",
     "codegen": "fumadocs-mdx",
     "dev": "next dev --webpack --hostname 127.0.0.1 --port ${PORT:-4398}",
-    "doc:declarations": "tsc --project tsconfig.api.json",
-    "doc:examples": "node --experimental-strip-types scripts/examples.mts",
-    "doc:markdown": "api-documenter markdown --input-folder .generated/api-model --output-folder .generated/markdown",
-    "doc:model": "node --experimental-strip-types scripts/extract.mts",
-    "doc:render": "node --experimental-strip-types scripts/render.mts",
     "fix:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts --fix",
     "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
     "lint:tsc": "tsc --noEmit",
@@ -33,6 +28,7 @@
     "satteri": "0.10.5"
   },
   "devDependencies": {
+    "@effect/platform-node": "4.0.0",
     "@local/oxlint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@microsoft/api-documenter": "7.30.18",
@@ -49,6 +45,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "effect": "4.0.0",
+    "oxc-parser": "0.152.0",
     "oxfmt": "0.71.0",
     "oxlint": "catalog:",
     "remark-mdx": "3.1.1",
