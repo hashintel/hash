@@ -49,6 +49,14 @@ export const FilePreviewSearch = ({
 
   const debouncedSearch = debounce(onSearch, 300);
 
+  const previousHitIndex =
+    selectedIndex !== null && selectedIndex > 0 ? selectedIndex - 1 : null;
+
+  const nextHitIndex =
+    selectedIndex !== null && selectedIndex < total - 1
+      ? selectedIndex + 1
+      : null;
+
   useEffect(() => {
     if (showSearch) {
       inputRef.current?.focus();
@@ -80,10 +88,8 @@ export const FilePreviewSearch = ({
             ),
           }}
           onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              if (selectedIndex !== null && selectedIndex < total - 1) {
-                onSelectHit(selectedIndex + 1);
-              }
+            if (event.key === "Enter" && nextHitIndex !== null) {
+              onSelectHit(nextHitIndex);
             }
           }}
           onChange={(event) => {
@@ -129,10 +135,10 @@ export const FilePreviewSearch = ({
             >
               <GrayToBlueIconButton
                 aria-label="Previous result"
-                disabled={selectedIndex === null || selectedIndex === 0}
+                disabled={previousHitIndex === null}
                 onClick={() => {
-                  if (selectedIndex !== null && selectedIndex > 0) {
-                    onSelectHit(selectedIndex - 1);
+                  if (previousHitIndex !== null) {
+                    onSelectHit(previousHitIndex);
                   }
                 }}
                 sx={{ "& svg": { fontSize: 10 }, p: 0.6 }}
@@ -151,10 +157,10 @@ export const FilePreviewSearch = ({
               </Typography>
               <GrayToBlueIconButton
                 aria-label="Next result"
-                disabled={selectedIndex === null || selectedIndex === total - 1}
+                disabled={nextHitIndex === null}
                 onClick={() => {
-                  if (selectedIndex !== null && selectedIndex < total - 1) {
-                    onSelectHit(selectedIndex + 1);
+                  if (nextHitIndex !== null) {
+                    onSelectHit(nextHitIndex);
                   }
                 }}
                 sx={{ "& svg": { fontSize: 10 }, p: 0.6 }}
