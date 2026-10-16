@@ -211,6 +211,9 @@ export const FilePreviewSection = () => {
         isPdf ? (
           <Stack direction="row" gap={1} ml={3}>
             <GrayToBlueIconButton
+              aria-label={
+                showThumbnails ? "Hide thumbnails" : "Show thumbnails"
+              }
               onClick={() => setShowThumbnails(!showThumbnails)}
             >
               <SidebarRegularIcon
@@ -220,7 +223,10 @@ export const FilePreviewSection = () => {
                 }}
               />
             </GrayToBlueIconButton>
-            <GrayToBlueIconButton onClick={() => setShowSearch(!showSearch)}>
+            <GrayToBlueIconButton
+              aria-label={showSearch ? "Hide search" : "Show search"}
+              onClick={() => setShowSearch(!showSearch)}
+            >
               <MagnifyingGlassRegularIcon
                 sx={{
                   color: ({ palette }) =>
@@ -236,7 +242,10 @@ export const FilePreviewSection = () => {
           {isImage && (
             <Tooltip placement="top" title="View in fullscreen">
               <Box>
-                <GrayToBlueIconButton onClick={() => fullScreenHandle.enter()}>
+                <GrayToBlueIconButton
+                  aria-label="Full screen"
+                  onClick={() => fullScreenHandle.enter()}
+                >
                   <ArrowUpRightAndArrowDownLeftFromCenterIcon />
                 </GrayToBlueIconButton>
               </Box>
@@ -253,6 +262,7 @@ export const FilePreviewSection = () => {
             >
               <Box>
                 <GrayToBlueIconButton
+                  aria-label="Replace file"
                   disabled={isDirty}
                   onClick={() => setReplacing(true)}
                 >
@@ -268,7 +278,7 @@ export const FilePreviewSection = () => {
               href={fileUrl}
               rel="nofollow noopener noreferrer"
             >
-              <GrayToBlueIconButton>
+              <GrayToBlueIconButton aria-label="Download">
                 <DownloadRegularIcon />
               </GrayToBlueIconButton>
             </Box>
@@ -280,7 +290,7 @@ export const FilePreviewSection = () => {
               target="_blank"
               rel="nofollow noopener noreferrer"
             >
-              <GrayToBlueIconButton>
+              <GrayToBlueIconButton aria-label="Open in new tab">
                 <ArrowUpRightFromSquareRegularIcon
                   sx={{ width: 13, height: 13 }}
                 />

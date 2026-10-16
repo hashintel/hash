@@ -319,6 +319,7 @@ export const PdfPreview = ({
                   >
                     <Stack direction="row" alignItems="center" gap={1}>
                       <GrayToBlueIconButton
+                        aria-label="Previous page"
                         disabled={selectedPageNumber === 1}
                         onClick={() =>
                           setSelectedPageNumber(selectedPageNumber - 1)
@@ -339,6 +340,7 @@ export const PdfPreview = ({
                         {`${selectedPageNumber} of ${totalPages}`}
                       </Typography>
                       <GrayToBlueIconButton
+                        aria-label="Next page"
                         disabled={selectedPageNumber === totalPages}
                         onClick={() =>
                           setSelectedPageNumber(selectedPageNumber + 1)
@@ -407,11 +409,13 @@ export const PdfPreview = ({
                 >
                   <Stack direction="row" alignItems="center" gap={1}>
                     <GrayToBlueIconButton
+                      aria-label="Zoom out"
                       onClick={() => setScale((prev) => prev - 0.2)}
                     >
                       <MagnifyingGlassMinusLightIcon />
                     </GrayToBlueIconButton>
                     <GrayToBlueIconButton
+                      aria-label="Zoom in"
                       onClick={() => setScale((prev) => prev + 0.2)}
                     >
                       <MagnifyingGlassPlusLightIcon />
@@ -426,6 +430,11 @@ export const PdfPreview = ({
                     </Typography>
                   </Stack>
                   <GrayToBlueIconButton
+                    aria-label={
+                      fullScreenHandle.active
+                        ? "Exit full screen"
+                        : "Full screen"
+                    }
                     onClick={
                       fullScreenHandle[
                         fullScreenHandle.active ? "exit" : "enter"
