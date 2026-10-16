@@ -123,6 +123,13 @@ test.describe("DOCX preview", () => {
     await expect(page.locator("[data-folio-selection-rect]")).toHaveCount(0);
   });
 
+  test("offers no Open in new tab button", async ({ page }) => {
+    await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Open in new tab" }),
+    ).toHaveCount(0);
+  });
+
   test("the preview cannot be edited", async ({ page }) => {
     const docxPage = getDocxPage(page, firstPage.heading);
     const textBefore = (await docxPage.textContent()) ?? "";
@@ -247,6 +254,9 @@ test("a corrupt .docx file falls back to the icon view and keeps the download", 
   ).toBeVisible({ timeout: 15_000 });
   await expect(page.locator(".layout-page")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open in new tab" }),
+  ).toHaveCount(0);
 });
 
 test.describe("a .docx file folio cannot draw", () => {

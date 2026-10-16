@@ -301,20 +301,22 @@ export const FilePreviewSection = () => {
               </GrayToBlueIconButton>
             </Box>
           </Tooltip>
-          <Tooltip placement="top" title="Open in new tab">
-            <Box
-              component="a"
-              href={fileUrl}
-              target="_blank"
-              rel="nofollow noopener noreferrer"
-            >
-              <GrayToBlueIconButton aria-label="Open in new tab">
-                <ArrowUpRightFromSquareRegularIcon
-                  sx={{ width: 13, height: 13 }}
-                />
-              </GrayToBlueIconButton>
-            </Box>
-          </Tooltip>
+          {!isDocxFile && (
+            <Tooltip placement="top" title="Open in new tab">
+              <Box
+                component="a"
+                href={fileUrl}
+                target="_blank"
+                rel="nofollow noopener noreferrer"
+              >
+                <GrayToBlueIconButton aria-label="Open in new tab">
+                  <ArrowUpRightFromSquareRegularIcon
+                    sx={{ width: 13, height: 13 }}
+                  />
+                </GrayToBlueIconButton>
+              </Box>
+            </Tooltip>
+          )}
         </Stack>
       }
     >
