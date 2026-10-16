@@ -648,14 +648,17 @@ test("preserves one browser call across key-order-equivalent stream and final re
 
 test("leaves unrelated provider use and its streaming behavior untouched", async () => {
   const { faux, provider, model } = fixture(false);
+  // Pi times a final message only when it is no older than its stream, so a
+  // response older than both streams keeps the comparison free of timing.
   const response = fauxAssistantMessage(
     [fauxToolCall("server", {}), fauxToolCall("browser", {})],
-    { stopReason: "toolUse" },
+    { stopReason: "toolUse", timestamp: 0 },
   );
   faux.setResponses([response]);
   const original = await collect(
     faux.provider.streamSimple(model, emptyTranscript),
   );
+  expect(original.result).not.toHaveProperty("durationMs");
   faux.setResponses([response]);
   expect(
     (await collect(provider.streamSimple(model, emptyTranscript))).result,
