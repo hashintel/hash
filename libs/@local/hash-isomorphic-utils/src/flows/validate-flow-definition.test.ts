@@ -836,6 +836,7 @@ describe("validateFlowDefinition", () => {
           propertyTypeBaseUrl:
             "https://example.com/types/property-type/email/v/1",
         },
+        code: "invalidInput",
         message:
           "An entity property subject requires a property type base URL.",
       },
@@ -843,19 +844,28 @@ describe("validateFlowDefinition", () => {
         (subject) => ({
           name: `a subject other than an entity property: ${subject.kind}`,
           overrides: subject,
+          code: "invalidInput",
           message: "The property to read must be an entity property subject.",
         }),
       ),
+      {
+        name: "a missing kind",
+        overrides: { payloadKind: undefined },
+        code: "invalidInput",
+        message: "An entity property subject requires a known payload kind.",
+      },
       ...["EntityId", "DateTime", "Duration"].map((payloadKind) => ({
-        name: `the unsupported kind ${payloadKind}`,
+        name: `the kind ${payloadKind}, which the value can't have`,
         overrides: { payloadKind },
-        message: "A property can only be read as Text, Number, Boolean, Date.",
+        code: "unresolvedKind",
+        message:
+          'The output "value" of action "readEntity" has the kind input "property" declares, which must be one of Text, Number, Boolean, Date',
       })),
-    ])("rejects $name", ({ overrides, message }) => {
+    ])("rejects $name", ({ overrides, code, message }) => {
       expect(errorsOf({ property: property(overrides) })).toEqual([
         {
           severity: "error",
-          code: "invalidInput",
+          code,
           message,
           path: ["steps", 0, "inputs", "property"],
         },

@@ -25,11 +25,8 @@ export type EntityProperty = Extract<
   { kind: "entityProperty" }
 > & { payloadKind: ReadEntityKind };
 
-/**
- * Checks the property a Read entity step reads, returning why it's invalid. Run when the flow is defined, and by the
- * step when it runs.
- */
-export const validateEntityProperty = (
+/** Checks that the property a Read entity step reads is an entity property subject, returning why it isn't. */
+const validatePropertySubject = (
   property: EntityProperty,
 ): string | undefined => {
   /*
@@ -39,7 +36,14 @@ export const validateEntityProperty = (
   if ((property as ConditionSubject | null)?.kind !== "entityProperty") {
     return "The property to read must be an entity property subject.";
   }
-  const subjectError = validateSubject(property, "EntityId");
+  return validateSubject(property, "EntityId");
+};
+
+/** Checks the property a Read entity step reads, and the kind it's read as, returning why it's invalid. */
+export const validateEntityProperty = (
+  property: EntityProperty,
+): string | undefined => {
+  const subjectError = validatePropertySubject(property);
   if (subjectError) {
     return subjectError;
   }
@@ -52,8 +56,8 @@ export const validateEntityProperty = (
 };
 
 /**
- * Checks a Read entity step's constant `property` input when the flow is defined. That it is a constant is checked
- * with every output whose kind an input declares (see `KindDeclaredBy`).
+ * Checks a Read entity step's constant `property` input when the flow is defined. That it is a constant declaring one
+ * of the {@link readEntityKinds} is checked with every output whose kind an input declares (see `KindDeclaredBy`).
  */
 export const checkReadEntityInputs: ActionStepCheck = ({ step, report }) => {
   const { property } = step.inputs;
@@ -66,7 +70,7 @@ export const checkReadEntityInputs: ActionStepCheck = ({ step, report }) => {
     return;
   }
 
-  const error = validateEntityProperty(
+  const error = validatePropertySubject(
     property.payload.value as EntityProperty,
   );
 
