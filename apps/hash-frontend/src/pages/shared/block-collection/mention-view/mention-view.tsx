@@ -11,7 +11,7 @@ export class MentionView implements NodeView {
   constructor(
     public node: Node,
     public view: EditorView,
-    public getPos: () => number,
+    public getPos: () => number | undefined,
     public renderPortal: RenderPortal,
     public webId: WebId,
   ) {

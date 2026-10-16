@@ -7,7 +7,11 @@ import type { EditorView } from "prosemirror-view";
 
 export const mentionNodeView =
   (renderPortal: RenderPortal, webId: WebId) =>
-  (currentNode: Node, currentView: EditorView, getPos: () => number) => {
+  (
+    currentNode: Node,
+    currentView: EditorView,
+    getPos: () => number | undefined,
+  ) => {
     if (typeof getPos === "boolean") {
       throw new Error("Invalid config for nodeview");
     }
