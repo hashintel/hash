@@ -51,6 +51,15 @@ test.describe("DOCX preview", () => {
       .toBeGreaterThan(widthBeforeZoom);
   });
 
+  test("zooming out stops at 25%", async ({ page }) => {
+    const zoomOut = page.getByRole("button", { name: "Zoom out" });
+
+    for (const label of ["80%", "60%", "40%", "25%", "25%"]) {
+      await zoomOut.click();
+      await expect(page.getByText(label, { exact: true })).toBeVisible();
+    }
+  });
+
   test("ctrl+wheel leaves the zoom to the zoom buttons", async ({ page }) => {
     await getDocxPage(page, firstPage.heading).hover();
     await page.keyboard.down("Control");

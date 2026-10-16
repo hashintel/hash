@@ -2,6 +2,7 @@ import "@stll/folio-react/standalone.css";
 import { Box, CircularProgress } from "@mui/material";
 import { DocxEditor } from "@stll/folio-react";
 import { getFolioMessages } from "@stll/folio-react/messages";
+import clamp from "lodash/clamp";
 import { useImperativeHandle, useRef } from "react";
 import { IntlProvider } from "use-intl";
 
@@ -38,6 +39,9 @@ type FolioDocumentProps = {
 
 const folioMessages = getFolioMessages("en");
 
+const minZoom = 0.25;
+const maxZoom = 4;
+
 export const FolioDocument = ({
   controlsRef,
   data,
@@ -65,7 +69,7 @@ export const FolioDocument = ({
         if (!editor) {
           return;
         }
-        editor.setZoom(editor.getZoom() + step);
+        editor.setZoom(clamp(editor.getZoom() + step, minZoom, maxZoom));
         onZoomChange(editor.getZoom());
       },
       search,
