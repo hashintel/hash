@@ -1,17 +1,14 @@
 import {
   type ArcElement,
   type NetElementKind,
+  browserNetToolNames,
   browserToolEnvelopeOf,
   generatedArcId,
   namesId,
-  netReaderLevelOf,
   parseClientToolResultMetadata,
   petrinautToolTargets,
 } from "@hashintel/brunch-agent";
-import {
-  petrinautAiTools,
-  getLatestNetDefinitionToolName,
-} from "@hashintel/petrinaut-core/ai";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { netResultView } from "./net-view.ts";
 
@@ -44,10 +41,7 @@ export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
       ? message.parts.flatMap((part, partIndex) => {
           if (
             part.type !== "dynamic-tool" ||
-            !(
-              part.toolName in petrinautAiTools ||
-              netReaderLevelOf(part.toolName) !== undefined
-            ) ||
+            !browserNetToolNames.has(part.toolName) ||
             part.state !== "output-available"
           )
             return [];

@@ -69,6 +69,7 @@ import {
   type OpenAIVoiceConfig,
 } from "./voice/session/voice-interview-control";
 
+import type { SdcpnInitialData } from "@hashintel/brunch-agent";
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
 import type {
   PetrinautAiAssistant,
@@ -408,7 +409,11 @@ export const useBrunchAssistant = ({
         ? null
         : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
             ...(constructionBrowser
-              ? { initialData: { binding: constructionBrowser.binding } }
+              ? {
+                  initialData: {
+                    binding: constructionBrowser.binding,
+                  } satisfies SdcpnInitialData,
+                }
               : {}),
             ...(conversationId === null
               ? {}
