@@ -107,6 +107,8 @@ export const liveInterviewBudgetInstruction = (
 export const liveInterviewBudgetUpdate = (
   level: InterviewBudgetLevel,
 ): string =>
-  level === "off"
-    ? "Interview length is now Off. Follow Brunch's ordinary interview pacing; Brunch still decides the questions. Do not speak this note."
-    : liveInterviewBudgetInstruction(level);
+  `${
+    level === "off"
+      ? "Interview length is now Off. Follow Brunch's ordinary interview pacing; Brunch still decides the questions."
+      : liveInterviewBudgetInstruction(level)
+  } Do not speak this note.`;
