@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ftseInvestorsFlow } from "./ftse-investors-flow-definition.js";
 import { goalFlow } from "./goal-flow-definitions.js";
+import { maxEntitiesPerStep } from "./limits.js";
 import {
   type FlowDefinitionDiagnostic,
   validateFlowDefinition,
@@ -787,7 +788,7 @@ describe("validateFlowDefinition", () => {
 
     it("accepts a constant filter, sort and limit that fit, or a limit from elsewhere", () => {
       for (const limit of [
-        constant("Number", 100_000),
+        constant("Number", maxEntitiesPerStep),
         { kind: "flow-input", inputName: "limit" },
       ]) {
         expect(
@@ -894,11 +895,11 @@ describe("validateFlowDefinition", () => {
         message:
           "A field subject requires an object input and nonempty, safe own-property names.",
       },
-      ...[0, 100_001].map((limit) => ({
+      ...[0, maxEntitiesPerStep + 1].map((limit) => ({
         name: `a limit of ${limit}`,
         inputs: { filter: startsWithAcme, limit: constant("Number", limit) },
         inputName: "limit",
-        message: "The limit must be a whole number from 1 to 100,000.",
+        message: `The limit must be a whole number from 1 to ${maxEntitiesPerStep.toLocaleString("en")}.`,
       })),
     ])("rejects $name", ({ inputs, inputName, message }) => {
       expect(errorsOf(inputs)).toEqual([

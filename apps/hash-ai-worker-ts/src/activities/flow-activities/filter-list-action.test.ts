@@ -7,6 +7,7 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 import { StatusCode } from "@local/status";
 
 import { filterListAction } from "./filter-list-action.js";
@@ -312,14 +313,14 @@ describe("filterListAction", () => {
   it("fails instead of loading more entities than a condition can read", async () => {
     vi.mocked(queryEntities).mockClear();
     const entityIds = Array.from(
-      { length: 100_001 },
+      { length: maxEntitiesPerStep + 1 },
       (_, index) =>
         `${webId}~00000000-0000-4000-8000-${index.toString().padStart(12, "0")}` as EntityId,
     );
 
     await expect(
       run({ kind: "EntityId", value: entityIds }, isCompany),
-    ).rejects.toThrow("at most 100000 entities");
+    ).rejects.toThrow(`at most ${maxEntitiesPerStep} entities`);
     expect(queryEntities).not.toHaveBeenCalled();
   });
 
