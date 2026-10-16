@@ -195,10 +195,11 @@ export const resolveDraftAuthorityFromHistory = async (
     throw new Error(
       "The AI assistant needs to read the latest model before drafting.",
     );
-  const envelope = latest.output;
+  // The sidecar is taken from any recorded object, enveloped or not.
+  const recorded = latest.output;
   const metadata =
-    typeof envelope === "object" && envelope !== null && "metadata" in envelope
-      ? parseClientToolResultMetadata(envelope.metadata)
+    typeof recorded === "object" && recorded !== null && "metadata" in recorded
+      ? parseClientToolResultMetadata(recorded.metadata)
       : undefined;
   const revision = metadata?.documentRevision.before;
   if (revision === undefined)

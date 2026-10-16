@@ -5,8 +5,10 @@
 import { toolName } from "./conversation/naming";
 
 export {
+  browserToolEnvelopeOf,
   browserToolOutput,
   CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH,
+  type BrowserToolEnvelope,
   type ClientToolResult,
 } from "./client-tools/browser-tool-result";
 export {

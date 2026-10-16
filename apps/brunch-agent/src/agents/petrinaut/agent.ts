@@ -103,7 +103,7 @@ export function PetrinautAgent({ id }: AgentProps) {
               : undefined;
             if (expected && "refusal" in expected)
               throw new Error(expected.refusal);
-            const result = await issueBrowserCall({
+            return issueBrowserCall({
               instanceId: id,
               toolCallId,
               toolName,
@@ -114,7 +114,6 @@ export function PetrinautAgent({ id }: AgentProps) {
                 : { expectedRevision: expected.revision }),
               signal,
             });
-            return { output: result.output, metadata: result.metadata };
           },
         }
       : {},

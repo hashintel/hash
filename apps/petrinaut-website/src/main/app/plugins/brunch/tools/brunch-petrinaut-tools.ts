@@ -1,5 +1,7 @@
 import {
+  browserToolEnvelopeOf,
   browserToolMutatesDocument,
+  type ClientToolHistoryResult,
   type ClientToolResultMetadata,
   type NetReaderLevel,
   netReaderToolNames,
@@ -26,14 +28,11 @@ import {
 
 import type { FlueConversationState } from "@flue/sdk";
 
-type DocumentRevisionMetadata = ClientToolResultMetadata;
-
-type RetainedCall = {
-  readonly toolName: string;
-  readonly input: unknown;
-  readonly output?: unknown;
-  readonly metadata?: DocumentRevisionMetadata;
-};
+type RetainedCall = Pick<ClientToolHistoryResult, "toolName"> &
+  Partial<Pick<ClientToolHistoryResult, "output">> & {
+    readonly input: unknown;
+    readonly metadata?: ClientToolResultMetadata;
+  };
 export interface CanonicalPetrinautReplay {
   readonly calls: ReadonlyMap<string, RetainedCall>;
 }
@@ -57,21 +56,15 @@ export const issuedCanonicalCallsFromHistory = async ({
     for (const part of message.parts) {
       if (part.type !== "dynamic-tool" || !(part.toolName in petrinautAiTools))
         continue;
-      const output =
-        part.state === "output-available" &&
-        typeof part.output === "object" &&
-        part.output !== null &&
-        "brunchBrowserResult" in part.output &&
-        part.output.brunchBrowserResult === true &&
-        "output" in part.output
-          ? part.output.output
-          : undefined;
+      const recorded =
+        part.state === "output-available" ? part.output : undefined;
+      const output = browserToolEnvelopeOf(recorded)?.output;
+      // The sidecar is taken from any recorded object, enveloped or not.
       const metadata =
-        part.state === "output-available" &&
-        typeof part.output === "object" &&
-        part.output !== null &&
-        "metadata" in part.output
-          ? (part.output.metadata as DocumentRevisionMetadata)
+        typeof recorded === "object" &&
+        recorded !== null &&
+        "metadata" in recorded
+          ? (recorded.metadata as ClientToolResultMetadata)
           : undefined;
       calls.set(part.toolCallId, {
         toolName: part.toolName,
@@ -121,7 +114,7 @@ export const createCanonicalPetrinautHostTools = (
       readonly output: unknown;
     }
   >();
-  const metadata = new Map<string, DocumentRevisionMetadata>();
+  const metadata = new Map<string, ClientToolResultMetadata>();
   /** The revision each settled Brunch change started from, keyed by the one it produced. */
   const producedFrom = new Map<string, string>();
   for (const call of replay.values()) {
@@ -307,7 +300,7 @@ export const createCanonicalPetrinautHostTools = (
     clientToolResultMetadataFor: (
       toolCallId: string,
       _output?: unknown,
-    ): DocumentRevisionMetadata => {
+    ): ClientToolResultMetadata => {
       const existing = metadata.get(toolCallId);
       if (existing) return existing;
       const revisionBefore = before.get(toolCallId);
@@ -320,7 +313,7 @@ export const createCanonicalPetrinautHostTools = (
         (toolName === undefined || browserToolMutatesDocument(toolName));
       if (changed) producedFrom.set(revisionAfter, revisionBefore);
       const definition = changed ? input.handle.doc() : undefined;
-      const result: DocumentRevisionMetadata = {
+      const result: ClientToolResultMetadata = {
         documentRevision: {
           ...(revisionBefore === undefined ? {} : { before: revisionBefore }),
           ...(changed ? { after: revisionAfter } : {}),
