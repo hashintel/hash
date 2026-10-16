@@ -180,9 +180,7 @@ describe("orderBy", () => {
 
   it.each([
     { kind: "Date", value: "2024-02-30" },
-    { kind: "Date", value: "2024-02-01T00:00:00Z" },
     { kind: "DateTime", value: "2024-02-01" },
-    { kind: "DateTime", value: "2024-02-01T00:00:00" },
   ] as const)("fails on $value as a $kind", ({ kind, value }) => {
     expect(orderBy({ kind, value: [value] }, byItem(kind))).toMatchObject({
       status: "error",

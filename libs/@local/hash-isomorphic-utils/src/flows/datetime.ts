@@ -1,7 +1,5 @@
-const minuteMs = 60_000;
-const hourMs = 60 * minuteMs;
-
-/** The length of a UTC calendar day, which has no leap seconds in epoch time. */
+export const minuteMs = 60_000;
+export const hourMs = 60 * minuteMs;
 export const dayMs = 24 * hourMs;
 
 /** Whether a string is an ISO calendar date (YYYY-MM-DD) that exists, e.g. not 2025-02-30. */

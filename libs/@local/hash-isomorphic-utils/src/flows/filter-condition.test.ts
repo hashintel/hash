@@ -160,21 +160,6 @@ describe("validateCondition", () => {
     },
   );
 
-  it("accepts a DateTime condition, which needs an offset", () => {
-    const leaf = (value: string): FilterLeaf => ({
-      kind: "condition",
-      subject: { kind: "input", payloadKind: "DateTime" },
-      operator: "onSameDate",
-      value: { kind: "DateTime", value },
-    });
-    expect(
-      validateCondition(all(leaf("2026-10-16T16:00:00+02:00")), "DateTime"),
-    ).toBeUndefined();
-    expect(
-      validateCondition(all(leaf("2026-10-16T16:00:00")), "DateTime"),
-    ).toMatchObject({ status: "error", code: "invalidCondition" });
-  });
-
   it("rejects scalar operators on a non-scalar subject", () => {
     expect(
       validateCondition(

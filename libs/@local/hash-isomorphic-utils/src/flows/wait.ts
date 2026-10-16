@@ -1,4 +1,4 @@
-import { parseDateTime } from "./datetime.js";
+import { dayMs, hourMs, minuteMs, parseDateTime } from "./datetime.js";
 
 import type { ActionStepCheck, Duration } from "./types.js";
 
@@ -9,21 +9,16 @@ const waitError = (message: string): WaitError => ({
   message,
 });
 
-const second = 1_000;
-const minute = 60 * second;
-const hour = 60 * minute;
-const day = 24 * hour;
-
 const unitMs = {
-  seconds: second,
-  minutes: minute,
-  hours: hour,
-  days: day,
-  weeks: 7 * day,
+  seconds: 1_000,
+  minutes: minuteMs,
+  hours: hourMs,
+  days: dayMs,
+  weeks: 7 * dayMs,
 } as const satisfies Record<Duration["unit"], number>;
 
 /** The longest a Wait step can pause for. */
-export const maxWaitMs = 30 * day;
+export const maxWaitMs = 30 * dayMs;
 
 export const durationToMs = (duration: Duration): number =>
   duration.amount * unitMs[duration.unit];
@@ -53,7 +48,7 @@ const parseDuration = (duration: unknown): number | WaitError => {
   const durationMs = durationToMs({ amount, unit: unit as Duration["unit"] });
   if (durationMs > maxWaitMs) {
     return waitError(
-      `A Wait step can't wait for more than ${maxWaitMs / day} days.`,
+      `A Wait step can't wait for more than ${maxWaitMs / dayMs} days.`,
     );
   }
   return durationMs;
@@ -90,7 +85,7 @@ export const resolveResumeAt = (
     }
     if (untilMs - startedAtMs > maxWaitMs) {
       return waitError(
-        `A Wait step can't wait until more than ${maxWaitMs / day} days after it starts.`,
+        `A Wait step can't wait until more than ${maxWaitMs / dayMs} days after it starts.`,
       );
     }
     return new Date(Math.max(untilMs, startedAtMs)).toISOString();
@@ -104,7 +99,7 @@ export const resolveResumeAt = (
 };
 
 /**
- * Checks a Wait step's inputs when the flow is defined. Inputs from a flow input or an earlier step, and the 30-day
+ * Checks a Wait step's inputs when the flow is defined. Inputs from a flow input or an earlier step, and the 30-dayMs
  * limit on `until` (which depends on when the step starts), are checked by {@link resolveResumeAt} when it starts.
  */
 export const checkWaitInputs: ActionStepCheck = ({ step, report }) => {

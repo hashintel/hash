@@ -130,14 +130,7 @@ export type PayloadKindValues = {
 
 export type PayloadKind = keyof PayloadKindValues;
 
-/**
- * What a payload kind's value is underneath, which decides how a condition compares it and how Order by sorts it:
- * - `text`: a string, compared as is
- * - `number`: a finite number
- * - `date`: an ISO calendar date (YYYY-MM-DD), ordered as a string
- * - `datetime`: an ISO 8601 instant with `Z` or an offset, compared as the instant it names
- * - `boolean`: false comes before true
- */
+/** What a payload kind's value is underneath, which decides how conditions compare it and Order by sorts it. */
 export type PayloadPrimitive =
   | "text"
   | "number"
@@ -145,17 +138,13 @@ export type PayloadPrimitive =
   | "datetime"
   | "boolean";
 
-/**
- * The primitive type of each payload kind, or `null` for none: a kind whose value isn't one comparable value, such
- * as an object, can't be compared or sorted by itself.
- */
+/** The primitive type of each payload kind, or `null` for a kind that can't be compared or sorted by itself. */
 export const payloadKindPrimitives = {
   ActorType: "text",
   Aggregation: null,
   Boolean: "boolean",
   Date: "date",
   DateTime: "datetime",
-  /* A duration could be compared by its length, but nothing needs that yet. */
   Duration: null,
   EntityId: "text",
   FailedEntityProposal: null,

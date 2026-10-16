@@ -77,9 +77,8 @@ export const hasPrimitiveType = (
 };
 
 /**
- * Reads a value of a primitive type into one that compares with `<` and `===`: an instant for a `datetime`, the value
- * itself otherwise. Returns `undefined` for a value that isn't valid: of another type, a date or date and time that
- * doesn't parse, or a number that isn't finite.
+ * Reads a value into one that compares with `<` and `===`: epoch milliseconds for a `datetime`, otherwise itself.
+ * `undefined` if the value isn't valid.
  */
 export const readScalar = (
   primitive: PayloadPrimitive,
@@ -103,14 +102,13 @@ export const readScalar = (
   }
 };
 
+/** What a valid value looks like, for the primitives whose values of the right type can still be invalid. */
 const validValueDescriptions = {
-  text: "a string",
   number: "a finite number",
   date: "an ISO calendar date (YYYY-MM-DD)",
   datetime:
     'an ISO 8601 date and time with Z or an offset, e.g. "2026-10-16T14:00:00Z"',
-  boolean: "a boolean",
-} as const satisfies Record<PayloadPrimitive, string>;
+};
 
 /**
  * Low-level scalar comparison. Action wrappers use evaluateCondition/evaluateIf
@@ -161,7 +159,8 @@ export const evaluateFilter = ({
     return {
       status: "error",
       code: "invalidValue",
-      message: `Value must be ${validValueDescriptions[primitive]}.`,
+      /* Any string or boolean is a valid text or boolean. */
+      message: `Value must be ${validValueDescriptions[primitive as keyof typeof validValueDescriptions]}.`,
     };
   }
 

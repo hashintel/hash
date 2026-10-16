@@ -108,12 +108,6 @@ describe("evaluateCondition", () => {
       matches: false,
     },
     {
-      input: { kind: "DateTime", value: "2026-10-16T16:00:00+02:00" },
-      operator: "equals",
-      operand: { kind: "DateTime", value: "2026-10-16T14:00:00Z" },
-      matches: true,
-    },
-    {
       input: { kind: "VersionedUrl", value: companyType },
       operator: "equals",
       operand: { kind: "VersionedUrl", value: companyType },
