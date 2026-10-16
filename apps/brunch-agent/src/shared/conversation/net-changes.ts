@@ -1,6 +1,7 @@
 import {
   type ArcElement,
   type NetElementKind,
+  browserToolEnvelopeOf,
   generatedArcId,
   namesId,
   netReaderLevelOf,
@@ -50,17 +51,9 @@ export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
             part.state !== "output-available"
           )
             return [];
-          const envelope = part.output;
-          if (
-            typeof envelope !== "object" ||
-            envelope === null ||
-            !("brunchBrowserResult" in envelope) ||
-            envelope.brunchBrowserResult !== true
-          )
-            return [];
-          if (!("output" in envelope)) return [];
-          const recordedMetadata =
-            "metadata" in envelope ? envelope.metadata : undefined;
+          const envelope = browserToolEnvelopeOf(part.output);
+          if (!envelope) return [];
+          const recordedMetadata = envelope.metadata;
           const metadata = parseClientToolResultMetadata(recordedMetadata);
           return [
             {
