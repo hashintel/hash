@@ -2,15 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 
-export interface ProcessAgentBinding {
-  readonly conversationId: string;
-  readonly documentId: string;
-  /**
-   * The net id again. Brunch servers deployed before conversations were
-   * scoped by net id reject a binding without it.
-   */
-  readonly incarnationId?: string;
-}
+import type { BrowserContext } from "@hashintel/brunch-agent";
+
+export type ProcessAgentBinding = BrowserContext["binding"];
 
 export interface FixtureProcessAgentConfiguration {
   readonly conversationId: string;

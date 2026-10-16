@@ -1,4 +1,5 @@
 import {
+  browserExecutedToolNames,
   brunchTools,
   netReaderToolNames,
   type PetrinautToolCapability,
@@ -123,9 +124,23 @@ export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
   draftBrunchTool,
 ];
 
-/** Tools the bound browser executes; the server awaits each result in band. */
-export const inBandBrowserToolNames: ReadonlySet<string> = new Set(
-  brunchToolCatalogue
+/** The catalogue's website-executed entries are exactly the tools the library says the browser runs. */
+export const assertBrowserExecutedToolConformance = (
+  catalogue: readonly BrunchToolCatalogueEntry[] = brunchToolCatalogue,
+): void => {
+  const catalogued = catalogue
     .filter(({ executionOwner }) => executionOwner === "petrinaut-website")
-    .map(({ name }) => name),
-);
+    .map(({ name }) => name);
+  const missing = [...browserExecutedToolNames].filter(
+    (name) => !catalogued.includes(name),
+  );
+  const extra = catalogued.filter(
+    (name) => !browserExecutedToolNames.has(name),
+  );
+  if (missing.length > 0 || extra.length > 0)
+    throw new Error(
+      `Browser-executed tool mismatch (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"}).`,
+    );
+};
+
+assertBrowserExecutedToolConformance();

@@ -1,11 +1,11 @@
 import {
+  browserExecutedToolNames,
   browserToolEnvelopeOf,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
 } from "@hashintel/brunch-agent";
 
 import { netResultView } from "./conversation/net-view.ts";
-import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 
 import type {
   ContextProjection,
@@ -20,7 +20,7 @@ const browserEnvelope = (
   if (
     message.role !== "toolResult" ||
     message.isError ||
-    !inBandBrowserToolNames.has(message.toolName)
+    !browserExecutedToolNames.has(message.toolName)
   )
     return undefined;
   const text = message.content

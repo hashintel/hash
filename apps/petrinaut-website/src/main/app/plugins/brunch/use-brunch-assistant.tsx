@@ -91,6 +91,7 @@ import type { VoiceWord } from "../../../../shared/voice-words";
 import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
+import type { SdcpnInitialData } from "@hashintel/brunch-agent";
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
@@ -483,7 +484,11 @@ export const useBrunchAssistant = ({
             interviewRepliesAsked,
             readWords: () => readWords().map((word) => word.spelling),
             ...(constructionBrowser
-              ? { initialData: { binding: constructionBrowser.binding } }
+              ? {
+                  initialData: {
+                    binding: constructionBrowser.binding,
+                  } satisfies SdcpnInitialData,
+                }
               : {}),
             ...(conversationId === null
               ? {}

@@ -5,6 +5,17 @@
 import { toolName } from "./conversation/naming";
 
 export {
+  browserCallFailureBodySchema,
+  browserCallFailureDispositions,
+  browserCallLeaseBodySchema,
+  browserCallResultBodySchema,
+  type BrowserCallClaim,
+  type BrowserCallFailureBody,
+  type BrowserCallFailureDisposition,
+  type BrowserCallLeaseBody,
+  type BrowserCallResultBody,
+} from "./client-tools/browser-calls";
+export {
   browserToolEnvelopeOf,
   browserToolOutput,
   CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH,
