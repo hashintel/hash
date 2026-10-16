@@ -1,9 +1,7 @@
 import { checkAggregationInput } from "./aggregation.js";
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
-import {
-  checkQueryEntitiesInputs,
-  maxQueryEntities,
-} from "./query-entities.js";
+import { maxEntitiesPerStep } from "./limits.js";
+import { checkQueryEntitiesInputs } from "./query-entities.js";
 import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
 import { allPayloadKinds } from "./types.js";
@@ -1033,7 +1031,7 @@ const aiFlowActionDefinitionsAsConst = {
       {
         oneOfPayloadKinds: ["Number"],
         name: "limit",
-        description: `The most entities to return: a whole number from 1 to ${maxQueryEntities.toLocaleString("en")}.`,
+        description: `The most entities to return: a whole number from 1 to ${maxEntitiesPerStep.toLocaleString("en")}.`,
         required: false,
         array: false,
       },

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolvePayloadValue } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
-import { maxQueryEntities } from "@local/hash-isomorphic-utils/flows/query-entities";
+import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
 
@@ -230,7 +230,7 @@ describe("queryEntitiesAction", () => {
   });
 
   it("fails rather than leave out entities when there are too many to read", async () => {
-    mockPages(Array.from({ length: maxQueryEntities + 1 }, () => ({})));
+    mockPages(Array.from({ length: maxEntitiesPerStep + 1 }, () => ({})));
 
     expect(await run()).toMatchObject({
       code: StatusCode.ResourceExhausted,
@@ -239,7 +239,7 @@ describe("queryEntitiesAction", () => {
   });
 
   it("rejects a limit or sort from an earlier step that doesn't fit, without querying", async () => {
-    expect(await run({ limit: maxQueryEntities + 1 })).toMatchObject({
+    expect(await run({ limit: maxEntitiesPerStep + 1 })).toMatchObject({
       code: StatusCode.InvalidArgument,
     });
     expect(

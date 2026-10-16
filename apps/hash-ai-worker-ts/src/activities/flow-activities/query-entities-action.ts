@@ -4,8 +4,8 @@ import {
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 import {
-  maxQueryEntities,
   validateQueryFilter,
   validateQueryLimit,
   validateQuerySort,
@@ -28,7 +28,7 @@ import type { EntityQueryCursor } from "@local/hash-graph-client";
  * Gets the latest live version of the entities in the flow's web that match the filter and that the user running the
  * flow can read, sorted by the sort keys in turn.
  *
- * The graph can't sort by a property, so a sorted query reads every match, and fails if more than `maxQueryEntities`
+ * The graph can't sort by a property, so a sorted query reads every match, and fails if more than `maxEntitiesPerStep`
  * match, as does a query without a limit. An unsorted query with a limit stops reading once it has enough, in the
  * order of the entities' UUIDs.
  */
@@ -69,7 +69,7 @@ export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
    * the most a step returns shows that there are too many.
    */
   const enough =
-    sort.length === 0 && limit !== undefined ? limit : maxQueryEntities + 1;
+    sort.length === 0 && limit !== undefined ? limit : maxEntitiesPerStep + 1;
 
   let entityIds: EntityId[] = [];
   const entities = new Map<EntityId, ConditionEntity>();
@@ -109,10 +109,10 @@ export const queryEntitiesAction: FlowActionActivity<"queryEntities"> = async ({
     cursor = response.cursor;
   } while (cursor && entityIds.length < enough);
 
-  if (enough > maxQueryEntities && entityIds.length > maxQueryEntities) {
+  if (enough > maxEntitiesPerStep && entityIds.length > maxEntitiesPerStep) {
     return {
       code: StatusCode.ResourceExhausted,
-      message: `More than ${maxQueryEntities.toLocaleString("en")} entities match the filter. Narrow it${sort.length > 0 ? "" : ", or set a limit"}.`,
+      message: `More than ${maxEntitiesPerStep.toLocaleString("en")} entities match the filter. Narrow it${sort.length > 0 ? "" : ", or set a limit"}.`,
       contents: [],
     };
   }

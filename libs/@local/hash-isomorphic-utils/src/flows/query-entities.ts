@@ -1,12 +1,10 @@
 import { conditionLeaves, validateCondition } from "./filter-condition.js";
+import { maxEntitiesPerStep } from "./limits.js";
 import { validateSortKey } from "./sort-key.js";
 
 import type { ConditionNode, FilterCondition } from "./filter-condition.js";
 import type { SortKey } from "./sort-key.js";
 import type { ActionStepCheck } from "./types.js";
-
-/** The most entities a Query entities step returns, and the most it reads to sort them. */
-export const maxQueryEntities = 100_000;
 
 const hasTypeCondition = (node: ConditionNode) =>
   conditionLeaves(node).some(({ operator }) => operator === "isOfType");
@@ -65,11 +63,11 @@ export const validateQuerySort = (
     .map((sortKey) => validateSortKey(sortKey, "EntityId")?.message)
     .find((message) => message !== undefined);
 
-/** Checks the limit of a Query entities step: a whole number from 1 to {@link maxQueryEntities}. */
+/** Checks the limit of a Query entities step: a whole number from 1 to {@link maxEntitiesPerStep}. */
 export const validateQueryLimit = (limit: number): string | undefined =>
-  Number.isInteger(limit) && limit >= 1 && limit <= maxQueryEntities
+  Number.isInteger(limit) && limit >= 1 && limit <= maxEntitiesPerStep
     ? undefined
-    : `The limit must be a whole number from 1 to ${maxQueryEntities.toLocaleString("en")}.`;
+    : `The limit must be a whole number from 1 to ${maxEntitiesPerStep.toLocaleString("en")}.`;
 
 /**
  * Checks a Query entities step when the flow is defined. The filter must be a constant for now. A sort or limit from
