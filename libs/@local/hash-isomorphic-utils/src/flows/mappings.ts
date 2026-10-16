@@ -52,13 +52,12 @@ export const mapFlowDefinitionToEntityProperties = (
 });
 
 /**
- * The flow definition a `Flow Definition` entity holds.
- *
- * @throws if the entity's definition is invalid, listing every problem.
+ * What a `Flow Definition` entity holds, in the shape of a flow definition, without checking that it is a valid
+ * one: e.g. to compare it with a definition, as it was written.
  */
-export const getFlowDefinitionFromEntity = (
+export const getUnvalidatedFlowDefinitionFromEntity = (
   entity: HashEntity<FlowDefinitionEntity>,
-): FlowDefinition => {
+) => {
   const {
     name,
     description,
@@ -67,14 +66,24 @@ export const getFlowDefinitionFromEntity = (
     outputDefinition,
   } = simplifyProperties(entity.properties);
 
-  return assertValidFlowDefinition({
+  return {
     name,
     description,
     inputs: inputDefinition,
     steps: stepDefinition,
     outputs: outputDefinition,
-  });
+  };
 };
+
+/**
+ * The flow definition a `Flow Definition` entity holds.
+ *
+ * @throws if the entity's definition is invalid, listing every problem.
+ */
+export const getFlowDefinitionFromEntity = (
+  entity: HashEntity<FlowDefinitionEntity>,
+): FlowDefinition =>
+  assertValidFlowDefinition(getUnvalidatedFlowDefinitionFromEntity(entity));
 
 /**
  * The `Inputs` property of a flow run or trigger: one `{ inputName, payload }` object per input given a value,

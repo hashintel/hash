@@ -1,10 +1,12 @@
 import { isDeepStrictEqual } from "node:util";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { mapFlowDefinitionToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
+import {
+  getUnvalidatedFlowDefinitionFromEntity,
+  mapFlowDefinitionToEntityProperties,
+} from "@local/hash-isomorphic-utils/flows/mappings";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { logger } from "../../../logger";
 import { createEntity } from "../../knowledge/primitive/entity";
@@ -24,26 +26,11 @@ import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorp
 const entityHoldsFlowDefinition = (
   entity: HashEntity<FlowDefinitionEntity>,
   flowDefinition: FlowDefinitionWithId["flowDefinition"],
-) => {
-  const {
-    name,
-    description,
-    inputDefinition,
-    stepDefinition,
-    outputDefinition,
-  } = simplifyProperties(entity.properties);
-
-  return isDeepStrictEqual(
-    {
-      name,
-      description,
-      inputs: inputDefinition,
-      steps: stepDefinition,
-      outputs: outputDefinition,
-    },
+) =>
+  isDeepStrictEqual(
+    getUnvalidatedFlowDefinitionFromEntity(entity),
     flowDefinition,
   );
-};
 
 /**
  * Makes the `Flow Definition` entity of each of the given flows hold its definition: creates the entity in the `h`
