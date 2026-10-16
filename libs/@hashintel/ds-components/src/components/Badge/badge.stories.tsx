@@ -6,7 +6,7 @@ import { Icon } from "../Icon/icon";
 import { Badge, type BadgeProps } from "./badge";
 
 import type { ChipColor } from "../Chip/chip";
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const colors: ChipColor[] = [
   "grey",
@@ -150,7 +150,7 @@ const Anchors = (
   </div>
 );
 
-export default {
+const meta = {
   title: "Components/Badge",
   argTypes: {
     color: { control: { type: "select" }, options: colors },
@@ -164,82 +164,94 @@ export default {
     shape: "round",
     position: "top-right",
   },
-} satisfies StoryDefault<BadgeProps>;
+} satisfies Meta<BadgeProps>;
+
+export default meta;
+
+type Story = StoryObj<BadgeProps>;
 
 // A single showcase covering colours, shape, and content.
-export const Default: Story<BadgeProps> = (args) => (
-  <div className={column}>
-    <SectionTitle>Colours</SectionTitle>
-    <div className={row}>
-      {colors.map((color) => (
-        <Badge {...args} key={color} content={9} color={color}>
-          <Bell />
-        </Badge>
-      ))}
-    </div>
+export const Default: Story = {
+  render: (args) => (
+    <div className={column}>
+      <SectionTitle>Colours</SectionTitle>
+      <div className={row}>
+        {colors.map((color) => (
+          <Badge {...args} key={color} content={9} color={color}>
+            <Bell />
+          </Badge>
+        ))}
+      </div>
 
-    <SectionTitle>Shape</SectionTitle>
-    <div className={row}>
-      {shapes.map((shape) => (
-        <Badge {...args} key={shape} content={9} shape={shape} color="red">
-          <Bell />
-        </Badge>
-      ))}
-    </div>
+      <SectionTitle>Shape</SectionTitle>
+      <div className={row}>
+        {shapes.map((shape) => (
+          <Badge {...args} key={shape} content={9} shape={shape} color="red">
+            <Bell />
+          </Badge>
+        ))}
+      </div>
 
-    {/* `max` defaults to 99, so 100/1000 render as "99+". Content can be a
+      {/* `max` defaults to 99, so 100/1000 render as "99+". Content can be a
         string, an icon, or an icon + text; null content renders a plain dot. */}
-    <SectionTitle>Content</SectionTitle>
-    <div className={row}>
-      {[9, 99, 100, 1000].map((count) => (
-        <Badge {...args} key={count} content={count} color="red">
+      <SectionTitle>Content</SectionTitle>
+      <div className={row}>
+        {[9, 99, 100, 1000].map((count) => (
+          <Badge {...args} key={count} content={count} color="red">
+            <Bell />
+          </Badge>
+        ))}
+        <Badge {...args} content="new" color="red">
           <Bell />
         </Badge>
-      ))}
-      <Badge {...args} content="new" color="red">
-        <Bell />
-      </Badge>
-      <Badge {...args} content={<Icon name="check" size="xxs" />} color="green">
-        <Bell />
-      </Badge>
-      <Badge
-        {...args}
-        content={
-          <>
-            <Icon name="sparkles" size="xxs" />
-            New
-          </>
-        }
-        color="purple"
-      >
-        <Bell />
-      </Badge>
-      <Badge {...args} content={null} color="green">
-        <Bell />
-      </Badge>
+        <Badge
+          {...args}
+          content={<Icon name="check" size="xxs" />}
+          color="green"
+        >
+          <Bell />
+        </Badge>
+        <Badge
+          {...args}
+          content={
+            <>
+              <Icon name="sparkles" size="xxs" />
+              New
+            </>
+          }
+          color="purple"
+        >
+          <Bell />
+        </Badge>
+        <Badge {...args} content={null} color="green">
+          <Bell />
+        </Badge>
+      </div>
     </div>
-  </div>
-);
+  ),
+};
 
 // Short content at each corner, then the badge across a range of anchor
 // elements — with short content, and with long content at two corners to show
 // the width clamp extending outward from the anchor's midline.
-export const Position: Story<BadgeProps> = (args) => (
-  <div className={column}>
-    <div className={wideRow}>
-      {positions.map((position) => (
-        <Badge {...args} key={position} content={9} position={position}>
-          <Bell />
-        </Badge>
-      ))}
+export const Position: Story = {
+  render: (args) => (
+    <div className={column}>
+      <div className={wideRow}>
+        {positions.map((position) => (
+          <Badge {...args} key={position} content={9} position={position}>
+            <Bell />
+          </Badge>
+        ))}
+      </div>
+
+      <SectionTitle>Attaches to any content</SectionTitle>
+      <Anchors {...args} content={9} />
+      <Anchors {...args} content={null} />
+
+      <SectionTitle>…and grows with longer content</SectionTitle>
+      <Anchors {...args} content="Processing" />
+      <Anchors {...args} content="Processing" position="bottom-left" />
     </div>
-
-    <SectionTitle>Attaches to any content</SectionTitle>
-    <Anchors {...args} content={9} />
-    <Anchors {...args} content={null} />
-
-    <SectionTitle>…and grows with longer content</SectionTitle>
-    <Anchors {...args} content="Processing" />
-    <Anchors {...args} content="Processing" position="bottom-left" />
-  </div>
-);
+  ),
+};

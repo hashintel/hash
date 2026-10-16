@@ -6,7 +6,7 @@ import { formInputSizes } from "../../util/form-shared";
 import { TextInput } from "./text-input";
 
 import type { FormInputSize, FormInputWidth } from "../../util/form-shared";
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type TextInputProps = React.ComponentProps<typeof TextInput>;
 type Variant = NonNullable<TextInputProps["variant"]>;
@@ -204,7 +204,7 @@ const stateColumns = [
   { key: "readonly", label: "Read-only", withValue: true, readonly: true },
 ];
 
-export default {
+const meta = {
   title: "Components/TextInput",
   argTypes: {
     placeholder: {
@@ -262,223 +262,234 @@ export default {
     size: "md",
     showEditIcon: false,
   },
-} satisfies StoryDefault<TextInputProps>;
+} satisfies Meta<TextInputProps>;
 
-export const Default: Story<TextInputProps> = (args) => (
-  <div className={sectionStyle}>
-    {variants.map((variant) => (
-      <div key={variant} className={groupStyle}>
-        <h3 style={headingStyle}>{variant}</h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "auto auto auto",
-            columnGap: 32,
-            rowGap: 12,
-            alignItems: "center",
-            justifyContent: "start",
-          }}
-        >
-          {stateColumns.map((col) => (
-            <span key={col.key} style={subheadingStyle}>
-              {col.label}
-            </span>
-          ))}
-          {stateRows.flatMap((row) =>
-            stateColumns.map((col) => {
-              const value = col.withValue ? row.label : "";
-              const cellKey = `${row.key}-${col.key}`;
-              return row.clearable ? (
-                <ClearableInput
-                  key={cellKey}
-                  {...args}
-                  value={value}
-                  variant={variant}
-                  readonly={col.readonly}
-                  {...row.extraProps}
-                />
-              ) : (
-                <Controlled
-                  key={cellKey}
-                  {...args}
-                  value={value}
-                  onChange={noop}
-                  variant={variant}
-                  readonly={col.readonly}
-                  {...row.extraProps}
-                />
-              );
-            }),
-          )}
+export default meta;
+
+type Story = StoryObj<TextInputProps>;
+
+export const Default: Story = {
+  render: (args: TextInputProps) => (
+    <div className={sectionStyle}>
+      {variants.map((variant) => (
+        <div key={variant} className={groupStyle}>
+          <h3 style={headingStyle}>{variant}</h3>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "auto auto auto",
+              columnGap: 32,
+              rowGap: 12,
+              alignItems: "center",
+              justifyContent: "start",
+            }}
+          >
+            {stateColumns.map((col) => (
+              <span key={col.key} style={subheadingStyle}>
+                {col.label}
+              </span>
+            ))}
+            {stateRows.flatMap((row) =>
+              stateColumns.map((col) => {
+                const value = col.withValue ? row.label : "";
+                const cellKey = `${row.key}-${col.key}`;
+                return row.clearable ? (
+                  <ClearableInput
+                    key={cellKey}
+                    {...args}
+                    value={value}
+                    variant={variant}
+                    readonly={col.readonly}
+                    {...row.extraProps}
+                  />
+                ) : (
+                  <Controlled
+                    key={cellKey}
+                    {...args}
+                    value={value}
+                    onChange={noop}
+                    variant={variant}
+                    readonly={col.readonly}
+                    {...row.extraProps}
+                  />
+                );
+              }),
+            )}
+          </div>
         </div>
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  ),
+};
 
-export const Alignment: Story<TextInputProps> = (args) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "auto auto",
-      columnGap: 32,
-      rowGap: 12,
-      alignItems: "center",
-      justifyContent: "start",
-    }}
-  >
-    <span style={subheadingStyle}>Editable</span>
-    <span style={subheadingStyle}>Read-only</span>
-    {alignments.map((align) => (
-      <Fragment key={align}>
-        <Controlled
-          {...args}
-          value={`Align: ${align}`}
-          onChange={noop}
-          align={align}
-        />
-        <Controlled
-          {...args}
-          value={`Align: ${align}`}
-          onChange={noop}
-          align={align}
-          readonly
-        />
-      </Fragment>
-    ))}
-  </div>
-);
-
-export const StyledValue: Story<TextInputProps> = ({
-  clearable: _clearable,
-  ...args
-}) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "auto auto",
-      columnGap: 32,
-      rowGap: 12,
-      alignItems: "center",
-      justifyContent: "start",
-    }}
-  >
-    <span style={subheadingStyle}>Editable</span>
-    <span style={subheadingStyle}>Read-only</span>
-    {variants.map((variant) => (
-      <Fragment key={variant}>
-        <StyledNumberInput {...args} variant={variant} />
-        <StyledNumberInput {...args} variant={variant} readonly />
-      </Fragment>
-    ))}
-    {variants.map((variant) => (
-      <Fragment key={`sink-${variant}`}>
-        <StyledNumberInput
-          {...args}
-          variant={variant}
-          prefix={{ iconName: "search" }}
-          suffix={{ text: "kg" }}
-          loading
-          clearable
-        />
-        <StyledNumberInput
-          {...args}
-          variant={variant}
-          prefix={{ iconName: "search" }}
-          suffix={{ text: "kg" }}
-          loading
-          clearable
-          readonly
-        />
-      </Fragment>
-    ))}
-  </div>
-);
-
-export const Size: Story<TextInputProps> = (args) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: `auto repeat(${formInputSizes.length}, minmax(0, 1fr))`,
-      columnGap: 32,
-      rowGap: 12,
-      alignItems: "center",
-      width: "100%",
-      maxWidth: "100%",
-    }}
-  >
-    <span />
-    {formInputSizes.map((size) => (
-      <span key={size} style={subheadingStyle}>
-        {size}
-      </span>
-    ))}
-    {rowVariants.flatMap((rv) => [
-      <span key={`${rv.label}-label`} style={subheadingStyle}>
-        {rv.label}
-      </span>,
-      ...formInputSizes.map((size) => (
-        <Controlled
-          key={`${rv.label}-${size}`}
-          {...args}
-          value={rv.label}
-          onChange={noop}
-          size={size}
-          variant={rv.variant}
-          readonly={rv.readonly}
-        />
-      )),
-    ])}
-
-    <span key="kitchen-sink" style={subheadingStyle}>
-      With items
-    </span>
-    {formInputSizes.map((size) => (
-      <ClearableInput
-        key={`sink-${size}`}
-        {...args}
-        value="Kitchen Sink"
-        prefix={{ iconName: "search" }}
-        suffix={{ text: "kg" }}
-        loading
-        size={size}
-      />
-    ))}
-  </div>
-);
-
-export const Widths: Story<TextInputProps> = (args) => (
-  <div className={sectionStyle}>
-    {rowVariants.map((rv) => (
-      <div key={rv.label} className={groupStyle}>
-        <h3 style={headingStyle}>{rv.label}</h3>
-        {widths.map((width) => (
+export const Alignment: Story = {
+  render: (args: TextInputProps) => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "auto auto",
+        columnGap: 32,
+        rowGap: 12,
+        alignItems: "center",
+        justifyContent: "start",
+      }}
+    >
+      <span style={subheadingStyle}>Editable</span>
+      <span style={subheadingStyle}>Read-only</span>
+      {alignments.map((align) => (
+        <Fragment key={align}>
           <Controlled
-            key={width}
             {...args}
-            value={`Width: ${width}`}
+            value={`Align: ${align}`}
             onChange={noop}
-            variant={rv.variant}
-            readonly={rv.readonly}
-            width={width}
+            align={align}
           />
-        ))}
-        {!rv.readonly && (
-          <ClearableInput
+          <Controlled
             {...args}
-            value="Width: fitContent with all the trimmings"
-            variant={rv.variant}
-            width="fitContent"
+            value={`Align: ${align}`}
+            onChange={noop}
+            align={align}
+            readonly
+          />
+        </Fragment>
+      ))}
+    </div>
+  ),
+};
+
+export const StyledValue: Story = {
+  render: ({ clearable: _clearable, ...args }: TextInputProps) => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "auto auto",
+        columnGap: 32,
+        rowGap: 12,
+        alignItems: "center",
+        justifyContent: "start",
+      }}
+    >
+      <span style={subheadingStyle}>Editable</span>
+      <span style={subheadingStyle}>Read-only</span>
+      {variants.map((variant) => (
+        <Fragment key={variant}>
+          <StyledNumberInput {...args} variant={variant} />
+          <StyledNumberInput {...args} variant={variant} readonly />
+        </Fragment>
+      ))}
+      {variants.map((variant) => (
+        <Fragment key={`sink-${variant}`}>
+          <StyledNumberInput
+            {...args}
+            variant={variant}
             prefix={{ iconName: "search" }}
             suffix={{ text: "kg" }}
             loading
-            showEditIcon
+            clearable
           />
-        )}
-      </div>
-    ))}
-  </div>
-);
+          <StyledNumberInput
+            {...args}
+            variant={variant}
+            prefix={{ iconName: "search" }}
+            suffix={{ text: "kg" }}
+            loading
+            clearable
+            readonly
+          />
+        </Fragment>
+      ))}
+    </div>
+  ),
+};
+
+export const Size: Story = {
+  render: (args: TextInputProps) => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `auto repeat(${formInputSizes.length}, minmax(0, 1fr))`,
+        columnGap: 32,
+        rowGap: 12,
+        alignItems: "center",
+        width: "100%",
+        maxWidth: "100%",
+      }}
+    >
+      <span />
+      {formInputSizes.map((size) => (
+        <span key={size} style={subheadingStyle}>
+          {size}
+        </span>
+      ))}
+      {rowVariants.flatMap((rv) => [
+        <span key={`${rv.label}-label`} style={subheadingStyle}>
+          {rv.label}
+        </span>,
+        ...formInputSizes.map((size) => (
+          <Controlled
+            key={`${rv.label}-${size}`}
+            {...args}
+            value={rv.label}
+            onChange={noop}
+            size={size}
+            variant={rv.variant}
+            readonly={rv.readonly}
+          />
+        )),
+      ])}
+
+      <span key="kitchen-sink" style={subheadingStyle}>
+        With items
+      </span>
+      {formInputSizes.map((size) => (
+        <ClearableInput
+          key={`sink-${size}`}
+          {...args}
+          value="Kitchen Sink"
+          prefix={{ iconName: "search" }}
+          suffix={{ text: "kg" }}
+          loading
+          size={size}
+        />
+      ))}
+    </div>
+  ),
+};
+
+export const Widths: Story = {
+  render: (args: TextInputProps) => (
+    <div className={sectionStyle}>
+      {rowVariants.map((rv) => (
+        <div key={rv.label} className={groupStyle}>
+          <h3 style={headingStyle}>{rv.label}</h3>
+          {widths.map((width) => (
+            <Controlled
+              key={width}
+              {...args}
+              value={`Width: ${width}`}
+              onChange={noop}
+              variant={rv.variant}
+              readonly={rv.readonly}
+              width={width}
+            />
+          ))}
+          {!rv.readonly && (
+            <ClearableInput
+              {...args}
+              value="Width: fitContent with all the trimmings"
+              variant={rv.variant}
+              width="fitContent"
+              prefix={{ iconName: "search" }}
+              suffix={{ text: "kg" }}
+              loading
+              showEditIcon
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  ),
+};
 
 type PrefixSuffixRow = {
   key: string;
@@ -666,89 +677,96 @@ const applyAdornmentVariant = (
   };
 };
 
-export const PrefixAndSuffix: Story<TextInputProps> = (args) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: `repeat(${prefixSuffixColumns.length}, auto)`,
-      columnGap: 32,
-      rowGap: 12,
-      alignItems: "center",
-      justifyContent: "start",
-    }}
-  >
-    {prefixSuffixColumns.map((column) => (
-      <span key={column.key} style={subheadingStyle}>
-        {column.label}
-      </span>
-    ))}
-    {prefixSuffixRows.flatMap((row) =>
-      prefixSuffixColumns.map((column) => {
-        const props = applyAdornmentVariant(row.props, column.adornmentVariant);
-        return row.clearable ? (
-          <ClearableInput
-            key={`${row.key}-${column.key}`}
-            {...args}
-            {...props}
-            variant={column.variant}
-          />
-        ) : (
-          <Controlled
-            key={`${row.key}-${column.key}`}
-            {...args}
-            {...props}
-            onChange={noop}
-            variant={column.variant}
-          />
-        );
-      }),
-    )}
-  </div>
-);
-
-export const Connected: Story = () => (
-  <div className={sectionStyle}>
-    <div className={groupStyle}>
-      <h3 style={headingStyle}>States (md)</h3>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `auto repeat(${sharedConnectedStates.length}, auto)`,
-          columnGap: 24,
-          rowGap: 12,
-          alignItems: "center",
-          justifyContent: "start",
-        }}
-      >
-        <span />
-        {sharedConnectedStates.map((col) => (
-          <span key={`col-${col.key}`} style={subheadingStyle}>
-            Right: {col.label}
-          </span>
-        ))}
-        {leftConnectedStates.flatMap((row) => [
-          <span key={`row-${row.key}`} style={subheadingStyle}>
-            Left: {row.label}
-          </span>,
-          ...sharedConnectedStates.map((col) => (
-            <ConnectedPair
-              key={`${row.key}__${col.key}`}
-              size="md"
-              left={row.props}
-              right={col.props}
+export const PrefixAndSuffix: Story = {
+  render: (args: TextInputProps) => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${prefixSuffixColumns.length}, auto)`,
+        columnGap: 32,
+        rowGap: 12,
+        alignItems: "center",
+        justifyContent: "start",
+      }}
+    >
+      {prefixSuffixColumns.map((column) => (
+        <span key={column.key} style={subheadingStyle}>
+          {column.label}
+        </span>
+      ))}
+      {prefixSuffixRows.flatMap((row) =>
+        prefixSuffixColumns.map((column) => {
+          const props = applyAdornmentVariant(
+            row.props,
+            column.adornmentVariant,
+          );
+          return row.clearable ? (
+            <ClearableInput
+              key={`${row.key}-${column.key}`}
+              {...args}
+              {...props}
+              variant={column.variant}
             />
-          )),
-        ])}
+          ) : (
+            <Controlled
+              key={`${row.key}-${column.key}`}
+              {...args}
+              {...props}
+              onChange={noop}
+              variant={column.variant}
+            />
+          );
+        }),
+      )}
+    </div>
+  ),
+};
+
+export const Connected: Story = {
+  render: () => (
+    <div className={sectionStyle}>
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>States (md)</h3>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `auto repeat(${sharedConnectedStates.length}, auto)`,
+            columnGap: 24,
+            rowGap: 12,
+            alignItems: "center",
+            justifyContent: "start",
+          }}
+        >
+          <span />
+          {sharedConnectedStates.map((col) => (
+            <span key={`col-${col.key}`} style={subheadingStyle}>
+              Right: {col.label}
+            </span>
+          ))}
+          {leftConnectedStates.flatMap((row) => [
+            <span key={`row-${row.key}`} style={subheadingStyle}>
+              Left: {row.label}
+            </span>,
+            ...sharedConnectedStates.map((col) => (
+              <ConnectedPair
+                key={`${row.key}__${col.key}`}
+                size="md"
+                left={row.props}
+                right={col.props}
+              />
+            )),
+          ])}
+        </div>
+      </div>
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Sizes</h3>
+        {formInputSizes.map((size) => (
+          <Fragment key={size}>
+            <span style={subheadingStyle}>{size}</span>
+            <ConnectedPair size={size} left={{}} right={{}} />
+          </Fragment>
+        ))}
       </div>
     </div>
-    <div className={groupStyle}>
-      <h3 style={headingStyle}>Sizes</h3>
-      {formInputSizes.map((size) => (
-        <Fragment key={size}>
-          <span style={subheadingStyle}>{size}</span>
-          <ConnectedPair size={size} left={{}} right={{}} />
-        </Fragment>
-      ))}
-    </div>
-  </div>
-);
+  ),
+};

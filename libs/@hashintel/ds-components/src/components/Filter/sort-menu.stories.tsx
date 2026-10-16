@@ -4,11 +4,15 @@ import { formInputSizes, type FormInputSize } from "../../util/form-shared";
 import { SortMenu } from "./sort-menu";
 import { type SortDirection, type Sorter } from "./sort-menu-util";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
-export default {
+const meta = {
   title: "Components/SortMenu",
-} satisfies StoryDefault;
+} satisfies Meta;
+
+export default meta;
+
+type Story = StoryObj;
 
 const sorters = [
   { name: "Name", sortKey: "name" },
@@ -143,108 +147,112 @@ const Grid = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-export const Default: Story = () => (
-  <Grid>
-    <Row label="Default trigger">
-      <Example columnLabel="No value selected" />
-      <Example
-        columnLabel="Bidirectional sort"
-        initialValue={{ sortKey: "name", direction: "ASCENDING" }}
-      />
-      <Example
-        columnLabel="Single-direction sort"
-        initialValue={{ sortKey: "updatedAt", direction: "DESCENDING" }}
-      />
-      <Example
-        columnLabel="Direction-less sort"
-        initialValue={{ sortKey: "relevance", direction: "ASCENDING" }}
-      />
-      <Example
-        columnLabel='sortIcon: "numeric"'
-        initialValue={{ sortKey: "entityCount", direction: "ASCENDING" }}
-      />
-      <Example
-        columnLabel='sortIcon: "generic"'
-        initialValue={{ sortKey: "priority", direction: "ASCENDING" }}
-      />
-    </Row>
-    <Row label="Icon trigger">
-      <Example columnLabel="No value selected" renderTrigger="icon" />
-      <Example
-        columnLabel="Sort selected"
-        renderTrigger="icon"
-        initialValue={{ sortKey: "name", direction: "ASCENDING" }}
-      />
-    </Row>
-    <Row label="Trigger variants">
-      <Example
-        columnLabel="Custom render"
-        initialValue={{ sortKey: "name", direction: "ASCENDING" }}
-        renderTrigger={(sorter, direction) => (
-          <button
-            type="button"
-            style={{
-              font: "inherit",
-              padding: "4px 10px",
-              borderRadius: 999,
-              border: "1px dashed #99a",
-              background: "none",
-              cursor: "pointer",
-            }}
-          >
-            {sorter ? `Sorted by ${sorter.name}` : "Sort"}
-            {direction ? (direction === "ASCENDING" ? " A-Z" : " Z-A") : null}
-          </button>
-        )}
-      />
-      <Example
-        columnLabel='variant="solid"'
-        variant="solid"
-        initialValue={{ sortKey: "name", direction: "ASCENDING" }}
-      />
-      <Example
-        columnLabel='tone="brand"'
-        tone="brand"
-        initialValue={{ sortKey: "name", direction: "ASCENDING" }}
-      />
-    </Row>
-    <Row label="Searchable">
-      <Example searchable />
-    </Row>
-    <Row label="Overflow">
-      <Example
-        initialValue={{
-          sortKey: "inheritanceDepthScore",
-          direction: "ASCENDING",
-        }}
-        containerMaxWidth={200}
-      />
-    </Row>
-  </Grid>
-);
+export const Default: Story = {
+  render: () => (
+    <Grid>
+      <Row label="Default trigger">
+        <Example columnLabel="No value selected" />
+        <Example
+          columnLabel="Bidirectional sort"
+          initialValue={{ sortKey: "name", direction: "ASCENDING" }}
+        />
+        <Example
+          columnLabel="Single-direction sort"
+          initialValue={{ sortKey: "updatedAt", direction: "DESCENDING" }}
+        />
+        <Example
+          columnLabel="Direction-less sort"
+          initialValue={{ sortKey: "relevance", direction: "ASCENDING" }}
+        />
+        <Example
+          columnLabel='sortIcon: "numeric"'
+          initialValue={{ sortKey: "entityCount", direction: "ASCENDING" }}
+        />
+        <Example
+          columnLabel='sortIcon: "generic"'
+          initialValue={{ sortKey: "priority", direction: "ASCENDING" }}
+        />
+      </Row>
+      <Row label="Icon trigger">
+        <Example columnLabel="No value selected" renderTrigger="icon" />
+        <Example
+          columnLabel="Sort selected"
+          renderTrigger="icon"
+          initialValue={{ sortKey: "name", direction: "ASCENDING" }}
+        />
+      </Row>
+      <Row label="Trigger variants">
+        <Example
+          columnLabel="Custom render"
+          initialValue={{ sortKey: "name", direction: "ASCENDING" }}
+          renderTrigger={(sorter, direction) => (
+            <button
+              type="button"
+              style={{
+                font: "inherit",
+                padding: "4px 10px",
+                borderRadius: 999,
+                border: "1px dashed #99a",
+                background: "none",
+                cursor: "pointer",
+              }}
+            >
+              {sorter ? `Sorted by ${sorter.name}` : "Sort"}
+              {direction ? (direction === "ASCENDING" ? " A-Z" : " Z-A") : null}
+            </button>
+          )}
+        />
+        <Example
+          columnLabel='variant="solid"'
+          variant="solid"
+          initialValue={{ sortKey: "name", direction: "ASCENDING" }}
+        />
+        <Example
+          columnLabel='tone="brand"'
+          tone="brand"
+          initialValue={{ sortKey: "name", direction: "ASCENDING" }}
+        />
+      </Row>
+      <Row label="Searchable">
+        <Example searchable />
+      </Row>
+      <Row label="Overflow">
+        <Example
+          initialValue={{
+            sortKey: "inheritanceDepthScore",
+            direction: "ASCENDING",
+          }}
+          containerMaxWidth={200}
+        />
+      </Row>
+    </Grid>
+  ),
+};
 
-export const Sizes: Story = () => (
-  <Grid>
-    <Row label="Default variant">
-      {formInputSizes.map((size) => (
-        <Example
-          key={size}
-          columnLabel={size}
-          size={size}
-          initialValue={{ sortKey: "name", direction: "ASCENDING" }}
-        />
-      ))}
-    </Row>
-    <Row label='align="right"'>
-      {formInputSizes.map((size) => (
-        <Example
-          key={size}
-          columnLabel={size}
-          size={size}
-          align="right"
-          initialValue={{ sortKey: "name", direction: "ASCENDING" }}
-        />
-      ))}
-    </Row>
-  </Grid>
-);
+export const Sizes: Story = {
+  render: () => (
+    <Grid>
+      <Row label="Default variant">
+        {formInputSizes.map((size) => (
+          <Example
+            key={size}
+            columnLabel={size}
+            size={size}
+            initialValue={{ sortKey: "name", direction: "ASCENDING" }}
+          />
+        ))}
+      </Row>
+      <Row label='align="right"'>
+        {formInputSizes.map((size) => (
+          <Example
+            key={size}
+            columnLabel={size}
+            size={size}
+            align="right"
+            initialValue={{ sortKey: "name", direction: "ASCENDING" }}
+          />
+        ))}
+      </Row>
+    </Grid>
+  ),
+};

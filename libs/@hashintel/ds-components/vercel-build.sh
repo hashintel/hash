@@ -16,4 +16,4 @@ cd ../../..
 rm -f .env
 
 echo "Building the design system component gallery"
-turbo run build:ladle --filter='@hashintel/ds-components' --env-mode=loose
+turbo run build:storybook --filter='@hashintel/ds-components' --env-mode=loose

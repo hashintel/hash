@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { Avatar } from "./avatar";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
 
@@ -13,9 +13,13 @@ const noop = () => {};
 
 type AvatarProps = React.ComponentProps<typeof Avatar>;
 
-export default {
+const meta = {
   title: "Components/Avatar",
-} satisfies StoryDefault<AvatarProps>;
+} satisfies Meta<AvatarProps>;
+
+export default meta;
+
+type Story = StoryObj<AvatarProps>;
 
 const grid = css({
   display: "inline-grid",
@@ -130,16 +134,18 @@ const defaultCells = (
   />,
 ];
 
-export const Default: Story<AvatarProps> = () => (
-  <LabeledGrid
-    columnLabels={placeholderColumns}
-    rows={[
-      { label: "Circle · neutral", cells: defaultCells("circle", "neutral") },
-      { label: "Square · neutral", cells: defaultCells("square", "neutral") },
-      { label: "Circle · brand", cells: defaultCells("circle", "brand") },
-    ]}
-  />
-);
+export const Default: Story = {
+  render: () => (
+    <LabeledGrid
+      columnLabels={placeholderColumns}
+      rows={[
+        { label: "Circle · neutral", cells: defaultCells("circle", "neutral") },
+        { label: "Square · neutral", cells: defaultCells("square", "neutral") },
+        { label: "Circle · brand", cells: defaultCells("circle", "brand") },
+      ]}
+    />
+  ),
+};
 
 // With size="custom" the consumer sets --avatar-size and the component derives
 // the box (aspect-ratio squares it), typography, and border radius — here 100×100.
@@ -171,19 +177,21 @@ const sizeCells = (
   />,
 ];
 
-export const Sizes: Story<AvatarProps> = () => (
-  <LabeledGrid
-    columnLabels={[...formInputSizes, "Custom"]}
-    rows={[
-      { label: "Circle", cells: sizeCells("circle", { initials: "CB" }) },
-      { label: "Square", cells: sizeCells("square", { initials: "CB" }) },
-      {
-        label: "Circle · icon",
-        cells: sizeCells("circle", { icon: "user" }, "Christian Busch"),
-      },
-    ]}
-  />
-);
+export const Sizes: Story = {
+  render: () => (
+    <LabeledGrid
+      columnLabels={[...formInputSizes, "Custom"]}
+      rows={[
+        { label: "Circle", cells: sizeCells("circle", { initials: "CB" }) },
+        { label: "Square", cells: sizeCells("square", { initials: "CB" }) },
+        {
+          label: "Circle · icon",
+          cells: sizeCells("circle", { icon: "user" }, "Christian Busch"),
+        },
+      ]}
+    />
+  ),
+};
 
 const svgAvatar = (body: string) =>
   `data:image/svg+xml,${encodeURIComponent(
@@ -271,13 +279,15 @@ const imageCells = (
   />,
 ];
 
-export const Images: Story<AvatarProps> = () => (
-  <LabeledGrid
-    columnLabels={imageColumns}
-    rows={[
-      { label: "Circle · neutral", cells: imageCells("circle", "neutral") },
-      { label: "Square · neutral", cells: imageCells("square", "neutral") },
-      { label: "Circle · brand", cells: imageCells("circle", "brand") },
-    ]}
-  />
-);
+export const Images: Story = {
+  render: () => (
+    <LabeledGrid
+      columnLabels={imageColumns}
+      rows={[
+        { label: "Circle · neutral", cells: imageCells("circle", "neutral") },
+        { label: "Square · neutral", cells: imageCells("square", "neutral") },
+        { label: "Circle · brand", cells: imageCells("circle", "brand") },
+      ]}
+    />
+  ),
+};

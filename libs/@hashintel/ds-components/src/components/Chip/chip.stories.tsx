@@ -3,7 +3,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { Chip, type ChipColor, type ChipProps } from "./chip";
 import { chipSizes } from "./chip-util";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const colors: ChipColor[] = [
   "grey",
@@ -112,7 +112,7 @@ const KitchenSinkChip = ({
   </Chip>
 );
 
-export default {
+const meta = {
   title: "Components/Chip",
   argTypes: {
     color: { control: { type: "select" }, options: colors },
@@ -128,307 +128,319 @@ export default {
     size: "md",
     shape: "default",
   },
-} satisfies StoryDefault<ChipProps>;
+} satisfies Meta<ChipProps>;
 
-export const Default: Story<ChipProps> = (args) => (
-  <div className={column}>
-    {variants.map((variant) => (
-      <div className={row} key={variant}>
-        <div className={rowLabel}>{variant}</div>
-        {colors.map((color) => (
-          <KitchenSinkChip
-            key={color}
-            color={color}
-            variant={variant}
-            size={args.size}
-            shape={args.shape}
-          >
-            {color}
-          </KitchenSinkChip>
-        ))}
-        {affixColorExamples.map((example) => (
-          <KitchenSinkChip
-            key={`${example.label}-${example.color}`}
-            color={example.color}
-            variant={variant}
-            size={args.size}
-            shape={args.shape}
-            prefixVariant={example.prefixVariant}
-          >
-            {example.label}
-          </KitchenSinkChip>
-        ))}
-      </div>
-    ))}
-  </div>
-);
-export const Shape: Story<ChipProps> = (args) => (
-  <div className={column}>
-    <div className={row}>
-      {shapes.map((shape) => (
-        <Chip {...args} key={shape} shape={shape}>
-          {shape}
-        </Chip>
+export default meta;
+
+type Story = StoryObj<ChipProps>;
+
+export const Default: Story = {
+  render: (args: ChipProps) => (
+    <div className={column}>
+      {variants.map((variant) => (
+        <div className={row} key={variant}>
+          <div className={rowLabel}>{variant}</div>
+          {colors.map((color) => (
+            <KitchenSinkChip
+              key={color}
+              color={color}
+              variant={variant}
+              size={args.size}
+              shape={args.shape}
+            >
+              {color}
+            </KitchenSinkChip>
+          ))}
+          {affixColorExamples.map((example) => (
+            <KitchenSinkChip
+              key={`${example.label}-${example.color}`}
+              color={example.color}
+              variant={variant}
+              size={args.size}
+              shape={args.shape}
+              prefixVariant={example.prefixVariant}
+            >
+              {example.label}
+            </KitchenSinkChip>
+          ))}
+        </div>
       ))}
     </div>
-
-    <div className={row}>
-      {shapes.map((shape) => (
-        <KitchenSinkChip
-          key={shape}
-          shape={shape}
-          color={args.color}
-          variant={args.variant}
-          size={args.size}
-        >
-          {shape}
-        </KitchenSinkChip>
-      ))}
-    </div>
-
-    <div className={row}>
-      {shapes.map((shape) => (
-        <KitchenSinkChip
-          key={shape}
-          shape={shape}
-          prefixVariant="badge"
-          color={args.color}
-          variant={args.variant}
-          size={args.size}
-        >
-          {shape}
-        </KitchenSinkChip>
-      ))}
-    </div>
-  </div>
-);
-export const Size: Story<ChipProps> = (args) => (
-  <div className={column}>
-    <div className={row}>
-      {chipSizes.map((size) => (
-        <Chip
-          key={size}
-          size={size}
-          color={args.color}
-          variant={args.variant}
-          shape={args.shape}
-        >
-          {size}
-        </Chip>
-      ))}
-    </div>
-
-    <div className={row}>
-      {chipSizes.map((size) => (
-        <KitchenSinkChip
-          key={size}
-          size={size}
-          color={args.color}
-          variant={args.variant}
-          shape={args.shape}
-        >
-          {size}
-        </KitchenSinkChip>
-      ))}
-    </div>
-
-    <div className={row}>
-      {chipSizes.map((size) => (
-        <KitchenSinkChip
-          key={size}
-          size={size}
-          color={args.color}
-          variant={args.variant}
-          shape={args.shape}
-          prefixVariant="badge"
-        >
-          {size}
-        </KitchenSinkChip>
-      ))}
-    </div>
-
-    <div className={row}>
-      {chipSizes.map((size) => (
-        <Chip
-          key={size}
-          size={size}
-          color={args.color}
-          variant={args.variant}
-          shape={args.shape}
-          prefix={{ loading: true }}
-          suffix={{ iconName: "check" }}
-        >
-          {size}
-        </Chip>
-      ))}
-    </div>
-
-    {/* md edge cases: empty content, affixes with no label, and truncation of
-        long content against a max-width. */}
-    <div className={row}>
-      <Chip {...args} size="md">
-        {emptyLabel}
-      </Chip>
-      <Chip
-        size="md"
-        color={args.color}
-        variant={args.variant}
-        shape={args.shape}
-        prefix={{ iconName: "sparkles" }}
-        removeable={{ onRemove: noop }}
-      >
-        {emptyLabel}
-      </Chip>
-      <Chip {...args} size="md" className={maxWidthChip}>
-        {longText}
-      </Chip>
-      <Chip
-        size="md"
-        color={args.color}
-        variant={args.variant}
-        shape={args.shape}
-        className={maxWidthChip}
-        prefix={{ children: "long prefix" }}
-        suffix={{ children: "long suffix" }}
-      >
-        {longText}
-      </Chip>
-    </div>
-  </div>
-);
-export const PrefixAndSuffix: Story<ChipProps> = (args) => {
-  // `suffix` and `removeable` are mutually exclusive, so drop them from the
-  // spread base before setting a suffix on the chips below.
-  const { suffix: _suffix, removeable: _removeable, ...base } = args;
-
-  return (
+  ),
+};
+export const Shape: Story = {
+  render: (args: ChipProps) => (
     <div className={column}>
       <div className={row}>
-        <div className={rowLabel}>no affix</div>
-        <Chip {...base}>Static</Chip>
-        <Chip {...base} onClick={noop}>
-          Clickable
-        </Chip>
+        {shapes.map((shape) => (
+          <Chip {...args} key={shape} shape={shape}>
+            {shape}
+          </Chip>
+        ))}
       </div>
 
-      {affixStyles.map((style) => {
-        // An entry may pin the row's shape (e.g. badge on `round`); otherwise
-        // follow the story's shape control.
-        const shape = style.shape ?? base.shape;
-        return (
-          <div className={row} key={style.label}>
-            <div className={rowLabel}>{style.label}</div>
-            <Chip
-              {...base}
-              shape={shape}
-              prefix={{ iconName: "sparkles", variant: style.variant }}
-            >
-              Prefix
-            </Chip>
-            <Chip
-              {...base}
-              shape={shape}
-              suffix={{ iconName: "check", variant: style.variant }}
-            >
-              Suffix
-            </Chip>
-            <Chip
-              {...base}
-              shape={shape}
-              onClick={noop}
-              prefix={{ iconName: "sparkles", variant: style.variant }}
-              suffix={{ iconName: "check", variant: style.variant }}
-            >
-              Clickable
-            </Chip>
-            <Chip
-              {...base}
-              shape={shape}
-              onClick={noop}
-              prefix={{ iconName: "sparkles", variant: style.variant }}
-              suffix={{
-                iconName: "check",
-                variant: style.variant,
-                onClick: noop,
-                "aria-label": "Confirm",
-              }}
-            >
-              2 clickable
-            </Chip>
-            <Chip
-              {...base}
-              shape={shape}
-              onClick={noop}
-              prefix={{
-                iconName: "sparkles",
-                variant: style.variant,
-                onClick: noop,
-                "aria-label": "Sparkle",
-              }}
-              suffix={{
-                iconName: "check",
-                variant: style.variant,
-                onClick: noop,
-                "aria-label": "Confirm",
-              }}
-            >
-              3 clickable
-            </Chip>
-            <Chip
-              {...base}
-              shape={shape}
-              prefix={{ iconName: "sparkles", variant: style.variant }}
-              removeable={{ onRemove: noop }}
-            >
-              Removeable
-            </Chip>
-          </div>
-        );
-      })}
-
       <div className={row}>
-        {affixStyles.map((style) => (
-          <Chip
-            {...base}
-            key={style.label}
-            shape={style.shape ?? base.shape}
-            prefix={{ children: "beta", variant: style.variant }}
-            suffix={{ children: "v2", variant: style.variant }}
+        {shapes.map((shape) => (
+          <KitchenSinkChip
+            key={shape}
+            shape={shape}
+            color={args.color}
+            variant={args.variant}
+            size={args.size}
           >
-            {style.label}
+            {shape}
+          </KitchenSinkChip>
+        ))}
+      </div>
+
+      <div className={row}>
+        {shapes.map((shape) => (
+          <KitchenSinkChip
+            key={shape}
+            shape={shape}
+            prefixVariant="badge"
+            color={args.color}
+            variant={args.variant}
+            size={args.size}
+          >
+            {shape}
+          </KitchenSinkChip>
+        ))}
+      </div>
+    </div>
+  ),
+};
+export const Size: Story = {
+  render: (args: ChipProps) => (
+    <div className={column}>
+      <div className={row}>
+        {chipSizes.map((size) => (
+          <Chip
+            key={size}
+            size={size}
+            color={args.color}
+            variant={args.variant}
+            shape={args.shape}
+          >
+            {size}
           </Chip>
         ))}
       </div>
 
       <div className={row}>
-        {dotStyles.map((dot) => (
-          <Chip {...base} key={dot} prefix={{ dot }} suffix={{ dot }}>
-            {dot}
-          </Chip>
+        {chipSizes.map((size) => (
+          <KitchenSinkChip
+            key={size}
+            size={size}
+            color={args.color}
+            variant={args.variant}
+            shape={args.shape}
+          >
+            {size}
+          </KitchenSinkChip>
         ))}
       </div>
 
       <div className={row}>
-        <div className={rowLabel}>loading</div>
-        <Chip {...base} prefix={{ loading: true }}>
-          Prefix
+        {chipSizes.map((size) => (
+          <KitchenSinkChip
+            key={size}
+            size={size}
+            color={args.color}
+            variant={args.variant}
+            shape={args.shape}
+            prefixVariant="badge"
+          >
+            {size}
+          </KitchenSinkChip>
+        ))}
+      </div>
+
+      <div className={row}>
+        {chipSizes.map((size) => (
+          <Chip
+            key={size}
+            size={size}
+            color={args.color}
+            variant={args.variant}
+            shape={args.shape}
+            prefix={{ loading: true }}
+            suffix={{ iconName: "check" }}
+          >
+            {size}
+          </Chip>
+        ))}
+      </div>
+
+      {/* md edge cases: empty content, affixes with no label, and truncation of
+        long content against a max-width. */}
+      <div className={row}>
+        <Chip {...args} size="md">
+          {emptyLabel}
         </Chip>
         <Chip
-          {...base}
-          prefix={{ loading: true }}
-          suffix={{ iconName: "check" }}
+          size="md"
+          color={args.color}
+          variant={args.variant}
+          shape={args.shape}
+          prefix={{ iconName: "sparkles" }}
+          removeable={{ onRemove: noop }}
         >
-          Prefix + suffix
+          {emptyLabel}
+        </Chip>
+        <Chip {...args} size="md" className={maxWidthChip}>
+          {longText}
         </Chip>
         <Chip
-          {...base}
-          onClick={noop}
-          prefix={{ loading: true }}
-          suffix={{ iconName: "check" }}
+          size="md"
+          color={args.color}
+          variant={args.variant}
+          shape={args.shape}
+          className={maxWidthChip}
+          prefix={{ children: "long prefix" }}
+          suffix={{ children: "long suffix" }}
         >
-          Clickable
+          {longText}
         </Chip>
       </div>
     </div>
-  );
+  ),
+};
+export const PrefixAndSuffix: Story = {
+  render: (args: ChipProps) => {
+    // `suffix` and `removeable` are mutually exclusive, so drop them from the
+    // spread base before setting a suffix on the chips below.
+    const { suffix: _suffix, removeable: _removeable, ...base } = args;
+
+    return (
+      <div className={column}>
+        <div className={row}>
+          <div className={rowLabel}>no affix</div>
+          <Chip {...base}>Static</Chip>
+          <Chip {...base} onClick={noop}>
+            Clickable
+          </Chip>
+        </div>
+
+        {affixStyles.map((style) => {
+          // An entry may pin the row's shape (e.g. badge on `round`); otherwise
+          // follow the story's shape control.
+          const shape = style.shape ?? base.shape;
+          return (
+            <div className={row} key={style.label}>
+              <div className={rowLabel}>{style.label}</div>
+              <Chip
+                {...base}
+                shape={shape}
+                prefix={{ iconName: "sparkles", variant: style.variant }}
+              >
+                Prefix
+              </Chip>
+              <Chip
+                {...base}
+                shape={shape}
+                suffix={{ iconName: "check", variant: style.variant }}
+              >
+                Suffix
+              </Chip>
+              <Chip
+                {...base}
+                shape={shape}
+                onClick={noop}
+                prefix={{ iconName: "sparkles", variant: style.variant }}
+                suffix={{ iconName: "check", variant: style.variant }}
+              >
+                Clickable
+              </Chip>
+              <Chip
+                {...base}
+                shape={shape}
+                onClick={noop}
+                prefix={{ iconName: "sparkles", variant: style.variant }}
+                suffix={{
+                  iconName: "check",
+                  variant: style.variant,
+                  onClick: noop,
+                  "aria-label": "Confirm",
+                }}
+              >
+                2 clickable
+              </Chip>
+              <Chip
+                {...base}
+                shape={shape}
+                onClick={noop}
+                prefix={{
+                  iconName: "sparkles",
+                  variant: style.variant,
+                  onClick: noop,
+                  "aria-label": "Sparkle",
+                }}
+                suffix={{
+                  iconName: "check",
+                  variant: style.variant,
+                  onClick: noop,
+                  "aria-label": "Confirm",
+                }}
+              >
+                3 clickable
+              </Chip>
+              <Chip
+                {...base}
+                shape={shape}
+                prefix={{ iconName: "sparkles", variant: style.variant }}
+                removeable={{ onRemove: noop }}
+              >
+                Removeable
+              </Chip>
+            </div>
+          );
+        })}
+
+        <div className={row}>
+          {affixStyles.map((style) => (
+            <Chip
+              {...base}
+              key={style.label}
+              shape={style.shape ?? base.shape}
+              prefix={{ children: "beta", variant: style.variant }}
+              suffix={{ children: "v2", variant: style.variant }}
+            >
+              {style.label}
+            </Chip>
+          ))}
+        </div>
+
+        <div className={row}>
+          {dotStyles.map((dot) => (
+            <Chip {...base} key={dot} prefix={{ dot }} suffix={{ dot }}>
+              {dot}
+            </Chip>
+          ))}
+        </div>
+
+        <div className={row}>
+          <div className={rowLabel}>loading</div>
+          <Chip {...base} prefix={{ loading: true }}>
+            Prefix
+          </Chip>
+          <Chip
+            {...base}
+            prefix={{ loading: true }}
+            suffix={{ iconName: "check" }}
+          >
+            Prefix + suffix
+          </Chip>
+          <Chip
+            {...base}
+            onClick={noop}
+            prefix={{ loading: true }}
+            suffix={{ iconName: "check" }}
+          >
+            Clickable
+          </Chip>
+        </div>
+      </div>
+    );
+  },
 };

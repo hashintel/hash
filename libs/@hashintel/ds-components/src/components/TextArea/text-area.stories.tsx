@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { TextArea } from "./text-area";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type TextAreaProps = React.ComponentProps<typeof TextArea>;
 
@@ -96,97 +96,110 @@ const resizeCases: {
   { label: "autoResize", props: { autoResize: true } },
 ];
 
-export default {
+const meta = {
   title: "Components/TextArea",
-} satisfies StoryDefault;
+} satisfies Meta;
 
-export const Default: Story = () => (
-  <div className={statesGridClass}>
-    <span className={headingClass}>State</span>
-    <span className={headingClass}>Default</span>
-    <span className={headingClass}>Subtle</span>
-    {states.map(({ label, props }) => (
-      <Fragment key={label}>
-        <span className={labelClass}>{label}</span>
-        <Controlled {...props} variant="default" />
-        <Controlled {...props} variant="subtle" />
-      </Fragment>
-    ))}
-  </div>
-);
+export default meta;
 
-export const Sizes: Story = () => (
-  <div className={sizesGridClass}>
-    <span className={headingClass}>Size</span>
-    <span className={headingClass}>Default</span>
-    <span className={headingClass}>Subtle</span>
-    <span className={headingClass}>Readonly</span>
-    {formInputSizes.map((size) => (
-      <Fragment key={size}>
-        <span className={labelClass}>{size}</span>
-        <Controlled
-          size={size}
-          value={sampleText}
-          placeholder="Type something…"
-        />
-        <Controlled
-          size={size}
-          variant="subtle"
-          value={sampleText}
-          placeholder="Type something…"
-        />
-        <Controlled size={size} value={sampleText} readonly />
-      </Fragment>
-    ))}
-  </div>
-);
+type Story = StoryObj;
 
-export const Resize: Story = () => (
-  <div className={gridClass}>
-    <span className={headingClass}>resize</span>
-    <span className={headingClass}>TextArea</span>
-    {resizeCases.map(({ label, props }) => (
-      <Fragment key={label}>
-        <span className={labelClass}>{label}</span>
-        <Controlled {...props} value={sampleText} rows={2} />
-      </Fragment>
-    ))}
-  </div>
-);
+export const Default: Story = {
+  render: () => (
+    <div className={statesGridClass}>
+      <span className={headingClass}>State</span>
+      <span className={headingClass}>Default</span>
+      <span className={headingClass}>Subtle</span>
+      {states.map(({ label, props }) => (
+        <Fragment key={label}>
+          <span className={labelClass}>{label}</span>
+          <Controlled {...props} variant="default" />
+          <Controlled {...props} variant="subtle" />
+        </Fragment>
+      ))}
+    </div>
+  ),
+};
 
-export const WithCharacterCount: Story = () => (
-  <div
-    className={css({
-      ...backdrop,
-      display: "flex",
-      flexDirection: "column",
-      gap: "[24px]",
-      maxWidth: "[420px]",
-    })}
-  >
-    {(["default", "subtle"] as const).flatMap((variant) =>
-      ([true, false] as const).map((includeCharCountHeight) => (
-        <div
-          key={`${variant}-${includeCharCountHeight}`}
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            gap: "[8px]",
-          })}
-        >
-          <span className={labelClass}>
-            {variant} — includeCharCountHeight: {String(includeCharCountHeight)}
-          </span>
+export const Sizes: Story = {
+  render: () => (
+    <div className={sizesGridClass}>
+      <span className={headingClass}>Size</span>
+      <span className={headingClass}>Default</span>
+      <span className={headingClass}>Subtle</span>
+      <span className={headingClass}>Readonly</span>
+      {formInputSizes.map((size) => (
+        <Fragment key={size}>
+          <span className={labelClass}>{size}</span>
           <Controlled
-            variant={variant}
-            includeCharCountHeight={includeCharCountHeight}
-            value="A short bio."
-            characterLimit={80}
-            rows={3}
-            placeholder="Tell us about yourself…"
+            size={size}
+            value={sampleText}
+            placeholder="Type something…"
           />
-        </div>
-      )),
-    )}
-  </div>
-);
+          <Controlled
+            size={size}
+            variant="subtle"
+            value={sampleText}
+            placeholder="Type something…"
+          />
+          <Controlled size={size} value={sampleText} readonly />
+        </Fragment>
+      ))}
+    </div>
+  ),
+};
+
+export const Resize: Story = {
+  render: () => (
+    <div className={gridClass}>
+      <span className={headingClass}>resize</span>
+      <span className={headingClass}>TextArea</span>
+      {resizeCases.map(({ label, props }) => (
+        <Fragment key={label}>
+          <span className={labelClass}>{label}</span>
+          <Controlled {...props} value={sampleText} rows={2} />
+        </Fragment>
+      ))}
+    </div>
+  ),
+};
+
+export const WithCharacterCount: Story = {
+  render: () => (
+    <div
+      className={css({
+        ...backdrop,
+        display: "flex",
+        flexDirection: "column",
+        gap: "[24px]",
+        maxWidth: "[420px]",
+      })}
+    >
+      {(["default", "subtle"] as const).flatMap((variant) =>
+        ([true, false] as const).map((includeCharCountHeight) => (
+          <div
+            key={`${variant}-${includeCharCountHeight}`}
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              gap: "[8px]",
+            })}
+          >
+            <span className={labelClass}>
+              {variant} — includeCharCountHeight:{" "}
+              {String(includeCharCountHeight)}
+            </span>
+            <Controlled
+              variant={variant}
+              includeCharCountHeight={includeCharCountHeight}
+              value="A short bio."
+              characterLimit={80}
+              rows={3}
+              placeholder="Tell us about yourself…"
+            />
+          </div>
+        )),
+      )}
+    </div>
+  ),
+};

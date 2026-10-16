@@ -12,7 +12,7 @@ import { TextInput } from "../TextInput/text-input";
 import { Errors } from "./errors";
 import { Form } from "./form";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type LabelDirection = NonNullable<
   React.ComponentProps<typeof Form.Field>["labelDirection"]
@@ -109,7 +109,7 @@ const kitchenSinkProps = {
   required: true,
 };
 
-export default {
+const meta = {
   title: "Components/Form",
   argTypes: {
     label: {
@@ -166,11 +166,15 @@ export default {
   args: {
     as: "label" as const,
   },
-} satisfies StoryDefault<React.ComponentProps<typeof Form.Field>>;
+} satisfies Meta<React.ComponentProps<typeof Form.Field>>;
+
+export default meta;
 
 type FormFieldArgs = React.ComponentProps<typeof Form.Field>;
 
-export const FormField: Story<FormFieldArgs> = (args) => (
+type Story = StoryObj<FormFieldArgs>;
+
+const FormFieldDemo = (args: FormFieldArgs) => (
   <div className={sectionStyle}>
     <Form.Field {...args} as="label" label="Disabled" disabled>
       <ControlledTextInput
@@ -286,174 +290,184 @@ export const FormField: Story<FormFieldArgs> = (args) => (
   </div>
 );
 
-export const FormFieldInlineLayout: Story<FormFieldArgs> = (args) => (
-  <>
-    <FormField {...args} layout="inline" />
-    <div className={sectionStyle}>
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="Kitchen sink (inputAlign: start)"
-        {...kitchenSinkProps}
-      >
-        <ControlledTextInput
-          name="form-field-inline-input-align-end"
-          initialValue="Kitchen sink value"
-          size={args.size}
-          width="md"
-          disabled
-          invalid
-        />
-      </Form.Field>
-    </div>
-    <div className={sectionStyle}>
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="Kitchen sink (inputAlign: end)"
-        inputAlign="end"
-        {...kitchenSinkProps}
-      >
-        <ControlledTextInput
-          name="form-field-inline-input-align-end"
-          initialValue="Kitchen sink value"
-          size={args.size}
-          width="md"
-          disabled
-          invalid
-        />
-      </Form.Field>
-    </div>
-  </>
-);
+export const FormField: Story = {
+  render: (args: FormFieldArgs) => <FormFieldDemo {...args} />,
+};
 
-export const FormFieldSize: Story<FormFieldArgs> = (args) => (
-  <div className={sectionStyle}>
-    {formInputSizes.map((size: FormInputSize) => (
-      <Form.Field
-        {...args}
-        as="label"
-        key={size}
-        label={`Size: ${size}`}
-        size={size}
-        {...kitchenSinkProps}
-      >
-        <ControlledTextInput
-          name={`form-field-size-${size}`}
-          initialValue="Kitchen sink value"
+export const FormFieldInlineLayout: Story = {
+  render: (args: FormFieldArgs) => (
+    <>
+      <FormFieldDemo {...args} layout="inline" />
+      <div className={sectionStyle}>
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="Kitchen sink (inputAlign: start)"
+          {...kitchenSinkProps}
+        >
+          <ControlledTextInput
+            name="form-field-inline-input-align-end"
+            initialValue="Kitchen sink value"
+            size={args.size}
+            width="md"
+            disabled
+            invalid
+          />
+        </Form.Field>
+      </div>
+      <div className={sectionStyle}>
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="Kitchen sink (inputAlign: end)"
+          inputAlign="end"
+          {...kitchenSinkProps}
+        >
+          <ControlledTextInput
+            name="form-field-inline-input-align-end"
+            initialValue="Kitchen sink value"
+            size={args.size}
+            width="md"
+            disabled
+            invalid
+          />
+        </Form.Field>
+      </div>
+    </>
+  ),
+};
+
+export const FormFieldSize: Story = {
+  render: (args: FormFieldArgs) => (
+    <div className={sectionStyle}>
+      {formInputSizes.map((size: FormInputSize) => (
+        <Form.Field
+          {...args}
+          as="label"
+          key={size}
+          label={`Size: ${size}`}
           size={size}
-          disabled
-          invalid
-        />
-      </Form.Field>
-    ))}
-    {formInputSizes.map((size: FormInputSize) => (
-      <Form.Field
-        {...args}
-        as="label"
-        key={`${size}-inline`}
-        label={`Size: ${size} (inline)`}
-        size={size}
-        layout="inline"
-        {...kitchenSinkProps}
-      >
-        <ControlledTextInput
-          name={`form-field-size-${size}-inline`}
-          initialValue="Kitchen sink value"
+          {...kitchenSinkProps}
+        >
+          <ControlledTextInput
+            name={`form-field-size-${size}`}
+            initialValue="Kitchen sink value"
+            size={size}
+            disabled
+            invalid
+          />
+        </Form.Field>
+      ))}
+      {formInputSizes.map((size: FormInputSize) => (
+        <Form.Field
+          {...args}
+          as="label"
+          key={`${size}-inline`}
+          label={`Size: ${size} (inline)`}
           size={size}
-          disabled
-          invalid
-        />
-      </Form.Field>
-    ))}
-  </div>
-);
+          layout="inline"
+          {...kitchenSinkProps}
+        >
+          <ControlledTextInput
+            name={`form-field-size-${size}-inline`}
+            initialValue="Kitchen sink value"
+            size={size}
+            disabled
+            invalid
+          />
+        </Form.Field>
+      ))}
+    </div>
+  ),
+};
 
 const { labelActions: _labelActions, ...kitchenSinkPropsNoActions } =
   kitchenSinkProps;
 
-export const FormFieldLabelDirection: Story<FormFieldArgs> = (args) => (
-  <div className={sectionStyle}>
-    {labelDirections.map((direction) => (
-      <Form.Field
-        {...args}
-        as="label"
-        key={direction}
-        label={`Direction: ${direction}`}
-        labelDirection={direction}
-        {...kitchenSinkProps}
-      >
-        <ControlledTextInput
-          name={`form-field-direction-${direction}`}
-          initialValue="Kitchen sink value"
-          size={args.size}
-          disabled
-          invalid
-        />
-      </Form.Field>
-    ))}
-    {labelDirections.map((direction) => (
-      <Form.Field
-        {...args}
-        as="label"
-        key={`${direction}-no-actions`}
-        label={`Direction: ${direction} (no actions)`}
-        labelDirection={direction}
-        {...kitchenSinkPropsNoActions}
-      >
-        <ControlledTextInput
-          name={`form-field-direction-${direction}-no-actions`}
-          initialValue="Kitchen sink value"
-          size={args.size}
-          disabled
-          invalid
-        />
-      </Form.Field>
-    ))}
-    {labelDirections.map((direction) => (
-      <Form.Field
-        {...args}
-        as="label"
-        key={`${direction}-inline`}
-        label={`Direction: ${direction} (inline)`}
-        labelDirection={direction}
-        layout="inline"
-        {...kitchenSinkProps}
-      >
-        <ControlledTextInput
-          name={`form-field-direction-${direction}-inline`}
-          initialValue="Kitchen sink value"
-          size={args.size}
-          disabled
-          invalid
-        />
-      </Form.Field>
-    ))}
-    {labelDirections.map((direction) => (
-      <Form.Field
-        {...args}
-        as="label"
-        key={`${direction}-inline-end`}
-        label={`Direction: ${direction} (inline, inputAlign: end)`}
-        labelDirection={direction}
-        layout="inline"
-        inputAlign="end"
-        {...kitchenSinkProps}
-      >
-        <ControlledTextInput
-          name={`form-field-direction-${direction}-inline-end`}
-          initialValue="Kitchen sink value"
-          size={args.size}
-          width="md"
-          disabled
-          invalid
-        />
-      </Form.Field>
-    ))}
-  </div>
-);
+export const FormFieldLabelDirection: Story = {
+  render: (args: FormFieldArgs) => (
+    <div className={sectionStyle}>
+      {labelDirections.map((direction) => (
+        <Form.Field
+          {...args}
+          as="label"
+          key={direction}
+          label={`Direction: ${direction}`}
+          labelDirection={direction}
+          {...kitchenSinkProps}
+        >
+          <ControlledTextInput
+            name={`form-field-direction-${direction}`}
+            initialValue="Kitchen sink value"
+            size={args.size}
+            disabled
+            invalid
+          />
+        </Form.Field>
+      ))}
+      {labelDirections.map((direction) => (
+        <Form.Field
+          {...args}
+          as="label"
+          key={`${direction}-no-actions`}
+          label={`Direction: ${direction} (no actions)`}
+          labelDirection={direction}
+          {...kitchenSinkPropsNoActions}
+        >
+          <ControlledTextInput
+            name={`form-field-direction-${direction}-no-actions`}
+            initialValue="Kitchen sink value"
+            size={args.size}
+            disabled
+            invalid
+          />
+        </Form.Field>
+      ))}
+      {labelDirections.map((direction) => (
+        <Form.Field
+          {...args}
+          as="label"
+          key={`${direction}-inline`}
+          label={`Direction: ${direction} (inline)`}
+          labelDirection={direction}
+          layout="inline"
+          {...kitchenSinkProps}
+        >
+          <ControlledTextInput
+            name={`form-field-direction-${direction}-inline`}
+            initialValue="Kitchen sink value"
+            size={args.size}
+            disabled
+            invalid
+          />
+        </Form.Field>
+      ))}
+      {labelDirections.map((direction) => (
+        <Form.Field
+          {...args}
+          as="label"
+          key={`${direction}-inline-end`}
+          label={`Direction: ${direction} (inline, inputAlign: end)`}
+          labelDirection={direction}
+          layout="inline"
+          inputAlign="end"
+          {...kitchenSinkProps}
+        >
+          <ControlledTextInput
+            name={`form-field-direction-${direction}-inline-end`}
+            initialValue="Kitchen sink value"
+            size={args.size}
+            width="md"
+            disabled
+            invalid
+          />
+        </Form.Field>
+      ))}
+    </div>
+  ),
+};
 
 // custom (non-field) elements in a Form.Section space themselves
 const sectionRowStyle = css({ marginBottom: "5" });
@@ -464,141 +478,146 @@ const sectionTextStyle = css({
   marginY: "[30px]",
 });
 
-export const FormSection: Story<FormFieldArgs> = (args) => (
-  <div className={sectionStyle}>
-    <Form.Section>
-      <Form.Field {...args} as="label" layout="inline" label="Name">
-        <ControlledTextInput name="form-section-name" size={args.size} />
-      </Form.Field>
+export const FormSection: Story = {
+  render: (args: FormFieldArgs) => (
+    <div className={sectionStyle}>
+      <Form.Section>
+        <Form.Field {...args} as="label" layout="inline" label="Name">
+          <ControlledTextInput name="form-section-name" size={args.size} />
+        </Form.Field>
 
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="A much longer label"
-        required
-      >
-        <ControlledTextInput
-          name="form-section-longer-label"
-          size={args.size}
-        />
-      </Form.Field>
-
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="Actions"
-        labelActions={<ActionButton />}
-      >
-        <ControlledTextInput name="form-section-actions" size={args.size} />
-      </Form.Field>
-
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="Kitchen sink"
-        {...kitchenSinkProps}
-      >
-        <ControlledTextInput
-          name="form-section-kitchen-sink"
-          initialValue="Kitchen sink value"
-          size={args.size}
-          disabled
-          invalid
-        />
-      </Form.Field>
-
-      <Form.Field
-        {...args}
-        as="legend"
-        layout="inline"
-        label="Contact method"
-        labelTooltip="How we should get in touch with you"
-      >
-        <ControlledRadioGroup
-          name="form-section-contact-method"
+        <Form.Field
+          {...args}
+          as="label"
           layout="inline"
-          size={args.size}
-        />
-      </Form.Field>
-
-      <Form.Field {...args} as="label" label="Block layout field">
-        <ControlledTextInput name="form-section-block" size={args.size} />
-      </Form.Field>
-
-      <p className={sectionTextStyle}>
-        Custom elements can sit between fields — they span the full width of the
-        section and manage their own spacing.
-      </p>
-
-      <Form.Row className={sectionRowStyle}>
-        <Form.Field {...args} as="label" label="First in row">
-          <ControlledTextInput name="form-section-row-1" size={args.size} />
+          label="A much longer label"
+          required
+        >
+          <ControlledTextInput
+            name="form-section-longer-label"
+            size={args.size}
+          />
         </Form.Field>
-        <Form.Field {...args} as="label" label="Second in row">
-          <ControlledTextInput name="form-section-row-2" size={args.size} />
+
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="Actions"
+          labelActions={<ActionButton />}
+        >
+          <ControlledTextInput name="form-section-actions" size={args.size} />
         </Form.Field>
-      </Form.Row>
 
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="After the row with very very long content"
-      >
-        <ControlledTextInput name="form-section-after-row" size={args.size} />
-      </Form.Field>
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="Kitchen sink"
+          {...kitchenSinkProps}
+        >
+          <ControlledTextInput
+            name="form-section-kitchen-sink"
+            initialValue="Kitchen sink value"
+            size={args.size}
+            disabled
+            invalid
+          />
+        </Form.Field>
 
-      <Form.Field {...args} as="label" layout="inline" label="Short width">
-        <ControlledTextInput
-          name="form-section-last"
-          size={args.size}
-          width="sm"
-        />
-      </Form.Field>
+        <Form.Field
+          {...args}
+          as="legend"
+          layout="inline"
+          label="Contact method"
+          labelTooltip="How we should get in touch with you"
+        >
+          <ControlledRadioGroup
+            name="form-section-contact-method"
+            layout="inline"
+            size={args.size}
+          />
+        </Form.Field>
 
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="Input align end"
-        inputAlign="end"
-      >
-        <ControlledTextInput
-          name="form-section-last"
-          size={args.size}
-          width="sm"
-        />
-      </Form.Field>
+        <Form.Field {...args} as="label" label="Block layout field">
+          <ControlledTextInput name="form-section-block" size={args.size} />
+        </Form.Field>
 
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="Right label"
-        labelDirection="right"
-      >
-        <ControlledTextInput name="form-section-right" size={args.size} />
-      </Form.Field>
+        <p className={sectionTextStyle}>
+          Custom elements can sit between fields — they span the full width of
+          the section and manage their own spacing.
+        </p>
 
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="A longer right label"
-        labelDirection="right"
-      >
-        <ControlledTextInput name="form-section-right-long" size={args.size} />
-      </Form.Field>
+        <Form.Row className={sectionRowStyle}>
+          <Form.Field {...args} as="label" label="First in row">
+            <ControlledTextInput name="form-section-row-1" size={args.size} />
+          </Form.Field>
+          <Form.Field {...args} as="label" label="Second in row">
+            <ControlledTextInput name="form-section-row-2" size={args.size} />
+          </Form.Field>
+        </Form.Row>
 
-      <Form.Field {...args} as="label" layout="inline" label="Last">
-        <ControlledTextInput name="form-section-last" size={args.size} />
-      </Form.Field>
-    </Form.Section>
-  </div>
-);
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="After the row with very very long content"
+        >
+          <ControlledTextInput name="form-section-after-row" size={args.size} />
+        </Form.Field>
+
+        <Form.Field {...args} as="label" layout="inline" label="Short width">
+          <ControlledTextInput
+            name="form-section-last"
+            size={args.size}
+            width="sm"
+          />
+        </Form.Field>
+
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="Input align end"
+          inputAlign="end"
+        >
+          <ControlledTextInput
+            name="form-section-last"
+            size={args.size}
+            width="sm"
+          />
+        </Form.Field>
+
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="Right label"
+          labelDirection="right"
+        >
+          <ControlledTextInput name="form-section-right" size={args.size} />
+        </Form.Field>
+
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="A longer right label"
+          labelDirection="right"
+        >
+          <ControlledTextInput
+            name="form-section-right-long"
+            size={args.size}
+          />
+        </Form.Field>
+
+        <Form.Field {...args} as="label" layout="inline" label="Last">
+          <ControlledTextInput name="form-section-last" size={args.size} />
+        </Form.Field>
+      </Form.Section>
+    </div>
+  ),
+};
 
 const renderRowField = (
   args: FormFieldArgs,
@@ -637,124 +656,130 @@ const renderRowField = (
   );
 };
 
-export const FormRowDefault: Story<FormFieldArgs> = (args) => (
-  <div className={sectionStyle}>
-    <Form.Row>
-      {renderRowField(args, "form-row-default-single", 0, {
-        label: "1 field",
-      })}
-    </Form.Row>
+export const FormRowDefault: Story = {
+  render: (args: FormFieldArgs) => (
+    <div className={sectionStyle}>
+      <Form.Row>
+        {renderRowField(args, "form-row-default-single", 0, {
+          label: "1 field",
+        })}
+      </Form.Row>
 
-    <Form.Row>
-      {renderRowField(args, "form-row-default-pair", 0, {
-        label: "2 fields (second has no label)",
-      })}
-      {renderRowField(args, "form-row-default-pair", 1, { hideLabel: true })}
-    </Form.Row>
+      <Form.Row>
+        {renderRowField(args, "form-row-default-pair", 0, {
+          label: "2 fields (second has no label)",
+        })}
+        {renderRowField(args, "form-row-default-pair", 1, { hideLabel: true })}
+      </Form.Row>
 
-    <Form.Row
-      errors={
-        <Errors
-          errors={["Something is wrong with the values in this row"]}
-          size={args.size}
-        />
-      }
-    >
-      {Array.from({ length: 4 }, (_, index) =>
-        renderRowField(args, "form-row-default-quad", index, {
-          invalid: true,
-          ...(index === 0 ? { label: "4 fields with row errors" } : {}),
-        }),
-      )}
-    </Form.Row>
-
-    <Form.Row>
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="3 inline fields (only first labelled)"
+      <Form.Row
+        errors={
+          <Errors
+            errors={["Something is wrong with the values in this row"]}
+            size={args.size}
+          />
+        }
       >
-        <ControlledTextInput
-          name="form-row-default-inline-triple-1"
-          size={args.size}
-        />
-      </Form.Field>
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="Second field"
-        hideLabel
-      >
-        <ControlledTextInput
-          name="form-row-default-inline-triple-2"
-          size={args.size}
-        />
-      </Form.Field>
-      <Form.Field
-        {...args}
-        as="label"
-        layout="inline"
-        label="Third field"
-        hideLabel
-      >
-        <ControlledTextInput
-          name="form-row-default-inline-triple-3"
-          size={args.size}
-        />
-      </Form.Field>
-    </Form.Row>
-
-    <Form.Row gap="lg">
-      <Form.Field {...args} as="label" layout="inline" label="First inline">
-        <ControlledTextInput
-          name="form-row-default-inline-pair-1"
-          size={args.size}
-        />
-      </Form.Field>
-      <Form.Field {...args} as="label" layout="inline" label="Second inline">
-        <ControlledTextInput
-          name="form-row-default-inline-pair-2"
-          size={args.size}
-        />
-      </Form.Field>
-    </Form.Row>
-  </div>
-);
-
-export const FormRowGap: Story<FormFieldArgs> = (args) => (
-  <div className={sectionStyle}>
-    {formRowGaps.map((gap) => (
-      <Form.Row key={gap} gap={gap} noWrap={gap === "none"}>
         {Array.from({ length: 4 }, (_, index) =>
-          renderRowField(args, `form-row-gap-${gap}`, index, {
-            label: index === 0 ? `Gap: ${gap}` : "...",
-            ...(gap === "none" && {
-              connectToLeftInput: index > 0,
-              connectToRightInput: index < 3,
+          renderRowField(args, "form-row-default-quad", index, {
+            invalid: true,
+            ...(index === 0 ? { label: "4 fields with row errors" } : {}),
+          }),
+        )}
+      </Form.Row>
+
+      <Form.Row>
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="3 inline fields (only first labelled)"
+        >
+          <ControlledTextInput
+            name="form-row-default-inline-triple-1"
+            size={args.size}
+          />
+        </Form.Field>
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="Second field"
+          hideLabel
+        >
+          <ControlledTextInput
+            name="form-row-default-inline-triple-2"
+            size={args.size}
+          />
+        </Form.Field>
+        <Form.Field
+          {...args}
+          as="label"
+          layout="inline"
+          label="Third field"
+          hideLabel
+        >
+          <ControlledTextInput
+            name="form-row-default-inline-triple-3"
+            size={args.size}
+          />
+        </Form.Field>
+      </Form.Row>
+
+      <Form.Row gap="lg">
+        <Form.Field {...args} as="label" layout="inline" label="First inline">
+          <ControlledTextInput
+            name="form-row-default-inline-pair-1"
+            size={args.size}
+          />
+        </Form.Field>
+        <Form.Field {...args} as="label" layout="inline" label="Second inline">
+          <ControlledTextInput
+            name="form-row-default-inline-pair-2"
+            size={args.size}
+          />
+        </Form.Field>
+      </Form.Row>
+    </div>
+  ),
+};
+
+export const FormRowGap: Story = {
+  render: (args: FormFieldArgs) => (
+    <div className={sectionStyle}>
+      {formRowGaps.map((gap) => (
+        <Form.Row key={gap} gap={gap} noWrap={gap === "none"}>
+          {Array.from({ length: 4 }, (_, index) =>
+            renderRowField(args, `form-row-gap-${gap}`, index, {
+              label: index === 0 ? `Gap: ${gap}` : "...",
+              ...(gap === "none" && {
+                connectToLeftInput: index > 0,
+                connectToRightInput: index < 3,
+              }),
             }),
-          }),
-        )}
-      </Form.Row>
-    ))}
-  </div>
-);
+          )}
+        </Form.Row>
+      ))}
+    </div>
+  ),
+};
 
-export const FormRowAlign: Story<FormFieldArgs> = (args) => (
-  <div className={sectionStyle}>
-    {formRowAligns.map((align) => (
-      <Form.Row key={align} align={align}>
-        {Array.from({ length: 4 }, (_, index) =>
-          renderRowField(args, `form-row-align-${align}`, index, {
-            hideLabel: index > 0,
-            ...(index === 0 ? { label: `Align: ${align}` } : {}),
-          }),
-        )}
-      </Form.Row>
-    ))}
-  </div>
-);
+export const FormRowAlign: Story = {
+  render: (args: FormFieldArgs) => (
+    <div className={sectionStyle}>
+      {formRowAligns.map((align) => (
+        <Form.Row key={align} align={align}>
+          {Array.from({ length: 4 }, (_, index) =>
+            renderRowField(args, `form-row-align-${align}`, index, {
+              hideLabel: index > 0,
+              ...(index === 0 ? { label: `Align: ${align}` } : {}),
+            }),
+          )}
+        </Form.Row>
+      ))}
+    </div>
+  ),
+};
 
 const formStyle = css({
   display: "flex",
@@ -967,7 +992,7 @@ const { useAppForm } = createFormHook({
   formContext,
 });
 
-export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
+const WithTanstackFormDemo = (args: FormFieldArgs) => {
   const form = useAppForm({
     defaultValues: {
       fullName: "",
@@ -1124,4 +1149,8 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
       </form.AppForm>
     </form>
   );
+};
+
+export const WithTanstackForm: Story = {
+  render: (args: FormFieldArgs) => <WithTanstackFormDemo {...args} />,
 };

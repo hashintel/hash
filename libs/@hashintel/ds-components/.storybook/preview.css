@@ -235,29 +235,16 @@
     "Geist Mono Variable", "Geist Mono", ui-monospace, SFMono-Regular, monospace;
   --global-font-body: var(--font-inter);
   --global-font-mono: var(--font-geist-mono);
-
-  /* colors - using radix-based semantic tokens */
-  --ladle-bg-color-primary: var(--colors-neutral-s00) !important;
-  --ladle-bg-color-secondary: var(--colors-neutral-s20) !important;
-  --ladle-color-primary: var(--colors-neutral-s120) !important;
-  --ladle-color-secondary: var(--colors-neutral-s110) !important;
-  --ladle-color-hover: var(--colors-neutral-s90) !important;
-  --ladle-color-accent: var(--colors-blue-s90);
-  --ladle-blueprint: var(--colors-blue-s60);
-
-  /* dimensions */
-  --ladle-ring-size: 64px;
-  --ladle-ring-thickness: 6px;
-  --ladle-mode-overflow: hidden;
-  --ladle-mode-height: 100vh;
-  --ladle-main-padding: 1.5em;
-  --ladle-main-padding-mobile: 0.5em;
-  --reach-dialog: 1;
 }
 
-.ladle-main {
+/* Story canvas: default text color, background, and padding around stories */
+body {
   color: var(--colors-fg-heading);
   background-color: var(--colors-neutral-s00);
+}
+
+#storybook-root {
+  padding: 1.5em;
 }
 
 /* Light mode (default) */

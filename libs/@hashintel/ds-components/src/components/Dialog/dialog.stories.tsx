@@ -6,11 +6,15 @@ import { Button } from "../Button/button";
 import { Icon } from "../Icon/icon";
 import { Dialog, type DialogSize } from "./dialog";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
-export default {
+const meta = {
   title: "Components/Dialog",
-} satisfies StoryDefault;
+} satisfies Meta;
+
+export default meta;
+
+type Story = StoryObj;
 
 const sampleBody = (
   <p>
@@ -256,32 +260,36 @@ const buildExampleEntries = (variant: DialogVariant): ExampleProps[] => [
   },
 ];
 
-export const Examples: Story = () => (
-  <div className={css({ display: "flex", flexDirection: "column", gap: "4" })}>
-    {(["partitionedFooter", "plain"] as const).map((variant) => (
-      <div
-        key={variant}
-        className={css({
-          display: "flex",
-          gap: "3",
-          alignItems: "center",
-          flexWrap: "wrap",
-        })}
-      >
-        <div className={css({ minWidth: "[8rem]", fontWeight: "medium" })}>
-          {variant}
+export const Examples: Story = {
+  render: () => (
+    <div
+      className={css({ display: "flex", flexDirection: "column", gap: "4" })}
+    >
+      {(["partitionedFooter", "plain"] as const).map((variant) => (
+        <div
+          key={variant}
+          className={css({
+            display: "flex",
+            gap: "3",
+            alignItems: "center",
+            flexWrap: "wrap",
+          })}
+        >
+          <div className={css({ minWidth: "[8rem]", fontWeight: "medium" })}>
+            {variant}
+          </div>
+          {buildExampleEntries(variant).map((entry) => (
+            <DialogExample
+              key={entry.buttonLabel}
+              buttonLabel={entry.buttonLabel}
+              renderDialog={entry.renderDialog}
+            />
+          ))}
         </div>
-        {buildExampleEntries(variant).map((entry) => (
-          <DialogExample
-            key={entry.buttonLabel}
-            buttonLabel={entry.buttonLabel}
-            renderDialog={entry.renderDialog}
-          />
-        ))}
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  ),
+};
 
 const sizes = [
   "xs",
@@ -329,11 +337,57 @@ const renderKitchenSink = (
   </Dialog>
 );
 
-export const Sizes: Story = () => (
-  <div className={css({ display: "flex", flexDirection: "column", gap: "4" })}>
-    {sizes.map((size) => (
+export const Sizes: Story = {
+  render: () => (
+    <div
+      className={css({ display: "flex", flexDirection: "column", gap: "4" })}
+    >
+      {sizes.map((size) => (
+        <div
+          key={size}
+          className={css({
+            display: "flex",
+            gap: "3",
+            alignItems: "center",
+            flexWrap: "wrap",
+          })}
+        >
+          <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
+            {size}
+          </div>
+          <DialogExample
+            buttonLabel={`Kitchen sink — ${size}`}
+            renderDialog={(close) => renderKitchenSink(size, close)}
+          />
+          <DialogExample
+            buttonLabel={`Loading — ${size}`}
+            renderDialog={(close) =>
+              renderKitchenSink(size, close, { loading: true })
+            }
+          />
+          {size === "xs" ? (
+            <>
+              <DialogExample
+                buttonLabel={`No header — ${size}`}
+                renderDialog={(close) => (
+                  <Dialog size={size} onClose={close}>
+                    <Dialog.Body>{sampleBody}</Dialog.Body>
+                  </Dialog>
+                )}
+              />
+              <DialogExample
+                buttonLabel={`No header, no padding — ${size}`}
+                renderDialog={(close) => (
+                  <Dialog size={size} onClose={close}>
+                    <Dialog.Body withPadding={false}>{sampleBody}</Dialog.Body>
+                  </Dialog>
+                )}
+              />
+            </>
+          ) : null}
+        </div>
+      ))}
       <div
-        key={size}
         className={css({
           display: "flex",
           gap: "3",
@@ -342,73 +396,31 @@ export const Sizes: Story = () => (
         })}
       >
         <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
-          {size}
+          custom
         </div>
         <DialogExample
-          buttonLabel={`Kitchen sink — ${size}`}
-          renderDialog={(close) => renderKitchenSink(size, close)}
+          buttonLabel="Custom width (480px)"
+          renderDialog={(close) => (
+            <Dialog className={css({ maxWidth: "[480px]" })} onClose={close}>
+              <Dialog.Header
+                title="Custom width (480px)"
+                description="maxWidth is overridden via className."
+              />
+              <Dialog.Body>{sampleBody}</Dialog.Body>
+              <Dialog.Footer
+                actions={
+                  <Button variant="solid" tone="brand" onClick={close}>
+                    Save changes
+                  </Button>
+                }
+              />
+            </Dialog>
+          )}
         />
-        <DialogExample
-          buttonLabel={`Loading — ${size}`}
-          renderDialog={(close) =>
-            renderKitchenSink(size, close, { loading: true })
-          }
-        />
-        {size === "xs" ? (
-          <>
-            <DialogExample
-              buttonLabel={`No header — ${size}`}
-              renderDialog={(close) => (
-                <Dialog size={size} onClose={close}>
-                  <Dialog.Body>{sampleBody}</Dialog.Body>
-                </Dialog>
-              )}
-            />
-            <DialogExample
-              buttonLabel={`No header, no padding — ${size}`}
-              renderDialog={(close) => (
-                <Dialog size={size} onClose={close}>
-                  <Dialog.Body withPadding={false}>{sampleBody}</Dialog.Body>
-                </Dialog>
-              )}
-            />
-          </>
-        ) : null}
       </div>
-    ))}
-    <div
-      className={css({
-        display: "flex",
-        gap: "3",
-        alignItems: "center",
-        flexWrap: "wrap",
-      })}
-    >
-      <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
-        custom
-      </div>
-      <DialogExample
-        buttonLabel="Custom width (480px)"
-        renderDialog={(close) => (
-          <Dialog className={css({ maxWidth: "[480px]" })} onClose={close}>
-            <Dialog.Header
-              title="Custom width (480px)"
-              description="maxWidth is overridden via className."
-            />
-            <Dialog.Body>{sampleBody}</Dialog.Body>
-            <Dialog.Footer
-              actions={
-                <Button variant="solid" tone="brand" onClick={close}>
-                  Save changes
-                </Button>
-              }
-            />
-          </Dialog>
-        )}
-      />
     </div>
-  </div>
-);
+  ),
+};
 
 const overflowingTitle =
   "A really, really long title that probably wraps onto multiple lines and helps verify how the header handles wrapped text without breaking the layout";
@@ -544,39 +556,43 @@ const renderOverflowBodyOnly = (
   </Dialog>
 );
 
-export const Overflow: Story = () => (
-  <div className={css({ display: "flex", flexDirection: "column", gap: "4" })}>
-    {([false, true] as const).map((loading) => (
-      <div
-        key={String(loading)}
-        className={css({
-          display: "flex",
-          gap: "3",
-          alignItems: "center",
-          flexWrap: "wrap",
-        })}
-      >
-        <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
-          {loading ? "loading" : "default"}
+export const Overflow: Story = {
+  render: () => (
+    <div
+      className={css({ display: "flex", flexDirection: "column", gap: "4" })}
+    >
+      {([false, true] as const).map((loading) => (
+        <div
+          key={String(loading)}
+          className={css({
+            display: "flex",
+            gap: "3",
+            alignItems: "center",
+            flexWrap: "wrap",
+          })}
+        >
+          <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
+            {loading ? "loading" : "default"}
+          </div>
+          <DialogExample
+            buttonLabel={`Kitchen sink${loading ? " — loading" : ""}`}
+            renderDialog={(close) =>
+              renderOverflowKitchenSink(close, { loading })
+            }
+          />
+          <DialogExample
+            buttonLabel={`Custom header + footer${loading ? " — loading" : ""}`}
+            renderDialog={(close) => renderOverflowCustom(close, { loading })}
+          />
+          <DialogExample
+            buttonLabel={`No header + footer${loading ? " — loading" : ""}`}
+            renderDialog={(close) => renderOverflowBodyOnly(close, { loading })}
+          />
         </div>
-        <DialogExample
-          buttonLabel={`Kitchen sink${loading ? " — loading" : ""}`}
-          renderDialog={(close) =>
-            renderOverflowKitchenSink(close, { loading })
-          }
-        />
-        <DialogExample
-          buttonLabel={`Custom header + footer${loading ? " — loading" : ""}`}
-          renderDialog={(close) => renderOverflowCustom(close, { loading })}
-        />
-        <DialogExample
-          buttonLabel={`No header + footer${loading ? " — loading" : ""}`}
-          renderDialog={(close) => renderOverflowBodyOnly(close, { loading })}
-        />
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  ),
+};
 
 const StackedDialogs = () => {
   const [first, setFirst] = useState(false);
@@ -675,87 +691,91 @@ const StackedDialogs = () => {
   );
 };
 
-export const Stacked: Story = () => <StackedDialogs />;
+export const Stacked: Story = {
+  render: () => <StackedDialogs />,
+};
 
-export const ShouldCloseOn: Story = () => (
-  <div className={stackStyles}>
-    <DialogExample
-      buttonLabel="closeButtonAndOverlay (default)"
-      renderDialog={(close) => (
-        <Dialog shouldCloseOn="closeButtonAndOverlay" onClose={close}>
-          <Dialog.Header
-            title="Close button and overlay"
-            iconName="info"
-            description="Escape, the close button, and clicking the overlay all close the dialog."
-          />
-          <Dialog.Body>{sampleBody}</Dialog.Body>
-          <Dialog.Footer
-            actions={
-              <Button variant="solid" tone="brand" onClick={close}>
-                Done
-              </Button>
-            }
-          />
-        </Dialog>
-      )}
-    />
+export const ShouldCloseOn: Story = {
+  render: () => (
+    <div className={stackStyles}>
+      <DialogExample
+        buttonLabel="closeButtonAndOverlay (default)"
+        renderDialog={(close) => (
+          <Dialog shouldCloseOn="closeButtonAndOverlay" onClose={close}>
+            <Dialog.Header
+              title="Close button and overlay"
+              iconName="info"
+              description="Escape, the close button, and clicking the overlay all close the dialog."
+            />
+            <Dialog.Body>{sampleBody}</Dialog.Body>
+            <Dialog.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Done
+                </Button>
+              }
+            />
+          </Dialog>
+        )}
+      />
 
-    <DialogExample
-      buttonLabel="closeButton"
-      renderDialog={(close) => (
-        <Dialog shouldCloseOn="closeButton" onClose={close}>
-          <Dialog.Header
-            title="Close button only"
-            iconName="info"
-            description="Escape and the close button close the dialog. Overlay clicks do not."
-          />
-          <Dialog.Body>{sampleBody}</Dialog.Body>
-          <Dialog.Footer
-            actions={
-              <Button variant="solid" tone="brand" onClick={close}>
-                Done
-              </Button>
-            }
-          />
-        </Dialog>
-      )}
-    />
+      <DialogExample
+        buttonLabel="closeButton"
+        renderDialog={(close) => (
+          <Dialog shouldCloseOn="closeButton" onClose={close}>
+            <Dialog.Header
+              title="Close button only"
+              iconName="info"
+              description="Escape and the close button close the dialog. Overlay clicks do not."
+            />
+            <Dialog.Body>{sampleBody}</Dialog.Body>
+            <Dialog.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Done
+                </Button>
+              }
+            />
+          </Dialog>
+        )}
+      />
 
-    <DialogExample
-      buttonLabel="none"
-      renderDialog={(close) => (
-        <Dialog shouldCloseOn="none" onClose={close}>
-          <Dialog.Header
-            title="No default close"
-            iconName="info"
-            description="No close button is rendered, and neither escape nor overlay clicks close the dialog."
-          />
-          <Dialog.Body>{sampleBody}</Dialog.Body>
-          <Dialog.Footer
-            actions={
-              <Button variant="solid" tone="brand" onClick={close}>
-                Done
-              </Button>
-            }
-          />
-        </Dialog>
-      )}
-    />
+      <DialogExample
+        buttonLabel="none"
+        renderDialog={(close) => (
+          <Dialog shouldCloseOn="none" onClose={close}>
+            <Dialog.Header
+              title="No default close"
+              iconName="info"
+              description="No close button is rendered, and neither escape nor overlay clicks close the dialog."
+            />
+            <Dialog.Body>{sampleBody}</Dialog.Body>
+            <Dialog.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Done
+                </Button>
+              }
+            />
+          </Dialog>
+        )}
+      />
 
-    <DialogExample
-      buttonLabel="none + no header"
-      renderDialog={(close) => (
-        <Dialog shouldCloseOn="none" onClose={close}>
-          <Dialog.Body>{sampleBody}</Dialog.Body>
-          <Dialog.Footer
-            actions={
-              <Button variant="solid" tone="brand" onClick={close}>
-                Done
-              </Button>
-            }
-          />
-        </Dialog>
-      )}
-    />
-  </div>
-);
+      <DialogExample
+        buttonLabel="none + no header"
+        renderDialog={(close) => (
+          <Dialog shouldCloseOn="none" onClose={close}>
+            <Dialog.Body>{sampleBody}</Dialog.Body>
+            <Dialog.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Done
+                </Button>
+              }
+            />
+          </Dialog>
+        )}
+      />
+    </div>
+  ),
+};

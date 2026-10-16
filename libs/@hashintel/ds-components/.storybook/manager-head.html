@@ -1,0 +1,8 @@
+<style>
+  /* Hide the dev-only "Create a new story" button in the sidebar search bar;
+     Storybook 10 exposes no config switch for it. Stories are authored in
+     the repo, not through the manager UI. */
+  button[aria-label="Create a new story"] {
+    display: none;
+  }
+</style>
