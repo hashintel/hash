@@ -28,13 +28,8 @@ const invalidArgument = (message: string) => ({
 });
 
 /**
- * Sets the given properties of an entity in the flow's web, leaving its other properties as they are, as the web's
- * machine on behalf of the user running the flow. A value replaces the property's value, including the whole list of a
- * list property. It updates the edition the entity ID names, as Read entity reads it: the draft for an entity ID with
- * a draft ID, which stays a draft.
- *
- * The entity must be one the user can edit, and the values are checked against its types first, so that an error names
- * the property.
+ * Sets the given properties of an entity the user running the flow can edit, leaving its other properties as they are.
+ * A value replaces a list property's whole list. An entity ID with a draft ID updates that draft, which stays a draft.
  */
 export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
   inputs,

@@ -12,10 +12,7 @@ import type { PropertyObject } from "@blockprotocol/type-system";
  */
 export type PropertyValues = PropertyObject;
 
-/**
- * Checks the shape of property values, returning why it's invalid. Run when the flow is defined, and by the step when
- * it runs.
- */
+/** Checks the shape of property values, returning why it's invalid. */
 export const validatePropertyValues = (
   values: PropertyValues,
 ): string | undefined => {

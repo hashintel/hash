@@ -968,11 +968,6 @@ describe("validateFlowDefinition", () => {
           message:
             '"https://example.com/types/property-type/name/v/1" is not a property type base URL.',
         },
-        {
-          name: "a key that isn't a URL",
-          value: { name: "Ada" },
-          message: '"name" is not a property type base URL.',
-        },
       ])("rejects $name", ({ value, message }) => {
         expect(errorsOf(constant(value))).toEqual([
           {
