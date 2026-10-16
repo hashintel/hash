@@ -100,13 +100,27 @@ export const getFlowRunLinks = async (params: {
         entityTypeId.startsWith(linkEntityTypeBaseUrl),
       );
 
-    if (isOfLinkType(systemLinkEntityTypes.uses.linkEntityTypeBaseUrl)) {
-      links.flowDefinitionId = rightEntityUuid;
-    } else if (
-      isOfLinkType(systemLinkEntityTypes.triggeredBy.linkEntityTypeBaseUrl)
-    ) {
-      links.flowTriggerId = rightEntityUuid;
+    const field = isOfLinkType(systemLinkEntityTypes.uses.linkEntityTypeBaseUrl)
+      ? "flowDefinitionId"
+      : isOfLinkType(systemLinkEntityTypes.triggeredBy.linkEntityTypeBaseUrl)
+        ? "flowTriggerId"
+        : null;
+
+    if (!field) {
+      continue;
     }
+
+    /* A run is created with one link of each kind, so another can only have been added since. The last one read wins. */
+    const existingEntityUuid = links[field];
+
+    if (existingEntityUuid && existingEntityUuid !== rightEntityUuid) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Flow run ${linkData.leftEntityId} has more than one ${field === "flowDefinitionId" ? "Uses" : "Triggered By"} link in its web, to ${existingEntityUuid} and ${rightEntityUuid}`,
+      );
+    }
+
+    links[field] = rightEntityUuid;
   }
 
   return linksByFlowRunEntityId;
