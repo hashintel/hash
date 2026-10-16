@@ -21,6 +21,9 @@
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@blockprotocol/graph"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "types": "./dist/main.d.ts",
   "typesVersions": {
@@ -59,12 +62,11 @@
   },
   "scripts": {
     "build": "rimraf dist && tsc --build tsconfig.build.json",
+    "build:pack": "node ../../../scripts/check-package-payload.mjs",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
-    "prepack": "node ../../../scripts/check-package-payload.mjs",
-    "prepublishOnly": "turbo run build && tsx scripts/prepublish.ts"
+    "prepack": "turbo run build:pack"
   },
   "dependencies": {
     "@blockprotocol/core": "0.1.5",
@@ -85,7 +87,6 @@
     "@types/react": "19.2.14",
     "eslint": "9.39.4",
     "rimraf": "6.1.3",
-    "tsx": "4.20.6",
     "typescript": "5.9.3"
   },
   "peerDependencies": {

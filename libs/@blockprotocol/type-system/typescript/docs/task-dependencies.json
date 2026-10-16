@@ -22,6 +22,22 @@
         "type-system"
       ]
     },
+    "build:pack": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-temporal-versioning",
+        "type-system"
+      ]
+    },
     "codegen": {
       "dependsOn": [
         "type-system#build:types",

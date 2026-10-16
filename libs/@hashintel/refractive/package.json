@@ -23,13 +23,13 @@
   "scripts": {
     "build": "vite build",
     "build-storybook": "storybook build",
+    "build:pack": "node ../../../scripts/check-package-payload.mjs",
     "dev": "storybook dev -p ${PORT:-6007}",
     "dev:lib": "vite build --watch",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
-    "prepack": "node ../../../scripts/check-package-payload.mjs",
-    "prepublishOnly": "yarn build",
+    "prepack": "turbo run build:pack",
     "test:unit": "vitest"
   },
   "devDependencies": {
