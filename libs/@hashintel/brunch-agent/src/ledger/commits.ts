@@ -3,6 +3,7 @@ import * as v from "valibot";
 import { brunchTools } from "../constants";
 import { vLedgerAppend, type LedgerAppend } from "./append";
 import { owedObligations, projectLedger } from "./projection";
+import { questionStatuses, type Origin } from "./shared/epistemics";
 
 import type {
   ClaimRecord,
@@ -225,12 +226,6 @@ const reserveAddresses = (
   return next;
 };
 
-/** Statuses the map lists as questions, which need no entity to be shown. */
-const entityFreeClaimStatuses: ReadonlySet<string> = new Set([
-  "open",
-  "conflicted",
-]);
-
 /** Why a new claim would never be shown, if one would not. */
 const claimWithoutEntity = (
   entries: LedgerAppend["entries"],
@@ -239,7 +234,7 @@ const claimWithoutEntity = (
     if (
       route === "claim/create" &&
       payload.entities.length === 0 &&
-      !entityFreeClaimStatuses.has(payload.status)
+      !questionStatuses.has(payload.status)
     )
       return `Claim $${index} is ${payload.status} but names no entity, so the Ledger map would never show it. Reference the entities it is about, or record an unresolved gap as an open claim.`;
   return undefined;
@@ -581,7 +576,7 @@ const exchangesThrough = (
   return history.messages.slice(0, end + 1).filter(isUserMessage).length;
 };
 
-const accountOrigins = new Set(["stated", "evidenced"]);
+const accountOrigins: ReadonlySet<Origin> = new Set(["stated", "evidenced"]);
 
 /** A claim of the agent's own superseding the account: the account leaves the map. */
 const accountDisplacements = (

@@ -1,14 +1,11 @@
 import {
   browserExecutedToolNames,
   brunchTools,
+  CANONICAL_PETRINAUT_TOOL_NAMES,
   netReaderToolNames,
   type PetrinautToolCapability,
   petrinautToolEffects,
 } from "@hashintel/brunch-agent";
-import {
-  petrinautAiTools,
-  type PetrinautAiToolName,
-} from "@hashintel/petrinaut-core/ai";
 
 export type ToolDefinitionOwner = "flue" | "petrinaut-core" | "brunch-app";
 
@@ -30,7 +27,7 @@ export interface BrunchToolCatalogueEntry {
 }
 
 export const assertPetrinautToolCatalogueConformance = (
-  canonicalNames: readonly string[] = Object.keys(petrinautAiTools),
+  canonicalNames: readonly string[] = CANONICAL_PETRINAUT_TOOL_NAMES,
 ): void => {
   const classifiedNames = Object.keys(petrinautToolEffects);
   const unclassified = canonicalNames.filter(
@@ -47,14 +44,13 @@ export const assertPetrinautToolCatalogueConformance = (
 
 assertPetrinautToolCatalogueConformance();
 
-export const canonicalPetrinautToolCatalogue = Object.keys(
-  petrinautAiTools,
-).map((name): BrunchToolCatalogueEntry => ({
-  name,
-  definitionOwner: "petrinaut-core",
-  executionOwner: "petrinaut-website",
-  capability: petrinautToolEffects[name as PetrinautAiToolName].capability,
-}));
+export const canonicalPetrinautToolCatalogue =
+  CANONICAL_PETRINAUT_TOOL_NAMES.map((name): BrunchToolCatalogueEntry => ({
+    name,
+    definitionOwner: "petrinaut-core",
+    executionOwner: "petrinaut-website",
+    capability: petrinautToolEffects[name].capability,
+  }));
 
 const netReaderTools: readonly BrunchToolCatalogueEntry[] = Object.values(
   netReaderToolNames,
