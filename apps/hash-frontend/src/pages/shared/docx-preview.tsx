@@ -165,6 +165,7 @@ export const DocxPreview = ({
               gap={1}
               sx={{
                 background: "rgba(255, 255, 255, 0.9)",
+                borderRadius: "4px",
                 position: "absolute",
                 bottom: 20,
                 left: 20,
