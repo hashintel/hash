@@ -1,15 +1,12 @@
 import {
+  type ArcElement,
   type NetElementKind,
+  generatedArcId,
   namesId,
   netReaderLevelOf,
   parseClientToolResultMetadata,
   petrinautToolTargets,
 } from "@hashintel/brunch-agent";
-import {
-  generateArcId,
-  getArcEndpointKey,
-  placeArcEndpoint,
-} from "@hashintel/petrinaut-core";
 import {
   petrinautAiTools,
   getLatestNetDefinitionToolName,
@@ -19,12 +16,6 @@ import { netResultView } from "./net-view.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
-
-export interface ArcElement {
-  readonly transitionId: string;
-  readonly arcDirection: "input" | "output";
-  readonly placeId: string;
-}
 
 export interface NetElement {
   readonly kind: NetElementKind;
@@ -109,14 +100,6 @@ const hasId = (value: unknown, id: string, underIdKey = false): boolean => {
       hasId(item, id, key === "id" || key.endsWith("Id")),
     )
   );
-};
-
-/** The ID Petrinaut generates for an arc, which `deleteItemsByIds` uses. */
-export const generatedArcId = (arc: ArcElement): string => {
-  const place = getArcEndpointKey(placeArcEndpoint(arc.placeId));
-  return arc.arcDirection === "input"
-    ? generateArcId({ inputId: place, outputId: arc.transitionId })
-    : generateArcId({ inputId: arc.transitionId, outputId: place });
 };
 
 /** Arcs have no standalone ID: the arc actions identify their transition, direction and endpoint, and a batch deletion uses the generated arc ID. */

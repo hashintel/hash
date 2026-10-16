@@ -1,11 +1,10 @@
-import { canonicalizeArcId, toPetrinautId } from "@hashintel/petrinaut-core";
 import {
-  selectionItemTypes,
-  type SelectionItem,
-  type SelectionItemType,
-} from "@hashintel/petrinaut-core/selection";
-
-import type { NetElementAddress } from "../ledger/construction/reflections";
+  canonicalizeArcId,
+  generateArcId,
+  getArcEndpointKey,
+  placeArcEndpoint,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
 
 /**
  * Whether `written` names `id`: as written, or as the converted id the
@@ -18,28 +17,17 @@ export const namesId = (written: unknown, id: string): boolean =>
     toPetrinautId(written) === id ||
     canonicalizeArcId(written) === id);
 
-const selectable: ReadonlySet<string> = new Set(selectionItemTypes);
+/** An arc by its endpoints, as the arc actions identify it. */
+export interface ArcElement {
+  readonly transitionId: string;
+  readonly arcDirection: "input" | "output";
+  readonly placeId: string;
+}
 
-const isSelectionItemType = (kind: string): kind is SelectionItemType =>
-  selectable.has(kind);
-
-/**
- * The editor selection a net element address stands for, with its ID as the
- * document stores it; absent for kinds the editor cannot select.
- */
-export const netElementSelectionItem = ({
-  kind,
-  id,
-}: NetElementAddress): SelectionItem | undefined =>
-  isSelectionItemType(kind)
-    ? {
-        type: kind,
-        id: kind === "arc" ? canonicalizeArcId(id) : toPetrinautId(id),
-      }
-    : undefined;
-
-/** Whether a net element address names a selected editor item. */
-export const namesSelectionItem = (
-  address: NetElementAddress,
-  item: SelectionItem,
-): boolean => address.kind === item.type && namesId(address.id, item.id);
+/** The ID Petrinaut generates for an arc, which `deleteItemsByIds` uses. */
+export const generatedArcId = (arc: ArcElement): string => {
+  const place = getArcEndpointKey(placeArcEndpoint(arc.placeId));
+  return arc.arcDirection === "input"
+    ? generateArcId({ inputId: place, outputId: arc.transitionId })
+    : generateArcId({ inputId: arc.transitionId, outputId: place });
+};
