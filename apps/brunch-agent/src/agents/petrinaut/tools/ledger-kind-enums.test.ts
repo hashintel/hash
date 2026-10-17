@@ -535,6 +535,59 @@ test("a claim that only renders under an entity is refused without one", async (
     });
 });
 
+test("only a recorded commit that sets endTurn ends the turn", async () => {
+  const terminates = async (entries: unknown, endTurn?: boolean) => {
+    const batch = toBatch(entries);
+    const history: LedgerHistory = {
+      messages: [
+        { id: "turn-1", role: "user", parts: [] },
+        {
+          id: "response-1",
+          role: "assistant",
+          parts: [commitPart("commit-1", batch)],
+        },
+      ],
+    };
+    const tool = createLedgerCommitTool(async () => history);
+    const result = await tool.run({
+      data: v.parse(tool.input, {
+        entries: batch,
+        ...(endTurn === undefined ? {} : { endTurn }),
+      }),
+      toolCallId: "commit-1",
+      log: log(),
+      step,
+    });
+    return result.terminate;
+  };
+  const entity = [
+    [
+      "entity/create",
+      {
+        name: "Dryer",
+        kind: "resource",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ];
+  const unanchored = [
+    [
+      "claim/create",
+      {
+        text: "Drying is slow.",
+        entities: [],
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ];
+  expect(await terminates(entity, true)).toBe(true);
+  expect(await terminates(entity)).toBe(false);
+  expect(await terminates(entity, false)).toBe(false);
+  expect(await terminates(unanchored, true)).toBe(false);
+});
+
 test("an entity update keeps the turn the entity was created in", () => {
   const { state } = foldCommits(
     settledHistory([
@@ -674,6 +727,36 @@ test("a claim's source does not imply the person's agreement", () => {
     status: "tentative",
   };
   expect(v.parse(vClaim, claim)).toEqual(claim);
+});
+
+test("only an entry stated without a status defaults to confirmed", () => {
+  const claim = {
+    text: "Press 2 idles when its hopper is empty.",
+    entities: ["e2"],
+  };
+  expect(v.parse(vClaim, claim)).toEqual({
+    ...claim,
+    origin: "stated",
+    status: "confirmed",
+  });
+  expect(v.parse(vClaim, { ...claim, status: "tentative" })).toEqual({
+    ...claim,
+    origin: "stated",
+    status: "tentative",
+  });
+  const inferred = v.safeParse(vClaim, { ...claim, origin: "inferred" });
+  expect(inferred.success).toBe(false);
+  expect(inferred.issues?.[0]?.message).toMatch(/origin is inferred/);
+  expect(v.parse(vEntity, { name: "Press 2", kind: "resource" })).toMatchObject(
+    { origin: "stated", status: "confirmed" },
+  );
+  expect(
+    v.safeParse(vEntity, {
+      name: "Press 2",
+      kind: "resource",
+      origin: "assumed",
+    }).success,
+  ).toBe(false);
 });
 
 test("claim and reflection requests exclude system-owned metadata", () => {
@@ -1055,10 +1138,10 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                 {
                   properties: {
                     kind: anyOf(vEntityKind),
-                    origin: anyOf(vOrigin),
+                    origin: { ...anyOf(vOrigin), default: "stated" },
                     status: anyOf(vStatus),
                   },
-                  required: ["name", "kind", "origin", "status"],
+                  required: ["name", "kind"],
                 },
               ],
             },
@@ -1069,7 +1152,7 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                   pattern: "^entity\\/update\\/e(?:0|[1-9]\\d*)$",
                 },
                 {
-                  required: ["name", "kind", "origin", "status"],
+                  required: ["name", "kind"],
                 },
               ],
             },
@@ -1087,10 +1170,10 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                         ],
                       },
                     },
-                    origin: anyOf(vOrigin),
+                    origin: { ...anyOf(vOrigin), default: "stated" },
                     status: anyOf(vStatus),
                   },
-                  required: ["text", "entities", "origin", "status"],
+                  required: ["text", "entities"],
                 },
               ],
             },
