@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { createFlueClient } from "@flue/sdk";
 
 import {
+  agentOwnershipHeaders,
   brunchEnv,
   foldCommits,
   projectLedger,
@@ -27,10 +28,7 @@ import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
 } from "../../src/shared/chat-model.ts";
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../src/shared/conversation/identity.ts";
+import { flueConversationId } from "../../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "../../test/load-built-application.ts";
 import { writeRunPacket } from "./run-packet.ts";
 
@@ -68,7 +66,7 @@ try {
     conversationId: `probe-${randomUUID()}`,
   };
   const client = createFlueClient({
-    url: `http://brunch.local/agents/petrinaut/${flueConversationIdFrom(identity)}`,
+    url: `http://brunch.local/agents/petrinaut/${flueConversationId(identity)}`,
     headers: agentOwnershipHeaders(identity),
     fetch: async (input, init) =>
       application.fetch(
@@ -112,9 +110,7 @@ try {
     `ledger: ${commits.length} accepted commits, ${state.entities.length} entities, ${state.claims.length} claims, ${state.obligations.length} obligations`,
   );
   report(`\n--- reply ---\n${reply}`);
-  report(
-    `\n--- ledger (agent skin) ---\n${renderLedgerMarkdown(projectLedger(state), "agent")}`,
-  );
+  report(`\n--- ledger ---\n${renderLedgerMarkdown(projectLedger(state))}`);
   report(`\nhistory: ${join(directory, "history.json")}`);
 } finally {
   await application.stop();

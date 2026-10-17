@@ -30,6 +30,9 @@ type BrunchMutationApprovalDecision =
   | { readonly decision: "allow" }
   | { readonly decision: "deny"; readonly reason: string };
 
+/** Where a call stands at the approval gate; `null` from `approvalState` means it is past it. */
+export type ToolApprovalState = "awaiting" | "refused";
+
 type PendingApproval = {
   readonly resolve: (decision: BrunchMutationApprovalDecision) => void;
   readonly removeAbortListener: () => void;
@@ -47,7 +50,7 @@ export interface BrunchMutationApprovalCoordinator {
    * A refused call keeps its streamed input-available state until the refusal
    * output round-trips, so its part alone cannot tell it from an executing call.
    */
-  approvalState(toolCallId: string): "awaiting" | "refused" | null;
+  approvalState(toolCallId: string): ToolApprovalState | null;
   /**
    * The calls waiting for a decision. A new set whenever a call enters or
    * leaves the approval gate, so rendering from it re-renders on every change.

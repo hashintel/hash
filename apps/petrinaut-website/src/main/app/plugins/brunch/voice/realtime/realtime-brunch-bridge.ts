@@ -8,8 +8,10 @@ import {
 } from "../../../../../../voice-diagnostics";
 import { classifyInterruption } from "../shared/classify-interruption";
 
+import type { BrunchPanelAdmissionTarget } from "../../brunch-panel-transport";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type {
+  OpenAIRealtimeSession,
   OpenAIRealtimeSessionEvent,
   OpenAIRealtimeTranscriptKey,
 } from "./openai-realtime-session";
@@ -22,7 +24,6 @@ import type {
   FlueChatAdmissionFailure,
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
-  FlueChatTransportOptions,
 } from "@local/flue-aisdk-transport";
 
 export type VoiceSubmissionSettlement = Pick<
@@ -34,7 +35,7 @@ export interface CancelPendingSpeechOptions {
   readonly discardPendingInterruption?: boolean;
 }
 
-interface ChatUpdate {
+export interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
   readonly questionSegment?: CanonicalSpeechSegment;
@@ -45,24 +46,16 @@ interface ChatUpdate {
   readonly status: PetrinautAiVoiceModeContext["status"];
 }
 
-interface RealtimeBridgeSession {
-  speakCanonical(segments: CanonicalSpeechSegment[]): void;
-  subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
-}
+type RealtimeBridgeSession = Pick<
+  OpenAIRealtimeSession,
+  "speakCanonical" | "subscribe"
+>;
 
 type SubmitVoiceInput = Parameters<
   PetrinautAiVoiceModeContext["submitVoiceInput"]
 >[0];
-type FlueChatAdmission = Parameters<
-  NonNullable<FlueChatTransportOptions["onAdmission"]>
->[0];
-export type RealtimeBrunchAdmissionTarget = Pick<
-  FlueChatAdmission,
-  "kind" | "messageId"
->;
-
 type SubmitInterviewAnswerInput = Pick<SubmitVoiceInput, "text"> & {
-  readonly admissionTarget: RealtimeBrunchAdmissionTarget;
+  readonly admissionTarget: BrunchPanelAdmissionTarget;
   readonly id: string;
   readonly onAdmission: (submissionId: AgentSendResult["submissionId"]) => void;
   readonly signal: AbortSignal;

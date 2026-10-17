@@ -5,6 +5,7 @@ import {
 } from "../../../../../../shared/voice-settings";
 import { previewVoice } from "./voice-audio-settings/preview";
 
+import type { PreviewOutput } from "./voice-audio-settings/preview";
 import type {
   PetrinautAiVoiceModeControls,
   PetrinautAiVoiceSessionState,
@@ -14,10 +15,7 @@ type SettingsState = NonNullable<PetrinautAiVoiceSessionState["audioSettings"]>;
 type SettingsActions = NonNullable<
   PetrinautAiVoiceModeControls["audioSettings"]
 >;
-type AudioOutput = {
-  muted: boolean;
-  volume: number;
-  sinkId?: string;
+type AudioOutput = PreviewOutput & {
   setSinkId?: (deviceId: string) => Promise<void>;
 };
 type AudioDevices = Pick<

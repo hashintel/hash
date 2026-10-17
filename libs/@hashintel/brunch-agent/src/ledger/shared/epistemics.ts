@@ -59,3 +59,9 @@ export const vStatus = v.pipe(
 
 export type Origin = v.InferOutput<typeof vOrigin>;
 export type Status = v.InferOutput<typeof vStatus>;
+
+/** Statuses the map lists as questions, which need no entity to be shown. */
+export const questionStatuses: ReadonlySet<Status> = new Set([
+  "open",
+  "conflicted",
+] satisfies Status[]);

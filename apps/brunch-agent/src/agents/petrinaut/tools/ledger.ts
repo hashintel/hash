@@ -38,7 +38,7 @@ export const createLedgerCommitTool = (
     },
   });
 
-/** `ledger_compile`: the committed Ledger rendered as the agent-skin map. */
+/** `ledger_compile`: the committed Ledger rendered as the Markdown map. */
 export const createLedgerCompileTool = (
   readHistory: () => Promise<LedgerHistory>,
 ) =>
@@ -57,7 +57,7 @@ export const createLedgerCompileTool = (
         output: {
           revision,
           rejected: [...rejected],
-          map: renderLedgerMarkdown(projectLedger(state), "agent"),
+          map: renderLedgerMarkdown(projectLedger(state)),
         },
         terminate: false,
       };

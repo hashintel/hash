@@ -5,7 +5,14 @@
  * enforces. Flue tools, guidance and server mechanics live in the app.
  */
 
-export * from "./constants";
+export {
+  brunchEnv,
+  brunchHeaders,
+  brunchRoutes,
+  brunchTools,
+  localUiPrincipal,
+  previewConversationIdPrefix,
+} from "./constants";
 export * from "./conversation-identity";
 export * from "./client-tools";
 export * from "./ledger";
@@ -14,28 +21,35 @@ export {
   parseClientToolResultMetadata,
   type ClientToolResultMetadata,
 } from "./petrinaut/browser-metadata";
-export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./petrinaut/construction-tool-names";
 export {
-  PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
-  parsePetrinautUserMessageBody,
-  petrinautContextualUserMessageBody,
-} from "./petrinaut/contextual-user-message";
+  browserExecutedToolInputSchemas,
+  browserExecutedToolNames,
+  browserNetToolNames,
+} from "./petrinaut/browser-executed-tools";
+export { CANONICAL_PETRINAUT_TOOL_NAMES } from "./petrinaut/construction-tool-names";
 export {
   isNetObservationTool,
   netReaderDescriptions,
   netReaderInputSchema,
-  netReaderLevelOf,
   netReaderToolNames,
   parseNetReaderInput,
+  netStructureOf,
   projectNetDefinition,
   type NetReaderLevel,
+  type NetStructure,
 } from "./petrinaut/net-readers";
+export {
+  arcDirections,
+  generatedArcId,
+  namesId,
+  storedNetElementId,
+  type ArcElement,
+} from "./petrinaut/net-element-ids";
 export {
   browserToolMutatesDocument,
   netElementKinds,
   petrinautToolTargets,
   petrinautToolEffects,
-  type NetElementKind,
   type PetrinautToolCapability,
 } from "./petrinaut/petrinaut-tool-effects";
 export {

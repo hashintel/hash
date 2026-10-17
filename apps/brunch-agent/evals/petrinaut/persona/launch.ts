@@ -20,7 +20,7 @@ import { createFlueClient, FlueExecutionError } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
-import { brunchEnv } from "@hashintel/brunch-agent";
+import { agentOwnershipHeaders, brunchEnv } from "@hashintel/brunch-agent";
 import { parseSDCPNFile, toPetrinautId } from "@hashintel/petrinaut-core";
 
 import {
@@ -31,7 +31,6 @@ import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
 } from "../../../src/shared/chat-model.ts";
-import { agentOwnershipHeaders } from "../../../src/shared/conversation/identity.ts";
 import { writeRunPacket } from "../run-packet.ts";
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import {

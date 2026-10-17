@@ -1,22 +1,24 @@
+import {
+  browserExecutedToolNames,
+  browserToolEnvelopeOf,
+} from "@hashintel/brunch-agent";
+
 import { netResultView } from "./conversation/net-view.ts";
-import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 
 import type {
   ContextProjection,
   ContextProjectionEntry,
   ContextProjectionMessage,
 } from "@flue/runtime";
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+import type { BrowserToolEnvelope } from "@hashintel/brunch-agent";
 
 const browserEnvelope = (
   message: ContextProjectionMessage,
-): Record<string, unknown> | undefined => {
+): BrowserToolEnvelope | undefined => {
   if (
     message.role !== "toolResult" ||
     message.isError ||
-    !inBandBrowserToolNames.has(message.toolName)
+    !browserExecutedToolNames.has(message.toolName)
   )
     return undefined;
   const text = message.content
@@ -28,11 +30,7 @@ const browserEnvelope = (
   } catch {
     return undefined;
   }
-  return isRecord(envelope) &&
-    envelope.brunchBrowserResult === true &&
-    Object.hasOwn(envelope, "output")
-    ? envelope
-    : undefined;
+  return browserToolEnvelopeOf(envelope);
 };
 
 /**

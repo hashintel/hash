@@ -104,7 +104,7 @@ const omitAll = <Owner>(keys: readonly KeyOf<Owner>[]): FieldRules<Owner> =>
   Object.fromEntries(keys.map((key) => [key, "omit"])) as FieldRules<Owner>;
 
 /** Left out of the net and of each item in its collections, never deeper. */
-const presentationalRules = omitAll<SDCPN | Subnet | NetItem>([
+const presentationalFields = [
   "x",
   "y",
   "visualizerCode",
@@ -112,7 +112,13 @@ const presentationalRules = omitAll<SDCPN | Subnet | NetItem>([
   "iconSlug",
   "displayColor",
   "metadata",
-]);
+] as const satisfies readonly KeyOf<SDCPN | Subnet | NetItem>[];
+
+type PresentationalField = (typeof presentationalFields)[number];
+
+const presentationalRules = omitAll<SDCPN | Subnet | NetItem>(
+  presentationalFields,
+);
 
 const adHocBoundsOutline = (settings: unknown) =>
   projectObject(
@@ -195,6 +201,30 @@ const outlineItemRules: {
   componentInstances: omitAll<ComponentInstance>(["parameterValues"]),
 };
 
+type WithoutPresentation<Item> = Item extends unknown
+  ? Omit<Item, PresentationalField>
+  : never;
+
+type ItemsWithoutPresentation<Items> = Items extends readonly (infer Item)[]
+  ? WithoutPresentation<Item>[]
+  : Items;
+
+type CollectionsOf<Net> = Pick<Net, ItemCollection & keyof Net>;
+
+type StructureOf<Net> = Omit<
+  Net,
+  PresentationalField | ItemCollection | "subnets"
+> & {
+  [Collection in keyof CollectionsOf<Net>]: ItemsWithoutPresentation<
+    CollectionsOf<Net>[Collection]
+  >;
+};
+
+/** A net at the `structure` level: every core field, without presentational ones. */
+export type NetStructure = StructureOf<SDCPN> & {
+  subnets?: StructureOf<Subnet>[];
+};
+
 /**
  * Drop presentational fields from the net, its subnets and the items of their
  * collections; the outline also drops code and expressions. Fields are matched
@@ -219,3 +249,7 @@ export const projectNetDefinition = (
     ),
     subnets: eachItem((subnet) => projectNetDefinition(subnet, level)),
   });
+
+/** The net's structure, as `readNetStructure` and a change's read-back show it. */
+export const netStructureOf = (definition: SDCPN): NetStructure =>
+  projectNetDefinition(definition, "structure") as NetStructure;

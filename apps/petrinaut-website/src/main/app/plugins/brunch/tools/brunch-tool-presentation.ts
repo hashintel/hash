@@ -13,7 +13,7 @@ import type {
 
 /** Visible Brunch tools whose cards this host titles. */
 export const visibleOrdinaryBrunchToolNames = [
-  "task",
+  brunchTools.task,
   brunchTools.activateSkill,
   brunchTools.readSkillResource,
   brunchTools.ledgerCommit,
@@ -152,7 +152,7 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
       };
     }
 
-    if (toolName === "task") {
+    if (toolName === brunchTools.task) {
       detail =
         stringProperty(context.input, "description") ??
         stringProperty(context.input, "task");

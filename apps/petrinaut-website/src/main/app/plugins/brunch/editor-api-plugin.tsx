@@ -23,7 +23,7 @@ const BrunchPlugin = definePetrinautPlugin({
   id: "website.brunch",
   name: "Brunch",
   description:
-    "Gives the Brunch assistant's cards the open net, its experiments and the editor's navigation.",
+    "Gives the Brunch assistant's cards and Ledger tab the open net, its experiments and the editor's navigation.",
   author: "HASH",
   // Brunch's cards can't work without it, so the user cannot switch it off.
   required: true,

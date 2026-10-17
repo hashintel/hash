@@ -36,7 +36,7 @@ import {
 } from "./conversation/use-process-agent-binding";
 import { brunchPlugin, WithBrunchEditorApi } from "./editor-api-plugin";
 import { foldBrunchLedgerHistory } from "./ledger/brunch-ledger-history";
-import { BrunchLedgerPane } from "./ledger/brunch-ledger-pane";
+import { BrunchLedgerTab } from "./ledger/brunch-ledger-tab";
 import {
   brunchPetrinautClientToolNames,
   canonicalPetrinautClientToolNames,
@@ -55,8 +55,8 @@ import {
   createCanonicalPetrinautHostTools,
   issuedCanonicalCallsFromHistory,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautHostToolsInput,
   type CanonicalPetrinautReplay,
-  type CanonicalPetrinautReplayReadiness,
 } from "./tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "./tools/in-band-browser-call";
@@ -69,7 +69,7 @@ import {
   type OpenAIVoiceConfig,
 } from "./voice/session/voice-interview-control";
 
-import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
+import type { SdcpnInitialData } from "@hashintel/brunch-agent";
 import type {
   PetrinautAiAssistant,
   PetrinautAiComposerControlContext,
@@ -120,10 +120,10 @@ const useProcessAgentSession = (input: {
 };
 
 /** The open document as Brunch's browser tools reach it. */
-export interface BrunchEditorDocument {
-  readonly handle: PetrinautDocHandle;
-  readonly readTitle: () => string;
-}
+export type BrunchEditorDocument = Pick<
+  CanonicalPetrinautHostToolsInput,
+  "handle" | "readTitle"
+>;
 
 /** The document open in the editor. */
 export interface BrunchOpenDocument {
@@ -351,7 +351,7 @@ export const useBrunchAssistant = ({
     historyPhase: flueHistory.phase,
     snapshot: flueHistory.snapshot,
     derive: deriveCanonicalReplay,
-  }) satisfies CanonicalPetrinautReplayReadiness;
+  });
   const canonicalHostTools = useMemo(() => {
     if (!constructionBrowser || !editor) return undefined;
     return createCanonicalPetrinautHostTools({
@@ -408,7 +408,11 @@ export const useBrunchAssistant = ({
         ? null
         : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
             ...(constructionBrowser
-              ? { initialData: { binding: constructionBrowser.binding } }
+              ? {
+                  initialData: {
+                    binding: constructionBrowser.binding,
+                  } satisfies SdcpnInitialData,
+                }
               : {}),
             ...(conversationId === null
               ? {}
@@ -511,7 +515,7 @@ export const useBrunchAssistant = ({
             label: "Ledger",
             activityIdentities,
             content: (
-              <BrunchLedgerPane
+              <BrunchLedgerTab
                 messages={flueHistory.snapshot?.messages ?? []}
               />
             ),

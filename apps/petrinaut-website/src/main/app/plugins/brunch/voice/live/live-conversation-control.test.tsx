@@ -22,7 +22,7 @@ import {
 } from "../session/voice-interview-control";
 import { createLiveConversation } from "./live-conversation";
 
-import type { ToolApprovalState } from "./live-brunch-bridge";
+import type { ToolApprovalState } from "../../tools/brunch-mutation-approval";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
