@@ -7,25 +7,35 @@ import modelling from "./skills/modelling/SKILL.md";
 import petrinaut from "./skills/petrinaut/SKILL.md";
 import { createLedgerTools } from "./tools/ledger.ts";
 import { createQueryBasisTool } from "./tools/query-basis.ts";
+import { wordsInstruction } from "./words-instruction.ts";
 
-import type { InterviewBudget, LedgerHistory } from "@hashintel/brunch-agent";
+import type {
+  LedgerHistory,
+  PetrinautSubmissionContext,
+} from "@hashintel/brunch-agent";
 
 /**
  * Everything the model reads, and every tool that writes or reads the Ledger.
- * Besides the system prompt it mounts one instruction, and only while the
- * current submission carries an interview allowance: Petrinaut, runtime,
- * experiment and `query_basis` guidance live in the skills and tool
- * descriptions instead.
+ * Besides the system prompt it mounts an instruction only for host context, an
+ * interview allowance or preferred spellings:
+ * Petrinaut, runtime, experiment and `query_basis` guidance live in the skills
+ * and tool descriptions instead.
  */
 export const useGuidance = (
   model: string,
   options: Parameters<typeof useModel>[1],
   readHistory: () => Promise<LedgerHistory>,
-  interviewBudget: InterviewBudget | undefined,
+  /** The current submission's allowance and the conversation's spellings. */
+  hostContext: PetrinautSubmissionContext,
 ) => {
   useModel(model, options);
-  const instruction = interviewBudgetInstruction(interviewBudget);
-  if (instruction) useInstruction(instruction);
+  // Flue instructions are conditional contributions, not React hook slots;
+  // an empty instruction is invalid, so an absent one is omitted.
+  for (const instruction of [
+    interviewBudgetInstruction(hostContext.interviewBudget),
+    wordsInstruction(hostContext.words ?? []),
+  ])
+    if (instruction) useInstruction(instruction);
   useSkill(eliciting);
   useSkill(modelling);
   useSkill(petrinaut);

@@ -5,10 +5,11 @@ export const PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX =
 const submissionContextPrefix = "petrinaut-contextual-user-message:v2\n";
 export const PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH = 32_000;
 const PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH = 256_000;
-const submissionContextMaxLength = 16_000;
-const submissionContextMaxDepth = 16;
 
-/** Opaque host-owned data for one submission; the transport bounds it but never reads its keys. */
+/**
+ * Host data for one submission. The envelope never reads its keys; each
+ * reader validates its own, and the body limit bounds the whole.
+ */
 export type SubmissionContext = Readonly<Record<string, unknown>>;
 
 export interface PetrinautContextualUserMessagePayload {
@@ -41,29 +42,9 @@ const hasExactKeys = (
   );
 };
 
-const isJsonValue = (value: unknown, depth: number): boolean => {
-  if (depth > submissionContextMaxDepth) return false;
-  if (value === null || typeof value === "string" || typeof value === "boolean")
-    return true;
-  if (typeof value === "number") return Number.isFinite(value);
-  if (Array.isArray(value))
-    return value.every((item) => isJsonValue(item, depth + 1));
-  if (typeof value !== "object") return false;
-  const prototype: unknown = Object.getPrototypeOf(value);
-  return (
-    (prototype === Object.prototype || prototype === null) &&
-    Object.values(value).every((item) => isJsonValue(item, depth + 1))
-  );
-};
-
 const isSubmissionContext = (value: unknown): value is SubmissionContext => {
   const record = asRecord(value);
-  return (
-    record !== null &&
-    Object.keys(record).length > 0 &&
-    isJsonValue(record, 0) &&
-    Array.from(JSON.stringify(record)).length <= submissionContextMaxLength
-  );
+  return record !== null && Object.keys(record).length > 0;
 };
 
 /** Build the bounded, provenance-preserving body used for a contextual user admission. */
@@ -155,4 +136,12 @@ export const parsePetrinautUserMessageBody = (
     return { kind: "invalid-contextual" };
   }
   return { kind: "contextual", ...result };
+};
+
+/** The user's own text, without host context or diagnostics, for display and evidence. */
+export const petrinautUserMessageText = (body: string): string => {
+  const parsed = parsePetrinautUserMessageBody(body);
+  return parsed.kind === "invalid-contextual"
+    ? "[Invalid contextual user message]"
+    : parsed.userText;
 };

@@ -5,6 +5,7 @@ import {
   PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
+  petrinautUserMessageText,
 } from "./contextual-user-message";
 
 import type { SubmissionContext } from "./contextual-user-message";
@@ -110,19 +111,6 @@ test("keeps diagnostics-only bodies byte-identical to version one", () => {
 test.each([
   ["an empty object", {}],
   ["an array", ["value"]],
-  ["a non-finite number", { key: Number.NaN }],
-  ["an undefined value", { key: undefined }],
-  ["a class instance", { key: new Date(0) }],
-  ["an oversized value", { key: "x".repeat(16_001) }],
-  [
-    "excessive nesting",
-    {
-      key: Array.from({ length: 20 }).reduce<unknown>(
-        (inner) => ({ inner }),
-        null,
-      ),
-    },
-  ],
 ])("refuses %s as submission context", (_label, submissionContext) => {
   expect(() =>
     petrinautContextualUserMessageBody({
@@ -159,4 +147,20 @@ test.each([
   expect(
     parsePetrinautUserMessageBody(`${submissionContextPrefix}${payload}`),
   ).toEqual({ kind: "invalid-contextual" });
+});
+
+test("shows only the user's own text for display and evidence", () => {
+  expect(petrinautUserMessageText("Four agents")).toBe("Four agents");
+  expect(
+    petrinautUserMessageText(
+      petrinautContextualUserMessageBody({
+        userText: "Use RelayDesk.",
+        diagnosticsContext: "diagnostic",
+        submissionContext: { words: ["RelayDesk"] },
+      }),
+    ),
+  ).toBe("Use RelayDesk.");
+  expect(petrinautUserMessageText(`${submissionContextPrefix}{}`)).toBe(
+    "[Invalid contextual user message]",
+  );
 });

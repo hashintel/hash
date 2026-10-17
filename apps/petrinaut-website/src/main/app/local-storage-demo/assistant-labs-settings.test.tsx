@@ -34,6 +34,9 @@ const defaultProps = {
   setVoiceEnabled: vi.fn(),
   voiceEnabled: false,
   voicePreferenceReady: true,
+  wordsEnabled: false,
+  wordsPreferenceReady: true,
+  setWordsEnabled: vi.fn(),
 } satisfies ComponentProps<typeof AssistantLabsSettings>;
 
 beforeEach(() => {

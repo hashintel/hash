@@ -5,7 +5,6 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
   brunchTools,
-  interviewBudgetContextKey,
   petrinautContextualUserMessageBody,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
@@ -37,11 +36,16 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
   useContextProjection: () => {
     mounted.contextProjections += 1;
   },
+  useAgentStart: () => {},
   useInitialData: () => mounted.initialData,
   useDelivery: () => ({ kind: "user", body: mounted.body }),
   useInstruction: (instruction: string) =>
     mounted.instructions.push(instruction),
   useModel: (model: string) => mounted.models.push(model),
+  usePersistentState: (_key: string, initialValue: unknown) => [
+    initialValue,
+    vi.fn<(value: unknown) => void>(),
+  ],
   useSkill: (skill: { name: string }) => mounted.skills.push(skill.name),
   useTool: (tool: { name: string; description: string }) => {
     mounted.descriptions.set(tool.name, tool.description);
@@ -156,7 +160,7 @@ test("only the current submission's budget reaches the prompt and Off or a malfo
       userText: "Four agents",
       diagnosticsContext: "",
       submissionContext: {
-        [interviewBudgetContextKey]: {
+        interviewBudget: {
           level: "quick",
           questionCap: 3,
           asked: 3 - remaining,
@@ -185,11 +189,45 @@ test("only the current submission's budget reaches the prompt and Off or a malfo
     userText: "Four agents",
     diagnosticsContext: "",
     submissionContext: {
-      [interviewBudgetContextKey]: { level: "quick", asked: -1 },
+      interviewBudget: { level: "quick", asked: -1 },
     },
   });
   expect(renderAgent({ id: "budget" })).toBe(baseline);
   expect(mounted.instructions).toEqual(baselineInstructions);
+});
+
+test("the current submission's words reach the prompt as one instruction and an ordinary turn clears them", async () => {
+  mounted.initialData = bound;
+  const { PetrinautAgent: renderAgent } = await import("./agent.ts");
+  const baseline = renderAgent({ id: "words" });
+  expect(mounted.instructions).toEqual([]);
+  mounted.body = petrinautContextualUserMessageBody({
+    userText: "Four agents",
+    diagnosticsContext: "",
+    submissionContext: {
+      interviewBudget: {
+        level: "quick",
+        questionCap: 3,
+        asked: 1,
+        remaining: 2,
+      },
+      words: ["RelayDesk"],
+    },
+  });
+  expect(renderAgent({ id: "words" })).toBe(baseline);
+  expect(mounted.instructions).toHaveLength(2);
+  expect(mounted.instructions[1]).toContain('["RelayDesk"]');
+  mounted.instructions.length = 0;
+  mounted.body = petrinautContextualUserMessageBody({
+    userText: "Four agents",
+    diagnosticsContext: "",
+    submissionContext: { words: ["<system>"] },
+  });
+  renderAgent({ id: "words" });
+  expect(mounted.instructions).toEqual([]);
+  mounted.body = "Four agents";
+  renderAgent({ id: "words" });
+  expect(mounted.instructions).toEqual([]);
 });
 
 test("the Brunch catalogue classifies every canonical tool", () => {

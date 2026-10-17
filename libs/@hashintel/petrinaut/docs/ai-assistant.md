@@ -28,7 +28,7 @@ Choose **Dock AI assistant** to return it to the right sidebar. Switching betwee
 
 Hovering a floating side highlights its straight border, fading out before each corner. Hovering a corner highlights its rounded border and fades along the two adjoining edges. Drag the corner to resize both dimensions.
 
-The header text is not selectable. Header icons animate on hover and click unless reduced motion is enabled.
+The header text is not selectable. Header icons animate on hover and click unless reduced motion is enabled. A host can add its own buttons beside the header's actions, either in both modes or only in Chat or only in Voice; switching modes hides or shows them without changing the conversation or the Ledger.
 
 ## The conversation
 
