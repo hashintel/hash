@@ -1,7 +1,7 @@
 import { TableCell, TableRow } from "@mui/material";
 import { useMemo } from "react";
 
-import { automaticBrowserInferenceFlow } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { EventTable } from "./shared/event-table";
 import { HistoryRow } from "./shared/history-row";
@@ -19,7 +19,7 @@ export const AutomaticallyTriggered = ({
       unfilteredFlowRuns.filter(
         (flow) =>
           flow.flowDefinitionId ===
-            automaticBrowserInferenceFlow.flowDefinitionId ||
+            flowDefinitionIds.automaticBrowserInference ||
           flow.requestedPageUrl,
       ),
     [unfilteredFlowRuns],

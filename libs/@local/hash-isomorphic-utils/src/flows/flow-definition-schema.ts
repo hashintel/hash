@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { stepRunIdSeparator } from "./step-run-id.js";
+
 import type {
   FlowDefinition,
   PayloadKind,
@@ -54,8 +56,8 @@ const connectionOptionsShape = {
 const stepIdSchema = z
   .string()
   .min(1)
-  .refine((stepId) => !stepId.includes("~"), {
-    message: 'A step id cannot contain "~"',
+  .refine((stepId) => !stepId.includes(stepRunIdSeparator), {
+    message: `A step id cannot contain "${stepRunIdSeparator}"`,
   });
 
 const stepInputSourceSchema = z.discriminatedUnion("kind", [

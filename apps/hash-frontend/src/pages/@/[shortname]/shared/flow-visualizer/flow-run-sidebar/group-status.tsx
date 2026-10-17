@@ -17,7 +17,12 @@ import type { EdgesAndNodes } from "../shared/types";
 
 export const GroupStatus = ({ graph }: { graph: EdgesAndNodes }) => {
   const groupStepsWithIds = useMemo(
-    () => graph.nodes.map((node) => ({ ...node, stepId: node.id })),
+    () =>
+      graph.nodes.map((node) => ({
+        ...node,
+        stepId: node.id,
+        parentStepId: node.parentNode,
+      })),
     [graph],
   );
 

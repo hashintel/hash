@@ -6,18 +6,21 @@ import type {
   ActorEntityUuid,
   EntityId,
   EntityUuid,
+  Timestamp,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 export type GetFlowDefinitionActivityParams = {
+  /** When the run started: it executes the edition of the definition current then. */
+  atTime: Timestamp;
   flowDefinitionId: EntityUuid;
   userAuthentication: { actorId: ActorEntityUuid };
 };
 
 /**
- * Loads the definition a run executes from its `Flow Definition` entity, and validates it. Returns the entity's id
- * too, for the run to link to.
+ * Loads the definition a run executes from its `Flow Definition` entity, as it was at `atTime`, and validates it.
+ * Returns the entity's id too, for the run to link to.
  */
 export const getFlowDefinitionActivity = async (
   params: GetFlowDefinitionActivityParams & { graphApiClient: GraphApi },
@@ -29,9 +32,11 @@ export const getFlowDefinitionActivity = async (
     }
   | { status: "not-found" | "invalid"; errorMessage: string }
 > => {
-  const { flowDefinitionId, graphApiClient, userAuthentication } = params;
+  const { atTime, flowDefinitionId, graphApiClient, userAuthentication } =
+    params;
 
   const entity = await getFlowDefinitionEntityById({
+    atTime,
     flowDefinitionId,
     graphApiClient,
     userAuthentication,

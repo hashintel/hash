@@ -1,8 +1,7 @@
 import {
-  automaticBrowserInferenceFlow,
-  manualBrowserInferenceFlow,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+  flowDefinitionIds,
+  isGoalFlowDefinitionId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response.js";
@@ -15,7 +14,7 @@ import type {
   AutomaticInferenceInputName,
   ManualInferenceInputName,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
@@ -100,8 +99,8 @@ export const generateFlowRunName = async (
 
   if (
     [
-      automaticBrowserInferenceFlow.flowDefinitionId,
-      manualBrowserInferenceFlow.flowDefinitionId,
+      flowDefinitionIds.automaticBrowserInference,
+      flowDefinitionIds.manualBrowserInference,
     ].includes(flowDefinitionId)
   ) {
     const webPage = flowInputs[
@@ -114,7 +113,7 @@ export const generateFlowRunName = async (
     }
 
     return `${
-      flowDefinitionId === automaticBrowserInferenceFlow.flowDefinitionId
+      flowDefinitionId === flowDefinitionIds.automaticBrowserInference
         ? "Auto-analyze"
         : "Analyze"
     } webpage: ${webPage.url}`;

@@ -14,8 +14,8 @@ import {
   InfinityLightIcon,
   Skeleton,
 } from "@hashintel/design-system";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 import { Link } from "../../shared/ui/link";
 import { useAuthenticatedUser } from "../shared/auth-info-context";

@@ -1,5 +1,6 @@
-import { typedActionDefinitions as actions } from "./action-definitions.js";
-import { constant, defineFlow, flowInput } from "./define-flow.js";
+import { typedActionDefinitions as actions } from "../action-definitions.js";
+import { constant, defineFlow, flowInput } from "../define-flow.js";
+import { flowDefinitionIds } from "../flow-definition-ids.js";
 
 /**
  * Researches the FTSE350's constituents, then each constituent's investors in a for-each step.
@@ -9,8 +10,7 @@ import { constant, defineFlow, flowInput } from "./define-flow.js";
  */
 export const ftseInvestorsFlow = defineFlow(
   {
-    /* ftse-350-investors */
-    flowDefinitionId: "25f32cd2-6f6e-5641-92b7-d9a90e517e0f",
+    flowDefinitionId: flowDefinitionIds.ftseInvestors,
     name: "FTSE350 investors",
     description:
       "Research the FTSE350 index, its constituents, and the top investors in the index",

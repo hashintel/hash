@@ -9,7 +9,7 @@ import {
 } from "@blockprotocol/type-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";

@@ -1,7 +1,7 @@
 import { Backdrop, Box, Slide, Stack } from "@mui/material";
 
 import { IconButton, XMarkRegularIcon } from "@hashintel/design-system";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { DAG } from "./dag";
 import { Topbar } from "./topbar";
