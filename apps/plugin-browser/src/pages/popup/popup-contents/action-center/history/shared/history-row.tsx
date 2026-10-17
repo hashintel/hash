@@ -84,7 +84,7 @@ export const HistoryRow = ({
     <Link
       href={`${FRONTEND_ORIGIN}${generateWorkerRunPath({
         shortname: owner.properties.shortname,
-        flowRunId: flowRun.flowRunId,
+        flowRunEntityId: flowRun.flowRunEntityId,
       })}`}
       target="_blank"
     >

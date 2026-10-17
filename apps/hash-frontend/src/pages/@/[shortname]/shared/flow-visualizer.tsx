@@ -603,8 +603,8 @@ export const FlowVisualizer = () => {
       try {
         const { data } = await startFlow({ variables });
 
-        const flowRunId = data?.startFlow;
-        if (!flowRunId) {
+        const flowRunEntityId = data?.startFlow;
+        if (!flowRunEntityId) {
           throw new Error("Failed to start flow");
         }
 
@@ -616,7 +616,7 @@ export const FlowVisualizer = () => {
 
         const { shortname } = getOwner({ webId: variables.webId });
 
-        void push(generateWorkerRunPath({ shortname, flowRunId }));
+        void push(generateWorkerRunPath({ shortname, flowRunEntityId }));
       } finally {
         setStartFlowPending(false);
       }
@@ -646,7 +646,7 @@ export const FlowVisualizer = () => {
 
   const flowDefinitionStateKey = `${selectedFlowDefinition.name} ?? "loading`;
   const flowRunStateKey = `${flowDefinitionStateKey}-${
-    selectedFlowRun?.flowRunId ?? "definition"
+    selectedFlowRun?.flowRunEntityId ?? "definition"
   }`;
 
   const isRunnableFromHere = !unrunnableDefinitionIds.includes(
@@ -707,7 +707,7 @@ export const FlowVisualizer = () => {
           {selectedFlowRun ? (
             <FlowRunSidebar
               flowDefinitionId={selectedFlow.flowDefinitionId}
-              flowRunId={selectedFlowRun.flowRunId}
+              flowRunEntityId={selectedFlowRun.flowRunEntityId}
               flowScheduleId={selectedFlowRun.flowScheduleId ?? null}
               graph={graph}
               name={selectedFlowRun.name}

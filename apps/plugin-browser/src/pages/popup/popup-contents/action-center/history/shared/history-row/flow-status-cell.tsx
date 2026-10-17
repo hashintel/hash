@@ -84,7 +84,7 @@ export const FlowStatusCell = ({ flowRun }: { flowRun: MinimalFlowRun }) => {
   const cancelRequest = (event: MouseEvent) => {
     event.stopPropagation();
     void sendMessageToBackground({
-      flowRunId: flowRun.flowRunId,
+      flowRunEntityId: flowRun.flowRunEntityId,
       type: "cancel-infer-entities",
     });
     setCancellationRequested(true);

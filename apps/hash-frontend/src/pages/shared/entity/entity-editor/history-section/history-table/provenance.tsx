@@ -1,7 +1,6 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
   ArrowUpRightRegularIcon,
   CodeIcon,
@@ -144,7 +143,7 @@ export const Provenance = ({
               {flowRunEntityId && (
                 <Link
                   href={generateWorkerRunPath({
-                    flowRunId: extractEntityUuidFromEntityId(flowRunEntityId),
+                    flowRunEntityId,
                     shortname,
                   })}
                   sx={{

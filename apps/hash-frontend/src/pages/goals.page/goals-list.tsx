@@ -30,7 +30,7 @@ export const GoalsList = () => {
         continue;
       }
 
-      const { webId, flowRunId, executedAt, closedAt } = run;
+      const { webId, flowRunEntityId, executedAt, closedAt } = run;
 
       let web: GoalSummary["web"] | undefined = webByWebId[webId];
 
@@ -89,7 +89,7 @@ export const GoalsList = () => {
       }
 
       const goalRun = {
-        flowRunId,
+        flowRunEntityId,
         lastEventTimestamp,
         openInputRequests,
         /**

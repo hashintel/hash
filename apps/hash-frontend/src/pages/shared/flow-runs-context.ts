@@ -8,6 +8,7 @@ import type {
   GetFlowRunsQuery,
   StepRun,
 } from "../../graphql/api-types.gen";
+import type { EntityId } from "@blockprotocol/type-system";
 
 export type FlowRunsPaginationState = {
   currentCursor: string | null;
@@ -24,7 +25,7 @@ export type FlowRunsContextType = {
   loading: boolean;
   pagination: FlowRunsPaginationState | null;
   selectedFlowRun: FlowRun | null;
-  selectedFlowRunId: string | null;
+  selectedFlowRunEntityId: EntityId | null;
 };
 
 export const FlowRunsContext = createContext<FlowRunsContextType | null>(null);
