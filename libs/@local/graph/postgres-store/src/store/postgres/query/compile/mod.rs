@@ -787,9 +787,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         R::QueryPath<'f>: PostgresQueryPath,
     {
         let condition = self.compile_filter(filter)?;
+        self.add_condition(condition);
+        Ok(())
+    }
+
+    /// Adds a compiled predicate as an independent filter condition.
+    pub(crate) fn add_condition(&mut self, condition: Expression) {
         self.artifacts.condition_index += 1;
         self.conditions.push(condition);
-        Ok(())
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.

@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::mem;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, ensure};
@@ -12,30 +13,21 @@ use hash_graph_store::{
         EntityQueryPath, EntityValidationReport, PatchEntityParams, ValidateEntityComponents,
     },
     error::UpdateError,
-    filter::{Filter, FilterExpression, Parameter},
-    query::Read,
-    subgraph::temporal_axes::{PinnedTemporalAxis, QueryTemporalAxes, VariableTemporalAxis},
 };
 use hash_graph_temporal_versioning::{
-    ClosedTemporalBound, DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp,
-    TransactionTime,
+    ClosedTemporalBound, DecisionTime, TemporalTagged as _, Timestamp, TransactionTime,
 };
 use hash_graph_types::{
     knowledge::property::visitor::EntityVisitor as _, ontology::OntologyTypeProvider,
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
-use tokio_postgres::GenericClient as _;
+use tokio_postgres::{GenericClient as _, Row, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     knowledge::{
         Entity, Property,
-        entity::{
-            EntityProvenance,
-            id::{DraftId, EntityEditionId, EntityId, EntityRecordId},
-            metadata::EntityTemporalMetadata,
-            provenance::EntityEditionProvenance,
-        },
+        entity::{id::EntityId, provenance::EntityEditionProvenance},
         property::{
             PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
             metadata::{PropertyMetadata, PropertyObjectMetadata},
@@ -47,14 +39,51 @@ use type_system::{
     },
     principal::actor::{ActorEntityUuid, ActorId},
 };
-use uuid::Uuid;
 
-use super::{LockedEntityEdition, provenance::SqlEntityEditionProvenance};
+use super::LockedEntityEdition;
 use crate::store::{
-    AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist, validation::StoreProvider,
+    AsClient, InTransaction, PostgresStore,
+    error::{EntityDoesNotExist, RaceConditionOnUpdate},
+    postgres::{
+        crud::QueryRecordDecode as _,
+        query::{Expression, PostgresRecord as _, SelectCompiler},
+    },
+    validation::StoreProvider,
 };
 
-enum DraftTransition {
+/// Chooses the patch's decision time at database precision, defaulting to the transaction time.
+pub(super) fn patch_decision_time(
+    params: &PatchEntityParams,
+    transaction_time: Timestamp<TransactionTime>,
+) -> Timestamp<DecisionTime> {
+    params
+        .decision_time
+        .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond)
+}
+
+/// Groups consecutive patches for distinct underlying entities, preserving input order.
+pub(super) fn group_entity_patch_batches(
+    params: Vec<PatchEntityParams>,
+) -> Vec<Vec<PatchEntityParams>> {
+    let mut batches = Vec::new();
+    let mut batch = Vec::new();
+    let mut entity_ids = HashSet::new();
+    for params in params {
+        let entity_id = (params.entity_id.web_id, params.entity_id.entity_uuid);
+        if !entity_ids.insert(entity_id) {
+            batches.push(mem::take(&mut batch));
+            entity_ids.clear();
+            entity_ids.insert(entity_id);
+        }
+        batch.push(params);
+    }
+    if !batch.is_empty() {
+        batches.push(batch);
+    }
+    batches
+}
+
+pub(super) enum DraftTransition {
     Update,
     Create,
     Publish,
@@ -75,6 +104,13 @@ pub(super) struct EntityPatchChanges {
     draft_transition: DraftTransition,
 }
 
+pub(super) struct EntityPatchWrite {
+    pub index: usize,
+    pub locked_row: LockedEntityEdition,
+    pub decision_time: Timestamp<DecisionTime>,
+    pub draft_transition: DraftTransition,
+}
+
 pub(super) struct EntityPatchValidation {
     entity_type: ClosedMultiEntityType,
     components: ValidateEntityComponents,
@@ -82,7 +118,7 @@ pub(super) struct EntityPatchValidation {
 }
 
 impl EntityPatchValidation {
-    /// Checks the persisted entity and combines validation results under its original input index.
+    /// Checks the prepared entity and combines validation results under its original input index.
     pub(super) async fn validate<C: AsClient>(
         mut self,
         provider: &StoreProvider<'_, PostgresStore<C, InTransaction>>,
@@ -225,66 +261,210 @@ struct PreparedPatchProperties {
     validation: EntityPatchValidation,
 }
 
-impl<C: AsClient> PostgresStore<C, InTransaction> {
-    /// Locks the temporal row to patch and loads the edition it references.
-    #[tracing::instrument(level = "info", skip_all)]
-    pub(super) async fn load_entity_for_patch(
-        &self,
-        entity_id: EntityId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<(LockedEntityEdition, Entity), Report<UpdateError>> {
-        let locked_row = self
-            .lock_entity_edition(entity_id, transaction_time, decision_time)
-            .await?
-            .ok_or_else(|| {
+/// Restores patch order and requires exactly one locked temporal row per target.
+fn decode_locked_entity_editions(
+    rows: &[Row],
+    params: &[PatchEntityParams],
+) -> Result<Vec<LockedEntityEdition>, Report<UpdateError>> {
+    let mut locked_rows = HashMap::with_capacity(rows.len());
+    for row in rows {
+        let entity_id = EntityId {
+            web_id: row.get(0),
+            entity_uuid: row.get(1),
+            draft_id: row.get(2),
+        };
+        let locked_row = LockedEntityEdition {
+            entity_id,
+            entity_edition_id: row.get(3),
+            transaction_time: row.get(4),
+            decision_time: row.get(5),
+        };
+        ensure!(
+            locked_rows.insert(entity_id, locked_row).is_none(),
+            Report::new(UpdateError)
+                .attach("Multiple temporal rows match the entity patch")
+                .attach(entity_id)
+        );
+    }
+    params
+        .iter()
+        .map(|params| {
+            locked_rows.remove(&params.entity_id).ok_or_else(|| {
                 Report::new(EntityDoesNotExist)
                     .attach_opaque(StatusCode::NotFound)
-                    .attach(entity_id)
+                    .attach(params.entity_id)
                     .change_context(UpdateError)
-            })?;
-        let ClosedTemporalBound::Inclusive(locked_transaction_time) =
-            *locked_row.transaction_time.start();
-        let ClosedTemporalBound::Inclusive(locked_decision_time) =
-            *locked_row.decision_time.start();
-        let previous_entity = Read::<Entity>::read_one(
-            self,
-            &[Filter::Equal(
-                FilterExpression::Path {
-                    path: EntityQueryPath::EditionId,
-                },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
-                    convert: None,
-                },
-            )],
-            Some(&QueryTemporalAxes::DecisionTime {
-                pinned: PinnedTemporalAxis::new(locked_transaction_time),
-                variable: VariableTemporalAxis::new(
-                    TemporalBound::Inclusive(locked_decision_time),
-                    LimitedTemporalBound::Inclusive(locked_decision_time),
-                ),
-            }),
-            true,
-        )
-        .await
-        .change_context(EntityDoesNotExist)
-        .attach_opaque(entity_id)
-        .change_context(UpdateError)?;
+            })
+        })
+        .collect()
+}
 
-        Ok((locked_row, previous_entity))
+impl<C: AsClient> PostgresStore<C, InTransaction> {
+    /// Locks each target's temporal row before the group's editions are read or changed.
+    #[tracing::instrument(level = "info", skip_all)]
+    pub(super) async fn lock_entity_editions_for_patch(
+        &self,
+        params: &[PatchEntityParams],
+        transaction_time: Timestamp<TransactionTime>,
+    ) -> Result<Vec<LockedEntityEdition>, Report<UpdateError>> {
+        let web_ids = params
+            .iter()
+            .map(|params| params.entity_id.web_id)
+            .collect::<Vec<_>>();
+        let entity_uuids = params
+            .iter()
+            .map(|params| params.entity_id.entity_uuid)
+            .collect::<Vec<_>>();
+        let draft_ids = params
+            .iter()
+            .map(|params| params.entity_id.draft_id)
+            .collect::<Vec<_>>();
+        let decision_times = params
+            .iter()
+            .map(|params| patch_decision_time(params, transaction_time))
+            .collect::<Vec<_>>();
+        let rows = self
+            .as_client()
+            .query(
+                "
+                SELECT
+                    metadata.web_id,
+                    metadata.entity_uuid,
+                    metadata.draft_id,
+                    metadata.entity_edition_id,
+                    metadata.transaction_time,
+                    metadata.decision_time
+                FROM
+                    unnest($1::UUID [], $2::UUID [], $3::UUID [], $4::TIMESTAMPTZ [])
+                    WITH ORDINALITY
+                        AS targets (
+                            web_id, entity_uuid, draft_id, decision_time, position
+                        )
+                INNER JOIN entity_temporal_metadata AS metadata
+                    ON targets.web_id = metadata.web_id
+                    AND targets.entity_uuid = metadata.entity_uuid
+                    AND metadata.draft_id IS NOT DISTINCT FROM targets.draft_id
+                    AND metadata.transaction_time @> $5::TIMESTAMPTZ
+                    AND metadata.decision_time @> targets.decision_time
+                ORDER BY targets.position
+                FOR NO KEY UPDATE OF metadata NOWAIT;
+                ",
+                &[
+                    &web_ids,
+                    &entity_uuids,
+                    &draft_ids,
+                    &decision_times,
+                    &transaction_time,
+                ],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres"
+            ))
+            .await
+            .map_err(|error| match error.code() {
+                Some(&SqlState::LOCK_NOT_AVAILABLE) => Report::new(RaceConditionOnUpdate)
+                    .attach_opaque(
+                        params
+                            .iter()
+                            .map(|params| params.entity_id)
+                            .collect::<Vec<_>>(),
+                    )
+                    .change_context(UpdateError),
+                _ => Report::new(error).change_context(UpdateError),
+            })?;
+
+        decode_locked_entity_editions(&rows, params)
     }
 
-    /// Resolves write and validation policies for the previous edition and requested types.
+    /// Loads the locked editions at their individual temporal bounds and restores input order.
+    #[tracing::instrument(level = "info", skip_all)]
+    pub(super) async fn read_entities_for_patch(
+        &self,
+        locked_rows: &[LockedEntityEdition],
+    ) -> Result<Vec<Entity>, Report<UpdateError>> {
+        let mut compiler = SelectCompiler::<Entity>::new(None, true);
+        let paths = Entity::parameters();
+        let indices = Entity::compile(&mut compiler, &paths);
+        let edition_column = compiler.compile_path_column(&EntityQueryPath::EditionId);
+        let transaction_column = compiler.compile_path_column(&EntityQueryPath::TransactionTime);
+        let decision_column = compiler.compile_path_column(&EntityQueryPath::DecisionTime);
+        let mut conditions = Vec::with_capacity(locked_rows.len());
+        for locked_row in locked_rows {
+            let ClosedTemporalBound::Inclusive(transaction_time) =
+                *locked_row.transaction_time.start();
+            let ClosedTemporalBound::Inclusive(decision_time) = *locked_row.decision_time.start();
+            let edition = compiler.add_parameter(&locked_row.entity_edition_id);
+            let transaction = compiler.add_owned_parameter(Box::new(transaction_time));
+            let decision = compiler.add_owned_parameter(Box::new(decision_time));
+            conditions.push(Expression::all(vec![
+                edition_column.clone().equal(edition),
+                transaction_column
+                    .clone()
+                    .time_interval_contains_timestamp(transaction),
+                decision_column
+                    .clone()
+                    .time_interval_contains_timestamp(decision),
+            ]));
+        }
+        compiler.add_condition(Expression::any(conditions));
+        let (statement, parameters) = compiler.compile();
+        let rows = self
+            .as_client()
+            .query_raw(&statement, parameters)
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = %statement,
+            ))
+            .await
+            .change_context(EntityDoesNotExist)
+            .change_context(UpdateError)?
+            .map_ok(|row| Entity::decode(&row, &indices))
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(EntityDoesNotExist)
+            .change_context(UpdateError)?;
+        let mut entities = HashMap::with_capacity(rows.len());
+        for entity in rows {
+            let record_id = entity.metadata.record_id;
+            ensure!(
+                entities.insert(record_id.entity_id, entity).is_none(),
+                Report::new(EntityDoesNotExist)
+                    .attach(record_id.entity_id)
+                    .change_context(UpdateError)
+            );
+        }
+        locked_rows
+            .iter()
+            .map(|locked_row| {
+                entities.remove(&locked_row.entity_id).ok_or_else(|| {
+                    Report::new(EntityDoesNotExist)
+                        .attach(locked_row.entity_id)
+                        .change_context(UpdateError)
+                })
+            })
+            .collect()
+    }
+
+    /// Resolves write and validation policies for the group's editions and requested types.
     pub(super) async fn build_entity_patch_policy_components(
         &self,
         actor_id: ActorId,
-        params: &PatchEntityParams,
-        previous_entity: &Entity,
+        params: &[PatchEntityParams],
+        previous_entities: &[Entity],
     ) -> Result<PolicyComponents, Report<UpdateError>> {
         PolicyComponents::builder(self, Some(actor_id))
-            .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
-            .with_entity_type_ids(&params.entity_type_ids)
+            .with_entity_edition_ids(
+                previous_entities
+                    .iter()
+                    .map(|entity| entity.metadata.record_id.edition_id),
+            )
+            .with_entity_type_ids(params.iter().flat_map(|params| &params.entity_type_ids))
             .with_actions(
                 [
                     ActionName::Instantiate,
@@ -304,6 +484,105 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             )
             .await
             .change_context(UpdateError)
+    }
+
+    /// Prepares and validates patches in order, flushing bulk writes around link validation.
+    pub(super) async fn apply_entity_patch_batch(
+        &self,
+        actor_id: ActorId,
+        params: Vec<PatchEntityParams>,
+        locked_rows: Vec<LockedEntityEdition>,
+        previous_entities: Vec<Entity>,
+        transaction_time: Timestamp<TransactionTime>,
+        offset: usize,
+    ) -> Result<(Vec<Entity>, Vec<EntityId>), Report<UpdateError>> {
+        let policy_components = self
+            .build_entity_patch_policy_components(actor_id, &params, &previous_entities)
+            .await?;
+        let mut entities = Vec::with_capacity(params.len());
+        let mut writes = Vec::new();
+        let mut changed_indices = Vec::new();
+        for ((params, locked_row), previous_entity) in
+            params.into_iter().zip(locked_rows).zip(previous_entities)
+        {
+            let index = entities.len();
+            let decision_time = patch_decision_time(&params, transaction_time);
+            let provider = StoreProvider::new(self, &policy_components);
+            match self
+                .prepare_entity_patch(
+                    actor_id,
+                    params,
+                    previous_entity,
+                    &policy_components,
+                    &provider,
+                )
+                .await?
+            {
+                EntityPatchPreparation::Unchanged(entity) => entities.push(*entity),
+                EntityPatchPreparation::Changed(prepared) => {
+                    let PreparedEntityPatch {
+                        changes,
+                        validation,
+                    } = *prepared;
+                    let EntityPatchChanges {
+                        entity,
+                        draft_transition,
+                    } = changes;
+                    // Link validation must observe earlier writes before later patches change its
+                    // targets.
+                    let validate_links = self.settings.validate_links && entity.link_data.is_some();
+                    if validate_links {
+                        self.persist_entity_patches(
+                            actor_id,
+                            &mut entities,
+                            &mut writes,
+                            transaction_time,
+                        )
+                        .await?;
+                    }
+                    entities.push(entity);
+                    writes.push(EntityPatchWrite {
+                        index,
+                        locked_row,
+                        decision_time,
+                        draft_transition,
+                    });
+                    if validate_links {
+                        self.persist_entity_patches(
+                            actor_id,
+                            &mut entities,
+                            &mut writes,
+                            transaction_time,
+                        )
+                        .await?;
+                    }
+                    validation
+                        .validate(
+                            &provider,
+                            entities
+                                .get(index)
+                                .expect("patch index should identify a prepared entity"),
+                            offset + index,
+                        )
+                        .await?;
+                    changed_indices.push(index);
+                }
+            }
+        }
+        self.persist_entity_patches(actor_id, &mut entities, &mut writes, transaction_time)
+            .await?;
+        let embedding_ids = changed_indices
+            .into_iter()
+            .map(|index| {
+                entities
+                    .get(index)
+                    .expect("patch index should identify a prepared entity")
+                    .metadata
+                    .record_id
+                    .entity_id
+            })
+            .collect();
+        Ok((entities, embedding_ids))
     }
 
     /// Applies and preprocesses a patch, distinguishing unchanged entities from changes to persist.
@@ -457,194 +736,5 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
                 report,
             },
         })
-    }
-
-    /// Writes a prepared edition and applies its draft or live history transition.
-    #[tracing::instrument(level = "info", skip_all)]
-    pub(super) async fn persist_entity_patch(
-        &self,
-        actor_id: ActorId,
-        changes: EntityPatchChanges,
-        locked_row: LockedEntityEdition,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<Entity, Report<UpdateError>> {
-        let EntityPatchChanges {
-            mut entity,
-            draft_transition,
-        } = changes;
-        let entity_id = entity.metadata.record_id.entity_id;
-        let stored_provenance =
-            SqlEntityEditionProvenance::from(entity.metadata.provenance.edition);
-        let edition_id = self
-            .insert_entity_edition(
-                entity.metadata.archived,
-                &entity.metadata.entity_type_ids,
-                &entity.properties,
-                entity.metadata.confidence,
-                &stored_provenance,
-                &entity.metadata.properties,
-            )
-            .await
-            .change_context(UpdateError)?;
-        entity.metadata.provenance.edition = EntityEditionProvenance::from(stored_provenance);
-        let (entity_id, temporal_versioning) = match draft_transition {
-            DraftTransition::Update => (
-                entity_id,
-                self.update_temporal_metadata(
-                    locked_row,
-                    transaction_time,
-                    decision_time,
-                    edition_id,
-                    false,
-                )
-                .await?,
-            ),
-            DraftTransition::Create => {
-                self.create_entity_patch_draft(
-                    entity_id,
-                    edition_id,
-                    transaction_time,
-                    decision_time,
-                )
-                .await?
-            }
-            DraftTransition::Publish => {
-                self.publish_entity_patch(
-                    actor_id,
-                    locked_row,
-                    edition_id,
-                    transaction_time,
-                    decision_time,
-                    &mut entity.metadata.provenance,
-                )
-                .await?
-            }
-        };
-        entity.metadata.record_id = EntityRecordId {
-            entity_id,
-            edition_id,
-        };
-        entity.metadata.temporal_versioning = temporal_versioning;
-        Ok(entity)
-    }
-
-    /// Starts a new draft history for an existing live entity.
-    async fn create_entity_patch_draft(
-        &self,
-        mut entity_id: EntityId,
-        edition_id: EntityEditionId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<(EntityId, EntityTemporalMetadata), Report<UpdateError>> {
-        let draft_id = DraftId::new(Uuid::new_v4());
-        self.as_client()
-            .query(
-                "INSERT INTO entity_drafts (web_id, entity_uuid, draft_id) VALUES ($1, $2, $3);",
-                &[&entity_id.web_id, &entity_id.entity_uuid, &draft_id],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres"
-            ))
-            .await
-            .change_context(UpdateError)?;
-        entity_id.draft_id = Some(draft_id);
-        let temporal_versioning = self
-            .insert_temporal_metadata(entity_id, edition_id, transaction_time, decision_time)
-            .await
-            .change_context(UpdateError)?;
-        Ok((entity_id, temporal_versioning))
-    }
-
-    /// Publishes the patched draft and archives any live edition it replaces.
-    async fn publish_entity_patch(
-        &self,
-        actor_id: ActorId,
-        locked_row: LockedEntityEdition,
-        edition_id: EntityEditionId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-        provenance: &mut EntityProvenance,
-    ) -> Result<(EntityId, EntityTemporalMetadata), Report<UpdateError>> {
-        let entity_id = EntityId {
-            draft_id: None,
-            ..locked_row.entity_id
-        };
-        if provenance
-            .first_non_draft_created_at_decision_time
-            .is_none()
-        {
-            self.record_entity_first_publication(
-                entity_id,
-                transaction_time,
-                decision_time,
-                provenance,
-            )
-            .await?;
-        }
-        if let Some(previous_live_entity) = self
-            .lock_entity_edition(entity_id, transaction_time, decision_time)
-            .await?
-        {
-            self.archive_entity(
-                actor_id,
-                previous_live_entity,
-                transaction_time,
-                decision_time,
-            )
-            .await?;
-        }
-        let temporal_versioning = self
-            .update_temporal_metadata(
-                locked_row,
-                transaction_time,
-                decision_time,
-                edition_id,
-                true,
-            )
-            .await?;
-        Ok((entity_id, temporal_versioning))
-    }
-
-    /// Records when the entity first becomes live on both temporal axes.
-    async fn record_entity_first_publication(
-        &self,
-        entity_id: EntityId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-        provenance: &mut EntityProvenance,
-    ) -> Result<(), Report<UpdateError>> {
-        self.as_client()
-            .query(
-                "
-                UPDATE entity_ids
-                SET
-                    provenance = provenance || jsonb_build_object(
-                        'firstNonDraftCreatedAtTransactionTime', $1::TIMESTAMPTZ,
-                        'firstNonDraftCreatedAtDecisionTime', $2::TIMESTAMPTZ
-                    )
-                WHERE web_id = $3 AND entity_uuid = $4;
-                ",
-                &[
-                    &transaction_time,
-                    &decision_time,
-                    &entity_id.web_id,
-                    &entity_id.entity_uuid,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "UPDATE",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres"
-            ))
-            .await
-            .change_context(UpdateError)?;
-        provenance.first_non_draft_created_at_transaction_time = Some(transaction_time);
-        provenance.first_non_draft_created_at_decision_time = Some(decision_time);
-        Ok(())
     }
 }

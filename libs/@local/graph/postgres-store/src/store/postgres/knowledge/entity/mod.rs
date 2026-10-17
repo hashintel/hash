@@ -7,6 +7,7 @@ mod read;
 mod search;
 mod summary;
 mod table;
+mod update;
 
 use alloc::borrow::Cow;
 use core::{any::Any, borrow::Borrow as _, fmt, mem};
@@ -66,11 +67,11 @@ use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use tokio::sync::oneshot;
-use tokio_postgres::{GenericClient as _, error::SqlState};
+use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 use type_system::{
     knowledge::{
-        Confidence, Entity, PropertyValue,
+        Entity, PropertyValue,
         entity::{
             EntityMetadata, EntityProvenance,
             id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
@@ -87,7 +88,7 @@ use type_system::{
         InheritanceDepth,
         data_type::schema::DataTypeReference,
         entity_type::{ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid},
-        id::{OntologyTypeUuid, VersionedUrl},
+        id::VersionedUrl,
     },
     principal::{
         actor::{ActorEntityUuid, ActorId},
@@ -98,13 +99,12 @@ use uuid::Uuid;
 
 use crate::store::{
     AsClient, GenericClientIter as _, PostgresStore,
-    error::RaceConditionOnUpdate,
     postgres::{
         BeginReadOnlyTransaction, InTransaction, TransactionState, TraversalContext,
         crud::{QueryIndices, TypedRow},
         knowledge::entity::{
-            patch::{EntityPatchPreparation, PreparedEntityPatch},
-            provenance::{SqlEntityEditionProvenance, SqlEntityProvenance},
+            patch::group_entity_patch_batches,
+            provenance::SqlEntityProvenance,
             read::EntityEdgeTraversalData,
             summary::{Deduplication, EntitySummaryQuery, EntitySummaryRequest},
         },
@@ -2022,49 +2022,27 @@ where
         let mut patched_entities = Vec::with_capacity(params.len());
         let mut embedding_entity_ids = Vec::new();
 
-        for (index, params) in params.into_iter().enumerate() {
-            let decision_time = params
-                .decision_time
-                .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
-            let (locked_row, previous_entity) = transaction
-                .load_entity_for_patch(params.entity_id, transaction_time, decision_time)
+        // Each batch reads its previous editions before applying patches. A repeated entity starts
+        // a new batch so its read observes earlier writes. Draft and live IDs share a batch key
+        // because publication can affect both histories. Keeping patches in input order also
+        // preserves dependencies between different entities during validation.
+        for batch in group_entity_patch_batches(params) {
+            let locked_rows = transaction
+                .lock_entity_editions_for_patch(&batch, transaction_time)
                 .await?;
-            let policy_components = transaction
-                .build_entity_patch_policy_components(actor_id, &params, &previous_entity)
-                .await?;
-            let validator_provider = StoreProvider::new(&transaction, &policy_components);
-            match transaction
-                .prepare_entity_patch(
+            let previous_entities = transaction.read_entities_for_patch(&locked_rows).await?;
+            let (entities, embedding_ids) = transaction
+                .apply_entity_patch_batch(
                     actor_id,
-                    params,
-                    previous_entity,
-                    &policy_components,
-                    &validator_provider,
+                    batch,
+                    locked_rows,
+                    previous_entities,
+                    transaction_time,
+                    patched_entities.len(),
                 )
-                .await?
-            {
-                EntityPatchPreparation::Unchanged(entity) => patched_entities.push(*entity),
-                EntityPatchPreparation::Changed(prepared) => {
-                    let PreparedEntityPatch {
-                        changes,
-                        validation,
-                    } = *prepared;
-                    let entity = transaction
-                        .persist_entity_patch(
-                            actor_id,
-                            changes,
-                            locked_row,
-                            transaction_time,
-                            decision_time,
-                        )
-                        .await?;
-                    validation
-                        .validate(&validator_provider, &entity, index)
-                        .await?;
-                    embedding_entity_ids.push(entity.metadata.record_id.entity_id);
-                    patched_entities.push(entity);
-                }
-            }
+                .await?;
+            patched_entities.extend(entities);
+            embedding_entity_ids.extend(embedding_ids);
         }
 
         transaction.commit().await.change_context(UpdateError)?;
@@ -2592,607 +2570,6 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
         ON types.entity_edition_id = labels.entity_edition_id;
 "
     )
-}
-
-impl<C> PostgresStore<C, InTransaction>
-where
-    C: AsClient,
-{
-    #[tracing::instrument(level = "info", skip_all)]
-    async fn insert_entity_edition(
-        &self,
-        archived: bool,
-        entity_type_ids: impl IntoIterator<Item = &VersionedUrl> + Send,
-        properties: &PropertyObject,
-        confidence: Option<Confidence>,
-        provenance: &SqlEntityEditionProvenance,
-        metadata: &PropertyObjectMetadata,
-    ) -> Result<EntityEditionId, Report<InsertionError>> {
-        let edition_id: EntityEditionId = self
-            .as_client()
-            .query_one(
-                "
-                    INSERT INTO entity_editions (
-                        entity_edition_id,
-                        archived,
-                        properties,
-                        confidence,
-                        provenance,
-                        property_metadata,
-                        created_by_id
-                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
-                    RETURNING entity_edition_id;
-                ",
-                &[
-                    &archived,
-                    &properties,
-                    &confidence,
-                    &provenance.json,
-                    metadata,
-                    &provenance.created_by_id,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(InsertionError)?
-            .get(0);
-
-        let entity_type_ontology_ids = entity_type_ids
-            .into_iter()
-            .map(|entity_type_id| OntologyTypeUuid::from(EntityTypeUuid::from_url(entity_type_id)))
-            .collect::<Vec<_>>();
-
-        self.as_client()
-            .query(
-                "
-                    INSERT INTO entity_is_of_type (
-                        entity_edition_id,
-                        entity_type_ontology_id,
-                        inheritance_depth
-                    ) SELECT $1, UNNEST($2::UUID[]), 0;
-                ",
-                &[&edition_id, &entity_type_ontology_ids],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(InsertionError)?;
-        self.as_client()
-            .query(
-                "
-                    INSERT INTO entity_is_of_type (
-                        entity_edition_id,
-                        entity_type_ontology_id,
-                        inheritance_depth
-                    )
-                    SELECT entity_edition_id,
-                           target_entity_type_ontology_id AS entity_type_ontology_id,
-                           MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
-                      FROM entity_is_of_type
-                      JOIN entity_type_inherits_from
-                        ON entity_type_ontology_id = source_entity_type_ontology_id
-                     WHERE entity_edition_id = $1
-                     GROUP BY entity_edition_id, target_entity_type_ontology_id;
-                ",
-                &[&edition_id],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(InsertionError)?;
-
-        let edition_ids = [edition_id];
-        self.as_client()
-            .query(
-                &insert_entity_edition_cache_statement(true),
-                &[&edition_ids.as_slice()],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(InsertionError)?;
-
-        Ok(edition_id)
-    }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn lock_entity_edition(
-        &self,
-        entity_id: EntityId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<Option<LockedEntityEdition>, Report<UpdateError>> {
-        let current_data = if let Some(draft_id) = entity_id.draft_id {
-            self.as_client()
-                .query_opt(
-                    "
-                        SELECT
-                            entity_temporal_metadata.entity_edition_id,
-                            entity_temporal_metadata.transaction_time,
-                            entity_temporal_metadata.decision_time
-                        FROM entity_temporal_metadata
-                        WHERE entity_temporal_metadata.web_id = $1
-                          AND entity_temporal_metadata.entity_uuid = $2
-                          AND entity_temporal_metadata.draft_id = $3
-                          AND entity_temporal_metadata.transaction_time @> $4::timestamptz
-                          AND entity_temporal_metadata.decision_time @> $5::timestamptz
-                          FOR NO KEY UPDATE NOWAIT;",
-                    &[
-                        &entity_id.web_id,
-                        &entity_id.entity_uuid,
-                        &draft_id,
-                        &transaction_time,
-                        &decision_time,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "SELECT",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-        } else {
-            self.as_client()
-                .query_opt(
-                    "
-                        SELECT
-                            entity_temporal_metadata.entity_edition_id,
-                            entity_temporal_metadata.transaction_time,
-                            entity_temporal_metadata.decision_time
-                        FROM entity_temporal_metadata
-                        WHERE entity_temporal_metadata.web_id = $1
-                          AND entity_temporal_metadata.entity_uuid = $2
-                          AND entity_temporal_metadata.draft_id IS NULL
-                          AND entity_temporal_metadata.transaction_time @> $3::timestamptz
-                          AND entity_temporal_metadata.decision_time @> $4::timestamptz
-                          FOR NO KEY UPDATE NOWAIT;",
-                    &[
-                        &entity_id.web_id,
-                        &entity_id.entity_uuid,
-                        &transaction_time,
-                        &decision_time,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "SELECT",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-        };
-
-        current_data
-            .map(|row| {
-                row.map(|row| LockedEntityEdition {
-                    entity_id,
-                    entity_edition_id: row.get(0),
-                    transaction_time: row.get(1),
-                    decision_time: row.get(2),
-                })
-            })
-            .map_err(|error| match error.code() {
-                Some(&SqlState::LOCK_NOT_AVAILABLE) => Report::new(RaceConditionOnUpdate)
-                    .attach_opaque(entity_id)
-                    .change_context(UpdateError),
-                _ => Report::new(error).change_context(UpdateError),
-            })
-    }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn insert_temporal_metadata(
-        &self,
-        entity_id: EntityId,
-        edition_id: EntityEditionId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<EntityTemporalMetadata, Report<InsertionError>> {
-        let row = self
-            .as_client()
-            .query_one(
-                "
-                INSERT INTO entity_temporal_metadata (
-                    web_id,
-                    entity_uuid,
-                    draft_id,
-                    entity_edition_id,
-                    transaction_time,
-                    decision_time
-                ) VALUES (
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    tstzrange($5, NULL, '[)'),
-                    tstzrange($6, NULL, '[)')
-                ) RETURNING decision_time, transaction_time;",
-                &[
-                    &entity_id.web_id,
-                    &entity_id.entity_uuid,
-                    &entity_id.draft_id,
-                    &edition_id,
-                    &transaction_time,
-                    &decision_time,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(InsertionError)?;
-
-        Ok(EntityTemporalMetadata {
-            decision_time: row.get(0),
-            transaction_time: row.get(1),
-        })
-    }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    #[expect(clippy::too_many_lines)]
-    async fn update_temporal_metadata(
-        &self,
-        locked_row: LockedEntityEdition,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-        entity_edition_id: EntityEditionId,
-        undraft: bool,
-    ) -> Result<EntityTemporalMetadata, Report<UpdateError>> {
-        let row = if let Some(draft_id) = locked_row.entity_id.draft_id {
-            if undraft {
-                self.client
-                    .as_client()
-                    .query_one(
-                        "
-                UPDATE entity_temporal_metadata
-                SET transaction_time = tstzrange($4::timestamptz, NULL, '[)'),
-                    decision_time = tstzrange($5::timestamptz, upper(decision_time), '[)'),
-                    entity_edition_id = $6,
-                    draft_id = NULL
-                WHERE entity_temporal_metadata.web_id = $1
-                  AND entity_temporal_metadata.entity_uuid = $2
-                  AND entity_temporal_metadata.draft_id = $3
-                  AND entity_temporal_metadata.transaction_time @> $4::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $5::timestamptz
-                RETURNING decision_time, transaction_time;",
-                        &[
-                            &locked_row.entity_id.web_id,
-                            &locked_row.entity_id.entity_uuid,
-                            &draft_id,
-                            &transaction_time,
-                            &decision_time,
-                            &entity_edition_id,
-                        ],
-                    )
-                    .instrument(tracing::info_span!(
-                        "UPDATE",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(UpdateError)?
-            } else {
-                self.client
-                    .as_client()
-                    .query_one(
-                        "
-                UPDATE entity_temporal_metadata
-                SET transaction_time = tstzrange($4::timestamptz, NULL, '[)'),
-                    decision_time = tstzrange($5::timestamptz, upper(decision_time), '[)'),
-                    entity_edition_id = $6
-                WHERE entity_temporal_metadata.web_id = $1
-                  AND entity_temporal_metadata.entity_uuid = $2
-                  AND entity_temporal_metadata.draft_id = $3
-                  AND entity_temporal_metadata.transaction_time @> $4::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $5::timestamptz
-                RETURNING decision_time, transaction_time;",
-                        &[
-                            &locked_row.entity_id.web_id,
-                            &locked_row.entity_id.entity_uuid,
-                            &draft_id,
-                            &transaction_time,
-                            &decision_time,
-                            &entity_edition_id,
-                        ],
-                    )
-                    .instrument(tracing::info_span!(
-                        "UPDATE",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(UpdateError)?
-            }
-        } else {
-            self.client
-                .as_client()
-                .query_one(
-                    "
-                UPDATE entity_temporal_metadata
-                SET transaction_time = tstzrange($3::timestamptz, NULL, '[)'),
-                    decision_time = tstzrange($4::timestamptz, upper(decision_time), '[)'),
-                    entity_edition_id = $5
-                WHERE entity_temporal_metadata.web_id = $1
-                  AND entity_temporal_metadata.entity_uuid = $2
-                  AND entity_temporal_metadata.draft_id IS NULL
-                  AND entity_temporal_metadata.transaction_time @> $3::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
-                RETURNING decision_time, transaction_time;",
-                    &[
-                        &locked_row.entity_id.web_id,
-                        &locked_row.entity_id.entity_uuid,
-                        &transaction_time,
-                        &decision_time,
-                        &entity_edition_id,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "UPDATE",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-                .change_context(UpdateError)?
-        };
-
-        self.client
-            .as_client()
-            .query(
-                "
-                INSERT INTO entity_temporal_metadata (
-                    web_id,
-                    entity_uuid,
-                    draft_id,
-                    entity_edition_id,
-                    decision_time,
-                    transaction_time
-                ) SELECT
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    $5,
-                    tstzrange(lower($6::tstzrange), $7, '[)')
-                WHERE lower($6::tstzrange) < $7::timestamptz;",
-                &[
-                    &locked_row.entity_id.web_id,
-                    &locked_row.entity_id.entity_uuid,
-                    &locked_row.entity_id.draft_id,
-                    &locked_row.entity_edition_id,
-                    &locked_row.decision_time,
-                    &locked_row.transaction_time,
-                    &transaction_time,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        self.client
-            .as_client()
-            .query(
-                "
-                INSERT INTO entity_temporal_metadata (
-                    web_id,
-                    entity_uuid,
-                    draft_id,
-                    entity_edition_id,
-                    transaction_time,
-                    decision_time
-                ) SELECT
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    tstzrange($6, NULL, '[)'),
-                    tstzrange(lower($5::tstzrange), $7, '[)')
-                WHERE lower($5::tstzrange) < $7::timestamptz;",
-                &[
-                    &locked_row.entity_id.web_id,
-                    &locked_row.entity_id.entity_uuid,
-                    &locked_row.entity_id.draft_id,
-                    &locked_row.entity_edition_id,
-                    &locked_row.decision_time,
-                    &transaction_time,
-                    &decision_time,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        Ok(EntityTemporalMetadata {
-            decision_time: row.get(0),
-            transaction_time: row.get(1),
-        })
-    }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    #[expect(clippy::too_many_lines)]
-    async fn archive_entity(
-        &self,
-        actor_id: ActorId,
-        locked_row: LockedEntityEdition,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<(), Report<UpdateError>> {
-        // Closing at the start would leave an empty decision interval
-        if locked_row.decision_time.start() == &ClosedTemporalBound::Inclusive(decision_time) {
-            self.as_client()
-                .query(
-                    "DELETE FROM entity_temporal_metadata
-                     WHERE web_id = $1
-                       AND entity_uuid = $2
-                       AND draft_id IS NOT DISTINCT FROM $3
-                       AND transaction_time @> $4::timestamptz
-                       AND decision_time @> $5::timestamptz;",
-                    &[
-                        &locked_row.entity_id.web_id,
-                        &locked_row.entity_id.entity_uuid,
-                        &locked_row.entity_id.draft_id,
-                        &transaction_time,
-                        &decision_time,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "DELETE",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres",
-                ))
-                .await
-                .change_context(UpdateError)?;
-        } else if let Some(draft_id) = locked_row.entity_id.draft_id {
-            self.client
-                .as_client()
-                .query(
-                    "
-                UPDATE entity_temporal_metadata
-                SET transaction_time = tstzrange($4::timestamptz, NULL, '[)'),
-                    decision_time = tstzrange(lower(decision_time), $5::timestamptz, '[)')
-                WHERE entity_temporal_metadata.web_id = $1
-                  AND entity_temporal_metadata.entity_uuid = $2
-                  AND entity_temporal_metadata.draft_id = $3
-                  AND entity_temporal_metadata.transaction_time @> $4::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $5::timestamptz;",
-                    &[
-                        &locked_row.entity_id.web_id,
-                        &locked_row.entity_id.entity_uuid,
-                        &draft_id,
-                        &transaction_time,
-                        &decision_time,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "UPDATE",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-                .change_context(UpdateError)?;
-        } else {
-            self.client
-                .as_client()
-                .query(
-                    "
-                UPDATE entity_temporal_metadata
-                SET transaction_time = tstzrange($3::timestamptz, NULL, '[)'),
-                    decision_time = tstzrange(lower(decision_time), $4::timestamptz, '[)')
-                WHERE entity_temporal_metadata.web_id = $1
-                  AND entity_temporal_metadata.entity_uuid = $2
-                  AND entity_temporal_metadata.draft_id IS NULL
-                  AND entity_temporal_metadata.transaction_time @> $3::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $4::timestamptz;",
-                    &[
-                        &locked_row.entity_id.web_id,
-                        &locked_row.entity_id.entity_uuid,
-                        &transaction_time,
-                        &decision_time,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "UPDATE",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-                .change_context(UpdateError)?;
-        }
-
-        self.client
-            .as_client()
-            .query(
-                "
-                INSERT INTO entity_temporal_metadata (
-                    web_id,
-                    entity_uuid,
-                    draft_id,
-                    entity_edition_id,
-                    transaction_time,
-                    decision_time
-                ) SELECT
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    tstzrange(lower($6::tstzrange), $7, '[)'),
-                    $5
-                WHERE lower($6::tstzrange) < $7::timestamptz;",
-                &[
-                    &locked_row.entity_id.web_id,
-                    &locked_row.entity_id.entity_uuid,
-                    &locked_row.entity_id.draft_id,
-                    &locked_row.entity_edition_id,
-                    &locked_row.decision_time,
-                    &locked_row.transaction_time,
-                    &transaction_time,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        self.as_client()
-            .query(
-                "
-                    UPDATE entity_editions SET
-                        provenance = provenance || JSONB_BUILD_OBJECT(
-                            'archivedById', $2::UUID
-                        )
-                    WHERE entity_edition_id = $1",
-                &[&locked_row.entity_edition_id, &actor_id],
-            )
-            .instrument(tracing::info_span!(
-                "UPDATE",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        Ok(())
-    }
 }
 
 #[cfg(test)]
