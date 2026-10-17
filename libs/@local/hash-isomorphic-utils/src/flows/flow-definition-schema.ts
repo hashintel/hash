@@ -3,12 +3,14 @@ import { z } from "zod";
 import type {
   FlowDefinition,
   PayloadKind,
+  payloadKindPrimitives,
   StepDefinition,
   StepInputSource,
 } from "./types.js";
 
 /**
- * How a value of each payload kind is represented in JSON, for checking constants.
+ * How a value of each payload kind is represented in JSON, for checking constants. A kind with a primitive type must
+ * have that primitive's JSON type.
  */
 export const payloadKindJsonTypes = {
   ActorType: "string",
@@ -32,10 +34,13 @@ export const payloadKindJsonTypes = {
   VersionedUrl: "string",
   WebPage: "object",
   WebSearchResult: "object",
-} as const satisfies Record<
-  PayloadKind,
-  "string" | "number" | "boolean" | "object"
->;
+} as const satisfies {
+  [Kind in PayloadKind]: (typeof payloadKindPrimitives)[Kind] extends null
+    ? "string" | "number" | "boolean" | "object"
+    : (typeof payloadKindPrimitives)[Kind] extends "number" | "boolean"
+      ? (typeof payloadKindPrimitives)[Kind]
+      : "string";
+};
 
 const payloadKindSchema = z.enum(
   Object.keys(payloadKindJsonTypes) as [PayloadKind, ...PayloadKind[]],

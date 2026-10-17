@@ -114,6 +114,15 @@ describe("evaluateCondition", () => {
       matches: true,
     },
     {
+      input: { kind: "VersionedUrl", value: companyType },
+      operator: "startsWith",
+      operand: {
+        kind: "VersionedUrl",
+        value: "https://example.com/types/entity-type/company/" as VersionedUrl,
+      },
+      matches: true,
+    },
+    {
       input: { kind: "ActorType", value: "user" },
       operator: "equals",
       operand: { kind: "ActorType", value: "machine" },

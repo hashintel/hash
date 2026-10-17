@@ -1,9 +1,13 @@
 import { isEntityId } from "@blockprotocol/type-system";
-import { evaluateFilter } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
+import {
+  evaluateFilter,
+  hasPrimitiveType,
+} from "@local/hash-isomorphic-utils/flows/evaluate-filter";
 import {
   scalarKinds,
   validateCondition,
 } from "@local/hash-isomorphic-utils/flows/filter-condition";
+import { payloadKindPrimitives } from "@local/hash-isomorphic-utils/flows/types";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { FilterValue } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
@@ -115,23 +119,10 @@ const asScalarValue = (
   kind: PayloadKind,
   value: unknown,
 ): FilterValue | undefined => {
-  switch (kind) {
-    case "Number":
-      return typeof value === "number" ? { kind, value } : undefined;
-    case "Boolean":
-      return typeof value === "boolean" ? { kind, value } : undefined;
-    case "ActorType":
-    case "Date":
-    case "EntityId":
-    case "GoogleAccountId":
-    case "Text":
-    case "VersionedUrl":
-      return typeof value === "string"
-        ? ({ kind, value } as FilterValue)
-        : undefined;
-    default:
-      return undefined;
-  }
+  const primitive = payloadKindPrimitives[kind];
+  return primitive !== null && hasPrimitiveType(primitive, value)
+    ? ({ kind, value } as FilterValue)
+    : undefined;
 };
 
 const evaluateLeaf = (

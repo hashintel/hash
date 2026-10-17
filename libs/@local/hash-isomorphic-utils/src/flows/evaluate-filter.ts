@@ -1,5 +1,8 @@
+import { dayMs, isIsoDate, parseDateTime } from "./datetime.js";
+import { payloadKindPrimitives } from "./types.js";
+
 import type { ScalarKind } from "./filter-condition.js";
-import type { PayloadKindValues } from "./types.js";
+import type { PayloadKindValues, PayloadPrimitive } from "./types.js";
 
 export type FilterValue = {
   [Kind in ScalarKind]: { kind: Kind; value: PayloadKindValues[Kind] };
@@ -15,20 +18,23 @@ const orderingOperators = [
   "lessThanOrEqual",
 ] as const;
 
-/** The operators that compare a value of each scalar kind with an operand. */
-const binaryFilterOperatorsByKind = {
-  ActorType: equalityOperators,
-  Boolean: equalityOperators,
-  Date: orderingOperators,
-  EntityId: equalityOperators,
-  GoogleAccountId: equalityOperators,
-  Number: orderingOperators,
-  Text: [...equalityOperators, "contains", "startsWith", "endsWith"],
-  VersionedUrl: equalityOperators,
-} as const satisfies Record<ScalarKind, readonly string[]>;
+/**
+ * The operators that compare a value of each primitive type with an operand. `onSameDate` matches two instants on
+ * the same UTC calendar date, whatever their offsets.
+ */
+const binaryFilterOperatorsByPrimitive = {
+  text: [...equalityOperators, "contains", "startsWith", "endsWith"],
+  number: orderingOperators,
+  date: orderingOperators,
+  datetime: [...orderingOperators, "onSameDate"],
+  boolean: equalityOperators,
+} as const satisfies Record<PayloadPrimitive, readonly string[]>;
 
 export type BinaryFilterOperator<Kind extends ScalarKind = ScalarKind> =
-  (typeof binaryFilterOperatorsByKind)[Kind][number];
+  (typeof binaryFilterOperatorsByPrimitive)[Extract<
+    (typeof payloadKindPrimitives)[Kind],
+    PayloadPrimitive
+  >][number];
 
 /** Operators that take no operand. */
 export const unaryFilterOperators = ["isEmpty", "isNotEmpty"] as const;
@@ -53,26 +59,68 @@ export type FilterResult =
       message: string;
     };
 
-/** Whether a string is an ISO calendar date (YYYY-MM-DD) that exists, e.g. not 2025-02-30. */
-export const isIsoDate = (value: string): boolean => {
-  const timestamp = Date.parse(value);
-  return (
-    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-    Number.isFinite(timestamp) &&
-    new Date(timestamp).toISOString().slice(0, 10) === value
-  );
+/** Whether a value has the JavaScript type of a primitive, whether or not it's a valid value of it. */
+export const hasPrimitiveType = (
+  primitive: PayloadPrimitive,
+  value: unknown,
+): boolean => {
+  switch (primitive) {
+    case "number":
+      return typeof value === "number";
+    case "boolean":
+      return typeof value === "boolean";
+    case "text":
+    case "date":
+    case "datetime":
+      return typeof value === "string";
+  }
+};
+
+/**
+ * Reads a value into one that compares with `<` and `===`: epoch milliseconds for a `datetime`, otherwise itself.
+ * `undefined` if the value isn't valid.
+ */
+export const readScalar = (
+  primitive: PayloadPrimitive,
+  value: unknown,
+): string | number | boolean | undefined => {
+  if (!hasPrimitiveType(primitive, value)) {
+    return undefined;
+  }
+  switch (primitive) {
+    case "date":
+      return isIsoDate(value as string) ? (value as string) : undefined;
+    case "datetime": {
+      const instant = parseDateTime(value);
+      return typeof instant === "number" ? instant : undefined;
+    }
+    case "number":
+      return Number.isFinite(value) ? (value as number) : undefined;
+    case "text":
+    case "boolean":
+      return value as string | boolean;
+  }
+};
+
+/** What a valid value looks like, for the primitives whose values of the right type can still be invalid. */
+const validValueDescriptions = {
+  number: "a finite number",
+  date: "an ISO calendar date (YYYY-MM-DD)",
+  datetime:
+    'an ISO 8601 date and time with Z or an offset, e.g. "2026-10-16T14:00:00Z"',
 };
 
 /**
  * Low-level scalar comparison. Action wrappers use evaluateCondition/evaluateIf
  * for missing-value semantics, subject resolution and groups. This helper treats
  * empty text literally (for example, equals("", "") matches).
+ * A value is compared by its kind's primitive type: see binaryFilterOperatorsByPrimitive
+ * for the operators each supports.
  * Text comparisons are case-sensitive. Only an empty string is empty: whitespace,
- * zero and false are values. Only text supports contains, startsWith and endsWith, and
- * only numbers and dates can be ordered: see binaryFilterOperatorsByKind.
- * Dates are ISO calendar dates (YYYY-MM-DD), not timestamps. An empty Date is
- * accepted only for emptiness checks. Numbers must be finite.
- * Operands must have the input's scalar type; unary operators ignore the operand.
+ * zero and false are values. Dates are ISO calendar dates (YYYY-MM-DD), not timestamps.
+ * Date-times are compared as the instants they name, so 14:00Z equals 16:00+02:00.
+ * An empty Date or DateTime is accepted only for emptiness checks. Numbers must be finite.
+ * Operands must have the input's kind; unary operators ignore the operand.
  */
 export const evaluateFilter = ({
   value,
@@ -82,14 +130,9 @@ export const evaluateFilter = ({
   condition: ScalarFilterCondition;
 }): FilterResult => {
   const { operator, operand } = condition;
+  const primitive = payloadKindPrimitives[value.kind];
 
-  if (
-    (value.kind === "Number" && typeof value.value !== "number") ||
-    (value.kind === "Boolean" && typeof value.value !== "boolean") ||
-    (value.kind !== "Number" &&
-      value.kind !== "Boolean" &&
-      typeof value.value !== "string")
-  ) {
+  if (!hasPrimitiveType(primitive, value.value)) {
     return {
       status: "error",
       code: "invalidValue",
@@ -100,9 +143,9 @@ export const evaluateFilter = ({
   const isUnary = operator === "isEmpty" || operator === "isNotEmpty";
   if (
     !isUnary &&
-    !(binaryFilterOperatorsByKind[value.kind] as readonly string[]).includes(
-      operator,
-    )
+    !(
+      binaryFilterOperatorsByPrimitive[primitive] as readonly string[]
+    ).includes(operator)
   ) {
     return {
       status: "error",
@@ -111,16 +154,13 @@ export const evaluateFilter = ({
     };
   }
 
-  if (
-    (value.kind === "Date" &&
-      !(isUnary && value.value === "") &&
-      !isIsoDate(value.value)) ||
-    (value.kind === "Number" && !Number.isFinite(value.value))
-  ) {
+  const left = readScalar(primitive, value.value);
+  if (left === undefined && !(isUnary && value.value === "")) {
     return {
       status: "error",
       code: "invalidValue",
-      message: `Value must be ${value.kind === "Date" ? "an ISO calendar date (YYYY-MM-DD)" : "a finite number"}.`,
+      /* Any string or boolean is a valid text or boolean. */
+      message: `Value must be ${validValueDescriptions[primitive as keyof typeof validValueDescriptions]}.`,
     };
   }
 
@@ -140,13 +180,8 @@ export const evaluateFilter = ({
     };
   }
 
-  if (
-    typeof operand !== typeof value.value ||
-    (value.kind === "Date" &&
-      typeof operand === "string" &&
-      !isIsoDate(operand)) ||
-    (value.kind === "Number" && !Number.isFinite(operand))
-  ) {
+  const right = readScalar(primitive, operand);
+  if (left === undefined || right === undefined) {
     return {
       status: "error",
       code: "invalidOperand",
@@ -157,40 +192,35 @@ export const evaluateFilter = ({
   let matched: boolean;
   switch (operator) {
     case "equals":
-      matched = value.value === operand;
+      matched = left === right;
       break;
     case "notEquals":
-      matched = value.value !== operand;
+      matched = left !== right;
       break;
     case "contains":
-      matched =
-        value.kind === "Text" &&
-        typeof operand === "string" &&
-        value.value.includes(operand);
+      matched = String(left).includes(String(right));
       break;
     case "startsWith":
-      matched =
-        value.kind === "Text" &&
-        typeof operand === "string" &&
-        value.value.startsWith(operand);
+      matched = String(left).startsWith(String(right));
       break;
     case "endsWith":
+      matched = String(left).endsWith(String(right));
+      break;
+    case "onSameDate":
       matched =
-        value.kind === "Text" &&
-        typeof operand === "string" &&
-        value.value.endsWith(operand);
+        Math.floor(Number(left) / dayMs) === Math.floor(Number(right) / dayMs);
       break;
     case "greaterThan":
-      matched = value.value > operand;
+      matched = left > right;
       break;
     case "greaterThanOrEqual":
-      matched = value.value >= operand;
+      matched = left >= right;
       break;
     case "lessThan":
-      matched = value.value < operand;
+      matched = left < right;
       break;
     case "lessThanOrEqual":
-      matched = value.value <= operand;
+      matched = left <= right;
       break;
     default:
       return {
