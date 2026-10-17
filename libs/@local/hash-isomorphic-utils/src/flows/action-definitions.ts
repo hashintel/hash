@@ -1,5 +1,6 @@
 import { checkAggregationInput } from "./aggregation.js";
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
+import { maxEntitiesPerStep } from "./limits.js";
 import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
 import { allPayloadKinds } from "./types.js";
@@ -40,6 +41,7 @@ export type AiFlowActionDefinitionId =
   | "processAutomaticBrowsingSettings"
   | "persistEntities"
   | "persistEntity"
+  | "queryEntities"
   | "researchEntities"
   | "takeFirst"
   | "webSearch"
@@ -1003,6 +1005,31 @@ const aiFlowActionDefinitionsAsConst = {
       },
     ],
     check: checkSortKeyInput,
+  },
+  queryEntities: {
+    actionDefinitionId: "queryEntities",
+    name: "Query Entities",
+    description:
+      "Get the entities in the web that match a graph query. Archived entities are left out.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["EntityQuery"],
+        name: "query",
+        description: `The graph's filter, sorting paths, limit, temporal axes and whether to include drafts. By default, entities are sorted by last edited first, as they were when the step started, without drafts. The limit is a whole number from 1 to ${maxEntitiesPerStep.toLocaleString("en")}. Without one, the step fails if more entities than that match.`,
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "EntityId",
+        name: "entities",
+        description: "The matching entities. Empty if none match.",
+        array: true,
+        required: true,
+      },
+    ],
   },
   takeFirst: {
     actionDefinitionId: "takeFirst",
