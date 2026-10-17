@@ -12,6 +12,7 @@ import {
   type ActionDefinitions,
   createStepShapeResolver,
 } from "./step-shapes.js";
+import { getDeclaredKind } from "./types.js";
 
 import type {
   ActionDefinition,
@@ -47,7 +48,10 @@ export type FlowDefinitionDiagnosticCode =
   | "invalidCollect"
   | "cycle"
   | "unusedFlowInput"
-  /** An input or output with a derived kind (see `KindFrom`), whose kind source isn't connected. */
+  /**
+   * An input or output with a derived kind (see `KindFrom`), whose kind source isn't connected, or an output whose kind
+   * an input declares (see `KindDeclaredBy`), given something other than a constant.
+   */
   | "unresolvedKind"
   /** An input with a derived kind, given a value of a different kind from its kind source's. */
   | "kindMismatch"
@@ -611,6 +615,26 @@ export const validateFlowDefinition = (
       }
     }
 
+    /*
+     * Outputs whose kind an input declares, which must be a constant for the kind to be known. What the constant
+     * declares is checked after the action's own check, below.
+     */
+    for (const output of actionDefinition.outputs) {
+      if (!("kindDeclaredBy" in output)) {
+        continue;
+      }
+
+      const source = step.inputs[output.kindDeclaredBy];
+
+      if (source && source.kind !== "constant") {
+        report(
+          "unresolvedKind",
+          `The output "${output.name}" of action "${step.actionDefinitionId}" has the kind input "${output.kindDeclaredBy}" declares, so that input must be a constant`,
+          [...entry.path, "inputs", output.kindDeclaredBy],
+        );
+      }
+    }
+
     for (const actionInput of actionDefinition.inputs) {
       if (isMandatoryInput(actionInput) && !(actionInput.name in step.inputs)) {
         report(
@@ -621,12 +645,47 @@ export const validateFlowDefinition = (
       }
     }
 
+    const checkedInputs = new Set<string>();
+
     actionDefinition.check?.({
       step,
       getInputKind: (inputName) => shapes.getInputKind(step.stepId, inputName),
-      report: (inputName, message) =>
-        report("invalidInput", message, [...entry.path, "inputs", inputName]),
+      report: (inputName, message) => {
+        checkedInputs.add(inputName);
+        report("invalidInput", message, [...entry.path, "inputs", inputName]);
+      },
     });
+
+    /*
+     * A constant given to an output's declaring input must declare one of the output's kinds. Not reported for an input
+     * the action's check already found invalid, nor for a constant of a kind the input doesn't accept, which is an
+     * incompatible connection.
+     */
+    for (const output of actionDefinition.outputs) {
+      if (!("kindDeclaredBy" in output)) {
+        continue;
+      }
+
+      const source = step.inputs[output.kindDeclaredBy];
+      const declaringInput = actionDefinition.inputs.find(
+        ({ name }) => name === output.kindDeclaredBy,
+      );
+
+      if (
+        source?.kind === "constant" &&
+        !checkedInputs.has(output.kindDeclaredBy) &&
+        declaringInput &&
+        "oneOfPayloadKinds" in declaringInput &&
+        declaringInput.oneOfPayloadKinds.includes(source.payload.kind) &&
+        !getDeclaredKind(output, source.payload.value)
+      ) {
+        report(
+          "unresolvedKind",
+          `The output "${output.name}" of action "${step.actionDefinitionId}" has the kind input "${output.kindDeclaredBy}" declares, which must be one of ${output.oneOfPayloadKinds.join(", ")}`,
+          [...entry.path, "inputs", output.kindDeclaredBy],
+        );
+      }
+    }
   };
 
   /*

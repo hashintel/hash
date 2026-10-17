@@ -969,3 +969,144 @@ describe("Filter List and If steps", () => {
     expect(typeChecks).toBeDefined();
   });
 });
+
+describe("Read Entity steps", () => {
+  const emailUrl = "https://example.com/types/property-type/email/" as BaseUrl;
+  const personType =
+    "https://example.com/types/entity-type/person/v/1" as VersionedUrl;
+
+  it("type the value read by the kind the property declares", () => {
+    const { flowDefinition } = defineFlow(
+      {
+        flowDefinitionId: "email-people",
+        name: "Email people",
+        description: "Read each person's email address and use it",
+        inputs: {},
+      },
+      ({ step, forEach }) => {
+        const people = step("people", actions.queryEntities, {
+          description: "Find people",
+          inputs: {
+            query: constant("EntityQuery", {
+              filter: {
+                equal: [
+                  { path: ["type", "versionedUrl"] },
+                  { parameter: personType },
+                ],
+              },
+            }),
+          },
+        });
+
+        const explanations = forEach("eachPerson", people.outputs.entities, {
+          description: "For each person",
+          collectAs: "explanations",
+          steps: (person, scope) => {
+            const email = scope.step("email", actions.readEntity, {
+              description: "Read their email address",
+              inputs: {
+                entityId: person,
+                property: constant("EntityProperty", {
+                  kind: "entityProperty",
+                  propertyTypeBaseUrl: emailUrl,
+                  payloadKind: "Text",
+                }),
+              },
+            });
+
+            expectTypeOf(email.outputs.value).toEqualTypeOf<
+              Ref<"Text", false, false>
+            >();
+
+            return scope.step("answer", actions.answerQuestion, {
+              description: "Answer a question about it",
+              inputs: { question: email.outputs.value.orSkip() },
+            }).outputs.explanation;
+          },
+        });
+
+        return { outputs: { explanations } };
+      },
+    );
+
+    expect(flowDefinition.steps[1]).toMatchObject({
+      kind: "for-each",
+      steps: [
+        { stepId: "email", inputs: { entityId: { kind: "item" } } },
+        {
+          stepId: "answer",
+          inputs: {
+            question: {
+              kind: "step-output",
+              stepId: "email",
+              outputName: "value",
+              whenMissing: "skip",
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  it("reject passing the value read to an input of another kind, without skipping when it's missing, or of a kind no constant declares", () => {
+    const typeChecks = (
+      step: AddStep,
+      person: Ref<"EntityId", false, true>,
+      propertyInput: Ref<"EntityProperty", false, true>,
+    ) => {
+      const age = step("age", actions.readEntity, {
+        description: "",
+        inputs: {
+          entityId: person,
+          property: constant("EntityProperty", {
+            kind: "entityProperty",
+            propertyTypeBaseUrl: emailUrl,
+            payloadKind: "Number",
+          }),
+        },
+      });
+
+      step("answerWithNumber", actions.answerQuestion, {
+        description: "",
+        // @ts-expect-error -- the property is read as a Number, and `question` takes Text
+        inputs: { question: age.outputs.value.orSkip() },
+      });
+
+      const email = step("email", actions.readEntity, {
+        description: "",
+        inputs: {
+          entityId: person,
+          property: constant("EntityProperty", {
+            kind: "entityProperty",
+            propertyTypeBaseUrl: emailUrl,
+            payloadKind: "Text",
+          }),
+        },
+      });
+
+      step("answerWithoutSkipping", actions.answerQuestion, {
+        description: "",
+        // @ts-expect-error -- the value is missing when the entity doesn't have the property
+        inputs: { question: email.outputs.value },
+      });
+
+      /* The validator rejects a property that isn't a constant; the types can only say the kind is any it could be. */
+      const unknown = step("unknown", actions.readEntity, {
+        description: "",
+        inputs: { entityId: person, property: propertyInput },
+      });
+
+      expectTypeOf(unknown.outputs.value).toEqualTypeOf<
+        Ref<"Text" | "Number" | "Boolean" | "Date", false, false>
+      >();
+
+      step("answerWithUnknown", actions.answerQuestion, {
+        description: "",
+        // @ts-expect-error -- the kind isn't known
+        inputs: { question: unknown.outputs.value.orSkip() },
+      });
+    };
+
+    expect(typeChecks).toBeDefined();
+  });
+});
