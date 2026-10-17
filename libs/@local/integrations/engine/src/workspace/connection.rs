@@ -1,9 +1,9 @@
 use alloc::sync::Arc;
 use core::{error::Error, panic::AssertUnwindSafe};
 use std::{
-    fs::{File, OpenOptions, TryLockError},
-    panic,
-    path::PathBuf,
+    fs::{self, File, OpenOptions, TryLockError},
+    io, panic,
+    path::{Path, PathBuf},
     sync::mpsc,
 };
 
@@ -13,7 +13,7 @@ use error_stack::{Report, ResultExt as _};
 use crate::{
     sql::Identifier,
     workspace::{
-        CloseError, Command, OpenError, Rows, Setting, StatementError,
+        CloseError, Command, OpenError, Rows, Setting, SnapshotError, StatementError,
         files::WorkspaceFiles,
         interrupt::{Interrupt, InterruptGuard, RequestId},
         reply::Reply,
@@ -28,6 +28,7 @@ use crate::{
 pub(super) struct Connection {
     interrupt: InterruptGuard,
     duckdb: duckdb::Connection,
+    files: WorkspaceFiles,
     /// An exclusive lock on the workspace's lock file, held until the database is closed.
     lock: File,
 }
@@ -87,6 +88,7 @@ impl Connection {
         Ok(Self {
             interrupt: InterruptGuard::new(Arc::new(Interrupt::new(duckdb.interrupt_handle()))),
             duckdb,
+            files,
             lock,
         })
     }
@@ -164,6 +166,63 @@ impl Connection {
         Ok(())
     }
 
+    /// Copies the database file to `partial`, syncs it and renames it to `target`.
+    ///
+    /// An existing file at `partial` is removed first, so the copy cannot write through a link to
+    /// another file, such as the database file itself.
+    fn write_copy(&self, partial: &Path, target: &Path) -> io::Result<()> {
+        match fs::remove_file(partial) {
+            Ok(()) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error),
+        }
+        let mut copy = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(partial)?;
+        io::copy(&mut File::open(self.files.database())?, &mut copy)?;
+        copy.sync_all()?;
+        drop(copy);
+        fs::rename(partial, target)?;
+
+        let directory = target
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."));
+        File::open(directory)?.sync_all()
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    fn snapshot(&self, target: &Path) -> Result<(), Report<SnapshotError>> {
+        let partial = WorkspaceFiles::partial(target);
+        if self.files.contains(target) || self.files.contains(&partial) {
+            return Err(Report::new(SnapshotError::WorkspaceFile {
+                target: target.to_owned(),
+            }));
+        }
+
+        // No statement can run between the checkpoint and the copy, because this thread owns the
+        // only connection.
+        self.duckdb
+            .execute_batch("CHECKPOINT")
+            .change_context(SnapshotError::Checkpoint)?;
+
+        self.write_copy(&partial, target).map_err(|error| {
+            if let Err(removal) = fs::remove_file(&partial)
+                && removal.kind() != io::ErrorKind::NotFound
+            {
+                tracing::error!(
+                    error = ?removal,
+                    path = %partial.display(),
+                    "could not remove the partial snapshot"
+                );
+            }
+            Report::new(error).change_context(SnapshotError::Write {
+                target: target.to_owned(),
+            })
+        })
+    }
+
     /// Checkpoints the database, then closes it whether or not the checkpoint succeeded.
     ///
     /// DuckDB also checkpoints when it closes the database, but it cannot report a failure from
@@ -219,6 +278,9 @@ impl Connection {
                     self.answer(id, reply, |connection| {
                         connection.create_table(&table, &sql)
                     });
+                }
+                Command::Snapshot { target, reply } => {
+                    self.answer(id, reply, |connection| connection.snapshot(&target));
                 }
                 Command::Close { reply } => {
                     reply.send(self.close());
