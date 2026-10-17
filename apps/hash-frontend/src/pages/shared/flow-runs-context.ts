@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo } from "react";
 import { useNodeId } from "reactflow";
 
+import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
+
 import { FlowRunStatus, FlowStepStatus } from "../../graphql/api-types.gen";
 
 import type {
@@ -87,9 +89,10 @@ export const statusToSimpleStatus = (
 
 /**
  * The id of the step in the flow definition that a step run is of. The engine runs the steps inside a `for-each` once
- * per item, naming each run `<stepId>~<index>`.
+ * per item, each with its own step run id.
  */
-const getDefinitionStepId = (stepRunId: string) => stepRunId.split("~")[0]!;
+const getDefinitionStepId = (stepRunId: string) =>
+  parseStepRunId(stepRunId).stepId;
 
 /**
  * The status shown for a step that has several runs, as a step inside a `for-each` does: the first in this list that

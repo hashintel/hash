@@ -7,6 +7,10 @@ import {
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
+import {
+  generateStepRunId,
+  parseStepRunId,
+} from "@local/hash-isomorphic-utils/flows/step-run-id";
 import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
@@ -80,10 +84,10 @@ const getProducerRunStepId = ({
   consumerStepId: string;
   producerStepId: string;
 }) => {
-  const [_, branchIndex] = consumerStepId.split("~");
+  const { itemIndex } = parseStepRunId(consumerStepId);
 
-  if (branchIndex !== undefined) {
-    const producerInBranch = `${producerStepId}~${branchIndex}`;
+  if (itemIndex !== undefined) {
+    const producerInBranch = generateStepRunId(producerStepId, itemIndex);
 
     if (
       getAllStepsInFlow(flow).some(({ stepId }) => stepId === producerInBranch)
@@ -598,14 +602,14 @@ const processFlow = async <
             ? initializeActionStep({
                 flowInputs,
                 stepDefinition,
-                overrideStepId: `${stepDefinition.stepId}~${index}`,
+                overrideStepId: generateStepRunId(stepDefinition.stepId, index),
                 existingFlow: flow,
                 item,
               })
             : initializeForEachStep({
                 flowInputs,
                 stepDefinition,
-                overrideStepId: `${stepDefinition.stepId}~${index}`,
+                overrideStepId: generateStepRunId(stepDefinition.stepId, index),
                 existingFlow: flow,
                 item,
               }),

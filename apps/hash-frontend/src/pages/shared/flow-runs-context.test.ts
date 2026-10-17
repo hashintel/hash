@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
+
 import { FlowRunStatus, FlowStepStatus } from "../../graphql/api-types.gen";
 import { getShownStepRun, getStatusForSteps } from "./flow-runs-context";
 
@@ -14,7 +16,7 @@ const stepRun = (stepId: string, status: FlowStepStatus): StepRun => ({
   stepType: "action",
 });
 
-/** A step before a `for-each`, and a step inside it, with the run of each item named `<stepId>~<index>`. */
+/** A step before a `for-each`, and a step inside it, with a run per item. */
 const steps = [
   { stepId: "fetch" },
   { stepId: "forEach" },
@@ -29,8 +31,8 @@ describe("getStatusForSteps", () => {
         status: FlowRunStatus.Running,
         steps: [
           stepRun("fetch", FlowStepStatus.Completed),
-          stepRun("summarise~0", FlowStepStatus.Completed),
-          stepRun("summarise~1", FlowStepStatus.Started),
+          stepRun(generateStepRunId("summarise", 0), FlowStepStatus.Completed),
+          stepRun(generateStepRunId("summarise", 1), FlowStepStatus.Started),
         ],
       },
       steps,
@@ -49,8 +51,8 @@ describe("getStatusForSteps", () => {
         status: FlowRunStatus.Running,
         steps: [
           stepRun("fetch", FlowStepStatus.Completed),
-          stepRun("summarise~0", FlowStepStatus.Completed),
-          stepRun("summarise~1", FlowStepStatus.Completed),
+          stepRun(generateStepRunId("summarise", 0), FlowStepStatus.Completed),
+          stepRun(generateStepRunId("summarise", 1), FlowStepStatus.Completed),
         ],
       },
       steps,
@@ -63,14 +65,17 @@ describe("getStatusForSteps", () => {
 
 describe("getShownStepRun", () => {
   it("shows the run of a step inside a for-each whose status most needs attention", () => {
-    const failed = stepRun("summarise~1", FlowStepStatus.Failed);
+    const failed = stepRun(
+      generateStepRunId("summarise", 1),
+      FlowStepStatus.Failed,
+    );
 
     expect(
       getShownStepRun(
         [
-          stepRun("summarise~0", FlowStepStatus.Completed),
+          stepRun(generateStepRunId("summarise", 0), FlowStepStatus.Completed),
           failed,
-          stepRun("summarise~2", FlowStepStatus.Started),
+          stepRun(generateStepRunId("summarise", 2), FlowStepStatus.Started),
         ],
         "summarise",
       ),
