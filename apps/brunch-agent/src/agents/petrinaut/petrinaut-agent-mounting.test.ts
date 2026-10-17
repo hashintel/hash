@@ -3,7 +3,12 @@ import { readFile } from "node:fs/promises";
 import * as v from "valibot";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { brunchTools, sdcpnInitialDataSchema } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  interviewBudgetContextKey,
+  petrinautContextualUserMessageBody,
+  sdcpnInitialDataSchema,
+} from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
@@ -19,6 +24,7 @@ import { queryBasisToolDescription } from "./tools/query-basis.ts";
 
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,
+  body: "Four agents",
   contextProjections: 0,
   descriptions: new Map<string, string>(),
   instructions: [] as string[],
@@ -32,6 +38,7 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
     mounted.contextProjections += 1;
   },
   useInitialData: () => mounted.initialData,
+  useDelivery: () => ({ kind: "user", body: mounted.body }),
   useInstruction: (instruction: string) =>
     mounted.instructions.push(instruction),
   useModel: (model: string) => mounted.models.push(model),
@@ -68,6 +75,7 @@ beforeEach(() => {
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
   vi.stubEnv("NODE_ENV", "test");
   mounted.initialData = undefined;
+  mounted.body = "Four agents";
   mounted.contextProjections = 0;
   mounted.descriptions.clear();
   mounted.instructions.length = 0;
@@ -126,6 +134,62 @@ test("a conversation without initial data mounts the guidance and Ledger without
 test("the agent admits a document binding or no initial data", () => {
   expect(v.parse(sdcpnInitialDataSchema, bound)).toEqual(bound);
   expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
+});
+
+test("only the current submission's budget reaches the prompt and Off or a malformed budget restores exactly the baseline", async () => {
+  mounted.initialData = bound;
+  const { PetrinautAgent: renderAgent } = await import("./agent.ts");
+  const baseline = renderAgent({ id: "budget" });
+  const baselineInstructions = [...mounted.instructions];
+  mounted.initialData = {
+    ...bound,
+    interviewBudget: {
+      level: "standard",
+      questionCap: 6,
+      asked: 0,
+      remaining: 6,
+    },
+  };
+  for (const remaining of [1, 0]) {
+    mounted.instructions.length = 0;
+    mounted.body = petrinautContextualUserMessageBody({
+      userText: "Four agents",
+      diagnosticsContext: "",
+      submissionContext: {
+        [interviewBudgetContextKey]: {
+          level: "quick",
+          questionCap: 3,
+          asked: 3 - remaining,
+          remaining,
+        },
+      },
+    });
+    expect(renderAgent({ id: "budget" })).toBe(baseline);
+    const budgetInstructions = mounted.instructions.filter(
+      (instruction) => !baselineInstructions.includes(instruction),
+    );
+    expect(budgetInstructions).toHaveLength(1);
+    expect(budgetInstructions[0]).toContain(`remaining: ${remaining}`);
+    expect(budgetInstructions[0]).toContain(
+      remaining
+        ? "most consequential open fact"
+        : "do not ask another question",
+    );
+  }
+  mounted.instructions.length = 0;
+  mounted.body = "Four agents";
+  expect(renderAgent({ id: "budget" })).toBe(baseline);
+  expect(mounted.instructions).toEqual(baselineInstructions);
+  mounted.instructions.length = 0;
+  mounted.body = petrinautContextualUserMessageBody({
+    userText: "Four agents",
+    diagnosticsContext: "",
+    submissionContext: {
+      [interviewBudgetContextKey]: { level: "quick", asked: -1 },
+    },
+  });
+  expect(renderAgent({ id: "budget" })).toBe(baseline);
+  expect(mounted.instructions).toEqual(baselineInstructions);
 });
 
 test("the Brunch catalogue classifies every canonical tool", () => {
