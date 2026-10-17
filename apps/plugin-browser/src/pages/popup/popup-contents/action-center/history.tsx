@@ -10,6 +10,7 @@ import {
 } from "./shared/tab-props";
 import { useFlowRuns } from "./shared/use-flow-runs";
 
+import type { WebId } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
 
 const HistorySection = ({ children }: PropsWithChildren) => (
@@ -28,7 +29,10 @@ const HistorySection = ({ children }: PropsWithChildren) => (
   </Box>
 );
 
-export const History = (panelProps: TabPanelProps) => {
+export const History = ({
+  hashWebId,
+  ...panelProps
+}: TabPanelProps & { hashWebId: WebId }) => {
   const { flowRuns, loading } = useFlowRuns();
 
   if (loading) {
@@ -45,10 +49,10 @@ export const History = (panelProps: TabPanelProps) => {
   return (
     <Box {...generateTabPanelA11yProps("History")} {...panelProps}>
       <HistorySection>
-        <ManuallyTriggered flowRuns={flowRuns} />
+        <ManuallyTriggered flowRuns={flowRuns} hashWebId={hashWebId} />
       </HistorySection>
       <HistorySection>
-        <AutomaticallyTriggered flowRuns={flowRuns} />
+        <AutomaticallyTriggered flowRuns={flowRuns} hashWebId={hashWebId} />
       </HistorySection>
       <HistorySection>
         <Typography

@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import { useMemo } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import { splitEntityId } from "@blockprotocol/type-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { getFlowDefinitionFromEntity } from "@local/hash-isomorphic-utils/flows/mappings";
 import {
@@ -19,14 +19,22 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import type { EntityRootType } from "@blockprotocol/graph";
-import type { EntityUuid, Timestamp } from "@blockprotocol/type-system";
+import type { EntityId, Timestamp } from "@blockprotocol/type-system";
 import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FlowDefinitionWithId } from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
+
+/**
+ * A flow definition loaded from the graph, with the entity id of the `Flow Definition` entity that holds it.
+ */
+export type LoadedFlowDefinition = {
+  flowDefinitionEntityId: EntityId;
+  flowDefinition: FlowDefinition;
+};
 
 const flowDefinitionsQueryVariables = (
   filter: Filter,
@@ -59,7 +67,7 @@ const flowDefinitionsQueryVariables = (
  */
 const getFlowDefinitionsFromQueryResult = (
   data: QueryEntitySubgraphQuery | undefined,
-): FlowDefinitionWithId[] => {
+): LoadedFlowDefinition[] => {
   if (!data) {
     return [];
   }
@@ -69,19 +77,17 @@ const getFlowDefinitionsFromQueryResult = (
   >(data.queryEntitySubgraph.subgraph);
 
   return getRoots(subgraph).flatMap((entity) => {
-    const flowDefinitionId = extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    );
+    const flowDefinitionEntityId = entity.metadata.recordId.entityId;
 
     try {
       return {
-        flowDefinitionId,
+        flowDefinitionEntityId,
         flowDefinition: getFlowDefinitionFromEntity(entity),
       };
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(
-        `Flow definition ${flowDefinitionId} is invalid, so isn't shown: ${(error as Error).message}`,
+        `Flow definition ${flowDefinitionEntityId} is invalid, so isn't shown: ${(error as Error).message}`,
       );
       return [];
     }
@@ -92,7 +98,7 @@ const getFlowDefinitionsFromQueryResult = (
  * The current edition of every flow definition the user can view.
  */
 export const useFlowDefinitions = (): {
-  flowDefinitions: FlowDefinitionWithId[];
+  flowDefinitions: LoadedFlowDefinition[];
   loading: boolean;
 } => {
   const { data, loading } = useQuery<
@@ -118,22 +124,31 @@ export const useFlowDefinitions = (): {
  * A flow definition as it was at a moment, e.g. when a run started: the edition the run executed.
  */
 export const useFlowDefinitionAtTime = (params: {
-  flowDefinitionId: EntityUuid | null;
+  flowDefinitionEntityId: EntityId | null;
   timestamp: Timestamp | null;
-}): { flowDefinition: FlowDefinitionWithId | null; loading: boolean } => {
-  const { flowDefinitionId, timestamp } = params;
+}): { flowDefinition: LoadedFlowDefinition | null; loading: boolean } => {
+  const { flowDefinitionEntityId, timestamp } = params;
+
+  const [webId, entityUuid] = flowDefinitionEntityId
+    ? splitEntityId(flowDefinitionEntityId)
+    : [];
 
   const { data, loading } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
     variables: flowDefinitionsQueryVariables(
-      { equal: [{ path: ["uuid"] }, { parameter: flowDefinitionId }] },
+      {
+        all: [
+          { equal: [{ path: ["webId"] }, { parameter: webId }] },
+          { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+        ],
+      },
       timestamp
         ? generateTimeInstantTemporalAxes(timestamp)
         : currentTimeInstantTemporalAxes,
     ),
-    skip: !flowDefinitionId || !timestamp,
+    skip: !flowDefinitionEntityId || !timestamp,
     fetchPolicy: "cache-first",
   });
 

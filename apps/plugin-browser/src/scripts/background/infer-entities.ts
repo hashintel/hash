@@ -2,10 +2,10 @@ import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { FlowRunStatus } from "../../graphql/api-types.gen";
+import { generateBrowserInferenceFlowDefinitionEntityId } from "../../shared/browser-inference-flow-definition";
 import {
   getFromLocalStorage,
   getSetFromLocalStorageValue,
@@ -368,10 +368,12 @@ export const inferEntities = async (
 
   await sendInferEntitiesMessage(inferenceArgs);
 
-  const flowDefinitionId =
-    trigger === "automatic"
-      ? flowDefinitionIds.automaticBrowserInference
-      : flowDefinitionIds.manualBrowserInference;
+  const flowDefinitionEntityId = generateBrowserInferenceFlowDefinitionEntityId(
+    {
+      hashWebId: user.hashWebId,
+      trigger,
+    },
+  );
 
   /**
    * Optimistically add the run to local storage so that it appears in the history tab immediately.
@@ -380,7 +382,7 @@ export const inferEntities = async (
   await setLocalPendingRuns((existingValue) => [
     ...(existingValue ?? []),
     {
-      flowDefinitionId,
+      flowDefinitionEntityId,
       flowRunEntityId: entityIdFromComponents(webId, requestUuid),
       closedAt: null,
       executedAt: new Date().toISOString(),

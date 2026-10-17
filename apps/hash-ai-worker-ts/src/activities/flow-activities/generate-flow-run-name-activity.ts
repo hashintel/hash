@@ -1,6 +1,8 @@
+import { getHashWebId } from "@local/hash-backend-utils/flows/shared/get-hash-web-id";
 import {
   flowDefinitionIds,
-  isGoalFlowDefinitionId,
+  generateHashFlowDefinitionEntityId,
+  isGoalFlowDefinitionEntityId,
 } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -9,7 +11,7 @@ import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-mes
 import { graphApiClient } from "../shared/graph-api-client.js";
 
 import type { UsageTrackingParams } from "../shared/get-llm-response.js";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type {
   AutomaticInferenceInputName,
   ManualInferenceInputName,
@@ -25,7 +27,7 @@ import type {
 
 type GenerateFlowRunNameActivityParams = {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   flowInputs: FlowInputValues;
 };
 
@@ -95,13 +97,17 @@ const inputKindsToIgnore: PayloadKind[] = [
 export const generateFlowRunName = async (
   params: GenerateFlowRunNameActivityParams,
 ) => {
-  const { flowDefinition, flowDefinitionId, flowInputs } = params;
+  const { flowDefinition, flowDefinitionEntityId, flowInputs } = params;
+
+  const hashWebId = await getHashWebId(graphApiClient);
+
+  const isHashFlow = (flowDefinitionId: EntityUuid) =>
+    flowDefinitionEntityId ===
+    generateHashFlowDefinitionEntityId(hashWebId, flowDefinitionId);
 
   if (
-    [
-      flowDefinitionIds.automaticBrowserInference,
-      flowDefinitionIds.manualBrowserInference,
-    ].includes(flowDefinitionId)
+    isHashFlow(flowDefinitionIds.automaticBrowserInference) ||
+    isHashFlow(flowDefinitionIds.manualBrowserInference)
   ) {
     const webPage = flowInputs[
       "visitedWebPage" satisfies AutomaticInferenceInputName &
@@ -113,7 +119,7 @@ export const generateFlowRunName = async (
     }
 
     return `${
-      flowDefinitionId === flowDefinitionIds.automaticBrowserInference
+      isHashFlow(flowDefinitionIds.automaticBrowserInference)
         ? "Auto-analyze"
         : "Analyze"
     } webpage: ${webPage.url}`;
@@ -130,7 +136,7 @@ export const generateFlowRunName = async (
     webId,
   };
 
-  if (isGoalFlowDefinitionId(flowDefinitionId)) {
+  if (isGoalFlowDefinitionEntityId(flowDefinitionEntityId, hashWebId)) {
     const researchBrief = flowInputs[
       "researchGuidance" satisfies GoalFlowInputName
     ]?.value as PayloadKindValues["Text"] | undefined;

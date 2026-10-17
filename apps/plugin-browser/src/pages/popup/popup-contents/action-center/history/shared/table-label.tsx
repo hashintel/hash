@@ -1,10 +1,19 @@
 import { Link, Stack, Typography } from "@mui/material";
 
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
-import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generatedFilteredWorkersPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
-export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
+import { generateBrowserInferenceFlowDefinitionEntityId } from "../../../../../../shared/browser-inference-flow-definition";
+
+import type { WebId } from "@blockprotocol/type-system";
+
+export const TableLabel = ({
+  hashWebId,
+  type,
+}: {
+  hashWebId: WebId;
+  type: "manual" | "automatic";
+}) => {
   return (
     <Stack direction="row" justifyContent="space-between" mb={0.75}>
       <Typography variant="smallCaps" sx={{ fontSize: 12 }}>
@@ -12,10 +21,12 @@ export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
       </Typography>
       <Link
         href={`${FRONTEND_ORIGIN}${generatedFilteredWorkersPath({
-          flowDefinitionIds:
-            type === "manual"
-              ? [flowDefinitionIds.manualBrowserInference]
-              : [flowDefinitionIds.automaticBrowserInference],
+          flowDefinitionEntityIds: [
+            generateBrowserInferenceFlowDefinitionEntityId({
+              hashWebId,
+              trigger: type,
+            }),
+          ],
         })}`}
         sx={{
           alignItems: "center",

@@ -24,7 +24,7 @@ const WorkerFlowDefinitionResolver = () => {
 
   return (
     <FlowDefinitionsContextProvider
-      selectedFlowDefinitionId={selectedFlowRun.flowDefinitionId as EntityUuid}
+      selectedFlowDefinitionEntityId={selectedFlowRun.flowDefinitionEntityId}
     >
       <FlowVisualizer />
     </FlowDefinitionsContextProvider>

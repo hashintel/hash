@@ -1,4 +1,7 @@
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import { queryEntities, summarizeEntities } from "@local/hash-graph-sdk/entity";
 import { flowRunsQueryMaxLimit } from "@local/hash-isomorphic-utils/flows/types";
@@ -99,17 +102,17 @@ export async function getFlowRunById({
     })
   ).get(flowRunEntityId);
 
-  if (!links?.flowDefinitionId) {
+  if (!links?.flowDefinitionEntityId) {
     /* A run from before flow runs linked to their definition: it can't be shown. */
     return null;
   }
 
-  const flowDefinitionId = links.flowDefinitionId;
+  const flowDefinitionEntityId = links.flowDefinitionEntityId;
   const flowScheduleId = links.flowTriggerId ?? undefined;
 
   if (includeDetails) {
     return getFlowRunFromTemporalWorkflowId({
-      flowDefinitionId,
+      flowDefinitionEntityId,
       flowRunEntityId,
       flowScheduleId,
       name,
@@ -120,7 +123,7 @@ export async function getFlowRunById({
     });
   } else {
     return getSparseFlowRunFromTemporalWorkflowId({
-      flowDefinitionId,
+      flowDefinitionEntityId,
       flowRunEntityId,
       flowScheduleId,
       name,
@@ -141,7 +144,7 @@ const convertScreamingSnakeToPascalCase = (str: string) =>
 
 type GetFlowRunsFilters = {
   executionStatus?: FlowRunStatus | null;
-  flowDefinitionIds?: string[] | null;
+  flowDefinitionEntityIds?: EntityId[] | null;
   cursor?: string | null;
   limit?: number | null;
 };
@@ -156,7 +159,7 @@ type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
 };
 
 type MinimalFlowMetadata = {
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   flowRunEntityId: EntityId;
   flowScheduleId?: EntityUuid;
   name: string;
@@ -211,19 +214,25 @@ export async function getFlowRuns({
           },
         ],
       },
-      ...(filters.flowDefinitionIds
+      ...(filters.flowDefinitionEntityIds
         ? [
             {
               /**
-               * A run `Uses` the flow definition it runs. Flow definition ids are the uuids of their entities, and
-               * no other entity a run links to shares one.
+               * A run `Uses` the flow definition it runs. Matched by the definition's uuid here, and by its full
+               * entity id when the run's links are read below.
                */
-              any: filters.flowDefinitionIds.map((flowDefinitionId) => ({
-                equal: [
-                  { path: ["outgoingLinks", "rightEntity", "uuid"] },
-                  { parameter: flowDefinitionId },
-                ],
-              })),
+              any: filters.flowDefinitionEntityIds.map(
+                (flowDefinitionEntityId) => ({
+                  equal: [
+                    { path: ["outgoingLinks", "rightEntity", "uuid"] },
+                    {
+                      parameter: extractEntityUuidFromEntityId(
+                        flowDefinitionEntityId,
+                      ),
+                    },
+                  ],
+                }),
+              ),
             },
           ]
         : []),
@@ -278,7 +287,7 @@ export async function getFlowRuns({
 
     const links = linksByFlowRunEntityId.get(flowRunEntityId);
 
-    if (!links?.flowDefinitionId) {
+    if (!links?.flowDefinitionEntityId) {
       /* A run from before flow runs linked to their definition: it can't be shown. */
       continue;
     }
@@ -288,8 +297,8 @@ export async function getFlowRuns({
      * one of the requested definitions. A page can then hold fewer runs than its limit.
      */
     if (
-      filters.flowDefinitionIds &&
-      !filters.flowDefinitionIds.includes(links.flowDefinitionId)
+      filters.flowDefinitionEntityIds &&
+      !filters.flowDefinitionEntityIds.includes(links.flowDefinitionEntityId)
     ) {
       continue;
     }
@@ -303,7 +312,7 @@ export async function getFlowRuns({
       entity.properties["https://hash.ai/@h/types/property-type/workflow-id/"];
 
     temporalWorkflowIdToFlowDetails[temporalWorkflowId] = {
-      flowDefinitionId: links.flowDefinitionId,
+      flowDefinitionEntityId: links.flowDefinitionEntityId,
       flowRunEntityId,
       flowScheduleId: links.flowTriggerId ?? undefined,
       name,
@@ -374,7 +383,7 @@ export async function getFlowRuns({
       const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId]!;
 
       const runInfo = await getFlowRunFromTemporalWorkflowId({
-        flowDefinitionId: flowDetails.flowDefinitionId,
+        flowDefinitionEntityId: flowDetails.flowDefinitionEntityId,
         flowRunEntityId: flowDetails.flowRunEntityId,
         flowScheduleId: flowDetails.flowScheduleId,
         name: flowDetails.name,
@@ -394,7 +403,7 @@ export async function getFlowRuns({
       const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId]!;
 
       const runInfo = await getSparseFlowRunFromTemporalWorkflowId({
-        flowDefinitionId: flowDetails.flowDefinitionId,
+        flowDefinitionEntityId: flowDetails.flowDefinitionEntityId,
         flowRunEntityId: flowDetails.flowRunEntityId,
         flowScheduleId: flowDetails.flowScheduleId,
         name: flowDetails.name,

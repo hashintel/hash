@@ -1,3 +1,4 @@
+import { getHashWebId } from "@local/hash-backend-utils/flows/shared/get-hash-web-id";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 
@@ -28,5 +29,6 @@ export const hashInstanceSettingsResolver: ResolverFn<
     entity: entity.toJSON(),
     isUserAdmin,
     enabledIntegrations,
+    hashWebId: await getHashWebId(context.graphApi),
   };
 };

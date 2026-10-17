@@ -11,6 +11,7 @@ import type {
   GetHashInstanceSettingsQueryQuery,
   GetHashInstanceSettingsQueryQueryVariables,
 } from "../../graphql/api-types.gen";
+import type { WebId } from "@blockprotocol/type-system";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
@@ -19,6 +20,8 @@ export const useHashInstance = (): {
   hashInstance?: Simplified<HashEntity<HASHInstance>>;
   isUserAdmin: boolean;
   enabledIntegrations: EnabledIntegrations;
+  /** The id of the web HASH's own flow definitions are in, once loaded. */
+  hashWebId?: WebId;
 } => {
   const { data, loading } = useQuery<
     GetHashInstanceSettingsQueryQuery,
@@ -61,5 +64,6 @@ export const useHashInstance = (): {
     hashInstance,
     isUserAdmin: !!hashInstanceSettings?.isUserAdmin,
     enabledIntegrations,
+    hashWebId: hashInstanceSettings?.hashWebId,
   };
 };

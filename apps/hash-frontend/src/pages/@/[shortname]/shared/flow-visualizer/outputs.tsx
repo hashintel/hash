@@ -9,12 +9,12 @@ import {
 } from "@blockprotocol/type-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { SlideStackProvider } from "../../../../shared/slide-stack";
+import { useHashFlows } from "../../../../shared/use-hash-flows";
 import { getDeliverables } from "./get-deliverables";
 import { ClaimsOutput } from "./outputs/claims-output";
 import { Deliverables } from "./outputs/deliverables";
@@ -33,7 +33,6 @@ import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityEditionId,
   EntityId,
-  EntityUuid,
   LeftClosedTemporalInterval,
   Timestamp,
   VersionedUrl,
@@ -259,9 +258,10 @@ export const Outputs = ({
 }: OutputsProps) => {
   const { selectedFlowRun } = useFlowRunsContext();
 
+  const { isGoalFlow } = useHashFlows();
+
   const hasClaims =
-    !!selectedFlowRun &&
-    isGoalFlowDefinitionId(selectedFlowRun.flowDefinitionId as EntityUuid);
+    !!selectedFlowRun && isGoalFlow(selectedFlowRun.flowDefinitionEntityId);
 
   const hasEntities =
     persistedEntitiesMetadata.length > 0 || proposedEntities.length > 0;

@@ -14,7 +14,6 @@ import {
   InfinityLightIcon,
   Skeleton,
 } from "@hashintel/design-system";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import { Link } from "../../shared/ui/link";
@@ -29,6 +28,7 @@ import {
   FlowTableWebChip,
 } from "../shared/flow-tables";
 import { useFlowRunsUsage } from "../shared/use-flow-runs-usage";
+import { useHashFlows } from "../shared/use-hash-flows";
 import { VirtualizedTable } from "../shared/virtualized-table";
 import { virtualizedTableHeaderHeight } from "../shared/virtualized-table/header";
 import {
@@ -271,10 +271,12 @@ const LoadingComponent = ({ columnCount }: { columnCount: number }) => (
 );
 
 type FlowRunTableProps = {
-  flowDefinitionIdFilter?: string[];
+  flowDefinitionEntityIdFilter?: string[];
 };
 
-export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
+export const FlowRunTable = ({
+  flowDefinitionEntityIdFilter,
+}: FlowRunTableProps) => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
     fieldId: "closedAt",
     direction: "desc",
@@ -290,14 +292,19 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
 
   const { authenticatedUser } = useAuthenticatedUser();
 
+  const { isGoalFlow } = useHashFlows();
+
   const filteredFlowRuns = useMemo(() => {
-    if (!flowDefinitionIdFilter || flowDefinitionIdFilter.length === 0) {
+    if (
+      !flowDefinitionEntityIdFilter ||
+      flowDefinitionEntityIdFilter.length === 0
+    ) {
       return unfilteredFlowRuns;
     }
     return unfilteredFlowRuns.filter((run) =>
-      flowDefinitionIdFilter.includes(run.flowDefinitionId),
+      flowDefinitionEntityIdFilter.includes(run.flowDefinitionEntityId),
     );
-  }, [unfilteredFlowRuns, flowDefinitionIdFilter]);
+  }, [unfilteredFlowRuns, flowDefinitionEntityIdFilter]);
 
   const { isUsageAvailable: usageAvailable, usageByFlowRun } = useFlowRunsUsage(
     {
@@ -310,9 +317,7 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
 
     const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map(
       (flowRun) => {
-        const type = isGoalFlowDefinitionId(
-          flowRun.flowDefinitionId as EntityUuid,
-        )
+        const type = isGoalFlow(flowRun.flowDefinitionEntityId)
           ? "goal"
           : "flow";
 
@@ -394,6 +399,7 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
   }, [
     authenticatedUser,
     filteredFlowRuns,
+    isGoalFlow,
     sort,
     usageByFlowRun,
     usageAvailable,
@@ -417,10 +423,10 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
     () => (
       <EmptyComponent
         columnCount={columns.length}
-        filtered={!!flowDefinitionIdFilter?.length}
+        filtered={!!flowDefinitionEntityIdFilter?.length}
       />
     ),
-    [columns, flowDefinitionIdFilter],
+    [columns, flowDefinitionEntityIdFilter],
   );
 
   const LoadingPlaceholder = useCallback(

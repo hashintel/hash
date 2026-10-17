@@ -1,33 +1,38 @@
 import { TableCell, TableRow } from "@mui/material";
 import { useMemo } from "react";
 
-import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
-
+import { generateBrowserInferenceFlowDefinitionEntityId } from "../../../../../shared/browser-inference-flow-definition";
 import { EventTable } from "./shared/event-table";
 import { HistoryRow } from "./shared/history-row";
 import { TableLabel } from "./shared/table-label";
 
 import type { LocalStorage } from "../../../../../shared/storage";
+import type { WebId } from "@blockprotocol/type-system";
 
 export const AutomaticallyTriggered = ({
   flowRuns: unfilteredFlowRuns,
+  hashWebId,
 }: {
   flowRuns: LocalStorage["flowRuns"];
+  hashWebId: WebId;
 }) => {
-  const automaticallyTriggeredFlows = useMemo(
-    () =>
-      unfilteredFlowRuns.filter(
-        (flow) =>
-          flow.flowDefinitionId ===
-            flowDefinitionIds.automaticBrowserInference ||
-          flow.requestedPageUrl,
-      ),
-    [unfilteredFlowRuns],
-  );
+  const automaticallyTriggeredFlows = useMemo(() => {
+    const flowDefinitionEntityId =
+      generateBrowserInferenceFlowDefinitionEntityId({
+        hashWebId,
+        trigger: "automatic",
+      });
+
+    return unfilteredFlowRuns.filter(
+      (flow) =>
+        flow.flowDefinitionEntityId === flowDefinitionEntityId ||
+        flow.requestedPageUrl,
+    );
+  }, [hashWebId, unfilteredFlowRuns]);
 
   return (
     <>
-      <TableLabel type="automatic" />
+      <TableLabel hashWebId={hashWebId} type="automatic" />
       <EventTable triggerRow>
         {automaticallyTriggeredFlows.length === 0 ? (
           <TableRow>

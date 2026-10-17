@@ -170,7 +170,11 @@ export const ActionCenter = ({
             value={tabValueAsNumber}
           />
         ) : (
-          <History index={2} value={tabValueAsNumber} />
+          <History
+            hashWebId={user.hashWebId}
+            index={2}
+            value={tabValueAsNumber}
+          />
         )}
       </Box>
     </Box>

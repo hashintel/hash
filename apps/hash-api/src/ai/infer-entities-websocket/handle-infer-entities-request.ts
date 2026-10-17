@@ -1,5 +1,9 @@
 import { getFlowRuns } from "@local/hash-backend-utils/flows";
-import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
+import { getHashWebId } from "@local/hash-backend-utils/flows/shared/get-hash-web-id";
+import {
+  flowDefinitionIds,
+  generateHashFlowDefinitionEntityId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { FlowRunStatus } from "../../graphql/api-types.gen";
 
@@ -41,20 +45,26 @@ export const handleInferEntitiesRequest = async ({
     payload: { webId, ...flowInputs },
   } = message;
 
-  const flowDefinitionId =
+  const hashWebId = await getHashWebId(graphApiClient);
+
+  const flowDefinitionEntityId = generateHashFlowDefinitionEntityId(
+    hashWebId,
     message.type === "manual-inference-request"
       ? flowDefinitionIds.manualBrowserInference
-      : flowDefinitionIds.automaticBrowserInference;
+      : flowDefinitionIds.automaticBrowserInference,
+  );
 
   if (message.type === "automatic-inference-request") {
     const openFlowRuns = await getFlowRuns({
       authentication: { actorId: user.accountId },
       filters: {
         executionStatus: FlowRunStatus.Running,
-        flowDefinitionIds: [
+        flowDefinitionEntityIds: [
           flowDefinitionIds.automaticBrowserInference,
           flowDefinitionIds.manualBrowserInference,
-        ],
+        ].map((flowDefinitionId) =>
+          generateHashFlowDefinitionEntityId(hashWebId, flowDefinitionId),
+        ),
       },
       graphApiClient,
       includeDetails: true,
@@ -91,7 +101,7 @@ export const handleInferEntitiesRequest = async ({
             },
           },
         },
-        flowDefinitionId,
+        flowDefinitionEntityId,
         flowInputs,
         /* So that the run's entity id can be worked out from the request, as the browser plugin does. */
         flowRunEntityUuid: requestUuid as EntityUuid,
@@ -100,7 +110,7 @@ export const handleInferEntitiesRequest = async ({
       },
     ],
     memo: {
-      flowDefinitionId,
+      flowDefinitionEntityId,
       userAccountId: user.accountId,
       webId,
     },

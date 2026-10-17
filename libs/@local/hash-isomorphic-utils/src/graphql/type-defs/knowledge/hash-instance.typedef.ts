@@ -10,6 +10,10 @@ export const hashInstanceTypedef = gql`
     entity: Entity!
     isUserAdmin: Boolean!
     enabledIntegrations: EnabledIntegrations!
+    """
+    The id of the web HASH's own flow definitions and types are in, which differs on every instance.
+    """
+    hashWebId: WebId!
   }
 
   extend type Query {

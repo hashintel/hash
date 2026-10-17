@@ -1,7 +1,10 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+
+import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 
 /**
- * The ids of the flows defined in code, which are also the entity uuids of their `Flow Definition` entities.
+ * The ids of the flows defined in code, which are also the entity uuids of their `Flow Definition` entities in the
+ * `h` web. An id only identifies a flow together with the `h` web's id: see {@link generateHashFlowDefinitionEntityId}.
  *
  * Code that starts a run of one of these flows, or recognises its runs, uses its id from here. The definitions are
  * in `definitions/`, which only seeding, the compiler and tests use: runs execute the definition stored in the
@@ -22,7 +25,20 @@ export const flowDefinitionIds = {
 } as const;
 
 /**
+ * The entity id of one of the flows defined in code: its `Flow Definition` entity in the `h` web, whose id differs on
+ * every instance.
+ */
+export const generateHashFlowDefinitionEntityId = (
+  hashWebId: WebId,
+  flowDefinitionId: EntityUuid,
+): EntityId => entityIdFromComponents(hashWebId, flowDefinitionId);
+
+/**
  * Whether a run or definition is of the goal flow.
  */
-export const isGoalFlowDefinitionId = (flowDefinitionId: string) =>
-  flowDefinitionId === flowDefinitionIds.goal;
+export const isGoalFlowDefinitionEntityId = (
+  flowDefinitionEntityId: EntityId,
+  hashWebId: WebId,
+) =>
+  flowDefinitionEntityId ===
+  generateHashFlowDefinitionEntityId(hashWebId, flowDefinitionIds.goal);

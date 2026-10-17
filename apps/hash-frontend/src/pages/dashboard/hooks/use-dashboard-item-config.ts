@@ -12,6 +12,7 @@ import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-
 import { FlowRunStatus } from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
+import { useHashFlows } from "../../shared/use-hash-flows";
 
 import type {
   FlowRun,
@@ -204,6 +205,8 @@ export const useDashboardItemConfig = ({
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation);
+
+  const { requireHashFlowDefinitionEntityId } = useHashFlows();
 
   const [startFlow] = useMutation<
     StartFlowMutation,
@@ -600,7 +603,9 @@ export const useDashboardItemConfig = ({
       // Start the flow
       const { data } = await startFlow({
         variables: {
-          flowDefinitionId: flowDefinitionIds.configureDashboardItem,
+          flowDefinitionEntityId: requireHashFlowDefinitionEntityId(
+            flowDefinitionIds.configureDashboardItem,
+          ),
           flowInputs: {
             userGoal: {
               kind: "Text",
@@ -664,6 +669,7 @@ export const useDashboardItemConfig = ({
     onGenerationStarted,
     onComplete,
     markGenerationFailed,
+    requireHashFlowDefinitionEntityId,
   ]);
 
   const refineConfiguration = useCallback(
@@ -718,7 +724,9 @@ export const useDashboardItemConfig = ({
 
         const { data } = await startFlow({
           variables: {
-            flowDefinitionId: flowDefinitionIds.refineDashboardItem,
+            flowDefinitionEntityId: requireHashFlowDefinitionEntityId(
+              flowDefinitionIds.refineDashboardItem,
+            ),
             flowInputs: {
               userGoal: { kind: "Text", value: initialGoal },
               refinementInstruction: {
@@ -789,6 +797,7 @@ export const useDashboardItemConfig = ({
       initialValues,
       markGenerationFailed,
       onGenerationStarted,
+      requireHashFlowDefinitionEntityId,
       setError,
       startFlow,
       startPolling,

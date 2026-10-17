@@ -5,6 +5,7 @@ export const getHashInstanceSettings = gql`
     hashInstanceSettings {
       entity
       isUserAdmin
+      hashWebId
       enabledIntegrations {
         googleSheets
         linear

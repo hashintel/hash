@@ -69,6 +69,12 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
       const user = getRoots(subgraph)[0]!;
 
+      const hashWebId = data.hashInstanceSettings?.hashWebId;
+
+      if (!hashWebId) {
+        throw new Error("The API returned no HASH instance settings");
+      }
+
       const simpleProperties = simplifyProperties(
         user.properties as UserProperties,
       );
@@ -305,6 +311,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         enabledFeatureFlags,
         settingsEntityId,
         webWebId: getWebIdFromEntityId(user.metadata.recordId.entityId),
+        hashWebId,
       } as LocalStorage["user"];
     })
     .catch((error) => {

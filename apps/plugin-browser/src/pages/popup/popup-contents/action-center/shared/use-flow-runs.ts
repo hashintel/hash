@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { getMinimalFlowRunsQuery } from "../../../../../graphql/queries/flow.queries";
+import { generateBrowserInferenceFlowDefinitionEntityId } from "../../../../../shared/browser-inference-flow-definition";
 import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
 import { useStorageSync } from "../../../../shared/use-storage-sync";
 import { useUserContext } from "../../shared/user-context";
@@ -17,7 +17,7 @@ import type {
   LocalStorage,
   MinimalFlowRun,
 } from "../../../../../shared/storage";
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
 import type {
   AutomaticInferenceInputName,
   AutomaticInferenceInputs,
@@ -66,8 +66,10 @@ const mapFlowRunToMinimalFlowRun = (
 };
 
 const getFlowRuns = async ({
+  hashWebId,
   userAccountId,
 }: {
+  hashWebId: WebId;
   userAccountId: ActorEntityUuid;
 }): Promise<FlowFromBrowserOrWithPageRequest[]> =>
   queryGraphQlApi<GetMinimalFlowRunsQuery, GetMinimalFlowRunsQueryVariables>(
@@ -85,14 +87,24 @@ const getFlowRuns = async ({
       }),
     )
     .then((unfilteredFlowRuns) => {
+      const browserInferenceFlowDefinitionEntityIds = [
+        generateBrowserInferenceFlowDefinitionEntityId({
+          hashWebId,
+          trigger: "manual",
+        }),
+        generateBrowserInferenceFlowDefinitionEntityId({
+          hashWebId,
+          trigger: "automatic",
+        }),
+      ];
+
       const flowRunsOfInterest: LocalStorage["flowRuns"] = [];
 
       for (const flowRun of unfilteredFlowRuns) {
         if (
-          flowRun.flowDefinitionId ===
-            flowDefinitionIds.manualBrowserInference ||
-          flowRun.flowDefinitionId ===
-            flowDefinitionIds.automaticBrowserInference
+          browserInferenceFlowDefinitionEntityIds.includes(
+            flowRun.flowDefinitionEntityId,
+          )
         ) {
           flowRunsOfInterest.push(mapFlowRunToMinimalFlowRun(flowRun));
         }
@@ -136,30 +148,32 @@ export const useFlowRuns = (): {
     ) as ActorEntityUuid;
   }, [user]);
 
+  const hashWebId = user?.hashWebId;
+
   useEffect(() => {
-    if (!userAccountId) {
+    if (!userAccountId || !hashWebId) {
       return;
     }
 
     const pollInterval = setInterval(() => {
-      void getFlowRuns({ userAccountId }).then(setValue);
+      void getFlowRuns({ hashWebId, userAccountId }).then(setValue);
     }, 2_000);
 
     return () => clearInterval(pollInterval);
-  }, [setValue, userAccountId]);
+  }, [hashWebId, setValue, userAccountId]);
 
   useEffect(() => {
-    if (apiChecked || !userAccountId) {
+    if (apiChecked || !userAccountId || !hashWebId) {
       return;
     }
 
-    void getFlowRuns({ userAccountId }).then((newValue) => {
+    void getFlowRuns({ hashWebId, userAccountId }).then((newValue) => {
       setValue(newValue);
       setApiChecked(true);
     });
 
     setApiChecked(true);
-  }, [apiChecked, setValue, userAccountId]);
+  }, [apiChecked, hashWebId, setValue, userAccountId]);
 
   const [localPendingRuns, setLocalPendingRuns] = useStorageSync(
     "localPendingFlowRuns",

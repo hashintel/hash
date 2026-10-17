@@ -42,21 +42,22 @@ export const createFlowScheduleResolver: ResolverFn<
   const context = graphQLContextToImpureGraphContext(graphQLContext);
   const { authentication } = graphQLContext;
 
-  const { flowDefinitionId } = input;
+  const { flowDefinitionEntityId } = input;
 
-  const { flowDefinitionEntity, flowType } = await getRunnableFlowDefinition(
+  const { flowType } = await getRunnableFlowDefinition(
     graphQLContext,
-    flowDefinitionId,
+    flowDefinitionEntityId,
   );
 
   if (flowType === "ai" && !input.dataSources) {
     throw GraphQLError.badRequest("Data sources are required for AI flows");
   }
 
-  const schedule = await createFlowScheduleEntity(context, authentication, {
-    ...input,
-    flowDefinitionEntityId: flowDefinitionEntity.metadata.recordId.entityId,
-  });
+  const schedule = await createFlowScheduleEntity(
+    context,
+    authentication,
+    input,
+  );
 
   const props = simplifyProperties(schedule.properties);
   const scheduleId = extractEntityUuidFromEntityId(
@@ -69,7 +70,7 @@ export const createFlowScheduleResolver: ResolverFn<
     ...(flowType === "ai" && input.dataSources
       ? { dataSources: input.dataSources }
       : {}),
-    flowDefinitionId,
+    flowDefinitionEntityId,
     flowRunName: input.name,
     flowInputs: input.flowInputs,
     flowTriggerEntityId: schedule.metadata.recordId.entityId,
@@ -87,7 +88,7 @@ export const createFlowScheduleResolver: ResolverFn<
         taskQueue,
         args: [workflowParams],
         memo: {
-          flowDefinitionId,
+          flowDefinitionEntityId,
           userAccountId: user.accountId,
           webId: input.webId,
         },

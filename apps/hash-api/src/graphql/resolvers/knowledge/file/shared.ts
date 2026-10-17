@@ -1,8 +1,13 @@
-import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
+import { getHashWebId } from "@local/hash-backend-utils/flows/shared/get-hash-web-id";
+import {
+  flowDefinitionIds,
+  generateHashFlowDefinitionEntityId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import type { Entity, UserId, WebId } from "@blockprotocol/type-system";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
+import type { GraphApi } from "@local/hash-graph-client";
 import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
@@ -11,11 +16,13 @@ import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const triggerPdfAnalysisWorkflow = async ({
   entity,
+  graphApiClient,
   temporalClient,
   userAccountId,
   webId,
 }: {
   entity: Entity<File>;
+  graphApiClient: GraphApi;
   temporalClient: TemporalClient;
   userAccountId: UserId;
   webId: WebId;
@@ -31,6 +38,11 @@ export const triggerPdfAnalysisWorkflow = async ({
     return;
   }
 
+  const flowDefinitionEntityId = generateHashFlowDefinitionEntityId(
+    await getHashWebId(graphApiClient),
+    flowDefinitionIds.inferMetadataFromDocument,
+  );
+
   const params: RunFlowWorkflowParams = {
     dataSources: {
       files: { fileEntityIds: [] },
@@ -42,7 +54,7 @@ export const triggerPdfAnalysisWorkflow = async ({
         },
       },
     },
-    flowDefinitionId: flowDefinitionIds.inferMetadataFromDocument,
+    flowDefinitionEntityId,
     flowInputs: {
       fileEntityId: { kind: "EntityId", value: entityId },
     },
@@ -58,7 +70,7 @@ export const triggerPdfAnalysisWorkflow = async ({
     taskQueue: "ai",
     args: [params],
     memo: {
-      flowDefinitionId: flowDefinitionIds.inferMetadataFromDocument,
+      flowDefinitionEntityId,
       userAccountId,
       webId,
     },

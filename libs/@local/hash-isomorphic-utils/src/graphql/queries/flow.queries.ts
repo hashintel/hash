@@ -7,7 +7,7 @@ export const getFlowRunsQuery = gql`
       nextCursor
       flowRuns {
         name
-        flowDefinitionId
+        flowDefinitionEntityId
         flowRunEntityId
         flowScheduleId
         webId
@@ -37,7 +37,7 @@ export const getFlowRunById = gql`
   query getFlowRunById($flowRunEntityId: EntityId!) {
     getFlowRunById(flowRunEntityId: $flowRunEntityId) {
       name
-      flowDefinitionId
+      flowDefinitionEntityId
       flowRunEntityId
       flowScheduleId
       failureMessage

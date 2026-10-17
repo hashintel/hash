@@ -57,6 +57,8 @@ type UserAndLinkedData = SimplifiedUser & {
   })[];
   settingsEntityId: EntityId;
   webWebId: WebId;
+  /** The web HASH's own flow definitions are in, which differs on every instance. */
+  hashWebId: WebId;
 };
 
 const persistedUserSettingKeys = [
@@ -92,7 +94,7 @@ export type ExternalInputRequestById = {
 
 export type MinimalFlowRun = Pick<
   FlowRun,
-  | "flowDefinitionId"
+  | "flowDefinitionEntityId"
   | "flowRunEntityId"
   | "webId"
   | "closedAt"
