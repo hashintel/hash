@@ -9,7 +9,7 @@ use hash_middleware::{
     authentication::{
         AuthenticatedActorId, AuthenticationMetrics, provider::StaticAuthenticationProvider,
     },
-    problem::InternalServerError,
+    problem::{InternalServerError, ServiceUnavailable},
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
 use hash_secret::Secret;
@@ -17,6 +17,7 @@ use http::{
     HeaderValue, Method, Request, StatusCode,
     header::{ALLOW, AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, WWW_AUTHENTICATE},
 };
+use problematic::Rejected;
 use serde_json::json;
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorId, ActorType};
@@ -214,7 +215,7 @@ async fn fallback_answers_problem_document() {
 async fn cache_control_gate_rejection() {
     let router = middleware(
         &config(1, 10),
-        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
@@ -245,18 +246,26 @@ async fn cache_control_gate_rejection() {
 async fn cache_control_fallback() {
     let router = middleware(
         &config(10, 10),
-        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
     .assemble(Router::new(), [test_utils::api("/first")], Router::new());
 
-    for request in [
-        request_to("/does-not-exist"),
-        request_with(Method::DELETE, "/first/test"),
+    for (request, status) in [
+        (request_to("/does-not-exist"), StatusCode::NOT_FOUND),
+        (
+            request_with(Method::DELETE, "/first/test"),
+            StatusCode::METHOD_NOT_ALLOWED,
+        ),
     ] {
         let path = request.uri().path().to_owned();
         let response = send_request(&router, request).await;
+        assert_eq!(
+            response.status(),
+            status,
+            "{path} should be answered {status}"
+        );
         assert_eq!(
             response.headers().get(CACHE_CONTROL),
             Some(&HeaderValue::from_static("private, no-store")),
@@ -317,7 +326,7 @@ async fn fallback_draws_on_address_gate() {
 async fn method_not_allowed_problem_document() {
     let router = middleware(
         &config(10, 10),
-        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
@@ -462,7 +471,7 @@ async fn method_not_allowed_draws_on_address_gate() {
 async fn method_not_allowed_draws_on_caller_budget() {
     let router = middleware(
         &config(10, 1),
-        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
         StaticAuthenticationProvider::NotRecognized,
         StaticAuthenticationProvider::NotRecognized,
     )
@@ -517,6 +526,120 @@ async fn panic_problem_document() {
         response_json(response).await["detail"],
         json!(InternalServerError.to_string()),
         "the problem document should not describe the panic"
+    );
+}
+
+/// The entity route reads the store it was handed, and answers `503` when it cannot acquire one.
+#[tokio::test]
+async fn entity_store_unreachable() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(Router::new(), apis(), Router::new());
+
+    let response = send(
+        &router,
+        "/entities/v1/8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d",
+    )
+    .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::SERVICE_UNAVAILABLE,
+        "the route should answer 503 when it cannot reach the store"
+    );
+    assert!(
+        response.extensions().get::<Rejected>().is_some(),
+        "the 503 should be the route's rejection, which a panic does not leave"
+    );
+    assert_eq!(
+        response_json(response).await["detail"],
+        json!(ServiceUnavailable.to_string()),
+        "the problem document should not name the store"
+    );
+}
+
+/// An anonymous request to the entity route is answered `401` before the store is read.
+#[tokio::test]
+async fn entity_anonymous() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(Router::new(), apis(), Router::new());
+
+    let response = send(
+        &router,
+        "/entities/v1/8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d",
+    )
+    .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNAUTHORIZED,
+        "an anonymous request should be answered 401"
+    );
+}
+
+/// A public API answers a request without a credential with `401` even on a route that reads no
+/// caller.
+#[tokio::test]
+async fn public_api_anonymous() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+        StaticAuthenticationProvider::NotRecognized,
+    )
+    .assemble(Router::new(), [test_utils::api("/first")], Router::new());
+
+    let response = send(&router, "/first/test").await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNAUTHORIZED,
+        "an anonymous request should be answered 401"
+    );
+    assert!(
+        response
+            .headers()
+            .get(WWW_AUTHENTICATE)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.starts_with("Bearer")),
+        "the 401 should challenge with `Bearer`"
+    );
+}
+
+/// The entity route reads no drafts, so a draft's ID is answered `400` before it reads the store.
+#[tokio::test]
+async fn entity_draft_id() {
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Verified(ActorId::new(Uuid::from_u128(1), ActorType::User)),
+        StaticAuthenticationProvider::Unreachable,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(Router::new(), apis(), Router::new());
+
+    let response = send(
+        &router,
+        "/entities/v1/8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d~\
+         3f0c3b6e-5d2a-4c8e-9b1f-7a6d5e4c3b2a",
+    )
+    .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "a draft's ID should be answered 400"
+    );
+    let detail = response_json(response).await["detail"].clone();
+    assert!(
+        detail
+            .as_str()
+            .is_some_and(|detail| detail.contains("the entity ID names a draft")),
+        "the problem document should say that the ID names a draft, got {detail}"
     );
 }
 
@@ -642,7 +765,7 @@ async fn service_secret_exempt_on_legacy_only() {
     )
     .assemble(
         Router::new().route("/legacy", get(async || "ok")),
-        [test_utils::api("/first")],
+        [internal::api()],
         Router::new(),
     );
     let with_secret = |path: &str, peer: IpAddr| {
@@ -664,10 +787,11 @@ async fn service_secret_exempt_on_legacy_only() {
             "the legacy routes should not charge the service secret"
         );
     }
+    let caller = format!("{}/caller", internal::PREFIX);
     let mut statuses = Vec::new();
     for _ in 0..2 {
         statuses.push(
-            send_request(&router, with_secret("/first/test", client(2)))
+            send_request(&router, with_secret(&caller, client(2)))
                 .await
                 .status(),
         );
@@ -675,7 +799,7 @@ async fn service_secret_exempt_on_legacy_only() {
     assert_eq!(
         statuses,
         [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS],
-        "an API should charge the service secret's presenter like any anonymous caller"
+        "the internal API should charge the service secret's presenter like any anonymous caller"
     );
 }
 

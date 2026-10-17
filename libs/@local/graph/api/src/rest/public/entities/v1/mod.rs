@@ -1,9 +1,15 @@
+mod entity;
+
 use aide::openapi::Info;
+use hash_graph_store::pool::StorePool;
 
-use crate::rest::{Api, caller, documentation, openapi, public};
+use crate::rest::{Api, ApiState, documentation, openapi, public};
 
-pub(super) fn api() -> Api {
-    openapi::build::<public::Credentials>(
+pub(super) fn api<S>() -> Api<ApiState<S>>
+where
+    S: StorePool + Send + Sync + 'static,
+{
+    openapi::build::<public::Credentials, _>(
         "/entities/v1",
         Info {
             title: "Entities".to_owned(),
@@ -11,7 +17,7 @@ pub(super) fn api() -> Api {
             description: Some(documentation::OVERVIEW.to_owned()),
             ..Info::default()
         },
-        caller::routes::<public::Credentials>,
+        entity::routes::<S>,
         public::document,
     )
 }

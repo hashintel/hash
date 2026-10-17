@@ -1980,33 +1980,35 @@ where
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> Result<Entity, Report<QueryError>> {
+    ) -> Result<Option<Entity>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
-        let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
-
-        let filter = Filter::<Entity>::for_view_entity(&policy_components);
-        filters.push(filter);
-
-        let temporal_axes = QueryTemporalAxesUnresolved::TransactionTime {
-            pinned: PinnedTemporalAxisUnresolved::new(decision_time),
-            variable: VariableTemporalAxisUnresolved::new(
-                transaction_time.map(TemporalBound::Inclusive),
-                transaction_time.map(LimitedTemporalBound::Inclusive),
-            ),
-        }
-        .resolve();
-
-        Read::<Entity>::read_one(
-            self,
-            &filters,
-            Some(&temporal_axes),
-            entity_id.draft_id.is_some(),
-        )
-        .await
+        let params = QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::TransactionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(decision_time),
+                variable: VariableTemporalAxisUnresolved::new(
+                    transaction_time.map(TemporalBound::Inclusive),
+                    transaction_time.map(LimitedTemporalBound::Inclusive),
+                ),
+            },
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: 1,
+            conversions: Vec::new(),
+            include_entity_types: None,
+            include_drafts: entity_id.draft_id.is_some(),
+            include_permissions: false,
+        };
+        let response = self
+            .read_entities_impl(&params, &params.temporal_axes.resolve(), &policy_components)
+            .await?;
+        Ok(response.entities.into_iter().next())
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]

@@ -356,26 +356,6 @@
         ],
         "type": "object"
       },
-      "CallerResponse": {
-        "description": "The resolved caller.",
-        "properties": {
-          "actor": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ActorId"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "The resolved actor, or `null` for an anonymous request."
-          }
-        },
-        "required": [
-          "actor"
-        ],
-        "type": "object"
-      },
       "ProblemDetails": {
         "properties": {
           "detail": {
@@ -485,73 +465,6 @@
           }
         ],
         "summary": "Get the authenticated caller",
-        "tags": [
-          "Caller"
-        ]
-      }
-    },
-    "/types/v1/caller": {
-      "get": {
-        "description": "Returns the resolved actor, or `actor: null` for an anonymous request.",
-        "operationId": "getCaller",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CallerResponse"
-                }
-              }
-            },
-            "description": "The resolved caller.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
-                "example": "private, no-store",
-                "required": true,
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit": {
-                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
-                "example": "\"actor\";r=499",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit-Policy": {
-                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
-                "example": "\"actor\";q=500;w=50",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ServiceUnavailable"
-          }
-        },
-        "security": [
-          {},
-          {
-            "apiToken": []
-          }
-        ],
-        "summary": "Get the caller",
         "tags": [
           "Caller"
         ]

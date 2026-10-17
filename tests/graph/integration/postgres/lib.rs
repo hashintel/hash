@@ -867,7 +867,7 @@ impl EntityStore for DatabaseApi<'_> {
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> Result<Entity, Report<QueryError>> {
+    ) -> Result<Option<Entity>, Report<QueryError>> {
         self.store
             .get_entity_by_id(actor_id, entity_id, transaction_time, decision_time)
             .await

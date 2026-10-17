@@ -72,6 +72,7 @@ include_dir          = { workspace = true }
 indexmap             = { workspace = true }
 md-5                 = { workspace = true }
 mime                 = { workspace = true }
+percent-encoding     = { workspace = true, features = ["alloc"] }
 reqwest              = { workspace = true }
 scalar_api_reference = { workspace = true }
 schemars             = { workspace = true, features = ["uuid1"] }
@@ -92,6 +93,7 @@ hash-middleware           = { workspace = true, features = ["test-utils"] }
 insta                     = { workspace = true }
 rstest                    = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
+tokio-postgres            = { workspace = true }
 tower                     = { workspace = true, features = ["util"] }
 uuid                      = { workspace = true, features = ["v4"] }
 

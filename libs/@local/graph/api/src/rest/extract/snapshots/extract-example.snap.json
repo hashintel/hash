@@ -641,35 +641,6 @@
       }
     },
     "schemas": {
-      "EchoPath": {
-        "description": "The label the response repeats.",
-        "properties": {
-          "label": {
-            "description": "Repeated back as `label`.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "label"
-        ],
-        "type": "object"
-      },
-      "EchoQuery": {
-        "description": "How often the response repeats the value.",
-        "properties": {
-          "repeat": {
-            "description": "How many copies of `value` the response carries. Defaults to one.",
-            "format": "uint8",
-            "maximum": 255,
-            "minimum": 0,
-            "type": [
-              "integer",
-              "null"
-            ]
-          }
-        },
-        "type": "object"
-      },
       "EchoRequest": {
         "description": "The value the response repeats.",
         "properties": {
