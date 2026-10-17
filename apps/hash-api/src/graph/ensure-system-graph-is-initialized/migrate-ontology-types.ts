@@ -9,6 +9,8 @@ import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-
 
 import { isDevEnv, isTestEnv } from "../../lib/env-config";
 import { systemAccountId } from "../system-account";
+import { seedFlowDefinitions } from "./migrate-ontology-types/seed-flow-definitions";
+import { getCurrentHashSystemEntityTypeId } from "./migrate-ontology-types/util";
 
 import type { ImpureGraphContext } from "../context-types";
 import type {
@@ -224,6 +226,22 @@ export const migrateOntologyTypes = async (params: {
       hashInstance,
       migrationsCompleted,
       migrationState,
+    });
+  }
+
+  /**
+   * Seed the flows that are marked as dev only in relevant environments.
+   * Imported here so that other environments don't load their definitions.
+   */
+  if (isDevEnv || isTestEnv) {
+    const { devFlows } = await import("./migrate-ontology-types/dev-flows");
+
+    await seedFlowDefinitions(params.context, authentication, {
+      flows: devFlows,
+      flowDefinitionEntityTypeId: getCurrentHashSystemEntityTypeId({
+        entityTypeKey: "flowDefinition",
+        migrationState,
+      }),
     });
   }
 };

@@ -42,7 +42,6 @@ export const triggerPdfAnalysisWorkflow = async ({
         },
       },
     },
-    flowDefinition: inferMetadataFromDocumentFlow.flowDefinition,
     flowDefinitionId: inferMetadataFromDocumentFlow.flowDefinitionId,
     flowInputs: {
       fileEntityId: { kind: "EntityId", value: entityId },

@@ -49,7 +49,7 @@ import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flowschedule";
 
 type FieldId = "name" | "interval" | "status" | "actions";
 

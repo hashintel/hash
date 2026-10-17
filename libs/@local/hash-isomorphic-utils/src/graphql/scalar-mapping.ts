@@ -145,11 +145,7 @@ export const scalars = {
 
   OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 
-  FlowActionDefinitionId:
-    "@local/hash-isomorphic-utils/flows/types#FlowActionDefinitionId",
   FlowDataSources: "@local/hash-isomorphic-utils/flows/types#FlowDataSources",
-  FlowDefinition:
-    "@local/hash-isomorphic-utils/flows/types#FlowDefinition<FlowActionDefinitionId>",
   ScheduleSpec:
     "@local/hash-isomorphic-utils/flows/schedule-types#ScheduleSpec",
   CreateFlowScheduleInput:
