@@ -5,6 +5,7 @@ import {
   type ResolverFn,
 } from "../../api-types.gen";
 import * as Error from "../../error";
+import { assertClientFlowInputs } from "./shared/assert-client-flow-inputs";
 import { getRunnableFlowDefinition } from "./shared/get-runnable-flow-definition";
 
 import type { LoggedInGraphQLContext } from "../../context";
@@ -33,6 +34,8 @@ export const startFlow: ResolverFn<
     graphQLContext,
     flowDefinitionId,
   );
+
+  assertClientFlowInputs(flowInputs);
 
   const workflowId = generateUuid() as EntityUuid;
 
