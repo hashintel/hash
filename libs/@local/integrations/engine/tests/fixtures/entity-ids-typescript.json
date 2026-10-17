@@ -1,0 +1,66 @@
+[
+  {
+    "ns": "conn-a",
+    "entityType": "https://x/@t/types/entity-type/material/v/1",
+    "entityId": "M-0001",
+    "note": "plain string id",
+    "uuid": "fdb92954-9bd5-5558-ae43-40437c693f27",
+    "composite": "web-fixture~fdb92954-9bd5-5558-ae43-40437c693f27"
+  },
+  {
+    "ns": "conn-a",
+    "entityType": "https://x/@t/types/entity-type/material/v/1",
+    "entityId": "1",
+    "note": "numeric ID represented as text",
+    "uuid": "2f37a211-5787-5474-83b3-e3d7cf6bb83a",
+    "composite": "web-fixture~2f37a211-5787-5474-83b3-e3d7cf6bb83a"
+  },
+  {
+    "ns": "conn-a",
+    "entityType": "https://x/@t/types/entity-type/material/v/1",
+    "entityId": "1.5",
+    "note": "decimal ID represented as text",
+    "uuid": "42a6299f-2d8d-5b73-b11f-64badff46a94",
+    "composite": "web-fixture~42a6299f-2d8d-5b73-b11f-64badff46a94"
+  },
+  {
+    "ns": "conn-a",
+    "entityType": "https://x/@t/types/entity-type/material/v/1",
+    "entityId": "Grüße-仓库",
+    "note": "unicode id, hashed as UTF-8 bytes",
+    "uuid": "5aec7f53-3989-5d44-ace4-a78b860193a5",
+    "composite": "web-fixture~5aec7f53-3989-5d44-ace4-a78b860193a5"
+  },
+  {
+    "ns": "conn-a",
+    "entityType": "https://x/@t/types/entity-type/material/v/1",
+    "entityId": "a::b",
+    "note": "id containing the :: separator",
+    "uuid": "b0ed6b55-ea24-512b-97fe-e17e1c7f6861",
+    "composite": "web-fixture~b0ed6b55-ea24-512b-97fe-e17e1c7f6861"
+  },
+  {
+    "ns": "conn-a",
+    "entityType": "https://x/@t/types/entity-type/material/v/1",
+    "entityId": "A|B",
+    "note": "composite-joined id",
+    "uuid": "1ecf2406-4eba-5b0e-93f2-1a08389594d7",
+    "composite": "web-fixture~1ecf2406-4eba-5b0e-93f2-1a08389594d7"
+  },
+  {
+    "ns": "conn-a",
+    "entityType": "https://x/@t/types/entity-type/stored-at/v/1",
+    "entityId": "https://x/@t/types/entity-type/material/v/1::M-0001::https://x/@t/types/entity-type/plant/v/1::P-0100",
+    "note": "link uuid: entityId is sourceType::sourceId::targetType::targetId",
+    "uuid": "25bbb6e3-3e0a-53c2-a2f3-b8b83f7ff314",
+    "composite": "web-fixture~25bbb6e3-3e0a-53c2-a2f3-b8b83f7ff314"
+  },
+  {
+    "ns": "conn-a",
+    "entityType": "https://x/@t/types/entity-type/material/v/1",
+    "entityId": "",
+    "note": "empty-string id",
+    "uuid": "54b1ee67-5978-54fd-81ca-18d4ed3cdb2e",
+    "composite": "web-fixture~54b1ee67-5978-54fd-81ca-18d4ed3cdb2e"
+  }
+]

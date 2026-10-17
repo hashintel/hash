@@ -7065,11 +7065,14 @@ dependencies = [
  "hash-integrations-definition",
  "pretty_assertions",
  "proptest",
+ "serde",
  "serde_json",
  "simple-mermaid",
  "tempfile",
  "tokio",
  "tracing",
+ "type-system",
+ "uuid",
 ]
 
 [[package]]
