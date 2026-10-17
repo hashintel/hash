@@ -8,6 +8,7 @@ import type {
 } from "./action-definitions.js";
 import type { Aggregation } from "./aggregation.js";
 import type { FilterCondition } from "./filter-condition.js";
+import type { PropertyValues } from "./property-values.js";
 import type { EntityProperty } from "./read-entity.js";
 import type { SortKey } from "./sort-key.js";
 import type {
@@ -135,6 +136,7 @@ export type PayloadKindValues = {
   GoogleSheet: GoogleSheet;
   Number: number;
   PersistedEntityMetadata: PersistedEntityMetadata;
+  PropertyValues: PropertyValues;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   SortKey: SortKey;
@@ -163,6 +165,7 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
   GoogleSheet: true,
   Number: true,
   PersistedEntityMetadata: true,
+  PropertyValues: true,
   ProposedEntity: true,
   ProposedEntityWithResolvedLinks: true,
   SortKey: true,
