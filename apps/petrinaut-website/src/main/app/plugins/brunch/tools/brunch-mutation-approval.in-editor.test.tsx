@@ -6,6 +6,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
+import { useMemo } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
@@ -18,8 +19,11 @@ import {
 } from "../../../shared/petrinaut-jsdom";
 import { brunchPlugin } from "../editor-api-plugin";
 import {
+  createBrunchMutationApprovalComponents,
   createBrunchMutationApprovalCoordinator,
   createBrunchMutationApprovalInteractiveTools,
+  useBrunchMutationApprovalTools,
+  type BrunchMutationApprovalCoordinator,
 } from "./brunch-mutation-approval";
 
 import type {
@@ -83,7 +87,10 @@ const openPendingApproval = async (plugins: readonly PetrinautPlugin[]) => {
     signal: new AbortController().signal,
   });
   const aiAssistant: PetrinautAiAssistant = {
-    interactiveTools: createBrunchMutationApprovalInteractiveTools(coordinator),
+    interactiveTools: createBrunchMutationApprovalInteractiveTools(
+      createBrunchMutationApprovalComponents(coordinator),
+      coordinator.getPendingSnapshot(),
+    ),
     messages: [pendingRemoval],
     transport: {
       reconnectToStream: () => Promise.resolve(null),
@@ -131,4 +138,87 @@ test("without the Brunch plugin, the approval says why it can't show and reports
       ?.getAttribute("role"),
   ).toBe("alert");
   expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+});
+
+// Two removals in one step, as Brunch sends them: the second asks for approval
+// only after the first was allowed, while the stream is quiet.
+const twoRemovals: PetrinautAiMessage = {
+  id: "assistant-2",
+  role: "assistant",
+  parts: ["remove-1", "remove-2"].map((toolCallId, index) => ({
+    type: "dynamic-tool" as const,
+    toolName: "removePlace",
+    toolCallId,
+    state: "input-available" as const,
+    input: { placeId: `place-${index + 1}` },
+  })),
+};
+
+const ApprovingEditor = ({
+  coordinator,
+}: {
+  coordinator: BrunchMutationApprovalCoordinator;
+}) => {
+  const interactiveTools = useBrunchMutationApprovalTools(coordinator);
+  const aiAssistant = useMemo<PetrinautAiAssistant>(
+    () => ({
+      interactiveTools,
+      messages: [twoRemovals],
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: openStream,
+      },
+    }),
+    [interactiveTools],
+  );
+  const handle = useMemo(
+    () => createJsonDocHandle({ initial: { places: [], transitions: [] } }),
+    [],
+  );
+  return (
+    <Petrinaut
+      aiAssistant={aiAssistant}
+      handle={handle}
+      plugins={[brunchPlugin]}
+    />
+  );
+};
+
+test("a removal that starts waiting after an earlier one was allowed still shows its approval", async () => {
+  vi.stubGlobal("ResizeObserver", NoopResizeObserver);
+  vi.stubGlobal("Worker", InProcessLspWorker);
+  const coordinator = createBrunchMutationApprovalCoordinator();
+  coordinator.open();
+  render(
+    <ErrorTrackerContext value={{ captureException: vi.fn() }}>
+      <ApprovingEditor coordinator={coordinator} />
+    </ErrorTrackerContext>,
+  );
+  await act(async () =>
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Show AI assistant" }),
+    ),
+  );
+  const request = (toolCallId: string) =>
+    coordinator.request({
+      toolCallId,
+      toolName: "removePlace",
+      signal: new AbortController().signal,
+    });
+
+  let first: ReturnType<typeof request> | undefined;
+  act(() => {
+    first = request("remove-1");
+  });
+  await act(async () =>
+    fireEvent.click(await screen.findByRole("button", { name: "Allow" })),
+  );
+  await expect(first).resolves.toEqual({ decision: "allow" });
+  expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+
+  act(() => {
+    void request("remove-2");
+  });
+  expect(await screen.findByRole("button", { name: "Allow" })).not.toBeNull();
+  coordinator.close();
 });

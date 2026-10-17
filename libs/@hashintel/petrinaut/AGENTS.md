@@ -26,6 +26,11 @@ function useMyHook() {
 }
 ```
 
+The compiler memoizes each value on what its computation reads, not on a hand-written dependency list, so render only from values that flow through React:
+
+- External mutable state enters as an immutable snapshot from `useSyncExternalStore`, and rendering reads that snapshot. A method that reads hidden state during render (`store.has(id)` in a render callback) goes stale.
+- A resource created per value of a prop, such as one coordinator per binding, is `useState` replaced when the prop changes. A memo keyed on a value its computation never reads is computed once.
+
 Compiler errors fail the build unless the function opts out. The options are in [`vite.config.ts`](./vite.config.ts). `yarn lint:eslint` reports them without a build, as oxlint's native `react/*` compiler rules. oxlint also reports bailouts inside opted-out functions, which the build skips; suppress those with the reason.
 
 ## Commands
