@@ -1,10 +1,21 @@
 import { Link, Stack, Typography } from "@mui/material";
 
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
-import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
+import {
+  flowDefinitionIds,
+  generateHashFlowDefinitionEntityId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generatedFilteredWorkersPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
+import { useUserContext } from "../../../shared/user-context";
+
 export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
+  const { user } = useUserContext();
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <Stack direction="row" justifyContent="space-between" mb={0.75}>
       <Typography variant="smallCaps" sx={{ fontSize: 12 }}>
@@ -12,10 +23,14 @@ export const TableLabel = ({ type }: { type: "manual" | "automatic" }) => {
       </Typography>
       <Link
         href={`${FRONTEND_ORIGIN}${generatedFilteredWorkersPath({
-          flowDefinitionIds:
-            type === "manual"
-              ? [flowDefinitionIds.manualBrowserInference]
-              : [flowDefinitionIds.automaticBrowserInference],
+          flowDefinitionEntityIds: [
+            generateHashFlowDefinitionEntityId(
+              user.hashWebId,
+              type === "manual"
+                ? flowDefinitionIds.manualBrowserInference
+                : flowDefinitionIds.automaticBrowserInference,
+            ),
+          ],
         })}`}
         sx={{
           alignItems: "center",

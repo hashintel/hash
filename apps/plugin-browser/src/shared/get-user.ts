@@ -4,6 +4,7 @@ import {
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
 import { currentTimestamp } from "@blockprotocol/type-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -21,7 +22,6 @@ import type { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";
 import type { LocalStorage } from "./storage";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { Entity, EntityId, WebId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type {
@@ -68,6 +68,16 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       >(data.me.subgraph);
 
       const user = getRoots(subgraph)[0]!;
+
+      const hashInstanceEntity = data.hashInstanceSettings?.entity;
+
+      if (!hashInstanceEntity) {
+        throw new Error("The API returned no HASH instance settings");
+      }
+
+      const hashWebId = getWebIdFromEntityId(
+        new HashEntity(hashInstanceEntity).metadata.recordId.entityId,
+      );
 
       const simpleProperties = simplifyProperties(
         user.properties as UserProperties,
@@ -305,6 +315,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         enabledFeatureFlags,
         settingsEntityId,
         webWebId: getWebIdFromEntityId(user.metadata.recordId.entityId),
+        hashWebId,
       } as LocalStorage["user"];
     })
     .catch((error) => {

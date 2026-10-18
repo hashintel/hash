@@ -1,6 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { vi } from "vitest";
 
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -34,7 +35,10 @@ const createDummyFlow = async (params: { actorId: ActorEntityUuid }) => {
   const dummyFlowRunProperties = mapFlowRunToEntityProperties({
     name: "dummy-name",
     flowInputs: {},
-    flowDefinitionId: generateUuid() as EntityUuid,
+    flowDefinitionEntityId: entityIdFromComponents(
+      actorId as WebId,
+      generateUuid() as EntityUuid,
+    ),
     steps: [],
     temporalWorkflowId: generateUuid(),
   });
@@ -132,7 +136,10 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
                   },
                 },
               },
-              flowDefinitionId: generateUuid() as EntityUuid,
+              flowDefinitionEntityId: entityIdFromComponents(
+                aliceUserAccountId as WebId,
+                generateUuid() as EntityUuid,
+              ),
               flowInputs: {},
               webId: aliceUserAccountId,
               userAuthentication: {

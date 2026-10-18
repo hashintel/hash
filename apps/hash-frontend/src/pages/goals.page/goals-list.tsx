@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { useMemo } from "react";
 
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
+import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useFlowRunsContext } from "../shared/flow-runs-context";
@@ -9,7 +9,6 @@ import { flowRunStatusToStatusText } from "../shared/flow-tables";
 import { GoalListSection } from "./goals-list/goal-list-section";
 
 import type { GoalSummary } from "./goals-list/goal-list-section/goal-row";
-import type { EntityUuid } from "@blockprotocol/type-system";
 
 export const GoalsList = () => {
   const { flowRuns, loading } = useFlowRunsContext();
@@ -26,7 +25,7 @@ export const GoalsList = () => {
     const webByWebId: Record<string, GoalSummary["web"]> = {};
 
     for (const run of flowRuns) {
-      if (!isGoalFlowDefinitionId(run.flowDefinitionId as EntityUuid)) {
+      if (!isGoalFlowDefinitionEntityId(run.flowDefinitionEntityId)) {
         continue;
       }
 

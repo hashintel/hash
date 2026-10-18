@@ -1,3 +1,4 @@
+import { splitEntityId } from "@blockprotocol/type-system";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -7,24 +8,26 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 
 import type {
   ActorEntityUuid,
-  EntityUuid,
+  EntityId,
   Timestamp,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
 
 /**
- * The `Flow Definition` entity of a flow definition, whose uuid is the flow definition's id: e.g. for a run or
- * trigger to link to. Its edition current at `atTime`, if given, and otherwise its current edition.
+ * A `Flow Definition` entity, if the user can view it: e.g. for a run or trigger to link to. Its edition current at
+ * `atTime`, if given, and otherwise its current edition.
  */
 export const getFlowDefinitionEntityById = async (params: {
   atTime?: Timestamp;
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   graphApiClient: GraphApi;
   userAuthentication: { actorId: ActorEntityUuid };
 }): Promise<HashEntity<FlowDefinitionEntity> | null> => {
-  const { atTime, flowDefinitionId, graphApiClient, userAuthentication } =
+  const { atTime, flowDefinitionEntityId, graphApiClient, userAuthentication } =
     params;
+
+  const [webId, entityUuid] = splitEntityId(flowDefinitionEntityId);
 
   const {
     entities: [flowDefinitionEntity],
@@ -34,7 +37,8 @@ export const getFlowDefinitionEntityById = async (params: {
     {
       filter: {
         all: [
-          { equal: [{ path: ["uuid"] }, { parameter: flowDefinitionId }] },
+          { equal: [{ path: ["webId"] }, { parameter: webId }] },
+          { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
           {
             equal: [
               { path: ["type", "baseUrl"] },

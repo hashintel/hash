@@ -10,7 +10,7 @@ import { heartbeatTimeoutSeconds } from "../shared/heartbeats.js";
 import { setQueryAndSignalHandlers } from "./run-flow-workflow/set-query-and-signal-handlers.js";
 
 import type { createFlowActivities } from "../activities/flow-activities.js";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { ProxyFlowActivity } from "@local/hash-backend-utils/flows";
 import type {
   RunAiFlowWorkflowParams,
@@ -84,7 +84,7 @@ const proxyFlowActivity: ProxyFlowActivity<
 
 const generateFlowRunName = (params: {
   flowDefinition: FlowDefinition;
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   flowInputs: FlowInputValues;
 }) => {
   const { generateFlowRunName: generateFlowRunNameActivity } = proxyActivities<

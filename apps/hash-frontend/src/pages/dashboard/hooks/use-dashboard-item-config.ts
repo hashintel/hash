@@ -12,6 +12,7 @@ import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-
 import { FlowRunStatus } from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
+import { useGenerateHashFlowDefinitionEntityId } from "../../shared/use-hash-flows";
 
 import type {
   FlowRun,
@@ -204,6 +205,9 @@ export const useDashboardItemConfig = ({
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation);
+
+  const generateHashFlowDefinitionEntityId =
+    useGenerateHashFlowDefinitionEntityId();
 
   const [startFlow] = useMutation<
     StartFlowMutation,
@@ -600,7 +604,9 @@ export const useDashboardItemConfig = ({
       // Start the flow
       const { data } = await startFlow({
         variables: {
-          flowDefinitionId: flowDefinitionIds.configureDashboardItem,
+          flowDefinitionEntityId: generateHashFlowDefinitionEntityId(
+            flowDefinitionIds.configureDashboardItem,
+          ),
           flowInputs: {
             userGoal: {
               kind: "Text",
@@ -664,6 +670,7 @@ export const useDashboardItemConfig = ({
     onGenerationStarted,
     onComplete,
     markGenerationFailed,
+    generateHashFlowDefinitionEntityId,
   ]);
 
   const refineConfiguration = useCallback(
@@ -718,7 +725,9 @@ export const useDashboardItemConfig = ({
 
         const { data } = await startFlow({
           variables: {
-            flowDefinitionId: flowDefinitionIds.refineDashboardItem,
+            flowDefinitionEntityId: generateHashFlowDefinitionEntityId(
+              flowDefinitionIds.refineDashboardItem,
+            ),
             flowInputs: {
               userGoal: { kind: "Text", value: initialGoal },
               refinementInstruction: {
@@ -789,6 +798,7 @@ export const useDashboardItemConfig = ({
       initialValues,
       markGenerationFailed,
       onGenerationStarted,
+      generateHashFlowDefinitionEntityId,
       setError,
       startFlow,
       startPolling,

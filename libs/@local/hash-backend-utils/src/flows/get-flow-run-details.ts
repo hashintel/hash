@@ -746,7 +746,7 @@ const getFlowRunDetailedFields = async ({
 };
 
 export const getSparseFlowRunFromTemporalWorkflowId = async ({
-  flowDefinitionId,
+  flowDefinitionEntityId,
   flowRunEntityId,
   flowScheduleId,
   name,
@@ -755,7 +755,7 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
   webId,
 }: {
   /** The flow definition the run `Uses`, from its link */
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   /** The entity id of the flow run */
   flowRunEntityId: EntityId;
   /** The schedule the run was `Triggered By`, if any, from its link */
@@ -773,7 +773,7 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
 
   return {
     name,
-    flowDefinitionId,
+    flowDefinitionEntityId,
     flowRunEntityId,
     flowScheduleId,
     status: status.name as FlowRunStatus,
@@ -786,7 +786,7 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
 
 export const getFlowRunFromTemporalWorkflowId = async (args: {
   /** The flow definition the run `Uses`, from its link */
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   /** The entity id of the flow run */
   flowRunEntityId: EntityId;
   /** The schedule the run was `Triggered By`, if any, from its link */

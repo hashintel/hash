@@ -22,7 +22,7 @@ export const startFlow: ResolverFn<
   MutationStartFlowArgs
 > = async (
   _,
-  { dataSources, flowInputs, flowDefinitionId, webId },
+  { dataSources, flowInputs, flowDefinitionEntityId, webId },
   graphQLContext,
 ) => {
   const { temporal, user } = graphQLContext;
@@ -32,7 +32,7 @@ export const startFlow: ResolverFn<
    */
   const { flowType } = await getRunnableFlowDefinition(
     graphQLContext,
-    flowDefinitionId,
+    flowDefinitionEntityId,
   );
 
   const workflowId = generateUuid() as EntityUuid;
@@ -45,7 +45,7 @@ export const startFlow: ResolverFn<
     ...(flowType === "ai" ? { dataSources } : {}),
     flowRunEntityUuid: workflowId,
     flowInputs,
-    flowDefinitionId,
+    flowDefinitionEntityId,
     userAuthentication: { actorId: user.accountId },
     webId,
   };
@@ -56,7 +56,7 @@ export const startFlow: ResolverFn<
     taskQueue: flowType,
     args: [params],
     memo: {
-      flowDefinitionId,
+      flowDefinitionEntityId,
       userAccountId: user.accountId,
       webId,
     },
