@@ -1995,8 +1995,10 @@ where
                 cursor: None,
             },
             // At most one edition matches: both temporal axes resolve to a single point in time,
-            // and `include_drafts` is set only when `entity_id` names a draft, which the filter
-            // then pins. Including drafts for an ID without one would match its drafts as well.
+            // at which the exclusion constraints on `entity_temporal_metadata` admit one live
+            // edition and one edition per draft. `include_drafts` is set only when `entity_id`
+            // names a draft, which the filter then pins. Including drafts for an ID without one
+            // would match its drafts as well.
             limit: 1,
             conversions: Vec::new(),
             include_entity_types: None,

@@ -149,7 +149,7 @@ describe("API tokens", () => {
 
     expect(ownerResponse.status).toBe(200);
     expect(await ownerResponse.json()).toMatchObject({
-      metadata: { entityId },
+      metadata: { entityId, entityTypeIds: [ownerEntityType.schema.$id] },
     });
     expect(otherResponse.status).toBe(404);
   });
