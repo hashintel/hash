@@ -862,7 +862,7 @@ impl EntityStore for DatabaseApi<'_> {
     }
 
     async fn get_entity_by_id(
-        &self,
+        &mut self,
         actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,

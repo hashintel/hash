@@ -904,15 +904,20 @@ pub trait EntityStore {
     /// Get the latest edition of the [`Entity`], or the one live at the given timestamps.
     ///
     /// An `actor_id` of [`None`] reads as the public actor. Reads a draft only when `entity_id`
-    /// names one, and masks protected properties as [`query_entities`](Self::query_entities)
-    /// does. Returns [`None`] if the actor may not view the entity or no such edition is live
-    /// at `transaction_time` and `decision_time`, each of which defaults to now.
+    /// names one. Returns [`None`] if the actor may not view the entity or no such edition is
+    /// live at `transaction_time` and `decision_time`, each of which defaults to now.
+    ///
+    /// Reads through [`query_entities`], so it masks protected properties the same way and runs
+    /// against a single consistent snapshot of the store. This requires mutable access to the
+    /// store.
     ///
     /// # Errors
     ///
     /// - [`QueryError`] if the store cannot be queried
+    ///
+    /// [`query_entities`]: Self::query_entities
     fn get_entity_by_id(
-        &self,
+        &mut self,
         actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
@@ -978,12 +983,12 @@ pub trait EntityStore {
     ) -> impl Future<Output = Result<DeletionSummary, Report<DeletionError>>> + Send;
 
     fn diff_entity(
-        &self,
+        &mut self,
         actor_id: ActorId,
         params: DiffEntityParams,
     ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send
     where
-        Self: Sync,
+        Self: Send,
     {
         async move {
             let first_entity = self

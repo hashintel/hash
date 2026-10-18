@@ -10,8 +10,8 @@ use hash_graph_store::{entity::EntityStore as _, pool::StorePool};
 use hash_middleware::problem::{InternalServerError, ServiceUnavailable};
 use http::StatusCode;
 use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
-use schemars::JsonSchema;
-use serde::{Deserialize, Deserializer, Serialize, de};
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
+use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::{EntityId, id::EntityUuid},
     ontology::VersionedUrl,
@@ -27,22 +27,67 @@ use crate::rest::{
     routing::{self, Routes},
 };
 
+/// An entity's web ID and UUID, joined by `~`.
+///
+/// Unlike [`EntityId`], it never names a draft.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, derive_more::Display)]
+#[serde(try_from = "EntityId", into = "EntityId")]
+struct LiveEntityId(EntityId);
+
+impl LiveEntityId {
+    const fn new(web_id: WebId, entity_uuid: EntityUuid) -> Self {
+        Self(EntityId {
+            web_id,
+            entity_uuid,
+            draft_id: None,
+        })
+    }
+}
+
+/// The entity ID names a draft.
+#[derive(Debug, derive_more::Display)]
+#[display("the entity ID names a draft")]
+struct DraftEntityId;
+
+impl TryFrom<EntityId> for LiveEntityId {
+    type Error = DraftEntityId;
+
+    fn try_from(entity_id: EntityId) -> Result<Self, Self::Error> {
+        if entity_id.draft_id.is_some() {
+            return Err(DraftEntityId);
+        }
+        Ok(Self(entity_id))
+    }
+}
+
+impl From<LiveEntityId> for EntityId {
+    fn from(entity_id: LiveEntityId) -> Self {
+        entity_id.0
+    }
+}
+
+impl JsonSchema for LiveEntityId {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("EntityId")
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "string",
+            "description": "An entity's web ID and UUID, joined by `~`.",
+            "examples": [
+                "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d",
+            ],
+        })
+    }
+}
+
 /// The path of one entity.
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct EntityPath {
     /// The ID of the entity to read. An ID that names a draft is answered with `400`.
-    #[serde(deserialize_with = "live_entity_id")]
-    entity_id: EntityId,
-}
-
-/// Reads an entity ID that names no draft.
-fn live_entity_id<'de, D: Deserializer<'de>>(deserializer: D) -> Result<EntityId, D::Error> {
-    let entity_id = EntityId::deserialize(deserializer)?;
-    if entity_id.draft_id.is_some() {
-        return Err(de::Error::custom("the entity ID names a draft"));
-    }
-    Ok(entity_id)
+    entity_id: LiveEntityId,
 }
 
 /// An entity the caller may view.
@@ -57,7 +102,7 @@ struct Entity {
 #[serde(rename_all = "camelCase")]
 struct EntityMetadata {
     /// The ID of the entity.
-    entity_id: EntityId,
+    entity_id: LiveEntityId,
     /// The entity types the entity is an instance of, without the types they inherit from.
     entity_type_ids: BTreeSet<VersionedUrl>,
 }
@@ -67,7 +112,7 @@ struct EntityMetadata {
 #[display("No entity `{entity_id}` is visible to the caller.")]
 struct EntityNotFound {
     #[serde(skip)]
-    entity_id: EntityId,
+    entity_id: LiveEntityId,
 }
 
 impl ProblemVariant for EntityNotFound {
@@ -79,13 +124,10 @@ impl ProblemVariant for EntityNotFound {
 
     fn example() -> Option<Self> {
         Some(Self {
-            entity_id: EntityId {
-                web_id: WebId::new(Uuid::from_u128(0x8D86C8C3_D66D_43D1_859B_676C3BCAEADC)),
-                entity_uuid: EntityUuid::new(Uuid::from_u128(
-                    0xBE2C5B2F_E3E1_4F26_A0C4_0F8B5E9C4A1D,
-                )),
-                draft_id: None,
-            },
+            entity_id: LiveEntityId::new(
+                WebId::new(Uuid::from_u128(0x8D86C8C3_D66D_43D1_859B_676C3BCAEADC)),
+                EntityUuid::new(Uuid::from_u128(0xBE2C5B2F_E3E1_4F26_A0C4_0F8B5E9C4A1D)),
+            ),
         })
     }
 }
@@ -104,9 +146,9 @@ impl Problem for GetEntityProblem {
 #[derive(Debug, derive_more::Display)]
 enum GetEntityError {
     #[display("no entity `{_0}` is visible to the caller")]
-    NotFound(EntityId),
+    NotFound(LiveEntityId),
     #[display("entity `{_0}` is archived")]
-    Archived(EntityId),
+    Archived(LiveEntityId),
     #[display("no store could be acquired")]
     Unavailable,
     #[display("the store could not be read")]
@@ -137,12 +179,12 @@ async fn get_entity<S>(
 where
     S: StorePool + Send + Sync + 'static,
 {
-    let store = state
+    let mut store = state
         .acquire()
         .await
         .change_context(GetEntityError::Unavailable)?;
     let entity = store
-        .get_entity_by_id(Some(actor.into()), entity_id, None, None)
+        .get_entity_by_id(Some(actor.into()), EntityId::from(entity_id), None, None)
         .await
         .change_context(GetEntityError::Store)?
         .ok_or_else(|| Report::new(GetEntityError::NotFound(entity_id)))?;
@@ -152,7 +194,7 @@ where
 
     Ok(Json(Entity {
         metadata: EntityMetadata {
-            entity_id: entity.metadata.record_id.entity_id,
+            entity_id,
             entity_type_ids: entity.metadata.entity_type_ids.into_iter().collect(),
         },
     }))

@@ -79,14 +79,6 @@ impl From<DraftId> for Uuid {
 
 /// An entity's web ID and UUID joined by `~`, followed by `~` and a draft ID when it names a draft.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "schemars",
-    derive(schemars::JsonSchema),
-    schemars(
-        with = "String",
-        example = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d"
-    )
-)]
 pub struct EntityId {
     pub web_id: WebId,
     pub entity_uuid: EntityUuid,

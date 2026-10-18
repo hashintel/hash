@@ -1975,17 +1975,12 @@ where
     }
 
     async fn get_entity_by_id(
-        &self,
+        &mut self,
         actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
     ) -> Result<Option<Entity>, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self, actor_id)
-            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
-            .await
-            .change_context(QueryError)?;
-
         let params = QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::TransactionTime {
@@ -1999,15 +1994,16 @@ where
                 paths: Vec::new(),
                 cursor: None,
             },
+            // At most one edition matches: both temporal axes resolve to a single point in time,
+            // and `include_drafts` is set only when `entity_id` names a draft, which the filter
+            // then pins. Including drafts for an ID without one would match its drafts as well.
             limit: 1,
             conversions: Vec::new(),
             include_entity_types: None,
             include_drafts: entity_id.draft_id.is_some(),
             include_permissions: false,
         };
-        let response = self
-            .read_entities_impl(&params, &params.temporal_axes.resolve(), &policy_components)
-            .await?;
+        let response = self.query_entities(actor_id, params).await?;
         Ok(response.entities.into_iter().next())
     }
 
