@@ -237,7 +237,7 @@ export const createSchema = (nodes: NodeSpecs) =>
       },
       highlighted: {
         toDOM: () => ["span", { style: "background-color: #ff8" }, 0],
-        parseDOM: [{ style: "background-color=#ff8" }],
+        parseDOM: [{ style: "background-color=rgb(255, 255, 136)" }],
       },
       link: {
         attrs: {
@@ -267,7 +267,7 @@ export const createSchema = (nodes: NodeSpecs) =>
   });
 
 export const isComponentNodeType = (nodeType: NodeType) =>
-  nodeType.groups?.includes(componentNodeGroupName) ?? false;
+  nodeType.isInGroup(componentNodeGroupName);
 
 export const isComponentNode = (node: Node): node is ComponentNode =>
   isComponentNodeType(node.type);
@@ -345,8 +345,14 @@ export const mutateSchema = (
       delete loadingType.spec.group;
     }
 
-    loadingType.groups!.splice(
-      loadingType.groups!.indexOf(componentNodeGroupName),
+    /**
+     * `NodeType#groups` exists at runtime but prosemirror-model marks it
+     * internal, so its type declarations omit it.
+     */
+    const loadingTypeGroups = (loadingType as unknown as { groups: string[] })
+      .groups;
+    loadingTypeGroups.splice(
+      loadingTypeGroups.indexOf(componentNodeGroupName),
       1,
     );
   }

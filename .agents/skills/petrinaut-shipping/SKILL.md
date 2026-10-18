@@ -2,16 +2,6 @@
 name: petrinaut-shipping
 description: "End-to-end procedure for shipping a change to the Petrinaut packages (libs/@hashintel/petrinaut, petrinaut-core, petrinaut-cli, apps/petrinaut-opt, apps/petrinaut-website): the verification gates per package, the changeset step, docs sync, pre-PR hygiene checks, and CI expectations from draft to ready. Use when implementing any change in these packages, when creating a PR for Petrinaut work, when running tests or lints for them, or when checking CI on a Petrinaut PR."
 license: Apache-2.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - petrinaut
-    intent-patterns:
-      - "\\b(implement|create|fix|add|ship|change)\\b.*?\\bpetrinaut\\b"
-      - "\\bpetrinaut\\b.*?\\b(PR|tests?|lint|CI|checks?)\\b"
 ---
 
 # Shipping a Petrinaut change

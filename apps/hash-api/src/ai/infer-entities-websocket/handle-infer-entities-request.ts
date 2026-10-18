@@ -43,7 +43,7 @@ export const handleInferEntitiesRequest = async ({
     payload: { webId, ...flowInputs },
   } = message;
 
-  const { flowDefinition, flowDefinitionId } =
+  const { flowDefinitionId } =
     message.type === "manual-inference-request"
       ? manualBrowserInferenceFlow
       : automaticBrowserInferenceFlow;
@@ -93,7 +93,6 @@ export const handleInferEntitiesRequest = async ({
             },
           },
         },
-        flowDefinition,
         flowDefinitionId,
         flowInputs,
         userAuthentication: { actorId: user.accountId },

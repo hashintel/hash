@@ -69,6 +69,9 @@ import type {
   BatchOutgoingLinksByLinkEntityTypeId,
   BatchProperties,
   BatchPropertiesWithMetadata,
+  BatchStoredAtLink,
+  BlockedStockPropertyValue,
+  BlockedStockPropertyValueWithMetadata,
   CADDataType,
   CADDataTypeWithMetadata,
   CDFDataType,
@@ -117,8 +120,6 @@ import type {
   DateDataTypeWithMetadata,
   DaysDataType,
   DaysDataTypeWithMetadata,
-  DebitCreditIndicatorPropertyValue,
-  DebitCreditIndicatorPropertyValueWithMetadata,
   DeliveredQuantityPropertyValue,
   DeliveredQuantityPropertyValueWithMetadata,
   Delivers,
@@ -449,6 +450,8 @@ import type {
   PurchasingOrganizationPropertyValueWithMetadata,
   QARDataType,
   QARDataTypeWithMetadata,
+  QualityInspectionStockPropertyValue,
+  QualityInspectionStockPropertyValueWithMetadata,
   RONDataType,
   RONDataTypeWithMetadata,
   RSDDataType,
@@ -463,6 +466,8 @@ import type {
   RejectionReasonPropertyValueWithMetadata,
   ReleaseDatePropertyValue,
   ReleaseDatePropertyValueWithMetadata,
+  RestrictedUseStockPropertyValue,
+  RestrictedUseStockPropertyValueWithMetadata,
   SARDataType,
   SARDataTypeWithMetadata,
   SBDDataType,
@@ -533,12 +538,21 @@ import type {
   StatisticsRelevantDeliveryDatePropertyValueWithMetadata,
   StatusPropertyValue,
   StatusPropertyValueWithMetadata,
+  StockDirectionDataType,
+  StockDirectionDataTypeWithMetadata,
+  StockDirectionPropertyValue,
+  StockDirectionPropertyValueWithMetadata,
   StockQuantityPropertyValue,
   StockQuantityPropertyValueWithMetadata,
   StorageBinPropertyValue,
   StorageBinPropertyValueWithMetadata,
   StorageLocationPropertyValue,
   StorageLocationPropertyValueWithMetadata,
+  StoredAt,
+  StoredAtOutgoingLinkAndTarget,
+  StoredAtOutgoingLinksByLinkEntityTypeId,
+  StoredAtProperties,
+  StoredAtPropertiesWithMetadata,
   StreetAddressPropertyValue,
   StreetAddressPropertyValueWithMetadata,
   THBDataType,
@@ -615,7 +629,11 @@ import type {
   ZWGDataType,
   ZWGDataTypeWithMetadata,
 } from "./shared.js";
-import type { ObjectMetadata } from "@blockprotocol/type-system";
+import type {
+  Confidence,
+  ObjectMetadata,
+  PropertyProvenance,
+} from "@blockprotocol/type-system";
 
 export type {
   ActualFinishDatePropertyValue,
@@ -656,6 +674,7 @@ export type {
   BatchOutgoingLinksByLinkEntityTypeId,
   BatchProperties,
   BatchPropertiesWithMetadata,
+  BatchStoredAtLink,
   BBDDataType,
   BBDDataTypeWithMetadata,
   BDTDataType,
@@ -666,6 +685,8 @@ export type {
   BHDDataTypeWithMetadata,
   BIFDataType,
   BIFDataTypeWithMetadata,
+  BlockedStockPropertyValue,
+  BlockedStockPropertyValueWithMetadata,
   BMDDataType,
   BMDDataTypeWithMetadata,
   BNDDataType,
@@ -724,8 +745,6 @@ export type {
   DateDataTypeWithMetadata,
   DaysDataType,
   DaysDataTypeWithMetadata,
-  DebitCreditIndicatorPropertyValue,
-  DebitCreditIndicatorPropertyValueWithMetadata,
   DeliveredQuantityPropertyValue,
   DeliveredQuantityPropertyValueWithMetadata,
   Delivers,
@@ -1064,12 +1083,16 @@ export type {
   PYGDataTypeWithMetadata,
   QARDataType,
   QARDataTypeWithMetadata,
+  QualityInspectionStockPropertyValue,
+  QualityInspectionStockPropertyValueWithMetadata,
   RegionPropertyValue,
   RegionPropertyValueWithMetadata,
   RejectionReasonPropertyValue,
   RejectionReasonPropertyValueWithMetadata,
   ReleaseDatePropertyValue,
   ReleaseDatePropertyValueWithMetadata,
+  RestrictedUseStockPropertyValue,
+  RestrictedUseStockPropertyValueWithMetadata,
   RONDataType,
   RONDataTypeWithMetadata,
   RSDDataType,
@@ -1142,12 +1165,21 @@ export type {
   StatusPropertyValueWithMetadata,
   STNDataType,
   STNDataTypeWithMetadata,
+  StockDirectionDataType,
+  StockDirectionDataTypeWithMetadata,
+  StockDirectionPropertyValue,
+  StockDirectionPropertyValueWithMetadata,
   StockQuantityPropertyValue,
   StockQuantityPropertyValueWithMetadata,
   StorageBinPropertyValue,
   StorageBinPropertyValueWithMetadata,
   StorageLocationPropertyValue,
   StorageLocationPropertyValueWithMetadata,
+  StoredAt,
+  StoredAtOutgoingLinkAndTarget,
+  StoredAtOutgoingLinksByLinkEntityTypeId,
+  StoredAtProperties,
+  StoredAtPropertiesWithMetadata,
   StreetAddressPropertyValue,
   StreetAddressPropertyValueWithMetadata,
   SVCDataType,
@@ -1290,13 +1322,12 @@ export type MaterialDocumentPostedAgainstLink = {
 export type MaterialDocumentProperties = {
   "https://hash.ai/@h/types/property-type/batch-number/"?: BatchNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/customer-number/"?: CustomerNumberPropertyValue;
-  "https://hash.ai/@h/types/property-type/debit-credit-indicator/"?: DebitCreditIndicatorPropertyValue;
   "https://hash.ai/@h/types/property-type/delivery-item-number/"?: DeliveryItemNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/delivery-number/"?: DeliveryNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/document-date/"?: DocumentDatePropertyValue;
   "https://hash.ai/@h/types/property-type/fiscal-year/"?: FiscalYearPropertyValue;
   "https://hash.ai/@h/types/property-type/material-document-item-number/"?: MaterialDocumentItemNumberPropertyValue;
-  "https://hash.ai/@h/types/property-type/material-document-number/"?: MaterialDocumentNumberPropertyValue;
+  "https://hash.ai/@h/types/property-type/material-document-number/": MaterialDocumentNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/movement-category/"?: MovementCategoryPropertyValue;
   "https://hash.ai/@h/types/property-type/movement-quantity/"?: MovementQuantityPropertyValue;
   "https://hash.ai/@h/types/property-type/movement-type/"?: MovementTypePropertyValue;
@@ -1305,6 +1336,7 @@ export type MaterialDocumentProperties = {
   "https://hash.ai/@h/types/property-type/purchase-order-item-number/"?: PurchaseOrderItemNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/purchase-order-number/"?: PurchaseOrderNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/reference-document-number/"?: ReferenceDocumentNumberPropertyValue;
+  "https://hash.ai/@h/types/property-type/stock-direction/"?: StockDirectionPropertyValue;
   "https://hash.ai/@h/types/property-type/stock-type/"?: StockTypePropertyValue;
   "https://hash.ai/@h/types/property-type/storage-location/"?: StorageLocationPropertyValue;
   "https://hash.ai/@h/types/property-type/unit-of-measure/"?: UnitOfMeasurePropertyValue;
@@ -1316,13 +1348,12 @@ export type MaterialDocumentPropertiesWithMetadata = {
   value: {
     "https://hash.ai/@h/types/property-type/batch-number/"?: BatchNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/customer-number/"?: CustomerNumberPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/debit-credit-indicator/"?: DebitCreditIndicatorPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/delivery-item-number/"?: DeliveryItemNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/delivery-number/"?: DeliveryNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/document-date/"?: DocumentDatePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/fiscal-year/"?: FiscalYearPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/material-document-item-number/"?: MaterialDocumentItemNumberPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/material-document-number/"?: MaterialDocumentNumberPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/material-document-number/": MaterialDocumentNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/movement-category/"?: MovementCategoryPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/movement-quantity/"?: MovementQuantityPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/movement-type/"?: MovementTypePropertyValueWithMetadata;
@@ -1331,6 +1362,7 @@ export type MaterialDocumentPropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/purchase-order-item-number/"?: PurchaseOrderItemNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/purchase-order-number/"?: PurchaseOrderNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/reference-document-number/"?: ReferenceDocumentNumberPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/stock-direction/"?: StockDirectionPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/stock-type/"?: StockTypePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/storage-location/"?: StorageLocationPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/unit-of-measure/"?: UnitOfMeasurePropertyValueWithMetadata;
@@ -1346,17 +1378,57 @@ export type MaterialDocumentRecordsLink = {
 /**
  * A broad category of goods movement.
  */
-export type MovementCategoryPropertyValue = TextDataType;
+export type MovementCategoryDataType =
+  | "Goods Receipt"
+  | "Goods Issue"
+  | "Transfer";
+
+export type MovementCategoryDataTypeWithMetadata = {
+  value: MovementCategoryDataType;
+  metadata: MovementCategoryDataTypeMetadata;
+};
+export type MovementCategoryDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/movement-category/v/1";
+};
+
+/**
+ * A broad category of goods movement.
+ */
+export type MovementCategoryPropertyValue = MovementCategoryDataType;
 
 export type MovementCategoryPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+  MovementCategoryDataTypeWithMetadata;
 
 /**
  * The quantity recorded on a movement or document line.
  */
 export type MovementQuantityPropertyValue = KilogramsDataType;
+
 export type MovementQuantityPropertyValueWithMetadata =
-  KilogramsDataTypeWithMetadata;
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;
 
 /**
  * The type of a goods movement, such as a goods receipt, goods issue, or transfer.

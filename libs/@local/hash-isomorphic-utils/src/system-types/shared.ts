@@ -658,31 +658,30 @@ export type BatchOfMaterialLink = {
   rightEntity: Material;
 };
 
-export type BatchOutgoingLinkAndTarget = BatchOfMaterialLink;
+export type BatchOutgoingLinkAndTarget =
+  | BatchOfMaterialLink
+  | BatchStoredAtLink;
 
 export type BatchOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@h/types/entity-type/of-material/v/1": BatchOfMaterialLink;
+  "https://hash.ai/@h/types/entity-type/stored-at/v/1": BatchStoredAtLink;
 };
 
 /**
  * A specific lot of a material, tracked through production, storage, and movement.
  */
 export type BatchProperties = {
-  "https://hash.ai/@h/types/property-type/batch-number/"?: BatchNumberPropertyValue;
-  "https://hash.ai/@h/types/property-type/expiry-date/"?: ExpiryDatePropertyValue;
-  "https://hash.ai/@h/types/property-type/stock-quantity/"?: StockQuantityPropertyValue;
-  "https://hash.ai/@h/types/property-type/unit-of-measure/"?: UnitOfMeasurePropertyValue;
+  "https://hash.ai/@h/types/property-type/batch-number/": BatchNumberPropertyValue;
 };
 
 export type BatchPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@h/types/property-type/batch-number/"?: BatchNumberPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/expiry-date/"?: ExpiryDatePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/stock-quantity/"?: StockQuantityPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/unit-of-measure/"?: UnitOfMeasurePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/batch-number/": BatchNumberPropertyValueWithMetadata;
   };
 };
+
+export type BatchStoredAtLink = { linkEntity: StoredAt; rightEntity: Site };
 
 /**
  * A component line within a bill of materials.
@@ -790,6 +789,35 @@ export type BlockPropertiesWithMetadata = {
 };
 
 /**
+ * The quantity of stock blocked from use.
+ */
+export type BlockedStockPropertyValue = KilogramsDataType;
+
+export type BlockedStockPropertyValueWithMetadata =
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;
+
+/**
  * A True or False value
  */
 export type BooleanDataType = boolean;
@@ -861,21 +889,6 @@ export type BytesDataTypeMetadata = {
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1";
 };
-
-/**
- * Configuration options for rendering a chart.
- */
-export type ChartConfigurationPropertyValue = ObjectDataType;
-
-export type ChartConfigurationPropertyValueWithMetadata =
-  ObjectDataTypeWithMetadata;
-
-/**
- * A type of data visualization chart.
- */
-export type ChartTypePropertyValue = TextDataType;
-
-export type ChartTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * An amount denominated in Canadian Dollar (ISO 4217 CAD).
@@ -1058,6 +1071,21 @@ export type CentimetersDataTypeMetadata = {
 };
 
 /**
+ * Configuration options for rendering a chart.
+ */
+export type ChartConfigurationPropertyValue = ObjectDataType;
+
+export type ChartConfigurationPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
+
+/**
+ * A type of data visualization chart.
+ */
+export type ChartTypePropertyValue = TextDataType;
+
+export type ChartTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
  * The city where something is located, occurred, etc.
  */
 export type CityPropertyValue = TextDataType;
@@ -1158,20 +1186,41 @@ export type ComponentIdPropertyValue = TextDataType;
 export type ComponentIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * The quantity of a component required by a bill of materials.
+ */
+export type ComponentQuantityPropertyValue = KilogramsDataType;
+
+export type ComponentQuantityPropertyValueWithMetadata =
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;
+
+/**
  * The status of a configuration process.
  */
 export type ConfigurationStatusPropertyValue = TextDataType;
 
 export type ConfigurationStatusPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
-
-/**
- * The quantity of a component required by a bill of materials.
- */
-export type ComponentQuantityPropertyValue = KilogramsDataType;
-
-export type ComponentQuantityPropertyValueWithMetadata =
-  KilogramsDataTypeWithMetadata;
 
 /**
  * The name of the connection source.
@@ -1263,30 +1312,34 @@ export type CustomerOutgoingLinksByLinkEntityTypeId = {};
 /**
  * An organisation or individual that purchases goods or services.
  */
-export type CustomerProperties = PersonProperties &
-  CompanyProperties & {
-    "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValue;
-    "https://hash.ai/@h/types/property-type/country/"?: CountryPropertyValue;
-    "https://hash.ai/@h/types/property-type/customer-number/"?: CustomerNumberPropertyValue;
-    "https://hash.ai/@h/types/property-type/industry/"?: IndustryPropertyValue;
-    "https://hash.ai/@h/types/property-type/postal-code/"?: PostalCodePropertyValue;
-    "https://hash.ai/@h/types/property-type/region/"?: RegionPropertyValue;
-    "https://hash.ai/@h/types/property-type/street-address/"?: StreetAddressPropertyValue;
-  };
+export type CustomerProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValue;
+  "https://hash.ai/@h/types/property-type/company-number/"?: CompanyNumberPropertyValue;
+  "https://hash.ai/@h/types/property-type/country/"?: CountryPropertyValue;
+  "https://hash.ai/@h/types/property-type/customer-number/"?: CustomerNumberPropertyValue;
+  "https://hash.ai/@h/types/property-type/industry/"?: IndustryPropertyValue;
+  "https://hash.ai/@h/types/property-type/postal-code/"?: PostalCodePropertyValue;
+  "https://hash.ai/@h/types/property-type/region/"?: RegionPropertyValue;
+  "https://hash.ai/@h/types/property-type/street-address/"?: StreetAddressPropertyValue;
+};
 
-export type CustomerPropertiesWithMetadata = PersonPropertiesWithMetadata &
-  CompanyPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {
-      "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/country/"?: CountryPropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/customer-number/"?: CustomerNumberPropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/industry/"?: IndustryPropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/postal-code/"?: PostalCodePropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/region/"?: RegionPropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/street-address/"?: StreetAddressPropertyValueWithMetadata;
-    };
+export type CustomerPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/company-number/"?: CompanyNumberPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/country/"?: CountryPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/customer-number/"?: CustomerNumberPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/industry/"?: IndustryPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/postal-code/"?: PostalCodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/region/"?: RegionPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/street-address/"?: StreetAddressPropertyValueWithMetadata;
   };
+};
 
 /**
  * A reference provided by the customer, such as their own purchase order number.
@@ -1356,6 +1409,36 @@ export type DOIPropertyValue = DOIDataType;
 export type DOIPropertyValueWithMetadata = DOIDataTypeWithMetadata;
 
 /**
+ * An amount denominated in Dominican Peso (ISO 4217 DOP).
+ */
+export type DOPDataType = CurrencyDataType;
+
+export type DOPDataTypeWithMetadata = {
+  value: DOPDataType;
+  metadata: DOPDataTypeMetadata;
+};
+export type DOPDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/dop/v/1";
+};
+
+/**
+ * An amount denominated in Algerian Dinar (ISO 4217 DZD).
+ */
+export type DZDDataType = CurrencyDataType;
+
+export type DZDDataTypeWithMetadata = {
+  value: DZDDataType;
+  metadata: DZDDataTypeMetadata;
+};
+export type DZDDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/dzd/v/1";
+};
+
+/**
  * A visualization item within a dashboard.
  */
 export type DashboardItem = {
@@ -1397,43 +1480,6 @@ export type DashboardItemPropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/structural-query/"?: StructuralQueryPropertyValueWithMetadata;
   };
 };
-
-/**
- * An amount denominated in Dominican Peso (ISO 4217 DOP).
- */
-export type DOPDataType = CurrencyDataType;
-
-export type DOPDataTypeWithMetadata = {
-  value: DOPDataType;
-  metadata: DOPDataTypeMetadata;
-};
-export type DOPDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/dop/v/1";
-};
-
-/**
- * An amount denominated in Algerian Dinar (ISO 4217 DZD).
- */
-export type DZDDataType = CurrencyDataType;
-
-export type DZDDataTypeWithMetadata = {
-  value: DZDDataType;
-  metadata: DZDDataTypeMetadata;
-};
-export type DZDDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/dzd/v/1";
-};
-
-/**
- * The data sources configuration for an AI flow.
- */
-export type DataSourcesPropertyValue = ObjectDataType;
-
-export type DataSourcesPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
 
 /**
  * A reference to a particular day represented within a calendar system, formatted according to RFC 3339.
@@ -1481,14 +1527,6 @@ export type DaysDataTypeMetadata = {
 };
 
 /**
- * Indicates whether a posting is a debit or a credit.
- */
-export type DebitCreditIndicatorPropertyValue = TextDataType;
-
-export type DebitCreditIndicatorPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
-
-/**
  * Stringified timestamp of when something was deleted.
  */
 export type DeletedAtPropertyValue = DateTimeDataType;
@@ -1509,7 +1547,28 @@ export type DeletionIndicatorPropertyValueWithMetadata =
 export type DeliveredQuantityPropertyValue = KilogramsDataType;
 
 export type DeliveredQuantityPropertyValueWithMetadata =
-  KilogramsDataTypeWithMetadata;
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;
 
 /**
  * Something delivered by something.
@@ -1653,7 +1712,7 @@ export type DeliveryOutgoingLinksByLinkEntityTypeId = {
  */
 export type DeliveryProperties = {
   "https://hash.ai/@h/types/property-type/actual-goods-issue-date/"?: ActualGoodsIssueDatePropertyValue;
-  "https://hash.ai/@h/types/property-type/delivery-number/"?: DeliveryNumberPropertyValue;
+  "https://hash.ai/@h/types/property-type/delivery-number/": DeliveryNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/delivery-type/"?: DeliveryTypePropertyValue;
   "https://hash.ai/@h/types/property-type/incoterms/"?: IncotermsPropertyValue;
   "https://hash.ai/@h/types/property-type/picking-date/"?: PickingDatePropertyValue;
@@ -1667,7 +1726,7 @@ export type DeliveryPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@h/types/property-type/actual-goods-issue-date/"?: ActualGoodsIssueDatePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/delivery-number/"?: DeliveryNumberPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/delivery-number/": DeliveryNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/delivery-type/"?: DeliveryTypePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/incoterms/"?: IncotermsPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/picking-date/"?: PickingDatePropertyValueWithMetadata;
@@ -1914,18 +1973,11 @@ export type ExpiredAtPropertyValue = DateTimeDataType;
 export type ExpiredAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
- * The date on which a batch expires or is no longer usable.
+ * The date on which a batch's shelf life expires.
  */
 export type ExpiryDatePropertyValue = DateDataType;
 
 export type ExpiryDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
-
-/**
- * An explanation or justification for something.
- */
-export type ExplanationPropertyValue = TextDataType;
-
-export type ExplanationPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * An amount denominated in Fiji Dollar (ISO 4217 FJD).
@@ -2133,18 +2185,10 @@ export type FixedQuantityIndicatorPropertyValueWithMetadata =
  * The definition of a HASH flow.
  */
 export type FlowDefinition = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-definition/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-definition/v/2"];
   properties: FlowDefinitionProperties;
   propertiesWithMetadata: FlowDefinitionPropertiesWithMetadata;
 };
-
-/**
- * The ID of a flow definition.
- */
-export type FlowDefinitionIDPropertyValue = TextDataType;
-
-export type FlowDefinitionIDPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
 
 export type FlowDefinitionOutgoingLinkAndTarget = never;
 
@@ -2156,9 +2200,9 @@ export type FlowDefinitionOutgoingLinksByLinkEntityTypeId = {};
 export type FlowDefinitionProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
-  "https://hash.ai/@h/types/property-type/output-definitions/": OutputDefinitionsPropertyValue;
-  "https://hash.ai/@h/types/property-type/step-definitions/": StepDefinitionsPropertyValue;
-  "https://hash.ai/@h/types/property-type/trigger-definition/": TriggerDefinitionPropertyValue;
+  "https://hash.ai/@h/types/property-type/input-definition/": InputDefinitionPropertyValue[];
+  "https://hash.ai/@h/types/property-type/output-definition/": OutputDefinitionPropertyValue[];
+  "https://hash.ai/@h/types/property-type/step-definition/": StepDefinitionPropertyValue[];
 };
 
 export type FlowDefinitionPropertiesWithMetadata = {
@@ -2166,9 +2210,18 @@ export type FlowDefinitionPropertiesWithMetadata = {
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/output-definitions/": OutputDefinitionsPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/step-definitions/": StepDefinitionsPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/trigger-definition/": TriggerDefinitionPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/input-definition/": {
+      value: InputDefinitionPropertyValueWithMetadata[];
+      metadata?: ArrayMetadata;
+    };
+    "https://hash.ai/@h/types/property-type/output-definition/": {
+      value: OutputDefinitionPropertyValueWithMetadata[];
+      metadata?: ArrayMetadata;
+    };
+    "https://hash.ai/@h/types/property-type/step-definition/": {
+      value: StepDefinitionPropertyValueWithMetadata[];
+      metadata?: ArrayMetadata;
+    };
   };
 };
 
@@ -2176,17 +2229,17 @@ export type FlowDefinitionPropertiesWithMetadata = {
  * An execution run of a flow.
  */
 export type FlowRun = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-run/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-run/v/2"];
   properties: FlowRunProperties;
   propertiesWithMetadata: FlowRunPropertiesWithMetadata;
 };
 
 export type FlowRunOutgoingLinkAndTarget =
-  | FlowRunScheduledByLink
+  | FlowRunTriggeredByLink
   | FlowRunUsesLink;
 
 export type FlowRunOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@h/types/entity-type/scheduled-by/v/1": FlowRunScheduledByLink;
+  "https://hash.ai/@h/types/entity-type/triggered-by/v/1": FlowRunTriggeredByLink;
   "https://hash.ai/@h/types/entity-type/uses/v/1": FlowRunUsesLink;
 };
 
@@ -2195,10 +2248,9 @@ export type FlowRunOutgoingLinksByLinkEntityTypeId = {
  */
 export type FlowRunProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
-  "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
+  "https://hash.ai/@h/types/property-type/inputs/": InputsPropertyValue;
   "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValue;
-  "https://hash.ai/@h/types/property-type/step/": StepPropertyValue;
-  "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValue;
+  "https://hash.ai/@h/types/property-type/step/"?: StepPropertyValue;
   "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValue;
 };
 
@@ -2206,96 +2258,53 @@ export type FlowRunPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/inputs/": InputsPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/step/": StepPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/step/"?: StepPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValueWithMetadata;
   };
 };
 
-export type FlowRunScheduledByLink = {
-  linkEntity: ScheduledBy;
-  rightEntity: FlowSchedule;
+export type FlowRunTriggeredByLink = {
+  linkEntity: TriggeredBy;
+  rightEntity: FlowTrigger;
 };
 
 export type FlowRunUsesLink = { linkEntity: Uses; rightEntity: FlowDefinition };
 
 /**
- * A schedule that triggers recurring executions of a flow definition.
+ * Something that starts runs of a flow, giving values for its inputs.
  */
-export type FlowSchedule = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-schedule/v/1"];
-  properties: FlowScheduleProperties;
-  propertiesWithMetadata: FlowSchedulePropertiesWithMetadata;
+export type FlowTrigger = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-trigger/v/1"];
+  properties: FlowTriggerProperties;
+  propertiesWithMetadata: FlowTriggerPropertiesWithMetadata;
 };
 
-export type FlowScheduleOutgoingLinkAndTarget = FlowScheduleUsesLink;
+export type FlowTriggerOutgoingLinkAndTarget = FlowTriggerUsesLink;
 
-export type FlowScheduleOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@h/types/entity-type/uses/v/1": FlowScheduleUsesLink;
+export type FlowTriggerOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@h/types/entity-type/uses/v/1": FlowTriggerUsesLink;
 };
 
 /**
- * A schedule that triggers recurring executions of a flow definition.
+ * Something that starts runs of a flow, giving values for its inputs.
  */
-export type FlowScheduleProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
-  "https://hash.ai/@h/types/property-type/data-sources/"?: DataSourcesPropertyValue;
-  "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
-  "https://hash.ai/@h/types/property-type/flow-type/": FlowTypePropertyValue;
-  "https://hash.ai/@h/types/property-type/pause-on-failure/"?: PauseOnFailurePropertyValue;
-  "https://hash.ai/@h/types/property-type/schedule-catchup-window/"?: ScheduleCatchupWindowPropertyValue;
-  "https://hash.ai/@h/types/property-type/schedule-overlap-policy/": ScheduleOverlapPolicyPropertyValue;
-  "https://hash.ai/@h/types/property-type/schedule-pause-state/"?: SchedulePauseStatePropertyValue;
-  "https://hash.ai/@h/types/property-type/schedule-spec/": ScheduleSpecPropertyValue;
-  "https://hash.ai/@h/types/property-type/schedule-status/": ScheduleStatusPropertyValue;
-  "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValue;
+export type FlowTriggerProperties = {
+  "https://hash.ai/@h/types/property-type/inputs/"?: InputsPropertyValue;
 };
 
-export type FlowSchedulePropertiesWithMetadata = {
+export type FlowTriggerPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/data-sources/"?: DataSourcesPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/flow-type/": FlowTypePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/pause-on-failure/"?: PauseOnFailurePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/schedule-catchup-window/"?: ScheduleCatchupWindowPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/schedule-overlap-policy/": ScheduleOverlapPolicyPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/schedule-pause-state/"?: SchedulePauseStatePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/schedule-spec/": ScheduleSpecPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/schedule-status/": ScheduleStatusPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/inputs/"?: InputsPropertyValueWithMetadata;
   };
 };
 
-export type FlowScheduleUsesLink = {
+export type FlowTriggerUsesLink = {
   linkEntity: Uses;
   rightEntity: FlowDefinition;
 };
-
-/**
- * The type of a flow, determining which task queue it runs on.
- */
-export type FlowTypeDataType = "ai" | "integration";
-
-export type FlowTypeDataTypeWithMetadata = {
-  value: FlowTypeDataType;
-  metadata: FlowTypeDataTypeMetadata;
-};
-export type FlowTypeDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/flow-type/v/1";
-};
-
-/**
- * The type of a flow, determining which task queue it runs on.
- */
-export type FlowTypePropertyValue = FlowTypeDataType;
-
-export type FlowTypePropertyValueWithMetadata = FlowTypeDataTypeWithMetadata;
 
 /**
  * The fractional index indicating the current position of something.
@@ -2303,20 +2312,6 @@ export type FlowTypePropertyValueWithMetadata = FlowTypeDataTypeWithMetadata;
 export type FractionalIndexPropertyValue = TextDataType;
 
 export type FractionalIndexPropertyValueWithMetadata = TextDataTypeWithMetadata;
-
-/**
- * A natural language description of the objective of something.
- */
-export type GoalPropertyValue = TextDataType;
-
-export type GoalPropertyValueWithMetadata = TextDataTypeWithMetadata;
-
-/**
- * The position and dimensions of an item within a grid layout.
- */
-export type GridPositionPropertyValue = ObjectDataType;
-
-export type GridPositionPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
 
 /**
  * Something that something fulfills.
@@ -2462,6 +2457,13 @@ export type GYDDataTypeMetadata = {
 };
 
 /**
+ * A natural language description of the objective of something.
+ */
+export type GoalPropertyValue = TextDataType;
+
+export type GoalPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
  * The quantity received against an order or schedule line.
  */
 export type GoodsReceiptQuantityPropertyValue = KilogramsDataType;
@@ -2504,6 +2506,13 @@ export type GramsDataTypeMetadata = {
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@h/types/data-type/grams/v/1";
 };
+
+/**
+ * The position and dimensions of an item within a grid layout.
+ */
+export type GridPositionPropertyValue = ObjectDataType;
+
+export type GridPositionPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
 
 /**
  * The total weight of an object including its packaging or container.
@@ -3112,11 +3121,29 @@ export type InformationDataTypeMetadata = {
 };
 
 /**
+ * The definition of an input to something.
+ */
+export type InputDefinitionPropertyValue = ObjectDataType;
+
+export type InputDefinitionPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
+
+/**
  * The cost of an input unit
  */
 export type InputUnitCostPropertyValue = NumberDataType;
 
 export type InputUnitCostPropertyValueWithMetadata = NumberDataTypeWithMetadata;
+
+/**
+ * The inputs given to something.
+ */
+export type InputsPropertyValue = ObjectDataType[];
+
+export type InputsPropertyValueWithMetadata = {
+  value: ObjectDataTypeWithMetadata[];
+  metadata?: ArrayMetadata;
+};
 
 /**
  * An organization dedicated to a specific purpose, such as education, research, or public service, and structured with formal systems of governance and operation.
@@ -4006,7 +4033,7 @@ export type MaterialOutgoingLinksByLinkEntityTypeId = {};
  */
 export type MaterialProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/name/"?: NamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
   "https://hash.ai/@h/types/property-type/division/"?: DivisionPropertyValue;
   "https://hash.ai/@h/types/property-type/gross-weight/"?: GrossWeightPropertyValue;
   "https://hash.ai/@h/types/property-type/item-category-group/"?: ItemCategoryGroupPropertyValue;
@@ -4025,7 +4052,7 @@ export type MaterialPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
-    "https://blockprotocol.org/@blockprotocol/types/property-type/name/"?: NamePropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/division/"?: DivisionPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/gross-weight/"?: GrossWeightPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/item-category-group/"?: ItemCategoryGroupPropertyValueWithMetadata;
@@ -4143,21 +4170,6 @@ export type MillimetersDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@h/types/data-type/millimeters/v/1";
-};
-
-/**
- * A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000 of a second.
- */
-export type MillisecondDataType = DurationDataType;
-
-export type MillisecondDataTypeWithMetadata = {
-  value: MillisecondDataType;
-  metadata: MillisecondDataTypeMetadata;
-};
-export type MillisecondDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/1";
 };
 
 /**
@@ -4582,11 +4594,15 @@ export type OfMaterialOutgoingLinksByLinkEntityTypeId = {};
 /**
  * The material that something is made up of.
  */
-export type OfMaterialProperties = LinkProperties & {};
+export type OfMaterialProperties = LinkProperties & {
+  "https://hash.ai/@h/types/property-type/expiry-date/"?: ExpiryDatePropertyValue;
+};
 
 export type OfMaterialPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
-  value: {};
+  value: {
+    "https://hash.ai/@h/types/property-type/expiry-date/"?: ExpiryDatePropertyValueWithMetadata;
+  };
 };
 
 /**
@@ -4602,7 +4618,28 @@ export type OrderDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
 export type OrderQuantityPropertyValue = KilogramsDataType;
 
 export type OrderQuantityPropertyValueWithMetadata =
-  KilogramsDataTypeWithMetadata;
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;
 
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
@@ -4731,14 +4768,12 @@ export type OriginalURLPropertyValue = URIDataType;
 export type OriginalURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
- * The output definitions of something.
+ * The definition of an output of something.
  */
-export type OutputDefinitionsPropertyValue = ObjectDataType[];
+export type OutputDefinitionPropertyValue = ObjectDataType;
 
-export type OutputDefinitionsPropertyValueWithMetadata = {
-  value: ObjectDataTypeWithMetadata[];
-  metadata?: ArrayMetadata;
-};
+export type OutputDefinitionPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
 
 /**
  * The cost of an output unit
@@ -4902,21 +4937,6 @@ export type PagePropertiesWithMetadata =
       "https://hash.ai/@h/types/property-type/title/": TitlePropertyValueWithMetadata;
     };
   };
-
-/**
- * Whether to automatically pause something when it fails.
- */
-export type PauseOnFailurePropertyValue = BooleanDataType;
-
-export type PauseOnFailurePropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
-
-/**
- * The timestamp at which something was paused.
- */
-export type PausedAtPropertyValue = DateTimeDataType;
-
-export type PausedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * A measure of the proportion of a whole.
@@ -5194,7 +5214,7 @@ export type ProductionOrderProperties = {
   "https://hash.ai/@h/types/property-type/actual-finish-date/"?: ActualFinishDatePropertyValue;
   "https://hash.ai/@h/types/property-type/actual-start-date/"?: ActualStartDatePropertyValue;
   "https://hash.ai/@h/types/property-type/alternative-bom/"?: AlternativeBOMPropertyValue;
-  "https://hash.ai/@h/types/property-type/production-order-number/"?: ProductionOrderNumberPropertyValue;
+  "https://hash.ai/@h/types/property-type/production-order-number/": ProductionOrderNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/production-order-type/"?: ProductionOrderTypePropertyValue;
   "https://hash.ai/@h/types/property-type/release-date/"?: ReleaseDatePropertyValue;
   "https://hash.ai/@h/types/property-type/scheduled-finish-date/"?: ScheduledFinishDatePropertyValue;
@@ -5207,7 +5227,7 @@ export type ProductionOrderPropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/actual-finish-date/"?: ActualFinishDatePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/actual-start-date/"?: ActualStartDatePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/alternative-bom/"?: AlternativeBOMPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/production-order-number/"?: ProductionOrderNumberPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/production-order-number/": ProductionOrderNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/production-order-type/"?: ProductionOrderTypePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/release-date/"?: ReleaseDatePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/scheduled-finish-date/"?: ScheduledFinishDatePropertyValueWithMetadata;
@@ -5234,7 +5254,28 @@ export type ProductionOrderYieldsLink = {
 export type ProductionQuantityPropertyValue = KilogramsDataType;
 
 export type ProductionQuantityPropertyValueWithMetadata =
-  KilogramsDataTypeWithMetadata;
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;
 
 /**
  * A biography for display on someone or something's profile.
@@ -5281,13 +5322,6 @@ export type PublicationYearPropertyValue = CalendarYearDataType;
 
 export type PublicationYearPropertyValueWithMetadata =
   CalendarYearDataTypeWithMetadata;
-
-/**
- * A script written in the Python programming language.
- */
-export type PythonScriptPropertyValue = TextDataType;
-
-export type PythonScriptPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A line item within a purchase order.
@@ -5410,6 +5444,13 @@ export type PurchasingOrganizationPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
 /**
+ * A script written in the Python programming language.
+ */
+export type PythonScriptPropertyValue = TextDataType;
+
+export type PythonScriptPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
  * An amount denominated in Qatari Rial (ISO 4217 QAR).
  */
 export type QARDataType = CurrencyDataType;
@@ -5423,6 +5464,35 @@ export type QARDataTypeMetadata = {
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@h/types/data-type/qar/v/1";
 };
+
+/**
+ * The quantity of stock held for quality inspection.
+ */
+export type QualityInspectionStockPropertyValue = KilogramsDataType;
+
+export type QualityInspectionStockPropertyValueWithMetadata =
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;
 
 /**
  * An amount denominated in Romanian Leu (ISO 4217 RON).
@@ -5534,6 +5604,35 @@ export type RequestedDeliveryDatePropertyValueWithMetadata =
 export type ResolvedAtPropertyValue = DateTimeDataType;
 
 export type ResolvedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
+
+/**
+ * The quantity of stock restricted from general use.
+ */
+export type RestrictedUseStockPropertyValue = KilogramsDataType;
+
+export type RestrictedUseStockPropertyValueWithMetadata =
+  | KilogramsDataTypeWithMetadata
+  | GramsDataTypeWithMetadata
+  | MetricTonnesDataTypeWithMetadata
+  | PoundsDataTypeWithMetadata
+  | LitresDataTypeWithMetadata
+  | MillilitresDataTypeWithMetadata
+  | CubicMetresDataTypeWithMetadata
+  | CubicFeetDataTypeWithMetadata
+  | MetersDataTypeWithMetadata
+  | CentimetersDataTypeWithMetadata
+  | MillimetersDataTypeWithMetadata
+  | KilometersDataTypeWithMetadata
+  | FeetDataTypeWithMetadata
+  | InchesDataTypeWithMetadata
+  | YardsDataTypeWithMetadata
+  | MilesDataTypeWithMetadata
+  | SquareMetresDataTypeWithMetadata
+  | SquareCentimetresDataTypeWithMetadata
+  | SquareFeetDataTypeWithMetadata
+  | HoursDataTypeWithMetadata
+  | DaysDataTypeWithMetadata
+  | UnitDataTypeWithMetadata;
 
 /**
  * The transport route or route code.
@@ -5873,7 +5972,7 @@ export type SalesOrderProperties = {
   "https://hash.ai/@h/types/property-type/order-date/"?: OrderDatePropertyValue;
   "https://hash.ai/@h/types/property-type/requested-delivery-date/"?: RequestedDeliveryDatePropertyValue;
   "https://hash.ai/@h/types/property-type/sales-document-type/"?: SalesDocumentTypePropertyValue;
-  "https://hash.ai/@h/types/property-type/sales-order-number/"?: SalesOrderNumberPropertyValue;
+  "https://hash.ai/@h/types/property-type/sales-order-number/": SalesOrderNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/sales-organization/"?: SalesOrganizationPropertyValue;
 };
 
@@ -5888,7 +5987,7 @@ export type SalesOrderPropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/order-date/"?: OrderDatePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/requested-delivery-date/"?: RequestedDeliveryDatePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/sales-document-type/"?: SalesDocumentTypePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/sales-order-number/"?: SalesOrderNumberPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/sales-order-number/": SalesOrderNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/sales-organization/"?: SalesOrganizationPropertyValueWithMetadata;
   };
 };
@@ -5902,116 +6001,12 @@ export type SalesOrganizationPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
 /**
- * How far back to catch up missed runs after downtime.
- */
-export type ScheduleCatchupWindowPropertyValue = MillisecondDataType;
-
-export type ScheduleCatchupWindowPropertyValueWithMetadata =
-  MillisecondDataTypeWithMetadata;
-
-/**
  * The number identifying a schedule line.
  */
 export type ScheduleLineNumberPropertyValue = TextDataType;
 
 export type ScheduleLineNumberPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
-
-/**
- * The policy for handling overlapping runs in a schedule when a new execution is due but the previous one is still running.
- */
-export type ScheduleOverlapPolicyDataType =
-  | "SKIP"
-  | "BUFFER_ONE"
-  | "ALLOW_ALL"
-  | "CANCEL_OTHER";
-
-export type ScheduleOverlapPolicyDataTypeWithMetadata = {
-  value: ScheduleOverlapPolicyDataType;
-  metadata: ScheduleOverlapPolicyDataTypeMetadata;
-};
-export type ScheduleOverlapPolicyDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/schedule-overlap-policy/v/1";
-};
-
-/**
- * The policy for handling overlapping runs when a new scheduled execution is due but the previous one is still running.
- */
-export type ScheduleOverlapPolicyPropertyValue = ScheduleOverlapPolicyDataType;
-
-export type ScheduleOverlapPolicyPropertyValueWithMetadata =
-  ScheduleOverlapPolicyDataTypeWithMetadata;
-
-/**
- * The state of a paused schedule, including when it was paused and an optional note.
- */
-export type SchedulePauseStatePropertyValue = {
-  "https://hash.ai/@h/types/property-type/explanation/"?: ExplanationPropertyValue;
-  "https://hash.ai/@h/types/property-type/paused-at/": PausedAtPropertyValue;
-};
-
-export type SchedulePauseStatePropertyValueWithMetadata = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@h/types/property-type/explanation/"?: ExplanationPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/paused-at/": PausedAtPropertyValueWithMetadata;
-  };
-};
-
-/**
- * The scheduling specification for a recurring flow.
- */
-export type ScheduleSpecPropertyValue = ObjectDataType;
-
-export type ScheduleSpecPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
-
-/**
- * The status of a schedule, indicating whether it is currently running or has been temporarily stopped.
- */
-export type ScheduleStatusDataType = "active" | "paused";
-
-export type ScheduleStatusDataTypeWithMetadata = {
-  value: ScheduleStatusDataType;
-  metadata: ScheduleStatusDataTypeMetadata;
-};
-export type ScheduleStatusDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/schedule-status/v/1";
-};
-
-/**
- * The current status of a schedule - either active or paused.
- */
-export type ScheduleStatusPropertyValue = ScheduleStatusDataType;
-
-export type ScheduleStatusPropertyValueWithMetadata =
-  ScheduleStatusDataTypeWithMetadata;
-
-/**
- * Something that was scheduled by something.
- */
-export type ScheduledBy = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/scheduled-by/v/1"];
-  properties: ScheduledByProperties;
-  propertiesWithMetadata: ScheduledByPropertiesWithMetadata;
-};
-
-export type ScheduledByOutgoingLinkAndTarget = never;
-
-export type ScheduledByOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * Something that was scheduled by something.
- */
-export type ScheduledByProperties = LinkProperties & {};
-
-export type ScheduledByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
-  metadata?: ObjectMetadata;
-  value: {};
-};
 
 /**
  * The date on which delivery is scheduled or promised.
@@ -6190,14 +6185,14 @@ export type ShipmentItemOutgoingLinksByLinkEntityTypeId = {
  */
 export type ShipmentItemProperties = {
   "https://hash.ai/@h/types/property-type/delivery-number/"?: DeliveryNumberPropertyValue;
-  "https://hash.ai/@h/types/property-type/shipment-item-number/"?: ShipmentItemNumberPropertyValue;
+  "https://hash.ai/@h/types/property-type/shipment-item-number/": ShipmentItemNumberPropertyValue;
 };
 
 export type ShipmentItemPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@h/types/property-type/delivery-number/"?: DeliveryNumberPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/shipment-item-number/"?: ShipmentItemNumberPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/shipment-item-number/": ShipmentItemNumberPropertyValueWithMetadata;
   };
 };
 
@@ -6252,7 +6247,7 @@ export type SiteProperties = {
   "https://hash.ai/@h/types/property-type/region/"?: RegionPropertyValue;
   "https://hash.ai/@h/types/property-type/sales-organization/"?: SalesOrganizationPropertyValue;
   "https://hash.ai/@h/types/property-type/shipping-point/"?: ShippingPointPropertyValue;
-  "https://hash.ai/@h/types/property-type/site-code/"?: SiteCodePropertyValue;
+  "https://hash.ai/@h/types/property-type/site-code/": SiteCodePropertyValue;
   "https://hash.ai/@h/types/property-type/site-type/"?: SiteTypePropertyValue;
   "https://hash.ai/@h/types/property-type/storage-bin/"?: StorageBinPropertyValue;
   "https://hash.ai/@h/types/property-type/storage-location/"?: StorageLocationPropertyValue;
@@ -6270,7 +6265,7 @@ export type SitePropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/region/"?: RegionPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/sales-organization/"?: SalesOrganizationPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/shipping-point/"?: ShippingPointPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/site-code/"?: SiteCodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/site-code/": SiteCodePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/site-type/"?: SiteTypePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/storage-bin/"?: StorageBinPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/storage-location/"?: StorageLocationPropertyValueWithMetadata;
@@ -6346,14 +6341,12 @@ export type StatusPropertyValue = TextDataType;
 export type StatusPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * The step definitions of a flow.
+ * The definition of a step in something.
  */
-export type StepDefinitionsPropertyValue = ObjectDataType[];
+export type StepDefinitionPropertyValue = ObjectDataType;
 
-export type StepDefinitionsPropertyValueWithMetadata = {
-  value: ObjectDataTypeWithMetadata[];
-  metadata?: ArrayMetadata;
-};
+export type StepDefinitionPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
 
 /**
  * A step in a flow run.
@@ -6366,15 +6359,30 @@ export type StepPropertyValueWithMetadata = {
 };
 
 /**
- * A HASH Graph API structural query.
+ * Whether stock is increased or decreased.
  */
-export type StructuralQueryPropertyValue = ObjectDataType;
+export type StockDirectionDataType = "Increase" | "Decrease";
 
-export type StructuralQueryPropertyValueWithMetadata =
-  ObjectDataTypeWithMetadata;
+export type StockDirectionDataTypeWithMetadata = {
+  value: StockDirectionDataType;
+  metadata: StockDirectionDataTypeMetadata;
+};
+export type StockDirectionDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/stock-direction/v/1";
+};
 
 /**
- * The quantity of stock on hand.
+ * Whether stock is increased or decreased.
+ */
+export type StockDirectionPropertyValue = StockDirectionDataType;
+
+export type StockDirectionPropertyValueWithMetadata =
+  StockDirectionDataTypeWithMetadata;
+
+/**
+ * The quantity of stock on hand and available for use.
  */
 export type StockQuantityPropertyValue = KilogramsDataType;
 
@@ -6417,11 +6425,52 @@ export type StorageLocationPropertyValue = TextDataType;
 export type StorageLocationPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * A site where a batch is held in stock, with the quantities on hand by stock type.
+ */
+export type StoredAt = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/stored-at/v/1"];
+  properties: StoredAtProperties;
+  propertiesWithMetadata: StoredAtPropertiesWithMetadata;
+};
+
+export type StoredAtOutgoingLinkAndTarget = never;
+
+export type StoredAtOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A site where a batch is held in stock, with the quantities on hand by stock type.
+ */
+export type StoredAtProperties = LinkProperties & {
+  "https://hash.ai/@h/types/property-type/blocked-stock/"?: BlockedStockPropertyValue;
+  "https://hash.ai/@h/types/property-type/quality-inspection-stock/"?: QualityInspectionStockPropertyValue;
+  "https://hash.ai/@h/types/property-type/restricted-use-stock/"?: RestrictedUseStockPropertyValue;
+  "https://hash.ai/@h/types/property-type/stock-quantity/"?: StockQuantityPropertyValue;
+};
+
+export type StoredAtPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/blocked-stock/"?: BlockedStockPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/quality-inspection-stock/"?: QualityInspectionStockPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/restricted-use-stock/"?: RestrictedUseStockPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/stock-quantity/"?: StockQuantityPropertyValueWithMetadata;
+  };
+};
+
+/**
  * The street name and number (with any additional detail) of a postal address.
  */
 export type StreetAddressPropertyValue = TextDataType;
 
 export type StreetAddressPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
+ * A HASH Graph API structural query.
+ */
+export type StructuralQueryPropertyValue = ObjectDataType;
+
+export type StructuralQueryPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
 
 /**
  * The summary of the something.
@@ -6657,43 +6706,26 @@ export type TransportsPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 };
 
 /**
- * The ID of the trigger definition.
+ * Something that was triggered by something else.
  */
-export type TriggerDefinitionIDPropertyValue = TextDataType;
+export type TriggeredBy = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/triggered-by/v/1"];
+  properties: TriggeredByProperties;
+  propertiesWithMetadata: TriggeredByPropertiesWithMetadata;
+};
 
-export type TriggerDefinitionIDPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type TriggeredByOutgoingLinkAndTarget = never;
+
+export type TriggeredByOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * The trigger definition of a flow.
+ * Something that was triggered by something else.
  */
-export type TriggerDefinitionPropertyValue = {
-  "https://hash.ai/@h/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValue;
-  "https://hash.ai/@h/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValue;
-};
+export type TriggeredByProperties = LinkProperties & {};
 
-export type TriggerDefinitionPropertyValueWithMetadata = {
+export type TriggeredByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@h/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValueWithMetadata;
-  };
-};
-
-/**
- * The trigger of a flow.
- */
-export type TriggerPropertyValue = {
-  "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValue;
-  "https://hash.ai/@h/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValue;
-};
-
-export type TriggerPropertyValueWithMetadata = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValueWithMetadata;
-  };
+  value: {};
 };
 
 /**

@@ -96,7 +96,7 @@ export class BlockView implements NodeView {
   constructor(
     public node: Node,
     public editorView: EditorView,
-    public getPos: () => number,
+    public getPos: () => number | undefined,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorManager,
     public documentRoot: HTMLElement,
@@ -250,6 +250,12 @@ export class BlockView implements NodeView {
                 draftId={blockDraftId}
                 ref={this.blockHandleRef}
                 onMouseDown={() => {
+                  const pos = this.getPos();
+
+                  if (pos === undefined) {
+                    return;
+                  }
+
                   /**
                    * We only want to allow dragging from the drag handle
                    * so we set a flag which we can use to indicate
@@ -271,10 +277,7 @@ export class BlockView implements NodeView {
                    * starts
                    */
                   tr.setSelection(
-                    NodeSelection.create(
-                      this.editorView.state.doc,
-                      this.getPos(),
-                    ),
+                    NodeSelection.create(this.editorView.state.doc, pos),
                   );
 
                   this.editorView.dispatch(tr);
@@ -332,19 +335,28 @@ export class BlockView implements NodeView {
 
   deleteBlock = () => {
     const { node, getPos } = this;
-    this.manager.deleteNode(node, getPos()).catch((err: Error) => {
+    const pos = getPos();
+
+    if (pos === undefined) {
+      return;
+    }
+
+    this.manager.deleteNode(node, pos).catch((err: Error) => {
       // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.error(
-        `Error deleting node at position ${getPos()}: ${err.message}`,
-      );
+      console.error(`Error deleting node at position ${pos}: ${err.message}`);
     });
   };
 
   onBlockChange = (variant: BlockVariant, meta: HashBlockMeta) => {
     const { node, editorView, getPos } = this;
+    const pos = getPos();
+
+    if (pos === undefined) {
+      return;
+    }
 
     const state = editorView.state;
-    const child = state.doc.resolve(getPos() + 1).nodeAfter;
+    const child = state.doc.resolve(pos + 1).nodeAfter;
     const draftId = child?.attrs.draftId;
 
     if (!draftId) {
@@ -352,7 +364,7 @@ export class BlockView implements NodeView {
     }
 
     this.manager
-      .replaceNode(draftId, meta.componentId, variant, node, getPos())
+      .replaceNode(draftId, meta.componentId, variant, node, pos)
       .catch((err: Error) => {
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
@@ -363,8 +375,13 @@ export class BlockView implements NodeView {
     (insertBelow = true) =>
     (variant: BlockVariant, blockMeta: HashBlockMeta) => {
       const { editorView, getPos } = this;
+      const pos = getPos();
 
-      const position = editorView.state.doc.resolve(getPos());
+      if (pos === undefined) {
+        return;
+      }
+
+      const position = editorView.state.doc.resolve(pos);
       const newPosition = position.posAtIndex(
         position.index(0) + (insertBelow ? 1 : 0),
       );

@@ -132,13 +132,6 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
                   },
                 },
               },
-              flowDefinition: {
-                name: "dummy-name",
-                description: "A flow with no steps",
-                inputs: [],
-                steps: [],
-                outputs: [],
-              },
               flowDefinitionId: generateUuid() as EntityUuid,
               flowInputs: {},
               webId: aliceUserAccountId,

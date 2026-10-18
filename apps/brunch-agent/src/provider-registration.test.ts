@@ -3,6 +3,7 @@ import {
   fauxAssistantMessage,
   fauxProvider,
   fauxToolCall,
+  normalizeContext,
   type Provider,
 } from "@earendil-works/pi-ai";
 import { instrument, setProvider } from "@flue/runtime";
@@ -133,16 +134,17 @@ test("app registration scopes admission to the Petrinaut agent's execution, isol
     operationId: "scope-test",
     operationKind: "prompt" as const,
   };
+  const context = normalizeContext({ messages: [] });
   const [brunch, other, task] = await Promise.allSettled([
     registration!.interceptor(
       operation,
       { agentName: "brunch-chat-agent" },
-      async () => drain(provider.streamSimple(model, { messages: [] })),
+      async () => drain(provider.streamSimple(model, context)),
     ),
     registration!.interceptor(
       operation,
       { agentName: "unrelated-agent" },
-      async () => drain(provider.streamSimple(model, { messages: [] })),
+      async () => drain(provider.streamSimple(model, context)),
     ),
     registration!.interceptor(
       operation,
@@ -151,7 +153,7 @@ test("app registration scopes admission to the Petrinaut agent's execution, isol
         registration!.interceptor(
           { type: "task", taskId: "delegated" },
           {},
-          async () => drain(provider.streamSimple(model, { messages: [] })),
+          async () => drain(provider.streamSimple(model, context)),
         ),
     ),
   ]);

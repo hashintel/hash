@@ -2,22 +2,6 @@
 name: testing-hashql
 description: HashQL testing strategies including compiletest (UI tests), unit tests, and snapshot tests. Use when writing tests for HashQL code, using //~ annotations, running --bless, debugging test failures, or choosing the right testing approach.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - hashql test
-      - compiletest
-      - ui test
-      - snapshot test
-      - insta test
-      - //~ annotation
-      - --bless
-    intent-patterns:
-      - "\\b(write|create|run|debug|add|fix)\\b.*?\\b(hashql|compiletest)\\b.*?\\btest\\b"
-      - "\\b(test|verify)\\b.*?\\b(diagnostic|error message|mir|hir|ast)\\b"
 ---
 
 # HashQL Testing Strategies

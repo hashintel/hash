@@ -1,16 +1,21 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { isDeepStrictEqual } from "node:util";
 
-import { EventStream } from "@earendil-works/pi-ai";
-import { RETRYABLE_INTERRUPTION_MARKER } from "@flue/runtime";
+// The root entry re-exports this class as a type only; its module exports the value.
+import { AssistantMessageEventStream } from "@earendil-works/pi-ai/utils/event-stream";
 
 import type {
   Api,
-  AssistantMessage,
   AssistantMessageEvent,
-  AssistantMessageEventStream,
   Provider,
 } from "@earendil-works/pi-ai";
+
+/**
+ * Flue retries an errored model turn whose message carries this marker. Flue
+ * documents the string value, not an export, as the contract
+ * (`docs/reference/errors.md`, "RETRYABLE_INTERRUPTION_MARKER").
+ */
+const retryableInterruptionMarker = "(retryable_interruption)";
 
 // Limits cover the entire proposal, not each individual chunk. Errors
 // deliberately do not resemble Flue's retryable provider/network failures.
@@ -46,7 +51,7 @@ class ModelStreamIdleError extends Error {
   ) {
     super(
       `model_stream_idle: phase=${phase}; last=${lastEventType ?? "none"}; no meaningful provider event for ${idleMs / 1_000} seconds.${
-        retryable ? ` ${RETRYABLE_INTERRUPTION_MARKER}` : ""
+        retryable ? ` ${retryableInterruptionMarker}` : ""
       }`,
     );
     this.idleMs = idleMs;
@@ -119,10 +124,9 @@ type BufferedEvent = {
   >;
 }[AssistantMessageEvent["type"]];
 
-class AdmittedStream extends EventStream<
-  AssistantMessageEvent,
-  AssistantMessage
-> {
+// Pi brands its provider stream class, so admission must be one to be returned
+// from a provider entrypoint.
+class AdmittedStream extends AssistantMessageEventStream {
   readonly #admitted;
   readonly #parentSignal;
 
@@ -132,14 +136,7 @@ class AdmittedStream extends EventStream<
     browserToolNames: ReadonlySet<string>,
     idleRecovery: StreamIdleRecovery | undefined,
   ) {
-    super(
-      (event) => event.type === "done" || event.type === "error",
-      (event) => {
-        if (event.type === "done") return event.message;
-        if (event.type === "error") return event.error;
-        throw new Error("Expected a terminal provider event.");
-      },
-    );
+    super();
     this.#parentSignal = parentSignal;
     this.#admitted = this.#collect(
       start,

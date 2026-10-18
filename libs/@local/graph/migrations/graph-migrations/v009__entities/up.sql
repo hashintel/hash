@@ -19,6 +19,10 @@ CREATE TABLE entity_ids (
     )
 );
 
+-- An entity UUID identifies an entity across all webs, not only within its web.
+CREATE UNIQUE INDEX entity_ids_entity_uuid
+ON entity_ids (entity_uuid);
+
 CREATE INDEX entity_ids_created_at_transaction_time
 ON entity_ids (created_at_transaction_time);
 CREATE INDEX entity_ids_created_at_decision_time

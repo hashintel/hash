@@ -35,10 +35,6 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
   useInstruction: (instruction: string) =>
     mounted.instructions.push(instruction),
   useModel: (model: string) => mounted.models.push(model),
-  usePersistentState: (_key: string, initialValue: unknown) => [
-    initialValue,
-    vi.fn<(value: unknown) => void>(),
-  ],
   useSkill: (skill: { name: string }) => mounted.skills.push(skill.name),
   useTool: (tool: { name: string; description: string }) => {
     mounted.descriptions.set(tool.name, tool.description);
