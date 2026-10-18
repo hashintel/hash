@@ -1,3 +1,4 @@
+import { expectFullyShown } from "../../shared/expect-fully-shown";
 import {
   generateHostileTestDocx,
   generateDocx,
@@ -99,13 +100,15 @@ test.describe("DOCX preview", () => {
     page,
   }) => {
     await page.getByRole("button", { name: "Show search" }).click();
-    await page
-      .getByPlaceholder("Search the document...")
-      .fill(testDocumentSearchWord);
+    const searchInput = page.getByPlaceholder("Search the document...");
+    await expectFullyShown(searchInput);
+    await searchInput.fill(testDocumentSearchWord);
     await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
     await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
 
-    await page.getByRole("button", { name: "Next result" }).click();
+    const nextResult = page.getByRole("button", { name: "Next result" });
+    await expectFullyShown(nextResult);
+    await nextResult.click();
     await expect(page.getByText("2 of 2", { exact: true })).toBeVisible();
     await expect(getDocxPage(page, thirdPage.heading)).toBeInViewport();
     await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();

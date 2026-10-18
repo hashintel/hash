@@ -13,6 +13,7 @@ import {
   rowMenuButton,
   saveChanges,
 } from "../shared/entity-type-editor";
+import { expectFullyShown } from "../shared/expect-fully-shown";
 import { expect, test } from "../shared/runtime";
 
 /**
@@ -39,6 +40,7 @@ test("removing a type's only parent survives a reload", async ({ page }) => {
   await expect(parentCard(page, parentName)).toBeVisible();
 
   await parentCard(page, parentName).hover();
+  await expectFullyShown(removeParentButton(page, parentName));
   await removeParentButton(page, parentName).click();
   await expect(parentCard(page, parentName)).toHaveCount(0);
 

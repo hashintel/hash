@@ -1,3 +1,4 @@
+import { expectFullyShown } from "../../shared/expect-fully-shown";
 import { generatePdf } from "../../shared/file-preview/generate-test-pdf";
 import {
   testDocumentPages,
@@ -56,17 +57,21 @@ test.describe("PDF preview", () => {
     const pdfPage = getPdfPage(page);
 
     await page.getByRole("button", { name: "Show search" }).click();
-    await page
-      .getByPlaceholder("Search the document...")
-      .fill(testDocumentSearchWord);
+    const searchInput = page.getByPlaceholder("Search the document...");
+    await expectFullyShown(searchInput);
+    await searchInput.fill(testDocumentSearchWord);
 
     const searchHighlight = pdfPage.locator('span[style*="border-bottom"]', {
       hasText: testDocumentSearchWord,
     });
 
     await expect(searchHighlight).toBeVisible();
+    await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Next result" }).click();
+    const nextResult = page.getByRole("button", { name: "Next result" });
+    await expectFullyShown(nextResult);
+    await nextResult.click();
+    await expect(page.getByText("2 of 2", { exact: true })).toBeVisible();
     await expect(
       pdfPage.getByText(thirdPage.heading, { exact: true }),
     ).toBeVisible();
