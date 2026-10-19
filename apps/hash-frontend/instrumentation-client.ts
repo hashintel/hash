@@ -32,6 +32,9 @@ if (isPetrinautEmbedDocument) {
     dsn: SENTRY_DSN,
     enabled: !!SENTRY_DSN,
     environment: SENTRY_ENVIRONMENT,
+    // Monaco's `CancellationError`, which it raises when it cancels its own
+    // pending work, such as when an editor unmounts.
+    ignoreErrors: [/^Canceled: Canceled$/],
     integrations: [
       Sentry.browserApiErrorsIntegration(),
       Sentry.browserProfilingIntegration(),
