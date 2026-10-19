@@ -5,7 +5,8 @@
     "@hashintel/petrinaut-core",
     "@local/flue-aisdk-transport",
     "@local/hash-backend-utils",
-    "@local/pi-faux-providers"
+    "@local/pi-faux-providers",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {

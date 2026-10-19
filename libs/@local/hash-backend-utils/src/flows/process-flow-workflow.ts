@@ -7,7 +7,10 @@ import {
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
-import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import {
+  assertNoStoredPayloadRefsInFlowInputs,
+  getArrayPayloadItems,
+} from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
@@ -306,7 +309,7 @@ const processFlow = async <
 ): Promise<RunFlowWorkflowResponse> => {
   const {
     flowDefinitionId,
-    flowRunId,
+    flowRunEntityUuid,
     flowRunName,
     flowInputs,
     flowTriggerEntityId,
@@ -367,6 +370,23 @@ const processFlow = async <
     });
   }
 
+  try {
+    assertNoStoredPayloadRefsInFlowInputs(flowInputs);
+  } catch (error) {
+    const errorMessage = (error as Error).message;
+    throw ApplicationFailure.create({
+      message: errorMessage,
+      nonRetryable: true,
+      details: [
+        {
+          code: StatusCode.InvalidArgument,
+          message: errorMessage,
+          contents: [],
+        },
+      ],
+    });
+  }
+
   const initialFlowName = flowRunName ?? flowDefinition.name;
   log(`Initializing ${initialFlowName} Flow`);
 
@@ -387,7 +407,7 @@ const processFlow = async <
   await persistFlowActivity({
     flow,
     flowDefinitionEntityId: flowDefinitionResult.flowDefinitionEntityId,
-    flowRunId,
+    flowRunEntityUuid,
     flowTriggerEntityId,
     stepIds: ["initialize-flow"],
     userAuthentication,

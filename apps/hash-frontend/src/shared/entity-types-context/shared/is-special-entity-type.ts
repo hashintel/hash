@@ -5,13 +5,11 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type {
+  EntityType,
   EntityTypeReference,
   EntityTypeWithMetadata,
-} from "@blockprotocol/type-system";
-import type {
-  EntityType,
   VersionedUrl,
-} from "@blockprotocol/type-system/dist/cjs";
+} from "@blockprotocol/type-system";
 
 export const getParentIds = (
   entityType: Pick<EntityType, "allOf">,

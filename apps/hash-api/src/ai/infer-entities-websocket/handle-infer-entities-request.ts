@@ -7,6 +7,7 @@ import {
 import { FlowRunStatus } from "../../graphql/api-types.gen";
 
 import type { User } from "../../graph/knowledge/system-types/user";
+import type { EntityUuid } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -95,6 +96,8 @@ export const handleInferEntitiesRequest = async ({
         },
         flowDefinitionId,
         flowInputs,
+        /* So that the run's entity id can be worked out from the request, as the browser plugin does. */
+        flowRunEntityUuid: requestUuid as EntityUuid,
         userAuthentication: { actorId: user.accountId },
         webId,
       },

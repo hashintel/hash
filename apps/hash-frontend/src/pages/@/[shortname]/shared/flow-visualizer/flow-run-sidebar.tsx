@@ -22,7 +22,7 @@ import { flowSectionBorderRadius } from "./shared/styles";
 
 import type { FlowRun } from "../../../../../graphql/api-types.gen";
 import type { EdgesAndNodes } from "./shared/types";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
 
 const SidebarSection = ({ children }: PropsWithChildren) => (
@@ -41,7 +41,7 @@ const SidebarSection = ({ children }: PropsWithChildren) => (
 
 type FlowRunSidebarProps = {
   flowDefinitionId: EntityUuid;
-  flowRunId: EntityUuid;
+  flowRunEntityId: EntityId;
   flowScheduleId: EntityUuid | null;
   graph: EdgesAndNodes;
   name: FlowRun["name"];
@@ -50,7 +50,7 @@ type FlowRunSidebarProps = {
 
 export const FlowRunSidebar = ({
   flowDefinitionId,
-  flowRunId,
+  flowRunEntityId,
   flowScheduleId,
   graph,
   name,
@@ -59,14 +59,14 @@ export const FlowRunSidebar = ({
   const { selectedFlowRun } = useFlowRunsContext();
 
   const { isUsageAvailable, usageByFlowRun } = useFlowRunsUsage({
-    flowRunIds: [flowRunId],
+    flowRunEntityIds: [flowRunEntityId],
     pollInterval: selectedFlowRun?.closedAt ? 0 : 5_000,
   });
 
   const [showUsageBreakdown, setShowUsageBreakdown] = useState(false);
   const [showResearchPrompt, setShowResearchPrompt] = useState(false);
 
-  const usage = usageByFlowRun[flowRunId];
+  const usage = usageByFlowRun[flowRunEntityId];
 
   const nameParts = useMemo<{ text: string; url?: boolean }[]>(() => {
     const parts = name.split(/( )/g);

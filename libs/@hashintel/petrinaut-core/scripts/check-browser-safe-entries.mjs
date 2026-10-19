@@ -1,22 +1,11 @@
 /**
  * Fails if a browser-facing entry point reaches Node-only code.
  *
- * This exists because that mistake broke the frontend build twice in a row, and
- * neither `lint:tsc`, `lint:eslint` nor `test:unit` can see it — the import is
- * perfectly valid TypeScript. Only bundling the consumer catches it, and a full
- * `@apps/hash-frontend` build takes ~9 minutes, which is too slow to run before
- * every push.
- *
- * The failure mode it guards: an entry that transitively imports the HIR
- * frontend pulls in the TypeScript compiler, whose `require("module")` webpack
- * cannot resolve for the browser, so the consuming app fails with
- * `Module not found: Can't resolve 'module'`.
- *
- *   node scripts/check-browser-safe-entries.mjs
+ * Type checking accepts imports that browser bundlers cannot resolve. Inspecting the emitted imports catches these dependencies without building a consuming application.
  *
  * Run after `yarn build`, since it inspects `dist`.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const packageRoot = resolve(dirname(new URL(import.meta.url).pathname), "..");
@@ -25,12 +14,13 @@ const packageRoot = resolve(dirname(new URL(import.meta.url).pathname), "..");
  * Entries a browser bundle may import, and what they must never reach.
  *
  * `hir`, `compiled-model` and `diagnostics` are deliberately absent: they are
- * Node/worker entries and are *expected* to bundle the compiler.
+ * Node-only entries and intentionally depend on the compiler.
  */
 const BROWSER_SAFE_ENTRIES = ["index.js", "webgpu.js", "hir-runtime.js"];
 
 /** Bare specifiers that mean "this cannot run in a browser". */
 const NODE_ONLY = new Set([
+  "@typescript/typescript6",
   "module",
   "fs",
   "fs/promises",
@@ -65,12 +55,7 @@ function collectBareImports(entry) {
     }
     seen.add(file);
 
-    let source;
-    try {
-      source = readFileSync(file, "utf8");
-    } catch {
-      continue;
-    }
+    const source = readFileSync(file, "utf8");
 
     // Static and dynamic import specifiers, plus CJS requires, as they appear in
     // the built output.
@@ -88,7 +73,7 @@ function collectBareImports(entry) {
     for (const specifier of specifiers) {
       if (specifier.startsWith(".")) {
         const target = resolve(dirname(file), specifier);
-        queue.push(target, `${target}.js`);
+        queue.push(existsSync(target) ? target : `${target}.js`);
       } else {
         const bareName = specifier.startsWith("node:")
           ? specifier.slice("node:".length)

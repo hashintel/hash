@@ -96,7 +96,6 @@ const TableRow = memo(
     isLastRow,
     numberColumnWidth,
     scrollContainerRef,
-    shortname,
     subgraph,
   }: HistoryRowData) => {
     const { number, timestamp } = event;
@@ -243,11 +242,7 @@ const TableRow = memo(
             </Stack>
           </Stack>
           <Collapse in={showProvenance} ref={provenanceRef} timeout={200}>
-            <Provenance
-              event={event}
-              shortname={shortname}
-              subgraph={subgraph}
-            />
+            <Provenance event={event} subgraph={subgraph} />
           </Collapse>
         </Box>
       </TableCell>
@@ -261,7 +256,6 @@ type HistoryRowData = {
   isLastRow: boolean;
   numberColumnWidth: number;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
-  shortname: string;
   subgraph: Subgraph;
 };
 
@@ -275,18 +269,15 @@ const createRowContent: CreateVirtualizedRowContentFn<HistoryRowData> = (
     isFirstRow={row.data.isFirstRow}
     isLastRow={row.data.isLastRow}
     scrollContainerRef={row.data.scrollContainerRef}
-    shortname={row.data.shortname}
     subgraph={row.data.subgraph}
   />
 );
 
 export const HistoryTable = ({
   events,
-  shortname,
   subgraph,
 }: {
   events: HistoryEvent[];
-  shortname: string;
   subgraph: Subgraph;
 }) => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
@@ -325,11 +316,10 @@ export const HistoryTable = ({
           isLastRow: index === events.length - 1,
           numberColumnWidth,
           scrollContainerRef,
-          shortname,
           subgraph,
         },
       }));
-  }, [events, sort, subgraph, scrollContainerRef, shortname]);
+  }, [events, sort, subgraph, scrollContainerRef]);
 
   const columns = useMemo(() => createColumns(rows.length), [rows]);
 

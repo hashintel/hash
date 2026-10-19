@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { orderBy } from "./order-by.js";
 
-import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { SortKey } from "@local/hash-isomorphic-utils/flows/sort-key";
 import type {
   PayloadKind,
@@ -74,6 +78,46 @@ describe("orderBy", () => {
     ).toEqual(["2023-06-15", "2024-01-31", "2024-12-01"]);
   });
 
+  it("sorts date-times by the instant they name, not their text", () => {
+    expect(
+      sorted(
+        "DateTime",
+        [
+          "2026-10-16T15:00:00+02:00",
+          "2026-10-16T14:30:00Z",
+          "2026-10-16T09:00:00-05:00",
+          "2026-10-16T16:00:00+02:00",
+          "2026-10-16T14:00:00Z",
+        ],
+        byItem("DateTime"),
+      ),
+    ).toEqual([
+      /* 13:00Z */
+      "2026-10-16T15:00:00+02:00",
+      /* Three ways of writing 14:00Z, which keep their input order */
+      "2026-10-16T09:00:00-05:00",
+      "2026-10-16T16:00:00+02:00",
+      "2026-10-16T14:00:00Z",
+      "2026-10-16T14:30:00Z",
+    ]);
+  });
+
+  it("sorts kinds that are text underneath, such as versioned URLs, as text", () => {
+    expect(
+      sorted(
+        "VersionedUrl",
+        [
+          "https://example.com/types/entity-type/person/v/1",
+          "https://example.com/types/entity-type/company/v/2",
+        ] as VersionedUrl[],
+        byItem("VersionedUrl"),
+      ),
+    ).toEqual([
+      "https://example.com/types/entity-type/company/v/2",
+      "https://example.com/types/entity-type/person/v/1",
+    ]);
+  });
+
   it("sorts text alphabetically, ignoring case and accents first", () => {
     expect(
       sorted("Text", ["zebra", "Cherry", "éclair", "apple"], byItem("Text")),
@@ -134,10 +178,14 @@ describe("orderBy", () => {
     expect(result).not.toHaveProperty("items");
   });
 
-  it("fails on a date that isn't an ISO calendar date", () => {
-    expect(
-      orderBy({ kind: "Date", value: ["2024-02-30"] }, byItem("Date")),
-    ).toMatchObject({ status: "error", code: "invalidValue" });
+  it.each([
+    { kind: "Date", value: "2024-02-30" },
+    { kind: "DateTime", value: "2024-02-01" },
+  ] as const)("fails on $value as a $kind", ({ kind, value }) => {
+    expect(orderBy({ kind, value: [value] }, byItem(kind))).toMatchObject({
+      status: "error",
+      code: "invalidValue",
+    });
   });
 
   it("fails on an entity the user can't read", () => {
@@ -153,8 +201,8 @@ describe("orderBy", () => {
   it.each<{ name: string; kind: PayloadKind; sortKey: unknown }>([
     {
       name: "a subject of a kind that can't be sorted",
-      kind: "EntityId",
-      sortKey: byItem("EntityId"),
+      kind: "Duration",
+      sortKey: byItem("Duration"),
     },
     {
       name: "a subject that doesn't fit the items",

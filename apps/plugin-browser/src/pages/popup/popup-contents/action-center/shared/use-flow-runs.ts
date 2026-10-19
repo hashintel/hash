@@ -177,11 +177,11 @@ export const useFlowRuns = (): {
     const flowRunsToShow: MinimalFlowRun[] = [];
     const redundantOptimisticRunIds: string[] = [];
 
-    const allFlowIds = value.map((run) => run.flowRunId);
+    const allFlowIds = value.map((run) => run.flowRunEntityId);
 
     for (const run of localPendingRuns ?? []) {
-      if (allFlowIds.includes(run.flowRunId)) {
-        redundantOptimisticRunIds.push(run.flowRunId);
+      if (allFlowIds.includes(run.flowRunEntityId)) {
+        redundantOptimisticRunIds.push(run.flowRunEntityId);
       } else {
         flowRunsToShow.push(run);
       }
@@ -202,7 +202,7 @@ export const useFlowRuns = (): {
     if (redundantLocalRunIds.length > 0 && !!localPendingRuns?.length) {
       setLocalPendingRuns(
         localPendingRuns.filter(
-          (run) => !redundantLocalRunIds.includes(run.flowRunId),
+          (run) => !redundantLocalRunIds.includes(run.flowRunEntityId),
         ),
       );
     }

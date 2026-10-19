@@ -7,7 +7,6 @@ import * as Error from "../../error";
 
 import type { MutationResetFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
-import type { EntityUuid } from "@blockprotocol/type-system";
 
 export const cancelFlow: ResolverFn<
   Promise<boolean>,
@@ -16,18 +15,21 @@ export const cancelFlow: ResolverFn<
   MutationResetFlowArgs
 > = async (
   _,
-  { flowUuid },
+  { flowRunEntityId },
   { authentication, dataSources, provenance, temporal, user },
 ) => {
   const flow = await getFlowRunEntityById({
-    flowRunId: flowUuid as EntityUuid,
+    flowRunEntityId,
     graphApiClient: dataSources.graphApi,
     userAuthentication: authentication,
   });
 
   if (!flow) {
-    throw Error.notFound(`Flow with id ${flowUuid} not found`);
+    throw Error.notFound(`Flow with id ${flowRunEntityId} not found`);
   }
+
+  const workflowId =
+    flow.properties["https://hash.ai/@h/types/property-type/workflow-id/"];
 
   const userCanModify = await checkEntityPermission(
     { graphApi: dataSources.graphApi, provenance },
@@ -45,7 +47,7 @@ export const cancelFlow: ResolverFn<
   await temporal.workflowService.requestCancelWorkflowExecution({
     namespace: temporalNamespace,
     workflowExecution: {
-      workflowId: flowUuid,
+      workflowId,
     },
     reason: `Cancelled via GraphQL API by @${user.shortname}`,
     requestId: generateUuid(),

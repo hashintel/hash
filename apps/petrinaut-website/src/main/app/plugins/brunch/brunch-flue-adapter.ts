@@ -30,16 +30,10 @@ const petrinautMessageMetadataSchema = z.object({
   stopped: z.literal(true).optional(),
   voiceToolCallIds: z.array(z.string()).optional(),
   toolCallId: z.string().optional(),
-}) satisfies z.ZodType<PetrinautAiMessageMetadata>;
-
-const _everyMetadataKeyValidated: [
-  Exclude<
-    keyof PetrinautAiMessageMetadata,
-    keyof z.infer<typeof petrinautMessageMetadataSchema>
-  >,
-] extends [never]
-  ? true
-  : never = true;
+} satisfies Record<
+  keyof PetrinautAiMessageMetadata,
+  z.ZodType
+>) satisfies z.ZodType<PetrinautAiMessageMetadata>;
 
 /** Petrinaut's projection of one Brunch conversation, live and reopened. */
 export const createBrunchFlueAdapter = (

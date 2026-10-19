@@ -5,7 +5,7 @@ export const getMinimalFlowRunsQuery = /* GraphQL */ `
       flowRuns {
         name
         flowDefinitionId
-        flowRunId
+        flowRunEntityId
         webId
         status
         executedAt
