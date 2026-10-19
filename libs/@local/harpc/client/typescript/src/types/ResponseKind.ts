@@ -190,6 +190,7 @@ export const getErr = (
 
 const arbitraryOk = Arbitrary.Constant<ResponseKind>(ok());
 const arbitraryErr = ErrorCode.arbitrary.pipe(Arbitrary.map(err));
+
 export const arbitrary = Arbitrary.schema(Schema.Boolean).pipe(
   Arbitrary.flatMap((pickOk) => (pickOk ? arbitraryOk : arbitraryErr)),
 );

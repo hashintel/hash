@@ -185,6 +185,7 @@ const arbitraryBegin = ResponseBegin.arbitrary.pipe(
 const arbitraryFrame = ResponseFrame.arbitrary.pipe(
   Arbitrary.map((value) => make(Result.fail(value))),
 );
+
 export const arbitrary = Arbitrary.schema(Schema.Boolean).pipe(
   Arbitrary.flatMap((pickBegin) =>
     pickBegin ? arbitraryBegin : arbitraryFrame,

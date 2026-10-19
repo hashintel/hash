@@ -195,6 +195,7 @@ const arbitraryRequestBegin = RequestBegin.arbitrary.pipe(
 const arbitraryRequestFrame = RequestFrame.arbitrary.pipe(
   Arbitrary.map(makeFrame),
 );
+
 export const arbitrary = Arbitrary.schema(Schema.Boolean).pipe(
   Arbitrary.flatMap((pickBegin) =>
     pickBegin ? arbitraryRequestBegin : arbitraryRequestFrame,
