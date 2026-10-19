@@ -52,10 +52,9 @@ const readConversationDb = (
       .prepare(
         `select batch.submission_id as submission_id,
                 coalesce(
-                  (select group_concat(chunk.data, '')
-                     from (select data from flue_conversation_stream_batch_chunks
-                            where path = batch.path and seq = batch.seq
-                            order by chunk_index) as chunk),
+                  (select group_concat(chunk.data, '' order by chunk.chunk_index)
+                     from flue_conversation_stream_batch_chunks as chunk
+                    where chunk.path = batch.path and chunk.seq = batch.seq),
                   batch.data) as data
            from flue_conversation_stream_batches as batch
           where batch.submission_id is not null
