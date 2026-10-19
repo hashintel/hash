@@ -648,10 +648,14 @@ test("preserves one browser call across key-order-equivalent stream and final re
 
 test("leaves unrelated provider use and its streaming behavior untouched", async () => {
   const { faux, provider, model } = fixture(false);
-  const response = fauxAssistantMessage(
-    [fauxToolCall("server", {}), fauxToolCall("browser", {})],
-    { stopReason: "toolUse" },
-  );
+  // A preset duration keeps each stream from timing the shared response.
+  const response = {
+    ...fauxAssistantMessage(
+      [fauxToolCall("server", {}), fauxToolCall("browser", {})],
+      { stopReason: "toolUse" },
+    ),
+    durationMs: 0,
+  };
   faux.setResponses([response]);
   const original = await collect(
     faux.provider.streamSimple(model, emptyTranscript),
@@ -664,13 +668,21 @@ test("leaves unrelated provider use and its streaming behavior untouched", async
 
 test("preserves admitted text, Unicode arguments, ids, usage and finish reason", async () => {
   const { faux, provider, model } = fixture();
-  const response = fauxAssistantMessage(
-    [
-      fauxText("Café\r\n"),
-      fauxToolCall("browser", { markdown: "  é\r\n  " }, { id: "exact-call" }),
-    ],
-    { stopReason: "toolUse" },
-  );
+  // A preset duration keeps each stream from timing the shared response.
+  const response = {
+    ...fauxAssistantMessage(
+      [
+        fauxText("Café\r\n"),
+        fauxToolCall(
+          "browser",
+          { markdown: "  é\r\n  " },
+          { id: "exact-call" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    durationMs: 0,
+  };
   faux.setResponses([response]);
   const original = await collect(
     faux.provider.streamSimple(model, emptyTranscript),

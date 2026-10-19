@@ -4,9 +4,9 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import type {
   EntityRevisionId,
   EntityRootType,
+  KnowledgeGraphEditionMap,
   Subgraph,
 } from "@blockprotocol/graph";
-import type { KnowledgeGraphEditionMap } from "@blockprotocol/graph/types";
 import type {
   BaseUrl,
   EntityMetadata,

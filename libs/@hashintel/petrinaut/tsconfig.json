@@ -1,19 +1,10 @@
 {
+  "extends": ["@tsconfig/bases/vite-react", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "target": "es2024",
-    "lib": ["dom", "dom.iterable", "ESNext"],
-    "module": "preserve",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "resolveJsonModule": true,
-    "noEmit": true,
-    "skipLibCheck": true,
-    "isolatedModules": true
+    "lib": ["DOM", "ESNext"],
+    // Parameter properties remain in src/ui/monaco/code-editor-activity.test.tsx and in
+    // @local/petrinaut-optimizer-client, whose source this program checks (TS1294).
+    "erasableSyntaxOnly": false
   },
-  "include": ["src", ".storybook"]
+  "include": ["src", ".storybook/**/*"]
 }

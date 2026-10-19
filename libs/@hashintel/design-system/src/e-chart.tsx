@@ -40,7 +40,7 @@ import type {
 import type {
   GraphEdgeItemOption,
   GraphNodeItemOption,
-} from "echarts/types/src/chart/graph/GraphSeries";
+} from "echarts/types/src/chart/graph/GraphSeries.js";
 import type { FunctionComponent } from "react";
 
 export type Chart = echarts.ECharts;
