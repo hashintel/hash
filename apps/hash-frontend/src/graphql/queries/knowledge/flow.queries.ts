@@ -17,18 +17,22 @@ export const startFlowMutation = gql`
 `;
 
 export const resetFlowMutation = gql`
-  mutation resetFlow($flowUuid: ID!, $checkpointId: ID!, $eventId: Int!) {
+  mutation resetFlow(
+    $flowRunEntityId: EntityId!
+    $checkpointId: ID!
+    $eventId: Int!
+  ) {
     resetFlow(
       checkpointId: $checkpointId
       eventId: $eventId
-      flowUuid: $flowUuid
+      flowRunEntityId: $flowRunEntityId
     )
   }
 `;
 
 export const cancelFlowMutation = gql`
-  mutation cancelFlow($flowUuid: ID!) {
-    cancelFlow(flowUuid: $flowUuid)
+  mutation cancelFlow($flowRunEntityId: EntityId!) {
+    cancelFlow(flowRunEntityId: $flowRunEntityId)
   }
 `;
 

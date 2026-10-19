@@ -81,12 +81,14 @@ const diffGroupProps = (slug) => {
     )
     .map(([, status]) => status);
 
-  if (statuses.length === 0) {
+  const [firstStatus] = statuses;
+
+  if (firstStatus === undefined) {
     return {};
   }
 
-  const uniform = statuses.every((status) => status === statuses[0])
-    ? statuses[0]
+  const uniform = statuses.every((status) => status === firstStatus)
+    ? firstStatus
     : null;
 
   return {
@@ -129,9 +131,7 @@ const buildSidebar = () => {
   const labelFromSlug = (slug) =>
     (slug.split("/").pop() ?? slug)
       .split("-")
-      .map((word) =>
-        word === "" ? word : word[0].toUpperCase() + word.slice(1),
-      )
+      .map((word) => word.slice(0, 1).toUpperCase() + word.slice(1))
       .join(" ");
 
   /**

@@ -1,45 +1,14 @@
 import { z } from "zod";
 
+import { allPayloadKinds } from "./types.js";
+
 import type {
   FlowDefinition,
-  PayloadKind,
   StepDefinition,
   StepInputSource,
 } from "./types.js";
 
-/**
- * How a value of each payload kind is represented in JSON, for checking constants.
- */
-export const payloadKindJsonTypes = {
-  ActorType: "string",
-  Aggregation: "object",
-  Boolean: "boolean",
-  Date: "string",
-  DateTime: "string",
-  Duration: "object",
-  EntityId: "string",
-  FailedEntityProposal: "object",
-  FilterCondition: "object",
-  FormattedText: "object",
-  GoogleAccountId: "string",
-  GoogleSheet: "object",
-  Number: "number",
-  PersistedEntityMetadata: "object",
-  ProposedEntity: "object",
-  ProposedEntityWithResolvedLinks: "object",
-  SortKey: "object",
-  Text: "string",
-  VersionedUrl: "string",
-  WebPage: "object",
-  WebSearchResult: "object",
-} as const satisfies Record<
-  PayloadKind,
-  "string" | "number" | "boolean" | "object"
->;
-
-const payloadKindSchema = z.enum(
-  Object.keys(payloadKindJsonTypes) as [PayloadKind, ...PayloadKind[]],
-);
+const payloadKindSchema = z.enum(allPayloadKinds);
 
 const connectionOptionsShape = {
   access: z.enum(["read", "consume"]).optional(),

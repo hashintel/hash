@@ -10,7 +10,7 @@ Use ordinary Git and GitHub as the public baseline. No particular Git client or 
 
 ## Contributing
 
-Treat [`.github/CONTRIBUTING.md`](../../../.github/CONTRIBUTING.md) as the source of truth for contribution policy and [`.github/pull_request_template.md`](../../../.github/pull_request_template.md) as the source of truth for PR content.
+Treat [`.github/CONTRIBUTING.md`](../../../.github/CONTRIBUTING.md) as the source of truth for contribution policy and the organization-wide default template, [`docs/pull_request_template.md` in `hashintel/.github`](https://github.com/hashintel/.github/blob/main/docs/pull_request_template.md), as the source of truth for PR content. This repository has no PR template of its own, so GitHub applies that default.
 
 ### Working From a HASH Linear Issue
 
@@ -18,7 +18,7 @@ When the work has an associated HASH Linear issue, preserve traceability in the 
 
 - Name the branch `<shortname>/<team-key>-xxxx-description`, with the Linear identifier in lowercase; for example, `ln/fe-1437-hash-monorepo-import` or `ln/h-6786-agent-guidance-layout`.
 - Title the PR `{ISSUE-ID}: Description`, preserving the identifier's uppercase form; for example, `H-6786: Stop copying HASH agent guidance into unused tool folders`.
-- Link the Linear issue in the PR's related links and mark it `_(internal)_` when it is not publicly accessible.
+- Do not link the Linear issue again in the PR description. When the PR covers more than one issue, list every identifier in the title, comma-separated, as the PR template asks.
 
 Current HASH Linear identifiers commonly use `FE-`, `SRE-`, `BE-`, or `H-` prefixes.
 
@@ -26,7 +26,7 @@ Current HASH Linear identifiers commonly use `FE-`, `SRE-`, `BE-`, or `H-` prefi
 
 Contributors without access to HASH's Linear workspace do not need a Linear identifier. Use a descriptive branch name and PR title, and link the relevant public issue or discussion for significant work. Minor documentation fixes may go straight to a PR as described in the contributing guide.
 
-In every case, keep the PR description self-contained so contributors and reviewers without access to internal systems can understand the change. Fill every applicable section of the PR template and say when a section is unknown or inapplicable.
+In every case, keep the PR description self-contained so contributors and reviewers without access to internal systems can understand the change. Fill every applicable section of the organization-wide PR template, and delete each section that does not apply, as the template's comments ask.
 
 ## Reviewing Pull Requests
 

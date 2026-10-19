@@ -53,8 +53,10 @@
   "devDependencies": {
     "@flue/vite": "2.3.0",
     "@local/pi-faux-providers": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@playwright/test": "1.58.2",
-    "@types/node": "22.18.13",
+    "@tsconfig/bases": "catalog:",
+    "@types/node": "catalog:",
     "@types/pg": "8.23.1",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
@@ -64,8 +66,8 @@
     "dependency-cruiser": "18.0.0",
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003",
-    "vite": "8.2.2",
-    "vitest": "4.1.11",
+    "vite": "catalog:",
+    "vitest": "catalog:",
     "wait-on": "9.0.1"
   }
 }

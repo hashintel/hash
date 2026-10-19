@@ -25,7 +25,7 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
-import type { JsonValue } from "@blockprotocol/core/.";
+import type { JsonValue } from "@blockprotocol/core";
 import type {
   EntityId,
   PropertyPatchOperation,
@@ -52,7 +52,7 @@ export type ConfigState = {
   chartConfig: ChartConfig | null;
   isLoading: boolean;
   error: string | null;
-  flowRunId: string | null;
+  flowRunEntityId: EntityId | null;
 };
 
 const initialState: ConfigState = {
@@ -67,7 +67,7 @@ const initialState: ConfigState = {
   chartConfig: null,
   isLoading: false,
   error: null,
-  flowRunId: null,
+  flowRunEntityId: null,
 };
 
 const configurationReadyPatch: PropertyPatchOperation = {
@@ -114,7 +114,7 @@ type UseDashboardItemConfigParams = {
   /** Called once the flow is running so the dashboard can show its card. */
   onGenerationStarted?: (generation: {
     itemEntityId: EntityId;
-    flowRunId: string;
+    flowRunEntityId: EntityId;
   }) => void;
   onComplete?: () => void;
 };
@@ -398,14 +398,14 @@ export const useDashboardItemConfig = ({
    * before the state update containing the flow run id has been applied.
    */
   const pollFlowForCompletion = useCallback(
-    async (flowRunId: string) => {
+    async (flowRunEntityId: EntityId) => {
       try {
         const { data } = await apolloClient.query<
           GetFlowRunByIdQuery,
           GetFlowRunByIdQueryVariables
         >({
           query: getFlowRunById,
-          variables: { flowRunId },
+          variables: { flowRunEntityId },
           fetchPolicy: "network-only",
         });
 
@@ -510,15 +510,15 @@ export const useDashboardItemConfig = ({
   );
 
   const startPolling = useCallback(
-    (flowRunId: string) => {
+    (flowRunEntityId: EntityId) => {
       if (pollIntervalRef.current) {
         return; // Already polling
       }
 
       // Poll immediately, then every 2 seconds
-      void pollFlowForCompletion(flowRunId);
+      void pollFlowForCompletion(flowRunEntityId);
       pollIntervalRef.current = setInterval(() => {
-        void pollFlowForCompletion(flowRunId);
+        void pollFlowForCompletion(flowRunEntityId);
       }, 2000);
     },
     [pollFlowForCompletion],
@@ -628,13 +628,13 @@ export const useDashboardItemConfig = ({
         const resolvedItemEntityId = await ensureEntityId();
         setState((prev) => ({
           ...prev,
-          flowRunId: data.startFlow,
+          flowRunEntityId: data.startFlow,
           step: "query",
         }));
 
         onGenerationStarted?.({
           itemEntityId: resolvedItemEntityId,
-          flowRunId: data.startFlow,
+          flowRunEntityId: data.startFlow,
         });
 
         /**
@@ -766,12 +766,12 @@ export const useDashboardItemConfig = ({
         const resolvedItemEntityId = await ensureEntityId();
         setState((previousState) => ({
           ...previousState,
-          flowRunId: data.startFlow,
+          flowRunEntityId: data.startFlow,
           step: "query",
         }));
         onGenerationStarted?.({
           itemEntityId: resolvedItemEntityId,
-          flowRunId: data.startFlow,
+          flowRunEntityId: data.startFlow,
         });
         if (!onGenerationStarted) {
           startPolling(data.startFlow);

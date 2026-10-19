@@ -1,7 +1,10 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import {
+  extractWebIdFromEntityId,
+  isEntityId,
+} from "@blockprotocol/type-system";
 import {
   ArrowUpRightRegularIcon,
   CodeIcon,
@@ -11,6 +14,7 @@ import {
 } from "@hashintel/design-system";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
+import { useUserOrOrgShortnameByWebId } from "../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { SearchIcon } from "../../../../../../shared/icons/search-icon";
 import { UserIcon } from "../../../../../../shared/icons/user-icon";
 import { Link } from "../../../../../../shared/ui/link";
@@ -19,7 +23,7 @@ import { SourcesSlideover } from "./provenance/sources-slideover";
 
 import type { HistoryEvent } from "../shared/types";
 import type { Subgraph } from "@blockprotocol/graph";
-import type { EntityId, OriginProvenance } from "@blockprotocol/type-system";
+import type { OriginProvenance } from "@blockprotocol/type-system";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
@@ -59,16 +63,27 @@ const ProvenanceRow = ({ children }: PropsWithChildren) => (
 
 export const Provenance = ({
   event,
-  shortname,
   subgraph,
 }: {
   event: HistoryEvent;
-  shortname: string;
   subgraph: Subgraph;
 }) => {
   const {
     provenance: { edition },
   } = event;
+
+  /* A flow's origin id is the entity id of the run that made the edition. Other origins give ids of their own. */
+  const flowRunEntityId =
+    edition.origin.type === "flow" &&
+    edition.origin.id !== undefined &&
+    isEntityId(edition.origin.id)
+      ? edition.origin.id
+      : undefined;
+
+  /* The run page is under the shortname of the run's web, which may not be the entity's. */
+  const { shortname: flowRunShortname } = useUserOrOrgShortnameByWebId({
+    webId: flowRunEntityId ? extractWebIdFromEntityId(flowRunEntityId) : null,
+  });
 
   const { actors, loading } = useActors({
     accountIds: [edition.createdById],
@@ -103,8 +118,6 @@ export const Provenance = ({
   }
 
   const OriginIcon = provenanceIconMap[originType];
-
-  const flowRunEntityId = edition.origin.id as EntityId | undefined;
 
   const sources =
     event.type === "property-update"
@@ -141,11 +154,11 @@ export const Provenance = ({
                   {originType.split("-").join(" ")}
                 </Box>
               </Typography>
-              {flowRunEntityId && (
+              {flowRunEntityId && flowRunShortname && (
                 <Link
                   href={generateWorkerRunPath({
-                    flowRunId: extractEntityUuidFromEntityId(flowRunEntityId),
-                    shortname,
+                    flowRunEntityId,
+                    shortname: flowRunShortname,
                   })}
                   sx={{
                     ...typographySx,

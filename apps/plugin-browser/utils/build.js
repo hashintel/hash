@@ -32,8 +32,14 @@ config.plugins = (config.plugins || []).concat(
   }),
 );
 
-webpack(config, (err) => {
-  if (err) {
-    throw err;
+webpack(config, (error, stats) => {
+  if (error) {
+    throw error;
+  }
+
+  if (stats?.hasErrors()) {
+    throw new Error(
+      stats.toString({ all: false, errors: true, errorDetails: true }),
+    );
   }
 });

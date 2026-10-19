@@ -35,7 +35,6 @@ import type {
   CancelFlowMutationVariables,
   FlowRun,
 } from "../../../../../graphql/api-types.gen";
-import type { EntityUuid } from "@blockprotocol/type-system";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import type { FunctionComponent } from "react";
 
@@ -170,7 +169,8 @@ export const Topbar = ({
   const { flowDefinitions, selectedFlowDefinitionId } =
     useFlowDefinitionsContext();
 
-  const { flowRuns, selectedFlowRunId, selectedFlowRun } = useFlowRunsContext();
+  const { flowRuns, selectedFlowRunEntityId, selectedFlowRun } =
+    useFlowRunsContext();
 
   const [cancelFlow] = useMutation<
     CancelFlowMutation,
@@ -178,11 +178,13 @@ export const Topbar = ({
   >(cancelFlowMutation);
 
   const onCancelFlowClicked = useCallback(async () => {
-    if (selectedFlowRunId) {
+    if (selectedFlowRunEntityId) {
       setCancelling(true);
 
       try {
-        await cancelFlow({ variables: { flowUuid: selectedFlowRunId } });
+        await cancelFlow({
+          variables: { flowRunEntityId: selectedFlowRunEntityId },
+        });
       } catch {
         /**
          * We don't nee to worry about the success case because the cancel flow button will disappear
@@ -190,7 +192,7 @@ export const Topbar = ({
         setCancelling(false);
       }
     }
-  }, [cancelFlow, selectedFlowRunId]);
+  }, [cancelFlow, selectedFlowRunEntityId]);
 
   const onRunFlowClicked = useCallback(() => {
     handleRunFlowClicked();
@@ -290,7 +292,7 @@ export const Topbar = ({
             ) : (
               <Select
                 selectSx={{ ...selectSx, minWidth: 100 }}
-                value={selectedFlowRunId ?? "none"}
+                value={selectedFlowRunEntityId ?? "none"}
                 onChange={(event) => {
                   const value = event.target.value;
 
@@ -305,7 +307,7 @@ export const Topbar = ({
                   }
 
                   const flowRun = flowRuns.find(
-                    (run) => run.flowRunId === value,
+                    (run) => run.flowRunEntityId === value,
                   );
                   if (!flowRun) {
                     throw new Error(`Flow run with id ${value} not found`);
@@ -316,7 +318,7 @@ export const Topbar = ({
                   void push(
                     generateWorkerRunPath({
                       shortname,
-                      flowRunId: value as EntityUuid,
+                      flowRunEntityId: flowRun.flowRunEntityId,
                     }),
                   );
                 }}
@@ -326,8 +328,8 @@ export const Topbar = ({
                 </MenuItem>
                 {runOptions.map((run) => (
                   <MenuItem
-                    key={run.flowRunId}
-                    value={run.flowRunId}
+                    key={run.flowRunEntityId}
+                    value={run.flowRunEntityId}
                     sx={{ fontFamily: "monospace" }}
                   >
                     {generateRunLabel(run)}

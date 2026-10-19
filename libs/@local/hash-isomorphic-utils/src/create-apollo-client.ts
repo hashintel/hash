@@ -122,7 +122,7 @@ export const createApolloClient = (params?: {
       typePolicies: {
         UnknownEntity: entityKeyFields,
         PageProperties: { keyFields: ["pageEntityId"] },
-        FlowRun: { keyFields: ["flowRunId"] },
+        FlowRun: { keyFields: ["flowRunEntityId"] },
       },
     }),
     connectToDevTools:

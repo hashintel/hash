@@ -1,4 +1,7 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  type EntityId,
+} from "@blockprotocol/type-system";
 
 export const generateFlowDefinitionPath = ({
   shortname,
@@ -8,13 +11,17 @@ export const generateFlowDefinitionPath = ({
   flowDefinitionId: string;
 }) => `/@${shortname}/flows/${flowDefinitionId}`;
 
+/**
+ * The page of a flow run. The shortname names the run's web, so the path only needs the uuid of its entity.
+ */
 export const generateWorkerRunPath = ({
   shortname,
-  flowRunId,
+  flowRunEntityId,
 }: {
   shortname: string;
-  flowRunId: EntityUuid;
-}) => `/@${shortname.replace(/^@/, "")}/workers/${flowRunId}`;
+  flowRunEntityId: EntityId;
+}) =>
+  `/@${shortname.replace(/^@/, "")}/workers/${extractEntityUuidFromEntityId(flowRunEntityId)}`;
 
 export const workerFlowFilterParam = "flow";
 

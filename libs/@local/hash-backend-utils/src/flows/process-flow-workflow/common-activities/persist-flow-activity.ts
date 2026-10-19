@@ -33,7 +33,7 @@ export type PersistFlowActivityParams = {
    * run's entity is created.
    */
   flowDefinitionEntityId?: EntityId;
-  flowRunId?: EntityUuid;
+  flowRunEntityUuid?: EntityUuid;
   /**
    * The `Flow Trigger` entity that started the run, if any (e.g. a `Flow Schedule`). Only used when the run's
    * entity is created.
@@ -50,7 +50,7 @@ export const persistFlowActivity = async (
   const {
     flow,
     flowDefinitionEntityId,
-    flowRunId,
+    flowRunEntityUuid,
     flowTriggerEntityId,
     graphApiClient,
     stepIds,
@@ -138,8 +138,8 @@ export const persistFlowActivity = async (
     );
   }
 
-  const flowRunEntityUuid = flowRunId ?? (generateUuid() as EntityUuid);
-  const flowEntityId = entityIdFromComponents(webId, flowRunEntityUuid);
+  const entityUuid = flowRunEntityUuid ?? (generateUuid() as EntityUuid);
+  const flowEntityId = entityIdFromComponents(webId, entityUuid);
 
   const linkFromRun = (rightEntityId: EntityId) => ({
     webId,
@@ -161,7 +161,7 @@ export const persistFlowActivity = async (
     ]
   >(graphApiClient, userAuthentication, [
     {
-      entityUuid: flowRunEntityUuid,
+      entityUuid,
       webId,
       entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
       properties: flowRunProperties,
