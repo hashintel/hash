@@ -1071,12 +1071,6 @@ where
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let entity_type_id = EntityTypeUuid::from_url(&parameters.schema.id);
 
-            if let OntologyOwnership::Local { web_id } = &parameters.ownership {
-                policy_components_builder.add_entity_type(&parameters.schema.id, Some(*web_id));
-            } else {
-                policy_components_builder.add_entity_type(&parameters.schema.id, None);
-            }
-
             if let Some((_ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
                     &parameters.schema.id,
@@ -1086,6 +1080,11 @@ where
                 )
                 .await?
             {
+                if let OntologyOwnership::Local { web_id } = &parameters.ownership {
+                    policy_components_builder.add_entity_type(&parameters.schema.id, Some(*web_id));
+                } else {
+                    policy_components_builder.add_entity_type(&parameters.schema.id, None);
+                }
                 entity_type_reference_ids.extend(
                     parameters
                         .schema

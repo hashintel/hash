@@ -26,6 +26,7 @@ use type_system::{
     },
     provenance::{OriginProvenance, OriginType},
 };
+use uuid::Uuid;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
@@ -735,4 +736,51 @@ async fn update_link_destination_link() {
             if *entity_type_id == befriending_v2.id && *destination_id == friend_of.id,
         "should name the entity type and its link destination"
     );
+}
+
+#[tokio::test]
+async fn create_with_skipped_parent_in_other_web() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed([], [], [])
+        .await
+        .expect("should be able to seed the database");
+    let user = api.account_id;
+    let web_id = WebId::new(user);
+    let parent_v1 = "https://example.com/@alice/types/entity-type/parent/v/1";
+
+    api.create_entity_type(
+        user,
+        create_params(entity_type_schema(parent_v1, &[]), web_id, user),
+    )
+    .await
+    .expect("should be able to create the parent");
+
+    let skipped_parent = CreateEntityTypeParams {
+        conflict_behavior: ConflictBehavior::Skip,
+        ..create_params(
+            entity_type_schema(parent_v1, &[]),
+            WebId::new(Uuid::new_v4()),
+            user,
+        )
+    };
+    let created = api
+        .create_entity_types(
+            user,
+            [
+                skipped_parent,
+                create_params(
+                    entity_type_schema(
+                        "https://example.com/@alice/types/entity-type/child/v/1",
+                        &[parent_v1],
+                    ),
+                    web_id,
+                    user,
+                ),
+            ],
+        )
+        .await
+        .expect("should be able to create a type whose parent is skipped in the same batch");
+
+    assert_eq!(created.len(), 1, "only the child should be created");
 }
