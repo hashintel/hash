@@ -72,9 +72,15 @@ export const createConfig = (options: Options): OxlintConfig => {
   const extend: Extends = [];
   const env: Env = { builtin: true, es2026: true };
   const rules: DummyRuleMap = {};
+  const ignorePatterns = [...(options.ignorePatterns ?? [])];
   const overrides: Overrides = [
     {
-      files: ["**/*.config.ts"],
+      files: [
+        "**/*.config.js",
+        "**/*.config.ts",
+        "**/*.config.mjs",
+        "**/*.config.mts",
+      ],
       rules: {
         "import/no-default-export": "allow", // config files always use `defineConfig` with a default export
       },
@@ -96,10 +102,21 @@ export const createConfig = (options: Options): OxlintConfig => {
     switch (framework) {
       case "react": {
         plugins.push("react", "react-perf", "jsx-a11y");
+
         break;
       }
       case "next": {
         plugins.push("nextjs", "react-perf", "jsx-a11y");
+        ignorePatterns.push(".next/**", "next-env.d.ts");
+        overrides.push(
+          defineOverride({
+            files: ["app/**/*.tsx", "pages/**/*.tsx"],
+            rules: {
+              "import/no-default-export": "allow", // Next.JS uses default exports for pages
+            },
+          }),
+        );
+
         break;
       }
       case "vitest": {
@@ -122,6 +139,30 @@ export const createConfig = (options: Options): OxlintConfig => {
             "vitest/prefer-to-be-truthy": "allow", // Strict boolean matchers distinguish true from truthy values.
           }),
         );
+
+        if (options.frameworks?.includes("effect") ?? false) {
+          const effectTesters = ["it.effect", "it.live"].flatMap((tester) => [
+            tester,
+            `${tester}.skip`,
+            `${tester}.only`,
+            `${tester}.each`,
+          ]);
+
+          Object.assign(
+            rules,
+            defineRules({
+              "vitest/no-standalone-expect": [
+                "deny", // @effect/vitest declares tests through `it.effect` and `it.live`, and `layer` hands its tests an `it` of their own.
+                { additionalTestBlockFunctions: ["it", ...effectTesters] },
+              ],
+              "vitest/require-hook": [
+                "deny", // @effect/vitest's `layer` provides services to the tests it groups.
+                { allowedFunctionCalls: ["layer"] },
+              ],
+            }),
+          );
+        }
+
         overrides.push(
           defineOverride({
             files: ["src/**/*.test-d.ts"],
@@ -156,6 +197,7 @@ export const createConfig = (options: Options): OxlintConfig => {
             "no-shadow": "allow", // covered by the strict typescript setup
             "no-redeclare": "allow", // covered by the strict typescript setup
             "effecttsgo/missed-pipeable-opportunity": "deny", // nested function calls otherwise aren't readable
+            "unicorn/no-array-method-this-argument": "allow", // false positives as it only name matches
           }),
         );
         break;
@@ -182,7 +224,7 @@ export const createConfig = (options: Options): OxlintConfig => {
     },
     env,
     extends: extend,
-    ignorePatterns: [...(options.ignorePatterns ?? [])],
+    ignorePatterns,
     jsPlugins: [
       {
         name: "hash",
