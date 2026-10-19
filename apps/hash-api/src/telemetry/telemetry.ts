@@ -56,6 +56,9 @@ class TelemetryService {
       }
       this.client = new RudderAnalytics(RUDDERSTACK_KEY, {
         dataPlaneUrl: RUDDERSTACK_DATA_PLANE_URL,
+        errorHandler: (error: unknown) => {
+          logger.warn(`Could not send telemetry events: ${error}`);
+        },
       });
     }
     return this.client;
