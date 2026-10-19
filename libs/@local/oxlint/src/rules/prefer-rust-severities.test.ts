@@ -78,11 +78,11 @@ tester.run("prefer-rust-severities", preferRustSeverities, {
         'import type { DummyRuleMap } from "oxlint"; defineRules(({ one: "deny" }) satisfies DummyRuleMap);',
     },
     {
-      code: 'import { createConfig } from "@local/oxlint"; const rules = { one: 0 } as const;',
+      code: 'import { defineConfig } from "@local/oxlint"; const rules = { one: 0 } as const;',
       errors: [severityError],
       filename: "config-factory.ts",
       output:
-        'import { createConfig } from "@local/oxlint"; const rules = { one: "allow" } as const;',
+        'import { defineConfig } from "@local/oxlint"; const rules = { one: "allow" } as const;',
     },
     {
       code: 'export default { overrides: [{ files: ["test.ts"], rules: { one: 2 } }] };',
