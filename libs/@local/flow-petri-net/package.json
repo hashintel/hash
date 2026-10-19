@@ -1,0 +1,35 @@
+{
+  "name": "@local/flow-petri-net",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Compiles flow definitions into Petri nets (SDCPNs) that Petrinaut renders and a net executor runs",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "exports": {
+    "./compile-flow-definition": {
+      "types": "./src/compile-flow-definition.ts",
+      "default": "./dist/compile-flow-definition.js"
+    }
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "test:unit": "vitest --run src"
+  },
+  "dependencies": {
+    "@hashintel/petrinaut-core": "workspace:*",
+    "@local/hash-isomorphic-utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@local/eslint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "9.39.4",
+    "rimraf": "6.1.3",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -9719,6 +9719,23 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@local/flow-petri-net@workspace:libs/@local/flow-petri-net":
+  version: 0.0.0-use.local
+  resolution: "@local/flow-petri-net@workspace:libs/@local/flow-petri-net"
+  dependencies:
+    "@hashintel/petrinaut-core": "workspace:*"
+    "@local/eslint": "workspace:*"
+    "@local/hash-isomorphic-utils": "workspace:*"
+    "@local/tsconfig": "workspace:*"
+    "@tsconfig/bases": "catalog:"
+    "@types/node": "catalog:"
+    eslint: "npm:9.39.4"
+    rimraf: "npm:6.1.3"
+    typescript: "catalog:"
+    vitest: "catalog:"
+  languageName: unknown
+  linkType: soft
+
 "@local/flue-aisdk-transport@workspace:*, @local/flue-aisdk-transport@workspace:libs/@local/flue-aisdk-transport":
   version: 0.0.0-use.local
   resolution: "@local/flue-aisdk-transport@workspace:libs/@local/flue-aisdk-transport"
