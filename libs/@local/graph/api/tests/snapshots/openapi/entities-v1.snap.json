@@ -4,10 +4,116 @@
       "BadRequest": {
         "content": {
           "application/problem+json": {
+            "examples": {
+              "about:blank": {
+                "summary": "Bad Request: The request body is not valid JSON.",
+                "value": {
+                  "detail": "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (2)": {
+                "summary": "Bad Request: The request body could not be read to its end.",
+                "value": {
+                  "detail": "Failed to buffer the request body: error reading a body from connection",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              }
+            },
+            "schema": {
+              "anyOf": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request: The request body is not valid JSON."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request: The request body could not be read to its end."
+                }
+              ]
+            }
+          }
+        },
+        "description": "- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
+      "Forbidden": {
+        "content": {
+          "application/problem+json": {
             "example": {
-              "detail": "Invalid URL: Cannot parse `limit` with value `many` to a `u8`",
-              "status": 400,
-              "title": "Bad Request",
+              "detail": "The caller may not create the entities.",
+              "status": 403,
+              "title": "Forbidden",
               "type": "about:blank"
             },
             "schema": {
@@ -18,10 +124,10 @@
                 {
                   "properties": {
                     "status": {
-                      "const": 400
+                      "const": 403
                     },
                     "title": {
-                      "const": "Bad Request"
+                      "const": "Forbidden"
                     },
                     "type": {
                       "const": "about:blank"
@@ -32,11 +138,11 @@
                   ]
                 }
               ],
-              "title": "Bad Request"
+              "title": "Forbidden"
             }
           }
         },
-        "description": "A path parameter does not match its documented schema.",
+        "description": "The caller may not create an entity or instantiate an entity type or a type it inherits from.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -165,6 +271,70 @@
           }
         },
         "description": "The entity does not exist, is archived, or the caller may not view it.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "Failed to buffer the request body: length limit exceeded",
+              "status": 413,
+              "title": "Content Too Large",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 413
+                    },
+                    "title": {
+                      "const": "Content Too Large"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Content Too Large"
+            }
+          }
+        },
+        "description": "The request body is larger than the operation accepts.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -444,9 +614,320 @@
             "style": "simple"
           }
         }
+      },
+      "UnprocessableEntity": {
+        "content": {
+          "application/problem+json": {
+            "examples": {
+              "about:blank": {
+                "summary": "Unprocessable Content: The request body does not match the schema of the operation.",
+                "value": {
+                  "detail": "Failed to deserialize the JSON body into the target type: invalid type: string \"many\", expected u8 at line 1 column 6",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (2)": {
+                "summary": "Unprocessable Content: One or more entity types do not exist.",
+                "value": {
+                  "detail": "One or more entity types do not exist.",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (3)": {
+                "summary": "Unprocessable Content: One or more entity types are archived.",
+                "value": {
+                  "detail": "One or more entity types are archived.",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (4)": {
+                "summary": "Unprocessable Content: The entity types of an entity define a property differently.",
+                "value": {
+                  "detail": "The entity types of an entity define a property differently.",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (5)": {
+                "summary": "Unprocessable Content: One or more entities do not match their entity types.",
+                "value": {
+                  "detail": "One or more entities do not match their entity types.",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              }
+            },
+            "schema": {
+              "anyOf": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content: The request body does not match the schema of the operation."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content: One or more entity types do not exist."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content: One or more entity types are archived."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content: The entity types of an entity define a property differently."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content: One or more entities do not match their entity types."
+                }
+              ]
+            }
+          }
+        },
+        "description": "- Unprocessable Content: The request body does not match the schema of the operation.\n- Unprocessable Content: One or more entity types do not exist.\n- Unprocessable Content: One or more entity types are archived.\n- Unprocessable Content: The entity types of an entity define a property differently.\n- Unprocessable Content: One or more entities do not match their entity types.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
+      "UnsupportedMediaType": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "Expected request with `Content-Type: application/json`",
+              "status": 415,
+              "title": "Unsupported Media Type",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 415
+                    },
+                    "title": {
+                      "const": "Unsupported Media Type"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Unsupported Media Type"
+            }
+          }
+        },
+        "description": "The request's `Content-Type` is missing or neither `application/json` nor `application/*+json`.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       }
     },
     "schemas": {
+      "BaseUrl": {
+        "description": "The base URL of a SemType ontology type (the $id of the schema without the versioned suffix). It must end with a trailing slash.",
+        "format": "uri",
+        "maxLength": 2048,
+        "pattern": "/$",
+        "title": "Base URL",
+        "type": "string"
+      },
+      "CreateEntitiesRequest": {
+        "additionalProperties": false,
+        "description": "The entities to create.",
+        "properties": {
+          "entities": {
+            "description": "The entities to create, in one transaction, at least one.",
+            "items": {
+              "$ref": "#/components/schemas/NewEntity"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "entities"
+        ],
+        "type": "object"
+      },
+      "CreateEntitiesResponse": {
+        "description": "The created entities.",
+        "properties": {
+          "entities": {
+            "description": "The created entities, in the order of the request.",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entities"
+        ],
+        "type": "object"
+      },
       "Entity": {
         "description": "An entity the caller may view.",
         "properties": {
@@ -457,10 +938,28 @@
               }
             ],
             "description": "What identifies and classifies the entity."
+          },
+          "properties": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyObject"
+              }
+            ],
+            "description": "The entity's properties, keyed by the base URL of their property type."
+          },
+          "propertyMetadata": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyObjectMetadata"
+              }
+            ],
+            "description": "The data types of the values in `properties`."
           }
         },
         "required": [
-          "metadata"
+          "metadata",
+          "properties",
+          "propertyMetadata"
         ],
         "type": "object"
       },
@@ -497,6 +996,52 @@
         ],
         "type": "object"
       },
+      "NewEntity": {
+        "additionalProperties": false,
+        "description": "An entity to create.",
+        "properties": {
+          "entityTypeIds": {
+            "description": "The entity types the entity is an instance of, at least one.",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            },
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "properties": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyObject"
+              }
+            ],
+            "description": "The entity's properties, keyed by the base URL of their property type."
+          },
+          "propertyMetadata": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyObjectMetadata"
+              }
+            ],
+            "description": "The data types of the values in `properties`, one for every value."
+          },
+          "webId": {
+            "description": "The web to create the entity in.",
+            "examples": [
+              "8d86c8c3-d66d-43d1-859b-676c3bcaeadc"
+            ],
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "webId",
+          "entityTypeIds",
+          "properties",
+          "propertyMetadata"
+        ],
+        "type": "object"
+      },
       "ProblemDetails": {
         "properties": {
           "detail": {
@@ -530,6 +1075,105 @@
         "title": "Problem Details",
         "type": "object"
       },
+      "Property": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PropertyArray"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyObject"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyValue"
+          }
+        ],
+        "description": "A list of properties, properties keyed by the base URL of their property type, or a value of a data type."
+      },
+      "PropertyArray": {
+        "description": "A list of properties.",
+        "items": {
+          "$ref": "#/components/schemas/Property"
+        },
+        "type": "array"
+      },
+      "PropertyArrayMetadata": {
+        "description": "The metadata of a list of properties, one entry per property in the same order.",
+        "items": {
+          "$ref": "#/components/schemas/PropertyMetadata"
+        },
+        "type": "array"
+      },
+      "PropertyMetadata": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PropertyArrayMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyObjectMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyValueMetadata"
+          }
+        ],
+        "description": "The metadata of a property: of a list, of properties keyed by base URL, or of a value."
+      },
+      "PropertyObject": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Property"
+        },
+        "description": "Properties keyed by the base URL of their property type.",
+        "examples": [
+          {
+            "https://hash.ai/@h/types/property-type/preferred-name/": "Alice",
+            "https://hash.ai/@h/types/property-type/shortname/": "alice"
+          }
+        ],
+        "propertyNames": {
+          "$ref": "#/components/schemas/BaseUrl"
+        },
+        "type": "object"
+      },
+      "PropertyObjectMetadata": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/PropertyMetadata"
+        },
+        "description": "The metadata of properties, keyed by the base URL of their property type.",
+        "examples": [
+          {
+            "https://hash.ai/@h/types/property-type/preferred-name/": {
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+            },
+            "https://hash.ai/@h/types/property-type/shortname/": {
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+            }
+          }
+        ],
+        "propertyNames": {
+          "$ref": "#/components/schemas/BaseUrl"
+        },
+        "type": "object"
+      },
+      "PropertyValue": {
+        "description": "A value of a data type: `null`, a boolean, a string, a number, an array or an object."
+      },
+      "PropertyValueMetadata": {
+        "additionalProperties": false,
+        "description": "The metadata of a property value.",
+        "properties": {
+          "dataTypeId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "description": "The data type of the value."
+          }
+        },
+        "required": [
+          "dataTypeId"
+        ],
+        "type": "object"
+      },
       "VersionedUrl": {
         "description": "The versioned URL of a SemType ontology type (the $id of the schema). It must be of the form `${baseUrl}v/${version}`, where `version` is a major version number.",
         "examples": [
@@ -556,9 +1200,100 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/entities/v1": {
+      "post": {
+        "description": "Creates the entities in one transaction: either all of them are created or none. Returns them in the order of the request.",
+        "operationId": "createEntities",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEntitiesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateEntitiesResponse"
+                }
+              }
+            },
+            "description": "The created entities.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ],
+        "summary": "Create entities",
+        "tags": [
+          "Entity"
+        ]
+      }
+    },
     "/entities/v1/{entityId}": {
       "get": {
-        "description": "Returns the entity's ID and the entity types of its current edition.",
+        "description": "Returns the entity's ID, the entity types, and the properties with the data types of their values, of its current edition. `propertyMetadata` leaves out a value without a stored data type, and a list that contains one.",
         "operationId": "getEntity",
         "parameters": [
           {
@@ -612,7 +1347,68 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Invalid URL: Cannot parse `limit` with value `many` to a `u8`",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request"
+                }
+              }
+            },
+            "description": "A path parameter does not match its documented schema.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"

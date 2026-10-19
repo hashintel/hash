@@ -22,7 +22,10 @@ use super::{
         EntityTypeResource, EntityTypeResourceConstraint, PolicyMetaResource, PropertyTypeResource,
         PropertyTypeResourceConstraint, ResourceConstraint,
     },
-    store::{PolicyStore, PrincipalStore, ResolvePoliciesParams, error::ContextCreationError},
+    store::{
+        PolicyStore, PrincipalStore, ResolvePoliciesParams,
+        error::{BuildEntityTypeContextError, ContextCreationError},
+    },
 };
 
 /// Optimization data extracted from policy analysis for database entity filter generation.
@@ -560,6 +563,21 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     }
 }
 
+/// Returns the entity types `report` names as missing, or [`None`] if it reports any other error.
+fn missing_entity_types(
+    report: &Report<[BuildEntityTypeContextError]>,
+) -> Option<HashSet<VersionedUrl>> {
+    report
+        .current_contexts()
+        .map(|context| match context {
+            BuildEntityTypeContextError::EntityTypeNotFound { entity_type_id } => {
+                Some(entity_type_id.clone())
+            }
+            BuildEntityTypeContextError::StoreError => None,
+        })
+        .collect()
+}
+
 impl<S> IntoFuture for PolicyComponentsBuilder<'_, S>
 where
     S: PrincipalStore + PolicyStore + Sync,
@@ -608,8 +626,16 @@ where
                     .store
                     .build_entity_type_context(&entity_type_ids)
                     .await
-                    .change_context_lazy(|| ContextCreationError::BuildEntityTypeContext {
-                        entity_type_ids: entity_type_ids.into_iter().cloned().collect(),
+                    .map_err(|report| {
+                        let context = missing_entity_types(&report).map_or_else(
+                            || ContextCreationError::BuildEntityTypeContext {
+                                entity_type_ids: entity_type_ids.into_iter().cloned().collect(),
+                            },
+                            |entity_type_ids| ContextCreationError::EntityTypesNotFound {
+                                entity_type_ids,
+                            },
+                        );
+                        report.change_context(context)
                     })?;
                 for entity_type_resource in &entity_type_resources {
                     self.context.add_entity_type(entity_type_resource);
