@@ -22,6 +22,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual, parseArgs } from "node:util";
 
+import { WorkflowNotFoundError } from "@temporalio/common";
 import proto from "@temporalio/proto";
 import { v5 as uuidv5 } from "uuid";
 
@@ -867,27 +868,36 @@ const main = async () => {
     console.log(`Started ${workflowId}: ${temporalUiUrl(workflowId)}`);
 
     const handle = client.workflow.getHandle(workflowId);
-    let workflowError: unknown;
+    const workflowErrorWhenClosed = handle.result().then(
+      () => undefined,
+      (error: unknown) => error,
+    );
 
     const closed = await Promise.race([
-      handle.result().then(
-        () => true,
-        (error: unknown) => {
-          workflowError = error;
-          return true;
-        },
-      ),
+      workflowErrorWhenClosed.then(() => true),
       sleep(timeoutSeconds * 1_000, false, { ref: false }),
     ]);
     if (!closed) {
       /* Stopped, so that it can't go on changing the graph after the scenario has moved on. */
-      await handle.terminate(
-        `run-flow-scenario: still running after ${timeoutSeconds}s`,
-      );
-      console.warn(
-        `⚠ Still running after ${timeoutSeconds}s: terminated it, reporting the steps so far. Is a step waiting on something?`,
-      );
+      const terminated = await handle
+        .terminate(`run-flow-scenario: still running after ${timeoutSeconds}s`)
+        .then(
+          () => true,
+          (error: unknown) => {
+            /* Temporal can't find a running execution to terminate once it has closed. */
+            if (error instanceof WorkflowNotFoundError) {
+              return false;
+            }
+            throw error;
+          },
+        );
+      if (terminated) {
+        console.warn(
+          `⚠ Still running after ${timeoutSeconds}s: terminated it, reporting the steps so far. Is a step waiting on something?`,
+        );
+      }
     }
+    const workflowError = await workflowErrorWhenClosed;
 
     const flowRun = await getFlowRunFromTemporalWorkflowId({
       flowDefinitionId,
