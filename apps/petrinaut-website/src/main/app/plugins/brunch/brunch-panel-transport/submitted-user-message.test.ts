@@ -21,7 +21,7 @@ describe("brunchSubmittedUserMessage", () => {
   test("admits an ordinary turn unchanged", () => {
     expect(brunchSubmittedUserMessage([message("user-1", "Hello.")])).toEqual({
       messageId: "user-1",
-      body: "Hello.",
+      message: { kind: "user", body: "Hello." },
     });
   });
 
@@ -31,7 +31,10 @@ describe("brunchSubmittedUserMessage", () => {
         message("user-1", "Repair the model."),
         message(petrinautDiagnosticsContextMessageId, "One current error."),
       ]),
-    ).toEqual({ messageId: "user-1", body: "Repair the model." });
+    ).toEqual({
+      messageId: "user-1",
+      message: { kind: "user", body: "Repair the model." },
+    });
   });
 
   test("carries submission context without any diagnostics", () => {

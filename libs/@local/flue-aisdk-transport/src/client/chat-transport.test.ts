@@ -190,7 +190,7 @@ test("admits the host-derived user turn under its own message identity", async (
     clientToolNames: new Set(),
     submittedUserMessage: (messages) => ({
       messageId: messages.at(0)?.id ?? "missing",
-      body: `framed:${messages.length}`,
+      message: { kind: "user", body: `framed:${messages.length}` },
     }),
     onAdmission,
   });
@@ -212,6 +212,45 @@ test("admits the host-derived user turn under its own message identity", async (
   expect(onAdmission).toHaveBeenCalledWith(
     expect.objectContaining({ messageId: "user-1" }),
   );
+});
+
+test("delivers a host-derived signal as the turn and streams its response", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const onAdmission =
+    vi.fn<NonNullable<FlueChatTransportOptions["onAdmission"]>>();
+  const signal = {
+    kind: "signal",
+    type: "host.note",
+    tagName: "host.note",
+    body: '{"note":"a"}',
+  } as const;
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+    submittedUserMessage: (messages) => ({
+      messageId: messages.at(-1)?.id ?? "missing",
+      message: signal,
+    }),
+    onAdmission,
+  });
+
+  const chunks = await readChunks(
+    await transport.sendMessages(
+      sendOptions([
+        { id: "note-1", role: "user", parts: [{ type: "text", text: "a" }] },
+      ]),
+    ),
+  );
+
+  expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:signal:note-1",
+    message: signal,
+    signal: undefined,
+  });
+  expect(onAdmission).toHaveBeenCalledWith(
+    expect.objectContaining({ kind: "signal", messageId: "note-1" }),
+  );
+  expect(chunks.map((chunk) => chunk.type)).toContain("text-delta");
 });
 
 test.each<[string, UIMessage[]]>([
