@@ -265,6 +265,9 @@ export const normalizePetrinautAiToolInput = (
  * of commands registered in {@link aiCommandActionInputSchemas}. Read-only
  * tools (e.g. `getLatestNetDefinition`) are handled by the dispatcher
  * separately and are not part of this bundle.
+ *
+ * @deprecated Nothing in Petrinaut uses it since the built-in AI chat was
+ * removed.
  */
 export type PetrinautAiWritableCallbacks = Pick<
   Petrinaut["mutations"],
@@ -272,6 +275,10 @@ export type PetrinautAiWritableCallbacks = Pick<
 > &
   Pick<Petrinaut["commands"], AiCommandActionName>;
 
+/**
+ * @deprecated Nothing in Petrinaut calls it since the built-in AI chat was
+ * removed.
+ */
 export function createPetrinautAiWritableCallbacks(
   instance: Petrinaut,
 ): PetrinautAiWritableCallbacks {
