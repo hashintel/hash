@@ -389,25 +389,46 @@ const launchPersona = async ({
   report(`Run: ${run}`);
   const stop = new AbortController();
   const started: ChildProcess[] = [];
-  let servicesStopRequested = false;
-  const stopStartedServices = () => {
-    if (servicesStopRequested) return;
-    servicesStopRequested = true;
-    for (const child of started) {
-      if (!child.pid || child.exitCode !== null || child.signalCode !== null)
-        continue;
-      try {
-        process.kill(-child.pid, "SIGTERM");
-      } catch (error) {
-        if (
-          !(error instanceof Error) ||
-          !("code" in error) ||
-          error.code !== "ESRCH"
-        ) {
-          throw error;
-        }
+  /** Whether the signal reached the process group; false once it has gone. */
+  const signalGroup = (pid: number, signal: NodeJS.Signals | 0) => {
+    try {
+      process.kill(-pid, signal);
+      return true;
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !("code" in error) ||
+        error.code !== "ESRCH"
+      ) {
+        throw error;
       }
+      return false;
     }
+  };
+  let servicesStopped: Promise<void> | undefined;
+  /** Ends the owned process groups and settles once every one has exited. */
+  const stopStartedServices = () => {
+    servicesStopped ??= (async () => {
+      const groups = started.flatMap((child) =>
+        child.pid !== undefined &&
+        child.exitCode === null &&
+        child.signalCode === null &&
+        signalGroup(child.pid, "SIGTERM")
+          ? [child.pid]
+          : [],
+      );
+      // Services flush their logs and the conversation store on SIGTERM;
+      // one that has not exited by then is killed so the launcher can finish.
+      const deadline = Date.now() + 10_000;
+      while (groups.some((pid) => signalGroup(pid, 0))) {
+        if (Date.now() > deadline) {
+          for (const pid of groups) signalGroup(pid, "SIGKILL");
+          return;
+        }
+        await delay(100);
+      }
+    })();
+    return servicesStopped;
   };
   let browser:
     | Awaited<ReturnType<typeof chromium.launchPersistentContext>>
@@ -431,6 +452,7 @@ const launchPersona = async ({
   };
   process.on("SIGINT", onInterruptKey);
   process.on("SIGTERM", interrupt);
+  process.on("SIGHUP", interrupt);
   try {
     const preflight = await execute(
       process.execPath,
@@ -510,9 +532,10 @@ const launchPersona = async ({
       headless: false,
       viewport: null,
       // The launcher's own handlers stop the run and close the browser; Playwright's
-      // would kill it and exit 130 before cleanup retains the run.
+      // would kill it and exit before cleanup retains the run.
       handleSIGINT: false,
       handleSIGTERM: false,
+      handleSIGHUP: false,
       args: [
         "--remote-debugging-address=127.0.0.1",
         "--remote-debugging-port=0",
@@ -776,8 +799,9 @@ const launchPersona = async ({
         });
         report(`Launcher Stop: ${stopDisposition.settlement}.`);
         // Settlement is durable now; stop services before slower browser cleanup
-        // so terminal Ctrl-C cannot orphan the launcher's process groups.
-        stopStartedServices();
+        // so terminal Ctrl-C cannot orphan the launcher's process groups. The
+        // packet step below awaits the same stop and reports any failure.
+        stopStartedServices().catch(() => undefined);
       }
       await bridge?.close();
       if (agentProcess?.kind === "herdr") {
@@ -803,7 +827,7 @@ const launchPersona = async ({
           await browser?.close();
         }
       } finally {
-        stopStartedServices();
+        await stopStartedServices();
         // After the services stop, the server log and conversation store are final.
         await writeRunPacket(run)
           .then(() => refreshProofManifest(join(run, "evidence")))
@@ -823,6 +847,7 @@ const launchPersona = async ({
     } finally {
       process.removeListener("SIGINT", onInterruptKey);
       process.removeListener("SIGTERM", interrupt);
+      process.removeListener("SIGHUP", interrupt);
     }
   }
 };
