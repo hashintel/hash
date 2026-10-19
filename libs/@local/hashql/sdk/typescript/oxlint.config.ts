@@ -1,14 +1,10 @@
-import { createConfig, defineConfig } from "@local/oxlint";
+import { defineConfig } from "@local/oxlint";
 
 import type { OxlintConfig } from "oxlint";
 
 const config: OxlintConfig = defineConfig({
-  extends: [
-    createConfig({
-      frameworks: ["effect", "vitest"],
-      runtime: "node",
-    }),
-  ],
+  frameworks: ["effect", "vitest"],
+  runtime: "browser",
   overrides: [
     {
       files: ["src/**/*.ts"],
