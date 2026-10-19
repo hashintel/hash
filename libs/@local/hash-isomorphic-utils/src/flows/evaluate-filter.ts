@@ -12,6 +12,9 @@ export type FilterValue = {
   [Kind in ScalarKind]: { kind: Kind; value: PayloadKindValues[Kind] };
 }[ScalarKind];
 
+/** A value of a scalar kind that hasn't been checked against the kind yet. */
+export type ScalarValue = { kind: ScalarKind; value: unknown };
+
 const equalityOperators = ["equals", "notEquals"] as const;
 
 const orderingOperators = [
@@ -106,13 +109,15 @@ export const readScalar = (
   }
 };
 
-/** What a valid value looks like, for the primitives whose values of the right type can still be invalid. */
+/** What a valid value of each primitive type looks like. */
 const validValueDescriptions = {
+  text: "text",
   number: "a finite number",
   date: "an ISO calendar date (YYYY-MM-DD)",
   datetime:
     'an ISO 8601 date and time with Z or an offset, e.g. "2026-10-16T14:00:00Z"',
-};
+  boolean: "true or false",
+} satisfies Record<PayloadPrimitive, string>;
 
 /**
  * Low-level scalar comparison. Action wrappers use evaluateCondition/evaluateIf
@@ -130,7 +135,7 @@ export const evaluateFilter = ({
   value,
   condition,
 }: {
-  value: FilterValue;
+  value: ScalarValue;
   condition: ScalarFilterCondition;
 }): FilterResult => {
   const { operator, operand } = condition;
@@ -145,12 +150,9 @@ export const evaluateFilter = ({
   }
 
   const isUnary = operator === "isEmpty" || operator === "isNotEmpty";
-  if (
-    !isUnary &&
-    !(
-      binaryFilterOperatorsByPrimitive[primitive] as readonly string[]
-    ).includes(operator)
-  ) {
+  const supportedOperators: readonly string[] =
+    binaryFilterOperatorsByPrimitive[primitive];
+  if (!isUnary && !supportedOperators.includes(operator)) {
     return {
       status: "error",
       code: "unsupportedOperator",
@@ -163,8 +165,7 @@ export const evaluateFilter = ({
     return {
       status: "error",
       code: "invalidValue",
-      /* Any string or boolean is a valid text or boolean. */
-      message: `Value must be ${validValueDescriptions[primitive as keyof typeof validValueDescriptions]}.`,
+      message: `Value must be ${validValueDescriptions[primitive]}.`,
     };
   }
 

@@ -45,7 +45,7 @@ describe("evaluateFilter", () => {
   ] as const)("rejects incorrectly tagged $kind input", (value) => {
     expect(
       evaluateFilter({
-        value: value as unknown as FilterValue,
+        value,
         condition: { operator: "equals", operand: value.value },
       }),
     ).toMatchObject({ status: "error", code: "invalidValue" });

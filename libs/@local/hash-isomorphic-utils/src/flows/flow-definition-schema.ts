@@ -4,14 +4,11 @@ import { allPayloadKinds } from "./types.js";
 
 import type {
   FlowDefinition,
-  PayloadKind,
   StepDefinition,
   StepInputSource,
 } from "./types.js";
 
-const payloadKindSchema = z.enum(
-  allPayloadKinds as [PayloadKind, ...PayloadKind[]],
-);
+const payloadKindSchema = z.enum(allPayloadKinds);
 
 const connectionOptionsShape = {
   access: z.enum(["read", "consume"]).optional(),

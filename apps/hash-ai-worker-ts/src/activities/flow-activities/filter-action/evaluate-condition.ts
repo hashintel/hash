@@ -4,13 +4,13 @@ import {
   hasPrimitiveType,
 } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
 import {
+  isScalarKind,
   scalarKinds,
   validateCondition,
 } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import { payloadKindTraits } from "@local/hash-isomorphic-utils/flows/types";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-import type { FilterValue } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
 import type {
   ConditionError,
   ConditionNode,
@@ -115,15 +115,11 @@ export const resolveSubject = (
   };
 };
 
-const asScalarValue = (
-  kind: PayloadKind,
-  value: unknown,
-): FilterValue | undefined => {
-  const { primitive } = payloadKindTraits[kind];
-  return primitive !== null && hasPrimitiveType(primitive, value)
-    ? ({ kind, value } as FilterValue)
+const asScalarValue = (kind: PayloadKind, value: unknown) =>
+  isScalarKind(kind) &&
+  hasPrimitiveType(payloadKindTraits[kind].primitive, value)
+    ? { kind, value }
     : undefined;
-};
 
 const evaluateLeaf = (
   leaf: FilterLeaf,

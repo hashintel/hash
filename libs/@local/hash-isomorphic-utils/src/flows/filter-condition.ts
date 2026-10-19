@@ -100,9 +100,11 @@ export type ScalarKind = {
 const traitsOf = (kind: PayloadKind): PayloadKindTraits =>
   payloadKindTraits[kind];
 
-export const scalarKinds: readonly PayloadKind[] = allPayloadKinds.filter(
-  (kind) => traitsOf(kind).primitive !== null,
-);
+export const isScalarKind = (kind: PayloadKind): kind is ScalarKind =>
+  traitsOf(kind).primitive !== null;
+
+export const scalarKinds: readonly PayloadKind[] =
+  allPayloadKinds.filter(isScalarKind);
 
 /** Kinds whose fields a condition can read, with a `field` subject. */
 const fieldKinds = allPayloadKinds.filter((kind) => traitsOf(kind).fields);
@@ -115,13 +117,13 @@ export type FilterableKind =
   | KindWithTrait<"fields">
   | KindWithTrait<"entity">;
 
-/** The payload kinds If and Filter list accept: those a condition can read something from. */
-export const filterableKinds = allPayloadKinds.filter(
-  (kind): kind is FilterableKind => {
-    const { primitive, fields, entity } = traitsOf(kind);
-    return primitive !== null || !!fields || !!entity;
-  },
-);
+/** Whether If and Filter list accept a payload kind: whether a condition can read something from it. */
+export const isFilterableKind = (kind: PayloadKind): kind is FilterableKind => {
+  const { primitive, fields, entity } = traitsOf(kind);
+  return primitive !== null || !!fields || !!entity;
+};
+
+export const filterableKinds = allPayloadKinds.filter(isFilterableKind);
 
 /**
  * The leaves of a tree in document order. Call it only on a condition that
@@ -297,7 +299,7 @@ export const validateCondition = (
   condition: FilterCondition,
   inputKind: PayloadKind,
 ): ConditionError | undefined => {
-  if (!(filterableKinds as readonly PayloadKind[]).includes(inputKind)) {
+  if (!isFilterableKind(inputKind)) {
     return invalidCondition(`${inputKind} payloads cannot be filtered.`);
   }
   const structureError = validateStructure(condition, 1);
