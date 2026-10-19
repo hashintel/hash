@@ -1,13 +1,12 @@
 import { URL, fileURLToPath } from "node:url";
 
 import { strict as effectStrict } from "@effect/tsgo/oxlint-presets";
-import { defineConfig } from "oxlint";
 
+import { inheritConfig } from "./lib/inherit-config.js";
 import plugin from "./rules/index.js";
 
 import type { AllowWarnDeny, DummyRuleMap, OxlintConfig } from "oxlint";
 
-export { defineConfig } from "oxlint";
 export type Framework = "react" | "next" | "vitest" | "effect";
 export type Runtime = "node" | "browser";
 
@@ -29,13 +28,13 @@ type AdditionalRestrictedTypes = Readonly<RestrictedTypes> & {
   readonly [TypeName in keyof typeof defaultRestrictedTypes]?: never;
 };
 
-export interface Options {
+/** Native Oxlint configuration with shared runtime and framework profiles. */
+export interface Options extends OxlintConfig {
   readonly runtime: Runtime;
 
   /** Adds restrictions without replacing built-in entries. Duplicate keys throw. */
   readonly additionalRestrictedTypes?: AdditionalRestrictedTypes;
   readonly frameworks?: readonly Framework[];
-  readonly ignorePatterns?: readonly string[];
 }
 
 type Overrides = NonNullable<OxlintConfig["overrides"]>;
@@ -50,7 +49,12 @@ const defineOverride = (override: Overrides[number]): Overrides[number] =>
   override;
 
 // oxlint-disable-next-line max-lines-per-function -- no logic, only configuration
-export const createConfig = (options: Options): OxlintConfig => {
+const createDefaults = (
+  options: Pick<
+    Options,
+    "runtime" | "frameworks" | "additionalRestrictedTypes"
+  >,
+): OxlintConfig => {
   const additionalRestrictedTypes = options.additionalRestrictedTypes ?? {};
   for (const typeName of Object.keys(defaultRestrictedTypes)) {
     if (Object.hasOwn(additionalRestrictedTypes, typeName)) {
@@ -72,7 +76,7 @@ export const createConfig = (options: Options): OxlintConfig => {
   const extend: Extends = [];
   const env: Env = { builtin: true, es2026: true };
   const rules: DummyRuleMap = {};
-  const ignorePatterns = [...(options.ignorePatterns ?? [])];
+  const ignorePatterns: string[] = [];
   const overrides: Overrides = [
     {
       files: [
@@ -212,7 +216,7 @@ export const createConfig = (options: Options): OxlintConfig => {
     ]),
   );
 
-  return defineConfig({
+  return {
     categories: {
       correctness: "deny",
       nursery: "deny",
@@ -355,5 +359,26 @@ export const createConfig = (options: Options): OxlintConfig => {
       ...rules,
       ...pluginDeny,
     },
-  });
+  };
 };
+
+/**
+ * Combines shared profiles, extensions and package-specific configuration.
+ *
+ * Environments and globals merge by name. Settings replace each plugin’s value. Ignore patterns concatenate in inheritance order. Other fields retain Oxlint’s merge semantics. Nested values remain shared with the input configs.
+ *
+ * @throws {Error} If extensions contain a cycle or additional restrictions replace a built-in restricted type.
+ */
+export const defineConfig = ({
+  runtime,
+  frameworks = [],
+  additionalRestrictedTypes = {},
+  ...config
+}: Options): OxlintConfig =>
+  inheritConfig({
+    ...config,
+    extends: [
+      createDefaults({ runtime, frameworks, additionalRestrictedTypes }),
+      ...(config.extends ?? []),
+    ],
+  });
