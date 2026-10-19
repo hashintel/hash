@@ -170,6 +170,27 @@ describe("draftMessageAction", () => {
     vi.mocked(getSimpleGraph).mockReset();
   });
 
+  it("puts a subject with line breaks on one line", async () => {
+    respondWith(
+      submits({ subject: " Your order\r\nBcc: x@example.com ", body: "Hi" }),
+    );
+
+    expect(await run({})).toMatchObject({
+      code: StatusCode.Ok,
+      contents: [
+        {
+          outputs: [
+            {
+              outputName: "subject",
+              payload: { value: "Your order Bcc: x@example.com" },
+            },
+            { outputName: "body" },
+          ],
+        },
+      ],
+    });
+  });
+
   it("drafts from instructions alone, in one model call, without reading the graph", async () => {
     respondWith(submits(validDraft));
 
