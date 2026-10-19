@@ -40,7 +40,11 @@ import {
   createTemporalClient,
   temporalNamespace,
 } from "@local/hash-backend-utils/temporal";
-import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
+import {
+  HashEntity,
+  mergePropertyObjectAndMetadata,
+  queryEntities,
+} from "@local/hash-graph-sdk/entity";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
 import { mapFlowDefinitionToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
@@ -58,7 +62,7 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { StatusCode } from "@local/status";
 
-import type { FlowScenario, ScenarioRun } from "./scenario.js";
+import type { FlowScenario, ScenarioRun, SeedEntity } from "./scenario.js";
 import type {
   EntityUuid,
   ProvidedEntityEditionProvenance,
@@ -363,6 +367,66 @@ const ensureFlowDefinitionEntity = async ({
   return "updated";
 };
 
+/**
+ * Creates a scenario's seed entities in the user's web, as the user, one after another. They're all checked against
+ * their types first, so that a value that doesn't fit is named, and no entity is created.
+ */
+const seedEntities = async ({
+  entities,
+  graphApi,
+  userId,
+}: {
+  entities: SeedEntity[];
+  graphApi: GraphApi;
+  userId: UserId;
+}) => {
+  const authentication = { actorId: userId };
+
+  const invalidEntities = await Promise.all(
+    entities.map(async ({ entityTypeId, properties }, index) => {
+      const report = await HashEntity.validate(graphApi, authentication, {
+        entityTypes: [entityTypeId],
+        properties: mergePropertyObjectAndMetadata(properties, undefined),
+        components: {
+          linkData: false,
+          linkValidation: false,
+          numItems: true,
+          requiredProperties: true,
+        },
+      });
+
+      return report
+        ? [
+            `  - ${index + 1}, a ${entityTypeId}: ${
+              report.properties
+                ? `${Object.keys(report.properties).join(", ")} don't fit the type`
+                : JSON.stringify(report)
+            }`,
+          ]
+        : [];
+    }),
+  ).then((results) => results.flat());
+
+  if (invalidEntities.length > 0) {
+    throw new SetupError(
+      `Seed entities don't fit their types, so none were created:\n${invalidEntities.join("\n")}`,
+    );
+  }
+
+  for (const [index, { entityTypeId, properties }] of entities.entries()) {
+    await HashEntity.create(graphApi, authentication, {
+      webId: userId as WebId,
+      entityTypeIds: [entityTypeId],
+      properties: mergePropertyObjectAndMetadata(properties, undefined),
+      provenance: { actorType: "user", origin: { type: "api" } },
+    }).catch((error: unknown) => {
+      throw new SetupError(
+        `Couldn't create seed entity ${index + 1} of ${entities.length}, a ${entityTypeId} (${(error as Error).message})`,
+      );
+    });
+  }
+};
+
 /** Started like the `startFlow` resolver starts a run. */
 const startRun = async ({
   client,
@@ -624,6 +688,7 @@ const renderStepRows = ({ run, flowRun }: RunResult) =>
 const renderReport = (
   scenario: FlowScenario,
   runTag: string,
+  seededCount: number,
   runResults: RunResult[],
 ) => {
   const allResults = runResults.flatMap(({ results }) => results);
@@ -633,7 +698,9 @@ const renderReport = (
     `### Flow scenario: ${scenario.name}`,
     "",
     ...(scenario.purpose ? [scenario.purpose, ""] : []),
-    `Local stack at \`${git("rev-parse", "--short", "HEAD")}\`, started through Temporal. Run tag \`${runTag}\`.`,
+    `Local stack at \`${git("rev-parse", "--short", "HEAD")}\`, started through Temporal. Run tag \`${runTag}\`${
+      seededCount > 0 ? `, ${seededCount} entities seeded` : ""
+    }.`,
     "",
     ...runResults.flatMap((runResult, index) => {
       const { run, flowRun, results, runError } = runResult;
@@ -752,6 +819,12 @@ const main = async () => {
   const runTag = generateUuid();
   const runResults: RunResult[] = [];
 
+  const seed = scenario.seed?.({ runTag }) ?? [];
+  if (seed.length > 0) {
+    await seedEntities({ entities: seed, graphApi, userId });
+    console.log(`Seeded ${seed.length} entities in ${shortname}'s web`);
+  }
+
   for (const run of scenario.runs) {
     const { flowDefinition } = run.flow;
     const flowDefinitionId = getUserFlowDefinitionId(
@@ -836,7 +909,7 @@ const main = async () => {
   const failedRuns = runResults.filter(({ results }) =>
     results.some(({ failure }) => failure),
   );
-  const report = renderReport(scenario, runTag, runResults);
+  const report = renderReport(scenario, runTag, seed.length, runResults);
 
   const runDirectory = path.join(
     scriptDirectory,

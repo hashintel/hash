@@ -40,6 +40,8 @@ Copy [`scenarios/array-actions.scenario.ts`](scenarios/array-actions.scenario.ts
       per item, as `<stepId>~<index>`, and the `forEach` step isn't run itself: the runner stops before starting
       anything if a step id can't match a step run.
 - `user`: the shortname to run as, in their own web. `alice` by default.
+- `seed`: a function returning entities to create from `{ runTag }`, each an `entityTypeId` and `properties` keyed by
+  property type base URL (see [Entities](#entities)).
 
 Work out the expected values by hand before running, rather than copying them from a run. Values are compared
 exactly, so expect values a run always produces the same way, such as a count or a property read back, rather than
@@ -47,13 +49,16 @@ the ids of entities it creates.
 
 ### Entities
 
-Entities a run creates stay in the user's web, so a scenario that queries for entities would also find those of
-earlier runs. `runTag` is unique to each time the scenario runs: give it to the entities a run creates, e.g. as a
-property value, and query for it in a later run.
+For a flow that needs entities to exist, list them in `seed`: the runner creates them in the user's web, as the user,
+before the first run. They're checked against their types first, and none are created if one doesn't fit. Entities
+stay in the web, so a scenario that queries for entities would also find those of earlier times it ran. `runTag` is
+unique to each time the scenario runs: give it to the entities, e.g. as a property value, and query for it, as
+[`scenarios/query-entities.scenario.ts`](scenarios/query-entities.scenario.ts) does.
 
-A step only waits for the steps whose outputs it takes, so a Query entities step in the same flow as the steps that
-create the entities can run before them. Create them in one run, and query them in the next: each run starts once the
-one before has finished, and the next runs aren't started once a run misses an expectation.
+A flow can also create entities itself. A step only waits for the steps whose outputs it takes, so a Query entities
+step in the same flow as the steps that create the entities can run before them. Create them in one run, and query
+them in the next: each run starts once the one before has finished, and the next runs aren't started once a run misses
+an expectation.
 
 ## Run it
 

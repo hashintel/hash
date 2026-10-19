@@ -1,3 +1,4 @@
+import type { PropertyObject, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   FlowDefinitionWithId,
   FlowInputValues,
@@ -34,12 +35,23 @@ export type ScenarioRun = {
   };
 };
 
+/** An entity to create before the first run, with values for some of its properties keyed by property type base URL. */
+export type SeedEntity = {
+  entityTypeId: VersionedUrl;
+  properties: PropertyObject;
+};
+
 export type FlowScenario = {
   name: string;
   /** What the scenario proves, shown at the top of the report. */
   purpose?: string;
   /** The shortname of the user to run as, in their own web. Defaults to `alice`. */
   user?: string;
+  /**
+   * Entities to create in the user's web, as the user, before the first run, for flows that need entities to exist.
+   * Give them the `runTag`, e.g. as a property value, so that a run's query only finds this time's entities.
+   */
+  seed?: (context: { runTag: string }) => SeedEntity[];
   /**
    * The flow runs, started one after another, each once the one before has finished. A flow's steps only wait for
    * the steps whose outputs they take, so a step that has to see what another flow's run did goes in a later run.
