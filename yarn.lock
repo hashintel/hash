@@ -10114,6 +10114,21 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@local/hashql@workspace:libs/@local/hashql/sdk/typescript":
+  version: 0.0.0-use.local
+  resolution: "@local/hashql@workspace:libs/@local/hashql/sdk/typescript"
+  dependencies:
+    "@local/oxlint": "workspace:*"
+    "@local/tsconfig": "workspace:*"
+    "@tsconfig/bases": "catalog:"
+    oxlint: "catalog:"
+    tsdown: "npm:0.23.0"
+    typescript: "catalog:"
+    vite: "catalog:"
+    vitest: "catalog:"
+  languageName: unknown
+  linkType: soft
+
 "@local/internal-api-client@workspace:*, @local/internal-api-client@workspace:libs/@local/internal-api-client/typescript":
   version: 0.0.0-use.local
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
@@ -10128,7 +10143,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/oxlint@workspace:libs/@local/oxlint":
+"@local/oxlint@workspace:*, @local/oxlint@workspace:libs/@local/oxlint":
   version: 0.0.0-use.local
   resolution: "@local/oxlint@workspace:libs/@local/oxlint"
   dependencies:
