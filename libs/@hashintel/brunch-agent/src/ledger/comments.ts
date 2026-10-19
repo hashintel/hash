@@ -1,13 +1,14 @@
 import * as v from "valibot";
 
 import { brunchSignals } from "../constants";
+import { commentIdGrammar } from "./shared/references";
 
 import type { DeliveredMessage } from "@flue/sdk";
 
 const vLedgerComment = v.strictObject({
   id: v.pipe(
     v.string(),
-    v.regex(/^n(?:0|[1-9]\d*)$/),
+    v.regex(new RegExp(`^${commentIdGrammar}$`)),
     v.description("The comment's ID, such as n3."),
   ),
   records: v.pipe(
