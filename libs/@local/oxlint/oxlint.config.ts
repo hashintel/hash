@@ -1,10 +1,6 @@
-import { createConfig, defineConfig } from "@local/oxlint";
+import { defineConfig } from "@local/oxlint";
 
 export default defineConfig({
-  extends: [
-    createConfig({
-      frameworks: ["vitest"],
-      runtime: "node",
-    }),
-  ],
+  frameworks: ["vitest"],
+  runtime: "node",
 });
