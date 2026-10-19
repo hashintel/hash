@@ -1,7 +1,6 @@
 import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
-import { Do as EmptyDo, Let, withPrelude } from "../do/index.js";
 import { Expression, Module, Program } from "../main.js";
 import * as Operators from "./Operators.js";
 
@@ -19,12 +18,6 @@ const kernel = Result.getOrThrow(
 const integer = kernel.types.Integer;
 const boolean = kernel.types.Boolean;
 const string = kernel.types.String;
-
-type Vertex = Type.Struct<{ readonly enabled: Type.PrimitiveBoolean }>;
-type Graph = Type.Opaque<
-  "::graph::Graph",
-  Type.Struct<{ readonly "'marker": Vertex }>
->;
 
 interface Same extends Type.FunctionSignature {
   readonly type: this["Target"] extends readonly [infer T extends Type.Any]
@@ -152,17 +145,6 @@ describe("input_requirements", () => {
     const hidden: Expression.Expression<Type.PrimitiveInteger, Inputs.Empty> =
       combined;
     expectTypeOf(hidden);
-    // Do's contextual callback requires a common record for this ambiguous host union.
-    const block = EmptyDo<
-      Type.PrimitiveInteger,
-      { readonly first: Type.PrimitiveInteger }
-    >(() => possiblyClosed);
-    // @ts-expect-error a block also keeps the required alternative
-    const hiddenBlock: Expression.Expression<
-      Type.PrimitiveInteger,
-      Inputs.Empty
-    > = Result.getOrThrow(block);
-    expectTypeOf(hiddenBlock);
   });
 
   test("required_and_default", () => {
@@ -306,12 +288,12 @@ describe("snippet_requirements", () => {
   test("reusable_snippet", () => {
     const count = Expression.input("count", integer);
     const snippet = Operators.ne(count, Expression.integer(0));
-    const first = Result.getOrThrow(EmptyDo(() => snippet));
-    const second = Result.getOrThrow(
-      EmptyDo(($) => Operators.and(snippet, $.input("enabled", boolean))),
+    const combined = Operators.and(
+      snippet,
+      Expression.input("enabled", boolean),
     );
-    const program = Program.program(second);
-    expectTypeOf<Expression.Inputs<typeof first>>().toEqualTypeOf<{
+    const program = Program.program(combined);
+    expectTypeOf<Expression.Inputs<typeof snippet>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
     }>();
     expectTypeOf<Program.Inputs<typeof program>>().toEqualTypeOf<{
@@ -319,115 +301,9 @@ describe("snippet_requirements", () => {
       readonly enabled: Type.PrimitiveBoolean;
     }>();
   });
-
-  test("discarded_expression", () => {
-    const expression = Result.getOrThrow(
-      EmptyDo(($) => {
-        $.input("unused", integer);
-        return $.integer(1);
-      }),
-    );
-    expectTypeOf(expression).toEqualTypeOf<
-      Expression.Expression<Type.PrimitiveInteger, Inputs.Empty>
-    >();
-  });
-
-  test("unused_and_shadowed_declarations", () => {
-    const expression = Result.getOrThrow(
-      EmptyDo(
-        Let("value", ($) => $.input("first", integer)),
-        Let("value", ($) => $.input("second", integer)),
-        ($) => $.integer(1),
-      ),
-    );
-    expectTypeOf<Expression.Inputs<typeof expression>>().toEqualTypeOf<{
-      readonly first: Type.PrimitiveInteger;
-      readonly second: Type.PrimitiveInteger;
-    }>();
-  });
-
-  test("nested_branches", () => {
-    const expression = Result.getOrThrow(
-      EmptyDo(($) =>
-        $.if(
-          $.input("condition", boolean),
-          () =>
-            $.Let("ignored", ($) => $.input("left", integer)).Expr(($) =>
-              $.integer(1),
-            ),
-          () => $.input("right", integer),
-        ),
-      ),
-    );
-    expectTypeOf<Expression.Inputs<typeof expression>>().toEqualTypeOf<{
-      readonly condition: Type.PrimitiveBoolean;
-      readonly left: Type.PrimitiveInteger;
-      readonly right: Type.PrimitiveInteger;
-    }>();
-  });
 });
 
 describe("builder_requirements", () => {
-  test("query_dependencies", () => {
-    const { Do } = withPrelude({
-      values: {
-        entities: Expression.fromJExpr<
-          Type.Function<readonly [Type.PrimitiveInteger], Graph>,
-          Inputs.Empty
-        >("entities"),
-      },
-    });
-    const expression = Result.getOrThrow(
-      Do(($) =>
-        $.query
-          .entities($.input("at", integer))
-          .filter("vertex", (vertex) =>
-            Operators.eq(vertex.enabled, $.input("enabled", boolean)),
-          )
-          .collect(),
-      ),
-    );
-    expectTypeOf<Expression.Inputs<typeof expression>>().toEqualTypeOf<{
-      readonly at: Type.PrimitiveInteger;
-      readonly enabled: Type.PrimitiveBoolean;
-    }>();
-  });
-
-  test("declaration_preservation", () => {
-    const { Do, Type: Alias, Import } = withPrelude({ modules: { kernel } });
-    const expression = Result.getOrThrow(
-      Do(
-        Import((_, { kernel }) => kernel),
-        Let("first", ($, _, { Integer: integerType }) =>
-          $.input("first", integerType),
-        ),
-        Alias("Count", (_, { Integer: integerType }) => integerType),
-        Let("second", ($, _, { Count: countType }) =>
-          $.input("second", countType),
-        ),
-        Let("third", ($) => $.input("third", integer)),
-        Let("fourth", ($) => $.input("fourth", integer)),
-        Let("fifth", ($) => $.input("fifth", integer)),
-        Let("sixth", ($) => $.input("sixth", integer)),
-        ($) => $.integer(1),
-      ),
-    );
-    expectTypeOf<keyof Expression.Inputs<typeof expression>>().toEqualTypeOf<
-      "first" | "second" | "third" | "fourth" | "fifth" | "sixth"
-    >();
-    const nested = Result.getOrThrow(
-      Do(($) =>
-        $.Let("value", ($) => $.input("kept", integer))
-          .Import((_, { kernel }) => kernel)
-          .Type("Count", (_, { Integer: integerType }) => integerType)
-          .Expr(($) => $.integer(1)),
-      ),
-    );
-    expectTypeOf<Expression.Inputs<typeof nested>>().toEqualTypeOf<{
-      readonly kept: Type.PrimitiveInteger;
-    }>();
-  });
-
   test("assumption_preservation", () => {
     const source = Expression.input("source", integer);
     const assumed = Expression.assume<Type.PrimitiveString>()(source);

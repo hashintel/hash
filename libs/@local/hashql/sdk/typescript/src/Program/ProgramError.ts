@@ -53,12 +53,6 @@ export type Reason =
     }>
   /** A generic type constructor lacks its type arguments. */
   | { readonly _tag: "UnspecializedTypeConstructor" }
-  /** A Do block has no terminal expression callback. */
-  | { readonly _tag: "MissingBlockBody" }
-  /** A Do expression callback occupies a position before the last step. */
-  | { readonly _tag: "MisplacedBlockBody" }
-  /** A Do declaration position contains something other than a supported declaration step. */
-  | { readonly _tag: "InvalidBlockStep" }
   /** An authoring body returned something other than an expression handle. */
   | { readonly _tag: "InvalidBodyResult" };
 
@@ -133,21 +127,6 @@ export class Construction extends ConstructionBase<{
     return new Construction({ reason: Reason.UnspecializedTypeConstructor() });
   }
 
-  /** Reports a Do block without a terminal expression callback. */
-  static missingBlockBody(): Construction {
-    return new Construction({ reason: Reason.MissingBlockBody() });
-  }
-
-  /** Reports a Do body callback occurring before the last step. */
-  static misplacedBlockBody(): Construction {
-    return new Construction({ reason: Reason.MisplacedBlockBody() });
-  }
-
-  /** Reports an unsupported value in a Do declaration position. */
-  static invalidBlockStep(): Construction {
-    return new Construction({ reason: Reason.InvalidBlockStep() });
-  }
-
   /** Reports a body result that is not an expression handle. */
   static invalidBodyResult(): Construction {
     return new Construction({ reason: Reason.InvalidBodyResult() });
@@ -188,11 +167,6 @@ export class Construction extends ConstructionBase<{
         `Unsupported primitive type constructor: ${JSON.stringify(name)}`,
       UnspecializedTypeConstructor: () =>
         "A generic type must be specialized before use",
-      MissingBlockBody: () => "A Do block must end with an expression callback",
-      MisplacedBlockBody: () =>
-        "Only the last step may be an expression callback",
-      InvalidBlockStep: () =>
-        "A Do block expects declaration steps before its expression callback",
       InvalidBodyResult: () =>
         "An expression callback must return a HashQL expression",
     });

@@ -8923,7 +8923,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jridgewell/sourcemap-codec@npm:^1.4.14, @jridgewell/sourcemap-codec@npm:^1.4.15, @jridgewell/sourcemap-codec@npm:^1.5.0, @jridgewell/sourcemap-codec@npm:^1.5.5, @jridgewell/sourcemap-codec@npm:^1.6.0, @jridgewell/sourcemap-codec@npm:^1.6.0-beta.0":
+"@jridgewell/sourcemap-codec@npm:^1.4.14, @jridgewell/sourcemap-codec@npm:^1.5.0, @jridgewell/sourcemap-codec@npm:^1.5.5, @jridgewell/sourcemap-codec@npm:^1.6.0, @jridgewell/sourcemap-codec@npm:^1.6.0-beta.0":
   version: 1.6.0
   resolution: "@jridgewell/sourcemap-codec@npm:1.6.0"
   checksum: 10c0/b5be700e45a775f218589c3466c4ffea630582b4988657652da464e5ab8a7d18bf928ee4fd2363fb346ede4bea9c6ff0bae05a538358c4565ece6199531b5f72
@@ -10233,8 +10233,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/hashql-typescript-docs@workspace:libs/@local/hashql/sdk/typescript-docs"
   dependencies:
-    "@effect/platform-node": "npm:4.0.0"
-    "@effect/vitest": "npm:4.0.0"
+    "@effect/platform-node": "npm:4.0.3"
+    "@effect/vitest": "npm:4.0.3"
     "@fumadocs/satteri": "npm:0.5.1"
     "@local/hashql": "workspace:*"
     "@local/oxlint": "workspace:*"
@@ -10251,7 +10251,7 @@ __metadata:
     "@types/node": "catalog:"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
-    effect: "npm:4.0.0"
+    effect: "npm:4.0.3"
     fumadocs-core: "npm:16.16.2"
     fumadocs-mdx: "npm:15.4.6"
     fumadocs-twoslash: "npm:4.0.1"
@@ -10287,8 +10287,6 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     "@tsconfig/bases": "catalog:"
     effect: "npm:4.0.3"
-    esrap: "npm:2.4.0"
-    oxc-parser: "npm:0.152.0"
     oxlint: "catalog:"
     tsdown: "npm:0.23.0"
     typescript: "catalog:"
@@ -29401,20 +29399,6 @@ __metadata:
   dependencies:
     estraverse: "npm:^5.1.0"
   checksum: 10c0/77d5173db450b66f3bc685d11af4c90cffeedb340f34a39af96d43509a335ce39c894fd79233df32d38f5e4e219fa0f7076f6ec90bae8320170ba082c0db4793
-  languageName: node
-  linkType: hard
-
-"esrap@npm:2.4.0":
-  version: 2.4.0
-  resolution: "esrap@npm:2.4.0"
-  dependencies:
-    "@jridgewell/sourcemap-codec": "npm:^1.4.15"
-  peerDependencies:
-    "@typescript-eslint/types": ^8.2.0
-  peerDependenciesMeta:
-    "@typescript-eslint/types":
-      optional: true
-  checksum: 10c0/36718ac21957031a4f99e4ebda8376e0c11b78b6c7c40dc3494f3cdd8df14cbaf13e6c3f1216feb55cac85f6a249f98a61f3e6ef8c6b1cb8555a7f6e7364227f
   languageName: node
   linkType: hard
 

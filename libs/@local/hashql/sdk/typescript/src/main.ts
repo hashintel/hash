@@ -1,7 +1,7 @@
 /**
  * Typed HashQL syntax construction and J-Expr encoding.
  *
- * Use `@local/hashql/draft` for synchronous authoring with an explicit input schema, or `@local/hashql/do` for ordered declaration steps and inferred input requirements. Both produce typed expressions. {@link Expression} also provides direct construction, and {@link Program} wraps a root expression for serialization.
+ * Use `@local/hashql/draft` to author a program synchronously against an explicit input schema. {@link Expression} also provides direct construction, and {@link Program} wraps a root expression for serialization.
  *
  * {@link Type} describes semantic types at compile time. {@link TypeExpression} carries their syntax at runtime. {@link Module} declares trusted external names, and {@link JExpr} provides the lower-level syntax model. The SDK builds programs but does not execute them. Its type declarations require TypeScript 7.
  *

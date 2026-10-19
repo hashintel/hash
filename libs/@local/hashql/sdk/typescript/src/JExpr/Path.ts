@@ -123,7 +123,7 @@ export const compile = (path: Path): string => {
  * import { Result } from "effect";
  *
  * const add = Result.getOrThrow(JExpr.Path.decodeResult("::core :: math::+"));
- * assert.ok(JExpr.Path.isAbsolute(add));
+ * assert.ok(add.rooted);
  * assert.equal(JExpr.Path.compile(add), "::core::math::`+`");
  * assert.ok(Result.isFailure(JExpr.Path.decodeResult("List<Integer>")));
  * ```
@@ -133,9 +133,3 @@ export const decodeResult: (
   input: string,
   options?: ParseOptions,
 ) => Result<Path, SchemaIssue.Issue> = SchemaParser.decodeResult(Schema);
-
-/** Whether the path starts with `::`. */
-export const isAbsolute = (path: Path): boolean => path.rooted;
-
-/** Whether the path has no leading `::`. */
-export const isRelative = (path: Path): boolean => !path.rooted;

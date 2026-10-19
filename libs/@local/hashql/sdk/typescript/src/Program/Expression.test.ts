@@ -119,6 +119,17 @@ describe("expression", () => {
     );
   });
 
+  test("reserved_projection", () => {
+    expect.hasAssertions();
+    const record = Expression.fromJExpr<
+      Type.Struct<{ readonly $: Type.PrimitiveBoolean }>,
+      Inputs.Empty
+    >("record");
+    expect(compile(record.$project("$"))).toBe(
+      '["::kernel::special_form::access","record","$"]',
+    );
+  });
+
   test("callable_properties", () => {
     expect.hasAssertions();
     const record = Expression.fromJExpr<

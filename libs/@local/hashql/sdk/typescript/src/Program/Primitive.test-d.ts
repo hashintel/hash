@@ -1,7 +1,6 @@
 import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
-import { Do as EmptyDo, withPrelude } from "../do/index.js";
 import { Expression, Module } from "../main.js";
 import * as Operators from "./Operators.js";
 
@@ -169,66 +168,24 @@ describe("primitive_requirements", () => {
 
   test("conditional_branches", () => {
     const count = Expression.input("count", kernel.types.Integer);
-    const expression = Result.getOrThrow(
-      EmptyDo(($) =>
-        $.if(
-          true,
-          () => count,
-          () => 0n,
-        ),
-      ),
-    );
+    const expression = Expression.ifElse(true, {
+      // oxlint-disable-next-line unicorn/no-thenable -- this property holds a conditional branch
+      then: count,
+      else: 0n,
+    });
     expectTypeOf(expression).toEqualTypeOf<
       Expression.Expression<
         Type.PrimitiveInteger,
         { readonly count: Type.PrimitiveInteger }
       >
     >();
-    const numeric = Result.getOrThrow(
-      EmptyDo(($) =>
-        $.if(
-          true,
-          () => 1,
-          () => 2,
-        ),
-      ),
-    );
+    const numeric = Expression.ifElse(true, {
+      // oxlint-disable-next-line unicorn/no-thenable -- this property holds a conditional branch
+      then: 1,
+      else: 2,
+    });
     expectTypeOf(numeric).toEqualTypeOf<
       Expression.Expression<Type.PrimitiveNumber, Inputs.Empty>
     >();
-  });
-
-  test("query_arguments_and_predicate", () => {
-    type Vertex = Type.Struct<{ readonly enabled: Type.PrimitiveBoolean }>;
-    type Graph = Type.Opaque<
-      "::graph::Graph",
-      Type.Struct<{ readonly "'marker": Vertex }>
-    >;
-    const { Do } = withPrelude({
-      values: {
-        entities: Expression.fromJExpr<
-          Type.Function<readonly [Type.PrimitiveNumber], Graph>,
-          Inputs.Empty
-        >("entities"),
-      },
-    });
-    const expression = Result.getOrThrow(
-      Do(($) =>
-        $.query
-          .entities(1)
-          .filter("vertex", () => true)
-          .collect(),
-      ),
-    );
-    expectTypeOf(expression).toEqualTypeOf<
-      Expression.Expression<Type.List<Vertex>, Inputs.Empty>
-    >();
-    Do(($) => {
-      // @ts-expect-error Query arguments use the declaration's exact numeric descriptor.
-      $.query.entities(1n);
-      // @ts-expect-error A predicate does not accept numeric truthiness.
-      $.query.entities(1).filter("vertex", () => 1);
-      return $.literal(true);
-    });
   });
 });

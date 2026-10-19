@@ -222,15 +222,3 @@ export interface Operations {
   readonly isFalse: typeof isFalse;
   readonly isNone: typeof isNone;
 }
-
-/** The operator functions collected for composition into authoring contexts. */
-export const operations: Operations = {
-  eq,
-  ne,
-  and,
-  or,
-  not,
-  isTrue,
-  isFalse,
-  isNone,
-};

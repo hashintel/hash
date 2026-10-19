@@ -6,7 +6,6 @@
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { Type as Alias, Do as EmptyDo, Newtype } from "../do/index.js";
 import * as JExpr from "../JExpr/index.js";
 import * as TypeSyntax from "../JExpr/Type/index.js";
 import * as Expression from "./Expression.js";
@@ -392,32 +391,6 @@ describe("module_construction", () => {
 });
 
 describe("type_application", () => {
-  test("declaration_failure", () => {
-    expect.hasAssertions();
-    // @ts-expect-error The runtime call omits the required type argument.
-    const invalid = prelude.List();
-    const identity: unique symbol = Symbol("Invalid");
-    let called = false;
-    const body = (): Expression.Expression<
-      Type.PrimitiveInteger,
-      Inputs.Empty
-    > => {
-      called = true;
-      return Expression.integer(1);
-    };
-    const alias = EmptyDo(
-      Alias("Alias", () => invalid),
-      body,
-    );
-    const nominal = EmptyDo(
-      Newtype("Nominal", identity, () => invalid),
-      body,
-    );
-    expect(alias).toStrictEqual(TypeExpression.toType(invalid));
-    expect(nominal).toStrictEqual(TypeExpression.toType(invalid));
-    expect(called).toBe(false);
-  });
-
   test("runtime_type_arity", () => {
     expect.hasAssertions();
     // @ts-expect-error The runtime call omits the required type argument.

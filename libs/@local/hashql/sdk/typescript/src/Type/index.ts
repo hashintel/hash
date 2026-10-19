@@ -92,7 +92,7 @@ export declare namespace Intersection {
  *
  * TypeScript accepts an opaque descriptor only where both the name and the underlying type match. A parameter of type `Type.PrimitiveInteger` or `Type.Opaque<"PostId", Type.PrimitiveInteger>` rejects `Type.Opaque<"UserId", Type.PrimitiveInteger>`. Projections and indexing on an expression of an opaque type still reach the fields and elements of the underlying type.
  *
- * The name exists only in TypeScript. Emitted syntax names the declaration that introduced the type, such as `::core::uuid::Uuid`, rather than this name. Declarations that share a name and an underlying type are therefore interchangeable to TypeScript even when they emit different HashQL types. The built-in declarations use the absolute HashQL path as the name. The Do and Draft newtype operations require a `unique symbol`, which cannot coincide with a string name.
+ * The name exists only in TypeScript. Emitted syntax names the declaration that introduced the type, such as `::core::uuid::Uuid`, rather than this name. Declarations that share a name and an underlying type are therefore interchangeable to TypeScript even when they emit different HashQL types. The built-in declarations use the absolute HashQL path as the name. Draft's newtype operation requires a `unique symbol`, which cannot coincide with a string name.
  */
 export interface Opaque<Name extends string | symbol, T extends Any> {
   readonly _tag: "Opaque";

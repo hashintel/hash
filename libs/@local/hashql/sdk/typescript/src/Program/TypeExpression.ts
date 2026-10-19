@@ -3,7 +3,7 @@
  *
  * A {@link TypeExpression} carries syntax or a construction failure alongside a type-level descriptor. A {@link Constructor} specializes a named generic type while preserving its semantic argument tuple. Declarations supply these descriptors, and the HashQL compiler validates their use in the emitted program.
  *
- * Type expressions come from module declarations, the built-in prelude, structural shorthand and the type aliases of the Do and Draft APIs. They appear wherever a program names a type, such as the type of an input. The operations here that annotate syntax or a path, {@link fromResult}, {@link fromType}, {@link reference} and {@link constructor}, attach the descriptor without checking it.
+ * Type expressions come from module declarations, the built-in prelude, structural shorthand and Draft's type aliases. They appear wherever a program names a type, such as the type of an input. The operations here that annotate syntax or a path, {@link fromResult}, {@link fromType}, {@link reference} and {@link constructor}, attach the descriptor without checking it.
  *
  * A failed construction stays inside the type expression. It surfaces when a caller reads the syntax, either directly or through an expression or program that uses the type.
  *

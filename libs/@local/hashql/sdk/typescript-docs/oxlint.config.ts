@@ -1,12 +1,8 @@
-import { createConfig, defineConfig } from "@local/oxlint";
+import { defineConfig } from "@local/oxlint";
 
 export default defineConfig({
-  extends: [
-    createConfig({
-      runtime: "node",
-      frameworks: ["react", "next", "effect", "vitest"],
-    }),
-  ],
+  runtime: "node",
+  frameworks: ["react", "next", "effect", "vitest"],
   ignorePatterns: [".next/**", ".source/**", "next-env.d.ts"],
   overrides: [
     {

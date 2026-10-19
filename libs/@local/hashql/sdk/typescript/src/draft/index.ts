@@ -3,7 +3,7 @@
  *
  * {@link program} runs one callback that receives a construction context `$` and typed handles for the inputs its schema declares. Draft emits the declarations made through `$`, such as `$.let`, `$.type`, `$.newtype` and `$.import`, around the callback's returned expression in call order. Every emitted initializer and nested body must fit the schema, so the result can retain unused declared inputs without overlooking discarded declarations. Branch and query-predicate callbacks receive their own contexts, whose declarations stay inside that branch or predicate.
  *
- * {@link program} uses `Prelude.builtin`. {@link withPrelude} creates a program constructor for custom declarations instead, replacing the default and retaining their exact export keys. The `Context` namespace names the construction operation types. Do, at `@local/hashql/do`, builds the same expressions from ordered declaration steps and infers input requirements rather than declaring them.
+ * {@link program} uses `Prelude.builtin`. {@link withPrelude} creates a program constructor for custom declarations instead, replacing the default and retaining their exact export keys. The `Context` namespace names the construction operation types.
  *
  * @example <caption>Bind a computed value and compare it with an input.</caption>
  * ```ts

@@ -2,7 +2,6 @@
 import { Result, pipe } from "effect";
 import { describe, expect, expectTypeOf, test } from "vitest";
 
-import { Do, Import } from "../do/index.js";
 import * as TypeSyntax from "../JExpr/Type/index.js";
 import { Expression, JExpr, Module, Prelude, TypeExpression } from "../main.js";
 import * as Draft from "./index.js";
@@ -120,11 +119,6 @@ describe("draft_import", () => {
     expect(compile(result)).toBe(
       '["::kernel::special_form::use","::adapted",{"#struct":{"call":"invoke"}},["invoke",{"#literal":"value"}]]',
     );
-    const throughDo = Do(
-      Import(() => source, { call: "invoke" }),
-      (_, { invoke }) => invoke({ text: "value" }),
-    );
-    expect(compile(throughDo)).toBe(compile(result));
   });
 
   test("symbol_alias", () => {

@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`filter_examples > frontend_selection: 5. Frontend: look up a published entity 1`] = `
+exports[`draft_filters > frontend_selection: 5. Frontend: look up a published entity 1`] = `
 [
   "::kernel::special_form::let",
   "webId",
@@ -116,7 +116,7 @@ exports[`filter_examples > frontend_selection: 5. Frontend: look up a published 
 ]
 `;
 
-exports[`filter_examples > frontend_selection: 6. Frontend: the sidebar's web and arch… 1`] = `
+exports[`draft_filters > frontend_selection: 6. Frontend: the sidebar's web and arch… 1`] = `
 [
   "::kernel::special_form::let",
   "webId",
@@ -185,7 +185,7 @@ exports[`filter_examples > frontend_selection: 6. Frontend: the sidebar's web an
         [
           "::core::bool::and",
           [
-            "::core::cmp::ne",
+            "::core::cmp::eq",
             [
               "::kernel::special_form::access",
               [
@@ -196,7 +196,7 @@ exports[`filter_examples > frontend_selection: 6. Frontend: the sidebar's web an
               "archived",
             ],
             {
-              "#literal": true,
+              "#literal": false,
             },
           ],
           [
@@ -229,7 +229,7 @@ exports[`filter_examples > frontend_selection: 6. Frontend: the sidebar's web an
 ]
 `;
 
-exports[`filter_examples > frontend_selection: 7. Frontend: match any supplied entity … 1`] = `
+exports[`draft_filters > frontend_selection: 7. Frontend: match any supplied entity … 1`] = `
 [
   "::graph::tail::collect",
   [
@@ -323,7 +323,7 @@ exports[`filter_examples > frontend_selection: 7. Frontend: match any supplied e
 ]
 `;
 
-exports[`filter_examples > frontend_selection: 8. Frontend: make draft inclusion a que… 1`] = `
+exports[`draft_filters > frontend_selection: 8. Frontend: make draft inclusion a que… 1`] = `
 [
   "::kernel::special_form::let",
   "includeDrafts",

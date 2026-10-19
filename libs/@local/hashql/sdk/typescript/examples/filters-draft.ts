@@ -1,7 +1,7 @@
 /**
  * The filter gallery written with synchronous Draft callbacks.
  *
- * These programs correspond, in order, to filters.ts. Each schema supplies the callback's second argument, and $.let introduces a named HashQL binding. Native loops and functions run during construction. $.if emits a query-time branch.
+ * These programs reproduce, in order, the existing queries in `filters-originals.ts`. Each schema supplies the callback's second argument, and $.let introduces a named HashQL binding. Native loops and functions run during construction. $.if emits a query-time branch.
  *
  * The shared declarations cover only the graph exports used here. Construction emits J-Expr without executing against a graph service.
  *
@@ -177,7 +177,7 @@ type Query<I> = Result.Result<
   ProgramError.Construction
 >;
 
-/** The same selections as the Do gallery, retaining each Draft schema in its result type. */
+/** The gallery's programs, in the order of `filters-originals.ts`, retaining each Draft schema in its result type. */
 export const examples: readonly [
   allEntities: Query<Inputs.Empty>,
   entityByUuid: Query<Inputs.Empty>,

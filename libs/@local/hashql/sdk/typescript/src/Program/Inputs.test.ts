@@ -1,7 +1,6 @@
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { Do as EmptyDo, Let } from "../do/index.js";
 import { Expression, JExpr, Module } from "../main.js";
 import * as Operators from "./Operators.js";
 
@@ -20,40 +19,15 @@ describe("input_composition", () => {
   test("snippet_reuse", () => {
     expect.hasAssertions();
     const snippet = Expression.input("count", integer, Expression.integer(7));
-    const first = Result.getOrThrow(EmptyDo(() => snippet));
-    const second = Result.getOrThrow(
-      EmptyDo(($) => Operators.eq(snippet, $.input("other", integer))),
+    const comparison = Operators.eq(
+      snippet,
+      Expression.input("other", integer),
     );
-    expect(compile(first)).toBe(
+    expect(compile(snippet)).toBe(
       '["::kernel::special_form::input","count","::kernel::type::Integer",{"#literal":7}]',
     );
-    expect(compile(second)).toBe(
+    expect(compile(comparison)).toBe(
       '["::core::cmp::eq",["::kernel::special_form::input","count","::kernel::type::Integer",{"#literal":7}],["::kernel::special_form::input","other","::kernel::type::Integer"]]',
-    );
-    expect(compile(snippet)).toBe(compile(first));
-  });
-
-  test("discarded_input", () => {
-    expect.hasAssertions();
-    const expression = Result.getOrThrow(
-      EmptyDo(($) => {
-        $.input("discarded", integer);
-        return $.integer(1);
-      }),
-    );
-    expect(compile(expression)).toBe('{"#literal":1}');
-  });
-
-  test("unused_initializer", () => {
-    expect.hasAssertions();
-    const expression = Result.getOrThrow(
-      EmptyDo(
-        Let("unused", ($) => $.input("retained", integer)),
-        ($) => $.integer(1),
-      ),
-    );
-    expect(compile(expression)).toBe(
-      '["::kernel::special_form::let","unused",["::kernel::special_form::input","retained","::kernel::type::Integer"],{"#literal":1}]',
     );
   });
 

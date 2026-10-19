@@ -92,11 +92,7 @@ const matchAt =
       ),
     );
 
-// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- internal only function
-export const scanIdent: (
-  input: string,
-  start: number,
-) => Option.Option<ScanIdent> = (input, start) => {
+const scanIdent = (input: string, start: number): Option.Option<ScanIdent> => {
   if (input.startsWith(backtick, start)) {
     return Option.orElse(
       matchAt(escapedSymbol, input, start)("Symbol", 1),
@@ -115,7 +111,7 @@ export const scanIdentExact = (input: string): Option.Option<ScanIdent> =>
   );
 
 /** A path split into its parts. */
-export interface ScanPath {
+interface ScanPath {
   readonly rooted: boolean;
   readonly segments: readonly [ScanIdent, ...ScanIdent[]];
 }

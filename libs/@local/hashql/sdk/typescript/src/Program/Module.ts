@@ -480,7 +480,7 @@ export const relocate: {
 /**
  * Assembles already-bound modules without rebasing their references.
  *
- * The result is a frozen `{ modules }` record keyed by the supplied names. It is not a module: it has no path, and {@link isModule} rejects it. Each child keeps its identity and its own path. The record fits any parameter that takes a scope definition, such as a Do or Draft prelude. Names follow the rules and failures of the module table of {@link define}.
+ * The result is a frozen `{ modules }` record keyed by the supplied names. It is not a module: it has no path, and {@link isModule} rejects it. Each child keeps its identity and its own path. The record fits any parameter that takes a scope definition, such as a Draft prelude. Names follow the rules and failures of the module table of {@link define}.
  */
 export const root = <const M extends Namespace<Any>>(
   modules: M,

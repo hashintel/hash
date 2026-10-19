@@ -1,5 +1,5 @@
 /**
- * Minimal graph declarations shared by the Do and Draft filter examples.
+ * Minimal graph declarations for the Draft filter examples.
  *
  * These declarations cover only the entity fields and standard-library exports used by the examples. Generated bindings can supply these declarations without changing the query bodies.
  *

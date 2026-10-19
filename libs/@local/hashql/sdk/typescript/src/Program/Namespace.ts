@@ -3,7 +3,7 @@
  *
  * A flattened name can be a value, a type constructor and a module at once. Type metadata wins property collisions, followed by module exports and then value projections. Explicit projection and indexing remain available through `$project` and `$index`. Rebinding a joined name moves every capability, rather than following property-lookup precedence.
  *
- * Draft's `$.prelude()`, `$.modules()` and `$.import(...)` return these flattened views, while the Do API keeps the value and type tables apart. A name that only optional entries supply is optional, and a module also exposes its child exports directly, beside its own `modules`, `types` and `values` tables.
+ * Draft's `$.prelude()`, `$.modules()` and `$.import(...)` return these flattened views. A name that only optional entries supply is optional, and a module also exposes its child exports directly, beside its own `modules`, `types` and `values` tables.
  *
  * @module
  */

@@ -1,7 +1,6 @@
 import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { Do as EmptyDo, withPrelude } from "../do/index.js";
 import { Expression, JExpr, Module } from "../main.js";
 import * as Operators from "./Operators.js";
 
@@ -79,14 +78,14 @@ describe("primitive_failures", () => {
 
   test("both_branches", () => {
     expect.hasAssertions();
-    const result = EmptyDo(($) =>
-      $.if(
-        true,
-        () => 1,
-        () => Number.NaN,
-      ),
+    const conditional = Expression.ifElse(true, {
+      // oxlint-disable-next-line unicorn/no-thenable -- this property holds a conditional branch
+      then: 1,
+      else: Number.NaN,
+    });
+    const failure = Result.getOrThrow(
+      Result.flip(Expression.toJExpr(conditional)),
     );
-    const failure = Result.getOrThrow(Result.flip(result));
     expect(failure.reason._tag).toBe("InvalidExpression");
   });
 
@@ -98,36 +97,6 @@ describe("primitive_failures", () => {
     expect(compile(integer)).toBe(compile(number));
     expect(compile(Expression.assume<Type.PrimitiveNumber>()(7n))).toBe(
       compile(number),
-    );
-  });
-});
-
-describe("primitive_query", () => {
-  test("arguments_and_predicate", () => {
-    expect.hasAssertions();
-    type Vertex = Type.Struct<{ readonly enabled: Type.PrimitiveBoolean }>;
-    type Graph = Type.Opaque<
-      "::graph::Graph",
-      Type.Struct<{ readonly "'marker": Vertex }>
-    >;
-    const { Do } = withPrelude({
-      values: {
-        entities: Expression.fromJExpr<
-          Type.Function<readonly [Type.PrimitiveNumber], Graph>,
-          Inputs.Empty
-        >("entities"),
-      },
-    });
-    const expression = Result.getOrThrow(
-      Do(($) =>
-        $.query
-          .entities(1)
-          .filter("vertex", () => true)
-          .collect(),
-      ),
-    );
-    expect(compile(expression)).toBe(
-      '["::graph::tail::collect",["::graph::body::filter",["entities",{"#literal":1}],["fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",{"#literal":true}]]]',
     );
   });
 });

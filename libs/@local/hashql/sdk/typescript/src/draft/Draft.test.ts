@@ -417,6 +417,23 @@ describe("draft", () => {
     expect(Result.isFailure(asynchronous)).toBe(true);
   });
 
+  test("failed_type_declaration", () => {
+    expect.hasAssertions();
+    // @ts-expect-error The runtime call omits the required type argument.
+    const invalid = Prelude.builtin.types.List();
+    const identity: unique symbol = Symbol("Invalid");
+    const alias = Draft.program({}, ($) => {
+      $.type("Alias", invalid);
+      return $.literal(true);
+    });
+    const nominal = Draft.program({}, ($) => {
+      $.newtype("Nominal", identity, invalid);
+      return $.literal(true);
+    });
+    expect(alias).toStrictEqual(TypeExpression.toType(invalid));
+    expect(nominal).toStrictEqual(TypeExpression.toType(invalid));
+  });
+
   test("invalid_query_and_nominal", () => {
     expect.hasAssertions();
     let visits = 0;

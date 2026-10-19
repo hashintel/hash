@@ -3,7 +3,7 @@
  *
  * Export types derive from the bound declarations, without a second list of semantic annotations. Generated declarations can supply the same module, type and value tables to Draft.withPrelude. This default includes primitive types, List, Dict, UUID identities, equality and addition. It is not a complete standard-library binding.
  *
- * Draft's `program` constructs with {@link builtin}. The default `Do` of the Do API starts with an empty scope, and `withPrelude(Prelude.builtin)` from that API supplies these names. This module also re-exports the semantic types of the declarations, such as `Prelude.Uuid` and the `Prelude.Arithmetic` signature.
+ * Draft's `program` constructs with {@link builtin}. This module also re-exports the semantic types of the declarations, such as `Prelude.Uuid` and the `Prelude.Arithmetic` signature.
  *
  * @module
  */
@@ -141,7 +141,7 @@ export type Builtin = Scope.From<{
  *
  * `List` and `Dict` accept structural shorthand as well as type expressions, so `List(String)` and `List(Prelude.builtin.types.String)` emit the same type. `eq` accepts operands of any two types, which need not match. `add` accepts Integer and Number operands, as `Prelude.Arithmetic` describes. The SDK takes these signatures on trust, and the HashQL compiler checks the emitted calls.
  *
- * Draft's `program` constructs with these declarations, while the default `Do` of the Do API starts with none. Draft's `$.prelude()` joins the three tables into one object. There `Uuid` is both the type and its constructor, and the module `cmp` exposes `eq` directly.
+ * Draft's `program` constructs with these declarations, and its `$.prelude()` joins the three tables into one object. There `Uuid` is both the type and its constructor, and the module `cmp` exposes `eq` directly.
  *
  * @example <caption>Use built-in types and functions outside a program callback.</caption>
  * ```ts

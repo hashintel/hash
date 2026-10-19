@@ -3,7 +3,7 @@
  *
  * Missing namespace tables introduce no names. Optional tables contribute optional names instead of an arbitrary string index. Merging retains an earlier export when its replacement is optional, and snapshots include non-enumerable own exports without freezing the caller's records.
  *
- * Each scope holds the names available to a construction callback. The prelude supplies the first one, and each declaration step of the Do API merges its names into the scope of the steps after it. Do callbacks receive the value and type tables as separate arguments, while Draft's `$.prelude()` joins them into one object in which a name can hold a module, a type and a value at once.
+ * A scope holds the names a construction callback can reach, which Draft's prelude supplies. Draft's `$.prelude()` joins the tables into one object in which a name can hold a module, a type and a value at once.
  *
  * @module
  */
@@ -53,7 +53,7 @@ export interface From<D extends Definition> {
   readonly types: Names<D, "types">;
 }
 
-/** A scope with no names, which the default Do API starts from. */
+/** A scope with no names. */
 export type Empty = From<EmptyNames>;
 
 type RequiredKeys<S> = {
