@@ -15,10 +15,10 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::policies::{
-    Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
+    Authorized, MergePolicies, PolicyComponents, PolicySet, Request, RequestContext, ResourceId,
     action::ActionName,
     resource::{EntityResourceConstraint, ResourceConstraint},
-    store::{PolicyCreationParams, error::ContextCreationError},
+    store::{PolicyCreationParams, PolicyStore, PrincipalStore, error::ContextCreationError},
 };
 use hash_graph_embeddings::{Dimension, clustering::Clustering};
 use hash_graph_store::{
@@ -1240,7 +1240,7 @@ where
 
         // The policy components builder will make sure, that also parent entity types are added to
         // the set of entity type IDs. These are accessible via `tracked_entity_types` method.
-        let policy_components = policy_components_builder
+        let policy_components = match policy_components_builder
             .with_entity_type_ids(entity_type_id_set.iter().copied())
             .with_actions(
                 [
@@ -1259,7 +1259,18 @@ where
                 MergePolicies::Yes,
             )
             .await
-            .map_err(entity_creation_error)?;
+        {
+            Ok(policy_components) => policy_components,
+            Err(report) => {
+                return Err(entity_creation_error(
+                    &transaction,
+                    actor_id,
+                    &entity_type_id_set,
+                    report,
+                )
+                .await);
+            }
+        };
 
         let policy_set = policy_components
             .build_policy_set([
@@ -1272,27 +1283,11 @@ where
         // An entity type the actor may not view is reported like one that does not exist, also by
         // the legacy API's status code. This runs before the instantiation check, whose answer
         // would reveal that the entity type exists.
-        let mut invisible_entity_types = HashSet::new();
-        for &entity_type_id in &entity_type_id_set {
-            match policy_set
-                .evaluate(
-                    &Request {
-                        actor: policy_components.actor_id(),
-                        action: ActionName::ViewEntityType,
-                        resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
-                        context: RequestContext::default(),
-                    },
-                    policy_components.context(),
-                )
-                .change_context(EntityCreationError::Store)?
-            {
-                Authorized::Always => {}
-                Authorized::Never => {
-                    invisible_entity_types.insert(entity_type_id.clone());
-                }
-            }
-        }
-
+        let invisible_entity_types = invisible_entity_types(
+            &policy_components,
+            &policy_set,
+            entity_type_id_set.iter().copied(),
+        )?;
         if !invisible_entity_types.is_empty() {
             return Err(Report::new(EntityCreationError::UnknownEntityTypes {
                 entity_type_ids: invisible_entity_types,
@@ -2578,16 +2573,93 @@ struct LockedEntityEdition {
     transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
+/// The entity types among `entity_type_ids` that the actor may not view.
+fn invisible_entity_types<'url>(
+    policy_components: &PolicyComponents,
+    policy_set: &PolicySet,
+    entity_type_ids: impl IntoIterator<Item = &'url VersionedUrl>,
+) -> Result<HashSet<VersionedUrl>, Report<EntityCreationError>> {
+    let mut invisible = HashSet::new();
+    for entity_type_id in entity_type_ids {
+        match policy_set
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id(),
+                    action: ActionName::ViewEntityType,
+                    resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
+                    context: RequestContext::default(),
+                },
+                policy_components.context(),
+            )
+            .change_context(EntityCreationError::Store)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => {
+                invisible.insert(entity_type_id.clone());
+            }
+        }
+    }
+    Ok(invisible)
+}
+
+/// The `missing` entity types together with the `requested` ones the actor may not view.
+async fn unknown_entity_types<S>(
+    store: &S,
+    actor_id: ActorId,
+    requested: &HashSet<&VersionedUrl>,
+    missing: &HashSet<VersionedUrl>,
+) -> Result<HashSet<VersionedUrl>, Report<EntityCreationError>>
+where
+    S: PrincipalStore + PolicyStore + Sync,
+{
+    let existing = requested
+        .iter()
+        .copied()
+        .filter(|entity_type_id| !missing.contains(*entity_type_id))
+        .collect::<Vec<_>>();
+    let mut unknown = missing.clone();
+    if existing.is_empty() {
+        return Ok(unknown);
+    }
+
+    let policy_components = PolicyComponents::builder(store, Some(actor_id))
+        .with_entity_type_ids(existing.iter().copied())
+        .with_action(ActionName::ViewEntityType, MergePolicies::No)
+        .await
+        .change_context(EntityCreationError::Store)?;
+    let policy_set = policy_components
+        .build_policy_set([ActionName::ViewEntityType])
+        .change_context(EntityCreationError::Store)?;
+    unknown.extend(invisible_entity_types(
+        &policy_components,
+        &policy_set,
+        existing,
+    )?);
+    Ok(unknown)
+}
+
 /// Classifies a failure to resolve the policies for creating entities.
-fn entity_creation_error(report: Report<ContextCreationError>) -> Report<EntityCreationError> {
+async fn entity_creation_error<S>(
+    store: &S,
+    actor_id: ActorId,
+    requested: &HashSet<&VersionedUrl>,
+    report: Report<ContextCreationError>,
+) -> Report<EntityCreationError>
+where
+    S: PrincipalStore + PolicyStore + Sync,
+{
     match report.current_context() {
-        // A new report, because the legacy API serializes the sources of a report, which would
-        // tell a missing entity type apart from one the actor may not view.
+        // The entity types the actor may not view are reported with the missing ones, so the
+        // answer does not tell them apart. It is a new report, because the legacy API serializes
+        // the sources of a report.
         ContextCreationError::EntityTypesNotFound { entity_type_ids } => {
-            Report::new(EntityCreationError::UnknownEntityTypes {
-                entity_type_ids: entity_type_ids.clone(),
-            })
-            .attach_opaque(StatusCode::NotFound)
+            match unknown_entity_types(store, actor_id, requested, entity_type_ids).await {
+                Ok(entity_type_ids) => {
+                    Report::new(EntityCreationError::UnknownEntityTypes { entity_type_ids })
+                        .attach_opaque(StatusCode::NotFound)
+                }
+                Err(report) => report,
+            }
         }
         ContextCreationError::ActorNotFound { .. }
         | ContextCreationError::BuildPrincipalContext { .. }

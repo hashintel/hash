@@ -217,6 +217,40 @@ async fn invisible_entity_type() {
 }
 
 #[tokio::test]
+async fn unknown_and_invisible_entity_types() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+
+    forbid(
+        &api,
+        vec![ActionName::ViewEntityType, ActionName::Instantiate],
+        Some(person_resource()),
+    )
+    .await;
+    let unknown_entity_type_id =
+        VersionedUrl::from_str("https://blockprotocol.org/@alice/types/entity-type/unknown/v/1")
+            .expect("should be a valid entity type id");
+    let params = entity_params(
+        WebId::new(api.account_id),
+        HashSet::from([
+            person_entity_type_id(),
+            org_entity_type_id(),
+            unknown_entity_type_id.clone(),
+        ]),
+        alice(),
+    );
+
+    assert_matches!(
+        api.create_entity(api.account_id, params)
+            .await
+            .expect_err("should not create an entity of an unknown entity type")
+            .current_context(),
+        EntityCreationError::UnknownEntityTypes { entity_type_ids }
+            if *entity_type_ids == HashSet::from([unknown_entity_type_id, person_entity_type_id()])
+    );
+}
+
+#[tokio::test]
 async fn archived_entity_type() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
