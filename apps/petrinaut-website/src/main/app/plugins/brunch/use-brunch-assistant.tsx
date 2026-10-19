@@ -50,6 +50,8 @@ import {
   withInterviewBudgetLevelChanges,
   type InterviewBudgetLevelChange,
 } from "./interview-budget/interview-budget-level-changes";
+import { showLedgerComments } from "./ledger/brunch-ledger-comment-messages";
+import { BrunchLedgerCommentsBar } from "./ledger/brunch-ledger-comments-bar";
 import { foldBrunchLedgerHistory } from "./ledger/brunch-ledger-history";
 import { BrunchLedgerTab } from "./ledger/brunch-ledger-tab";
 import {
@@ -612,8 +614,9 @@ export const useBrunchAssistant = ({
       primaryLabel: "Chat",
       presentation: "brunch",
       mapMessagesForDisplay: (messages: PetrinautAiMessage[]) => {
+        const shown = showLedgerComments(messages);
         const withNotes = withInterviewBudgetLevelChanges(
-          messages,
+          shown,
           interviewBudgetLevelChanges,
           conversationId,
         );
@@ -633,10 +636,16 @@ export const useBrunchAssistant = ({
         <>
           <WithBrunchEditorApi>
             {(api) => (
-              <BrunchExperimentFollowUp
-                context={context}
-                net={api.document.net}
-              />
+              <>
+                <BrunchLedgerCommentsBar
+                  context={context}
+                  net={api.document.net}
+                />
+                <BrunchExperimentFollowUp
+                  context={context}
+                  net={api.document.net}
+                />
+              </>
             )}
           </WithBrunchEditorApi>
           {interviewBudgetEnabled && (

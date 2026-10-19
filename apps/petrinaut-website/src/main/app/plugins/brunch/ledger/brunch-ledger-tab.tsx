@@ -4,6 +4,7 @@ import {
   WithBrunchEditorApi,
   type BrunchEditorApi,
 } from "../editor-api-plugin";
+import { pendingCommentsFor } from "./brunch-ledger-comments";
 import { BrunchLedgerPane } from "./brunch-ledger-pane";
 
 import type { LedgerHistoryMessage } from "@hashintel/brunch-agent";
@@ -23,6 +24,7 @@ const LedgerBesideCanvas = ({
       onSelectNetElements={(items) =>
         api.editor.navigate((current) => ({ ...current, selection: items }))
       }
+      comments={pendingCommentsFor(api.document.net)}
     />
   );
 };
@@ -30,6 +32,7 @@ const LedgerBesideCanvas = ({
 /**
  * The Ledger tab: reads the editor's selection through Brunch's editor plugin
  * so the Ledger explains it, and sets it from a reflection's net elements.
+ * Comments written here wait in the editor until the composer sends them.
  */
 export const BrunchLedgerTab = ({
   messages,
