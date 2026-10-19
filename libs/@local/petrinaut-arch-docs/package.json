@@ -17,7 +17,9 @@
     "lint:arch-docs": "tsx src/cli.ts check",
     "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit",
-    "test:unit": "vitest --run src"
+    "test:unit": "vitest --run src",
+    "arch:check": "archinaut check --config archinaut.config.ts",
+    "arch:build": "archinaut build --config archinaut.config.ts"
   },
   "dependencies": {
     "dependency-cruiser": "18.0.0",
@@ -30,6 +32,7 @@
     "@hashintel/petrinaut": "workspace:*",
     "@hashintel/petrinaut-cli": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
+    "@local/archinaut": "workspace:*",
     "@local/petrinaut-optimizer-core": "workspace:*",
     "@local/petrinaut-python": "workspace:*",
     "@local/tsconfig": "workspace:*",

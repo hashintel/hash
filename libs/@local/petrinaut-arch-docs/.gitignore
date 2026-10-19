@@ -7,3 +7,4 @@ bundle/
 
 # Scratch copies from mutation-testing runs. Never part of the package.
 .mut/
+bundle-v3/

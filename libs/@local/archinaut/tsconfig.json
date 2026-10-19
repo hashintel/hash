@@ -1,0 +1,19 @@
+{
+  "extends": [
+    "@tsconfig/bases/node22",
+    "@local/tsconfig/policy.json"
+  ],
+  "compilerOptions": {
+    "isolatedModules": true,
+    "lib": [
+      "ESNext"
+    ],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "noEmit": true
+  },
+  "include": [
+    "src",
+    "bin"
+  ]
+}
