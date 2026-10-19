@@ -646,7 +646,6 @@ __metadata:
     http-proxy-middleware: "patch:http-proxy-middleware@npm%3A3.0.7#~/.yarn/patches/http-proxy-middleware-npm-3.0.7-89cd070ac6.patch"
     http-terminator: "npm:3.2.0"
     immer: "npm:10.1.3"
-    install: "npm:0.13.0"
     js-yaml: "npm:4.3.2"
     jsonpath: "npm:1.3.0"
     keyv: "npm:5.6.0"
@@ -31084,13 +31083,6 @@ __metadata:
   peerDependencies:
     "@types/node": ">=18"
   checksum: 10c0/2aff9113360e3d63c38066078ab832b5dbcee1c331e1d39568aaae8cbcb52c0f9d87042c91b7b9655faf1993454afc99054b12337cde37933772d1588c73e227
-  languageName: node
-  linkType: hard
-
-"install@npm:0.13.0":
-  version: 0.13.0
-  resolution: "install@npm:0.13.0"
-  checksum: 10c0/364d7d1e9404ff7ae3015dee7266b4ffb0e2aae348474b7ffd3e42fcbb78b37e29848e18ca94f93166f6ddb248be0f775fbed87cc92dafb018c289a86d010cf1
   languageName: node
   linkType: hard
 
