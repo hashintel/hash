@@ -7,7 +7,10 @@ import {
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
-import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import {
+  assertNoStoredPayloadRefsInFlowInputs,
+  getArrayPayloadItems,
+} from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
@@ -360,6 +363,23 @@ const processFlow = async <
       details: [
         {
           code: StatusCode.PermissionDenied,
+          message: errorMessage,
+          contents: [],
+        },
+      ],
+    });
+  }
+
+  try {
+    assertNoStoredPayloadRefsInFlowInputs(flowInputs);
+  } catch (error) {
+    const errorMessage = (error as Error).message;
+    throw ApplicationFailure.create({
+      message: errorMessage,
+      nonRetryable: true,
+      details: [
+        {
+          code: StatusCode.InvalidArgument,
           message: errorMessage,
           contents: [],
         },
