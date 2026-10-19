@@ -1,5 +1,5 @@
 version = 1
-revision = 4
+revision = 3
 requires-python = "==3.14.*"
 
 [options]
@@ -356,6 +356,15 @@ dev = [
     { name = "basedpyright" },
     { name = "ruff" },
     { name = "tach" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "basedpyright", specifier = ">=1.39.10,<2" },
+    { name = "ruff", specifier = ">=0.16.8,<0.17" },
+    { name = "tach", specifier = ">=0.35,<0.36" },
 ]
 
 [[package]]
@@ -820,6 +829,28 @@ dev = [
     { name = "pytest" },
 ]
 
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.141.1,<0.142.0" },
+    { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.44.0" },
+    { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.44.0" },
+    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
+    { name = "opentelemetry-sdk", specifier = ">=1.44.0" },
+    { name = "optuna", specifier = ">=4.9,<5" },
+    { name = "petrinaut-optimizer-core", editable = "libs/@local/petrinaut-optimizer-core/python" },
+    { name = "petrinaut-python", editable = "libs/@local/petrinaut-python" },
+    { name = "pydantic", specifier = ">=2.13.4" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "starlette", specifier = ">=1.7.0,<2.0.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.39.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "pytest", specifier = ">=9.1.1,<10" },
+]
+
 [[package]]
 name = "petrinaut-optimizer-core"
 version = "0.1.0"
@@ -832,6 +863,12 @@ dependencies = [
 dev = [
     { name = "pytest" },
 ]
+
+[package.metadata]
+requires-dist = [{ name = "optuna", specifier = ">=4.9,<5" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.1.1,<10" }]
 
 [[package]]
 name = "petrinaut-python"
@@ -852,6 +889,21 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
     { name = "sympy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.13.4" },
+    { name = "sympy", marker = "extra == 'sympy'", specifier = ">=1.13" },
+]
+provides-extras = ["sympy"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "datamodel-code-generator", specifier = ">=0.74.0" },
+    { name = "pytest", specifier = ">=9.1.1,<10" },
+    { name = "ruff", specifier = ">=0.16.8,<0.17" },
+    { name = "sympy", specifier = ">=1.13" },
 ]
 
 [[package]]
