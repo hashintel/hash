@@ -7,11 +7,22 @@ import {
 import type { LspWorkerFactory } from "@hashintel/petrinaut-core";
 
 /**
- * Call from `vi.hoisted`: Monaco reads `queryCommandSupported` and
- * `CSS.escape` while its modules load, before any test hook runs.
- * `vitest.setup.ts` installs `matchMedia`.
+ * Call from `vi.hoisted`: Petrinaut's dependencies read these while their
+ * modules load, before any test hook runs. The website's `vitest.setup.ts`
+ * also installs `matchMedia`, for its tests that skip this call; suites in
+ * other packages rely on this one.
  */
 export const installPetrinautDomShims = () => {
+  window.matchMedia = (media) => ({
+    media,
+    matches: false,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => true,
+  });
   // Monaco's clipboard contrib reads this at import time; jsdom does not
   // implement it.
   Object.defineProperty(document, "queryCommandSupported", {
