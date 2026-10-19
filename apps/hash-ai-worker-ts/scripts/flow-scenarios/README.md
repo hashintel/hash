@@ -22,7 +22,8 @@ the checkout: with the placeholder in `.env`, runs fail before their first step.
 
 ## Write a scenario
 
-Copy [`scenarios/array-actions.scenario.ts`](scenarios/array-actions.scenario.ts) and edit it. A scenario exports
+Copy the closest of [`scenarios/`](scenarios) and edit it: `array-actions` chains the array actions,
+`query-entities` seeds entities and queries them, and `for-each` runs steps once per item. A scenario exports
 `scenario = defineScenario({ ... })` with:
 
 - `runs`: the flow runs, started one after another. Each has:
@@ -71,5 +72,5 @@ stack. `--timeout <seconds>` (300 by default) terminates a run that hasn't finis
 far.
 
 The report is printed and saved to `runs/<time>-<name>/report.md`, with the raw flow run in
-`flow-run-<flowRunId>.json` when a run misses an expectation. The exit code is 0 when every expectation is met, 1 when one isn't, and 2 when the scenario
-couldn't be run, for example because no worker is polling the task queue.
+`flow-run-<flowRunId>.json` when a run misses an expectation. The exit code is 0 when every expectation is met, 1 when
+one isn't, and 2 when the scenario couldn't be run, for example because no worker is polling the task queue.
