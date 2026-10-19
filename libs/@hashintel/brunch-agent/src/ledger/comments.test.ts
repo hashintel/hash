@@ -8,6 +8,8 @@ import {
   prepareAppend,
   type LedgerHistoryMessage,
 } from "./commits";
+import { projectLedger } from "./projection/project-ledger";
+import { renderLedgerMarkdown } from "./projection/render-ledger-markdown";
 
 /** A delivered signal as Flue's history projects it. */
 const projected = (
@@ -92,29 +94,24 @@ test("a comment signal is held in the Ledger and anchors the commits that follow
   ]);
 });
 
-test("a comment turn counts as an exchange on the receipt", () => {
-  const { entries } = v.parse(vLedgerAppend, {
-    entries: [["entity/update/e1", { ...crew, kind: "resource" }]],
-  });
-  const receipt = prepareAppend({
+/** The receipt `ledger_commit` returns for these entries, called after `messages`. */
+const receiptFor = (
+  messages: readonly LedgerHistoryMessage[],
+  submitted: unknown[],
+) => {
+  const { entries } = v.parse(vLedgerAppend, { entries: submitted });
+  return prepareAppend({
     history: {
       messages: [
-        { id: "user-1", role: "user", purpose: "user", parts: [] },
-        commit("commit-1", [["entity/create", crew]], ["e1"]),
-        projected(
-          "signal-1",
-          ledgerCommentsMessage([
-            { id: "n1", records: ["e1"], text: "People, not a place." },
-          ]),
-        ),
+        ...messages,
         {
-          id: "assistant-commit-2",
+          id: "assistant-pending",
           role: "assistant",
           parts: [
             {
               type: "dynamic-tool",
               toolName: "ledger_commit",
-              toolCallId: "commit-2",
+              toolCallId: "pending",
               state: "input-available",
               input: { entries },
             },
@@ -122,8 +119,68 @@ test("a comment turn counts as an exchange on the receipt", () => {
         },
       ],
     },
-    toolCallId: "commit-2",
+    toolCallId: "pending",
     entries,
   });
-  expect(receipt).toMatchObject({ status: "recorded", exchanges: 2 });
+};
+
+const commented: LedgerHistoryMessage[] = [
+  { id: "user-1", role: "user", purpose: "user", parts: [] },
+  commit("commit-1", [["entity/create", crew]], ["e1"]),
+  projected(
+    "signal-1",
+    ledgerCommentsMessage([
+      { id: "n1", records: ["e1"], text: "People, not a place." },
+      { id: "n2", records: ["e1"], text: "There are two crews." },
+    ]),
+  ),
+];
+
+const resolvingUpdate = [
+  "entity/update/e1",
+  { ...crew, kind: "resource", resolves: ["n1"] },
+];
+
+test("a comment turn counts as an exchange on the receipt", () => {
+  expect(receiptFor(commented, [["entity/update/e1", crew]])).toMatchObject({
+    status: "recorded",
+    exchanges: 2,
+  });
+});
+
+test("a record resolves the comment it addresses, and the receipt lists those still open", () => {
+  expect(receiptFor(commented, [resolvingUpdate])).toMatchObject({
+    status: "recorded",
+    openComments: [{ id: "n2", text: "There are two crews." }],
+  });
+  const { state } = foldCommits({
+    messages: [...commented, commit("commit-2", [resolvingUpdate], ["e1"])],
+  });
+  expect(
+    state.comments.map(({ id, resolvedBy }) => ({ id, resolvedBy })),
+  ).toEqual([
+    { id: "n1", resolvedBy: "e1" },
+    { id: "n2", resolvedBy: undefined },
+  ]);
+});
+
+test("a record cannot resolve a comment the user never sent", () => {
+  expect(
+    receiptFor(commented, [
+      ["entity/update/e1", { ...crew, resolves: ["n9"] }],
+    ]),
+  ).toMatchObject({
+    status: "refused",
+    code: "unknown-address",
+    message: "Unknown comment n9.",
+  });
+});
+
+test("the model's map lists the comments still open with the records they are on", () => {
+  const { state } = foldCommits({
+    messages: [...commented, commit("commit-2", [resolvingUpdate], ["e1"])],
+  });
+  expect(renderLedgerMarkdown(projectLedger(state))).toContain(
+    "## Open comments\n\n- There are two crews. \u2014 on `e1` `n2`",
+  );
 });
