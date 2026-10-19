@@ -19,12 +19,20 @@ export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 /**
  * Visual style of the chat: `"stock"` for Petrinaut's own, `"brunch"` for the
  * Brunch assistant's.
+ *
+ * @deprecated Brunch-only UI moves into the Brunch plugin, and each assistant
+ * plugin renders its own transcript.
  */
 export type PetrinautAiAssistantPresentation = "stock" | "brunch";
 
 /** An assistant's chat: transport, stored history, tools and transcript style. */
 export type PetrinautAiAssistant = {
-  /** Visual style of the chat. Defaults to `"stock"`. */
+  /**
+   * Visual style of the chat. Defaults to `"stock"`.
+   *
+   * @deprecated Brunch-only UI moves into the Brunch plugin, and each
+   * assistant plugin renders its own transcript.
+   */
   presentation?: PetrinautAiAssistantPresentation;
   /**
    * A second tab beside the chat, both in the title bar. Switching tabs keeps
