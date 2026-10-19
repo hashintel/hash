@@ -1,4 +1,4 @@
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { type TestContext, describe, it } from "@effect/vitest";
 import { Effect, Option, Predicate } from "effect";
 
