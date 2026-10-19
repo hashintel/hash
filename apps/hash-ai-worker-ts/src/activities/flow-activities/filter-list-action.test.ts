@@ -143,7 +143,7 @@ describe("filterListAction", () => {
           recordId: { entityId },
           entityTypeIds: [
             index === 1
-              ? ("https://example.com/types/entity-type/person/v/1" as VersionedUrl)
+              ? "https://example.com/types/entity-type/person/v/1"
               : companyType,
           ],
         },
@@ -205,6 +205,7 @@ describe("filterListAction", () => {
     const result = await run(
       {
         kind: "EntityId",
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- These malformed fixtures still need EntityId branding despite other Payload variants accepting strings.
         value: [validEntityId, "" as EntityId, "not-an-entity-id" as EntityId],
       },
       isCompany,
@@ -469,7 +470,7 @@ describe("filterListAction", () => {
   it("reports an entity the user can't read as not found", async () => {
     vi.mocked(queryEntities).mockResolvedValueOnce({
       entities: [],
-    } as unknown as QueryEntitiesResponse);
+    });
 
     expect(
       await run({ kind: "EntityId", value: [validEntityId] }, isCompany),
