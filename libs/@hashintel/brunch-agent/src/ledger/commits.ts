@@ -4,7 +4,11 @@ import { brunchSignals, brunchTools } from "../constants";
 import { petrinautUserMessageText } from "../petrinaut/contextual-user-message";
 import { vLedgerAppend, type LedgerAppend } from "./append";
 import { parseLedgerComments, type LedgerComment } from "./comments";
-import { owedObligations, projectLedger } from "./projection/project-ledger";
+import {
+  openComments,
+  owedObligations,
+  projectLedger,
+} from "./projection/project-ledger";
 import { questionStatuses, type Origin } from "./shared/epistemics";
 
 import type {
@@ -168,6 +172,10 @@ export const ledgerAppendOutputSchema = v.variant("status", [
     openQuestions: v.optional(v.number()),
     /** Obligations no reflection has discharged yet; absent when none are owed. */
     owed: v.optional(v.array(v.object({ id: v.string(), text: v.string() }))),
+    /** The USER's comments no entry has resolved yet; absent when none are open. */
+    openComments: v.optional(
+      v.array(v.object({ id: v.string(), text: v.string() })),
+    ),
     /** Consequences of this commit the model should weigh; absent when there are none. */
     notes: v.optional(v.array(v.string())),
   }),
@@ -356,6 +364,14 @@ const deriveBatch = (
     refusal: { code: "unknown-address", message },
   });
 
+  const sentComments = new Set(state.comments.map(({ id }) => id));
+  const resolvers = new Map<string, string>();
+  for (const { entry, address } of addressed)
+    for (const id of entry[1].resolves ?? []) {
+      if (!sentComments.has(id)) return refusal(`Unknown comment ${id}.`);
+      if (!resolvers.has(id)) resolvers.set(id, address);
+    }
+
   const entityUpdates = new Map<string, EntityRecord>();
   const newEntities: EntityRecord[] = [];
   const newClaims: ClaimRecord[] = [];
@@ -473,7 +489,12 @@ const deriveBatch = (
       claims: [...state.claims, ...newClaims],
       reflections: [...state.reflections, ...newReflections],
       obligations: [...state.obligations, ...newObligations],
-      comments: state.comments,
+      comments: state.comments.map((comment) => {
+        const resolvedBy = resolvers.get(comment.id);
+        return comment.resolvedBy === undefined && resolvedBy !== undefined
+          ? { ...comment, resolvedBy }
+          : comment;
+      }),
     },
   };
 };
@@ -616,6 +637,10 @@ export const prepareAppend = (call: {
     id: address,
     text,
   }));
+  const stillOpen = openComments(derived.state).map(({ id, text }) => ({
+    id,
+    text,
+  }));
   const notes = accountDisplacements(derived.state, derived.ids);
   return {
     status: "recorded",
@@ -625,6 +650,7 @@ export const prepareAppend = (call: {
     exchanges: exchangesThrough(call.history, own.turn?.id),
     openQuestions: projectLedger(derived.state).questions.length,
     ...(owed.length > 0 ? { owed } : {}),
+    ...(stillOpen.length > 0 ? { openComments: stillOpen } : {}),
     ...(notes.length > 0 ? { notes } : {}),
   };
 };

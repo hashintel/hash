@@ -2,6 +2,7 @@ import * as v from "valibot";
 
 import { netElementKinds } from "../../petrinaut/petrinaut-tool-effects";
 import {
+  resolvesField,
   vClaimReference,
   vEntityReference,
   vObligationReference,
@@ -65,6 +66,7 @@ export const vReflection = v.pipe(
         ),
       ),
     ),
+    ...resolvesField,
   }),
   v.check(
     (reflection) =>

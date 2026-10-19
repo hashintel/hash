@@ -6,6 +6,7 @@ import {
   vOrigin,
   vStatus,
 } from "../shared/epistemics";
+import { resolvesField } from "../shared/references";
 
 export const vEntityName = v.pipe(
   v.string(),
@@ -158,6 +159,7 @@ export const vEntity = v.pipe(
     name: vEntityName,
     kind: vEntityKind,
     ...epistemicFields,
+    ...resolvesField,
   }),
   resolveStatus(),
   v.description(
@@ -178,6 +180,7 @@ export const vEntityUpdate = v.pipe(
       vStatus,
       v.description("Whether the USER now agrees to the entity. Required."),
     ),
+    ...resolvesField,
   }),
   v.description(
     "The addressed entity as it now stands. This payload replaces every field, origin and status included, and the entity keeps the turn it was created in. The Ledger's log keeps the earlier version; its map shows only the current one.",
