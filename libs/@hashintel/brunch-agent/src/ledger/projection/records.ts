@@ -1,3 +1,4 @@
+import type { LedgerComment } from "../comments";
 import type { Obligation } from "../construction/obligations";
 import type { Reflection } from "../construction/reflections";
 import type { Claim } from "../elicitation/claims";
@@ -40,9 +41,13 @@ export type ObligationRecord = Omit<Obligation, "claims" | "entities"> &
     entities?: string[];
   };
 
+/** A user's comment on Ledger records, anchored to the turn its signal opened. */
+export type CommentRecord = LedgerComment & { turn: string };
+
 /**
  * Committed Ledger records as the system holds them after commits: payloads
- * plus the system-assigned address and turn anchor the model never submits.
+ * plus the system-assigned address and turn anchor the model never submits,
+ * and the comments the user sent on them.
  */
 export interface LedgerState {
   title: string;
@@ -51,4 +56,5 @@ export interface LedgerState {
   claims: ClaimRecord[];
   reflections: ReflectionRecord[];
   obligations: ObligationRecord[];
+  comments: CommentRecord[];
 }
