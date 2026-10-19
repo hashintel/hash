@@ -21,7 +21,7 @@ export default defineConfig({
 
 Build the package before importing it. `createConfig` accepts a required `runtime` of `node` or `browser`. Its optional `frameworks` array selects `react`, `next`, `vitest` or `effect`. Use Oxlint's `defineConfig` for package-specific rules and overrides.
 
-The React and Next selections enable their native plugins. Vitest adds test rules and file overrides for runtime and type tests under `src`. Effect extends the strict native Effect preset and allows its namespace imports and functional composition conventions.
+The React and Next selections enable their native plugins. Next also ignores its generated `.next/**` output and `next-env.d.ts`. Vitest adds test rules and file overrides for runtime and type tests under `src`. Effect extends the strict native Effect preset and allows its namespace imports and functional composition conventions.
 
 `additionalRestrictedTypes` adds messages for restricted types without replacing the built-in entries for `object`, `unknown` and `Function`. An attempt to replace one of those entries throws. `ignorePatterns` passes the package's exclusion globs to Oxlint.
 
