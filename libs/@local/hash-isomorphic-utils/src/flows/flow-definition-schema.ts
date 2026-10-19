@@ -18,6 +18,7 @@ export const payloadKindJsonTypes = {
   DateTime: "string",
   Duration: "object",
   EntityId: "string",
+  EntityQuery: "object",
   FailedEntityProposal: "object",
   FilterCondition: "object",
   FormattedText: "object",

@@ -20,6 +20,8 @@ export const PageThumbnail = memo(
   }: PageThumbnailProps) => {
     return (
       <Box
+        role="group"
+        aria-label={`Page ${pageNumber}`}
         sx={({ palette }) => ({
           background: palette.common.white,
           border: `1px solid ${palette.gray[20]}`,

@@ -56,9 +56,11 @@ Reflect.set(globalThis, Symbol.for("a4.runtime.diagnostic"), {
 });
 registerHooks({
   load(url, context, nextLoad) {
+    // The generated chunk name changes between Flue releases; the substitution
+    // below still requires exactly one `appendCanonical` body to observe.
     if (
-      !url.endsWith(
-        "/@flue/runtime/dist/conversation-stream-store-CXwRWonS.mjs",
+      !/\/@flue\/runtime\/dist\/conversation-stream-store-[\w-]+\.mjs$/u.test(
+        url,
       )
     )
       return nextLoad(url, context);

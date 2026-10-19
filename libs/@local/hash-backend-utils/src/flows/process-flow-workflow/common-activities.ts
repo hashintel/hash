@@ -1,4 +1,8 @@
 import {
+  getFlowDefinitionActivity,
+  type GetFlowDefinitionActivityParams,
+} from "./common-activities/get-flow-definition-activity.js";
+import {
   persistFlowActivity,
   type PersistFlowActivityParams,
 } from "./common-activities/persist-flow-activity.js";
@@ -14,6 +18,12 @@ export const createCommonFlowActivities = ({
 }: {
   graphApiClient: GraphApi;
 }) => ({
+  getFlowDefinitionActivity(params: GetFlowDefinitionActivityParams) {
+    return getFlowDefinitionActivity({
+      graphApiClient,
+      ...params,
+    });
+  },
   userHasPermissionToRunFlowInWebActivity(
     params: UserHasPermissionToRunFlowInWebActivityParams,
   ) {

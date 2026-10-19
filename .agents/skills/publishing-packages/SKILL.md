@@ -2,20 +2,6 @@
 name: publishing-packages
 description: Conventions for publishing npm packages from this repository, including when a PR needs a changeset and how to write one. Use when adding or editing a changeset, versioning or releasing a package, or deciding whether a change to a publishable library needs a changelog entry.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - changeset
-      - changelog
-      - npm publish
-      - release
-      - version bump
-    intent-patterns:
-      - "\\b(add|write|create|edit|split)\\b.*?\\bchangesets?\\b"
-      - "\\b(publish|release|version)\\b.*?\\bpackages?\\b"
 ---
 
 # Publishing Packages

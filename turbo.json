@@ -28,6 +28,12 @@
       "cache": false
     },
     "build": {},
+    // Runs as `prepack`, so the payload check reads the files a pack is about to ship
+    // rather than replaying a cached result.
+    "build:pack": {
+      "cache": false,
+      "dependsOn": ["build"]
+    },
     // An image copies the repository and generates and builds inside it, so the host
     // contributes only sources.
     "build:docker": {

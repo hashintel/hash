@@ -21,7 +21,7 @@
     "lint:tsc": "tsgo --noEmit"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "0.83.0"
+    "@earendil-works/pi-ai": "1.2.0"
   },
   "devDependencies": {
     "@types/node": "22.18.13",

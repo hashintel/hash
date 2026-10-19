@@ -42,6 +42,11 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
 
     // take point before any state/pm-doc changes occur
     const pos = blockView.getPos();
+
+    if (pos === undefined) {
+      return;
+    }
+
     const normalizedUrl = createNormalizedBlockUrl(blockUrl);
 
     blockView.manager

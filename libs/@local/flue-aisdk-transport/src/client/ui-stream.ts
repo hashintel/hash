@@ -89,6 +89,13 @@ export const createFlueUiStream = (
   let messageId: string | undefined;
   let turnId: string | undefined;
   let partOrdinal = 0;
+  let foldedStepOrdinal = 0;
+  /**
+   * Flue folds a step's `message-started` into a `conversation-reset` once the
+   * response has replaced a failed model attempt, so later steps of this
+   * response arrive without their turn id. See `openFoldedStep`.
+   */
+  let stepStartsFolded = false;
   let streamingPart: StreamingPart | undefined;
   const toolNamesByCallId = new Map<string, string>();
   const admittedToolCallIds = new Set<string>();
@@ -185,19 +192,19 @@ export const createFlueUiStream = (
     }
   };
 
+  const canPublishLiveInput = (
+    event: LiveToolEvent,
+  ): event is Exclude<
+    LiveToolEvent,
+    { readonly kind: "submission-finished" | "turn-finished" }
+  > =>
+    event.kind !== "submission-finished" &&
+    event.kind !== "turn-finished" &&
+    !terminalLiveTurns.has(event.turnId) &&
+    !admittedToolCallIds.has(event.toolCallId);
+
   const publishLiveEvent = (event: LiveToolEvent): void => {
-    if (
-      event.kind === "submission-finished" ||
-      event.kind === "turn-finished"
-    ) {
-      return;
-    }
-    if (
-      terminalLiveTurns.has(event.turnId) ||
-      admittedToolCallIds.has(event.toolCallId)
-    ) {
-      return;
-    }
+    if (!canPublishLiveInput(event)) return;
     if (event.kind === "tool-input-start") {
       if (speculativeToolCalls.has(event.toolCallId)) return;
       speculativeToolCalls.set(event.toolCallId, {
@@ -225,6 +232,24 @@ export const createFlueUiStream = (
       toolCallId: event.toolCallId,
       inputTextDelta: event.inputTextDelta,
     });
+  };
+
+  /**
+   * Open a step whose `message-started` Flue folded into a reset. The synthetic
+   * id marks an open step, not a live-channel turn. Live input from any open
+   * turn can publish into it; unadmitted proposals end at submission settlement
+   * because finishing this synthetic step cannot identify their real turn.
+   */
+  const openFoldedStep = (): void => {
+    foldedStepOrdinal += 1;
+    turnId = `${messageId}:folded:${foldedStepOrdinal}`;
+    options.write({ type: "start-step" });
+  };
+
+  const publishFoldedLiveEvent = (event: LiveToolEvent): void => {
+    if (!canPublishLiveInput(event)) return;
+    if (turnId === undefined) openFoldedStep();
+    publishLiveEvent(event);
   };
 
   const startProvisionalTurn = (provisionalTurnId: string): void => {
@@ -269,6 +294,10 @@ export const createFlueUiStream = (
       bufferedLiveEvents.delete(event.turnId);
       return;
     }
+    if (event.turnId !== turnId && stepStartsFolded) {
+      publishFoldedLiveEvent(event);
+      return;
+    }
     if (event.turnId !== turnId) {
       if (!terminalLiveTurns.has(event.turnId)) {
         const buffered = bufferedLiveEvents.get(event.turnId) ?? [];
@@ -308,6 +337,7 @@ export const createFlueUiStream = (
         case "message-started": {
           accepting = chunk.submissionId === options.submissionId;
           if (!accepting) return;
+          stepStartsFolded = false;
           if (liveStartTimer !== undefined) {
             clearTimeout(liveStartTimer);
             liveStartTimer = undefined;
@@ -374,13 +404,23 @@ export const createFlueUiStream = (
           terminateAllSpeculativeCalls();
           return;
         }
-        case "conversation-reset":
+        case "conversation-reset": {
+          // A reset replaces every other chunk of its batch, including the
+          // `message-started` of a step that replaces a failed model attempt.
+          if (!accepting || messageId === undefined) return;
+          stepStartsFolded = true;
+          const buffered = [...bufferedLiveEvents.values()].flat();
+          bufferedLiveEvents.clear();
+          for (const event of buffered) publishFoldedLiveEvent(event);
+          return;
+        }
         case "message-appended":
         case "stream-checkpoint":
           return;
         case "message-delta": {
           if (!accepting || messageId === undefined) return;
           if (chunk.messageId !== canonicalMessageId) return;
+          if (turnId === undefined) openFoldedStep();
           const part =
             streamingPart?.kind === chunk.kind
               ? streamingPart
@@ -395,6 +435,7 @@ export const createFlueUiStream = (
         case "tool-input": {
           if (!accepting || messageId === undefined) return;
           if (chunk.messageId !== canonicalMessageId) return;
+          if (turnId === undefined) openFoldedStep();
           finishPart();
           toolNamesByCallId.set(chunk.toolCallId, chunk.toolName);
           admittedToolCallIds.add(chunk.toolCallId);

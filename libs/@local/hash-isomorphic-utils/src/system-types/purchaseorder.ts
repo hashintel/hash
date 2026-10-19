@@ -1101,7 +1101,7 @@ export type PurchaseOrderProperties = {
   "https://hash.ai/@h/types/property-type/currency-code/"?: CurrencyCodePropertyValue;
   "https://hash.ai/@h/types/property-type/document-date/"?: DocumentDatePropertyValue;
   "https://hash.ai/@h/types/property-type/order-date/"?: OrderDatePropertyValue;
-  "https://hash.ai/@h/types/property-type/purchase-order-number/"?: PurchaseOrderNumberPropertyValue;
+  "https://hash.ai/@h/types/property-type/purchase-order-number/": PurchaseOrderNumberPropertyValue;
   "https://hash.ai/@h/types/property-type/purchasing-document-type/"?: PurchasingDocumentTypePropertyValue;
   "https://hash.ai/@h/types/property-type/purchasing-group/"?: PurchasingGroupPropertyValue;
   "https://hash.ai/@h/types/property-type/purchasing-organization/"?: PurchasingOrganizationPropertyValue;
@@ -1113,7 +1113,7 @@ export type PurchaseOrderPropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/currency-code/"?: CurrencyCodePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/document-date/"?: DocumentDatePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/order-date/"?: OrderDatePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/purchase-order-number/"?: PurchaseOrderNumberPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/purchase-order-number/": PurchaseOrderNumberPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/purchasing-document-type/"?: PurchasingDocumentTypePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/purchasing-group/"?: PurchasingGroupPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/purchasing-organization/"?: PurchasingOrganizationPropertyValueWithMetadata;

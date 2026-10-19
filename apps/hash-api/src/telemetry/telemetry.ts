@@ -1,7 +1,9 @@
 import RudderAnalytics from "@rudderstack/rudder-sdk-node";
+import * as Sentry from "@sentry/node";
 
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 
+import { isProdEnv } from "../lib/env-config";
 import { logger } from "../logger";
 import { telemetryEnvironment } from "./environment";
 
@@ -56,6 +58,12 @@ class TelemetryService {
       }
       this.client = new RudderAnalytics(RUDDERSTACK_KEY, {
         dataPlaneUrl: RUDDERSTACK_DATA_PLANE_URL,
+        errorHandler: (error: unknown) => {
+          logger.warn(`Could not send telemetry events: ${error}`);
+          if (isProdEnv) {
+            Sentry.captureException(error);
+          }
+        },
       });
     }
     return this.client;

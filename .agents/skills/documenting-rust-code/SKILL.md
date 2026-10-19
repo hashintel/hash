@@ -2,20 +2,6 @@
 name: documenting-rust-code
 description: Rust documentation practices for HASH codebase. Use when writing doc comments, documenting functions/types/traits/modules, creating error sections, using intra-doc links, or following rustdoc conventions.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - rustdoc
-      - doc comment
-      - documentation
-      - intra-doc link
-    intent-patterns:
-      - "\\bdocument(ing|ation)?\\b.*?\\b(rust|function|type|struct|enum|trait|module)\\b"
-      - "\\b(write|add|create)\\b.*?\\bdoc\\s*comment\\b"
-      - "\\b#\\s*(Errors|Panics|Examples|Arguments)\\b"
 ---
 
 # Rust Documentation Practices

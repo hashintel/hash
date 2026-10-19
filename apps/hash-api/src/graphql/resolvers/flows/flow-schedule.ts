@@ -45,9 +45,9 @@ export const createFlowScheduleResolver: ResolverFn<
 
   const { flowDefinitionId } = input;
 
-  const { flowDefinition, flowType } = getRunnableFlowDefinition(
+  const { flowDefinitionEntity, flowType } = await getRunnableFlowDefinition(
     graphQLContext,
-    input.flowDefinition,
+    flowDefinitionId,
   );
 
   if (flowType === "ai" && !input.dataSources) {
@@ -58,7 +58,7 @@ export const createFlowScheduleResolver: ResolverFn<
 
   const schedule = await createFlowScheduleEntity(context, authentication, {
     ...input,
-    flowDefinition,
+    flowDefinitionEntityId: flowDefinitionEntity.metadata.recordId.entityId,
   });
 
   const props = simplifyProperties(schedule.properties);
@@ -72,10 +72,10 @@ export const createFlowScheduleResolver: ResolverFn<
     ...(flowType === "ai" && input.dataSources
       ? { dataSources: input.dataSources }
       : {}),
-    flowDefinition,
     flowDefinitionId,
     flowRunName: input.name,
     flowInputs: input.flowInputs,
+    flowTriggerEntityId: schedule.metadata.recordId.entityId,
     userAuthentication: { actorId: user.accountId },
     webId: input.webId,
   };

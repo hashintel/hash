@@ -25,7 +25,6 @@
     "dotenv-flow": "3.3.0",
     "envalid": "8.1.0",
     "execa": "9.6.0",
-    "fix-esm-import-path": "1.10.3",
     "fs-extra": "11.3.2",
     "globby": "15.0.0",
     "ignore": "7.0.5",

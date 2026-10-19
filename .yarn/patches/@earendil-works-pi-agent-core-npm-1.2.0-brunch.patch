@@ -1,0 +1,89 @@
+diff --git a/README.md b/README.md
+index 5cb3954..c5e1ad0 100644
+--- a/README.md
++++ b/README.md
+@@ -450,6 +450,8 @@ const agent = new Agent({
+ 
+ ## Tools
+ 
++A tool may supply `validateArguments(args, { toolCallId, signal })` as its authoritative validator. This replaces generic JSON Schema validation/coercion for that tool only. It receives cloned input after an optional `prepareArguments` normalizer and returns parsed data (or throws/rejects). The original tool call/history is not rewritten. `beforeToolCall`, `afterToolCall` and `execute` receive that parsed data; a validation failure or cancellation prevents execution. Validators must honor the abort signal. Tools without this callback retain the existing generic validation path. The third `AgentTool` type parameter describes parsed arguments when they differ from the parameter schema's static input type. The JSON Schema in `parameters` remains the provider-facing input projection; it need not represent executable refinements or normalized output defaults.
++
+ Define tools using `AgentTool`:
+ 
+ ```typescript
+diff --git a/dist/agent-loop.js b/dist/agent-loop.js
+index 77af960..d9386c4 100644
+--- a/dist/agent-loop.js
++++ b/dist/agent-loop.js
+@@ -488,8 +488,17 @@ async function prepareToolCall(currentContext, assistantMessage, toolCall, confi
+         };
+     }
+     try {
+-        const preparedToolCall = prepareToolCallArguments(tool, toolCall);
+-        const validatedArgs = validateToolArguments(tool, preparedToolCall);
++        const preparedToolCall = prepareToolCallArguments(tool, tool.validateArguments ? { ...toolCall, arguments: structuredClone(toolCall.arguments) } : toolCall);
++        const validatedArgs = tool.validateArguments
++            ? await tool.validateArguments(structuredClone(preparedToolCall.arguments), { toolCallId: toolCall.id, signal })
++            : validateToolArguments(tool, preparedToolCall);
++        if (signal?.aborted) {
++            return {
++                kind: "immediate",
++                result: createErrorToolResult("Operation aborted"),
++                isError: true,
++            };
++        }
+         if (config.beforeToolCall) {
+             const beforeResult = await config.beforeToolCall({
+                 assistantMessage,
+diff --git a/dist/types.d.ts b/dist/types.d.ts
+index 410fd20..5c68e6b 100644
+--- a/dist/types.d.ts
++++ b/dist/types.d.ts
+@@ -85,7 +85,7 @@ export interface BeforeToolCallContext {
+     assistantMessage: AssistantMessage;
+     /** The raw tool call block from `assistantMessage.content`. */
+     toolCall: AgentToolCall;
+-    /** Validated tool arguments for the target tool schema. */
++    /** Parsed arguments from the tool's authoritative validator (custom validateArguments or generic schema validation). */
+     args: unknown;
+     /** Current agent context at the time the tool call is prepared. */
+     context: AgentContext;
+@@ -96,7 +96,7 @@ export interface AfterToolCallContext {
+     assistantMessage: AssistantMessage;
+     /** The raw tool call block from `assistantMessage.content`. */
+     toolCall: AgentToolCall;
+-    /** Validated tool arguments for the target tool schema. */
++    /** Parsed arguments from the tool's authoritative validator (custom validateArguments or generic schema validation). */
+     args: unknown;
+     /** The executed tool result before any `afterToolCall` overrides are applied. */
+     result: AgentToolResult<any>;
+@@ -406,7 +406,7 @@ export interface AgentToolCallOutcome {
+  */
+ export type AgentToolUpdateCallback<T = any> = (partialResult: AgentToolResult<T>) => void;
+ /** Tool definition used by the agent runtime. */
+-export interface AgentTool<TParameters extends TSchema = TSchema, TDetails = any> extends Tool<TParameters> {
++export interface AgentTool<TParameters extends TSchema = TSchema, TDetails = any, TArguments = Static<TParameters>> extends Tool<TParameters> {
+     /** Human-readable label for UI display. */
+     label: string;
+     /**
+@@ -414,6 +414,11 @@ export interface AgentTool<TParameters extends TSchema = TSchema, TDetails = any
+      * Must return an object that matches `TParameters`.
+      */
+     prepareArguments?: (args: unknown) => Static<TParameters>;
++    /** Authoritative per-tool validation. Replaces generic JSON Schema validation/coercion.
++     * Receives a clone of prepared raw input; returns parsed data for beforeToolCall
++     * and execute, or throws. Implementations must honor the supplied abort signal.
++     * The provider JSON Schema remains the representable input projection. */
++    validateArguments?: (args: unknown, context: { toolCallId: string; signal?: AbortSignal }) => TArguments | Promise<TArguments>;
+     /**
+      * JSON Schema of `structuredContent` in successful results. Tools that declare it should always
+      * set `structuredContent`.
+@@ -423,7 +428,7 @@ export interface AgentTool<TParameters extends TSchema = TSchema, TDetails = any
+      * Execute the tool call. Throw on failure, or return a result with `isError: true`; do not only
+      * describe the failure in `content`.
+      */
+-    execute: (toolCallId: string, params: Static<TParameters>, signal?: AbortSignal, onUpdate?: AgentToolUpdateCallback<TDetails>) => Promise<AgentToolResult<TDetails>>;
++    execute: (toolCallId: string, params: TArguments, signal?: AbortSignal, onUpdate?: AgentToolUpdateCallback<TDetails>) => Promise<AgentToolResult<TDetails>>;
+     /** Recovery policy for an effect whose durable intent exists but whose outcome is unknown. */
+     replay?: "never" | "safe";
+     /**

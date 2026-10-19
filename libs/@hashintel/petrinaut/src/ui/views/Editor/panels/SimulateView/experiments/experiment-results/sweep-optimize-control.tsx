@@ -103,6 +103,7 @@ export const SweepOptimizeControl = ({
         iconName="sparkles"
         aria-expanded={open}
         aria-haspopup="dialog"
+        pressed={open}
         disabled={starting}
         onClick={() => setOpen((previous) => !previous)}
       >

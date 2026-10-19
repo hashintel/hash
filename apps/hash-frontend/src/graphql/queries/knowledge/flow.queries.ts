@@ -3,14 +3,12 @@ import { gql } from "@apollo/client";
 export const startFlowMutation = gql`
   mutation startFlow(
     $dataSources: FlowDataSources
-    $flowDefinition: FlowDefinition!
     $flowDefinitionId: EntityUuid!
     $flowInputs: FlowInputValues!
     $webId: WebId!
   ) {
     startFlow(
       dataSources: $dataSources
-      flowDefinition: $flowDefinition
       flowDefinitionId: $flowDefinitionId
       flowInputs: $flowInputs
       webId: $webId

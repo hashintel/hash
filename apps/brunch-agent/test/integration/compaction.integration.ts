@@ -15,8 +15,10 @@ import {
   fauxProvider,
   fauxText,
   fauxToolCall,
+  getCurrentTools,
   type AssistantMessage,
-  type Context,
+  type JsonObject,
+  type TranscriptContext,
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
@@ -49,22 +51,33 @@ process.env.BRUNCH_CHAT_MODEL = "openai/faux-1";
 process.env.BRUNCH_TEST_KEEP_RECENT_TOKENS = "200";
 
 const faux = fauxProvider({ provider: "openai" });
-const requests: { label: string; messages: number; hasC1: boolean }[] = [];
-type Step = (context: Context) => AssistantMessage;
+const requests: {
+  label: string;
+  messages: number;
+  hasC1: boolean;
+  leadDeclaresLedger: boolean;
+}[] = [];
+type Step = (context: TranscriptContext) => AssistantMessage;
 const steps: Step[] = [];
-const contains = (context: Context, toolCallId: string) =>
+const contains = (context: TranscriptContext, toolCallId: string) =>
   context.messages.some(
     (message) =>
       message.role === "toolResult" && message.toolCallId === toolCallId,
   );
 installFauxProvider(faux.provider);
 faux.setResponses(
-  Array.from({ length: 20 }, () => (context: Context) => {
-    const summary = (context.tools ?? []).length === 0;
+  Array.from({ length: 20 }, () => (context: TranscriptContext) => {
+    // Tool declarations travel in the transcript's system messages; the
+    // summarization request declares none.
+    const summary = getCurrentTools(context.messages).length === 0;
+    const lead = context.messages[0];
     requests.push({
       label: summary ? "summary" : `agent-${requests.length}`,
       messages: context.messages.length,
       hasC1: contains(context, "c1"),
+      leadDeclaresLedger:
+        lead?.role === "system" &&
+        (lead.toolsAdded ?? []).some((tool) => tool.name === "ledger_commit"),
     });
     if (summary)
       return fauxAssistantMessage("Summary: filler about truck loading.");
@@ -74,7 +87,7 @@ faux.setResponses(
   }),
 );
 
-const call = (id: string, name: string, args: Record<string, unknown>) =>
+const call = (id: string, name: string, args: JsonObject) =>
   fauxAssistantMessage([fauxToolCall(name, args, { id })], {
     stopReason: "toolUse",
   });
@@ -178,6 +191,12 @@ assert(
 assert(
   afterSummary.every(({ hasC1 }) => !hasC1),
   "After compaction the model's context no longer carries c1's result.",
+);
+assert(
+  requests
+    .filter(({ label }) => label.startsWith("agent"))
+    .every(({ leadDeclaresLedger }) => leadDeclaresLedger),
+  "Every agent request, before and after the compacted rebuild, leads with the system message declaring the tools.",
 );
 assert.match(
   (compiled as { map?: string } | undefined)?.map ?? "",

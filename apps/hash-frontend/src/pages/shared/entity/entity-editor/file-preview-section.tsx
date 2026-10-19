@@ -45,6 +45,14 @@ const PdfPreview = dynamic(
   { ssr: false },
 );
 
+const DocxPreview = dynamic(
+  () => import("../../docx-preview").then((module) => module.DocxPreview),
+  {
+    ssr: false,
+    loading: () => <CircularProgress />,
+  },
+);
+
 const ActionButtonsContainer = ({ children }: PropsWithChildren) => (
   <Stack
     direction="row"
@@ -183,17 +191,25 @@ export const FilePreviewSection = () => {
   const { isDirty, readonly, closedMultiEntityType, entity } =
     useEntityEditor();
 
-  const { isImage, fileUrl } = getFileProperties(entity.properties);
+  const {
+    isImage,
+    isPdf,
+    isDocx: isDocxFile,
+    fileUrl,
+  } = getFileProperties(entity.properties);
 
   const fullScreenHandle = useFullScreenHandle();
 
   const isFullScreen = fullScreenHandle.active;
 
+  /** The file the DOCX preview could not show, which then gets the icon view. */
+  const [unavailableDocxUrl, setUnavailableDocxUrl] = useState<string>();
+
   if (!fileUrl) {
     return null;
   }
 
-  const { description, displayName, fileName, mimeType } = simplifyProperties(
+  const { description, displayName, fileName } = simplifyProperties(
     entity.properties as FileProperties,
   );
 
@@ -202,25 +218,33 @@ export const FilePreviewSection = () => {
 
   const alt = description ?? title;
 
-  const isPdf = mimeType === "application/pdf" || fileName?.endsWith(".pdf");
+  const isDocx = isDocxFile && unavailableDocxUrl !== fileUrl;
 
   return (
     <SectionWrapper
       title="File Preview"
       titleStartContent={
-        isPdf ? (
+        isPdf || isDocx ? (
           <Stack direction="row" gap={1} ml={3}>
+            {isPdf && (
+              <GrayToBlueIconButton
+                aria-label={
+                  showThumbnails ? "Hide thumbnails" : "Show thumbnails"
+                }
+                onClick={() => setShowThumbnails(!showThumbnails)}
+              >
+                <SidebarRegularIcon
+                  sx={{
+                    color: ({ palette }) =>
+                      showThumbnails ? palette.blue[70] : undefined,
+                  }}
+                />
+              </GrayToBlueIconButton>
+            )}
             <GrayToBlueIconButton
-              onClick={() => setShowThumbnails(!showThumbnails)}
+              aria-label={showSearch ? "Hide search" : "Show search"}
+              onClick={() => setShowSearch(!showSearch)}
             >
-              <SidebarRegularIcon
-                sx={{
-                  color: ({ palette }) =>
-                    showThumbnails ? palette.blue[70] : undefined,
-                }}
-              />
-            </GrayToBlueIconButton>
-            <GrayToBlueIconButton onClick={() => setShowSearch(!showSearch)}>
               <MagnifyingGlassRegularIcon
                 sx={{
                   color: ({ palette }) =>
@@ -236,7 +260,10 @@ export const FilePreviewSection = () => {
           {isImage && (
             <Tooltip placement="top" title="View in fullscreen">
               <Box>
-                <GrayToBlueIconButton onClick={() => fullScreenHandle.enter()}>
+                <GrayToBlueIconButton
+                  aria-label="Full screen"
+                  onClick={() => fullScreenHandle.enter()}
+                >
                   <ArrowUpRightAndArrowDownLeftFromCenterIcon />
                 </GrayToBlueIconButton>
               </Box>
@@ -253,6 +280,7 @@ export const FilePreviewSection = () => {
             >
               <Box>
                 <GrayToBlueIconButton
+                  aria-label="Replace file"
                   disabled={isDirty}
                   onClick={() => setReplacing(true)}
                 >
@@ -268,25 +296,27 @@ export const FilePreviewSection = () => {
               href={fileUrl}
               rel="nofollow noopener noreferrer"
             >
-              <GrayToBlueIconButton>
+              <GrayToBlueIconButton aria-label="Download">
                 <DownloadRegularIcon />
               </GrayToBlueIconButton>
             </Box>
           </Tooltip>
-          <Tooltip placement="top" title="Open in new tab">
-            <Box
-              component="a"
-              href={fileUrl}
-              target="_blank"
-              rel="nofollow noopener noreferrer"
-            >
-              <GrayToBlueIconButton>
-                <ArrowUpRightFromSquareRegularIcon
-                  sx={{ width: 13, height: 13 }}
-                />
-              </GrayToBlueIconButton>
-            </Box>
-          </Tooltip>
+          {!isDocxFile && (
+            <Tooltip placement="top" title="Open in new tab">
+              <Box
+                component="a"
+                href={fileUrl}
+                target="_blank"
+                rel="nofollow noopener noreferrer"
+              >
+                <GrayToBlueIconButton aria-label="Open in new tab">
+                  <ArrowUpRightFromSquareRegularIcon
+                    sx={{ width: 13, height: 13 }}
+                  />
+                </GrayToBlueIconButton>
+              </Box>
+            </Tooltip>
+          )}
         </Stack>
       }
     >
@@ -296,7 +326,8 @@ export const FilePreviewSection = () => {
           justifyContent: "center",
           boxShadow: boxShadows.sm,
           borderRadius: 1,
-          height: isPdf ? "auto" : isFullScreen ? "100%" : previewHeight,
+          height:
+            isPdf || isDocx ? "auto" : isFullScreen ? "100%" : previewHeight,
           position: "relative",
         })}
       >
@@ -329,9 +360,18 @@ export const FilePreviewSection = () => {
           </FullScreen>
         ) : isPdf ? (
           <PdfPreview
+            key={fileUrl}
             setShowSearch={setShowSearch}
             showSearch={showSearch}
             showThumbnails={showThumbnails}
+            url={fileUrl}
+          />
+        ) : isDocx ? (
+          <DocxPreview
+            key={fileUrl}
+            onUnavailable={() => setUnavailableDocxUrl(fileUrl)}
+            setShowSearch={setShowSearch}
+            showSearch={showSearch}
             url={fileUrl}
           />
         ) : (

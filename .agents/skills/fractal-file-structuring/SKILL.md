@@ -2,23 +2,6 @@
 name: fractal-file-structuring
 description: "Use when creating, moving, splitting, or organizing TypeScript files and folders. Applies fractal tree file-structuring rules which reduce the cognitive overhead of choosing where to put files and ultimately navigating a codebase (once the structure is established and understood)."
 license: MIT
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - TypeScript
-      - JavaScript
-      - file structure
-      - folder structure
-      - create file
-      - create folder
-      - split file
-      - shared folder
-    intent-patterns:
-      - "\\b(create|add|move|split|organize|refactor)\\b.*?\\b(file|folder|directory|module|component|hook|type|helper)\\b"
-      - "\\b(file|folder|directory)\\b.*?\\b(structure|layout|organization|placement)\\b"
 ---
 
 # Fractal File Structuring

@@ -1,0 +1,25 @@
+diff --git a/dist/api/anthropic-messages.js b/dist/api/anthropic-messages.js
+index d0a5b0f..32fe620 100644
+--- a/dist/api/anthropic-messages.js
++++ b/dist/api/anthropic-messages.js
+@@ -1302,18 +1302,8 @@ function convertTools(tools, isOAuthToken, supportsEagerToolInputStreaming, supp
+             ? undefined
+             : resolveJsonSchemaStrictSampling(tool, supportsStrictTools, isAnthropicStrictUnsupportedKeyword);
+         const parameters = getJsonSchemaToolParameters(tool, strict);
+-        const schema = parameters;
+-        const legacyInputSchema = {
+-            type: "object",
+-            properties: schema.properties ?? {},
+-            required: schema.required ?? [],
+-        };
+-        const inputSchema = strict === true
+-            ? {
+-                ...parameters,
+-                ...legacyInputSchema,
+-            }
+-            : legacyInputSchema;
++        // Brunch: schema carriage is independent of constrained generation policy.
++        const inputSchema = parameters;
+         return {
+             name: isOAuthToken ? toClaudeCodeName(tool.name) : tool.name,
+             description: tool.description,

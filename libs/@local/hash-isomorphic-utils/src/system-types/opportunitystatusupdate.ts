@@ -3,6 +3,8 @@
  */
 
 import type {
+  ObjectDataType,
+  ObjectDataTypeWithMetadata,
   SiteCodePropertyValue,
   SiteCodePropertyValueWithMetadata,
   TextDataType,
@@ -21,6 +23,8 @@ import type {
 } from "@blockprotocol/type-system";
 
 export type {
+  ObjectDataType,
+  ObjectDataTypeWithMetadata,
   SiteCodePropertyValue,
   SiteCodePropertyValueWithMetadata,
   TextDataType,
@@ -80,22 +84,22 @@ export type OpportunityStatusUpdateOutgoingLinksByLinkEntityTypeId = {};
  * A status update for an opportunity for change or improvement.
  */
 export type OpportunityStatusUpdateProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
   "https://hash.ai/@h/types/property-type/opportunity-status/": OpportunityStatusPropertyValue;
   "https://hash.ai/@h/types/property-type/scope-key/": ScopeKeyPropertyValue;
   "https://hash.ai/@h/types/property-type/site-code/": SiteCodePropertyValue;
   "https://hash.ai/@h/types/property-type/status-update-text/"?: StatusUpdateTextPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
   "https://hash.ai/@h/types/property-type/title/"?: TitlePropertyValue;
 };
 
 export type OpportunityStatusUpdatePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/opportunity-status/": OpportunityStatusPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/scope-key/": ScopeKeyPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/site-code/": SiteCodePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/status-update-text/"?: StatusUpdateTextPropertyValueWithMetadata;
-    "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/title/"?: TitlePropertyValueWithMetadata;
   };
 };
