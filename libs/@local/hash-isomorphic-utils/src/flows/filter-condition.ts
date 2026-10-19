@@ -57,6 +57,10 @@ export type FilterLeaf =
       subject: { kind: "entityType" };
       operator: "isOfType";
       value: Extract<FilterValue, { kind: "VersionedUrl" }>;
+      /** Also match entities whose types inherit from this type, directly or indirectly. */
+      includeSubtypes?: boolean;
+      /** Match any version of the type. */
+      anyVersion?: boolean;
     };
 
 /**
@@ -245,12 +249,26 @@ export const validateSubject = (
 };
 
 const validateLeaf = (
-  { subject, operator, value }: FilterLeaf,
+  leaf: FilterLeaf,
   inputKind: PayloadKind,
 ): ConditionError | undefined => {
+  const { subject, operator, value } = leaf;
   const subjectError = validateSubject(subject, inputKind);
   if (subjectError) {
     return invalidCondition(subjectError);
+  }
+  /* Persisted definitions may set the flags on any leaf. */
+  const flags = [
+    (leaf as { includeSubtypes?: unknown }).includeSubtypes,
+    (leaf as { anyVersion?: unknown }).anyVersion,
+  ].filter((flag) => flag !== undefined);
+  if (operator !== "isOfType" && flags.length > 0) {
+    return invalidCondition(
+      "includeSubtypes and anyVersion only apply to isOfType conditions.",
+    );
+  }
+  if (flags.some((flag) => typeof flag !== "boolean")) {
+    return invalidCondition("includeSubtypes and anyVersion must be booleans.");
   }
   if (operator === "isEmpty" || operator === "isNotEmpty") {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may be malformed.

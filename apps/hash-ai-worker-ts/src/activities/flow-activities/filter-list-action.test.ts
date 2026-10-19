@@ -7,6 +7,7 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 import { StatusCode } from "@local/status";
 
@@ -52,6 +53,9 @@ vi.mock(
   }),
 );
 vi.mock("@local/hash-graph-sdk/entity", () => ({ queryEntities: vi.fn() }));
+vi.mock("@local/hash-graph-sdk/entity-type", () => ({
+  queryEntityTypeSubgraph: vi.fn(),
+}));
 
 const run = (items: Payload, condition: FilterCondition) =>
   filterListAction({
@@ -322,6 +326,91 @@ describe("filterListAction", () => {
       run({ kind: "EntityId", value: entityIds }, isCompany),
     ).rejects.toThrow(`at most ${maxEntitiesPerStep} entities`);
     expect(queryEntities).not.toHaveBeenCalled();
+  });
+
+  it("loads the ancestors of the entities' types only for a condition that includes subtypes", async () => {
+    const startupType =
+      "https://example.com/types/entity-type/startup/v/1" as VersionedUrl;
+    const personType =
+      "https://example.com/types/entity-type/person/v/1" as VersionedUrl;
+    const entityIds = [1, 2].map(
+      (index) =>
+        `${webId}~00000000-0000-4000-8000-00000000001${index}` as EntityId,
+    );
+    const entities = {
+      entities: entityIds.map((entityId, index) => ({
+        properties: {},
+        metadata: {
+          recordId: { entityId },
+          entityTypeIds: [index === 0 ? startupType : personType],
+        },
+      })),
+    } as unknown as QueryEntitiesResponse;
+    const entityTypeVertex = (
+      $id: VersionedUrl,
+      parents: VersionedUrl[] = [],
+    ) => {
+      const baseUrl = $id.replace(/v\/\d+$/, "");
+      return {
+        [baseUrl]: {
+          1: {
+            kind: "entityType",
+            inner: {
+              schema: { $id, allOf: parents.map(($ref) => ({ $ref })) },
+            },
+          },
+        },
+      };
+    };
+    vi.mocked(queryEntityTypeSubgraph).mockResolvedValue({
+      subgraph: {
+        vertices: {
+          ...entityTypeVertex(startupType, [companyType]),
+          ...entityTypeVertex(companyType),
+          ...entityTypeVertex(personType),
+        },
+      },
+    } as unknown as Awaited<ReturnType<typeof queryEntityTypeSubgraph>>);
+
+    vi.mocked(queryEntities).mockResolvedValueOnce(entities);
+    expect(
+      await outputValues(
+        await run({ kind: "EntityId", value: entityIds }, isCompany),
+      ),
+    ).toEqual({ matching: [], nonMatching: entityIds });
+    expect(queryEntityTypeSubgraph).not.toHaveBeenCalled();
+
+    vi.mocked(queryEntities).mockResolvedValueOnce(entities);
+    expect(
+      await outputValues(
+        await run(
+          { kind: "EntityId", value: entityIds },
+          {
+            kind: "all",
+            conditions: [
+              {
+                kind: "condition",
+                subject: { kind: "entityType" },
+                operator: "isOfType",
+                value: { kind: "VersionedUrl", value: companyType },
+                includeSubtypes: true,
+              },
+            ],
+          },
+        ),
+      ),
+    ).toEqual({ matching: [entityIds[0]], nonMatching: [entityIds[1]] });
+    expect(queryEntityTypeSubgraph).toHaveBeenCalledOnce();
+    expect(vi.mocked(queryEntityTypeSubgraph).mock.lastCall?.[2]).toMatchObject(
+      {
+        filter: {
+          any: [startupType, personType].map((entityTypeId) => ({
+            equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+          })),
+        },
+        graphResolveDepths: { inheritsFrom: 255 },
+      },
+    );
   });
 
   it("reports an entity the user can't read as not found", async () => {

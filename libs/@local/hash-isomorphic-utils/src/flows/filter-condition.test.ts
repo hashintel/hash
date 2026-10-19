@@ -7,6 +7,7 @@ import type {
   FilterCondition,
   FilterLeaf,
 } from "./filter-condition.js";
+import type { PayloadKind } from "./types.js";
 
 const all = (...conditions: ConditionNode[]): FilterCondition => ({
   kind: "all",
@@ -112,6 +113,66 @@ describe("validateCondition", () => {
       );
     },
   );
+
+  const isCompany: FilterLeaf = {
+    kind: "condition",
+    subject: { kind: "entityType" },
+    operator: "isOfType",
+    value: {
+      kind: "VersionedUrl",
+      value: "https://example.com/types/entity-type/company/v/1",
+    },
+  };
+
+  it.each([
+    { includeSubtypes: true },
+    { anyVersion: true },
+    { includeSubtypes: false, anyVersion: false },
+    { includeSubtypes: true, anyVersion: true },
+  ])("accepts isOfType with %o", (flags) => {
+    expect(
+      validateCondition(all({ ...isCompany, ...flags }), "EntityId"),
+    ).toBeUndefined();
+  });
+
+  it.each<{
+    name: string;
+    leaf: unknown;
+    inputKind: PayloadKind;
+    message: string;
+  }>([
+    {
+      name: "a scalar condition",
+      leaf: { ...scoreCondition, includeSubtypes: true },
+      inputKind: "WebPage",
+      message: "only apply to isOfType",
+    },
+    {
+      name: "a presence check on the entity type",
+      leaf: {
+        kind: "condition",
+        subject: { kind: "entityType" },
+        operator: "isNotEmpty",
+        anyVersion: false,
+      },
+      inputKind: "EntityId",
+      message: "only apply to isOfType",
+    },
+    {
+      name: "isOfType, when not a boolean",
+      leaf: { ...isCompany, anyVersion: "true" },
+      inputKind: "EntityId",
+      message: "must be booleans",
+    },
+  ])("rejects the type flags on $name", ({ leaf, inputKind, message }) => {
+    expect(validateCondition(all(leaf as FilterLeaf), inputKind)).toMatchObject(
+      {
+        status: "error",
+        code: "invalidCondition",
+        message: expect.stringContaining(message),
+      },
+    );
+  });
 
   it("rejects field subjects on primitive input kinds", () => {
     expect(validateCondition(all(scoreCondition), "Number")).toMatchObject({

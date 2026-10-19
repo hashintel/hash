@@ -330,6 +330,166 @@ describe("evaluateCondition", () => {
     ).toEqual({ status: "success", matches: false });
   });
 
+  describe("isOfType flags", () => {
+    const organizationType =
+      "https://example.com/types/entity-type/organization/v/1" as VersionedUrl;
+    const charityType =
+      "https://example.com/types/entity-type/charity/v/1" as VersionedUrl;
+    const startupType =
+      "https://example.com/types/entity-type/startup/v/1" as VersionedUrl;
+    const companyGroupType =
+      "https://example.com/types/entity-type/company-group/v/1" as VersionedUrl;
+    const companyV2Type =
+      "https://example.com/types/entity-type/company/v/2" as VersionedUrl;
+    /* startup → company v1 → organization v1; charity → organization v1; company v2 → organization v1. */
+    const context = {
+      entityTypeAncestors: new Map<VersionedUrl, VersionedUrl[]>([
+        [startupType, [companyType, organizationType]],
+        [companyType, [organizationType]],
+        [companyV2Type, [organizationType]],
+        [charityType, [organizationType]],
+        [organizationType, []],
+        [otherType, []],
+        [companyGroupType, []],
+      ]),
+    };
+    const isOfType = (
+      type: VersionedUrl,
+      flags: { includeSubtypes?: boolean; anyVersion?: boolean },
+    ) =>
+      all({
+        kind: "condition",
+        subject: { kind: "entityType" },
+        operator: "isOfType",
+        value: { kind: "VersionedUrl", value: type },
+        ...flags,
+      });
+    const ofTypes = (...entityTypeIds: VersionedUrl[]): ConditionInput => ({
+      kind: "ProposedEntity",
+      value: { properties: {}, entityTypeIds },
+    });
+
+    it.each<{
+      name: string;
+      condition: FilterCondition;
+      input: ConditionInput;
+      matches: boolean;
+    }>([
+      {
+        name: "no flags, a subtype",
+        condition: isOfType(companyType, {}),
+        input: ofTypes(startupType),
+        matches: false,
+      },
+      {
+        name: "flags off, the exact type",
+        condition: isOfType(companyType, {
+          includeSubtypes: false,
+          anyVersion: false,
+        }),
+        input: ofTypes(companyType),
+        matches: true,
+      },
+      {
+        name: "includeSubtypes, the type itself",
+        condition: isOfType(companyType, { includeSubtypes: true }),
+        input: ofTypes(companyType),
+        matches: true,
+      },
+      {
+        name: "includeSubtypes, a direct subtype",
+        condition: isOfType(companyType, { includeSubtypes: true }),
+        input: ofTypes(startupType),
+        matches: true,
+      },
+      {
+        name: "includeSubtypes, an indirect subtype",
+        condition: isOfType(organizationType, { includeSubtypes: true }),
+        input: ofTypes(startupType),
+        matches: true,
+      },
+      {
+        name: "includeSubtypes, a qualifying type among several",
+        condition: isOfType(companyType, { includeSubtypes: true }),
+        input: ofTypes(otherType, startupType),
+        matches: true,
+      },
+      {
+        name: "includeSubtypes, a sibling type",
+        condition: isOfType(companyType, { includeSubtypes: true }),
+        input: ofTypes(charityType, otherType),
+        matches: false,
+      },
+      {
+        name: "includeSubtypes, a supertype",
+        condition: isOfType(companyType, { includeSubtypes: true }),
+        input: ofTypes(organizationType),
+        matches: false,
+      },
+      {
+        name: "includeSubtypes, another version",
+        condition: isOfType(companyV2Type, { includeSubtypes: true }),
+        input: ofTypes(startupType),
+        matches: false,
+      },
+      {
+        name: "anyVersion, another version",
+        condition: isOfType(companyV2Type, { anyVersion: true }),
+        input: ofTypes(companyType),
+        matches: true,
+      },
+      {
+        name: "anyVersion, a type with a URL that extends the type's",
+        condition: isOfType(companyType, { anyVersion: true }),
+        input: ofTypes(companyGroupType),
+        matches: false,
+      },
+      {
+        name: "anyVersion, a subtype",
+        condition: isOfType(companyType, { anyVersion: true }),
+        input: ofTypes(startupType),
+        matches: false,
+      },
+      {
+        name: "both, a subtype of another version",
+        condition: isOfType(companyV2Type, {
+          includeSubtypes: true,
+          anyVersion: true,
+        }),
+        input: ofTypes(startupType),
+        matches: true,
+      },
+      {
+        name: "both, an unrelated type",
+        condition: isOfType(companyV2Type, {
+          includeSubtypes: true,
+          anyVersion: true,
+        }),
+        input: ofTypes(charityType, companyGroupType),
+        matches: false,
+      },
+    ])("matches $name: $matches", ({ condition, input, matches }) => {
+      expect(evaluateCondition(condition, input, context)).toEqual({
+        status: "success",
+        matches,
+      });
+    });
+
+    it("fails with includeSubtypes when a type's ancestors weren't loaded", () => {
+      expect(
+        evaluateCondition(
+          isOfType(companyType, { includeSubtypes: true }),
+          ofTypes(companyType),
+          {},
+        ),
+      ).toEqual({
+        status: "error",
+        code: "entityRequired",
+        message: `Entity type ${companyType} wasn't found or you don't have access to it.`,
+      });
+    });
+  });
+
   it.each(["all", "any"] as const)("evaluates a flat %s group", (kind) => {
     const condition = (kind === "all" ? all : any)(
       scoreCondition,
