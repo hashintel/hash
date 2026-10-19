@@ -646,8 +646,14 @@ const countMet = (results: ExpectationResult[]) =>
   `${results.filter(({ failure }) => !failure).length} of ${results.length} met`;
 
 /** A row per step run: a step inside a `forEach` has one per item, named `<stepId>~<index>`. */
-const renderStepRows = ({ run, flowRun }: RunResult) =>
-  getAllStepDefinitionsInFlowDefinition(run.flow.flowDefinition).flatMap(
+const renderStepRows = ({ run, flowRun }: RunResult) => {
+  const nestedStepIds = new Set(
+    run.flow.flowDefinition.steps.flatMap((step) =>
+      step.kind === "for-each" ? step.steps.map(({ stepId }) => stepId) : [],
+    ),
+  );
+
+  return getAllStepDefinitionsInFlowDefinition(run.flow.flowDefinition).flatMap(
     (stepDefinition) => {
       const action =
         stepDefinition.kind === "action"
@@ -666,8 +672,13 @@ const renderStepRows = ({ run, flowRun }: RunResult) =>
 
       if (stepRuns.length === 0) {
         /* A for-each step isn't run itself: its nested steps are. */
-        return stepDefinition.kind === "for-each"
-          ? []
+        if (stepDefinition.kind === "for-each") {
+          return [];
+        }
+        return nestedStepIds.has(stepDefinition.stepId)
+          ? [
+              `| \`${stepDefinition.stepId}~<index>\` | ${action} | NOT RUN | for no item |`,
+            ]
           : [`| \`${stepDefinition.stepId}\` | ${action} | NOT RUN | – |`];
       }
 
@@ -684,6 +695,7 @@ const renderStepRows = ({ run, flowRun }: RunResult) =>
       });
     },
   );
+};
 
 const renderReport = (
   scenario: FlowScenario,
