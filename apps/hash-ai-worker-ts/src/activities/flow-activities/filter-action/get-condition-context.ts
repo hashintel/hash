@@ -4,6 +4,7 @@ import {
   conditionLeaves,
   validateCondition,
 } from "@local/hash-isomorphic-utils/flows/filter-condition";
+import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { graphApiClient } from "../../shared/graph-api-client.js";
@@ -19,9 +20,6 @@ import type {
   FilterCondition,
 } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
-
-/** The most entities one condition context loads. More fails the step, rather than leaving some out. */
-const maxConditionEntities = 100_000;
 
 /**
  * The subjects a condition reads from an item of `kind`: none for an invalid condition, whose evaluation reports the
@@ -74,9 +72,9 @@ export const getConditionContext = async (params: {
     return {};
   }
 
-  if (entityIds.length > maxConditionEntities) {
+  if (entityIds.length > maxEntitiesPerStep) {
     throw new Error(
-      `A condition can read at most ${maxConditionEntities} entities, but was given ${entityIds.length}.`,
+      `A condition can read at most ${maxEntitiesPerStep} entities, but was given ${entityIds.length}.`,
     );
   }
 

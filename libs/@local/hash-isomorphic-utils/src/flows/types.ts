@@ -20,6 +20,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type { QueryEntitiesRequest } from "@local/hash-graph-sdk/entity";
 import type { Status } from "@local/status";
 
 export const flowRunsQueryMaxLimit = 100;
@@ -103,6 +104,18 @@ export type Duration = {
   unit: "seconds" | "minutes" | "hours" | "days" | "weeks";
 };
 
+/**
+ * A query for entities in the graph's own terms. Only the filter is required: how the fields left out default is up
+ * to the action that runs the query.
+ */
+export type EntityQuery = Pick<QueryEntitiesRequest, "filter"> &
+  Partial<
+    Pick<
+      QueryEntitiesRequest,
+      "includeDrafts" | "limit" | "sortingPaths" | "temporalAxes"
+    >
+  >;
+
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Aggregation: Aggregation;
@@ -112,6 +125,7 @@ export type PayloadKindValues = {
   DateTime: string;
   Duration: Duration;
   EntityId: EntityId;
+  EntityQuery: EntityQuery;
   FailedEntityProposal: FailedEntityProposal;
   FilterCondition: FilterCondition;
   FormattedText: FormattedText;
@@ -138,6 +152,7 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
   DateTime: true,
   Duration: true,
   EntityId: true,
+  EntityQuery: true,
   FailedEntityProposal: true,
   FilterCondition: true,
   FormattedText: true,
@@ -177,7 +192,10 @@ export type StoredPayloadKind = (typeof storedPayloadKinds)[number];
  * Payload kinds whose singular values are small enough to pass inline, but whose arrays are stored in S3,
  * because they can grow without bound.
  */
-export const storedArrayPayloadKinds = ["PersistedEntityMetadata"] as const;
+export const storedArrayPayloadKinds = [
+  "EntityId",
+  "PersistedEntityMetadata",
+] as const;
 
 export type StoredArrayPayloadKind = (typeof storedArrayPayloadKinds)[number];
 

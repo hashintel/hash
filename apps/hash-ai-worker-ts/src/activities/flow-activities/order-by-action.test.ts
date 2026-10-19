@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -35,7 +37,8 @@ vi.mock("../shared/get-flow-context.js", () => ({
   getFlowContext: () =>
     Promise.resolve({
       workflowId,
-      runId: "run",
+      /* A run of its own, so that outputs stored by one test aren't read back from the download cache by another. */
+      runId: randomUUID(),
       stepId: "order",
       userAuthentication: { actorId: "user" },
     }),
