@@ -3,23 +3,21 @@
 Strict, type-aware Oxlint configuration for TypeScript packages, intended to become the repository default. Package-specific exceptions override the shared rules. Current tuning covers vanilla TypeScript, Effect and Vitest consumers. React and Next selections remain provisional. The policy will change as more packages migrate.
 
 ```ts
-import { createConfig, defineConfig } from "@local/oxlint";
+import { defineConfig } from "@local/oxlint";
 
 export default defineConfig({
-  extends: [
-    createConfig({
-      runtime: "node",
-      frameworks: ["vitest", "effect"],
-      ignorePatterns: ["generated/**"],
-    }),
-  ],
+  runtime: "node",
+  frameworks: ["vitest", "effect"],
+  ignorePatterns: ["generated/**"],
   rules: {
     "eslint/no-console": "allow", // This CLI writes results to stdout.
   },
 });
 ```
 
-Build the package before importing it. `createConfig` accepts a required `runtime` of `node` or `browser`. Its optional `frameworks` array selects `react`, `next`, `vitest` or `effect`. Use Oxlint's `defineConfig` for package-specific rules and overrides.
+Build the package before importing it. `defineConfig` accepts every native Oxlint configuration field alongside a required `runtime` of `node` or `browser`. Its optional `frameworks` array selects `react`, `next`, `vitest` or `effect`.
+
+The shared defaults precede the supplied `extends` entries, and the package's own fields take precedence. Oxlint handles rules, categories, plugins, options and ordered overrides. The helper resolves the fields Oxlint does not inherit: `env` and `globals` merge by name, `settings` merges by plugin name, and `ignorePatterns` concatenates in inheritance order. A later plugin settings value replaces that plugin's earlier value as a whole. Nested objects and arrays are not deep-merged. Cyclic `extends` references throw. Relative paths retain Oxlint's configuration-directory semantics.
 
 The React and Next selections enable their native plugins. Next also ignores its generated `.next/**` output and `next-env.d.ts`. Vitest adds test rules and file overrides for runtime and type tests under `src`. Effect extends the strict native Effect preset and allows its namespace imports and functional composition conventions.
 
@@ -70,6 +68,7 @@ yarn workspace @local/oxlint lint:tsc
 yarn workspace @local/oxlint lint:oxlint
 yarn workspace @local/oxlint lint:format
 yarn workspace @local/oxlint test:unit
+yarn workspace @local/oxlint test:integration
 ```
 
 Packages expose a `lint:oxlint` task alongside any existing `lint:eslint` task. The root Turbo task and lint workflow run it for affected packages.

@@ -23,6 +23,14 @@
       "dependsOn": [],
       "cache": false
     },
+    "test:integration": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    },
     "test:unit": {
       "dependsOn": [
         "build"

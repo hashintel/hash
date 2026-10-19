@@ -20,7 +20,8 @@
     "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
     "lint:tsc": "tsc --noEmit",
     "prepare:oxlint": "effect-tsgo patch --no-typescript --oxlint",
-    "test:unit": "vitest run"
+    "test:integration": "vitest run --project integration",
+    "test:unit": "vitest run --project unit"
   },
   "dependencies": {
     "@effect/tsgo": "0.47.1",
