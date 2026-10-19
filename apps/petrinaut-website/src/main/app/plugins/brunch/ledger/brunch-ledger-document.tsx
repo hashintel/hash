@@ -29,10 +29,12 @@ const documentStyle = css({
   "& h2": { fontSize: "lg" },
   "& ul": { listStyleType: "disc", paddingLeft: "5", marginBottom: "3" },
   "& ul ul": { marginBottom: "0" },
-  // While a selection is traced, records outside the trace recede.
-  "&[data-tracing] [data-ledger-address]:not([data-traced])": {
-    opacity: "[0.4]",
-  },
+  // While a selection is traced, records outside the trace recede, but only
+  // when a traced record is shown: the trace may reach only hidden reflections.
+  "&[data-tracing]:has([data-traced]) [data-ledger-address]:not([data-traced])":
+    {
+      opacity: "[0.4]",
+    },
 });
 
 const recordStyle = css({
