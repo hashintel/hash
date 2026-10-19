@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 
@@ -26,6 +27,15 @@ export const useKratosErrorHandler = <K extends keyof Flows>(props: {
   const handleFlowError = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async (err: AxiosError<any>) => {
+      // Axios gives no response when the request never reached Kratos, e.g.
+      // the browser is offline or an extension blocked it.
+      if (isAxiosError(err) && !err.response) {
+        setErrorMessage(
+          "We couldn't reach HASH. Check your internet connection, then reload the page.",
+        );
+        return;
+      }
+
       const kratosError = err.response?.data;
 
       // Kratos embeds `redirect_browser_to` URLs using `SERVE_PUBLIC_BASE_URL`,
