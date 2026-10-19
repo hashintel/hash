@@ -246,6 +246,16 @@ test("entity routes split creation from full update of an addressed entity", asy
       ],
     }).success,
   ).toBe(false);
+  // The payload replaces every field, so a default must not overwrite how
+  // the entity stood: an update restates origin and status.
+  const { origin: _origin, ...withoutOrigin } = update;
+  const { status: _status, ...withoutStatus } = update;
+  for (const payload of [withoutOrigin, withoutStatus])
+    expect(
+      v.safeParse(vLedgerAppend, {
+        entries: [["entity/update/e1", payload]],
+      }).success,
+    ).toBe(false);
   for (const route of ["entity/update", "entity/update/c1", "entity/update/$0"])
     expect(
       v.safeParse(vLedgerAppend, { entries: [[route, update]] }).success,
@@ -1152,7 +1162,7 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                   pattern: "^entity\\/update\\/e(?:0|[1-9]\\d*)$",
                 },
                 {
-                  required: ["name", "kind"],
+                  required: ["name", "kind", "origin", "status"],
                 },
               ],
             },
