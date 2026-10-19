@@ -8,6 +8,9 @@ use opentelemetry::{
 #[derive(Clone, Copy)]
 pub(super) enum Operation {
     Open,
+    StageTable,
+    PreparePipeline,
+    PrepareLinkPipeline,
     Query,
     CreateTable,
     Snapshot,
@@ -18,6 +21,9 @@ impl Operation {
     const fn as_str(self) -> &'static str {
         match self {
             Self::Open => "open",
+            Self::StageTable => "stage_table",
+            Self::PreparePipeline => "prepare_pipeline",
+            Self::PrepareLinkPipeline => "prepare_link_pipeline",
             Self::Query => "query",
             Self::CreateTable => "create_table",
             Self::Snapshot => "snapshot",
