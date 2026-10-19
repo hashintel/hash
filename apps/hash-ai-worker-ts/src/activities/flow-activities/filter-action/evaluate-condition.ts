@@ -7,7 +7,7 @@ import {
   scalarKinds,
   validateCondition,
 } from "@local/hash-isomorphic-utils/flows/filter-condition";
-import { payloadKindPrimitives } from "@local/hash-isomorphic-utils/flows/types";
+import { payloadKindTraits } from "@local/hash-isomorphic-utils/flows/types";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { FilterValue } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
@@ -119,7 +119,7 @@ const asScalarValue = (
   kind: PayloadKind,
   value: unknown,
 ): FilterValue | undefined => {
-  const primitive = payloadKindPrimitives[kind];
+  const { primitive } = payloadKindTraits[kind];
   return primitive !== null && hasPrimitiveType(primitive, value)
     ? ({ kind, value } as FilterValue)
     : undefined;

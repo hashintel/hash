@@ -1,6 +1,6 @@
 import { readScalar } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
 import { validateSortKey } from "@local/hash-isomorphic-utils/flows/sort-key";
-import { payloadKindPrimitives } from "@local/hash-isomorphic-utils/flows/types";
+import { payloadKindTraits } from "@local/hash-isomorphic-utils/flows/types";
 
 import { resolveSubject } from "./evaluate-condition.js";
 
@@ -65,7 +65,7 @@ export const orderBy = <Kind extends PayloadKind>(
   const { subject, direction } = sortKey;
   /* validateSortKey checked it's one of the sort key kinds. */
   const kind = subject.payloadKind as SortKeyKind;
-  const primitive = payloadKindPrimitives[kind];
+  const { primitive } = payloadKindTraits[kind];
 
   const keyed: { item: PayloadKindValues[Kind]; key?: SortValue }[] = [];
   for (const item of input.value) {

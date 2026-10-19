@@ -1,49 +1,16 @@
 import { z } from "zod";
 
+import { allPayloadKinds } from "./types.js";
+
 import type {
   FlowDefinition,
   PayloadKind,
-  payloadKindPrimitives,
   StepDefinition,
   StepInputSource,
 } from "./types.js";
 
-/**
- * How a value of each payload kind is represented in JSON, for checking constants. A kind with a primitive type must
- * have that primitive's JSON type.
- */
-export const payloadKindJsonTypes = {
-  ActorType: "string",
-  Aggregation: "object",
-  Boolean: "boolean",
-  Date: "string",
-  DateTime: "string",
-  Duration: "object",
-  EntityId: "string",
-  FailedEntityProposal: "object",
-  FilterCondition: "object",
-  FormattedText: "object",
-  GoogleAccountId: "string",
-  GoogleSheet: "object",
-  Number: "number",
-  PersistedEntityMetadata: "object",
-  ProposedEntity: "object",
-  ProposedEntityWithResolvedLinks: "object",
-  SortKey: "object",
-  Text: "string",
-  VersionedUrl: "string",
-  WebPage: "object",
-  WebSearchResult: "object",
-} as const satisfies {
-  [Kind in PayloadKind]: (typeof payloadKindPrimitives)[Kind] extends null
-    ? "string" | "number" | "boolean" | "object"
-    : (typeof payloadKindPrimitives)[Kind] extends "number" | "boolean"
-      ? (typeof payloadKindPrimitives)[Kind]
-      : "string";
-};
-
 const payloadKindSchema = z.enum(
-  Object.keys(payloadKindJsonTypes) as [PayloadKind, ...PayloadKind[]],
+  allPayloadKinds as [PayloadKind, ...PayloadKind[]],
 );
 
 const connectionOptionsShape = {

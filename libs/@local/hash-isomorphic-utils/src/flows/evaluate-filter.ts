@@ -1,8 +1,12 @@
 import { dayMs, isIsoDate, parseDateTime } from "./datetime.js";
-import { payloadKindPrimitives } from "./types.js";
+import { payloadKindTraits } from "./types.js";
 
 import type { ScalarKind } from "./filter-condition.js";
-import type { PayloadKindValues, PayloadPrimitive } from "./types.js";
+import type {
+  PayloadKindValues,
+  PayloadPrimitive,
+  PrimitiveOf,
+} from "./types.js";
 
 export type FilterValue = {
   [Kind in ScalarKind]: { kind: Kind; value: PayloadKindValues[Kind] };
@@ -19,20 +23,20 @@ const orderingOperators = [
 ] as const;
 
 /**
- * The operators that compare a value of each primitive type with an operand. `onSameDate` matches two instants on
+ * The operators that compare a value of each primitive type with an operand. `onSameUtcDate` matches two instants on
  * the same UTC calendar date, whatever their offsets.
  */
 const binaryFilterOperatorsByPrimitive = {
   text: [...equalityOperators, "contains", "startsWith", "endsWith"],
   number: orderingOperators,
   date: orderingOperators,
-  datetime: [...orderingOperators, "onSameDate"],
+  datetime: [...orderingOperators, "onSameUtcDate"],
   boolean: equalityOperators,
 } as const satisfies Record<PayloadPrimitive, readonly string[]>;
 
 export type BinaryFilterOperator<Kind extends ScalarKind = ScalarKind> =
   (typeof binaryFilterOperatorsByPrimitive)[Extract<
-    (typeof payloadKindPrimitives)[Kind],
+    PrimitiveOf<Kind>,
     PayloadPrimitive
   >][number];
 
@@ -130,7 +134,7 @@ export const evaluateFilter = ({
   condition: ScalarFilterCondition;
 }): FilterResult => {
   const { operator, operand } = condition;
-  const primitive = payloadKindPrimitives[value.kind];
+  const { primitive } = payloadKindTraits[value.kind];
 
   if (!hasPrimitiveType(primitive, value.value)) {
     return {
@@ -206,7 +210,7 @@ export const evaluateFilter = ({
     case "endsWith":
       matched = String(left).endsWith(String(right));
       break;
-    case "onSameDate":
+    case "onSameUtcDate":
       matched =
         Math.floor(Number(left) / dayMs) === Math.floor(Number(right) / dayMs);
       break;

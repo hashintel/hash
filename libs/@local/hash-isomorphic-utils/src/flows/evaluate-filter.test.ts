@@ -213,15 +213,15 @@ describe("evaluateFilter", () => {
       "greaterThanOrEqual",
       "lessThanOrEqual",
     ];
-    const notText = [...orderingOperators, "onSameDate"] as const;
+    const notText = [...orderingOperators, "onSameUtcDate"] as const;
     const unsupportedOperators: Record<
       FilterValue["kind"],
       ScalarFilterCondition["operator"][]
     > = {
       Text: [...notText],
-      Number: [...textOperators, "onSameDate"],
+      Number: [...textOperators, "onSameUtcDate"],
       Boolean: [...textOperators, ...notText],
-      Date: [...textOperators, "onSameDate"],
+      Date: [...textOperators, "onSameUtcDate"],
       DateTime: textOperators,
       EntityId: [...notText],
       ActorType: [...notText],
@@ -375,14 +375,17 @@ describe("evaluateFilter", () => {
         operand: "2026-10-16T23:59:59.999Z",
         branch: "notMatched",
       },
-    ] as const)("onSameDate uses UTC: $name", ({ value, operand, branch }) => {
-      expect(
-        evaluateFilter({
-          value: at(value),
-          condition: { operator: "onSameDate", operand },
-        }),
-      ).toEqual({ status: "success", branch });
-    });
+    ] as const)(
+      "onSameUtcDate uses UTC: $name",
+      ({ value, operand, branch }) => {
+        expect(
+          evaluateFilter({
+            value: at(value),
+            condition: { operator: "onSameUtcDate", operand },
+          }),
+        ).toEqual({ status: "success", branch });
+      },
+    );
   });
 
   it("does not compare an empty date as a valid date", () => {
