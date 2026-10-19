@@ -17,6 +17,9 @@ The workers import `@local/hash-isomorphic-utils` and `@local/hash-backend-utils
 library after changing it (`yarn workspace @local/hash-isomorphic-utils build`). The runner warns when a build is
 older than its source, and stops if the worker polling the task queue runs from another checkout.
 
+Every run asks Claude to name it, so the `ai` worker needs a real `ANTHROPIC_API_KEY` in `.env.local` at the root of
+the checkout: with the placeholder in `.env`, runs fail before their first step.
+
 ## Write a scenario
 
 Copy [`scenarios/array-actions.scenario.ts`](scenarios/array-actions.scenario.ts) and edit it. A scenario exports
@@ -34,7 +37,8 @@ Copy [`scenarios/array-actions.scenario.ts`](scenarios/array-actions.scenario.ts
     - `outputs`: the flow's output values by name, without the `{ kind, value }` wrapper.
     - `steps`: by step id, the step's `status` (`COMPLETED` by default; `FAILED`, `SKIPPED`…), its `outputs`, and
       `absentOutputs` it must not produce, such as the branch an If didn't take. A step inside a `forEach` runs once
-      per item, as `<stepId>~<index>`.
+      per item, as `<stepId>~<index>`, and the `forEach` step isn't run itself: the runner stops before starting
+      anything if a step id can't match a step run.
 - `user`: the shortname to run as, in their own web. `alice` by default.
 
 Work out the expected values by hand before running, rather than copying them from a run. Values are compared
@@ -58,7 +62,8 @@ yarn workspace @apps/hash-ai-worker-ts run-flow-scenario scripts/flow-scenarios/
 ```
 
 The scenario path is relative to `apps/hash-ai-worker-ts`. `--dry-run` only validates the definitions, without the
-stack. `--timeout <seconds>` (300 by default) reports a run's steps so far if it hasn't finished by then.
+stack. `--timeout <seconds>` (300 by default) terminates a run that hasn't finished by then, and reports its steps so
+far.
 
 The report is printed and saved to `runs/<time>-<name>/report.md`, with the raw flow run in
 `flow-run-<flowRunId>.json` when a run misses an expectation. The exit code is 0 when every expectation is met, 1 when one isn't, and 2 when the scenario

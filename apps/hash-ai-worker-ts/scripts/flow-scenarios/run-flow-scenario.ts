@@ -48,6 +48,10 @@ import { assertValidFlowDefinition } from "@local/hash-isomorphic-utils/flows/va
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  FlowRunStatus,
+  FlowStepStatus,
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -65,9 +69,11 @@ import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
+  FlowDefinition,
   FlowDefinitionWithId,
   FlowInputValues,
   ResolvedPayload,
+  StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
 
@@ -214,7 +220,11 @@ const assertWorkerRunsThisCheckout = async (
   }
 
   for (const { identity, directory } of workers) {
-    if (directory && !directory.startsWith(repoRoot)) {
+    if (
+      directory &&
+      directory !== repoRoot &&
+      !directory.startsWith(`${repoRoot}${path.sep}`)
+    ) {
       throw new SetupError(
         `The "${taskQueue}" worker ${identity} runs from ${directory}, not this checkout (${repoRoot}). Stop it and start the worker here.`,
       );
@@ -458,6 +468,52 @@ const checkOutputs = (
     return { label };
   });
 
+/**
+ * Why a step id in a run's expectations can never match a step run, if it can't: a for-each step isn't run itself, and
+ * a step inside one runs once per item, as `<stepId>~<index>`.
+ */
+const getStepExpectationError = (
+  flowDefinition: FlowDefinition,
+  expectedStepId: string,
+) => {
+  const [stepId = "", index, ...rest] = expectedStepId.split("~");
+
+  const findStep = (
+    steps: StepDefinition[],
+    inForEach: boolean,
+  ): { step: StepDefinition; inForEach: boolean } | undefined => {
+    for (const step of steps) {
+      if (step.stepId === stepId) {
+        return { step, inForEach };
+      }
+      if (step.kind === "for-each") {
+        const found = findStep(step.steps, true);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return undefined;
+  };
+
+  const found = findStep(flowDefinition.steps, false);
+
+  if (!found) {
+    return "no such step";
+  }
+  if (found.step.kind === "for-each") {
+    return `a forEach step isn't run itself: expect its nested steps, as "<stepId>~<index>"`;
+  }
+  if (found.inForEach) {
+    return index !== undefined && /^\d+$/.test(index) && rest.length === 0
+      ? undefined
+      : `inside a forEach, so it runs once per item, as "${stepId}~<index>"`;
+  }
+  return index === undefined
+    ? undefined
+    : `not inside a forEach, so it runs once, as "${stepId}"`;
+};
+
 const checkExpectations = (
   { expect }: ScenarioRun,
   flowRun: FlowRun,
@@ -503,6 +559,23 @@ type RunResult = {
   run: ScenarioRun;
   flowRun: FlowRun;
   results: ExpectationResult[];
+  /** Why the run failed when none of its steps did, e.g. an activity it runs itself, like naming the run. */
+  runError?: string;
+};
+
+/** The innermost cause of a workflow's failure, and the activity it came from, if any. */
+const describeWorkflowError = (error: unknown) => {
+  let activityType: string | undefined;
+  let current = error as
+    | { cause?: unknown; message?: string; activityType?: string }
+    | undefined;
+
+  while (current?.cause) {
+    activityType = current.activityType ?? activityType;
+    current = current.cause as typeof current;
+  }
+
+  return `${activityType ? `\`${activityType}\` failed: ` : ""}${current?.message ?? "unknown error"}`;
 };
 
 const countMet = (results: ExpectationResult[]) =>
@@ -563,7 +636,7 @@ const renderReport = (
     `Local stack at \`${git("rev-parse", "--short", "HEAD")}\`, started through Temporal. Run tag \`${runTag}\`.`,
     "",
     ...runResults.flatMap((runResult, index) => {
-      const { run, flowRun, results } = runResult;
+      const { run, flowRun, results, runError } = runResult;
 
       return [
         `#### Run ${index + 1} of ${scenario.runs.length}: ${run.flow.flowDefinition.name}`,
@@ -572,6 +645,7 @@ const renderReport = (
           flowRun.failureMessage ? ` (${flowRun.failureMessage})` : ""
         }`,
         "",
+        ...(runError ? [`No step failed: ${runError}`, ""] : []),
         "| Step | Action | Status | Outputs |",
         "| --- | --- | --- | --- |",
         ...renderStepRows(runResult),
@@ -617,10 +691,22 @@ const main = async () => {
   const { scenario, scenarioPath } = await loadScenario(scenarioArgument);
   const taskQueues = new Set<string>();
 
-  for (const [index, { flow }] of scenario.runs.entries()) {
+  for (const [index, { flow, expect }] of scenario.runs.entries()) {
     assertValidFlowDefinition(flow.flowDefinition);
     const taskQueue = getFlowType(flow.flowDefinition);
     taskQueues.add(taskQueue);
+
+    const stepExpectationErrors = Object.keys(expect.steps ?? {}).flatMap(
+      (stepId) => {
+        const error = getStepExpectationError(flow.flowDefinition, stepId);
+        return error ? [`  - "${stepId}": ${error}`] : [];
+      },
+    );
+    if (stepExpectationErrors.length > 0) {
+      throw new SetupError(
+        `Run ${index + 1} ("${flow.flowDefinition.name}") expects steps that can't run:\n${stepExpectationErrors.join("\n")}`,
+      );
+    }
 
     console.log(
       `Scenario "${scenario.name}", run ${index + 1} of ${scenario.runs.length}: "${flow.flowDefinition.name}", ${
@@ -695,19 +781,26 @@ const main = async () => {
     });
     console.log(`Started ${workflowId}: ${temporalUiUrl(workflowId)}`);
 
+    const handle = client.workflow.getHandle(workflowId);
+    let workflowError: unknown;
+
     const closed = await Promise.race([
-      client.workflow
-        .getHandle(workflowId)
-        .result()
-        .then(
-          () => true,
-          () => true,
-        ),
+      handle.result().then(
+        () => true,
+        (error: unknown) => {
+          workflowError = error;
+          return true;
+        },
+      ),
       sleep(timeoutSeconds * 1_000, false, { ref: false }),
     ]);
     if (!closed) {
+      /* Stopped, so that it can't go on changing the graph after the scenario has moved on. */
+      await handle.terminate(
+        `run-flow-scenario: still running after ${timeoutSeconds}s`,
+      );
       console.warn(
-        `⚠ Still running after ${timeoutSeconds}s: reporting the steps so far. Is a step waiting on something?`,
+        `⚠ Still running after ${timeoutSeconds}s: terminated it, reporting the steps so far. Is a step waiting on something?`,
       );
     }
 
@@ -722,7 +815,15 @@ const main = async () => {
     });
 
     const results = checkExpectations(run, flowRun);
-    runResults.push({ run, flowRun, results });
+    runResults.push({
+      run,
+      flowRun,
+      results,
+      ...(flowRun.status === FlowRunStatus.Failed &&
+      !flowRun.steps.some(({ status }) => status === FlowStepStatus.Failed)
+        ? { runError: describeWorkflowError(workflowError) }
+        : {}),
+    });
 
     /* A later run builds on what this one did, so its results would only follow from this run's failure. */
     if (results.some(({ failure }) => failure)) {
