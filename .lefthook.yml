@@ -33,7 +33,7 @@ pre-commit:
       glob: "{package.json,**/package.json}"
       run: yarn fix:constraints && yarn fix:yarn-deduplicate
       stage_fixed: true
-    python:
+    python: &python
       tags: [backend, style]
       glob: "*.py"
       run: uv run --frozen ruff check --fix {staged_files} && uv run --frozen ruff format {staged_files}
@@ -77,6 +77,9 @@ format:
     oxfmt:
       <<: *oxfmt
       run: oxfmt --write {files} || true
+    python:
+      <<: *python
+      run: uv run --frozen ruff check --fix {files} && uv run --frozen ruff format {files}
     rust:
       <<: *rust
       run: rustfmt {files} || true
