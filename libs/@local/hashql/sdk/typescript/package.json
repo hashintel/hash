@@ -1,0 +1,34 @@
+{
+  "name": "@local/hashql",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "TypeScript SDK for HashQL",
+  "license": "AGPL-3",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "default": "./dist/main.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "fix:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts --fix",
+    "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
+    "lint:tsc": "tsc --noEmit",
+    "test:unit": "vitest run --typecheck --passWithNoTests"
+  },
+  "devDependencies": {
+    "@local/oxlint": "workspace:*",
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
+    "oxlint": "catalog:",
+    "tsdown": "0.23.0",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}
