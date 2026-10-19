@@ -8,9 +8,10 @@ mod select;
 
 use alloc::sync::Arc;
 use core::error::Error;
-use std::{path::PathBuf, sync::mpsc, thread};
+use std::{path::PathBuf, thread};
 
 use error_stack::{Report, ResultExt as _};
+use tokio::sync::mpsc;
 
 pub use self::{
     error::{CloseError, DataErrorType, OpenError, QueryErrorType, Setting, StatementError},
@@ -44,6 +45,7 @@ enum Command {
 /// are sent. A query is a single `SELECT` statement, and the only table functions it can call are
 /// `range`, `generate_series` and `unnest`. Queries cannot open files, load extensions or change
 /// settings.
+/// At most one request waits in the queue; further callers wait for space before sending theirs.
 ///
 /// Only one workspace at a time can open a database. It holds a lock on `<database>.lock` until
 /// the database is closed.
@@ -81,7 +83,7 @@ impl Workspace {
     /// [`Spawn`]: OpenError::Spawn
     /// [`Stopped`]: OpenError::Stopped
     pub async fn open(path: PathBuf) -> Result<Self, Report<OpenError>> {
-        let (commands, receiver) = mpsc::channel();
+        let (commands, mut receiver) = mpsc::channel(1);
         let (ready, opened) = Reply::channel();
         let span = tracing::info_span!("workspace", path = %path.display());
 
@@ -89,7 +91,7 @@ impl Workspace {
             .name("integrations-workspace".to_owned())
             .spawn(move || {
                 let _entered = span.entered();
-                Connection::serve(path, ready, &receiver);
+                Connection::serve(path, ready, &mut receiver);
             })
             .change_context(OpenError::Spawn)?;
 
@@ -113,7 +115,7 @@ impl Workspace {
     {
         let request = self.interrupt.next_request();
         let (reply, result) = Reply::channel();
-        if self.commands.send((request, command(reply))).is_err() {
+        if self.commands.send((request, command(reply))).await.is_err() {
             return Err(Report::new(stopped));
         }
         Pending::new(&self.interrupt, request, result)

@@ -27,8 +27,7 @@ async fn first_value(workspace: &Workspace, sql: &str) -> Result<Value, Report<S
     Ok(row.first().expect("the row should have a value").clone())
 }
 
-/// Polls `request` once, which sends it to the workspace thread, and checks that it still waits
-/// for its reply.
+/// Polls `request` once and checks that it is still pending.
 async fn send(mut request: Pin<&mut impl Future>) {
     assert!(
         poll_fn(|context| Poll::Ready(request.as_mut().poll(context).is_pending())).await,
@@ -385,8 +384,12 @@ async fn dropping_queued_request_skips_it() {
 
     let mut running = Box::pin(workspace.query("SELECT count(*) FROM range(1000000000000)".into()));
     let mut queued = Box::pin(workspace.create_table("skipped".into(), "SELECT 1 AS id".into()));
+    let mut waiting =
+        Box::pin(workspace.create_table("skipped_too".into(), "SELECT 2 AS id".into()));
     send(running.as_mut()).await;
     send(queued.as_mut()).await;
+    send(waiting.as_mut()).await;
+    drop(waiting);
     drop(queued);
     drop(running);
 
@@ -395,14 +398,15 @@ async fn dropping_queued_request_skips_it() {
             Duration::from_secs(10),
             first_value(
                 &workspace,
-                "SELECT count(*) FROM information_schema.tables WHERE table_name = 'skipped'"
+                "SELECT count(*) FROM information_schema.tables WHERE table_name IN ('skipped', \
+                 'skipped_too')"
             )
         )
         .await
         .expect("the next query should run once the dropped one is interrupted")
         .expect("the next query should succeed"),
         Value::BigInt(0),
-        "the dropped request should not create its table"
+        "the dropped requests should not create their tables"
     );
 }
 

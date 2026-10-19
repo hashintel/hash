@@ -4,11 +4,11 @@ use std::{
     fs::{File, OpenOptions, TryLockError},
     panic,
     path::PathBuf,
-    sync::mpsc,
 };
 
 use duckdb::{Config, types::Value};
 use error_stack::{Report, ResultExt as _};
+use tokio::sync::mpsc;
 
 use crate::{
     sql::Identifier,
@@ -114,7 +114,7 @@ impl Connection {
             .duckdb
             .prepare(select.as_str())
             .map_err(StatementError::from_duckdb)?;
-        let mut results = statement.query([]).map_err(StatementError::from_duckdb)?;
+        let results = statement.query([]).map_err(StatementError::from_duckdb)?;
 
         if let Some(executed) = results.as_ref() {
             for index in 0..executed.column_count() {
@@ -131,15 +131,14 @@ impl Connection {
             }
         }
 
-        let mut rows = Vec::new();
-        while let Some(row) = results.next().map_err(StatementError::from_duckdb)? {
-            let values = (0..row.as_ref().column_count())
-                .map(|index| row.get::<_, Value>(index))
-                .collect::<Result<Box<[_]>, _>>()
-                .map_err(StatementError::from_duckdb)?;
-            rows.push(values);
-        }
-        drop(results);
+        let rows = results
+            .mapped(|row| {
+                (0..row.as_ref().column_count())
+                    .map(|index| row.get::<_, Value>(index))
+                    .collect::<Result<Box<[_]>, _>>()
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(StatementError::from_duckdb)?;
 
         let columns = statement
             .column_names()
@@ -209,8 +208,8 @@ impl Connection {
     /// Runs `commands` in order until [`Command::Close`] or until the [`Workspace`] is dropped.
     ///
     /// [`Workspace`]: crate::Workspace
-    pub(super) fn run(self, commands: &mpsc::Receiver<(RequestId, Command)>) {
-        while let Ok((id, command)) = commands.recv() {
+    pub(super) fn run(self, commands: &mut mpsc::Receiver<(RequestId, Command)>) {
+        while let Some((id, command)) = commands.blocking_recv() {
             match command {
                 Command::Query { sql, reply } => {
                     self.answer(id, reply, |connection| connection.query(&sql));
@@ -239,7 +238,7 @@ impl Connection {
     pub(super) fn serve(
         path: PathBuf,
         ready: Reply<Arc<Interrupt>, OpenError>,
-        commands: &mpsc::Receiver<(RequestId, Command)>,
+        commands: &mut mpsc::Receiver<(RequestId, Command)>,
     ) {
         let connection = match Self::open(path) {
             Ok(connection) => connection,
