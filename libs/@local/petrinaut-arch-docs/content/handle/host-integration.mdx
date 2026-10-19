@@ -395,7 +395,6 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `readonly`                                                               | Disables editing. ORed with `capabilities.readonly` from the handle.                                                                     |
 | `hideNetManagementControls`                                              | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                    |
 | `existingNets`, `createNewNet`, `loadPetriNet`                           | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                             |
-| `aiAssistant`                                                            | Deprecated: use a plugin that declares `assistant`. Transport, messages and tools for the built-in chat.                                 |
 | `navigation`                                                             | Host-controlled, router-neutral app location. Omitted: Petrinaut keeps its location internally. See Router integration.                  |
 | `presentationProfile`                                                    | `"editor"` (default) or `"review"`, which keeps the full editor but suppresses authoring actions, for read-only example routes.          |
 | `slots`                                                                  | `settingsLabs`: host content rendered after the built-in groups in the Labs settings section.                                            |
