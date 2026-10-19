@@ -47,13 +47,13 @@ export const useHashInstance = (): {
   }, [hashInstanceSettings]);
 
   const enabledIntegrations: EnabledIntegrations = useMemo(() => {
-    const { __typename, ...rest } =
+    const { googleSheets, linear } =
       hashInstanceSettings?.enabledIntegrations ?? {
         googleSheets: false,
         linear: false,
       };
 
-    return rest;
+    return { googleSheets, linear };
   }, [hashInstanceSettings?.enabledIntegrations]);
 
   return {
