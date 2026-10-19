@@ -10,29 +10,42 @@ use hash_graph_store::{entity::EntityStore as _, pool::StorePool};
 use hash_middleware::problem::{InternalServerError, ServiceUnavailable};
 use http::StatusCode;
 use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
-use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use type_system::{
-    knowledge::entity::{EntityId, id::EntityUuid},
+    knowledge::{
+        self,
+        entity::{EntityId, id::EntityUuid},
+        property::PropertyObject,
+    },
     ontology::VersionedUrl,
     principal::actor_group::WebId,
 };
 use uuid::Uuid;
 
+use super::property_metadata::PropertyObjectMetadata;
 use crate::rest::{
     ApiState,
     credentials::Actor,
     extract::{Json, Path},
     public::Credentials,
-    routing::{self, Routes},
+    routing::{self, Route},
 };
 
 /// An entity's web ID and UUID, joined by `~`.
 ///
 /// Unlike [`EntityId`], it never names a draft.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, derive_more::Display)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema, derive_more::Display,
+)]
 #[serde(try_from = "EntityId", into = "EntityId")]
-struct LiveEntityId(EntityId);
+#[schemars(
+    with = "String",
+    rename = "EntityId",
+    description = "An entity's web ID and UUID, joined by `~`.",
+    example = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d"
+)]
+pub(super) struct LiveEntityId(EntityId);
 
 impl LiveEntityId {
     const fn new(web_id: WebId, entity_uuid: EntityUuid) -> Self {
@@ -47,7 +60,9 @@ impl LiveEntityId {
 /// The entity ID names a draft.
 #[derive(Debug, derive_more::Display)]
 #[display("the entity ID names a draft")]
-struct DraftEntityIdError;
+pub(super) struct DraftEntityIdError;
+
+impl Error for DraftEntityIdError {}
 
 impl TryFrom<EntityId> for LiveEntityId {
     type Error = DraftEntityIdError;
@@ -66,22 +81,6 @@ impl From<LiveEntityId> for EntityId {
     }
 }
 
-impl JsonSchema for LiveEntityId {
-    fn schema_name() -> Cow<'static, str> {
-        Cow::Borrowed("EntityId")
-    }
-
-    fn json_schema(_: &mut SchemaGenerator) -> Schema {
-        json_schema!({
-            "type": "string",
-            "description": "An entity's web ID and UUID, joined by `~`.",
-            "examples": [
-                "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d",
-            ],
-        })
-    }
-}
-
 /// The path of one entity.
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -92,9 +91,28 @@ struct EntityPath {
 
 /// An entity the caller may view.
 #[derive(Serialize, JsonSchema)]
-struct Entity {
+#[serde(rename_all = "camelCase")]
+pub(super) struct Entity {
     /// What identifies and classifies the entity.
     metadata: EntityMetadata,
+    /// The entity's properties, keyed by the base URL of their property type.
+    properties: PropertyObject,
+    /// The data types of the values in `properties`.
+    property_metadata: PropertyObjectMetadata,
+}
+
+impl Entity {
+    /// The public form of `entity`, which `entity_id` identifies.
+    pub(super) fn new(entity_id: LiveEntityId, entity: knowledge::Entity) -> Self {
+        Self {
+            metadata: EntityMetadata {
+                entity_id,
+                entity_type_ids: entity.metadata.entity_type_ids.into_iter().collect(),
+            },
+            properties: entity.properties,
+            property_metadata: PropertyObjectMetadata::from_stored(entity.metadata.properties),
+        }
+    }
 }
 
 /// What identifies and classifies an entity.
@@ -192,29 +210,23 @@ where
         return Err(Report::new(GetEntityError::Archived(entity_id)).into());
     }
 
-    Ok(Json(Entity {
-        metadata: EntityMetadata {
-            entity_id,
-            entity_type_ids: entity.metadata.entity_type_ids.into_iter().collect(),
-        },
-    }))
+    Ok(Json(Entity::new(entity_id, entity)))
 }
 
 fn document_get_entity(operation: TransformOperation<'_>) -> TransformOperation<'_> {
     operation
         .id("getEntity")
         .summary("Get an entity")
-        .description("Returns the entity's ID and the entity types of its current edition.")
+        .description(
+            "Returns the entity's ID, the entity types, and the properties with the data types of \
+             their values, of its current edition. `propertyMetadata` leaves out a value without \
+             a stored data type, and a list that contains one.",
+        )
 }
 
-pub(super) fn routes<S>() -> Routes<ApiState<S>>
+pub(super) fn route<S>() -> Route<ApiState<S>>
 where
     S: StorePool + Send + Sync + 'static,
 {
-    Routes::new()
-        .route(
-            "/{entityId}",
-            routing::get(get_entity::<S>, document_get_entity),
-        )
-        .tag("Entity")
+    routing::get(get_entity::<S>, document_get_entity)
 }

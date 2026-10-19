@@ -591,7 +591,7 @@ describe("Entity CRU", () => {
         },
         entityTypeIds: [systemEntityTypes.actor.entityTypeId],
       }),
-    ).rejects.toThrowError(`Could not insert into store`);
+    ).rejects.toMatchObject({ status: { code: "PERMISSION_DENIED" } });
   });
 
   it("Cannot instantiate user entity type", async () => {
@@ -632,7 +632,7 @@ describe("Entity CRU", () => {
         },
         entityTypeIds: [systemEntityTypes.user.entityTypeId],
       }),
-    ).rejects.toThrowError(`Could not insert into store`);
+    ).rejects.toMatchObject({ status: { code: "PERMISSION_DENIED" } });
   });
 
   it("Cannot instantiate machine entity type", async () => {
@@ -670,7 +670,7 @@ describe("Entity CRU", () => {
         },
         entityTypeIds: [systemEntityTypes.machine.entityTypeId],
       }),
-    ).rejects.toThrowError(`Could not insert into store`);
+    ).rejects.toMatchObject({ status: { code: "PERMISSION_DENIED" } });
   });
 
   it("Cannot instantiate organization entity type", async () => {
@@ -707,7 +707,7 @@ describe("Entity CRU", () => {
         },
         entityTypeIds: [systemEntityTypes.organization.entityTypeId],
       }),
-    ).rejects.toThrowError(`Could not insert into store`);
+    ).rejects.toMatchObject({ status: { code: "PERMISSION_DENIED" } });
   });
 
   it("Cannot instantiate hash-instance entity type", async () => {
@@ -759,6 +759,6 @@ describe("Entity CRU", () => {
         },
         entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],
       }),
-    ).rejects.toThrowError(`Could not insert into store`);
+    ).rejects.toMatchObject({ status: { code: "PERMISSION_DENIED" } });
   });
 });
