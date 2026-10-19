@@ -1,5 +1,6 @@
-import { typedActionDefinitions as actions } from "./action-definitions.js";
-import { defineFlow, flowInput } from "./define-flow.js";
+import { typedActionDefinitions as actions } from "../action-definitions.js";
+import { defineFlow, flowInput } from "../define-flow.js";
+import { flowDefinitionIds } from "../flow-definition-ids.js";
 
 const persistedEntitiesOutputDescription =
   "The entities created or updated by the flow run";
@@ -12,8 +13,7 @@ const failedEntityProposalsOutputDescription =
  */
 export const manualBrowserInferenceFlow = defineFlow(
   {
-    /* manual-browser-inference */
-    flowDefinitionId: "a7bc5e44-f1ce-5126-b5db-8eb4cf054116",
+    flowDefinitionId: flowDefinitionIds.manualBrowserInference,
     name: "Analyze webpage",
     description: "Find entities of the requested types in a web page",
     inputs: {
@@ -70,8 +70,7 @@ export const manualBrowserInferenceFlow = defineFlow(
  */
 export const automaticBrowserInferenceFlow = defineFlow(
   {
-    /* automatic-browser-inference */
-    flowDefinitionId: "a4385fa8-a457-584e-b81e-f7e49f3d0b3c",
+    flowDefinitionId: flowDefinitionIds.automaticBrowserInference,
     name: "Auto-analyze webpage",
     description:
       "Find entities in a web page according to the user's passive analysis settings",

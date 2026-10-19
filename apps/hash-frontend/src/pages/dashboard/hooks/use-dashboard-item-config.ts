@@ -5,10 +5,7 @@ import {
   getPrimaryChartType,
   normalizeStructuralQuery,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import {
-  configureDashboardItemFlow,
-  refineDashboardItemFlow,
-} from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
+import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -603,7 +600,7 @@ export const useDashboardItemConfig = ({
       // Start the flow
       const { data } = await startFlow({
         variables: {
-          flowDefinitionId: configureDashboardItemFlow.flowDefinitionId,
+          flowDefinitionId: flowDefinitionIds.configureDashboardItem,
           flowInputs: {
             userGoal: {
               kind: "Text",
@@ -721,7 +718,7 @@ export const useDashboardItemConfig = ({
 
         const { data } = await startFlow({
           variables: {
-            flowDefinitionId: refineDashboardItemFlow.flowDefinitionId,
+            flowDefinitionId: flowDefinitionIds.refineDashboardItem,
             flowInputs: {
               userGoal: { kind: "Text", value: initialGoal },
               refinementInstruction: {

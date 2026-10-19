@@ -1,4 +1,4 @@
-import { inferMetadataFromDocumentFlow } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
+import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import type { Entity, UserId, WebId } from "@blockprotocol/type-system";
@@ -42,7 +42,7 @@ export const triggerPdfAnalysisWorkflow = async ({
         },
       },
     },
-    flowDefinitionId: inferMetadataFromDocumentFlow.flowDefinitionId,
+    flowDefinitionId: flowDefinitionIds.inferMetadataFromDocument,
     flowInputs: {
       fileEntityId: { kind: "EntityId", value: entityId },
     },
@@ -58,7 +58,7 @@ export const triggerPdfAnalysisWorkflow = async ({
     taskQueue: "ai",
     args: [params],
     memo: {
-      flowDefinitionId: inferMetadataFromDocumentFlow.flowDefinitionId,
+      flowDefinitionId: flowDefinitionIds.inferMetadataFromDocument,
       userAccountId,
       webId,
     },

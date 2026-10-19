@@ -10,12 +10,10 @@ import { IconButton, Skeleton } from "@hashintel/design-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
-  automaticBrowserInferenceFlow,
-  manualBrowserInferenceFlow,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
-import { inferMetadataFromDocumentFlow } from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
+  flowDefinitionIds,
+  isGoalFlowDefinitionId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
@@ -36,6 +34,7 @@ import { defaultBrowserPluginDomains } from "../../../goals/new.page/default-bro
 import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { NotFound } from "../../../shared/not-found";
+import { useFlowDefinitionAtTime } from "../../../shared/use-flow-definitions";
 import { useFlowSchedules } from "../../../shared/use-flow-schedules";
 import { ActivityLog } from "./flow-visualizer/activity-log";
 import { DAG } from "./flow-visualizer/dag";
@@ -64,7 +63,12 @@ import type {
   ProposedEntityOutput,
 } from "./flow-visualizer/shared/types";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  EntityUuid,
+  Timestamp,
+  WebId,
+} from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -167,9 +171,9 @@ const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
 /** Flows that only the browser plugin or a file upload starts, because their inputs come from there. */
 const unrunnableDefinitionIds = [
-  manualBrowserInferenceFlow.flowDefinitionId,
-  automaticBrowserInferenceFlow.flowDefinitionId,
-  inferMetadataFromDocumentFlow.flowDefinitionId,
+  flowDefinitionIds.manualBrowserInference,
+  flowDefinitionIds.automaticBrowserInference,
+  flowDefinitionIds.inferMetadataFromDocument,
 ];
 
 export const FlowRunVisualizerSkeleton = () => (
@@ -207,6 +211,21 @@ export const FlowVisualizer = () => {
 
   const { selectedFlowRun } = useFlowRunsContext();
 
+  /**
+   * A run is drawn with the edition of its definition it executed: the one current when it started.
+   */
+  const {
+    flowDefinition: flowOfSelectedRun,
+    loading: flowOfSelectedRunLoading,
+  } = useFlowDefinitionAtTime({
+    flowDefinitionId: selectedFlowRun
+      ? (selectedFlowRun.flowDefinitionId as EntityUuid)
+      : null,
+    timestamp: selectedFlowRun
+      ? (selectedFlowRun.startedAt as Timestamp)
+      : null,
+  });
+
   const { schedulesByEntityUuid } = useFlowSchedules();
 
   /**
@@ -224,12 +243,18 @@ export const FlowVisualizer = () => {
 
   const selectedFlow = useMemo(
     () =>
-      flowDefinitions.find(
-        ({ flowDefinitionId }) =>
-          flowDefinitionId ===
-          (selectedFlowRun?.flowDefinitionId ?? selectedFlowDefinitionId),
-      ),
-    [flowDefinitions, selectedFlowDefinitionId, selectedFlowRun],
+      selectedFlowRun
+        ? flowOfSelectedRun
+        : flowDefinitions.find(
+            ({ flowDefinitionId }) =>
+              flowDefinitionId === selectedFlowDefinitionId,
+          ),
+    [
+      flowDefinitions,
+      flowOfSelectedRun,
+      selectedFlowDefinitionId,
+      selectedFlowRun,
+    ],
   );
 
   const selectedFlowDefinition = selectedFlow?.flowDefinition;
@@ -633,7 +658,7 @@ export const FlowVisualizer = () => {
   }, [runFlow, selectedFlowRun]);
 
   if (!selectedFlow || !selectedFlowDefinition) {
-    if (flowDefinitionsLoading) {
+    if (flowDefinitionsLoading || flowOfSelectedRunLoading) {
       return <FlowRunVisualizerSkeleton />;
     }
 

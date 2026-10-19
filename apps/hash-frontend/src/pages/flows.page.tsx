@@ -3,8 +3,8 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { memo, useMemo, useState } from "react";
 
 import { InfinityLightIcon } from "@hashintel/design-system";
+import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 import { getLayoutWithSidebar } from "../shared/layout";
 import { Link } from "../shared/ui/link";

@@ -1,5 +1,6 @@
-import { typedActionDefinitions as actions } from "./action-definitions.js";
-import { constant, defineFlow, flowInput } from "./define-flow.js";
+import { typedActionDefinitions as actions } from "../action-definitions.js";
+import { constant, defineFlow, flowInput } from "../define-flow.js";
+import { flowDefinitionIds } from "../flow-definition-ids.js";
 
 const goalFlowInputs = {
   researchGuidance: flowInput("Text", { label: "Research guidance" }),
@@ -35,8 +36,7 @@ export type GoalFlowInputName = keyof typeof goalFlowInputs;
  */
 export const goalFlow = defineFlow(
   {
-    /* research-goal */
-    flowDefinitionId: "ea4ac27d-7fe2-5400-ac72-ab4b41de9f67",
+    flowDefinitionId: flowDefinitionIds.goal,
     name: "Research goal",
     description:
       "Discover entities according to a research brief and save them to HASH, optionally writing a report and saving the entities to a Google Sheet",
@@ -87,9 +87,3 @@ export const goalFlow = defineFlow(
     };
   },
 );
-
-/**
- * Whether a run or definition is of the goal flow.
- */
-export const isGoalFlowDefinitionId = (flowDefinitionId: string) =>
-  flowDefinitionId === goalFlow.flowDefinitionId;

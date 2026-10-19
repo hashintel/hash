@@ -18,11 +18,8 @@ import {
   BullseyeLightIcon,
   TextField,
 } from "@hashintel/design-system";
+import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import {
-  goalFlow,
-  type GoalFlowInputName,
-} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
@@ -48,6 +45,7 @@ import type { NextPageWithLayout } from "../../shared/layout";
 import type { DeliverableSettingsState } from "./new.page/deliverable-settings";
 import type { FileSettingsState } from "./new.page/file-settings";
 import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
 import type {
   FlowDataSources,
   Payload,
@@ -286,7 +284,7 @@ const NewGoalPageContent = () => {
           },
           internetAccess: internetSettings,
         },
-        flowDefinitionId: goalFlow.flowDefinitionId,
+        flowDefinitionId: flowDefinitionIds.goal,
         flowInputs,
         webId,
       },
