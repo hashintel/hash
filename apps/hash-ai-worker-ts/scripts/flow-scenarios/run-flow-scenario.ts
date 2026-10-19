@@ -54,7 +54,7 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { StatusCode } from "@local/status";
 
-import type { FlowScenario } from "./scenario.js";
+import type { FlowScenario, ScenarioRun } from "./scenario.js";
 import type {
   EntityUuid,
   ProvidedEntityEditionProvenance,
@@ -66,6 +66,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
   FlowDefinitionWithId,
+  FlowInputValues,
   ResolvedPayload,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
@@ -362,7 +363,7 @@ const startRun = async ({
 }: {
   client: TemporalClient;
   flow: FlowDefinitionWithId;
-  inputs: FlowScenario["inputs"];
+  inputs: FlowInputValues;
   taskQueue: string;
   userId: UserId;
 }) => {
@@ -458,7 +459,7 @@ const checkOutputs = (
   });
 
 const checkExpectations = (
-  { expect }: FlowScenario,
+  { expect }: ScenarioRun,
   flowRun: FlowRun,
 ): ExpectationResult[] => [
   checkStatus(
@@ -498,53 +499,100 @@ const checkExpectations = (
   ),
 ];
 
+type RunResult = {
+  run: ScenarioRun;
+  flowRun: FlowRun;
+  results: ExpectationResult[];
+};
+
+const countMet = (results: ExpectationResult[]) =>
+  `${results.filter(({ failure }) => !failure).length} of ${results.length} met`;
+
+/** A row per step run: a step inside a `forEach` has one per item, named `<stepId>~<index>`. */
+const renderStepRows = ({ run, flowRun }: RunResult) =>
+  getAllStepDefinitionsInFlowDefinition(run.flow.flowDefinition).flatMap(
+    (stepDefinition) => {
+      const action =
+        stepDefinition.kind === "action"
+          ? stepDefinition.actionDefinitionId
+          : stepDefinition.kind;
+
+      const stepRuns = flowRun.steps
+        .filter(
+          ({ stepId }) =>
+            stepId === stepDefinition.stepId ||
+            stepId.startsWith(`${stepDefinition.stepId}~`),
+        )
+        .sort((a, b) =>
+          a.stepId.localeCompare(b.stepId, "en", { numeric: true }),
+        );
+
+      if (stepRuns.length === 0) {
+        /* A for-each step isn't run itself: its nested steps are. */
+        return stepDefinition.kind === "for-each"
+          ? []
+          : [`| \`${stepDefinition.stepId}\` | ${action} | NOT RUN | – |`];
+      }
+
+      return stepRuns.map((step) => {
+        const outputs = [...getOutputs(step.outputs)].map(
+          ([name, payload]) => `\`${name}\`: ${formatPayload(payload)}`,
+        );
+        const error = getStepError(step);
+        const result = [...outputs, ...(error ? [`error: ${error}`] : [])]
+          .join("<br>")
+          .replaceAll("|", "\\|");
+
+        return `| \`${step.stepId}\` | ${action} | ${step.status} | ${result || "–"} |`;
+      });
+    },
+  );
+
 const renderReport = (
   scenario: FlowScenario,
-  flowRun: FlowRun,
-  results: ExpectationResult[],
+  runTag: string,
+  runResults: RunResult[],
 ) => {
-  const failures = results.filter(({ failure }) => failure);
-
-  const rows = getAllStepDefinitionsInFlowDefinition(
-    scenario.flow.flowDefinition,
-  ).map((stepDefinition) => {
-    const step = flowRun.steps.find(
-      (run) => run.stepId === stepDefinition.stepId,
-    );
-    const outputs = [...getOutputs(step?.outputs)].map(
-      ([name, payload]) => `\`${name}\`: ${formatPayload(payload)}`,
-    );
-    const error = getStepError(step);
-    const action =
-      stepDefinition.kind === "action"
-        ? stepDefinition.actionDefinitionId
-        : stepDefinition.kind;
-    const result = [...outputs, ...(error ? [`error: ${error}`] : [])]
-      .join("<br>")
-      .replaceAll("|", "\\|");
-
-    return `| \`${stepDefinition.stepId}\` | ${action} | ${step?.status ?? "NOT RUN"} | ${result || "–"} |`;
-  });
+  const allResults = runResults.flatMap(({ results }) => results);
+  const notStarted = scenario.runs.slice(runResults.length);
 
   return [
     `### Flow scenario: ${scenario.name}`,
     "",
     ...(scenario.purpose ? [scenario.purpose, ""] : []),
-    `Local stack at \`${git("rev-parse", "--short", "HEAD")}\`, started through Temporal.`,
+    `Local stack at \`${git("rev-parse", "--short", "HEAD")}\`, started through Temporal. Run tag \`${runTag}\`.`,
     "",
-    `**\`${flowRun.flowRunId}\`: ${flowRun.status}**${
-      flowRun.failureMessage ? ` (${flowRun.failureMessage})` : ""
-    }`,
-    "",
-    "| Step | Action | Status | Outputs |",
-    "| --- | --- | --- | --- |",
-    ...rows,
-    "",
-    `**Expectations: ${results.length - failures.length} of ${results.length} met**`,
-    "",
-    ...results.map(({ label, failure }) =>
-      failure ? `- ✗ ${failure}` : `- ✓ ${label}`,
+    ...runResults.flatMap((runResult, index) => {
+      const { run, flowRun, results } = runResult;
+
+      return [
+        `#### Run ${index + 1} of ${scenario.runs.length}: ${run.flow.flowDefinition.name}`,
+        "",
+        `**\`${flowRun.flowRunId}\`: ${flowRun.status}**${
+          flowRun.failureMessage ? ` (${flowRun.failureMessage})` : ""
+        }`,
+        "",
+        "| Step | Action | Status | Outputs |",
+        "| --- | --- | --- | --- |",
+        ...renderStepRows(runResult),
+        "",
+        `Expectations: ${countMet(results)}`,
+        "",
+        ...results.map(({ label, failure }) =>
+          failure ? `- ✗ ${failure}` : `- ✓ ${label}`,
+        ),
+        "",
+      ];
+    }),
+    ...notStarted.map(
+      ({ flow }) =>
+        `#### Not started: ${flow.flowDefinition.name}, as an earlier run didn't meet its expectations\n`,
     ),
+    `**Expectations: ${countMet(allResults)}${
+      notStarted.length > 0
+        ? `, ${notStarted.length} of ${scenario.runs.length} runs not started`
+        : ""
+    }**`,
     "",
   ].join("\n");
 };
@@ -567,15 +615,19 @@ const main = async () => {
   }
 
   const { scenario, scenarioPath } = await loadScenario(scenarioArgument);
-  const { flowDefinition } = scenario.flow;
-  assertValidFlowDefinition(flowDefinition);
-  const taskQueue = getFlowType(flowDefinition);
+  const taskQueues = new Set<string>();
 
-  console.log(
-    `Scenario "${scenario.name}": ${
-      getAllStepDefinitionsInFlowDefinition(flowDefinition).length
-    } steps, valid definition, runs on the "${taskQueue}" task queue`,
-  );
+  for (const [index, { flow }] of scenario.runs.entries()) {
+    assertValidFlowDefinition(flow.flowDefinition);
+    const taskQueue = getFlowType(flow.flowDefinition);
+    taskQueues.add(taskQueue);
+
+    console.log(
+      `Scenario "${scenario.name}", run ${index + 1} of ${scenario.runs.length}: "${flow.flowDefinition.name}", ${
+        getAllStepDefinitionsInFlowDefinition(flow.flowDefinition).length
+      } steps, valid definition, runs on the "${taskQueue}" task queue`,
+    );
+  }
 
   if (values["dry-run"]) {
     return 0;
@@ -593,7 +645,9 @@ const main = async () => {
       `Can't reach Temporal (${(error as Error).message}). Is \`yarn compose --profile hgres up -d\` running?`,
     );
   });
-  await assertWorkerRunsThisCheckout(client, taskQueue);
+  for (const taskQueue of taskQueues) {
+    await assertWorkerRunsThisCheckout(client, taskQueue);
+  }
 
   const graphApi = createGraphClient(
     new Logger({
@@ -609,63 +663,79 @@ const main = async () => {
 
   const shortname = scenario.user ?? "alice";
   const userId = await getUserIdByShortname(graphApi, shortname);
-  const flowDefinitionId = getUserFlowDefinitionId(
-    scenario.flow.flowDefinitionId,
-    userId,
-  );
-  const flow = { flowDefinitionId, flowDefinition };
+  const runTag = generateUuid();
+  const runResults: RunResult[] = [];
 
-  const definitionChange = await ensureFlowDefinitionEntity({
-    flow,
-    graphApi,
-    userId,
-  });
-  if (definitionChange !== "unchanged") {
-    console.log(
-      `Flow Definition ${flowDefinitionId} ${definitionChange} in ${shortname}'s web`,
+  for (const run of scenario.runs) {
+    const { flowDefinition } = run.flow;
+    const flowDefinitionId = getUserFlowDefinitionId(
+      run.flow.flowDefinitionId,
+      userId,
     );
+    const flow = { flowDefinitionId, flowDefinition };
+
+    const definitionChange = await ensureFlowDefinitionEntity({
+      flow,
+      graphApi,
+      userId,
+    });
+    if (definitionChange !== "unchanged") {
+      console.log(
+        `Flow Definition ${flowDefinitionId} ${definitionChange} in ${shortname}'s web`,
+      );
+    }
+
+    const workflowId = await startRun({
+      client,
+      flow,
+      inputs:
+        typeof run.inputs === "function" ? run.inputs({ runTag }) : run.inputs,
+      taskQueue: getFlowType(flowDefinition),
+      userId,
+    });
+    console.log(`Started ${workflowId}: ${temporalUiUrl(workflowId)}`);
+
+    const closed = await Promise.race([
+      client.workflow
+        .getHandle(workflowId)
+        .result()
+        .then(
+          () => true,
+          () => true,
+        ),
+      sleep(timeoutSeconds * 1_000, false, { ref: false }),
+    ]);
+    if (!closed) {
+      console.warn(
+        `⚠ Still running after ${timeoutSeconds}s: reporting the steps so far. Is a step waiting on something?`,
+      );
+    }
+
+    const flowRun = await getFlowRunFromTemporalWorkflowId({
+      flowDefinitionId,
+      flowRunId: workflowId,
+      name: flowDefinition.name,
+      temporalClient: client,
+      temporalWorkflowId: workflowId,
+      webId: userId as WebId,
+      storageProvider: getStorageProvider(),
+    });
+
+    const results = checkExpectations(run, flowRun);
+    runResults.push({ run, flowRun, results });
+
+    /* A later run builds on what this one did, so its results would only follow from this run's failure. */
+    if (results.some(({ failure }) => failure)) {
+      break;
+    }
   }
-
-  const workflowId = await startRun({
-    client,
-    flow,
-    inputs: scenario.inputs,
-    taskQueue,
-    userId,
-  });
-  console.log(`Started ${workflowId}: ${temporalUiUrl(workflowId)}`);
-
-  const closed = await Promise.race([
-    client.workflow
-      .getHandle(workflowId)
-      .result()
-      .then(
-        () => true,
-        () => true,
-      ),
-    sleep(timeoutSeconds * 1_000, false, { ref: false }),
-  ]);
-  if (!closed) {
-    console.warn(
-      `⚠ Still running after ${timeoutSeconds}s: reporting the steps so far. Is a step waiting on something?`,
-    );
-  }
-
-  const flowRun = await getFlowRunFromTemporalWorkflowId({
-    flowDefinitionId,
-    flowRunId: workflowId,
-    name: flowDefinition.name,
-    temporalClient: client,
-    temporalWorkflowId: workflowId,
-    webId: userId as WebId,
-    storageProvider: getStorageProvider(),
-  });
 
   await client.connection.close();
 
-  const results = checkExpectations(scenario, flowRun);
-  const failed = results.some(({ failure }) => failure);
-  const report = renderReport(scenario, flowRun, results);
+  const failedRuns = runResults.filter(({ results }) =>
+    results.some(({ failure }) => failure),
+  );
+  const report = renderReport(scenario, runTag, runResults);
 
   const runDirectory = path.join(
     scriptDirectory,
@@ -677,9 +747,9 @@ const main = async () => {
   );
   mkdirSync(runDirectory, { recursive: true });
   writeFileSync(path.join(runDirectory, "report.md"), report);
-  if (failed) {
+  for (const { flowRun } of failedRuns) {
     writeFileSync(
-      path.join(runDirectory, "flow-run.json"),
+      path.join(runDirectory, `flow-run-${flowRun.flowRunId}.json`),
       JSON.stringify(flowRun, null, 2),
     );
   }
@@ -687,7 +757,7 @@ const main = async () => {
   console.log(`\n${report}`);
   console.log(`Saved to ${path.relative(repoRoot, runDirectory)}`);
 
-  return failed ? 1 : 0;
+  return failedRuns.length > 0 ? 1 : 0;
 };
 
 main().then(

@@ -133,23 +133,27 @@ export const scenario = defineScenario({
   name: "Array actions on a list of numbers",
   purpose:
     "Chains Filter List, Order By, Take First and Aggregate, branches on the total with If, and checks the untaken branch is skipped.",
-  flow,
-  inputs: {
-    scores: { kind: "Number", value: [72, 45, 90, 50, 8, 99, 30] },
-  },
-  expect: {
-    outputs: { total: 189, firstLow: 8 },
-    steps: {
-      passing: {
-        outputs: { matching: [72, 90, 50, 99], nonMatching: [45, 8, 30] },
+  runs: [
+    {
+      flow,
+      inputs: {
+        scores: { kind: "Number", value: [72, 45, 90, 50, 8, 99, 30] },
       },
-      passingCount: { outputs: { result: 4 } },
-      ranked: { outputs: { items: [99, 90, 72, 50] } },
-      top: { outputs: { items: [99, 90] } },
-      total: { outputs: { result: 189 } },
-      isBig: { outputs: { true: 189 }, absentOutputs: ["false"] },
-      whenSmall: { status: "SKIPPED" },
-      firstLow: { outputs: { match: 8 } },
+      expect: {
+        outputs: { total: 189, firstLow: 8 },
+        steps: {
+          passing: {
+            outputs: { matching: [72, 90, 50, 99], nonMatching: [45, 8, 30] },
+          },
+          passingCount: { outputs: { result: 4 } },
+          ranked: { outputs: { items: [99, 90, 72, 50] } },
+          top: { outputs: { items: [99, 90] } },
+          total: { outputs: { result: 189 } },
+          isBig: { outputs: { true: 189 }, absentOutputs: ["false"] },
+          whenSmall: { status: "SKIPPED" },
+          firstLow: { outputs: { match: 8 } },
+        },
+      },
     },
-  },
+  ],
 });
