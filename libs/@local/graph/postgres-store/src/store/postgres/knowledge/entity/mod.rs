@@ -38,7 +38,7 @@ use hash_graph_store::{
         CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
     },
     filter::{Filter, FilterExpression, FilterExpressionList, ParameterList},
-    query::{QueryResult as _, Read},
+    query::QueryResult as _,
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{
