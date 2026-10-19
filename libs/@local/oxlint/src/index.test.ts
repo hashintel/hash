@@ -1,14 +1,14 @@
 import { describe, expect, test } from "vitest";
 
-import { createConfig } from "./index.js";
+import { defineConfig } from "./index.js";
 
-describe("createConfig", () => {
+describe("defineConfig", () => {
   test("strict_defaults", () => {
     expect.hasAssertions();
 
-    const config = createConfig({ runtime: "node" });
+    const config = defineConfig({ runtime: "node" });
 
-    expect(config.categories).toStrictEqual({
+    expect(config.extends?.[0]?.categories).toStrictEqual({
       correctness: "deny",
       nursery: "deny",
       pedantic: "deny",
@@ -17,31 +17,43 @@ describe("createConfig", () => {
       style: "deny",
       suspicious: "deny",
     });
-    expect(config.options?.typeAware).toBe(true);
-    expect(config.options?.reportUnusedDisableDirectives).toBe("error");
-    expect(config.rules?.["hash/prefer-rust-severities"]).toBe("deny");
-    expect(config.rules?.["hash/require-rule-change-comment"]).toBe("deny");
+    expect(config.extends?.[0]?.options?.typeAware).toBe(true);
+    expect(config.extends?.[0]?.options?.reportUnusedDisableDirectives).toBe(
+      "error",
+    );
+    expect(config.extends?.[0]?.rules?.["hash/prefer-rust-severities"]).toBe(
+      "deny",
+    );
+    expect(
+      config.extends?.[0]?.rules?.["hash/require-rule-change-comment"],
+    ).toBe("deny");
   });
 
   test("vitest_boolean_matchers", () => {
     expect.hasAssertions();
 
-    const config = createConfig({ runtime: "node", frameworks: ["vitest"] });
+    const config = defineConfig({ runtime: "node", frameworks: ["vitest"] });
 
-    expect(config.rules?.["vitest/prefer-to-be-falsy"]).toBe("allow");
-    expect(config.rules?.["vitest/prefer-to-be-truthy"]).toBe("allow");
+    expect(config.extends?.[0]?.rules?.["vitest/prefer-to-be-falsy"]).toBe(
+      "allow",
+    );
+    expect(config.extends?.[0]?.rules?.["vitest/prefer-to-be-truthy"]).toBe(
+      "allow",
+    );
   });
 
   test("vitest_effect_tests", () => {
     expect.hasAssertions();
 
-    const effect = createConfig({
+    const effect = defineConfig({
       runtime: "node",
       frameworks: ["vitest", "effect"],
     });
-    const plain = createConfig({ runtime: "node", frameworks: ["vitest"] });
+    const plain = defineConfig({ runtime: "node", frameworks: ["vitest"] });
 
-    expect(effect.rules?.["vitest/no-standalone-expect"]).toStrictEqual([
+    expect(
+      effect.extends?.[0]?.rules?.["vitest/no-standalone-expect"],
+    ).toStrictEqual([
       "deny",
       {
         additionalTestBlockFunctions: [
@@ -57,18 +69,20 @@ describe("createConfig", () => {
         ],
       },
     ]);
-    expect(effect.rules?.["vitest/require-hook"]).toStrictEqual([
+    expect(effect.extends?.[0]?.rules?.["vitest/require-hook"]).toStrictEqual([
       "deny",
       { allowedFunctionCalls: ["layer"] },
     ]);
-    expect(plain.rules?.["vitest/no-standalone-expect"]).toBeUndefined();
-    expect(plain.rules?.["vitest/require-hook"]).toBeUndefined();
+    expect(
+      plain.extends?.[0]?.rules?.["vitest/no-standalone-expect"],
+    ).toBeUndefined();
+    expect(plain.extends?.[0]?.rules?.["vitest/require-hook"]).toBeUndefined();
   });
 
   test("ignore_patterns", () => {
     expect.hasAssertions();
 
-    const config = createConfig({
+    const config = defineConfig({
       ignorePatterns: ["generated/**"],
       runtime: "node",
     });
@@ -79,16 +93,16 @@ describe("createConfig", () => {
   test("next_ignore_patterns", () => {
     expect.hasAssertions();
 
-    const config = createConfig({
+    const config = defineConfig({
       frameworks: ["next"],
       ignorePatterns: ["generated/**"],
       runtime: "node",
     });
 
     expect(config.ignorePatterns).toStrictEqual([
-      "generated/**",
       ".next/**",
       "next-env.d.ts",
+      "generated/**",
     ]);
   });
 
@@ -96,7 +110,7 @@ describe("createConfig", () => {
     expect.hasAssertions();
 
     expect(() =>
-      createConfig({
+      defineConfig({
         additionalRestrictedTypes: { [typeName]: "Override" },
         runtime: "node",
       }),

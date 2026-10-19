@@ -9,7 +9,8 @@
     "src",
     "oxlint.config.ts",
     "tsdown.config.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "tests"
   ],
   "exclude": ["dist"]
 }

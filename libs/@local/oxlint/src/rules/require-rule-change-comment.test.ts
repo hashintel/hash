@@ -78,7 +78,7 @@ tester.run("require-rule-change-comment", requireRuleChangeComment, {
       filename: "config-factory.ts",
     },
     {
-      code: 'import { createConfig } from "@local/oxlint"; const rules = { one: "off" };',
+      code: 'import { defineConfig } from "@local/oxlint"; const rules = { one: "off" };',
       errors: [explanation],
     },
     {
