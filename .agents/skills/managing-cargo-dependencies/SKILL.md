@@ -2,22 +2,6 @@
 name: managing-cargo-dependencies
 description: Cargo.toml dependency management patterns for HASH workspace. Use when adding, updating, or removing dependencies, organizing Cargo.toml sections, configuring version pinning and default features, or managing public dependencies.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - cargo
-      - dependency
-      - Cargo.toml
-      - crate
-      - workspace.dependencies
-      - default-features
-    intent-patterns:
-      - "\\b(add|update|remove|manage)\\b.*?\\b(dependency|dependencies|crate|crates)\\b"
-      - "\\bCargo\\.toml\\b"
-      - "\\b(public|private)\\s+dependency\\b"
 ---
 
 # Cargo Dependencies Management

@@ -14,9 +14,9 @@
   "dependencies": {
     "@apps/brunch-agent": "workspace:*",
     "@apps/petrinaut-website": "workspace:*",
-    "@earendil-works/pi-ai": "0.83.0",
-    "@flue/runtime": "2.0.3",
-    "@flue/sdk": "2.0.3",
+    "@earendil-works/pi-ai": "1.2.0",
+    "@flue/runtime": "2.3.0",
+    "@flue/sdk": "2.3.0",
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",

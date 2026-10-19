@@ -1,7 +1,5 @@
 import { expect, test as base } from "@playwright/test";
 
-import type { Page } from "@playwright/test";
-
 const tolerableConsoleMessageMatches: RegExp[] = [
   /Download the Apollo DevTools for a better development experience/,
   /Download the React DevTools for a better development experience/,
@@ -52,10 +50,12 @@ export * from "@playwright/test";
 
 /**
  * This is a wrapper around the Playwright test function that adds checks for console messages.
+ * A test that expects further console messages lists them in `tolerableConsoleMessages`.
  * @see https://github.com/microsoft/playwright/discussions/11690#discussioncomment-2060397
  */
-export const test = base.extend<Page>({
-  page: async ({ page }, use) => {
+export const test = base.extend<{ tolerableConsoleMessages: RegExp[] }>({
+  tolerableConsoleMessages: [[], { option: true }],
+  page: async ({ page, tolerableConsoleMessages }, use) => {
     const messages: string[] = [];
 
     // Browser "Failed to load resource" console messages only carry the
@@ -82,7 +82,11 @@ export const test = base.extend<Page>({
 
     page.on("console", (msg) => {
       const text = msg.text();
-      if (tolerableConsoleMessageMatches.some((match) => match.test(text))) {
+      if (
+        [...tolerableConsoleMessageMatches, ...tolerableConsoleMessages].some(
+          (match) => match.test(text),
+        )
+      ) {
         return;
       }
 

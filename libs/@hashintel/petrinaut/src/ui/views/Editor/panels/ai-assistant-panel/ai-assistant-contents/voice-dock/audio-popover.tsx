@@ -160,6 +160,7 @@ export const AudioPopover = ({
         ref={triggerRef}
         aria-expanded={open}
         aria-haspopup="dialog"
+        pressed={open}
         aria-label={voiceSessionActionLabels.audioOptions}
         iconName="sliders"
         onClick={() => {
@@ -207,10 +208,10 @@ export const AudioPopover = ({
                     {actions.setSpeakerMuted && (
                       <Button
                         aria-label={speakerMuteLabel}
+                        aria-pressed={speakerMuted}
                         disabled={speakerControlsDisabled}
                         onClick={() => actions.setSpeakerMuted?.(!speakerMuted)}
                         prefix={<SpeakerIcon muted={speakerMuted} />}
-                        pressed={speakerMuted}
                         size="sm"
                         tooltip={speakerMuteLabel}
                         type="button"

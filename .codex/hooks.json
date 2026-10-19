@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "lefthook run format",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

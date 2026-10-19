@@ -2,7 +2,7 @@
  * Verifies that a package's payload is present and non-empty at pack time.
  *
  * This is intended to run as part of `prepack` (with the package directory as
- * the working directory), so that `npm pack` / `changeset publish` fails loudly
+ * the working directory), so that `yarn pack` / `changeset publish` fails loudly
  * instead of shipping a tarball whose entry points are missing or empty — as
  * happened with @hashintel/ds-helpers 0.1.1 and 0.2.1, where concurrent
  * sibling publishes rewrote the generated `styled-system/` output mid-pack.
@@ -57,8 +57,11 @@ const collect = (value) => {
   }
 };
 
+// Yarn packs a `publishConfig` override in place of the top-level field.
+const publishConfig = packageJson.publishConfig ?? {};
+
 for (const field of ["main", "module", "types", "bin", "exports"]) {
-  collect(packageJson[field]);
+  collect(publishConfig[field] ?? packageJson[field]);
 }
 
 /**

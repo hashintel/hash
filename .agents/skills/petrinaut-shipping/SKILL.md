@@ -2,16 +2,6 @@
 name: petrinaut-shipping
 description: "End-to-end procedure for shipping a change to the Petrinaut packages (libs/@hashintel/petrinaut, petrinaut-core, petrinaut-cli, apps/petrinaut-opt, apps/petrinaut-website): the verification gates per package, the changeset step, docs sync, pre-PR hygiene checks, and CI expectations from draft to ready. Use when implementing any change in these packages, when creating a PR for Petrinaut work, when running tests or lints for them, or when checking CI on a Petrinaut PR."
 license: Apache-2.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: high
-    keywords:
-      - petrinaut
-    intent-patterns:
-      - "\\b(implement|create|fix|add|ship|change)\\b.*?\\bpetrinaut\\b"
-      - "\\bpetrinaut\\b.*?\\b(PR|tests?|lint|CI|checks?)\\b"
 ---
 
 # Shipping a Petrinaut change
@@ -52,7 +42,7 @@ User-visible behaviour changes update the user guide in the same PR; new pages n
 
 ## Draft, CI, ready
 
-- Open the PR as a draft, body per the repo PR template.
+- Open the PR as a draft, body per the organization-wide default PR template, [`docs/pull_request_template.md` in `hashintel/.github`](https://github.com/hashintel/.github/blob/main/docs/pull_request_template.md).
 - Watch checks until the run settles, and decide that in `jq`. Neither the exit status nor a pending count answers it alone: `gh pr checks` exits non-zero when checks are pending, when they failed, and when none are scheduled yet, and with `--json` it prints `[]` before any exist, so a pending count of zero also reads as "finished" on a PR that has not started.
 
   ```sh

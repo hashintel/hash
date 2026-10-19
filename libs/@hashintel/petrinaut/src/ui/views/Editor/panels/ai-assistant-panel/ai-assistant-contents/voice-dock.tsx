@@ -359,6 +359,7 @@ export const VoiceDock = ({
             {actions.setMicrophoneMuted && (
               <Button
                 aria-label={microphoneLabel}
+                aria-pressed={microphoneMuted}
                 disabled={
                   phase === "connecting" ||
                   phase === "error" ||
@@ -369,7 +370,6 @@ export const VoiceDock = ({
                   actions.setMicrophoneMuted?.(!microphoneMuted);
                 }}
                 prefix={<MicrophoneIcon muted={microphoneMuted} />}
-                pressed={microphoneMuted}
                 size="sm"
                 tooltip={microphoneLabel}
                 type="button"

@@ -2,21 +2,6 @@
 name: exploring-rust-crates
 description: Generate Rust documentation to understand crate APIs, structure, and usage. Use when exploring Rust code, understanding crate organization, finding functions/types/traits, or needing context about a Rust package in the HASH workspace.
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: medium
-    keywords:
-      - cargo doc
-      - rust documentation
-      - crate api
-      - rust crate
-      - module hierarchy
-    intent-patterns:
-      - "\\b(explore|understand|learn)\\b.*?\\b(rust|crate|package)\\b"
-      - "\\b(what|how)\\b.*?\\b(functions|types|traits|api)\\b.*?\\bcrate\\b"
-      - "\\bdocument(ation)?\\b.*?\\brust\\b"
 ---
 
 # Exploring Rust Crates

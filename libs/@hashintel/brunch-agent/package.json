@@ -20,7 +20,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@flue/sdk": "2.0.3",
+    "@flue/sdk": "2.3.0",
     "@hashintel/petrinaut-core": "workspace:*",
     "md-pen": "1.2.0",
     "valibot": "1.4.2",

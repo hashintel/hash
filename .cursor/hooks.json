@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "stop": [
+      {
+        "command": "lefthook run format"
+      }
+    ]
+  },
+  "version": 1
+}

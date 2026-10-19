@@ -6,6 +6,7 @@ import {
 } from "@temporalio/workflow";
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
 import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
@@ -269,13 +270,23 @@ const isRequiredFlowOutput = (
   );
 };
 
-const { persistFlowActivity, userHasPermissionToRunFlowInWebActivity } =
+/* Reads, which are safe to try again. */
+const { getFlowDefinitionActivity, userHasPermissionToRunFlowInWebActivity } =
   proxyActivities<ReturnType<typeof createCommonFlowActivities>>({
     startToCloseTimeout: "60 second",
     retry: {
-      maximumAttempts: 1,
+      maximumAttempts: 3,
     },
   });
+
+const { persistFlowActivity } = proxyActivities<
+  ReturnType<typeof createCommonFlowActivities>
+>({
+  startToCloseTimeout: "60 second",
+  retry: {
+    maximumAttempts: 1,
+  },
+});
 
 const processFlow = async <
   ValidActionDefinitionId extends FlowActionDefinitionId,
@@ -294,20 +305,50 @@ const processFlow = async <
   },
 ): Promise<RunFlowWorkflowResponse> => {
   const {
-    flowDefinition,
     flowDefinitionId,
     flowRunId,
     flowRunName,
     flowInputs,
+    flowTriggerEntityId,
     proxyFlowActivity,
     userAuthentication,
     webId,
     generateFlowRunName,
   } = params;
 
-  // Ensure the user has permission to create entities in specified web
+  /*
+   * The run executes the definition's edition current when it starts.
+   */
+  const flowDefinitionResult = await getFlowDefinitionActivity({
+    flowDefinitionId,
+    userAuthentication,
+  });
+
+  if (flowDefinitionResult.status !== "ok") {
+    throw ApplicationFailure.create({
+      message: flowDefinitionResult.errorMessage,
+      details: [
+        {
+          code:
+            flowDefinitionResult.status === "not-found"
+              ? StatusCode.NotFound
+              : StatusCode.InvalidArgument,
+          message: flowDefinitionResult.errorMessage,
+          contents: [],
+        },
+      ],
+    });
+  }
+
+  const { flowDefinition } = flowDefinitionResult;
+
+  /*
+   * Checked on every run, not only when it's requested, because a scheduled run starts later, and the definition or
+   * the user's feature flags may have changed since.
+   */
   const userHasPermissionToRunFlowInWeb =
     await userHasPermissionToRunFlowInWebActivity({
+      requiresAiFeatureFlag: getFlowType(flowDefinition) === "ai",
       userAuthentication,
       webId,
     });
@@ -345,7 +386,9 @@ const processFlow = async <
 
   await persistFlowActivity({
     flow,
+    flowDefinitionEntityId: flowDefinitionResult.flowDefinitionEntityId,
     flowRunId,
+    flowTriggerEntityId,
     stepIds: ["initialize-flow"],
     userAuthentication,
     webId,

@@ -19,7 +19,7 @@ import type {
 import type { EntityRootType } from "@blockprotocol/graph";
 import type { EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flowschedule";
 
 type UseFlowSchedulesResult = {
   loading: boolean;

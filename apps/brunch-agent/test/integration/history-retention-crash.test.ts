@@ -54,6 +54,11 @@ const withRetainedFailureTraces = async (
     process.stderr.write(`Preserved diagnostic directory ${directory}\n`);
     throw error;
   }
+  // Set to keep passing evidence too, e.g. for a review record.
+  if (process.env.BRUNCH_RETAIN_CRASH_ARTIFACTS === "1") {
+    process.stderr.write(`Retained diagnostic directory ${directory}\n`);
+    return;
+  }
   await rm(directory, { recursive: true, force: true });
 };
 
