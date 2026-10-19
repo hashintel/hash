@@ -16,6 +16,7 @@ const unsupportedPayloadKinds = [
   "Duration",
   /** @todo support EntityId – requires updating the EntitySelector */
   "EntityId",
+  "EntityQuery",
   "FailedEntityProposal",
   "FilterCondition",
   "PersistedEntityMetadata",

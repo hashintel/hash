@@ -5,6 +5,7 @@ import {
   getFlowRuns,
 } from "@local/hash-backend-utils/flows";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
+import { assertNoStoredPayloadRefsInFlowInputs } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 
 import { getUserAndSession } from "../auth/create-auth-handlers";
 import { FlowRunStatus } from "../graphql/api-types.gen";
@@ -44,6 +45,15 @@ const inferEntitiesMessageHandler = async ({
     case "manual-inference-request": {
       if (!user.enabledFeatureFlags.includes("ai")) {
         socket.send("Flows are not enabled for this user");
+        return;
+      }
+
+      const { webId: _webId, ...flowInputs } = message.payload;
+
+      try {
+        assertNoStoredPayloadRefsInFlowInputs(flowInputs);
+      } catch (error) {
+        socket.send((error as Error).message);
         return;
       }
 

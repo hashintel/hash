@@ -18,6 +18,7 @@ import {
 } from "../../../graph/knowledge/system-types/flow-schedule";
 import * as GraphQLError from "../../error";
 import { graphQLContextToImpureGraphContext } from "../util";
+import { assertClientFlowInputs } from "./shared/assert-client-flow-inputs";
 import { getRunnableFlowDefinition } from "./shared/get-runnable-flow-definition";
 
 import type {
@@ -52,6 +53,8 @@ export const createFlowScheduleResolver: ResolverFn<
   if (flowType === "ai" && !input.dataSources) {
     throw GraphQLError.badRequest("Data sources are required for AI flows");
   }
+
+  assertClientFlowInputs(input.flowInputs);
 
   const schedule = await createFlowScheduleEntity(
     context,

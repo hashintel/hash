@@ -2,6 +2,7 @@ import {
   changeSidebarListDisplay,
   expandSidebarSection,
 } from "../shared/change-sidebar-list-display";
+import { expectFullyShown } from "../shared/expect-fully-shown";
 import { expect, test } from "../shared/runtime";
 
 test("user can visit a page listing entities of a type", async ({ page }) => {
@@ -18,7 +19,7 @@ test("user can visit a page listing entities of a type", async ({ page }) => {
 
   const sidebar = page.getByTestId("page-sidebar");
   const documentItem = sidebar.getByText("Document", { exact: true });
-  await expect(documentItem).toBeVisible();
+  await expectFullyShown(documentItem);
   await documentItem.click();
 
   await page.waitForURL((url) => {
