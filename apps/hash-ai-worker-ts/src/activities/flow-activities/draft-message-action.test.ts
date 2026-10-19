@@ -200,8 +200,8 @@ describe("draftMessageAction", () => {
 
     const prompt = firstPrompt();
     expect(prompt).toContain("Thank them for their order.");
-    expect(prompt).toContain('"Name": "Person 01"');
-    expect(prompt).toContain('"Name": "Person 02"');
+    expect(prompt).toMatch(/"Name":\s*"Person 01"/);
+    expect(prompt).toMatch(/"Name":\s*"Person 02"/);
     expect(prompt).toContain('"Person"');
     /* A repeated entity is described once. */
     expect(prompt?.match(/Person 01/g)).toHaveLength(1);
