@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { getEntityTypes } from "@blockprotocol/graph/stdlib";
@@ -46,12 +46,7 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
 
   const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
 
-  const [checkEntityTypePermissions] = useLazyQuery<
-    CheckUserPermissionsOnEntityTypesQuery,
-    CheckUserPermissionsOnEntityTypesQueryVariables
-  >(checkUserPermissionsOnEntityTypesQuery, {
-    fetchPolicy: "cache-and-network",
-  });
+  const apolloClient = useApolloClient();
 
   const controllerRef = useRef<AbortController | null>(null);
 
@@ -133,23 +128,30 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     if (entityTypeIds.length === 0) {
       setEntityTypePermissions({});
     } else {
-      void checkEntityTypePermissions({
-        variables: { entityTypeIds },
-      }).then(({ data }) => {
-        if (controller.signal.aborted || !data) {
-          return;
-        }
-        setEntityTypePermissions(
-          Object.fromEntries(
-            data.checkUserPermissionsOnEntityTypes.map((record) => [
-              record.entityTypeId,
-              record.permissions,
-            ]),
-          ),
-        );
-      });
+      void apolloClient
+        .query<
+          CheckUserPermissionsOnEntityTypesQuery,
+          CheckUserPermissionsOnEntityTypesQueryVariables
+        >({
+          query: checkUserPermissionsOnEntityTypesQuery,
+          fetchPolicy: "network-only",
+          variables: { entityTypeIds },
+        })
+        .then(({ data }) => {
+          if (controller.signal.aborted || !data) {
+            return;
+          }
+          setEntityTypePermissions(
+            Object.fromEntries(
+              data.checkUserPermissionsOnEntityTypes.map((record) => [
+                record.entityTypeId,
+                record.permissions,
+              ]),
+            ),
+          );
+        });
     }
-  }, [checkEntityTypePermissions, queryEntityTypes]);
+  }, [apolloClient, queryEntityTypes]);
 
   const ensureFetched = useCallback(() => {
     if (!fetched.current) {

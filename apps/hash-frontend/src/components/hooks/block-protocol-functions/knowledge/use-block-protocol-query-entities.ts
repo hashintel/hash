@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
@@ -6,6 +6,7 @@ import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { graphQLErrorsAsUndefined } from "../shared/graphql-errors-as-undefined";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -16,12 +17,7 @@ import type { QueryEntitiesMessageCallback } from "./knowledge-shim";
 export const useBlockProtocolQueryEntities = (): {
   queryEntities: QueryEntitiesMessageCallback;
 } => {
-  const [queryFn] = useLazyQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    fetchPolicy: "cache-and-network",
-  });
+  const apolloClient = useApolloClient();
 
   const queryEntities = useCallback<QueryEntitiesMessageCallback>(
     async ({ data }) => {
@@ -50,19 +46,25 @@ export const useBlockProtocolQueryEntities = (): {
        *   or doing it from here.
        * @see https://linear.app/hash/issue/H-2998
        */
-      const { data: response } = await queryFn({
-        variables: {
-          request: {
-            filter: operation.multiFilter
-              ? convertBpFilterToGraphFilter(operation.multiFilter)
-              : { any: [] },
-            ...additionalParams,
-            temporalAxes: currentTimeInstantTemporalAxes,
-            includeDrafts: false,
-            includePermissions: false,
+      const result = await apolloClient
+        .query<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>({
+          query: queryEntitySubgraphQuery,
+          fetchPolicy: "network-only",
+          variables: {
+            request: {
+              filter: operation.multiFilter
+                ? convertBpFilterToGraphFilter(operation.multiFilter)
+                : { any: [] },
+              ...additionalParams,
+              temporalAxes: currentTimeInstantTemporalAxes,
+              includeDrafts: false,
+              includePermissions: false,
+            },
           },
-        },
-      });
+        })
+        .catch(graphQLErrorsAsUndefined);
+
+      const response = result?.data;
 
       if (!response) {
         return {
@@ -81,7 +83,7 @@ export const useBlockProtocolQueryEntities = (): {
 
       return { data: { results: subgraph, operation } };
     },
-    [queryFn],
+    [apolloClient],
   );
 
   return { queryEntities };

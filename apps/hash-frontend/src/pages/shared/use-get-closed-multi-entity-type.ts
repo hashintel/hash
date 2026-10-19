@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useLazyQuery } from "@apollo/client/react";
 import { useCallback } from "react";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -61,7 +61,7 @@ export const useGetClosedMultiEntityTypes = (): {
             includeResolved: "resolvedWithDataTypeChildren",
           },
         },
-      });
+      }).retain();
 
       if (!response.data) {
         throw new Error(

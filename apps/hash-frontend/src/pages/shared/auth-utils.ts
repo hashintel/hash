@@ -1,13 +1,13 @@
-import type { GraphQLError } from "graphql";
+import type { GraphQLFormattedError } from "graphql";
 
 export const SYNTHETIC_LOADING_TIME_MS = 700;
 
 export const parseGraphQLError = (
-  errors: GraphQLError[],
+  errors: GraphQLFormattedError[],
   priorityErrorCode?: string,
 ): { errorCode: string; message: string } => {
-  const extractErrorCode = (error: GraphQLError) =>
-    typeof error.extensions.code === "string"
+  const extractErrorCode = (error: GraphQLFormattedError) =>
+    typeof error.extensions?.code === "string"
       ? error.extensions.code
       : "unknown";
 
@@ -19,7 +19,7 @@ export const parseGraphQLError = (
   }
 
   const priorityError = priorityErrorCode
-    ? errors.find(({ extensions }) => extensions.code === priorityErrorCode)
+    ? errors.find(({ extensions }) => extensions?.code === priorityErrorCode)
     : undefined;
 
   if (priorityError) {

@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import {
   autocompleteClasses,
   Box,
@@ -97,7 +97,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
 
     const fractionalIndex = generateKeyBetween(prevFractionalIndex, null);
 
-    const { data: pageEntityData, errors } = await updateEntity({
+    const { data: pageEntityData, error } = await updateEntity({
       variables: {
         entityUpdate: {
           entityId: quickNoteEntity.metadata.recordId.entityId,
@@ -134,7 +134,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
       },
     });
 
-    if (!pageEntityData || errors) {
+    if (!pageEntityData || error) {
       throw new Error("Failed to update quick note entity to page entity");
     }
 

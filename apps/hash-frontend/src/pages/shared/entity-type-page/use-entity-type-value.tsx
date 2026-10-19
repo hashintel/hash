@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { useRouter } from "next/router";
 import {
   useCallback,
@@ -245,7 +245,7 @@ export const useEntityTypeValue = (
         },
       });
 
-      if (!!res.errors?.length || !res.data) {
+      if (res.error || !res.data) {
         throw new Error("Could not publish changes");
       }
 

@@ -1,4 +1,4 @@
-import { useApolloClient } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -185,9 +185,11 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
             fetchPolicy: "network-only",
           })
           .then(({ data }) =>
-            mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-              data.me.subgraph,
-            ),
+            data
+              ? mapGqlSubgraphFieldsFragmentToSubgraph<
+                  EntityRootType<HashEntity>
+                >(data.me.subgraph)
+              : undefined,
           )
           .catch(() => undefined),
         oryKratosClient

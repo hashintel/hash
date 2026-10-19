@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { MockedProvider } from "@apollo/client/testing";
+import { MockedProvider } from "@apollo/client/testing/react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -11,7 +11,7 @@ import {
 import { updateEntityTypesMutation } from "../../../graphql/queries/ontology/entity-type.queries";
 import { useEntityTypeValue } from "./use-entity-type-value";
 
-import type { MockedResponse } from "@apollo/client/testing";
+import type { MockLink } from "@apollo/client/testing";
 import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   BaseUrl,
@@ -116,10 +116,12 @@ const schemaWithId = (): ConstructEntityTypeParams =>
 const renderUpdateCallback = () => {
   const variableMatcher = vi.fn().mockReturnValue(true);
 
-  const mocks: MockedResponse[] = [
+  const mocks: MockLink.MockedResponse[] = [
     {
-      request: { query: updateEntityTypesMutation },
-      variableMatcher,
+      request: {
+        query: updateEntityTypesMutation,
+        variables: variableMatcher,
+      },
       result: { data: { updateEntityTypes: [] } },
     },
   ];

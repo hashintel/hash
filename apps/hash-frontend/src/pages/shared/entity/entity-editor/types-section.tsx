@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { Box, Stack } from "@mui/material";
 import { useMemo, useState } from "react";
 

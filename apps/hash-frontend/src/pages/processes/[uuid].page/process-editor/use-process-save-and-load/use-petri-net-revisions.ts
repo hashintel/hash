@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { useCallback, useMemo } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";

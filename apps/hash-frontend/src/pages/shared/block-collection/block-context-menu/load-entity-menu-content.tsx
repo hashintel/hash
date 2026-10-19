@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,

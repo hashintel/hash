@@ -1,4 +1,4 @@
-import { useLazyQuery, useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -195,10 +195,7 @@ export const useSupplyChainStatusState = (
   const pendingReadOpsRef = useRef(new Map<string, ReadOp>());
   const writeQueueRef = useRef(Promise.resolve());
 
-  const [queryEntities] = useLazyQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, { fetchPolicy: "network-only" });
+  const apolloClient = useApolloClient();
   const [createEntity] = useMutation<
     CreateEntityMutation,
     CreateEntityMutationVariables
@@ -261,7 +258,12 @@ export const useSupplyChainStatusState = (
       return;
     }
 
-    const { data } = await queryEntities({
+    const { data } = await apolloClient.query<
+      QueryEntitiesQuery,
+      QueryEntitiesQueryVariables
+    >({
+      query: queryEntitiesQuery,
+      fetchPolicy: "network-only",
       variables: { request: statusReportQuery({ siteId, webId: scope }) },
     });
 
@@ -274,7 +276,7 @@ export const useSupplyChainStatusState = (
           )
         : [],
     );
-  }, [queryEntities, scope, siteId]);
+  }, [apolloClient, scope, siteId]);
 
   /** Fetch the user's preferences entity (if any) along with its read keys. */
   const fetchPreferences = useCallback(async (): Promise<{
@@ -285,7 +287,12 @@ export const useSupplyChainStatusState = (
       return { entityId: null, readKeys: [] };
     }
 
-    const { data } = await queryEntities({
+    const { data } = await apolloClient.query<
+      QueryEntitiesQuery,
+      QueryEntitiesQueryVariables
+    >({
+      query: queryEntitiesQuery,
+      fetchPolicy: "network-only",
       variables: {
         request: supplyChainUserPreferencesQuery({ webId: userWebId }),
       },
@@ -304,7 +311,7 @@ export const useSupplyChainStatusState = (
         ),
       ),
     };
-  }, [queryEntities, userWebId]);
+  }, [apolloClient, userWebId]);
 
   const loadPreferences = useCallback(async () => {
     const { entityId, readKeys: serverReadKeys } = await fetchPreferences();

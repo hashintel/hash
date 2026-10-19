@@ -1,4 +1,7 @@
-import { baseGraphQlCodegenConfig } from "@local/hash-isomorphic-utils/graphql/base-codegen-config";
+import {
+  baseGraphQlCodegenConfig,
+  baseSchemaTypesCodegenConfig,
+} from "@local/hash-isomorphic-utils/graphql/base-codegen-config";
 
 import type { CodegenConfig } from "@graphql-codegen/cli";
 
@@ -10,13 +13,23 @@ const config: CodegenConfig = {
     "./tests/graphql/fragment-types.gen.json": {
       plugins: ["fragment-matcher"],
     },
+    "./tests/graphql/schema-types.gen.ts": {
+      plugins: ["typescript"],
+      config: baseSchemaTypesCodegenConfig,
+    },
     "./tests/graphql/api-types.gen.ts": {
-      plugins: ["typescript", "typescript-operations"],
+      plugins: [
+        { add: { content: 'export * from "./schema-types.gen";' } },
+        "typescript-operations",
+      ],
       documents: [
         "./tests/graphql/queries/**/*.ts",
         "../../libs/@local/hash-isomorphic-utils/src/graphql/queries/**/*.ts",
       ],
-      config: baseGraphQlCodegenConfig,
+      config: {
+        ...baseGraphQlCodegenConfig,
+        importSchemaTypesFrom: "./tests/graphql/schema-types.gen.ts",
+      },
     },
   },
 };

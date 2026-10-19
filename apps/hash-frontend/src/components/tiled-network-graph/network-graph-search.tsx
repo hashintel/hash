@@ -6,7 +6,7 @@
  * entity id) to place and reveal a picked result
  */
 
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { useDebouncedState } from "@mantine/hooks";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";

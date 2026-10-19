@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client/react";
 import { Box, Container, Stack } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { NextSeo } from "next-seo";
@@ -260,7 +260,7 @@ export const DataType = ({
         },
       });
 
-      if (!!response.errors?.length || !response.data) {
+      if (response.error || !response.data) {
         throw new Error("Could not publish new data type");
       }
 
@@ -280,7 +280,7 @@ export const DataType = ({
       },
     });
 
-    if (!!response.errors?.length || !response.data) {
+    if (response.error || !response.data) {
       throw new Error("Could not update data type");
     }
   });

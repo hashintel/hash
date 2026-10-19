@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { useMemo } from "react";
 
 import { flowRunsQueryMaxLimit } from "@local/hash-isomorphic-utils/flows/types";

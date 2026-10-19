@@ -1,6 +1,13 @@
-import { baseGraphQlCodegenConfig } from "@local/hash-isomorphic-utils/graphql/base-codegen-config";
+import {
+  baseGraphQlCodegenConfig,
+  baseSchemaTypesCodegenConfig,
+} from "@local/hash-isomorphic-utils/graphql/base-codegen-config";
 
 import type { CodegenConfig } from "@graphql-codegen/cli";
+
+const formatHooks = {
+  afterOneFileWrite: ["oxfmt --write --ignore-path /dev/null"],
+};
 
 const config: CodegenConfig = {
   overwrite: true,
@@ -13,17 +20,26 @@ const config: CodegenConfig = {
         noSchemaStitching: true,
       },
     },
+    "./src/graphql/schema-types.gen.ts": {
+      plugins: ["typescript", "typescript-resolvers"],
+      hooks: formatHooks,
+      config: {
+        noSchemaStitching: true,
+        ...baseSchemaTypesCodegenConfig,
+      },
+    },
     "./src/graphql/api-types.gen.ts": {
-      plugins: ["typescript", "typescript-resolvers", "typescript-operations"],
+      plugins: [
+        { add: { content: 'export * from "./schema-types.gen";' } },
+        "typescript-operations",
+      ],
       documents: [
         "../../libs/@local/hash-isomorphic-utils/src/graphql/queries/**/*.ts",
       ],
-      hooks: {
-        afterOneFileWrite: ["oxfmt --write --ignore-path /dev/null"],
-      },
+      hooks: formatHooks,
       config: {
-        noSchemaStitching: true,
         ...baseGraphQlCodegenConfig,
+        importSchemaTypesFrom: "./src/graphql/schema-types.gen.ts",
       },
     },
   },

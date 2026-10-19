@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useLazyQuery } from "@apollo/client/react";
 import { useCallback, useMemo } from "react";
 
 import {
@@ -143,13 +143,15 @@ export const useGetEntityTypeDependents = (): {
                   temporalAxes: currentTimeInstantTemporalAxes,
                 },
               },
-            }).then((resp) => {
-              if (!resp.data) {
-                throw new Error("No data returned from queryEntityTypes");
-              }
+            })
+              .retain()
+              .then((resp) => {
+                if (!resp.data) {
+                  throw new Error("No data returned from queryEntityTypes");
+                }
 
-              return resp.data.queryEntityTypes.entityTypes;
-            });
+                return resp.data.queryEntityTypes.entityTypes;
+              });
 
             return {
               baseUrl,

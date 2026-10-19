@@ -38,12 +38,14 @@ const AdminUserPage: NextPageWithLayout = () => {
   }, [userOrOrg]);
 
   const refetchUser = useCallback(async () => {
-    const {
-      data: { queryEntitySubgraph },
-    } = await refetch();
+    const { data } = await refetch();
+
+    if (!data) {
+      throw new Error("The user entity refetch returned no data.");
+    }
 
     const [rootEntity] = getRoots(
-      deserializeQueryEntitySubgraphResponse(queryEntitySubgraph).subgraph,
+      deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph).subgraph,
     );
 
     if (!rootEntity || !isEntityUserEntity(rootEntity)) {

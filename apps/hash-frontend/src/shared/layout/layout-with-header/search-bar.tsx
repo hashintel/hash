@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { useClickOutside, useDebouncedState, useHotkeys } from "@mantine/hooks";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";

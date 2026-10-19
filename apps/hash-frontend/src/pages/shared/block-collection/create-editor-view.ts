@@ -36,7 +36,7 @@ import type { RefObject } from "react";
 const createSavePlugin = (
   pageEntityId: EntityId,
   getBlocksMap: () => ComponentIdHashBlockMap,
-  client: ApolloClient<unknown>,
+  client: ApolloClient,
   onSuccess: () => void,
   onError: (message: string) => void,
 ) => {
@@ -140,7 +140,7 @@ const createSavePlugin = (
  */
 export const createEditorView = (params: {
   autoFocus: boolean;
-  client: ApolloClient<unknown>;
+  client: ApolloClient;
   getBlocksMap: () => ComponentIdHashBlockMap;
   getLastSavedValue: () => BlockEntity[];
   isCommentingEnabled: boolean;

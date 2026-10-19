@@ -1,9 +1,9 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Box, Stack, useTheme } from "@mui/material";
 import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   extractEntityUuidFromEntityId,
@@ -236,7 +236,7 @@ export const EntitiesTable: FunctionComponent<{
   const [conversionTargetsByColumnKey, setConversionTargetsByColumnKey] =
     useState<ConversionTargetsByColumnKey>({});
 
-  useQuery<
+  const { data: conversionTargetsData } = useQuery<
     FindDataTypeConversionTargetsQuery,
     FindDataTypeConversionTargetsQueryVariables
   >(findDataTypeConversionTargetsQuery, {
@@ -245,87 +245,90 @@ export const EntitiesTable: FunctionComponent<{
       dataTypeIds: visibleDataTypeIds,
     },
     skip: visibleDataTypeIds.length === 0,
-    onCompleted: (data) => {
-      const conversionMap = data.findDataTypeConversionTargets;
+  });
 
-      const conversionData: ConversionTargetsByColumnKey = {};
+  useEffect(() => {
+    if (!conversionTargetsData) {
+      return;
+    }
 
-      /**
-       * For each property, we need to find the conversion targets which are valid across all of the possible data types.
-       *
-       * A conversion target which isn't present for one of the dataTypeIds cannot be included.
-       */
-      for (const [propertyBaseUrl, [...dataTypes]] of typedEntries(
-        visibleDataTypeIdsByPropertyBaseUrl,
-      )) {
-        const targetsByTargetTypeId: Record<
-          VersionedUrl,
-          {
-            title: string;
-            dataTypeId: VersionedUrl;
-            guessedAsCanonical?: boolean;
-          }[]
-        > = {};
+    const conversionMap = conversionTargetsData.findDataTypeConversionTargets;
 
-        for (const [index, sourceDataType] of dataTypes.entries()) {
-          const sourceDataTypeId = sourceDataType.schema.$id;
+    const conversionData: ConversionTargetsByColumnKey = {};
 
-          const conversionsByTargetId = conversionMap[sourceDataTypeId];
+    /**
+     * For each property, we need to find the conversion targets which are valid across all of the possible data types.
+     *
+     * A conversion target which isn't present for one of the dataTypeIds cannot be included.
+     */
+    for (const [propertyBaseUrl, [...dataTypes]] of typedEntries(
+      visibleDataTypeIdsByPropertyBaseUrl,
+    )) {
+      const targetsByTargetTypeId: Record<
+        VersionedUrl,
+        {
+          title: string;
+          dataTypeId: VersionedUrl;
+          guessedAsCanonical?: boolean;
+        }[]
+      > = {};
 
-          if (!conversionsByTargetId) {
+      for (const [index, sourceDataType] of dataTypes.entries()) {
+        const sourceDataTypeId = sourceDataType.schema.$id;
+
+        const conversionsByTargetId = conversionMap[sourceDataTypeId];
+
+        if (!conversionsByTargetId) {
+          /**
+           * We don't have any conversion targets for this dataTypeId, so there can't be any shared conversion targets across all of the data types.
+           */
+          continue;
+        }
+
+        for (const [targetTypeId, { title, conversions }] of typedEntries(
+          conversionsByTargetId,
+        )) {
+          if (index === 0) {
+            targetsByTargetTypeId[targetTypeId] ??= [];
+            targetsByTargetTypeId[targetTypeId].push({
+              dataTypeId: targetTypeId,
+              title,
+              guessedAsCanonical: conversions.length === 1,
+            });
+          } else if (
+            !targetsByTargetTypeId[targetTypeId] &&
+            !dataTypes.some((dataType) => dataType.schema.$id === targetTypeId)
+          ) {
             /**
-             * We don't have any conversion targets for this dataTypeId, so there can't be any shared conversion targets across all of the data types.
+             * If we haven't seen this target before, and we already have some targets, it is not a shared target.
+             * If the target is in the source dataTypeIds, we retain it because we assume conversion is reciprocal.
+             * This may not always hold.
              */
             continue;
           }
+        }
 
-          for (const [targetTypeId, { title, conversions }] of typedEntries(
-            conversionsByTargetId,
-          )) {
-            if (index === 0) {
-              targetsByTargetTypeId[targetTypeId] ??= [];
-              targetsByTargetTypeId[targetTypeId].push({
-                dataTypeId: targetTypeId,
-                title,
-                guessedAsCanonical: conversions.length === 1,
-              });
-            } else if (
-              !targetsByTargetTypeId[targetTypeId] &&
-              !dataTypes.some(
-                (dataType) => dataType.schema.$id === targetTypeId,
-              )
-            ) {
-              /**
-               * If we haven't seen this target before, and we already have some targets, it is not a shared target.
-               * If the target is in the source dataTypeIds, we retain it because we assume conversion is reciprocal.
-               * This may not always hold.
-               */
-              continue;
-            }
-          }
-
-          /**
-           * Any target which is present from previous sources but not for this source is not a shared target.
-           * We exempt this source dataTypeId from deletion because we assume conversion is reciprocal.
-           * This may not always hold.
-           */
-          for (const existingTarget of typedKeys(targetsByTargetTypeId)) {
-            if (
-              !typedKeys(conversionsByTargetId).includes(existingTarget) &&
-              existingTarget !== sourceDataTypeId
-            ) {
-              delete targetsByTargetTypeId[existingTarget];
-            }
+        /**
+         * Any target which is present from previous sources but not for this source is not a shared target.
+         * We exempt this source dataTypeId from deletion because we assume conversion is reciprocal.
+         * This may not always hold.
+         */
+        for (const existingTarget of typedKeys(targetsByTargetTypeId)) {
+          if (
+            !typedKeys(conversionsByTargetId).includes(existingTarget) &&
+            existingTarget !== sourceDataTypeId
+          ) {
+            delete targetsByTargetTypeId[existingTarget];
           }
         }
-        conversionData[propertyBaseUrl] = Object.values(
-          targetsByTargetTypeId,
-        ).flat();
-
-        setConversionTargetsByColumnKey(conversionData);
       }
-    },
-  });
+      conversionData[propertyBaseUrl] = Object.values(
+        targetsByTargetTypeId,
+      ).flat();
+
+      setConversionTargetsByColumnKey(conversionData);
+    }
+  }, [conversionTargetsData, visibleDataTypeIdsByPropertyBaseUrl]);
 
   // eslint-disable-next-line no-param-reassign
   currentlyDisplayedColumnsRef.current = columns;

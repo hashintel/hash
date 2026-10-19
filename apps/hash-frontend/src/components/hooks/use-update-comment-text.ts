@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { updateCommentText } from "../../graphql/queries/comment.queries";

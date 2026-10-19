@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { useMemo } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
@@ -14,7 +14,7 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import type { Org } from "../../lib/user-and-org";
-import type { ApolloQueryResult } from "@apollo/client";
+import type { ApolloClient } from "@apollo/client";
 import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 
 const emptyOrgsArray: Org[] = [];
@@ -29,7 +29,7 @@ export const useOrgsWithLinks = ({
 }): {
   loading: boolean;
   orgs?: Org[];
-  refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloClient.QueryResult<QueryEntitySubgraphQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
     QueryEntitySubgraphQuery,

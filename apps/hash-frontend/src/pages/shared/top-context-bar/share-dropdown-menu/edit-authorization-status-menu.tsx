@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import {
   Box,
   buttonClasses,
@@ -35,7 +35,6 @@ import type {
   RemoveEntityViewerMutation,
   RemoveEntityViewerMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import type { MutationHookOptions } from "@apollo/client";
 import type { Entity } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
@@ -71,7 +70,7 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
 
   const { entityId } = entity.metadata.recordId;
 
-  const refetchQueries = useMemo<MutationHookOptions["refetchQueries"]>(
+  const refetchQueries = useMemo<useMutation.Options["refetchQueries"]>(
     () => [
       {
         query: getEntityAuthorizationRelationshipsQuery,

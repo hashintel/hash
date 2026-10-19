@@ -1,4 +1,4 @@
-import { useLazyQuery, useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -170,10 +170,7 @@ export const useSupplyChainUserPreferences = () => {
     useState<EntityId | null>(null);
   const writeQueueRef = useRef(Promise.resolve());
 
-  const [queryEntities] = useLazyQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, { fetchPolicy: "network-only" });
+  const apolloClient = useApolloClient();
   const [createEntity] = useMutation<
     CreateEntityMutation,
     CreateEntityMutationVariables
@@ -191,7 +188,12 @@ export const useSupplyChainUserPreferences = () => {
       };
     }
 
-    const { data } = await queryEntities({
+    const { data } = await apolloClient.query<
+      QueryEntitiesQuery,
+      QueryEntitiesQueryVariables
+    >({
+      query: queryEntitiesQuery,
+      fetchPolicy: "network-only",
       variables: {
         request: supplyChainUserPreferencesQuery({ webId: userWebId }),
       },
@@ -205,7 +207,7 @@ export const useSupplyChainUserPreferences = () => {
       entityId: preferencesEntity?.metadata.recordId.entityId ?? null,
       settings: settingsFromPreferencesEntity(preferencesEntity),
     };
-  }, [queryEntities, userWebId]);
+  }, [apolloClient, userWebId]);
 
   const loadPreferences = useCallback(async () => {
     setLoading(true);

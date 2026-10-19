@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client/react";
 import { Box } from "@mui/material";
 import { useCallback, useState } from "react";
 
@@ -62,32 +62,27 @@ export const Waitlisted = () => {
     "closed" | "open" | "submitted"
   >("closed");
 
-  useQuery<SummarizeEntitiesQuery, SummarizeEntitiesQueryVariables>(
-    summarizeEntitiesQuery,
-    {
-      variables: {
-        request: {
-          filter: {
-            equal: [
-              { path: ["type", "baseUrl"] },
-              {
-                parameter: systemEntityTypes.prospectiveUser.entityTypeBaseUrl,
-              },
-            ],
-          },
-          includeDrafts: false,
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeCount: true,
+  const { data: prospectiveUserSummaryData } = useQuery<
+    SummarizeEntitiesQuery,
+    SummarizeEntitiesQueryVariables
+  >(summarizeEntitiesQuery, {
+    variables: {
+      request: {
+        filter: {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            {
+              parameter: systemEntityTypes.prospectiveUser.entityTypeBaseUrl,
+            },
+          ],
         },
-      },
-      fetchPolicy: "cache-and-network",
-      onCompleted: (data) => {
-        if ((data.summarizeEntities.count ?? 0) > 0) {
-          setEarlyAccessFormState("submitted");
-        }
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeCount: true,
       },
     },
-  );
+    fetchPolicy: "cache-and-network",
+  });
 
   const position = waitlistPositionData?.getWaitlistPosition;
 
@@ -109,7 +104,9 @@ export const Waitlisted = () => {
     [submitToApi],
   );
 
-  const hasSubmittedForm = earlyAccessFormState === "submitted";
+  const hasSubmittedForm =
+    earlyAccessFormState === "submitted" ||
+    (prospectiveUserSummaryData?.summarizeEntities.count ?? 0) > 0;
 
   return (
     <>

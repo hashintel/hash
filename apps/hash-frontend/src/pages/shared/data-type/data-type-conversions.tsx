@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { Box, Typography } from "@mui/material";
 import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";

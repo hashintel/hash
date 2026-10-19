@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 
@@ -33,19 +33,16 @@ export const useCreatePage = ({
     CreatePageMutationVariables
   >(createPage, {
     awaitRefetchQueries: false,
-    refetchQueries: ({ data }) =>
-      data
-        ? [
-            {
-              query: queryEntitySubgraphQuery,
-              variables: getAccountPagesVariables({
-                webId: extractWebIdFromEntityId(
-                  data.createPage.metadata.recordId.entityId,
-                ),
-              }),
-            },
-          ]
-        : [],
+    refetchQueries: ({ data }) => [
+      {
+        query: queryEntitySubgraphQuery,
+        variables: getAccountPagesVariables({
+          webId: extractWebIdFromEntityId(
+            data.createPage.metadata.recordId.entityId,
+          ),
+        }),
+      },
+    ],
   });
 
   const createUntitledPage = useCallback(

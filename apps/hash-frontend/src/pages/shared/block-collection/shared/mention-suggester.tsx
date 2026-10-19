@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { useHotkeys } from "@mantine/hooks";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import {

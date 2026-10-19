@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import {
   Box,
   breadcrumbsClasses,
@@ -76,12 +76,7 @@ const ActionsPage = () => {
     [draftEntities],
   );
 
-  const [
-    previouslyFetchedDraftEntitiesWithLinkedDataResponse,
-    setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse,
-  ] = useState<QueryEntitySubgraphQuery>();
-
-  const { data: draftEntitiesWithLinkedDataResponse } = useQuery<
+  const { data, previousData } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
@@ -115,20 +110,17 @@ const ActionsPage = () => {
       },
     },
     skip: !draftEntities,
-    onCompleted: (data) =>
-      setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse(data),
     fetchPolicy: "network-only",
   });
+
+  const draftEntitiesWithLinkedDataResponse = data ?? previousData;
 
   const {
     draftEntitiesWithLinkedDataSubgraph,
     entities,
     closedMultiEntityTypesRootMap,
   } = useMemo(() => {
-    if (
-      !draftEntitiesWithLinkedDataResponse &&
-      !previouslyFetchedDraftEntitiesWithLinkedDataResponse
-    ) {
+    if (!draftEntitiesWithLinkedDataResponse) {
       return {
         draftEntitiesWithLinkedDataSubgraph: undefined,
         entities: undefined,
@@ -137,26 +129,21 @@ const ActionsPage = () => {
     }
 
     const subgraph = deserializeQueryEntitySubgraphResponse(
-      (draftEntitiesWithLinkedDataResponse ??
-        previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
-        .queryEntitySubgraph,
+      draftEntitiesWithLinkedDataResponse.queryEntitySubgraph,
     ).subgraph;
 
     const roots = getRoots(subgraph);
 
-    const closedTypeMap = (draftEntitiesWithLinkedDataResponse ??
-      previouslyFetchedDraftEntitiesWithLinkedDataResponse)!.queryEntitySubgraph
-      .closedMultiEntityTypes;
+    const closedTypeMap =
+      draftEntitiesWithLinkedDataResponse.queryEntitySubgraph
+        .closedMultiEntityTypes;
 
     return {
       draftEntitiesWithLinkedDataSubgraph: subgraph,
       entities: roots,
       closedMultiEntityTypesRootMap: closedTypeMap,
     };
-  }, [
-    draftEntitiesWithLinkedDataResponse,
-    previouslyFetchedDraftEntitiesWithLinkedDataResponse,
-  ]);
+  }, [draftEntitiesWithLinkedDataResponse]);
 
   const entityTypeDisplayInfoByBaseUrl = useMemo(() => {
     if (!entities || !closedMultiEntityTypesRootMap) {

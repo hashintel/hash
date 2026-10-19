@@ -1,4 +1,4 @@
-import { useLazyQuery, useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { Box, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -46,10 +46,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
     SyncLinearIntegrationWithWebsMutationVariables
   >(syncLinearIntegrationWithWebsMutation);
 
-  const [getLinearOrganization] = useLazyQuery<
-    GetLinearOrganizationQuery,
-    GetLinearOrganizationQueryVariables
-  >(getLinearOrganizationQuery);
+  const apolloClient = useApolloClient();
 
   const linearIntegrationEntityId = useMemo(() => {
     return router.query.linearIntegrationEntityId as EntityId | undefined;
@@ -77,7 +74,11 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         linearIntegration.entity.properties,
       );
 
-      const { data } = await getLinearOrganization({
+      const { data } = await apolloClient.query<
+        GetLinearOrganizationQuery,
+        GetLinearOrganizationQueryVariables
+      >({
+        query: getLinearOrganizationQuery,
         variables: { linearOrgId },
       });
 
@@ -93,12 +94,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         throw new Error("Could not get linear organization");
       }
     })();
-  }, [
-    linearIntegrations,
-    linearIntegrationEntityId,
-    router,
-    getLinearOrganization,
-  ]);
+  }, [linearIntegrations, linearIntegrationEntityId, router, apolloClient]);
 
   const possibleWorkspaces = useMemo(
     () => [

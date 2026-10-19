@@ -1,4 +1,4 @@
-import { baseGraphQlCodegenConfig } from "@local/hash-isomorphic-utils/graphql/base-codegen-config";
+import { baseSchemaTypesCodegenConfig } from "@local/hash-isomorphic-utils/graphql/base-codegen-config";
 
 import type { CodegenConfig } from "@graphql-codegen/cli";
 
@@ -11,8 +11,8 @@ const config: CodegenConfig = {
       plugins: ["fragment-matcher"],
     },
     "./src/graphql/api-types.gen.ts": {
-      plugins: ["typescript", "typescript-operations"],
-      config: baseGraphQlCodegenConfig,
+      plugins: ["typescript"],
+      config: baseSchemaTypesCodegenConfig,
     },
   },
 };

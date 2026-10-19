@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
@@ -8,6 +8,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryDataTypeSubgraphQuery } from "../../../../graphql/queries/ontology/data-type.queries";
+import { graphQLErrorsAsUndefined } from "../shared/graphql-errors-as-undefined";
 
 import type {
   QueryDataTypeSubgraphQuery,
@@ -18,12 +19,7 @@ import type { QueryDataTypesMessageCallback } from "./ontology-types-shim";
 export const useBlockProtocolQueryDataTypes = (): {
   queryDataTypes: QueryDataTypesMessageCallback;
 } => {
-  const [queryFn] = useLazyQuery<
-    QueryDataTypeSubgraphQuery,
-    QueryDataTypeSubgraphQueryVariables
-  >(queryDataTypeSubgraphQuery, {
-    fetchPolicy: "cache-and-network",
-  });
+  const apolloClient = useApolloClient();
 
   const queryDataTypes = useCallback<QueryDataTypesMessageCallback>(
     async ({ data }) => {
@@ -44,20 +40,26 @@ export const useBlockProtocolQueryDataTypes = (): {
        *   or doing it from here.
        * @see https://linear.app/hash/issue/H-2998
        */
-      const response = await queryFn({
-        variables: {
-          request: {
-            filter: {
-              all: [],
+      const response = await apolloClient
+        .query<QueryDataTypeSubgraphQuery, QueryDataTypeSubgraphQueryVariables>(
+          {
+            query: queryDataTypeSubgraphQuery,
+            fetchPolicy: "network-only",
+            variables: {
+              request: {
+                filter: {
+                  all: [],
+                },
+                temporalAxes: currentTimeInstantTemporalAxes,
+                graphResolveDepths: almostFullOntologyResolveDepths,
+                traversalPaths: [],
+              },
             },
-            temporalAxes: currentTimeInstantTemporalAxes,
-            graphResolveDepths: almostFullOntologyResolveDepths,
-            traversalPaths: [],
           },
-        },
-      });
+        )
+        .catch(graphQLErrorsAsUndefined);
 
-      if (!response.data) {
+      if (!response?.data) {
         return {
           errors: [
             {
@@ -74,7 +76,7 @@ export const useBlockProtocolQueryDataTypes = (): {
         ).subgraph,
       };
     },
-    [queryFn],
+    [apolloClient],
   );
 
   return { queryDataTypes };

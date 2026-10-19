@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
@@ -15,7 +15,7 @@ import type {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import type { MinimalOrg } from "../../lib/user-and-org";
-import type { ApolloQueryResult } from "@apollo/client";
+import type { ApolloClient } from "@apollo/client";
 
 /**
  * Retrieves a list of organizations
@@ -23,7 +23,7 @@ import type { ApolloQueryResult } from "@apollo/client";
 export const useOrgs = (): {
   loading: boolean;
   orgs?: MinimalOrg[];
-  refetch: () => Promise<ApolloQueryResult<QueryEntitiesQuery>>;
+  refetch: () => Promise<ApolloClient.QueryResult<QueryEntitiesQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
     QueryEntitiesQuery,

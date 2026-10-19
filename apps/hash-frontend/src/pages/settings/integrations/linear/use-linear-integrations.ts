@@ -1,4 +1,4 @@
-import { useLazyQuery, useQuery } from "@apollo/client";
+import { useApolloClient, useQuery } from "@apollo/client/react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -86,10 +86,7 @@ export const useLinearIntegrations = (): {
     },
   });
 
-  const [getLinearOrganization] = useLazyQuery<
-    GetLinearOrganizationQuery,
-    GetLinearOrganizationQueryVariables
-  >(getLinearOrganizationQuery);
+  const apolloClient = useApolloClient();
 
   const [connectedLinearOrganizations, setConnectedLinearOrganizations] =
     useState<GetLinearOrganizationQuery["getLinearOrganization"][]>([]);
@@ -170,7 +167,11 @@ export const useLinearIntegrations = (): {
           linearIntegrations.map(async ({ entity }) => {
             const { linearOrgId } = simplifyProperties(entity.properties);
 
-            const { data } = await getLinearOrganization({
+            const { data } = await apolloClient.query<
+              GetLinearOrganizationQuery,
+              GetLinearOrganizationQueryVariables
+            >({
+              query: getLinearOrganizationQuery,
               variables: { linearOrgId },
             });
 
@@ -185,7 +186,7 @@ export const useLinearIntegrations = (): {
         setConnectedLinearOrganizations(linearOrganizations);
       }
     })();
-  }, [linearIntegrations, getLinearOrganization]);
+  }, [linearIntegrations, apolloClient]);
 
   return { linearIntegrations, connectedLinearOrganizations };
 };

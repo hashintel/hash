@@ -1,4 +1,4 @@
-import { useApolloClient, useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
@@ -338,6 +338,11 @@ export const useDashboardItemGenerations = ({
           variables: { flowRunId: generation.flowRunId },
           fetchPolicy: "network-only",
         });
+
+        if (!data) {
+          return;
+        }
+
         const flowRun = data.getFlowRunById;
 
         if (flowRun.status === FlowRunStatus.Completed) {

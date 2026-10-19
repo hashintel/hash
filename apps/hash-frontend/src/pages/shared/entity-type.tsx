@@ -323,7 +323,7 @@ export const EntityType = ({
 
       const res = await updateEntityTypes(rootType, dependents);
 
-      if (!res.errors?.length && res.data?.updateEntityTypes[0]) {
+      if (!res.error && res.data?.updateEntityTypes[0]) {
         onEntityTypeUpdated?.(res.data.updateEntityTypes[0]);
       } else {
         throw new Error("Could not publish changes");
@@ -415,7 +415,7 @@ export const EntityType = ({
       dependents,
     );
 
-    if (!res.errors?.length && res.data?.updateEntityTypes[0]) {
+    if (!res.error && res.data?.updateEntityTypes[0]) {
       onEntityTypeUpdated?.(res.data.updateEntityTypes[0]);
     } else {
       throw new Error("Could not publish changes");

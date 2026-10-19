@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
@@ -19,19 +19,16 @@ export const useReorderPage = () => {
     SetParentPageMutationVariables
   >(setParentPage, {
     awaitRefetchQueries: true,
-    refetchQueries: ({ data }) =>
-      data
-        ? [
-            {
-              query: queryEntitySubgraphQuery,
-              variables: getAccountPagesVariables({
-                webId: extractWebIdFromEntityId(
-                  data.setParentPage.metadata.recordId.entityId,
-                ),
-              }),
-            },
-          ]
-        : [],
+    refetchQueries: ({ data }) => [
+      {
+        query: queryEntitySubgraphQuery,
+        variables: getAccountPagesVariables({
+          webId: extractWebIdFromEntityId(
+            data.setParentPage.metadata.recordId.entityId,
+          ),
+        }),
+      },
+    ],
   });
 
   const reorderPage = useCallback(

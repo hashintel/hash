@@ -1,4 +1,4 @@
-import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
+import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
 import { useCallback, useMemo } from "react";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
@@ -103,12 +103,7 @@ export const NotificationCountContextProvider: FunctionComponent<
     },
   );
 
-  const [queryEntities] = useLazyQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
-    fetchPolicy: "network-only",
-  });
+  const apolloClient = useApolloClient();
 
   const [markNotificationsAsRead] = useMutation<
     MarkNotificationsAsReadMutation,
@@ -126,7 +121,12 @@ export const NotificationCountContextProvider: FunctionComponent<
 
   const getNotificationsLinkingToEntity = useCallback(
     async ({ targetEntityId }: { targetEntityId: EntityId }) => {
-      const relatedNotificationData = await queryEntities({
+      const relatedNotificationData = await apolloClient.query<
+        QueryEntitiesQuery,
+        QueryEntitiesQueryVariables
+      >({
+        query: queryEntitiesQuery,
+        fetchPolicy: "network-only",
         variables: {
           request: {
             filter: {
@@ -172,7 +172,7 @@ export const NotificationCountContextProvider: FunctionComponent<
         relatedNotificationData.data.queryEntities,
       ).entities;
     },
-    [authenticatedUser?.accountId, queryEntities],
+    [apolloClient, authenticatedUser?.accountId],
   );
 
   const markNotificationAsRead = useCallback<

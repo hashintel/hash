@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { useRouter } from "next/router";
 
 import { useOrgs } from "../../../../../components/hooks/use-orgs";
@@ -24,11 +24,11 @@ export const CreateOrgForm = () => {
   >(createOrgMutation);
 
   const onSubmit = async (orgData: OrgFormData) => {
-    const { errors } = await createOrg({
+    const { error } = await createOrg({
       variables: orgData,
     });
-    if (errors?.[0]) {
-      throw new Error(errors[0].message);
+    if (error) {
+      throw new Error(error.message);
     }
 
     void refetchUser();

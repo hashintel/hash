@@ -1,5 +1,5 @@
 import "prosemirror-view/style/prosemirror.css";
-import { useApolloClient } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useLocalStorage } from "@mantine/hooks";
 import { Box } from "@mui/material";
 import { useLayoutEffect, useRef } from "react";

@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { skipToken, useQuery } from "@apollo/client/react";
 import * as Sentry from "@sentry/nextjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -317,11 +317,9 @@ export const useEntitiesTableQuery = (params: {
     refetch,
   } = useQuery<QueryEntitiesTableQuery, QueryEntitiesTableQueryVariables>(
     queryEntitiesTableQuery,
-    {
-      fetchPolicy: "cache-and-network",
-      skip: !enabled || !variables,
-      variables: variables ?? undefined,
-    },
+    enabled && variables
+      ? { fetchPolicy: "cache-and-network", variables }
+      : skipToken,
   );
 
   useEffect(() => {

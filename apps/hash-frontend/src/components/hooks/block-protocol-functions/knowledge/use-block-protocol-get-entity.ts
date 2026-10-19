@@ -1,10 +1,12 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { splitEntityId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+
+import { graphQLErrorsAsUndefined } from "../shared/graphql-errors-as-undefined";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -15,12 +17,7 @@ import type { GetEntityMessageCallback } from "./knowledge-shim";
 export const useBlockProtocolGetEntity = (): {
   getEntity: GetEntityMessageCallback;
 } => {
-  const [queryEntitySubgraphFn] = useLazyQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    fetchPolicy: "cache-and-network",
-  });
+  const apolloClient = useApolloClient();
 
   const getEntity = useCallback<GetEntityMessageCallback>(
     async ({ data }) => {
@@ -38,33 +35,42 @@ export const useBlockProtocolGetEntity = (): {
       const { entityId, ...additionalParams } = data;
 
       const [webId, entityUuid, draftId] = splitEntityId(entityId);
-      const { data: response } = await queryEntitySubgraphFn({
-        variables: {
-          request: {
-            filter: {
-              all: [
-                {
-                  equal: [{ path: ["webId"] }, { parameter: webId }],
-                },
-                {
-                  equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-                },
-                ...(draftId
-                  ? [
-                      {
-                        equal: [{ path: ["draftId"] }, { parameter: draftId }],
-                      },
-                    ]
-                  : []),
-              ],
+      const result = await apolloClient
+        .query<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>({
+          query: queryEntitySubgraphQuery,
+          fetchPolicy: "network-only",
+          variables: {
+            request: {
+              filter: {
+                all: [
+                  {
+                    equal: [{ path: ["webId"] }, { parameter: webId }],
+                  },
+                  {
+                    equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+                  },
+                  ...(draftId
+                    ? [
+                        {
+                          equal: [
+                            { path: ["draftId"] },
+                            { parameter: draftId },
+                          ],
+                        },
+                      ]
+                    : []),
+                ],
+              },
+              ...additionalParams,
+              temporalAxes: currentTimeInstantTemporalAxes,
+              includeDrafts: !!draftId,
+              includePermissions: false,
             },
-            ...additionalParams,
-            temporalAxes: currentTimeInstantTemporalAxes,
-            includeDrafts: !!draftId,
-            includePermissions: false,
           },
-        },
-      });
+        })
+        .catch(graphQLErrorsAsUndefined);
+
+      const response = result?.data;
 
       if (!response) {
         return {
@@ -83,7 +89,7 @@ export const useBlockProtocolGetEntity = (): {
         ).subgraph,
       };
     },
-    [queryEntitySubgraphFn],
+    [apolloClient],
   );
 
   return { getEntity };

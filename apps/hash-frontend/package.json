@@ -20,7 +20,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@apollo/client": "3.10.5",
+    "@apollo/client": "4.3.3",
     "@ark-ui/react": "5.38.1",
     "@blockprotocol/core": "0.1.5",
     "@blockprotocol/graph": "workspace:*",
@@ -142,6 +142,7 @@
     "reactflow": "11.11.4",
     "recharts": "3.8.0",
     "remark-gfm": "4.0.1",
+    "rxjs": "7.8.2",
     "safe-stable-stringify": "2.5.0",
     "setimmediate": "1.0.5",
     "sigma": "3.0.2",
@@ -158,10 +159,11 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^6.2.1",
-    "@graphql-codegen/fragment-matcher": "6.0.0",
-    "@graphql-codegen/typescript": "5.0.9",
-    "@graphql-codegen/typescript-operations": "5.0.9",
+    "@graphql-codegen/add": "7.1.1",
+    "@graphql-codegen/cli": "7.4.6",
+    "@graphql-codegen/fragment-matcher": "7.1.0",
+    "@graphql-codegen/typescript": "6.1.2",
+    "@graphql-codegen/typescript-operations": "6.1.10",
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@next/bundle-analyzer": "15.5.9",

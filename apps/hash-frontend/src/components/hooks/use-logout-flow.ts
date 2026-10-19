@@ -1,4 +1,4 @@
-import { useApolloClient } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { AxiosError } from "axios";
 import { useRouter } from "next/router";
 

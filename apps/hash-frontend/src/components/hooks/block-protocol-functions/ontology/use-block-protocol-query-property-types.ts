@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { deserializeQueryPropertyTypeSubgraphResponse } from "@local/hash-graph-sdk/property-type";
@@ -9,6 +9,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryPropertyTypeSubgraphQuery } from "../../../../graphql/queries/ontology/property-type.queries";
+import { graphQLErrorsAsUndefined } from "../shared/graphql-errors-as-undefined";
 
 import type {
   QueryPropertyTypeSubgraphQuery,
@@ -19,12 +20,7 @@ import type { QueryPropertyTypesMessageCallback } from "./ontology-types-shim";
 export const useBlockProtocolQueryPropertyTypes = (): {
   queryPropertyTypes: QueryPropertyTypesMessageCallback;
 } => {
-  const [queryFn] = useLazyQuery<
-    QueryPropertyTypeSubgraphQuery,
-    QueryPropertyTypeSubgraphQueryVariables
-  >(queryPropertyTypeSubgraphQuery, {
-    fetchPolicy: "cache-and-network",
-  });
+  const apolloClient = useApolloClient();
 
   const queryPropertyTypes = useCallback<QueryPropertyTypesMessageCallback>(
     async ({ data }) => {
@@ -46,25 +42,32 @@ export const useBlockProtocolQueryPropertyTypes = (): {
        *   or doing it from here.
        * @see https://linear.app/hash/issue/H-2998
        */
-      const response = await queryFn({
-        variables: {
-          request: {
-            filter: latestOnly
-              ? { equal: [{ path: ["version"] }, { parameter: "latest" }] }
-              : { all: [] },
-            temporalAxes: includeArchived
-              ? fullTransactionTimeAxis
-              : currentTimeInstantTemporalAxes,
-            graphResolveDepths: {
-              ...almostFullOntologyResolveDepths,
-              ...graphResolveDepths,
+      const response = await apolloClient
+        .query<
+          QueryPropertyTypeSubgraphQuery,
+          QueryPropertyTypeSubgraphQueryVariables
+        >({
+          query: queryPropertyTypeSubgraphQuery,
+          fetchPolicy: "network-only",
+          variables: {
+            request: {
+              filter: latestOnly
+                ? { equal: [{ path: ["version"] }, { parameter: "latest" }] }
+                : { all: [] },
+              temporalAxes: includeArchived
+                ? fullTransactionTimeAxis
+                : currentTimeInstantTemporalAxes,
+              graphResolveDepths: {
+                ...almostFullOntologyResolveDepths,
+                ...graphResolveDepths,
+              },
+              traversalPaths: [],
             },
-            traversalPaths: [],
           },
-        },
-      });
+        })
+        .catch(graphQLErrorsAsUndefined);
 
-      if (!response.data) {
+      if (!response?.data) {
         return {
           errors: [
             {
@@ -81,7 +84,7 @@ export const useBlockProtocolQueryPropertyTypes = (): {
         ).subgraph,
       };
     },
-    [queryFn],
+    [apolloClient],
   );
 
   return { queryPropertyTypes };

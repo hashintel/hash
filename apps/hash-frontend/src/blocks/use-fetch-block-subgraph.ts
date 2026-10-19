@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { currentTimestamp, splitEntityId } from "@blockprotocol/type-system";
@@ -43,12 +43,7 @@ export const useFetchBlockSubgraph = (): ((
     subgraph: Subgraph<EntityRootType>;
   }
 >) => {
-  const [queryEntitySubgraph] = useLazyQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    fetchPolicy: "cache-and-network",
-  });
+  const apolloClient = useApolloClient();
 
   const fetchBlockSubgraph = useCallback(
     async (
@@ -154,53 +149,60 @@ export const useFetchBlockSubgraph = (): ((
       }
 
       const [webId, entityUuid, draftId] = splitEntityId(blockEntityId);
-      return queryEntitySubgraph({
-        variables: {
-          request: {
-            filter: {
-              all: [
+      return apolloClient
+        .query<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>({
+          query: queryEntitySubgraphQuery,
+          fetchPolicy: "network-only",
+          errorPolicy: "all",
+          variables: {
+            request: {
+              filter: {
+                all: [
+                  {
+                    equal: [{ path: ["webId"] }, { parameter: webId }],
+                  },
+                  {
+                    equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+                  },
+                  ...(draftId
+                    ? [
+                        {
+                          equal: [
+                            { path: ["draftId"] },
+                            { parameter: draftId },
+                          ],
+                        },
+                      ]
+                    : []),
+                ],
+              },
+              graphResolveDepths: almostFullOntologyResolveDepths,
+              traversalPaths: [
                 {
-                  equal: [{ path: ["webId"] }, { parameter: webId }],
+                  edges: Array(2)
+                    .fill([
+                      { kind: "has-left-entity", direction: "incoming" },
+                      { kind: "has-right-entity", direction: "outgoing" },
+                    ])
+                    .flat(),
                 },
                 {
-                  equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+                  edges: Array(2)
+                    .fill([
+                      { kind: "has-right-entity", direction: "incoming" },
+                      { kind: "has-left-entity", direction: "outgoing" },
+                    ])
+                    .flat(),
                 },
-                ...(draftId
-                  ? [
-                      {
-                        equal: [{ path: ["draftId"] }, { parameter: draftId }],
-                      },
-                    ]
-                  : []),
               ],
+              temporalAxes: currentTimeInstantTemporalAxes,
+              includeDrafts: !!draftId,
+              includePermissions: true,
             },
-            graphResolveDepths: almostFullOntologyResolveDepths,
-            traversalPaths: [
-              {
-                edges: Array(2)
-                  .fill([
-                    { kind: "has-left-entity", direction: "incoming" },
-                    { kind: "has-right-entity", direction: "outgoing" },
-                  ])
-                  .flat(),
-              },
-              {
-                edges: Array(2)
-                  .fill([
-                    { kind: "has-right-entity", direction: "incoming" },
-                    { kind: "has-left-entity", direction: "outgoing" },
-                  ])
-                  .flat(),
-              },
-            ],
-            temporalAxes: currentTimeInstantTemporalAxes,
-            includeDrafts: !!draftId,
-            includePermissions: true,
           },
-        },
-      })
+        })
         .then(({ data, error }) => {
-          if (!data) {
+          if (!data || error) {
             throw new Error(
               `Could not get entity ${blockEntityId}: ${
                 error ? error.message : "unknown error"
@@ -223,7 +225,7 @@ export const useFetchBlockSubgraph = (): ((
           throw err;
         });
     },
-    [queryEntitySubgraph],
+    [apolloClient],
   );
 
   return fetchBlockSubgraph;

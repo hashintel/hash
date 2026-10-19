@@ -1,5 +1,5 @@
-import { useQuery } from "@apollo/client";
-import { useMemo, useState } from "react";
+import { useQuery } from "@apollo/client/react";
+import { useMemo } from "react";
 
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -26,11 +26,6 @@ import type { FunctionComponent, PropsWithChildren } from "react";
 export const DraftEntitiesContextProvider: FunctionComponent<
   PropsWithChildren
 > = ({ children }) => {
-  const [
-    previouslyFetchedDraftEntitiesData,
-    setPreviouslyFetchedDraftEntitiesData,
-  ] = useState<QueryEntitiesQuery>();
-
   const { authenticatedUser } = useAuthInfo();
 
   const { refetch: refetchDraftEntitiesCount } = useDraftEntitiesCount();
@@ -39,6 +34,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
 
   const {
     data: draftEntitiesData,
+    previousData: previousDraftEntitiesData,
     refetch: refetchFullData,
     loading,
   } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
@@ -63,7 +59,6 @@ export const DraftEntitiesContextProvider: FunctionComponent<
           includePermissions: false,
         },
       },
-      onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
       pollInterval,
       fetchPolicy: "network-only",
       skip: !authenticatedUser,
@@ -72,13 +67,12 @@ export const DraftEntitiesContextProvider: FunctionComponent<
 
   const draftEntities = useMemo(
     () =>
-      (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)
+      (draftEntitiesData ?? previousDraftEntitiesData)
         ? deserializeQueryEntitiesResponse(
-            (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
-              .queryEntities,
+            (draftEntitiesData ?? previousDraftEntitiesData)!.queryEntities,
           ).entities
         : undefined,
-    [draftEntitiesData, previouslyFetchedDraftEntitiesData],
+    [draftEntitiesData, previousDraftEntitiesData],
   );
 
   const value = useMemo<DraftEntitiesContextValue>(

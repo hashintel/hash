@@ -1,7 +1,13 @@
-import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
+import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { Grid, styled, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
 
 import { AlertModal, ArrowUpRightRegularIcon } from "@hashintel/design-system";
 
@@ -133,18 +139,27 @@ const SignupPage: NextPageWithLayout = () => {
     GetPendingInvitationByEntityIdQuery,
     GetPendingInvitationByEntityIdQueryVariables
   >(getPendingInvitationByEntityIdQuery, {
-    onCompleted: (data) => {
-      if (data.getPendingInvitationByEntityId && !authenticatedUser) {
-        setShowInvitationStep(true);
-      } else {
-        setShowInvitationStep(false);
-      }
-    },
     variables: {
       entityId: invitationId as EntityId,
     },
     skip: !invitationId,
   });
+
+  const onInvitationQueryCompleted = useEffectEvent(() => {
+    if (invitationData) {
+      setShowInvitationStep(!!invitationData.getPendingInvitationByEntityId);
+    }
+  });
+
+  /**
+   * Runs once the invitation fetch completes, so a later cache update does not
+   * show the invitation step again after the user accepted it.
+   */
+  useEffect(() => {
+    if (!invitationLoading) {
+      onInvitationQueryCompleted();
+    }
+  }, [invitationLoading]);
 
   const { data: pendingInvitationsData, loading: pendingInvitationsLoading } =
     useQuery<

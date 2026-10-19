@@ -1,5 +1,12 @@
-import { useMutation, useQuery } from "@apollo/client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "@apollo/client/react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
@@ -261,9 +268,9 @@ export const Entity = ({
    * main query (and the editor shell) independent of the entity's link volume.
    *
    * This starts `false` (we don't know the user's permissions until the first
-   * response) and is set from the entity permissions in `onCompleted`. If the
-   * user can edit, the query variables change and the query refetches with the
-   * link data included.
+   * response) and is set from the entity permissions in
+   * `onEntitySubgraphLoaded`. If the user can edit, the query variables change
+   * and the query refetches with the link data included.
    */
   const [includeLinkDataInQuery, setIncludeLinkDataInQuery] = useState(false);
   const hasCompletedInitialLoadRef = useRef(false);
@@ -277,12 +284,8 @@ export const Entity = ({
   const [hasRootLinkDataBeenResolved, setHasRootLinkDataBeenResolved] =
     useState<boolean>(!!(draftLocalEntity ?? proposedEntitySubgraph));
 
-  const { data: queryEntitySubgraphData, refetch } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    fetchPolicy: "cache-and-network",
-    onCompleted: (data) => {
+  const onEntitySubgraphLoaded = useEffectEvent(
+    (data: QueryEntitySubgraphQuery) => {
       const subgraph = deserializeQueryEntitySubgraphResponse(
         data.queryEntitySubgraph,
       ).subgraph;
@@ -352,66 +355,93 @@ export const Entity = ({
 
       setLoading(false);
     },
-    variables: {
-      request: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-            },
-            {
-              equal: [{ path: ["webId"] }, { parameter: webId }],
-            },
-            ...(draftId
-              ? [
+  );
+
+  const {
+    data: queryEntitySubgraphData,
+    loading: queryEntitySubgraphLoading,
+    refetch,
+  } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
+    {
+      fetchPolicy: "cache-and-network",
+      variables: {
+        request: {
+          filter: {
+            all: [
+              {
+                equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+              },
+              {
+                equal: [{ path: ["webId"] }, { parameter: webId }],
+              },
+              ...(draftId
+                ? [
+                    {
+                      equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                    },
+                  ]
+                : []),
+            ],
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          traversalPaths: [
+            /**
+             * Incoming and outgoing links (and their source/target entities) are
+             * only fetched here when the entity is editable. When readonly, the
+             * link tables fetch this data themselves (see `isReadOnly`).
+             */
+            ...(includeLinkDataInQuery
+              ? ([
                   {
-                    equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                    edges: [
+                      { kind: "has-left-entity", direction: "incoming" },
+                      { kind: "has-right-entity", direction: "outgoing" },
+                    ],
                   },
-                ]
+                  {
+                    edges: [
+                      { kind: "has-right-entity", direction: "incoming" },
+                      { kind: "has-left-entity", direction: "outgoing" },
+                    ],
+                  },
+                ] satisfies EntityTraversalPath[])
               : []),
+            /**
+             * These paths resolve the entity's own source/target when the entity
+             * is itself a link, and are always required (e.g. by `LinkSection`).
+             */
+            {
+              edges: [{ kind: "has-left-entity", direction: "outgoing" }],
+            },
+            {
+              edges: [{ kind: "has-right-entity", direction: "outgoing" }],
+            },
           ],
+          includeDrafts: !!draftId,
+          includeEntityTypes: "resolvedWithDataTypeChildren",
+          includePermissions: true,
         },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        traversalPaths: [
-          /**
-           * Incoming and outgoing links (and their source/target entities) are
-           * only fetched here when the entity is editable. When readonly, the
-           * link tables fetch this data themselves (see `isReadOnly`).
-           */
-          ...(includeLinkDataInQuery
-            ? ([
-                {
-                  edges: [
-                    { kind: "has-left-entity", direction: "incoming" },
-                    { kind: "has-right-entity", direction: "outgoing" },
-                  ],
-                },
-                {
-                  edges: [
-                    { kind: "has-right-entity", direction: "incoming" },
-                    { kind: "has-left-entity", direction: "outgoing" },
-                  ],
-                },
-              ] satisfies EntityTraversalPath[])
-            : []),
-          /**
-           * These paths resolve the entity's own source/target when the entity
-           * is itself a link, and are always required (e.g. by `LinkSection`).
-           */
-          {
-            edges: [{ kind: "has-left-entity", direction: "outgoing" }],
-          },
-          {
-            edges: [{ kind: "has-right-entity", direction: "outgoing" }],
-          },
-        ],
-        includeDrafts: !!draftId,
-        includeEntityTypes: "resolvedWithDataTypeChildren",
-        includePermissions: true,
       },
+      skip: !!draftLocalEntity || !!proposedEntitySubgraph,
     },
-    skip: !!draftLocalEntity || !!proposedEntitySubgraph,
+  );
+
+  const onEntitySubgraphQueryCompleted = useEffectEvent(() => {
+    if (queryEntitySubgraphData) {
+      onEntitySubgraphLoaded(queryEntitySubgraphData);
+    }
   });
+
+  /**
+   * Runs once each fetch completes, as `onCompleted` did. Refetches and cache
+   * updates do not set `loading`, so they do not reset the draft state.
+   */
+  useEffect(() => {
+    if (!queryEntitySubgraphLoading) {
+      onEntitySubgraphQueryCompleted();
+    }
+  }, [queryEntitySubgraphLoading]);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,

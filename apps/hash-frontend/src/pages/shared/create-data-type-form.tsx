@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { Box, Stack } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
@@ -53,10 +53,7 @@ export const CreateDataTypeForm = ({
 }: CreateDataTypeFormProps) => {
   const router = useRouter();
 
-  const [queryDataTypes] = useLazyQuery<
-    QueryDataTypesQuery,
-    QueryDataTypesQueryVariables
-  >(queryDataTypesQuery);
+  const apolloClient = useApolloClient();
 
   const {
     handleSubmit,
@@ -207,7 +204,11 @@ export const CreateDataTypeForm = ({
                 clearErrors("title");
               },
               async validate(titleToValidate) {
-                const res = await queryDataTypes({
+                const res = await apolloClient.query<
+                  QueryDataTypesQuery,
+                  QueryDataTypesQueryVariables
+                >({
+                  query: queryDataTypesQuery,
                   variables: {
                     request: {
                       filter: {

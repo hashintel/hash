@@ -1,4 +1,4 @@
-import { useApolloClient, useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -400,7 +400,7 @@ export const useDashboardItemConfig = ({
   const pollFlowForCompletion = useCallback(
     async (flowRunId: string) => {
       try {
-        const { data } = await apolloClient.query<
+        const { data, error } = await apolloClient.query<
           GetFlowRunByIdQuery,
           GetFlowRunByIdQueryVariables
         >({
@@ -411,6 +411,12 @@ export const useDashboardItemConfig = ({
 
         if (generationFinalizingRef.current || generationSettledRef.current) {
           return;
+        }
+
+        if (!data) {
+          throw new Error("Flow run query returned no data", {
+            cause: error,
+          });
         }
 
         const flowRun = data.getFlowRunById;

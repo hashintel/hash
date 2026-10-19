@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client/react";
 import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 

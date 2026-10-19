@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { useCallback, useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 
@@ -125,7 +125,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       // First, upload the file (either from a url or from a file)
       if (!fileEntity && "url" in fileData && fileData.url.trim()) {
         try {
-          const { data, errors } = await createFileFromUrlFn({
+          const { data, error } = await createFileFromUrlFn({
             variables: {
               description,
               displayName: name,
@@ -142,8 +142,8 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             },
           });
 
-          if (!data || errors) {
-            throw new Error(errors?.[0]?.message ?? "unknown error");
+          if (!data || error) {
+            throw new Error(error?.message ?? "unknown error");
           }
 
           fileEntity = new HashEntity<FileEntity>(data.createFileFromUrl);
@@ -177,7 +177,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         try {
           if (!fileEntity) {
             // if we are resuming a previous step and have a file entity, we can skip this step
-            const { data, errors } = await requestFileUploadFn({
+            const { data, error } = await requestFileUploadFn({
               variables: {
                 description,
                 displayName: name,
@@ -195,8 +195,8 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               },
             });
 
-            if (!data || errors) {
-              throw new Error(errors?.[0]?.message ?? "unknown error");
+            if (!data || error) {
+              throw new Error(error?.message ?? "unknown error");
             }
 
             fileEntity = new HashEntity<FileEntity>(
@@ -322,15 +322,15 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         updateUpload(upload);
 
         try {
-          const { data: archiveData, errors: archiveErrors } =
+          const { data: archiveData, error: archiveError } =
             await archiveEntity({
               variables: {
                 entityId: linkEntityIdToDelete,
               },
             });
 
-          if (!archiveData || archiveErrors) {
-            throw new Error(archiveErrors?.[0]?.message ?? "unknown error");
+          if (!archiveData || archiveError) {
+            throw new Error(archiveError?.message ?? "unknown error");
           }
         } catch (err) {
           // archiveEntity might itself throw rather than return errors, thus this catch
@@ -362,7 +362,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       updateUpload(upload);
 
       try {
-        const { data, errors } = await createEntity({
+        const { data, error } = await createEntity({
           variables: {
             entityTypeIds: [linkEntityTypeId],
             linkData: {
@@ -379,8 +379,8 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           },
         });
 
-        if (!data || errors) {
-          throw new Error(errors?.[0]?.message ?? "unknown error");
+        if (!data || error) {
+          throw new Error(error?.message ?? "unknown error");
         }
 
         const linkEntity = new HashLinkEntity(data.createEntity);

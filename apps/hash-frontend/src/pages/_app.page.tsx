@@ -387,9 +387,11 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       context: { headers: { cookie } },
     })
     .then(({ data }) =>
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity<User>>>(
-        data.me.subgraph,
-      ),
+      data
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<
+            EntityRootType<HashEntity<User>>
+          >(data.me.subgraph)
+        : undefined,
     )
     .catch(() => undefined);
 
@@ -466,7 +468,15 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
         query: hasAccessToHashQuery,
         context: { headers: { cookie } },
       })
-      .then(({ data }) => data.hasAccessToHash);
+      .then(({ data, error }) => {
+        if (!data) {
+          throw new Error("hasAccessToHash query returned no data", {
+            cause: error,
+          });
+        }
+
+        return data.hasAccessToHash;
+      });
 
     // ...if they have access to HASH but aren't on the signup page...
     if (hasAccessToHash && !pathname.startsWith("/signup")) {
@@ -513,7 +523,15 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
             query: getHashInstanceSettings,
             context: { headers: { cookie } },
           })
-          .then(({ data }) => !!data.hashInstanceSettings?.isUserAdmin);
+          .then(({ data, error }) => {
+            if (!data) {
+              throw new Error("hashInstanceSettings query returned no data", {
+                cause: error,
+              });
+            }
+
+            return !!data.hashInstanceSettings?.isUserAdmin;
+          });
 
         if (!isUserAdmin) {
           // ...then redirect them to the home page instead.

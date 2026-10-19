@@ -1,4 +1,4 @@
-import { useLazyQuery, useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client/react";
 import { Stack } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
@@ -32,10 +32,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     InviteUserToOrgMutationVariables
   >(inviteUserToOrgMutation);
 
-  const [queryEntities] = useLazyQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery);
+  const apolloClient = useApolloClient();
 
   const { refetch: refetchAuthenticatedUser } = useAuthenticatedUser();
 
@@ -64,7 +61,12 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    const { data } = await queryEntities({
+    const { data } = await apolloClient.query<
+      QueryEntitiesQuery,
+      QueryEntitiesQueryVariables
+    >({
+      query: queryEntitiesQuery,
+      errorPolicy: "all",
       variables: {
         request: {
           filter: convertBpFilterToGraphFilter({

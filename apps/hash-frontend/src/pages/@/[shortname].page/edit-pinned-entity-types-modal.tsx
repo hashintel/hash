@@ -1,4 +1,5 @@
-import { useMutation } from "@apollo/client";
+import { CombinedGraphQLErrors } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { Box, Typography, typographyClasses } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
@@ -140,7 +141,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
       .map(({ metadata }) => metadata.recordId.baseUrl)
       .filter((value, index, all) => all.indexOf(value) === index);
 
-    await updateEntity({
+    const { error } = await updateEntity({
       variables: {
         entityUpdate: {
           entityId: profile.entity.metadata.recordId.entityId,
@@ -160,6 +161,10 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
         },
       },
     });
+
+    if (error && !CombinedGraphQLErrors.is(error)) {
+      throw new Error(error.message, { cause: error });
+    }
 
     /** @todo: error handling */
 

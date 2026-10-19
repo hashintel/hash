@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { Box, Stack, Typography } from "@mui/material";
 import { type FunctionComponent, useState } from "react";
 import { Controller, useForm } from "react-hook-form";

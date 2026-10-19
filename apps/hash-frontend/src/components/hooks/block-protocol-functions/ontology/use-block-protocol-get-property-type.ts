@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { deserializeQueryPropertyTypeSubgraphResponse } from "@local/hash-graph-sdk/property-type";
@@ -8,6 +8,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryPropertyTypeSubgraphQuery } from "../../../../graphql/queries/ontology/property-type.queries";
+import { graphQLErrorsAsUndefined } from "../shared/graphql-errors-as-undefined";
 
 import type {
   QueryPropertyTypeSubgraphQuery,
@@ -18,19 +19,7 @@ import type { GetPropertyTypeMessageCallback } from "./ontology-types-shim";
 export const useBlockProtocolGetPropertyType = (): {
   getPropertyType: GetPropertyTypeMessageCallback;
 } => {
-  const [getFn] = useLazyQuery<
-    QueryPropertyTypeSubgraphQuery,
-    QueryPropertyTypeSubgraphQueryVariables
-  >(queryPropertyTypeSubgraphQuery, {
-    /**
-     * Property types are immutable, any request for an propertyTypeId should always return the same value.
-     * However, currently requests for non-existent property types currently return an empty subgraph, so
-     * we can't rely on this.
-     *
-     * @todo revert this back to cache-first once that's fixed
-     */
-    fetchPolicy: "network-only",
-  });
+  const apolloClient = useApolloClient();
 
   const getPropertyType = useCallback<GetPropertyTypeMessageCallback>(
     async ({ data }) => {
@@ -47,26 +36,40 @@ export const useBlockProtocolGetPropertyType = (): {
 
       const { propertyTypeId, graphResolveDepths } = data;
 
-      const response = await getFn({
-        variables: {
-          request: {
-            filter: {
-              equal: [
-                { path: ["versionedUrl"] },
-                { parameter: propertyTypeId },
-              ],
+      const response = await apolloClient
+        .query<
+          QueryPropertyTypeSubgraphQuery,
+          QueryPropertyTypeSubgraphQueryVariables
+        >({
+          query: queryPropertyTypeSubgraphQuery,
+          /**
+           * Property types are immutable, any request for an propertyTypeId should always return the same value.
+           * However, currently requests for non-existent property types currently return an empty subgraph, so
+           * we can't rely on this.
+           *
+           * @todo revert this back to cache-first once that's fixed
+           */
+          fetchPolicy: "network-only",
+          variables: {
+            request: {
+              filter: {
+                equal: [
+                  { path: ["versionedUrl"] },
+                  { parameter: propertyTypeId },
+                ],
+              },
+              temporalAxes: currentTimeInstantTemporalAxes,
+              graphResolveDepths: {
+                ...almostFullOntologyResolveDepths,
+                ...graphResolveDepths,
+              },
+              traversalPaths: [],
             },
-            temporalAxes: currentTimeInstantTemporalAxes,
-            graphResolveDepths: {
-              ...almostFullOntologyResolveDepths,
-              ...graphResolveDepths,
-            },
-            traversalPaths: [],
           },
-        },
-      });
+        })
+        .catch(graphQLErrorsAsUndefined);
 
-      if (!response.data) {
+      if (!response?.data) {
         return {
           errors: [
             {
@@ -83,7 +86,7 @@ export const useBlockProtocolGetPropertyType = (): {
         ).subgraph,
       };
     },
-    [getFn],
+    [apolloClient],
   );
 
   return { getPropertyType };

@@ -1,4 +1,4 @@
-import { useApolloClient } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useCallback, useState } from "react";
 
 import { isShortnameTaken as isShortnameTakenQuery } from "../../graphql/queries/user.queries";
@@ -59,7 +59,7 @@ export const useShortnameInput = () => {
 
       setLoading(false);
 
-      if (data.isShortnameTaken) {
+      if (data?.isShortnameTaken) {
         return "IS_TAKEN";
       }
 

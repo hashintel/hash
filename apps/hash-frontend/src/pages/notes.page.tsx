@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { Container } from "@mui/material";
 import {
   differenceInDays,
@@ -7,7 +7,7 @@ import {
   format,
   isYesterday,
 } from "date-fns";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
@@ -40,51 +40,50 @@ const NotesPage: NextPageWithLayout = () => {
 
   const sectionRefs = useRef<Array<HTMLDivElement>>([]);
 
-  const [previouslyFetchedQuickNotesData, setPreviouslyFetchedQuickNotesData] =
-    useState<QueryEntitySubgraphQuery>();
-
-  const { data: quickNotesData, refetch } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    variables: {
-      request: {
-        filter: {
-          all: [
-            {
-              equal: [
-                { path: ["type", "baseUrl"] },
-                { parameter: systemEntityTypes.note.entityTypeBaseUrl },
-              ],
-            },
-            {
-              equal: [
-                { path: ["webId"] },
-                { parameter: authenticatedUser.accountId },
-              ],
-            },
-          ],
+  const {
+    data: quickNotesData,
+    previousData,
+    refetch,
+  } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
+    {
+      variables: {
+        request: {
+          filter: {
+            all: [
+              {
+                equal: [
+                  { path: ["type", "baseUrl"] },
+                  { parameter: systemEntityTypes.note.entityTypeBaseUrl },
+                ],
+              },
+              {
+                equal: [
+                  { path: ["webId"] },
+                  { parameter: authenticatedUser.accountId },
+                ],
+              },
+            ],
+          },
+          ...blockCollectionContentsTraversalParams,
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includePermissions: true,
         },
-        ...blockCollectionContentsTraversalParams,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: true,
       },
+      fetchPolicy: "cache-and-network",
     },
-    onCompleted: (data) => setPreviouslyFetchedQuickNotesData(data),
-    fetchPolicy: "cache-and-network",
-  });
+  );
 
   const quickNotesSubgraph = useMemo(() => {
-    const response = (quickNotesData ?? previouslyFetchedQuickNotesData)
-      ?.queryEntitySubgraph;
+    const response = (quickNotesData ?? previousData)?.queryEntitySubgraph;
 
     if (!response) {
       return undefined;
     }
 
     return deserializeQueryEntitySubgraphResponse(response).subgraph;
-  }, [quickNotesData, previouslyFetchedQuickNotesData]);
+  }, [quickNotesData, previousData]);
 
   const latestQuickNoteEntities = useMemo<HashEntity[] | undefined>(() => {
     if (!quickNotesSubgraph) {

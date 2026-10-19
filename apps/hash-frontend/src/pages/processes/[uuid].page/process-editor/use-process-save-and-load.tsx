@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import {
   type Dispatch,
   type SetStateAction,
@@ -130,11 +130,9 @@ export const useProcessSaveAndLoad = ({
 
       /**
        * Apollo's `refetch()` can resolve without `data` (e.g. some network
-       * error paths) even though generated types model it as present.
-       * Treat this as a soft failure so callers can surface a regular
-       * save/refetch error instead of throwing on undefined access.
+       * error paths). Treat this as a soft failure so callers can surface a
+       * regular save/refetch error instead of throwing on undefined access.
        */
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!updatedNetsData.data) {
         return null;
       }

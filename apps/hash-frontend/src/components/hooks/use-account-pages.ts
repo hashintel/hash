@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { useMemo } from "react";
 
 import {
@@ -20,7 +20,7 @@ import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import type { ApolloQueryResult } from "@apollo/client";
+import type { ApolloClient } from "@apollo/client";
 import type { EntityMetadata, WebId } from "@blockprotocol/type-system";
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -35,7 +35,7 @@ export type AccountPagesInfo = {
   data: SimplePage[];
   lastRootPageIndex: string | null;
   loading: boolean;
-  refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloClient.QueryResult<QueryEntitySubgraphQuery>>;
 };
 
 export const useAccountPages = (

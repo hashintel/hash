@@ -1,5 +1,5 @@
-import { type ApolloError, useQuery } from "@apollo/client";
-import { useMemo } from "react";
+import { useQuery } from "@apollo/client/react";
+import { useEffect, useEffectEvent, useMemo } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
@@ -27,6 +27,7 @@ import type {
   SummarizeEntitiesQuery,
   SummarizeEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
+import type { ErrorLike } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityQueryCursor,
@@ -153,7 +154,7 @@ export const useEntityLinks = ({
   /** Whether the first page is still loading. */
   initialLoading: boolean;
   /** Any error from the underlying query, for the caller to surface. */
-  error?: ApolloError;
+  error?: ErrorLike;
   /** Whether a subsequent page is being fetched. */
   loadingMore: boolean;
   /** Fetch the next page (no-op if there are no more pages). */
@@ -275,7 +276,7 @@ export const useEntityLinks = ({
     [baseFilterClauses],
   );
 
-  const { loading, error } = useQuery<
+  const { data, loading, error } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
@@ -297,56 +298,73 @@ export const useEntityLinks = ({
         includePermissions: false,
       },
     },
-    onCompleted: (data) => {
-      const response = deserializeQueryEntitySubgraphResponse(
-        data.queryEntitySubgraph,
-      );
-
-      const newLinkEntities = getRoots(response.subgraph).map(
-        (rootEntity) => new HashLinkEntity(rootEntity),
-      );
-
-      appendPage(resetKey, (prevAccumulated) => {
-        const linkEntities = [...prevAccumulated.linkEntities];
-        const seenLinkIds = new Set(prevAccumulated.seenLinkIds);
-        for (const linkEntity of newLinkEntities) {
-          const linkEntityId = linkEntity.metadata.recordId.entityId;
-          if (!seenLinkIds.has(linkEntityId)) {
-            seenLinkIds.add(linkEntityId);
-            linkEntities.push(linkEntity);
-          }
-        }
-
-        // Exhausted once a page returns fewer rows than the page size (incl. zero),
-        // even if the API still handed back a non-null cursor; `getNextPage` is
-        // then `false` so pagination stops.
-        const exhausted = newLinkEntities.length < linksTablePageSize;
-        const nextCursor = exhausted
-          ? null
-          : (data.queryEntitySubgraph.cursor ?? null);
-
-        return {
-          accumulated: {
-            linkEntities,
-            seenLinkIds,
-            subgraph: prevAccumulated.subgraph
-              ? mergeSubgraphInto(prevAccumulated.subgraph, response.subgraph)
-              : response.subgraph,
-            typesMap: {
-              ...prevAccumulated.typesMap,
-              ...(data.queryEntitySubgraph.closedMultiEntityTypes ?? {}),
-            },
-            definitions: mergeDefinitionsInto(
-              prevAccumulated.definitions,
-              data.queryEntitySubgraph.definitions ?? undefined,
-            ),
-          },
-          getNextPage:
-            nextCursor === null ? false : () => ({ cursor: nextCursor }),
-        };
-      });
-    },
   });
+
+  const onPageLoaded = useEffectEvent((pageData: QueryEntitySubgraphQuery) => {
+    const response = deserializeQueryEntitySubgraphResponse(
+      pageData.queryEntitySubgraph,
+    );
+
+    const newLinkEntities = getRoots(response.subgraph).map(
+      (rootEntity) => new HashLinkEntity(rootEntity),
+    );
+
+    appendPage(resetKey, (prevAccumulated) => {
+      const linkEntities = [...prevAccumulated.linkEntities];
+      const seenLinkIds = new Set(prevAccumulated.seenLinkIds);
+      for (const linkEntity of newLinkEntities) {
+        const linkEntityId = linkEntity.metadata.recordId.entityId;
+        if (!seenLinkIds.has(linkEntityId)) {
+          seenLinkIds.add(linkEntityId);
+          linkEntities.push(linkEntity);
+        }
+      }
+
+      // Exhausted once a page returns fewer rows than the page size (incl. zero),
+      // even if the API still handed back a non-null cursor; `getNextPage` is
+      // then `false` so pagination stops.
+      const exhausted = newLinkEntities.length < linksTablePageSize;
+      const nextCursor = exhausted
+        ? null
+        : (pageData.queryEntitySubgraph.cursor ?? null);
+
+      return {
+        accumulated: {
+          linkEntities,
+          seenLinkIds,
+          subgraph: prevAccumulated.subgraph
+            ? mergeSubgraphInto(prevAccumulated.subgraph, response.subgraph)
+            : response.subgraph,
+          typesMap: {
+            ...prevAccumulated.typesMap,
+            ...(pageData.queryEntitySubgraph.closedMultiEntityTypes ?? {}),
+          },
+          definitions: mergeDefinitionsInto(
+            prevAccumulated.definitions,
+            pageData.queryEntitySubgraph.definitions ?? undefined,
+          ),
+        },
+        getNextPage:
+          nextCursor === null ? false : () => ({ cursor: nextCursor }),
+      };
+    });
+  });
+
+  const onPageQueryCompleted = useEffectEvent(() => {
+    if (data) {
+      onPageLoaded(data);
+    }
+  });
+
+  /**
+   * Appends a page once its fetch completes. Cache updates to a page already
+   * appended do not set `loading`, so they do not append it again.
+   */
+  useEffect(() => {
+    if (!loading) {
+      onPageQueryCompleted();
+    }
+  }, [loading]);
 
   /**
    * The total number of matching links. Fetched separately from the paginated

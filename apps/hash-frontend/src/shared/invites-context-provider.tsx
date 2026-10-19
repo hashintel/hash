@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { useMemo } from "react";
 
 import { getMyPendingInvitationsQuery } from "../graphql/queries/knowledge/org.queries";

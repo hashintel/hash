@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { GlobalStyles, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useRouter } from "next/router";

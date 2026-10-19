@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { useMemo } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
@@ -14,7 +14,7 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import type { User } from "../../lib/user-and-org";
-import type { ApolloQueryResult } from "@apollo/client";
+import type { ApolloClient } from "@apollo/client";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
 
 /**
@@ -27,7 +27,7 @@ export const useUsersWithLinks = ({
 }): {
   loading: boolean;
   users?: User[];
-  refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloClient.QueryResult<QueryEntitySubgraphQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
     QueryEntitySubgraphQuery,

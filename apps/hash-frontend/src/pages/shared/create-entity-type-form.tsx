@@ -1,4 +1,4 @@
-import { useLazyQuery, useQuery } from "@apollo/client";
+import { useLazyQuery, useQuery } from "@apollo/client/react";
 import { Box, Stack } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
@@ -120,7 +120,7 @@ export const CreateEntityTypeForm = ({
         variables: {
           singular: newTitle,
         },
-      });
+      }).retain();
 
       if (!data) {
         throw new Error(`No data returned from generatePlural query`);
@@ -149,7 +149,7 @@ export const CreateEntityTypeForm = ({
         variables: {
           relationship: linkTitle,
         },
-      });
+      }).retain();
 
       if (!data) {
         throw new Error(`No data returned from generateInverse query`);

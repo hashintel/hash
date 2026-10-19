@@ -1,4 +1,5 @@
-import { useLazyQuery, useMutation } from "@apollo/client";
+import { CombinedGraphQLErrors } from "@apollo/client";
+import { useLazyQuery, useMutation } from "@apollo/client/react";
 import { useCallback, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
@@ -30,7 +31,7 @@ import type {
 import type { EntityRootType } from "@blockprotocol/graph";
 import type { PropertyPatchOperation } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { GraphQLError } from "graphql";
+import type { GraphQLFormattedError } from "graphql";
 
 type UpdateAuthenticatedUserParams = {
   shortname?: string;
@@ -77,7 +78,7 @@ export const useUpdateAuthenticatedUser = () => {
       params: UpdateAuthenticatedUserParams,
     ): Promise<{
       updatedAuthenticatedUser?: User;
-      errors?: readonly GraphQLError[] | undefined;
+      errors?: readonly GraphQLFormattedError[] | undefined;
     }> => {
       if (!authenticatedUser) {
         throw new Error("There is no authenticated user to update.");
@@ -176,7 +177,7 @@ export const useUpdateAuthenticatedUser = () => {
             }
           }
 
-          const { errors } = await updateEntity({
+          const { error } = await updateEntity({
             variables: {
               entityUpdate: {
                 entityId: latestUserEntity.metadata.recordId.entityId,
@@ -185,8 +186,12 @@ export const useUpdateAuthenticatedUser = () => {
             },
           });
 
-          if (errors && errors.length > 0) {
-            return { errors };
+          if (CombinedGraphQLErrors.is(error)) {
+            return { errors: error.errors };
+          }
+
+          if (error) {
+            throw new Error(error.message, { cause: error });
           }
 
           const { authenticatedUser: updatedAuthenticatedUser } =

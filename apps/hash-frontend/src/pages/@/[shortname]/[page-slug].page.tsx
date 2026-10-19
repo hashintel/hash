@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import { Box } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { Router, useRouter } from "next/router";

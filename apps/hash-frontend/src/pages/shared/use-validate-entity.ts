@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useLazyQuery } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
@@ -208,7 +208,7 @@ export const useValidateEntity = () => {
           entityTypes: entityTypeIds,
           properties,
         },
-      });
+      }).retain();
 
       if (!data) {
         throw new Error(

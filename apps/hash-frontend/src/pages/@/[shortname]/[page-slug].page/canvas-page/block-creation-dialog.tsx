@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
 import { useApp } from "@tldraw/editor";
 import { useCallback, useState } from "react";
 

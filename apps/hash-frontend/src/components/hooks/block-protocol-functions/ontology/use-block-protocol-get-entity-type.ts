@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client/react";
 import { useCallback } from "react";
 
 import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
@@ -8,6 +8,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntityTypeSubgraphQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
+import { graphQLErrorsAsUndefined } from "../shared/graphql-errors-as-undefined";
 
 import type {
   QueryEntityTypeSubgraphQuery,
@@ -18,19 +19,7 @@ import type { GetEntityTypeMessageCallback } from "./ontology-types-shim";
 export const useBlockProtocolGetEntityType = (): {
   getEntityType: GetEntityTypeMessageCallback;
 } => {
-  const [getFn] = useLazyQuery<
-    QueryEntityTypeSubgraphQuery,
-    QueryEntityTypeSubgraphQueryVariables
-  >(queryEntityTypeSubgraphQuery, {
-    /**
-     * Entity types are immutable, any request for an entityTypeId should always return the same value.
-     * However, currently requests for non-existent entity types currently return an empty subgraph, so
-     * we can't rely on this.
-     *
-     * @todo revert this back to cache-first once that's fixed
-     */
-    fetchPolicy: "network-only",
-  });
+  const apolloClient = useApolloClient();
 
   const getEntityType = useCallback<GetEntityTypeMessageCallback>(
     async ({ data }) => {
@@ -47,24 +36,40 @@ export const useBlockProtocolGetEntityType = (): {
 
       const { entityTypeId, graphResolveDepths } = data;
 
-      const response = await getFn({
-        query: queryEntityTypeSubgraphQuery,
-        variables: {
-          request: {
-            filter: {
-              equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+      const response = await apolloClient
+        .query<
+          QueryEntityTypeSubgraphQuery,
+          QueryEntityTypeSubgraphQueryVariables
+        >({
+          query: queryEntityTypeSubgraphQuery,
+          /**
+           * Entity types are immutable, any request for an entityTypeId should always return the same value.
+           * However, currently requests for non-existent entity types currently return an empty subgraph, so
+           * we can't rely on this.
+           *
+           * @todo revert this back to cache-first once that's fixed
+           */
+          fetchPolicy: "network-only",
+          variables: {
+            request: {
+              filter: {
+                equal: [
+                  { path: ["versionedUrl"] },
+                  { parameter: entityTypeId },
+                ],
+              },
+              temporalAxes: currentTimeInstantTemporalAxes,
+              graphResolveDepths: {
+                ...almostFullOntologyResolveDepths,
+                ...graphResolveDepths,
+              },
+              traversalPaths: [],
             },
-            temporalAxes: currentTimeInstantTemporalAxes,
-            graphResolveDepths: {
-              ...almostFullOntologyResolveDepths,
-              ...graphResolveDepths,
-            },
-            traversalPaths: [],
           },
-        },
-      });
+        })
+        .catch(graphQLErrorsAsUndefined);
 
-      if (!response.data) {
+      if (!response?.data) {
         return {
           errors: [
             {
@@ -81,7 +86,7 @@ export const useBlockProtocolGetEntityType = (): {
         ).subgraph,
       };
     },
-    [getFn],
+    [apolloClient],
   );
 
   return { getEntityType };

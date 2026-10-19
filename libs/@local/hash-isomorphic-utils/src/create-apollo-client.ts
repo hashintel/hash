@@ -1,40 +1,58 @@
 import {
   ApolloClient,
   ApolloLink,
+  CombinedGraphQLErrors,
   HttpLink,
   InMemoryCache,
 } from "@apollo/client";
-import { onError } from "@apollo/client/link/error";
+import { ErrorLink } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
 
 import { apiGraphQLEndpoint } from "./environment.js";
 import possibleTypes from "./graphql/fragment-types.gen.json" with { type: "json" };
 import { hashClientHeaderKey } from "./http-requests.js";
 
-import type { DefaultOptions, NormalizedCacheObject } from "@apollo/client";
+/**
+ * The server-side client sets `errorPolicy` defaults that the browser client
+ * does not, so both the default and the server's value are allowed here.
+ */
+/* eslint-disable @typescript-eslint/no-namespace, @typescript-eslint/no-shadow -- Apollo Client declares its default options as namespaced interfaces, which only namespace merging can extend */
+declare module "@apollo/client" {
+  namespace ApolloClient {
+    namespace DeclareDefaultOptions {
+      interface WatchQuery {
+        errorPolicy?: "none" | "ignore";
+      }
+      interface Query {
+        errorPolicy?: "none" | "all";
+      }
+    }
+  }
+}
+/* eslint-enable @typescript-eslint/no-namespace, @typescript-eslint/no-shadow */
 
-const errorLink = onError(({ graphQLErrors, operation }) => {
-  if (graphQLErrors) {
-    for (const { message, extensions, path } of graphQLErrors) {
+const errorLink = new ErrorLink(({ error, operation }) => {
+  if (CombinedGraphQLErrors.is(error)) {
+    for (const { message, extensions, path } of error.errors) {
       Sentry.withScope((scope) => {
-        if (extensions.code === "FORBIDDEN") {
+        if (extensions?.code === "FORBIDDEN") {
           return;
         }
 
-        const error = new Error(
+        const sentryError = new Error(
           `GraphQL Error: ${path?.[0]?.toString() ?? "?"}`,
         );
-        scope.setExtra("Exception", extensions.exception);
+        scope.setExtra("Exception", extensions?.exception);
         scope.setExtra("Location", path);
         scope.setExtra("Query", operation.query.loc?.source.body);
         scope.setExtra(
           "Variables",
           JSON.stringify(operation.variables, undefined, 2),
         );
-        error.message = `GraphQL error - ${
+        sentryError.message = `GraphQL error - ${
           path?.[0]?.toString() ?? "undefined"
         } - ${message}`;
-        Sentry.captureException(error);
+        Sentry.captureException(sentryError);
       });
     }
   }
@@ -45,7 +63,7 @@ export const createApolloClient = (params?: {
   name?: string;
   isBrowser: boolean;
   additionalHeaders?: { [key: string]: string };
-}): ApolloClient<NormalizedCacheObject> => {
+}): ApolloClient => {
   /**
    * This wraps fetch to inject the query operation name into the URL, which makes it easier
    * to identify in dev tools.
@@ -94,14 +112,19 @@ export const createApolloClient = (params?: {
 
   const entityKeyFields = { keyFields: ["entityId"] };
 
+  // Refetches and polls leave `loading` false, so components that render a
+  // loading state while `loading` is true do not flash on every poll.
+  const notifyOnNetworkStatusChange = false;
+
   // When the client is running in the browser, we want to use the cache
   // otherwise we want to disable the cache on the server to prevent sharing user data.
-  const defaultOptions: DefaultOptions | undefined = params?.isBrowser
-    ? undefined
+  const defaultOptions: ApolloClient.DefaultOptions = params?.isBrowser
+    ? { watchQuery: { notifyOnNetworkStatusChange } }
     : {
         watchQuery: {
           fetchPolicy: "no-cache",
           errorPolicy: "ignore",
+          notifyOnNetworkStatusChange,
         },
         query: {
           fetchPolicy: "no-cache",
@@ -125,12 +148,13 @@ export const createApolloClient = (params?: {
         FlowRun: { keyFields: ["flowRunId"] },
       },
     }),
-    connectToDevTools:
-      process.env.NEXT_PUBLIC_VERCEL_ENV === "development" ||
-      process.env.NODE_ENV === "development",
-    credentials: "include",
+    devtools: {
+      enabled:
+        process.env.NEXT_PUBLIC_VERCEL_ENV === "development" ||
+        process.env.NODE_ENV === "development",
+    },
     link,
-    name: params?.name,
+    clientAwareness: { name: params?.name },
     defaultOptions,
   });
 };

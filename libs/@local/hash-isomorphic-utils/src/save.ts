@@ -517,7 +517,7 @@ export const save = async ({
   store,
   getBlocksMap,
 }: {
-  apolloClient: ApolloClient<unknown>;
+  apolloClient: ApolloClient;
   blockCollectionEntityId: EntityId;
   doc: Node;
   store: EntityStore;
@@ -556,7 +556,13 @@ export const save = async ({
       },
       fetchPolicy: "network-only",
     })
-    .then(({ data }) => {
+    .then(({ data, error }) => {
+      if (!data) {
+        throw new Error("Block collection query returned no data", {
+          cause: error,
+        });
+      }
+
       const subgraph = deserializeQueryEntitySubgraphResponse(
         data.queryEntitySubgraph,
       ).subgraph;

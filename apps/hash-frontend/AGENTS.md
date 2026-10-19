@@ -32,7 +32,7 @@ Query, create, and update entities through GraphQL operations defined in `src/gr
 Use `queryEntitySubgraphQuery` to fetch entities and their relationships.
 
 ```typescript
-import { useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client/react";
 import {
   getRoots,
   getOutgoingLinkAndTargetEntities,
