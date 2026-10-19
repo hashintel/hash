@@ -1,4 +1,4 @@
-import type { VersionedUrl, BaseUrl } from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 
 export const systemEntityTypes = {
   academicPaper: {
