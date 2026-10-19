@@ -18,7 +18,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
-import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type {
   Payload,
@@ -224,7 +223,7 @@ describe("findAction", () => {
       "00000000-0000-4000-8000-000000000001~00000000-0000-4000-8000-000000000011" as EntityId;
     vi.mocked(queryEntities).mockResolvedValueOnce({
       entities: [],
-    } as unknown as QueryEntitiesResponse);
+    });
 
     expect(
       await run(
@@ -238,8 +237,7 @@ describe("findAction", () => {
               operator: "isOfType",
               value: {
                 kind: "VersionedUrl",
-                value:
-                  "https://example.com/types/entity-type/company/v/1" as VersionedUrl,
+                value: "https://example.com/types/entity-type/company/v/1",
               },
             },
           ],
