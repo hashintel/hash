@@ -13,7 +13,7 @@ class Document extends NextDocument<CustomDocumentProps> {
     const { nonce } = this.props;
 
     return (
-      <Html lang="en">
+      <Html lang="en" data-scroll-behavior="smooth">
         <Head nonce={nonce} />
         <body>
           <Main />
