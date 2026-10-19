@@ -89,7 +89,7 @@ test("a question that names no entity drops its concerns clause", () => {
   expect(rendered).not.toContain("Concerns: .");
 });
 
-test("each entity carries the reflections naming it or one of its current claims", () => {
+test("each entity carries the reflections naming it or one of its claims", () => {
   const reflectionsOf = (address: string) =>
     projection.sections
       .flatMap(({ kinds }) => kinds)
@@ -100,4 +100,27 @@ test("each entity carries the reflections naming it or one of its current claims
   expect(reflectionsOf("e9")).toEqual(["r1"]);
   expect(reflectionsOf("e6")).toEqual(["r2"]);
   expect(markdown).not.toContain(supportDeskLedger.reflections[0]?.text);
+});
+
+test("a reflection stays under the entity after the claim it cites is replaced", () => {
+  const replaced = projectLedger({
+    ...supportDeskLedger,
+    claims: [
+      ...supportDeskLedger.claims,
+      {
+        address: "c99",
+        text: "Calls arrive in two peaks, not one.",
+        entities: ["e6"],
+        origin: "stated",
+        status: "confirmed",
+        supersedes: ["c8"],
+        turn: "msg-05",
+      },
+    ],
+  });
+  const e6 = replaced.sections
+    .flatMap(({ kinds }) => kinds)
+    .flatMap(({ entities }) => entities)
+    .find(({ record }) => record.address === "e6");
+  expect(e6?.reflections.map(({ address }) => address)).toEqual(["r2"]);
 });

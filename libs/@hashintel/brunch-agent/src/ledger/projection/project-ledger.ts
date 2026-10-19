@@ -35,7 +35,7 @@ export interface ProjectedEntity {
   claims: ProjectedClaim[];
   /**
    * Reflections on how the net represents this entity: those naming it or one
-   * of its current claims, in recording order. Renderers choose whether to
+   * of its current claims or the claims they replaced, in recording order. Renderers choose whether to
    * show them; the model's Markdown does not.
    */
   reflections: ReflectionRecord[];
@@ -155,13 +155,18 @@ export const projectLedger = (ledger: LedgerState): LedgerProjection => {
     const claims = currentClaims.filter((claim) =>
       claim.entities.includes(record.address),
     );
-    const claimAddresses = new Set(claims.map(({ address }) => address));
+    const projected = claims.map((claim) => ({
+      record: claim,
+      history: historyOf(claim),
+    }));
+    const claimAddresses = new Set(
+      projected.flatMap(({ record: claim, history }) =>
+        [claim, ...history].map(({ address }) => address),
+      ),
+    );
     return {
       record,
-      claims: claims.map((claim) => ({
-        record: claim,
-        history: historyOf(claim),
-      })),
+      claims: projected,
       reflections: ledger.reflections.filter(
         (reflection) =>
           reflection.entities?.includes(record.address) === true ||
