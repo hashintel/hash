@@ -97,7 +97,8 @@
     "puppeteer-core": "25.8.0",
     "sanitize-html": "2.17.7",
     "tsx": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "uuid": "14.0.0"
   },
   "devDependencies": {
     "@local/eslint": "workspace:*",

@@ -23,6 +23,7 @@ import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual, parseArgs } from "node:util";
 
 import proto from "@temporalio/proto";
+import { v5 as uuidv5 } from "uuid";
 
 import {
   extractBaseUrl,
@@ -266,6 +267,15 @@ const getUserIdByShortname = async (graphApi: GraphApi, shortname: string) => {
 };
 
 /**
+ * The id of a scenario's definition in a user's web. An entity uuid can only be used in one web, so each user gets
+ * their own id, derived from the scenario's.
+ */
+const getUserFlowDefinitionId = (
+  scenarioFlowDefinitionId: EntityUuid,
+  userId: UserId,
+) => uuidv5(userId, scenarioFlowDefinitionId) as EntityUuid;
+
+/**
  * Runs load their definition from the `Flow Definition` entity whose uuid is the definition's id. Migrations only
  * seed the flows HASH provides, so the scenario's definition is written to the user's web: created if it doesn't
  * exist, and updated if it differs, like `seedFlowDefinitions` does for seeded flows.
@@ -304,7 +314,7 @@ const ensureFlowDefinitionEntity = async ({
       provenance,
     }).catch((error: unknown) => {
       throw new SetupError(
-        `Couldn't create the Flow Definition entity ${flowDefinitionId} in the user's web (${(error as Error).message}). Has the API run this checkout's migrations, and is the id unique?`,
+        `Couldn't create the Flow Definition entity ${flowDefinitionId} in the user's web (${(error as Error).message}). Has the API run this checkout's migrations?`,
       );
     });
     return "created";
@@ -345,12 +355,14 @@ const ensureFlowDefinitionEntity = async ({
 /** Started like the `startFlow` resolver starts a run. */
 const startRun = async ({
   client,
-  scenario: { flow, inputs },
+  flow,
+  inputs,
   taskQueue,
   userId,
 }: {
   client: TemporalClient;
-  scenario: FlowScenario;
+  flow: FlowDefinitionWithId;
+  inputs: FlowScenario["inputs"];
   taskQueue: string;
   userId: UserId;
 }) => {
@@ -555,7 +567,7 @@ const main = async () => {
   }
 
   const { scenario, scenarioPath } = await loadScenario(scenarioArgument);
-  const { flowDefinition, flowDefinitionId } = scenario.flow;
+  const { flowDefinition } = scenario.flow;
   assertValidFlowDefinition(flowDefinition);
   const taskQueue = getFlowType(flowDefinition);
 
@@ -597,9 +609,14 @@ const main = async () => {
 
   const shortname = scenario.user ?? "alice";
   const userId = await getUserIdByShortname(graphApi, shortname);
+  const flowDefinitionId = getUserFlowDefinitionId(
+    scenario.flow.flowDefinitionId,
+    userId,
+  );
+  const flow = { flowDefinitionId, flowDefinition };
 
   const definitionChange = await ensureFlowDefinitionEntity({
-    flow: scenario.flow,
+    flow,
     graphApi,
     userId,
   });
@@ -609,7 +626,13 @@ const main = async () => {
     );
   }
 
-  const workflowId = await startRun({ client, scenario, taskQueue, userId });
+  const workflowId = await startRun({
+    client,
+    flow,
+    inputs: scenario.inputs,
+    taskQueue,
+    userId,
+  });
   console.log(`Started ${workflowId}: ${temporalUiUrl(workflowId)}`);
 
   const closed = await Promise.race([

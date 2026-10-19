@@ -548,6 +548,7 @@ __metadata:
     ts-json-schema-generator: "npm:1.5.1"
     tsx: "catalog:"
     typescript: "catalog:"
+    uuid: "npm:14.0.0"
     vite: "catalog:"
     vitest: "catalog:"
     wait-on: "npm:9.0.1"

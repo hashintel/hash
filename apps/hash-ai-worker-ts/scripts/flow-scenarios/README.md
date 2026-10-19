@@ -23,8 +23,10 @@ Copy [`scenarios/array-actions.scenario.ts`](scenarios/array-actions.scenario.ts
 `scenario = defineScenario({ ... })` with:
 
 - `flow`: built with `defineFlow` from `@local/hash-isomorphic-utils/flows/define-flow`. Give it a
-  `flowDefinitionId` of its own: the runner stores the definition as a `Flow Definition` entity with that uuid in
-  the user's web, and updates it when the definition changes, because runs load their definition from the graph.
+  `flowDefinitionId` of its own: runs load their definition from the graph, so the runner stores it as a
+  `Flow Definition` entity in the user's web, and updates it when the definition changes. An entity uuid can only
+  be used in one web, so the entity's uuid is derived from the `flowDefinitionId` and the user, and each user who
+  runs the scenario gets their own.
 - `inputs`: a `{ kind, value }` payload for each flow input.
 - `expect`:
   - `status`: the run's status, `COMPLETED` by default.
