@@ -1,6 +1,8 @@
 {
   "package": "@local/flue-aisdk-transport",
-  "dependencies": [],
+  "dependencies": [
+    "@local/tsconfig"
+  ],
   "tasks": {
     "build": {
       "dependsOn": []

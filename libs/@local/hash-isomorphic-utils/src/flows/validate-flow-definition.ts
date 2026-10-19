@@ -4,15 +4,12 @@ import {
   getKindSources,
 } from "./action-definitions.js";
 import { type ConnectionSource, canConnect } from "./can-connect.js";
-import {
-  flowDefinitionSchema,
-  payloadKindJsonTypes,
-} from "./flow-definition-schema.js";
+import { flowDefinitionSchema } from "./flow-definition-schema.js";
 import {
   type ActionDefinitions,
   createStepShapeResolver,
 } from "./step-shapes.js";
-import { getDeclaredKind } from "./types.js";
+import { getDeclaredKind, getPayloadKindJsonType } from "./types.js";
 
 import type {
   ActionDefinition,
@@ -20,6 +17,7 @@ import type {
   FlowActionDefinitionId,
   FlowDefinition,
   ForEachStepDefinition,
+  PayloadJsonType,
   PayloadKind,
   StepDefinition,
   StepInputSource,
@@ -126,7 +124,7 @@ const isOfJsonType = {
   boolean: (value: unknown) => typeof value === "boolean",
   object: (value: unknown) =>
     typeof value === "object" && value !== null && !Array.isArray(value),
-} satisfies Record<(typeof payloadKindJsonTypes)[PayloadKind], unknown>;
+} satisfies Record<PayloadJsonType, unknown>;
 
 /**
  * Checks a flow definition from any source, reporting every problem found rather than stopping at the first,
@@ -386,7 +384,7 @@ export const validateFlowDefinition = (
 
       case "constant": {
         const { kind, value } = source.payload;
-        const expectedJsonType = payloadKindJsonTypes[kind];
+        const expectedJsonType = getPayloadKindJsonType(kind);
 
         const values: unknown[] = Array.isArray(value) ? value : [value];
 

@@ -1,13 +1,21 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import ts from "@typescript/typescript6";
 import { dts } from "rolldown-plugin-dts";
-import { replacePlugin } from "rolldown/plugins";
-import { defineConfig, esmExternalRequirePlugin } from "vite";
+import { esmExternalRequirePlugin, replacePlugin } from "rolldown/plugins";
+import { defineConfig } from "vite";
 
 const packageRoot = dirname(fileURLToPath(import.meta.url));
+// The wrapper exposes the compiler API but does not contain its standard-library files.
+const typescriptLibDirectory = dirname(ts.getDefaultLibFilePath({}));
 
 export default defineConfig(({ command }) => ({
+  resolve: {
+    alias: {
+      "@typescript/typescript6/lib": typescriptLibDirectory,
+    },
+  },
   build: {
     lib: {
       entry: {
@@ -17,11 +25,9 @@ export default defineConfig(({ command }) => ({
         // Node/tooling-only reusable model compiler. This depends on the
         // TypeScript-powered HIR compiler and must stay out of the main entry.
         "compiled-model": resolve(packageRoot, "src/compiled-model.ts"),
-        // Node/tooling-only headless TypeScript diagnostics for a definition;
-        // bundles the TypeScript compiler like the LSP worker does.
+        // Node/tooling-only headless TypeScript diagnostics for a definition.
         diagnostics: resolve(packageRoot, "src/diagnostics.ts"),
-        // HIR compiler (bundles the TypeScript frontend, heavy; used by the
-        // LSP worker internally and by tooling/playgrounds).
+        // HIR compiler. Tooling loads TS6 as a dependency; the LSP worker bundles it.
         hir: resolve(packageRoot, "src/hir.ts"),
         // Dependency-free instantiation of compiled HIR artifacts.
         "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
@@ -55,6 +61,8 @@ export default defineConfig(({ command }) => ({
     },
     rolldownOptions: {
       external: [
+        // Node consumers need the compiler's real built-ins, not Vite's browser stubs.
+        "@typescript/typescript6",
         "elkjs",
         "immer",
         "js-yaml",
@@ -95,7 +103,7 @@ export default defineConfig(({ command }) => ({
   plugins: [
     esmExternalRequirePlugin({
       // Peer (optional): only the ./hir compiler entry needs it.
-      external: ["typescript"],
+      external: ["@typescript/typescript6"],
     }),
 
     command === "build" && dts({ generator: "tsgo" }),

@@ -1,9 +1,10 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "module": "NodeNext",
+    "checkJs": true,
+    "lib": ["ES2024"],
     "moduleResolution": "NodeNext"
   },
   "include": ["src", "eslint.config.js"],
-  "exclude": ["node-modules", "dist"]
+  "exclude": ["dist"]
 }

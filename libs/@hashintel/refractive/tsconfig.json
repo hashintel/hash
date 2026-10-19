@@ -1,19 +1,7 @@
 {
+  "extends": ["@tsconfig/bases/vite-react", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "target": "es2024",
-    "lib": ["dom", "dom.iterable", "ESNext"],
-    "module": "preserve",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "resolveJsonModule": true,
-    "noEmit": true,
-    "skipLibCheck": true,
-    "isolatedModules": true
+    "lib": ["DOM", "ESNext"]
   },
-  "include": ["src", "stories", ".storybook"]
+  "include": ["src", "stories", ".storybook/**/*"]
 }

@@ -4,7 +4,7 @@ import {
   resolvePayloadValue,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { isIsoDate } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
+import { isIsoDate } from "@local/hash-isomorphic-utils/flows/datetime";
 import { validateEntityProperty } from "@local/hash-isomorphic-utils/flows/read-entity";
 import { StatusCode } from "@local/status";
 

@@ -1,5 +1,11 @@
 # @hashintel/ds-icons
 
+## 0.0.2
+
+### Patch Changes
+
+- Republish to fix `@hashintel/ds-helpers` dependency range. ([@CiaranMn](https://github.com/CiaranMn), [#10089](https://github.com/hashintel/hash/pull/10089))
+
 ## 0.0.1
 
 ### Patch Changes
