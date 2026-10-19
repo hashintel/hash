@@ -1,10 +1,10 @@
-import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import fs from "node:fs/promises";
 import { Readable } from "node:stream";
 import stream from "node:stream/promises";
 
 import { VectorStoreIndex } from "llamaindex";
+import md5 from "md5";
 
 import { logger } from "../../../../shared/activity-logger.js";
 import { loadPdfDocuments } from "./index-pdf-file/load-pdf-documents.js";
@@ -29,7 +29,7 @@ export const indexPdfFile = async (params: {
 }): Promise<{ vectorStoreIndex: VectorStoreIndex }> => {
   const { fileUrl } = params;
 
-  const hashedUrl = createHash("md5").update(fileUrl).digest("hex");
+  const hashedUrl = md5(fileUrl);
 
   const storageContext = await createStorageContext({
     hash: hashedUrl,

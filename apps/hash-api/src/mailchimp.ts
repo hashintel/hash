@@ -1,6 +1,5 @@
-import { createHash } from "node:crypto";
-
 import mailchimp from "@mailchimp/mailchimp_marketing";
+import md5 from "md5";
 
 import { logger } from "./logger";
 
@@ -38,9 +37,7 @@ export const createOrUpdateMailchimpUser = async (params: {
       })
       .catch(async (error) => {
         if (error.response.body.title === "Member Exists") {
-          const subscriberHash = createHash("md5")
-            .update(email.toLowerCase())
-            .digest("hex");
+          const subscriberHash = md5(email.toLowerCase());
 
           await mailchimp.lists.updateListMember(
             mailchimpListId,
