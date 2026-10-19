@@ -7,14 +7,12 @@
     "lib": ["es2023", "DOM"],
     "module": "preserve",
     "moduleDetection": "force",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
     "target": "esnext",
     "types": ["node"],
     "verbatimModuleSyntax": true
   },
   "exclude": ["node_modules", "dist"],
-  "extends": "@tsconfig/strictest/tsconfig.json",
+  "extends": ["@tsconfig/bases/strictest", "@local/tsconfig/policy.json"],
   "include": [
     "src/**/*",
     ".ladle/**/*",

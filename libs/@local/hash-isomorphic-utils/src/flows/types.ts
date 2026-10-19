@@ -144,29 +144,91 @@ export type PayloadKindValues = {
 
 export type PayloadKind = keyof PayloadKindValues;
 
-const payloadKindsRecord: Record<PayloadKind, true> = {
-  ActorType: true,
-  Aggregation: true,
-  Boolean: true,
-  Date: true,
-  DateTime: true,
-  Duration: true,
-  EntityId: true,
-  EntityQuery: true,
-  FailedEntityProposal: true,
-  FilterCondition: true,
-  FormattedText: true,
-  GoogleAccountId: true,
-  GoogleSheet: true,
-  Number: true,
-  PersistedEntityMetadata: true,
-  ProposedEntity: true,
-  ProposedEntityWithResolvedLinks: true,
-  SortKey: true,
-  Text: true,
-  VersionedUrl: true,
-  WebPage: true,
-  WebSearchResult: true,
+/** What a payload kind's value is underneath, which decides how conditions compare it and Order by sorts it. */
+export type PayloadPrimitive =
+  | "text"
+  | "number"
+  | "date"
+  | "datetime"
+  | "boolean";
+
+/** What can be done with a value of a payload kind. */
+export type PayloadKindTraits =
+  | {
+      /** What the value is underneath. */
+      primitive: PayloadPrimitive;
+      fields?: never;
+      /** It names an entity, whose properties and types a condition can read. */
+      entity?: true;
+    }
+  | {
+      /** A JSON object, which can't be compared or sorted by itself. */
+      primitive: null;
+      /** A condition can read its fields. */
+      fields?: true;
+      /** It is or proposes an entity, whose properties and types a condition can read. */
+      entity?: true;
+    };
+
+export const payloadKindTraits = {
+  ActorType: { primitive: "text" },
+  Aggregation: { primitive: null },
+  Boolean: { primitive: "boolean" },
+  Date: { primitive: "date" },
+  DateTime: { primitive: "datetime" },
+  Duration: { primitive: null },
+  EntityId: { primitive: "text", entity: true },
+  EntityQuery: { primitive: null },
+  FailedEntityProposal: { primitive: null },
+  FilterCondition: { primitive: null },
+  FormattedText: { primitive: null, fields: true },
+  GoogleAccountId: { primitive: "text" },
+  GoogleSheet: { primitive: null, fields: true },
+  Number: { primitive: "number" },
+  PersistedEntityMetadata: { primitive: null, fields: true },
+  ProposedEntity: { primitive: null, fields: true, entity: true },
+  ProposedEntityWithResolvedLinks: {
+    primitive: null,
+    fields: true,
+    entity: true,
+  },
+  SortKey: { primitive: null },
+  Text: { primitive: "text" },
+  VersionedUrl: { primitive: "text" },
+  WebPage: { primitive: null, fields: true },
+  WebSearchResult: { primitive: null, fields: true },
+} as const satisfies Record<PayloadKind, PayloadKindTraits>;
+
+/** The primitive type of a payload kind, or `null` for a kind that can't be compared or sorted by itself. */
+export type PrimitiveOf<Kind extends PayloadKind> =
+  (typeof payloadKindTraits)[Kind]["primitive"];
+
+/** The payload kinds that have a trait. */
+export type KindWithTrait<Trait extends "fields" | "entity"> = {
+  [Kind in PayloadKind]: (typeof payloadKindTraits)[Kind] extends Record<
+    Trait,
+    true
+  >
+    ? Kind
+    : never;
+}[PayloadKind];
+
+const primitiveJsonTypes = {
+  text: "string",
+  number: "number",
+  date: "string",
+  datetime: "string",
+  boolean: "boolean",
+} as const satisfies Record<PayloadPrimitive, string>;
+
+export type PayloadJsonType =
+  | (typeof primitiveJsonTypes)[PayloadPrimitive]
+  | "object";
+
+/** How a value of a payload kind is represented in JSON, for checking constants. */
+export const getPayloadKindJsonType = (kind: PayloadKind): PayloadJsonType => {
+  const { primitive } = payloadKindTraits[kind];
+  return primitive === null ? "object" : primitiveJsonTypes[primitive];
 };
 
 /**
@@ -175,7 +237,7 @@ const payloadKindsRecord: Record<PayloadKind, true> = {
  * Payload kinds are a known union: a new kind is added to `PayloadKindValues`, and so joins this list.
  */
 export const allPayloadKinds: readonly PayloadKind[] =
-  typedKeys(payloadKindsRecord);
+  typedKeys(payloadKindTraits);
 
 /**
  * Payload kinds whose values are always stored in S3, whether singular or an array, due to their potential size.

@@ -1,5 +1,10 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/node22", "@local/tsconfig/policy.json"],
+  "compilerOptions": {
+    "lib": ["ES2024"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
   "include": [
     "./src/",
     "codegen.config.ts",

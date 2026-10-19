@@ -23,7 +23,7 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
-import type { JsonValue } from "@blockprotocol/core/.";
+import type { JsonValue } from "@blockprotocol/core";
 import type {
   EntityId,
   PropertyPatchOperation,

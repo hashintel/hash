@@ -1,6 +1,8 @@
 {
   "package": "@local/pi-faux-providers",
-  "dependencies": [],
+  "dependencies": [
+    "@local/tsconfig"
+  ],
   "tasks": {
     "fix:eslint": {
       "dependsOn": [

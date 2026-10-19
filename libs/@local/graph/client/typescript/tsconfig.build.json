@@ -3,7 +3,6 @@
   "exclude": ["./dist", "./scripts"],
   "compilerOptions": {
     "declaration": true,
-    "outDir": "dist",
-    "paths": {}
+    "outDir": "dist"
   }
 }

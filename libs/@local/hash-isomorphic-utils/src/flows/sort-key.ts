@@ -1,6 +1,6 @@
-import { validateSubject } from "./filter-condition.js";
+import { scalarKinds, validateSubject } from "./filter-condition.js";
 
-import type { ConditionSubject } from "./filter-condition.js";
+import type { ConditionSubject, ScalarKind } from "./filter-condition.js";
 import type { ActionStepCheck, PayloadKind } from "./types.js";
 
 /** What Order by sorts a list by: the item, one of its fields or an entity property, as in a filter condition. */
@@ -9,15 +9,10 @@ export type SortKey = {
   direction: "ascending" | "descending";
 };
 
-/** The kinds a sort key's subject can have: the kinds Order by knows how to compare. */
-export const sortKeyKinds = [
-  "Text",
-  "Number",
-  "Date",
-  "Boolean",
-] as const satisfies readonly PayloadKind[];
+/** The kinds a sort key's subject can have: those with a primitive type, which Order by knows how to compare. */
+export const sortKeyKinds = scalarKinds;
 
-export type SortKeyKind = (typeof sortKeyKinds)[number];
+export type SortKeyKind = ScalarKind;
 
 export type SortKeyError = {
   status: "error";
@@ -56,7 +51,7 @@ export const validateSortKey = (
   }
   if (
     (subject as ConditionSubject).kind === "entityType" ||
-    !(sortKeyKinds as readonly PayloadKind[]).includes(subject.payloadKind)
+    !sortKeyKinds.includes(subject.payloadKind)
   ) {
     return invalidSortKey(
       `A sort key's subject must be of kind ${sortKeyKinds.join(", ")}.`,

@@ -1,16 +1,15 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "allowJs": false,
-    "checkJs": false,
-    "allowSyntheticDefaultImports": true,
     "jsx": "react-jsx",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "noEmit": false,
+    "lib": ["dom", "esnext"],
+    "module": "ESNext",
+    "rootDir": "../..",
     "target": "ES2021"
   },
   "include": [
     "src",
+    "assets.d.ts",
     "theme-override.d.ts",
     "webpack-injected-env.d.ts",
     "codegen.config.ts",
