@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -8,16 +9,22 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
+import {
+  brunchSignals,
+  ledgerCommentsMessage,
+  type LedgerHistoryMessage,
+} from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
+import { pendingCommentsFor } from "./brunch-ledger-comments";
 import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
 import { BrunchLedgerPane } from "./brunch-ledger-pane";
 
-import type { LedgerHistoryMessage } from "@hashintel/brunch-agent";
-
-// jsdom does not implement scrolling.
+// jsdom does not implement scrolling or layout.
 const scrollIntoView = vi.fn();
 Element.prototype.scrollIntoView = scrollIntoView;
+Range.prototype.getBoundingClientRect = () =>
+  window.document.body.getBoundingClientRect();
 
 afterEach(cleanup);
 
@@ -232,4 +239,129 @@ test("shows reflections under their entities only when switched on, and selects 
 
   fireEvent.click(screen.getByRole("button", { name: "Show in net" }));
   expect(onSelectNetElements).toHaveBeenCalledWith([reservoirPlace]);
+});
+
+const selectText = (element: Element) => {
+  const range = window.document.createRange();
+  range.selectNodeContents(element);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  act(() => {
+    window.document.dispatchEvent(new Event("selectionchange"));
+  });
+};
+
+test("comments on the records a selection touches, and keeps the comment pending under the first of them", async () => {
+  const comments = pendingCommentsFor({});
+  render(<BrunchLedgerPane messages={reflected} comments={comments} />);
+  const document = screen.getByTestId("brunch-ledger-document");
+  const claim = document.querySelector('[data-ledger-address="c1"]');
+  if (!claim) throw new Error("The claim is not rendered.");
+
+  selectText(claim);
+  fireEvent.click(screen.getByRole("button", { name: "Comment" }));
+  const form = screen.getByRole("dialog", { name: "Comment on the Ledger" });
+  expect(form.textContent).toContain("“The reservoir holds a day of supply.");
+  fireEvent.change(screen.getByRole("textbox", { name: "Comment" }), {
+    target: { value: "Only in winter." },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Add comment" }));
+
+  const [added] = comments.get().comments;
+  expect(added).toMatchObject({
+    id: "n1",
+    records: ["c1"],
+    text: "Only in winter.",
+  });
+  expect(added?.quote).toContain("The reservoir holds a day of supply.");
+  await waitFor(() =>
+    expect(
+      document.querySelector('[data-pending-comment="n1"]'),
+    ).not.toBeNull(),
+  );
+  expect(claim.hasAttribute("data-commented")).toBe(true);
+
+  fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Comment" }), {
+    target: { value: "Only in summer." },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(comments.get().comments[0]?.text).toBe("Only in summer.");
+
+  fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+  await waitFor(() =>
+    expect(document.querySelector("[data-pending-comment]")).toBeNull(),
+  );
+});
+
+test("offers no comment on a selection outside the records", () => {
+  render(
+    <BrunchLedgerPane messages={reflected} comments={pendingCommentsFor({})} />,
+  );
+  const heading = screen
+    .getByTestId("brunch-ledger-document")
+    .querySelector("h1");
+  if (!heading) throw new Error("The title is not rendered.");
+  selectText(heading);
+  expect(screen.queryByRole("button", { name: "Comment" })).toBeNull();
+});
+
+test("marks the records of a sent comment until Brunch resolves it", () => {
+  const sent = {
+    id: "signal-1",
+    role: "system",
+    purpose: "dispatch",
+    signal: { tagName: brunchSignals.ledgerComments },
+    parts: [
+      {
+        type: "text",
+        text: ledgerCommentsMessage([
+          { id: "n1", records: ["c1"], text: "Only in winter." },
+        ]).body,
+        state: "done",
+      },
+    ],
+  } satisfies LedgerHistoryMessage;
+  const { unmount } = render(
+    <BrunchLedgerPane messages={[...reflected, sent]} />,
+  );
+  expect(
+    screen.getByRole("button", {
+      name: "Comments waiting for Brunch: Only in winter.",
+    }),
+  ).not.toBeNull();
+  unmount();
+
+  render(
+    <BrunchLedgerPane
+      messages={[
+        ...reflected,
+        sent,
+        assistant(
+          commit(
+            "ledger-2",
+            {},
+            [
+              [
+                "claim/create",
+                {
+                  text: "The reservoir holds a day of supply in winter.",
+                  entities: ["e1"],
+                  origin: "stated",
+                  status: "confirmed",
+                  supersedes: ["c1"],
+                  resolves: ["n1"],
+                },
+              ],
+            ],
+            ["c2"],
+          ),
+        ),
+      ]}
+    />,
+  );
+  expect(
+    screen.queryByRole("button", { name: /Comments waiting for Brunch/ }),
+  ).toBeNull();
 });

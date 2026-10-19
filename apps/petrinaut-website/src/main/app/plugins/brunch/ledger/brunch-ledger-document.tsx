@@ -1,11 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, TextArea, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { shortQuote } from "./brunch-ledger-comment-messages";
 import { reflectionSelection } from "./brunch-ledger-selection";
 
 import type {
+  CommentRecord,
+  LedgerComment,
   LedgerProjection,
   ProjectedClaim,
   ProjectedEntity,
@@ -47,11 +50,55 @@ const recordStyle = css({
     paddingX: "0.5",
     fontWeight: "medium",
   },
+  "&[data-commented]": {
+    textDecorationLine: "underline",
+    textDecorationStyle: "dashed",
+    textDecorationColor: "yellow.s90",
+    textUnderlineOffset: "[3px]",
+  },
 });
 
 const qualifierStyle = css({ color: "neutral.s90" });
 
 const reflectionStyle = css({ color: "neutral.s100", fontStyle: "italic" });
+
+const openMarkStyle = css({
+  marginLeft: "1",
+  paddingX: "1.5",
+  borderRadius: "full",
+  backgroundColor: "yellow.s40",
+  color: "neutral.s120",
+  fontSize: "[11px]",
+  fontWeight: "medium",
+  lineHeight: "[1.5]",
+  cursor: "default",
+});
+
+const noteStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  marginY: "1",
+  paddingX: "2",
+  paddingY: "1.5",
+  borderLeftWidth: "[2px]",
+  borderColor: "yellow.s60",
+  backgroundColor: "yellow.s10",
+  borderRadius: "sm",
+  "& blockquote": { color: "neutral.s90", fontStyle: "italic" },
+});
+
+/** The user's comments on the Ledger, as the document shows them. */
+interface LedgerCommentMarks {
+  /** Written but not yet sent; each shows under the first record it is on. */
+  readonly pending: readonly LedgerComment[];
+  /** Sent, and not yet resolved by Brunch. */
+  readonly open: readonly CommentRecord[];
+  /** False while the pending comments are being sent. */
+  readonly editable: boolean;
+  readonly onEdit: (id: string, text: string) => void;
+  readonly onRemove: (id: string) => void;
+}
 
 /** What the document shows besides the records themselves. */
 export interface LedgerDocumentOptions {
@@ -61,7 +108,106 @@ export interface LedgerDocumentOptions {
   readonly showReflections: boolean;
   /** Select a reflection's net elements on the canvas; absent where there is no canvas. */
   readonly onSelectNetElements?: (items: SelectionItem[]) => void;
+  readonly comments?: LedgerCommentMarks;
 }
+
+const OpenCommentMark = ({
+  comments,
+}: {
+  comments: readonly CommentRecord[];
+}) => (
+  <Tooltip
+    content={comments.map((comment) => (
+      <p key={comment.id}>{comment.text}</p>
+    ))}
+  >
+    <button
+      type="button"
+      className={openMarkStyle}
+      aria-label={`Comments waiting for Brunch: ${comments
+        .map(({ text }) => text)
+        .join(" · ")}`}
+    >
+      {comments.length}
+    </button>
+  </Tooltip>
+);
+
+const PendingCommentNote = ({
+  comment,
+  marks,
+}: {
+  comment: LedgerComment;
+  marks: LedgerCommentMarks;
+}) => {
+  const [draft, setDraft] = useState<string>();
+  return (
+    <div
+      className={noteStyle}
+      data-pending-comment={comment.id}
+      aria-label="Comment not yet sent"
+    >
+      {comment.quote !== undefined && (
+        <blockquote>“{shortQuote(comment.quote)}”</blockquote>
+      )}
+      {draft === undefined ? (
+        <>
+          <span>{comment.text}</span>
+          <span className={css({ display: "flex", gap: "1" })}>
+            <Button
+              size="xs"
+              variant="ghost"
+              disabled={!marks.editable}
+              onClick={() => setDraft(comment.text)}
+            >
+              Edit
+            </Button>
+            <Button
+              size="xs"
+              variant="ghost"
+              disabled={!marks.editable}
+              onClick={() => marks.onRemove(comment.id)}
+            >
+              Remove
+            </Button>
+          </span>
+        </>
+      ) : (
+        <>
+          <TextArea
+            aria-label="Comment"
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- choosing Edit explicitly moves focus into the comment
+            autoFocus
+            autoResize
+            rows={2}
+            size="sm"
+            value={draft}
+            onChange={setDraft}
+          />
+          <span className={css({ display: "flex", gap: "1" })}>
+            <Button
+              size="xs"
+              disabled={draft.trim() === "" || !marks.editable}
+              onClick={() => {
+                marks.onEdit(comment.id, draft.trim());
+                setDraft(undefined);
+              }}
+            >
+              Save
+            </Button>
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => setDraft(undefined)}
+            >
+              Cancel
+            </Button>
+          </span>
+        </>
+      )}
+    </div>
+  );
+};
 
 /**
  * One record where it appears. A claim can appear under several entities,
@@ -75,15 +221,38 @@ const RecordMark = ({
   address: string;
   options: LedgerDocumentOptions;
   children: ReactNode;
-}) => (
-  <span
-    className={recordStyle}
-    data-ledger-address={address}
-    data-traced={options.traced.has(address) ? "" : undefined}
-  >
-    {children}
-  </span>
-);
+}) => {
+  const marks = options.comments;
+  const open =
+    marks?.open.filter(({ records }) => records.includes(address)) ?? [];
+  const notes =
+    marks?.pending.filter(({ records }) => records[0] === address) ?? [];
+  return (
+    <>
+      <span
+        className={recordStyle}
+        data-ledger-address={address}
+        data-traced={options.traced.has(address) ? "" : undefined}
+        data-commented={
+          marks?.pending.some(({ records }) => records.includes(address))
+            ? ""
+            : undefined
+        }
+      >
+        {children}
+      </span>
+      {open.length > 0 && <OpenCommentMark comments={open} />}
+      {marks &&
+        notes.map((comment) => (
+          <PendingCommentNote
+            key={comment.id}
+            comment={comment}
+            marks={marks}
+          />
+        ))}
+    </>
+  );
+};
 
 const qualifiers = (...parts: string[]) => (
   <span className={qualifierStyle}> — {parts.join(" · ")}</span>
