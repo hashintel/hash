@@ -125,7 +125,7 @@ export const flowTypedef = gql`
 
   type FlowRun {
     """
-    The entity id of the run's Flow Run entity. Its uuid is the id of the run's Temporal workflow.
+    The entity id of the run's Flow Run entity.
     """
     flowRunEntityId: EntityId!
     """

@@ -1,6 +1,7 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   ArrowUpRightRegularIcon,
   CodeIcon,
@@ -10,6 +11,7 @@ import {
 } from "@hashintel/design-system";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
+import { useUserOrOrgShortnameByWebId } from "../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { SearchIcon } from "../../../../../../shared/icons/search-icon";
 import { UserIcon } from "../../../../../../shared/icons/user-icon";
 import { Link } from "../../../../../../shared/ui/link";
@@ -58,16 +60,21 @@ const ProvenanceRow = ({ children }: PropsWithChildren) => (
 
 export const Provenance = ({
   event,
-  shortname,
   subgraph,
 }: {
   event: HistoryEvent;
-  shortname: string;
   subgraph: Subgraph;
 }) => {
   const {
     provenance: { edition },
   } = event;
+
+  const flowRunEntityId = edition.origin.id as EntityId | undefined;
+
+  /* The run page is under the shortname of the run's web, which may not be the entity's. */
+  const { shortname: flowRunShortname } = useUserOrOrgShortnameByWebId({
+    webId: flowRunEntityId ? extractWebIdFromEntityId(flowRunEntityId) : null,
+  });
 
   const { actors, loading } = useActors({
     accountIds: [edition.createdById],
@@ -102,8 +109,6 @@ export const Provenance = ({
   }
 
   const OriginIcon = provenanceIconMap[originType];
-
-  const flowRunEntityId = edition.origin.id as EntityId | undefined;
 
   const sources =
     event.type === "property-update"
@@ -140,11 +145,11 @@ export const Provenance = ({
                   {originType.split("-").join(" ")}
                 </Box>
               </Typography>
-              {flowRunEntityId && (
+              {flowRunEntityId && flowRunShortname && (
                 <Link
                   href={generateWorkerRunPath({
                     flowRunEntityId,
-                    shortname,
+                    shortname: flowRunShortname,
                   })}
                   sx={{
                     ...typographySx,
