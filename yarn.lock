@@ -923,6 +923,8 @@ __metadata:
   resolution: "@apps/petrinaut-website@workspace:apps/petrinaut-website"
   dependencies:
     "@ai-sdk/openai": "npm:3.0.114"
+    "@ai-sdk/react": "npm:3.0.289"
+    "@ark-ui/react": "npm:5.38.1"
     "@fast-check/vitest": "npm:0.4.1"
     "@flue/sdk": "npm:2.3.0"
     "@hashintel/brunch-agent": "workspace:*"
@@ -950,6 +952,7 @@ __metadata:
     ai: "npm:6.0.286"
     brotli-wasm: "npm:3.0.1"
     immer: "npm:10.1.3"
+    jsdom: "npm:24.1.3"
     monaco-editor: "npm:0.55.1"
     oxc-transform-react: "npm:0.152.0"
     oxlint: "npm:1.86.0"
@@ -962,6 +965,7 @@ __metadata:
     sharp: "npm:0.35.5"
     vite: "catalog:"
     vitest: "catalog:"
+    vscode-languageserver-types: "npm:3.17.5"
     zod: "npm:4.4.3"
   languageName: unknown
   linkType: soft
