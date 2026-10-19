@@ -3,6 +3,7 @@ import { formatDistance } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 
 import { ArrowRightRegularIcon } from "@hashintel/design-system";
+import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 
 import { Button } from "../../../../../../shared/ui/button";
 import {
@@ -119,7 +120,8 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
      */
     let browserInputRequest: ExternalInputRequest | undefined = undefined;
     for (const request of selectedFlowRun?.inputRequests ?? []) {
-      if (request.resolvedAt ?? request.stepId !== id) {
+      /* A request is raised by a step run, which inside a for-each is one of several runs of this node's step. */
+      if (request.resolvedAt ?? parseStepRunId(request.stepId).stepId !== id) {
         continue;
       }
       if (request.type === "human-input") {
