@@ -36,9 +36,11 @@ export const ManuallyTriggered = ({
           </TableRow>
         ) : (
           manuallyTriggeredFlows.map((flow) => {
-            const flowRunId = flow.flowRunId;
+            const flowRunEntityId = flow.flowRunEntityId;
 
-            return <HistoryRow flowRun={flow} key={flowRunId} type="manual" />;
+            return (
+              <HistoryRow flowRun={flow} key={flowRunEntityId} type="manual" />
+            );
           })
         )}
       </EventTable>

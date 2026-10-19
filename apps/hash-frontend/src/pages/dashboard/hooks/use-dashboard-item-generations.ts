@@ -50,7 +50,7 @@ export const dashboardItemGenerationPhaseLabel = (
 
 export type DashboardItemGeneration = {
   itemEntityId: EntityId;
-  flowRunId: string;
+  flowRunEntityId: EntityId;
   phase: DashboardItemGenerationPhase;
   structuralQuery?: StructuralQueryDefinition;
   pythonScript?: string;
@@ -335,7 +335,7 @@ export const useDashboardItemGenerations = ({
           GetFlowRunByIdQueryVariables
         >({
           query: getFlowRunById,
-          variables: { flowRunId: generation.flowRunId },
+          variables: { flowRunEntityId: generation.flowRunEntityId },
           fetchPolicy: "network-only",
         });
         const flowRun = data.getFlowRunById;

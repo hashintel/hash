@@ -38,12 +38,12 @@ export const AutomaticallyTriggered = ({
           </TableRow>
         ) : (
           automaticallyTriggeredFlows.map((flow) => {
-            const flowRunId = flow.flowRunId;
+            const flowRunEntityId = flow.flowRunEntityId;
 
             return (
               <HistoryRow
                 flowRun={flow}
-                key={flowRunId}
+                key={flowRunEntityId}
                 type={
                   flow.requestedPageUrl ? "external-page-request" : "automatic"
                 }

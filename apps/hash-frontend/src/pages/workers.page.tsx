@@ -96,7 +96,10 @@ const WorkersPage: NextPageWithLayout = () => {
   );
 
   return (
-    <FlowRunsContextProvider pagination={pagination} selectedFlowRunId={null}>
+    <FlowRunsContextProvider
+      pagination={pagination}
+      selectedFlowRunEntityId={null}
+    >
       <WorkersPageContent />
     </FlowRunsContextProvider>
   );

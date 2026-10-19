@@ -13,10 +13,10 @@ import { FlowStatusChip, FlowTableChip } from "../../../shared/flow-tables";
 import { goalRowSx } from "./goal-row-sx";
 
 import type { SimpleFlowRunStatus } from "../../../shared/flow-tables";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 
 export type GoalSummary = {
-  flowRunId: EntityUuid;
+  flowRunEntityId: EntityId;
   openInputRequests: number;
   lastEventTimestamp: string;
   name: string;
@@ -34,7 +34,7 @@ export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
     lastEventTimestamp,
     openInputRequests,
     web,
-    flowRunId,
+    flowRunEntityId,
     status,
   } = goalSummary;
 
@@ -64,7 +64,10 @@ export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
       </FlowTableChip>
 
       <Link
-        href={generateWorkerRunPath({ shortname: web.shortname, flowRunId })}
+        href={generateWorkerRunPath({
+          shortname: web.shortname,
+          flowRunEntityId,
+        })}
         sx={{
           display: "block",
           fontSize: 14,

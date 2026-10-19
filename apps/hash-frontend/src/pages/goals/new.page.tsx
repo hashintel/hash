@@ -292,8 +292,8 @@ const NewGoalPageContent = () => {
       },
     });
 
-    const flowRunId = data?.startFlow;
-    if (!flowRunId) {
+    const flowRunEntityId = data?.startFlow;
+    if (!flowRunEntityId) {
       throw new Error("Failed to start flow");
     }
 
@@ -303,7 +303,7 @@ const NewGoalPageContent = () => {
 
     const { shortname } = getOwner({ webId });
 
-    void push(generateWorkerRunPath({ shortname, flowRunId }));
+    void push(generateWorkerRunPath({ shortname, flowRunEntityId }));
   };
 
   return (

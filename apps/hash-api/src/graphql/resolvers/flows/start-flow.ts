@@ -1,3 +1,4 @@
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import {
@@ -9,14 +10,14 @@ import { assertClientFlowInputs } from "./shared/assert-client-flow-inputs";
 import { getRunnableFlowDefinition } from "./shared/get-runnable-flow-definition";
 
 import type { LoggedInGraphQLContext } from "../../context";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 
 export const startFlow: ResolverFn<
-  Promise<EntityUuid>,
+  Promise<EntityId>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationStartFlowArgs
@@ -45,7 +46,7 @@ export const startFlow: ResolverFn<
 
   const params: RunFlowWorkflowParams = {
     ...(flowType === "ai" ? { dataSources } : {}),
-    flowRunId: workflowId,
+    flowRunEntityUuid: workflowId,
     flowInputs,
     flowDefinitionId,
     userAuthentication: { actorId: user.accountId },
@@ -68,5 +69,5 @@ export const startFlow: ResolverFn<
     },
   });
 
-  return workflowId;
+  return entityIdFromComponents(webId, workflowId);
 };

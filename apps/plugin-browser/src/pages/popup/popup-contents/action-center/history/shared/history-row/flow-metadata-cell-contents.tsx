@@ -3,6 +3,10 @@ import { formatDuration, intervalToDuration } from "date-fns";
 import { useEffect, useState } from "react";
 
 import {
+  extractEntityUuidFromEntityId,
+  type EntityId,
+} from "@blockprotocol/type-system";
+import {
   ArrowDownRegularIcon,
   ArrowRightRegularIcon,
   AsteriskRegularIcon,
@@ -46,7 +50,7 @@ type TotalUsage = {
   outputTokens: number;
 };
 
-const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
+const getTotalUsage = ({ flowRunEntityId }: { flowRunEntityId: EntityId }) =>
   queryGraphQlApi<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
     queryEntitiesQuery,
     {
@@ -65,7 +69,7 @@ const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
               equal: [
                 { path: ["outgoingLinks", "rightEntity", "uuid"] },
                 {
-                  parameter: flowRunId,
+                  parameter: extractEntityUuidFromEntityId(flowRunEntityId),
                 },
               ],
             },
@@ -159,18 +163,22 @@ export const FlowMetadataCellContents = ({
        * are accounted for.
        */
       const interval = setInterval(() => {
-        void getTotalUsage({ flowRunId: flowRun.flowRunId }).then(setUsage);
+        void getTotalUsage({ flowRunEntityId: flowRun.flowRunEntityId }).then(
+          setUsage,
+        );
       }, 10_000);
 
       return () => clearInterval(interval);
     }
-  }, [flowRun.flowRunId, visible]);
+  }, [flowRun.flowRunEntityId, visible]);
 
   useEffect(() => {
     if (visible) {
-      void getTotalUsage({ flowRunId: flowRun.flowRunId }).then(setUsage);
+      void getTotalUsage({ flowRunEntityId: flowRun.flowRunEntityId }).then(
+        setUsage,
+      );
     }
-  }, [flowRun.flowRunId, visible]);
+  }, [flowRun.flowRunEntityId, visible]);
 
   return (
     <Stack
