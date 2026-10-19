@@ -3,7 +3,6 @@ import { fileURLToPath } from "node:url";
 
 import ReactRefreshWebpackPlugin from "@pmmmwh/react-refresh-webpack-plugin";
 import { sentryWebpackPlugin } from "@sentry/webpack-plugin";
-import { CleanWebpackPlugin } from "clean-webpack-plugin";
 import CopyWebpackPlugin from "copy-webpack-plugin";
 import dotenv from "dotenv-flow";
 import fileSystem from "fs-extra";
@@ -166,7 +165,6 @@ const options = {
   },
   plugins: [
     isDevelopment && new ReactRefreshWebpackPlugin(),
-    new CleanWebpackPlugin({ verbose: false }),
     new webpack.ProvidePlugin({
       process: "process/browser",
     }),

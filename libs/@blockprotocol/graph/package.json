@@ -73,9 +73,9 @@
     "@blockprotocol/type-system": "workspace:^",
     "ajv": "8.18.0",
     "ajv-formats": "3.0.1",
+    "dequal": "2.0.3",
     "json-schema-to-typescript": "15.0.4",
     "lit": "2.8.0",
-    "lodash.isequal": "4.5.0",
     "typescript": "catalog:"
   },
   "devDependencies": {
@@ -83,7 +83,6 @@
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
-    "@types/lodash.isequal": "4.5.8",
     "@types/node": "catalog:",
     "@types/react": "19.2.14",
     "eslint": "9.39.4",
