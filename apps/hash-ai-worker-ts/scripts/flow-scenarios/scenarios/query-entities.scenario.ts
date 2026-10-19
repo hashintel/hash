@@ -224,10 +224,14 @@ export const scenario = defineScenario({
   name: "Query entities on seeded Docs",
   purpose:
     "Finds seeded Docs by the run's tag with Query entities, filters, sorts and aggregates them on properties read from the graph, and checks the graph's own sorting and limit.",
+  /**
+   * Created in this order so that Query entities' default last-edited-first order disagrees with both sorts checked
+   * below: the first two by it aren't the first two by title, and the first long Doc by it isn't the earliest.
+   */
   seed: ({ runTag }) => [
+    doc(runTag, "Essay", 40, 2021),
     doc(runTag, "Field notes", 8, 2019),
     doc(runTag, "Annual report", 120, 2024),
-    doc(runTag, "Essay", 40, 2021),
   ],
   runs: [
     {
