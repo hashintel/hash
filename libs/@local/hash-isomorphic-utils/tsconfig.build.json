@@ -5,6 +5,6 @@
   "compilerOptions": {
     "declaration": true,
     "outDir": "dist",
-    "paths": {}
+    "rootDir": "src"
   }
 }

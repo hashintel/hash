@@ -1,19 +1,11 @@
 {
+  "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "target": "es2024",
+    "isolatedModules": true,
     "lib": ["ESNext"],
-    "types": ["@webgpu/types"],
     "module": "preserve",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "resolveJsonModule": true,
     "noEmit": true,
-    "skipLibCheck": true,
-    "isolatedModules": true
+    "types": ["@webgpu/types"]
   },
   "include": ["src"]
 }

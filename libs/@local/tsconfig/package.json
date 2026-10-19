@@ -1,5 +1,8 @@
 {
   "name": "@local/tsconfig",
   "version": "0.0.0-private",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@tsconfig/bases": "catalog:"
+  }
 }
