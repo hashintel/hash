@@ -155,10 +155,10 @@ where
         } = api;
         match audience {
             Audience::Public => {
-                self.attach::<_, ActorId>(router, &self.public_provider, None, challenge)
+                self.attach::<ActorId>(router, &self.public_provider, None, challenge)
             }
             Audience::Internal => {
-                self.attach::<_, Option<ActorId>>(router, &self.internal_provider, None, challenge)
+                self.attach::<Option<ActorId>>(router, &self.internal_provider, None, challenge)
             }
         }
     }
@@ -183,7 +183,7 @@ where
         apis: impl IntoIterator<Item = Api>,
         documentation: Router,
     ) -> Router {
-        let mut router = self.attach::<_, Option<ActorId>>(
+        let mut router = self.attach::<Option<ActorId>>(
             legacy_routes,
             &self.legacy_provider,
             Some(Bootstrap {
@@ -216,15 +216,14 @@ where
     ///
     /// The bootstrap secret also exempts its presenters from the caller budget, which a bootstrap
     /// request naming no actor can pass only by that exemption.
-    fn attach<A, C>(
+    fn attach<C>(
         &self,
         routes: Router,
-        provider: &Arc<A>,
+        provider: &Arc<impl AuthenticationProvider<C> + 'static>,
         bootstrap: Option<Bootstrap>,
         challenge: Challenge,
     ) -> Router
     where
-        A: AuthenticationProvider<C> + 'static,
         C: Caller + 'static,
     {
         // `route_layer` panics on a router without routes.
