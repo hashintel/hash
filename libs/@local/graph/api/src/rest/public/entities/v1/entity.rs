@@ -47,14 +47,14 @@ impl LiveEntityId {
 /// The entity ID names a draft.
 #[derive(Debug, derive_more::Display)]
 #[display("the entity ID names a draft")]
-struct DraftEntityId;
+struct DraftEntityIdError;
 
 impl TryFrom<EntityId> for LiveEntityId {
-    type Error = DraftEntityId;
+    type Error = DraftEntityIdError;
 
     fn try_from(entity_id: EntityId) -> Result<Self, Self::Error> {
         if entity_id.draft_id.is_some() {
-            return Err(DraftEntityId);
+            return Err(DraftEntityIdError);
         }
         Ok(Self(entity_id))
     }
