@@ -21,4 +21,5 @@ mod workspace;
 
 pub use self::workspace::{
     CloseError, DataErrorType, OpenError, QueryErrorType, Rows, Setting, StatementError, Workspace,
+    WorkspaceConfig,
 };

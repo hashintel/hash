@@ -7,7 +7,7 @@ mod rows;
 mod select;
 
 use alloc::sync::Arc;
-use core::error::Error;
+use core::{error::Error, num::NonZeroUsize};
 use std::{path::PathBuf, thread};
 
 use error_stack::{Report, ResultExt as _};
@@ -22,6 +22,23 @@ use crate::workspace::{
     interrupt::{Interrupt, Pending, RequestId},
     reply::Reply,
 };
+
+/// Settings for a [`Workspace`].
+#[derive(Debug, Clone, Copy)]
+pub struct WorkspaceConfig {
+    /// The number of requests that can wait while another runs. Defaults to 64.
+    /// Callers wait for queue space when it is full.
+    pub queue_capacity: NonZeroUsize,
+}
+
+impl Default for WorkspaceConfig {
+    fn default() -> Self {
+        Self {
+            queue_capacity: NonZeroUsize::new(64)
+                .expect("the default queue capacity should be nonzero"),
+        }
+    }
+}
 
 /// A request to the workspace thread, with the channel for its reply.
 enum Command {
@@ -45,7 +62,7 @@ enum Command {
 /// are sent. A query is a single `SELECT` statement, and the only table functions it can call are
 /// `range`, `generate_series` and `unnest`. Queries cannot open files, load extensions or change
 /// settings.
-/// At most one request waits in the queue; further callers wait for space before sending theirs.
+/// [`WorkspaceConfig::queue_capacity`] bounds the queue; callers wait for space when it is full.
 ///
 /// Only one workspace at a time can open a database. It holds a lock on `<database>.lock` until
 /// the database is closed.
@@ -65,7 +82,7 @@ pub struct Workspace {
 }
 
 impl Workspace {
-    /// Opens the database at `path`, creating it if it does not exist.
+    /// Opens the database at `path` with `config`, creating it if it does not exist.
     ///
     /// # Errors
     ///
@@ -82,8 +99,8 @@ impl Workspace {
     /// [`Open`]: OpenError::Open
     /// [`Spawn`]: OpenError::Spawn
     /// [`Stopped`]: OpenError::Stopped
-    pub async fn open(path: PathBuf) -> Result<Self, Report<OpenError>> {
-        let (commands, mut receiver) = mpsc::channel(1);
+    pub async fn open(path: PathBuf, config: WorkspaceConfig) -> Result<Self, Report<OpenError>> {
+        let (commands, mut receiver) = mpsc::channel(config.queue_capacity.get());
         let (ready, opened) = Reply::channel();
         let span = tracing::info_span!("workspace", path = %path.display());
 

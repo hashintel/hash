@@ -1,12 +1,12 @@
 #![expect(missing_docs, reason = "integration tests")]
 
-use core::{future::poll_fn, pin::Pin, task::Poll, time::Duration};
+use core::{future::poll_fn, num::NonZeroUsize, pin::Pin, task::Poll, time::Duration};
 use std::path::PathBuf;
 
 use duckdb::types::{TimeUnit, Value};
 use error_stack::Report;
 use hash_integrations_engine::{
-    DataErrorType, OpenError, QueryErrorType, StatementError, Workspace,
+    DataErrorType, OpenError, QueryErrorType, StatementError, Workspace, WorkspaceConfig,
 };
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
@@ -16,7 +16,7 @@ fn database_path(directory: &TempDir) -> PathBuf {
 }
 
 async fn open(directory: &TempDir) -> Workspace {
-    Workspace::open(database_path(directory))
+    Workspace::open(database_path(directory), WorkspaceConfig::default())
         .await
         .expect("the workspace should open")
 }
@@ -345,7 +345,7 @@ async fn open_refuses_second_workspace() {
     let directory = TempDir::new().expect("should create a directory");
     let workspace = open(&directory).await;
 
-    let report = Workspace::open(database_path(&directory))
+    let report = Workspace::open(database_path(&directory), WorkspaceConfig::default())
         .await
         .expect_err("a second workspace should not open the database");
     assert!(
@@ -380,7 +380,14 @@ async fn dropping_request_interrupts_query() {
 #[tokio::test]
 async fn dropping_queued_request_skips_it() {
     let directory = TempDir::new().expect("should create a directory");
-    let workspace = open(&directory).await;
+    let workspace = Workspace::open(
+        database_path(&directory),
+        WorkspaceConfig {
+            queue_capacity: NonZeroUsize::MIN,
+        },
+    )
+    .await
+    .expect("the workspace should open");
 
     let mut running = Box::pin(workspace.query("SELECT count(*) FROM range(1000000000000)".into()));
     let mut queued = Box::pin(workspace.create_table("skipped".into(), "SELECT 1 AS id".into()));
@@ -424,7 +431,7 @@ async fn dropping_workspace_interrupts_running_query() {
     // The thread releases the lock once the interrupted query returns and the database closes.
     let reopened = tokio::time::timeout(Duration::from_secs(10), async {
         loop {
-            match Workspace::open(database_path(&directory)).await {
+            match Workspace::open(database_path(&directory), WorkspaceConfig::default()).await {
                 Err(report) if matches!(report.current_context(), OpenError::Locked { .. }) => {
                     tokio::time::sleep(Duration::from_millis(10)).await;
                 }
