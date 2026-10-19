@@ -124,7 +124,7 @@ const SignupPage: NextPageWithLayout = () => {
    */
   useEffect(() => {
     if (userHasVerifiedEmail && !userHasAccessToHashData) {
-      void fetchHasAccess();
+      void fetchHasAccess().retain();
     }
   }, [userHasVerifiedEmail, userHasAccessToHashData, fetchHasAccess]);
 
@@ -479,7 +479,12 @@ const SignupPage: NextPageWithLayout = () => {
                   onVerified={async () => {
                     await refetchAuthenticatedUser();
 
-                    const { data } = await fetchHasAccess();
+                    /**
+                     * Refetching the user marks the email as verified, which
+                     * starts the eager fetch in the effect above. `retain()`
+                     * keeps this call running when that one starts.
+                     */
+                    const { data } = await fetchHasAccess().retain();
 
                     if (!data?.hasAccessToHash) {
                       void router.replace("/");

@@ -96,6 +96,7 @@ export const useUpdateAuthenticatedUser = () => {
       try {
         return await enqueueUserUpdate(async () => {
           const latestUserEntitySubgraph = await getMe()
+            .retain()
             .then(({ data }) => {
               const subgraph = data
                 ? mapGqlSubgraphFieldsFragmentToSubgraph<
