@@ -112,6 +112,7 @@ const draftOutputs = [
 ];
 
 const run = (params: {
+  instructions?: string;
   context?: string;
   entities?: PayloadValue<"EntityId", true>;
 }) =>
@@ -119,7 +120,10 @@ const run = (params: {
     inputs: [
       {
         inputName: "instructions",
-        payload: { kind: "Text", value: "Thank them for their order." },
+        payload: {
+          kind: "Text",
+          value: params.instructions ?? "Thank them for their order.",
+        },
       },
       ...(params.context === undefined
         ? []
@@ -349,4 +353,74 @@ describe("draftMessageAction", () => {
       expect(getLlmResponse).toHaveBeenCalledTimes(3);
     },
   );
+
+  it.each(["", " \n\t"])(
+    "fails for empty instructions, without calling the model: %j",
+    async (instructions) => {
+      expect(await run({ instructions })).toEqual({
+        code: StatusCode.InvalidArgument,
+        message: "The instructions are empty.",
+        contents: [],
+      });
+      expect(getLlmResponse).not.toHaveBeenCalled();
+    },
+  );
+
+  it("drafts from a long context that fits", async () => {
+    respondWith(submits(validDraft));
+
+    expect(await run({ context: "x".repeat(399_000) })).toMatchObject({
+      code: StatusCode.Ok,
+    });
+  });
+
+  it("fails for a prompt too long for the model, rather than cutting it short", async () => {
+    const { code, message, contents } = await run({
+      context: "x".repeat(400_001),
+    });
+    expect(code).toBe(StatusCode.InvalidArgument);
+    expect(message).toContain("at most 400,000 fit");
+    expect(contents).toEqual([]);
+    expect(getLlmResponse).not.toHaveBeenCalled();
+  });
+
+  it("fails for a draft longer than the model may write, without asking again", async () => {
+    respondWith({ status: "max-tokens" });
+
+    expect(await run({})).toMatchObject({
+      code: StatusCode.Internal,
+      message: expect.stringContaining("longer than 2,000 tokens") as string,
+      contents: [],
+    });
+    expect(getLlmResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts no attempt after 2 minutes, so the step ends within its timeout", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+
+    try {
+      const invalid = submits({ subject: "Hi", body: "" });
+      vi.mocked(getLlmResponse)
+        .mockImplementationOnce(() => {
+          vi.setSystemTime(Date.now() + 60_000);
+          return Promise.resolve(
+            invalid as Awaited<ReturnType<typeof getLlmResponse>>,
+          );
+        })
+        .mockImplementationOnce(() => {
+          vi.setSystemTime(Date.now() + 61_000);
+          return Promise.resolve(
+            invalid as Awaited<ReturnType<typeof getLlmResponse>>,
+          );
+        });
+
+      const { code, message, contents } = await run({});
+      expect(code).toBe(StatusCode.ResourceExhausted);
+      expect(message).toContain("in 2 attempts, and there wasn't time");
+      expect(contents).toEqual([]);
+      expect(getLlmResponse).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

@@ -36,6 +36,21 @@ const model: PermittedAnthropicModel = "claude-haiku-4-5-20251001";
 /** Model calls per step run, for a draft that is missing or has an empty subject or body. */
 const maxAttempts = 3;
 
+/**
+ * The most characters of instructions, context and entities the model is given: about 100,000 tokens at 4 characters
+ * a token, as `get-web-page-activity` estimates, which leaves room in the model's 200,000 for retries and the draft.
+ */
+const maxPromptCharacters = 400_000;
+
+/** Enough for a long email (about 1,500 words), and short enough that each model call finishes quickly. */
+const maxDraftTokens = 2_000;
+
+/**
+ * No attempt starts after this long, so that the step finishes within the 5 minutes an action that doesn't heartbeat
+ * has, even if the last attempt's model call retries a draft that doesn't match the tool's schema.
+ */
+const attemptsTimeBudgetMs = 2 * 60_000;
+
 const submitDraftTool: LlmToolDefinition<"submitDraft"> = {
   name: "submitDraft",
   description: "Submit the drafted message.",
@@ -120,8 +135,9 @@ const loadEntities = async (
  * and the properties of the entities given.
  *
  * The entities must be in the web the flow runs in and readable by the user running it: one that is missing or
- * unreadable fails the step rather than being left out, as do more than `maxDraftMessageEntities`. A draft with no
- * subject or body is asked for again, up to `maxAttempts` model calls in all.
+ * unreadable fails the step rather than being left out, as do more than `maxDraftMessageEntities`, and a prompt longer
+ * than `maxPromptCharacters`. A draft with no subject or body is asked for again, up to `maxAttempts` model calls in
+ * all, none starting after `attemptsTimeBudgetMs`.
  */
 export const draftMessageAction: FlowActionActivity<"draftMessage"> = async ({
   inputs,
@@ -134,6 +150,10 @@ export const draftMessageAction: FlowActionActivity<"draftMessage"> = async ({
     inputs,
     actionType: "draftMessage",
   });
+
+  if (!instructions.trim()) {
+    return failure(StatusCode.InvalidArgument, "The instructions are empty.");
+  }
 
   const { flowEntityId, stepId, userAuthentication, webId, workflowId } =
     await getFlowContext();
@@ -222,35 +242,44 @@ export const draftMessageAction: FlowActionActivity<"draftMessage"> = async ({
     );
   }
 
+  const prompt = [
+    `<Instructions>\n${instructions}\n</Instructions>`,
+    context ? `<Context>\n${context}\n</Context>` : undefined,
+    entitiesText
+      ? `<Entities>\nThe entities to draw on, each with the titles of its types and its properties keyed by title:\n${entitiesText}\n</Entities>`
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  if (prompt.length > maxPromptCharacters) {
+    return failure(
+      StatusCode.InvalidArgument,
+      `The instructions, context and entities are too long to draft from: ${prompt.length.toLocaleString("en")} characters, but at most ${maxPromptCharacters.toLocaleString("en")} fit.`,
+    );
+  }
+
   const messages: LlmMessage[] = [
-    {
-      role: "user",
-      content: [
-        {
-          type: "text",
-          text: [
-            `<Instructions>\n${instructions}\n</Instructions>`,
-            context ? `<Context>\n${context}\n</Context>` : undefined,
-            entitiesText
-              ? `<Entities>\nThe entities to draw on, each with the titles of its types and its properties keyed by title:\n${entitiesText}\n</Entities>`
-              : undefined,
-          ]
-            .filter(Boolean)
-            .join("\n\n"),
-        },
-      ],
-    },
+    { role: "user", content: [{ type: "text", text: prompt }] },
   ];
 
+  const startedAt = Date.now();
+  let attempts = 0;
   let problem = "";
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  while (
+    attempts < maxAttempts &&
+    (attempts === 0 || Date.now() - startedAt < attemptsTimeBudgetMs)
+  ) {
+    attempts++;
+
     const llmResponse = await getLlmResponse(
       {
         model,
         systemPrompt,
         messages,
         temperature: 0,
+        maxTokens: maxDraftTokens,
         tools: [submitDraftTool],
         toolChoice: "submitDraft",
       },
@@ -264,13 +293,17 @@ export const draftMessageAction: FlowActionActivity<"draftMessage"> = async ({
     );
 
     /* The model call already retried a draft that didn't match the tool's schema. */
-    if (
-      llmResponse.status === "exceeded-maximum-retries" ||
-      llmResponse.status === "max-tokens"
-    ) {
+    if (llmResponse.status === "exceeded-maximum-retries") {
       return failure(
         StatusCode.Internal,
-        `The model didn't return a valid draft (${llmResponse.status}).`,
+        "The model didn't return a draft that matches the submitDraft tool's schema.",
+      );
+    }
+
+    if (llmResponse.status === "max-tokens") {
+      return failure(
+        StatusCode.Internal,
+        `The draft was longer than ${maxDraftTokens.toLocaleString("en")} tokens. Ask for a shorter message.`,
       );
     }
 
@@ -336,6 +369,6 @@ export const draftMessageAction: FlowActionActivity<"draftMessage"> = async ({
 
   return failure(
     StatusCode.ResourceExhausted,
-    `The model didn't return a usable draft in ${maxAttempts} attempts: ${problem}`,
+    `The model didn't return a usable draft in ${attempts} ${attempts === 1 ? "attempt" : "attempts"}${attempts < maxAttempts ? `, and there wasn't time for another` : ""}: ${problem}`,
   );
 };
