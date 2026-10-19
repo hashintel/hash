@@ -72,5 +72,5 @@ stack. `--timeout <seconds>` (300 by default) terminates a run that hasn't finis
 far.
 
 The report is printed and saved to `runs/<time>-<name>/report.md`, with the raw flow run in
-`flow-run-<flowRunId>.json` when a run misses an expectation. The exit code is 0 when every expectation is met, 1 when
+`flow-run-<flowRunEntityUuid>.json` when a run misses an expectation. The exit code is 0 when every expectation is met, 1 when
 one isn't, and 2 when the scenario couldn't be run, for example because no worker is polling the task queue.

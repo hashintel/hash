@@ -27,7 +27,9 @@ import proto from "@temporalio/proto";
 import { v5 as uuidv5 } from "uuid";
 
 import {
+  entityIdFromComponents,
   extractBaseUrl,
+  extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
@@ -456,7 +458,7 @@ const startRun = async ({
           },
         }
       : {}),
-    flowRunId: workflowId,
+    flowRunEntityUuid: workflowId,
     flowInputs: inputs,
     flowDefinitionId: flow.flowDefinitionId,
     userAuthentication: { actorId: userId },
@@ -721,7 +723,7 @@ const renderReport = (
       return [
         `#### Run ${index + 1} of ${scenario.runs.length}: ${run.flow.flowDefinition.name}`,
         "",
-        `**\`${flowRun.flowRunId}\`: ${flowRun.status}**${
+        `**\`${extractEntityUuidFromEntityId(flowRun.flowRunEntityId)}\`: ${flowRun.status}**${
           flowRun.failureMessage ? ` (${flowRun.failureMessage})` : ""
         }`,
         "",
@@ -901,7 +903,7 @@ const main = async () => {
 
     const flowRun = await getFlowRunFromTemporalWorkflowId({
       flowDefinitionId,
-      flowRunId: workflowId,
+      flowRunEntityId: entityIdFromComponents(userId as WebId, workflowId),
       name: flowDefinition.name,
       temporalClient: client,
       temporalWorkflowId: workflowId,
@@ -945,7 +947,10 @@ const main = async () => {
   writeFileSync(path.join(runDirectory, "report.md"), report);
   for (const { flowRun } of failedRuns) {
     writeFileSync(
-      path.join(runDirectory, `flow-run-${flowRun.flowRunId}.json`),
+      path.join(
+        runDirectory,
+        `flow-run-${extractEntityUuidFromEntityId(flowRun.flowRunEntityId)}.json`,
+      ),
       JSON.stringify(flowRun, null, 2),
     );
   }
