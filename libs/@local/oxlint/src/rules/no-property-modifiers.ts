@@ -293,9 +293,10 @@ const privateNameFix = (
   return [
     removal,
     { range: property.key.range, text: `#${name}` },
-    ...accesses.map(
-      (member): Fix => ({ range: member.property.range, text: `#${name}` }),
-    ),
+    ...accesses.map((member): Fix => ({
+      range: member.property.range,
+      text: `#${name}`,
+    })),
   ];
 };
 
