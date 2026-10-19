@@ -1,7 +1,10 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import {
+  extractWebIdFromEntityId,
+  isEntityId,
+} from "@blockprotocol/type-system";
 import {
   ArrowUpRightRegularIcon,
   CodeIcon,
@@ -20,7 +23,7 @@ import { SourcesSlideover } from "./provenance/sources-slideover";
 
 import type { HistoryEvent } from "../shared/types";
 import type { Subgraph } from "@blockprotocol/graph";
-import type { EntityId, OriginProvenance } from "@blockprotocol/type-system";
+import type { OriginProvenance } from "@blockprotocol/type-system";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
@@ -69,7 +72,13 @@ export const Provenance = ({
     provenance: { edition },
   } = event;
 
-  const flowRunEntityId = edition.origin.id as EntityId | undefined;
+  /* A flow's origin id is the entity id of the run that made the edition. Other origins give ids of their own. */
+  const flowRunEntityId =
+    edition.origin.type === "flow" &&
+    edition.origin.id !== undefined &&
+    isEntityId(edition.origin.id)
+      ? edition.origin.id
+      : undefined;
 
   /* The run page is under the shortname of the run's web, which may not be the entity's. */
   const { shortname: flowRunShortname } = useUserOrOrgShortnameByWebId({
