@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@local/hash-isomorphic-utils/*": [
+        "../../../@local/hash-isomorphic-utils/src/*"
+      ],
+      "@local/advanced-types/*": ["../../../@local/advanced-types/src/*"],
+      "@local/status": ["../../../@local/status/typescript/src/main.ts"],
+      "@blockprotocol/type-system": [
+        "../../../@blockprotocol/type-system/typescript/src/main.ts"
+      ]
+    }
+  },
+  "include": ["."]
+}

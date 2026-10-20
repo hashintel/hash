@@ -67,6 +67,7 @@
     "build:lib": "vite build",
     "build:pack": "node ../../../scripts/check-package-payload.mjs",
     "dev": "bash scripts/dev.sh",
+    "dev:flows-editor-prototype": "vite --config flows-editor-prototype/vite.config.ts",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
