@@ -13,6 +13,7 @@ import {
   outputArc,
   placeEndpoint,
   portEndpoint,
+  toPetrinautEndpoint,
 } from "./shared/net-elements.js";
 import {
   failedStepRunsPlaceId,
@@ -25,8 +26,15 @@ import { consumes, sourceValueKey } from "./shared/value-places.js";
 import type { FlowSteps } from "./shared/flow-steps.js";
 import type { NetBuilder } from "./shared/net-builder.js";
 import type { ValuePlaces } from "./shared/value-places.js";
-import type { InputArc, JsonValue } from "@hashintel/petrinaut-core";
-import type { ActionStepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ArcEndpoint,
+  InputArc,
+  JsonValue,
+} from "@hashintel/petrinaut-core";
+import type {
+  ActionStepDefinition,
+  StepInputSource,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 /**
  * Adds an action step: an instance of its action's subnet, the `startStep` transition that starts it once its
@@ -55,6 +63,25 @@ export const compileActionStep = ({
 
   const constants: Record<string, JsonValue> = {};
 
+  /**
+   * Where each of the action's inputs gets its value, as the arcs alone don't say: two inputs of one kind connected
+   * the other way round take the same arcs.
+   */
+  const inputSources: Record<string, JsonValue> = {};
+
+  const connectedValue = (
+    arc: { endpoint: ArcEndpoint },
+    source: StepInputSource,
+  ) => ({
+    kind: "value",
+    from: toPetrinautEndpoint(arc.endpoint),
+    access: consumes(source) ? "consume" : "read",
+    ...(source.kind !== "constant" && source.wrap ? { wrap: true } : {}),
+    ...(source.kind !== "constant" && source.whenMissing
+      ? { whenMissing: source.whenMissing }
+      : {}),
+  });
+
   for (const [inputName, source] of Object.entries(step.inputs)) {
     const consumer = {
       key: `${step.stepId}.${inputName}`,
@@ -64,6 +91,7 @@ export const compileActionStep = ({
 
     if (source.kind === "constant") {
       constants[inputName] = source.payload as JsonValue;
+      inputSources[inputName] = { kind: "constant" };
     } else if (source.kind === "item") {
       const forEachStepId = scope.at(-1);
 
@@ -73,17 +101,19 @@ export const compileActionStep = ({
         );
       }
 
-      inputArcs.push(
-        inputArc(
-          placeEndpoint(itemPlaceId(forEachStepId)),
-          consumer.consumes ? "standard" : "read",
-        ),
+      const arc = inputArc(
+        placeEndpoint(itemPlaceId(forEachStepId)),
+        consumer.consumes ? "standard" : "read",
       );
+      inputArcs.push(arc);
+      inputSources[inputName] = connectedValue(arc, source);
     } else {
       const key = sourceValueKey(source);
 
       if (key) {
-        inputArcs.push(values.valueInputArc(key, consumer));
+        const arc = values.valueInputArc(key, consumer);
+        inputArcs.push(arc);
+        inputSources[inputName] = connectedValue(arc, source);
       }
     }
   }
@@ -93,18 +123,26 @@ export const compileActionStep = ({
       ? actionDefinition.inputs.map(({ name }) => inputPortId(subnetKey, name))
       : [startPortId(subnetKey)];
 
-  /* An optional input that nothing feeds, and that has no default, is given a token marked absent. */
-  net.markAbsentInputPorts(
-    `t.startStep.${step.stepId}`,
-    actionDefinition.inputs
-      .filter(
-        (input) =>
-          !(input.name in step.inputs) &&
-          !input.required &&
-          !("default" in input && input.default !== undefined),
-      )
-      .map(({ name }) => inputPortId(subnetKey, name)),
-  );
+  /*
+   * An input nothing is connected to takes its default, if it has one. Otherwise, as it must be optional, it's given a
+   * token marked absent.
+   */
+  const absentInputPortIds: string[] = [];
+
+  for (const input of actionDefinition.inputs) {
+    if (input.name in step.inputs) {
+      continue;
+    }
+
+    if ("default" in input && input.default !== undefined) {
+      inputSources[input.name] = { kind: "default" };
+    } else {
+      inputSources[input.name] = { kind: "absent" };
+      absentInputPortIds.push(inputPortId(subnetKey, input.name));
+    }
+  }
+
+  net.markAbsentInputPorts(`t.startStep.${step.stepId}`, absentInputPortIds);
 
   net.addTransitions(
     createTransition({
@@ -112,7 +150,7 @@ export const compileActionStep = ({
       name: `Start ${step.stepId}`,
       description: `Starts step ${step.stepId} once its inputs are available, feeding every input of ${step.actionDefinitionId}: connected values, constants, and absent values for unconnected optional inputs.`,
       role: "startStep",
-      metadata: { stepId: step.stepId },
+      metadata: { stepId: step.stepId, inputSources },
       inputArcs,
       outputArcs: inputPortIds.map((portId) =>
         outputArc(portEndpoint(instanceKey(step.stepId), portId)),

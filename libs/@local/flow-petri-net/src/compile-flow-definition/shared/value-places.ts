@@ -11,11 +11,7 @@ import { instanceKey } from "./step-places.js";
 
 import type { FlowSteps, ValueShape } from "./flow-steps.js";
 import type { NetBuilder } from "./net-builder.js";
-import type {
-  ArcEndpoint,
-  InputArc,
-  OutputArc,
-} from "@hashintel/petrinaut-core";
+import type { ArcEndpoint, OutputArc } from "@hashintel/petrinaut-core";
 import type {
   FlowDefinition,
   StepInputSource,
@@ -300,7 +296,7 @@ export const placeValues = ({
       getValueLocation(key).producedInto.map(outputArc),
 
     /** The arc a consumer takes a value through. */
-    valueInputArc: (key: string, consumer: Consumer): InputArc => {
+    valueInputArc: (key: string, consumer: Consumer) => {
       const { shared, taken } = getValueLocation(key);
 
       if (consumer.consumes) {

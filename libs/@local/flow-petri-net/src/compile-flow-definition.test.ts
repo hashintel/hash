@@ -262,6 +262,53 @@ describe("compileFlowDefinition", () => {
     expect(() => compilePetrinautModel({ sdcpn })).not.toThrow();
   });
 
+  it("records which value each input of a step takes", async () => {
+    const compileWithInputsSwapped = (swapped: boolean) =>
+      compileFlowDefinition(
+        defineFlow(
+          {
+            flowDefinitionId: "two-text-inputs",
+            name: "Two text inputs",
+            description: "Two values of one kind, connected either way round",
+            inputs: { a: flowInput("Text"), b: flowInput("Text") },
+          },
+          ({ inputs, step }) => {
+            const getFile = step("1", actions.getFileFromUrl, {
+              description: "Retrieve the file from the URL",
+              inputs: swapped
+                ? { url: inputs.b, description: inputs.a }
+                : { url: inputs.a, description: inputs.b },
+            });
+
+            return { outputs: { fileEntity: getFile.outputs.fileEntity } };
+          },
+        ).flowDefinition,
+      );
+
+    const inputSourcesOf = async (swapped: boolean) =>
+      (await compileWithInputsSwapped(swapped)).transitions.find(
+        byKey("t.startStep.1"),
+      )?.metadata?.inputSources;
+
+    expect(await inputSourcesOf(false)).toEqual({
+      url: {
+        kind: "value",
+        from: placeEndpointOf("p.input.a"),
+        access: "read",
+      },
+      description: {
+        kind: "value",
+        from: placeEndpointOf("p.input.b"),
+        access: "read",
+      },
+      displayName: { kind: "absent" },
+    });
+    expect(await inputSourcesOf(true)).toMatchObject({
+      url: { from: placeEndpointOf("p.input.b") },
+      description: { from: placeEndpointOf("p.input.a") },
+    });
+  });
+
   it("compiles deterministically", async () => {
     expect(
       await compileFlowDefinition(ftseInvestorsFlow.flowDefinition),

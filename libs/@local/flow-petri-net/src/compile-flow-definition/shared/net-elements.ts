@@ -125,10 +125,11 @@ export const toPetrinautEndpoint = (endpoint: ArcEndpoint): ArcEndpoint =>
         toPetrinautId(endpoint.portPlaceId),
       );
 
+/** An arc into a transition. Unlike a Petrinaut `InputArc`, its `endpoint` is always set. */
 export const inputArc = (
   endpoint: ArcEndpoint,
   type: InputArcType = "standard",
-): InputArc => ({ endpoint, weight: 1, type });
+): InputArc & { endpoint: ArcEndpoint } => ({ endpoint, weight: 1, type });
 
 export const outputArc = (endpoint: ArcEndpoint): OutputArc => ({
   endpoint,
