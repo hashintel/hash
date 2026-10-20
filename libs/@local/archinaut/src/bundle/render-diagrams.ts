@@ -55,8 +55,15 @@ export const renderDiagrams = async (options: {
   /** Absolute; holds one SVG per rendered source content. */
   cacheDirectory: string;
   names: string[];
-}): Promise<{ rendered: number; diagnostics: Diagnostic[] }> => {
+}): Promise<{
+  /** How many came out of d2 this time, as opposed to the cache. */
+  rendered: number;
+  /** Bundle-relative paths of every SVG written, cache hits included. */
+  written: string[];
+  diagnostics: Diagnostic[];
+}> => {
   const diagnostics: Diagnostic[] = [];
+  const written: string[] = [];
   let rendered = 0;
   await mkdir(options.cacheDirectory, { recursive: true });
   await inParallel(options.names, availableParallelism(), async (name) => {
@@ -72,6 +79,7 @@ export const renderDiagrams = async (options: {
     );
     if (hit) {
       await readable(outputPath);
+      written.push(`diagrams/${name}.svg`);
       return;
     }
     const result = await renderD2({
@@ -92,7 +100,8 @@ export const renderDiagrams = async (options: {
     }
     await readable(outputPath);
     await copyFile(outputPath, cached);
+    written.push(`diagrams/${name}.svg`);
     rendered += 1;
   });
-  return { rendered, diagnostics };
+  return { rendered, written, diagnostics };
 };
