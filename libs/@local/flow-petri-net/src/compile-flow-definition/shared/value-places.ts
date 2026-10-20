@@ -108,7 +108,8 @@ export const placeValues = ({
   for (const input of flowDefinition.inputs) {
     addValue({
       key: inputValueKey(input.name),
-      name: input.label ?? input.name,
+      /* Kernels address places by name, so it must be unique: an input's label needn't be. */
+      name: input.name,
       shape: input,
       producer: { kind: "transition" },
     });

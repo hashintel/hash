@@ -160,6 +160,10 @@ describe("compileFlowDefinition", () => {
 
         const ids = idsOf(sdcpn);
         expect(new Set(ids).size).toBe(ids.length);
+
+        /* Kernels address places by name. */
+        const placeNames = sdcpn.places.map((place) => place.name);
+        expect(new Set(placeNames).size).toBe(placeNames.length);
       });
 
       it("feeds each input port a value of a kind the port accepts", async () => {
@@ -229,6 +233,32 @@ describe("compileFlowDefinition", () => {
     const ids = idsOf(sdcpn);
 
     expect(new Set(ids).size).toBe(ids.length);
+    expect(() => compilePetrinautModel({ sdcpn })).not.toThrow();
+  });
+
+  it("builds a flow whose inputs share a label", async () => {
+    const sdcpn = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "inputs-sharing-a-label",
+          name: "Inputs sharing a label",
+          description: "Two inputs labelled the same",
+          inputs: {
+            sourceUrl: flowInput("Text", { label: "URL" }),
+            backupUrl: flowInput("Text", { label: "URL" }),
+          },
+        },
+        ({ inputs, step }) => {
+          const getFile = step("1", actions.getFileFromUrl, {
+            description: "Retrieve the file from the URL",
+            inputs: { url: inputs.sourceUrl, description: inputs.backupUrl },
+          });
+
+          return { outputs: { fileEntity: getFile.outputs.fileEntity } };
+        },
+      ).flowDefinition,
+    );
+
     expect(() => compilePetrinautModel({ sdcpn })).not.toThrow();
   });
 
