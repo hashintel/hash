@@ -174,7 +174,15 @@ const titleStyle = css({
     },
 });
 
-const actionsStyle = css({ display: "contents" });
+// A positioned row paints above the drag handle, so every button in it takes
+// clicks, whatever its own styles. Hidden while empty, so it adds no gap.
+const actionsStyle = css({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  _empty: { display: "none" },
+});
 
 const buttonStyle = css({
   position: "relative",
