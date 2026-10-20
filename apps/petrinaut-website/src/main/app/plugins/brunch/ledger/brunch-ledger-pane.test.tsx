@@ -295,6 +295,57 @@ test("comments on the records a selection touches, and keeps the comment pending
   );
 });
 
+test("shows a pending comment once, though its record appears under several entities", () => {
+  const comments = pendingCommentsFor({});
+  comments.add({ records: ["c1"], text: "Only in winter." }, []);
+  render(
+    <BrunchLedgerPane
+      messages={[
+        assistant(
+          commit(
+            "ledger-1",
+            {},
+            [
+              reservoir,
+              [
+                "entity/create",
+                {
+                  name: "Supply mains",
+                  kind: "resource",
+                  origin: "stated",
+                  status: "confirmed",
+                },
+              ],
+              [
+                "claim/create",
+                {
+                  text: "The reservoir feeds the mains for a day.",
+                  entities: ["$0", "$1"],
+                  origin: "stated",
+                  status: "confirmed",
+                },
+              ],
+              [
+                "obligation/create",
+                { text: "Check the day's supply in a run.", claims: ["$2"] },
+              ],
+            ],
+            ["e1", "e2", "c1", "o1"],
+          ),
+        ),
+      ]}
+      comments={comments}
+    />,
+  );
+  const document = screen.getByTestId("brunch-ledger-document");
+  expect(document.querySelectorAll('[data-ledger-address="c1"]')).toHaveLength(
+    2,
+  );
+  expect(document.querySelectorAll('[data-pending-comment="n1"]')).toHaveLength(
+    1,
+  );
+});
+
 test("offers no comment on a selection outside the records", () => {
   render(
     <BrunchLedgerPane messages={reflected} comments={pendingCommentsFor({})} />,
