@@ -137,7 +137,7 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
                 },
               },
               flowDefinitionEntityId: entityIdFromComponents(
-                aliceUserAccountId as WebId,
+                aliceUserAccountId,
                 generateUuid() as EntityUuid,
               ),
               flowInputs: {},

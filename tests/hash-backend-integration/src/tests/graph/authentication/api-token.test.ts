@@ -17,7 +17,7 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { createTestImpureGraphContext, createTestUser } from "../../util";
 
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
 
 const logger = new Logger({
   environment: "test",
@@ -54,7 +54,7 @@ describe("API tokens", () => {
       graphContext,
       { actorId: owner.accountId },
       {
-        webId: owner.accountId as WebId,
+        webId: owner.accountId,
         schema: generateSystemEntityTypeSchema({
           entityTypeId: generateTypeId({
             kind: "entity-type",
@@ -126,7 +126,7 @@ describe("API tokens", () => {
   it("reads an entity on the public API as the token's owner", async () => {
     const authentication = { actorId: owner.accountId };
     const entity = await createEntity(graphContext, authentication, {
-      webId: owner.accountId as WebId,
+      webId: owner.accountId,
       properties: { value: {} },
       entityTypeIds: [ownerEntityType.schema.$id],
     });
@@ -157,7 +157,7 @@ describe("API tokens", () => {
   it("answers an archived entity with 404 on the public API", async () => {
     const authentication = { actorId: owner.accountId };
     const entity = await createEntity(graphContext, authentication, {
-      webId: owner.accountId as WebId,
+      webId: owner.accountId,
       properties: { value: {} },
       entityTypeIds: [ownerEntityType.schema.$id],
     });
