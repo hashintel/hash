@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
+import {
+  flowDefinitionIds,
+  isHashFlowDefinitionEntityId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { getMinimalFlowRunsQuery } from "../../../../../graphql/queries/flow.queries";
 import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
@@ -89,10 +92,14 @@ const getFlowRuns = async ({
 
       for (const flowRun of unfilteredFlowRuns) {
         if (
-          flowRun.flowDefinitionId ===
-            flowDefinitionIds.manualBrowserInference ||
-          flowRun.flowDefinitionId ===
-            flowDefinitionIds.automaticBrowserInference
+          isHashFlowDefinitionEntityId(
+            flowRun.flowDefinitionEntityId,
+            flowDefinitionIds.manualBrowserInference,
+          ) ||
+          isHashFlowDefinitionEntityId(
+            flowRun.flowDefinitionEntityId,
+            flowDefinitionIds.automaticBrowserInference,
+          )
         ) {
           flowRunsOfInterest.push(mapFlowRunToMinimalFlowRun(flowRun));
         }

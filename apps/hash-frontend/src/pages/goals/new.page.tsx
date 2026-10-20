@@ -35,6 +35,7 @@ import { Button } from "../../shared/ui/button";
 import { WorkersHeader } from "../../shared/workers-header";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
+import { useGenerateHashFlowDefinitionEntityId } from "../shared/use-hash-flows";
 import { WebSelector } from "../shared/web-selector";
 import { defaultBrowserPluginDomains } from "./new.page/default-browser-plugin-domains";
 import { DeliverableSettings } from "./new.page/deliverable-settings";
@@ -189,6 +190,9 @@ const NewGoalPageContent = () => {
   const getOwner = useGetOwnerForEntity();
   const { push } = useRouter();
 
+  const generateHashFlowDefinitionEntityId =
+    useGenerateHashFlowDefinitionEntityId();
+
   const [startFlow, { called }] = useMutation<
     StartFlowMutation,
     StartFlowMutationVariables
@@ -284,7 +288,9 @@ const NewGoalPageContent = () => {
           },
           internetAccess: internetSettings,
         },
-        flowDefinitionId: flowDefinitionIds.goal,
+        flowDefinitionEntityId: generateHashFlowDefinitionEntityId(
+          flowDefinitionIds.goal,
+        ),
         flowInputs,
         webId,
       },

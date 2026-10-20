@@ -23,10 +23,10 @@ export type BaseRunFlowWorkflowParams = {
    */
   flowRunEntityUuid?: EntityUuid;
   /**
-   * The uuid of the `Flow Definition` entity to run. The run loads the definition when it starts, so it runs the
-   * edition current at that time.
+   * The `Flow Definition` entity to run. The run loads the definition when it starts, so it runs the edition current
+   * at that time.
    */
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   /**
    * Optional name for the flow run. If not provided, the flow definition name is used.
    * For scheduled flows, this is typically the schedule name.

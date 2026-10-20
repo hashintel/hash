@@ -24,12 +24,12 @@ export const getFlowRunsResolver: ResolverFn<
 
   const { authentication, dataSources, temporal } = context;
 
-  const { flowDefinitionIds, executionStatus, cursor, limit } = args;
+  const { flowDefinitionEntityIds, executionStatus, cursor, limit } = args;
 
   return await getFlowRuns({
     authentication,
     filters: {
-      flowDefinitionIds,
+      flowDefinitionEntityIds,
       executionStatus,
       cursor,
       limit,

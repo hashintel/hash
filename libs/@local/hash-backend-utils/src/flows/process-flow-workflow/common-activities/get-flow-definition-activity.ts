@@ -5,7 +5,6 @@ import { getFlowDefinitionEntityById } from "../../shared/get-flow-definition-en
 import type {
   ActorEntityUuid,
   EntityId,
-  EntityUuid,
   Timestamp,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -14,7 +13,7 @@ import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 export type GetFlowDefinitionActivityParams = {
   /** When the run started: it executes the edition of the definition current then. */
   atTime: Timestamp;
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   userAuthentication: { actorId: ActorEntityUuid };
 };
 
@@ -32,12 +31,12 @@ export const getFlowDefinitionActivity = async (
     }
   | { status: "not-found" | "invalid"; errorMessage: string }
 > => {
-  const { atTime, flowDefinitionId, graphApiClient, userAuthentication } =
+  const { atTime, flowDefinitionEntityId, graphApiClient, userAuthentication } =
     params;
 
   const entity = await getFlowDefinitionEntityById({
     atTime,
-    flowDefinitionId,
+    flowDefinitionEntityId,
     graphApiClient,
     userAuthentication,
   });
@@ -45,7 +44,7 @@ export const getFlowDefinitionActivity = async (
   if (!entity) {
     return {
       status: "not-found",
-      errorMessage: `No Flow Definition entity with uuid ${flowDefinitionId} exists, or the user can't view it`,
+      errorMessage: `No Flow Definition entity ${flowDefinitionEntityId} exists, or the user can't view it`,
     };
   }
 

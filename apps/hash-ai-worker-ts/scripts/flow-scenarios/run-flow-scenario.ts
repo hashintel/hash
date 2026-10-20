@@ -294,7 +294,7 @@ const getUserFlowDefinitionId = (
 ) => uuidv5(userId, scenarioFlowDefinitionId) as EntityUuid;
 
 /**
- * Runs load their definition from the `Flow Definition` entity whose uuid is the definition's id. Migrations only
+ * Runs load their definition from its `Flow Definition` entity, in the user's web here. Migrations only
  * seed the flows HASH provides, so the scenario's definition is written to the user's web: created if it doesn't
  * exist, and updated if it differs, like `seedFlowDefinitions` does for seeded flows.
  */
@@ -318,7 +318,10 @@ const ensureFlowDefinitionEntity = async ({
   const properties = mapFlowDefinitionToEntityProperties(flowDefinition);
 
   const existingEntity = await getFlowDefinitionEntityById({
-    flowDefinitionId,
+    flowDefinitionEntityId: entityIdFromComponents(
+      userId as WebId,
+      flowDefinitionId,
+    ),
     graphApiClient: graphApi,
     userAuthentication: authentication,
   });
@@ -446,6 +449,10 @@ const startRun = async ({
 }) => {
   const workflowId = generateUuid() as EntityUuid;
   const webId = userId as WebId;
+  const flowDefinitionEntityId = entityIdFromComponents(
+    webId,
+    flow.flowDefinitionId,
+  );
   const params: RunFlowWorkflowParams = {
     ...(taskQueue === "ai"
       ? {
@@ -460,7 +467,7 @@ const startRun = async ({
       : {}),
     flowRunEntityUuid: workflowId,
     flowInputs: inputs,
-    flowDefinitionId: flow.flowDefinitionId,
+    flowDefinitionEntityId,
     userAuthentication: { actorId: userId },
     webId,
   };
@@ -469,7 +476,7 @@ const startRun = async ({
     taskQueue,
     args: [params],
     memo: {
-      flowDefinitionId: flow.flowDefinitionId,
+      flowDefinitionEntityId,
       userAccountId: userId,
       webId,
     },
@@ -902,7 +909,10 @@ const main = async () => {
     const workflowError = await workflowErrorWhenClosed;
 
     const flowRun = await getFlowRunFromTemporalWorkflowId({
-      flowDefinitionId,
+      flowDefinitionEntityId: entityIdFromComponents(
+        userId as WebId,
+        flowDefinitionId,
+      ),
       flowRunEntityId: entityIdFromComponents(userId as WebId, workflowId),
       name: flowDefinition.name,
       temporalClient: client,

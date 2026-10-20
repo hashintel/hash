@@ -11,7 +11,8 @@ import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   flowDefinitionIds,
-  isGoalFlowDefinitionId,
+  isGoalFlowDefinitionEntityId,
+  isHashFlowDefinitionEntityId,
 } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import {
@@ -63,12 +64,7 @@ import type {
   ProposedEntityOutput,
 } from "./flow-visualizer/shared/types";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  EntityId,
-  EntityUuid,
-  Timestamp,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { EntityId, Timestamp, WebId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -206,7 +202,7 @@ export const FlowVisualizer = () => {
   const {
     flowDefinitions,
     loading: flowDefinitionsLoading,
-    selectedFlowDefinitionId,
+    selectedFlowDefinitionEntityId,
   } = useFlowDefinitionsContext();
 
   const { selectedFlowRun } = useFlowRunsContext();
@@ -218,8 +214,8 @@ export const FlowVisualizer = () => {
     flowDefinition: flowOfSelectedRun,
     loading: flowOfSelectedRunLoading,
   } = useFlowDefinitionAtTime({
-    flowDefinitionId: selectedFlowRun
-      ? (selectedFlowRun.flowDefinitionId as EntityUuid)
+    flowDefinitionEntityId: selectedFlowRun
+      ? selectedFlowRun.flowDefinitionEntityId
       : null,
     timestamp: selectedFlowRun
       ? (selectedFlowRun.startedAt as Timestamp)
@@ -246,13 +242,13 @@ export const FlowVisualizer = () => {
       selectedFlowRun
         ? flowOfSelectedRun
         : flowDefinitions.find(
-            ({ flowDefinitionId }) =>
-              flowDefinitionId === selectedFlowDefinitionId,
+            ({ flowDefinitionEntityId }) =>
+              flowDefinitionEntityId === selectedFlowDefinitionEntityId,
           ),
     [
       flowDefinitions,
       flowOfSelectedRun,
-      selectedFlowDefinitionId,
+      selectedFlowDefinitionEntityId,
       selectedFlowRun,
     ],
   );
@@ -600,7 +596,7 @@ export const FlowVisualizer = () => {
 
         variables = {
           dataSources: selectedFlowRun.dataSources,
-          flowDefinitionId: selectedFlow.flowDefinitionId,
+          flowDefinitionEntityId: selectedFlow.flowDefinitionEntityId,
           flowInputs: selectedFlowRun.flowInputs,
           webId: selectedFlowRun.webId,
         };
@@ -617,7 +613,7 @@ export const FlowVisualizer = () => {
               enabled: true,
             },
           },
-          flowDefinitionId: selectedFlow.flowDefinitionId,
+          flowDefinitionEntityId: selectedFlow.flowDefinitionEntityId,
           flowInputs,
           webId,
         };
@@ -662,7 +658,7 @@ export const FlowVisualizer = () => {
       return <FlowRunVisualizerSkeleton />;
     }
 
-    if (selectedFlowDefinitionId) {
+    if (selectedFlowDefinitionEntityId) {
       /* The definition doesn't exist, or the user can't view it. */
       return <NotFound />;
     }
@@ -674,11 +670,16 @@ export const FlowVisualizer = () => {
     selectedFlowRun?.flowRunEntityId ?? "definition"
   }`;
 
-  const isRunnableFromHere = !unrunnableDefinitionIds.includes(
-    selectedFlow.flowDefinitionId,
+  const isRunnableFromHere = !unrunnableDefinitionIds.some((flowDefinitionId) =>
+    isHashFlowDefinitionEntityId(
+      selectedFlow.flowDefinitionEntityId,
+      flowDefinitionId,
+    ),
   );
 
-  const isGoal = isGoalFlowDefinitionId(selectedFlow.flowDefinitionId);
+  const isGoal = isGoalFlowDefinitionEntityId(
+    selectedFlow.flowDefinitionEntityId,
+  );
 
   return (
     <>
@@ -688,7 +689,7 @@ export const FlowVisualizer = () => {
           open={showDag}
           onClose={() => setShowDag(false)}
           selectedFlowDefinition={selectedFlowDefinition}
-          flowDefinitionId={selectedFlow.flowDefinitionId}
+          flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
         />
       )}
       <Stack sx={{ height: containerHeight }}>
@@ -696,7 +697,7 @@ export const FlowVisualizer = () => {
           <RunFlowModal
             key={selectedFlowDefinition.name}
             flowDefinition={selectedFlowDefinition}
-            flowDefinitionId={selectedFlow.flowDefinitionId}
+            flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
             open={showRunModal}
             onClose={() => setShowRunModal(false)}
             onScheduleCreated={() => {
@@ -731,7 +732,7 @@ export const FlowVisualizer = () => {
         >
           {selectedFlowRun ? (
             <FlowRunSidebar
-              flowDefinitionId={selectedFlow.flowDefinitionId}
+              flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
               flowRunEntityId={selectedFlowRun.flowRunEntityId}
               flowScheduleId={selectedFlowRun.flowScheduleId ?? null}
               graph={graph}

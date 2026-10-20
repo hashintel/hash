@@ -41,7 +41,7 @@ import type {
   CreateFlowActivities,
   ProxyFlowActivity,
 } from "./action-types.js";
-import type { EntityUuid, Timestamp } from "@blockprotocol/type-system";
+import type { EntityId, Timestamp } from "@blockprotocol/type-system";
 import type { FlowActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   BaseRunFlowWorkflowParams,
@@ -302,7 +302,7 @@ const processFlow = async <
   params: BaseRunFlowWorkflowParams & {
     generateFlowRunName?: (params: {
       flowDefinition: FlowDefinition;
-      flowDefinitionId: EntityUuid;
+      flowDefinitionEntityId: EntityId;
       flowInputs: FlowInputValues;
     }) => Promise<string>;
     proxyFlowActivity: ProxyFlowActivity<
@@ -312,7 +312,7 @@ const processFlow = async <
   },
 ): Promise<RunFlowWorkflowResponse> => {
   const {
-    flowDefinitionId,
+    flowDefinitionEntityId,
     flowRunEntityUuid,
     flowRunName,
     flowInputs,
@@ -329,7 +329,7 @@ const processFlow = async <
    */
   const flowDefinitionResult = await getFlowDefinitionActivity({
     atTime: workflowInfo().startTime.toISOString() as Timestamp,
-    flowDefinitionId,
+    flowDefinitionEntityId,
     userAuthentication,
   });
 
@@ -400,7 +400,7 @@ const processFlow = async <
 
   const flow = initializeFlow({
     flowDefinition,
-    flowDefinitionId,
+    flowDefinitionEntityId,
     flowInputs,
     temporalWorkflowId: workflowId,
     /**
@@ -423,7 +423,7 @@ const processFlow = async <
   if (generateFlowRunName) {
     const generatedName = await generateFlowRunName({
       flowDefinition,
-      flowDefinitionId,
+      flowDefinitionEntityId,
       flowInputs,
     });
     flow.name = generatedName;

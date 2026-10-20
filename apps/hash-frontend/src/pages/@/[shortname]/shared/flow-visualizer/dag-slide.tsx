@@ -1,13 +1,13 @@
 import { Backdrop, Box, Slide, Stack } from "@mui/material";
 
 import { IconButton, XMarkRegularIcon } from "@hashintel/design-system";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
+import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { DAG } from "./dag";
 import { Topbar } from "./topbar";
 
 import type { EdgesAndNodes } from "./shared/types";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
@@ -18,7 +18,7 @@ type DagSlideProps = {
   open: boolean;
   onClose: () => void;
   selectedFlowDefinition: FlowDefinition<FlowActionDefinitionId>;
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
 };
 
 export const DagSlide = ({
@@ -26,9 +26,9 @@ export const DagSlide = ({
   open,
   onClose,
   selectedFlowDefinition,
-  flowDefinitionId,
+  flowDefinitionEntityId,
 }: DagSlideProps) => {
-  const isGoal = isGoalFlowDefinitionId(flowDefinitionId);
+  const isGoal = isGoalFlowDefinitionEntityId(flowDefinitionEntityId);
 
   return (
     <Backdrop

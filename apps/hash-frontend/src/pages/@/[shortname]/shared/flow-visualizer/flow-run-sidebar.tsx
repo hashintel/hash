@@ -7,7 +7,7 @@ import {
   ClockRegularIcon,
   IconButton,
 } from "@hashintel/design-system";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
+import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { Link } from "../../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
@@ -38,7 +38,7 @@ const SidebarSection = ({ children }: PropsWithChildren) => (
 );
 
 type FlowRunSidebarProps = {
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   flowRunEntityId: EntityId;
   flowScheduleId: EntityUuid | null;
   graph: EdgesAndNodes;
@@ -47,7 +47,7 @@ type FlowRunSidebarProps = {
 };
 
 export const FlowRunSidebar = ({
-  flowDefinitionId,
+  flowDefinitionEntityId,
   flowRunEntityId,
   flowScheduleId,
   graph,
@@ -86,7 +86,9 @@ export const FlowRunSidebar = ({
         <Stack direction="row" alignItems="center" gap={0.75}>
           <SectionLabel
             text={
-              isGoalFlowDefinitionId(flowDefinitionId) ? "Goal" : "Description"
+              isGoalFlowDefinitionEntityId(flowDefinitionEntityId)
+                ? "Goal"
+                : "Description"
             }
           />
           {flowScheduleId && (
