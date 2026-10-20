@@ -2361,8 +2361,8 @@ const ConversationAssistantChat = ({
 };
 
 /**
- * Petrinaut's assistant chat, drawn in the assistant window: render it as an
- * assistant plugin's `view`. A new `conversationId` replaces every
+ * Petrinaut's assistant chat, drawn in the assistant panel: render it as a
+ * plugin's `assistant.content`. A new `conversationId` replaces every
  * conversation-owned hook and callback together; each chat has its own Voice
  * session.
  */
