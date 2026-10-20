@@ -11,15 +11,10 @@ ENV NODE_OPTIONS=--use-openssl-ca
 
 COPY .config/mise /etc/mise
 
-# Distrust until updated base image removes compromised intermediate CAs, see: https://bugs.debian.org/1151413
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    sed -i \
-    -e 's|^mozilla/emSign_ECC_Root_CA_-_G3.crt|!&|' \
-    -e 's|^mozilla/Comodo_AAA_Services_root.crt|!&|' \
-    /etc/ca-certificates.conf && \
-    update-ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419+deb13u1 && \
     /etc/mise/install.sh && \
     mise --version && \
     apt-get clean && \

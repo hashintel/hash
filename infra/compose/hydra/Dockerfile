@@ -2,9 +2,7 @@ FROM oryd/hydra:v25.4
 
 USER root
 
-# Distrust until updated base image removes compromised intermediate CAs, see: https://emudhra.we-have-a-problem.com/
-RUN sed -i -e 's|^mozilla/emSign_ECC_Root_CA_-_G3.crt|!&|' /etc/ca-certificates.conf && \
-    update-ca-certificates
+RUN apk add --no-cache 'ca-certificates>=20261020-r0' 'ca-certificates-bundle>=20261020-r0'
 
 RUN mkdir -p /home/nonroot/.postgresql
 

@@ -27,11 +27,7 @@ COPY rust-toolchain.toml /tmp/rust-toolchain.toml
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    sed -i \
-    -e 's|^mozilla/emSign_ECC_Root_CA_-_G3.crt|!&|' \
-    -e 's|^mozilla/Comodo_AAA_Services_root.crt|!&|' \
-    /etc/ca-certificates.conf && \
-    update-ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419~deb12u2 && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -136,12 +132,11 @@ COPY apps/petrinaut-opt/src ./src
 # built workspace packages it resolves.
 COPY --from=bindings-runtime / /opt/petrinaut-runtime
 
-# Distrust until updated base image removes compromised intermediate CAs, see: https://bugs.debian.org/1151413
-RUN sed -i \
-    -e 's|^mozilla/emSign_ECC_Root_CA_-_G3.crt|!&|' \
-    -e 's|^mozilla/Comodo_AAA_Services_root.crt|!&|' \
-    /etc/ca-certificates.conf && \
-    update-ca-certificates
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419~deb12u2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # `petrinaut` is the command the bindings spawn by default, and they give the
 # child a fixed PATH of /usr/local/bin:/usr/bin:/bin, so it is linked there.
