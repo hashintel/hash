@@ -1,4 +1,7 @@
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
@@ -38,14 +41,27 @@ const uploadTestFile = async (page: Page, file: TestFile) => {
 
 export const uploadAndOpenFile = async (page: Page, file: TestFile) => {
   const fileEntity = await uploadTestFile(page, file);
+  const { entityId } = fileEntity.metadata.recordId;
+  const entityUuid = extractEntityUuidFromEntityId(entityId);
+
+  const fileEntityFetched = page.waitForResponse((response) => {
+    const postData = response.request().postData() ?? "";
+
+    return (
+      response.url().includes("/graphql") &&
+      postData.includes("queryEntitySubgraph") &&
+      postData.includes(`{"path":["uuid"]},{"parameter":"${entityUuid}"}`)
+    );
+  });
 
   await page.goto(
     generateEntityPath({
-      entityId: fileEntity.metadata.recordId.entityId,
+      entityId,
       includeDraftId: false,
       shortname: "alice",
     }),
   );
+  await fileEntityFetched;
 };
 
 export const uploadTestFileAndGetUrl = async (page: Page, file: TestFile) => {
