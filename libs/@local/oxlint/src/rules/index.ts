@@ -1,6 +1,7 @@
 import { definePlugin } from "@oxlint/plugins";
 
 import { namingConventions } from "./naming-conventions.js";
+import { noComplexTernary } from "./no-complex-ternary.js";
 import { noPropertyModifiers } from "./no-property-modifiers.js";
 import { preferOptionsObject } from "./prefer-options-object.js";
 import { preferRustSeverities } from "./prefer-rust-severities.js";
@@ -15,6 +16,7 @@ export default definePlugin({
   },
   rules: {
     "naming-conventions": namingConventions,
+    "no-complex-ternary": noComplexTernary,
     "no-property-modifiers": noPropertyModifiers,
     "prefer-options-object": preferOptionsObject,
     "prefer-rust-severities": preferRustSeverities,
