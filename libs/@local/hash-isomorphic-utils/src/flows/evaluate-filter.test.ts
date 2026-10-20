@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { evaluateFilter } from "./evaluate-filter.js";
 
 import type { FilterValue, ScalarFilterCondition } from "./evaluate-filter.js";
-import type { EntityId } from "@blockprotocol/type-system";
+import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 
 const entityId =
   "00000000-0000-4000-8000-000000000001~00000000-0000-4000-8000-000000000002" as EntityId;
@@ -22,6 +22,10 @@ const values: FilterValue[] = [
   {
     kind: "VersionedUrl",
     value: "https://example.com/types/entity-type/company/v/1",
+  },
+  {
+    kind: "BaseUrl",
+    value: "https://example.com/types/property-type/name/" as BaseUrl,
   },
 ];
 
@@ -227,6 +231,7 @@ describe("evaluateFilter", () => {
       ActorType: [...notText],
       GoogleAccountId: [...notText],
       VersionedUrl: [...notText],
+      BaseUrl: [...notText],
     };
 
     it.each(unsupportedOperators[value.kind])("rejects %s", (operator) => {

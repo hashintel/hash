@@ -1,0 +1,216 @@
+import { isEntityId, splitEntityId } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import {
+  getStorageProvider,
+  resolvePayloadValue,
+} from "@local/hash-backend-utils/flows/payload-storage";
+import {
+  mergePropertyObjectAndMetadata,
+  queryEntities,
+} from "@local/hash-graph-sdk/entity";
+import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { validatePropertyChanges } from "@local/hash-isomorphic-utils/flows/property-values";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { StatusCode } from "@local/status";
+
+import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { checkPropertyValues } from "./shared/check-property-values.js";
+import { getEntityUpdate } from "./shared/graph-requests.js";
+import { getSavingActorId, retrySave } from "./shared/save-entity.js";
+
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+
+const invalidArgument = (message: string) => ({
+  code: StatusCode.InvalidArgument,
+  message,
+  contents: [],
+});
+
+/**
+ * Sets and removes the given properties of an entity the user running the flow can edit, leaving its other properties
+ * as they are. A value replaces a list property's whole list. An entity ID with a draft ID updates that draft, which
+ * stays a draft.
+ */
+export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
+  inputs,
+}) => {
+  const { entityId, properties, removeProperties } =
+    getSimplifiedFlowActionInputs({
+      inputs,
+      actionType: "updateEntity",
+    });
+
+  const changesError = validatePropertyChanges({
+    properties,
+    removeProperties,
+  });
+
+  if (changesError) {
+    return invalidArgument(changesError);
+  }
+
+  const { flowEntityId, stepId, userAuthentication, webId, workflowId } =
+    await getFlowContext();
+
+  /* An item of a stored list of entity IDs, e.g. in a for-each step, is a reference to it. */
+  const resolvedEntityId = await resolvePayloadValue(
+    { storageProvider: getStorageProvider(), workflowId },
+    "EntityId",
+    entityId,
+  );
+
+  if (!isEntityId(resolvedEntityId)) {
+    return invalidArgument(
+      `${String(resolvedEntityId)} is not a valid EntityId.`,
+    );
+  }
+
+  const [entityWebId, entityUuid, draftId] = splitEntityId(resolvedEntityId);
+
+  if (entityWebId !== webId) {
+    return invalidArgument(
+      `Entity ${resolvedEntityId} isn't in the web the flow runs in, so it can't be updated.`,
+    );
+  }
+
+  const {
+    entities: [existingEntity],
+    permissions,
+  } = await queryEntities({ graphApi: graphApiClient }, userAuthentication, {
+    filter: {
+      all: [
+        { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+        { equal: [{ path: ["webId"] }, { parameter: entityWebId }] },
+        draftId
+          ? { equal: [{ path: ["draftId"] }, { parameter: draftId }] }
+          : { not: { exists: { path: ["draftId"] } } },
+        { equal: [{ path: ["archived"] }, { parameter: false }] },
+      ],
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: !!draftId,
+    includePermissions: true,
+  });
+
+  if (!existingEntity) {
+    return {
+      code: StatusCode.NotFound,
+      message: `Entity ${resolvedEntityId} doesn't exist or can't be read by the user running the flow.`,
+      contents: [],
+    };
+  }
+
+  /* The web's machine saves the update, so the user's own permission to edit the entity is checked here. */
+  if (!permissions?.[existingEntity.entityId]?.update) {
+    return {
+      code: StatusCode.PermissionDenied,
+      message: `The user running the flow can't edit entity ${resolvedEntityId}.`,
+      contents: [],
+    };
+  }
+
+  const propertiesWithMetadata = mergePropertyObjectAndMetadata(
+    properties ?? {},
+    undefined,
+  );
+
+  /* A property the entity doesn't have is skipped, e.g. one an earlier attempt of the step removed. */
+  const removedBaseUrls = new Set(
+    removeProperties?.filter((baseUrl) =>
+      Object.hasOwn(existingEntity.properties, baseUrl),
+    ),
+  );
+
+  const succeeded = () => ({
+    code: StatusCode.Ok,
+    contents: [
+      {
+        outputs: [
+          {
+            outputName: "entityId" as const,
+            payload: { kind: "EntityId" as const, value: resolvedEntityId },
+          },
+        ],
+      },
+    ],
+  });
+
+  if (properties === undefined && removedBaseUrls.size === 0) {
+    return succeeded();
+  }
+
+  /*
+   * Removing a property from a live entity may leave out a required one, which only the whole entity shows. Its other
+   * values keep their metadata, so that their data types aren't inferred again.
+   */
+  const checksWholeEntity = removedBaseUrls.size > 0 && !draftId;
+
+  const valuesError =
+    checksWholeEntity || properties !== undefined
+      ? await checkPropertyValues({
+          actorId: userAuthentication.actorId,
+          entityTypeIds: existingEntity.metadata.entityTypeIds,
+          properties: checksWholeEntity
+            ? {
+                value: {
+                  ...Object.fromEntries(
+                    typedEntries(
+                      existingEntity.propertiesWithMetadata.value,
+                    ).filter(([baseUrl]) => !removedBaseUrls.has(baseUrl)),
+                  ),
+                  ...propertiesWithMetadata.value,
+                },
+              }
+            : propertiesWithMetadata,
+          requiredProperties: checksWholeEntity,
+        })
+      : undefined;
+
+  if (valuesError) {
+    return invalidArgument(valuesError);
+  }
+
+  const savingActorId = await getSavingActorId({
+    actorId: userAuthentication.actorId,
+    webId,
+    isAiGenerated: false,
+  });
+
+  const { patchOperations } = getEntityUpdate({
+    existingEntity,
+    newPropertiesWithMetadata: propertiesWithMetadata,
+  });
+
+  try {
+    await retrySave(() =>
+      existingEntity.patch(
+        graphApiClient,
+        { actorId: savingActorId },
+        {
+          propertyPatches: [
+            ...patchOperations,
+            ...[...removedBaseUrls].map((baseUrl) => ({
+              op: "remove" as const,
+              path: [baseUrl],
+            })),
+          ],
+          draft: !!draftId,
+          provenance: {
+            actorType: "machine",
+            origin: { type: "flow", id: flowEntityId, stepIds: [stepId] },
+          },
+        },
+      ),
+    );
+  } catch (error) {
+    return {
+      code: StatusCode.Internal,
+      message: `Could not update entity ${resolvedEntityId}: ${extractErrorMessage(error)}`,
+      contents: [],
+    };
+  }
+
+  return succeeded();
+};

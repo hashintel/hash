@@ -1,6 +1,10 @@
 import { checkAggregationInput } from "./aggregation.js";
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
 import { maxEntitiesPerStep } from "./limits.js";
+import {
+  checkPropertyValuesInput,
+  checkUpdateEntityInputs,
+} from "./property-values.js";
 import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
 import { allPayloadKinds } from "./types.js";
@@ -25,6 +29,7 @@ export type AiFlowActionDefinitionId =
   | "aggregate"
   | "analyzeEntityData"
   | "answerQuestion"
+  | "createEntity"
   | "filterList"
   | "find"
   | "generateChartConfig"
@@ -44,6 +49,7 @@ export type AiFlowActionDefinitionId =
   | "queryEntities"
   | "researchEntities"
   | "takeFirst"
+  | "updateEntity"
   | "webSearch"
   | "writeGoogleSheet";
 
@@ -1030,6 +1036,95 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
     ],
+  },
+  createEntity: {
+    actionDefinitionId: "createEntity",
+    name: "Create Entity",
+    description:
+      "Create an entity of a type in the web the flow runs in, with values for some of its properties.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["VersionedUrl"],
+        name: "entityTypeId",
+        description: "The type of the entity to create.",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["PropertyValues"],
+        name: "properties",
+        description:
+          "The entity's property values, keyed by property type base URL. A list property takes the whole list.",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Boolean"],
+        name: "draft",
+        description:
+          "Whether to create the entity as a draft, whose required properties can be left out.",
+        required: false,
+        default: {
+          kind: "Boolean",
+          value: false,
+        },
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "EntityId",
+        name: "entityId",
+        description: "The new entity, with a draft ID if it's a draft.",
+        array: false,
+        required: true,
+      },
+    ],
+    check: checkPropertyValuesInput,
+  },
+  updateEntity: {
+    actionDefinitionId: "updateEntity",
+    name: "Update Entity",
+    description:
+      "Set or remove some of the properties of an entity in the web the flow runs in, leaving its other properties as they are.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "entityId",
+        description:
+          "The entity to update: the draft for an entity ID with a draft ID, otherwise the live entity.",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["PropertyValues"],
+        name: "properties",
+        description:
+          "The new values of the properties to set, keyed by property type base URL. A list property's value replaces the whole list. Optional if properties are removed.",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["BaseUrl"],
+        name: "removeProperties",
+        description:
+          "The base URLs of the properties to remove. A property the entity doesn't have is skipped. Optional if properties are set.",
+        required: false,
+        array: true,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "EntityId",
+        name: "entityId",
+        description: "The entity updated: the same entity ID as given.",
+        array: false,
+        required: true,
+      },
+    ],
+    check: checkUpdateEntityInputs,
   },
   takeFirst: {
     actionDefinitionId: "takeFirst",
