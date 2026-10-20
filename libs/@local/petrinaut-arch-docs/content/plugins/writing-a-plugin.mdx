@@ -160,31 +160,38 @@ none runs.
 Inside `content`, `AssistantPanelTitle` fills the title bar and
 `useAssistantPanel()` reads whether the panel is open and closes it.
 
-```tsx
-const EchoPlugin = definePetrinautPlugin({
-  id: "example.echo",
-  name: "Echo",
-  assistant: true,
-});
+The title bar's parts render inside `content`, so they read the chat's state:
+the Clear button below shows only once there are messages.
 
-const EchoChat = () => {
+```tsx
+// `useChat` comes from `@ai-sdk/react`. `MyChat` and `transport` are the
+// plugin's own.
+const ChatPanel = () => {
   const { isOpen } = useAssistantPanel();
-  const [lines, setLines] = useState<string[]>([]);
+  const chat = useChat({ transport });
 
   return (
     <>
       <AssistantPanelTitle
-        actions={<button onClick={() => setLines([])}>Clear</button>}
+        actions={
+          chat.messages.length > 0 && (
+            <button type="button" onClick={() => chat.setMessages([])}>
+              Clear
+            </button>
+          )
+        }
       >
-        Echo
+        Chat
       </AssistantPanelTitle>
-      <Transcript lines={lines} visible={isOpen} />
-      <Composer onSend={(line) => setLines([...lines, line])} />
+      <MyChat chat={chat} visible={isOpen} />
     </>
   );
 };
 
-export const echoPlugin = EchoPlugin({ assistant: { content: <EchoChat /> } });
+export const chatPlugin = definePetrinautPlugin(
+  { id: "example.chat", name: "Chat", assistant: true },
+  { assistant: { content: <ChatPanel /> } },
+);
 ```
 
 ## Add settings
