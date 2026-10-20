@@ -78,7 +78,7 @@ flowchart LR
   outPorts -- "one consumer, no readers" --> consumer["its t.startStep"]
   outPorts -- "otherwise" --> copy["t.copyOutput.‹step›.‹output›"]
   copy --> shared(("output.‹step›.‹output›<br/>shared by readers"))
-  copy --> copies(("output…to.‹consumer›<br/>a copy per consumer"))
+  copy --> copies(("output…~‹consumer›<br/>a copy per consumer"))
   gaveUp --> recordStepFailure["t.recordStepFailure.‹step›"]
   recordStepFailure --> failedStepRuns(("FailedStepRuns"))
 ```
@@ -107,8 +107,8 @@ flowchart LR
 ```
 
 - **Runs.** `t.startRun` takes a run request and seeds a token into each flow input's place, and a `Pending` token for each top-level step.
-- **Ids.** The compiler builds the net from readable keys, such as `p.input.prompt`, `t.startStep.<step>` and, for a step's instance, its step id. Every id in the compiled net is the Petrinaut id of its key (`toPetrinautId`, a UUIDv5), which is what Petrinaut converts a non-UUID id to when it loads a net. So loading a compiled net changes nothing, and anything that needs an id works it out from the key. The endpoints in the root's metadata are converted too.
-- **Steps.** Each action step is a component instance of its action's subnet, keyed by the step id. Its `t.startStep.<step>` fires once per run (or per item), because it consumes the step's `Pending` token. It reads or consumes each connected value according to the connection's `access`, which defaults to read, matching today's semantics. It feeds every input port of the action:
+- **Ids.** The compiler builds the net from readable keys, such as `p.input.prompt`, `t.startStep.<step>` and `i.<step>` for a step's instance. Step ids can be any string without `~`, so instances have keys of their own, and a copy's key separates its value from its consumer with `~` (`p.output.<step>.<output>~<consumer>`). Every id in the compiled net is the Petrinaut id of its key (`toPetrinautId`, a UUIDv5), which is what Petrinaut converts a non-UUID id to when it loads a net. So loading a compiled net changes nothing, and anything that needs an id works it out from the key. The endpoints in the root's metadata are converted too.
+- **Steps.** Each action step is a component instance of its action's subnet, keyed `i.<step>`. Its `t.startStep.<step>` fires once per run (or per item), because it consumes the step's `Pending` token. It reads or consumes each connected value according to the connection's `access`, which defaults to read, matching today's semantics. It feeds every input port of the action:
   - a connected value;
   - a constant, recorded in the instance's `metadata.constants`;
   - or, for an optional input with nothing connected and no default, a token marked absent (`present: false`).

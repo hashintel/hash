@@ -100,7 +100,7 @@ const colorAt = (
 
 /** The colour of the port a step's instance takes an input through. */
 const inputPortColor = (sdcpn: SDCPN, stepId: string, inputName: string) => {
-  const instance = sdcpn.componentInstances?.find(byKey(stepId));
+  const instance = sdcpn.componentInstances?.find(byKey(`i.${stepId}`));
   const subnet = sdcpn.subnets?.find(({ id }) => id === instance?.subnetId);
   const port = subnet?.places.find(
     ({ isPort, name }) => isPort && name === inputName,
@@ -109,10 +109,17 @@ const inputPortColor = (sdcpn: SDCPN, stepId: string, inputName: string) => {
   return subnet?.types.find(({ id }) => id === port?.colorId);
 };
 
+/** The ids of a net's places, transitions and instances, which must all differ. */
+const idsOf = (sdcpn: SDCPN) => [
+  ...sdcpn.places.map(({ id }) => id),
+  ...sdcpn.transitions.map(({ id }) => id),
+  ...(sdcpn.componentInstances ?? []).map(({ id }) => id),
+];
+
 const portEndpointOf = (componentInstanceId: string, portKey: string) =>
   ({
     kind: "componentPort",
-    componentInstanceId: toPetrinautId(componentInstanceId),
+    componentInstanceId: toPetrinautId(`i.${componentInstanceId}`),
     portPlaceId: toPetrinautId(portKey),
   }) as const;
 
@@ -150,6 +157,9 @@ describe("compileFlowDefinition", () => {
         const sdcpn = await compileFlowDefinition(flowDefinition);
 
         expect(canonicalizePetrinautIds(sdcpn)).toBe(sdcpn);
+
+        const ids = idsOf(sdcpn);
+        expect(new Set(ids).size).toBe(ids.length);
       });
 
       it("feeds each input port a value of a kind the port accepts", async () => {
@@ -195,6 +205,33 @@ describe("compileFlowDefinition", () => {
     });
   }
 
+  it("gives every place, transition and instance a distinct id, whatever the step ids", async () => {
+    /* A step id can be any string without `~`, including the key of a place. */
+    const sdcpn = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "step-named-like-a-place",
+          name: "Step named like a place",
+          description: "A step whose id is the key of the run requests place",
+          inputs: { url: flowInput("Text") },
+        },
+        ({ inputs, step }) => {
+          const getFile = step("p.runRequests", actions.getFileFromUrl, {
+            description: "Retrieve the file from the URL",
+            inputs: { url: inputs.url },
+          });
+
+          return { outputs: { fileEntity: getFile.outputs.fileEntity } };
+        },
+      ).flowDefinition,
+    );
+
+    const ids = idsOf(sdcpn);
+
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(() => compilePetrinautModel({ sdcpn })).not.toThrow();
+  });
+
   it("compiles deterministically", async () => {
     expect(
       await compileFlowDefinition(ftseInvestorsFlow.flowDefinition),
@@ -233,7 +270,8 @@ describe("compileFlowDefinition", () => {
 
     const maxRetriesOf = (stepId: string) =>
       Object.values(
-        sdcpn.componentInstances?.find(byKey(stepId))?.parameterValues ?? {},
+        sdcpn.componentInstances?.find(byKey(`i.${stepId}`))?.parameterValues ??
+          {},
       );
 
     expect(maxRetriesOf("retried")).toEqual(["5"]);
@@ -329,7 +367,7 @@ describe("compileFlowDefinition", () => {
 
     const copyPlace = (stepId: string) =>
       placeEndpointOf(
-        `p.output.research.proposedEntities.to.${stepId}.proposedEntities`,
+        `p.output.research.proposedEntities~${stepId}.proposedEntities`,
       );
 
     const routeInputArc = (sdcpn: SDCPN, stepId: string) =>
@@ -459,14 +497,14 @@ describe("compileFlowDefinition", () => {
     it("gives places and transitions ids made from the step ids", async () => {
       const sdcpn = await compileWithConsumers(["consume", "read"]);
 
-      const idsOf = (keys: string[]) => keys.map(toPetrinautId).sort();
+      const idsOfKeys = (keys: string[]) => keys.map(toPetrinautId).sort();
 
       expect(sdcpn.places.map(({ id }) => id).sort()).toEqual(
-        idsOf([
+        idsOfKeys([
           "p.failedStepRuns",
           "p.input.prompt",
           "p.output.research.proposedEntities",
-          "p.output.research.proposedEntities.to.persist0.proposedEntities",
+          "p.output.research.proposedEntities~persist0.proposedEntities",
           "p.pending.persist0",
           "p.pending.persist1",
           "p.pending.research",
@@ -474,7 +512,7 @@ describe("compileFlowDefinition", () => {
         ]),
       );
       expect(sdcpn.transitions.map(({ id }) => id).sort()).toEqual(
-        idsOf([
+        idsOfKeys([
           "t.copyOutput.research.proposedEntities",
           "t.recordStepFailure.persist0",
           "t.recordStepFailure.persist1",
@@ -486,7 +524,7 @@ describe("compileFlowDefinition", () => {
         ]),
       );
       expect(sdcpn.componentInstances?.map(({ id }) => id)).toEqual(
-        ["research", "persist0", "persist1"].map(toPetrinautId),
+        ["i.research", "i.persist0", "i.persist1"].map(toPetrinautId),
       );
     });
   });

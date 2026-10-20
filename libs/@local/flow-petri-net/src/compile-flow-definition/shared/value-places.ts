@@ -7,6 +7,7 @@ import {
   placeEndpoint,
   portEndpoint,
 } from "./net-elements.js";
+import { instanceKey } from "./step-places.js";
 
 import type { FlowSteps, ValueShape } from "./flow-steps.js";
 import type { NetBuilder } from "./net-builder.js";
@@ -199,7 +200,10 @@ export const placeValues = ({
       value.isFlowOutput || takers.length < value.consumers.length;
 
     if (value.producer.kind === "port") {
-      const port = portEndpoint(value.producer.stepId, value.producer.portId);
+      const port = portEndpoint(
+        instanceKey(value.producer.stepId),
+        value.producer.portId,
+      );
 
       if (takers.length === 0) {
         valueLocations.set(value.key, {
@@ -241,7 +245,8 @@ export const placeValues = ({
         consumer.key,
         placeEndpoint(
           net.addPlace({
-            id: `p.${value.key}.to.${consumer.key}`,
+            /* `~` separates the value from its consumer: step ids, part of both, can't contain it. */
+            id: `p.${value.key}~${consumer.key}`,
             name: `${value.name} → ${consumer.name}`,
             description: `${value.name}, for ${consumer.name} to consume.`,
             colorId,
@@ -265,7 +270,7 @@ export const placeValues = ({
           description: `Puts the ${outputName} output of step ${stepId} where each step that reads or consumes it takes it from.`,
           role: "copyOutput",
           metadata: { stepId, outputName },
-          inputArcs: [inputArc(portEndpoint(stepId, portId))],
+          inputArcs: [inputArc(portEndpoint(instanceKey(stepId), portId))],
           outputArcs: producedInto.map(outputArc),
         }),
       );

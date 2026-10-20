@@ -16,6 +16,7 @@ import {
 } from "./shared/net-elements.js";
 import {
   failedStepRunsPlaceId,
+  instanceKey,
   itemPlaceId,
   pendingPlaceId,
 } from "./shared/step-places.js";
@@ -114,7 +115,7 @@ export const compileActionStep = ({
       metadata: { stepId: step.stepId },
       inputArcs,
       outputArcs: inputPortIds.map((portId) =>
-        outputArc(portEndpoint(step.stepId, portId)),
+        outputArc(portEndpoint(instanceKey(step.stepId), portId)),
       ),
     }),
     createTransition({
@@ -123,13 +124,17 @@ export const compileActionStep = ({
       description: `Records that step ${step.stepId} gave up, failing its run.`,
       role: "recordStepFailure",
       metadata: { stepId: step.stepId },
-      inputArcs: [inputArc(portEndpoint(step.stepId, gaveUpPortId(subnetKey)))],
+      inputArcs: [
+        inputArc(
+          portEndpoint(instanceKey(step.stepId), gaveUpPortId(subnetKey)),
+        ),
+      ],
       outputArcs: [outputArc(placeEndpoint(failedStepRunsPlaceId))],
     }),
   );
 
   net.addComponentInstance({
-    id: step.stepId,
+    id: instanceKey(step.stepId),
     name: `${step.stepId}: ${step.actionDefinitionId}`,
     description: step.description,
     metadata: {
