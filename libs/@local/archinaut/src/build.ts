@@ -115,6 +115,7 @@ export const writeBuild = async (
   });
 
   let diagramsRendered = 0;
+  const written = [...summary.written];
   if (d2 !== null) {
     const names = summary.written
       .filter((path) => path.startsWith("diagrams/") && path.endsWith(".d2"))
@@ -128,13 +129,14 @@ export const writeBuild = async (
     });
     diagnostics.push(...rendering.diagnostics);
     diagramsRendered = rendering.rendered;
+    written.push(...rendering.written);
   }
 
   return {
     pipeline,
     bundle,
     diagnostics,
-    written: summary.written,
+    written,
     removed: summary.removed,
     diagramsRendered,
     bundleRoot,
