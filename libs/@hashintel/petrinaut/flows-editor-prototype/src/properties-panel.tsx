@@ -332,7 +332,7 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
               <PropertyRow
                 key={input.name}
                 label={input.label}
-                hover={`${kindHover(input, kinds)}${input.description ? ` — ${input.description}` : ""}`}
+                hover={`${kindHover(input, kinds)}${input.rule ? ` · ${input.rule}` : ""}${input.description ? ` — ${input.description}` : ""}`}
                 required={input.required && !input.hasDefault}
                 invalid={validation.mockFields.has(
                   `${step.stepId}.${input.name}`,
@@ -394,14 +394,21 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
   // Any list fits: For each takes an array of any kind.
   const anyListInput: InputView = { ...overInput, kinds: allPayloadKinds };
 
+  // Grouped by step, so each option is just the output's name and nothing gets cut off.
   const collectOptions = step.steps.flatMap((child) =>
     child.kind === "action"
-      ? (getCatalogEntry(child.actionDefinitionId)?.outputs ?? []).map(
-          (output) => ({
-            value: `${child.stepId}.${output.name}`,
-            text: `${child.description} › ${output.label}`,
-          }),
-        )
+      ? [
+          {
+            id: child.stepId,
+            label: child.description,
+            items: (
+              getCatalogEntry(child.actionDefinitionId)?.outputs ?? []
+            ).map((output) => ({
+              value: `${child.stepId}.${output.name}`,
+              text: output.label,
+            })),
+          },
+        ].filter((group) => group.items.length > 0)
       : [],
   );
 
@@ -547,6 +554,11 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
               );
             }}
           />
+          {step.collect ? (
+            <span className={mutedTextStyle}>
+              {findStep(document, step.collect.stepId)?.step.description}
+            </span>
+          ) : null}
           {step.collect ? (
             <UsedBy
               match={(source) =>

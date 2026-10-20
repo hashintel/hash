@@ -385,7 +385,7 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
           alignItems: "center",
           gap: "3",
           paddingX: "3",
-          height: "[52px]",
+          height: "[64px]",
         })}
       >
         <IconTile icon="playFilled" tone="neutral" />
@@ -398,7 +398,8 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
             borderTopStyle: "solid",
             borderTopColor: "neutral.s30",
             paddingX: "3",
-            paddingY: "2",
+            paddingTop: "2",
+            paddingBottom: "3",
             display: "flex",
             flexDirection: "column",
             gap: "1",
@@ -421,9 +422,9 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
         type="source"
         position={Position.Right}
         className={handleStyle}
-        style={{ top: 26 }}
+        style={{ top: STEP_HEIGHT / 2 }}
       />
-      <PortAdd stepId={START_ID} port="next" top="26px" />
+      <PortAdd stepId={START_ID} port="next" top={`${STEP_HEIGHT / 2}px`} />
     </div>
   );
 };

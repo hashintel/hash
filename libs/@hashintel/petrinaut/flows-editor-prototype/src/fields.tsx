@@ -161,7 +161,7 @@ const SourceLine = ({ source }: { source: StepInputSource }) => {
       title={notes.length > 0 ? notes.join(" · ") : look.owner}
       className={css({
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         gap: "1",
         fontSize: "xs",
         color: "neutral.s90",
@@ -169,13 +169,7 @@ const SourceLine = ({ source }: { source: StepInputSource }) => {
       })}
     >
       <IconTile icon={look.icon} tone={look.tone} size="sm" />
-      <span
-        className={css({
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        })}
-      >
+      <span className={css({ overflowWrap: "anywhere" })}>
         {look.owner}
         {notes.length > 0 ? ` · ${notes.join(" · ").toLowerCase()}` : ""}
       </span>

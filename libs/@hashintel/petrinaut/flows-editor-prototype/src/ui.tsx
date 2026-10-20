@@ -99,7 +99,7 @@ export const Section = ({
 
 const rowStyle = css({
   display: "grid",
-  gridTemplateColumns: "[112px 1fr]",
+  gridTemplateColumns: "[128px 1fr]",
   columnGap: "3",
   // Baselines line the key up with the first line of any value: a chip, a field or plain text.
   alignItems: "baseline",
@@ -109,6 +109,11 @@ const rowStyle = css({
 });
 
 const keyStyle = css({
+  display: "inline-block",
+  maxWidth: "[128px]",
+  verticalAlign: "baseline",
+  // The DS tooltip trigger sets line-height 0, which would clip an inline block.
+  lineHeight: "[20px]",
   fontSize: "sm",
   color: "neutral.s90",
   overflow: "hidden",
