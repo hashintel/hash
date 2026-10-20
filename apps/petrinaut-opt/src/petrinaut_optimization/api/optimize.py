@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from starlette.types import Receive, Scope, Send
 
 from petrinaut_optimization.api.context import Creation, Events, EventsContext, Run
+from petrinaut_optimization.api.responses import RUN_NOT_FOUND_RESPONSE, ErrorDetail
 from petrinaut_optimization.optimization_runs import OptimizationRun, attachment_event_stream
 
 log = logging.getLogger("pn_api")
@@ -27,17 +28,35 @@ class OptimizationRunCreated(BaseModel):
     status_code=201,
     responses={
         201: {"description": "A detached optimization run was started"},
-        413: {"description": "The optimization manifest exceeds 8 MiB"},
+        413: {
+            "description": "The optimization manifest exceeds 8 MiB",
+            "model": ErrorDetail,
+        },
         429: {
-            "description": "The service is already at its study limit",
+            "description": (
+                "The account already drives an optimization, or the service is at its study limit"
+            ),
+            "model": ErrorDetail,
             "headers": {
                 "Retry-After": {
-                    "description": "Seconds to wait before retrying the study",
+                    "description": (
+                        "Seconds to wait before retrying the study; only sent when "
+                        "the service is at its study limit"
+                    ),
                     "schema": {"type": "string"},
                 },
             },
         },
-        500: {"description": "The session or optimization study could not initialize"},
+        500: {
+            "description": "The session or optimization study could not initialize",
+            "model": ErrorDetail,
+            "headers": {
+                "X-Optimization-Run-ID": {
+                    "description": "Identifier of the run that failed to initialize",
+                    "schema": {"type": "string"},
+                },
+            },
+        },
     },
 )
 async def post_optimize_runs(
@@ -62,7 +81,7 @@ async def post_optimize_runs(
                 "frame is `event: cancelled`"
             ),
         },
-        404: {"description": "No optimization run with this id is registered"},
+        404: RUN_NOT_FOUND_RESPONSE,
     },
 )
 async def delete_optimize_run(context: Run) -> Response:
@@ -138,7 +157,7 @@ class _RunEventsResponse(StreamingResponse):
                 },
             },
         },
-        404: {"description": "No optimization run with this id is registered"},
+        404: RUN_NOT_FOUND_RESPONSE,
     },
 )
 async def get_optimize_run_events(context: Events) -> StreamingResponse:

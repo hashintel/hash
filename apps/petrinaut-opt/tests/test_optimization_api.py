@@ -901,9 +901,15 @@ def test_openapi_detached_contract() -> None:
     request_schema = create["requestBody"]["content"]["application/json"]["schema"]
     assert request_schema["type"] == "object"
     assert "201" in create["responses"]
-    assert "Retry-After" in create["responses"]["429"]["headers"]
+    busy = create["responses"]["429"]
+    assert "account" in busy["description"]
+    assert "study limit" in busy["description"]
+    retry_after = busy["headers"]["Retry-After"]
+    assert "only sent when" in retry_after["description"]
+    assert retry_after["schema"]["type"] == "string"
     assert "413" in create["responses"]
-    assert "500" in create["responses"]
+    failed = create["responses"]["500"]
+    assert failed["headers"]["X-Optimization-Run-ID"]["schema"]["type"] == "string"
 
     events = schema["paths"]["/optimize/runs/{run_id}/events"]["get"]
     stream_schema = events["responses"]["200"]["content"]["text/event-stream"]["schema"]
@@ -915,3 +921,25 @@ def test_openapi_detached_contract() -> None:
     assert set(run_path) == {"delete"}
     assert "204" in run_path["delete"]["responses"]
     assert "404" in run_path["delete"]["responses"]
+
+
+@pytest.mark.parametrize(
+    ("path", "method", "status"),
+    [
+        ("/optimize/runs", "post", "413"),
+        ("/optimize/runs", "post", "429"),
+        ("/optimize/runs", "post", "500"),
+        ("/optimize/runs/{run_id}/events", "get", "404"),
+        ("/optimize/runs/{run_id}", "delete", "404"),
+        ("/status/{run_id}", "get", "404"),
+    ],
+)
+def test_openapi_error_body(path: str, method: str, status: str) -> None:
+    schema = app.openapi()
+    response = schema["paths"][path][method]["responses"][status]
+    assert response["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ErrorDetail",
+    }
+    error = schema["components"]["schemas"]["ErrorDetail"]
+    assert error["required"] == ["detail"]
+    assert error["properties"]["detail"]["type"] == "string"
