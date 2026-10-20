@@ -17,6 +17,9 @@ ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_CARGO_HOME="/usr/local/cargo"
 ENV PATH="/mise/shims:/usr/local/cargo/bin:$PATH"
 
+# Use the system trust store until updated Node.js removes compromised intermediate CAs, see: https://github.com/nodejs/node/pull/66871
+ENV NODE_OPTIONS=--use-openssl-ca
+
 COPY .config/mise /etc/mise
 
 # turbo reads the Cargo workspace through `cargo metadata`, in the prune as well as in the build.
@@ -24,6 +27,11 @@ COPY rust-toolchain.toml /tmp/rust-toolchain.toml
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
+    sed -i \
+    -e 's|^mozilla/emSign_ECC_Root_CA_-_G3.crt|!&|' \
+    -e 's|^mozilla/Comodo_AAA_Services_root.crt|!&|' \
+    /etc/ca-certificates.conf && \
+    update-ca-certificates && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -112,6 +120,9 @@ ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PETRINAUT_CHILD_NODE_OPTIONS="--permission --allow-fs-read=/opt/petrinaut-runtime --allow-fs-read=/usr/local/bin/petrinaut --disable-proto=throw --max-old-space-size=768 --no-addons --no-global-search-paths"
+
+# gRPC otherwise loads the roots bundled in grpcio.
+ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH=/etc/ssl/certs/ca-certificates.crt
 
 WORKDIR /app
 

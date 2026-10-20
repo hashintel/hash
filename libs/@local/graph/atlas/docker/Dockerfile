@@ -12,11 +12,19 @@ ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
+# Use the system trust store until updated Node.js removes compromised intermediate CAs, see: https://github.com/nodejs/node/pull/66871
+ENV NODE_OPTIONS=--use-openssl-ca
+
 COPY .config/mise /etc/mise
 
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
+    sed -i \
+    -e 's|^mozilla/emSign_ECC_Root_CA_-_G3.crt|!&|' \
+    -e 's|^mozilla/Comodo_AAA_Services_root.crt|!&|' \
+    /etc/ca-certificates.conf && \
+    update-ca-certificates && \
     /etc/mise/install.sh && \
     mise --version && \
     apt-get clean && \

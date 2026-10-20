@@ -9,6 +9,9 @@ ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
+# Use the system trust store until updated Node.js removes compromised intermediate CAs, see: https://github.com/nodejs/node/pull/66871
+ENV NODE_OPTIONS=--use-openssl-ca
+
 COPY .config/mise /etc/mise
 
 # Distrust until updated base image removes compromised intermediate CAs, see: https://bugs.debian.org/1151413. The runner copies this bundle.

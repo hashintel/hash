@@ -8,6 +8,9 @@ ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV PATH="/mise/shims:$PATH"
 
+# Use the system trust store until updated Node.js removes compromised intermediate CAs, see: https://github.com/nodejs/node/pull/66871
+ENV NODE_OPTIONS=--use-openssl-ca
+
 COPY .config/mise /etc/mise
 
 # Distrust until updated base image removes compromised intermediate CAs, see: https://bugs.debian.org/1151413
@@ -105,8 +108,6 @@ RUN groupadd --system --gid 60000 hash && \
 
 USER api:hash
 ENV NODE_ENV=production
-# Use the system trust store until updated Node.js removes compromised intermediate CAs, see: https://github.com/nodejs/node/pull/66871
-ENV NODE_OPTIONS=--use-openssl-ca
 
 ENTRYPOINT [ "yarn"]
 CMD ["start"]
