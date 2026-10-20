@@ -18,6 +18,7 @@ import {
 } from "../shared/messages";
 import { useHostBridge } from "../shared/use-host-bridge";
 import { getPetrinautHostCapabilities } from "./process-editor/get-petrinaut-host-capabilities";
+import { useEditorToolBridge } from "./process-editor/use-editor-tool-bridge";
 import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 
@@ -351,6 +352,37 @@ export const ProcessEditor = ({
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  const {
+    handlers: editorToolBridgeHandlers,
+    callEditorTool,
+    getAttachedEditor,
+  } = useEditorToolBridge({ iframeRef });
+
+  /**
+   * FE-2010 probe hook: lets a browser-automation script drive the editor
+   * bridge on the real page. Only in a build made with
+   * `NEXT_PUBLIC_FE2010_EDITOR_BRIDGE_PROBE=true`; nothing in the app calls
+   * the bridge yet.
+   */
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_FE2010_EDITOR_BRIDGE_PROBE !== "true") {
+      return;
+    }
+    const probeWindow = window as Window & {
+      __hashEditorToolBridge?: {
+        call: typeof callEditorTool;
+        attachedEditor: typeof getAttachedEditor;
+      };
+    };
+    probeWindow.__hashEditorToolBridge = {
+      call: callEditorTool,
+      attachedEditor: getAttachedEditor,
+    };
+    return () => {
+      delete probeWindow.__hashEditorToolBridge;
+    };
+  }, [callEditorTool, getAttachedEditor]);
+
   /** In-flight optimizer streams, keyed by the iframe request id. */
   const optimizationAbortControllersRef = useRef(
     new Map<string, AbortController>(),
@@ -480,6 +512,14 @@ export const ProcessEditor = ({
   const bridge = useHostBridge({
     iframeRef,
     handlers: {
+      /**
+       * The editor bridge's handlers are named here, not spread, so a later
+       * handler of the same name here cannot silently replace one of them.
+       */
+      onReady: editorToolBridgeHandlers.onReady,
+      onEditorAttached: editorToolBridgeHandlers.onEditorAttached,
+      onEditorCallResult: editorToolBridgeHandlers.onEditorCallResult,
+      onDocumentChanged: editorToolBridgeHandlers.onDocumentChanged,
       onDirtyChanged: setIsDirty,
       onRequestNavigateBack: () => {
         void router.push("/processes");
