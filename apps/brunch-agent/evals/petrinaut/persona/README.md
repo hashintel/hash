@@ -32,6 +32,7 @@ The agent runs in a sibling Herdr pane when the launcher runs inside Herdr (`HER
 Each run writes `<run>/bin/persona`, a helper bound to that run's bridge socket:
 
 ```sh
+persona open                # sends the case's opening; prints it and Brunch's reply
 persona say "We lose about a day a week to expediting."   # prints Brunch's reply
 persona say <<'EOF'
 A longer message, typed as one chat turn.
@@ -42,9 +43,9 @@ persona end "Goal reached"  # ends the conversation and closes the run
 persona rpc '{"type":"get_state"}'   # one raw record in, JSONL records out
 ```
 
-`say` blocks until Brunch has completely finished, including browser-tool continuations; a turn can take several minutes. Interrupting the command (or a shell-tool timeout) stops Brunch's turn. Errors go to stderr with exit status 1, and the persona is told never to resend a failed message: it may already have been admitted.
+The persona starts the conversation itself with `open`, which sends the case's opening exactly as written, so the opening exchange is in its own context and the time before its second message is its own. The bridge refuses `say` until `open` has been admitted, and refuses `open` after that and on resume. `open` and `say` block until Brunch has completely finished, including browser-tool continuations; a turn can take several minutes. Interrupting the command (or a shell-tool timeout) stops Brunch's turn. Errors go to stderr with exit status 1, and the persona is told never to resend a failed message: it may already have been admitted.
 
-The helper speaks a Pi-style JSONL protocol to the bridge. Commands are `{ "id"?, "type", ... }` records: `prompt` (with `message`), `get_state`, `get_transcript` and `end` (with optional `reason`). Each command gets one `response` record with `success` and `data` or `error`. An accepted `prompt` is followed by `turn_start`, `assistant_message` and `turn_settled` events (`replied`, `failed` or `aborted`). Records are framed on LF only. New interaction types, such as structured answers to a question card, are added as new command and event types.
+The helper speaks a Pi-style JSONL protocol to the bridge. Commands are `{ "id"?, "type", ... }` records: `open`, `prompt` (with `message`), `get_state`, `get_transcript` and `end` (with optional `reason`). Each command gets one `response` record with `success` and `data` or `error`. An accepted `open` or `prompt` is followed by `turn_start`, `assistant_message` and `turn_settled` events (`replied`, `failed` or `aborted`). Records are framed on LF only. New interaction types, such as structured answers to a question card, are added as new command and event types.
 
 ## Stopping
 
@@ -74,9 +75,9 @@ Other files in the directory are not loaded. A case may keep a `key.md` beside t
 The [launcher](launch.ts):
 
 1. Starts its own local Brunch/Petrinaut services with a fresh run-local SQLite database. Occupied ports refuse rather than reuse unverified services.
-2. Opens a separate, headed Chrome window on the real Petrinaut AI panel. On an interactive terminal it prints the URL and profile and **waits for Enter before sending the public opening**, so you can start screen recording. `--skip-recording-pause` skips the wait; it is skipped automatically when stdin is not a terminal, for example when an agent runs the launcher.
-3. Sends the opening and waits through browser-tool continuations for the completed reply. The default route is `/` with no preloaded net; `--initial-net` is optional staging, not a from-scratch run. `--interview-length quick|standard|thorough|deep` turns on the website's Interview length at that level, so every turn carries its question allowance; `run.json` records the level, and a resumed run keeps it because the browser profile keeps the setting.
-4. Opens the browser bridge, writes `bin/persona` and the private `persona-brief.md` (role, command guide, any objective, the opening exchange and the situation pack), then starts the agent.
+2. Opens a separate, headed Chrome window on the real Petrinaut AI panel. On an interactive terminal it prints the URL and profile and **waits for Enter before starting the agent**, so you can start screen recording. `--skip-recording-pause` skips the wait; it is skipped automatically when stdin is not a terminal, for example when an agent runs the launcher. The default route is `/` with no preloaded net; `--initial-net` is optional staging, not a from-scratch run. `--interview-length quick|standard|thorough|deep` turns on the website's Interview length at that level, so every turn carries its question allowance; `run.json` records the level, and a resumed run keeps it because the browser profile keeps the setting.
+3. Opens the browser bridge, writes `bin/persona` and the private `persona-brief.md` (role, command guide, any objective, the opening message to send and the situation pack), then starts the agent.
+4. The agent's `persona open` sends the opening, and the launcher waits through browser-tool continuations for the completed reply.
 5. Types each `say` message into the ordinary composer, waits until every admitted continuation settles, and returns the reply. This uses selectors, not screenshot-based AI computer use.
 6. Clicks **Allow** on each destructive-edit approval panel (any `remove*` net tool) during a turn, because the persona sees only reply prose and cannot answer it; an unanswered panel holds the turn indefinitely. Each allowed edit is recorded in `bridge-log.jsonl`. It clicks Allow rather than Always allow so every request is recorded.
 

@@ -36,6 +36,7 @@ import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import {
   PersonaBrowserTurnError,
   submitPersonaBrowserTurn,
+  type PersonaBrowserSession,
 } from "./browser-turn.ts";
 import { guidanceManifest, verifyGuidanceResume } from "./guidance-manifest.ts";
 import {
@@ -55,7 +56,7 @@ import {
   appendAllowedDestructiveEdit,
 } from "./launch/bridge-log.ts";
 import { writePersonaBrief, writePersonaResumeBrief } from "./launch/brief.ts";
-import { openPersonaConversation } from "./launch/browser.ts";
+import { showPersonaPanel } from "./launch/browser.ts";
 import { interviewLengthStorage } from "./launch/interview-length.ts";
 import {
   openRetainedPersonaBrowser,
@@ -641,60 +642,58 @@ const launchPersona = async ({
     report(
       resume
         ? "Reopening the original browser document…"
-        : "Opening a fresh browser conversation…",
+        : "Opening a fresh browser panel; the persona sends the opening…",
     );
-    const opened = resume
-      ? { kind: "resumed" as const, ...(await reopen(resume)) }
-      : {
-          kind: "fresh" as const,
-          ...(await openPersonaConversation(personaPage, panelOrigin, opening, {
-            route,
-            sessionPath: join(run, "session.json"),
-            signal: stop.signal,
-            beforeOpening: recordingPause,
-            onAllowedEdit: (edit) => appendAllowedDestructiveEdit(run, edit),
-          })),
-        };
-    if (opened.kind === "fresh")
-      await appendAdmittedUtterance(run, {
-        source: "opening",
-        message: opening,
+    const resumed = resume ? await reopen(resume) : undefined;
+    if (!resume) {
+      await showPersonaPanel(personaPage, panelOrigin, route);
+      await recordingPause();
+    }
+    const sessionClient = (identity: PersonaBrowserSession) =>
+      createFlueClient({
+        url: identity.url,
+        headers: agentOwnershipHeaders(identity),
       });
-    documentId = documentIdFromInitialData(opened.session.initialData);
-    await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
-    const flue = createFlueClient({
-      url: opened.session.url,
-      headers: agentOwnershipHeaders(opened.session),
-    });
+    // Retained on resume; on a fresh run, admitted by the persona's opening.
+    let session = resumed?.session;
+    if (resumed) {
+      documentId = documentIdFromInitialData(resumed.session.initialData);
+      await writeProofArtifacts(join(run, "evidence"), resumed.snapshot);
+    }
     let repliedMessages = 0;
     bridge = await openPersonaBrowserBridge({
+      opening: resume ? undefined : opening,
       prompt: async (message, turn) => {
         if (lifecycle.held)
           throw new Error(
-            "The message limit is reached and the operator has taken over this conversation. Send nothing more; run `persona end` and report.",
+            "The operator has taken over this conversation. Send nothing more; run `persona end` and report.",
           );
         await verifyGuidanceResume(manifest);
         let logged = false;
         try {
           const result = await submitPersonaBrowserTurn(personaPage, message, {
-            session: opened.session,
+            session,
             signal: AbortSignal.any([turn.signal, stop.signal]),
             onAllowedEdit: (edit) => appendAllowedDestructiveEdit(run, edit),
-            onAdmission: async (session, receipt) => {
-              activeAdmission = {
-                client: createFlueClient({
-                  url: session.url,
-                  headers: agentOwnershipHeaders(session),
-                }),
-                receipt,
-              };
+            onAdmission: async (admitted, receipt) => {
+              activeAdmission = { client: sessionClient(admitted), receipt };
               // Later admissions in the same turn are browser-tool continuations.
               if (logged) return;
               logged = true;
               // Brunch has the utterance; a failed log write must not read as unadmitted.
               turn.admitted();
+              if (turn.opening) {
+                session = admitted;
+                documentId = documentIdFromInitialData(admitted.initialData);
+                // Retained even if the reply fails; resume needs the identity.
+                await writeFile(
+                  join(run, "session.json"),
+                  `${JSON.stringify(admitted, null, 2)}\n`,
+                  { mode: 0o600 },
+                );
+              }
               await appendAdmittedUtterance(run, {
-                source: "persona",
+                source: turn.opening ? "opening" : "persona",
                 message,
                 submissionId: receipt.submissionId,
                 personaAgent: agentSettings,
@@ -708,7 +707,7 @@ const launchPersona = async ({
               documentId,
               join(run, "evidence"),
             );
-          repliedMessages += 1;
+          if (!turn.opening) repliedMessages += 1;
           if (maxMessages !== undefined && repliedMessages >= maxMessages)
             // After the bridge has delivered this reply.
             setImmediate(() => {
@@ -729,10 +728,13 @@ const launchPersona = async ({
       },
       getState: () => ({
         run,
-        conversationId: opened.session.conversationId,
+        conversationId: session?.conversationId,
         url: personaPage.url(),
       }),
-      getTranscript: async () => personaTranscriptFrom(await flue.history()),
+      getTranscript: async () =>
+        session === undefined
+          ? []
+          : personaTranscriptFrom(await sessionClient(session).history()),
       end: (reason) => {
         lifecycle.endedByPersona = true;
         report(`Persona ended the conversation${reason ? `: ${reason}` : "."}`);
@@ -740,22 +742,14 @@ const launchPersona = async ({
       },
     });
     const helper = await writePersonaHelper(run, bridge.socketPath);
-    const brief =
-      opened.kind === "resumed"
-        ? await writePersonaResumeBrief({
-            run,
-            helper,
-            settlement: opened.settlement,
-            reply: opened.reply,
-          })
-        : await writePersonaBrief({
-            run,
-            helper,
-            objective,
-            opening,
-            reply: opened.reply.text,
-            pack,
-          });
+    const brief = resumed
+      ? await writePersonaResumeBrief({
+          run,
+          helper,
+          settlement: resumed.settlement,
+          reply: resumed.reply,
+        })
+      : await writePersonaBrief({ run, helper, objective, opening, pack });
     await save(join(run, "run.json"), {
       ...record,
       socketPath: bridge.socketPath,

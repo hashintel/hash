@@ -26,10 +26,19 @@ export type PersonaBrowserReply = {
 };
 
 export type PersonaBridgeHandlers = {
+  /**
+   * The case's opening, which `open` sends as the persona's first message;
+   * undefined when the conversation already exists, as on resume.
+   */
+  opening: string | undefined;
   /** Submit through the real composer; call `admitted` once Brunch accepts it. */
   prompt(
     message: string,
-    turn: { readonly signal: AbortSignal; readonly admitted: () => void },
+    turn: {
+      readonly signal: AbortSignal;
+      readonly admitted: () => void;
+      readonly opening: boolean;
+    },
   ): Promise<PersonaBrowserReply>;
   getState(): Record<string, unknown>;
   getTranscript(): Promise<readonly PersonaTranscriptEntry[]>;
@@ -52,6 +61,8 @@ export const openPersonaBrowserBridge = async (
   const tasks = new Set<Promise<void>>();
   let active: AbortController | undefined;
   let completedTurns = 0;
+  // Set once the opening is admitted: an admitted message is never resent.
+  let opened = handlers.opening === undefined;
 
   const send = (socket: Socket, record: PersonaRecord) => {
     if (!socket.destroyed) socket.write(encodePersonaRecord(record));
@@ -79,10 +90,31 @@ export const openPersonaBrowserBridge = async (
 
   const prompt = async (
     socket: Socket,
-    command: Extract<PersonaCommand, { type: "prompt" }>,
+    command: Extract<PersonaCommand, { type: "open" | "prompt" }>,
   ) => {
     if (active) {
       send(socket, fail(command, "A persona turn is already active"));
+      return;
+    }
+    const opening = command.type === "open";
+    // `open` only before the conversation exists, `prompt` only after.
+    const message = opening
+      ? opened
+        ? undefined
+        : handlers.opening
+      : opened
+        ? command.message
+        : undefined;
+    if (message === undefined) {
+      send(
+        socket,
+        fail(
+          command,
+          opening
+            ? "The conversation is already open; reply with `say`."
+            : "Start the conversation with `open`, which sends your opening message.",
+        ),
+      );
       return;
     }
     const controller = new AbortController();
@@ -91,13 +123,15 @@ export const openPersonaBrowserBridge = async (
     socket.once("close", abortOnClose);
     const turn = { admitted: false };
     try {
-      const reply = await handlers.prompt(command.message, {
+      const reply = await handlers.prompt(message, {
         signal: controller.signal,
+        opening,
         admitted: () => {
           if (turn.admitted) return;
           turn.admitted = true;
+          opened = true;
           send(socket, succeed(command));
-          broadcast({ type: "turn_start", message: command.message });
+          broadcast({ type: "turn_start", message });
         },
       });
       // The sender waits for the admission response before reading events.
@@ -128,6 +162,7 @@ export const openPersonaBrowserBridge = async (
 
   const dispatch = async (socket: Socket, command: PersonaCommand) => {
     switch (command.type) {
+      case "open":
       case "prompt":
         return prompt(socket, command);
       case "get_state":
@@ -243,7 +278,11 @@ export const sendPersonaCommand = (
       if (record.type === "response") {
         if (record.id !== id) return;
         records.push(record);
-        if (!record.success || command.type !== "prompt") finish();
+        if (
+          !record.success ||
+          (command.type !== "prompt" && command.type !== "open")
+        )
+          finish();
         else accepted = true;
         return;
       }

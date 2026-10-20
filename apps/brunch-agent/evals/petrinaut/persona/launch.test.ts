@@ -148,6 +148,8 @@ test.each([false, true])(
       await appendAdmittedUtterance(run, {
         source: "opening",
         message: "Hello.",
+        submissionId: "sub_TEST_opening",
+        personaAgent: { agent: "pi" },
       });
       await appendAdmittedUtterance(run, {
         source: "persona",
