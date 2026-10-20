@@ -413,6 +413,57 @@ describe("filterListAction", () => {
     );
   });
 
+  it("reports a type inheriting from one the user can't read as not found", async () => {
+    const startupType =
+      "https://example.com/types/entity-type/startup/v/1" as VersionedUrl;
+    vi.mocked(queryEntities).mockResolvedValueOnce({
+      entities: [
+        {
+          properties: {},
+          metadata: {
+            recordId: { entityId: validEntityId },
+            entityTypeIds: [startupType],
+          },
+        },
+      ],
+    } as unknown as QueryEntitiesResponse);
+    vi.mocked(queryEntityTypeSubgraph).mockResolvedValueOnce({
+      subgraph: {
+        vertices: {
+          "https://example.com/types/entity-type/startup/": {
+            1: {
+              kind: "entityType",
+              inner: {
+                schema: { $id: startupType, allOf: [{ $ref: companyType }] },
+              },
+            },
+          },
+        },
+      },
+    } as unknown as Awaited<ReturnType<typeof queryEntityTypeSubgraph>>);
+
+    expect(
+      await run(
+        { kind: "EntityId", value: [validEntityId] },
+        {
+          kind: "all",
+          conditions: [
+            {
+              kind: "condition",
+              subject: { kind: "entityType" },
+              operator: "isOfType",
+              value: { kind: "VersionedUrl", value: companyType },
+              includeSubtypes: true,
+            },
+          ],
+        },
+      ),
+    ).toMatchObject({
+      code: StatusCode.NotFound,
+      message: `Entity type ${startupType} wasn't found or you don't have access to it.`,
+    });
+  });
+
   it("reports an entity the user can't read as not found", async () => {
     vi.mocked(queryEntities).mockResolvedValueOnce({
       entities: [],

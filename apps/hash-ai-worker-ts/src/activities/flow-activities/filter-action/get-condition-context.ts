@@ -1,7 +1,4 @@
-import {
-  getEntityTypeAndParentsById,
-  getEntityTypeById,
-} from "@blockprotocol/graph/stdlib";
+import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
 import {
   isEntityId,
   splitEntityId,
@@ -22,6 +19,7 @@ import type {
   ConditionContext,
   ConditionEntity,
 } from "./evaluate-condition.js";
+import type { Subgraph } from "@blockprotocol/graph";
 import type {
   EntityId,
   UserId,
@@ -121,7 +119,31 @@ const getEntities = async (
   return entities;
 };
 
-/** A type the user can't read is left out, so a condition that needs its ancestors fails rather than matching. */
+/** The types `entityTypeId` inherits from, or nothing if it or any of them isn't in the subgraph. */
+const getAncestorIds = (
+  subgraph: Subgraph,
+  entityTypeId: VersionedUrl,
+): VersionedUrl[] | undefined => {
+  const entityType = getEntityTypeById(subgraph, entityTypeId);
+  if (!entityType) {
+    return undefined;
+  }
+
+  const ancestorIds: VersionedUrl[] = [];
+  for (const { $ref } of entityType.schema.allOf ?? []) {
+    const parentAncestorIds = getAncestorIds(subgraph, $ref);
+    if (!parentAncestorIds) {
+      return undefined;
+    }
+    ancestorIds.push($ref, ...parentAncestorIds);
+  }
+  return ancestorIds;
+};
+
+/**
+ * A type the user can't read, or that inherits from one they can't, is left out, so a condition that needs its
+ * ancestors fails rather than matching.
+ */
 const getEntityTypeAncestors = async (
   authentication: { actorId: UserId },
   entities: readonly unknown[],
@@ -163,16 +185,14 @@ const getEntityTypeAncestors = async (
     },
   );
 
-  return new Map(
-    entityTypeIds
-      .filter((entityTypeId) => getEntityTypeById(subgraph, entityTypeId))
-      .map((entityTypeId) => [
-        entityTypeId,
-        getEntityTypeAndParentsById(subgraph, entityTypeId)
-          .slice(1)
-          .map(({ schema }) => schema.$id),
-      ]),
-  );
+  const ancestors = new Map<VersionedUrl, VersionedUrl[]>();
+  for (const entityTypeId of entityTypeIds) {
+    const ancestorIds = getAncestorIds(subgraph, entityTypeId);
+    if (ancestorIds) {
+      ancestors.set(entityTypeId, ancestorIds);
+    }
+  }
+  return ancestors;
 };
 
 /**
