@@ -25,7 +25,7 @@ import {
   LAYER_SOURCE_MODULE,
 } from "./shipped-components";
 
-import type { ArchitectureModel, Edge, Layer } from "../model";
+import type { ArchitectureModel, Edge, InterfaceNode, Layer } from "../model";
 
 export interface GeneratedPage {
   /** Path within the bundle, e.g. `pages/core.simulation.mdx`. */
@@ -76,6 +76,10 @@ const sourceLink = (sourceUrlPrefix: string, file: string): string =>
 /** The slug a layer's generated page occupies. */
 export const layerSlug = (id: string): string =>
   `architecture/${id.replace(/\./gu, "/")}`;
+
+/** The slug an interface's generated page occupies: `iface:doc-handle` → `architecture/interfaces/doc-handle`. */
+export const interfaceSlug = (id: string): string =>
+  `architecture/interfaces/${id.replace(/^iface:/u, "")}`;
 
 /**
  * Rewrites relative links in embedded README prose to absolute source URLs.
@@ -492,6 +496,28 @@ const buildLayerPage = (
     );
   }
 
+  const participations = model.interfaces.filter((node) =>
+    node.participants.some((participant) => participant.node === layer.id),
+  );
+  if (participations.length > 0) {
+    body.push(
+      ...linksCard(
+        "Interfaces",
+        participations.map((node) => {
+          const role =
+            node.participants.find(
+              (participant) => participant.node === layer.id,
+            )?.role ?? "";
+          return {
+            label: node.name,
+            href: relativeTo(slug, interfaceSlug(node.id)),
+            description: `${role} · ${node.transport}${node.summary === "" ? "" : ` · ${node.summary}`}`,
+          };
+        }),
+      ),
+    );
+  }
+
   if (layer.prose !== null) {
     body.push(
       "## Notes",
@@ -628,6 +654,63 @@ const buildOverviewPage = (
   };
 };
 
+/** A name for a participant: the layer id, or the external's name. */
+const participantLabel = (model: ArchitectureModel, id: string): string =>
+  model.externals.find((external) => external.id === id)?.name ?? id;
+
+const buildInterfacePage = (
+  node: InterfaceNode,
+  model: ArchitectureModel,
+  sourceUrlPrefix: string,
+  order: number,
+): GeneratedPage => {
+  const slug = interfaceSlug(node.id);
+  const body: string[] = [];
+  if (node.summary !== "") {
+    body.push(node.summary, "");
+  }
+  body.push(
+    `- Transport: \`${node.transport}\``,
+    `- Defined by [${node.definedBy}](${relativeTo(slug, layerSlug(node.definedBy))}) in [\`${node.declaredIn}\`](${sourceLink(sourceUrlPrefix, node.declaredIn)})`,
+    "",
+    "## Participants",
+    "",
+    "| Participant | Role | Provenance | Evidence |",
+    "| --- | --- | --- | --- |",
+    ...node.participants.map((participant) => {
+      const label = participant.node.startsWith("external:")
+        ? participantLabel(model, participant.node)
+        : `[${participant.node}](${relativeTo(slug, layerSlug(participant.node))})`;
+      const evidence = participant.evidence.includes("/")
+        ? `[\`${participant.evidence.split(":")[0]}\`](${sourceLink(sourceUrlPrefix, participant.evidence.split(":")[0] ?? "")})`
+        : escapeTableCell(participant.evidence);
+      return `| ${label} | ${participant.role} | ${participant.provenance} | ${evidence} |`;
+    }),
+    "",
+    "A provenance of `type-ref` means the index saw the participant reference a symbol this file defines; `declared` means an annotation or the config says so and nothing in the code was checked.",
+    "",
+  );
+  return {
+    path: `pages/${slug}.mdx`,
+    slug,
+    title: node.name,
+    description:
+      node.summary === ""
+        ? `Interface defined by ${node.definedBy}`
+        : node.summary,
+    order,
+    contents:
+      frontmatter({
+        title: node.name,
+        description:
+          node.summary === ""
+            ? `Interface defined by ${node.definedBy}`
+            : node.summary,
+        sidebar_order: order,
+      }) + `\n${body.join("\n")}`,
+  };
+};
+
 export const buildPages = (
   model: ArchitectureModel,
   options: {
@@ -647,6 +730,17 @@ export const buildPages = (
   const layersById = new Map(model.layers.map((layer) => [layer.id, layer]));
 
   const pages = [buildOverviewPage(model, options.overviewDiagram)];
+
+  model.interfaces.forEach((node, index) => {
+    pages.push(
+      buildInterfacePage(
+        node,
+        model,
+        options.sourceUrlPrefix,
+        GENERATED_ORDER_BASE + model.layers.length + index + 1,
+      ),
+    );
+  });
 
   model.layers.forEach((layer, index) => {
     pages.push(

@@ -8,6 +8,7 @@
  */
 
 import { error, type Diagnostic } from "../shared/diagnostics";
+import { canonicalSymbol } from "./shared/canonical-symbol";
 import { sourceExtensions } from "./shared/scope";
 
 import type { DeclaredEdge, ImportEdge, Layer } from "../model";
@@ -22,17 +23,6 @@ export interface FileDependency {
 
 /** How many representative file pairs an edge keeps. */
 const examplesPerEdge = 3;
-
-/**
- * scip-python names a module by the project that indexed it and by its path
- * from `--cwd`, so the same module has two names when a consumer resolves it
- * through its environment. Dropping the project prefix and the `src.` root
- * segment gives one name for both.
- */
-const canonicalSymbol = (symbol: string): string =>
-  symbol.startsWith("scip-python ")
-    ? `py ${symbol.replace(/^scip-python python \S+ \S+ /u, "").replace(/^`src\.([^`]+)`/u, "$1")}`
-    : symbol;
 
 export const dependenciesFromFacts = (facts: SymbolFacts): FileDependency[] => {
   const definingFile = new Map<string, string>();

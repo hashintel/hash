@@ -11,13 +11,14 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, posix, relative } from "node:path";
 
 import { layerSchema, parentLayerId } from "../model";
+import { audienceSchema } from "../model";
 import { error, type Diagnostic } from "../shared/diagnostics";
 import { parseFrontmatter } from "../shared/frontmatter";
 import { toPosix } from "../shared/paths";
 import { scanTags } from "./scan/tags";
 import { sourceExtensionsFor, sourceRootOf } from "./shared/scope";
 
-import type { ArchitecturePackage, Layer } from "../model";
+import type { ArchitecturePackage, Audience, Layer } from "../model";
 
 interface LayerAccumulator {
   id: string;
@@ -28,6 +29,8 @@ interface LayerAccumulator {
   /** Folder the declaration governs; descendants inherit from it. */
   scope: string;
   prose: string | null;
+  tags: string[];
+  audience: Audience[];
   references: string[];
   files: string[];
   lineCount: number;
@@ -41,11 +44,31 @@ export interface TalksToDeclaration {
   protocol: string;
 }
 
+/** One `@interface` occurrence, with the `@summary` beside it. */
+export interface InterfaceDeclaration {
+  id: string;
+  name: string;
+  transport: string;
+  summary: string;
+  file: string;
+  line: number;
+}
+
+/** One `@participates` occurrence; the file's layer is the participant. */
+export interface ParticipationDeclaration {
+  file: string;
+  line: number;
+  interfaceId: string;
+  role: "provides" | "consumes" | "implements";
+}
+
 export interface ScanResult {
   layers: Layer[];
   /** Repo-relative source file → layer id. */
   fileLayers: Map<string, string>;
   talksTo: TalksToDeclaration[];
+  interfaces: InterfaceDeclaration[];
+  participations: ParticipationDeclaration[];
   diagnostics: Diagnostic[];
 }
 
@@ -105,6 +128,34 @@ const walkFiles = async (
   return entries.sort((left, right) => left.path.localeCompare(right.path));
 };
 
+/** `@audience` values, each checked against the three audiences. */
+const readAudience = (
+  value: string | undefined,
+  file: string,
+  line: number | undefined,
+  diagnostics: Diagnostic[],
+): Audience[] => {
+  if (value === undefined) {
+    return ["contributor"];
+  }
+  const audience: Audience[] = [];
+  for (const word of value.split(/\s+/u).filter((entry) => entry !== "")) {
+    const parsed = audienceSchema.safeParse(word);
+    if (parsed.success) {
+      audience.push(parsed.data);
+    } else {
+      diagnostics.push(
+        error(
+          file,
+          `@audience \`${word}\` is not one of user, integrator, contributor`,
+          line ?? null,
+        ),
+      );
+    }
+  }
+  return audience.length === 0 ? ["contributor"] : audience;
+};
+
 /** The deepest declaring folder on the path from `directory` up to the root. */
 const resolveScope = (
   directory: string,
@@ -132,6 +183,8 @@ export const scanDeclarations = async (
   const diagnostics: Diagnostic[] = [];
   const accumulators = new Map<string, LayerAccumulator>();
   const talksTo: TalksToDeclaration[] = [];
+  const interfaces: InterfaceDeclaration[] = [];
+  const participations: ParticipationDeclaration[] = [];
   const scopes = new Map<string, string>();
   const declaredBy = new Map<string, string>();
 
@@ -211,6 +264,8 @@ export const scanDeclarations = async (
             declaredIn: entry.path,
             scope: entry.directory,
             prose: body === "" ? null : body,
+            tags: declaration.tags ?? [],
+            audience: declaration.audience ?? ["contributor"],
           });
         }
         continue;
@@ -228,6 +283,22 @@ export const scanDeclarations = async (
       for (const declaration of tags.talksTo) {
         talksTo.push({ file: entry.path, ...declaration });
       }
+      if (tags.interface) {
+        interfaces.push({
+          ...tags.interface,
+          summary: tags.summary?.value ?? "",
+          file: entry.path,
+        });
+      }
+      for (const declaration of tags.participates) {
+        participations.push({ file: entry.path, ...declaration });
+      }
+      const audience = readAudience(
+        tags.audience?.value,
+        entry.path,
+        tags.audience?.line,
+        diagnostics,
+      );
       if (tags.layerRoot) {
         const id = tags.layerRoot.value;
         register({
@@ -238,6 +309,9 @@ export const scanDeclarations = async (
           declaredIn: entry.path,
           scope: entry.directory,
           prose: null,
+          tags:
+            tags.tags?.value.split(/\s+/u).filter((tag) => tag !== "") ?? [],
+          audience,
         });
         if (!tags.role) {
           diagnostics.push(
@@ -305,8 +379,8 @@ export const scanDeclarations = async (
         files: accumulator.files,
         fileCount: accumulator.files.length,
         lineCount: accumulator.lineCount,
-        tags: [],
-        audience: ["contributor"],
+        tags: accumulator.tags,
+        audience: accumulator.audience,
       };
       const parsed = layerSchema.safeParse(candidate);
       if (!parsed.success) {
@@ -323,5 +397,12 @@ export const scanDeclarations = async (
     })
     .sort((left, right) => left.id.localeCompare(right.id));
 
-  return { layers, fileLayers, talksTo, diagnostics };
+  return {
+    layers,
+    fileLayers,
+    talksTo,
+    interfaces,
+    participations,
+    diagnostics,
+  };
 };

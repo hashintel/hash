@@ -21,6 +21,7 @@ import {
   type FileDependency,
 } from "./pipeline/edges";
 import { collectPythonImports } from "./pipeline/edges/python-imports";
+import { buildInterfaces } from "./pipeline/interfaces";
 import { scanDeclarations } from "./pipeline/scan";
 import { indexPackages } from "./pipeline/symbol-index";
 import { countErrors, error, type Diagnostic } from "./shared/diagnostics";
@@ -108,14 +109,24 @@ export const runPipeline = async (
       (left, right) =>
         left.from.localeCompare(right.from) || left.to.localeCompare(right.to),
     );
+    const interfaces = buildInterfaces({
+      declarations: scan.interfaces,
+      participations: scan.participations,
+      externals: config.externals,
+      facts: index.facts,
+      fileLayers: scan.fileLayers,
+    });
+    diagnostics.push(...interfaces.diagnostics);
     return {
       version: ARCHITECTURE_MODEL_VERSION,
       packages,
       layers: scan.layers,
       edges,
-      interfaces: [],
-      externals: [],
-      tags: [],
+      interfaces: interfaces.interfaces,
+      externals: config.externals.map(
+        ({ participates: _participates, ...external }) => external,
+      ),
+      tags: config.tags,
       rules: config.rules,
     } satisfies ArchitectureModel;
   });

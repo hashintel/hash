@@ -100,6 +100,8 @@ export const participantSchema = z.object({
   evidence: z.string(),
 });
 
+export type Participant = z.infer<typeof participantSchema>;
+
 export const interfaceSchema = z.object({
   id: z.string().regex(/^iface:[a-z0-9-]+$/u),
   name: z.string().min(1),
@@ -112,6 +114,8 @@ export const interfaceSchema = z.object({
   audience: z.array(audienceSchema),
 });
 
+export type InterfaceNode = z.infer<typeof interfaceSchema>;
+
 export const externalSchema = z.object({
   id: z.string().regex(/^external:[a-z0-9-]+$/u),
   name: z.string().min(1),
@@ -119,6 +123,8 @@ export const externalSchema = z.object({
   tags: z.array(z.string().min(1)),
   audience: z.array(audienceSchema),
 });
+
+export type ExternalNode = z.infer<typeof externalSchema>;
 
 export const tagSchema = z.object({
   id: z.string().min(1),

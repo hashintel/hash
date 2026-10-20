@@ -1,6 +1,8 @@
 ---
 layer: cli
 role: Runs one compiled Petrinaut model as a long-lived JSON-lines process for scripts and the optimizer service.
+tags: [protocols, optimization]
+audience: [integrator, contributor]
 ---
 
 The CLI loads and compiles one model (or one optimization manifest) per
