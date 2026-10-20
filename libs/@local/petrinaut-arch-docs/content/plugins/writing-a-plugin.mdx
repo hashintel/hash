@@ -194,6 +194,30 @@ export const chatPlugin = definePetrinautPlugin(
 );
 ```
 
+For a second tab, the content draws the tabs in the title bar and switches its
+own body. `LedgerPane` is the plugin's own.
+
+```tsx
+const ChatPanel = () => {
+  const chat = useChat({ transport });
+  const [tab, setTab] = useState<"chat" | "ledger">("chat");
+
+  return (
+    <>
+      <AssistantPanelTitle>
+        <button type="button" onClick={() => setTab("chat")}>
+          Chat
+        </button>
+        <button type="button" onClick={() => setTab("ledger")}>
+          Ledger
+        </button>
+      </AssistantPanelTitle>
+      {tab === "chat" ? <MyChat chat={chat} /> : <LedgerPane />}
+    </>
+  );
+};
+```
+
 ## Add settings
 
 Declare each setting under `settings`. The editor renders its row in User
