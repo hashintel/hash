@@ -52,7 +52,7 @@
     "@opentelemetry/sdk-trace-base": "2.9.0",
     "@opentelemetry/sdk-trace-node": "2.9.0",
     "@sentry/node": "10.64.0",
-    "@smithy/protocol-http": "5.3.3",
+    "@smithy/protocol-http": "^5.3.8",
     "@smithy/signature-v4": "5.3.3",
     "@temporalio/activity": "1.20.2",
     "@temporalio/client": "1.20.2",
