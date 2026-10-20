@@ -123,10 +123,28 @@ body {
 .react-pdf-page {
   border: 1px solid rgba(0, 0, 0, 0.05);
   height: 100%;
+  isolation: isolate;
 
   .annotationLayer .popup {
     min-width: 200px;
   }
+
+  // Search marks fill the text layer, which sits over the canvas. Multiplying
+  // the layer with the canvas keeps the glyphs under a mark dark.
+  .textLayer {
+    mix-blend-mode: multiply;
+  }
+}
+
+// File preview search marks, set by `file-preview-search-highlights.ts`. The
+// previews sit outside `.hash-ds-root`, where the design system's token
+// variables are not defined, so the tokens' light values are written out.
+::highlight(file-preview-hit) {
+  background-color: #c2e5ff; // blue.bgSolid.shaded
+}
+
+::highlight(file-preview-current-hit) {
+  background-color: #0090ff; // blue.bg.solid
 }
 
 .react-pdf-document {
