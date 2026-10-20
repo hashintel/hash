@@ -2,13 +2,9 @@ import {
   type EntityUuid,
   validateVersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  HashEntity,
-  mergePropertyObjectAndMetadata,
-  queryEntities,
-} from "@local/hash-graph-sdk/entity";
+import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { validatePropertyValues } from "@local/hash-isomorphic-utils/flows/property-values";
+import { validatePropertiesWithMetadata } from "@local/hash-isomorphic-utils/flows/property-values";
 import { generateUuidFromName } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
@@ -16,7 +12,6 @@ import { StatusCode } from "@local/status";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
-import { checkPropertyValues } from "./shared/check-property-values.js";
 import { getSavingActorId, retrySave } from "./shared/save-entity.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
@@ -30,9 +25,8 @@ const invalidArgument = (message: string) => ({
 });
 
 /**
- * Creates an entity of a type in the flow's web, with the given property values, as the web's machine on behalf of the
- * user running the flow. The values are checked against the type first, so that an error names the property; a draft
- * may leave required properties out.
+ * Creates an entity of a type in the flow's web, with the given properties and their metadata, as the web's machine on
+ * behalf of the user running the flow. The graph validates the entity; a draft may leave required properties out.
  */
 export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
   inputs,
@@ -49,7 +43,7 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
     );
   }
 
-  const propertiesError = validatePropertyValues(properties);
+  const propertiesError = validatePropertiesWithMetadata(properties);
 
   if (propertiesError) {
     return invalidArgument(propertiesError);
@@ -57,22 +51,6 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
 
   const { flowEntityId, runId, stepId, userAuthentication, webId } =
     await getFlowContext();
-
-  const propertiesWithMetadata = mergePropertyObjectAndMetadata(
-    properties,
-    undefined,
-  );
-
-  const valuesError = await checkPropertyValues({
-    actorId: userAuthentication.actorId,
-    entityTypeIds: [entityTypeId],
-    properties: propertiesWithMetadata,
-    requiredProperties: !draft,
-  });
-
-  if (valuesError) {
-    return invalidArgument(valuesError);
-  }
 
   const savingActorId = await getSavingActorId({
     actorId: userAuthentication.actorId,
@@ -120,7 +98,7 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
             webId,
             entityUuid,
             entityTypeIds: [entityTypeId],
-            properties: propertiesWithMetadata,
+            properties,
             draft,
             provenance: {
               actorType: "machine",

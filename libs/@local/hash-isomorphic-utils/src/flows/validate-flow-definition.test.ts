@@ -766,7 +766,7 @@ describe("validateFlowDefinition", () => {
         name: "of a kind that can't be sorted",
         subject: { kind: "field", path: ["url"], payloadKind: "WebPage" },
         message:
-          "A sort key's subject must be of kind ActorType, BaseUrl, Boolean, Date, DateTime, EntityId, GoogleAccountId, Number, Text, VersionedUrl.",
+          "A sort key's subject must be of kind ActorType, Boolean, Date, DateTime, EntityId, GoogleAccountId, Number, Text, VersionedUrl.",
       },
       {
         name: "that doesn't fit the items",
@@ -794,107 +794,120 @@ describe("validateFlowDefinition", () => {
     });
   });
 
-  describe.each([
-    {
-      actionDefinitionId: "createEntity",
-      inputs: {
-        entityTypeId: {
-          kind: "constant",
-          payload: {
-            kind: "VersionedUrl",
-            value: "https://example.com/types/entity-type/person/v/1",
-          },
-        },
-      },
-    },
-    {
-      actionDefinitionId: "updateEntity",
-      inputs: { entityId: { kind: "flow-input", inputName: "person" } },
-    },
-  ])(
-    "properties of $actionDefinitionId steps",
-    ({ actionDefinitionId, inputs }) => {
-      const errorsOf = (properties: unknown) =>
-        validateFlowDefinition({
-          ...baseDefinition,
-          inputs: [
-            {
-              name: "person",
-              payloadKind: "EntityId",
-              array: false,
-              required: true,
-            },
-            {
-              name: "values",
-              payloadKind: "PropertyValues",
-              array: false,
-              required: true,
-            },
-          ],
-          steps: [
-            {
-              kind: "action",
-              stepId: "save",
-              actionDefinitionId,
-              description: "",
-              inputs: { ...inputs, properties },
-            },
-          ],
-        }).diagnostics.filter(({ severity }) => severity === "error");
-
-      const constant = (value: unknown) => ({
-        kind: "constant",
-        payload: { kind: "PropertyValues", value },
-      });
-
-      it.each([
-        {
-          name: "a constant",
-          properties: constant({
-            "https://example.com/types/property-type/name/": "Ada",
-            "https://example.com/types/property-type/email/": [
-              "ada@example.com",
-            ],
-          }),
-        },
-        {
-          name: "a flow input, which is checked when the step runs",
-          properties: { kind: "flow-input", inputName: "values" },
-        },
-      ])("accepts $name", ({ properties }) => {
-        expect(errorsOf(properties)).toEqual([]);
-      });
-
-      it.each([
-        {
-          name: "no values",
-          value: {},
-          message:
-            "Property values must give a value for at least one property.",
-        },
-        {
-          name: "a property type versioned URL rather than a base URL",
-          value: { "https://example.com/types/property-type/name/v/1": "Ada" },
-          message:
-            '"https://example.com/types/property-type/name/v/1" is not a property type base URL.',
-        },
-      ])("rejects $name", ({ value, message }) => {
-        expect(errorsOf(constant(value))).toEqual([
-          {
-            severity: "error",
-            code: "invalidInput",
-            message,
-            path: ["steps", 0, "inputs", "properties"],
-          },
-        ]);
-      });
-    },
-  );
-
-  describe("properties to remove of updateEntity steps", () => {
+  describe("properties of createEntity steps", () => {
     const nameUrl = "https://example.com/types/property-type/name/";
+    const emailUrl = "https://example.com/types/property-type/email/";
+    const text = { dataTypeId: "https://example.com/types/data-type/text/v/1" };
 
-    const errorsOf = (inputs: Record<string, unknown>) =>
+    const errorsOf = (properties: unknown) =>
+      validateFlowDefinition({
+        ...baseDefinition,
+        inputs: [
+          {
+            name: "properties",
+            payloadKind: "PropertyObjectWithMetadata",
+            array: false,
+            required: true,
+          },
+        ],
+        steps: [
+          {
+            kind: "action",
+            stepId: "create",
+            actionDefinitionId: "createEntity",
+            description: "",
+            inputs: {
+              entityTypeId: {
+                kind: "constant",
+                payload: {
+                  kind: "VersionedUrl",
+                  value: "https://example.com/types/entity-type/person/v/1",
+                },
+              },
+              properties,
+            },
+          },
+        ],
+      }).diagnostics.filter(({ severity }) => severity === "error");
+
+    const constant = (value: unknown) => ({
+      kind: "constant",
+      payload: { kind: "PropertyObjectWithMetadata", value },
+    });
+
+    it.each([
+      {
+        name: "a constant with a data type ID for each value, including in a list",
+        properties: constant({
+          value: {
+            [nameUrl]: { value: "Ada", metadata: text },
+            [emailUrl]: {
+              value: [{ value: "ada@example.com", metadata: text }],
+            },
+          },
+        }),
+      },
+      {
+        name: "a flow input, which is checked when the step runs",
+        properties: { kind: "flow-input", inputName: "properties" },
+      },
+    ])("accepts $name", ({ properties }) => {
+      expect(errorsOf(properties)).toEqual([]);
+    });
+
+    it.each([
+      {
+        name: "properties without metadata",
+        value: { [nameUrl]: "Ada" },
+        message:
+          "Properties must be an object whose value is keyed by property type base URL.",
+      },
+      {
+        name: "no properties",
+        value: { value: {} },
+        message: "Properties must give a value for at least one property.",
+      },
+      {
+        name: "a property type versioned URL rather than a base URL",
+        value: {
+          value: { [`${nameUrl}v/1`]: { value: "Ada", metadata: text } },
+        },
+        message: `"${nameUrl}v/1" is not a property type base URL.`,
+      },
+      {
+        name: "a value without a data type ID",
+        value: {
+          value: {
+            [nameUrl]: { value: "Ada", metadata: { dataTypeId: null } },
+          },
+        },
+        message: `Property ${nameUrl} must give the data type ID of each of its values.`,
+      },
+      {
+        name: "an item of a list without a data type ID",
+        value: {
+          value: { [emailUrl]: { value: [{ value: "ada@example.com" }] } },
+        },
+        message: `Property ${emailUrl} must give the data type ID of each of its values.`,
+      },
+    ])("rejects $name", ({ value, message }) => {
+      expect(errorsOf(constant(value))).toEqual([
+        {
+          severity: "error",
+          code: "invalidInput",
+          message,
+          path: ["steps", 0, "inputs", "properties"],
+        },
+      ]);
+    });
+  });
+
+  describe("property patches of updateEntity steps", () => {
+    const nameUrl = "https://example.com/types/property-type/name/";
+    const emailUrl = "https://example.com/types/property-type/email/";
+    const text = { dataTypeId: "https://example.com/types/data-type/text/v/1" };
+
+    const errorsOf = (propertyPatches: unknown) =>
       validateFlowDefinition({
         ...baseDefinition,
         inputs: [
@@ -905,14 +918,8 @@ describe("validateFlowDefinition", () => {
             required: true,
           },
           {
-            name: "values",
-            payloadKind: "PropertyValues",
-            array: false,
-            required: true,
-          },
-          {
-            name: "removals",
-            payloadKind: "BaseUrl",
+            name: "patches",
+            payloadKind: "PropertyPatch",
             array: true,
             required: true,
           },
@@ -920,93 +927,93 @@ describe("validateFlowDefinition", () => {
         steps: [
           {
             kind: "action",
-            stepId: "save",
+            stepId: "update",
             actionDefinitionId: "updateEntity",
             description: "",
             inputs: {
               entityId: { kind: "flow-input", inputName: "person" },
-              ...inputs,
+              propertyPatches,
             },
           },
         ],
       }).diagnostics.filter(({ severity }) => severity === "error");
 
-    const removals = (value: unknown) => ({
+    const constant = (value: unknown) => ({
       kind: "constant",
-      payload: { kind: "BaseUrl", value },
-    });
-
-    const values = (value: unknown) => ({
-      kind: "constant",
-      payload: { kind: "PropertyValues", value },
+      payload: { kind: "PropertyPatch", value },
     });
 
     it.each([
       {
-        name: "only properties to remove",
-        inputs: { removeProperties: removals([nameUrl]) },
+        name: "constant patches that add, replace and remove whole properties",
+        propertyPatches: constant([
+          {
+            op: "add",
+            path: [nameUrl],
+            property: { value: "Ada", metadata: text },
+          },
+          {
+            op: "replace",
+            path: [emailUrl],
+            property: { value: [{ value: "ada@example.com", metadata: text }] },
+          },
+          {
+            op: "remove",
+            path: ["https://example.com/types/property-type/age/"],
+          },
+        ]),
       },
       {
-        name: "properties to remove from a flow input, which are checked when the step runs",
-        inputs: {
-          removeProperties: { kind: "flow-input", inputName: "removals" },
-        },
+        name: "a flow input, which is checked when the step runs",
+        propertyPatches: { kind: "flow-input", inputName: "patches" },
       },
-      {
-        name: "values to set and different properties to remove",
-        inputs: {
-          properties: values({ [nameUrl]: "Ada" }),
-          removeProperties: removals([
-            "https://example.com/types/property-type/email/",
-          ]),
-        },
-      },
-      {
-        name: "no properties to remove alongside values to set",
-        inputs: {
-          properties: { kind: "flow-input", inputName: "values" },
-          removeProperties: removals([]),
-        },
-      },
-    ])("accepts $name", ({ inputs }) => {
-      expect(errorsOf(inputs)).toEqual([]);
+    ])("accepts $name", ({ propertyPatches }) => {
+      expect(errorsOf(propertyPatches)).toEqual([]);
     });
 
     it.each([
       {
-        name: "neither values to set nor properties to remove",
-        inputs: {},
-        input: "properties",
-        message: "Give property values to set, properties to remove, or both.",
+        name: "no patches",
+        value: [],
+        message: "Give at least one property patch.",
       },
       {
-        name: "an empty list of properties to remove alone",
-        inputs: { removeProperties: removals([]) },
-        input: "removeProperties",
-        message: "Give property values to set, properties to remove, or both.",
+        name: "an op the graph doesn't have",
+        value: [{ op: "move", path: [nameUrl] }],
+        message: "Property patch 1 must have an op of add, remove, replace.",
       },
       {
-        name: "a property to remove named by a versioned URL",
-        inputs: { removeProperties: removals([`${nameUrl}v/1`]) },
-        input: "removeProperties",
-        message: `"${nameUrl}v/1" is not a property type base URL.`,
+        name: "a path of a property type versioned URL",
+        value: [{ op: "remove", path: [`${nameUrl}v/1`] }],
+        message:
+          "Property patch 1 must have a path of a property type base URL.",
       },
       {
-        name: "a property both set and removed",
-        inputs: {
-          properties: values({ [nameUrl]: "Ada" }),
-          removeProperties: removals([nameUrl]),
-        },
-        input: "removeProperties",
-        message: `Property ${nameUrl} can't be both set and removed.`,
+        name: "a path inside a property's value",
+        value: [
+          { op: "remove", path: [nameUrl] },
+          { op: "remove", path: [emailUrl, 0] },
+        ],
+        message: `Property patch 2 changes part of property ${emailUrl}, which isn't supported yet: give its whole value.`,
       },
-    ])("rejects $name", ({ inputs, input, message }) => {
-      expect(errorsOf(inputs)).toEqual([
+      {
+        name: "a value without a data type ID",
+        value: [
+          {
+            op: "add",
+            path: [nameUrl],
+            property: { value: "Ada", metadata: { dataTypeId: null } },
+          },
+        ],
+        message: `Property ${nameUrl} must give the data type ID of each of its values.`,
+      },
+    ])("rejects $name", ({ value, message }) => {
+      expect(errorsOf(constant(value))).toEqual([
         {
           severity: "error",
           code: "invalidInput",
           message,
-          path: ["steps", 0, "inputs", input],
+          path: ["steps", 0, "inputs", "propertyPatches"],
         },
       ]);
     });

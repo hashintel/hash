@@ -9,16 +9,12 @@ import { updateEntityAction } from "./update-entity-action.js";
 import type {
   BaseUrl,
   EntityId,
+  PropertyPatchOperation,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
-import type {
-  QueryEntitiesResponse,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
-import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
-import type { PropertyValues } from "@local/hash-isomorphic-utils/flows/property-values";
+import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type {
   PayloadValue,
   StepInput,
@@ -58,20 +54,22 @@ vi.mock("./shared/save-entity.js", () => ({
   getSavingActorId: () => Promise.resolve("bot"),
   retrySave: (save: () => unknown) => save(),
 }));
-const { validate } = vi.hoisted(() => ({
-  validate: vi.fn<typeof HashEntity.validate>(),
-}));
 vi.mock("@local/hash-graph-sdk/entity", async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  HashEntity: { validate },
   queryEntities: vi.fn(),
 }));
 
-const personType =
-  "https://example.com/types/entity-type/person/v/1" as VersionedUrl;
 const nameUrl = "https://example.com/types/property-type/name/" as BaseUrl;
 const emailUrl = "https://example.com/types/property-type/email/" as BaseUrl;
-const textType = "https://example.com/types/data-type/text/v/1";
+const text = {
+  dataTypeId: "https://example.com/types/data-type/text/v/1" as VersionedUrl,
+};
+
+const setName = {
+  op: "add",
+  path: [nameUrl],
+  property: { value: "Ada", metadata: text },
+} satisfies PropertyPatchOperation;
 
 const entityIdOf = (index: number, draft = false) =>
   `${webId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}${
@@ -80,43 +78,18 @@ const entityIdOf = (index: number, draft = false) =>
 
 const patch = vi.fn();
 
-/** Answers the graph query with the entity, if one is given, with the given properties, and whether the user can edit it. */
-const mockEntity = (
-  entity: { entityId: EntityId; properties: Record<string, unknown> } | null,
-  { canEdit = true } = {},
-) =>
+/** Answers the graph query with an entity with the given ID, if one is given, and whether the user can edit it. */
+const mockEntity = (entityId: EntityId | null, { canEdit = true } = {}) =>
   vi.mocked(queryEntities).mockResolvedValueOnce({
     permissions:
-      entity && canEdit ? { [entity.entityId]: { update: ["edition"] } } : {},
-    entities: entity
-      ? [
-          {
-            ...entity,
-            propertiesWithMetadata: {
-              value: Object.fromEntries(
-                Object.entries(entity.properties).map(([baseUrl, value]) => [
-                  baseUrl,
-                  { value, metadata: { dataTypeId: textType } },
-                ]),
-              ),
-            },
-            propertiesMetadata: { value: {} },
-            metadata: {
-              recordId: { entityId: entity.entityId },
-              entityTypeIds: [personType],
-              provenance: { edition: { sources: [] } },
-            },
-            patch,
-          },
-        ]
-      : [],
+      entityId && canEdit ? { [entityId]: { update: ["edition"] } } : {},
+    entities: entityId ? [{ entityId, patch }] : [],
     cursor: null,
   } as unknown as QueryEntitiesResponse);
 
 const run = (params: {
   entityId: PayloadValue<"EntityId", false>;
-  properties?: PropertyValues;
-  removeProperties?: BaseUrl[];
+  propertyPatches: PayloadValue<"PropertyPatch", true>;
 }) =>
   updateEntityAction({
     inputs: [
@@ -124,28 +97,10 @@ const run = (params: {
         inputName: "entityId",
         payload: { kind: "EntityId", value: params.entityId },
       },
-      ...(params.properties === undefined
-        ? []
-        : [
-            {
-              inputName: "properties",
-              payload: {
-                kind: "PropertyValues" as const,
-                value: params.properties,
-              },
-            },
-          ]),
-      ...(params.removeProperties === undefined
-        ? []
-        : [
-            {
-              inputName: "removeProperties",
-              payload: {
-                kind: "BaseUrl" as const,
-                value: params.removeProperties,
-              },
-            },
-          ]),
+      {
+        inputName: "propertyPatches",
+        payload: { kind: "PropertyPatch", value: params.propertyPatches },
+      },
     ] satisfies StepInput[],
   });
 
@@ -165,57 +120,38 @@ const updated = (entityId: EntityId) => ({
 
 describe("updateEntityAction", () => {
   beforeEach(() => {
-    validate.mockReset().mockResolvedValue(undefined);
     vi.mocked(queryEntities).mockReset();
     patch.mockReset().mockResolvedValue({});
   });
 
-  it("replaces the whole list of a list property, adds a property the entity lacks, and outputs the same ID", async () => {
-    mockEntity({
-      entityId: entityIdOf(1),
-      properties: { [emailUrl]: ["ada@example.com", "ada@example.org"] },
+  it("applies the patches as given, as the web's machine, and outputs the same ID", async () => {
+    mockEntity(entityIdOf(1));
+
+    const propertyPatches = [
+      setName,
+      {
+        op: "replace",
+        path: [emailUrl],
+        property: { value: [{ value: "ada@example.com", metadata: text }] },
+      },
+      {
+        op: "remove",
+        path: ["https://example.com/types/property-type/age/" as BaseUrl],
+      },
+    ] satisfies PropertyPatchOperation[];
+
+    expect(await run({ entityId: entityIdOf(1), propertyPatches })).toEqual(
+      updated(entityIdOf(1)),
+    );
+
+    expect(vi.mocked(queryEntities).mock.calls[0]?.[1]).toEqual({
+      actorId: "user",
     });
-
-    expect(
-      await run({
-        entityId: entityIdOf(1),
-        properties: { [emailUrl]: ["lovelace@example.com"], [nameUrl]: "Ada" },
-      }),
-    ).toEqual(updated(entityIdOf(1)));
-
-    expect(validate.mock.calls).toMatchObject([
-      [
-        {},
-        { actorId: "user" },
-        {
-          entityTypes: [personType],
-          components: { requiredProperties: false },
-        },
-      ],
-    ]);
     expect(patch).toHaveBeenCalledWith(
       {},
       { actorId: "bot" },
       {
-        propertyPatches: [
-          {
-            op: "replace",
-            path: [emailUrl],
-            property: {
-              value: [
-                {
-                  value: "lovelace@example.com",
-                  metadata: { dataTypeId: null },
-                },
-              ],
-            },
-          },
-          {
-            op: "add",
-            path: [nameUrl],
-            property: { value: "Ada", metadata: { dataTypeId: null } },
-          },
-        ],
+        propertyPatches,
         draft: false,
         provenance: {
           actorType: "machine",
@@ -226,13 +162,10 @@ describe("updateEntityAction", () => {
   });
 
   it("updates the draft an entity ID with a draft ID names, which stays a draft", async () => {
-    mockEntity({ entityId: entityIdOf(1, true), properties: {} });
+    mockEntity(entityIdOf(1, true));
 
     expect(
-      await run({
-        entityId: entityIdOf(1, true),
-        properties: { [nameUrl]: "Ada" },
-      }),
+      await run({ entityId: entityIdOf(1, true), propertyPatches: [setName] }),
     ).toEqual(updated(entityIdOf(1, true)));
 
     const query = vi.mocked(queryEntities).mock.calls[0]?.[2];
@@ -266,7 +199,7 @@ describe("updateEntityAction", () => {
       value: [entityIdOf(1), entityIdOf(2)],
     });
 
-    mockEntity({ entityId: entityIdOf(2), properties: {} });
+    mockEntity(entityIdOf(2));
 
     expect(
       await run({
@@ -277,7 +210,7 @@ describe("updateEntityAction", () => {
           of: stored,
           index: 1,
         },
-        properties: { [nameUrl]: "Grace" },
+        propertyPatches: [setName],
       }),
     ).toEqual(updated(entityIdOf(2)));
   });
@@ -286,56 +219,51 @@ describe("updateEntityAction", () => {
     {
       name: "an entity ID that isn't valid",
       entityId: "" as EntityId,
-      properties: { [nameUrl]: "Ada" },
-      code: StatusCode.InvalidArgument,
+      propertyPatches: [setName],
       message: " is not a valid EntityId.",
     },
     {
       name: "an entity in another web",
       entityId:
         "00000000-0000-4000-8000-0000000000aa~00000000-0000-4000-8000-000000000001" as EntityId,
-      properties: { [nameUrl]: "Ada" },
-      code: StatusCode.InvalidArgument,
+      propertyPatches: [setName],
       message:
         "Entity 00000000-0000-4000-8000-0000000000aa~00000000-0000-4000-8000-000000000001 isn't in the web the flow runs in, so it can't be updated.",
     },
     {
-      name: "no property values",
+      name: "no patches",
       entityId: entityIdOf(1),
-      properties: {},
-      code: StatusCode.InvalidArgument,
-      message: "Property values must give a value for at least one property.",
+      propertyPatches: [],
+      message: "Give at least one property patch.",
     },
     {
-      name: "nothing to set or remove",
+      name: "a patch inside a property's value",
       entityId: entityIdOf(1),
-      removeProperties: [],
-      code: StatusCode.InvalidArgument,
-      message: "Give property values to set, properties to remove, or both.",
+      propertyPatches: [{ op: "remove", path: [emailUrl, 0] }],
+      message: `Property patch 1 changes part of property ${emailUrl}, which isn't supported yet: give its whole value.`,
     },
     {
-      name: "a property to remove named by a versioned URL",
+      name: "a value without a data type ID",
       entityId: entityIdOf(1),
-      removeProperties: [
-        "https://example.com/types/property-type/name/v/1" as BaseUrl,
+      propertyPatches: [
+        {
+          op: "add",
+          path: [nameUrl],
+          property: { value: "Ada", metadata: { dataTypeId: null } },
+        },
       ],
-      code: StatusCode.InvalidArgument,
-      message:
-        '"https://example.com/types/property-type/name/v/1" is not a property type base URL.',
+      message: `Property ${nameUrl} must give the data type ID of each of its values.`,
     },
-    {
-      name: "a property both set and removed",
-      entityId: entityIdOf(1),
-      properties: { [nameUrl]: "Ada" },
-      removeProperties: [nameUrl],
-      code: StatusCode.InvalidArgument,
-      message: `Property ${nameUrl} can't be both set and removed.`,
-    },
-  ])(
+  ] satisfies {
+    name: string;
+    entityId: EntityId;
+    propertyPatches: PropertyPatchOperation[];
+    message: string;
+  }[])(
     "fails for $name, without reading or updating the entity",
-    async ({ entityId, properties, removeProperties, code, message }) => {
-      expect(await run({ entityId, properties, removeProperties })).toEqual({
-        code,
+    async ({ entityId, propertyPatches, message }) => {
+      expect(await run({ entityId, propertyPatches })).toEqual({
+        code: StatusCode.InvalidArgument,
         message,
         contents: [],
       });
@@ -348,7 +276,7 @@ describe("updateEntityAction", () => {
     mockEntity(null);
 
     expect(
-      await run({ entityId: entityIdOf(1), properties: { [nameUrl]: "Ada" } }),
+      await run({ entityId: entityIdOf(1), propertyPatches: [setName] }),
     ).toEqual({
       code: StatusCode.NotFound,
       message: `Entity ${entityIdOf(1)} doesn't exist or can't be read by the user running the flow.`,
@@ -357,167 +285,29 @@ describe("updateEntityAction", () => {
   });
 
   it("fails for an entity the user can read but not edit, without updating it", async () => {
-    mockEntity({ entityId: entityIdOf(1), properties: {} }, { canEdit: false });
+    mockEntity(entityIdOf(1), { canEdit: false });
 
     expect(
-      await run({ entityId: entityIdOf(1), properties: { [nameUrl]: "Ada" } }),
+      await run({ entityId: entityIdOf(1), propertyPatches: [setName] }),
     ).toEqual({
       code: StatusCode.PermissionDenied,
       message: `The user running the flow can't edit entity ${entityIdOf(1)}.`,
       contents: [],
     });
-    expect(validate).not.toHaveBeenCalled();
     expect(patch).not.toHaveBeenCalled();
   });
 
-  it("fails naming the property whose value doesn't fit the entity's types, without updating it", async () => {
-    mockEntity({ entityId: entityIdOf(1), properties: {} });
-    validate.mockResolvedValueOnce({
-      properties: {
-        [emailUrl]: { type: "value", validations: [] },
-      },
-    } as unknown as EntityValidationReport);
-
-    expect(
-      await run({ entityId: entityIdOf(1), properties: { [emailUrl]: 42 } }),
-    ).toEqual({
-      code: StatusCode.InvalidArgument,
-      message: `Property ${emailUrl} has a value its property type doesn't allow.`,
-      contents: [],
-    });
-    expect(patch).not.toHaveBeenCalled();
-  });
-
-  it("fails if the graph doesn't save the update", async () => {
-    mockEntity({ entityId: entityIdOf(1), properties: {} });
-    patch.mockRejectedValueOnce(new Error("Graph unavailable"));
+  it("fails if the graph doesn't save the update, e.g. because the entity it leaves doesn't fit its types", async () => {
+    mockEntity(entityIdOf(1));
+    patch.mockRejectedValueOnce(new Error("Entity validation failed"));
 
     const { code, message } = await run({
       entityId: entityIdOf(1),
-      properties: { [nameUrl]: "Ada" },
+      propertyPatches: [setName],
     });
 
     expect(code).toBe(StatusCode.Internal);
     expect(message).toContain(`Could not update entity ${entityIdOf(1)}`);
-  });
-
-  it("removes a property from a live entity, checking the entity it leaves against its types", async () => {
-    mockEntity({
-      entityId: entityIdOf(1),
-      properties: { [nameUrl]: "Ada", [emailUrl]: "ada@example.com" },
-    });
-
-    expect(
-      await run({
-        entityId: entityIdOf(1),
-        properties: { [nameUrl]: "Ada Lovelace" },
-        removeProperties: [emailUrl],
-      }),
-    ).toEqual(updated(entityIdOf(1)));
-
-    expect(validate.mock.calls).toMatchObject([
-      [
-        {},
-        { actorId: "user" },
-        {
-          entityTypes: [personType],
-          properties: {
-            value: {
-              [nameUrl]: {
-                value: "Ada Lovelace",
-                metadata: { dataTypeId: null },
-              },
-            },
-          },
-          components: { requiredProperties: true },
-        },
-      ],
-    ]);
-    expect(
-      Object.keys(validate.mock.calls[0]?.[2].properties.value ?? {}),
-    ).toEqual([nameUrl]);
-    expect(patch).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({
-        propertyPatches: [
-          {
-            op: "replace",
-            path: [nameUrl],
-            property: {
-              value: "Ada Lovelace",
-              metadata: { dataTypeId: null },
-            },
-          },
-          { op: "remove", path: [emailUrl] },
-        ],
-      }),
-    );
-  });
-
-  it("keeps the metadata of the values it leaves when checking the entity", async () => {
-    mockEntity({
-      entityId: entityIdOf(1),
-      properties: { [nameUrl]: "Ada", [emailUrl]: "ada@example.com" },
-    });
-
-    await run({ entityId: entityIdOf(1), removeProperties: [emailUrl] });
-
-    expect(validate.mock.calls[0]?.[2].properties).toEqual({
-      value: {
-        [nameUrl]: { value: "Ada", metadata: { dataTypeId: textType } },
-      },
-    });
-  });
-
-  it("fails naming a required property it would remove from a live entity, without updating it", async () => {
-    mockEntity({
-      entityId: entityIdOf(1),
-      properties: { [nameUrl]: "Ada" },
-    });
-    validate.mockResolvedValueOnce({
-      properties: { [nameUrl]: { type: "missing" } },
-    } as unknown as EntityValidationReport);
-
-    expect(
-      await run({ entityId: entityIdOf(1), removeProperties: [nameUrl] }),
-    ).toEqual({
-      code: StatusCode.InvalidArgument,
-      message: `Property ${nameUrl} is required.`,
-      contents: [],
-    });
-    expect(patch).not.toHaveBeenCalled();
-  });
-
-  it("removes a property from a draft without checking required properties", async () => {
-    mockEntity({
-      entityId: entityIdOf(1, true),
-      properties: { [nameUrl]: "Ada" },
-    });
-
-    expect(
-      await run({ entityId: entityIdOf(1, true), removeProperties: [nameUrl] }),
-    ).toEqual(updated(entityIdOf(1, true)));
-
-    expect(validate).not.toHaveBeenCalled();
-    expect(patch).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({
-        propertyPatches: [{ op: "remove", path: [nameUrl] }],
-        draft: true,
-      }),
-    );
-  });
-
-  it("skips a property to remove that the entity doesn't have, e.g. one an earlier attempt removed", async () => {
-    mockEntity({ entityId: entityIdOf(1), properties: { [nameUrl]: "Ada" } });
-
-    expect(
-      await run({ entityId: entityIdOf(1), removeProperties: [emailUrl] }),
-    ).toEqual(updated(entityIdOf(1)));
-
-    expect(validate).not.toHaveBeenCalled();
-    expect(patch).not.toHaveBeenCalled();
+    expect(message).toContain("Entity validation failed");
   });
 });

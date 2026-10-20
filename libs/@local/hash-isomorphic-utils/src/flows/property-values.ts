@@ -1,122 +1,147 @@
-import { validateBaseUrl } from "@blockprotocol/type-system";
+import {
+  validateBaseUrl,
+  validateVersionedUrl,
+} from "@blockprotocol/type-system";
 
 import type { ActionStepCheck } from "./types.js";
-import type { BaseUrl, PropertyObject } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  PropertyObjectWithMetadata,
+  PropertyPatchOperation,
+} from "@blockprotocol/type-system";
 
-/**
- * Values for some of an entity's properties, keyed by property type base URL, e.g. to create an entity with or to
- * update one with. A list property's value is the whole list.
- *
- * Only the shape is checked when the flow is defined, because flows are validated without access to the ontology. The
- * values are checked against the entity type when the step runs.
+/*
+ * Properties are given in the graph's own terms, so that the graph validates them when it saves the entity. Only their
+ * shape is checked here, because flows are validated without access to the ontology.
  */
-export type PropertyValues = PropertyObject;
 
-const isPropertyBaseUrl = (value: unknown) =>
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isPropertyBaseUrl = (value: unknown): value is BaseUrl =>
   typeof value === "string" && validateBaseUrl(value).type === "Ok";
 
-/** Checks the shape of property values, returning why it's invalid. */
-export const validatePropertyValues = (
-  values: PropertyValues,
+/**
+ * Whether a property gives the data type ID of each of its values, including in lists and property objects. Without
+ * one, the graph infers it, which it can't do for a property that allows more than one data type, or only an abstract
+ * one. As in the graph, a value is told apart from a list or property object by its metadata having a data type ID.
+ */
+const hasDataTypeIds = (property: unknown): boolean => {
+  if (!isRecord(property)) {
+    return false;
+  }
+
+  const { value, metadata } = property;
+
+  if (isRecord(metadata) && Object.hasOwn(metadata, "dataTypeId")) {
+    return (
+      typeof metadata.dataTypeId === "string" &&
+      validateVersionedUrl(metadata.dataTypeId).type === "Ok"
+    );
+  }
+
+  if (Array.isArray(value)) {
+    return value.every(hasDataTypeIds);
+  }
+
+  return isRecord(value) && Object.values(value).every(hasDataTypeIds);
+};
+
+const notABaseUrl = (value: unknown) =>
+  `${JSON.stringify(value)} is not a property type base URL.`;
+
+const missingDataTypeIds = (baseUrl: BaseUrl) =>
+  `Property ${baseUrl} must give the data type ID of each of its values.`;
+
+/** Checks the shape of an entity's properties with their metadata, returning why it's invalid. */
+export const validatePropertiesWithMetadata = (
+  properties: PropertyObjectWithMetadata,
 ): string | undefined => {
   /* Persisted definitions and flow inputs may be malformed. */
-  if (
-    typeof values !== "object" ||
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    values === null ||
-    Array.isArray(values)
-  ) {
-    return "Property values must be an object keyed by property type base URL.";
+  if (!isRecord(properties) || !isRecord(properties.value)) {
+    return "Properties must be an object whose value is keyed by property type base URL.";
   }
 
-  const keys = Object.keys(values);
+  const entries = Object.entries(properties.value);
 
-  if (keys.length === 0) {
-    return "Property values must give a value for at least one property.";
+  if (entries.length === 0) {
+    return "Properties must give a value for at least one property.";
   }
 
-  const invalidKey = keys.find((key) => !isPropertyBaseUrl(key));
+  for (const [baseUrl, property] of entries) {
+    if (!isPropertyBaseUrl(baseUrl)) {
+      return notABaseUrl(baseUrl);
+    }
 
-  if (invalidKey !== undefined) {
-    return `${JSON.stringify(invalidKey)} is not a property type base URL.`;
+    if (!hasDataTypeIds(property)) {
+      return missingDataTypeIds(baseUrl);
+    }
   }
 
   return undefined;
 };
 
-/** Checks a list of properties to remove from an entity, returning why it's invalid. */
-export const validatePropertyRemovals = (
-  baseUrls: BaseUrl[],
-): string | undefined => {
-  /* Persisted definitions and flow inputs may be malformed. */
-  if (!Array.isArray(baseUrls)) {
-    return "Properties to remove must be a list of property type base URLs.";
-  }
-
-  const invalidBaseUrl = baseUrls.find(
-    (baseUrl) => !isPropertyBaseUrl(baseUrl),
-  );
-
-  if (invalidBaseUrl !== undefined) {
-    return `${JSON.stringify(invalidBaseUrl)} is not a property type base URL.`;
-  }
-
-  return undefined;
-};
-
-const noChanges = "Give property values to set, properties to remove, or both.";
-
-const setAndRemoved = (baseUrl: BaseUrl) =>
-  `Property ${baseUrl} can't be both set and removed.`;
+const patchOps: PropertyPatchOperation["op"][] = ["add", "remove", "replace"];
 
 /**
- * Checks the changes an update makes to an entity: values to set, properties to remove, or both. Returns why they're
- * invalid.
+ * Checks the shape of patches to an entity's properties, returning why they're invalid. Each patch changes a whole
+ * property: a patch inside a list could change it twice if the step is retried, e.g. adding an item at an index.
  */
-export const validatePropertyChanges = ({
-  properties,
-  removeProperties,
-}: {
-  properties?: PropertyValues;
-  removeProperties?: BaseUrl[];
-}): string | undefined => {
-  if (properties === undefined && !removeProperties?.length) {
-    return noChanges;
+export const validatePropertyPatches = (
+  patches: PropertyPatchOperation[],
+): string | undefined => {
+  /* Persisted definitions and flow inputs may be malformed. */
+  if (!Array.isArray(patches)) {
+    return "Property patches must be a list.";
   }
 
-  const error =
-    (properties === undefined
-      ? undefined
-      : validatePropertyValues(properties)) ??
-    (removeProperties === undefined
-      ? undefined
-      : validatePropertyRemovals(removeProperties));
-
-  if (error) {
-    return error;
+  if (patches.length === 0) {
+    return "Give at least one property patch.";
   }
 
-  const bothSetAndRemoved =
-    properties &&
-    removeProperties?.find((baseUrl) => Object.hasOwn(properties, baseUrl));
+  for (const [index, patch] of patches.entries()) {
+    const position = `Property patch ${index + 1}`;
 
-  return bothSetAndRemoved ? setAndRemoved(bothSetAndRemoved) : undefined;
+    if (!isRecord(patch) || !patchOps.includes(patch.op)) {
+      return `${position} must have an op of ${patchOps.join(", ")}.`;
+    }
+
+    const { path } = patch;
+    const baseUrl: unknown = Array.isArray(path) ? path[0] : undefined;
+
+    if (!isPropertyBaseUrl(baseUrl)) {
+      return `${position} must have a path of a property type base URL.`;
+    }
+
+    if (path.length > 1) {
+      return `${position} changes part of property ${baseUrl}, which isn't supported yet: give its whole value.`;
+    }
+
+    if (patch.op !== "remove" && !hasDataTypeIds(patch.property)) {
+      return missingDataTypeIds(baseUrl);
+    }
+  }
+
+  return undefined;
 };
 
-/** Checks a step's constant `properties` input when the flow is defined. */
-export const checkPropertyValuesInput: ActionStepCheck = ({ step, report }) => {
+/** Checks a Create entity step's constant `properties` input when the flow is defined. */
+export const checkPropertiesWithMetadataInput: ActionStepCheck = ({
+  step,
+  report,
+}) => {
   const { properties } = step.inputs;
 
   /* A constant of another kind is reported as an incompatible connection. */
   if (
     properties?.kind !== "constant" ||
-    properties.payload.kind !== "PropertyValues"
+    properties.payload.kind !== "PropertyObjectWithMetadata"
   ) {
     return;
   }
 
-  const error = validatePropertyValues(
-    properties.payload.value as PropertyValues,
+  const error = validatePropertiesWithMetadata(
+    properties.payload.value as PropertyObjectWithMetadata,
   );
 
   if (error) {
@@ -124,54 +149,26 @@ export const checkPropertyValuesInput: ActionStepCheck = ({ step, report }) => {
   }
 };
 
-/**
- * Checks an Update entity step's inputs when the flow is defined: that it sets or removes something, and that its
- * constant `properties` and `removeProperties` are valid and don't name the same property.
- */
-export const checkUpdateEntityInputs: ActionStepCheck = (params) => {
-  const { step, report } = params;
-  const { properties, removeProperties } = step.inputs;
-
-  if (!properties && !removeProperties) {
-    report("properties", noChanges);
-    return;
-  }
-
-  checkPropertyValuesInput(params);
+/** Checks an Update entity step's constant `propertyPatches` input when the flow is defined. */
+export const checkPropertyPatchesInput: ActionStepCheck = ({
+  step,
+  report,
+}) => {
+  const { propertyPatches } = step.inputs;
 
   /* A constant of another kind is reported as an incompatible connection. */
   if (
-    removeProperties?.kind !== "constant" ||
-    removeProperties.payload.kind !== "BaseUrl"
+    propertyPatches?.kind !== "constant" ||
+    propertyPatches.payload.kind !== "PropertyPatch"
   ) {
     return;
   }
 
-  const baseUrls = removeProperties.payload.value as BaseUrl[];
+  const error = validatePropertyPatches(
+    propertyPatches.payload.value as PropertyPatchOperation[],
+  );
 
-  const removalsError = validatePropertyRemovals(baseUrls);
-
-  if (removalsError) {
-    report("removeProperties", removalsError);
-    return;
-  }
-
-  if (!properties && baseUrls.length === 0) {
-    report("removeProperties", noChanges);
-    return;
-  }
-
-  const values =
-    properties?.kind === "constant" &&
-    properties.payload.kind === "PropertyValues" &&
-    !validatePropertyValues(properties.payload.value as PropertyValues)
-      ? (properties.payload.value as PropertyValues)
-      : undefined;
-
-  const bothSetAndRemoved =
-    values && baseUrls.find((baseUrl) => Object.hasOwn(values, baseUrl));
-
-  if (bothSetAndRemoved) {
-    report("removeProperties", setAndRemoved(bothSetAndRemoved));
+  if (error) {
+    report("propertyPatches", error);
   }
 };

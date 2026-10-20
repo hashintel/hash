@@ -2,8 +2,8 @@ import { checkAggregationInput } from "./aggregation.js";
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
 import { maxEntitiesPerStep } from "./limits.js";
 import {
-  checkPropertyValuesInput,
-  checkUpdateEntityInputs,
+  checkPropertiesWithMetadataInput,
+  checkPropertyPatchesInput,
 } from "./property-values.js";
 import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
@@ -1052,10 +1052,10 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["PropertyValues"],
+        oneOfPayloadKinds: ["PropertyObjectWithMetadata"],
         name: "properties",
         description:
-          "The entity's property values, keyed by property type base URL. A list property takes the whole list.",
+          "The entity's properties with their metadata, as the graph takes them: values keyed by property type base URL, each giving the ID of its data type.",
         required: true,
         array: false,
       },
@@ -1081,7 +1081,7 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
     ],
-    check: checkPropertyValuesInput,
+    check: checkPropertiesWithMetadataInput,
   },
   updateEntity: {
     actionDefinitionId: "updateEntity",
@@ -1099,19 +1099,11 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["PropertyValues"],
-        name: "properties",
+        oneOfPayloadKinds: ["PropertyPatch"],
+        name: "propertyPatches",
         description:
-          "The new values of the properties to set, keyed by property type base URL. A list property's value replaces the whole list. Optional if properties are removed.",
-        required: false,
-        array: false,
-      },
-      {
-        oneOfPayloadKinds: ["BaseUrl"],
-        name: "removeProperties",
-        description:
-          "The base URLs of the properties to remove. A property the entity doesn't have is skipped. Optional if properties are set.",
-        required: false,
+          "The changes to make, in order, as the graph takes them. Each changes the whole property at its path, a property type base URL: add sets it, replacing any value it has; replace changes one the entity has; remove removes it if the entity has it. Added and replaced values give the ID of their data type.",
+        required: true,
         array: true,
       },
     ],
@@ -1124,7 +1116,7 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
     ],
-    check: checkUpdateEntityInputs,
+    check: checkPropertyPatchesInput,
   },
   takeFirst: {
     actionDefinitionId: "takeFirst",

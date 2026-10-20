@@ -8,15 +8,15 @@ import type {
 } from "./action-definitions.js";
 import type { Aggregation } from "./aggregation.js";
 import type { FilterCondition } from "./filter-condition.js";
-import type { PropertyValues } from "./property-values.js";
 import type { SortKey } from "./sort-key.js";
 import type {
   ActorEntityUuid,
-  BaseUrl,
   EntityId,
   EntityUuid,
   PropertyObject,
   PropertyObjectMetadata,
+  PropertyObjectWithMetadata,
+  PropertyPatchOperation,
   ProvidedEntityEditionProvenance,
   Url,
   VersionedUrl,
@@ -121,8 +121,6 @@ export type EntityQuery = Pick<QueryEntitiesRequest, "filter"> &
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Aggregation: Aggregation;
-  /** A type's URL without its version, e.g. "https://example.com/types/property-type/name/" */
-  BaseUrl: BaseUrl;
   Boolean: boolean;
   Date: string; // e.g. "2025-01-01"
   /** An ISO 8601 instant with `Z` or an offset, e.g. "2026-10-16T14:00:00Z" */
@@ -137,7 +135,10 @@ export type PayloadKindValues = {
   GoogleSheet: GoogleSheet;
   Number: number;
   PersistedEntityMetadata: PersistedEntityMetadata;
-  PropertyValues: PropertyValues;
+  /** An entity's properties with their metadata, as the graph takes them to create an entity */
+  PropertyObjectWithMetadata: PropertyObjectWithMetadata;
+  /** A change to one of an entity's properties, as the graph takes it to update an entity */
+  PropertyPatch: PropertyPatchOperation;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   SortKey: SortKey;
@@ -178,7 +179,6 @@ export type PayloadKindTraits =
 export const payloadKindTraits = {
   ActorType: { primitive: "text" },
   Aggregation: { primitive: null },
-  BaseUrl: { primitive: "text" },
   Boolean: { primitive: "boolean" },
   Date: { primitive: "date" },
   DateTime: { primitive: "datetime" },
@@ -192,7 +192,8 @@ export const payloadKindTraits = {
   GoogleSheet: { primitive: null, fields: true },
   Number: { primitive: "number" },
   PersistedEntityMetadata: { primitive: null, fields: true },
-  PropertyValues: { primitive: null },
+  PropertyObjectWithMetadata: { primitive: null },
+  PropertyPatch: { primitive: null },
   ProposedEntity: { primitive: null, fields: true, entity: true },
   ProposedEntityWithResolvedLinks: {
     primitive: null,

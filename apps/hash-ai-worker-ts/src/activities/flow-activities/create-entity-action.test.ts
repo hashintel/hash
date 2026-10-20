@@ -8,6 +8,7 @@ import { createEntityAction } from "./create-entity-action.js";
 import type {
   BaseUrl,
   EntityId,
+  PropertyObjectWithMetadata,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
@@ -15,8 +16,6 @@ import type {
   HashEntity,
   QueryEntitiesResponse,
 } from "@local/hash-graph-sdk/entity";
-import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
-import type { PropertyValues } from "@local/hash-isomorphic-utils/flows/property-values";
 import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
 
 const webId = "00000000-0000-4000-8000-000000000001" as WebId;
@@ -36,13 +35,12 @@ vi.mock("./shared/save-entity.js", () => ({
   getSavingActorId: () => Promise.resolve("bot"),
   retrySave: (save: () => unknown) => save(),
 }));
-const { validate, create } = vi.hoisted(() => ({
-  validate: vi.fn<typeof HashEntity.validate>(),
+const { create } = vi.hoisted(() => ({
   create: vi.fn<typeof HashEntity.create>(),
 }));
 vi.mock("@local/hash-graph-sdk/entity", async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  HashEntity: { validate, create },
+  HashEntity: { create },
   queryEntities: vi.fn(),
 }));
 
@@ -50,10 +48,17 @@ const personType =
   "https://example.com/types/entity-type/person/v/1" as VersionedUrl;
 const nameUrl = "https://example.com/types/property-type/name/" as BaseUrl;
 const emailUrl = "https://example.com/types/property-type/email/" as BaseUrl;
+const text = {
+  dataTypeId: "https://example.com/types/data-type/text/v/1" as VersionedUrl,
+};
+
+const ada = {
+  value: { [nameUrl]: { value: "Ada", metadata: text } },
+} satisfies PropertyObjectWithMetadata;
 
 const run = (params: {
   entityTypeId?: string;
-  properties: PropertyValues;
+  properties: PropertyObjectWithMetadata;
   draft?: boolean;
 }) =>
   createEntityAction({
@@ -67,7 +72,10 @@ const run = (params: {
       },
       {
         inputName: "properties",
-        payload: { kind: "PropertyValues", value: params.properties },
+        payload: {
+          kind: "PropertyObjectWithMetadata",
+          value: params.properties,
+        },
       },
       ...(params.draft === undefined
         ? []
@@ -86,7 +94,6 @@ const mockCreated = (entityId: EntityId) =>
 
 describe("createEntityAction", () => {
   beforeEach(() => {
-    validate.mockReset().mockResolvedValue(undefined);
     create.mockReset();
     vi.mocked(queryEntities)
       .mockReset()
@@ -96,16 +103,19 @@ describe("createEntityAction", () => {
       } as unknown as QueryEntitiesResponse);
   });
 
-  it("creates an entity of the type with the values, in the flow's web, and outputs its ID", async () => {
+  it("creates an entity of the type with the properties as given, in the flow's web, and outputs its ID", async () => {
     const entityId =
       `${webId}~00000000-0000-4000-8000-000000000002` as EntityId;
     mockCreated(entityId);
 
-    expect(
-      await run({
-        properties: { [nameUrl]: "Ada", [emailUrl]: ["ada@example.com"] },
-      }),
-    ).toEqual({
+    const properties = {
+      value: {
+        [nameUrl]: { value: "Ada", metadata: text },
+        [emailUrl]: { value: [{ value: "ada@example.com", metadata: text }] },
+      },
+    } satisfies PropertyObjectWithMetadata;
+
+    expect(await run({ properties })).toEqual({
       code: StatusCode.Ok,
       contents: [
         {
@@ -119,29 +129,6 @@ describe("createEntityAction", () => {
       ],
     });
 
-    /* Without a data type ID, the graph infers each value's data type from its property type. */
-    const properties = {
-      value: {
-        [nameUrl]: { value: "Ada", metadata: { dataTypeId: null } },
-        [emailUrl]: {
-          value: [{ value: "ada@example.com", metadata: { dataTypeId: null } }],
-          metadata: undefined,
-        },
-      },
-      metadata: undefined,
-    };
-
-    expect(validate.mock.calls).toMatchObject([
-      [
-        {},
-        { actorId: "user" },
-        {
-          entityTypes: [personType],
-          properties,
-          components: { requiredProperties: true },
-        },
-      ],
-    ]);
     expect(create).toHaveBeenCalledWith(
       {},
       { actorId: "bot" },
@@ -158,19 +145,14 @@ describe("createEntityAction", () => {
     );
   });
 
-  it("creates a draft, which may leave required properties out", async () => {
+  it("creates a draft", async () => {
     const entityId =
       `${webId}~00000000-0000-4000-8000-000000000002~00000000-0000-4000-8000-000000000003` as EntityId;
     mockCreated(entityId);
 
-    expect(
-      await run({ properties: { [nameUrl]: "Ada" }, draft: true }),
-    ).toMatchObject({
+    expect(await run({ properties: ada, draft: true })).toMatchObject({
       code: StatusCode.Ok,
       contents: [{ outputs: [{ payload: { value: entityId } }] }],
-    });
-    expect(validate.mock.calls[0]?.[2].components).toMatchObject({
-      requiredProperties: false,
     });
     expect(create).toHaveBeenCalledWith(
       expect.anything(),
@@ -184,122 +166,48 @@ describe("createEntityAction", () => {
       name: "an entity type ID that isn't a versioned URL",
       params: {
         entityTypeId: "https://example.com/types/entity-type/person/",
-        properties: { [nameUrl]: "Ada" },
+        properties: ada,
       },
       message:
         '"https://example.com/types/entity-type/person/" is not an entity type ID.',
     },
     {
-      name: "no property values",
-      params: { properties: {} },
-      message: "Property values must give a value for at least one property.",
+      name: "no properties",
+      params: { properties: { value: {} } },
+      message: "Properties must give a value for at least one property.",
+    },
+    {
+      name: "a value without a data type ID",
+      params: {
+        properties: {
+          value: {
+            [nameUrl]: { value: "Ada", metadata: { dataTypeId: null } },
+          },
+        },
+      },
+      message: `Property ${nameUrl} must give the data type ID of each of its values.`,
     },
   ])(
-    "fails for $name, without checking or creating anything",
+    "fails for $name, without creating anything",
     async ({ params, message }) => {
       expect(await run(params)).toEqual({
         code: StatusCode.InvalidArgument,
         message,
         contents: [],
       });
-      expect(validate).not.toHaveBeenCalled();
+      expect(queryEntities).not.toHaveBeenCalled();
       expect(create).not.toHaveBeenCalled();
     },
   );
 
-  it("fails naming each property whose value doesn't fit the type, without creating the entity", async () => {
-    validate.mockResolvedValueOnce({
-      properties: {
-        [nameUrl]: {
-          type: "wrongType",
-          data: { actual: "array", expected: "value" },
-        },
-        [emailUrl]: { type: "unexpected" },
-      },
-    } as EntityValidationReport);
+  it("fails if the graph doesn't save the entity, e.g. because its properties don't fit the type", async () => {
+    create.mockRejectedValueOnce(new Error("Entity validation failed"));
 
-    expect(
-      await run({
-        properties: { [nameUrl]: ["Ada"], [emailUrl]: "ada@example.com" },
-      }),
-    ).toEqual({
-      code: StatusCode.InvalidArgument,
-      message: `Property ${nameUrl} takes a single value, but was given a list. Property ${emailUrl} isn't a property of the entity type.`,
-      contents: [],
-    });
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  it("fails naming each property whose data type the graph can't infer from the value, including in a list", async () => {
-    validate.mockResolvedValueOnce({
-      properties: {
-        [nameUrl]: {
-          type: "value",
-          dataTypeInference: [
-            {
-              type: "ambiguous",
-              data: [
-                "https://example.com/types/data-type/text/v/1",
-                "https://example.com/types/data-type/uri/v/1",
-              ],
-            },
-          ],
-        },
-        [emailUrl]: {
-          type: "array",
-          validations: [
-            {
-              type: "arrayValidation",
-              data: {
-                items: {
-                  "0": {
-                    type: "value",
-                    dataTypeInference: [
-                      {
-                        type: "abstract",
-                        data: "https://example.com/types/data-type/contact/v/1",
-                      },
-                    ],
-                  },
-                },
-              },
-            },
-          ],
-        },
-      },
-    } as unknown as EntityValidationReport);
-
-    expect(
-      await run({
-        properties: { [nameUrl]: "Ada", [emailUrl]: ["ada@example.com"] },
-      }),
-    ).toEqual({
-      code: StatusCode.InvalidArgument,
-      message: `Property ${nameUrl} allows more than one data type, and a flow can't yet say which one its value has. Property ${emailUrl} only allows an abstract data type, and a flow can't yet say which of its subtypes its value has.`,
-      contents: [],
-    });
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  it("fails for a type the graph can't check the values against", async () => {
-    validate.mockRejectedValueOnce(new Error("Entity type not found"));
-
-    const { code, message } = await run({ properties: { [nameUrl]: "Ada" } });
-
-    expect(code).toBe(StatusCode.InvalidArgument);
-    expect(message).toContain(
-      `Could not check the property values against ${personType}`,
-    );
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  it("fails if the graph doesn't save the entity", async () => {
-    create.mockRejectedValueOnce(new Error("Graph unavailable"));
-
-    const { code, message } = await run({ properties: { [nameUrl]: "Ada" } });
+    const { code, message } = await run({ properties: ada });
 
     expect(code).toBe(StatusCode.Internal);
     expect(message).toContain("Could not create entity");
+    expect(message).toContain("Entity validation failed");
   });
 
   it("gives the entity the same UUID on every attempt of the step in a run", async () => {
@@ -308,8 +216,8 @@ describe("createEntityAction", () => {
     mockCreated(entityId);
     mockCreated(entityId);
 
-    await run({ properties: { [nameUrl]: "Ada" } });
-    await run({ properties: { [nameUrl]: "Ada" } });
+    await run({ properties: ada });
+    await run({ properties: ada });
 
     const [first, second] = create.mock.calls.map(
       ([, , params]) => params.entityUuid,
@@ -329,7 +237,7 @@ describe("createEntityAction", () => {
       cursor: null,
     } as unknown as QueryEntitiesResponse);
 
-    expect(await run({ properties: { [nameUrl]: "Ada" } })).toMatchObject({
+    expect(await run({ properties: ada })).toMatchObject({
       code: StatusCode.Ok,
       contents: [{ outputs: [{ payload: { value: entityId } }] }],
     });
