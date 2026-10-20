@@ -20,8 +20,8 @@
  * Both `.d2` source and rendered `.svg` are written.
  */
 
-import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { execFile, spawnSync } from "node:child_process";
+import { readFile, writeFile } from "node:fs/promises";
 
 import {
   isDeclaredEdge,
@@ -498,7 +498,7 @@ export const buildOverviewDiagram = (
  * The d2 command to run: `d2` on PATH, or the one mise provides for the dev
  * environment. Null when neither answers, in which case pages omit diagrams.
  */
-export const findD2 = (repoRoot: string): string[] | null => {
+const probeD2 = (repoRoot: string): string[] | null => {
   for (const command of [
     ["d2"],
     ["mise", "exec", "--env", "dev", "--", "d2"],
@@ -514,6 +514,44 @@ export const findD2 = (repoRoot: string): string[] | null => {
   }
   return null;
 };
+
+const d2Commands = new Map<string, string[] | null>();
+
+/** The d2 command for this repository, probed once per process. */
+export const findD2 = (repoRoot: string): string[] | null => {
+  const known = d2Commands.get(repoRoot);
+  if (known !== undefined) {
+    return known;
+  }
+  const found = probeD2(repoRoot);
+  d2Commands.set(repoRoot, found);
+  return found;
+};
+
+/** Runs a command to completion; a non-zero exit or a spawn failure is an error string. */
+const execute = (
+  executable: string,
+  args: string[],
+  cwd: string,
+): Promise<{ ok: true } | { ok: false; error: string }> =>
+  new Promise((resolve) => {
+    execFile(
+      executable,
+      args,
+      { cwd, encoding: "utf8" },
+      (error, stdout, stderr) => {
+        if (error === null) {
+          resolve({ ok: true });
+        } else {
+          resolve({
+            ok: false,
+            error: stderr || stdout || error.message,
+          });
+        }
+      },
+    );
+  });
+
 /**
  * Renders a `.d2` file to SVG.
  *
@@ -626,16 +664,16 @@ export const withThemeableColours = (markup: string): string => {
  * no longer fit. The padding is `d2`'s 100px default cut to something that
  * leaves the drawing room without a frame of empty page around it.
  */
-export const renderD2 = (options: {
+export const renderD2 = async (options: {
   command: string[];
   repoRoot: string;
   sourcePath: string;
   outputPath: string;
   fontsDirectory: string;
-}): { ok: true } | { ok: false; error: string } => {
+}): Promise<{ ok: true } | { ok: false; error: string }> => {
   const { repoRoot, sourcePath, outputPath, fontsDirectory } = options;
   const [executable = "", ...prefix] = options.command;
-  const result = spawnSync(
+  const result = await execute(
     executable,
     [
       ...prefix,
@@ -650,24 +688,16 @@ export const renderD2 = (options: {
       sourcePath,
       outputPath,
     ],
-    { cwd: repoRoot, encoding: "utf8" },
+    repoRoot,
   );
-
-  if (result.error) {
-    return { ok: false, error: result.error.message };
-  }
-
-  if (result.status !== 0) {
-    return {
-      ok: false,
-      error: result.stderr || result.stdout || "d2 exited non-zero",
-    };
+  if (!result.ok) {
+    return result;
   }
 
   try {
-    writeFileSync(
+    await writeFile(
       outputPath,
-      withThemeableColours(readFileSync(outputPath, "utf8")),
+      withThemeableColours(await readFile(outputPath, "utf8")),
     );
   } catch (error) {
     return { ok: false, error: String(error) };

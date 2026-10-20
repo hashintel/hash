@@ -11,7 +11,7 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, posix } from "node:path";
 import { promisify } from "node:util";
@@ -49,6 +49,11 @@ export interface IndexOptions {
   files: string[];
   /** Absolute directory for indexes and generated tsconfigs. */
   cacheDirectory: string;
+  /**
+   * Builds the TypeScript program when its facts are not cached. A caller
+   * that keeps the result, like the dev session, passes its own.
+   */
+  createTypeScript?: typeof createTypeScriptFacts;
 }
 
 /** The subset of scip-typescript's protobuf bindings this module reads; the indexer itself is not run. */
@@ -131,10 +136,13 @@ const cacheKey = async (
   hash.update(
     `${pkg.language}:${indexerVersions[pkg.language]}:${pkg.path}:${extra}\n`,
   );
-  for (const file of files) {
-    const info = await stat(join(repoRoot, file));
-    hash.update(`${file}:${info.size}:${info.mtimeMs}\n`);
-  }
+  const contents = await Promise.all(
+    files.map((file) => readFile(join(repoRoot, file))),
+  );
+  files.forEach((file, index) => {
+    hash.update(`${file}:${contents[index]?.length ?? 0}\n`);
+    hash.update(contents[index] ?? "");
+  });
   return hash.digest("hex").slice(0, 16);
 };
 
@@ -211,7 +219,8 @@ const decode = async (
 /**
  * Facts for every package: the TypeScript packages from one program, walked
  * once and cached as JSON; each Python package from its scip-python index.
- * A cached entry is reused while its key, the package's file listing, holds.
+ * A cached entry is reused while its key, the content of the package's files,
+ * holds, so an edit undone finds its entry again.
  */
 export const indexPackages = async (
   options: IndexOptions,
@@ -245,7 +254,7 @@ export const indexPackages = async (
     if (existsSync(cachePath)) {
       return JSON.parse(await readFile(cachePath, "utf8")) as IndexedDocument[];
     }
-    const documents = createTypeScriptFacts({
+    const documents = (options.createTypeScript ?? createTypeScriptFacts)({
       repoRoot: options.repoRoot,
       paths,
       files,

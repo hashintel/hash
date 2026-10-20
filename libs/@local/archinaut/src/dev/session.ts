@@ -1,10 +1,11 @@
 /**
  * The dev session: per-package scan results and symbol facts kept in memory
  * between rebuilds, so a change touches one package and a content edit
- * touches none. The first build takes its facts from the caches; the
+ * touches none. The first build takes its facts from the caches, and the
  * language service over every TypeScript package, the same provider the
- * caches were filled from, is built in the background afterwards and answers
- * every later edit by walking only the files it touched.
+ * caches are filled from, is built in the background afterwards; when the
+ * cache is stale the first build builds the service itself and keeps it.
+ * Every later edit is answered by walking only the files it touched.
  */
 
 import { join } from "node:path";
@@ -81,6 +82,11 @@ export const createDevSession = (config: ArchinautConfig): DevSession => {
         );
       }
     }
+  };
+
+  const keep = (service: TypeScriptFacts): TypeScriptFacts => {
+    typescript = Promise.resolve(service);
+    return service;
   };
 
   const ensureTypeScript = (): Promise<TypeScriptFacts> => {
@@ -167,6 +173,7 @@ export const createDevSession = (config: ArchinautConfig): DevSession => {
           ...state.scan.fileLayers.keys(),
         ]),
         cacheDirectory: join(config.root, config.cacheDirectory),
+        createTypeScript: (options) => keep(createTypeScriptFacts(options)),
       });
       for (const state of states.values()) {
         const prefix = `${sourceRootOf(state.pkg)}/`;

@@ -64,7 +64,9 @@ Written to `outputDirectory`, framework-neutral, and consumed by the site:
 | `diagrams/**.d2`, `.svg` | Diagram sources, and their renderings when `d2` is installed                      |
 
 Only files whose content changed are written, so a watcher downstream sees one
-event per real change. Diagrams render only when their source changed.
+event per real change. Diagrams render only when their source changed, in
+parallel with one `d2` process per core, since a layer many diagrams show
+rewrites all of them at once.
 
 ## Diff mode
 
