@@ -79,12 +79,20 @@ const createDefaults = (
   const ignorePatterns: string[] = [];
   const overrides: Overrides = [
     {
+      files: ["**/*.{ts,tsx,mts,cts}"],
+      rules: {
+        "jsdoc/require-param-type": "allow", // TypeScript signatures supply parameter types.
+        "jsdoc/require-returns-type": "allow", // TypeScript signatures supply return types.
+      },
+    },
+    {
       files: [
         "**/*.config.js",
         "**/*.config.ts",
         "**/*.config.mjs",
         "**/*.config.mts",
       ],
+      env: { browser: false, node: true },
       rules: {
         "import/no-default-export": "allow", // config files always use `defineConfig` with a default export
       },
@@ -106,6 +114,39 @@ const createDefaults = (
     switch (framework) {
       case "react": {
         plugins.push("react", "react-perf", "jsx-a11y");
+        Object.assign(
+          rules,
+          defineRules({
+            "react/function-component-definition": [
+              "deny", // Named declarations distinguish components from helper arrows.
+              {
+                namedComponents: "function-declaration",
+                unnamedComponents: "function-expression",
+              },
+            ],
+            "react/jsx-filename-extension": [
+              "deny", // JSX belongs in TypeScript modules.
+              { extensions: [".tsx"] },
+            ],
+            "react/jsx-max-depth": [
+              "deny", // Deep JSX trees hide component structure.
+              { max: 6 },
+            ],
+            "react/react-in-jsx-scope": "allow", // The automatic JSX runtime does not require a React import.
+          }),
+        );
+        overrides.push(
+          defineOverride({
+            files: ["**/*.tsx"],
+            rules: {
+              "func-style": [
+                "deny", // Allow component declarations in TSX, accepting helper declarations too.
+                "declaration",
+                { allowArrowFunctions: true },
+              ],
+            },
+          }),
+        );
 
         break;
       }
@@ -129,6 +170,7 @@ const createDefaults = (
           rules,
           defineRules({
             "vitest/consistent-test-it": ["deny", { withinDescribe: "test" }], // Use the same declaration name inside and outside describe blocks.
+            "vitest/no-hooks": "allow", // Shared setup belongs in hooks, as required by vitest/require-hook.
             "vitest/no-importing-vitest-globals": "allow", // import Vitest APIs instead of relying on globals
             "vitest/no-restricted-vi-methods": [
               "deny", // Module mocks hide dependencies. Method spies remain available.
@@ -292,9 +334,11 @@ const createDefaults = (
       ],
       "no-undefined": "allow", // comparisons need `undefined`
       "one-var": ["deny", "never"], // use one declaration per variable
+      "oxc/no-async-await": "allow", // Promise-based code uses native async functions.
       "oxc/no-optional-chaining": "allow", // optional chaining is useful for optional properties
       "oxc/no-rest-spread-properties": "allow", // central to functional programming
       "prefer-destructuring": "allow", // requiring destructuring for reassignment makes the code awkward
+      "eslint/require-await": "allow", // The TypeScript rule recognizes returned promises without an await expression.
       "sort-imports": [
         "deny", // Sort members while preserving dependency groups and declaration order.
         {
@@ -303,6 +347,7 @@ const createDefaults = (
         },
       ],
       "sort-keys": "allow", // declaration order is more important, and fix may be unsafe, sorting of keys does not increase clarity
+      "typescript/consistent-return": "allow", // TypeScript’s noImplicitReturns checks return paths through control-flow analysis.
       "typescript/no-floating-promises": [
         "deny", // Discarded async failures must not disappear behind void or an IIFE.
         {
@@ -344,6 +389,8 @@ const createDefaults = (
           allowString: false,
         },
       ],
+      "unicorn/no-negated-condition": "allow", // ESLint checks the same condition forms without duplicate diagnostics.
+      "unicorn/no-nested-ternary": "allow", // ESLint forbids all nested ternaries, including parenthesized ones.
       "unicorn/no-null": "allow", // `null` is a useful type to indicate explicit absence of a value
       "func-names": ["deny", "always", { generators: "never" }], // Name functions for stack traces without naming generator callbacks.
       "typescript/no-empty-interface": ["deny", { allowSingleExtends: true }], // Permit named interfaces for readable editor type hints.
