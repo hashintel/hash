@@ -217,12 +217,17 @@ describe("EditorView empty-net prompt", () => {
     ).toContain("Plugin chat");
   });
 
-  test("hides the prompt while the plugin assistant has no onPrompt", () => {
+  test("opens the panel for a plugin assistant without onPrompt", () => {
     renderPlugins([silentPlugin], <EditorView titleEditable />);
 
+    fireEvent.click(
+      screen.getByRole("button", { name: "Send empty-net prompt" }),
+    );
+
+    expect(onPrompt).not.toHaveBeenCalled();
     expect(
-      screen.queryByRole("button", { name: "Send empty-net prompt" }),
-    ).toBeNull();
+      screen.getByRole("complementary", { name: "AI assistant" }).textContent,
+    ).toContain("Plugin chat");
   });
 });
 
