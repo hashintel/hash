@@ -2,7 +2,7 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 
 import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
 
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 import type {
   ActionStep,
   ActionStepDefinition,
@@ -167,14 +167,14 @@ export const initializeForEachStep = (params: {
 
 export const initializeFlow = (params: {
   flowDefinition: FlowDefinition;
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   flowInputs: FlowInputValues;
   name: string;
   temporalWorkflowId: string;
 }): LocalFlowRun => {
   const {
     flowDefinition,
-    flowDefinitionId,
+    flowDefinitionEntityId,
     flowInputs,
     name,
     temporalWorkflowId,
@@ -184,7 +184,7 @@ export const initializeFlow = (params: {
     name,
     temporalWorkflowId,
     flowInputs,
-    flowDefinitionId,
+    flowDefinitionEntityId,
     steps: flowDefinition.steps.map<FlowStep>((stepDefinition) =>
       stepDefinition.kind === "action"
         ? initializeActionStep({ flowInputs, stepDefinition })

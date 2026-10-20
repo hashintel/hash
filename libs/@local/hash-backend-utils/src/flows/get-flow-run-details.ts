@@ -9,7 +9,7 @@ import { resolvePayloadValue } from "./payload-storage.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
 import type { ResolvePayloadContext } from "./payload-storage.js";
-import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
   CheckpointLog,
@@ -746,8 +746,8 @@ const getFlowRunDetailedFields = async ({
 };
 
 export const getSparseFlowRunFromTemporalWorkflowId = async ({
-  flowDefinitionId,
-  flowRunId,
+  flowDefinitionEntityId,
+  flowRunEntityId,
   flowScheduleId,
   name,
   temporalClient,
@@ -755,9 +755,9 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
   webId,
 }: {
   /** The flow definition the run `Uses`, from its link */
-  flowDefinitionId: EntityUuid;
-  /** The entity UUID of the flow run */
-  flowRunId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
+  /** The entity id of the flow run */
+  flowRunEntityId: EntityId;
   /** The schedule the run was `Triggered By`, if any, from its link */
   flowScheduleId?: EntityUuid;
   name: string;
@@ -773,8 +773,8 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
 
   return {
     name,
-    flowDefinitionId,
-    flowRunId,
+    flowDefinitionEntityId,
+    flowRunEntityId,
     flowScheduleId,
     status: status.name as FlowRunStatus,
     startedAt: startTime.toISOString(),
@@ -786,9 +786,9 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
 
 export const getFlowRunFromTemporalWorkflowId = async (args: {
   /** The flow definition the run `Uses`, from its link */
-  flowDefinitionId: EntityUuid;
-  /** The entity UUID of the flow run */
-  flowRunId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
+  /** The entity id of the flow run */
+  flowRunEntityId: EntityId;
   /** The schedule the run was `Triggered By`, if any, from its link */
   flowScheduleId?: EntityUuid;
   name: string;

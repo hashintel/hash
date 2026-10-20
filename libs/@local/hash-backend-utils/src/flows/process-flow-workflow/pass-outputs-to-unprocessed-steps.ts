@@ -1,3 +1,4 @@
+import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import {
   appendCollectedValue,
@@ -33,7 +34,8 @@ export const passOutputsToUnprocessedSteps = (params: {
 }): Omit<Status<never>, "contents"> => {
   const { flow, flowDefinition, stepId, processedStepIds, outputs } = params;
 
-  const [currentStepIdWithoutIndex, currentStepIdIndex] = stepId.split("~");
+  const { stepId: currentStepIdWithoutIndex, itemIndex: currentItemIndex } =
+    parseStepRunId(stepId);
 
   const unprocessedSteps = getAllStepsInFlow(flow).filter(
     (step) =>
@@ -43,9 +45,14 @@ export const passOutputsToUnprocessedSteps = (params: {
   );
 
   for (const unprocessedStep of unprocessedSteps) {
-    const [_, unprocessedStepIdIndex] = unprocessedStep.stepId.split("~");
+    const { itemIndex: unprocessedItemIndex } = parseStepRunId(
+      unprocessedStep.stepId,
+    );
 
-    if (currentStepIdIndex && currentStepIdIndex !== unprocessedStepIdIndex) {
+    if (
+      currentItemIndex !== undefined &&
+      currentItemIndex !== unprocessedItemIndex
+    ) {
       /**
        * A step in a for-each branch only feeds steps in the same branch.
        */
@@ -144,7 +151,7 @@ export const passOutputsToUnprocessedSteps = (params: {
 
     processedStep.branchValues = {
       ...processedStep.branchValues,
-      [Number(currentStepIdIndex)]: collectedOutput.payload.value,
+      [Number(currentItemIndex)]: collectedOutput.payload.value,
     };
 
     // eslint-disable-next-line @typescript-eslint/no-use-before-define -- the two pass each other's outputs on
@@ -250,7 +257,7 @@ export const collectSkippedBranchStep = (params: {
 }): Omit<Status<never>, "contents"> => {
   const { flow, flowDefinition, stepId, processedStepIds } = params;
 
-  const [stepIdWithoutIndex, branchIndex] = stepId.split("~");
+  const { stepId: stepIdWithoutIndex, itemIndex } = parseStepRunId(stepId);
 
   const forEachStep = getAllStepsInFlow(flow).find(
     (step): step is ForEachStep =>
@@ -268,7 +275,7 @@ export const collectSkippedBranchStep = (params: {
 
   forEachStep.branchValues = {
     ...forEachStep.branchValues,
-    [Number(branchIndex)]: null,
+    [Number(itemIndex)]: null,
   };
 
   return completeForEachStep({

@@ -3,6 +3,7 @@
 [discussion]: https://github.com/hashintel/hash/discussions
 [hash.dev]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
 [issue]: https://github.com/hashintel/hash/issues
+[organization-wide default template]: https://github.com/hashintel/.github/blob/main/docs/pull_request_template.md
 [our commitment as a company]: https://hash.dev/blog/open-source?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
 [public roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_community-file
 [tell us about yourself]: https://hash.ai/contact?topic=careers&category=applying&utm_medium=organic&utm_source=github_readme_hash-repo_community-file
@@ -220,7 +221,7 @@ The `kratos` and `kratos-migrate` services will need to be restarted/rebuilt for
 These apply across all projects:
 
 - **Before undertaking any significant work, please share your proposal with us:** we don't want you to invest your time on changes we are already working on ourselves, or have different plans for. You can suggest changes as a [discussion] if it's a feature proposal, or an [issue] if it's a bug you intend to fix. If you're only fixing a typo or making a minor change to documentation, don't worry about this step (just go ahead and open a Pull Request on this repository).
-- **When submitting a pull request, please fill out any sections of the provided template you feel able to.** If you are unsure or don't feel a section is relevant, please say so.
+- **When submitting a pull request, please fill out any sections of the provided template you feel able to.** This repository uses HASH's [organization-wide default template], which lives in `hashintel/.github`.
   - Always include a link to the issue or discussion proposing the change.
   - Write tests to accompany your PR, or ask for help/guidance if this is a blocker.
   - Make sure that your PR doesn’t break existing tests.

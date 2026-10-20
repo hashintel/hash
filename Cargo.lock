@@ -3210,12 +3210,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ctor"
-version = "1.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01334b89b69ff726750c5ce5073fc8bd860e99aa9a8fc5ca11b04730e3aee97a"
-
-[[package]]
 name = "ctor-proc-macro"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4381,16 +4375,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.118",
-]
-
-[[package]]
-name = "effect-dns-hickory"
-version = "0.0.0"
-dependencies = [
- "napi",
- "napi-build",
- "napi-derive",
- "simple-mermaid",
 ]
 
 [[package]]
@@ -9581,64 +9565,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "napi"
-version = "3.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b41bda2ac390efb5e8d22025d925ccc3f3807d8c1bea6d19b36127247c4b8f83"
-dependencies = [
- "bitflags 2.13.0",
- "ctor 1.0.7",
- "futures",
- "napi-build",
- "napi-sys",
- "nohash-hasher",
- "rustc-hash 2.1.2",
- "tokio",
-]
-
-[[package]]
-name = "napi-build"
-version = "2.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9c366d2c8c60b86fa632df75f745509b52f9128f91a6bad4c796e44abb505e1"
-
-[[package]]
-name = "napi-derive"
-version = "3.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61d66f70256ad5aef58659966064471d0ad90e2897bc36a5a5e0389c85aabc1e"
-dependencies = [
- "convert_case 0.11.0",
- "ctor 1.0.7",
- "napi-derive-backend",
- "proc-macro2",
- "quote",
- "syn 2.0.118",
-]
-
-[[package]]
-name = "napi-derive-backend"
-version = "5.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81b4b08f15eed7a2a20c3f4c6314013fc3ac890a3afa9892b594485299ebdb2d"
-dependencies = [
- "convert_case 0.11.0",
- "proc-macro2",
- "quote",
- "semver",
- "syn 2.0.118",
-]
-
-[[package]]
-name = "napi-sys"
-version = "3.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f5bcdf71abd3a50d00b49c1c2c75251cb3c913777d6139cd37dabc093a5e400"
-dependencies = [
- "libloading 0.9.0",
-]
-
-[[package]]
 name = "nb"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -14181,7 +14107,7 @@ name = "specta"
 version = "2.0.0-rc.22"
 source = "git+https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245d5e2ace951707c3c383b0211ca7fc8ce"
 dependencies = [
- "ctor 0.4.3",
+ "ctor",
  "specta-macros",
  "uuid",
 ]

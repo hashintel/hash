@@ -21,12 +21,12 @@ export type BaseRunFlowWorkflowParams = {
    * 1. The first run might not start immediately, so we don't do any re-routing.
    * 2. Schedules result in multiple runs, so there's no single entity UUID to return.
    */
-  flowRunId?: EntityUuid;
+  flowRunEntityUuid?: EntityUuid;
   /**
-   * The uuid of the `Flow Definition` entity to run. The run loads the definition when it starts, so it runs the
-   * edition current at that time.
+   * The `Flow Definition` entity to run. The run loads the definition when it starts, so it runs the edition current
+   * at that time.
    */
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   /**
    * Optional name for the flow run. If not provided, the flow definition name is used.
    * For scheduled flows, this is typically the schedule name.

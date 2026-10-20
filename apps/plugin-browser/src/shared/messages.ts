@@ -1,4 +1,4 @@
-import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type { EntityId, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -13,7 +13,7 @@ export type InferEntitiesRequest = {
 
 export type CancelInferEntitiesRequest = {
   type: "cancel-infer-entities";
-  flowRunId: string;
+  flowRunEntityId: EntityId;
 };
 
 export type GetTabContentRequest = {

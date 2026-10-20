@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { ftseInvestorsFlow } from "./ftse-investors-flow-definition.js";
-import { goalFlow } from "./goal-flow-definitions.js";
+import { ftseInvestorsFlow } from "./definitions/ftse-investors-flow-definition.js";
+import { goalFlow } from "./definitions/goal-flow-definitions.js";
 import {
   type FlowDefinitionDiagnostic,
   validateFlowDefinition,
@@ -704,7 +704,7 @@ describe("validateFlowDefinition", () => {
         name: "of a kind that can't be sorted",
         subject: { kind: "field", path: ["url"], payloadKind: "WebPage" },
         message:
-          "A sort key's subject must be of kind Text, Number, Date, Boolean.",
+          "A sort key's subject must be of kind ActorType, Boolean, Date, DateTime, EntityId, GoogleAccountId, Number, Text, VersionedUrl.",
       },
       {
         name: "that doesn't fit the items",

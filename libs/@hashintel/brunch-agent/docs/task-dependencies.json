@@ -1,7 +1,8 @@
 {
   "package": "@hashintel/brunch-agent",
   "dependencies": [
-    "@hashintel/petrinaut-core"
+    "@hashintel/petrinaut-core",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {

@@ -134,6 +134,32 @@ describe("validateCondition", () => {
     ).toMatchObject({ status: "error", code: "invalidCondition" });
   });
 
+  it.each([
+    {
+      subjectKind: "DateTime",
+      value: { kind: "Date", value: "2026-10-16" },
+    },
+    {
+      subjectKind: "Date",
+      value: { kind: "DateTime", value: "2026-10-16T14:00:00Z" },
+    },
+  ] as const)(
+    "rejects comparing a $subjectKind with a $value.kind",
+    ({ subjectKind, value }) => {
+      // @ts-expect-error -- a comparison value must have its subject's kind
+      const leaf: FilterLeaf = {
+        kind: "condition",
+        subject: { kind: "input", payloadKind: subjectKind },
+        operator: "lessThan",
+        value,
+      };
+      expect(validateCondition(all(leaf), subjectKind)).toMatchObject({
+        status: "error",
+        code: "invalidCondition",
+      });
+    },
+  );
+
   it("rejects scalar operators on a non-scalar subject", () => {
     expect(
       validateCondition(

@@ -7,10 +7,7 @@ import {
   ClockRegularIcon,
   IconButton,
 } from "@hashintel/design-system";
-import {
-  isGoalFlowDefinitionId,
-  type GoalFlowInputName,
-} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { Link } from "../../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
@@ -22,7 +19,8 @@ import { flowSectionBorderRadius } from "./shared/styles";
 
 import type { FlowRun } from "../../../../../graphql/api-types.gen";
 import type { EdgesAndNodes } from "./shared/types";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
 import type { PropsWithChildren } from "react";
 
 const SidebarSection = ({ children }: PropsWithChildren) => (
@@ -40,8 +38,8 @@ const SidebarSection = ({ children }: PropsWithChildren) => (
 );
 
 type FlowRunSidebarProps = {
-  flowDefinitionId: EntityUuid;
-  flowRunId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
+  flowRunEntityId: EntityId;
   flowScheduleId: EntityUuid | null;
   graph: EdgesAndNodes;
   name: FlowRun["name"];
@@ -49,8 +47,8 @@ type FlowRunSidebarProps = {
 };
 
 export const FlowRunSidebar = ({
-  flowDefinitionId,
-  flowRunId,
+  flowDefinitionEntityId,
+  flowRunEntityId,
   flowScheduleId,
   graph,
   name,
@@ -59,14 +57,14 @@ export const FlowRunSidebar = ({
   const { selectedFlowRun } = useFlowRunsContext();
 
   const { isUsageAvailable, usageByFlowRun } = useFlowRunsUsage({
-    flowRunIds: [flowRunId],
+    flowRunEntityIds: [flowRunEntityId],
     pollInterval: selectedFlowRun?.closedAt ? 0 : 5_000,
   });
 
   const [showUsageBreakdown, setShowUsageBreakdown] = useState(false);
   const [showResearchPrompt, setShowResearchPrompt] = useState(false);
 
-  const usage = usageByFlowRun[flowRunId];
+  const usage = usageByFlowRun[flowRunEntityId];
 
   const nameParts = useMemo<{ text: string; url?: boolean }[]>(() => {
     const parts = name.split(/( )/g);
@@ -88,7 +86,9 @@ export const FlowRunSidebar = ({
         <Stack direction="row" alignItems="center" gap={0.75}>
           <SectionLabel
             text={
-              isGoalFlowDefinitionId(flowDefinitionId) ? "Goal" : "Description"
+              isGoalFlowDefinitionEntityId(flowDefinitionEntityId)
+                ? "Goal"
+                : "Description"
             }
           />
           {flowScheduleId && (

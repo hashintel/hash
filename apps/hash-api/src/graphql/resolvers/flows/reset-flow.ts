@@ -10,7 +10,6 @@ import * as Error from "../../error";
 
 import type { MutationResetFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
-import type { EntityUuid } from "@blockprotocol/type-system";
 
 export const resetFlow: ResolverFn<
   Promise<boolean>,
@@ -19,18 +18,21 @@ export const resetFlow: ResolverFn<
   MutationResetFlowArgs
 > = async (
   _,
-  { flowUuid, checkpointId, eventId },
+  { flowRunEntityId, checkpointId, eventId },
   { authentication, dataSources, provenance, temporal },
 ) => {
   const flow = await getFlowRunEntityById({
-    flowRunId: flowUuid as EntityUuid,
+    flowRunEntityId,
     graphApiClient: dataSources.graphApi,
     userAuthentication: authentication,
   });
 
   if (!flow) {
-    throw Error.notFound(`Flow with id ${flowUuid} not found`);
+    throw Error.notFound(`Flow with id ${flowRunEntityId} not found`);
   }
+
+  const workflowId =
+    flow.properties["https://hash.ai/@h/types/property-type/workflow-id/"];
 
   const userCanModify = await checkEntityPermission(
     { graphApi: dataSources.graphApi, provenance },
@@ -48,7 +50,7 @@ export const resetFlow: ResolverFn<
   await temporal.workflowService.resetWorkflowExecution({
     namespace: temporalNamespace,
     workflowExecution: {
-      workflowId: flowUuid,
+      workflowId,
     },
     /**
      * If we don't set this, Temporal will replay signals sent after the cancellation point to the new workflow execution.

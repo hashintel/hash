@@ -1,6 +1,6 @@
 import type { ScheduleOverlapPolicyDataType } from "../system-types/flowschedule.js";
 import type { FlowDataSources, FlowInputValues } from "./types.js";
-import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import type { EntityId, WebId } from "@blockprotocol/type-system";
 
 /**
  * Interval-based schedule specification.
@@ -39,8 +39,8 @@ export const defaultScheduleCatchupWindowMs = 60 * 60 * 1000;
 export type CreateFlowScheduleInput = {
   /** Human-readable name for this schedule */
   name: string;
-  /** The uuid of the `Flow Definition` entity the schedule starts runs of */
-  flowDefinitionId: EntityUuid;
+  /** The `Flow Definition` entity the schedule starts runs of */
+  flowDefinitionEntityId: EntityId;
   /** The web this schedule belongs to */
   webId: WebId;
   /** The scheduling specification */

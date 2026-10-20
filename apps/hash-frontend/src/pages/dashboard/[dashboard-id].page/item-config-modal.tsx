@@ -33,7 +33,7 @@ type ItemConfigModalProps = {
   onClose: () => void;
   onGenerationStarted?: (generation: {
     itemEntityId: EntityId;
-    flowRunId: string;
+    flowRunEntityId: EntityId;
   }) => void;
   generation?: DashboardItemGeneration;
   /** `null` when configuring a new item whose entity is created lazily */

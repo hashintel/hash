@@ -1,3 +1,4 @@
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import {
@@ -5,23 +6,24 @@ import {
   type ResolverFn,
 } from "../../api-types.gen";
 import * as Error from "../../error";
+import { assertClientFlowInputs } from "./shared/assert-client-flow-inputs";
 import { getRunnableFlowDefinition } from "./shared/get-runnable-flow-definition";
 
 import type { LoggedInGraphQLContext } from "../../context";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 
 export const startFlow: ResolverFn<
-  Promise<EntityUuid>,
+  Promise<EntityId>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationStartFlowArgs
 > = async (
   _,
-  { dataSources, flowInputs, flowDefinitionId, webId },
+  { dataSources, flowInputs, flowDefinitionEntityId, webId },
   graphQLContext,
 ) => {
   const { temporal, user } = graphQLContext;
@@ -31,8 +33,10 @@ export const startFlow: ResolverFn<
    */
   const { flowType } = await getRunnableFlowDefinition(
     graphQLContext,
-    flowDefinitionId,
+    flowDefinitionEntityId,
   );
+
+  assertClientFlowInputs(flowInputs);
 
   const workflowId = generateUuid() as EntityUuid;
 
@@ -42,9 +46,9 @@ export const startFlow: ResolverFn<
 
   const params: RunFlowWorkflowParams = {
     ...(flowType === "ai" ? { dataSources } : {}),
-    flowRunId: workflowId,
+    flowRunEntityUuid: workflowId,
     flowInputs,
-    flowDefinitionId,
+    flowDefinitionEntityId,
     userAuthentication: { actorId: user.accountId },
     webId,
   };
@@ -55,7 +59,7 @@ export const startFlow: ResolverFn<
     taskQueue: flowType,
     args: [params],
     memo: {
-      flowDefinitionId,
+      flowDefinitionEntityId,
       userAccountId: user.accountId,
       webId,
     },
@@ -65,5 +69,5 @@ export const startFlow: ResolverFn<
     },
   });
 
-  return workflowId;
+  return entityIdFromComponents(webId, workflowId);
 };

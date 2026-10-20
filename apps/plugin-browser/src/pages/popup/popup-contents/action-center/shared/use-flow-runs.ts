@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
-  automaticBrowserInferenceFlow,
-  manualBrowserInferenceFlow,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+  flowDefinitionIds,
+  isHashFlowDefinitionEntityId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { getMinimalFlowRunsQuery } from "../../../../../graphql/queries/flow.queries";
 import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
@@ -92,10 +92,14 @@ const getFlowRuns = async ({
 
       for (const flowRun of unfilteredFlowRuns) {
         if (
-          flowRun.flowDefinitionId ===
-            manualBrowserInferenceFlow.flowDefinitionId ||
-          flowRun.flowDefinitionId ===
-            automaticBrowserInferenceFlow.flowDefinitionId
+          isHashFlowDefinitionEntityId(
+            flowRun.flowDefinitionEntityId,
+            flowDefinitionIds.manualBrowserInference,
+          ) ||
+          isHashFlowDefinitionEntityId(
+            flowRun.flowDefinitionEntityId,
+            flowDefinitionIds.automaticBrowserInference,
+          )
         ) {
           flowRunsOfInterest.push(mapFlowRunToMinimalFlowRun(flowRun));
         }
@@ -177,11 +181,11 @@ export const useFlowRuns = (): {
     const flowRunsToShow: MinimalFlowRun[] = [];
     const redundantOptimisticRunIds: string[] = [];
 
-    const allFlowIds = value.map((run) => run.flowRunId);
+    const allFlowIds = value.map((run) => run.flowRunEntityId);
 
     for (const run of localPendingRuns ?? []) {
-      if (allFlowIds.includes(run.flowRunId)) {
-        redundantOptimisticRunIds.push(run.flowRunId);
+      if (allFlowIds.includes(run.flowRunEntityId)) {
+        redundantOptimisticRunIds.push(run.flowRunEntityId);
       } else {
         flowRunsToShow.push(run);
       }
@@ -202,7 +206,7 @@ export const useFlowRuns = (): {
     if (redundantLocalRunIds.length > 0 && !!localPendingRuns?.length) {
       setLocalPendingRuns(
         localPendingRuns.filter(
-          (run) => !redundantLocalRunIds.includes(run.flowRunId),
+          (run) => !redundantLocalRunIds.includes(run.flowRunEntityId),
         ),
       );
     }

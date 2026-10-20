@@ -1,17 +1,23 @@
+import { splitEntityId } from "@blockprotocol/type-system";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type { ActorEntityUuid, EntityUuid } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
+/**
+ * A flow run's entity, if the user can view it.
+ */
 export const getFlowRunEntityById = async (params: {
-  flowRunId: EntityUuid;
+  flowRunEntityId: EntityId;
   graphApiClient: GraphApi;
   userAuthentication: { actorId: ActorEntityUuid };
 }): Promise<HashEntity<FlowRunEntity> | null> => {
-  const { flowRunId, graphApiClient, userAuthentication } = params;
+  const { flowRunEntityId, graphApiClient, userAuthentication } = params;
+
+  const [webId, entityUuid] = splitEntityId(flowRunEntityId);
 
   const {
     entities: [existingFlowEntity],
@@ -21,9 +27,8 @@ export const getFlowRunEntityById = async (params: {
     {
       filter: {
         all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: flowRunId }],
-          },
+          { equal: [{ path: ["webId"] }, { parameter: webId }] },
+          { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
           {
             equal: [
               { path: ["type", "baseUrl"] },
