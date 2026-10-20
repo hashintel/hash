@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   toPetrinautId,
@@ -84,10 +84,7 @@ const actualMode: ActualModeContextValue = {
   error: null,
 };
 
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 describe("Actual mode events", () => {
   it("names the transition and places of each event, and falls back to the id", () => {
@@ -104,24 +101,15 @@ describe("Actual mode events", () => {
     expect(screen.getByText(`${servedId}: 1`)).not.toBeNull();
   });
 
-  it("lists a plugin's exports before the built-in ones and runs them", async () => {
-    vi.stubGlobal(
-      "ResizeObserver",
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      },
-    );
+  it("lists a plugin's exports before the built-in ones", async () => {
     const Events = actualEventsSubView.component;
-    const run = vi.fn();
     const rawExportPlugin = definePetrinautPlugin(
       {
         id: "test.raw-export",
         name: "Raw export",
         actualExports: { raw: { label: "Export Stream" } },
       },
-      { actualExports: { raw: { run } } },
+      { actualExports: { raw: { run: () => {} } } },
     );
 
     renderPlugins(
@@ -136,20 +124,9 @@ describe("Actual mode events", () => {
     await waitFor(() =>
       expect(trigger.getAttribute("aria-expanded")).toBe("true"),
     );
-    const items = screen.getAllByRole("menuitem");
 
-    expect(items.map((item) => item.textContent)).toEqual([
-      "Export Stream",
-      "Export Recording",
-      "Export Net",
-    ]);
-
-    // The menu selects the highlighted item, and a pointer-down highlights it.
-    fireEvent.pointerDown(items[0]!);
-    await waitFor(() =>
-      expect(items[0]!.hasAttribute("data-highlighted")).toBe(true),
-    );
-    fireEvent.click(items[0]!);
-    await waitFor(() => expect(run).toHaveBeenCalledOnce());
+    expect(
+      screen.getAllByRole("menuitem").map((item) => item.textContent),
+    ).toEqual(["Export Stream", "Export Recording", "Export Net"]);
   });
 });

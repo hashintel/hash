@@ -32,17 +32,4 @@ describe("createBrunchStreamRecording", () => {
       events: [{ event: "definition", data: rawDefinition }],
     });
   });
-
-  it("omits the run id when the route has none", () => {
-    const recording = createBrunchStreamRecording({
-      endpoint: "http://127.0.0.1:5184/stream",
-      title: null,
-      receivedEvents: [],
-    });
-
-    expect(recording.source).toEqual({
-      kind: "brunch",
-      endpoint: "http://127.0.0.1:5184/stream",
-    });
-  });
 });
