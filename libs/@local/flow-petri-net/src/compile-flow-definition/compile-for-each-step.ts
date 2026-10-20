@@ -64,7 +64,7 @@ export const compileForEachStep = ({
           ? [
               values.valueInputArc(overKey, {
                 key: `${step.stepId}.over`,
-                name: `${step.stepId} (for each)`,
+                label: `${step.stepId} (for each)`,
                 consumes: consumes(step.over),
               }),
             ]
@@ -113,7 +113,7 @@ export const compileForEachStep = ({
           outputValueKey(step.collect.stepId, step.collect.outputName),
           {
             key: `${step.stepId}.collect`,
-            name: `${step.stepId} (collect)`,
+            label: `${step.stepId} (collect)`,
             consumes: true,
           },
         ),

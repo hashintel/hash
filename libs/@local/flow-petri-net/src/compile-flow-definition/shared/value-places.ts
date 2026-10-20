@@ -23,12 +23,13 @@ import type {
  * Something that takes a value: a step's input, a for-each step's array, or a for-each step collecting its
  * items' outputs (which always consumes).
  */
-export type Consumer = { key: string; name: string; consumes: boolean };
+export type Consumer = { key: string; label: string; consumes: boolean };
 
 type Value = {
-  /** e.g. `input.prompt`, or `output.1.proposedEntities` */
+  /** e.g. `input.prompt`, or `output.1~proposedEntities` */
   key: string;
-  name: string;
+  /** For descriptions: the value's place is named by its key, as kernels address places by name. */
+  label: string;
   shape: ValueShape;
   /**
    * Where the value first appears: an action step's output port, or the places a transition of the root net
@@ -55,12 +56,19 @@ type ValueLocation = {
 
 export const inputValueKey = (inputId: string) => `input.${inputId}`;
 
-export const outputValueKey = (stepId: string, output: string) =>
-  `output.${stepId}.${output}`;
+/**
+ * The key of a step's output. Step ids can't contain the separator, so it tells the step from the output whatever
+ * the output is called: a for-each step's collected output can have any name.
+ */
+export const generateStepOutputKey = (stepId: string, outputName: string) =>
+  `${stepId}${stepRunIdSeparator}${outputName}`;
+
+export const outputValueKey = (stepId: string, outputName: string) =>
+  `output.${generateStepOutputKey(stepId, outputName)}`;
 
 /**
- * The key of a value's copy for one consumer to take. Step ids, part of both keys, can't contain the separator,
- * so no two copies' keys collide.
+ * The key of a value's copy for one consumer to take. A consumer's key, a step id and an action's input name,
+ * can't contain the separator, so the last one in a copy's key separates the value from the consumer.
  */
 export const generateCopyKey = (valueKey: string, consumerKey: string) =>
   `${valueKey}${stepRunIdSeparator}${consumerKey}`;
@@ -127,8 +135,7 @@ export const placeValues = ({
   for (const input of flowDefinition.inputs) {
     addValue({
       key: inputValueKey(input.name),
-      /* Kernels address places by name, so it must be unique: an input's label needn't be. */
-      name: input.name,
+      label: input.name,
       shape: input,
       producer: { kind: "transition" },
     });
@@ -138,13 +145,13 @@ export const placeValues = ({
     if (step.kind === "for-each") {
       addValue({
         key: outputValueKey(step.stepId, step.collect.as),
-        name: `${step.stepId}.${step.collect.as}`,
+        label: `${step.stepId}.${step.collect.as}`,
         shape: steps.getOutputShape(step.stepId, step.collect.as),
         producer: { kind: "transition" },
       });
       addValue({
         key: itemValueKey(step.stepId),
-        name: `Item: ${step.stepId}`,
+        label: `Item: ${step.stepId}`,
         shape: { ...steps.getForEachArrayShape(step), array: false },
         producer: { kind: "transition" },
       });
@@ -154,7 +161,7 @@ export const placeValues = ({
       for (const output of getActionDefinition(step).outputs) {
         addValue({
           key: outputValueKey(step.stepId, output.name),
-          name: `${step.stepId}.${output.name}`,
+          label: `${step.stepId}.${output.name}`,
           shape: steps.getOutputShape(step.stepId, output.name),
           producer: {
             kind: "port",
@@ -189,7 +196,7 @@ export const placeValues = ({
         if (key) {
           getValue(key).consumers.push({
             key: `${step.stepId}.${inputName}`,
-            name: `${step.stepId}.${inputName}`,
+            label: `${step.stepId}.${inputName}`,
             consumes: consumes(source),
           });
         }
@@ -200,7 +207,7 @@ export const placeValues = ({
       if (overKey) {
         getValue(overKey).consumers.push({
           key: `${step.stepId}.over`,
-          name: `${step.stepId} (for each)`,
+          label: `${step.stepId} (for each)`,
           consumes: consumes(step.over),
         });
       }
@@ -209,7 +216,7 @@ export const placeValues = ({
         outputValueKey(step.collect.stepId, step.collect.outputName),
       ).consumers.push({
         key: `${step.stepId}.collect`,
-        name: `${step.stepId} (collect)`,
+        label: `${step.stepId} (collect)`,
         consumes: true,
       });
     }
@@ -260,10 +267,10 @@ export const placeValues = ({
         ? placeEndpoint(
             net.addPlace({
               id: `p.${value.key}`,
-              name: value.name,
+              name: value.key,
               description: value.isFlowOutput
-                ? `${value.name}, an output of the flow.`
-                : `${value.name}, available to every step that reads it.`,
+                ? `${value.label}, an output of the flow.`
+                : `${value.label}, available to every step that reads it.`,
               colorId,
             }),
           )
@@ -275,8 +282,8 @@ export const placeValues = ({
         placeEndpoint(
           net.addPlace({
             id: `p.${generateCopyKey(value.key, consumer.key)}`,
-            name: `${value.name} → ${consumer.name}`,
-            description: `${value.name}, for ${consumer.name} to consume.`,
+            name: generateCopyKey(value.key, consumer.key),
+            description: `${value.label}, for ${consumer.label} to consume.`,
             colorId,
           }),
         ),
@@ -293,8 +300,8 @@ export const placeValues = ({
 
       net.addTransitions(
         createTransition({
-          id: `t.copyOutput.${stepId}.${outputName}`,
-          name: `Copy ${value.name}`,
+          id: `t.copyOutput.${generateStepOutputKey(stepId, outputName)}`,
+          name: `Copy ${value.label}`,
           description: `Puts the ${outputName} output of step ${stepId} where each step that reads or consumes it takes it from.`,
           role: "copyOutput",
           metadata: { stepId, outputName },
@@ -334,14 +341,14 @@ export const placeValues = ({
         const endpoint = taken.get(consumer.key);
 
         if (!endpoint) {
-          throw new Error(`Value "${key}" has no copy for ${consumer.name}`);
+          throw new Error(`Value "${key}" has no copy for ${consumer.label}`);
         }
 
         return inputArc(endpoint, "standard");
       }
 
       if (!shared) {
-        throw new Error(`Value "${key}" has no place for ${consumer.name}`);
+        throw new Error(`Value "${key}" has no place for ${consumer.label}`);
       }
 
       return inputArc(shared, "read");

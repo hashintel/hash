@@ -24,6 +24,7 @@ import { compileFlowDefinition } from "./compile-flow-definition.js";
 import { generateInstanceKey } from "./compile-flow-definition/shared/step-places.js";
 import {
   generateCopyKey,
+  generateStepOutputKey,
   itemValueKey,
   outputValueKey,
 } from "./compile-flow-definition/shared/value-places.js";
@@ -244,6 +245,51 @@ describe("compileFlowDefinition", () => {
 
     expect(new Set(ids).size).toBe(ids.length);
     expect(() => compilePetrinautModel({ sdcpn })).not.toThrow();
+  });
+
+  it("keeps a step's output apart from a nested step's, whichever their names", async () => {
+    /* Step `a` collects `b.fileEntity`, and the step inside it is `a.b`, whose output is `fileEntity`. */
+    const sdcpn = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "dotted-names",
+          name: "Dotted names",
+          description:
+            "A collected output and a nested step's output that join to the same dotted name",
+          inputs: { urls: flowInput("Text", { array: true }) },
+        },
+        ({ inputs, forEach }) => {
+          const files = forEach("a", inputs.urls, {
+            description: "Retrieve each file",
+            collectAs: "b.fileEntity",
+            steps: (url, scope) =>
+              scope.step("a.b", actions.getFileFromUrl, {
+                description: "Retrieve the file",
+                inputs: { url },
+              }).outputs.fileEntity,
+          });
+
+          return { outputs: { files } };
+        },
+      ).flowDefinition,
+    );
+
+    const ids = idsOf(sdcpn);
+    expect(new Set(ids).size).toBe(ids.length);
+
+    const placeNames = sdcpn.places.map((place) => place.name);
+    expect(new Set(placeNames).size).toBe(placeNames.length);
+
+    const collected = placeEndpointOf(
+      `p.${outputValueKey("a", "b.fileEntity")}`,
+    );
+
+    expect(
+      sdcpn.transitions.find(byKey("t.finishCollecting.a"))?.outputArcs,
+    ).toContainEqual({ endpoint: collected, weight: 1 });
+    expect(
+      (sdcpn.metadata?.flowOutputs as Record<string, unknown>).files,
+    ).toEqual(collected);
   });
 
   it("builds a flow whose inputs share a label", async () => {
@@ -506,7 +552,9 @@ describe("compileFlowDefinition", () => {
       "p.researchEntities.out.proposedEntities",
     );
 
-    const sharedPlace = placeEndpointOf("p.output.research.proposedEntities");
+    const sharedPlace = placeEndpointOf(
+      `p.${outputValueKey("research", "proposedEntities")}`,
+    );
 
     const copyPlace = (stepId: string) =>
       placeEndpointOf(
@@ -526,7 +574,11 @@ describe("compileFlowDefinition", () => {
         );
 
     const copyTransition = (sdcpn: SDCPN) =>
-      sdcpn.transitions.find(byKey("t.copyOutput.research.proposedEntities"));
+      sdcpn.transitions.find(
+        byKey(
+          `t.copyOutput.${generateStepOutputKey("research", "proposedEntities")}`,
+        ),
+      );
 
     it("lets every reader read the output port, when nothing consumes it", async () => {
       const sdcpn = await compileWithConsumers(["read", "read"]);
@@ -624,7 +676,10 @@ describe("compileFlowDefinition", () => {
       ).toEqual(
         (
           [
-            ["t.copyOutput.research.proposedEntities", "research"],
+            [
+              `t.copyOutput.${generateStepOutputKey("research", "proposedEntities")}`,
+              "research",
+            ],
             ["t.startStep.research", "research"],
             ["t.recordStepFailure.research", "research"],
             ["t.startStep.persist0", "persist0"],
@@ -649,7 +704,7 @@ describe("compileFlowDefinition", () => {
         idsOfKeys([
           "p.failedStepRuns",
           "p.input.prompt",
-          "p.output.research.proposedEntities",
+          `p.${outputValueKey("research", "proposedEntities")}`,
           `p.${generateCopyKey(
             outputValueKey("research", "proposedEntities"),
             "persist0.proposedEntities",
@@ -662,7 +717,7 @@ describe("compileFlowDefinition", () => {
       );
       expect(sdcpn.transitions.map(({ id }) => id).sort()).toEqual(
         idsOfKeys([
-          "t.copyOutput.research.proposedEntities",
+          `t.copyOutput.${generateStepOutputKey("research", "proposedEntities")}`,
           "t.recordStepFailure.persist0",
           "t.recordStepFailure.persist1",
           "t.recordStepFailure.research",

@@ -88,7 +88,7 @@ export const compileActionStep = ({
   for (const [inputName, source] of Object.entries(step.inputs)) {
     const consumer = {
       key: `${step.stepId}.${inputName}`,
-      name: `${step.stepId}.${inputName}`,
+      label: `${step.stepId}.${inputName}`,
       consumes: consumes(source),
     };
 
