@@ -903,14 +903,26 @@ pub trait EntityStore {
 
     /// Get the latest edition of the [`Entity`], or the one live at the given timestamps.
     ///
-    /// [`None`] reads as the public actor.
+    /// An `actor_id` of [`None`] reads as the public actor. Reads a draft only when `entity_id`
+    /// names one. Returns [`None`] if the actor may not view the entity or no such edition is
+    /// live at `transaction_time` and `decision_time`, each of which defaults to now.
+    ///
+    /// Reads through [`query_entities`], so it masks protected properties the same way and runs
+    /// against a single consistent snapshot of the store. This requires mutable access to the
+    /// store.
+    ///
+    /// # Errors
+    ///
+    /// - [`QueryError`] if the store cannot be queried
+    ///
+    /// [`query_entities`]: Self::query_entities
     fn get_entity_by_id(
-        &self,
+        &mut self,
         actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> impl Future<Output = Result<Entity, Report<QueryError>>> + Send;
+    ) -> impl Future<Output = Result<Option<Entity>, Report<QueryError>>> + Send;
 
     fn patch_entity(
         &mut self,
@@ -971,12 +983,12 @@ pub trait EntityStore {
     ) -> impl Future<Output = Result<DeletionSummary, Report<DeletionError>>> + Send;
 
     fn diff_entity(
-        &self,
+        &mut self,
         actor_id: ActorId,
         params: DiffEntityParams,
     ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send
     where
-        Self: Sync,
+        Self: Send,
     {
         async move {
             let first_entity = self
@@ -986,7 +998,13 @@ pub trait EntityStore {
                     params.first_transaction_time,
                     params.first_decision_time,
                 )
-                .await?;
+                .await?
+                .ok_or_else(|| {
+                    Report::new(QueryError).attach(format!(
+                        "entity `{}` is not visible",
+                        params.first_entity_id
+                    ))
+                })?;
             let second_entity = self
                 .get_entity_by_id(
                     Some(actor_id),
@@ -994,7 +1012,13 @@ pub trait EntityStore {
                     params.second_transaction_time,
                     params.second_decision_time,
                 )
-                .await?;
+                .await?
+                .ok_or_else(|| {
+                    Report::new(QueryError).attach(format!(
+                        "entity `{}` is not visible",
+                        params.second_entity_id
+                    ))
+                })?;
 
             let property_diff = first_entity
                 .properties

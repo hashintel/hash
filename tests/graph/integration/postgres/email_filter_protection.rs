@@ -2725,6 +2725,35 @@ async fn user_email_masked_in_response() {
     );
 }
 
+/// Reading a User entity by its ID masks its email like a query does.
+#[tokio::test]
+async fn user_email_masked_by_id() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_user_only(&mut database).await;
+
+    let user = api.create_user("hidden@example.com", "alice").await;
+
+    let entity = api
+        .get_entity_by_id(
+            Some(api.account_id),
+            user.metadata.record_id.entity_id,
+            None,
+            None,
+        )
+        .await
+        .expect("should read the User entity")
+        .expect("should see the User entity");
+
+    assert!(
+        !has_email_property(&entity),
+        "User entity should NOT have email property when read by ID (masked)"
+    );
+    assert!(
+        !has_email_metadata(&entity),
+        "User entity should NOT have email property metadata when read by ID (masked)"
+    );
+}
+
 /// When querying without email filter, Invitation entity SHOULD have email in response.
 #[tokio::test]
 async fn invitation_email_visible_in_response() {

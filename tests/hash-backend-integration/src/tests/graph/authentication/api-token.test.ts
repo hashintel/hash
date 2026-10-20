@@ -2,6 +2,9 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
+import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
@@ -9,10 +12,12 @@ import {
   listApiTokens,
   revokeApiToken,
 } from "@local/hash-graph-sdk/api-token";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../util";
 
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 
 const logger = new Logger({
   environment: "test",
@@ -33,6 +38,7 @@ const requestWithToken = (path: string, token: string) =>
 describe("API tokens", () => {
   let owner: User;
   let otherUser: User;
+  let ownerEntityType: EntityTypeWithMetadata;
 
   beforeAll(async () => {
     await ensureSystemGraphIsInitialized({
@@ -43,6 +49,25 @@ describe("API tokens", () => {
 
     owner = await createTestUser(graphContext, "apitokenowner", logger);
     otherUser = await createTestUser(graphContext, "apitokenother", logger);
+
+    ownerEntityType = await createEntityType(
+      graphContext,
+      { actorId: owner.accountId },
+      {
+        webId: owner.accountId as WebId,
+        schema: generateSystemEntityTypeSchema({
+          entityTypeId: generateTypeId({
+            kind: "entity-type",
+            title: "API token test",
+            webShortname: owner.shortname!,
+          }),
+          title: "API token test",
+          description: "An entity type only the API token tests use.",
+          properties: [],
+          outgoingLinks: [],
+        }),
+      },
+    );
 
     return async () => {
       await Promise.all(
@@ -98,25 +123,58 @@ describe("API tokens", () => {
     ).toBe("revoked");
   });
 
-  it("authenticates a token as its owner on the public API", async () => {
-    const { token } = await createApiToken(
-      graphApi,
-      { actorId: owner.accountId },
-      { name: "public API in integration test" },
-    );
+  it("reads an entity on the public API as the token's owner", async () => {
+    const authentication = { actorId: owner.accountId };
+    const entity = await createEntity(graphContext, authentication, {
+      webId: owner.accountId as WebId,
+      properties: { value: {} },
+      entityTypeIds: [ownerEntityType.schema.$id],
+    });
+    const [{ token: ownerToken }, { token: otherToken }] = await Promise.all([
+      createApiToken(graphApi, authentication, {
+        name: "owner on the public API in integration test",
+      }),
+      createApiToken(
+        graphApi,
+        { actorId: otherUser.accountId },
+        { name: "other user on the public API in integration test" },
+      ),
+    ]);
+
+    const { entityId } = entity;
+    const [ownerResponse, otherResponse] = await Promise.all([
+      requestWithToken(`/entities/v1/${entityId}`, ownerToken),
+      requestWithToken(`/entities/v1/${entityId}`, otherToken),
+    ]);
+
+    expect(ownerResponse.status).toBe(200);
+    expect(await ownerResponse.json()).toMatchObject({
+      metadata: { entityId, entityTypeIds: [ownerEntityType.schema.$id] },
+    });
+    expect(otherResponse.status).toBe(404);
+  });
+
+  it("answers an archived entity with 404 on the public API", async () => {
+    const authentication = { actorId: owner.accountId };
+    const entity = await createEntity(graphContext, authentication, {
+      webId: owner.accountId as WebId,
+      properties: { value: {} },
+      entityTypeIds: [ownerEntityType.schema.$id],
+    });
+    await entity.archive(graphApi, authentication, graphContext.provenance);
+    const { token } = await createApiToken(graphApi, authentication, {
+      name: "archived entity on the public API in integration test",
+    });
 
     const response = await requestWithToken(
-      "/entities/v1/authenticated-caller",
+      `/entities/v1/${entity.entityId}`,
       token,
     );
 
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      actor: { actorType: "user", id: owner.accountId },
-    });
+    expect(response.status).toBe(404);
   });
 
-  it("rejects a revoked token instead of serving the request anonymously", async () => {
+  it("rejects a revoked token", async () => {
     const { token, apiToken } = await createApiToken(
       graphApi,
       { actorId: owner.accountId },
@@ -128,11 +186,17 @@ describe("API tokens", () => {
       apiToken.tokenId,
     );
 
-    const response = await requestWithToken("/entities/v1/caller", token);
+    const response = await requestWithToken(
+      `/entities/v1/${owner.entity.metadata.recordId.entityId}`,
+      token,
+    );
 
     expect(response.status).toBe(401);
     expect(response.headers.get("content-type")).toBe(
       "application/problem+json",
+    );
+    expect(response.headers.get("www-authenticate")).toContain(
+      'error="invalid_token"',
     );
   });
 

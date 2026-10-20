@@ -40,6 +40,8 @@ impl credentials::Credentials for Credentials {
     }
 }
 
+impl credentials::AdmitsAnonymous for Credentials {}
+
 impl OperationInput for Credentials {
     fn operation_input(_ctx: &mut GenContext, operation: &mut Operation) {
         let _: TransformOperation<'_> = TransformOperation::new(operation)
@@ -51,10 +53,10 @@ impl OperationInput for Credentials {
 #[cfg(test)]
 mod tests {
     use super::Credentials;
-    use crate::rest::test_utils::assert_authentication;
+    use crate::rest::test_utils::assert_anonymous_authentication;
 
     #[tokio::test]
     async fn credentials_resolve_callers() {
-        assert_authentication::<Credentials>().await;
+        assert_anonymous_authentication::<Credentials>().await;
     }
 }
