@@ -24,6 +24,7 @@ together.
 | `topBarItems`    | Per key: `{ place }`.                                                                                                                          |                                     | `topBarItems`    |
 | `readOnlyAction` | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                     | `readOnlyAction` |
 | `root`           | `true`: the plugin renders UI inside the editor.                                                                                               |                                     | `root`           |
+| `assistant`      | `true`: the plugin provides the AI assistant panel.                                                                                            |                                     | `assistant`      |
 | `provides`       | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                     | `provides`       |
 
 Every key but `id` and `name` is optional. Stored settings and the user's
@@ -180,6 +181,7 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 | `buttons`        | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. A button has at least one of `onClick`, `command` and `ref`. |
 | `topBarItems`    | Declared     | Per key: a `ReactNode`.                                                                                                                                                                    |
 | `readOnlyAction` | Declared     | `{ run }`: what the read-only notice's button does. The notice shows the action of the first running plugin that declares one, and closes when the button is clicked.                      |
+| `assistant`      | Declared     | `{ content }`, the assistant panel below its title bar, behind the plugin's error boundary. The first running plugin's shows, or the `aiAssistant` prop's chat.                            |
 | `provides`       | Declared     | The service type `T` of `pluginService<T>()`.                                                                                                                                              |
 
 Every declared key is required and every undeclared one is a type error.
@@ -212,7 +214,9 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
 - Manifest entries: `PluginSettingSpec`, `PluginSettingSection`,
   `PluginCommandSpec`, `PluginButtonSpec`, `PluginButtonPlace`,
   `PluginTopBarItemSpec`, `PluginTopBarPlace`.
-- Contributions: `PluginButton`, `PluginCommand`, `PluginReadOnlyAction`.
+- Contributions: `PluginButton`, `PluginCommand`, `PluginReadOnlyAction`,
+  `PluginAssistant`.
+- Assistant panel: `AssistantPanel`.
 - Access: `PluginAccess`, `AccessApi`, `PluginDocumentReader`,
   `PluginDocument`, `PluginDiagnostics`, `PluginEdits`,
   `PluginExperimentsReader`, `PluginExperiments`, `PluginEditorReader`,
@@ -231,6 +235,14 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   registry, for a palette.
 - `useCommand(command, options?)`: a command the manifest cannot declare, such
   as one per record. Declared commands need no hook.
+- `useAssistantPanel()`: the assistant panel's state, from inside
+  `assistant.content`: `isOpen` and `close`.
+
+### Components
+
+- `AssistantPanelTitle`: fills the assistant panel's title bar from inside
+  `assistant.content`. `children` render after the assistant icon, such as a
+  title or tabs, and `actions` before the dock and Close buttons.
 
 ### Helpers
 
@@ -260,5 +272,6 @@ source `plugin` and tags `{ pluginId, place, contributionId }`:
 | --------------------------------------------------- | -------------------------------------- | ---------------- |
 | `hook`                                              | The plugin's hook                      | Not set          |
 | `root`                                              | Its `root`                             | Not set          |
+| `assistant`                                         | Its `assistant.content`                | Not set          |
 | `settings`                                          | Its setting rows                       | Not set          |
 | `top-bar-start`, `top-bar-end`, `viewport-controls` | A button or top-bar item at that place | Its key          |

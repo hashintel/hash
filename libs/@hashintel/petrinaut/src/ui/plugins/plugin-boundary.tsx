@@ -5,7 +5,12 @@ import { ErrorTrackerContext } from "../../react/error-tracker-context";
 import type { PluginButtonPlace } from "./define-petrinaut-plugin";
 
 /** Where a plugin's code runs, as reported with its failures. */
-type PluginPlace = "hook" | "root" | "settings" | PluginButtonPlace;
+type PluginPlace =
+  | "hook"
+  | "root"
+  | "assistant"
+  | "settings"
+  | PluginButtonPlace;
 
 type Props = {
   pluginId: string;

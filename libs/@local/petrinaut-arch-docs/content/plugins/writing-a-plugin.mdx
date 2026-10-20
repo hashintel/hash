@@ -147,6 +147,45 @@ const useCopyPlugin: PluginHook<typeof CopyPlugin> = ({ document }) => ({
 export const copyPlugin = CopyPlugin(useCopyPlugin);
 ```
 
+## Provide the AI assistant
+
+Declare `assistant: true` and return `assistant: { content }`. The editor
+renders `content` in its assistant panel, below the title bar, behind the
+plugin's error boundary, and opens the panel from the bottom bar button and
+the toggle shortcut. The panel's frame, placement, resizing, dock toggle and
+Close button stay the editor's. The editor shows the first running plugin that
+provides an assistant, and the `aiAssistant` prop's chat while none runs.
+
+Inside `content`, `AssistantPanelTitle` fills the title bar and
+`useAssistantPanel()` reads whether the panel is open and closes it.
+
+```tsx
+const EchoPlugin = definePetrinautPlugin({
+  id: "example.echo",
+  name: "Echo",
+  assistant: true,
+});
+
+const EchoChat = () => {
+  const { isOpen } = useAssistantPanel();
+  const [lines, setLines] = useState<string[]>([]);
+
+  return (
+    <>
+      <AssistantPanelTitle
+        actions={<button onClick={() => setLines([])}>Clear</button>}
+      >
+        Echo
+      </AssistantPanelTitle>
+      <Transcript lines={lines} visible={isOpen} />
+      <Composer onSend={(line) => setLines([...lines, line])} />
+    </>
+  );
+};
+
+export const echoPlugin = EchoPlugin({ assistant: { content: <EchoChat /> } });
+```
+
 ## Add settings
 
 Declare each setting under `settings`. The editor renders its row in User
