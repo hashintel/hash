@@ -40,10 +40,10 @@ export const AssistantTitleBarContext = createContext<AssistantTitleBar | null>(
 
 /**
  * Fills the assistant panel's title bar from the panel's content: `children`
- * after the assistant icon, such as a title or tabs, and `actions` before the
- * panel's dock and Close buttons. A floating panel drags from the title's text
- * and containers; buttons, links, form fields and other focusable controls
- * take their own clicks.
+ * after the assistant icon, such as a title or tabs, and `actions` between the
+ * dock toggle and the Close button. A floating panel drags from the title's
+ * text and containers; buttons, links, form fields and other focusable
+ * controls take their own clicks.
  */
 export const AssistantPanelTitle = ({
   children,
