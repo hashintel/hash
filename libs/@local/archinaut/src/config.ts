@@ -12,6 +12,8 @@ import { tsImport } from "tsx/esm/api";
 import type { ArchitecturePackageInput, LayerRule } from "./model";
 
 export interface ArchinautConfig {
+  /** Absolute path of the file this config was loaded from. */
+  configFile: string;
   /** Absolute repository root every repo-relative path is read against. */
   root: string;
   packages: ArchitecturePackageInput[];
@@ -49,10 +51,17 @@ export const loadConfig = async (
 ): Promise<ArchinautConfig> => {
   const url = pathToFileURL(resolve(configPath)).href;
   const loaded = (await tsImport(url, import.meta.url)) as {
-    default?: ArchinautConfig;
+    default?: Omit<ArchinautConfig, "configFile">;
   };
   if (loaded.default === undefined) {
     throw new Error(`${configPath} must default-export defineConfig(...)`);
   }
-  return loaded.default;
+  const override = process.env.ARCHINAUT_CACHE_DIR?.trim();
+  return {
+    ...loaded.default,
+    configFile: resolve(configPath),
+    // A CI whose persisted cache location differs sets the variable rather
+    // than the code guessing its layout.
+    ...(override ? { cacheDirectory: override } : {}),
+  };
 };

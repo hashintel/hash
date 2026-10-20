@@ -9,8 +9,9 @@ import { join } from "node:path";
 import { bundleFiles, emitBundle, type Bundle } from "./bundle";
 import { findD2 } from "./bundle/diagrams";
 import { renderDiagrams } from "./bundle/render-diagrams";
+import { diffAgainstBase, seedBaseCache } from "./diff";
 import { runPipeline, type PipelineResult } from "./pipeline";
-import { countErrors, type Diagnostic } from "./shared/diagnostics";
+import { countErrors, warning, type Diagnostic } from "./shared/diagnostics";
 import { syncDirectory } from "./shared/sync-directory";
 
 import type { ArchinautConfig } from "./config";
@@ -28,7 +29,11 @@ export interface BuildResult {
 
 export const buildArchitecture = async (
   config: ArchinautConfig,
-  options: { write: boolean },
+  options: {
+    write: boolean;
+    /** A git ref to mark changes against; null builds a plain bundle. */
+    diffBase?: string | null;
+  },
 ): Promise<BuildResult> => {
   const bundleRoot = join(config.root, config.outputDirectory);
   const d2 = options.write ? findD2(config.root) : null;
@@ -54,7 +59,44 @@ export const buildArchitecture = async (
     };
   }
 
-  const files = bundleFiles(pipeline.model, bundle);
+  // Applied only to a bundle that passed the checks, and never gating it: when
+  // the base cannot be resolved or built, the plain bundle is written with a
+  // warning.
+  let output = bundle;
+  const diffBase = options.diffBase ?? null;
+  if (diffBase !== null) {
+    try {
+      const diff = await diffAgainstBase({
+        config,
+        model: pipeline.model,
+        bundle,
+        ref: diffBase,
+        includeDiagrams: d2 !== null,
+      });
+      output = diff.bundle;
+      const changes = Object.values(diff.bundle.manifest.diff?.pages ?? {});
+      process.stdout.write(
+        `changes vs ${diffBase} (${diff.baseSha.slice(0, 10)}${diff.fromCache ? ", base from cache" : ""}${diff.fetchedFrom === null ? "" : `, fetched from ${diff.fetchedFrom}`}): ${changes.filter((status) => status === "added").length} added · ${changes.filter((status) => status === "changed").length} changed · ${changes.filter((status) => status === "removed").length} removed\n`,
+      );
+    } catch (cause) {
+      diagnostics.push(
+        warning(
+          "archinaut.config.ts",
+          `building without change highlighting: could not compare against \`${diffBase}\` (${cause instanceof Error ? cause.message : String(cause)})`,
+        ),
+      );
+    }
+  }
+  // A clean build's own side is a future base; seeded before the diff's base
+  // was read, this could evict the entry the diff was about to use.
+  seedBaseCache({
+    config,
+    model: pipeline.model,
+    bundle,
+    includeDiagrams: d2 !== null,
+  });
+
+  const files = bundleFiles(pipeline.model, output);
   const summary = await syncDirectory(bundleRoot, files, {
     // Rendered SVGs sit beside their sources and are not in `files`.
     keep: (path) => path.endsWith(".svg"),

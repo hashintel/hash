@@ -14,12 +14,23 @@ const usage = `usage: archinaut <check|bundle|build|dev> [--config <file>]
   check               run the pipeline and report; writes nothing
   bundle              write the bundle to the configured output directory
   build  [--out dir]  write the bundle and build the website into dir
+    both take --diff-base <ref> (or ARCHINAUT_DIFF_BASE) to mark changes against a ref
   dev    [--port n]   serve the website and rebuild the bundle on change
 `;
 
 const option = (args: string[], name: string, fallback: string): string => {
   const index = args.indexOf(name);
   return index === -1 ? fallback : (args[index + 1] ?? fallback);
+};
+
+/** `--diff-base <ref>` wins over `ARCHINAUT_DIFF_BASE`, which is how CI turns the diff on. */
+const diffBase = (args: string[]): string | null => {
+  const value = option(
+    args,
+    "--diff-base",
+    process.env.ARCHINAUT_DIFF_BASE ?? "",
+  ).trim();
+  return value === "" ? null : value;
 };
 
 const main = async (): Promise<number> => {
@@ -33,6 +44,7 @@ const main = async (): Promise<number> => {
     case "bundle": {
       const result = await buildArchitecture(config, {
         write: command === "bundle",
+        diffBase: diffBase(args),
       });
       report(result.diagnostics);
       summarise(result);
@@ -46,7 +58,10 @@ const main = async (): Promise<number> => {
     }
     case "build": {
       const { buildSite } = await import("./site");
-      const result = await buildArchitecture(config, { write: true });
+      const result = await buildArchitecture(config, {
+        write: true,
+        diffBase: diffBase(args),
+      });
       report(result.diagnostics);
       summarise(result);
       if (countErrors(result.diagnostics) > 0) {
