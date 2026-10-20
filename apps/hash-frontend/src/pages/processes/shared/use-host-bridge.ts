@@ -8,6 +8,9 @@ import {
 } from "react";
 
 import {
+  documentChangedMessageSchema,
+  editorAttachedMessageSchema,
+  editorCallResultMessageSchema,
   type HostToIframeMessage,
   type IframeToHostMessage,
   isIframeToHostMessage,
@@ -24,6 +27,15 @@ type HostBridgeHandlers = {
   onRequestRevision?: (decisionTime: string) => void;
   onReportError?: (
     payload: Extract<IframeToHostMessage, { kind: "reportError" }>,
+  ) => void;
+  onEditorAttached?: (
+    payload: Extract<IframeToHostMessage, { kind: "editorAttached" }>,
+  ) => void;
+  onEditorCallResult?: (
+    payload: Extract<IframeToHostMessage, { kind: "editorCallResult" }>,
+  ) => void;
+  onDocumentChanged?: (
+    payload: Extract<IframeToHostMessage, { kind: "documentChanged" }>,
   ) => void;
 };
 
@@ -99,6 +111,27 @@ export const useHostBridge = ({
         case "reportError":
           current.onReportError?.(data);
           break;
+        case "editorAttached": {
+          const parsed = editorAttachedMessageSchema.safeParse(data);
+          if (parsed.success) {
+            current.onEditorAttached?.(parsed.data);
+          }
+          break;
+        }
+        case "editorCallResult": {
+          const parsed = editorCallResultMessageSchema.safeParse(data);
+          if (parsed.success) {
+            current.onEditorCallResult?.(parsed.data);
+          }
+          break;
+        }
+        case "documentChanged": {
+          const parsed = documentChangedMessageSchema.safeParse(data);
+          if (parsed.success) {
+            current.onDocumentChanged?.(parsed.data);
+          }
+          break;
+        }
       }
     };
 
