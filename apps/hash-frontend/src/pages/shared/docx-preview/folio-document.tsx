@@ -22,8 +22,9 @@ export type DocxDocumentControls = {
   hasPages: () => boolean;
   goToPage: (pageNumber: number) => void;
   zoomBy: (step: number) => void;
-  /** Finds every hit of `text` and returns how many there are. */
+  /** Finds and marks every hit of `text` and returns how many there are. */
   search: (text: string, ignoreCase: boolean) => number;
+  /** Marks a hit as the current one and scrolls to it. */
   showHit: (index: number) => void;
 };
 
@@ -51,7 +52,7 @@ export const FolioDocument = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const reportPages = useReportedPages(editorRef, onPagesChange);
-  const { search, showHit } = useSearchHits(editorRef);
+  const { search, showHit } = useSearchHits(editorRef, containerRef);
 
   useImperativeHandle(
     controlsRef,
