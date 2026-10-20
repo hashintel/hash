@@ -11,7 +11,8 @@
       "affectedBy": [
         "@hashintel/petrinaut-cli",
         "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core"
+        "@local/petrinaut-optimizer-core",
+        "@local/tsconfig"
       ]
     },
     "check:openapi": {
@@ -22,7 +23,8 @@
       "affectedBy": [
         "@hashintel/petrinaut-cli",
         "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core"
+        "@local/petrinaut-optimizer-core",
+        "@local/tsconfig"
       ]
     },
     "codegen": {
@@ -32,7 +34,8 @@
       "affectedBy": [
         "@hashintel/petrinaut-cli",
         "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core"
+        "@local/petrinaut-optimizer-core",
+        "@local/tsconfig"
       ]
     },
     "format:ruff": {
@@ -123,7 +126,8 @@
       "affectedBy": [
         "@hashintel/petrinaut-cli",
         "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core"
+        "@local/petrinaut-optimizer-core",
+        "@local/tsconfig"
       ]
     },
     "start": {
@@ -135,7 +139,8 @@
       "affectedBy": [
         "@hashintel/petrinaut-cli",
         "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core"
+        "@local/petrinaut-optimizer-core",
+        "@local/tsconfig"
       ]
     },
     "start:dev": {
@@ -147,7 +152,8 @@
       "affectedBy": [
         "@hashintel/petrinaut-cli",
         "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core"
+        "@local/petrinaut-optimizer-core",
+        "@local/tsconfig"
       ]
     },
     "test:unit": {
@@ -195,7 +201,8 @@
       "affectedBy": [
         "@hashintel/petrinaut-cli",
         "@hashintel/petrinaut-core",
-        "@local/petrinaut-optimizer-core"
+        "@local/petrinaut-optimizer-core",
+        "@local/tsconfig"
       ]
     }
   }
