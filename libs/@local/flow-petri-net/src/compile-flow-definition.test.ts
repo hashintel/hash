@@ -309,6 +309,60 @@ describe("compileFlowDefinition", () => {
     });
   });
 
+  it("gives each step inside a forEach that consumes the item a copy of its own", async () => {
+    const sdcpn = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "item-consumed-twice",
+          name: "Item consumed twice",
+          description: "Two steps inside a forEach both consume its item",
+          inputs: { urls: flowInput("Text", { array: true }) },
+        },
+        ({ inputs, forEach }) => {
+          const files = forEach("each", inputs.urls, {
+            description: "Retrieve each file twice",
+            collectAs: "files",
+            steps: (url, scope) => {
+              const first = scope.step("a", actions.getFileFromUrl, {
+                description: "Retrieve the file",
+                inputs: { url: url.consume() },
+              });
+              scope.step("b", actions.getFileFromUrl, {
+                description: "Retrieve the file again",
+                inputs: { url: url.consume() },
+              });
+
+              return first.outputs.fileEntity;
+            },
+          });
+
+          return { outputs: { files } };
+        },
+      ).flowDefinition,
+    );
+
+    const copyFor = (stepId: string) =>
+      placeEndpointOf(`p.item.each~${stepId}.url`);
+
+    expect(
+      sdcpn.transitions
+        .find(byKey("t.startItem.each"))
+        ?.outputArcs.map(({ endpoint }) => endpoint),
+    ).toEqual(expect.arrayContaining([copyFor("a"), copyFor("b")]));
+
+    for (const stepId of ["a", "b"]) {
+      expect(
+        sdcpn.transitions.find(byKey(`t.startStep.${stepId}`))?.inputArcs,
+      ).toContainEqual({
+        endpoint: copyFor(stepId),
+        weight: 1,
+        type: "standard",
+      });
+    }
+
+    expect(() => compilePetrinautModel({ sdcpn })).not.toThrow();
+  });
+
   it("compiles deterministically", async () => {
     expect(
       await compileFlowDefinition(ftseInvestorsFlow.flowDefinition),
@@ -375,7 +429,7 @@ describe("compileFlowDefinition", () => {
     /* Each item starts both nested steps. */
     expect(startItem?.outputArcs.map(({ endpoint }) => endpoint)).toEqual([
       placeEndpointOf("p.forEach.3.iterator"),
-      placeEndpointOf("p.forEach.3.item"),
+      placeEndpointOf("p.item.3"),
       placeEndpointOf("p.pending.3.1"),
       placeEndpointOf("p.pending.3.2"),
     ]);

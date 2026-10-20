@@ -56,6 +56,9 @@ export const inputValueKey = (inputId: string) => `input.${inputId}`;
 export const outputValueKey = (stepId: string, output: string) =>
   `output.${stepId}.${output}`;
 
+/** The value a for-each step gives the steps inside it: the item each of their runs is for. */
+export const itemValueKey = (forEachStepId: string) => `item.${forEachStepId}`;
+
 export const sourceValueKey = (source: StepInputSource): string | null => {
   switch (source.kind) {
     case "flow-input":
@@ -66,6 +69,17 @@ export const sourceValueKey = (source: StepInputSource): string | null => {
     case "constant":
       return null;
   }
+};
+
+/** The item value of the for-each step a step is directly inside. */
+export const itemValueKeyIn = (scope: string[]) => {
+  const forEachStepId = scope.at(-1);
+
+  if (forEachStepId === undefined) {
+    throw new Error("Only a step inside a for-each step can use its item");
+  }
+
+  return itemValueKey(forEachStepId);
 };
 
 export const consumes = (source: StepInputSource) =>
@@ -119,6 +133,12 @@ export const placeValues = ({
         shape: steps.getOutputShape(step.stepId, step.collect.as),
         producer: { kind: "transition" },
       });
+      addValue({
+        key: itemValueKey(step.stepId),
+        name: `Item: ${step.stepId}`,
+        shape: { ...steps.getForEachArrayShape(step), array: false },
+        producer: { kind: "transition" },
+      });
     } else {
       const subnetKey = steps.getSubnetKey(step);
 
@@ -149,10 +169,13 @@ export const placeValues = ({
   };
 
   /* Register every consumer, so that each value's places can be decided before any arcs are made. */
-  for (const { step } of steps.entries) {
+  for (const { step, scope } of steps.entries) {
     if (step.kind === "action") {
       for (const [inputName, source] of Object.entries(step.inputs)) {
-        const key = sourceValueKey(source);
+        const key =
+          source.kind === "item"
+            ? itemValueKeyIn(scope)
+            : sourceValueKey(source);
 
         if (key) {
           getValue(key).consumers.push({
@@ -289,8 +312,6 @@ export const placeValues = ({
   };
 
   return {
-    getValueShape: (key: string) => getValue(key).shape,
-
     /** Arcs from a root transition that produces a value, putting it into every place it's taken from. */
     valueOutputArcs: (key: string): OutputArc[] =>
       getValueLocation(key).producedInto.map(outputArc),

@@ -18,10 +18,13 @@ import {
 import {
   failedStepRunsPlaceId,
   instanceKey,
-  itemPlaceId,
   pendingPlaceId,
 } from "./shared/step-places.js";
-import { consumes, sourceValueKey } from "./shared/value-places.js";
+import {
+  consumes,
+  itemValueKeyIn,
+  sourceValueKey,
+} from "./shared/value-places.js";
 
 import type { FlowSteps } from "./shared/flow-steps.js";
 import type { NetBuilder } from "./shared/net-builder.js";
@@ -93,18 +96,7 @@ export const compileActionStep = ({
       constants[inputName] = source.payload as JsonValue;
       inputSources[inputName] = { kind: "constant" };
     } else if (source.kind === "item") {
-      const forEachStepId = scope.at(-1);
-
-      if (forEachStepId === undefined) {
-        throw new Error(
-          `Step "${step.stepId}" uses an item outside a for-each step`,
-        );
-      }
-
-      const arc = inputArc(
-        placeEndpoint(itemPlaceId(forEachStepId)),
-        consumer.consumes ? "standard" : "read",
-      );
+      const arc = values.valueInputArc(itemValueKeyIn(scope), consumer);
       inputArcs.push(arc);
       inputSources[inputName] = connectedValue(arc, source);
     } else {

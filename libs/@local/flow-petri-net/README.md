@@ -92,11 +92,13 @@ flowchart LR
   startForEach --> iterator(("Iterator‹kind›<br/>ref, item_count, next"))
   iterator --> startItem["t.startItem<br/>while next #lt; item_count"]
   startItem --> iterator
-  startItem --> item(("Item"))
+  startItem --> item(("item.‹forEach›<br/>shared by readers"))
+  startItem --> itemCopies(("item.‹forEach›~‹consumer›<br/>a copy per consumer"))
   startItem --> nestedPending(("Pending: ‹nested step›…"))
   iterator --> startCollecting["t.startCollecting<br/>when next = item_count"]
   startCollecting --> accumulator(("Accumulator<br/>expected, done"))
   item -. read .-> nested["nested steps<br/>(as above)"]
+  itemCopies -- consume --> nested
   nestedPending --> nested
   nested --> collected(("collected output<br/>its port, or a copy for collecting"))
   collected --> collectItem["t.collectItem"]
@@ -123,7 +125,7 @@ flowchart LR
 - **Flow inputs and collected outputs.** `t.startRun` and a for-each step's `t.finishCollecting` put a value straight into a place shared by its readers and a copy for each step that consumes it.
 - **For-each steps.** A for-each step iterates over its array:
   - `t.startForEach.<id>` turns the array into an iterator token, `{ref, item_count, next}`.
-  - `t.startItem.<id>` emits one item token, plus a `Pending` token for each nested step, per firing.
+  - `t.startItem.<id>` starts one item per firing: it puts the item where each nested step takes it from, as for any other value (a place shared by the steps that read it, and a copy for each step that consumes it), and a `Pending` token for each nested step.
   - `t.startCollecting.<id>` hands over to an accumulator, `{expected, done}`.
   - `t.collectItem.<id>` consumes each item's collected output and counts it.
   - `t.finishCollecting.<id>` emits the collected output once `done` equals `expected`.
@@ -140,5 +142,4 @@ flowchart LR
 ## Limitations
 
 - **No guards.** Kernels only carry `run_id` and `item_path` forward and give every other attribute a default (`compile-flow-definition/shared/kernels.ts`). There are no guards yet: no correlation across inputs, and no iterator or accumulator conditions. So a compiled net builds in Petrinaut but doesn't simulate meaningfully. The executor is meant to interpret roles instead (TODO FE-1904).
-- **A `for-each` step's item tokens stay after their item finishes.** `t.startItem` puts one token per item in the step's item place, and the steps inside the `for-each` read it, so every one of them can see the item. Nothing consumes it. Everything else is consumed: `Pending` tokens, copies of values, and values a step takes with `consume`.
-- **Skip-if-missing** (`whenMissing: "skip"`), and the absent-token semantics behind it, are left to the executor.
+- **A `for-each` step's shared item tokens stay after their item finishes.** The steps inside the `for-each` that read the item read it from one place, and nothing consumes it there. Consuming it needs a transition that knows every step of that item has finished, which needs the item correlation that FE-1914 adds. A step that consumes the item takes its own copy.- **Skip-if-missing** (`whenMissing: "skip"`), and the absent-token semantics behind it, are left to the executor.

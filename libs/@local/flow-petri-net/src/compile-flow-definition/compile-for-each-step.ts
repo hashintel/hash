@@ -5,15 +5,15 @@ import {
   outputArc,
   placeEndpoint,
 } from "./shared/net-elements.js";
-import { itemPlaceId, pendingPlaceId } from "./shared/step-places.js";
+import { pendingPlaceId } from "./shared/step-places.js";
 import {
   consumes,
-  inputValueKey,
+  itemValueKey,
   outputValueKey,
   sourceValueKey,
 } from "./shared/value-places.js";
 
-import type { FlowSteps, ValueShape } from "./shared/flow-steps.js";
+import type { FlowSteps } from "./shared/flow-steps.js";
 import type { NetBuilder } from "./shared/net-builder.js";
 import type { ValuePlaces } from "./shared/value-places.js";
 import type { JsonValue } from "@hashintel/petrinaut-core";
@@ -34,34 +34,13 @@ export const compileForEachStep = ({
   net: NetBuilder;
   values: ValuePlaces;
 }) => {
-  const overShape: ValueShape =
-    step.over.kind === "flow-input"
-      ? values.getValueShape(inputValueKey(step.over.inputName))
-      : step.over.kind === "step-output"
-        ? steps.getOutputShape(step.over.stepId, step.over.outputName)
-        : step.over.kind === "constant"
-          ? {
-              payloadKind: step.over.payload.kind,
-              array: Array.isArray(step.over.payload.value),
-            }
-          : (() => {
-              throw new Error(
-                `for-each step "${step.stepId}" can't iterate over an item`,
-              );
-            })();
+  const overShape = steps.getForEachArrayShape(step);
 
   const iteratorPlaceId = net.addPlace({
     id: `p.forEach.${step.stepId}.iterator`,
     name: `Iterator: ${step.stepId}`,
     description: `Iterates over the array step ${step.stepId} runs its steps for.`,
     colorId: net.registerColor(createIteratorColor(overShape.payloadKind)),
-  });
-
-  net.addPlace({
-    id: itemPlaceId(step.stepId),
-    name: `Item: ${step.stepId}`,
-    description: `The item each run of step ${step.stepId}'s nested steps is for.`,
-    colorId: net.registerPayloadColor({ ...overShape, array: false }),
   });
 
   const accumulatorPlaceId = net.addPlace({
@@ -108,7 +87,7 @@ export const compileForEachStep = ({
       inputArcs: [inputArc(placeEndpoint(iteratorPlaceId))],
       outputArcs: [
         outputArc(placeEndpoint(iteratorPlaceId)),
-        outputArc(placeEndpoint(itemPlaceId(step.stepId))),
+        ...values.valueOutputArcs(itemValueKey(step.stepId)),
         ...step.steps.map(({ stepId }) =>
           outputArc(placeEndpoint(pendingPlaceId(stepId))),
         ),

@@ -11,6 +11,7 @@ import type {
   ActionStepDefinition,
   FlowActionDefinitionId,
   FlowDefinition,
+  ForEachStepDefinition,
   PayloadKind,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -84,6 +85,36 @@ export const indexFlowSteps = (flowDefinition: FlowDefinition) => {
     return { payloadKind: shape.payloadKind, array: shape.array };
   };
 
+  /** The shape of the array a for-each step iterates over. */
+  const getForEachArrayShape = (step: ForEachStepDefinition): ValueShape => {
+    const { over } = step;
+
+    switch (over.kind) {
+      case "flow-input": {
+        const input = flowDefinition.inputs.find(
+          ({ name }) => name === over.inputName,
+        );
+
+        if (!input) {
+          throw new Error(`There is no flow input "${over.inputName}"`);
+        }
+
+        return { payloadKind: input.payloadKind, array: input.array };
+      }
+      case "step-output":
+        return getOutputShape(over.stepId, over.outputName);
+      case "constant":
+        return {
+          payloadKind: over.payload.kind,
+          array: Array.isArray(over.payload.value),
+        };
+      case "item":
+        throw new Error(
+          `for-each step "${step.stepId}" can't iterate over an item`,
+        );
+    }
+  };
+
   /**
    * The kinds a step's subnet is typed by, for an action with derived kinds: the kind connected to
    * each input a `kindFrom` names. Empty for any other action.
@@ -109,6 +140,7 @@ export const indexFlowSteps = (flowDefinition: FlowDefinition) => {
   return {
     /** Every step, including those nested in for-each steps, in the order they appear in the definition. */
     entries: [...stepsById.values()],
+    getForEachArrayShape,
     getOutputShape,
     getResolvedKinds,
     getSubnetKey,
