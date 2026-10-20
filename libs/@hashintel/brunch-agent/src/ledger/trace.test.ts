@@ -121,6 +121,28 @@ describe("traceLedger", () => {
     expect(trace.superseded).toEqual({ c2: "c3" });
   });
 
+  test("names the claim that stands now for a claim replaced more than once", () => {
+    const trace = traceLedger(
+      {
+        ...ledger,
+        claims: [
+          ...ledger.claims,
+          {
+            address: "c4",
+            text: "Four clerks work the queue.",
+            entities: ["e2", "e1"],
+            origin: "stated",
+            status: "confirmed",
+            supersedes: ["c3"],
+            turn: "turn-4",
+          },
+        ],
+      },
+      { netElement: ({ id }) => id === "clerks" },
+    );
+    expect(trace.superseded).toEqual({ c2: "c4" });
+  });
+
   test("starts from record addresses without pulling in every claim about an entity", () => {
     const trace = traceLedger(ledger, { records: ["e2", "c1", "c9"] });
     expect(addresses(trace.claims)).toEqual(["c1"]);

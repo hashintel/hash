@@ -25,7 +25,7 @@ export interface LedgerTrace {
   readonly obligations: readonly ObligationRecord[];
   readonly claims: readonly ClaimRecord[];
   readonly entities: readonly EntityRecord[];
-  /** Each traced claim a later claim replaced, with the address of its replacement. */
+  /** Each traced claim a later claim replaced, with the address of the claim that stands now. */
   readonly superseded: Readonly<Record<string, string>>;
   /** The turns the traced records were recorded in, in conversation order. */
   readonly turns: readonly Turn[];
@@ -110,10 +110,18 @@ export const traceLedger = (
     entities: inOrder(state.entities),
   };
 
-  const superseded: Record<string, string> = {};
+  const replacedBy = new Map<string, string>();
   for (const claim of state.claims)
     for (const earlier of claim.supersedes ?? [])
-      if (reached.has(earlier)) superseded[earlier] = claim.address;
+      replacedBy.set(earlier, claim.address);
+  // A claim only supersedes earlier claims, so the chain ends.
+  const standing = (address: string): string => {
+    const next = replacedBy.get(address);
+    return next === undefined ? address : standing(next);
+  };
+  const superseded: Record<string, string> = {};
+  for (const { address } of traced.claims)
+    if (replacedBy.has(address)) superseded[address] = standing(address);
 
   const turnIds = new Set(
     [
