@@ -1,0 +1,52 @@
+{
+  "name": "@local/archinaut",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Architecture model and docs generator: annotations in the source plus symbol facts from the compilers, checked on every build",
+  "license": "(MIT OR Apache-2.0)",
+  "bin": "./bin/archinaut.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/archinaut.ts",
+      "default": "./src/archinaut.ts"
+    }
+  },
+  "scripts": {
+    "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
+    "lint:tsc": "tsc --noEmit",
+    "test:unit": "vitest --run src"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "7.2.4",
+    "@astrojs/react": "6.0.2",
+    "@astrojs/starlight": "0.41.5",
+    "@sourcegraph/scip-python": "0.6.6",
+    "astro": "7.2.8",
+    "cookie": "2.0.1",
+    "hast-util-from-html": "2.0.3",
+    "js-yaml": "4.3.2",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "sharp": "0.35.5",
+    "tsx": "catalog:",
+    "typescript-7": "npm:typescript@7.1.0-dev.20261012.1",
+    "unist-util-visit": "5.1.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
+    "@types/js-yaml": "^4",
+    "@types/node": "catalog:",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "oxlint": "1.86.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}

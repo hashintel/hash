@@ -7,23 +7,21 @@ sidebar_order: 2
 ## Running the docs
 
 ```bash
-turbo run dev --filter @apps/petrinaut-docs   # http://localhost:4321
+yarn workspace @apps/petrinaut-docs dev   # http://localhost:4322
 ```
 
-Run it through Turborepo, not through the package script. `yarn workspace @apps/petrinaut-docs dev` skips the task graph, so the bundle is never regenerated and the site renders whatever was last synced.
-
-Three tasks run in order, and Turborepo reports each one:
-
-```
-doc:architecture → sync:bundle → dev
-```
-
-`doc:architecture` reads the annotations and writes `bundle/`. `sync:bundle` copies that into the site's content tree. Neither is cached, because the annotations they read are source comments in other packages, which Turborepo does not hash as inputs.
+One process does everything: `archinaut dev` serves the site shipped with
+the tool on the last bundle, reads the annotations, writes `bundle/`, copies
+what differs into the site, and rebuilds on every change to a covered package
+or to `content/`. A source edit walks only the files it touched and their
+dependents, through a compiler kept warm in a worker; a content edit rebuilds
+in well under a second. Add `--analysis syntactic` for the cheaper analysis
+that follows imports without a type checker.
 
 ## Reading without a server
 
 ```bash
-turbo run doc:architecture --filter @local/petrinaut-arch-docs
+yarn workspace @local/petrinaut-arch-docs doc:architecture
 ```
 
 Then open `libs/@local/petrinaut-arch-docs/bundle/architecture.md` for the whole model in one file, or `bundle/diagrams/` for the rendered SVGs.
