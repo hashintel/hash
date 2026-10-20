@@ -53,6 +53,16 @@ export interface FinalLedgerSummary {
   readonly obligations: number;
 }
 
+/** Stored records the reader could not use, and so left out of the packet. */
+export interface SkippedRecords {
+  /** Conversation-stream batches whose data did not parse. */
+  readonly batches: number;
+  /** Events without a type or timestamp. */
+  readonly events: number;
+  /** Server-log chronology lines that did not parse. */
+  readonly chronologyLines: number;
+}
+
 export interface RunPacketInput {
   readonly label: string;
   readonly metadata: RunMetadata | null;
@@ -60,6 +70,7 @@ export interface RunPacketInput {
   readonly events: readonly StreamEvent[];
   /** Server-log chronology by submission; absent when the run kept no server log. */
   readonly chronology: ReadonlyMap<string, SubmissionChronology>;
+  readonly skipped: SkippedRecords;
   readonly finalLedger: FinalLedgerSummary | null;
   readonly finalNet: FinalNetSummary | null;
 }
@@ -87,7 +98,11 @@ export interface PacketToolCall {
 
 export interface PacketStep {
   readonly turnId: string;
-  /** Request sent (the previous step's tool results committed, or the run started) to message completed. */
+  /**
+   * Request sent (the previous step's tool results committed, or the run
+   * started) to message completed. A message that never completed ends where
+   * the next step starts, or else at settlement or the exchange's last event.
+   */
   readonly durationMs: number;
   /** Request sent to the first reply text or tool-argument delta: hidden reasoning, time to first event and any reasoning summary. */
   readonly beforeOutputMs: number;
@@ -95,8 +110,14 @@ export interface PacketStep {
   readonly textMs: number;
   /** First to last tool-argument delta; null without a server-log chronology. */
   readonly argumentStreamingMs: number | null;
-  /** Message completed to tool results committed: execution, browser round trips and approval waits. */
+  /**
+   * Message completed to tool results committed: execution, browser round
+   * trips and approval waits. Tools never committed end where the message
+   * would.
+   */
   readonly toolPhaseMs: number;
+  /** Where the step was cut off: before its message completed, before its tool results were committed, or not at all. */
+  readonly cutOffIn: "message" | "tools" | null;
   readonly toolCalls: readonly PacketToolCall[];
   readonly usage: Usage;
 }
@@ -142,7 +163,10 @@ export interface PacketExchange {
   readonly netAfter: NetSize | null;
   /** Tool calls that took at least `longToolCallMs`, usually waiting on the person's approval. */
   readonly longToolCalls: readonly { name: string; executionMs: number }[];
-  /** Tool phases of the steps holding a long tool call. */
+  /**
+   * Tool phases of the steps holding a long tool call, or cut off at least
+   * `longToolCallMs` into tools that never returned.
+   */
   readonly approvalWaitMs: number;
   /** Wall time less approval waits: what Brunch itself spent. */
   readonly activeMs: number | null;
@@ -158,12 +182,28 @@ export interface Distribution {
 }
 
 export interface RunPacket {
-  readonly version: 1;
+  readonly version: 2;
   readonly label: string;
   readonly metadata: RunMetadata | null;
-  readonly sources: { readonly chronology: boolean };
+  readonly sources: {
+    readonly chronology: boolean;
+    readonly skipped: SkippedRecords;
+  };
+  /**
+   * Time sums cover settled exchanges only, since an unsettled exchange has no
+   * wall or active time to share them against. Counts, usage and
+   * distributions of first-text time cover every exchange.
+   */
   readonly summary: {
     readonly exchanges: number;
+    readonly incomplete: {
+      /** Exchanges with no settlement, left out of the time sums. */
+      readonly unsettledExchanges: number;
+      /** Steps whose message never completed. */
+      readonly cutOffMessages: number;
+      /** Steps whose tool results were never committed. */
+      readonly cutOffToolPhases: number;
+    };
     readonly wallMs: number;
     readonly approvalWaitMs: number;
     /** Wall time less approval waits; shares and distributions use it. */
@@ -362,6 +402,7 @@ interface MutableToolCall {
 interface MutableStep {
   turnId: string;
   requestStartAt: number;
+  startedAt: number;
   completedAt: number | null;
   toolsCommittedAt: number | null;
   firstTextAt: number | null;
@@ -408,6 +449,7 @@ const buildExchange = (
         steps.push({
           turnId: stringField(payload, "turnId") ?? "",
           requestStartAt: boundary,
+          startedAt: event.at,
           completedAt: null,
           toolsCommittedAt: null,
           firstTextAt: null,
@@ -492,7 +534,9 @@ const buildExchange = (
   const chronologyTurns = new Map(
     (chronology?.turns ?? []).map((turn) => [turn.turnId, turn]),
   );
-  const packetSteps: PacketStep[] = steps.map((step) => {
+  const exchangeEndAt = settledAt ?? events.at(-1)?.at ?? submission.acceptedAt;
+  const packetSteps: PacketStep[] = steps.map((step, stepIndex) => {
+    const cutOffAt = steps[stepIndex + 1]?.startedAt ?? exchangeEndAt;
     const turn = chronologyTurns.get(step.turnId);
     const deltas = new Map(
       (turn?.toolCalls ?? []).map((call) => [call.toolCallId, call]),
@@ -510,8 +554,15 @@ const buildExchange = (
         isError: call.isError,
       };
     });
-    const completedAt = step.completedAt ?? step.requestStartAt;
+    const completedAt =
+      step.completedAt ?? Math.max(step.requestStartAt, cutOffAt);
     const durationMs = completedAt - step.requestStartAt;
+    const cutOffIn =
+      step.completedAt === null
+        ? ("message" as const)
+        : step.toolCalls.length > 0 && step.toolsCommittedAt === null
+          ? ("tools" as const)
+          : null;
     const firstDeltas = toolCalls.flatMap((call) =>
       call.firstDeltaMs === null ? [] : [call.firstDeltaMs],
     );
@@ -537,9 +588,10 @@ const buildExchange = (
             ? 0
             : Math.max(...lastDeltas) - Math.min(...firstDeltas),
       toolPhaseMs:
-        step.toolsCommittedAt === null || step.toolCalls.length === 0
+        cutOffIn === "message" || step.toolCalls.length === 0
           ? 0
-          : step.toolsCommittedAt - completedAt,
+          : Math.max(0, (step.toolsCommittedAt ?? cutOffAt) - completedAt),
+      cutOffIn,
       toolCalls,
       usage: step.usage,
     };
@@ -609,7 +661,10 @@ const buildExchange = (
   const approvalWaitMs = sum((step) =>
     step.toolCalls.some(
       (call) => call.executionMs !== null && call.executionMs >= longToolCallMs,
-    )
+    ) ||
+    (step.cutOffIn === "tools" &&
+      step.toolPhaseMs >= longToolCallMs &&
+      step.toolCalls.some((call) => call.executionMs === null))
       ? step.toolPhaseMs
       : 0,
   );
@@ -716,18 +771,32 @@ export const buildRunPacket = (input: RunPacketInput): RunPacket => {
     skillActivations[name] = (skillActivations[name] ?? 0) + 1;
   const total = (pick: (exchange: PacketExchange) => number) =>
     exchanges.reduce((sum, exchange) => sum + pick(exchange), 0);
+  const settled = exchanges.flatMap((exchange) =>
+    exchange.wallMs === null || exchange.activeMs === null
+      ? []
+      : [{ ...exchange, wallMs: exchange.wallMs, activeMs: exchange.activeMs }],
+  );
+  const totalSettled = (pick: (exchange: (typeof settled)[number]) => number) =>
+    settled.reduce((sum, exchange) => sum + pick(exchange), 0);
   const hasChronology = input.chronology.size > 0;
 
   return {
-    version: 1,
+    version: 2,
     label: input.label,
     metadata: input.metadata,
-    sources: { chronology: hasChronology },
+    sources: { chronology: hasChronology, skipped: input.skipped },
     summary: {
       exchanges: exchanges.length,
-      wallMs: total((exchange) => exchange.wallMs ?? 0),
-      approvalWaitMs: total((exchange) => exchange.approvalWaitMs),
-      activeMs: total((exchange) => exchange.activeMs ?? 0),
+      incomplete: {
+        unsettledExchanges: exchanges.length - settled.length,
+        cutOffMessages: steps.filter((step) => step.cutOffIn === "message")
+          .length,
+        cutOffToolPhases: steps.filter((step) => step.cutOffIn === "tools")
+          .length,
+      },
+      wallMs: totalSettled((exchange) => exchange.wallMs),
+      approvalWaitMs: totalSettled((exchange) => exchange.approvalWaitMs),
+      activeMs: totalSettled((exchange) => exchange.activeMs),
       activePerExchangeMs: distributionOf(
         exchanges.flatMap((exchange) =>
           exchange.activeMs === null ? [] : [exchange.activeMs],
@@ -746,13 +815,13 @@ export const buildRunPacket = (input: RunPacketInput): RunPacket => {
         one: steps.filter((step) => step.toolCalls.length === 1).length,
         several: steps.filter((step) => step.toolCalls.length > 1).length,
       },
-      modelMs: total((exchange) => exchange.modelMs),
-      beforeOutputMs: total((exchange) => exchange.beforeOutputMs),
+      modelMs: totalSettled((exchange) => exchange.modelMs),
+      beforeOutputMs: totalSettled((exchange) => exchange.beforeOutputMs),
       argumentStreamingMs: hasChronology
-        ? total((exchange) => exchange.argumentStreamingMs ?? 0)
+        ? totalSettled((exchange) => exchange.argumentStreamingMs ?? 0)
         : null,
-      textMs: total((exchange) => exchange.textMs),
-      toolPhaseMs: total((exchange) => exchange.toolPhaseMs),
+      textMs: totalSettled((exchange) => exchange.textMs),
+      toolPhaseMs: totalSettled((exchange) => exchange.toolPhaseMs),
       categories,
       skillActivations,
       skillReloads: total((exchange) => exchange.skillReloads.length),

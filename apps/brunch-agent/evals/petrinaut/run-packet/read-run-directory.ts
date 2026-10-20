@@ -35,7 +35,12 @@ const readJson = async (path: string): Promise<unknown> =>
  */
 const readConversationDb = (
   path: string,
-): { submissions: RunSubmission[]; events: StreamEvent[] } => {
+): {
+  submissions: RunSubmission[];
+  events: StreamEvent[];
+  skippedBatches: number;
+  skippedEvents: number;
+} => {
   const database = new DatabaseSync(path, { readOnly: true });
   try {
     const submissions = database
@@ -62,11 +67,14 @@ const readConversationDb = (
       )
       .all();
     const events: StreamEvent[] = [];
+    let skippedBatches = 0;
+    let skippedEvents = 0;
     for (const row of rows) {
       let parsed: unknown;
       try {
         parsed = JSON.parse(String(row.data));
       } catch {
+        skippedBatches += 1;
         continue;
       }
       for (const event of Array.isArray(parsed) ? parsed : [parsed]) {
@@ -75,6 +83,7 @@ const readConversationDb = (
           typeof event.type !== "string" ||
           typeof event.timestamp !== "string"
         ) {
+          skippedEvents += 1;
           continue;
         }
         events.push({
@@ -85,7 +94,7 @@ const readConversationDb = (
         });
       }
     }
-    return { submissions, events };
+    return { submissions, events, skippedBatches, skippedEvents };
   } finally {
     database.close();
   }
@@ -180,11 +189,20 @@ export const readRunDirectory = async (
     readJson(join(directory, "evidence", "snapshot.json")),
     readJson(join(directory, "history.json")),
   ]);
+  const { submissions, events, skippedBatches, skippedEvents } =
+    readConversationDb(databasePath);
+  const { entries: chronology, skippedLines } = parseChronologyLog(log);
   return {
     label: basename(directory),
     metadata,
-    ...readConversationDb(databasePath),
-    chronology: parseChronologyLog(log),
+    submissions,
+    events,
+    chronology,
+    skipped: {
+      batches: skippedBatches,
+      events: skippedEvents,
+      chronologyLines: skippedLines,
+    },
     finalLedger: finalLedgerOf(snapshot ?? history),
     finalNet: finalNetOf(net),
   };

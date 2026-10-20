@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import { buildRunPacket, type StreamEvent } from "./build-run-packet.ts";
+import { renderRunPacket } from "./render-run-packet.ts";
 
 import type { SubmissionChronology } from "../../../src/server/observe-turn-chronology.ts";
 
@@ -168,6 +169,7 @@ const input = {
     event("tool_results_committed", 30_900, {}, "sub-2"),
   ],
   chronology: new Map([["sub-1", chronology]]),
+  skipped: { batches: 0, events: 0, chronologyLines: 0 },
   finalLedger: null,
   finalNet: null,
 };
@@ -252,6 +254,112 @@ test("an approval wait is kept out of Brunch's active time", () => {
     ledgerCommits: 1,
     longToolCalls: 1,
   });
+});
+
+test("an approval stopped before its tool returned is kept out of active time", () => {
+  const packet = buildRunPacket({
+    ...input,
+    submissions: [
+      { submissionId: "stop", acceptedAt: t0, settledAt: t0 + 60_000 },
+    ],
+    events: [
+      event("agent_start_run", 0, {}, "stop"),
+      event("assistant_message_started", 200, { turnId: "turn-a" }, "stop"),
+      event(
+        "assistant_tool_call",
+        400,
+        { toolCallId: "call-remove", name: "removeElements", arguments: {} },
+        "stop",
+      ),
+      event("assistant_message_completed", 1_000, { turnId: "turn-a" }, "stop"),
+      event("submission_settled", 60_000, { outcome: "aborted" }, "stop"),
+    ],
+    chronology: new Map(),
+  });
+  const [exchange] = packet.exchanges;
+
+  expect(exchange?.steps).toMatchObject([
+    { durationMs: 1_000, toolPhaseMs: 59_000, cutOffIn: "tools" },
+  ]);
+  expect(exchange).toMatchObject({
+    outcome: "aborted",
+    wallMs: 60_000,
+    approvalWaitMs: 59_000,
+    activeMs: 1_000,
+  });
+  expect(packet.summary.incomplete).toEqual({
+    unsettledExchanges: 0,
+    cutOffMessages: 0,
+    cutOffToolPhases: 1,
+  });
+});
+
+test("a message cut off mid-stream keeps its model time up to settlement", () => {
+  const packet = buildRunPacket({
+    ...input,
+    submissions: [
+      { submissionId: "stop", acceptedAt: t0, settledAt: t0 + 5_000 },
+    ],
+    events: [
+      event("agent_start_run", 0, {}, "stop"),
+      event("assistant_message_started", 100, { turnId: "turn-a" }, "stop"),
+      event("assistant_text_started", 2_000, { blockId: "x1" }, "stop"),
+      event("submission_settled", 5_000, { outcome: "aborted" }, "stop"),
+    ],
+    chronology: new Map(),
+  });
+  const [exchange] = packet.exchanges;
+
+  expect(exchange?.steps).toMatchObject([
+    { durationMs: 5_000, toolPhaseMs: 0, cutOffIn: "message" },
+  ]);
+  expect(exchange).toMatchObject({ modelMs: 5_000, otherMs: 0 });
+  expect(packet.summary.incomplete.cutOffMessages).toBe(1);
+});
+
+test("an unsettled exchange is counted but left out of the time sums, and the packet says so", () => {
+  const complete = buildRunPacket(input);
+  const packet = buildRunPacket({
+    ...input,
+    submissions: [
+      ...input.submissions,
+      { submissionId: "sub-3", acceptedAt: t0 + 40_000, settledAt: null },
+    ],
+    events: [
+      ...input.events,
+      event("agent_start_run", 40_000, {}, "sub-3"),
+      event("assistant_message_started", 40_100, { turnId: "turn-4" }, "sub-3"),
+      event(
+        "assistant_message_completed",
+        45_000,
+        { turnId: "turn-4", usage: { output: 10 } },
+        "sub-3",
+      ),
+    ],
+    skipped: { batches: 1, events: 0, chronologyLines: 0 },
+  });
+
+  expect(packet.version).toBe(2);
+  expect(packet.sources.skipped).toEqual({
+    batches: 1,
+    events: 0,
+    chronologyLines: 0,
+  });
+  expect(packet.summary).toMatchObject({
+    exchanges: 3,
+    incomplete: { unsettledExchanges: 1 },
+    steps: 4,
+    wallMs: complete.summary.wallMs,
+    activeMs: complete.summary.activeMs,
+    modelMs: complete.summary.modelMs,
+    usage: { outputTokens: complete.summary.usage.outputTokens + 10 },
+  });
+
+  const markdown = renderRunPacket(packet);
+  expect(markdown).toContain(
+    "- Incomplete run: 1 exchange never settled, left out of the time sums; 1 stream batch unreadable, skipped.",
+  );
+  expect(markdown).toContain("| 3 (unsettled) |");
 });
 
 test("without a chronology, argument streaming is unknown rather than zero", () => {

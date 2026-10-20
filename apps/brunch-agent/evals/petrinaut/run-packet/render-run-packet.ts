@@ -57,6 +57,30 @@ export const renderRunPacket = (packet: RunPacket): string => {
       "- No server-log chronology: argument-streaming times are unknown, and time before output includes argument streaming for steps without text.",
     );
   }
+  const { skipped } = packet.sources;
+  const { incomplete } = summary;
+  const gaps = [
+    [
+      incomplete.unsettledExchanges,
+      "never settled, left out of the time sums",
+      "exchange",
+    ],
+    [incomplete.cutOffMessages, "cut off before its message completed", "step"],
+    [
+      incomplete.cutOffToolPhases,
+      "cut off before its tool results were committed",
+      "step",
+    ],
+    [skipped.batches, "unreadable, skipped", "stream batch"],
+    [skipped.events, "malformed, skipped", "stream event"],
+    [skipped.chronologyLines, "unreadable, skipped", "chronology line"],
+  ] as const;
+  const found = gaps.flatMap(([count, what, noun]) =>
+    count === 0 ? [] : [`${count} ${noun}${count === 1 ? "" : "s"} ${what}`],
+  );
+  if (found.length > 0) {
+    lines.push(`- Incomplete run: ${found.join("; ")}.`);
+  }
   lines.push(
     "",
     "## Summary",
@@ -155,7 +179,9 @@ export const renderRunPacket = (packet: RunPacket): string => {
         "Skills",
       ],
       packet.exchanges.map((exchange) => [
-        String(exchange.index),
+        exchange.outcome === "completed"
+          ? String(exchange.index)
+          : `${exchange.index} (${exchange.outcome ?? (exchange.wallMs === null ? "unsettled" : "no outcome")})`,
         seconds(exchange.activeMs),
         seconds(exchange.untilFirstTextMs),
         String(exchange.steps.length),

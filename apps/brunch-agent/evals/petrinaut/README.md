@@ -52,7 +52,8 @@ Every persona run and probe ends by writing `evidence/packet.json` and `evidence
 - active time (wall time less approval waits) and time until the first reply text;
 - model steps, each split into time before first output (hidden reasoning), tool-argument streaming and reply text, and tool phases;
 - each step's shape (its tool categories, in order);
-- the tool mix, skill activations, Ledger commit sizes, net growth, tokens and cost.
+- the tool mix, skill activations, Ledger commit sizes, net growth, tokens and cost;
+- what it could not account for: exchanges that never settled (left out of the time sums), steps cut off mid-message or mid-tools, and stored records it could not read.
 
 [`run-packet.ts`](./run-packet.ts) reads `conversation.db` and, when present, the server log's `flue.submission chronology` lines, `run.json` and the evidence files. Without the server log, which the probe does not keep, argument-streaming times are unknown. To write or refresh packets for retained runs, which spends no model turns:
 
