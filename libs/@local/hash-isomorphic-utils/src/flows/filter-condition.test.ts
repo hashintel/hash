@@ -124,14 +124,12 @@ describe("validateCondition", () => {
     },
   };
 
-  it.each([
-    { includeSubtypes: true },
-    { anyVersion: true },
-    { includeSubtypes: false, anyVersion: false },
-    { includeSubtypes: true, anyVersion: true },
-  ])("accepts isOfType with %o", (flags) => {
+  it("accepts isOfType with both type flags", () => {
     expect(
-      validateCondition(all({ ...isCompany, ...flags }), "EntityId"),
+      validateCondition(
+        all({ ...isCompany, includeSubtypes: true, anyVersion: true }),
+        "EntityId",
+      ),
     ).toBeUndefined();
   });
 

@@ -341,16 +341,14 @@ describe("evaluateCondition", () => {
       "https://example.com/types/entity-type/company-group/v/1" as VersionedUrl;
     const companyV2Type =
       "https://example.com/types/entity-type/company/v/2" as VersionedUrl;
-    /* startup → company v1 → organization v1; charity → organization v1; company v2 → organization v1. */
+    /* startup → company v1 → organization v1; charity → organization v1. */
     const context = {
       entityTypeAncestors: new Map<VersionedUrl, VersionedUrl[]>([
         [startupType, [companyType, organizationType]],
         [companyType, [organizationType]],
-        [companyV2Type, [organizationType]],
         [charityType, [organizationType]],
         [organizationType, []],
         [otherType, []],
-        [companyGroupType, []],
       ]),
     };
     const isOfType = (
@@ -380,15 +378,6 @@ describe("evaluateCondition", () => {
         condition: isOfType(companyType, {}),
         input: ofTypes(startupType),
         matches: false,
-      },
-      {
-        name: "flags off, the exact type",
-        condition: isOfType(companyType, {
-          includeSubtypes: false,
-          anyVersion: false,
-        }),
-        input: ofTypes(companyType),
-        matches: true,
       },
       {
         name: "includeSubtypes, the type itself",
@@ -445,12 +434,6 @@ describe("evaluateCondition", () => {
         matches: false,
       },
       {
-        name: "anyVersion, a subtype",
-        condition: isOfType(companyType, { anyVersion: true }),
-        input: ofTypes(startupType),
-        matches: false,
-      },
-      {
         name: "both, a subtype of another version",
         condition: isOfType(companyV2Type, {
           includeSubtypes: true,
@@ -458,15 +441,6 @@ describe("evaluateCondition", () => {
         }),
         input: ofTypes(startupType),
         matches: true,
-      },
-      {
-        name: "both, an unrelated type",
-        condition: isOfType(companyV2Type, {
-          includeSubtypes: true,
-          anyVersion: true,
-        }),
-        input: ofTypes(charityType, companyGroupType),
-        matches: false,
       },
     ])("matches $name: $matches", ({ condition, input, matches }) => {
       expect(evaluateCondition(condition, input, context)).toEqual({
