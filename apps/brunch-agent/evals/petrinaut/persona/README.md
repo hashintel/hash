@@ -50,7 +50,7 @@ The helper speaks a Pi-style JSONL protocol to the bridge. Commands are `{ "id"?
 
 The persona stops by its own rule: when the person has what they came for, when the conversation is going nowhere, or when they run out of patience. It then runs `persona end` and tells you why it stopped. You, or an agent supervising the run, can force a stop at any point, for example after a chosen number of turns, with `<run>/bin/persona end`, or with Ctrl-C in the launcher when the agent runs in its own pane.
 
-**Persona runs have no automatic accounting cutoff.** The launcher disables the campaign accounting wrapper for Brunch even if `BRUNCH_STEP_A_ACCOUNTING` was inherited. `--max-messages <n>` stops the run once Brunch has replied to the persona's nth message; the case's opening is not counted, and the run packet is written as on any other stop. A live-provider run requires explicit model and spend authorization; the existence of this command grants none.
+**Persona runs have no automatic accounting cutoff.** The launcher disables the campaign accounting wrapper for Brunch even if `BRUNCH_STEP_A_ACCOUNTING` was inherited. `--max-messages <n>` stops the run once Brunch has replied to the persona's nth message; the case's opening is not counted, and the run packet is written as on any other stop. With `--hold`, the persona stopping, whether at that limit, by `persona end` or by its agent exiting, closes nothing: the bridge refuses any further persona messages and you carry on in the same Chrome window and conversation. Ctrl-C in the launcher (once a foreground agent has exited) or closing Chrome then stops the run as usual. A live-provider run requires explicit model and spend authorization; the existence of this command grants none.
 
 ## Guidance provenance
 
