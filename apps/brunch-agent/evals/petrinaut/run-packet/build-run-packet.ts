@@ -448,7 +448,11 @@ const buildExchange = (
       case "assistant_message_started":
         steps.push({
           turnId: stringField(payload, "turnId") ?? "",
-          requestStartAt: boundary,
+          // A previous step that committed no tool results runs until this start.
+          requestStartAt:
+            current === undefined || current.toolsCommittedAt !== null
+              ? boundary
+              : event.at,
           startedAt: event.at,
           completedAt: null,
           toolsCommittedAt: null,

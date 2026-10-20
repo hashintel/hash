@@ -317,6 +317,46 @@ test("a message cut off mid-stream keeps its model time up to settlement", () =>
   expect(packet.summary.incomplete.cutOffMessages).toBe(1);
 });
 
+test("a step after a cut-off one starts where the cut-off one ends, so no span counts twice", () => {
+  const packet = buildRunPacket({
+    ...input,
+    submissions: [
+      { submissionId: "gap", acceptedAt: t0, settledAt: t0 + 10_000 },
+    ],
+    events: [
+      event("agent_start_run", 0, {}, "gap"),
+      // Cut off in its tools: no `tool_results_committed` follows.
+      event("assistant_message_started", 200, { turnId: "turn-a" }, "gap"),
+      event(
+        "assistant_tool_call",
+        400,
+        { toolCallId: "call-a", name: "addPlace", arguments: {} },
+        "gap",
+      ),
+      event("assistant_message_completed", 1_000, { turnId: "turn-a" }, "gap"),
+      // Cut off mid-message: no `assistant_message_completed` follows.
+      event("assistant_message_started", 3_000, { turnId: "turn-b" }, "gap"),
+      event("assistant_message_started", 6_000, { turnId: "turn-c" }, "gap"),
+      event("assistant_message_completed", 9_000, { turnId: "turn-c" }, "gap"),
+      event("submission_settled", 10_000, { outcome: "completed" }, "gap"),
+    ],
+    chronology: new Map(),
+  });
+  const [exchange] = packet.exchanges;
+
+  expect(exchange?.steps).toMatchObject([
+    { durationMs: 1_000, toolPhaseMs: 2_000, cutOffIn: "tools" },
+    { durationMs: 3_000, toolPhaseMs: 0, cutOffIn: "message" },
+    { durationMs: 3_000, toolPhaseMs: 0, cutOffIn: null },
+  ]);
+  expect(exchange).toMatchObject({
+    wallMs: 10_000,
+    modelMs: 7_000,
+    toolPhaseMs: 2_000,
+    otherMs: 1_000,
+  });
+});
+
 test("an unsettled exchange is counted but left out of the time sums, and the packet says so", () => {
   const complete = buildRunPacket(input);
   const packet = buildRunPacket({
