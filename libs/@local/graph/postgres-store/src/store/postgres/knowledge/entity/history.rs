@@ -37,7 +37,6 @@ impl EntityHistory {
         history
     }
 
-    #[cfg(test)]
     pub(super) fn get(
         &self,
         entity_id: EntityId,

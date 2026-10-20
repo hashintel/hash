@@ -1,19 +1,76 @@
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::error::UpdateError;
 use tokio_postgres::GenericClient as _;
+use type_system::{
+    ontology::entity_type::EntityTypeUuid,
+    principal::actor::{ActorEntityUuid, ActorId},
+};
 
+use super::EntityPatchSet;
 use crate::store::{
     AsClient, InTransaction, PostgresStore,
     postgres::{
-        knowledge::entity::history::EntityHistory,
+        knowledge::entity::{
+            history::EntityHistory,
+            insert_entity_edition_cache_statement,
+            provenance::{SqlEntityEditionProvenance, SqlEntityProvenance},
+        },
         query::{
             bulk_insert,
-            rows::{EntityTemporalMetadataRow, PostgresRow},
+            rows::{EntityEditionRow, EntityTemporalMetadataRow, PostgresRow},
         },
     },
 };
 
 impl<C: AsClient> PostgresStore<C, InTransaction> {
+    /// Flushes a fully resolved batch to the current transaction, including intermediate editions
+    /// returned to the caller. Temporal history is persisted in its final state after all patches.
+    #[tracing::instrument(level = "info", skip(self, patches))]
+    pub(crate) async fn write_entity_patch_set(
+        &self,
+        actor_id: ActorId,
+        patches: &EntityPatchSet,
+    ) -> Result<(), Report<UpdateError>> {
+        if patches.changed.is_empty() {
+            return Ok(());
+        }
+
+        let editions: Vec<_> = patches
+            .changed_entities()
+            .map(|entity| {
+                let provenance =
+                    SqlEntityEditionProvenance::from(entity.metadata.provenance.edition.clone());
+                EntityEditionRow {
+                    entity_edition_id: entity.metadata.record_id.edition_id,
+                    properties: entity.properties.clone(),
+                    archived: entity.metadata.archived,
+                    confidence: entity.metadata.confidence,
+                    provenance: provenance.json,
+                    property_metadata: entity.metadata.properties.clone(),
+                    created_by_id: provenance.created_by_id,
+                }
+            })
+            .collect();
+        self.insert_rows(&editions).await?;
+        for draft in &patches.drafts {
+            self.insert_rows(core::slice::from_ref(draft)).await?;
+        }
+        self.insert_entity_patch_types(patches).await?;
+        self.update_entity_history(&patches.history).await?;
+        self.update_entity_patch_provenance(actor_id, patches)
+            .await?;
+        for edition_id in &patches.changed {
+            self.as_client()
+                .execute(
+                    &insert_entity_edition_cache_statement(true),
+                    &[&[edition_id].as_slice()],
+                )
+                .await
+                .change_context(UpdateError)?;
+        }
+        Ok(())
+    }
+
     async fn insert_rows<R: PostgresRow + Sync>(
         &self,
         rows: &[R],
@@ -29,9 +86,63 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         Ok(())
     }
 
+    /// Records inherited types at their shortest inheritance depth alongside direct memberships.
+    async fn insert_entity_patch_types(
+        &self,
+        patches: &EntityPatchSet,
+    ) -> Result<(), Report<UpdateError>> {
+        for entity in patches.changed_entities() {
+            let edition_id = entity.metadata.record_id.edition_id;
+            let type_ids: Vec<_> = entity
+                .metadata
+                .entity_type_ids
+                .iter()
+                .map(EntityTypeUuid::from_url)
+                .collect();
+            self.as_client()
+                .execute(
+                    "
+                    INSERT INTO entity_is_of_type (
+                        entity_edition_id, entity_type_ontology_id, inheritance_depth
+                    )
+                    SELECT
+                        $1 AS entity_edition_id,
+                        unnest($2::UUID []) AS entity_type_ontology_id,
+                        0 AS inheritance_depth
+                    ",
+                    &[&edition_id, &type_ids],
+                )
+                .await
+                .change_context(UpdateError)?;
+            self.as_client()
+                .execute(
+                    "
+                    INSERT INTO entity_is_of_type (
+                        entity_edition_id, entity_type_ontology_id, inheritance_depth
+                    )
+                    SELECT
+                        entity_is_of_type.entity_edition_id,
+                        entity_type_inherits_from.target_entity_type_ontology_id,
+                        min(entity_type_inherits_from.depth + 1) AS inheritance_depth
+                    FROM entity_is_of_type
+                    INNER JOIN entity_type_inherits_from
+                        ON entity_is_of_type.entity_type_ontology_id = \
+                     entity_type_inherits_from.source_entity_type_ontology_id
+                    WHERE entity_is_of_type.entity_edition_id = $1
+                    GROUP BY entity_is_of_type.entity_edition_id, \
+                     entity_type_inherits_from.target_entity_type_ontology_id
+                    ",
+                    &[&edition_id],
+                )
+                .await
+                .change_context(UpdateError)?;
+        }
+        Ok(())
+    }
+
     /// Applies the final temporal diff while preserving the non-overlap constraints.
     /// Existing live intervals must be closed before draft rows can become live.
-    pub(crate) async fn update_entity_history(
+    async fn update_entity_history(
         &self,
         history: &EntityHistory,
     ) -> Result<(), Report<UpdateError>> {
@@ -132,6 +243,46 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
                     parameters
                         .into_iter()
                         .map(|(_, column)| column.into_values()),
+                )
+                .await
+                .change_context(UpdateError)?;
+        }
+        Ok(())
+    }
+
+    /// Keeps first-publication timestamps on the entity and records who archived each live edition
+    /// superseded by draft publication.
+    async fn update_entity_patch_provenance(
+        &self,
+        actor_id: ActorId,
+        patches: &EntityPatchSet,
+    ) -> Result<(), Report<UpdateError>> {
+        for (id, publication) in &patches.publications {
+            self.as_client()
+                .execute(
+                    "
+                    UPDATE entity_ids
+                    SET provenance = provenance || $3::JSONB
+                    WHERE web_id = $1 AND entity_uuid = $2
+                    ",
+                    &[
+                        &id.web_id,
+                        &id.entity_uuid,
+                        &SqlEntityProvenance::from(publication.clone()).json,
+                    ],
+                )
+                .await
+                .change_context(UpdateError)?;
+        }
+        for edition_id in &patches.archived {
+            self.as_client()
+                .execute(
+                    "
+                    UPDATE entity_editions
+                    SET provenance = provenance || jsonb_build_object('archivedById', $2::UUID)
+                    WHERE entity_edition_id = $1
+                    ",
+                    &[edition_id, &ActorEntityUuid::from(actor_id)],
                 )
                 .await
                 .change_context(UpdateError)?;
