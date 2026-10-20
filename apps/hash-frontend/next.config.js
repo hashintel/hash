@@ -216,6 +216,7 @@ export default withSentryConfig(
         "zrender",
         "@hashintel/query-editor",
         "@local/advanced-types",
+        "@local/flow-petri-net",
         "@local/hash-graph-client",
         "@local/hash-isomorphic-utils",
         "react-syntax-highlighter",
