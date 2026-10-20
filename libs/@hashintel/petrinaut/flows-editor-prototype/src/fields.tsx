@@ -491,6 +491,7 @@ const readParts = (element: HTMLElement): TemplatePart[] => {
 export const MentionField = ({ step, input, entry }: FieldProps) => {
   const { document, setDocument, ui, setUi } = useEditor();
   const editorRef = useRef<HTMLDivElement>(null);
+  const fieldRef = useRef<HTMLDivElement>(null);
   const key = fieldKey(step.stepId, input.name);
   const stored = document.templates[key];
   const fallback = step.inputs[input.name];
@@ -595,6 +596,7 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
 
   return (
     <div
+      ref={fieldRef}
       className={css({ display: "flex", flexDirection: "column", gap: "1" })}
     >
       <div
@@ -626,7 +628,7 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
       ) : null}
       {mention ? (
         <SourceMenu
-          anchor={editorRef}
+          anchor={fieldRef}
           stepId={step.stepId}
           input={input}
           entry={entry}

@@ -101,7 +101,8 @@ const rowStyle = css({
   display: "grid",
   gridTemplateColumns: "[112px 1fr]",
   columnGap: "3",
-  alignItems: "start",
+  // Baselines line the key up with the first line of any value: a chip, a field or plain text.
+  alignItems: "baseline",
   paddingX: "4",
   paddingY: "[6px]",
   minHeight: "[32px]",
@@ -110,7 +111,6 @@ const rowStyle = css({
 const keyStyle = css({
   fontSize: "sm",
   color: "neutral.s90",
-  paddingTop: "[6px]",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",

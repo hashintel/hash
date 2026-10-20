@@ -10,7 +10,7 @@ import {
   ReactFlow,
   useReactFlow,
 } from "@xyflow/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -573,9 +573,13 @@ export const FlowCanvas = ({
   >({});
 
   const flow = useReactFlow<StepNode>();
+  // On first load, wait for the initial fit to finish before panning to the selection.
+  const loaded = useRef(false);
 
   // Keep the selected step in view, left of the properties panel.
   useEffect(() => {
+    const delay = loaded.current ? 150 : 600;
+    loaded.current = true;
     if (!ui.selectedId) {
       return;
     }
@@ -613,7 +617,7 @@ export const FlowCanvas = ({
           )
           .catch(() => undefined);
       }
-    }, 60);
+    }, delay);
     return () => clearTimeout(timer);
   }, [ui.selectedId, flow]);
 

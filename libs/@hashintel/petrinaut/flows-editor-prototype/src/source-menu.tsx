@@ -53,7 +53,7 @@ const groupLabelStyle = css({
 });
 
 export const menuPanelStyle = css({
-  width: "[300px]",
+  width: "[236px]",
   maxHeight: "[380px]",
   overflowY: "auto",
   backgroundColor: "neutral.s00",
@@ -247,7 +247,7 @@ export const SourceMenu = ({
   return (
     <Popover
       triggerRef={anchor}
-      position="bottom-start"
+      position="bottom-end"
       gapY={4}
       onClose={onClose}
     >
@@ -256,6 +256,18 @@ export const SourceMenu = ({
         role="dialog"
         aria-label={`Choose ${input.label}`}
       >
+        {query === undefined ? null : (
+          <div
+            className={css({
+              paddingX: "2",
+              paddingY: "1",
+              fontSize: "xs",
+              color: "neutral.s90",
+            })}
+          >
+            @{query || " type to search values"}
+          </div>
+        )}
         {hideSearch || query !== undefined ? null : (
           <div className={css({ paddingBottom: "1" })}>
             <TextInput
@@ -349,9 +361,7 @@ export const SourceMenu = ({
                       className={css({
                         flex: "1",
                         minWidth: "[0]",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        overflowWrap: "anywhere",
                       })}
                     >
                       {group === "Earlier steps"

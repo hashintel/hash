@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   Banner,
@@ -516,9 +516,15 @@ const EntityTriggerCard = () => {
 /** How runs start, kept outside the flow (ledger, 8–9 Oct). A proposal: the team hasn't discussed it yet (20 Oct). */
 export const TriggersDialog = () => {
   const { document, setUi } = useEditor();
+  const doneRef = useRef<HTMLButtonElement>(null);
   const close = () => setUi((ui) => ({ ...ui, triggersOpen: false }));
   return (
-    <Dialog size="md" onClose={close} aria-label="How runs start">
+    <Dialog
+      size="md"
+      onClose={close}
+      aria-label="How runs start"
+      initialFocusRef={doneRef as React.RefObject<HTMLElement>}
+    >
       <Dialog.Header
         title="How runs start"
         description="Proposal · not discussed with the team yet"
@@ -545,7 +551,7 @@ export const TriggersDialog = () => {
       </Dialog.Body>
       <Dialog.Footer
         actions={
-          <Button variant="solid" onClick={close}>
+          <Button ref={doneRef} variant="solid" onClick={close}>
             Done
           </Button>
         }
