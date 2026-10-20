@@ -125,6 +125,13 @@ COPY apps/petrinaut-opt/src ./src
 # built workspace packages it resolves.
 COPY --from=bindings-runtime / /opt/petrinaut-runtime
 
+# Distrust until updated base image removes compromised intermediate CAs, see: https://bugs.debian.org/1151413
+RUN sed -i \
+    -e 's|^mozilla/emSign_ECC_Root_CA_-_G3.crt|!&|' \
+    -e 's|^mozilla/Comodo_AAA_Services_root.crt|!&|' \
+    /etc/ca-certificates.conf && \
+    update-ca-certificates
+
 # `petrinaut` is the command the bindings spawn by default, and they give the
 # child a fixed PATH of /usr/local/bin:/usr/bin:/bin, so it is linked there.
 RUN chmod +x /opt/petrinaut-runtime/node_modules/.bin/petrinaut && \

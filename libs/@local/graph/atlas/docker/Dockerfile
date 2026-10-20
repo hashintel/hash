@@ -107,7 +107,7 @@ RUN cuda="${CUDA_VERSION%.*}" && \
     cuda="${cuda/./-}" && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-    "cuda-nvrtc-${cuda}" "cuda-cudart-dev-${cuda}" "cuda-cccl-${cuda}" && \
+    "cuda-nvrtc-${cuda}" "cuda-cudart-dev-${cuda}" "cuda-cccl-${cuda}" ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     ldconfig && \
