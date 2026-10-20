@@ -17,7 +17,7 @@ const temporaryRun = async () => {
   return run;
 };
 
-test("the fresh brief assembles the role, command guide, opening exchange and pack in order", async () => {
+test("the fresh brief assembles the role, command guide, opening to send and pack in order", async () => {
   const run = await temporaryRun();
   const [brief, system] = await Promise.all([
     readFile(
@@ -26,7 +26,6 @@ test("the fresh brief assembles the role, command guide, opening exchange and pa
         helper: "/tmp/run/bin/persona",
         objective: undefined,
         opening: "PUBLIC opening",
-        reply: "BRUNCH reply",
         pack: "PRIVATE pack",
       }),
       "utf8",
@@ -39,14 +38,15 @@ test("the fresh brief assembles the role, command guide, opening exchange and pa
     "## How to talk to Brunch",
     '/tmp/run/bin/persona say "<your message>"',
     "/tmp/run/bin/persona end",
-    "## Conversation so far",
+    "## Starting the conversation",
+    "/tmp/run/bin/persona open",
     "PUBLIC opening",
-    "BRUNCH reply",
     "## Situation pack",
     "PRIVATE pack",
   ].map((part) => brief.indexOf(part));
   expect(order.every((index) => index >= 0)).toBe(true);
   expect(order).toEqual([...order].sort((left, right) => left - right));
+  expect(brief).toContain("Nothing has been sent yet.");
 });
 
 test("an objective is placed after the command guide and before the conversation", async () => {
@@ -57,7 +57,6 @@ test("an objective is placed after the command guide and before the conversation
       helper: "persona",
       objective: "TEST objective",
       opening: "Hi",
-      reply: "Hello",
       pack: "Pack",
     }),
     "utf8",
@@ -65,7 +64,7 @@ test("an objective is placed after the command guide and before the conversation
   const order = [
     "## How to talk to Brunch",
     "## What you're after today\n\nTEST objective",
-    "## Conversation so far",
+    "## Starting the conversation",
   ].map((part) => brief.indexOf(part));
   expect(order.every((index) => index >= 0)).toBe(true);
   expect(order).toEqual([...order].sort((left, right) => left - right));
@@ -85,6 +84,7 @@ test("the resume notice points back to the original brief and forbids resending"
   expect(notice).toContain(join(run, "persona-brief.md"));
   expect(notice).toContain("/tmp/run/bin/persona transcript");
   expect(notice).toContain("WAS received. Do not resend it");
+  expect(notice).toContain("do not run `open`");
   expect(notice).toContain("settled as: aborted");
   expect(notice).toContain("No reply prose was retained.");
 });
