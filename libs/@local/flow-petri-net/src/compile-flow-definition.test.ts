@@ -21,6 +21,12 @@ import * as integrationFlows from "@local/hash-isomorphic-utils/flows/definition
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
 import { compileFlowDefinition } from "./compile-flow-definition.js";
+import { generateInstanceKey } from "./compile-flow-definition/shared/step-places.js";
+import {
+  generateCopyKey,
+  itemValueKey,
+  outputValueKey,
+} from "./compile-flow-definition/shared/value-places.js";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 import type {
@@ -100,7 +106,9 @@ const colorAt = (
 
 /** The colour of the port a step's instance takes an input through. */
 const inputPortColor = (sdcpn: SDCPN, stepId: string, inputName: string) => {
-  const instance = sdcpn.componentInstances?.find(byKey(`i.${stepId}`));
+  const instance = sdcpn.componentInstances?.find(
+    byKey(generateInstanceKey(stepId)),
+  );
   const subnet = sdcpn.subnets?.find(({ id }) => id === instance?.subnetId);
   const port = subnet?.places.find(
     ({ isPort, name }) => isPort && name === inputName,
@@ -119,7 +127,9 @@ const idsOf = (sdcpn: SDCPN) => [
 const portEndpointOf = (componentInstanceId: string, portKey: string) =>
   ({
     kind: "componentPort",
-    componentInstanceId: toPetrinautId(`i.${componentInstanceId}`),
+    componentInstanceId: toPetrinautId(
+      generateInstanceKey(componentInstanceId),
+    ),
     portPlaceId: toPetrinautId(portKey),
   }) as const;
 
@@ -210,7 +220,7 @@ describe("compileFlowDefinition", () => {
   }
 
   it("gives every place, transition and instance a distinct id, whatever the step ids", async () => {
-    /* A step id can be any string without `~`, including the key of a place. */
+    /* A step id can be any string without the step run id separator, including the key of a place. */
     const sdcpn = await compileFlowDefinition(
       defineFlow(
         {
@@ -342,7 +352,9 @@ describe("compileFlowDefinition", () => {
     );
 
     const copyFor = (stepId: string) =>
-      placeEndpointOf(`p.item.each~${stepId}.url`);
+      placeEndpointOf(
+        `p.${generateCopyKey(itemValueKey("each"), `${stepId}.url`)}`,
+      );
 
     expect(
       sdcpn.transitions
@@ -401,8 +413,8 @@ describe("compileFlowDefinition", () => {
 
     const maxRetriesOf = (stepId: string) =>
       Object.values(
-        sdcpn.componentInstances?.find(byKey(`i.${stepId}`))?.parameterValues ??
-          {},
+        sdcpn.componentInstances?.find(byKey(generateInstanceKey(stepId)))
+          ?.parameterValues ?? {},
       );
 
     expect(maxRetriesOf("retried")).toEqual(["5"]);
@@ -498,7 +510,10 @@ describe("compileFlowDefinition", () => {
 
     const copyPlace = (stepId: string) =>
       placeEndpointOf(
-        `p.output.research.proposedEntities~${stepId}.proposedEntities`,
+        `p.${generateCopyKey(
+          outputValueKey("research", "proposedEntities"),
+          `${stepId}.proposedEntities`,
+        )}`,
       );
 
     const routeInputArc = (sdcpn: SDCPN, stepId: string) =>
@@ -635,7 +650,10 @@ describe("compileFlowDefinition", () => {
           "p.failedStepRuns",
           "p.input.prompt",
           "p.output.research.proposedEntities",
-          "p.output.research.proposedEntities~persist0.proposedEntities",
+          `p.${generateCopyKey(
+            outputValueKey("research", "proposedEntities"),
+            "persist0.proposedEntities",
+          )}`,
           "p.pending.persist0",
           "p.pending.persist1",
           "p.pending.research",
@@ -655,7 +673,9 @@ describe("compileFlowDefinition", () => {
         ]),
       );
       expect(sdcpn.componentInstances?.map(({ id }) => id)).toEqual(
-        ["i.research", "i.persist0", "i.persist1"].map(toPetrinautId),
+        ["research", "persist0", "persist1"].map((stepId) =>
+          toPetrinautId(generateInstanceKey(stepId)),
+        ),
       );
     });
   });

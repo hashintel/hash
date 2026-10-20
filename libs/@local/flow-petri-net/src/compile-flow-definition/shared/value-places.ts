@@ -1,3 +1,5 @@
+import { stepRunIdSeparator } from "@local/hash-isomorphic-utils/flows/step-run-id";
+
 import { outputPortId } from "./action-subnet-ids.js";
 import { getActionDefinition } from "./flow-steps.js";
 import {
@@ -7,7 +9,7 @@ import {
   placeEndpoint,
   portEndpoint,
 } from "./net-elements.js";
-import { instanceKey } from "./step-places.js";
+import { generateInstanceKey } from "./step-places.js";
 
 import type { FlowSteps, ValueShape } from "./flow-steps.js";
 import type { NetBuilder } from "./net-builder.js";
@@ -55,6 +57,13 @@ export const inputValueKey = (inputId: string) => `input.${inputId}`;
 
 export const outputValueKey = (stepId: string, output: string) =>
   `output.${stepId}.${output}`;
+
+/**
+ * The key of a value's copy for one consumer to take. Step ids, part of both keys, can't contain the separator,
+ * so no two copies' keys collide.
+ */
+export const generateCopyKey = (valueKey: string, consumerKey: string) =>
+  `${valueKey}${stepRunIdSeparator}${consumerKey}`;
 
 /** The value a for-each step gives the steps inside it: the item each of their runs is for. */
 export const itemValueKey = (forEachStepId: string) => `item.${forEachStepId}`;
@@ -221,7 +230,7 @@ export const placeValues = ({
 
     if (value.producer.kind === "port") {
       const port = portEndpoint(
-        instanceKey(value.producer.stepId),
+        generateInstanceKey(value.producer.stepId),
         value.producer.portId,
       );
 
@@ -265,8 +274,7 @@ export const placeValues = ({
         consumer.key,
         placeEndpoint(
           net.addPlace({
-            /* `~` separates the value from its consumer: step ids, part of both, can't contain it. */
-            id: `p.${value.key}~${consumer.key}`,
+            id: `p.${generateCopyKey(value.key, consumer.key)}`,
             name: `${value.name} → ${consumer.name}`,
             description: `${value.name}, for ${consumer.name} to consume.`,
             colorId,
@@ -290,7 +298,9 @@ export const placeValues = ({
           description: `Puts the ${outputName} output of step ${stepId} where each step that reads or consumes it takes it from.`,
           role: "copyOutput",
           metadata: { stepId, outputName },
-          inputArcs: [inputArc(portEndpoint(instanceKey(stepId), portId))],
+          inputArcs: [
+            inputArc(portEndpoint(generateInstanceKey(stepId), portId)),
+          ],
           outputArcs: producedInto.map(outputArc),
         }),
       );
