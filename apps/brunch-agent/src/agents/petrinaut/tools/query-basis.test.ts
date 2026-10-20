@@ -330,6 +330,7 @@ test("query_basis matches a reflection that names an arc by Petrinaut's generate
     }),
   ).toMatchObject({
     disposition: "basis-declared",
+    target: { id: "$A_place:queue___serve" },
     basis: { reflections: [{ id: "r1" }] },
   });
 });

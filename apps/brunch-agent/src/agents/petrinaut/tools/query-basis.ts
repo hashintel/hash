@@ -101,7 +101,7 @@ const netElements = (
         name: element.name,
       })),
     );
-  // An arc is identified by its transition and endpoint, not a standalone ID.
+  // An arc is selected by its transition and endpoint, and identified by the ID Petrinaut generates from them.
   return net.transitions.flatMap((transition) => {
     const arcElements = (
       arcDirection: ArcElement["arcDirection"],
@@ -115,9 +115,10 @@ const netElements = (
           arc.endpoint?.kind === "place"
             ? arc.endpoint.placeId
             : (arc.placeId ?? "");
+        const element = { transitionId: transition.id, arcDirection, placeId };
         return {
-          arc: { transitionId: transition.id, arcDirection, placeId },
-          id: `${transition.id}:${arcDirection}:${placeId}`,
+          arc: element,
+          id: generatedArcId(element),
           name: `${transition.name} ${arcDirection}`,
         };
       });
@@ -148,10 +149,7 @@ const basisContent = (trace: LedgerTrace) => ({
 const namesTarget =
   (kind: Selector["kind"], target: Omit<NetElement, "kind">) =>
   (address: NetElementAddress) =>
-    address.kind === kind &&
-    (namesId(address.id, target.id) ||
-      (target.arc !== undefined &&
-        namesId(address.id, generatedArcId(target.arc))));
+    address.kind === kind && namesId(address.id, target.id);
 
 /** The Ledger revision current when a call was made. */
 const ledgerRevisionAt = (

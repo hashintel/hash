@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 
+import { generatedArcId } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { queryBasis } from "../../agents/petrinaut/tools/query-basis.ts";
@@ -347,7 +348,13 @@ test("query_basis matches a root arc to canonical addArc by transition, directio
       },
     }),
   ).toMatchObject({
-    target: { id: `${toPetrinautId("serve")}:input:${toPetrinautId("queue")}` },
+    target: {
+      id: generatedArcId({
+        transitionId: toPetrinautId("serve"),
+        arcDirection: "input",
+        placeId: toPetrinautId("queue"),
+      }),
+    },
     changes: [
       { toolCallId: "delete-arc", operation: "deleteItemsByIds" },
       {
